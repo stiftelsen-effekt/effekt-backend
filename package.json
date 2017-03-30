@@ -1,0 +1,24 @@
+{
+  "name": "stiftelsen-effekt-backend",
+  "version": "0.0.1",
+  "description": "Backend for stiftelsen effekt sitt donasjonsystem",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fellmirr/effekt-backend.git"
+  },
+  "author": "Håkon Harnes",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fellmirr/effekt-backend/issues"
+  },
+  "homepage": "https://github.com/fellmirr/effekt-backend#readme",
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "express": "^4.15.2",
+    "mongodb": "^2.2.25"
+  }
+}
