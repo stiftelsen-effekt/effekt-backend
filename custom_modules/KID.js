@@ -7,8 +7,6 @@ module.exports = class KID {
             return Math.floor(9 * Math.random()) + 1;
         }).join("")
 
-        KID = "123456" + (Math.floor(9 * Math.random()) + 1)
-
         KID = KID + this.luhn_caclulate(KID)
 
         return KID

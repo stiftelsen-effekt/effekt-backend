@@ -9,6 +9,7 @@ const bodyParser = require('body-parser')
 const pretty = require('express-prettify');
 const mongoose = require('mongoose')
 const validator = require('validator')
+const moment = require('moment')
 
 //Custom modules
 const KID = require('./custom_modules/KID.js')
@@ -54,6 +55,11 @@ const Donation = mongoose.model('Donation', new Schema({
     type: Number,
     required: true
   },
+  KID: {
+    type: Number,
+    minlength: 8,
+    maxlength: 8
+  },
   registered: {
     type: Date,
     default: Date.now()
@@ -61,7 +67,15 @@ const Donation = mongoose.model('Donation', new Schema({
   verified: {
     type: Boolean
   },
-  split: [DonationSplit]
+  split: {
+    type: [DonationSplit],
+    validate: [(v) => { 
+      return (v.reduce((acc, elem, i) => { 
+        if (i == 1) return acc.share + elem.share
+        return acc + elem.share
+      }) == 100)
+    }, 'Donation shares do not add up to 100']
+  }
 }))
 
 const Organization = mongoose.model('Organization', new Schema({
@@ -112,61 +126,118 @@ app.post("/users", urlEncodeParser, (req,res) => {
 app.post("/donations", urlEncodeParser, (req,res) => {
   if (!req.body) return res.sendStatus(400)
 
-  const donationOrganizations = JSON.parse(req.body.organizations)
-  const totalSplit = donationOrganizations.reduce((acc, org, i) => { 
-    if (i == 1) return acc.split + org.split 
-    return acc + org.split
-  })
+  var donationOrganizations = JSON.parse(req.body.organizations)
 
-  console.log("Amount: " + req.body.amount)
-  console.log("Total split: " + totalSplit)
-  if (totalSplit == 100) {
-    Organization.find(
-      { name: 
-        { $in: donationOrganizations.map((org) => { return org.name }) 
-      }
-    }, (err, orgs) => {
-      if (err) return console.log(err)
+  Organization.find(
+    { name: 
+      { $in: donationOrganizations.map((org) => { return org.name }) 
+    }
+  }, (err, orgs) => {
+    if (err) return (console.log(err), res.sendStatus(500))
 
-      var donationSplits = []
+    if (orgs.length != donationOrganizations.length) return res.json({ status: 400, content: "Could not find all organizations passed" })
 
-      var donationObject = {
-        amount: req.body.amount,
-        split: []
-      }
+    var donationSplits = []
 
-      for (var i = 0; i < orgs.length; i++) {
-        for (var j = 0; j < donationOrganizations.length; j++) {
-          console.log("Iteration")
-          console.log("Is " + donationOrganizations[j].name + " == " + orgs[i].name)
+    var donationObject = {
+      amount: req.body.amount,
+      verified: true,
+      split: []
+    }
 
-          if (donationOrganizations[j].name == orgs[i].name) {
-            console.log("Push");
+    for (var i = 0; i < orgs.length; i++) {
+      for (var j = 0; j < donationOrganizations.length; j++) {
+        if (donationOrganizations[j].name == orgs[i].name) {
+          donationObject.split.push({
+            organizationID: orgs[i]._id,
+            share: donationOrganizations[j].split
+          })
 
-            donationObject.split.push({
-              organizationID: orgs[i]._id,
-              share: donationOrganizations[j].split
-            })
-          }
+          donationOrganizations.splice(j,1)
+          orgs.splice(i,1)
+          i--
+
+          break
         }
       }
+    }
 
-      Donation.create(donationObject, (err, obj) => {
-        if (err) console.log(err)
-      });
+    generateKID((kid) => {
+      donationObject.KID = kid
 
-      return res.json({ status: 200, content: 'OKOK' })
+      Donation.create(donationObject, (err) => {
+        if (err) {
+          var returnErrors = [];
+          for (error in err.errors) {
+            let errorElem = err.errors[error]
+            if (errorElem.name == "ValidatorError") returnErrors.push(errorElem.message)
+          }
+
+          if (returnErrors.length > 0)  return res.json({ status: 400, content: returnErrors })
+          else return res.sendStatus(500)
+        }
+        else {
+          return res.json({ status: 200, content: 'ok' })
+        }
+      })
     })
-  } else {
-    return res.json({ status: 400, content: 'Donation split does not add up to 100' })
-  }
+  })
 })
 
 app.get("/donations", urlEncodeParser, (req, res) => {
   Donation.find({}, (err, obj) => {
-    if (err) return res.json({ status: 400, content: 'Malformed request' })
+    if (err) return res.json({ status: 400, content: "Malformed request" })
 
     return res.json(obj)
+  })
+})
+
+app.get('/donations/total', urlEncodeParser, (req, res) => {
+  if (!req.query) return res.json({ status: 400, content: "Malformed request" })
+
+  if (!moment(req.query.fromDate, moment.ISO_8601, true).isValid() || !moment(req.query.toDate, moment.ISO_8601, true).isValid()) return res.json({ status: 400, content: "date must be in ISO 8601 format" })
+
+  let fromDate = new Date(req.query.fromDate)
+  let toDate = new Date(req.query.toDate)
+
+  Donation.aggregate([
+    {
+      $match: {
+        verified: true,
+        registered: { 
+          $gte: fromDate,
+          $lt: toDate
+        }
+      }
+    },
+    {
+      $project: {
+        split: 1,
+        amount: 1
+      }
+    },
+    {
+      $unwind: "$split"
+    },
+    {
+      $project: {
+        result: {
+          $multiply: ["$amount", "$split.share", 0.01]
+        },
+        organizationID: "$split.organizationID"
+      }
+    },
+    {
+      $group: {
+        _id: "$organizationID",
+        sum: {
+          $sum: "$result"
+        }
+      }
+    }
+  ], (err, donations) => {
+    if (err) return res.json({ status: 400, content: err })
+    return res.json({ status: 200, content: donations })
   })
 })
 
@@ -174,26 +245,42 @@ app.get("/donations", urlEncodeParser, (req, res) => {
 app.get("/organizations", urlEncodeParser, (req, res) => {
   var orgName = req.query.name
 
-  Organization.findOne({ name: orgName }, (err, org) => {    
-    if (org) {
-      console.log(org)
+  if (orgName) {
+    Organization.findOne({ name: orgName }, (err, organization) => {    
+      if (organization) {
+        console.log(organization)
 
-      res.json({
-        satus: 200,
-        content: {
-          name: org.name,
-          standardShare: org.standardShare,
-          shortDesc: org.shortDesc
-        }
-      })
-    }
-    else {
-      res.json({
-        status: 404,
-        content: "No organization found with that name"
-      })
-    }
-  })
+        res.json({
+          satus: 200,
+          content: {
+            name: organization.name,
+            standardShare: organization.standardShare,
+            shortDesc: organization.shortDesc
+          }
+        })
+      }
+      else {
+        res.json({
+          status: 404,
+          content: "No organization found with that name"
+        })
+      }
+    })
+  } else {
+    Organization.find({}, (err, organizations) => {
+      if (organizations) {
+        res.json({
+          status: 200,
+          content: organizations
+        }) 
+      } else {
+        res.json({
+          status: 404,
+          content: "Found no organizations"
+        })
+      }
+    })
+  }
 })
 
 app.post("/organizations", urlEncodeParser, (req,res) => {
@@ -217,14 +304,13 @@ app.post("/organizations", urlEncodeParser, (req,res) => {
 
 //Helper functions
 function generateKID(cb) {
-  var userKID = new KID().generate()
-  console.log(userKID)
+  var donationKID = new KID().generate()
 
-  var duplicates = User.count({ KID: userKID }, (err, count) => {
+  var duplicates = Donation.count({ KID: donationKID }, (err, count) => {
     if (count > 0) {
-      userKID = generateKID(cb)
+      donationKID = generateKID(cb)
     } else {
-      cb(userKID)
+      cb(donationKID)
     }
   })
 }
