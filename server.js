@@ -31,11 +31,6 @@ const User = mongoose.model('User', new Schema({
     uniqe: true,
     required: true,
     validate: validator.isEmail
-  },
-  KID: {
-    type: String,
-    required: true,
-    maxlength: 12
   }
 }))
 
@@ -107,10 +102,13 @@ app.listen(3000, () => {
 app.post("/users", urlEncodeParser, (req,res) => {
     if (!req.body) return res.sendStatus(400)
 
-    generateKID((userKID) => {
+    User.count({ mail: req.body.email }, (err, count) => {
+      if (count > 0) return res.json({ status: 400, content: "Email is already taken" })
+
+      console.log(count)
+
       User.create({
-        mail: req.body.email,
-        KID: userKID
+        mail: req.body.email
       }, (err, something) => {
         if (err) console.log(err)
       })
