@@ -18,6 +18,13 @@ const app = express()
 
 app.use(pretty({ query: 'pretty' }))
 
+app.use(function (req, res, next) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+});
+
 const Schema = mongoose.Schema
 const urlEncodeParser =bodyParser.urlencoded({ extended: false })
 
@@ -100,22 +107,26 @@ app.listen(3000, () => {
 
 //User
 app.post("/users", urlEncodeParser, (req,res) => {
-    if (!req.body) return res.sendStatus(400)
+    if (!req.body.data) return res.sendStatus(400)
 
-    User.count({ mail: req.body.email }, (err, count) => {
+    var data = JSON.parse(req.body.data)
+
+    console.log(data)
+
+    User.count({ mail: data.email }, (err, count) => {
       if (count > 0) return res.json({ status: 400, content: "Email is already taken" })
 
       console.log(count)
 
       User.create({
-        mail: req.body.email
+        mail: data.email
       }, (err, something) => {
-        if (err) console.log(err)
-      })
+        if (err) return res.json( { status: 400, content: "Malformed request" } )
 
-      res.json({
-        status: 200,
-        content: "Success"
+        return res.json({
+          status: 200,
+          content: "Success"
+        })
       })
     })
 })
@@ -279,6 +290,17 @@ app.get("/organizations", urlEncodeParser, (req, res) => {
       }
     })
   }
+})
+
+app.get("/organizations/active", urlEncodeParser, (req,res) => {
+  Organization.find({ active: true }).
+  select('name standardShare longDesc').
+  sort({ standardShare: -1 }).
+  exec((err, organizations) => {
+    if (err) return res.json({ status: 400, content: "Internal error" })
+
+    return res.json({ status: 200, content: organizations })
+  });
 })
 
 app.post("/organizations", urlEncodeParser, (req,res) => {
