@@ -19,6 +19,7 @@
   "dependencies": {
     "body-parser": "^1.17.1",
     "express": "^4.15.2",
+    "express-fileupload": "^0.1.2",
     "mongoose": "^4.9.2",
     "validator": "^7.0.0"
   }
