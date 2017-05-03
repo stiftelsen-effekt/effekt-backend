@@ -6,18 +6,30 @@ const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
 const moment = require('moment')
 const KID = require('../custom_modules/KID.js')
+const Mail = require('../custom_modules/mail.js')
 
 const Donation = require('../models/donation.js')
 const DonationSplit = require('../models/donationSplit.js')
 
+const Organization = require('../models/organization.js')
+
+const MailSender = new Mail()
+
 router.post("/", urlEncodeParser, (req,res) => {
   if (!req.body) return res.sendStatus(400)
 
-  var donationOrganizations = JSON.parse(req.body.organizations)
+  console.log(req.body)
+
+  var parsedData = JSON.parse(req.body.data)
+
+  var donationOrganizations = parsedData.organizations
+  var userID = req.body.data.userID
+
+  console.log(donationOrganizations.map((org) => org.id) )
 
   Organization.find(
-    { name: 
-      { $in: donationOrganizations.map((org) => { return org.name }) 
+    { _id: 
+      { $in: donationOrganizations.map((org) => org.id) 
     }
   }, (err, orgs) => {
     if (err) return (console.log(err), res.sendStatus(500))
@@ -27,16 +39,17 @@ router.post("/", urlEncodeParser, (req,res) => {
     var donationSplits = []
 
     var donationObject = {
-      amount: req.body.amount,
+      owner: userID,
+      amount: parsedData.amount,
       verified: true,
       split: []
     }
 
     for (var i = 0; i < orgs.length; i++) {
       for (var j = 0; j < donationOrganizations.length; j++) {
-        if (donationOrganizations[j].name == orgs[i].name) {
+        if (donationOrganizations[j].id == orgs[i].id) {
           donationObject.split.push({
-            organizationID: orgs[i]._id,
+            organizationID: orgs[i].id,
             share: donationOrganizations[j].split
           })
 
@@ -64,7 +77,9 @@ router.post("/", urlEncodeParser, (req,res) => {
           else return res.sendStatus(500)
         }
         else {
-          return res.json({ status: 200, content: 'ok' })
+          return res.json({ status: 200, content: {
+            KID: kid
+          } })
         }
       })
     })
@@ -77,54 +92,26 @@ router.get("/", urlEncodeParser, (req, res) => {
 
     return res.json(obj)
   })
+
+  MailSender.send('SomeSubject', 'Some message', (err, body) => {
+    if (err) return console.log(err)
+    console.log(body)
+  })
 })
 
 router.get('/total', urlEncodeParser, (req, res) => {
+  //Check if no parameters
   if (!req.query) return res.json({ status: 400, content: "Malformed request" })
 
+  //Check if dates are valid ISO 8601
   if (!moment(req.query.fromDate, moment.ISO_8601, true).isValid() || !moment(req.query.toDate, moment.ISO_8601, true).isValid()) return res.json({ status: 400, content: "date must be in ISO 8601 format" })
 
   let fromDate = new Date(req.query.fromDate)
   let toDate = new Date(req.query.toDate)
 
-  Donation.aggregate([
-    {
-      $match: {
-        verified: true,
-        registered: { 
-          $gte: fromDate,
-          $lt: toDate
-        }
-      }
-    },
-    {
-      $project: {
-        split: 1,
-        amount: 1
-      }
-    },
-    {
-      $unwind: "$split"
-    },
-    {
-      $project: {
-        result: {
-          $multiply: ["$amount", "$split.share", 0.01]
-        },
-        organizationID: "$split.organizationID"
-      }
-    },
-    {
-      $group: {
-        _id: "$organizationID",
-        sum: {
-          $sum: "$result"
-        }
-      }
-    }
-  ], (err, donations) => {
-    if (err) return res.json({ status: 400, content: err })
-    return res.json({ status: 200, content: donations })
+  Donation.getTotalAggregatedDonations(fromDate, toDate, (err, result) => {
+    if (err) res.json({ status: 400, content: err })
+    else res.json({ status: 200, content: result })
   })
 })
 
