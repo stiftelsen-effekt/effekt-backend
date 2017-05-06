@@ -1,24 +1,36 @@
 const config = require('../config.js')
+
+const template = require('./template.js')
+
 const request = require('request')
+const fs = require('fs')
 
 class Mail {
-    send(subject, msg, cb) {
-        request.post({
-            url: 'https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages',
-            auth: {
-                user: 'api',
-                password: config.mailgun_api_key
-            },
-            formData: {
-                from: 'Excited User <mailgun@mg.stiftelseneffekt.no>',
-                to: 'hakon@harnes.me',
-                subject: 'Hello',
-                text: 'Testing some Mailgun awesomness!'
+    send(options, cb) {
+        fs.readFile(appRoot + '/mail_templates/' + options.templateName + ".htm", 'utf8', (err, templateHtml) => {
+            if (err) {
+                cb('Error reading mail template')
+                return console.log(err)
             }
-        }, (err, res, body) => {
-            if (err) return cb(err)
 
-            return cb(null, body)
+            request.post({
+                url: 'https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages',
+                auth: {
+                    user: 'api',
+                    password: config.mailgun_api_key
+                },
+                formData: {
+                    from: 'Stifelsen Effekt <mailgun@mg.stiftelseneffekt.no>',
+                    to: 'hakon@harnes.me',
+                    subject: 'Hello',
+                    text: 'Your mail client does not support HTML email',
+                    html: template(templateHtml, options.templateData)
+                }
+            }, (err, res, body) => {
+                if (err) return cb(err)
+
+                return cb(null, body)
+            })
         })
     }
 }
