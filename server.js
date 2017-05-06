@@ -1,3 +1,4 @@
+
 console.log("Loading config")
 
 const config = require('./config.js')
@@ -8,12 +9,16 @@ const express = require('express')
 const fileUpload = require('express-fileupload')
 const pretty = require('express-prettify')
 const mongoose = require('mongoose')
+const path = require('path')
 
 //Routes
 const usersRoute = require('./routes/users.js')
 const donationsRout = require('./routes/donations.js')
 const organizationsRoute = require('./routes/organizations.js')
 const ocrParserRoute = require('./routes/ocrParser.js')
+
+//Set global application variable root path
+global.appRoot = path.resolve(__dirname)
 
 const app = express()
 
