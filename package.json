@@ -2,7 +2,7 @@
   "name": "stiftelsen-effekt-backend",
   "version": "0.0.1",
   "description": "Backend for stiftelsen effekt sitt donasjonsystem",
-  "main": "server.js",
+  "main": "app.js",
   "engines": {
     "node": "6.9.1"
   },
