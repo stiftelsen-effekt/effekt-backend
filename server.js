@@ -1,7 +1,14 @@
-
 console.log("Loading config")
 
 const config = require('./config.js')
+
+if (typeof config.db_connection_string === "undefined" ||
+    typeof config.mailgun_api_key === "undefined" || 
+    typeof config.port === "undefined") {
+  
+  console.error(('\x1b[' + '31' + 'm') + "Error: " + ('\x1b[' + '37' + 'm') + "Change config.js in root before running") 
+  process.exit()
+}
 
 console.log("Loading dependencies")
 
@@ -47,6 +54,6 @@ console.log("Connecting to DB")
 mongoose.connect(config.db_connection_string)
 
 //Server
-app.listen(3000, () => {
+app.listen(config.port, () => {
   console.log('listening on 3000')
 })
