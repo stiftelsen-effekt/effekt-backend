@@ -80,6 +80,29 @@ router.post("/", urlEncodeParser, (req,res) => {
           return res.json({ status: 200, content: {
             KID: kid
           } })
+
+          MailSender.send({
+            subject: 'Some subject',
+            reciever: 'bob@bob.com',
+            templateName: 'thanks',
+            templateData: {
+              header: "This is the header!",
+              showOrganizations: true,
+              organizations: [{
+                name: "AMF",
+                amount: 300
+              }, {
+                name: "AMF",
+                amount: 300
+              }, {
+                name: "AMF",
+                amount: 300
+              }]
+            }
+          }, (err, body) => {
+            if (err) return console.log(err)
+            console.log(body)
+          })
         }
       })
     })
@@ -91,29 +114,6 @@ router.get("/", urlEncodeParser, (req, res) => {
     if (err) return res.json({ status: 400, content: "Malformed request" })
 
     return res.json(obj)
-  })
-
-  MailSender.send({
-    subject: 'Some subject',
-    reciever: 'bob@bob.com',
-    templateName: 'thanks',
-    templateData: {
-      header: "This is the header!",
-      showOrganizations: true,
-      organizations: [{
-        name: "AMF",
-        amount: 300
-      }, {
-        name: "AMF",
-        amount: 300
-      }, {
-        name: "AMF",
-        amount: 300
-      }]
-    }
-  }, (err, body) => {
-    if (err) return console.log(err)
-    console.log(body)
   })
 })
 
