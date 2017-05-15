@@ -38,4 +38,11 @@ router.get('/:id', (req,res) => {
   })
 })
 
+router.get('/test', (req,res) => {
+  return res.json({
+    status: 200,
+    content: "Hello world"
+  })
+})
+
 module.exports = router
