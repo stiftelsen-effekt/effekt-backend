@@ -31,13 +31,6 @@ router.post("/", urlEncodeParser, (req,res) => {
     })
 })
 
-router.get('/:id', (req,res) => {
-  return res.json({
-    status: 200,
-    content: req.params.id
-  })
-})
-
 router.get('/test', (req,res) => {
   return res.json({
     status: 200,
