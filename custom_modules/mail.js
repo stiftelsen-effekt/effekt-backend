@@ -21,7 +21,7 @@ class Mail {
                 },
                 formData: {
                     from: 'Stifelsen Effekt <mailgun@mg.stiftelseneffekt.no>',
-                    to: 'hakon@harnes.me',
+                    to: options.reciever,
                     subject: 'Hello',
                     text: 'Your mail client does not support HTML email',
                     html: template(templateHtml, options.templateData)
