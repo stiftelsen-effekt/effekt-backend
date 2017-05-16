@@ -1,0 +1,7 @@
+language: node_js
+node_js:
+  "7"
+
+deploy:
+  provider: azure_web_apps
+  verbose: true

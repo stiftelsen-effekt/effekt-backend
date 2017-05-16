@@ -3,8 +3,9 @@ const Schema = mongoose.Schema
 
 const DonationSplit = new Schema({
   organizationID: {
-    type: String,
-    required: true
+    type: Schema.Types.ObjectId,
+    required: true,
+    ref: 'organizations'
   },
   share: {
     type: Number,
