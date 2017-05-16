@@ -100,13 +100,34 @@ DonationSchema.statics.getTotalAggregatedDonations = (from, to, cb) => {
         },
         organizationID: "$split.organizationID"
       }
-    },
+    }
+    ,
     {
       $group: {
         _id: "$organizationID",
         sum: {
           $sum: "$result"
         }
+      }
+    }
+    ,
+    {
+      $lookup:
+      {
+        from: "organizations",
+        localField: "_id",
+        foreignField: "_id",
+        as: "org"
+      }
+    },
+    {
+      $unwind: "$org"
+    },
+    {
+      $project: {
+        result: "$result",
+        sum: "$sum",
+        org: "$org.name"
       }
     }
   ], (err, result) => {

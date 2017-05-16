@@ -14,7 +14,7 @@ router.post("/", urlEncodeParser, (req,res) => {
     console.log(data)
 
     User.count({ mail: data.email }, (err, count) => {
-      if (count > 0) return res.json({ status: 400, content: "Email is already taken" })
+      if (count > 0) return res.json({ status: 200, content: "User already exists" })
 
       console.log(count)
 
@@ -25,16 +25,16 @@ router.post("/", urlEncodeParser, (req,res) => {
 
         return res.json({
           status: 200,
-          content: "Success"
+          content: "User created"
         })
       })
     })
 })
 
-router.get('/:id', (req,res) => {
+router.get('/test', (req,res) => {
   return res.json({
     status: 200,
-    content: req.params.id
+    content: "Hello world"
   })
 })
 

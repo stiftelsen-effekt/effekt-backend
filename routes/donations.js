@@ -50,7 +50,8 @@ router.post("/", urlEncodeParser, (req,res) => {
         if (donationOrganizations[j].id == orgs[i].id) {
           donationObject.split.push({
             organizationID: orgs[i].id,
-            share: donationOrganizations[j].split
+            share: donationOrganizations[j].split,
+            name: orgs[i].name
           })
 
           donationOrganizations.splice(j,1)
@@ -77,32 +78,30 @@ router.post("/", urlEncodeParser, (req,res) => {
           else return res.sendStatus(500)
         }
         else {
-          return res.json({ status: 200, content: {
-            KID: kid
-          } })
+          console.log(parsedData.user)
 
           MailSender.send({
             subject: 'Some subject',
-            reciever: 'bob@bob.com',
+            reciever: parsedData.user,
             templateName: 'thanks',
             templateData: {
               header: "This is the header!",
-              showOrganizations: true,
-              organizations: [{
-                name: "AMF",
-                amount: 300
-              }, {
-                name: "AMF",
-                amount: 300
-              }, {
-                name: "AMF",
-                amount: 300
-              }]
+              donationAmount: donationObject.amount,
+              organizations: donationObject.split.map(function(split) {
+                return {
+                  name: split.name,
+                  amount: donationObject.amount * split.share * 0.01
+                }
+              })
             }
           }, (err, body) => {
             if (err) return console.log(err)
             console.log(body)
           })
+
+          return res.json({ status: 200, content: {
+            KID: kid
+          } })
         }
       })
     })

@@ -7,6 +7,7 @@ const fs = require('fs')
 
 class Mail {
     send(options, cb) {
+        console.log(options)
         fs.readFile(appRoot + '/mail_templates/' + options.templateName + ".htm", 'utf8', (err, templateHtml) => {
             if (err) {
                 cb('Error reading mail template')
@@ -21,7 +22,7 @@ class Mail {
                 },
                 formData: {
                     from: 'Stifelsen Effekt <mailgun@mg.stiftelseneffekt.no>',
-                    to: 'hakon@harnes.me',
+                    to: options.reciever,
                     subject: 'Hello',
                     text: 'Your mail client does not support HTML email',
                     html: template(templateHtml, options.templateData)

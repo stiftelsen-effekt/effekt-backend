@@ -17,6 +17,11 @@ const fileUpload = require('express-fileupload')
 const pretty = require('express-prettify')
 const mongoose = require('mongoose')
 const path = require('path')
+const rateLimit = require('express-rate-limit');
+ 
+
+ 
+
 
 //Routes
 const usersRoute = require('./routes/users.js')
@@ -35,6 +40,18 @@ app.use(pretty({ 
 app.use(fileUpload({ 
   limits: { fileSize: 10 * 1024 * 1024 } //Probably totally overkill, consider reducing
 }))
+app.enable('trust proxy')
+
+const limiter = new rateLimit({
+  windowMs: 15*60*1000, // 15 minutes
+  //limit each IP to 10 000 requests per windowMs (10 000 requests in 15 minutes)
+  //Why so many? Becuse of shared IP's such as NTNU campus.
+  max: 10000, 
+  delayMs: 0 // disable delaying - full speed until the max limit is reached 
+})
+//apply rate limiting to all requests
+app.use(limiter)
+
 
 app.use(function (req, res, next) {
     res.setHeader('Access-Control-Allow-Origin', '*')
