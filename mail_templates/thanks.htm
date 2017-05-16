@@ -3,16 +3,14 @@
     <head></head>
     <body>
         <h1><%this.header%></h1>
-
-        <%if(this.showOrganizations) {%>
-            <ul>
-            <%for(var i = 0; i < this.organizations.length; i++) {%>
-                <li>
-                    <h3><%this.organizations[i].name%></h3>
-                    <font><%this.organizations[i].amount%></font>
-                </li>
-            <%}%>
-            </ul>
+        
+        <ul>
+        <%for(var i = 0; i < this.organizations.length; i++) {%>
+            <li>
+                <h3><%this.organizations[i].name%></h3>
+                <font><%this.organizations[i].amount%></font>
+            </li>
         <%}%>
+        </ul>
     </body>
 </html>
