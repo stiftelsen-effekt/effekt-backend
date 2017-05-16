@@ -7,6 +7,7 @@ const fs = require('fs')
 
 class Mail {
     send(options, cb) {
+        console.log(options)
         fs.readFile(appRoot + '/mail_templates/' + options.templateName + ".htm", 'utf8', (err, templateHtml) => {
             if (err) {
                 cb('Error reading mail template')
