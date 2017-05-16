@@ -18,14 +18,10 @@ const MailSender = new Mail()
 router.post("/", urlEncodeParser, (req,res) => {
   if (!req.body) return res.sendStatus(400)
 
-  console.log(req.body)
-
   var parsedData = JSON.parse(req.body.data)
 
   var donationOrganizations = parsedData.organizations
   var userID = req.body.data.userID
-
-  console.log(donationOrganizations.map((org) => org.id) )
 
   Organization.find(
     { _id: 
@@ -78,8 +74,6 @@ router.post("/", urlEncodeParser, (req,res) => {
           else return res.sendStatus(500)
         }
         else {
-          console.log(parsedData.user)
-
           MailSender.send({
             subject: 'Some subject',
             reciever: parsedData.user,
