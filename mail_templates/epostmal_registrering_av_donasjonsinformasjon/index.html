@@ -32,8 +32,6 @@
             body[yahoo] .buttonwrapper {background-color: transparent!important;}
             body[yahoo] .button {padding: 0px!important;}
             body[yahoo] .unsubscribe {display: block; margin-top: 20px; padding: 10px 50px; background: #8e8989; border-radius: 5px; text-decoration: none!important; font-weight: bold;}
-            /*.innerbody {padding: 10px 0 0 0; font-size: 16px; line-height: 22px;}
-            .tableRow {padding: 0 0 0 0; font-size: 16px; line-height: 22px;}*/
         }
     </style>
 </head>
@@ -48,7 +46,7 @@
                         <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:640px; padding: 0 0 0 0;">
                             <tr>
                                 <td height="auto" style="padding: 0 0 0 0;">
-                                    <img class="emailHeaderImage" src="images/eff" border="0" alt="Stiftelsen Effekt" />
+                                    <img class="emailHeaderImage" src="images/epostmal_header_image.png" border="0" alt="Stiftelsen Effekt" />
                                 </td>
                             </tr>
                         </table>
@@ -56,7 +54,7 @@
                         <table width="100%" style="max-width:640px;" align="center" cellpadding="0" cellspacing="0" border="0">
                             <tr>
                                 <td>
-                                    <img src="images/epost_gieffektivt.png" width="100%" />
+                                    <img src="images/epostmal_header_image.png" width="100%" />
                                 </td>
                             </tr>
                         </table>
@@ -68,7 +66,7 @@
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td class="h2">
-                                    Hei Maria,
+                                    Hei {{fornavn}},
                                 </td>
                             </tr>
                             <tr>
@@ -108,7 +106,7 @@
                                                             <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
                                                                     <td class="tableRow">
-                                                                        1234.34.4567
+                                                                        {{kontonummer_donor}}
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -138,7 +136,7 @@
                                                             <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
                                                                     <td class="tableRow">
-                                                                        1234567890
+                                                                        {{kid_donor}}
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -168,7 +166,7 @@
                                                             <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
                                                                     <td class="tableRow">
-                                                                        50 000 kr
+                                                                        {{sum_donasjon}} kr
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -204,6 +202,46 @@
                                 </td>
                             </tr>
                         </table>
+
+                        <!--
+                        for loop for å sette inn tabell med motakerorganisasjon, sum og prosentandel til hver:
+
+                        for elements in fordeling_av_donasjon_mottakerorganisasjon:
+
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td>
+                                    <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td class="boldTableRow">
+                                                {{mottakerorganisasjon_navn}}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    &lt;!&ndash;[if (gte mso 9)|(IE)]>
+                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td>
+                                    <![endif]&ndash;&gt;
+                                    <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td class="tableRow">
+                                                {{mottakerorganisasjon_antall_kroner}} kr ({{mottakerorganisasjon_antall_prosentandel_av_sum} %)
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    &lt;!&ndash;[if (gte mso 9)|(IE)]>
+                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td>
+                                    <![endif]&ndash;&gt;
+                                 </td>
+                            </tr>
+                        </table>
+
+                        -->
+
+                        <!-- Eksempel med mottakertabell med 3 mottakerorganisasjoner -->
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td>
@@ -294,6 +332,8 @@
                                 </td>
                             </tr>
                         </table>
+                        <!-- eksempel ferdig -->
+
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td>
@@ -312,7 +352,7 @@
                                     <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
                                             <td class="tableRow">
-                                                50 000 kr
+                                                {{sum_donasjon}} kr
                                             </td>
                                         </tr>
                                     </table>
@@ -332,7 +372,7 @@
                             <tr>
                                 <td class="bodycopy">
                                     Hvis du ønsker å donere med samme fordeling senere kan du bruke samme KID-nummer igjen.
-                                    Du står helt fritt til å endre beløpet du domerer.<br/><br/>
+                                    Du står helt fritt til å endre beløpet du donerer.<br/><br/>
                                     Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
                                     ved å sende en til<br/>
                                     <a href= "mailto:donasjon@stiftelseneffekt.no" style="color: #153643;"><font color="#153643">donasjon@stiftelseneffekt.no</a><br/><br/>
