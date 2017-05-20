@@ -6,3 +6,10 @@ deploy:
   provider: azure_web_apps
   on: production
   verbose: true
+
+notifications:
+  email: false
+  slack:
+    rooms:
+      - effektteam:E4fggEJ9TPpFLTpgn4eNEnGy#prosjekt_automagi
+    on_success: never
