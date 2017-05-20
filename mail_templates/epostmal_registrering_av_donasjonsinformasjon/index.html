@@ -11,21 +11,18 @@
         .innerpadding {padding: 30px 30px 30px 30px;}
         .borderbottom {border-bottom: 1px solid #f2eeed;}
         .subhead {font-size: 15px; color: #ffffff; font-family: sans-serif; letter-spacing: 10px;}
-        .h1, .h2, .h3, .h4, .bodycopy, .innerbody, .innerbody2 {color: #153643; font-family: sans-serif;}
+        .h1, .h2, .h3, .h4, .bodycopy, .boldTableRow, .tableRow {color: #153643; font-family: sans-serif;}
         .h1 {font-size: 33px; line-height: 38px; font-weight: bold;}
         .h2 {padding: 0 0 15px 0; font-size: 24px; line-height: 28px; font-weight: bold;}
         .h3 {padding: 0 0 15px 0; font-size: 18px; line-height: 26px; font-weight: bold;}
         .h4 {padding: 0 0 15px 0; font-size: 16px; line-height: 19px; font-weight: bold;}
-        .right{padding: 0 15px 0 0 !important;text-align: right;}
-        .innerbody {padding: 0 0 0 0; font-size: 16px; line-height: 22px;}
-        .innerbody2 {padding: 0 0 10px 0; font-size: 16px; line-height: 22px;}
+        .boldTableRow {padding: 0 0 0 0; font-size: 16px; line-height: 22px; font-weight: bold}
+        .tableRow {padding: 0 0 10px 0; font-size: 16px; line-height: 22px;}
         .bodycopy {font-size: 16px; line-height: 22px;}
-        .button {text-align: center; font-size: 18px; font-family: sans-serif; font-weight: bold; padding: 0 30px 0 30px;}
-        .button a {color: #ffffff; text-decoration: none;}
         .footer {padding: 20px 30px 15px 30px;}
         .footercopy {font-family: sans-serif; font-size: 16px; color: #ffffff;}
         .footercopy a {color: #ffffff; text-decoration: underline;}
-        .emailImage {
+        .emailHeaderImage {
             height:auto !important;
             max-width:600px !important;
             width: 100% !important;
@@ -34,10 +31,7 @@
             body[yahoo] .hide {display: none!important;}
             body[yahoo] .buttonwrapper {background-color: transparent!important;}
             body[yahoo] .button {padding: 0px!important;}
-            body[yahoo] .button a {background-color: #e05443; padding: 15px 15px 13px!important;}
             body[yahoo] .unsubscribe {display: block; margin-top: 20px; padding: 10px 50px; background: #8e8989; border-radius: 5px; text-decoration: none!important; font-weight: bold;}
-            /*.innerbody {padding: 10px 0 0 0; font-size: 16px; line-height: 22px;}
-            .innerbody2 {padding: 0 0 0 0; font-size: 16px; line-height: 22px;}*/
         }
     </style>
 </head>
@@ -52,7 +46,7 @@
                         <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:640px; padding: 0 0 0 0;">
                             <tr>
                                 <td height="auto" style="padding: 0 0 0 0;">
-                                    <img class="emailImage" src="http://temp.testi.at/9db18758ecdcf515f6ab95dd9780eaf8/5707306acdef3b7c11c40e28a0b12369.png" border="0" alt="Stiftelsen Effekt" />
+                                    <img class="emailHeaderImage" src="images/epostmal_header_image.png" border="0" alt="Stiftelsen Effekt" />
                                 </td>
                             </tr>
                         </table>
@@ -60,7 +54,7 @@
                         <table width="100%" style="max-width:640px;" align="center" cellpadding="0" cellspacing="0" border="0">
                             <tr>
                                 <td>
-                                    <img src="http://temp.testi.at/9db18758ecdcf515f6ab95dd9780eaf8/5707306acdef3b7c11c40e28a0b12369.png" width="100%" />
+                                    <img src="images/epostmal_header_image.png" width="100%" />
                                 </td>
                             </tr>
                         </table>
@@ -72,7 +66,7 @@
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td class="h2">
-                                    Hei Maria,
+                                    Hei {{fornavn}},
                                 </td>
                             </tr>
                             <tr>
@@ -99,8 +93,8 @@
                                                         <td>
                                                             <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
-                                                                    <td class="innerbody">
-                                                                        <b>Kontonummer</b>
+                                                                    <td class="boldTableRow">
+                                                                        Kontonummer
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -111,8 +105,8 @@
                                                             <![endif]-->
                                                             <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
-                                                                    <td class="innerbody2">
-                                                                        1234.34.4567
+                                                                    <td class="tableRow">
+                                                                        {{kontonummer_donor}}
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -129,8 +123,8 @@
                                                         <td>
                                                             <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
-                                                                    <td class="innerbody">
-                                                                        <b>KID</b>
+                                                                    <td class="boldTableRow">
+                                                                        KID
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -141,8 +135,8 @@
                                                             <![endif]-->
                                                             <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
-                                                                    <td class="innerbody2">
-                                                                        1234567890
+                                                                    <td class="tableRow">
+                                                                        {{kid_donor}}
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -159,8 +153,8 @@
                                                         <td>
                                                             <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
-                                                                    <td class="innerbody">
-                                                                        <b>Sum</b>
+                                                                    <td class="boldTableRow">
+                                                                        Sum
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -171,8 +165,8 @@
                                                             <![endif]-->
                                                             <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
-                                                                    <td class="innerbody2">
-                                                                        50 000 kr
+                                                                    <td class="tableRow">
+                                                                        {{sum_donasjon}} kr
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -208,13 +202,53 @@
                                 </td>
                             </tr>
                         </table>
+
+                        <!--
+                        for loop for å sette inn tabell med motakerorganisasjon, sum og prosentandel til hver:
+
+                        for elements in fordeling_av_donasjon_mottakerorganisasjon:
+
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td>
                                     <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
-                                            <td class="innerbody">
-                                                <b>Against Malaria Foundation</b>
+                                            <td class="boldTableRow">
+                                                {{mottakerorganisasjon_navn}}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    &lt;!&ndash;[if (gte mso 9)|(IE)]>
+                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td>
+                                    <![endif]&ndash;&gt;
+                                    <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td class="tableRow">
+                                                {{mottakerorganisasjon_antall_kroner}} kr ({{mottakerorganisasjon_antall_prosentandel_av_sum} %)
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    &lt;!&ndash;[if (gte mso 9)|(IE)]>
+                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td>
+                                    <![endif]&ndash;&gt;
+                                 </td>
+                            </tr>
+                        </table>
+
+                        -->
+
+                        <!-- Eksempel med mottakertabell med 3 mottakerorganisasjoner -->
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td>
+                                    <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td class="boldTableRow">
+                                                Against Malaria Foundation
                                             </td>
                                         </tr>
                                     </table>
@@ -225,7 +259,7 @@
                                     <![endif]-->
                                     <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
-                                            <td class="innerbody2">
+                                            <td class="tableRow">
                                                 30 000 kr (60 %)
                                             </td>
                                         </tr>
@@ -243,8 +277,8 @@
                                 <td>
                                     <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
-                                            <td class="innerbody">
-                                                <b>Schistosomiasis Control Initiative</b>
+                                            <td class="boldTableRow">
+                                                Schistosomiasis Control Initiative
                                             </td>
                                         </tr>
                                     </table>
@@ -255,7 +289,7 @@
                                     <![endif]-->
                                     <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
-                                            <td class="innerbody2">
+                                            <td class="tableRow">
                                                 10 000 kr (20 %)
                                             </td>
                                         </tr>
@@ -273,8 +307,8 @@
                                 <td>
                                     <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
-                                            <td class="innerbody">
-                                                <b>GiveDirectly</b>
+                                            <td class="boldTableRow">
+                                                GiveDirectly
                                             </td>
                                         </tr>
                                     </table>
@@ -285,7 +319,7 @@
                                     <![endif]-->
                                     <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
-                                            <td class="innerbody2">
+                                            <td class="tableRow">
                                                 10 000 kr (20 %)
                                             </td>
                                         </tr>
@@ -298,13 +332,15 @@
                                 </td>
                             </tr>
                         </table>
+                        <!-- eksempel ferdig -->
+
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td>
                                     <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
-                                            <td class="innerbody">
-                                                <b>Totalt</b>
+                                            <td class="boldTableRow">
+                                                Totalt
                                             </td>
                                         </tr>
                                     </table>
@@ -315,8 +351,8 @@
                                     <![endif]-->
                                     <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
-                                            <td class="innerbody2">
-                                                50 000 kr
+                                            <td class="tableRow">
+                                                {{sum_donasjon}} kr
                                             </td>
                                         </tr>
                                     </table>
@@ -336,7 +372,7 @@
                             <tr>
                                 <td class="bodycopy">
                                     Hvis du ønsker å donere med samme fordeling senere kan du bruke samme KID-nummer igjen.
-                                    Du står helt fritt til å endre beløpet du domerer.<br/><br/>
+                                    Du står helt fritt til å endre beløpet du donerer.<br/><br/>
                                     Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
                                     ved å sende en til<br/>
                                     <a href= "mailto:donasjon@stiftelseneffekt.no" style="color: #153643;"><font color="#153643">donasjon@stiftelseneffekt.no</a><br/><br/>
@@ -371,7 +407,7 @@
                                         <tr>
                                             <td>
                                                 <a href="http://www.stiftelseneffekt.no/">
-                                                    <img src="http://temp.testi.at/9db18758ecdcf515f6ab95dd9780eaf8/0d9285deb46320dd5aaeedfc52e2ed57.png" alt="Stiftelsen Effekt" width="75" height="75" style="display: block;" border="0" />
+                                                    <img src="images/stiftelseneffekt.png" alt="Stiftelsen Effekt" width="75" height="75" style="display: block;" border="0" />
                                                 </a>
                                             </td>
                                         </tr>
