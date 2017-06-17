@@ -110,14 +110,17 @@ function sendDonationReciept(donationObject, user) {
   MailSender.send({
     subject: 'Some subject',
     reciever: user,
-    templateName: 'thanks',
+    templateName: 'registered',
     templateData: {
-      header: "GiEffektivt.no - Overfør din donasjon",
-      donationAmount: donationObject.amount,
+      header: "Hei, ",
+      donationSum: donationObject.amount,
+      kid: donationObject.KID,
       organizations: donationObject.split.map(function(split) {
         return {
           name: split.name,
-          amount: donationObject.amount * split.share * 0.01
+          //Add splitting zeroes regex at end of amount
+          amount: (donationObject.amount * split.share * 0.01).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "),
+          percentage: split.share
         }
       })
     }

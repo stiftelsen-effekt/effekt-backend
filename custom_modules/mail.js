@@ -8,11 +8,13 @@ const fs = require('fs')
 class Mail {
     send(options, cb) {
         console.log(options)
-        fs.readFile(appRoot + '/mail_templates/' + options.templateName + ".htm", 'utf8', (err, templateHtml) => {
+        fs.readFile(appRoot + '/mail_templates/' + options.templateName + "/index.html", 'utf8', (err, templateHtml) => {
             if (err) {
                 cb('Error reading mail template')
                 return console.log(err)
             }
+
+            var templateHTML = template(templateHtml, options.templateData)
 
             request.post({
                 url: 'https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages',
@@ -25,7 +27,7 @@ class Mail {
                     to: options.reciever,
                     subject: 'Hello',
                     text: 'Your mail client does not support HTML email',
-                    html: template(templateHtml, options.templateData)
+                    html: templateHTML
                 }
             }, (err, res, body) => {
                 if (err) return cb(err)
