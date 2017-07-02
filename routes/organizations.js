@@ -1,7 +1,8 @@
 const express = require('express')
 const router = express.Router()
 
-const Organization = require('../models/organization.js')
+//const Organization = require('../models/organization.js')
+const DAO = require('../custom_modules/DAO.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
@@ -47,34 +48,26 @@ router.get("/", urlEncodeParser, (req, res) => {
   }
 })
 
-router.get("/active", urlEncodeParser, (req,res) => {
-  Organization.find({ active: true }).
-  select('name standardShare longDesc').
-  sort({ standardShare: -1 }).
-  exec((err, organizations) => {
-    if (err) return res.json({ status: 400, content: "Internal error" })
+router.get("/active", urlEncodeParser, async (req,res) => {
+  try {
+    var activeOrganizations = await DAO.organizations.getActive()
 
-    return res.json({ status: 200, content: organizations })
-  });
-})
-
-router.post("/", urlEncodeParser, (req,res) => {
-    if (!req.body) return res.sendStatus(400)
-
-    Organization.create({
-      name: req.body.name,
-      standardShare: req.body.standardShare,
-      shortDesc: req.body.shortDesc,
-      longDesc: req.body.longDesc,
-      active: (req.body.active == 1)
-    }, (err, something) => {
-      if (err) console.log(err)
-
-      res.json({
-        status: 200,
-        content: "OK"
-      })
+    res.json({
+      status: 200,
+      content: activeOrganizations
     })
+  }
+  catch(ex) {
+    console.log(ex)
+    res.status(500).json({
+      status: 500,
+      content: "Internal server error"
+    })
+  }
 })
+
+/* 
+  TODO: POST to '/' - Create Organization
+*/
 
 module.exports = router

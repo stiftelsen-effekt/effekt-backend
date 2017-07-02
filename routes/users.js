@@ -1,7 +1,9 @@
 const express = require('express')
 const router = express.Router()
 
-const User = require('../models/user.js')
+//const User = require('../models/user.js')
+
+const DAO = require('../custom_modules/DAO.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
@@ -29,6 +31,15 @@ router.post("/", urlEncodeParser, (req,res) => {
         })
       })
     })
+})
+
+router.get('/', async (req, res) => {
+  var organizations = await DAO.organizations.getById(["someID"])
+  
+  return res.json({
+    status: 200,
+    content: organizations
+  })
 })
 
 router.get('/test', (req,res) => {
