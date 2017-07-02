@@ -2,7 +2,7 @@
   "name": "stiftelsen-effekt-backend",
   "version": "0.0.1",
   "description": "Backend for stiftelsen effekt sitt donasjonsystem",
-  "main": "app.js",
+  "main": "server.js",
   "engines": {
     "node": "6.9.1"
   },
@@ -28,7 +28,12 @@
     "express-rate-limit": "^2.7.0",
     "moment": "^2.18.1",
     "mongoose": "^4.9.2",
+    "mysql": "^2.13.0",
     "request": "^2.81.0",
     "validator": "^7.0.0"
+  },
+  "devDependencies": {
+    "expect": "^1.20.2",
+    "mocha": "^3.4.2"
   }
 }

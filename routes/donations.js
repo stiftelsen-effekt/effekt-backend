@@ -18,43 +18,56 @@ const MailSender = new Mail()
 router.post("/", urlEncodeParser, (req,res) => {
   if (!req.body) return res.sendStatus(400)
 
-  console.log(req.body)
-
   var parsedData = JSON.parse(req.body.data)
 
   var donationOrganizations = parsedData.organizations
   var userID = req.body.data.userID
 
-  console.log(donationOrganizations.map((org) => org.id) )
+  var donationObject = {
+    owner: userID,
+    amount: parsedData.amount,
+    verified: true,
+    split: []
+  }
+
+  if (parsedData.organizations) { 
+    createDonationSplitArray(parsedData.organizations, (split) => {
+      donationObject.split = split
+      saveDonation(donationObject, parsedData.user, res)
+    })
+  }
+  else {
+    getStandardSplit((split) => {
+      donationObject.split = split
+      saveDonation(donationObject, parsedData.user, res)
+    })
+  }
+})
+
+function createDonationSplitArray(passedOrganizations, cb) {
+  //Filter passed organizations for 0 shares
+  var passedOrganizations = passedOrganizations.filter(org => org.split > 0)
 
   Organization.find(
     { _id: 
-      { $in: donationOrganizations.map((org) => org.id) 
-    }
-  }, (err, orgs) => {
+      { $in: passedOrganizations.map(org => org.id) }
+    }, (err, orgs) => {
     if (err) return (console.log(err), res.sendStatus(500))
 
-    if (orgs.length != donationOrganizations.length) return res.json({ status: 400, content: "Could not find all organizations passed" })
+    if (orgs.length != passedOrganizations.length) return res.json({ status: 400, content: "Could not find all organizations passed" })
 
     var donationSplits = []
 
-    var donationObject = {
-      owner: userID,
-      amount: parsedData.amount,
-      verified: true,
-      split: []
-    }
-
     for (var i = 0; i < orgs.length; i++) {
-      for (var j = 0; j < donationOrganizations.length; j++) {
-        if (donationOrganizations[j].id == orgs[i].id) {
-          donationObject.split.push({
+      for (var j = 0; j < passedOrganizations.length; j++) {
+        if (passedOrganizations[j].id == orgs[i].id) {
+          donationSplits.push({
             organizationID: orgs[i].id,
-            share: donationOrganizations[j].split,
+            share: passedOrganizations[j].split,
             name: orgs[i].name
           })
 
-          donationOrganizations.splice(j,1)
+          passedOrganizations.splice(j,1)
           orgs.splice(i,1)
           i--
 
@@ -63,58 +76,80 @@ router.post("/", urlEncodeParser, (req,res) => {
       }
     }
 
-    generateKID((kid) => {
-      donationObject.KID = kid
+    cb(donationSplits)
+  })
+}
 
-      Donation.create(donationObject, (err) => {
-        if (err) {
-          var returnErrors = [];
-          for (error in err.errors) {
-            let errorElem = err.errors[error]
-            if (errorElem.name == "ValidatorError") returnErrors.push(errorElem.message)
-          }
+function saveDonation(donationObject, user, res) {
+  generateKID((kid) => {
+    donationObject.KID = kid
 
-          if (returnErrors.length > 0)  return res.json({ status: 400, content: returnErrors })
-          else return res.sendStatus(500)
+    Donation.create(donationObject, (err) => {
+      if (err) {
+        var returnErrors = []
+        for (error in err.errors) {
+          let errorElem = err.errors[error]
+          if (errorElem.name == "ValidatorError") returnErrors.push(errorElem.message)
         }
-        else {
-          console.log(parsedData.user)
 
-          MailSender.send({
-            subject: 'Some subject',
-            reciever: parsedData.user,
-            templateName: 'thanks',
-            templateData: {
-              header: "This is the header!",
-              donationAmount: donationObject.amount,
-              organizations: donationObject.split.map(function(split) {
-                return {
-                  name: split.name,
-                  amount: donationObject.amount * split.share * 0.01
-                }
-              })
-            }
-          }, (err, body) => {
-            if (err) return console.log(err)
-            console.log(body)
-          })
+        if (returnErrors.length > 0)  return res.json({ status: 400, content: returnErrors })
+        else return res.sendStatus(500)
+      }
+      else {
+        sendDonationReciept(donationObject, user)
 
-          return res.json({ status: 200, content: {
-            KID: kid
-          } })
-        }
-      })
+        return res.json({ status: 200, content: {
+          KID: kid
+        } })
+      }
     })
   })
-})
+}
 
-router.get("/", urlEncodeParser, (req, res) => {
-  Donation.find({}, (err, obj) => {
-    if (err) return res.json({ status: 400, content: "Malformed request" })
-
-    return res.json(obj)
+function sendDonationReciept(donationObject, user) {
+  MailSender.send({
+    subject: 'Some subject',
+    reciever: user,
+    templateName: 'registered',
+    templateData: {
+      header: "Hei, ",
+      donationSum: donationObject.amount,
+      kid: donationObject.KID,
+      organizations: donationObject.split.map(function(split) {
+        return {
+          name: split.name,
+          //Add splitting zeroes regex at end of amount
+          amount: (donationObject.amount * split.share * 0.01).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "),
+          percentage: split.share
+        }
+      })
+    }
+  }, (err, body) => {
+    if (err) return console.log(err)
+    console.log(body)
   })
-})
+}
+
+function getStandardSplit(cb) {
+  var splitObj = {}
+
+  Organization.find({
+    active: true,
+    standardShare: {
+      $gt: 0
+    }
+  }, (err, orgs) => {
+    splitObj = orgs.map((org) => {
+      return {
+        organizationID: org._id,
+        name: org.name,
+        share: org.standardShare
+      }
+    })
+
+    cb(splitObj)
+  })
+}
 
 router.get('/total', urlEncodeParser, (req, res) => {
   //Check if no parameters

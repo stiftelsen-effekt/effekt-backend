@@ -38,6 +38,7 @@ module.exports = function(html, options) {
 	}
 	add(html.substr(cursor, html.length - cursor));
 	code = (code + 'return r.join(""); }').replace(/[\r\t\n]/g, ' ');
+	console.log(code)
 	try { result = new Function('obj', code).apply(options, [options]); }
 	catch(err) { console.error("'" + err.message + "'", " in \n\nCode:\n", code, "\n"); }
 	return result;

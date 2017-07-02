@@ -66,7 +66,7 @@
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td class="h2">
-                                    Hei {{fornavn}},
+                                    <% this.header %>
                                 </td>
                             </tr>
                             <tr>
@@ -106,7 +106,7 @@
                                                             <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
                                                                     <td class="tableRow">
-                                                                        {{kontonummer_donor}}
+                                                                        <% this.accountNumber %>
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -136,7 +136,7 @@
                                                             <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
                                                                     <td class="tableRow">
-                                                                        {{kid_donor}}
+                                                                        <% this.kid %>
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -166,7 +166,7 @@
                                                             <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tr>
                                                                     <td class="tableRow">
-                                                                        {{sum_donasjon}} kr
+                                                                        <% this.donationSum %> kr
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -203,10 +203,7 @@
                             </tr>
                         </table>
 
-                        <!--
-                        for loop for å sette inn tabell med motakerorganisasjon, sum og prosentandel til hver:
-
-                        for elements in fordeling_av_donasjon_mottakerorganisasjon:
+                        <% for (var i = 0; i < organizations.length; i++) { %>
 
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
@@ -214,41 +211,7 @@
                                     <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
                                             <td class="boldTableRow">
-                                                {{mottakerorganisasjon_navn}}
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    &lt;!&ndash;[if (gte mso 9)|(IE)]>
-                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                        <tr>
-                                            <td>
-                                    <![endif]&ndash;&gt;
-                                    <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td class="tableRow">
-                                                {{mottakerorganisasjon_antall_kroner}} kr ({{mottakerorganisasjon_antall_prosentandel_av_sum} %)
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    &lt;!&ndash;[if (gte mso 9)|(IE)]>
-                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                        <tr>
-                                            <td>
-                                    <![endif]&ndash;&gt;
-                                 </td>
-                            </tr>
-                        </table>
-
-                        -->
-
-                        <!-- Eksempel med mottakertabell med 3 mottakerorganisasjoner -->
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            <tr>
-                                <td>
-                                    <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td class="boldTableRow">
-                                                Against Malaria Foundation
+                                                <% this.organizations[i].name %>
                                             </td>
                                         </tr>
                                     </table>
@@ -260,7 +223,7 @@
                                     <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
                                             <td class="tableRow">
-                                                30 000 kr (60 %)
+                                                <% this.organizations[i].amount%>kr (<% this.organizations[i].percentage%>%)
                                             </td>
                                         </tr>
                                     </table>
@@ -272,67 +235,8 @@
                                 </td>
                             </tr>
                         </table>
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            <tr>
-                                <td>
-                                    <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td class="boldTableRow">
-                                                Schistosomiasis Control Initiative
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <!--[if (gte mso 9)|(IE)]>
-                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                        <tr>
-                                            <td>
-                                    <![endif]-->
-                                    <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td class="tableRow">
-                                                10 000 kr (20 %)
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <!--[if (gte mso 9)|(IE)]>
-                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                        <tr>
-                                            <td>
-                                    <![endif]-->
-                                </td>
-                            </tr>
-                        </table>
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            <tr>
-                                <td>
-                                    <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td class="boldTableRow">
-                                                GiveDirectly
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <!--[if (gte mso 9)|(IE)]>
-                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                        <tr>
-                                            <td>
-                                    <![endif]-->
-                                    <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td class="tableRow">
-                                                10 000 kr (20 %)
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <!--[if (gte mso 9)|(IE)]>
-                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                        <tr>
-                                            <td>
-                                    <![endif]-->
-                                </td>
-                            </tr>
-                        </table>
-                        <!-- eksempel ferdig -->
+
+                        <% } %>
 
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
@@ -352,7 +256,7 @@
                                     <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                         <tr>
                                             <td class="tableRow">
-                                                {{sum_donasjon}} kr
+                                                <% this.donationSum %> kr
                                             </td>
                                         </tr>
                                     </table>
