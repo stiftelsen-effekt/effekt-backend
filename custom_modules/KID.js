@@ -1,8 +1,5 @@
-module.exports = class KID {
-    constructor() {
-    }
-
-    generate() {
+module.exports = {
+    generate: function() {
         var KID = Array.from({length: 7}, () => {
             return Math.floor(9 * Math.random()) + 1;
         }).join("")
@@ -10,9 +7,9 @@ module.exports = class KID {
         KID = KID + this.luhn_caclulate(KID)
 
         return KID
-    }
+    },
 
-    luhn_checksum(code) {
+    luhn_checksum: function(code) {
         const length = code.length
         const parity = length % 2
         var sum = 0
@@ -23,9 +20,9 @@ module.exports = class KID {
             sum += d
         }
         return sum % 10
-    }
+    },
 
-    luhn_caclulate(partcode) {
+    luhn_caclulate: function(partcode) {
         const checksum = this.luhn_checksum(partcode + "0")
         return checksum == 0 ? 0 : 10 - checksum
     }

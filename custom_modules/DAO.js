@@ -19,14 +19,25 @@ module.exports = {
 
     //Users
     donors: {
+        getCountByEmail: function(email) {
+            return new Promise((fulfill, reject) => {
+                con.query(`SELECT * FROM Donors where email = ?`, [email], 
+                (err, result) => {
+                    if (err) reject(err)
+                    else fulfill(result.length)
+                })
+            })
+        },
         add: function(userObject) {
-            return new Promise((fullfill, rejcect) => {
-                con.query(`INSERT INTO USERS (
+            return new Promise((fulfill, reject) => {
+                con.query(`INSERT INTO Donors (
+                    KID,
                     email,
                     first_name,
                     last_name
-                ) VALUES (?,?,?)`, 
+                ) VALUES (?,?,?,?)`, 
                 [
+                    Math.floor(Math.random() * 1000),
                     userObject.email,
                     userObject.firstName,
                     userObject.lastName
@@ -41,9 +52,9 @@ module.exports = {
 
     //Organizations
     organizations: {
-        getById: function(IDs) {
+        getByIDs: function(IDs) {
             return new Promise((fulfill, reject) => {
-                con.query("SELECT * FROM Organizations ", (err, result) => {
+                con.query("SELECT * FROM Organizations WHERE OrgID in (?)", [IDs], (err, result) => {
                     if (err) reject(err)
                     else fulfill(result)
                 })
@@ -53,7 +64,14 @@ module.exports = {
             return new Promise((fulfill, reject) => {
                 con.query(`SELECT * FROM Organizations WHERE active = 1`, (err, result) => {
                     if (err) reject(err)
-                    else fulfill(result)
+                    else fulfill(result.map((item) => {
+                        return {
+                            id: item.OrgID,
+                            name: item.org_abbriv,
+                            shortDesc: item.shortDesc,
+                            standardShare: item.std_percentage_share
+                        }
+                    }))
                 })
             })
         }
@@ -62,15 +80,60 @@ module.exports = {
     //Donations
     donations: {
         add: function(donationObject) {
-
-        },
-        getDonationByUserId: function() {
             return new Promise((fulfill, reject) => {
-                con.query(`SELECT * FROM `)
+                con.query(`INSERT INTO Donations (
+                        Donation_KID, 
+                        sum_notified, 
+                        payment_method, 
+                        is_own_dist, 
+                        is_std_dist
+                    ) VALUES (?,?,?,?,?)`,
+                    [
+                        donationObject.KID,
+                        donationObject.amount,
+                        "bank",
+                        (!donationObject.standardSplit ? 1 : 0),
+                        (donationObject.standardSplit ? 1 : 0)
+                    ],
+                    (err, result) => {
+                        if (err) reject(err)
+                        else {
+                            var donationID = result.insertId
+
+                            console.log(donationObject.split.reduce((acc, org) => {
+                                acc.push([donationID, org.organizationID, org.share]);
+                                return acc;
+                            }, []))
+
+                            con.query(`INSERT INTO Donation_distribution (
+                                Dist_DonationID,
+                                Dist_OrgID,
+                                percentage_share
+                            ) VALUES ?`,
+                            [
+                                donationObject.split.reduce((acc, org) => {
+                                    acc.push([donationID, org.organizationID, org.share]);
+                                    return acc
+                                }, [])
+                            ],
+                            (err, result) => {
+                                if (err) reject(err)
+                                else fulfill()
+                            })
+                        }
+                    })
+            })
+        },
+        getDonationByKID: function(KID) {
+            return new Promise((fulfill, reject) => {
+                con.query(`SELECT * FROM Donations WHERE Donation_KID = ?`, [KID], (err, result) => {
+                    if (err) reject(err)
+                    else fulfill(result)
+                })
             })
         },
         getStandardShares: function() {
-            return new Promes((fulfill, reject) => {
+            return new Promise((fulfill, reject) => {
                 con.query(`SELECT 
                     OrgID, 
                     std_percentage_share 
