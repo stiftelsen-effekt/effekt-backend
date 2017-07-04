@@ -183,4 +183,21 @@ router.get('/total', urlEncodeParser, (req, res) => {
   })
 })
 
+router.get('/:id', async (req, res) => {
+  try {
+    var donation = await DAO.donations.getFullDonationById(req.params.id)
+  } catch(ex) {
+    console.log(ex)
+    return res.status(500).json({
+      status: 500,
+      content: "Internal server error"
+    })
+  }
+  
+  res.json({
+    status: 200,
+    content: donation
+  })
+})
+
 module.exports = router
