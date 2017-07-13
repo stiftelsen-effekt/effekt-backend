@@ -5,7 +5,7 @@ const DAO = require('../custom_modules/DAO.js');
 
 /*
 	Legitimate_Email 
-		This user should already exists
+		This user should already exists in database.
 	Brand_New_Email
 		Generated based on unix time, making it "unique".
 */
@@ -45,32 +45,29 @@ var RequestFunction = function(testID) {
 
 
 it("Request, no email parm", async function() {
-	var result = await RequestFunction(0);
-	expect(result.DataBack.content).to.equal('Missing email in request');
-	expect(result.DataBack.status).to.equal(400);
-	expect(result.ResponseCode).to.equal(400);	
+	var Result = await RequestFunction(0);
+	expect(Result.DataBack.content).to.equal('Missing email in request');
+	expect(Result.DataBack.status).to.equal(400);
+	expect(Result.ResponseCode).to.equal(400);	
 });
 
 it("Request, email parm set to 'trick' value", async function() {
-	var result = await RequestFunction(1);
-	expect(result.DataBack.content).to.equal('Missing email in request');
-	expect(result.DataBack.status).to.equal(400);
-	expect(result.ResponseCode).to.equal(400);	
+	var Result = await RequestFunction(1);
+	expect(Result.DataBack.content).to.equal('Missing email in request');
+	expect(Result.DataBack.status).to.equal(400);
+	expect(Result.ResponseCode).to.equal(400);	
 });
 
 it("Request, checking already existing user", async function() {
-	var result = await RequestFunction(2);
-	expect(result.DataBack).to.equal("User already exists");
-	expect(result.ResponseCode).to.equal(200);
+	var Result = await RequestFunction(2);
+	expect(Result.DataBack).to.equal("User already exists");
+	expect(Result.ResponseCode).to.equal(200);
 });
 
 it("Request, new user creation", async function() {
-	var result = await RequestFunction(3);
-	var numberOfUsersWithEmail = await DAO.donors.getCountByEmail(Brand_New_Email);   
-	expect(result.DataBack).to.equal("User created");
-	expect(result.ResponseCode).to.equal(200);
-	expect(numberOfUsersWithEmail > 0).to.equal(true);
+	var Result = await RequestFunction(3);
+	var NumberOfUsersWithEmail = await DAO.donors.getCountByEmail(Brand_New_Email);   
+	expect(Result.DataBack).to.equal("User created");
+	expect(Result.ResponseCode).to.equal(200);
+	expect(NumberOfUsersWithEmail > 0).to.equal(true);
 });
-
-
-
