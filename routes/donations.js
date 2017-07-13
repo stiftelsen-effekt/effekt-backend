@@ -10,8 +10,6 @@ const Mail = require('../custom_modules/mail.js')
 
 const DAO = require('../custom_modules/DAO.js')
 
-const MailSender = new Mail()
-
 router.post("/", urlEncodeParser, async (req,res) => {
   if (!req.body) return res.sendStatus(400)
 
@@ -66,7 +64,7 @@ router.post("/", urlEncodeParser, async (req,res) => {
     })
   }
 
-  sendDonationReciept(donationObject, "account@harnes.me")
+  //sendDonationReciept(donationObject, "account@harnes.me")
 
   return res.json({ status: 200, content: {
     KID: donationObject.KID
@@ -98,7 +96,7 @@ async function createDonationSplitArray(passedOrganizations) {
       for (var j = 0; j < filteredOrganizations.length; j++) {
         if (filteredOrganizations[j].id == orgs[i].OrgID) {
           donationSplits.push({
-            organizationID: orgs[i].OrgID,
+            organizationID: orgs[i].ID,
             share: filteredOrganizations[j].split,
             name: orgs[i].org_full_name
           })

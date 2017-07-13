@@ -1,8 +1,5 @@
-module.exports = class OCR {
-    constructor() {
-    }
-
-    parse(data) {
+module.exports = {
+    parse: function(data) {
         var lines = data.split('\r\n')
 
         var transactions = []
@@ -15,9 +12,9 @@ module.exports = class OCR {
         }
 
         return transactions
-    }
+    },
 
-    parseLine(line) {
+    parseLine: function(line) {
         var transaction = {}
 
         transaction.serviceCode = parseInt(line.substr(2,2))
@@ -33,7 +30,7 @@ module.exports = class OCR {
 
             const date = new Date(
                 parseInt("20" + line.substr(19,2)),
-                parseInt(line.substr(17,2))-1, //Month is zero indexed. Terrible API design
+                parseInt(line.substr(17,2)), //Month is zero indexed. Terrible API design
                 parseInt(line.substr(15,2)))
 
             transaction.date = date

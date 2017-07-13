@@ -21,7 +21,7 @@ module.exports = {
         getCountByEmail: function(email) {
             return new Promise(async (fulfill, reject) => {
                 try {
-                    var result = await con.query(`SELECT * FROM Donors where email = ?`, [email])
+                    var result = await con.execute(`SELECT * FROM Donors where email = ?`, [email])
                 } catch (ex) {
                     reject(ex)
                 }
@@ -59,7 +59,7 @@ module.exports = {
         getByIDs: function(IDs) {
             return new Promise(async (fulfill, reject) => {
                 try {
-                    var [organizations] = await con.execute("SELECT * FROM Organizations WHERE OrgID in (" + ("?,").repeat(IDs.length).slice(0,-1) + ")", IDs)
+                    var [organizations] = await con.execute("SELECT * FROM Organizations WHERE ID in (" + ("?,").repeat(IDs.length).slice(0,-1) + ")", IDs)
                 }
                 catch (ex) {
                     reject(ex)
@@ -79,7 +79,7 @@ module.exports = {
 
                 fulfill(organizations.map((org) => {
                     return {
-                        id: org.OrgID,
+                        id: org.ID,
                         name: org.org_abbriv,
                         shortDesc: org.shortDesc,
                         standardShare: org.std_percentage_share
@@ -93,10 +93,15 @@ module.exports = {
     donations: {
         add: function(donationObject) {
             return new Promise(async (fulfill, reject) => {
+
+                console.log(donationObject.split.reduce((split) => split, 0))
+                //Run checks
+                if (donationObject.split.reduce((split) => split, 0) != 100) reject(Error("Donation shares do no app to 100"))
+                
                 //Insert donation
                 try {
                     var [res] = await con.execute(`INSERT INTO Donations (
-                            Donation_KID, 
+                            Donor_KID, 
                             sum_notified, 
                             payment_method, 
                             is_own_dist, 
@@ -121,8 +126,8 @@ module.exports = {
 
                 try {
                     await con.query(`INSERT INTO Donation_distribution (
-                        Dist_DonationID,
-                        Dist_OrgID,
+                        DonationID,
+                        OrgID,
                         percentage_share
                     ) VALUES ?`,
                     [
@@ -133,6 +138,15 @@ module.exports = {
                     ])
                 } 
                 catch(ex) {
+                    //clean up donation registration
+                    try {
+                        await con.execute("DELETE FROM Donations WHERE ID = ?", [donationID])
+                    } 
+                    catch (ex) {
+                        console.log("Failed to delete Donation after distribution failed")
+                        console.log(ex)
+                    }
+
                     return reject(ex)
                 }
 
@@ -142,7 +156,7 @@ module.exports = {
         getDonationByKID: function(KID) {
             return new Promise(async (fulfill, reject) => {
                 try {
-                    var [donation] = await con.execute(`SELECT * FROM Donations WHERE Donation_KID = ? LIMIT 1`, [KID])
+                    var [donation] = await con.execute(`SELECT * FROM Donations WHERE Donor_KID = ? LIMIT 1`, [KID])
                 } catch(ex) {
                     return reject(ex)
                 }
@@ -154,7 +168,7 @@ module.exports = {
             return new Promise(async (fulfill, reject) => {
                 try {
                     var [organizations] = await con.execute(`SELECT 
-                        OrgID, 
+                        ID, 
                         std_percentage_share 
                         
                         FROM Organizations 
@@ -185,6 +199,12 @@ module.exports = {
                 }
                 
                 fulfill(donation[0])
+            })
+        },
+
+        getAggregateByTime: function(startTime, endTime) {
+            return new Promise(async (fulfill, reject) => {
+                
             })
         }
     },
