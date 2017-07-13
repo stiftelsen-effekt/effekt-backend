@@ -8,29 +8,41 @@ const DAO = require('../custom_modules/DAO.js')
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
-router.post("/", urlEncodeParser, (req,res) => {
+router.post("/", urlEncodeParser, async (req,res) => {
     if (!req.body.data) return res.sendStatus(400)
 
     var data = JSON.parse(req.body.data)
+    var email = data.email
 
-    console.log(data)
+    if (typeof email === "undefined") {
+      return res.status(400).json({
+        status: 400,
+        content: "Missing email in request"
+      })
+    }
 
-    User.count({ mail: data.email }, (err, count) => {
-      if (count > 0) return res.json({ status: 200, content: "User already exists" })
-
-      console.log(count)
-
-      User.create({
-        mail: data.email
-      }, (err, something) => {
-        if (err) return res.json( { status: 400, content: "Malformed request" } )
+    var numberOfUsersWithEmail = await DAO.donors.getCountByEmail(email)
+    if (numberOfUsersWithEmail > 0) {
+      return res.json({
+        status: 200,
+        content: "User already exists"
+      })
+    } else {
+      try {
+        await DAO.donors.add({email: email})
 
         return res.json({
           status: 200,
           content: "User created"
         })
-      })
-    })
+      } catch (ex) {
+        console.log(ex)
+        return res.status(500).json({
+          status: 500,
+          content: "Internal server error"
+        })
+      }
+    }
 })
 
 router.get('/', async (req, res) => {
