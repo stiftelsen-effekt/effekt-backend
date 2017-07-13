@@ -61,6 +61,7 @@ it("Request, email parm set to 'trick' value", async function() {
 it("Request, checking already existing user", async function() {
 	var Result = await RequestFunction(2);
 	expect(Result.DataBack).to.equal("User already exists");
+	expect(Result.DataBack.status).to.equal(200);
 	expect(Result.ResponseCode).to.equal(200);
 });
 
@@ -68,6 +69,7 @@ it("Request, new user creation", async function() {
 	var Result = await RequestFunction(3);
 	var NumberOfUsersWithEmail = await DAO.donors.getCountByEmail(Brand_New_Email);   
 	expect(Result.DataBack).to.equal("User created");
+	expect(Result.DataBack.status).to.equal(200);
 	expect(Result.ResponseCode).to.equal(200);
 	expect(NumberOfUsersWithEmail > 0).to.equal(true);
 });
