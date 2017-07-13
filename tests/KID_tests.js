@@ -1,8 +1,3 @@
-/**
- * Created by Elfrandor on 05.05.2017.
- */
-
-
 
 // External
 const chai = require('chai');
@@ -31,7 +26,7 @@ describe('KidGenerate', function() {
 
 	// Numbers based on data from wiki https://no.wikipedia.org/wiki/KID-nummer
 	it('generate should return a string with logical length', function() {
-		expect(2 <= KIDref.generate().length <= 25);
+		expect(KIDref.generate().length == 8);
 	});
 	
 });
