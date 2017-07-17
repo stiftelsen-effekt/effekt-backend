@@ -2,18 +2,14 @@ const express = require('express')
 const router = express.Router()
 const OCR = require('../custom_modules/OCR.js')
 
-const Donation = require('../models/donation.js')
-
 const fileUpload = require('express-fileupload')
-
-const ORCParser = new OCR()
 
 router.post('/', (req, res) => {
     console.log(req.files)
 
     var data = req.files.ocr.data.toString('UTF-8')
 
-    var parsedData = ORCParser.parse(data)
+    var parsedData = OCR.parse(data)
 
     var dataForDonationRegistration = parsedData.map((elem) => {
         return {

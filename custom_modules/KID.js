@@ -6,7 +6,7 @@ module.exports = {
 
         KID = KID + this.luhn_caclulate(KID)
 
-        return KID
+        return parseInt(KID)
     },
 
     luhn_checksum: function(code) {

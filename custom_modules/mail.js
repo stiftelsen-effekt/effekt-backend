@@ -5,8 +5,8 @@ const template = require('./template.js')
 const request = require('request')
 const fs = require('fs')
 
-class Mail {
-    send(options, cb) {
+module.exports = {
+    send: function(options, cb) {
         console.log(options)
         fs.readFile(appRoot + '/mail_templates/' + options.templateName + "/index.html", 'utf8', (err, templateHtml) => {
             if (err) {
@@ -37,5 +37,3 @@ class Mail {
         })
     }
 }
-
-module.exports = Mail
