@@ -4,8 +4,7 @@ const chai = require('chai');
 const expect = (chai.expect);
 
 // Internal
-const KID = require('./custom_modules/KID.js');
-const KIDref = new KID();
+const KID = require('../custom_modules/KID.js');
 
 // http://www.paypalobjects.com/en_US/vhelp/paypalmanager_help/credit_card_numbers.htm
 // Luhn algorithm/MOD10 is used to validate credit card numbers also, so testing the function(s) against some credit card numbers seems like a good idea.
@@ -16,17 +15,16 @@ var TestCardNumbers = [ 378282246310005, 371449635398431, 5610591081018250, 3056
 // Tests for Generate() in KID.js
 describe('KidGenerate', function() {
 	it('generate should be a function', function() {
-		expect(KIDref.generate).to.be.a('function');
+		expect(KID.generate).to.be.a('function');
 	});
 
-	// Isn't it more logical to return a number? 
 	it('generate should return a string', function() {
-		expect(KIDref.generate()).to.be.a('string');
+		expect(KID.generate()).to.be.a('number');
 	});
 
 	// Numbers based on data from wiki https://no.wikipedia.org/wiki/KID-nummer
 	it('generate should return a string with logical length', function() {
-		expect(KIDref.generate().length == 8);
+		expect(KID.generate().length == 8);
 	});
 	
 });
@@ -34,17 +32,17 @@ describe('KidGenerate', function() {
 // Tests for luhn_checksum() in KID.js
 describe('luhn_checksum', function() {
 	it('luhn_checksum should be a function', function() {
-		expect(KIDref.luhn_checksum).to.be.a('function');
+		expect(KID.luhn_checksum).to.be.a('function');
 	});
 
 	it('luhn_checksum should return a number', function() {
-		expect(KIDref.luhn_checksum(1)).to.be.a('number');
+		expect(KID.luhn_checksum(1)).to.be.a('number');
 	});
 	
 	it('luhn_checksum multi-number check', function() {
 		for(var x = 0; x < TestCardNumbers.length; x++){
-			expect((KIDref.luhn_checksum(TestCardNumbers[x]))).equal(0);
-			expect((KIDref.luhn_checksum(TestCardNumbers[x]))).to.be.a('number');
+			expect((KID.luhn_checksum(TestCardNumbers[x]))).equal(0);
+			expect((KID.luhn_checksum(TestCardNumbers[x]))).to.be.a('number');
 		}
 	});
 });
@@ -52,11 +50,11 @@ describe('luhn_checksum', function() {
 // Tests for luhn_caclulate() in KID.js
 describe('luhn_caclulate', function() {
 	it('luhn_caclulate should be a function', function() {
-		expect(KIDref.luhn_caclulate).to.be.a('function');
+		expect(KID.luhn_caclulate).to.be.a('function');
 	});
 
 	it('luhn_caclulate should return a number', function() {
-		expect(KIDref.luhn_caclulate(1)).to.be.a('number');
+		expect(KID.luhn_caclulate(1)).to.be.a('number');
 	});
 	
 	it('luhn_caclulate multi-number check', function() {
@@ -64,8 +62,8 @@ describe('luhn_caclulate', function() {
 			var CurrentNumber = TestCardNumbers[x].toString();
 			var ValidationNumber = parseInt(CurrentNumber[CurrentNumber.length-1]);
 			var CaluclationNumber = parseInt(CurrentNumber.slice(0,-1));
-			expect(KIDref.luhn_caclulate(CaluclationNumber)).equal(ValidationNumber);
-			expect(KIDref.luhn_caclulate(CaluclationNumber)).to.be.a('number');
+			expect(KID.luhn_caclulate(CaluclationNumber)).equal(ValidationNumber);
+			expect(KID.luhn_caclulate(CaluclationNumber)).to.be.a('number');
 		}
 	});
 });
