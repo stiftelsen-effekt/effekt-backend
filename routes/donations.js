@@ -5,6 +5,9 @@ const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
 const moment = require('moment')
+
+const config = require('../config.js')
+
 const KID = require('../custom_modules/KID.js')
 const Mail = require('../custom_modules/mail.js')
 
@@ -16,17 +19,18 @@ router.post("/", urlEncodeParser, async (req,res) => {
   var parsedData = JSON.parse(req.body.data)
 
   var donationOrganizations = parsedData.organizations
-  var userID = req.body.data.userID
+  var KID = parsedData.KID
 
   var donationObject = {
-    owner: userID,
+    KID: KID,
     amount: parsedData.amount,
     standardSplit: undefined,
     split: []
   }
 
+  //Create a donation split object
   try {
-    if (parsedData.organizations) { 
+    if (parsedData.organizations) {
       donationObject.split = await createDonationSplitArray(parsedData.organizations)
       donationObject.standardSplit = false
     }
@@ -43,32 +47,23 @@ router.post("/", urlEncodeParser, async (req,res) => {
     })
   }
 
-  try {
-    donationObject.KID = await generateKID()
-  } catch (ex) {
-    console.log(ex)
-    return res.status(500).json({
-      status: 500,
-      content: "Could not generate KID"
-    })
-  }
-
-
+  //Add donation to database
   try {
     await DAO.donations.add(donationObject)
   } catch (ex) {
-    console.log(ex)
     return res.status(500).json({
       status: 500,
-      content: "Internal server error"
+      content: ex
     })
   }
 
-  //sendDonationReciept(donationObject, "account@harnes.me")
-
-  return res.json({ status: 200, content: {
+  //In case the email component should fail, register the donation anyways, and notify client
+  res.json({ status: 200, content: {
     KID: donationObject.KID
   }})
+
+  var donor = await DAO.donors.getByKID(donationObject.KID)
+  sendDonationReciept(donationObject, donor.email, donor.first_name)
 })
 
 async function createDonationSplitArray(passedOrganizations) {
@@ -81,7 +76,7 @@ async function createDonationSplitArray(passedOrganizations) {
       var organizationIDs = filteredOrganizations.reduce((acc, org) => {
         acc.push(org.id);
         return acc;
-      }, []);
+      }, [])
       var orgs = await DAO.organizations.getByIDs(organizationIDs)
     }
     catch (ex) {
@@ -94,7 +89,7 @@ async function createDonationSplitArray(passedOrganizations) {
 
     for (var i = 0; i < orgs.length; i++) {
       for (var j = 0; j < filteredOrganizations.length; j++) {
-        if (filteredOrganizations[j].id == orgs[i].OrgID) {
+        if (filteredOrganizations[j].id == orgs[i].ID) {
           donationSplits.push({
             organizationID: orgs[i].ID,
             share: filteredOrganizations[j].split,
@@ -116,53 +111,50 @@ async function createDonationSplitArray(passedOrganizations) {
 
 async function getStandardSplit() {
   return new Promise(async (fulfill, reject) => {
-    var orgs = await DAO.organizations.getStandardSplit()
+    try {
+      var split = await DAO.organizations.getStandardSplit()
+    }
+    catch(ex) {
+      return reject(ex)
+    }
 
-    var splitObj = {}
-    splitObj = orgs.map((org) => {
-      return {
-        organizationID: org.OrgID,
-        name: org.org_full_name,
-        share: org.std_percentage_share
+    fulfill(split)
+  })
+}
+
+async function sendDonationReciept(donationObject, recieverEmail, recieverName) {
+  console.log(donationObject)
+
+  try {
+    var KIDstring = donationObject.KID.toString()
+
+    var result = await Mail.send({
+      subject: 'Stiftelsen Effekt - Donasjon registrert for innbetaling',
+      reciever: recieverEmail,
+      templateName: 'registered',
+      templateData: {
+        header: "Hei" + (recieverName.length > 0 ? " " + recieverName : "") + ",",
+        //Add thousand seperator regex at end of amount
+        donationSum: donationObject.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+        //Add seperators for KID, makes it easier to read
+        kid: KIDstring.slice(0,3) + " " + KIDstring.slice(3,5) + " " + KIDstring.slice(5),
+        accountNumber: config.bankAccount,
+        organizations: donationObject.split.map(function(split) {
+          return {
+            name: split.name,
+            //Add thousand seperator regex at end of amount
+            amount: (donationObject.amount * split.share * 0.01).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+            percentage: split.share
+          }
+        })
       }
     })
-  })
-}
 
-async function generateKID() {
-  var donationKID = KID.generate()
-
-  //KID is generated randomly, check for existing entry in database (collision)
-  var duplicates = await DAO.donations.getDonationByKID(donationKID) 
-  if (duplicates.length > 0) {
-    donationKID = generateKID(cb)
-  } else {
-    return donationKID
+    console.log(result)
   }
-}
-
-function sendDonationReciept(donationObject, recieverEmail) {
-  MailSender.send({
-    subject: 'Some subject',
-    reciever: recieverEmail,
-    templateName: 'registered',
-    templateData: {
-      header: "Hei, ",
-      donationSum: donationObject.amount,
-      kid: donationObject.KID,
-      organizations: donationObject.split.map(function(split) {
-        return {
-          name: split.name,
-          //Add splitting zeroes regex at end of amount
-          amount: (donationObject.amount * split.share * 0.01).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "),
-          percentage: split.share
-        }
-      })
-    }
-  }, (err, body) => {
-    if (err) return console.log(err)
-    console.log(body)
-  })
+  catch(ex) {
+    console.log(ex)
+  }
 }
 
 router.get('/total', urlEncodeParser, (req, res) => {
