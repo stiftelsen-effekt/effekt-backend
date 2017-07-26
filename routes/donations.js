@@ -129,7 +129,7 @@ async function sendDonationReciept(donationObject, recieverEmail, recieverName) 
     var KIDstring = donationObject.KID.toString()
 
     var result = await Mail.send({
-      subject: 'Stiftelsen Effekt - Donasjon registrert for innbetaling',
+      subject: 'GiEffektivt.no - Donasjon klar for innbetaling',
       reciever: recieverEmail,
       templateName: 'registered',
       templateData: {
