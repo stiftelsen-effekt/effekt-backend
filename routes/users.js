@@ -4,6 +4,7 @@ const router = express.Router()
 //const User = require('../models/user.js')
 
 const DAO = require('../custom_modules/DAO.js')
+const KID = require('../custom_modules/KID.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
