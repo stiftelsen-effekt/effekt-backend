@@ -176,7 +176,7 @@ module.exports = {
                         WHERE 
                             std_percentage_share > 0 
                             AND 
-                            active == 1`)
+                            active = 1`)
                 } catch(ex) {
                     return reject(ex)
                 }
