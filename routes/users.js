@@ -61,4 +61,22 @@ router.get('/test', (req,res) => {
   })
 })
 
-module.exports = router
+/* Helper functions */
+
+async function generateKID() {
+  var newKID = KID.generate()
+
+  //KID is generated randomly, check for existing entry in database (collision)
+  var duplicate = await DAO.donors.getByKID(newKID)
+  if (duplicate != null) {
+    newKID = generateKID()
+  } else {
+    return newKID
+  }
+}
+
+
+module.exports = {
+  generateKID,
+  router
+}
