@@ -1,8 +1,7 @@
 
-const server = require('../server.js');
 const expect = require('chai').expect;
 const request = require('request');
-const DAO = require('../custom_modules/DAO.js');
+const DAO = require('../../custom_modules/DAO.js');
 
 /*
 	Legitimate_Email 
@@ -11,33 +10,9 @@ const DAO = require('../custom_modules/DAO.js');
 		Generated based on unix time, making it "unique".
 */
 
-const Legitimate_Email = "superlegit@email.com";
+const Legitimate_Email = "account@harnes.me";
+await DAO.create
 const Brand_New_Email = (new Date().getTime()).toString() + "@email.com";
-
-
-function sleep(sec){
-	var start = new Date().getTime();
-	var end = start;
-	while(end < start + (sec*1000)) {
-		end = new Date().getTime();
-	}
-}
-
-var CheckServer = function() {
-	return new Promise(function(resolve, reject) {
-		request.post({
-			headers: {'content-type' : 'application/x-www-form-urlencoded'},
-			url:     'http://localhost:3000/users'
-		}, function(error, response, body){
-			if(response == undefined){
-				resolve({Error: true});
-			}else{
-				resolve({Error: false});	
-			}
-		});
-	});
-}
-
 
 var RequestFunction = function(testID) {
 	return new Promise(function(resolve, reject) {
@@ -70,17 +45,6 @@ var RequestFunction = function(testID) {
 }
 
 
-it("Server up", async function() {
-	var Result = await CheckServer();
-	if(Result.Error){
-		console.log("retry");
-		sleep(3);
-		this.retries(4);
-	}
-	expect(Result.Error).to.equal(false);
-});
-
-
 it("Request, no email parm", async function() {
 	var Result = await RequestFunction(0);
 	expect(Result.DataBack.content).to.equal('Missing email in request');
@@ -95,10 +59,9 @@ it("Request, email parm set to 'trick' value", async function() {
 	expect(Result.ResponseCode).to.equal(400);	
 });
 
-
 it("Request, checking already existing user", async function() {
 	var Result = await RequestFunction(2);
-	expect(Result.DataBack.content).to.equal("User already exists");
+	expect(Result.DataBack).to.equal("User already exists");
 	expect(Result.DataBack.status).to.equal(200);
 	expect(Result.ResponseCode).to.equal(200);
 });
@@ -106,8 +69,8 @@ it("Request, checking already existing user", async function() {
 it("Request, new user creation", async function() {
 	var Result = await RequestFunction(3);
 	var NumberOfUsersWithEmail = await DAO.donors.getCountByEmail(Brand_New_Email);   
-	expect(Result.DataBack.content).to.equal("User created");
+	expect(Result.DataBack).to.equal("User created");
 	expect(Result.DataBack.status).to.equal(200);
 	expect(Result.ResponseCode).to.equal(200);
-	expect(NumberOfUsersWithEmail > 0).to.equal(true);
+	expect(NumberOfUsersWithEmail).to.equal(1);
 });
