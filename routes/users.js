@@ -102,7 +102,4 @@ async function generateKID() {
 module.exports = {
   generateKID,
   router
-
 }
-//module.exports = router
-module.exports = generateKID;
