@@ -150,7 +150,7 @@ module.exports = {
                     return reject(ex)
                 }
 
-                fulfill()
+                fulfill(donationID)
             })
         },
         getDonationByKID: function(KID) {
@@ -187,8 +187,8 @@ module.exports = {
         getFullDonationById: function(id) {
             return new Promise(async (fulfill, reject) => {
                 try {
-                    var [donation] = await con.execute(`SELECT * FROM Donations WHERE DonationID = ? LIMIT 1`, [id])
-                    var [split] = await con.execute(`SELECT * FROM Donation_distribution WHERE Dist_DonationID = ?`, [id])
+                    var [donation] = await con.execute(`SELECT * FROM Donations WHERE ID = ? LIMIT 1`, [id])
+                    var [split] = await con.execute(`SELECT * FROM Donation_distribution WHERE DonationID = ?`, [id])
                 }
                 catch(ex) {
                     return reject(ex)
