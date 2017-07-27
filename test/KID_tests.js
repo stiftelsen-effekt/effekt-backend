@@ -4,7 +4,7 @@ const chai = require('chai');
 const expect = (chai.expect);
 
 // Internal
-const KID = require('./custom_modules/KID.js');
+const KID = require('../custom_modules/KID.js');
 const KIDref = new KID();
 
 // http://www.paypalobjects.com/en_US/vhelp/paypalmanager_help/credit_card_numbers.htm
