@@ -14,7 +14,19 @@ router.post("/", urlEncodeParser, async (req,res) => {
 
     var data = JSON.parse(req.body.data)
     var email = data.email
+    var name = data.name
 
+    if (name.length > 0) {
+      console.log(name.indexOf(' '))
+      if (name.indexOf(' ') == -1) {
+        var firstName = name
+      }
+      else {
+        var firstName = name.substring(0, name.indexOf(' '))
+        var lastName = name.substring(name.indexOf(' ')+1)
+      }
+    }
+    
     if (typeof email === "undefined") {
       return res.status(400).json({
         status: 400,
@@ -22,21 +34,31 @@ router.post("/", urlEncodeParser, async (req,res) => {
       })
     }
 
-    var numberOfUsersWithEmail = await DAO.donors.getCountByEmail(email)
-    if (numberOfUsersWithEmail > 0) {
+    var existingUserKID = await DAO.donors.getKIDByEmail(email)
+    if (existingUserKID != null) {
       return res.json({
         status: 200,
-        content: "User already exists"
+        content: {
+          KID: existingUserKID
+        }
       })
     } else {
       try {
-        await DAO.donors.add({email: email})
+        var newUserKID = await DAO.donors.add({
+          KID: await generateKID(),
+          email: email,
+          firstName: (firstName ? firstName : ""),
+          lastName: (lastName ? lastName : "")
+        })
 
         return res.json({
           status: 200,
-          content: "User created"
+          content: {
+            KID: newUserKID
+          }
         })
-      } catch (ex) {
+      } 
+      catch (ex) {
         console.log(ex)
         return res.status(500).json({
           status: 500,
@@ -80,4 +102,7 @@ async function generateKID() {
 module.exports = {
   generateKID,
   router
+
 }
+//module.exports = router
+module.exports = generateKID;
