@@ -4,6 +4,7 @@ const router = express.Router()
 //const User = require('../models/user.js')
 
 const DAO = require('../custom_modules/DAO.js')
+const KID = require('../custom_modules/KID.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
@@ -61,4 +62,22 @@ router.get('/test', (req,res) => {
   })
 })
 
-module.exports = router
+/* Helper functions */
+
+async function generateKID() {
+  var newKID = KID.generate()
+
+  //KID is generated randomly, check for existing entry in database (collision)
+  var duplicate = await DAO.donors.getByKID(newKID)
+  if (duplicate != null) {
+    newKID = generateKID()
+  } else {
+    return newKID
+  }
+}
+
+
+module.exports = {
+  generateKID,
+  router
+}
