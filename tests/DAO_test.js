@@ -25,6 +25,8 @@ var donationObject = {
 
 
 it("createConnection and genereate user KID", async function() {
+	expect(DAO.createConnection).to.be.a('function');
+
 	await DAO.createConnection();
 	
 	// Generate a new KID for the test user
@@ -39,14 +41,13 @@ it("createConnection and genereate user KID", async function() {
 	donationObject.split = await DAO.organizations.getStandardSplit();
 	donationObject.standardSplit = true;
 
-
 });	
-
-
 
 
 describe('donors', function() {
 	it("donors.add", async function() {
+		expect(DAO.donors.add).to.be.a('function');
+	
 		var objectData = await DAO.donors.add(UserData);
 		expect(objectData).to.equal(UserData.KID);		
 		expect(DAO.donors.add).to.be.a('function');
@@ -56,6 +57,7 @@ describe('donors', function() {
 
 	it("donors.getKIDByEmail", async function() {
 		expect(DAO.donors.getKIDByEmail).to.be.a('function');
+	
 		expect(await DAO.donors.getKIDByEmail(UserData.email)).to.equal(UserData.KID);
 		expect(await DAO.donors.getKIDByEmail(NotExistingEmail)).to.equal(null);
 	});
@@ -66,6 +68,8 @@ describe('donors', function() {
 	});
 
 	it("donors.getByKID", async function() {
+		expect(DAO.donors.getByKID).to.be.a('function');
+
 		var objectData = await DAO.donors.getByKID(UserData.KID);
 		expect(DAO.donors.getByKID).to.be.a('function');
 		expect(objectData.KID).to.equal(UserData.KID);
@@ -77,9 +81,10 @@ describe('donors', function() {
 });
 
 
-
 describe('organizations', function() {
 	it("getActive", async function() {
+		expect(DAO.organizations.getActive).to.be.a('function');
+
 		var objectData = await DAO.organizations.getActive();
 		expect(objectData.length).not.to.equal(0);
 		expect(objectData).not.to.equal(undefined);
@@ -101,6 +106,8 @@ describe('organizations', function() {
 
 	it("getByIDs", async function() {
 		this.timeout(1000*10);
+		expect(DAO.organizations.getByIDs).to.be.a('function');
+		
 		for(var y = 0; y < ActiveOrganizationsIDs.length; y++){
 			var objectData = await DAO.organizations.getByIDs(ActiveOrganizationsIDs[y].toString());
 			expect(objectData.length).not.to.equal(0);
@@ -117,6 +124,8 @@ describe('organizations', function() {
 	});
 
 	it("getStandardSplit", async function() {
+		expect(DAO.organizations.getStandardSplit).to.be.a('function');
+
 		var objectData = await DAO.organizations.getStandardSplit();
 
 		// Checking object keys.
@@ -135,11 +144,15 @@ describe('organizations', function() {
 
 describe('donations', function() {
 	it("donations.add", async function() {
+		expect(DAO.donations.add).to.be.a('function');
+		
 		DonationID = await DAO.donations.add(donationObject);
 		expect(DonationID).not.to.equal(undefined);
 	});
 
 	it("donations.getByID", async function() {
+		expect(DAO.donations.getByID).to.be.a('function');
+		
 		var objectData = await DAO.donations.getByID(DonationID.toString());
 		expect(objectData[0].ID).to.equal(DonationID);
 		expect(objectData[0].Donor_KID).to.equal(donationObject.KID);
@@ -149,7 +162,7 @@ describe('donations', function() {
 
 	it("donations.getStandardShares", async function() {
 		expect(DAO.donations.getStandardShares).to.be.a('function');
-
+		
 		var objectData = await DAO.donations.getStandardShares();
 		var objectKeys = [ 'ID', 'std_percentage_share' ];
 		var TotalShare = 0;
@@ -164,6 +177,8 @@ describe('donations', function() {
 
 
 	it("donations.getFullDonationById", async function() {
+		expect(DAO.donations.getFullDonationById).to.be.a('function');
+		
 		var objectData = await DAO.donations.getFullDonationById(DonationID);
 		expect(objectData.Donor_KID).to.equal(donationObject.KID);
 		expect(objectData.ID).to.equal(DonationID);
@@ -174,7 +189,7 @@ describe('donations', function() {
 		for(var x = 0; x < objectData.split.length; x++){
 			expect(objectData.split[x].DonationID).to.equal(DonationID);
 			expect(objectData.split[x].DonationID).to.equal(DonationID);
-      TotalShare += objectData.split[x].percentage_share;
+			TotalShare += objectData.split[x].percentage_share;
 		}
 		expect(TotalShare).to.equal(100);
 	});
