@@ -27,17 +27,6 @@ DAO.createConnection()
 //Setup express
 const app = express()
 
-//Routes
-const usersRoute = require('./routes/users.js')
-const donationsRout = require('./routes/donations.js')
-const organizationsRoute = require('./routes/organizations.js')
-const ocrParserRoute = require('./routes/ocrParser.js')
-
-app.use('/users', usersRoute)
-app.use('/donations', donationsRout)
-app.use('/organizations', organizationsRoute)
-app.use('/ocr', ocrParserRoute)
-
 //Set global application variable root path
 global.appRoot = path.resolve(__dirname)
 
@@ -69,6 +58,17 @@ app.use(function (req, res, next) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
     next()
 })
+
+//Routes
+const usersRoute = require('./routes/users.js')
+const donationsRoute = require('./routes/donations.js')
+const organizationsRoute = require('./routes/organizations.js')
+const ocrParserRoute = require('./routes/ocrParser.js')
+
+app.use('/users', usersRoute)
+app.use('/donations', donationsRoute)
+app.use('/organizations', organizationsRoute)
+app.use('/ocr', ocrParserRoute)
 
 //Server
 app.listen(config.port, () => {
