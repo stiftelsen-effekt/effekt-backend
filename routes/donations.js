@@ -63,7 +63,7 @@ router.post("/", urlEncodeParser, async (req,res) => {
   }})
 
   var donor = await DAO.donors.getByKID(donationObject.KID)
-  sendDonationReciept(donationObject, donor.email, donor.first_name)
+  sendDonationReciept(donationObject, donor.email, donor.first_name + " " + donor.last_name)
 })
 
 async function createDonationSplitArray(passedOrganizations) {
@@ -133,7 +133,7 @@ async function sendDonationReciept(donationObject, recieverEmail, recieverName) 
       reciever: recieverEmail,
       templateName: 'registered',
       templateData: {
-        header: "Hei" + (recieverName.length > 0 ? " " + recieverName : "") + ",",
+        header: "God dag," + (recieverName.length > 0 ? "<br>" + recieverName : ""),
         //Add thousand seperator regex at end of amount
         donationSum: donationObject.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
         //Add seperators for KID, makes it easier to read
@@ -187,6 +187,23 @@ router.get('/:id', async (req, res) => {
   res.json({
     status: 200,
     content: donation
+  })
+})
+
+router.get('/kid/:kid', async (req, res) => {
+  try {
+    var donations = await DAO.donations.getFullDonationByDonor(req.params.kid)
+  } catch(ex) {
+    console.log(ex)
+    return res.status(500).json({
+      status: 500,
+      content: "Internal server error"
+    })
+  }
+
+  res.json({
+    status: 200,
+    content: donations
   })
 })
 

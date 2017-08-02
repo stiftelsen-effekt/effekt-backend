@@ -230,11 +230,48 @@ module.exports = {
                 fulfill(organizations)
             })
         },
+        getFullDonationByDonor: function(kid) {
+            return new Promise(async (fulfill, reject) => {
+                var fullDonations;
+                try {
+                    var [donations] = await con.execute(`SELECT * FROM Donations WHERE Donor_KID = ?`, [kid])
+
+                    var donationIDs = donations.map((donation) => donation.ID);
+
+                    var [split] = await con.execute(`
+                        SELECT orgID, DonationID, percentage_share FROM Donation_distribution 
+                        WHERE DonationID IN (` + ("?,").repeat(donationIDs.length).slice(0,-1) + `)`, donationIDs)
+
+                    donations.map((donation) => {
+                        var donation = donation;
+                        donation.split = split.filter((split) => split.DonationID == donation.ID).map((split) => { delete split.DonationID; return split; })})
+                }
+                catch(ex) {
+                    return reject(ex)
+                }
+
+                fulfill(donations)
+            })
+        },
+
+        getByDonor: function(KID) {
+            return new Promise(async (fulfill, reject) => {
+                try {
+                    var [donations] = await con.execute(`SELECT * FROM Donations WHERE KID = ?`, [KID])
+                }
+                catch (ex) {
+                    reject(ex)
+                }
+
+                fulfill(donation)
+            })
+        },
+
         getFullDonationById: function(id) {
             return new Promise(async (fulfill, reject) => {
                 try {
-                    var [donation] = await con.execute(`SELECT * FROM Donations WHERE DonationID = ? LIMIT 1`, [id])
-                    var [split] = await con.execute(`SELECT * FROM Donation_distribution WHERE Dist_DonationID = ?`, [id])
+                    var [donation] = await con.execute(`SELECT * FROM Donations WHERE Donor_KID = ? LIMIT 1`, [id])
+                    var [split] = await con.execute(`SELECT * FROM Donation_distribution WHERE Dist_DonationID IN ?`, [id])
                 }
                 catch(ex) {
                     return reject(ex)

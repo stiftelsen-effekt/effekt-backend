@@ -11,17 +11,7 @@ router.post('/', (req, res) => {
 
     var parsedData = OCR.parse(data)
 
-    var dataForDonationRegistration = parsedData.map((elem) => {
-        return {
-            KID: elem.KID,
-            amount: elem.amount
-        }
-    })
-
-    Donation.registerDonationsFromOCR(dataForDonationRegistration, (err, donations) => {
-        if (err) console.log(err)
-        else console.log(donations)
-    })
+    console.log(parsedData)
 
     res.json({
         status: 200,
