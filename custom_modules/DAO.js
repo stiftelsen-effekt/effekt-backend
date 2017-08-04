@@ -6,7 +6,7 @@ var con
 module.exports = {
     //Setup
     createConnection: async function() {
-        con = await mysql.createConnection({
+        con = await mysql.createPool({
             host: config.db_host,
             user: config.db_username,
             password: config.db_password,
@@ -264,6 +264,39 @@ module.exports = {
                 }
 
                 fulfill(donation)
+            })
+        },
+
+        getNonRegisteredByDonors: function(KIDs) {
+            return new Promise(async (fulfill, reject) => {
+                try {
+                    var [donations] = await con.execute(`SELECT * FROM EffektDonasjonDB.Donations 
+                        WHERE 
+                        Donor_KID IN (` + ("?,").repeat(KIDs.length).slice(0,-1) + `)
+                        AND date_confirmed IS NULL
+                        ORDER BY date_notified DESC`, KIDs)
+                }
+                catch(ex) {
+                    reject(ex)
+                }
+
+                fulfill(donations)
+            })
+        },
+
+        registerConfirmedByIDs: function(IDs) {
+            return new Promise(async (fulfill, reject) => {
+                try {
+                    var [donations] = await con.execute(`UPDATE EffektDonasjonDB.Donations 
+                        SET date_confirmed = NOW()
+                        WHERE 
+                        ID IN (` + ("?,").repeat(IDs.length).slice(0,-1) + `)`, IDs)
+                }
+                catch(ex) {
+                    reject(ex)
+                }
+
+                fulfill()
             })
         },
 
