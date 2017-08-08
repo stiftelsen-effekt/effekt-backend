@@ -55,14 +55,7 @@ module.exports = {
         },
         remove: function(userID) {
             return new Promise(async (fulfill, reject) => {
-                try {
-                    
-                }
-                catch(ex) {
-                    return reject(ex)
-                }
-
-                fulfill()
+                reject(new Error("Not implemented"))
             })
         },
         getByKID: function(KID) {

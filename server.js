@@ -19,7 +19,8 @@ const fileUpload = require('express-fileupload')
 const pretty = require('express-prettify')
 const mysql = require('mysql')
 const path = require('path')
-const rateLimit = require('express-rate-limit');
+const rateLimit = require('express-rate-limit')
+const honeypot = require('honeypot')
 
 const DAO = require('./custom_modules/DAO.js')
 DAO.createConnection()
@@ -35,21 +36,38 @@ app.use(pretty({ 
   query: 'pretty' 
 }))
 
-//File upload
+//File upload 
 app.use(fileUpload({ 
   limits: { fileSize: 10 * 1024 * 1024 } //Probably totally overkill, consider reducing
 }))
 app.enable('trust proxy')
 
+//Honeypot
+const pot = new honeypot(config.honeypot_api_key)
+app.use((req,res,next) => {
+  pot.query(req.ip, function(err, response){
+    if (!response) {
+        console.log("IP not found in honeypot, we're all good!")
+        next()
+    } else {
+        console.log("Oh no, it's a spammer mate! Kil it with fire!");
+        console.log(response.getFormattedResponse());
+        res.status(403).json({
+          status: 403,
+          content: "IP blacklisted"
+        })
+    }
+  })
+})
+
 //Rate limiting
-const limiter = new rateLimit({
+app.use(new rateLimit({
   windowMs: 15*60*1000, // 15 minutes
   //limit each IP to 10 000 requests per windowMs (10 000 requests in 15 minutes)
   //Why so many? Becuse of shared IP's such as NTNU campus.
   max: 10000, 
   delayMs: 0 // disable delaying - full speed until the max limit is reached 
-})
-app.use(limiter)
+}))
 
 //Set cross origin as allowed
 app.use(function (req, res, next) {
