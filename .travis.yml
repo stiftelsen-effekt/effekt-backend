@@ -1,11 +1,12 @@
 language: node_js
 node_js:
-  "7"
-
-deploy:
-  provider: azure_web_apps
-  on: production
-  verbose: true
+  "8"
+env:
+  global:
+    - "FTP_USER=user"
+    - "FTP_PASSWORD=password"
+after_success:
+    "curl --ftp-create-dirs -T uploadfilename -u $FTP_USER:$FTP_PASSWORD sftp://api.gieffektivt.no/home/fellmirr/api -k"
 
 notifications:
   email: false
