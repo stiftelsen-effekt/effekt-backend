@@ -25,6 +25,8 @@ const honeypot = require('honeypot')
 const DAO = require('./custom_modules/DAO.js')
 DAO.createConnection()
 
+const errorHandler = require('./handlers/errorHandler.js')
+
 //Setup express
 const app = express()
 
@@ -87,6 +89,9 @@ app.use('/users', usersRoute)
 app.use('/donations', donationsRoute)
 app.use('/organizations', organizationsRoute)
 app.use('/ocr', ocrParserRoute)
+
+//Error handling
+app.use(errorHandler)
 
 //Server
 app.listen(config.port, () => {
