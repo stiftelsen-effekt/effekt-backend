@@ -1,4 +1,23 @@
+const DAO = require('./DAO.js')
+
 module.exports = {
+    getNonColliding: async function() {
+        var newKID = this.generate()
+
+        //KID is generated randomly, check for existing entry in database (collision)
+        try {
+            var duplicate = await DAO.donors.getByKID(newKID)
+            if (duplicate != null) {
+                newKID = this.generate()
+            } else {
+                return newKID
+            }
+        } 
+        catch(ex) {
+            Error(ex)
+        }
+    },
+
     generate: function() {
         var KID = Array.from({length: 7}, () => {
             return Math.floor(9 * Math.random()) + 1;

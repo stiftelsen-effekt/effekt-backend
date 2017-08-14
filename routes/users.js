@@ -45,7 +45,7 @@ router.post("/", urlEncodeParser, async (req,res) => {
     } else {
       try {
         var newUserKID = await DAO.donors.add({
-          KID: await generateKID(),
+          KID: await KID.getNonColliding(),
           email: email,
           firstName: (firstName ? firstName : ""),
           lastName: (lastName ? lastName : "")
@@ -83,19 +83,5 @@ router.get('/test', (req,res) => {
     content: "Hello world"
   })
 })
-
-/* Helper functions */
-
-async function generateKID() {
-  var newKID = KID.generate()
-
-  //KID is generated randomly, check for existing entry in database (collision)
-  var duplicate = await DAO.donors.getByKID(newKID)
-  if (duplicate != null) {
-    newKID = generateKID()
-  } else {
-    return newKID
-  }
-}
 
 module.exports = router
