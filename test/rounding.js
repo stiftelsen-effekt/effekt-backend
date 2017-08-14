@@ -3,33 +3,33 @@ const expect = (chai.expect)
 
 const round = require('../custom_modules/rounding.js')
 
-describe('sumWithPrecision', function() {
-    const testCases = [
-        [50, 50],
-        [10, 12, 14, 16, 18, 20, 10],
-        [0.002, 99.998],
-        [33.33333333, 33.33333333, 33.33333334],
-        [21.2, 12.4, 8.7, 9.326, 8.1, 12.7863144, 8, 10, 9.4876856],
-        [100],
-        [0,0,0,100]
-    ]
-
-    it('should be a functoin', function() {
-        expect(round.sumWithPrecision).to.be.a('function')
-    })
-
-    it('should return a number', function() {
-        expect(round.sumWithPrecision([50,50])).to.be.a('number')
-    })
-
-    it('should return 100 when supplied with array that totals 100', function() {
-        for(let i = 0; i < testCases.length; i++) {
-            expect(round.sumWithPrecision(testCases[i])).to.equal(100)
-        }
-    })
-})
-
 describe('round', function() {
+    describe('sumWithPrecision', function() {
+        const testCases = [
+            [50, 50],
+            [10, 12, 14, 16, 18, 20, 10],
+            [0.002, 99.998],
+            [33.33333333, 33.33333333, 33.33333334],
+            [21.2, 12.4, 8.7, 9.326, 8.1, 12.7863144, 8, 10, 9.4876856],
+            [100],
+            [0,0,0,100]
+        ]
+
+        it('should be a functoin', function() {
+            expect(round.sumWithPrecision).to.be.a('function')
+        })
+
+        it('should return a number', function() {
+            expect(round.sumWithPrecision([50,50])).to.be.a('number')
+        })
+
+        it('should return 100 when supplied with array that totals 100', function() {
+            for(let i = 0; i < testCases.length; i++) {
+                expect(round.sumWithPrecision(testCases[i])).to.equal(100)
+            }
+        })
+    })
+
     describe('toPercent' , function() {
         const testCases = [
             [100,100,100,100,100],
@@ -75,11 +75,13 @@ describe('round', function() {
     
     describe('toAbsolute', function() {
         const testCases = [
-            { total: 500, spread: [50,50] },
+            { total: 10.0, spread: [50, 50] },
             { total: 250, spread: [10, 12, 14, 16, 18, 20, 10] },
             { total: 210, spread: [0.002, 99.998] },
             { total: 1230, spread: [21.2, 12.4, 8.7, 9.326, 8.1, 12.7863144, 8, 10, 9.4876856] },
-            { total: 150, spread: [33.33333333, 33.33333333, 33.33333334] }
+            { total: 150, spread: [33.33333333, 33.33333333, 33.33333334] },
+            { total: 23, spread: [33.33333333, 33.33333333, 33.33333334] },
+            { total: 137, spread: [100] }
         ]
 
         it('should be a function', function() {
@@ -91,7 +93,15 @@ describe('round', function() {
         })
 
         it('should return an array of equal length as input', function() {
-            expect
+            for(let i = 0; i < testCases.length; i++) {
+                expect(round.toAbsolute(testCases[i].total, testCases[i].spread).length).to.equal(testCases[i].spread.length)
+            }
+        })
+
+        it('should sum to total', function() {
+            for(let i = 0; i < testCases.length; i++) {
+                expect(round.sumWithPrecision(round.toAbsolute(testCases[i].total, testCases[i].spread))).to.equal(testCases[i].total)
+            }
         })
     })
 })
