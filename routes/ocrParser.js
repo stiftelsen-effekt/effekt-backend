@@ -11,7 +11,6 @@ router.post('/', async (req, res, next) => {
     var OCRRecords = OCR.parse(data)
 
     try {
-        throw new Error("Some error")
         var donations = await DAO.donations.getNonRegisteredByDonors(OCRRecords.map((record) => record.KID))
     }
     catch(ex) {

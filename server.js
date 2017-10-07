@@ -21,6 +21,9 @@ const mysql = require('mysql')
 const path = require('path')
 const rateLimit = require('express-rate-limit')
 const honeypot = require('honeypot')
+const fs = require('fs')
+const https = require('https')
+const http = require('http')
 
 const DAO = require('./custom_modules/DAO.js')
 DAO.createConnection()
@@ -49,11 +52,8 @@ const pot = new honeypot(config.honeypot_api_key)
 app.use((req,res,next) => {
   pot.query(req.ip, function(err, response){
     if (!response) {
-        console.log("IP not found in honeypot, we're all good!")
         next()
     } else {
-        console.log("Oh no, it's a spammer mate! Kil it with fire!");
-        console.log(response.getFormattedResponse());
         res.status(403).json({
           status: 403,
           content: "IP blacklisted"
@@ -90,10 +90,22 @@ app.use('/donations', donationsRoute)
 app.use('/organizations', organizationsRoute)
 app.use('/ocr', ocrParserRoute)
 
+app.use('/static', express.static('static'))
+
 //Error handling
 app.use(errorHandler)
 
 //Server
-app.listen(config.port, () => {
-  console.log('listening on 3000')
-})
+if (config.ssl) {
+  //SSL
+  const privateKey = fs.readFileSync('./cert/private.key')
+  const certificate = fs.readFileSync('./cert/api_gieffektivt_no.crt')
+
+  https.createServer({
+    key: privateKey,
+    cert: certificate
+  }, app).listen(443)
+}
+else {
+  http.createServer(app).listen(3000);
+}

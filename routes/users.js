@@ -1,8 +1,6 @@
 const express = require('express')
 const router = express.Router()
 
-//const User = require('../models/user.js')
-
 const DAO = require('../custom_modules/DAO.js')
 const KID = require('../custom_modules/KID.js')
 
@@ -17,7 +15,6 @@ router.post("/", urlEncodeParser, async (req,res) => {
     var name = data.name
 
     if (name.length > 0) {
-      console.log(name.indexOf(' '))
       if (name.indexOf(' ') == -1) {
         var firstName = name
       }
@@ -59,29 +56,9 @@ router.post("/", urlEncodeParser, async (req,res) => {
         })
       } 
       catch (ex) {
-        console.log(ex)
-        return res.status(500).json({
-          status: 500,
-          content: "Internal server error"
-        })
+        next({ex: ex})
       }
     }
-})
-
-router.get('/', async (req, res) => {
-  var organizations = await DAO.organizations.getById(["someID"])
-  
-  return res.json({
-    status: 200,
-    content: organizations
-  })
-})
-
-router.get('/test', (req,res) => {
-  return res.json({
-    status: 200,
-    content: "Hello world"
-  })
 })
 
 module.exports = router

@@ -13,7 +13,7 @@ module.exports = {
         var templateHTML = template(templateRawHTML, options.templateData)
 
         var data = {
-            from: 'GiEffektivt.no <mailgun@mg.stiftelseneffekt.no>',
+            from: 'Stiftelsen Effekt <mailgun@mg.stiftelseneffekt.no>',
             to: options.reciever,
             subject: options.subject,
             text: 'Your mail client does not support HTML email',

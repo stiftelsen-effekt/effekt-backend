@@ -40,21 +40,16 @@ router.post("/", urlEncodeParser, async (req,res) => {
     }
   }
   catch (ex) {
-    console.log(ex)
-    return res.status(500).send({
-      status: 500,
-      content: "Internal server error"
-    })
+    next({ex: ex})
   }
 
   //Add donation to database
+  console.log("Add donation to DB")
   try {
     await DAO.donations.add(donationObject)
   } catch (ex) {
-    return res.status(500).json({
-      status: 500,
-      content: ex
-    })
+    console.log("exception!")
+    next({ex: ex})
   }
 
   //In case the email component should fail, register the donation anyways, and notify client
@@ -123,8 +118,6 @@ async function getStandardSplit() {
 }
 
 async function sendDonationReciept(donationObject, recieverEmail, recieverName) {
-  console.log(donationObject)
-
   try {
     var KIDstring = donationObject.KID.toString()
 
@@ -133,11 +126,11 @@ async function sendDonationReciept(donationObject, recieverEmail, recieverName) 
       reciever: recieverEmail,
       templateName: 'registered',
       templateData: {
-        header: "God dag," + (recieverName.length > 0 ? "<br>" + recieverName : ""),
+        header: "Hei, " + (recieverName.length > 0 ? recieverName : ""),
         //Add thousand seperator regex at end of amount
         donationSum: donationObject.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
         //Add seperators for KID, makes it easier to read
-        kid: KIDstring.slice(0,3) + " " + KIDstring.slice(3,5) + " " + KIDstring.slice(5),
+        kid: KIDstring,
         accountNumber: config.bankAccount,
         organizations: donationObject.split.map(function(split) {
           return {
@@ -149,8 +142,6 @@ async function sendDonationReciept(donationObject, recieverEmail, recieverName) 
         })
       }
     })
-
-    console.log(result)
   }
   catch(ex) {
     console.log(ex)

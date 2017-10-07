@@ -33,5 +33,8 @@ module.exports = {
     bankAccount: "1503 74 03269",
 
     //Server addresss
-    serverAddress: "91.225.63.22"
+    serverAddress: "91.225.63.22",
+
+    //Security
+    ssl: false
 }

@@ -1,52 +1,71 @@
-const decimal = require('big-decimal')
+var decimal = require('decimal.js')
 
 module.exports = {
-    toPercent: function(input, decimals) {
-        let total = input.reduce((acc, elem) => acc += elem, 0)
-        let result = []
+    toPercent: function(input, total, decimals) {
+        total = new decimal(total)
 
-        for (let i = 0; i < input.length; i++) {
-            result[i] = (input[i] / total) * 100
-            if (typeof decimals !== "undefined") result[i] = setDecimals(input[i], 1)
+        var result = []
+        var lastWithValue = undefined
+
+        for (var i = 0; i < input.length; i++) {
+            result[i] = new decimal(input[i])
+
+            result[i] = result[i].div(total).mul(100)
+            
+            if (decimals) result[i] = setDecimals(result[i], decimals)
+            if (result[i].greaterThan(0)) lastWithValue = i
         }
 
-        let houndred = new decimal('100')
-        let current = new decimal(this.sumWithPrecision(result).toString())
-        var remainder = houndred.subtract(current)
+        if (lastWithValue) {
+            var percentOfTotal = new decimal(this.sumWithPrecision(input)).div(total).mul(100)
 
-        if (remainder != 0) result[result.length-1] = parseFloat(remainder.add(new decimal(result[result.length-1].toString())).toString())
+            var remainder = percentOfTotal.sub(this.sumWithPrecision(result))
+            result[lastWithValue] = result[lastWithValue].add(remainder)
+        }
 
+        for (var i = 0; i < result.length; i++) {
+            result[i] = result[i].toString()
+        }
+        
         return result
     },
 
     toAbsolute: function(total, spread) {
-        let result = []
-        total = new decimal(total.toString())
+        total = new decimal(total)
 
-        for (let i = 0; i < spread.length; i++) {
-            let split = new decimal(parseFloat(spread[i]).toString())
-            split = split.multiply(new decimal('0.01'))
-            result[i] = setDecimals(parseFloat(total.multiply(split)), 2)
+        var result = []
+        var lastWithValue = undefined
+        for (var i = 0; i < spread.length; i++) {
+            var split = new decimal(spread[i]).div(100)
+
+            result[i] = setDecimals(total.mul(split), 2)
+
+            if (!split.eq(0)) lastWithValue = i
         }
 
-        let current = new decimal(this.sumWithPrecision(result).toString())
-        var remainder = total.subtract(current)
+        if (lastWithValue) {
+            var remainder = total.mul(new decimal(this.sumWithPrecision(spread)).div(100)).sub(this.sumWithPrecision(result))
+            result[lastWithValue] = result[lastWithValue].add(remainder)
+        }
 
-        if (remainder != 0) result[result.length-1] = parseFloat(remainder.add(new decimal(result[result.length-1].toString())).toString())
+        for (var i = 0; i < result.length; i++) {
+            result[i] = result[i].toString()
+        }
 
         return result
     },
 
     sumWithPrecision: function(input) {
-        let total = new decimal('0')
-        for (let i = 0; i < input.length; i++) {
-            total = total.add(new decimal(input[i].toString()))
+        var total = new decimal(0)
+
+        for (var i = 0; i < input.length; i++) {
+            total = total.add(input[i])
         }
 
-        return parseFloat(total.toString())
+        return total.toString()
     }
 }
 
 function setDecimals(num, decimals) {
-    return Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals)
+    return new decimal(num.toFixed(decimals))
 }

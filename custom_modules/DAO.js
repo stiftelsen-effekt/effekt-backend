@@ -1,5 +1,6 @@
 const config = require('../config.js')
 const mysql = require('mysql2/promise')
+const rounding = require('./rounding.js')
 
 var con
 
@@ -16,7 +17,7 @@ module.exports = {
         console.log("Connected to DB!")
     },
 
-    //Donors / USers
+    //Donors
     donors: {
         getKIDByEmail: function(email) {
             return new Promise(async (fulfill, reject) => {
@@ -100,7 +101,8 @@ module.exports = {
                         id: org.ID,
                         name: org.org_abbriv,
                         shortDesc: org.shortDesc,
-                        standardShare: org.std_percentage_share
+                        standardShare: org.std_percentage_share,
+                        infoUrl: org.infoUrl
                     }
                 }))
             })
@@ -130,12 +132,10 @@ module.exports = {
         add: function(donationObject) {
             return new Promise(async (fulfill, reject) => {
 
-                console.log(donationObject.split.reduce((acc, split) => {
-                    console.log(split)
-                    return acc + split.share
-                }, 0))
                 //Run checks
-                if (donationObject.split.reduce((acc, split) => acc + split.share, 0) != 100) return reject(new Error("Donation shares do no app to 100"))
+                console.log("Trying to round")
+                console.log("Rounding")
+                if (rounding.sumWithPrecision(donationObject.split.map(split => split.share)) != 100) return reject(new Error("Donation shares do not sum to 100"))
                 
                 //Insert donation
                 try {
