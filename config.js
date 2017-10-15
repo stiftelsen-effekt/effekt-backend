@@ -30,7 +30,7 @@ module.exports = {
     port: process.env.PORT || 3000,
 
     //Bank account for recieving donations
-    bankAccount: "1503 74 03269",
+    bankAccount: "1503.74.03269",
 
     //Server addresss
     serverAddress: "91.225.63.22",

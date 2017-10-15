@@ -1,5785 +1,4893 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-/** @license Copyright (c) 2012 Daniel Trebbien and other contributors
-Portions Copyright (c) 2003 STZ-IDA and PTV AG, Karlsruhe, Germany
-Portions Copyright (c) 1995-2001 International Business Machines Corporation and others
-
-All rights reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, provided that the above copyright notice(s) and this permission notice appear in all copies of the Software and that both the above copyright notice(s) and this permission notice appear in supporting documentation.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR HOLDERS INCLUDED IN THIS NOTICE BE LIABLE FOR ANY CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
-Except as contained in this notice, the name of a copyright holder shall not be used in advertising or otherwise to promote the sale, use or other dealings in this Software without prior written authorization of the copyright holder.
-*/
-(function () {
-
-var MathContext = (function () {
-/* Generated from 'MathContext.nrx' 8 Sep 2000 11:07:48 [v2.00] */
-/* Options: Binary Comments Crossref Format Java Logo Strictargs Strictcase Trace2 Verbose3 */
-//--package com.ibm.icu.math;
-
-/* ------------------------------------------------------------------ */
-/* MathContext -- Math context settings                               */
-/* ------------------------------------------------------------------ */
-/* Copyright IBM Corporation, 1997, 2000.  All Rights Reserved.       */
-/*                                                                    */
-/*   The MathContext object encapsulates the settings used by the     */
-/*   BigDecimal class; it could also be used by other arithmetics.    */
-/* ------------------------------------------------------------------ */
-/* Notes:                                                             */
-/*                                                                    */
-/* 1. The properties are checked for validity on construction, so     */
-/*    the BigDecimal class may assume that they are correct.          */
-/* ------------------------------------------------------------------ */
-/* Author:    Mike Cowlishaw                                          */
-/* 1997.09.03 Initial version (edited from netrexx.lang.RexxSet)      */
-/* 1997.09.12 Add lostDigits property                                 */
-/* 1998.05.02 Make the class immutable and final; drop set methods    */
-/* 1998.06.05 Add Round (rounding modes) property                     */
-/* 1998.06.25 Rename from DecimalContext; allow digits=0              */
-/* 1998.10.12 change to com.ibm.icu.math package                          */
-/* 1999.02.06 add javadoc comments                                    */
-/* 1999.03.05 simplify; changes from discussion with J. Bloch         */
-/* 1999.03.13 1.00 release to IBM Centre for Java Technology          */
-/* 1999.07.10 1.04 flag serialization unused                          */
-/* 2000.01.01 1.06 copyright update                                   */
-/* ------------------------------------------------------------------ */
-
-
-/* JavaScript conversion (c) 2003 STZ-IDA and PTV AG, Karlsruhe, Germany */
-
-
-
-/**
- * The <code>MathContext</code> immutable class encapsulates the
- * settings understood by the operator methods of the {@link BigDecimal}
- * class (and potentially other classes).  Operator methods are those
- * that effect an operation on a number or a pair of numbers.
- * <p>
- * The settings, which are not base-dependent, comprise:
- * <ol>
- * <li><code>digits</code>:
- * the number of digits (precision) to be used for an operation
- * <li><code>form</code>:
- * the form of any exponent that results from the operation
- * <li><code>lostDigits</code>:
- * whether checking for lost digits is enabled
- * <li><code>roundingMode</code>:
- * the algorithm to be used for rounding.
- * </ol>
- * <p>
- * When provided, a <code>MathContext</code> object supplies the
- * settings for an operation directly.
- * <p>
- * When <code>MathContext.DEFAULT</code> is provided for a
- * <code>MathContext</code> parameter then the default settings are used
- * (<code>9, SCIENTIFIC, false, ROUND_HALF_UP</code>).
- * <p>
- * In the <code>BigDecimal</code> class, all methods which accept a
- * <code>MathContext</code> object defaults) also have a version of the
- * method which does not accept a MathContext parameter.  These versions
- * carry out unlimited precision fixed point arithmetic (as though the
- * settings were (<code>0, PLAIN, false, ROUND_HALF_UP</code>).
- * <p>
- * The instance variables are shared with default access (so they are
- * directly accessible to the <code>BigDecimal</code> class), but must
- * never be changed.
- * <p>
- * The rounding mode constants have the same names and values as the
- * constants of the same name in <code>java.math.BigDecimal</code>, to
- * maintain compatibility with earlier versions of
- * <code>BigDecimal</code>.
- *
- * @see     BigDecimal
- * @author  Mike Cowlishaw
- * @stable ICU 2.0
- */
-
-//--public final class MathContext implements java.io.Serializable{
- //--private static final java.lang.String $0="MathContext.nrx";
-
- //-- methods
- MathContext.prototype.getDigits = getDigits;
- MathContext.prototype.getForm = getForm;
- MathContext.prototype.getLostDigits = getLostDigits;
- MathContext.prototype.getRoundingMode = getRoundingMode;
- MathContext.prototype.toString = toString;
- MathContext.prototype.isValidRound = isValidRound;
-
-
- /* ----- Properties ----- */
- /* properties public constant */
- /**
-  * Plain (fixed point) notation, without any exponent.
-  * Used as a setting to control the form of the result of a
-  * <code>BigDecimal</code> operation.
-  * A zero result in plain form may have a decimal part of one or
-  * more zeros.
-  *
-  * @see #ENGINEERING
-  * @see #SCIENTIFIC
-  * @stable ICU 2.0
-  */
- //--public static final int PLAIN=0; // [no exponent]
- MathContext.PLAIN = MathContext.prototype.PLAIN = 0; // [no exponent]
-
- /**
-  * Standard floating point notation (with scientific exponential
-  * format, where there is one digit before any decimal point).
-  * Used as a setting to control the form of the result of a
-  * <code>BigDecimal</code> operation.
-  * A zero result in plain form may have a decimal part of one or
-  * more zeros.
-  *
-  * @see #ENGINEERING
-  * @see #PLAIN
-  * @stable ICU 2.0
-  */
- //--public static final int SCIENTIFIC=1; // 1 digit before .
- MathContext.SCIENTIFIC = MathContext.prototype.SCIENTIFIC = 1; // 1 digit before .
-
- /**
-  * Standard floating point notation (with engineering exponential
-  * format, where the power of ten is a multiple of 3).
-  * Used as a setting to control the form of the result of a
-  * <code>BigDecimal</code> operation.
-  * A zero result in plain form may have a decimal part of one or
-  * more zeros.
-  *
-  * @see #PLAIN
-  * @see #SCIENTIFIC
-  * @stable ICU 2.0
-  */
- //--public static final int ENGINEERING=2; // 1-3 digits before .
- MathContext.ENGINEERING = MathContext.prototype.ENGINEERING = 2; // 1-3 digits before .
-
- // The rounding modes match the original BigDecimal class values
- /**
-  * Rounding mode to round to a more positive number.
-  * Used as a setting to control the rounding mode used during a
-  * <code>BigDecimal</code> operation.
-  * <p>
-  * If any of the discarded digits are non-zero then the result
-  * should be rounded towards the next more positive digit.
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_CEILING=2;
- MathContext.ROUND_CEILING = MathContext.prototype.ROUND_CEILING = 2;
-
- /**
-  * Rounding mode to round towards zero.
-  * Used as a setting to control the rounding mode used during a
-  * <code>BigDecimal</code> operation.
-  * <p>
-  * All discarded digits are ignored (truncated).  The result is
-  * neither incremented nor decremented.
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_DOWN=1;
- MathContext.ROUND_DOWN = MathContext.prototype.ROUND_DOWN = 1;
-
- /**
-  * Rounding mode to round to a more negative number.
-  * Used as a setting to control the rounding mode used during a
-  * <code>BigDecimal</code> operation.
-  * <p>
-  * If any of the discarded digits are non-zero then the result
-  * should be rounded towards the next more negative digit.
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_FLOOR=3;
- MathContext.ROUND_FLOOR = MathContext.prototype.ROUND_FLOOR = 3;
-
- /**
-  * Rounding mode to round to nearest neighbor, where an equidistant
-  * value is rounded down.
-  * Used as a setting to control the rounding mode used during a
-  * <code>BigDecimal</code> operation.
-  * <p>
-  * If the discarded digits represent greater than half (0.5 times)
-  * the value of a one in the next position then the result should be
-  * rounded up (away from zero).  Otherwise the discarded digits are
-  * ignored.
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_HALF_DOWN=5;
- MathContext.ROUND_HALF_DOWN = MathContext.prototype.ROUND_HALF_DOWN = 5;
-
- /**
-  * Rounding mode to round to nearest neighbor, where an equidistant
-  * value is rounded to the nearest even neighbor.
-  * Used as a setting to control the rounding mode used during a
-  * <code>BigDecimal</code> operation.
-  * <p>
-  * If the discarded digits represent greater than half (0.5 times)
-  * the value of a one in the next position then the result should be
-  * rounded up (away from zero).  If they represent less than half,
-  * then the result should be rounded down.
-  * <p>
-  * Otherwise (they represent exactly half) the result is rounded
-  * down if its rightmost digit is even, or rounded up if its
-  * rightmost digit is odd (to make an even digit).
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_HALF_EVEN=6;
- MathContext.ROUND_HALF_EVEN = MathContext.prototype.ROUND_HALF_EVEN = 6;
-
- /**
-  * Rounding mode to round to nearest neighbor, where an equidistant
-  * value is rounded up.
-  * Used as a setting to control the rounding mode used during a
-  * <code>BigDecimal</code> operation.
-  * <p>
-  * If the discarded digits represent greater than or equal to half
-  * (0.5 times) the value of a one in the next position then the result
-  * should be rounded up (away from zero).  Otherwise the discarded
-  * digits are ignored.
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_HALF_UP=4;
- MathContext.ROUND_HALF_UP = MathContext.prototype.ROUND_HALF_UP = 4;
-
- /**
-  * Rounding mode to assert that no rounding is necessary.
-  * Used as a setting to control the rounding mode used during a
-  * <code>BigDecimal</code> operation.
-  * <p>
-  * Rounding (potential loss of information) is not permitted.
-  * If any of the discarded digits are non-zero then an
-  * <code>ArithmeticException</code> should be thrown.
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_UNNECESSARY=7;
- MathContext.ROUND_UNNECESSARY = MathContext.prototype.ROUND_UNNECESSARY = 7;
-
- /**
-  * Rounding mode to round away from zero.
-  * Used as a setting to control the rounding mode used during a
-  * <code>BigDecimal</code> operation.
-  * <p>
-  * If any of the discarded digits are non-zero then the result will
-  * be rounded up (away from zero).
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_UP=0;
- MathContext.ROUND_UP = MathContext.prototype.ROUND_UP = 0;
-
-
- /* properties shared */
- /**
-  * The number of digits (precision) to be used for an operation.
-  * A value of 0 indicates that unlimited precision (as many digits
-  * as are required) will be used.
-  * <p>
-  * The {@link BigDecimal} operator methods use this value to
-  * determine the precision of results.
-  * Note that leading zeros (in the integer part of a number) are
-  * never significant.
-  * <p>
-  * <code>digits</code> will always be non-negative.
-  *
-  * @serial
-  */
- //--int digits;
-
- /**
-  * The form of results from an operation.
-  * <p>
-  * The {@link BigDecimal} operator methods use this value to
-  * determine the form of results, in particular whether and how
-  * exponential notation should be used.
-  *
-  * @see #ENGINEERING
-  * @see #PLAIN
-  * @see #SCIENTIFIC
-  * @serial
-  */
- //--int form; // values for this must fit in a byte
-
- /**
-  * Controls whether lost digits checking is enabled for an
-  * operation.
-  * Set to <code>true</code> to enable checking, or
-  * to <code>false</code> to disable checking.
-  * <p>
-  * When enabled, the {@link BigDecimal} operator methods check
-  * the precision of their operand or operands, and throw an
-  * <code>ArithmeticException</code> if an operand is more precise
-  * than the digits setting (that is, digits would be lost).
-  * When disabled, operands are rounded to the specified digits.
-  *
-  * @serial
-  */
- //--boolean lostDigits;
-
- /**
-  * The rounding algorithm to be used for an operation.
-  * <p>
-  * The {@link BigDecimal} operator methods use this value to
-  * determine the algorithm to be used when non-zero digits have to
-  * be discarded in order to reduce the precision of a result.
-  * The value must be one of the public constants whose name starts
-  * with <code>ROUND_</code>.
-  *
-  * @see #ROUND_CEILING
-  * @see #ROUND_DOWN
-  * @see #ROUND_FLOOR
-  * @see #ROUND_HALF_DOWN
-  * @see #ROUND_HALF_EVEN
-  * @see #ROUND_HALF_UP
-  * @see #ROUND_UNNECESSARY
-  * @see #ROUND_UP
-  * @serial
-  */
- //--int roundingMode;
-
- /* properties private constant */
- // default settings
- //--private static final int DEFAULT_FORM=SCIENTIFIC;
- //--private static final int DEFAULT_DIGITS=9;
- //--private static final boolean DEFAULT_LOSTDIGITS=false;
- //--private static final int DEFAULT_ROUNDINGMODE=ROUND_HALF_UP;
- MathContext.prototype.DEFAULT_FORM=MathContext.prototype.SCIENTIFIC;
- MathContext.prototype.DEFAULT_DIGITS=9;
- MathContext.prototype.DEFAULT_LOSTDIGITS=false;
- MathContext.prototype.DEFAULT_ROUNDINGMODE=MathContext.prototype.ROUND_HALF_UP;
-
- /* properties private constant */
-
- //--private static final int MIN_DIGITS=0; // smallest value for DIGITS.
- //--private static final int MAX_DIGITS=999999999; // largest value for DIGITS.  If increased,
- MathContext.prototype.MIN_DIGITS=0; // smallest value for DIGITS.
- MathContext.prototype.MAX_DIGITS=999999999; // largest value for DIGITS.  If increased,
- // the BigDecimal class may need update.
- // list of valid rounding mode values, most common two first
- //--private static final int ROUNDS[]=new int[]{ROUND_HALF_UP,ROUND_UNNECESSARY,ROUND_CEILING,ROUND_DOWN,ROUND_FLOOR,ROUND_HALF_DOWN,ROUND_HALF_EVEN,ROUND_UP};
- MathContext.prototype.ROUNDS=new Array(MathContext.prototype.ROUND_HALF_UP,MathContext.prototype.ROUND_UNNECESSARY,MathContext.prototype.ROUND_CEILING,MathContext.prototype.ROUND_DOWN,MathContext.prototype.ROUND_FLOOR,MathContext.prototype.ROUND_HALF_DOWN,MathContext.prototype.ROUND_HALF_EVEN,MathContext.prototype.ROUND_UP);
-
-
- //--private static final java.lang.String ROUNDWORDS[]=new java.lang.String[]{"ROUND_HALF_UP","ROUND_UNNECESSARY","ROUND_CEILING","ROUND_DOWN","ROUND_FLOOR","ROUND_HALF_DOWN","ROUND_HALF_EVEN","ROUND_UP"}; // matching names of the ROUNDS values
- MathContext.prototype.ROUNDWORDS=new Array("ROUND_HALF_UP","ROUND_UNNECESSARY","ROUND_CEILING","ROUND_DOWN","ROUND_FLOOR","ROUND_HALF_DOWN","ROUND_HALF_EVEN","ROUND_UP"); // matching names of the ROUNDS values
-
-
-
-
- /* properties private constant unused */
-
- // Serialization version
- //--private static final long serialVersionUID=7163376998892515376L;
-
- /* properties public constant */
- /**
-  * A <code>MathContext</code> object initialized to the default
-  * settings for general-purpose arithmetic.  That is,
-  * <code>digits=9 form=SCIENTIFIC lostDigits=false
-  * roundingMode=ROUND_HALF_UP</code>.
-  *
-  * @see #SCIENTIFIC
-  * @see #ROUND_HALF_UP
-  * @stable ICU 2.0
-  */
- //--public static final com.ibm.icu.math.MathContext DEFAULT=new com.ibm.icu.math.MathContext(DEFAULT_DIGITS,DEFAULT_FORM,DEFAULT_LOSTDIGITS,DEFAULT_ROUNDINGMODE);
- MathContext.prototype.DEFAULT=new MathContext(MathContext.prototype.DEFAULT_DIGITS,MathContext.prototype.DEFAULT_FORM,MathContext.prototype.DEFAULT_LOSTDIGITS,MathContext.prototype.DEFAULT_ROUNDINGMODE);
-
-
-
-
- /* ----- Constructors ----- */
-
- /**
-  * Constructs a new <code>MathContext</code> with a specified
-  * precision.
-  * The other settings are set to the default values
-  * (see {@link #DEFAULT}).
-  *
-  * An <code>IllegalArgumentException</code> is thrown if the
-  * <code>setdigits</code> parameter is out of range
-  * (&lt;0 or &gt;999999999).
-  *
-  * @param setdigits     The <code>int</code> digits setting
-  *                      for this <code>MathContext</code>.
-  * @throws IllegalArgumentException parameter out of range.
-  * @stable ICU 2.0
-  */
-
- //--public MathContext(int setdigits){
- //-- this(setdigits,DEFAULT_FORM,DEFAULT_LOSTDIGITS,DEFAULT_ROUNDINGMODE);
- //-- return;}
-
-
- /**
-  * Constructs a new <code>MathContext</code> with a specified
-  * precision and form.
-  * The other settings are set to the default values
-  * (see {@link #DEFAULT}).
-  *
-  * An <code>IllegalArgumentException</code> is thrown if the
-  * <code>setdigits</code> parameter is out of range
-  * (&lt;0 or &gt;999999999), or if the value given for the
-  * <code>setform</code> parameter is not one of the appropriate
-  * constants.
-  *
-  * @param setdigits     The <code>int</code> digits setting
-  *                      for this <code>MathContext</code>.
-  * @param setform       The <code>int</code> form setting
-  *                      for this <code>MathContext</code>.
-  * @throws IllegalArgumentException parameter out of range.
-  * @stable ICU 2.0
-  */
-
- //--public MathContext(int setdigits,int setform){
- //-- this(setdigits,setform,DEFAULT_LOSTDIGITS,DEFAULT_ROUNDINGMODE);
- //-- return;}
-
- /**
-  * Constructs a new <code>MathContext</code> with a specified
-  * precision, form, and lostDigits setting.
-  * The roundingMode setting is set to its default value
-  * (see {@link #DEFAULT}).
-  *
-  * An <code>IllegalArgumentException</code> is thrown if the
-  * <code>setdigits</code> parameter is out of range
-  * (&lt;0 or &gt;999999999), or if the value given for the
-  * <code>setform</code> parameter is not one of the appropriate
-  * constants.
-  *
-  * @param setdigits     The <code>int</code> digits setting
-  *                      for this <code>MathContext</code>.
-  * @param setform       The <code>int</code> form setting
-  *                      for this <code>MathContext</code>.
-  * @param setlostdigits The <code>boolean</code> lostDigits
-  *                      setting for this <code>MathContext</code>.
-  * @throws IllegalArgumentException parameter out of range.
-  * @stable ICU 2.0
-  */
-
- //--public MathContext(int setdigits,int setform,boolean setlostdigits){
- //-- this(setdigits,setform,setlostdigits,DEFAULT_ROUNDINGMODE);
- //-- return;}
-
- /**
-  * Constructs a new <code>MathContext</code> with a specified
-  * precision, form, lostDigits, and roundingMode setting.
-  *
-  * An <code>IllegalArgumentException</code> is thrown if the
-  * <code>setdigits</code> parameter is out of range
-  * (&lt;0 or &gt;999999999), or if the value given for the
-  * <code>setform</code> or <code>setroundingmode</code> parameters is
-  * not one of the appropriate constants.
-  *
-  * @param setdigits       The <code>int</code> digits setting
-  *                        for this <code>MathContext</code>.
-  * @param setform         The <code>int</code> form setting
-  *                        for this <code>MathContext</code>.
-  * @param setlostdigits   The <code>boolean</code> lostDigits
-  *                        setting for this <code>MathContext</code>.
-  * @param setroundingmode The <code>int</code> roundingMode setting
-  *                        for this <code>MathContext</code>.
-  * @throws IllegalArgumentException parameter out of range.
-  * @stable ICU 2.0
-  */
-
- //--public MathContext(int setdigits,int setform,boolean setlostdigits,int setroundingmode){super();
- function MathContext() {
-  //-- members
-  this.digits = 0;
-  this.form = 0; // values for this must fit in a byte
-  this.lostDigits = false;
-  this.roundingMode = 0;
-
-  //-- overloaded ctor
-  var setform = this.DEFAULT_FORM;
-  var setlostdigits = this.DEFAULT_LOSTDIGITS;
-  var setroundingmode = this.DEFAULT_ROUNDINGMODE;
-  if (MathContext.arguments.length == 4)
-   {
-    setform = MathContext.arguments[1];
-    setlostdigits = MathContext.arguments[2];
-    setroundingmode = MathContext.arguments[3];
-   }
-  else if (MathContext.arguments.length == 3)
-   {
-    setform = MathContext.arguments[1];
-    setlostdigits = MathContext.arguments[2];
-   }
-  else if (MathContext.arguments.length == 2)
-   {
-    setform = MathContext.arguments[1];
-   }
-  else if (MathContext.arguments.length != 1)
-   {
-    throw "MathContext(): " + MathContext.arguments.length + " arguments given; expected 1 to 4";
-   }
-  var setdigits = MathContext.arguments[0];
-
-
-  // set values, after checking
-  if (setdigits!=this.DEFAULT_DIGITS)
-   {
-    if (setdigits<this.MIN_DIGITS)
-     throw "MathContext(): Digits too small: "+setdigits;
-    if (setdigits>this.MAX_DIGITS)
-     throw "MathContext(): Digits too large: "+setdigits;
-   }
-  {/*select*/
-  if (setform==this.SCIENTIFIC)
-   {} // [most common]
-  else if (setform==this.ENGINEERING)
-   {}
-  else if (setform==this.PLAIN)
-   {}
-  else{
-   throw "MathContext() Bad form value: "+setform;
-  }
-  }
-  if ((!(this.isValidRound(setroundingmode))))
-   throw "MathContext(): Bad roundingMode value: "+setroundingmode;
-  this.digits=setdigits;
-  this.form=setform;
-  this.lostDigits=setlostdigits; // [no bad value possible]
-  this.roundingMode=setroundingmode;
-  return;}
-
- /**
-  * Returns the digits setting.
-  * This value is always non-negative.
-  *
-  * @return an <code>int</code> which is the value of the digits
-  *         setting
-  * @stable ICU 2.0
-  */
-
- //--public int getDigits(){
- function getDigits() {
-  return this.digits;
-  }
-
- /**
-  * Returns the form setting.
-  * This will be one of
-  * {@link #ENGINEERING},
-  * {@link #PLAIN}, or
-  * {@link #SCIENTIFIC}.
-  *
-  * @return an <code>int</code> which is the value of the form setting
-  * @stable ICU 2.0
-  */
-
- //--public int getForm(){
- function getForm() {
-  return this.form;
-  }
-
- /**
-  * Returns the lostDigits setting.
-  * This will be either <code>true</code> (enabled) or
-  * <code>false</code> (disabled).
-  *
-  * @return a <code>boolean</code> which is the value of the lostDigits
-  *           setting
-  * @stable ICU 2.0
-  */
-
- //--public boolean getLostDigits(){
- function getLostDigits() {
-  return this.lostDigits;
-  }
-
- /**
-  * Returns the roundingMode setting.
-  * This will be one of
-  * {@link  #ROUND_CEILING},
-  * {@link  #ROUND_DOWN},
-  * {@link  #ROUND_FLOOR},
-  * {@link  #ROUND_HALF_DOWN},
-  * {@link  #ROUND_HALF_EVEN},
-  * {@link  #ROUND_HALF_UP},
-  * {@link  #ROUND_UNNECESSARY}, or
-  * {@link  #ROUND_UP}.
-  *
-  * @return an <code>int</code> which is the value of the roundingMode
-  *         setting
-  * @stable ICU 2.0
-  */
-
- //--public int getRoundingMode(){
- function getRoundingMode() {
-  return this.roundingMode;
-  }
-
- /** Returns the <code>MathContext</code> as a readable string.
-  * The <code>String</code> returned represents the settings of the
-  * <code>MathContext</code> object as four blank-delimited words
-  * separated by a single blank and with no leading or trailing blanks,
-  * as follows:
-  * <ol>
-  * <li>
-  * <code>digits=</code>, immediately followed by
-  * the value of the digits setting as a numeric word.
-  * <li>
-  * <code>form=</code>, immediately followed by
-  * the value of the form setting as an uppercase word
-  * (one of <code>SCIENTIFIC</code>, <code>PLAIN</code>, or
-  * <code>ENGINEERING</code>).
-  * <li>
-  * <code>lostDigits=</code>, immediately followed by
-  * the value of the lostDigits setting
-  * (<code>1</code> if enabled, <code>0</code> if disabled).
-  * <li>
-  * <code>roundingMode=</code>, immediately followed by
-  * the value of the roundingMode setting as a word.
-  * This word will be the same as the name of the corresponding public
-  * constant.
-  * </ol>
-  * <p>
-  * For example:
-  * <br><code>
-  * digits=9 form=SCIENTIFIC lostDigits=0 roundingMode=ROUND_HALF_UP
-  * </code>
-  * <p>
-  * Additional words may be appended to the result of
-  * <code>toString</code> in the future if more properties are added
-  * to the class.
-  *
-  * @return a <code>String</code> representing the context settings.
-  * @stable ICU 2.0
-  */
-
- //--public java.lang.String toString(){
- function toString() {
-  //--java.lang.String formstr=null;
-  var formstr=null;
-  //--int r=0;
-  var r=0;
-  //--java.lang.String roundword=null;
-  var roundword=null;
-  {/*select*/
-  if (this.form==this.SCIENTIFIC)
-   formstr="SCIENTIFIC";
-  else if (this.form==this.ENGINEERING)
-   formstr="ENGINEERING";
-  else{
-   formstr="PLAIN";/* form=PLAIN */
-  }
-  }
-  {var $1=this.ROUNDS.length;r=0;r:for(;$1>0;$1--,r++){
-   if (this.roundingMode==this.ROUNDS[r])
-    {
-     roundword=this.ROUNDWORDS[r];
-     break r;
-    }
-   }
-  }/*r*/
-  return "digits="+this.digits+" "+"form="+formstr+" "+"lostDigits="+(this.lostDigits?"1":"0")+" "+"roundingMode="+roundword;
-  }
-
-
- /* <sgml> Test whether round is valid. </sgml> */
- // This could be made shared for use by BigDecimal for setScale.
-
- //--private static boolean isValidRound(int testround){
- function isValidRound(testround) {
-  //--int r=0;
-  var r=0;
-  {var $2=this.ROUNDS.length;r=0;r:for(;$2>0;$2--,r++){
-   if (testround==this.ROUNDS[r])
-    return true;
-   }
-  }/*r*/
-  return false;
-  }
-return MathContext;
-})();
-
-module.exports = BigDecimal = (function (MathContext) {
-/* Generated from 'BigDecimal.nrx' 8 Sep 2000 11:10:50 [v2.00] */
-/* Options: Binary Comments Crossref Format Java Logo Strictargs Strictcase Trace2 Verbose3 */
-//--package com.ibm.icu.math;
-//--import java.math.BigInteger;
-//--import com.ibm.icu.impl.Utility;
-
-/* ------------------------------------------------------------------ */
-/* BigDecimal -- Decimal arithmetic for Java                          */
-/* ------------------------------------------------------------------ */
-/* Copyright IBM Corporation, 1996, 2000.  All Rights Reserved.       */
-/*                                                                    */
-/* The BigDecimal class provides immutable arbitrary-precision        */
-/* floating point (including integer) decimal numbers.                */
-/*                                                                    */
-/* As the numbers are decimal, there is an exact correspondence       */
-/* between an instance of a BigDecimal object and its String          */
-/* representation; the BigDecimal class provides direct conversions   */
-/* to and from String and character array objects, and well as        */
-/* conversions to and from the Java primitive types (which may not    */
-/* be exact).                                                         */
-/* ------------------------------------------------------------------ */
-/* Notes:                                                             */
-/*                                                                    */
-/* 1. A BigDecimal object is never changed in value once constructed; */
-/*    this avoids the need for locking.  Note in particular that the  */
-/*    mantissa array may be shared between many BigDecimal objects,   */
-/*    so that once exposed it must not be altered.                    */
-/*                                                                    */
-/* 2. This class looks at MathContext class fields directly (for      */
-/*    performance).  It must not and does not change them.            */
-/*                                                                    */
-/* 3. Exponent checking is delayed until finish(), as we know         */
-/*    intermediate calculations cannot cause 31-bit overflow.         */
-/*    [This assertion depends on MAX_DIGITS in MathContext.]          */
-/*                                                                    */
-/* 4. Comments for the public API now follow the javadoc conventions. */
-/*    The NetRexx -comments option is used to pass these comments     */
-/*    through to the generated Java code (with -format, if desired).  */
-/*                                                                    */
-/* 5. System.arraycopy is faster than explicit loop as follows        */
-/*      Mean length 4:  equal                                         */
-/*      Mean length 8:  x2                                            */
-/*      Mean length 16: x3                                            */
-/*      Mean length 24: x4                                            */
-/*    From prior experience, we expect mean length a little below 8,  */
-/*    but arraycopy is still the one to use, in general, until later  */
-/*    measurements suggest otherwise.                                 */
-/*                                                                    */
-/* 6. 'DMSRCN' referred to below is the original (1981) IBM S/370     */
-/*    assembler code implementation of the algorithms below; it is    */
-/*    now called IXXRCN and is available with the OS/390 and VM/ESA   */
-/*    operating systems.                                              */
-/* ------------------------------------------------------------------ */
-/* Change History:                                                    */
-/* 1997.09.02 Initial version (derived from netrexx.lang classes)     */
-/* 1997.09.12 Add lostDigits checking                                 */
-/* 1997.10.06 Change mantissa to a byte array                         */
-/* 1997.11.22 Rework power [did not prepare arguments, etc.]          */
-/* 1997.12.13 multiply did not prepare arguments                      */
-/* 1997.12.14 add did not prepare and align arguments correctly       */
-/* 1998.05.02 0.07 packaging changes suggested by Sun and Oracle      */
-/* 1998.05.21 adjust remainder operator finalization                  */
-/* 1998.06.04 rework to pass MathContext to finish() and round()      */
-/* 1998.06.06 change format to use round(); support rounding modes    */
-/* 1998.06.25 rename to BigDecimal and begin merge                    */
-/*            zero can now have trailing zeros (i.e., exp\=0)         */
-/* 1998.06.28 new methods: movePointXxxx, scale, toBigInteger         */
-/*                         unscaledValue, valueof                     */
-/* 1998.07.01 improve byteaddsub to allow array reuse, etc.           */
-/* 1998.07.01 make null testing explicit to avoid JIT bug [Win32]     */
-/* 1998.07.07 scaled division  [divide(BigDecimal, int, int)]         */
-/* 1998.07.08 setScale, faster equals                                 */
-/* 1998.07.11 allow 1E6 (no sign) <sigh>; new double/float conversion */
-/* 1998.10.12 change package to com.ibm.icu.math                          */
-/* 1998.12.14 power operator no longer rounds RHS [to match ANSI]     */
-/*            add toBigDecimal() and BigDecimal(java.math.BigDecimal) */
-/* 1998.12.29 improve byteaddsub by using table lookup                */
-/* 1999.02.04 lostdigits=0 behaviour rounds instead of digits+1 guard */
-/* 1999.02.05 cleaner code for BigDecimal(char[])                     */
-/* 1999.02.06 add javadoc comments                                    */
-/* 1999.02.11 format() changed from 7 to 2 method form                */
-/* 1999.03.05 null pointer checking is no longer explicit             */
-/* 1999.03.05 simplify; changes from discussion with J. Bloch:        */
-/*            null no longer permitted for MathContext; drop boolean, */
-/*            byte, char, float, short constructor, deprecate double  */
-/*            constructor, no blanks in string constructor, add       */
-/*            offset and length version of char[] constructor;        */
-/*            add valueOf(double); drop booleanValue, charValue;      */
-/*            add ...Exact versions of remaining convertors           */
-/* 1999.03.13 add toBigIntegerExact                                   */
-/* 1999.03.13 1.00 release to IBM Centre for Java Technology          */
-/* 1999.05.27 1.01 correct 0-0.2 bug under scaled arithmetic          */
-/* 1999.06.29 1.02 constructors should not allow exponent > 9 digits  */
-/* 1999.07.03 1.03 lost digits should not be checked if digits=0      */
-/* 1999.07.06      lost digits Exception message changed              */
-/* 1999.07.10 1.04 more work on 0-0.2 (scaled arithmetic)             */
-/* 1999.07.17      improve messages from pow method                   */
-/* 1999.08.08      performance tweaks                                 */
-/* 1999.08.15      fastpath in multiply                               */
-/* 1999.11.05 1.05 fix problem in intValueExact [e.g., 5555555555]    */
-/* 1999.12.22 1.06 remove multiply fastpath, and improve performance  */
-/* 2000.01.01      copyright update [Y2K has arrived]                 */
-/* 2000.06.18 1.08 no longer deprecate BigDecimal(double)             */
-/* ------------------------------------------------------------------ */
-
-
-/* JavaScript conversion (c) 2003 STZ-IDA and PTV AG, Karlsruhe, Germany */
-
-
-
-function div(a, b) {
-    return (a-(a%b))/b;
-}
-
-BigDecimal.prototype.div = div;
-
-function arraycopy(src, srcindex, dest, destindex, length) {
-    var i;
-    if (destindex > srcindex) {
-        // in case src and dest are equals, but also doesn't hurt
-        // if they are different
-        for (i = length-1; i >= 0; --i) {
-            dest[i+destindex] = src[i+srcindex];
-        }
-    } else {
-        for (i = 0; i < length; ++i) {
-            dest[i+destindex] = src[i+srcindex];
-        }
-    }
-}
-
-BigDecimal.prototype.arraycopy = arraycopy;
-
-function createArrayWithZeros(length) {
-    var retVal = new Array(length);
-    var i;
-    for (i = 0; i < length; ++i) {
-        retVal[i] = 0;
-    }
-    return retVal;
-}
-
-BigDecimal.prototype.createArrayWithZeros = createArrayWithZeros;
-
-
-/**
- * The <code>BigDecimal</code> class implements immutable
- * arbitrary-precision decimal numbers.  The methods of the
- * <code>BigDecimal</code> class provide operations for fixed and
- * floating point arithmetic, comparison, format conversions, and
- * hashing.
- * <p>
- * As the numbers are decimal, there is an exact correspondence between
- * an instance of a <code>BigDecimal</code> object and its
- * <code>String</code> representation; the <code>BigDecimal</code> class
- * provides direct conversions to and from <code>String</code> and
- * character array (<code>char[]</code>) objects, as well as conversions
- * to and from the Java primitive types (which may not be exact) and
- * <code>BigInteger</code>.
- * <p>
- * In the descriptions of constructors and methods in this documentation,
- * the value of a <code>BigDecimal</code> number object is shown as the
- * result of invoking the <code>toString()</code> method on the object.
- * The internal representation of a decimal number is neither defined
- * nor exposed, and is not permitted to affect the result of any
- * operation.
- * <p>
- * The floating point arithmetic provided by this class is defined by
- * the ANSI X3.274-1996 standard, and is also documented at
- * <code>http://www2.hursley.ibm.com/decimal</code>
- * <br><i>[This URL will change.]</i>
- *
- * <h3>Operator methods</h3>
- * <p>
- * Operations on <code>BigDecimal</code> numbers are controlled by a
- * {@link MathContext} object, which provides the context (precision and
- * other information) for the operation. Methods that can take a
- * <code>MathContext</code> parameter implement the standard arithmetic
- * operators for <code>BigDecimal</code> objects and are known as
- * <i>operator methods</i>.  The default settings provided by the
- * constant {@link MathContext#DEFAULT} (<code>digits=9,
- * form=SCIENTIFIC, lostDigits=false, roundingMode=ROUND_HALF_UP</code>)
- * perform general-purpose floating point arithmetic to nine digits of
- * precision.  The <code>MathContext</code> parameter must not be
- * <code>null</code>.
- * <p>
- * Each operator method also has a version provided which does
- * not take a <code>MathContext</code> parameter.  For this version of
- * each method, the context settings used are <code>digits=0,
- * form=PLAIN, lostDigits=false, roundingMode=ROUND_HALF_UP</code>;
- * these settings perform fixed point arithmetic with unlimited
- * precision, as defined for the original BigDecimal class in Java 1.1
- * and Java 1.2.
- * <p>
- * For monadic operators, only the optional <code>MathContext</code>
- * parameter is present; the operation acts upon the current object.
- * <p>
- * For dyadic operators, a <code>BigDecimal</code> parameter is always
- * present; it must not be <code>null</code>.
- * The operation acts with the current object being the left-hand operand
- * and the <code>BigDecimal</code> parameter being the right-hand operand.
- * <p>
- * For example, adding two <code>BigDecimal</code> objects referred to
- * by the names <code>award</code> and <code>extra</code> could be
- * written as any of:
- * <p><code>
- *     award.add(extra)
- * <br>award.add(extra, MathContext.DEFAULT)
- * <br>award.add(extra, acontext)
- * </code>
- * <p>
- * (where <code>acontext</code> is a <code>MathContext</code> object),
- * which would return a <code>BigDecimal</code> object whose value is
- * the result of adding <code>award</code> and <code>extra</code> under
- * the appropriate context settings.
- * <p>
- * When a <code>BigDecimal</code> operator method is used, a set of
- * rules define what the result will be (and, by implication, how the
- * result would be represented as a character string).
- * These rules are defined in the BigDecimal arithmetic documentation
- * (see the URL above), but in summary:
- * <ul>
- * <li>Results are normally calculated with up to some maximum number of
- * significant digits.
- * For example, if the <code>MathContext</code> parameter for an operation
- * were <code>MathContext.DEFAULT</code> then the result would be
- * rounded to 9 digits; the division of 2 by 3 would then result in
- * 0.666666667.
- * <br>
- * You can change the default of 9 significant digits by providing the
- * method with a suitable <code>MathContext</code> object. This lets you
- * calculate using as many digits as you need -- thousands, if necessary.
- * Fixed point (scaled) arithmetic is indicated by using a
- * <code>digits</code> setting of 0 (or omitting the
- * <code>MathContext</code> parameter).
- * <br>
- * Similarly, you can change the algorithm used for rounding from the
- * default "classic" algorithm.
- * <li>
- * In standard arithmetic (that is, when the <code>form</code> setting
- * is not <code>PLAIN</code>), a zero result is always expressed as the
- * single digit <code>'0'</code> (that is, with no sign, decimal point,
- * or exponent part).
- * <li>
- * Except for the division and power operators in standard arithmetic,
- * trailing zeros are preserved (this is in contrast to binary floating
- * point operations and most electronic calculators, which lose the
- * information about trailing zeros in the fractional part of results).
- * <br>
- * So, for example:
- * <p><code>
- *     new BigDecimal("2.40").add(     new BigDecimal("2"))      =&gt; "4.40"
- * <br>new BigDecimal("2.40").subtract(new BigDecimal("2"))      =&gt; "0.40"
- * <br>new BigDecimal("2.40").multiply(new BigDecimal("2"))      =&gt; "4.80"
- * <br>new BigDecimal("2.40").divide(  new BigDecimal("2"), def) =&gt; "1.2"
- * </code>
- * <p>where the value on the right of the <code>=&gt;</code> would be the
- * result of the operation, expressed as a <code>String</code>, and
- * <code>def</code> (in this and following examples) refers to
- * <code>MathContext.DEFAULT</code>).
- * This preservation of trailing zeros is desirable for most
- * calculations (including financial calculations).
- * If necessary, trailing zeros may be easily removed using division by 1.
- * <li>
- * In standard arithmetic, exponential form is used for a result
- * depending on its value and the current setting of <code>digits</code>
- * (the default is 9 digits).
- * If the number of places needed before the decimal point exceeds the
- * <code>digits</code> setting, or the absolute value of the number is
- * less than <code>0.000001</code>, then the number will be expressed in
- * exponential notation; thus
- * <p><code>
- *   new BigDecimal("1e+6").multiply(new BigDecimal("1e+6"), def)
- * </code>
- * <p>results in <code>1E+12</code> instead of
- * <code>1000000000000</code>, and
- * <p><code>
- *   new BigDecimal("1").divide(new BigDecimal("3E+10"), def)
- * </code>
- * <p>results in <code>3.33333333E-11</code> instead of
- * <code>0.0000000000333333333</code>.
- * <p>
- * The form of the exponential notation (scientific or engineering) is
- * determined by the <code>form</code> setting.
- * <eul>
- * <p>
- * The names of methods in this class follow the conventions established
- * by <code>java.lang.Number</code>, <code>java.math.BigInteger</code>,
- * and <code>java.math.BigDecimal</code> in Java 1.1 and Java 1.2.
- *
- * @see     MathContext
- * @author  Mike Cowlishaw
- * @stable ICU 2.0
- */
-
-//--public class BigDecimal extends java.lang.Number implements java.io.Serializable,java.lang.Comparable{
-//-- private static final java.lang.String $0="BigDecimal.nrx";
-
- //-- methods
- BigDecimal.prototype.abs = abs;
- BigDecimal.prototype.add = add;
- BigDecimal.prototype.compareTo = compareTo;
- BigDecimal.prototype.divide = divide;
- BigDecimal.prototype.divideInteger = divideInteger;
- BigDecimal.prototype.max = max;
- BigDecimal.prototype.min = min;
- BigDecimal.prototype.multiply = multiply;
- BigDecimal.prototype.negate = negate;
- BigDecimal.prototype.plus = plus;
- BigDecimal.prototype.pow = pow;
- BigDecimal.prototype.remainder = remainder;
- BigDecimal.prototype.subtract = subtract;
- BigDecimal.prototype.equals = equals;
- BigDecimal.prototype.format = format;
- BigDecimal.prototype.intValueExact = intValueExact;
- BigDecimal.prototype.movePointLeft = movePointLeft;
- BigDecimal.prototype.movePointRight = movePointRight;
- BigDecimal.prototype.scale = scale;
- BigDecimal.prototype.setScale = setScale;
- BigDecimal.prototype.signum = signum;
- BigDecimal.prototype.toString = toString;
- BigDecimal.prototype.layout = layout;
- BigDecimal.prototype.intcheck = intcheck;
- BigDecimal.prototype.dodivide = dodivide;
- BigDecimal.prototype.bad = bad;
- BigDecimal.prototype.badarg = badarg;
- BigDecimal.prototype.extend = extend;
- BigDecimal.prototype.byteaddsub = byteaddsub;
- BigDecimal.prototype.diginit = diginit;
- BigDecimal.prototype.clone = clone;
- BigDecimal.prototype.checkdigits = checkdigits;
- BigDecimal.prototype.round = round;
- BigDecimal.prototype.allzero = allzero;
- BigDecimal.prototype.finish = finish;
-
- // Convenience methods
- BigDecimal.prototype.isGreaterThan = isGreaterThan;
- BigDecimal.prototype.isLessThan = isLessThan;
- BigDecimal.prototype.isGreaterThanOrEqualTo = isGreaterThanOrEqualTo;
- BigDecimal.prototype.isLessThanOrEqualTo = isLessThanOrEqualTo;
- BigDecimal.prototype.isPositive = isPositive;
- BigDecimal.prototype.isNegative = isNegative;
- BigDecimal.prototype.isZero = isZero;
-
-
- /* ----- Constants ----- */
- /* properties constant public */ // useful to others
- // the rounding modes (copied here for upwards compatibility)
- /**
-  * Rounding mode to round to a more positive number.
-  * @see MathContext#ROUND_CEILING
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_CEILING=com.ibm.icu.math.MathContext.ROUND_CEILING;
- BigDecimal.ROUND_CEILING = BigDecimal.prototype.ROUND_CEILING = MathContext.prototype.ROUND_CEILING;
-
- /**
-  * Rounding mode to round towards zero.
-  * @see MathContext#ROUND_DOWN
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_DOWN=com.ibm.icu.math.MathContext.ROUND_DOWN;
- BigDecimal.ROUND_DOWN = BigDecimal.prototype.ROUND_DOWN = MathContext.prototype.ROUND_DOWN;
-
- /**
-  * Rounding mode to round to a more negative number.
-  * @see MathContext#ROUND_FLOOR
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_FLOOR=com.ibm.icu.math.MathContext.ROUND_FLOOR;
- BigDecimal.ROUND_FLOOR = BigDecimal.prototype.ROUND_FLOOR = MathContext.prototype.ROUND_FLOOR;
-
- /**
-  * Rounding mode to round to nearest neighbor, where an equidistant
-  * value is rounded down.
-  * @see MathContext#ROUND_HALF_DOWN
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_HALF_DOWN=com.ibm.icu.math.MathContext.ROUND_HALF_DOWN;
- BigDecimal.ROUND_HALF_DOWN = BigDecimal.prototype.ROUND_HALF_DOWN = MathContext.prototype.ROUND_HALF_DOWN;
-
- /**
-  * Rounding mode to round to nearest neighbor, where an equidistant
-  * value is rounded to the nearest even neighbor.
-  * @see MathContext#ROUND_HALF_EVEN
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_HALF_EVEN=com.ibm.icu.math.MathContext.ROUND_HALF_EVEN;
- BigDecimal.ROUND_HALF_EVEN = BigDecimal.prototype.ROUND_HALF_EVEN = MathContext.prototype.ROUND_HALF_EVEN;
-
- /**
-  * Rounding mode to round to nearest neighbor, where an equidistant
-  * value is rounded up.
-  * @see MathContext#ROUND_HALF_UP
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_HALF_UP=com.ibm.icu.math.MathContext.ROUND_HALF_UP;
- BigDecimal.ROUND_HALF_UP = BigDecimal.prototype.ROUND_HALF_UP = MathContext.prototype.ROUND_HALF_UP;
-
- /**
-  * Rounding mode to assert that no rounding is necessary.
-  * @see MathContext#ROUND_UNNECESSARY
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_UNNECESSARY=com.ibm.icu.math.MathContext.ROUND_UNNECESSARY;
- BigDecimal.ROUND_UNNECESSARY = BigDecimal.prototype.ROUND_UNNECESSARY = MathContext.prototype.ROUND_UNNECESSARY;
-
- /**
-  * Rounding mode to round away from zero.
-  * @see MathContext#ROUND_UP
-  * @stable ICU 2.0
-  */
- //--public static final int ROUND_UP=com.ibm.icu.math.MathContext.ROUND_UP;
- BigDecimal.ROUND_UP = BigDecimal.prototype.ROUND_UP = MathContext.prototype.ROUND_UP;
-
- /* properties constant private */ // locals
- //--private static final byte ispos=1; // ind: indicates positive (must be 1)
- //--private static final byte iszero=0; // ind: indicates zero     (must be 0)
- //--private static final byte isneg=-1; // ind: indicates negative (must be -1)
- BigDecimal.prototype.ispos = 1;
- BigDecimal.prototype.iszero = 0;
- BigDecimal.prototype.isneg = -1;
- // [later could add NaN, +/- infinity, here]
-
- //--private static final int MinExp=-999999999; // minimum exponent allowed
- //--private static final int MaxExp=999999999; // maximum exponent allowed
- //--private static final int MinArg=-999999999; // minimum argument integer
- //--private static final int MaxArg=999999999; // maximum argument integer
- BigDecimal.prototype.MinExp=-999999999; // minimum exponent allowed
- BigDecimal.prototype.MaxExp=999999999; // maximum exponent allowed
- BigDecimal.prototype.MinArg=-999999999; // minimum argument integer
- BigDecimal.prototype.MaxArg=999999999; // maximum argument integer
-
- //--private static final com.ibm.icu.math.MathContext plainMC=new com.ibm.icu.math.MathContext(0,com.ibm.icu.math.MathContext.PLAIN); // context for plain unlimited math
- BigDecimal.prototype.plainMC=new MathContext(0, MathContext.prototype.PLAIN);
-
- /* properties constant private unused */ // present but not referenced
-
- // Serialization version
- //--private static final long serialVersionUID=8245355804974198832L;
-
- //--private static final java.lang.String copyright=" Copyright (c) IBM Corporation 1996, 2000.  All rights reserved. ";
-
- /* properties static private */
- // Precalculated constant arrays (used by byteaddsub)
- //--private static byte bytecar[]=new byte[(90+99)+1]; // carry/borrow array
- //--private static byte bytedig[]=diginit(); // next digit array
- BigDecimal.prototype.bytecar = new Array((90+99)+1);
- BigDecimal.prototype.bytedig = diginit();
-
- /**
-  * The <code>BigDecimal</code> constant "0".
-  *
-  * @see #ONE
-  * @see #TEN
-  * @stable ICU 2.0
-  */
- //--public static final com.ibm.icu.math.BigDecimal ZERO=new com.ibm.icu.math.BigDecimal((long)0); // use long as we want the int constructor
- // .. to be able to use this, for speed
-BigDecimal.ZERO = BigDecimal.prototype.ZERO = new BigDecimal("0");
-
- /**
-  * The <code>BigDecimal</code> constant "1".
-  *
-  * @see #TEN
-  * @see #ZERO
-  * @stable ICU 2.0
-  */
- //--public static final com.ibm.icu.math.BigDecimal ONE=new com.ibm.icu.math.BigDecimal((long)1); // use long as we want the int constructor
- // .. to be able to use this, for speed
-BigDecimal.ONE = BigDecimal.prototype.ONE = new BigDecimal("1");
-
- /**
-  * The <code>BigDecimal</code> constant "10".
-  *
-  * @see #ONE
-  * @see #ZERO
-  * @stable ICU 2.0
-  */
- //--public static final com.ibm.icu.math.BigDecimal TEN=new com.ibm.icu.math.BigDecimal(10);
- BigDecimal.TEN = BigDecimal.prototype.TEN = new BigDecimal("10");
-
- /* ----- Instance properties [all private and immutable] ----- */
- /* properties private */
-
- /**
-  * The indicator. This may take the values:
-  * <ul>
-  * <li>ispos  -- the number is positive
-  * <li>iszero -- the number is zero
-  * <li>isneg  -- the number is negative
-  * </ul>
-  *
-  * @serial
-  */
- //--private byte ind; // assumed undefined
- // Note: some code below assumes IND = Sign [-1, 0, 1], at present.
- // We only need two bits for this, but use a byte [also permits
- // smooth future extension].
-
- /**
-  * The formatting style. This may take the values:
-  * <ul>
-  * <li>MathContext.PLAIN        -- no exponent needed
-  * <li>MathContext.SCIENTIFIC   -- scientific notation required
-  * <li>MathContext.ENGINEERING  -- engineering notation required
-  * </ul>
-  * <p>
-  * This property is an optimization; it allows us to defer number
-  * layout until it is actually needed as a string, hence avoiding
-  * unnecessary formatting.
-  *
-  * @serial
-  */
- //--private byte form=(byte)com.ibm.icu.math.MathContext.PLAIN; // assumed PLAIN
- // We only need two bits for this, at present, but use a byte
- // [again, to allow for smooth future extension]
-
- /**
-  * The value of the mantissa.
-  * <p>
-  * Once constructed, this may become shared between several BigDecimal
-  * objects, so must not be altered.
-  * <p>
-  * For efficiency (speed), this is a byte array, with each byte
-  * taking a value of 0 -> 9.
-  * <p>
-  * If the first byte is 0 then the value of the number is zero (and
-  * mant.length=1, except when constructed from a plain number, for
-  * example, 0.000).
-  *
-  * @serial
-  */
- //--private byte mant[]; // assumed null
-
- /**
-  * The exponent.
-  * <p>
-  * For fixed point arithmetic, scale is <code>-exp</code>, and can
-  * apply to zero.
-  *
-  * Note that this property can have a value less than MinExp when
-  * the mantissa has more than one digit.
-  *
-  * @serial
-  */
- //--private int exp;
- // assumed 0
-
- /* ---------------------------------------------------------------- */
- /* Constructors                                                     */
- /* ---------------------------------------------------------------- */
-
- /**
-  * Constructs a <code>BigDecimal</code> object from a
-  * <code>java.math.BigDecimal</code>.
-  * <p>
-  * Constructs a <code>BigDecimal</code> as though the parameter had
-  * been represented as a <code>String</code> (using its
-  * <code>toString</code> method) and the
-  * {@link #BigDecimal(java.lang.String)} constructor had then been
-  * used.
-  * The parameter must not be <code>null</code>.
-  * <p>
-  * <i>(Note: this constructor is provided only in the
-  * <code>com.ibm.icu.math</code> version of the BigDecimal class.
-  * It would not be present in a <code>java.math</code> version.)</i>
-  *
-  * @param bd The <code>BigDecimal</code> to be translated.
-  * @stable ICU 2.0
-  */
-
- //--public BigDecimal(java.math.BigDecimal bd){
- //-- this(bd.toString());
- //-- return;}
-
- /**
-  * Constructs a <code>BigDecimal</code> object from a
-  * <code>BigInteger</code>, with scale 0.
-  * <p>
-  * Constructs a <code>BigDecimal</code> which is the exact decimal
-  * representation of the <code>BigInteger</code>, with a scale of
-  * zero.
-  * The value of the <code>BigDecimal</code> is identical to the value
-  * of the <code>BigInteger</code>.
-  * The parameter must not be <code>null</code>.
-  * <p>
-  * The <code>BigDecimal</code> will contain only decimal digits,
-  * prefixed with a leading minus sign (hyphen) if the
-  * <code>BigInteger</code> is negative.  A leading zero will be
-  * present only if the <code>BigInteger</code> is zero.
-  *
-  * @param bi The <code>BigInteger</code> to be converted.
-  * @stable ICU 2.0
-  */
-
- //--public BigDecimal(java.math.BigInteger bi){
- //-- this(bi.toString(10));
- //-- return;}
- // exp remains 0
-
- /**
-  * Constructs a <code>BigDecimal</code> object from a
-  * <code>BigInteger</code> and a scale.
-  * <p>
-  * Constructs a <code>BigDecimal</code> which is the exact decimal
-  * representation of the <code>BigInteger</code>, scaled by the
-  * second parameter, which may not be negative.
-  * The value of the <code>BigDecimal</code> is the
-  * <code>BigInteger</code> divided by ten to the power of the scale.
-  * The <code>BigInteger</code> parameter must not be
-  * <code>null</code>.
-  * <p>
-  * The <code>BigDecimal</code> will contain only decimal digits, (with
-  * an embedded decimal point followed by <code>scale</code> decimal
-  * digits if the scale is positive), prefixed with a leading minus
-  * sign (hyphen) if the <code>BigInteger</code> is negative.  A
-  * leading zero will be present only if the <code>BigInteger</code> is
-  * zero.
-  *
-  * @param  bi    The <code>BigInteger</code> to be converted.
-  * @param  scale The <code>int</code> specifying the scale.
-  * @throws NumberFormatException if the scale is negative.
-  * @stable ICU 2.0
-  */
-
- //--public BigDecimal(java.math.BigInteger bi,int scale){
- //-- this(bi.toString(10));
- //-- if (scale<0)
- //--  throw new java.lang.NumberFormatException("Negative scale:"+" "+scale);
- //-- exp=(int)-scale; // exponent is -scale
- //-- return;}
-
- /**
-  * Constructs a <code>BigDecimal</code> object from an array of characters.
-  * <p>
-  * Constructs a <code>BigDecimal</code> as though a
-  * <code>String</code> had been constructed from the character array
-  * and the {@link #BigDecimal(java.lang.String)} constructor had then
-  * been used. The parameter must not be <code>null</code>.
-  * <p>
-  * Using this constructor is faster than using the
-  * <code>BigDecimal(String)</code> constructor if the string is
-  * already available in character array form.
-  *
-  * @param inchars The <code>char[]</code> array containing the number
-  *                to be converted.
-  * @throws NumberFormatException if the parameter is not a valid
-  *                number.
-  * @stable ICU 2.0
-  */
-
- //--public BigDecimal(char inchars[]){
- //-- this(inchars,0,inchars.length);
- //-- return;}
-
- /**
-  * Constructs a <code>BigDecimal</code> object from an array of characters.
-  * <p>
-  * Constructs a <code>BigDecimal</code> as though a
-  * <code>String</code> had been constructed from the character array
-  * (or a subarray of that array) and the
-  * {@link #BigDecimal(java.lang.String)} constructor had then been
-  * used. The first parameter must not be <code>null</code>, and the
-  * subarray must be wholly contained within it.
-  * <p>
-  * Using this constructor is faster than using the
-  * <code>BigDecimal(String)</code> constructor if the string is
-  * already available within a character array.
-  *
-  * @param inchars The <code>char[]</code> array containing the number
-  *                to be converted.
-  * @param offset  The <code>int</code> offset into the array of the
-  *                start of the number to be converted.
-  * @param length  The <code>int</code> length of the number.
-  * @throws NumberFormatException if the parameter is not a valid
-  *                number for any reason.
-  * @stable ICU 2.0
-  */
-
- //--public BigDecimal(char inchars[],int offset,int length){super();
- function BigDecimal() {
-  //-- members
-  this.ind = 0;
-  this.form = MathContext.prototype.PLAIN;
-  this.mant = null;
-  this.exp = 0;
-
-  //-- overloaded ctor
-  if (BigDecimal.arguments.length == 0)
-   return;
-  var inchars;
-  var offset;
-  var length;
-  if (BigDecimal.arguments.length == 1)
-   {
-    inchars = BigDecimal.arguments[0];
-    offset = 0;
-    length = inchars.length;
-   }
-  else
-   {
-    inchars = BigDecimal.arguments[0];
-    offset = BigDecimal.arguments[1];
-    length = BigDecimal.arguments[2];
-   }
-  if (typeof inchars == "string")
-   {
-    inchars = inchars.split("");
-   }
-
-  //--boolean exotic;
-  var exotic;
-  //--boolean hadexp;
-  var hadexp;
-  //--int d;
-  var d;
-  //--int dotoff;
-  var dotoff;
-  //--int last;
-  var last;
-  //--int i=0;
-  var i=0;
-  //--char si=0;
-  var si=0;
-  //--boolean eneg=false;
-  var eneg=false;
-  //--int k=0;
-  var k=0;
-  //--int elen=0;
-  var elen=0;
-  //--int j=0;
-  var j=0;
-  //--char sj=0;
-  var sj=0;
-  //--int dvalue=0;
-  var dvalue=0;
-  //--int mag=0;
-  var mag=0;
-  // This is the primary constructor; all incoming strings end up
-  // here; it uses explicit (inline) parsing for speed and to avoid
-  // generating intermediate (temporary) objects of any kind.
-  // 1998.06.25: exponent form built only if E/e in string
-  // 1998.06.25: trailing zeros not removed for zero
-  // 1999.03.06: no embedded blanks; allow offset and length
-  if (length<=0)
-   this.bad("BigDecimal(): ", inchars); // bad conversion (empty string)
-  // [bad offset will raise array bounds exception]
-
-  /* Handle and step past sign */
-  this.ind=this.ispos; // assume positive
-  if (inchars[0]==('-'))
-   {
-    length--;
-    if (length==0)
-     this.bad("BigDecimal(): ", inchars); // nothing after sign
-    this.ind=this.isneg;
-    offset++;
-   }
-  else
-   if (inchars[0]==('+'))
-    {
-     length--;
-     if (length==0)
-      this.bad("BigDecimal(): ", inchars); // nothing after sign
-     offset++;
-    }
-
-  /* We're at the start of the number */
-  exotic=false; // have extra digits
-  hadexp=false; // had explicit exponent
-  d=0; // count of digits found
-  dotoff=-1; // offset where dot was found
-  last=-1; // last character of mantissa
-  {var $1=length;i=offset;i:for(;$1>0;$1--,i++){
-   si=inchars[i];
-   if (si>='0')  // test for Arabic digit
-    if (si<='9')
-     {
-      last=i;
-      d++; // still in mantissa
-      continue i;
-     }
-   if (si=='.')
-    { // record and ignore
-     if (dotoff>=0)
-      this.bad("BigDecimal(): ", inchars); // two dots
-     dotoff=i-offset; // offset into mantissa
-     continue i;
-    }
-   if (si!='e')
-    if (si!='E')
-     { // expect an extra digit
-      if (si<'0' || si>'9')
-       this.bad("BigDecimal(): ", inchars); // not a number
-      // defer the base 10 check until later to avoid extra method call
-      exotic=true; // will need conversion later
-      last=i;
-      d++; // still in mantissa
-      continue i;
-     }
-   /* Found 'e' or 'E' -- now process explicit exponent */
-   // 1998.07.11: sign no longer required
-   if ((i-offset)>(length-2))
-    this.bad("BigDecimal(): ", inchars); // no room for even one digit
-   eneg=false;
-   if ((inchars[i+1])==('-'))
-    {
-     eneg=true;
-     k=i+2;
-    }
-   else
-    if ((inchars[i+1])==('+'))
-     k=i+2;
-    else
-     k=i+1;
-   // k is offset of first expected digit
-   elen=length-((k-offset)); // possible number of digits
-   if ((elen==0)||(elen>9))
-    this.bad("BigDecimal(): ", inchars); // 0 or more than 9 digits
-   {var $2=elen;j=k;j:for(;$2>0;$2--,j++){
-    sj=inchars[j];
-    if (sj<'0')
-     this.bad("BigDecimal(): ", inchars); // always bad
-    if (sj>'9')
-     { // maybe an exotic digit
-      /*if (si<'0' || si>'9')
-       this.bad(inchars); // not a number
-      dvalue=java.lang.Character.digit(sj,10); // check base
-      if (dvalue<0)
-       bad(inchars); // not base 10*/
-      this.bad("BigDecimal(): ", inchars);
-     }
-    else
-     dvalue=sj-'0';
-    this.exp=(this.exp*10)+dvalue;
-    }
-   }/*j*/
-   if (eneg)
-    this.exp=-this.exp; // was negative
-   hadexp=true; // remember we had one
-   break i; // we are done
-   }
-  }/*i*/
-
-  /* Here when all inspected */
-  if (d==0)
-   this.bad("BigDecimal(): ", inchars); // no mantissa digits
-  if (dotoff>=0)
-   this.exp=(this.exp+dotoff)-d; // adjust exponent if had dot
-
-  /* strip leading zeros/dot (leave final if all 0's) */
-  {var $3=last-1;i=offset;i:for(;i<=$3;i++){
-   si=inchars[i];
-   if (si=='0')
-    {
-     offset++;
-     dotoff--;
-     d--;
-    }
-   else
-    if (si=='.')
-     {
-      offset++; // step past dot
-      dotoff--;
-     }
-    else
-     if (si<='9')
-      break i;/* non-0 */
-     else
-      {/* exotic */
-       //if ((java.lang.Character.digit(si,10))!=0)
-        break i; // non-0 or bad
-       // is 0 .. strip like '0'
-       //offset++;
-       //dotoff--;
-       //d--;
-      }
-   }
-  }/*i*/
-
-  /* Create the mantissa array */
-  this.mant=new Array(d); // we know the length
-  j=offset; // input offset
-  if (exotic)
-   {exotica:do{ // slow: check for exotica
-    {var $4=d;i=0;i:for(;$4>0;$4--,i++){
-     if (i==dotoff)
-      j++; // at dot
-     sj=inchars[j];
-     if (sj<='9')
-      this.mant[i]=sj-'0';/* easy */
-     else
-      {
-       //dvalue=java.lang.Character.digit(sj,10);
-       //if (dvalue<0)
-        this.bad("BigDecimal(): ", inchars); // not a number after all
-       //mant[i]=(byte)dvalue;
-      }
-     j++;
-     }
-    }/*i*/
-   }while(false);}/*exotica*/
-  else
-   {simple:do{
-    {var $5=d;i=0;i:for(;$5>0;$5--,i++){
-     if (i==dotoff)
-      j++;
-     this.mant[i]=inchars[j]-'0';
-     j++;
-     }
-    }/*i*/
-   }while(false);}/*simple*/
-
-  /* Looks good.  Set the sign indicator and form, as needed. */
-  // Trailing zeros are preserved
-  // The rule here for form is:
-  //   If no E-notation, then request plain notation
-  //   Otherwise act as though add(0,DEFAULT) and request scientific notation
-  // [form is already PLAIN]
-  if (this.mant[0]==0)
-   {
-    this.ind=this.iszero; // force to show zero
-    // negative exponent is significant (e.g., -3 for 0.000) if plain
-    if (this.exp>0)
-     this.exp=0; // positive exponent can be ignored
-    if (hadexp)
-     { // zero becomes single digit from add
-      this.mant=this.ZERO.mant;
-      this.exp=0;
-     }
-   }
-  else
-   { // non-zero
-    // [ind was set earlier]
-    // now determine form
-    if (hadexp)
-     {
-      this.form=MathContext.prototype.SCIENTIFIC;
-      // 1999.06.29 check for overflow
-      mag=(this.exp+this.mant.length)-1; // true exponent in scientific notation
-      if ((mag<this.MinExp)||(mag>this.MaxExp))
-       this.bad("BigDecimal(): ", inchars);
-     }
-   }
-  // say 'BD(c[]): mant[0] mantlen exp ind form:' mant[0] mant.length exp ind form
-  return;
-  }
-
- /**
-  * Constructs a <code>BigDecimal</code> object directly from a
-  * <code>double</code>.
-  * <p>
-  * Constructs a <code>BigDecimal</code> which is the exact decimal
-  * representation of the 64-bit signed binary floating point
-  * parameter.
-  * <p>
-  * Note that this constructor it an exact conversion; it does not give
-  * the same result as converting <code>num</code> to a
-  * <code>String</code> using the <code>Double.toString()</code> method
-  * and then using the {@link #BigDecimal(java.lang.String)}
-  * constructor.
-  * To get that result, use the static {@link #valueOf(double)}
-  * method to construct a <code>BigDecimal</code> from a
-  * <code>double</code>.
-  *
-  * @param num The <code>double</code> to be converted.
-  * @throws NumberFormatException if the parameter is infinite or
-  *            not a number.
-  * @stable ICU 2.0
-  */
-
- //--public BigDecimal(double num){
- //-- // 1999.03.06: use exactly the old algorithm
- //-- // 2000.01.01: note that this constructor does give an exact result,
- //-- //             so perhaps it should not be deprecated
- //-- // 2000.06.18: no longer deprecated
- //-- this((new java.math.BigDecimal(num)).toString());
- //-- return;}
-
- /**
-  * Constructs a <code>BigDecimal</code> object directly from a
-  * <code>int</code>.
-  * <p>
-  * Constructs a <code>BigDecimal</code> which is the exact decimal
-  * representation of the 32-bit signed binary integer parameter.
-  * The <code>BigDecimal</code> will contain only decimal digits,
-  * prefixed with a leading minus sign (hyphen) if the parameter is
-  * negative.
-  * A leading zero will be present only if the parameter is zero.
-  *
-  * @param num The <code>int</code> to be converted.
-  * @stable ICU 2.0
-  */
-
- //--public BigDecimal(int num){super();
- //-- int mun;
- //-- int i=0;
- //-- // We fastpath commoners
- //-- if (num<=9)
- //--  if (num>=(-9))
- //--   {singledigit:do{
- //--    // very common single digit case
- //--    {/*select*/
- //--    if (num==0)
- //--     {
- //--      mant=ZERO.mant;
- //--      ind=iszero;
- //--     }
- //--    else if (num==1)
- //--     {
- //--      mant=ONE.mant;
- //--      ind=ispos;
- //--     }
- //--    else if (num==(-1))
- //--     {
- //--      mant=ONE.mant;
- //--      ind=isneg;
- //--     }
- //--    else{
- //--     {
- //--      mant=new byte[1];
- //--      if (num>0)
- //--       {
- //--        mant[0]=(byte)num;
- //--        ind=ispos;
- //--       }
- //--      else
- //--       { // num<-1
- //--        mant[0]=(byte)((int)-num);
- //--        ind=isneg;
- //--       }
- //--     }
- //--    }
- //--    }
- //--    return;
- //--   }while(false);}/*singledigit*/
- //--
- //-- /* We work on negative numbers so we handle the most negative number */
- //-- if (num>0)
- //--  {
- //--   ind=ispos;
- //--   num=(int)-num;
- //--  }
- //-- else
- //--  ind=isneg;/* negative */ // [0 case already handled]
- //-- // [it is quicker, here, to pre-calculate the length with
- //-- // one loop, then allocate exactly the right length of byte array,
- //-- // then re-fill it with another loop]
- //-- mun=num; // working copy
- //-- {i=9;i:for(;;i--){
- //--  mun=mun/10;
- //--  if (mun==0)
- //--   break i;
- //--  }
- //-- }/*i*/
- //-- // i is the position of the leftmost digit placed
- //-- mant=new byte[10-i];
- //-- {i=(10-i)-1;i:for(;;i--){
- //--  mant[i]=(byte)-(((byte)(num%10)));
- //--  num=num/10;
- //--  if (num==0)
- //--   break i;
- //--  }
- //-- }/*i*/
- //-- return;
- //-- }
-
- /**
-  * Constructs a <code>BigDecimal</code> object directly from a
-  * <code>long</code>.
-  * <p>
-  * Constructs a <code>BigDecimal</code> which is the exact decimal
-  * representation of the 64-bit signed binary integer parameter.
-  * The <code>BigDecimal</code> will contain only decimal digits,
-  * prefixed with a leading minus sign (hyphen) if the parameter is
-  * negative.
-  * A leading zero will be present only if the parameter is zero.
-  *
-  * @param num The <code>long</code> to be converted.
-  * @stable ICU 2.0
-  */
-
- //--public BigDecimal(long num){super();
- //-- long mun;
- //-- int i=0;
- //-- // Not really worth fastpathing commoners in this constructor [also,
- //-- // we use this to construct the static constants].
- //-- // This is much faster than: this(String.valueOf(num).toCharArray())
- //-- /* We work on negative num so we handle the most negative number */
- //-- if (num>0)
- //--  {
- //--   ind=ispos;
- //--   num=(long)-num;
- //--  }
- //-- else
- //--  if (num==0)
- //--   ind=iszero;
- //--  else
- //--   ind=isneg;/* negative */
- //-- mun=num;
- //-- {i=18;i:for(;;i--){
- //--  mun=mun/10;
- //--  if (mun==0)
- //--   break i;
- //--  }
- //-- }/*i*/
- //-- // i is the position of the leftmost digit placed
- //-- mant=new byte[19-i];
- //-- {i=(19-i)-1;i:for(;;i--){
- //--  mant[i]=(byte)-(((byte)(num%10)));
- //--  num=num/10;
- //--  if (num==0)
- //--   break i;
- //--  }
- //-- }/*i*/
- //-- return;
- //-- }
-
- /**
-  * Constructs a <code>BigDecimal</code> object from a <code>String</code>.
-  * <p>
-  * Constructs a <code>BigDecimal</code> from the parameter, which must
-  * not be <code>null</code> and must represent a valid <i>number</i>,
-  * as described formally in the documentation referred to
-  * {@link BigDecimal above}.
-  * <p>
-  * In summary, numbers in <code>String</code> form must have at least
-  * one digit, may have a leading sign, may have a decimal point, and
-  * exponential notation may be used.  They follow conventional syntax,
-  * and may not contain blanks.
-  * <p>
-  * Some valid strings from which a <code>BigDecimal</code> might
-  * be constructed are:
-  * <pre>
-  *       "0"         -- Zero
-  *      "12"         -- A whole number
-  *     "-76"         -- A signed whole number
-  *      "12.70"      -- Some decimal places
-  *     "+0.003"      -- Plus sign is allowed
-  *      "17."        -- The same as 17
-  *        ".5"       -- The same as 0.5
-  *      "4E+9"       -- Exponential notation
-  *       "0.73e-7"   -- Exponential notation
-  * </pre>
-  * <p>
-  * (Exponential notation means that the number includes an optional
-  * sign and a power of ten following an '</code>E</code>' that
-  * indicates how the decimal point will be shifted.  Thus the
-  * <code>"4E+9"</code> above is just a short way of writing
-  * <code>4000000000</code>, and the <code>"0.73e-7"</code> is short
-  * for <code>0.000000073</code>.)
-  * <p>
-  * The <code>BigDecimal</code> constructed from the String is in a
-  * standard form, with no blanks, as though the
-  * {@link #add(BigDecimal)} method had been used to add zero to the
-  * number with unlimited precision.
-  * If the string uses exponential notation (that is, includes an
-  * <code>e</code> or an <code>E</code>), then the
-  * <code>BigDecimal</code> number will be expressed in scientific
-  * notation (where the power of ten is adjusted so there is a single
-  * non-zero digit to the left of the decimal point); in this case if
-  * the number is zero then it will be expressed as the single digit 0,
-  * and if non-zero it will have an exponent unless that exponent would
-  * be 0.  The exponent must fit in nine digits both before and after it
-  * is expressed in scientific notation.
-  * <p>
-  * Any digits in the parameter must be decimal; that is,
-  * <code>Character.digit(c, 10)</code> (where </code>c</code> is the
-  * character in question) would not return -1.
-  *
-  * @param string The <code>String</code> to be converted.
-  * @throws NumberFormatException if the parameter is not a valid
-  * number.
-  * @stable ICU 2.0
-  */
-
- //--public BigDecimal(java.lang.String string){
- //-- this(string.toCharArray(),0,string.length());
- //-- return;}
-
- /* <sgml> Make a default BigDecimal object for local use. </sgml> */
-
- //--private BigDecimal(){super();
- //-- return;
- //-- }
-
- /* ---------------------------------------------------------------- */
- /* Operator methods [methods which take a context parameter]        */
- /* ---------------------------------------------------------------- */
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is the absolute
-  * value of this <code>BigDecimal</code>.
-  * <p>
-  * The same as {@link #abs(MathContext)}, where the context is
-  * <code>new MathContext(0, MathContext.PLAIN)</code>.
-  * <p>
-  * The length of the decimal part (the scale) of the result will
-  * be <code>this.scale()</code>
-  *
-  * @return A <code>BigDecimal</code> whose value is the absolute
-  *         value of this <code>BigDecimal</code>.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal abs(){
- //- return this.abs(plainMC);
- //- }
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is the absolute value
-  * of this <code>BigDecimal</code>.
-  * <p>
-  * If the current object is zero or positive, then the same result as
-  * invoking the {@link #plus(MathContext)} method with the same
-  * parameter is returned.
-  * Otherwise, the same result as invoking the
-  * {@link #negate(MathContext)} method with the same parameter is
-  * returned.
-  *
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return     A <code>BigDecimal</code> whose value is the absolute
-  *             value of this <code>BigDecimal</code>.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal abs(com.ibm.icu.math.MathContext set){
- function abs() {
-  var set;
-  if (abs.arguments.length == 1)
-   {
-    set = abs.arguments[0];
-   }
-  else if (abs.arguments.length == 0)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "abs(): " + abs.arguments.length + " arguments given; expected 0 or 1";
-   }
-  if (this.ind==this.isneg)
-   return this.negate(set);
-  return this.plus(set);
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * <code>this+rhs</code>, using fixed point arithmetic.
-  * <p>
-  * The same as {@link #add(BigDecimal, MathContext)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * and the context is <code>new MathContext(0, MathContext.PLAIN)</code>.
-  * <p>
-  * The length of the decimal part (the scale) of the result will be
-  * the maximum of the scales of the two operands.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the addition.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             <code>this+rhs</code>, using fixed point arithmetic.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal add(com.ibm.icu.math.BigDecimal rhs){
- //-- return this.add(rhs,plainMC);
- //-- }
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is <code>this+rhs</code>.
-  * <p>
-  * Implements the addition (<b><code>+</code></b>) operator
-  * (as defined in the decimal documentation, see {@link BigDecimal
-  * class header}),
-  * and returns the result as a <code>BigDecimal</code> object.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the addition.
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             <code>this+rhs</code>.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal add(com.ibm.icu.math.BigDecimal rhs,com.ibm.icu.math.MathContext set){
- function add() {
-  var set;
-  if (add.arguments.length == 2)
-   {
-    set = add.arguments[1];
-   }
-  else if (add.arguments.length == 1)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "add(): " + add.arguments.length + " arguments given; expected 1 or 2";
-   }
-  var rhs = add.arguments[0];
-  //--com.ibm.icu.math.BigDecimal lhs;
-  var lhs;
-  //--int reqdig;
-  var reqdig;
-  //--com.ibm.icu.math.BigDecimal res;
-  var res;
-  //--byte usel[];
-  var usel;
-  //--int usellen;
-  var usellen;
-  //--byte user[];
-  var user;
-  //--int userlen;
-  var userlen;
-  //--int newlen=0;
-  var newlen=0;
-  //--int tlen=0;
-  var tlen=0;
-  //--int mult=0;
-  var mult=0;
-  //--byte t[]=null;
-  var t=null;
-  //--int ia=0;
-  var ia=0;
-  //--int ib=0;
-  var ib=0;
-  //--int ea=0;
-  var ea=0;
-  //int eb=0;
-  var eb=0;
-  //byte ca=0;
-  var ca=0;
-  //--byte cb=0;
-  var cb=0;
-  /* determine requested digits and form */
-  if (set.lostDigits)
-   this.checkdigits(rhs,set.digits);
-  lhs=this; // name for clarity and proxy
-
-  /* Quick exit for add floating 0 */
-  // plus() will optimize to return same object if possible
-  if (lhs.ind==0)
-   if (set.form!=MathContext.prototype.PLAIN)
-    return rhs.plus(set);
-  if (rhs.ind==0)
-   if (set.form!=MathContext.prototype.PLAIN)
-    return lhs.plus(set);
-
-  /* Prepare numbers (round, unless unlimited precision) */
-  reqdig=set.digits; // local copy (heavily used)
-  if (reqdig>0)
-   {
-    if (lhs.mant.length>reqdig)
-     lhs=this.clone(lhs).round(set);
-    if (rhs.mant.length>reqdig)
-     rhs=this.clone(rhs).round(set);
-   // [we could reuse the new LHS for result in this case]
-   }
-
-  res=new BigDecimal(); // build result here
-
-  /* Now see how much we have to pad or truncate lhs or rhs in order
-     to align the numbers.  If one number is much larger than the
-     other, then the smaller cannot affect the answer [but we may
-     still need to pad with up to DIGITS trailing zeros]. */
-  // Note sign may be 0 if digits (reqdig) is 0
-  // usel and user will be the byte arrays passed to the adder; we'll
-  // use them on all paths except quick exits
-  usel=lhs.mant;
-  usellen=lhs.mant.length;
-  user=rhs.mant;
-  userlen=rhs.mant.length;
-  {padder:do{/*select*/
-  if (lhs.exp==rhs.exp)
-   {/* no padding needed */
-    // This is the most common, and fastest, path
-    res.exp=lhs.exp;
-   }
-  else if (lhs.exp>rhs.exp)
-   { // need to pad lhs and/or truncate rhs
-    newlen=(usellen+lhs.exp)-rhs.exp;
-    /* If, after pad, lhs would be longer than rhs by digits+1 or
-       more (and digits>0) then rhs cannot affect answer, so we only
-       need to pad up to a length of DIGITS+1. */
-    if (newlen>=((userlen+reqdig)+1))
-     if (reqdig>0)
-      {
-       // LHS is sufficient
-       res.mant=usel;
-       res.exp=lhs.exp;
-       res.ind=lhs.ind;
-       if (usellen<reqdig)
-        { // need 0 padding
-         res.mant=this.extend(lhs.mant,reqdig);
-         res.exp=res.exp-((reqdig-usellen));
-        }
-       return res.finish(set,false);
-      }
-    // RHS may affect result
-    res.exp=rhs.exp; // expected final exponent
-    if (newlen>(reqdig+1))
-     if (reqdig>0)
-      {
-       // LHS will be max; RHS truncated
-       tlen=(newlen-reqdig)-1; // truncation length
-       userlen=userlen-tlen;
-       res.exp=res.exp+tlen;
-       newlen=reqdig+1;
-      }
-    if (newlen>usellen)
-     usellen=newlen; // need to pad LHS
-   }
-  else{ // need to pad rhs and/or truncate lhs
-   newlen=(userlen+rhs.exp)-lhs.exp;
-   if (newlen>=((usellen+reqdig)+1))
-    if (reqdig>0)
-     {
-      // RHS is sufficient
-      res.mant=user;
-      res.exp=rhs.exp;
-      res.ind=rhs.ind;
-      if (userlen<reqdig)
-       { // need 0 padding
-        res.mant=this.extend(rhs.mant,reqdig);
-        res.exp=res.exp-((reqdig-userlen));
-       }
-      return res.finish(set,false);
-     }
-   // LHS may affect result
-   res.exp=lhs.exp; // expected final exponent
-   if (newlen>(reqdig+1))
-    if (reqdig>0)
-     {
-      // RHS will be max; LHS truncated
-      tlen=(newlen-reqdig)-1; // truncation length
-      usellen=usellen-tlen;
-      res.exp=res.exp+tlen;
-      newlen=reqdig+1;
-     }
-   if (newlen>userlen)
-    userlen=newlen; // need to pad RHS
-  }
-  }while(false);}/*padder*/
-
-  /* OK, we have aligned mantissas.  Now add or subtract. */
-  // 1998.06.27 Sign may now be 0 [e.g., 0.000] .. treat as positive
-  // 1999.05.27 Allow for 00 on lhs [is not larger than 2 on rhs]
-  // 1999.07.10 Allow for 00 on rhs [is not larger than 2 on rhs]
-  if (lhs.ind==this.iszero)
-   res.ind=this.ispos;
-  else
-   res.ind=lhs.ind; // likely sign, all paths
-  if (((lhs.ind==this.isneg)?1:0)==((rhs.ind==this.isneg)?1:0))  // same sign, 0 non-negative
-   mult=1;
-  else
-   {signdiff:do{ // different signs, so subtraction is needed
-    mult=-1; // will cause subtract
-    /* Before we can subtract we must determine which is the larger,
-       as our add/subtract routine only handles non-negative results
-       so we may need to swap the operands. */
-    {swaptest:do{/*select*/
-    if (rhs.ind==this.iszero)
-     {} // original A bigger
-    else if ((usellen<userlen)||(lhs.ind==this.iszero))
-     { // original B bigger
-      t=usel;
-      usel=user;
-      user=t; // swap
-      tlen=usellen;
-      usellen=userlen;
-      userlen=tlen; // ..
-      res.ind=-res.ind; // and set sign
-     }
-    else if (usellen>userlen)
-     {} // original A bigger
-    else{
-     {/* logical lengths the same */ // need compare
-      /* may still need to swap: compare the strings */
-      ia=0;
-      ib=0;
-      ea=usel.length-1;
-      eb=user.length-1;
-      {compare:for(;;){
-       if (ia<=ea)
-        ca=usel[ia];
-       else
-        {
-         if (ib>eb)
-          {/* identical */
-           if (set.form!=MathContext.prototype.PLAIN)
-            return this.ZERO;
-           // [if PLAIN we must do the subtract, in case of 0.000 results]
-           break compare;
-          }
-         ca=0;
-        }
-       if (ib<=eb)
-        cb=user[ib];
-       else
-        cb=0;
-       if (ca!=cb)
-        {
-         if (ca<cb)
-          {/* swap needed */
-           t=usel;
-           usel=user;
-           user=t; // swap
-           tlen=usellen;
-           usellen=userlen;
-           userlen=tlen; // ..
-           res.ind=-res.ind;
-          }
-         break compare;
-        }
-       /* mantissas the same, so far */
-       ia++;
-       ib++;
-       }
-      }/*compare*/
-     } // lengths the same
-    }
-    }while(false);}/*swaptest*/
-   }while(false);}/*signdiff*/
-
-  /* here, A is > B if subtracting */
-  // add [A+B*1] or subtract [A+(B*-1)]
-  res.mant=this.byteaddsub(usel,usellen,user,userlen,mult,false);
-  // [reuse possible only after chop; accounting makes not worthwhile]
-
-  // Finish() rounds before stripping leading 0's, then sets form, etc.
-  return res.finish(set,false);
-  }
-
- /**
-  * Compares this <code>BigDecimal</code> to another, using unlimited
-  * precision.
-  * <p>
-  * The same as {@link #compareTo(BigDecimal, MathContext)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * and the context is <code>new MathContext(0, MathContext.PLAIN)</code>.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the comparison.
-  * @return     An <code>int</code> whose value is -1, 0, or 1 as
-  *             <code>this</code> is numerically less than, equal to,
-  *             or greater than <code>rhs</code>.
-  * @see    #compareTo(Object)
-  * @stable ICU 2.0
-  */
-
- //--public int compareTo(com.ibm.icu.math.BigDecimal rhs){
- //-- return this.compareTo(rhs,plainMC);
- //-- }
-
- /**
-  * Compares this <code>BigDecimal</code> to another.
-  * <p>
-  * Implements numeric comparison,
-  * (as defined in the decimal documentation, see {@link BigDecimal
-  * class header}),
-  * and returns a result of type <code>int</code>.
-  * <p>
-  * The result will be:
-  * <table cellpadding=2><tr>
-  * <td align=right><b>-1</b></td>
-  * <td>if the current object is less than the first parameter</td>
-  * </tr><tr>
-  * <td align=right><b>0</b></td>
-  * <td>if the current object is equal to the first parameter</td>
-  * </tr><tr>
-  * <td align=right><b>1</b></td>
-  * <td>if the current object is greater than the first parameter.</td>
-  * </tr></table>
-  * <p>
-  * A {@link #compareTo(Object)} method is also provided.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the comparison.
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return     An <code>int</code> whose value is -1, 0, or 1 as
-  *             <code>this</code> is numerically less than, equal to,
-  *             or greater than <code>rhs</code>.
-  * @see    #compareTo(Object)
-  * @stable ICU 2.0
-  */
-
- //public int compareTo(com.ibm.icu.math.BigDecimal rhs,com.ibm.icu.math.MathContext set){
- function compareTo() {
-  var set;
-  if (compareTo.arguments.length == 2)
-   {
-    set = compareTo.arguments[1];
-   }
-  else if (compareTo.arguments.length == 1)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "compareTo(): " + compareTo.arguments.length + " arguments given; expected 1 or 2";
-   }
-  var rhs = compareTo.arguments[0];
-  //--int thislength=0;
-  var thislength=0;
-  //--int i=0;
-  var i=0;
-  //--com.ibm.icu.math.BigDecimal newrhs;
-  var newrhs;
-  // rhs=null will raise NullPointerException, as per Comparable interface
-  if (set.lostDigits)
-   this.checkdigits(rhs,set.digits);
-  // [add will recheck in slowpath cases .. but would report -rhs]
-  if ((this.ind==rhs.ind)&&(this.exp==rhs.exp))
-   {
-    /* sign & exponent the same [very common] */
-    thislength=this.mant.length;
-    if (thislength<rhs.mant.length)
-     return -this.ind;
-    if (thislength>rhs.mant.length)
-     return this.ind;
-    /* lengths are the same; we can do a straight mantissa compare
-       unless maybe rounding [rounding is very unusual] */
-    if ((thislength<=set.digits)||(set.digits==0))
-     {
-      {var $6=thislength;i=0;i:for(;$6>0;$6--,i++){
-       if (this.mant[i]<rhs.mant[i])
-        return -this.ind;
-       if (this.mant[i]>rhs.mant[i])
-        return this.ind;
-       }
-      }/*i*/
-      return 0; // identical
-     }
-   /* drop through for full comparison */
-   }
-  else
-   {
-    /* More fastpaths possible */
-    if (this.ind<rhs.ind)
-     return -1;
-    if (this.ind>rhs.ind)
-     return 1;
-   }
-  /* carry out a subtract to make the comparison */
-  newrhs=this.clone(rhs); // safe copy
-  newrhs.ind=-newrhs.ind; // prepare to subtract
-  return this.add(newrhs,set).ind; // add, and return sign of result
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * <code>this/rhs</code>, using fixed point arithmetic.
-  * <p>
-  * The same as {@link #divide(BigDecimal, int)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * and the rounding mode is {@link MathContext#ROUND_HALF_UP}.
-  *
-  * The length of the decimal part (the scale) of the result will be
-  * the same as the scale of the current object, if the latter were
-  * formatted without exponential notation.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the division.
-  * @return     A plain <code>BigDecimal</code> whose value is
-  *             <code>this/rhs</code>, using fixed point arithmetic.
-  * @throws ArithmeticException if <code>rhs</code> is zero.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal divide(com.ibm.icu.math.BigDecimal rhs){
- //-- return this.dodivide('D',rhs,plainMC,-1);
- //-- }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * <code>this/rhs</code>, using fixed point arithmetic and a
-  * rounding mode.
-  * <p>
-  * The same as {@link #divide(BigDecimal, int, int)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * and the second parameter is <code>this.scale()</code>, and
-  * the third is <code>round</code>.
-  * <p>
-  * The length of the decimal part (the scale) of the result will
-  * therefore be the same as the scale of the current object, if the
-  * latter were formatted without exponential notation.
-  * <p>
-  * @param  rhs   The <code>BigDecimal</code> for the right hand side of
-  *               the division.
-  * @param  round The <code>int</code> rounding mode to be used for
-  *               the division (see the {@link MathContext} class).
-  * @return       A plain <code>BigDecimal</code> whose value is
-  *               <code>this/rhs</code>, using fixed point arithmetic
-  *               and the specified rounding mode.
-  * @throws IllegalArgumentException if <code>round</code> is not a
-  *               valid rounding mode.
-  * @throws ArithmeticException if <code>rhs</code> is zero.
-  * @throws ArithmeticException if <code>round</code> is {@link
-  *               MathContext#ROUND_UNNECESSARY} and
-  *               <code>this.scale()</code> is insufficient to
-  *               represent the result exactly.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal divide(com.ibm.icu.math.BigDecimal rhs,int round){
- //-- com.ibm.icu.math.MathContext set;
- //-- set=new com.ibm.icu.math.MathContext(0,com.ibm.icu.math.MathContext.PLAIN,false,round); // [checks round, too]
- //-- return this.dodivide('D',rhs,set,-1); // take scale from LHS
- //-- }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * <code>this/rhs</code>, using fixed point arithmetic and a
-  * given scale and rounding mode.
-  * <p>
-  * The same as {@link #divide(BigDecimal, MathContext)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * <code>new MathContext(0, MathContext.PLAIN, false, round)</code>,
-  * except that the length of the decimal part (the scale) to be used
-  * for the result is explicit rather than being taken from
-  * <code>this</code>.
-  * <p>
-  * The length of the decimal part (the scale) of the result will be
-  * the same as the scale of the current object, if the latter were
-  * formatted without exponential notation.
-  * <p>
-  * @param  rhs   The <code>BigDecimal</code> for the right hand side of
-  *               the division.
-  * @param  scale The <code>int</code> scale to be used for the result.
-  * @param  round The <code>int</code> rounding mode to be used for
-  *               the division (see the {@link MathContext} class).
-  * @return       A plain <code>BigDecimal</code> whose value is
-  *               <code>this/rhs</code>, using fixed point arithmetic
-  *               and the specified rounding mode.
-  * @throws IllegalArgumentException if <code>round</code> is not a
-  *               valid rounding mode.
-  * @throws ArithmeticException if <code>rhs</code> is zero.
-  * @throws ArithmeticException if <code>scale</code> is negative.
-  * @throws ArithmeticException if <code>round</code> is {@link
-  *               MathContext#ROUND_UNNECESSARY} and <code>scale</code>
-  *               is insufficient to represent the result exactly.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal divide(com.ibm.icu.math.BigDecimal rhs,int scale,int round){
- //-- com.ibm.icu.math.MathContext set;
- //-- if (scale<0)
- //--  throw new java.lang.ArithmeticException("Negative scale:"+" "+scale);
- //-- set=new com.ibm.icu.math.MathContext(0,com.ibm.icu.math.MathContext.PLAIN,false,round); // [checks round]
- //-- return this.dodivide('D',rhs,set,scale);
- //-- }
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is <code>this/rhs</code>.
-  * <p>
-  * Implements the division (<b><code>/</code></b>) operator
-  * (as defined in the decimal documentation, see {@link BigDecimal
-  * class header}),
-  * and returns the result as a <code>BigDecimal</code> object.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the division.
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             <code>this/rhs</code>.
-  * @throws ArithmeticException if <code>rhs</code> is zero.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal divide(com.ibm.icu.math.BigDecimal rhs,com.ibm.icu.math.MathContext set){
- function divide() {
-  var set;
-  var scale = -1;
-  if (divide.arguments.length == 2)
-   {
-    if (typeof divide.arguments[1] == 'number')
-     {
-      set=new MathContext(0,MathContext.prototype.PLAIN,false,divide.arguments[1]); // [checks round, too]
-     }
-    else
-     {
-      set = divide.arguments[1];
-     }
-   }
-  else if (divide.arguments.length == 3)
-   {
-    scale = divide.arguments[1];
-    if (scale<0)
-     throw "divide(): Negative scale: "+scale;
-    set=new MathContext(0,MathContext.prototype.PLAIN,false,divide.arguments[2]); // [checks round]
-   }
-  else if (divide.arguments.length == 1)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "divide(): " + divide.arguments.length + " arguments given; expected between 1 and 3";
-   }
-  var rhs = divide.arguments[0];
-  return this.dodivide('D',rhs,set,scale);
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is the integer
-  * part of <code>this/rhs</code>.
-  * <p>
-  * The same as {@link #divideInteger(BigDecimal, MathContext)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * and the context is <code>new MathContext(0, MathContext.PLAIN)</code>.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the integer division.
-  * @return     A <code>BigDecimal</code> whose value is the integer
-  *             part of <code>this/rhs</code>.
-  * @throws ArithmeticException if <code>rhs</code> is zero.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal divideInteger(com.ibm.icu.math.BigDecimal rhs){
- //-- // scale 0 to drop .000 when plain
- //-- return this.dodivide('I',rhs,plainMC,0);
- //-- }
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is the integer
-  * part of <code>this/rhs</code>.
-  * <p>
-  * Implements the integer division operator
-  * (as defined in the decimal documentation, see {@link BigDecimal
-  * class header}),
-  * and returns the result as a <code>BigDecimal</code> object.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the integer division.
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return     A <code>BigDecimal</code> whose value is the integer
-  *             part of <code>this/rhs</code>.
-  * @throws ArithmeticException if <code>rhs</code> is zero.
-  * @throws ArithmeticException if the result will not fit in the
-  *             number of digits specified for the context.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal divideInteger(com.ibm.icu.math.BigDecimal rhs,com.ibm.icu.math.MathContext set){
- function divideInteger() {
-  var set;
-  if (divideInteger.arguments.length == 2)
-   {
-    set = divideInteger.arguments[1];
-   }
-  else if (divideInteger.arguments.length == 1)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "divideInteger(): " + divideInteger.arguments.length + " arguments given; expected 1 or 2";
-   }
-  var rhs = divideInteger.arguments[0];
-  // scale 0 to drop .000 when plain
-  return this.dodivide('I',rhs,set,0);
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * the maximum of <code>this</code> and <code>rhs</code>.
-  * <p>
-  * The same as {@link #max(BigDecimal, MathContext)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * and the context is <code>new MathContext(0, MathContext.PLAIN)</code>.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the comparison.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             the maximum of <code>this</code> and <code>rhs</code>.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal max(com.ibm.icu.math.BigDecimal rhs){
- //-- return this.max(rhs,plainMC);
- //-- }
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is
-  * the maximum of <code>this</code> and <code>rhs</code>.
-  * <p>
-  * Returns the larger of the current object and the first parameter.
-  * <p>
-  * If calling the {@link #compareTo(BigDecimal, MathContext)} method
-  * with the same parameters would return <code>1</code> or
-  * <code>0</code>, then the result of calling the
-  * {@link #plus(MathContext)} method on the current object (using the
-  * same <code>MathContext</code> parameter) is returned.
-  * Otherwise, the result of calling the {@link #plus(MathContext)}
-  * method on the first parameter object (using the same
-  * <code>MathContext</code> parameter) is returned.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the comparison.
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             the maximum of <code>this</code> and <code>rhs</code>.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal max(com.ibm.icu.math.BigDecimal rhs,com.ibm.icu.math.MathContext set){
- function max() {
-  var set;
-  if (max.arguments.length == 2)
-   {
-    set = max.arguments[1];
-   }
-  else if (max.arguments.length == 1)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "max(): " + max.arguments.length + " arguments given; expected 1 or 2";
-   }
-  var rhs = max.arguments[0];
-  if ((this.compareTo(rhs,set))>=0)
-   return this.plus(set);
-  else
-   return rhs.plus(set);
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * the minimum of <code>this</code> and <code>rhs</code>.
-  * <p>
-  * The same as {@link #min(BigDecimal, MathContext)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * and the context is <code>new MathContext(0, MathContext.PLAIN)</code>.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the comparison.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             the minimum of <code>this</code> and <code>rhs</code>.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal min(com.ibm.icu.math.BigDecimal rhs){
- //-- return this.min(rhs,plainMC);
- //-- }
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is
-  * the minimum of <code>this</code> and <code>rhs</code>.
-  * <p>
-  * Returns the smaller of the current object and the first parameter.
-  * <p>
-  * If calling the {@link #compareTo(BigDecimal, MathContext)} method
-  * with the same parameters would return <code>-1</code> or
-  * <code>0</code>, then the result of calling the
-  * {@link #plus(MathContext)} method on the current object (using the
-  * same <code>MathContext</code> parameter) is returned.
-  * Otherwise, the result of calling the {@link #plus(MathContext)}
-  * method on the first parameter object (using the same
-  * <code>MathContext</code> parameter) is returned.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the comparison.
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             the minimum of <code>this</code> and <code>rhs</code>.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal min(com.ibm.icu.math.BigDecimal rhs,com.ibm.icu.math.MathContext set){
- function min() {
-  var set;
-  if (min.arguments.length == 2)
-   {
-    set = min.arguments[1];
-   }
-  else if (min.arguments.length == 1)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "min(): " + min.arguments.length + " arguments given; expected 1 or 2";
-   }
-  var rhs = min.arguments[0];
-  if ((this.compareTo(rhs,set))<=0)
-   return this.plus(set);
-  else
-   return rhs.plus(set);
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * <code>this*rhs</code>, using fixed point arithmetic.
-  * <p>
-  * The same as {@link #add(BigDecimal, MathContext)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * and the context is <code>new MathContext(0, MathContext.PLAIN)</code>.
-  * <p>
-  * The length of the decimal part (the scale) of the result will be
-  * the sum of the scales of the operands, if they were formatted
-  * without exponential notation.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the multiplication.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             <code>this*rhs</code>, using fixed point arithmetic.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal multiply(com.ibm.icu.math.BigDecimal rhs){
- //-- return this.multiply(rhs,plainMC);
- //-- }
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is <code>this*rhs</code>.
-  * <p>
-  * Implements the multiplication (<b><code>*</code></b>) operator
-  * (as defined in the decimal documentation, see {@link BigDecimal
-  * class header}),
-  * and returns the result as a <code>BigDecimal</code> object.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the multiplication.
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             <code>this*rhs</code>.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal multiply(com.ibm.icu.math.BigDecimal rhs,com.ibm.icu.math.MathContext set){
- function multiply() {
-  var set;
-  if (multiply.arguments.length == 2)
-   {
-    set = multiply.arguments[1];
-   }
-  else if (multiply.arguments.length == 1)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "multiply(): " + multiply.arguments.length + " arguments given; expected 1 or 2";
-   }
-  var rhs = multiply.arguments[0];
-  //--com.ibm.icu.math.BigDecimal lhs;
-  var lhs;
-  //--int padding;
-  var padding;
-  //--int reqdig;
-  var reqdig;
-  //--byte multer[]=null;
-  var multer=null;
-  //--byte multand[]=null;
-  var multand=null;
-  //--int multandlen;
-  var multandlen;
-  //--int acclen=0;
-  var acclen=0;
-  //--com.ibm.icu.math.BigDecimal res;
-  var res;
-  //--byte acc[];
-  var acc;
-  //--int n=0;
-  var n=0;
-  //--byte mult=0;
-  var mult=0;
-  if (set.lostDigits)
-   this.checkdigits(rhs,set.digits);
-  lhs=this; // name for clarity and proxy
-
-  /* Prepare numbers (truncate, unless unlimited precision) */
-  padding=0; // trailing 0's to add
-  reqdig=set.digits; // local copy
-  if (reqdig>0)
-   {
-    if (lhs.mant.length>reqdig)
-     lhs=this.clone(lhs).round(set);
-    if (rhs.mant.length>reqdig)
-     rhs=this.clone(rhs).round(set);
-   // [we could reuse the new LHS for result in this case]
-   }
-  else
-   {/* unlimited */
-    // fixed point arithmetic will want every trailing 0; we add these
-    // after the calculation rather than before, for speed.
-    if (lhs.exp>0)
-     padding=padding+lhs.exp;
-    if (rhs.exp>0)
-     padding=padding+rhs.exp;
-   }
-
-  // For best speed, as in DMSRCN, we use the shorter number as the
-  // multiplier and the longer as the multiplicand.
-  // 1999.12.22: We used to special case when the result would fit in
-  //             a long, but with Java 1.3 this gave no advantage.
-  if (lhs.mant.length<rhs.mant.length)
-   {
-    multer=lhs.mant;
-    multand=rhs.mant;
-   }
-  else
-   {
-    multer=rhs.mant;
-    multand=lhs.mant;
-   }
-
-  /* Calculate how long result byte array will be */
-  multandlen=(multer.length+multand.length)-1; // effective length
-  // optimize for 75% of the cases where a carry is expected...
-  if ((multer[0]*multand[0])>9)
-   acclen=multandlen+1;
-  else
-   acclen=multandlen;
-
-  /* Now the main long multiplication loop */
-  res=new BigDecimal(); // where we'll build result
-  acc=this.createArrayWithZeros(acclen); // accumulator, all zeros
-  // 1998.07.01: calculate from left to right so that accumulator goes
-  // to likely final length on first addition; this avoids a one-digit
-  // extension (and object allocation) each time around the loop.
-  // Initial number therefore has virtual zeros added to right.
-  {var $7=multer.length;n=0;n:for(;$7>0;$7--,n++){
-   mult=multer[n];
-   if (mult!=0)
-    { // [optimization]
-     // accumulate [accumulator is reusable array]
-     acc=this.byteaddsub(acc,acc.length,multand,multandlen,mult,true);
-    }
-   // divide multiplicand by 10 for next digit to right
-   multandlen--; // 'virtual length'
-   }
-  }/*n*/
-
-  res.ind=lhs.ind*rhs.ind; // final sign
-  res.exp=(lhs.exp+rhs.exp)-padding; // final exponent
-  // [overflow is checked by finish]
-
-  /* add trailing zeros to the result, if necessary */
-  if (padding==0)
-   res.mant=acc;
-  else
-   res.mant=this.extend(acc,acc.length+padding); // add trailing 0s
-  return res.finish(set,false);
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * <code>-this</code>.
-  * <p>
-  * The same as {@link #negate(MathContext)}, where the context is
-  * <code>new MathContext(0, MathContext.PLAIN)</code>.
-  * <p>
-  * The length of the decimal part (the scale) of the result will be
-  * be <code>this.scale()</code>
-  *
-  *
-  * @return A <code>BigDecimal</code> whose value is
-  *         <code>-this</code>.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal negate(){
- //-- return this.negate(plainMC);
- //-- }
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is <code>-this</code>.
-  * <p>
-  * Implements the negation (Prefix <b><code>-</code></b>) operator
-  * (as defined in the decimal documentation, see {@link BigDecimal
-  * class header}),
-  * and returns the result as a <code>BigDecimal</code> object.
-  *
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return A <code>BigDecimal</code> whose value is
-  *         <code>-this</code>.
-  * @stable ICU 2.0
-  */
-
- //public com.ibm.icu.math.BigDecimal negate(com.ibm.icu.math.MathContext set){
- function negate() {
-  var set;
-  if (negate.arguments.length == 1)
-   {
-    set = negate.arguments[0];
-   }
-  else if (negate.arguments.length == 0)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "negate(): " + negate.arguments.length + " arguments given; expected 0 or 1";
-   }
-  //--com.ibm.icu.math.BigDecimal res;
-  var res;
-  // Originally called minus(), changed to matched Java precedents
-  // This simply clones, flips the sign, and possibly rounds
-  if (set.lostDigits)
-   this.checkdigits(null,set.digits);
-  res=this.clone(this); // safe copy
-  res.ind=-res.ind;
-  return res.finish(set,false);
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * <code>+this</code>.
-  * Note that <code>this</code> is not necessarily a
-  * plain <code>BigDecimal</code>, but the result will always be.
-  * <p>
-  * The same as {@link #plus(MathContext)}, where the context is
-  * <code>new MathContext(0, MathContext.PLAIN)</code>.
-  * <p>
-  * The length of the decimal part (the scale) of the result will be
-  * be <code>this.scale()</code>
-  *
-  * @return A <code>BigDecimal</code> whose value is
-  *         <code>+this</code>.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal plus(){
- //-- return this.plus(plainMC);
- //-- }
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is
-  * <code>+this</code>.
-  * <p>
-  * Implements the plus (Prefix <b><code>+</code></b>) operator
-  * (as defined in the decimal documentation, see {@link BigDecimal
-  * class header}),
-  * and returns the result as a <code>BigDecimal</code> object.
-  * <p>
-  * This method is useful for rounding or otherwise applying a context
-  * to a decimal value.
-  *
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return A <code>BigDecimal</code> whose value is
-  *         <code>+this</code>.
-  * @stable ICU 2.0
-  */
-
- //public com.ibm.icu.math.BigDecimal plus(com.ibm.icu.math.MathContext set){
- function plus() {
-  var set;
-  if (plus.arguments.length == 1)
-   {
-    set = plus.arguments[0];
-   }
-  else if (plus.arguments.length == 0)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "plus(): " + plus.arguments.length + " arguments given; expected 0 or 1";
-   }
-  // This clones and forces the result to the new settings
-  // May return same object
-  if (set.lostDigits)
-   this.checkdigits(null,set.digits);
-  // Optimization: returns same object for some common cases
-  if (set.form==MathContext.prototype.PLAIN)
-   if (this.form==MathContext.prototype.PLAIN)
-    {
-     if (this.mant.length<=set.digits)
-      return this;
-     if (set.digits==0)
-      return this;
-    }
-  return this.clone(this).finish(set,false);
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * <code>this**rhs</code>, using fixed point arithmetic.
-  * <p>
-  * The same as {@link #pow(BigDecimal, MathContext)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * and the context is <code>new MathContext(0, MathContext.PLAIN)</code>.
-  * <p>
-  * The parameter is the power to which the <code>this</code> will be
-  * raised; it must be in the range 0 through 999999999, and must
-  * have a decimal part of zero.  Note that these restrictions may be
-  * removed in the future, so they should not be used as a test for a
-  * whole number.
-  * <p>
-  * In addition, the power must not be negative, as no
-  * <code>MathContext</code> is used and so the result would then
-  * always be 0.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the operation (the power).
-  * @return     A <code>BigDecimal</code> whose value is
-  *             <code>this**rhs</code>, using fixed point arithmetic.
-  * @throws ArithmeticException if <code>rhs</code> is out of range or
-  *             is not a whole number.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal pow(com.ibm.icu.math.BigDecimal rhs){
- //-- return this.pow(rhs,plainMC);
- //-- }
- // The name for this method is inherited from the precedent set by the
- // BigInteger and Math classes.
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is <code>this**rhs</code>.
-  * <p>
-  * Implements the power (<b><code>**</code></b>) operator
-  * (as defined in the decimal documentation, see {@link BigDecimal
-  * class header}),
-  * and returns the result as a <code>BigDecimal</code> object.
-  * <p>
-  * The first parameter is the power to which the <code>this</code>
-  * will be raised; it must be in the range -999999999 through
-  * 999999999, and must have a decimal part of zero.  Note that these
-  * restrictions may be removed in the future, so they should not be
-  * used as a test for a whole number.
-  * <p>
-  * If the <code>digits</code> setting of the <code>MathContext</code>
-  * parameter is 0, the power must be zero or positive.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the operation (the power).
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             <code>this**rhs</code>.
-  * @throws ArithmeticException if <code>rhs</code> is out of range or
-  *             is not a whole number.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal pow(com.ibm.icu.math.BigDecimal rhs,com.ibm.icu.math.MathContext set){
- function pow() {
-  var set;
-  if (pow.arguments.length == 2)
-   {
-    set = pow.arguments[1];
-   }
-  else if (pow.arguments.length == 1)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "pow(): " + pow.arguments.length + " arguments given; expected 1 or 2";
-   }
-  var rhs = pow.arguments[0];
-  //--int n;
-  var n;
-  //--com.ibm.icu.math.BigDecimal lhs;
-  var lhs;
-  //--int reqdig;
-  var reqdig;
-  //-- int workdigits=0;
-  var workdigits=0;
-  //--int L=0;
-  var L=0;
-  //--com.ibm.icu.math.MathContext workset;
-  var workset;
-  //--com.ibm.icu.math.BigDecimal res;
-  var res;
-  //--boolean seenbit;
-  var seenbit;
-  //--int i=0;
-  var i=0;
-  if (set.lostDigits)
-   this.checkdigits(rhs,set.digits);
-  n=rhs.intcheck(this.MinArg,this.MaxArg); // check RHS by the rules
-  lhs=this; // clarified name
-
-  reqdig=set.digits; // local copy (heavily used)
-  if (reqdig==0)
-   {
-    if (rhs.ind==this.isneg)
-     //--throw new java.lang.ArithmeticException("Negative power:"+" "+rhs.toString());
-     throw "pow(): Negative power: " + rhs.toString();
-    workdigits=0;
-   }
-  else
-   {/* non-0 digits */
-    if ((rhs.mant.length+rhs.exp)>reqdig)
-     //--throw new java.lang.ArithmeticException("Too many digits:"+" "+rhs.toString());
-     throw "pow(): Too many digits: " + rhs.toString();
-
-    /* Round the lhs to DIGITS if need be */
-    if (lhs.mant.length>reqdig)
-     lhs=this.clone(lhs).round(set);
-
-    /* L for precision calculation [see ANSI X3.274-1996] */
-    L=rhs.mant.length+rhs.exp; // length without decimal zeros/exp
-    workdigits=(reqdig+L)+1; // calculate the working DIGITS
-   }
-
-  /* Create a copy of set for working settings */
-  // Note: no need to check for lostDigits again.
-  // 1999.07.17 Note: this construction must follow RHS check
-  workset=new MathContext(workdigits,set.form,false,set.roundingMode);
-
-  res=this.ONE; // accumulator
-  if (n==0)
-   return res; // x**0 == 1
-  if (n<0)
-   n=-n; // [rhs.ind records the sign]
-  seenbit=false; // set once we've seen a 1-bit
-  {i=1;i:for(;;i++){ // for each bit [top bit ignored]
-   //n=n+n; // shift left 1 bit
-   n<<=1;
-   if (n<0)
-    { // top bit is set
-     seenbit=true; // OK, we're off
-     res=res.multiply(lhs,workset); // acc=acc*x
-    }
-   if (i==31)
-    break i; // that was the last bit
-   if ((!seenbit))
-    continue i; // we don't have to square 1
-   res=res.multiply(res,workset); // acc=acc*acc [square]
-   }
-  }/*i*/ // 32 bits
-  if (rhs.ind<0)  // was a **-n [hence digits>0]
-   res=this.ONE.divide(res,workset); // .. so acc=1/acc
-  return res.finish(set,true); // round and strip [original digits]
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * the remainder of <code>this/rhs</code>, using fixed point arithmetic.
-  * <p>
-  * The same as {@link #remainder(BigDecimal, MathContext)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * and the context is <code>new MathContext(0, MathContext.PLAIN)</code>.
-  * <p>
-  * This is not the modulo operator -- the result may be negative.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the remainder operation.
-  * @return     A <code>BigDecimal</code> whose value is the remainder
-  *             of <code>this/rhs</code>, using fixed point arithmetic.
-  * @throws ArithmeticException if <code>rhs</code> is zero.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal remainder(com.ibm.icu.math.BigDecimal rhs){
- //-- return this.dodivide('R',rhs,plainMC,-1);
- //-- }
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is the remainder of
-  * <code>this/rhs</code>.
-  * <p>
-  * Implements the remainder operator
-  * (as defined in the decimal documentation, see {@link BigDecimal
-  * class header}),
-  * and returns the result as a <code>BigDecimal</code> object.
-  * <p>
-  * This is not the modulo operator -- the result may be negative.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the remainder operation.
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return     A <code>BigDecimal</code> whose value is the remainder
-  *             of <code>this+rhs</code>.
-  * @throws ArithmeticException if <code>rhs</code> is zero.
-  * @throws ArithmeticException if the integer part of the result will
-  *             not fit in the number of digits specified for the
-  *             context.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal remainder(com.ibm.icu.math.BigDecimal rhs,com.ibm.icu.math.MathContext set){
- function remainder() {
-  var set;
-  if (remainder.arguments.length == 2)
-   {
-    set = remainder.arguments[1];
-   }
-  else if (remainder.arguments.length == 1)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "remainder(): " + remainder.arguments.length + " arguments given; expected 1 or 2";
-   }
-  var rhs = remainder.arguments[0];
-  return this.dodivide('R',rhs,set,-1);
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose value is
-  * <code>this-rhs</code>, using fixed point arithmetic.
-  * <p>
-  * The same as {@link #subtract(BigDecimal, MathContext)},
-  * where the <code>BigDecimal</code> is <code>rhs</code>,
-  * and the context is <code>new MathContext(0, MathContext.PLAIN)</code>.
-  * <p>
-  * The length of the decimal part (the scale) of the result will be
-  * the maximum of the scales of the two operands.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the subtraction.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             <code>this-rhs</code>, using fixed point arithmetic.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal subtract(com.ibm.icu.math.BigDecimal rhs){
- //-- return this.subtract(rhs,plainMC);
- //-- }
-
- /**
-  * Returns a <code>BigDecimal</code> whose value is <code>this-rhs</code>.
-  * <p>
-  * Implements the subtraction (<b><code>-</code></b>) operator
-  * (as defined in the decimal documentation, see {@link BigDecimal
-  * class header}),
-  * and returns the result as a <code>BigDecimal</code> object.
-  *
-  * @param  rhs The <code>BigDecimal</code> for the right hand side of
-  *             the subtraction.
-  * @param  set The <code>MathContext</code> arithmetic settings.
-  * @return     A <code>BigDecimal</code> whose value is
-  *             <code>this-rhs</code>.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal subtract(com.ibm.icu.math.BigDecimal rhs,com.ibm.icu.math.MathContext set){
- function subtract() {
-  var set;
-  if (subtract.arguments.length == 2)
-   {
-    set = subtract.arguments[1];
-   }
-  else if (subtract.arguments.length == 1)
-   {
-    set = this.plainMC;
-   }
-  else
-   {
-    throw "subtract(): " + subtract.arguments.length + " arguments given; expected 1 or 2";
-   }
-  var rhs = subtract.arguments[0];
-  //--com.ibm.icu.math.BigDecimal newrhs;
-  var newrhs;
-  if (set.lostDigits)
-   this.checkdigits(rhs,set.digits);
-  // [add will recheck .. but would report -rhs]
-  /* carry out the subtraction */
-  // we could fastpath -0, but it is too rare.
-  newrhs=this.clone(rhs); // safe copy
-  newrhs.ind=-newrhs.ind; // prepare to subtract
-  return this.add(newrhs,set); // arithmetic
-  }
-
- /* ---------------------------------------------------------------- */
- /* Other methods                                                    */
- /* ---------------------------------------------------------------- */
-
- /**
-  * Converts this <code>BigDecimal</code> to a <code>byte</code>.
-  * If the <code>BigDecimal</code> has a non-zero decimal part or is
-  * out of the possible range for a <code>byte</code> (8-bit signed
-  * integer) result then an <code>ArithmeticException</code> is thrown.
-  *
-  * @return A <code>byte</code> equal in value to <code>this</code>.
-  * @throws ArithmeticException if <code>this</code> has a non-zero
-  *                 decimal part, or will not fit in a <code>byte</code>.
-  * @stable ICU 2.0
-  */
-
- //--public byte byteValueExact(){
- //-- int num;
- //-- num=this.intValueExact(); // will check decimal part too
- //-- if ((num>127)|(num<(-128)))
- //--  throw new java.lang.ArithmeticException("Conversion overflow:"+" "+this.toString());
- //-- return (byte)num;
- //-- }
-
- /**
-  * Compares this <code>BigDecimal</code> with the value of the parameter.
-  * <p>
-  * If the parameter is <code>null</code>, or is not an instance of the
-  * <code>BigDecimal</code> type, an exception is thrown.
-  * Otherwise, the parameter is cast to type <code>BigDecimal</code>
-  * and the result of the {@link #compareTo(BigDecimal)} method,
-  * using the cast parameter, is returned.
-  * <p>
-  * The {@link #compareTo(BigDecimal, MathContext)} method should be
-  * used when a <code>MathContext</code> is needed for the comparison.
-  *
-  * @param  rhs The <code>Object</code> for the right hand side of
-  *             the comparison.
-  * @return     An <code>int</code> whose value is -1, 0, or 1 as
-  *             <code>this</code> is numerically less than, equal to,
-  *             or greater than <code>rhs</code>.
-  * @throws ClassCastException if <code>rhs</code> cannot be cast to
-  *                 a <code>BigDecimal</code> object.
-  * @see    #compareTo(BigDecimal)
-  * @stable ICU 2.0
-  */
-
- //--public int compareTo(java.lang.Object rhsobj){
- //-- // the cast in the next line will raise ClassCastException if necessary
- //-- return compareTo((com.ibm.icu.math.BigDecimal)rhsobj,plainMC);
- //-- }
-
- /**
-  * Converts this <code>BigDecimal</code> to a <code>double</code>.
-  * If the <code>BigDecimal</code> is out of the possible range for a
-  * <code>double</code> (64-bit signed floating point) result then an
-  * <code>ArithmeticException</code> is thrown.
-  * <p>
-  * The double produced is identical to result of expressing the
-  * <code>BigDecimal</code> as a <code>String</code> and then
-  * converting it using the <code>Double(String)</code> constructor;
-  * this can result in values of <code>Double.NEGATIVE_INFINITY</code>
-  * or <code>Double.POSITIVE_INFINITY</code>.
-  *
-  * @return A <code>double</code> corresponding to <code>this</code>.
-  * @stable ICU 2.0
-  */
-
- //--public double doubleValue(){
- //-- // We go via a String [as does BigDecimal in JDK 1.2]
- //-- // Next line could possibly raise NumberFormatException
- //-- return java.lang.Double.valueOf(this.toString()).doubleValue();
- //-- }
-
- /**
-  * Compares this <code>BigDecimal</code> with <code>rhs</code> for
-  * equality.
-  * <p>
-  * If the parameter is <code>null</code>, or is not an instance of the
-  * BigDecimal type, or is not exactly equal to the current
-  * <code>BigDecimal</code> object, then <i>false</i> is returned.
-  * Otherwise, <i>true</i> is returned.
-  * <p>
-  * "Exactly equal", here, means that the <code>String</code>
-  * representations of the <code>BigDecimal</code> numbers are
-  * identical (they have the same characters in the same sequence).
-  * <p>
-  * The {@link #compareTo(BigDecimal, MathContext)} method should be
-  * used for more general comparisons.
-  * @param  rhs The <code>Object</code> for the right hand side of
-  *             the comparison.
-  * @return     A <code>boolean</code> whose value <i>true</i> if and
-  *             only if the operands have identical string representations.
-  * @throws ClassCastException if <code>rhs</code> cannot be cast to
-  *                 a <code>BigDecimal</code> object.
-  * @stable ICU 2.0
-  * @see    #compareTo(Object)
-  * @see    #compareTo(BigDecimal)
-  * @see    #compareTo(BigDecimal, MathContext)
-  */
-
- //--public boolean equals(java.lang.Object obj){
- function equals(obj) {
-  //--com.ibm.icu.math.BigDecimal rhs;
-  var rhs;
-  //--int i=0;
-  var i=0;
-  //--char lca[]=null;
-  var lca=null;
-  //--char rca[]=null;
-  var rca=null;
-  // We are equal iff toString of both are exactly the same
-  if (obj==null)
-   return false; // not equal
-  if ((!(((obj instanceof BigDecimal)))))
-   return false; // not a decimal
-  rhs=obj; // cast; we know it will work
-  if (this.ind!=rhs.ind)
-   return false; // different signs never match
-  if (((this.mant.length==rhs.mant.length)&&(this.exp==rhs.exp))&&(this.form==rhs.form))
-
-   { // mantissas say all
-    // here with equal-length byte arrays to compare
-    {var $8=this.mant.length;i=0;i:for(;$8>0;$8--,i++){
-     if (this.mant[i]!=rhs.mant[i])
-      return false;
-     }
-    }/*i*/
-   }
-  else
-   { // need proper layout
-    lca=this.layout(); // layout to character array
-    rca=rhs.layout();
-    if (lca.length!=rca.length)
-     return false; // mismatch
-    // here with equal-length character arrays to compare
-    {var $9=lca.length;i=0;i:for(;$9>0;$9--,i++){
-     if (lca[i]!=rca[i])
-      return false;
-     }
-    }/*i*/
-   }
-  return true; // arrays have identical content
-  }
-
- /**
-  * Converts this <code>BigDecimal</code> to a <code>float</code>.
-  * If the <code>BigDecimal</code> is out of the possible range for a
-  * <code>float</code> (32-bit signed floating point) result then an
-  * <code>ArithmeticException</code> is thrown.
-  * <p>
-  * The float produced is identical to result of expressing the
-  * <code>BigDecimal</code> as a <code>String</code> and then
-  * converting it using the <code>Float(String)</code> constructor;
-  * this can result in values of <code>Float.NEGATIVE_INFINITY</code>
-  * or <code>Float.POSITIVE_INFINITY</code>.
-  *
-  * @return A <code>float</code> corresponding to <code>this</code>.
-  * @stable ICU 2.0
-  */
-
- //--public float floatValue(){
- //-- return java.lang.Float.valueOf(this.toString()).floatValue();
- //-- }
-
- /**
-  * Returns the <code>String</code> representation of this
-  * <code>BigDecimal</code>, modified by layout parameters.
-  * <p>
-  * <i>This method is provided as a primitive for use by more
-  * sophisticated classes, such as <code>DecimalFormat</code>, that
-  * can apply locale-sensitive editing of the result.  The level of
-  * formatting that it provides is a necessary part of the BigDecimal
-  * class as it is sensitive to and must follow the calculation and
-  * rounding rules for BigDecimal arithmetic.
-  * However, if the function is provided elsewhere, it may be removed
-  * from this class. </i>
-  * <p>
-  * The parameters, for both forms of the <code>format</code> method
-  * are all of type <code>int</code>.
-  * A value of -1 for any parameter indicates that the default action
-  * or value for that parameter should be used.
-  * <p>
-  * The parameters, <code>before</code> and <code>after</code>,
-  * specify the number of characters to be used for the integer part
-  * and decimal part of the result respectively.  Exponential notation
-  * is not used. If either parameter is -1 (which indicates the default
-  * action), the number of characters used will be exactly as many as
-  * are needed for that part.
-  * <p>
-  * <code>before</code> must be a positive number; if it is larger than
-  * is needed to contain the integer part, that part is padded on the
-  * left with blanks to the requested length. If <code>before</code> is
-  * not large enough to contain the integer part of the number
-  * (including the sign, for negative numbers) an exception is thrown.
-  * <p>
-  * <code>after</code> must be a non-negative number; if it is not the
-  * same size as the decimal part of the number, the number will be
-  * rounded (or extended with zeros) to fit.  Specifying 0 for
-  * <code>after</code> will cause the number to be rounded to an
-  * integer (that is, it will have no decimal part or decimal point).
-  * The rounding method will be the default,
-  * <code>MathContext.ROUND_HALF_UP</code>.
-  * <p>
-  * Other rounding methods, and the use of exponential notation, can
-  * be selected by using {@link #format(int,int,int,int,int,int)}.
-  * Using the two-parameter form of the method has exactly the same
-  * effect as using the six-parameter form with the final four
-  * parameters all being -1.
-  *
-  * @param  before The <code>int</code> specifying the number of places
-  *                before the decimal point.  Use -1 for 'as many as
-  *                are needed'.
-  * @param  after  The <code>int</code> specifying the number of places
-  *                after the decimal point.  Use -1 for 'as many as are
-  *                needed'.
-  * @return        A <code>String</code> representing this
-  *                <code>BigDecimal</code>, laid out according to the
-  *                specified parameters
-  * @throws ArithmeticException if the number cannot be laid out as
-  *                requested.
-  * @throws IllegalArgumentException if a parameter is out of range.
-  * @stable ICU 2.0
-  * @see    #toString
-  * @see    #toCharArray
-  */
-
- //--public java.lang.String format(int before,int after){
- //-- return format(before,after,-1,-1,com.ibm.icu.math.MathContext.SCIENTIFIC,ROUND_HALF_UP);
- //-- }
-
- /**
-  * Returns the <code>String</code> representation of this
-  * <code>BigDecimal</code>, modified by layout parameters and allowing
-  * exponential notation.
-  * <p>
-  * <i>This method is provided as a primitive for use by more
-  * sophisticated classes, such as <code>DecimalFormat</code>, that
-  * can apply locale-sensitive editing of the result.  The level of
-  * formatting that it provides is a necessary part of the BigDecimal
-  * class as it is sensitive to and must follow the calculation and
-  * rounding rules for BigDecimal arithmetic.
-  * However, if the function is provided elsewhere, it may be removed
-  * from this class. </i>
-  * <p>
-  * The parameters are all of type <code>int</code>.
-  * A value of -1 for any parameter indicates that the default action
-  * or value for that parameter should be used.
-  * <p>
-  * The first two parameters (<code>before</code> and
-  * <code>after</code>) specify the number of characters to be used for
-  * the integer part and decimal part of the result respectively, as
-  * defined for {@link #format(int,int)}.
-  * If either of these is -1 (which indicates the default action), the
-  * number of characters used will be exactly as many as are needed for
-  * that part.
-  * <p>
-  * The remaining parameters control the use of exponential notation
-  * and rounding.  Three (<code>explaces</code>, <code>exdigits</code>,
-  * and <code>exform</code>) control the exponent part of the result.
-  * As before, the default action for any of these parameters may be
-  * selected by using the value -1.
-  * <p>
-  * <code>explaces</code> must be a positive number; it sets the number
-  * of places (digits after the sign of the exponent) to be used for
-  * any exponent part, the default (when <code>explaces</code> is -1)
-  * being to use as many as are needed.
-  * If <code>explaces</code> is not -1, space is always reserved for
-  * an exponent; if one is not needed (for example, if the exponent
-  * will be 0) then <code>explaces</code>+2 blanks are appended to the
-  * result.
-  * <!-- (This preserves vertical alignment of similarly formatted
-  *       numbers in a monospace font.) -->
-  * If <code>explaces</code> is not -1 and is not large enough to
-  * contain the exponent, an exception is thrown.
-  * <p>
-  * <code>exdigits</code> sets the trigger point for use of exponential
-  * notation. If, before any rounding, the number of places needed
-  * before the decimal point exceeds <code>exdigits</code>, or if the
-  * absolute value of the result is less than <code>0.000001</code>,
-  * then exponential form will be used, provided that
-  * <code>exdigits</code> was specified.
-  * When <code>exdigits</code> is -1, exponential notation will never
-  * be used. If 0 is specified for <code>exdigits</code>, exponential
-  * notation is always used unless the exponent would be 0.
-  * <p>
-  * <code>exform</code> sets the form for exponential notation (if
-  * needed).
-  * It  may be either {@link MathContext#SCIENTIFIC} or
-  * {@link MathContext#ENGINEERING}.
-  * If the latter, engineering, form is requested, up to three digits
-  * (plus sign, if negative) may be needed for the integer part of the
-  * result (<code>before</code>).  Otherwise, only one digit (plus
-  * sign, if negative) is needed.
-  * <p>
-  * Finally, the sixth argument, <code>exround</code>, selects the
-  * rounding algorithm to be used, and must be one of the values
-  * indicated by a public constant in the {@link MathContext} class
-  * whose name starts with <code>ROUND_</code>.
-  * The default (<code>ROUND_HALF_UP</code>) may also be selected by
-  * using the value -1, as before.
-  * <p>
-  * The special value <code>MathContext.ROUND_UNNECESSARY</code> may be
-  * used to detect whether non-zero digits are discarded -- if
-  * <code>exround</code> has this value than if non-zero digits would
-  * be discarded (rounded) during formatting then an
-  * <code>ArithmeticException</code> is thrown.
-  *
-  * @param  before   The <code>int</code> specifying the number of places
-  *                  before the decimal point.
-  *                  Use -1 for 'as many as are needed'.
-  * @param  after    The <code>int</code> specifying the number of places
-  *                  after the decimal point.
-  *                  Use -1 for 'as many as are needed'.
-  * @param  explaces The <code>int</code> specifying the number of places
-  *                  to be used for any exponent.
-  *                  Use -1 for 'as many as are needed'.
-  * @param  exdigits The <code>int</code> specifying the trigger
-  *                  (digits before the decimal point) which if
-  *                  exceeded causes exponential notation to be used.
-  *                  Use 0 to force exponential notation.
-  *                  Use -1 to force plain notation (no exponential
-  *                  notation).
-  * @param  exform   The <code>int</code> specifying the form of
-  *                  exponential notation to be used
-  *                  ({@link MathContext#SCIENTIFIC} or
-  *                  {@link MathContext#ENGINEERING}).
-  * @param  exround  The <code>int</code> specifying the rounding mode
-  *                  to use.
-  *                  Use -1 for the default, {@link MathContext#ROUND_HALF_UP}.
-  * @return          A <code>String</code> representing this
-  *                  <code>BigDecimal</code>, laid out according to the
-  *                  specified parameters
-  * @throws ArithmeticException if the number cannot be laid out as
-  *                  requested.
-  * @throws IllegalArgumentException if a parameter is out of range.
-  * @see    #toString
-  * @see    #toCharArray
-  * @stable ICU 2.0
-  */
-
- //--public java.lang.String format(int before,int after,int explaces,int exdigits,int exformint,int exround){
- function format() {
-  var explaces;
-  var exdigits;
-  var exformint;
-  var exround;
-  if (format.arguments.length == 6)
-   {
-    explaces = format.arguments[2];
-    exdigits = format.arguments[3];
-    exformint = format.arguments[4];
-    exround = format.arguments[5];
-   }
-  else if (format.arguments.length == 2)
-   {
-    explaces = -1;
-    exdigits = -1;
-    exformint = MathContext.prototype.SCIENTIFIC;
-    exround = this.ROUND_HALF_UP;
-   }
-  else
-   {
-    throw "format(): " + format.arguments.length + " arguments given; expected 2 or 6";
-   }
-  var before = format.arguments[0];
-  var after = format.arguments[1];
-  //--com.ibm.icu.math.BigDecimal num;
-  var num;
-  //--int mag=0;
-  var mag=0;
-  //--int thisafter=0;
-  var thisafter=0;
-  //--int lead=0;
-  var lead=0;
-  //--byte newmant[]=null;
-  var newmant=null;
-  //--int chop=0;
-  var chop=0;
-  //--int need=0;
-  var need=0;
-  //--int oldexp=0;
-  var oldexp=0;
-  //--char a[];
-  var a;
-  //--int p=0;
-  var p=0;
-  //--char newa[]=null;
-  var newa=null;
-  //--int i=0;
-  var i=0;
-  //--int places=0;
-  var places=0;
-
-
-  /* Check arguments */
-  if ((before<(-1))||(before==0))
-   this.badarg("format",1,before);
-  if (after<(-1))
-   this.badarg("format",2,after);
-  if ((explaces<(-1))||(explaces==0))
-   this.badarg("format",3,explaces);
-  if (exdigits<(-1))
-   this.badarg("format",4,exdigits);
-  {/*select*/
-  if (exformint==MathContext.prototype.SCIENTIFIC)
-   {}
-  else if (exformint==MathContext.prototype.ENGINEERING)
-   {}
-  else if (exformint==(-1))
-   exformint=MathContext.prototype.SCIENTIFIC;
-   // note PLAIN isn't allowed
-  else{
-   this.badarg("format",5,exformint);
-  }
-  }
-  // checking the rounding mode is done by trying to construct a
-  // MathContext object with that mode; it will fail if bad
-  if (exround!=this.ROUND_HALF_UP)
-   {try{ // if non-default...
-    if (exround==(-1))
-     exround=this.ROUND_HALF_UP;
-    else
-     new MathContext(9,MathContext.prototype.SCIENTIFIC,false,exround);
-   }
-   catch ($10){
-    this.badarg("format",6,exround);
-   }}
-
-  num=this.clone(this); // make private copy
-
-  /* Here:
-     num       is BigDecimal to format
-     before    is places before point [>0]
-     after     is places after point  [>=0]
-     explaces  is exponent places     [>0]
-     exdigits  is exponent digits     [>=0]
-     exformint is exponent form       [one of two]
-     exround   is rounding mode       [one of eight]
-     'before' through 'exdigits' are -1 if not specified
-  */
-
-  /* determine form */
-  {setform:do{/*select*/
-  if (exdigits==(-1))
-   num.form=MathContext.prototype.PLAIN;
-  else if (num.ind==this.iszero)
-   num.form=MathContext.prototype.PLAIN;
-  else{
-   // determine whether triggers
-   mag=num.exp+num.mant.length;
-   if (mag>exdigits)
-    num.form=exformint;
-   else
-    if (mag<(-5))
-     num.form=exformint;
-    else
-     num.form=MathContext.prototype.PLAIN;
-  }
-  }while(false);}/*setform*/
-
-  /* If 'after' was specified then we may need to adjust the
-     mantissa.  This is a little tricky, as we must conform to the
-     rules of exponential layout if necessary (e.g., we cannot end up
-     with 10.0 if scientific). */
-  if (after>=0)
-   {setafter:for(;;){
-    // calculate the current after-length
-    {/*select*/
-    if (num.form==MathContext.prototype.PLAIN)
-     thisafter=-num.exp; // has decimal part
-    else if (num.form==MathContext.prototype.SCIENTIFIC)
-     thisafter=num.mant.length-1;
-    else{ // engineering
-     lead=(((num.exp+num.mant.length)-1))%3; // exponent to use
-     if (lead<0)
-      lead=3+lead; // negative exponent case
-     lead++; // number of leading digits
-     if (lead>=num.mant.length)
-      thisafter=0;
-     else
-      thisafter=num.mant.length-lead;
-    }
-    }
-    if (thisafter==after)
-     break setafter; // we're in luck
-    if (thisafter<after)
-     { // need added trailing zeros
-      // [thisafter can be negative]
-      newmant=this.extend(num.mant,(num.mant.length+after)-thisafter);
-      num.mant=newmant;
-      num.exp=num.exp-((after-thisafter)); // adjust exponent
-      if (num.exp<this.MinExp)
-       throw "format(): Exponent Overflow: " + num.exp;
-      break setafter;
-     }
-    // We have too many digits after the decimal point; this could
-    // cause a carry, which could change the mantissa...
-    // Watch out for implied leading zeros in PLAIN case
-    chop=thisafter-after; // digits to lop [is >0]
-    if (chop>num.mant.length)
-     { // all digits go, no chance of carry
-      // carry on with zero
-      num.mant=this.ZERO.mant;
-      num.ind=this.iszero;
-      num.exp=0;
-      continue setafter; // recheck: we may need trailing zeros
-     }
-    // we have a digit to inspect from existing mantissa
-    // round the number as required
-    need=num.mant.length-chop; // digits to end up with [may be 0]
-    oldexp=num.exp; // save old exponent
-    num.round(need,exround);
-    // if the exponent grew by more than the digits we chopped, then
-    // we must have had a carry, so will need to recheck the layout
-    if ((num.exp-oldexp)==chop)
-     break setafter; // number did not have carry
-    // mantissa got extended .. so go around and check again
-    }
-   }/*setafter*/
-
-  a=num.layout(); // lay out, with exponent if required, etc.
-
-  /* Here we have laid-out number in 'a' */
-  // now apply 'before' and 'explaces' as needed
-  if (before>0)
-   {
-    // look for '.' or 'E'
-    {var $11=a.length;p=0;p:for(;$11>0;$11--,p++){
-     if (a[p]=='.')
-      break p;
-     if (a[p]=='E')
-      break p;
-     }
-    }/*p*/
-    // p is now offset of '.', 'E', or character after end of array
-    // that is, the current length of before part
-    if (p>before)
-     this.badarg("format",1,before); // won't fit
-    if (p<before)
-     { // need leading blanks
-      newa=new Array((a.length+before)-p);
-      {var $12=before-p;i=0;i:for(;$12>0;$12--,i++){
-       newa[i]=' ';
-       }
-      }/*i*/
-      //--java.lang.System.arraycopy((java.lang.Object)a,0,(java.lang.Object)newa,i,a.length);
-      this.arraycopy(a,0,newa,i,a.length);
-      a=newa;
-     }
-   // [if p=before then it's just the right length]
-   }
-
-  if (explaces>0)
-   {
-    // look for 'E' [cannot be at offset 0]
-    {var $13=a.length-1;p=a.length-1;p:for(;$13>0;$13--,p--){
-     if (a[p]=='E')
-      break p;
-     }
-    }/*p*/
-    // p is now offset of 'E', or 0
-    if (p==0)
-     { // no E part; add trailing blanks
-      newa=new Array((a.length+explaces)+2);
-      //--java.lang.System.arraycopy((java.lang.Object)a,0,(java.lang.Object)newa,0,a.length);
-      this.arraycopy(a,0,newa,0,a.length);
-      {var $14=explaces+2;i=a.length;i:for(;$14>0;$14--,i++){
-       newa[i]=' ';
-       }
-      }/*i*/
-      a=newa;
-     }
-    else
-     {/* found E */ // may need to insert zeros
-      places=(a.length-p)-2; // number so far
-      if (places>explaces)
-       this.badarg("format",3,explaces);
-      if (places<explaces)
-       { // need to insert zeros
-        newa=new Array((a.length+explaces)-places);
-        //--java.lang.System.arraycopy((java.lang.Object)a,0,(java.lang.Object)newa,0,p+2); // through E and sign
-        this.arraycopy(a,0,newa,0,p+2);
-        {var $15=explaces-places;i=p+2;i:for(;$15>0;$15--,i++){
-         newa[i]='0';
-         }
-        }/*i*/
-        //--java.lang.System.arraycopy((java.lang.Object)a,p+2,(java.lang.Object)newa,i,places); // remainder of exponent
-        this.arraycopy(a,p+2,newa,i,places);
-        a=newa;
-       }
-     // [if places=explaces then it's just the right length]
-     }
-   }
-  return a.join("");
-  }
-
- /**
-  * Returns the hashcode for this <code>BigDecimal</code>.
-  * This hashcode is suitable for use by the
-  * <code>java.util.Hashtable</code> class.
-  * <p>
-  * Note that two <code>BigDecimal</code> objects are only guaranteed
-  * to produce the same hashcode if they are exactly equal (that is,
-  * the <code>String</code> representations of the
-  * <code>BigDecimal</code> numbers are identical -- they have the same
-  * characters in the same sequence).
-  *
-  * @return An <code>int</code> that is the hashcode for <code>this</code>.
-  * @stable ICU 2.0
-  */
-
- //--public int hashCode(){
- //-- // Maybe calculate ourselves, later.  If so, note that there can be
- //-- // more than one internal representation for a given toString() result.
- //-- return this.toString().hashCode();
- //-- }
-
- /**
-  * Converts this <code>BigDecimal</code> to an <code>int</code>.
-  * If the <code>BigDecimal</code> has a non-zero decimal part it is
-  * discarded. If the <code>BigDecimal</code> is out of the possible
-  * range for an <code>int</code> (32-bit signed integer) result then
-  * only the low-order 32 bits are used. (That is, the number may be
-  * <i>decapitated</i>.)  To avoid unexpected errors when these
-  * conditions occur, use the {@link #intValueExact} method.
-  *
-  * @return An <code>int</code> converted from <code>this</code>,
-  *         truncated and decapitated if necessary.
-  * @stable ICU 2.0
-  */
-
- //--public int intValue(){
- //-- return toBigInteger().intValue();
- //-- }
-
- /**
-  * Converts this <code>BigDecimal</code> to an <code>int</code>.
-  * If the <code>BigDecimal</code> has a non-zero decimal part or is
-  * out of the possible range for an <code>int</code> (32-bit signed
-  * integer) result then an <code>ArithmeticException</code> is thrown.
-  *
-  * @return An <code>int</code> equal in value to <code>this</code>.
-  * @throws ArithmeticException if <code>this</code> has a non-zero
-  *                 decimal part, or will not fit in an
-  *                 <code>int</code>.
-  * @stable ICU 2.0
-  */
-
- //--public int intValueExact(){
- function intValueExact() {
-  //--int lodigit;
-  var lodigit;
-  //--int useexp=0;
-  var useexp=0;
-  //--int result;
-  var result;
-  //--int i=0;
-  var i=0;
-  //--int topdig=0;
-  var topdig=0;
-  // This does not use longValueExact() as the latter can be much
-  // slower.
-  // intcheck (from pow) relies on this to check decimal part
-  if (this.ind==this.iszero)
-   return 0; // easy, and quite common
-  /* test and drop any trailing decimal part */
-  lodigit=this.mant.length-1;
-  if (this.exp<0)
-   {
-    lodigit=lodigit+this.exp; // reduces by -(-exp)
-    /* all decimal places must be 0 */
-    if ((!(this.allzero(this.mant,lodigit+1))))
-     throw "intValueExact(): Decimal part non-zero: " + this.toString();
-    if (lodigit<0)
-     return 0; // -1<this<1
-    useexp=0;
-   }
-  else
-   {/* >=0 */
-    if ((this.exp+lodigit)>9)  // early exit
-     throw "intValueExact(): Conversion overflow: "+this.toString();
-    useexp=this.exp;
-   }
-  /* convert the mantissa to binary, inline for speed */
-  result=0;
-  {var $16=lodigit+useexp;i=0;i:for(;i<=$16;i++){
-   result=result*10;
-   if (i<=lodigit)
-    result=result+this.mant[i];
-   }
-  }/*i*/
-
-  /* Now, if the risky length, check for overflow */
-  if ((lodigit+useexp)==9)
-   {
-    // note we cannot just test for -ve result, as overflow can move a
-    // zero into the top bit [consider 5555555555]
-    topdig=div(result,1000000000); // get top digit, preserving sign
-    if (topdig!=this.mant[0])
-     { // digit must match and be positive
-      // except in the special case ...
-      if (result==-2147483648)  // looks like the special
-       if (this.ind==this.isneg)  // really was negative
-        if (this.mant[0]==2)
-         return result; // really had top digit 2
-      throw "intValueExact(): Conversion overflow: "+this.toString();
-     }
-   }
-
-  /* Looks good */
-  if (this.ind==this.ispos)
-   return result;
-  return -result;
-  }
-
- /**
-  * Converts this <code>BigDecimal</code> to a <code>long</code>.
-  * If the <code>BigDecimal</code> has a non-zero decimal part it is
-  * discarded. If the <code>BigDecimal</code> is out of the possible
-  * range for a <code>long</code> (64-bit signed integer) result then
-  * only the low-order 64 bits are used. (That is, the number may be
-  * <i>decapitated</i>.)  To avoid unexpected errors when these
-  * conditions occur, use the {@link #longValueExact} method.
-  *
-  * @return A <code>long</code> converted from <code>this</code>,
-  *         truncated and decapitated if necessary.
-  * @stable ICU 2.0
-  */
-
- //--public long longValue(){
- //-- return toBigInteger().longValue();
- //-- }
-
- /**
-  * Converts this <code>BigDecimal</code> to a <code>long</code>.
-  * If the <code>BigDecimal</code> has a non-zero decimal part or is
-  * out of the possible range for a <code>long</code> (64-bit signed
-  * integer) result then an <code>ArithmeticException</code> is thrown.
-  *
-  * @return A <code>long</code> equal in value to <code>this</code>.
-  * @throws ArithmeticException if <code>this</code> has a non-zero
-  *                 decimal part, or will not fit in a
-  *                 <code>long</code>.
-  * @stable ICU 2.0
-  */
-
- //--public long longValueExact(){
- //-- int lodigit;
- //-- int cstart=0;
- //-- int useexp=0;
- //-- long result;
- //-- int i=0;
- //-- long topdig=0;
- //-- // Identical to intValueExact except for result=long, and exp>=20 test
- //-- if (ind==0)
- //--  return 0; // easy, and quite common
- //-- lodigit=mant.length-1; // last included digit
- //-- if (exp<0)
- //--  {
- //--   lodigit=lodigit+exp; // -(-exp)
- //--   /* all decimal places must be 0 */
- //--   if (lodigit<0)
- //--    cstart=0;
- //--   else
- //--    cstart=lodigit+1;
- //--   if ((!(allzero(mant,cstart))))
- //--    throw new java.lang.ArithmeticException("Decimal part non-zero:"+" "+this.toString());
- //--   if (lodigit<0)
- //--    return 0; // -1<this<1
- //--   useexp=0;
- //--  }
- //-- else
- //--  {/* >=0 */
- //--   if ((exp+mant.length)>18)  // early exit
- //--    throw new java.lang.ArithmeticException("Conversion overflow:"+" "+this.toString());
- //--   useexp=exp;
- //--  }
- //--
- //-- /* convert the mantissa to binary, inline for speed */
- //-- // note that we could safely use the 'test for wrap to negative'
- //-- // algorithm here, but instead we parallel the intValueExact
- //-- // algorithm for ease of checking and maintenance.
- //-- result=(long)0;
- //-- {int $17=lodigit+useexp;i=0;i:for(;i<=$17;i++){
- //--  result=result*10;
- //--  if (i<=lodigit)
- //--   result=result+mant[i];
- //--  }
- //-- }/*i*/
- //--
- //-- /* Now, if the risky length, check for overflow */
- //-- if ((lodigit+useexp)==18)
- //--  {
- //--   topdig=result/1000000000000000000L; // get top digit, preserving sign
- //--   if (topdig!=mant[0])
- //--    { // digit must match and be positive
- //--     // except in the special case ...
- //--     if (result==java.lang.Long.MIN_VALUE)  // looks like the special
- //--      if (ind==isneg)  // really was negative
- //--       if (mant[0]==9)
- //--        return result; // really had top digit 9
- //--     throw new java.lang.ArithmeticException("Conversion overflow:"+" "+this.toString());
- //--    }
- //--  }
- //--
- //-- /* Looks good */
- //-- if (ind==ispos)
- //--  return result;
- //-- return (long)-result;
- //-- }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose decimal point has
-  * been moved to the left by a specified number of positions.
-  * The parameter, <code>n</code>, specifies the number of positions to
-  * move the decimal point.
-  * That is, if <code>n</code> is 0 or positive, the number returned is
-  * given by:
-  * <p><code>
-  * this.multiply(TEN.pow(new BigDecimal(-n)))
-  * </code>
-  * <p>
-  * <code>n</code> may be negative, in which case the method returns
-  * the same result as <code>movePointRight(-n)</code>.
-  *
-  * @param  n The <code>int</code> specifying the number of places to
-  *           move the decimal point leftwards.
-  * @return   A <code>BigDecimal</code> derived from
-  *           <code>this</code>, with the decimal point moved
-  *           <code>n</code> places to the left.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal movePointLeft(int n){
- function movePointLeft(n) {
-  //--com.ibm.icu.math.BigDecimal res;
-  var res;
-  // very little point in optimizing for shift of 0
-  res=this.clone(this);
-  res.exp=res.exp-n;
-  return res.finish(this.plainMC,false); // finish sets form and checks exponent
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> whose decimal point has
-  * been moved to the right by a specified number of positions.
-  * The parameter, <code>n</code>, specifies the number of positions to
-  * move the decimal point.
-  * That is, if <code>n</code> is 0 or positive, the number returned is
-  * given by:
-  * <p><code>
-  * this.multiply(TEN.pow(new BigDecimal(n)))
-  * </code>
-  * <p>
-  * <code>n</code> may be negative, in which case the method returns
-  * the same result as <code>movePointLeft(-n)</code>.
-  *
-  * @param  n The <code>int</code> specifying the number of places to
-  *           move the decimal point rightwards.
-  * @return   A <code>BigDecimal</code> derived from
-  *           <code>this</code>, with the decimal point moved
-  *           <code>n</code> places to the right.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal movePointRight(int n){
- function movePointRight(n) {
-  //--com.ibm.icu.math.BigDecimal res;
-  var res;
-  res=this.clone(this);
-  res.exp=res.exp+n;
-  return res.finish(this.plainMC,false);
-  }
-
- /**
-  * Returns the scale of this <code>BigDecimal</code>.
-  * Returns a non-negative <code>int</code> which is the scale of the
-  * number. The scale is the number of digits in the decimal part of
-  * the number if the number were formatted without exponential
-  * notation.
-  *
-  * @return An <code>int</code> whose value is the scale of this
-  *         <code>BigDecimal</code>.
-  * @stable ICU 2.0
-  */
-
- //--public int scale(){
- function scale() {
-  if (this.exp>=0)
-   return 0; // scale can never be negative
-  return -this.exp;
-  }
-
- /**
-  * Returns a plain <code>BigDecimal</code> with a given scale.
-  * <p>
-  * If the given scale (which must be zero or positive) is the same as
-  * or greater than the length of the decimal part (the scale) of this
-  * <code>BigDecimal</code> then trailing zeros will be added to the
-  * decimal part as necessary.
-  * <p>
-  * If the given scale is less than the length of the decimal part (the
-  * scale) of this <code>BigDecimal</code> then trailing digits
-  * will be removed, and in this case an
-  * <code>ArithmeticException</code> is thrown if any discarded digits
-  * are non-zero.
-  * <p>
-  * The same as {@link #setScale(int, int)}, where the first parameter
-  * is the scale, and the second is
-  * <code>MathContext.ROUND_UNNECESSARY</code>.
-  *
-  * @param  scale The <code>int</code> specifying the scale of the
-  *               resulting <code>BigDecimal</code>.
-  * @return       A plain <code>BigDecimal</code> with the given scale.
-  * @throws ArithmeticException if <code>scale</code> is negative.
-  * @throws ArithmeticException if reducing scale would discard
-  *               non-zero digits.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal setScale(int scale){
- //-- return setScale(scale,ROUND_UNNECESSARY);
- //-- }
-
- /**
-  * Returns a plain <code>BigDecimal</code> with a given scale.
-  * <p>
-  * If the given scale (which must be zero or positive) is the same as
-  * or greater than the length of the decimal part (the scale) of this
-  * <code>BigDecimal</code> then trailing zeros will be added to the
-  * decimal part as necessary.
-  * <p>
-  * If the given scale is less than the length of the decimal part (the
-  * scale) of this <code>BigDecimal</code> then trailing digits
-  * will be removed, and the rounding mode given by the second
-  * parameter is used to determine if the remaining digits are
-  * affected by a carry.
-  * In this case, an <code>IllegalArgumentException</code> is thrown if
-  * <code>round</code> is not a valid rounding mode.
-  * <p>
-  * If <code>round</code> is <code>MathContext.ROUND_UNNECESSARY</code>,
-  * an <code>ArithmeticException</code> is thrown if any discarded
-  * digits are non-zero.
-  *
-  * @param  scale The <code>int</code> specifying the scale of the
-  *               resulting <code>BigDecimal</code>.
-  * @param  round The <code>int</code> rounding mode to be used for
-  *               the division (see the {@link MathContext} class).
-  * @return       A plain <code>BigDecimal</code> with the given scale.
-  * @throws IllegalArgumentException if <code>round</code> is not a
-  *               valid rounding mode.
-  * @throws ArithmeticException if <code>scale</code> is negative.
-  * @throws ArithmeticException if <code>round</code> is
-  *               <code>MathContext.ROUND_UNNECESSARY</code>, and
-  *               reducing scale would discard non-zero digits.
-  * @stable ICU 2.0
-  */
-
- //--public com.ibm.icu.math.BigDecimal setScale(int scale,int round){
- function setScale() {
-  var round;
-  if (setScale.arguments.length == 2)
-   {
-    round = setScale.arguments[1];
-   }
-  else if (setScale.arguments.length == 1)
-   {
-    round = this.ROUND_UNNECESSARY;
-   }
-  else
-   {
-    throw "setScale(): " + setScale.arguments.length + " given; expected 1 or 2";
-   }
-  var scale = setScale.arguments[0];
-  //--int ourscale;
-  var ourscale;
-  //--com.ibm.icu.math.BigDecimal res;
-  var res;
-  //--int padding=0;
-  var padding=0;
-  //--int newlen=0;
-  var newlen=0;
-  // at present this naughtily only checks the round value if it is
-  // needed (used), for speed
-  ourscale=this.scale();
-  if (ourscale==scale)  // already correct scale
-   if (this.form==MathContext.prototype.PLAIN)  // .. and form
-    return this;
-  res=this.clone(this); // need copy
-  if (ourscale<=scale)
-   { // simply zero-padding/changing form
-    // if ourscale is 0 we may have lots of 0s to add
-    if (ourscale==0)
-     padding=res.exp+scale;
-    else
-     padding=scale-ourscale;
-    res.mant=this.extend(res.mant,res.mant.length+padding);
-    res.exp=-scale; // as requested
-   }
-  else
-   {/* ourscale>scale: shortening, probably */
-    if (scale<0)
-     //--throw new java.lang.ArithmeticException("Negative scale:"+" "+scale);
-     throw "setScale(): Negative scale: " + scale;
-    // [round() will raise exception if invalid round]
-    newlen=res.mant.length-((ourscale-scale)); // [<=0 is OK]
-    res=res.round(newlen,round); // round to required length
-    // This could have shifted left if round (say) 0.9->1[.0]
-    // Repair if so by adding a zero and reducing exponent
-    if (res.exp!=(-scale))
-     {
-      res.mant=this.extend(res.mant,res.mant.length+1);
-      res.exp=res.exp-1;
-     }
-   }
-  res.form=MathContext.prototype.PLAIN; // by definition
-  return res;
-  }
-
- /**
-  * Converts this <code>BigDecimal</code> to a <code>short</code>.
-  * If the <code>BigDecimal</code> has a non-zero decimal part or is
-  * out of the possible range for a <code>short</code> (16-bit signed
-  * integer) result then an <code>ArithmeticException</code> is thrown.
-  *
-  * @return A <code>short</code> equal in value to <code>this</code>.
-  * @throws ArithmeticException if <code>this</code> has a non-zero
-  *                 decimal part, or will not fit in a
-  *                 <code>short</code>.
-  * @stable ICU 2.0
-  */
-
- //--public short shortValueExact(){
- //-- int num;
- //-- num=this.intValueExact(); // will check decimal part too
- //-- if ((num>32767)|(num<(-32768)))
- //--  throw new java.lang.ArithmeticException("Conversion overflow:"+" "+this.toString());
- //-- return (short)num;
- //-- }
-
- /**
-  * Returns the sign of this <code>BigDecimal</code>, as an
-  * <code>int</code>.
-  * This returns the <i>signum</i> function value that represents the
-  * sign of this <code>BigDecimal</code>.
-  * That is, -1 if the <code>BigDecimal</code> is negative, 0 if it is
-  * numerically equal to zero, or 1 if it is positive.
-  *
-  * @return An <code>int</code> which is -1 if the
-  *         <code>BigDecimal</code> is negative, 0 if it is
-  *         numerically equal to zero, or 1 if it is positive.
-  * @stable ICU 2.0
-  */
-
- //--public int signum(){
- function signum() {
-  return this.ind; // [note this assumes values for ind.]
-  }
-
- /**
-  * Converts this <code>BigDecimal</code> to a
-  * <code>java.math.BigDecimal</code>.
-  * <p>
-  * This is an exact conversion; the result is the same as if the
-  * <code>BigDecimal</code> were formatted as a plain number without
-  * any rounding or exponent and then the
-  * <code>java.math.BigDecimal(java.lang.String)</code> constructor
-  * were used to construct the result.
-  * <p>
-  * <i>(Note: this method is provided only in the
-  * <code>com.ibm.icu.math</code> version of the BigDecimal class.
-  * It would not be present in a <code>java.math</code> version.)</i>
-  *
-  * @return The <code>java.math.BigDecimal</code> equal in value
-  *         to this <code>BigDecimal</code>.
-  * @stable ICU 2.0
-  */
-
- //--public java.math.BigDecimal toBigDecimal(){
- //-- return new java.math.BigDecimal(this.unscaledValue(),this.scale());
- //-- }
-
- /**
-  * Converts this <code>BigDecimal</code> to a
-  * <code>java.math.BigInteger</code>.
-  * <p>
-  * Any decimal part is truncated (discarded).
-  * If an exception is desired should the decimal part be non-zero,
-  * use {@link #toBigIntegerExact()}.
-  *
-  * @return The <code>java.math.BigInteger</code> equal in value
-  *         to the integer part of this <code>BigDecimal</code>.
-  * @stable ICU 2.0
-  */
-
- //--public java.math.BigInteger toBigInteger(){
- //-- com.ibm.icu.math.BigDecimal res=null;
- //-- int newlen=0;
- //-- byte newmant[]=null;
- //-- {/*select*/
- //-- if ((exp>=0)&(form==com.ibm.icu.math.MathContext.PLAIN))
- //--  res=this; // can layout simply
- //-- else if (exp>=0)
- //--  {
- //--   res=clone(this); // safe copy
- //--   res.form=(byte)com.ibm.icu.math.MathContext.PLAIN; // .. and request PLAIN
- //--  }
- //-- else{
- //--  { // exp<0; scale to be truncated
- //--   // we could use divideInteger, but we may as well be quicker
- //--   if (((int)-this.exp)>=this.mant.length)
- //--    res=ZERO; // all blows away
- //--   else
- //--    {
- //--     res=clone(this); // safe copy
- //--     newlen=res.mant.length+res.exp;
- //--     newmant=new byte[newlen]; // [shorter]
- //--     java.lang.System.arraycopy((java.lang.Object)res.mant,0,(java.lang.Object)newmant,0,newlen);
- //--     res.mant=newmant;
- //--     res.form=(byte)com.ibm.icu.math.MathContext.PLAIN;
- //--     res.exp=0;
- //--    }
- //--  }
- //-- }
- //-- }
- //-- return new BigInteger(new java.lang.String(res.layout()));
- //-- }
-
- /**
-  * Converts this <code>BigDecimal</code> to a
-  * <code>java.math.BigInteger</code>.
-  * <p>
-  * An exception is thrown if the decimal part (if any) is non-zero.
-  *
-  * @return The <code>java.math.BigInteger</code> equal in value
-  *         to the integer part of this <code>BigDecimal</code>.
-  * @throws ArithmeticException if <code>this</code> has a non-zero
-  *         decimal part.
-  * @stable ICU 2.0
-  */
-
- //--public java.math.BigInteger toBigIntegerExact(){
- //-- /* test any trailing decimal part */
- //-- if (exp<0)
- //--  { // possible decimal part
- //--   /* all decimal places must be 0; note exp<0 */
- //--   if ((!(allzero(mant,mant.length+exp))))
- //--    throw new java.lang.ArithmeticException("Decimal part non-zero:"+" "+this.toString());
- //--  }
- //-- return toBigInteger();
- //-- }
-
- /**
-  * Returns the <code>BigDecimal</code> as a character array.
-  * The result of this method is the same as using the
-  * sequence <code>toString().toCharArray()</code>, but avoids creating
-  * the intermediate <code>String</code> and <code>char[]</code>
-  * objects.
-  *
-  * @return The <code>char[]</code> array corresponding to this
-  *         <code>BigDecimal</code>.
-  * @stable ICU 2.0
-  */
-
- //--public char[] toCharArray(){
- //-- return layout();
- //-- }
-
- /**
-  * Returns the <code>BigDecimal</code> as a <code>String</code>.
-  * This returns a <code>String</code> that exactly represents this
-  * <code>BigDecimal</code>, as defined in the decimal documentation
-  * (see {@link BigDecimal class header}).
-  * <p>
-  * By definition, using the {@link #BigDecimal(String)} constructor
-  * on the result <code>String</code> will create a
-  * <code>BigDecimal</code> that is exactly equal to the original
-  * <code>BigDecimal</code>.
-  *
-  * @return The <code>String</code> exactly corresponding to this
-  *         <code>BigDecimal</code>.
-  * @see    #format(int, int)
-  * @see    #format(int, int, int, int, int, int)
-  * @see    #toCharArray()
-  * @stable ICU 2.0
-  */
-
- //--public java.lang.String toString(){
- function toString() {
-  return this.layout().join("");
-  }
-
- /**
-  * Returns the number as a <code>BigInteger</code> after removing the
-  * scale.
-  * That is, the number is expressed as a plain number, any decimal
-  * point is then removed (retaining the digits of any decimal part),
-  * and the result is then converted to a <code>BigInteger</code>.
-  *
-  * @return The <code>java.math.BigInteger</code> equal in value to
-  *         this <code>BigDecimal</code> multiplied by ten to the
-  *         power of <code>this.scale()</code>.
-  * @stable ICU 2.0
-  */
-
- //--public java.math.BigInteger unscaledValue(){
- //-- com.ibm.icu.math.BigDecimal res=null;
- //-- if (exp>=0)
- //--  res=this;
- //-- else
- //--  {
- //--   res=clone(this); // safe copy
- //--   res.exp=0; // drop scale
- //--  }
- //-- return res.toBigInteger();
- //-- }
-
- /**
-  * Translates a <code>double</code> to a <code>BigDecimal</code>.
-  * <p>
-  * Returns a <code>BigDecimal</code> which is the decimal
-  * representation of the 64-bit signed binary floating point
-  * parameter. If the parameter is infinite, or is not a number (NaN),
-  * a <code>NumberFormatException</code> is thrown.
-  * <p>
-  * The number is constructed as though <code>num</code> had been
-  * converted to a <code>String</code> using the
-  * <code>Double.toString()</code> method and the
-  * {@link #BigDecimal(java.lang.String)} constructor had then been used.
-  * This is typically not an exact conversion.
-  *
-  * @param  dub The <code>double</code> to be translated.
-  * @return     The <code>BigDecimal</code> equal in value to
-  *             <code>dub</code>.
-  * @throws NumberFormatException if the parameter is infinite or
-  *             not a number.
-  * @stable ICU 2.0
-  */
-
- //--public static com.ibm.icu.math.BigDecimal valueOf(double dub){
- //-- // Reminder: a zero double returns '0.0', so we cannot fastpath to
- //-- // use the constant ZERO.  This might be important enough to justify
- //-- // a factory approach, a cache, or a few private constants, later.
- //-- return new com.ibm.icu.math.BigDecimal((new java.lang.Double(dub)).toString());
- //-- }
-
- /**
-  * Translates a <code>long</code> to a <code>BigDecimal</code>.
-  * That is, returns a plain <code>BigDecimal</code> whose value is
-  * equal to the given <code>long</code>.
-  *
-  * @param  lint The <code>long</code> to be translated.
-  * @return      The <code>BigDecimal</code> equal in value to
-  *              <code>lint</code>.
-  * @stable ICU 2.0
-  */
-
- //--public static com.ibm.icu.math.BigDecimal valueOf(long lint){
- //-- return valueOf(lint,0);
- //-- }
-
- /**
-  * Translates a <code>long</code> to a <code>BigDecimal</code> with a
-  * given scale.
-  * That is, returns a plain <code>BigDecimal</code> whose unscaled
-  * value is equal to the given <code>long</code>, adjusted by the
-  * second parameter, <code>scale</code>.
-  * <p>
-  * The result is given by:
-  * <p><code>
-  * (new BigDecimal(lint)).divide(TEN.pow(new BigDecimal(scale)))
-  * </code>
-  * <p>
-  * A <code>NumberFormatException</code> is thrown if <code>scale</code>
-  * is negative.
-  *
-  * @param  lint  The <code>long</code> to be translated.
-  * @param  scale The <code>int</code> scale to be applied.
-  * @return       The <code>BigDecimal</code> equal in value to
-  *               <code>lint</code>.
-  * @throws NumberFormatException if the scale is negative.
-  * @stable ICU 2.0
-  */
-
- //--public static com.ibm.icu.math.BigDecimal valueOf(long lint,int scale){
- //-- com.ibm.icu.math.BigDecimal res=null;
- //-- {/*select*/
- //-- if (lint==0)
- //--  res=ZERO;
- //-- else if (lint==1)
- //--  res=ONE;
- //-- else if (lint==10)
- //--  res=TEN;
- //-- else{
- //--  res=new com.ibm.icu.math.BigDecimal(lint);
- //-- }
- //-- }
- //-- if (scale==0)
- //--  return res;
- //-- if (scale<0)
- //--  throw new java.lang.NumberFormatException("Negative scale:"+" "+scale);
- //-- res=clone(res); // safe copy [do not mutate]
- //-- res.exp=(int)-scale; // exponent is -scale
- //-- return res;
- //-- }
-
- /* ---------------------------------------------------------------- */
- /* Private methods                                                  */
- /* ---------------------------------------------------------------- */
-
- /* <sgml> Return char array value of a BigDecimal (conversion from
-       BigDecimal to laid-out canonical char array).
-    <p>The mantissa will either already have been rounded (following an
-       operation) or will be of length appropriate (in the case of
-       construction from an int, for example).
-    <p>We must not alter the mantissa, here.
-    <p>'form' describes whether we are to use exponential notation (and
-       if so, which), or if we are to lay out as a plain/pure numeric.
-    </sgml> */
-
- //--private char[] layout(){
- function layout() {
-  //--char cmant[];
-  var cmant;
-  //--int i=0;
-  var i=0;
-  //--java.lang.StringBuffer sb=null;
-  var sb=null;
-  //--int euse=0;
-  var euse=0;
-  //--int sig=0;
-  var sig=0;
-  //--char csign=0;
-  var csign=0;
-  //--char rec[]=null;
-  var rec=null;
-  //--int needsign;
-  var needsign;
-  //--int mag;
-  var mag;
-  //--int len=0;
-  var len=0;
-  cmant=new Array(this.mant.length); // copy byte[] to a char[]
-  {var $18=this.mant.length;i=0;i:for(;$18>0;$18--,i++){
-   cmant[i]=this.mant[i]+'';
-   }
-  }/*i*/
-
-  if (this.form!=MathContext.prototype.PLAIN)
-   {/* exponential notation needed */
-    //--sb=new java.lang.StringBuffer(cmant.length+15); // -x.xxxE+999999999
-    sb="";
-    if (this.ind==this.isneg)
-     sb += '-';
-    euse=(this.exp+cmant.length)-1; // exponent to use
-    /* setup sig=significant digits and copy to result */
-    if (this.form==MathContext.prototype.SCIENTIFIC)
-     { // [default]
-      sb += cmant[0]; // significant character
-      if (cmant.length>1)  // have decimal part
-       //--sb.append('.').append(cmant,1,cmant.length-1);
-       sb += '.';
-       sb += cmant.slice(1).join("");
-     }
-    else
-     {engineering:do{
-      sig=euse%3; // common
-      if (sig<0)
-       sig=3+sig; // negative exponent
-      euse=euse-sig;
-      sig++;
-      if (sig>=cmant.length)
-       { // zero padding may be needed
-        //--sb.append(cmant,0,cmant.length);
-        sb += cmant.join("");
-        {var $19=sig-cmant.length;for(;$19>0;$19--){
-         sb += '0';
-         }
-        }
-       }
-      else
-       { // decimal point needed
-        //--sb.append(cmant,0,sig).append('.').append(cmant,sig,cmant.length-sig);
-        sb += cmant.slice(0,sig).join("");
-        sb += '.';
-        sb += cmant.slice(sig).join("");
-       }
-     }while(false);}/*engineering*/
-    if (euse!=0)
-     {
-      if (euse<0)
-       {
-        csign='-';
-        euse=-euse;
-       }
-      else
-       csign='+';
-      //--sb.append('E').append(csign).append(euse);
-      sb += 'E';
-      sb += csign;
-      sb += euse;
-     }
-    //--rec=new Array(sb.length);
-    //--Utility.getChars(sb, 0,sb.length(),rec,0);
-    //--return rec;
-    return sb.split("");
-   }
-
-  /* Here for non-exponential (plain) notation */
-  if (this.exp==0)
-   {/* easy */
-    if (this.ind>=0)
-     return cmant; // non-negative integer
-    rec=new Array(cmant.length+1);
-    rec[0]='-';
-    //--java.lang.System.arraycopy((java.lang.Object)cmant,0,(java.lang.Object)rec,1,cmant.length);
-    this.arraycopy(cmant,0,rec,1,cmant.length);
-    return rec;
-   }
-
-  /* Need a '.' and/or some zeros */
-  needsign=((this.ind==this.isneg)?1:0); // space for sign?  0 or 1
-
-  /* MAG is the position of the point in the mantissa (index of the
-     character it follows) */
-  mag=this.exp+cmant.length;
-
-  if (mag<1)
-   {/* 0.00xxxx form */
-    len=(needsign+2)-this.exp; // needsign+2+(-mag)+cmant.length
-    rec=new Array(len);
-    if (needsign!=0)
-     rec[0]='-';
-    rec[needsign]='0';
-    rec[needsign+1]='.';
-    {var $20=-mag;i=needsign+2;i:for(;$20>0;$20--,i++){ // maybe none
-     rec[i]='0';
-     }
-    }/*i*/
-    //--java.lang.System.arraycopy((java.lang.Object)cmant,0,(java.lang.Object)rec,(needsign+2)-mag,cmant.length);
-    this.arraycopy(cmant,0,rec,(needsign+2)-mag,cmant.length);
-    return rec;
-   }
-
-  if (mag>cmant.length)
-   {/* xxxx0000 form */
-    len=needsign+mag;
-    rec=new Array(len);
-    if (needsign!=0)
-     rec[0]='-';
-    //--java.lang.System.arraycopy((java.lang.Object)cmant,0,(java.lang.Object)rec,needsign,cmant.length);
-    this.arraycopy(cmant,0,rec,needsign,cmant.length);
-    {var $21=mag-cmant.length;i=needsign+cmant.length;i:for(;$21>0;$21--,i++){ // never 0
-     rec[i]='0';
-     }
-    }/*i*/
-    return rec;
-   }
-
-  /* decimal point is in the middle of the mantissa */
-  len=(needsign+1)+cmant.length;
-  rec=new Array(len);
-  if (needsign!=0)
-   rec[0]='-';
-  //--java.lang.System.arraycopy((java.lang.Object)cmant,0,(java.lang.Object)rec,needsign,mag);
-  this.arraycopy(cmant,0,rec,needsign,mag);
-  rec[needsign+mag]='.';
-  //--java.lang.System.arraycopy((java.lang.Object)cmant,mag,(java.lang.Object)rec,(needsign+mag)+1,cmant.length-mag);
-  this.arraycopy(cmant,mag,rec,(needsign+mag)+1,cmant.length-mag);
-  return rec;
-  }
-
- /* <sgml> Checks a BigDecimal argument to ensure it's a true integer
-       in a given range.
-    <p>If OK, returns it as an int. </sgml> */
- // [currently only used by pow]
-
- //--private int intcheck(int min,int max){
- function intcheck(min, max) {
-  //--int i;
-  var i;
-  i=this.intValueExact(); // [checks for non-0 decimal part]
-  // Use same message as though intValueExact failed due to size
-  if ((i<min)||(i>max))
-   throw "intcheck(): Conversion overflow: "+i;
-  return i;
-  }
-
- /* <sgml> Carry out division operations. </sgml> */
- /*
-    Arg1 is operation code: D=divide, I=integer divide, R=remainder
-    Arg2 is the rhs.
-    Arg3 is the context.
-    Arg4 is explicit scale iff code='D' or 'I' (-1 if none).
-
-    Underlying algorithm (complications for Remainder function and
-    scaled division are omitted for clarity):
-
-      Test for x/0 and then 0/x
-      Exp =Exp1 - Exp2
-      Exp =Exp +len(var1) -len(var2)
-      Sign=Sign1 * Sign2
-      Pad accumulator (Var1) to double-length with 0's (pad1)
-      Pad Var2 to same length as Var1
-      B2B=1st two digits of var2, +1 to allow for roundup
-      have=0
-      Do until (have=digits+1 OR residue=0)
-        if exp<0 then if integer divide/residue then leave
-        this_digit=0
-        Do forever
-           compare numbers
-           if <0 then leave inner_loop
-           if =0 then (- quick exit without subtract -) do
-              this_digit=this_digit+1; output this_digit
-              leave outer_loop; end
-           Compare lengths of numbers (mantissae):
-           If same then CA=first_digit_of_Var1
-                   else CA=first_two_digits_of_Var1
-           mult=ca*10/b2b   -- Good and safe guess at divisor
-           if mult=0 then mult=1
-           this_digit=this_digit+mult
-           subtract
-           end inner_loop
-         if have\=0 | this_digit\=0 then do
-           output this_digit
-           have=have+1; end
-         var2=var2/10
-         exp=exp-1
-         end outer_loop
-      exp=exp+1   -- set the proper exponent
-      if have=0 then generate answer=0
-      Return to FINISHED
-      Result defined by MATHV1
-
-    For extended commentary, see DMSRCN.
-  */
-
- //--private com.ibm.icu.math.BigDecimal dodivide(char code,com.ibm.icu.math.BigDecimal rhs,com.ibm.icu.math.MathContext set,int scale){
- function dodivide(code, rhs, set, scale) {
-  //--com.ibm.icu.math.BigDecimal lhs;
-  var lhs;
-  //--int reqdig;
-  var reqdig;
-  //--int newexp;
-  var newexp;
-  //--com.ibm.icu.math.BigDecimal res;
-  var res;
-  //--int newlen;
-  var newlen;
-  //--byte var1[];
-  var var1;
-  //--int var1len;
-  var var1len;
-  //--byte var2[];
-  var var2;
-  //--int var2len;
-  var var2len;
-  //--int b2b;
-  var b2b;
-  //--int have;
-  var have;
-  //--int thisdigit=0;
-  var thisdigit=0;
-  //--int i=0;
-  var i=0;
-  //--byte v2=0;
-  var v2=0;
-  //--int ba=0;
-  var ba=0;
-  //--int mult=0;
-  var mult=0;
-  //--int start=0;
-  var start=0;
-  //--int padding=0;
-  var padding=0;
-  //--int d=0;
-  var d=0;
-  //--byte newvar1[]=null;
-  var newvar1=null;
-  //--byte lasthave=0;
-  var lasthave=0;
-  //--int actdig=0;
-  var actdig=0;
-  //--byte newmant[]=null;
-  var newmant=null;
-
-  if (set.lostDigits)
-   this.checkdigits(rhs,set.digits);
-  lhs=this; // name for clarity
-
-  // [note we must have checked lostDigits before the following checks]
-  if (rhs.ind==0)
-   throw "dodivide(): Divide by 0"; // includes 0/0
-  if (lhs.ind==0)
-   { // 0/x => 0 [possibly with .0s]
-    if (set.form!=MathContext.prototype.PLAIN)
-     return this.ZERO;
-    if (scale==(-1))
-     return lhs;
-    return lhs.setScale(scale);
-   }
-
-  /* Prepare numbers according to BigDecimal rules */
-  reqdig=set.digits; // local copy (heavily used)
-  if (reqdig>0)
-   {
-    if (lhs.mant.length>reqdig)
-     lhs=this.clone(lhs).round(set);
-    if (rhs.mant.length>reqdig)
-     rhs=this.clone(rhs).round(set);
-   }
-  else
-   {/* scaled divide */
-    if (scale==(-1))
-     scale=lhs.scale();
-    // set reqdig to be at least large enough for the computation
-    reqdig=lhs.mant.length; // base length
-    // next line handles both positive lhs.exp and also scale mismatch
-    if (scale!=(-lhs.exp))
-     reqdig=(reqdig+scale)+lhs.exp;
-    reqdig=(reqdig-((rhs.mant.length-1)))-rhs.exp; // reduce by RHS effect
-    if (reqdig<lhs.mant.length)
-     reqdig=lhs.mant.length; // clamp
-    if (reqdig<rhs.mant.length)
-     reqdig=rhs.mant.length; // ..
-   }
-
-  /* precalculate exponent */
-  newexp=((lhs.exp-rhs.exp)+lhs.mant.length)-rhs.mant.length;
-  /* If new exponent -ve, then some quick exits are possible */
-  if (newexp<0)
-   if (code!='D')
-    {
-     if (code=='I')
-      return this.ZERO; // easy - no integer part
-     /* Must be 'R'; remainder is [finished clone of] input value */
-     return this.clone(lhs).finish(set,false);
-    }
-
-  /* We need slow division */
-  res=new BigDecimal(); // where we'll build result
-  res.ind=(lhs.ind*rhs.ind); // final sign (for D/I)
-  res.exp=newexp; // initial exponent (for D/I)
-  res.mant=this.createArrayWithZeros(reqdig+1); // where build the result
-
-  /* Now [virtually pad the mantissae with trailing zeros */
-  // Also copy the LHS, which will be our working array
-  newlen=(reqdig+reqdig)+1;
-  var1=this.extend(lhs.mant,newlen); // always makes longer, so new safe array
-  var1len=newlen; // [remaining digits are 0]
-
-  var2=rhs.mant;
-  var2len=newlen;
-
-  /* Calculate first two digits of rhs (var2), +1 for later estimations */
-  b2b=(var2[0]*10)+1;
-  if (var2.length>1)
-   b2b=b2b+var2[1];
-
-  /* start the long-division loops */
-  have=0;
-  {outer:for(;;){
-   thisdigit=0;
-   /* find the next digit */
-   {inner:for(;;){
-    if (var1len<var2len)
-     break inner; // V1 too low
-    if (var1len==var2len)
-     { // compare needed
-      {compare:do{ // comparison
-       {var $22=var1len;i=0;i:for(;$22>0;$22--,i++){
-        // var1len is always <= var1.length
-        if (i<var2.length)
-         v2=var2[i];
-        else
-         v2=0;
-        if (var1[i]<v2)
-         break inner; // V1 too low
-        if (var1[i]>v2)
-         break compare; // OK to subtract
-        }
-       }/*i*/
-       /* reach here if lhs and rhs are identical; subtraction will
-          increase digit by one, and the residue will be 0 so we
-          are done; leave the loop with residue set to 0 (in case
-          code is 'R' or ROUND_UNNECESSARY or a ROUND_HALF_xxxx is
-          being checked) */
-       thisdigit++;
-       res.mant[have]=thisdigit;
-       have++;
-       var1[0]=0; // residue to 0 [this is all we'll test]
-       // var1len=1      -- [optimized out]
-       break outer;
-      }while(false);}/*compare*/
-      /* prepare for subtraction.  Estimate BA (lengths the same) */
-      ba=var1[0]; // use only first digit
-     } // lengths the same
-    else
-     {/* lhs longer than rhs */
-      /* use first two digits for estimate */
-      ba=var1[0]*10;
-      if (var1len>1)
-       ba=ba+var1[1];
-     }
-    /* subtraction needed; V1>=V2 */
-    mult=div((ba*10),b2b);
-    if (mult==0)
-     mult=1;
-    thisdigit=thisdigit+mult;
-    // subtract; var1 reusable
-    var1=this.byteaddsub(var1,var1len,var2,var2len,-mult,true);
-    if (var1[0]!=0)
-     continue inner; // maybe another subtract needed
-    /* V1 now probably has leading zeros, remove leading 0's and try
-       again. (It could be longer than V2) */
-    {var $23=var1len-2;start=0;start:for(;start<=$23;start++){
-     if (var1[start]!=0)
-      break start;
-     var1len--;
-     }
-    }/*start*/
-    if (start==0)
-     continue inner;
-    // shift left
-    //--java.lang.System.arraycopy((java.lang.Object)var1,start,(java.lang.Object)var1,0,var1len);
-    this.arraycopy(var1,start,var1,0,var1len);
-    }
-   }/*inner*/
-
-   /* We have the next digit */
-   if ((have!=0)||(thisdigit!=0))
-    { // put the digit we got
-     res.mant[have]=thisdigit;
-     have++;
-     if (have==(reqdig+1))
-      break outer; // we have all we need
-     if (var1[0]==0)
-      break outer; // residue now 0
-    }
-   /* can leave now if a scaled divide and exponent is small enough */
-   if (scale>=0)
-    if ((-res.exp)>scale)
-     break outer;
-   /* can leave now if not Divide and no integer part left  */
-   if (code!='D')
-    if (res.exp<=0)
-     break outer;
-   res.exp=res.exp-1; // reduce the exponent
-   /* to get here, V1 is less than V2, so divide V2 by 10 and go for
-      the next digit */
-   var2len--;
-   }
-  }/*outer*/
-
-  /* here when we have finished dividing, for some reason */
-  // have is the number of digits we collected in res.mant
-  if (have==0)
-   have=1; // res.mant[0] is 0; we always want a digit
-
-  if ((code=='I')||(code=='R'))
-   {/* check for integer overflow needed */
-    if ((have+res.exp)>reqdig)
-     throw "dodivide(): Integer overflow";
-
-    if (code=='R')
-     {remainder:do{
-      /* We were doing Remainder -- return the residue */
-      if (res.mant[0]==0)  // no integer part was found
-       return this.clone(lhs).finish(set,false); // .. so return lhs, canonical
-      if (var1[0]==0)
-       return this.ZERO; // simple 0 residue
-      res.ind=lhs.ind; // sign is always as LHS
-      /* Calculate the exponent by subtracting the number of padding zeros
-         we added and adding the original exponent */
-      padding=((reqdig+reqdig)+1)-lhs.mant.length;
-      res.exp=(res.exp-padding)+lhs.exp;
-
-      /* strip insignificant padding zeros from residue, and create/copy
-         the resulting mantissa if need be */
-      d=var1len;
-      {i=d-1;i:for(;i>=1;i--){if(!((res.exp<lhs.exp)&&(res.exp<rhs.exp)))break;
-       if (var1[i]!=0)
-        break i;
-       d--;
-       res.exp=res.exp+1;
-       }
-      }/*i*/
-      if (d<var1.length)
-       {/* need to reduce */
-        newvar1=new Array(d);
-        //--java.lang.System.arraycopy((java.lang.Object)var1,0,(java.lang.Object)newvar1,0,d); // shorten
-        this.arraycopy(var1,0,newvar1,0,d);
-        var1=newvar1;
-       }
-      res.mant=var1;
-      return res.finish(set,false);
-     }while(false);}/*remainder*/
-   }
-
-  else
-   {/* 'D' -- no overflow check needed */
-    // If there was a residue then bump the final digit (iff 0 or 5)
-    // so that the residue is visible for ROUND_UP, ROUND_HALF_xxx and
-    // ROUND_UNNECESSARY checks (etc.) later.
-    // [if we finished early, the residue will be 0]
-    if (var1[0]!=0)
-     { // residue not 0
-      lasthave=res.mant[have-1];
-      if (((lasthave%5))==0)
-       res.mant[have-1]=(lasthave+1);
-     }
-   }
-
-  /* Here for Divide or Integer Divide */
-  // handle scaled results first ['I' always scale 0, optional for 'D']
-  if (scale>=0)
-   {scaled:do{
-    // say 'scale have res.exp len' scale have res.exp res.mant.length
-    if (have!=res.mant.length)
-     // already padded with 0's, so just adjust exponent
-     res.exp=res.exp-((res.mant.length-have));
-    // calculate number of digits we really want [may be 0]
-    actdig=res.mant.length-(((-res.exp)-scale));
-    res.round(actdig,set.roundingMode); // round to desired length
-    // This could have shifted left if round (say) 0.9->1[.0]
-    // Repair if so by adding a zero and reducing exponent
-    if (res.exp!=(-scale))
-     {
-      res.mant=this.extend(res.mant,res.mant.length+1);
-      res.exp=res.exp-1;
-     }
-    return res.finish(set,true); // [strip if not PLAIN]
-   }while(false);}/*scaled*/
-
-  // reach here only if a non-scaled
-  if (have==res.mant.length)
-   { // got digits+1 digits
-    res.round(set);
-    have=reqdig;
-   }
-  else
-   {/* have<=reqdig */
-    if (res.mant[0]==0)
-     return this.ZERO; // fastpath
-    // make the mantissa truly just 'have' long
-    // [we could let finish do this, during strip, if we adjusted
-    // the exponent; however, truncation avoids the strip loop]
-    newmant=new Array(have); // shorten
-    //--java.lang.System.arraycopy((java.lang.Object)res.mant,0,(java.lang.Object)newmant,0,have);
-    this.arraycopy(res.mant,0,newmant,0,have);
-    res.mant=newmant;
-   }
-  return res.finish(set,true);
-  }
-
- /* <sgml> Report a conversion exception. </sgml> */
-
- //--private void bad(char s[]){
- function bad(prefix, s) {
-  throw prefix + "Not a number: "+s;
-  }
-
- /* <sgml> Report a bad argument to a method. </sgml>
-    Arg1 is method name
-    Arg2 is argument position
-    Arg3 is what was found */
-
- //--private void badarg(java.lang.String name,int pos,java.lang.String value){
- function badarg(name, pos, value) {
-  throw "Bad argument "+pos+" to "+name+": "+value;
-  }
-
- /* <sgml> Extend byte array to given length, padding with 0s.  If no
-    extension is required then return the same array. </sgml>
-
-    Arg1 is the source byte array
-    Arg2 is the new length (longer)
-    */
-
- //--private static final byte[] extend(byte inarr[],int newlen){
- function extend(inarr, newlen) {
-  //--byte newarr[];
-  var newarr;
-  if (inarr.length==newlen)
-   return inarr;
-  newarr=createArrayWithZeros(newlen);
-  //--java.lang.System.arraycopy((java.lang.Object)inarr,0,(java.lang.Object)newarr,0,inarr.length);
-  this.arraycopy(inarr,0,newarr,0,inarr.length);
-  // 0 padding is carried out by the JVM on allocation initialization
-  return newarr;
-  }
-
- /* <sgml> Add or subtract two >=0 integers in byte arrays
-    <p>This routine performs the calculation:
-    <pre>
-    C=A+(B*M)
-    </pre>
-    Where M is in the range -9 through +9
-    <p>
-    If M<0 then A>=B must be true, so the result is always
-    non-negative.
-
-    Leading zeros are not removed after a subtraction.  The result is
-    either the same length as the longer of A and B, or 1 longer than
-    that (if a carry occurred).
-
-    A is not altered unless Arg6 is 1.
-    B is never altered.
-
-    Arg1 is A
-    Arg2 is A length to use (if longer than A, pad with 0's)
-    Arg3 is B
-    Arg4 is B length to use (if longer than B, pad with 0's)
-    Arg5 is M, the multiplier
-    Arg6 is 1 if A can be used to build the result (if it fits)
-
-    This routine is severely performance-critical; *any* change here
-    must be measured (timed) to assure no performance degradation.
-    */
- // 1996.02.20 -- enhanced version of DMSRCN algorithm (1981)
- // 1997.10.05 -- changed to byte arrays (from char arrays)
- // 1998.07.01 -- changed to allow destructive reuse of LHS
- // 1998.07.01 -- changed to allow virtual lengths for the arrays
- // 1998.12.29 -- use lookaside for digit/carry calculation
- // 1999.08.07 -- avoid multiply when mult=1, and make db an int
- // 1999.12.22 -- special case m=-1, also drop 0 special case
-
- //--private static final byte[] byteaddsub(byte a[],int avlen,byte b[],int bvlen,int m,boolean reuse){
- function byteaddsub(a, avlen, b, bvlen, m, reuse) {
-  //--int alength;
-  var alength;
-  //--int blength;
-  var blength;
-  //--int ap;
-  var ap;
-  //--int bp;
-  var bp;
-  //--int maxarr;
-  var maxarr;
-  //--byte reb[];
-  var reb;
-  //--boolean quickm;
-  var quickm;
-  //--int digit;
-  var digit;
-  //--int op=0;
-  var op=0;
-  //--int dp90=0;
-  var dp90=0;
-  //--byte newarr[];
-  var newarr;
-  //--int i=0;
-  var i=0;
-
-
-
-
-  // We'll usually be right if we assume no carry
-  alength=a.length; // physical lengths
-  blength=b.length; // ..
-  ap=avlen-1; // -> final (rightmost) digit
-  bp=bvlen-1; // ..
-  maxarr=bp;
-  if (maxarr<ap)
-   maxarr=ap;
-  reb=null; // result byte array
-  if (reuse)
-   if ((maxarr+1)==alength)
-    reb=a; // OK to reuse A
-  if (reb==null){
-   reb=this.createArrayWithZeros(maxarr+1); // need new array
-   }
-
-  quickm=false; // 1 if no multiply needed
-  if (m==1)
-   quickm=true; // most common
-  else
-   if (m==(-1))
-    quickm=true; // also common
-
-  digit=0; // digit, with carry or borrow
-  {op=maxarr;op:for(;op>=0;op--){
-   if (ap>=0)
-    {
-     if (ap<alength)
-      digit=digit+a[ap]; // within A
-     ap--;
-    }
-   if (bp>=0)
-    {
-     if (bp<blength)
-      { // within B
-       if (quickm)
-        {
-         if (m>0)
-          digit=digit+b[bp]; // most common
-         else
-          digit=digit-b[bp]; // also common
-        }
-       else
-        digit=digit+(b[bp]*m);
-      }
-     bp--;
-    }
-   /* result so far (digit) could be -90 through 99 */
-   if (digit<10)
-    if (digit>=0)
-     {quick:do{ // 0-9
-      reb[op]=digit;
-      digit=0; // no carry
-      continue op;
-     }while(false);}/*quick*/
-   dp90=digit+90;
-   reb[op]=this.bytedig[dp90]; // this digit
-   digit=this.bytecar[dp90]; // carry or borrow
-   }
-  }/*op*/
-
-  if (digit==0)
-   return reb; // no carry
-  // following line will become an Assert, later
-  // if digit<0 then signal ArithmeticException("internal.error ["digit"]")
-
-  /* We have carry -- need to make space for the extra digit */
-  newarr=null;
-  if (reuse)
-   if ((maxarr+2)==a.length)
-    newarr=a; // OK to reuse A
-  if (newarr==null)
-   newarr=new Array(maxarr+2);
-  newarr[0]=digit; // the carried digit ..
-  // .. and all the rest [use local loop for short numbers]
-  //--if (maxarr<10)
-   {var $24=maxarr+1;i=0;i:for(;$24>0;$24--,i++){
-    newarr[i+1]=reb[i];
-    }
-   }/*i*/
-  //--else
-   //--java.lang.System.arraycopy((java.lang.Object)reb,0,(java.lang.Object)newarr,1,maxarr+1);
-  return newarr;
-  }
-
- /* <sgml> Initializer for digit array properties (lookaside). </sgml>
-    Returns the digit array, and initializes the carry array. */
-
- //--private static final byte[] diginit(){
- function diginit() {
-  //--byte work[];
-  var work;
-  //--int op=0;
-  var op=0;
-  //--int digit=0;
-  var digit=0;
-  work=new Array((90+99)+1);
-  {op=0;op:for(;op<=(90+99);op++){
-   digit=op-90;
-   if (digit>=0)
-    {
-     work[op]=(digit%10);
-     BigDecimal.prototype.bytecar[op]=(div(digit,10)); // calculate carry
-     continue op;
-    }
-   // borrowing...
-   digit=digit+100; // yes, this is right [consider -50]
-   work[op]=(digit%10);
-   BigDecimal.prototype.bytecar[op]=((div(digit,10))-10); // calculate borrow [NB: - after %]
-   }
-  }/*op*/
-  return work;
-  }
-
- /* <sgml> Create a copy of BigDecimal object for local use.
-    <p>This does NOT make a copy of the mantissa array.
-    </sgml>
-    Arg1 is the BigDecimal to clone (non-null)
-    */
-
- //--private static final com.ibm.icu.math.BigDecimal clone(com.ibm.icu.math.BigDecimal dec){
- function clone(dec) {
-  //--com.ibm.icu.math.BigDecimal copy;
-  var copy;
-  copy=new BigDecimal();
-  copy.ind=dec.ind;
-  copy.exp=dec.exp;
-  copy.form=dec.form;
-  copy.mant=dec.mant;
-  return copy;
-  }
-
- /* <sgml> Check one or two numbers for lost digits. </sgml>
-    Arg1 is RHS (or null, if none)
-    Arg2 is current DIGITS setting
-    returns quietly or throws an exception */
-
- //--private void checkdigits(com.ibm.icu.math.BigDecimal rhs,int dig){
- function checkdigits(rhs, dig) {
-  if (dig==0)
-   return; // don't check if digits=0
-  // first check lhs...
-  if (this.mant.length>dig)
-   if ((!(this.allzero(this.mant,dig))))
-    throw "Too many digits: "+this.toString();
-  if (rhs==null)
-   return; // monadic
-  if (rhs.mant.length>dig)
-   if ((!(this.allzero(rhs.mant,dig))))
-    throw "Too many digits: "+rhs.toString();
-  return;
-  }
-
- /* <sgml> Round to specified digits, if necessary. </sgml>
-    Arg1 is requested MathContext [with length and rounding mode]
-    returns this, for convenience */
-
- //--private com.ibm.icu.math.BigDecimal round(com.ibm.icu.math.MathContext set){
- //-- return round(set.digits,set.roundingMode);
- //-- }
-
- /* <sgml> Round to specified digits, if necessary.
-    Arg1 is requested length (digits to round to)
-            [may be <=0 when called from format, dodivide, etc.]
-    Arg2 is rounding mode
-    returns this, for convenience
-
-    ind and exp are adjusted, but not cleared for a mantissa of zero
-
-    The length of the mantissa returned will be Arg1, except when Arg1
-    is 0, in which case the returned mantissa length will be 1.
-    </sgml>
-    */
-
- //private com.ibm.icu.math.BigDecimal round(int len,int mode){
- function round() {
-  var len;
-  var mode;
-  if (round.arguments.length == 2)
-   {
-    len = round.arguments[0];
-    mode = round.arguments[1];
-   }
-  else if (round.arguments.length == 1)
-   {
-    var set = round.arguments[0];
-    len = set.digits;
-    mode = set.roundingMode;
-   }
-  else
-   {
-    throw "round(): " + round.arguments.length + " arguments given; expected 1 or 2";
-   }
-  //int adjust;
-  var adjust;
-  //int sign;
-  var sign;
-  //byte oldmant[];
-  var oldmant;
-  //boolean reuse=false;
-  var reuse=false;
-  //--byte first=0;
-  var first=0;
-  //--int increment;
-  var increment;
-  //--byte newmant[]=null;
-  var newmant=null;
-  adjust=this.mant.length-len;
-  if (adjust<=0)
-   return this; // nowt to do
-
-  this.exp=this.exp+adjust; // exponent of result
-  sign=this.ind; // save [assumes -1, 0, 1]
-  oldmant=this.mant; // save
-  if (len>0)
-   {
-    // remove the unwanted digits
-    this.mant=new Array(len);
-    //--java.lang.System.arraycopy((java.lang.Object)oldmant,0,(java.lang.Object)mant,0,len);
-    this.arraycopy(oldmant,0,this.mant,0,len);
-    reuse=true; // can reuse mantissa
-    first=oldmant[len]; // first of discarded digits
-   }
-  else
-   {/* len<=0 */
-    this.mant=this.ZERO.mant;
-    this.ind=this.iszero;
-    reuse=false; // cannot reuse mantissa
-    if (len==0)
-     first=oldmant[0];
-    else
-     first=0; // [virtual digit]
-   }
-
-  // decide rounding adjustment depending on mode, sign, and discarded digits
-  increment=0; // bumper
-  {modes:do{/*select*/
-  if (mode==this.ROUND_HALF_UP)
-   { // default first [most common]
-    if (first>=5)
-     increment=sign;
-   }
-  else if (mode==this.ROUND_UNNECESSARY)
-   { // default for setScale()
-    // discarding any non-zero digits is an error
-    if ((!(this.allzero(oldmant,len))))
-     throw "round(): Rounding necessary";
-   }
-  else if (mode==this.ROUND_HALF_DOWN)
-   { // 0.5000 goes down
-    if (first>5)
-     increment=sign;
-    else
-     if (first==5)
-      if ((!(this.allzero(oldmant,len+1))))
-       increment=sign;
-   }
-  else if (mode==this.ROUND_HALF_EVEN)
-   { // 0.5000 goes down if left digit even
-    if (first>5)
-     increment=sign;
-    else
-     if (first==5)
-      {
-       if ((!(this.allzero(oldmant,len+1))))
-        increment=sign;
-       else /* 0.5000 */
-        if ((((this.mant[this.mant.length-1])%2))==1)
-         increment=sign;
-      }
-   }
-  else if (mode==this.ROUND_DOWN)
-   {} // never increment
-  else if (mode==this.ROUND_UP)
-   { // increment if discarded non-zero
-    if ((!(this.allzero(oldmant,len))))
-     increment=sign;
-   }
-  else if (mode==this.ROUND_CEILING)
-   { // more positive
-    if (sign>0)
-     if ((!(this.allzero(oldmant,len))))
-      increment=sign;
-   }
-  else if (mode==this.ROUND_FLOOR)
-   { // more negative
-    if (sign<0)
-     if ((!(this.allzero(oldmant,len))))
-      increment=sign;
-   }
-  else{
-   throw "round(): Bad round value: "+mode;
-  }
-  }while(false);}/*modes*/
-
-  if (increment!=0)
-   {bump:do{
-    if (this.ind==this.iszero)
-     {
-      // we must not subtract from 0, but result is trivial anyway
-      this.mant=this.ONE.mant;
-      this.ind=increment;
-     }
-    else
-     {
-      // mantissa is non-0; we can safely add or subtract 1
-      if (this.ind==this.isneg)
-       increment=-increment;
-      newmant=this.byteaddsub(this.mant,this.mant.length,this.ONE.mant,1,increment,reuse);
-      if (newmant.length>this.mant.length)
-       { // had a carry
-        // drop rightmost digit and raise exponent
-        this.exp++;
-        // mant is already the correct length
-        //java.lang.System.arraycopy((java.lang.Object)newmant,0,(java.lang.Object)mant,0,mant.length);
-        this.arraycopy(newmant,0,this.mant,0,this.mant.length);
-       }
-      else
-       this.mant=newmant;
-     }
-   }while(false);}/*bump*/
-  // rounding can increase exponent significantly
-  if (this.exp>this.MaxExp)
-   throw "round(): Exponent Overflow: "+this.exp;
-  return this;
-  }
-
- /* <sgml> Test if rightmost digits are all 0.
-    Arg1 is a mantissa array to test
-    Arg2 is the offset of first digit to check
-            [may be negative; if so, digits to left are 0's]
-    returns 1 if all the digits starting at Arg2 are 0
-
-    Arg2 may be beyond array bounds, in which case 1 is returned
-    </sgml> */
-
- //--private static final boolean allzero(byte array[],int start){
- function allzero(array, start) {
-  //--int i=0;
-  var i=0;
-  if (start<0)
-   start=0;
-  {var $25=array.length-1;i=start;i:for(;i<=$25;i++){
-   if (array[i]!=0)
-    return false;
-   }
-  }/*i*/
-  return true;
-  }
-
- /* <sgml> Carry out final checks and canonicalization
-    <p>
-    This finishes off the current number by:
-      1. Rounding if necessary (NB: length includes leading zeros)
-      2. Stripping trailing zeros (if requested and \PLAIN)
-      3. Stripping leading zeros (always)
-      4. Selecting exponential notation (if required)
-      5. Converting a zero result to just '0' (if \PLAIN)
-    In practice, these operations overlap and share code.
-    It always sets form.
-    </sgml>
-    Arg1 is requested MathContext (length to round to, trigger, and FORM)
-    Arg2 is 1 if trailing insignificant zeros should be removed after
-         round (for division, etc.), provided that set.form isn't PLAIN.
-   returns this, for convenience
+/*! decimal.js v7.3.0 https://github.com/MikeMcl/decimal.js/LICENCE */
+;(function (globalScope) {
+  'use strict';
+
+
+  /*
+   *  decimal.js v7.3.0
+   *  An arbitrary-precision Decimal type for JavaScript.
+   *  https://github.com/MikeMcl/decimal.js
+   *  Copyright (c) 2017 Michael Mclaughlin <M8ch88l@gmail.com>
+   *  MIT Licence
    */
 
- //--private com.ibm.icu.math.BigDecimal finish(com.ibm.icu.math.MathContext set,boolean strip){
- function finish(set, strip) {
-  //--int d=0;
-  var d=0;
-  //--int i=0;
-  var i=0;
-  //--byte newmant[]=null;
-  var newmant=null;
-  //--int mag=0;
-  var mag=0;
-  //--int sig=0;
-  var sig=0;
-  /* Round if mantissa too long and digits requested */
-  if (set.digits!=0)
-   if (this.mant.length>set.digits)
-    this.round(set);
 
-  /* If strip requested (and standard formatting), remove
-     insignificant trailing zeros. */
-  if (strip)
-   if (set.form!=MathContext.prototype.PLAIN)
-    {
-     d=this.mant.length;
-     /* see if we need to drop any trailing zeros */
-     {i=d-1;i:for(;i>=1;i--){
-      if (this.mant[i]!=0)
-       break i;
-      d--;
-      this.exp++;
-      }
-     }/*i*/
-     if (d<this.mant.length)
-      {/* need to reduce */
-       newmant=new Array(d);
-       //--java.lang.System.arraycopy((java.lang.Object)this.mant,0,(java.lang.Object)newmant,0,d);
-       this.arraycopy(this.mant,0,newmant,0,d);
-       this.mant=newmant;
-      }
+  // -----------------------------------  EDITABLE DEFAULTS  ------------------------------------ //
+
+
+    // The maximum exponent magnitude.
+    // The limit on the value of `toExpNeg`, `toExpPos`, `minE` and `maxE`.
+  var EXP_LIMIT = 9e15,                      // 0 to 9e15
+
+    // The limit on the value of `precision`, and on the value of the first argument to
+    // `toDecimalPlaces`, `toExponential`, `toFixed`, `toPrecision` and `toSignificantDigits`.
+    MAX_DIGITS = 1e9,                        // 0 to 1e9
+
+    // Base conversion alphabet.
+    NUMERALS = '0123456789abcdef',
+
+    // The natural logarithm of 10 (1025 digits).
+    LN10 = '2.3025850929940456840179914546843642076011014886287729760333279009675726096773524802359972050895982983419677840422862486334095254650828067566662873690987816894829072083255546808437998948262331985283935053089653777326288461633662222876982198867465436674744042432743651550489343149393914796194044002221051017141748003688084012647080685567743216228355220114804663715659121373450747856947683463616792101806445070648000277502684916746550586856935673420670581136429224554405758925724208241314695689016758940256776311356919292033376587141660230105703089634572075440370847469940168269282808481184289314848524948644871927809676271275775397027668605952496716674183485704422507197965004714951050492214776567636938662976979522110718264549734772662425709429322582798502585509785265383207606726317164309505995087807523710333101197857547331541421808427543863591778117054309827482385045648019095610299291824318237525357709750539565187697510374970888692180205189339507238539205144634197265287286965110862571492198849978748873771345686209167058',
+
+    // Pi (1025 digits).
+    PI = '3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679821480865132823066470938446095505822317253594081284811174502841027019385211055596446229489549303819644288109756659334461284756482337867831652712019091456485669234603486104543266482133936072602491412737245870066063155881748815209209628292540917153643678925903600113305305488204665213841469519415116094330572703657595919530921861173819326117931051185480744623799627495673518857527248912279381830119491298336733624406566430860213949463952247371907021798609437027705392171762931767523846748184676694051320005681271452635608277857713427577896091736371787214684409012249534301465495853710507922796892589235420199561121290219608640344181598136297747713099605187072113499999983729780499510597317328160963185950244594553469083026425223082533446850352619311881710100031378387528865875332083814206171776691473035982534904287554687311595628638823537875937519577818577805321712268066130019278766111959092164201989380952572010654858632789',
+
+
+    // The initial configuration properties of the Decimal constructor.
+    Decimal = {
+
+      // These values must be integers within the stated ranges (inclusive).
+      // Most of these values can be changed at run-time using the `Decimal.config` method.
+
+      // The maximum number of significant digits of the result of a calculation or base conversion.
+      // E.g. `Decimal.config({ precision: 20 });`
+      precision: 20,                         // 1 to MAX_DIGITS
+
+      // The rounding mode used when rounding to `precision`.
+      //
+      // ROUND_UP         0 Away from zero.
+      // ROUND_DOWN       1 Towards zero.
+      // ROUND_CEIL       2 Towards +Infinity.
+      // ROUND_FLOOR      3 Towards -Infinity.
+      // ROUND_HALF_UP    4 Towards nearest neighbour. If equidistant, up.
+      // ROUND_HALF_DOWN  5 Towards nearest neighbour. If equidistant, down.
+      // ROUND_HALF_EVEN  6 Towards nearest neighbour. If equidistant, towards even neighbour.
+      // ROUND_HALF_CEIL  7 Towards nearest neighbour. If equidistant, towards +Infinity.
+      // ROUND_HALF_FLOOR 8 Towards nearest neighbour. If equidistant, towards -Infinity.
+      //
+      // E.g.
+      // `Decimal.rounding = 4;`
+      // `Decimal.rounding = Decimal.ROUND_HALF_UP;`
+      rounding: 4,                           // 0 to 8
+
+      // The modulo mode used when calculating the modulus: a mod n.
+      // The quotient (q = a / n) is calculated according to the corresponding rounding mode.
+      // The remainder (r) is calculated as: r = a - n * q.
+      //
+      // UP         0 The remainder is positive if the dividend is negative, else is negative.
+      // DOWN       1 The remainder has the same sign as the dividend (JavaScript %).
+      // FLOOR      3 The remainder has the same sign as the divisor (Python %).
+      // HALF_EVEN  6 The IEEE 754 remainder function.
+      // EUCLID     9 Euclidian division. q = sign(n) * floor(a / abs(n)). Always positive.
+      //
+      // Truncated division (1), floored division (3), the IEEE 754 remainder (6), and Euclidian
+      // division (9) are commonly used for the modulus operation. The other rounding modes can also
+      // be used, but they may not give useful results.
+      modulo: 1,                             // 0 to 9
+
+      // The exponent value at and beneath which `toString` returns exponential notation.
+      // JavaScript numbers: -7
+      toExpNeg: -7,                          // 0 to -EXP_LIMIT
+
+      // The exponent value at and above which `toString` returns exponential notation.
+      // JavaScript numbers: 21
+      toExpPos:  21,                         // 0 to EXP_LIMIT
+
+      // The minimum exponent value, beneath which underflow to zero occurs.
+      // JavaScript numbers: -324  (5e-324)
+      minE: -EXP_LIMIT,                      // -1 to -EXP_LIMIT
+
+      // The maximum exponent value, above which overflow to Infinity occurs.
+      // JavaScript numbers: 308  (1.7976931348623157e+308)
+      maxE: EXP_LIMIT,                       // 1 to EXP_LIMIT
+
+      // Whether to use cryptographically-secure random number generation, if available.
+      crypto: false                          // true/false
+    },
+
+
+  // ----------------------------------- END OF EDITABLE DEFAULTS ------------------------------- //
+
+
+    inexact, noConflict, quadrant,
+    external = true,
+
+    decimalError = '[DecimalError] ',
+    invalidArgument = decimalError + 'Invalid argument: ',
+    precisionLimitExceeded = decimalError + 'Precision limit exceeded',
+    cryptoUnavailable = decimalError + 'crypto unavailable',
+
+    mathfloor = Math.floor,
+    mathpow = Math.pow,
+
+    isBinary = /^0b([01]+(\.[01]*)?|\.[01]+)(p[+-]?\d+)?$/i,
+    isHex = /^0x([0-9a-f]+(\.[0-9a-f]*)?|\.[0-9a-f]+)(p[+-]?\d+)?$/i,
+    isOctal = /^0o([0-7]+(\.[0-7]*)?|\.[0-7]+)(p[+-]?\d+)?$/i,
+    isDecimal = /^(\d+(\.\d*)?|\.\d+)(e[+-]?\d+)?$/i,
+
+    BASE = 1e7,
+    LOG_BASE = 7,
+    MAX_SAFE_INTEGER = 9007199254740991,
+
+    LN10_PRECISION = LN10.length - 1,
+    PI_PRECISION = PI.length - 1,
+
+    // Decimal.prototype object
+    P = {};
+
+
+  // Decimal prototype methods
+
+
+  /*
+   *  absoluteValue             abs
+   *  ceil
+   *  comparedTo                cmp
+   *  cosine                    cos
+   *  cubeRoot                  cbrt
+   *  decimalPlaces             dp
+   *  dividedBy                 div
+   *  dividedToIntegerBy        divToInt
+   *  equals                    eq
+   *  floor
+   *  greaterThan               gt
+   *  greaterThanOrEqualTo      gte
+   *  hyperbolicCosine          cosh
+   *  hyperbolicSine            sinh
+   *  hyperbolicTangent         tanh
+   *  inverseCosine             acos
+   *  inverseHyperbolicCosine   acosh
+   *  inverseHyperbolicSine     asinh
+   *  inverseHyperbolicTangent  atanh
+   *  inverseSine               asin
+   *  inverseTangent            atan
+   *  isFinite
+   *  isInteger                 isInt
+   *  isNaN
+   *  isNegative                isNeg
+   *  isPositive                isPos
+   *  isZero
+   *  lessThan                  lt
+   *  lessThanOrEqualTo         lte
+   *  logarithm                 log
+   *  [maximum]                 [max]
+   *  [minimum]                 [min]
+   *  minus                     sub
+   *  modulo                    mod
+   *  naturalExponential        exp
+   *  naturalLogarithm          ln
+   *  negated                   neg
+   *  plus                      add
+   *  precision                 sd
+   *  round
+   *  sine                      sin
+   *  squareRoot                sqrt
+   *  tangent                   tan
+   *  times                     mul
+   *  toBinary
+   *  toDecimalPlaces           toDP
+   *  toExponential
+   *  toFixed
+   *  toFraction
+   *  toHexadecimal             toHex
+   *  toNearest
+   *  toNumber
+   *  toOctal
+   *  toPower                   pow
+   *  toPrecision
+   *  toSignificantDigits       toSD
+   *  toString
+   *  truncated                 trunc
+   *  valueOf                   toJSON
+   */
+
+
+  /*
+   * Return a new Decimal whose value is the absolute value of this Decimal.
+   *
+   */
+  P.absoluteValue = P.abs = function () {
+    var x = new this.constructor(this);
+    if (x.s < 0) x.s = 1;
+    return finalise(x);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the value of this Decimal rounded to a whole number in the
+   * direction of positive Infinity.
+   *
+   */
+  P.ceil = function () {
+    return finalise(new this.constructor(this), this.e + 1, 2);
+  };
+
+
+  /*
+   * Return
+   *   1    if the value of this Decimal is greater than the value of `y`,
+   *  -1    if the value of this Decimal is less than the value of `y`,
+   *   0    if they have the same value,
+   *   NaN  if the value of either Decimal is NaN.
+   *
+   */
+  P.comparedTo = P.cmp = function (y) {
+    var i, j, xdL, ydL,
+      x = this,
+      xd = x.d,
+      yd = (y = new x.constructor(y)).d,
+      xs = x.s,
+      ys = y.s;
+
+    // Either NaN or ±Infinity?
+    if (!xd || !yd) {
+      return !xs || !ys ? NaN : xs !== ys ? xs : xd === yd ? 0 : !xd ^ xs < 0 ? 1 : -1;
     }
 
-  this.form=MathContext.prototype.PLAIN; // preset
+    // Either zero?
+    if (!xd[0] || !yd[0]) return xd[0] ? xs : yd[0] ? -ys : 0;
 
-  /* Now check for leading- and all- zeros in mantissa */
-  {var $26=this.mant.length;i=0;i:for(;$26>0;$26--,i++){
-   if (this.mant[i]!=0)
-    {
-     // non-0 result; ind will be correct
-     // remove leading zeros [e.g., after subtract]
-     if (i>0)
-      {delead:do{
-       newmant=new Array(this.mant.length-i);
-       //--java.lang.System.arraycopy((java.lang.Object)this.mant,i,(java.lang.Object)newmant,0,this.mant.length-i);
-       this.arraycopy(this.mant,i,newmant,0,this.mant.length-i);
-       this.mant=newmant;
-      }while(false);}/*delead*/
-     // now determine form if not PLAIN
-     mag=this.exp+this.mant.length;
-     if (mag>0)
-      { // most common path
-       if (mag>set.digits)
-        if (set.digits!=0)
-         this.form=set.form;
-       if ((mag-1)<=this.MaxExp)
-        return this; // no overflow; quick return
+    // Signs differ?
+    if (xs !== ys) return xs;
+
+    // Compare exponents.
+    if (x.e !== y.e) return x.e > y.e ^ xs < 0 ? 1 : -1;
+
+    xdL = xd.length;
+    ydL = yd.length;
+
+    // Compare digit by digit.
+    for (i = 0, j = xdL < ydL ? xdL : ydL; i < j; ++i) {
+      if (xd[i] !== yd[i]) return xd[i] > yd[i] ^ xs < 0 ? 1 : -1;
+    }
+
+    // Compare lengths.
+    return xdL === ydL ? 0 : xdL > ydL ^ xs < 0 ? 1 : -1;
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the cosine of the value in radians of this Decimal.
+   *
+   * Domain: [-Infinity, Infinity]
+   * Range: [-1, 1]
+   *
+   * cos(0)         = 1
+   * cos(-0)        = 1
+   * cos(Infinity)  = NaN
+   * cos(-Infinity) = NaN
+   * cos(NaN)       = NaN
+   *
+   */
+  P.cosine = P.cos = function () {
+    var pr, rm,
+      x = this,
+      Ctor = x.constructor;
+
+    if (!x.d) return new Ctor(NaN);
+
+    // cos(0) = cos(-0) = 1
+    if (!x.d[0]) return new Ctor(1);
+
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+    Ctor.precision = pr + Math.max(x.e, x.sd()) + LOG_BASE;
+    Ctor.rounding = 1;
+
+    x = cosine(Ctor, toLessThanHalfPi(Ctor, x));
+
+    Ctor.precision = pr;
+    Ctor.rounding = rm;
+
+    return finalise(quadrant == 2 || quadrant == 3 ? x.neg() : x, pr, rm, true);
+  };
+
+
+  /*
+   *
+   * Return a new Decimal whose value is the cube root of the value of this Decimal, rounded to
+   * `precision` significant digits using rounding mode `rounding`.
+   *
+   *  cbrt(0)  =  0
+   *  cbrt(-0) = -0
+   *  cbrt(1)  =  1
+   *  cbrt(-1) = -1
+   *  cbrt(N)  =  N
+   *  cbrt(-I) = -I
+   *  cbrt(I)  =  I
+   *
+   * Math.cbrt(x) = (x < 0 ? -Math.pow(-x, 1/3) : Math.pow(x, 1/3))
+   *
+   */
+  P.cubeRoot = P.cbrt = function () {
+    var e, m, n, r, rep, s, sd, t, t3, t3plusx,
+      x = this,
+      Ctor = x.constructor;
+
+    if (!x.isFinite() || x.isZero()) return new Ctor(x);
+    external = false;
+
+    // Initial estimate.
+    s = x.s * Math.pow(x.s * x, 1 / 3);
+
+     // Math.cbrt underflow/overflow?
+     // Pass x to Math.pow as integer, then adjust the exponent of the result.
+    if (!s || Math.abs(s) == 1 / 0) {
+      n = digitsToString(x.d);
+      e = x.e;
+
+      // Adjust n exponent so it is a multiple of 3 away from x exponent.
+      if (s = (e - n.length + 1) % 3) n += (s == 1 || s == -2 ? '0' : '00');
+      s = Math.pow(n, 1 / 3);
+
+      // Rarely, e may be one less than the result exponent value.
+      e = mathfloor((e + 1) / 3) - (e % 3 == (e < 0 ? -1 : 2));
+
+      if (s == 1 / 0) {
+        n = '5e' + e;
+      } else {
+        n = s.toExponential();
+        n = n.slice(0, n.indexOf('e') + 1) + e;
       }
-     else
-      if (mag<(-5))
-       this.form=set.form;
-     /* check for overflow */
-     mag--;
-     if ((mag<this.MinExp)||(mag>this.MaxExp))
-      {overflow:do{
-       // possible reprieve if form is engineering
-       if (this.form==MathContext.prototype.ENGINEERING)
-        {
-         sig=mag%3; // leftover
-         if (sig<0)
-          sig=3+sig; // negative exponent
-         mag=mag-sig; // exponent to use
-         // 1999.06.29: second test here must be MaxExp
-         if (mag>=this.MinExp)
-          if (mag<=this.MaxExp)
-           break overflow;
+
+      r = new Ctor(n);
+      r.s = x.s;
+    } else {
+      r = new Ctor(s.toString());
+    }
+
+    sd = (e = Ctor.precision) + 3;
+
+    // Halley's method.
+    // TODO? Compare Newton's method.
+    for (;;) {
+      t = r;
+      t3 = t.times(t).times(t);
+      t3plusx = t3.plus(x);
+      r = divide(t3plusx.plus(x).times(t), t3plusx.plus(t3), sd + 2, 1);
+
+      // TODO? Replace with for-loop and checkRoundingDigits.
+      if (digitsToString(t.d).slice(0, sd) === (n = digitsToString(r.d)).slice(0, sd)) {
+        n = n.slice(sd - 3, sd + 1);
+
+        // The 4th rounding digit may be in error by -1 so if the 4 rounding digits are 9999 or 4999
+        // , i.e. approaching a rounding boundary, continue the iteration.
+        if (n == '9999' || !rep && n == '4999') {
+
+          // On the first iteration only, check to see if rounding up gives the exact result as the
+          // nines may infinitely repeat.
+          if (!rep) {
+            finalise(t, e + 1, 0);
+
+            if (t.times(t).times(t).eq(x)) {
+              r = t;
+              break;
+            }
+          }
+
+          sd += 4;
+          rep = 1;
+        } else {
+
+          // If the rounding digits are null, 0{0,4} or 50{0,3}, check for an exact result.
+          // If not, then there are further digits and m will be truthy.
+          if (!+n || !+n.slice(1) && n.charAt(0) == '5') {
+
+            // Truncate to the first rounding digit.
+            finalise(r, e + 1, 1);
+            m = !r.times(r).times(r).eq(x);
+          }
+
+          break;
         }
-       throw "finish(): Exponent Overflow: "+mag;
-      }while(false);}/*overflow*/
-     return this;
+      }
     }
-   }
-  }/*i*/
 
-  // Drop through to here only if mantissa is all zeros
-  this.ind=this.iszero;
-  {/*select*/
-  if (set.form!=MathContext.prototype.PLAIN)
-   this.exp=0; // standard result; go to '0'
-  else if (this.exp>0)
-   this.exp=0; // +ve exponent also goes to '0'
-  else{
-   // a plain number with -ve exponent; preserve and check exponent
-   if (this.exp<this.MinExp)
-    throw "finish(): Exponent Overflow: "+this.exp;
+    external = true;
+
+    return finalise(r, e, Ctor.rounding, m);
+  };
+
+
+  /*
+   * Return the number of decimal places of the value of this Decimal.
+   *
+   */
+  P.decimalPlaces = P.dp = function () {
+    var w,
+      d = this.d,
+      n = NaN;
+
+    if (d) {
+      w = d.length - 1;
+      n = (w - mathfloor(this.e / LOG_BASE)) * LOG_BASE;
+
+      // Subtract the number of trailing zeros of the last word.
+      w = d[w];
+      if (w) for (; w % 10 == 0; w /= 10) n--;
+      if (n < 0) n = 0;
+    }
+
+    return n;
+  };
+
+
+  /*
+   *  n / 0 = I
+   *  n / N = N
+   *  n / I = 0
+   *  0 / n = 0
+   *  0 / 0 = N
+   *  0 / N = N
+   *  0 / I = 0
+   *  N / n = N
+   *  N / 0 = N
+   *  N / N = N
+   *  N / I = N
+   *  I / n = I
+   *  I / 0 = I
+   *  I / N = N
+   *  I / I = N
+   *
+   * Return a new Decimal whose value is the value of this Decimal divided by `y`, rounded to
+   * `precision` significant digits using rounding mode `rounding`.
+   *
+   */
+  P.dividedBy = P.div = function (y) {
+    return divide(this, new this.constructor(y));
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the integer part of dividing the value of this Decimal
+   * by the value of `y`, rounded to `precision` significant digits using rounding mode `rounding`.
+   *
+   */
+  P.dividedToIntegerBy = P.divToInt = function (y) {
+    var x = this,
+      Ctor = x.constructor;
+    return finalise(divide(x, new Ctor(y), 0, 1, 1), Ctor.precision, Ctor.rounding);
+  };
+
+
+  /*
+   * Return true if the value of this Decimal is equal to the value of `y`, otherwise return false.
+   *
+   */
+  P.equals = P.eq = function (y) {
+    return this.cmp(y) === 0;
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the value of this Decimal rounded to a whole number in the
+   * direction of negative Infinity.
+   *
+   */
+  P.floor = function () {
+    return finalise(new this.constructor(this), this.e + 1, 3);
+  };
+
+
+  /*
+   * Return true if the value of this Decimal is greater than the value of `y`, otherwise return
+   * false.
+   *
+   */
+  P.greaterThan = P.gt = function (y) {
+    return this.cmp(y) > 0;
+  };
+
+
+  /*
+   * Return true if the value of this Decimal is greater than or equal to the value of `y`,
+   * otherwise return false.
+   *
+   */
+  P.greaterThanOrEqualTo = P.gte = function (y) {
+    var k = this.cmp(y);
+    return k == 1 || k === 0;
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the hyperbolic cosine of the value in radians of this
+   * Decimal.
+   *
+   * Domain: [-Infinity, Infinity]
+   * Range: [1, Infinity]
+   *
+   * cosh(x) = 1 + x^2/2! + x^4/4! + x^6/6! + ...
+   *
+   * cosh(0)         = 1
+   * cosh(-0)        = 1
+   * cosh(Infinity)  = Infinity
+   * cosh(-Infinity) = Infinity
+   * cosh(NaN)       = NaN
+   *
+   *  x        time taken (ms)   result
+   * 1000      9                 9.8503555700852349694e+433
+   * 10000     25                4.4034091128314607936e+4342
+   * 100000    171               1.4033316802130615897e+43429
+   * 1000000   3817              1.5166076984010437725e+434294
+   * 10000000  abandoned after 2 minute wait
+   *
+   * TODO? Compare performance of cosh(x) = 0.5 * (exp(x) + exp(-x))
+   *
+   */
+  P.hyperbolicCosine = P.cosh = function () {
+    var k, n, pr, rm, len,
+      x = this,
+      Ctor = x.constructor,
+      one = new Ctor(1);
+
+    if (!x.isFinite()) return new Ctor(x.s ? 1 / 0 : NaN);
+    if (x.isZero()) return one;
+
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+    Ctor.precision = pr + Math.max(x.e, x.sd()) + 4;
+    Ctor.rounding = 1;
+    len = x.d.length;
+
+    // Argument reduction: cos(4x) = 1 - 8cos^2(x) + 8cos^4(x) + 1
+    // i.e. cos(x) = 1 - cos^2(x/4)(8 - 8cos^2(x/4))
+
+    // Estimate the optimum number of times to use the argument reduction.
+    // TODO? Estimation reused from cosine() and may not be optimal here.
+    if (len < 32) {
+      k = Math.ceil(len / 3);
+      n = Math.pow(4, -k).toString();
+    } else {
+      k = 16;
+      n = '2.3283064365386962890625e-10';
+    }
+
+    x = taylorSeries(Ctor, 1, x.times(n), new Ctor(1), true);
+
+    // Reverse argument reduction
+    var cosh2_x,
+      i = k,
+      d8 = new Ctor(8);
+    for (; i--;) {
+      cosh2_x = x.times(x);
+      x = one.minus(cosh2_x.times(d8.minus(cosh2_x.times(d8))));
+    }
+
+    return finalise(x, Ctor.precision = pr, Ctor.rounding = rm, true);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the hyperbolic sine of the value in radians of this
+   * Decimal.
+   *
+   * Domain: [-Infinity, Infinity]
+   * Range: [-Infinity, Infinity]
+   *
+   * sinh(x) = x + x^3/3! + x^5/5! + x^7/7! + ...
+   *
+   * sinh(0)         = 0
+   * sinh(-0)        = -0
+   * sinh(Infinity)  = Infinity
+   * sinh(-Infinity) = -Infinity
+   * sinh(NaN)       = NaN
+   *
+   * x        time taken (ms)
+   * 10       2 ms
+   * 100      5 ms
+   * 1000     14 ms
+   * 10000    82 ms
+   * 100000   886 ms            1.4033316802130615897e+43429
+   * 200000   2613 ms
+   * 300000   5407 ms
+   * 400000   8824 ms
+   * 500000   13026 ms          8.7080643612718084129e+217146
+   * 1000000  48543 ms
+   *
+   * TODO? Compare performance of sinh(x) = 0.5 * (exp(x) - exp(-x))
+   *
+   */
+  P.hyperbolicSine = P.sinh = function () {
+    var k, pr, rm, len,
+      x = this,
+      Ctor = x.constructor;
+
+    if (!x.isFinite() || x.isZero()) return new Ctor(x);
+
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+    Ctor.precision = pr + Math.max(x.e, x.sd()) + 4;
+    Ctor.rounding = 1;
+    len = x.d.length;
+
+    if (len < 3) {
+      x = taylorSeries(Ctor, 2, x, x, true);
+    } else {
+
+      // Alternative argument reduction: sinh(3x) = sinh(x)(3 + 4sinh^2(x))
+      // i.e. sinh(x) = sinh(x/3)(3 + 4sinh^2(x/3))
+      // 3 multiplications and 1 addition
+
+      // Argument reduction: sinh(5x) = sinh(x)(5 + sinh^2(x)(20 + 16sinh^2(x)))
+      // i.e. sinh(x) = sinh(x/5)(5 + sinh^2(x/5)(20 + 16sinh^2(x/5)))
+      // 4 multiplications and 2 additions
+
+      // Estimate the optimum number of times to use the argument reduction.
+      k = 1.4 * Math.sqrt(len);
+      k = k > 16 ? 16 : k | 0;
+
+      x = x.times(Math.pow(5, -k));
+
+      x = taylorSeries(Ctor, 2, x, x, true);
+
+      // Reverse argument reduction
+      var sinh2_x,
+        d5 = new Ctor(5),
+        d16 = new Ctor(16),
+        d20 = new Ctor(20);
+      for (; k--;) {
+        sinh2_x = x.times(x);
+        x = x.times(d5.plus(sinh2_x.times(d16.times(sinh2_x).plus(d20))));
+      }
+    }
+
+    Ctor.precision = pr;
+    Ctor.rounding = rm;
+
+    return finalise(x, pr, rm, true);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the hyperbolic tangent of the value in radians of this
+   * Decimal.
+   *
+   * Domain: [-Infinity, Infinity]
+   * Range: [-1, 1]
+   *
+   * tanh(x) = sinh(x) / cosh(x)
+   *
+   * tanh(0)         = 0
+   * tanh(-0)        = -0
+   * tanh(Infinity)  = 1
+   * tanh(-Infinity) = -1
+   * tanh(NaN)       = NaN
+   *
+   */
+  P.hyperbolicTangent = P.tanh = function () {
+    var pr, rm,
+      x = this,
+      Ctor = x.constructor;
+
+    if (!x.isFinite()) return new Ctor(x.s);
+    if (x.isZero()) return new Ctor(x);
+
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+    Ctor.precision = pr + 7;
+    Ctor.rounding = 1;
+
+    return divide(x.sinh(), x.cosh(), Ctor.precision = pr, Ctor.rounding = rm);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the arccosine (inverse cosine) in radians of the value of
+   * this Decimal.
+   *
+   * Domain: [-1, 1]
+   * Range: [0, pi]
+   *
+   * acos(x) = pi/2 - asin(x)
+   *
+   * acos(0)       = pi/2
+   * acos(-0)      = pi/2
+   * acos(1)       = 0
+   * acos(-1)      = pi
+   * acos(1/2)     = pi/3
+   * acos(-1/2)    = 2*pi/3
+   * acos(|x| > 1) = NaN
+   * acos(NaN)     = NaN
+   *
+   */
+  P.inverseCosine = P.acos = function () {
+    var halfPi,
+      x = this,
+      Ctor = x.constructor,
+      k = x.abs().cmp(1),
+      pr = Ctor.precision,
+      rm = Ctor.rounding;
+
+    if (k !== -1) {
+      return k === 0
+        // |x| is 1
+        ? x.isNeg() ? getPi(Ctor, pr, rm) : new Ctor(0)
+        // |x| > 1 or x is NaN
+        : new Ctor(NaN);
+    }
+
+    if (x.isZero()) return getPi(Ctor, pr + 4, rm).times(0.5);
+
+    // TODO? Special case acos(0.5) = pi/3 and acos(-0.5) = 2*pi/3
+
+    Ctor.precision = pr + 6;
+    Ctor.rounding = 1;
+
+    x = x.asin();
+    halfPi = getPi(Ctor, pr + 4, rm).times(0.5);
+
+    Ctor.precision = pr;
+    Ctor.rounding = rm;
+
+    return halfPi.minus(x);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the inverse of the hyperbolic cosine in radians of the
+   * value of this Decimal.
+   *
+   * Domain: [1, Infinity]
+   * Range: [0, Infinity]
+   *
+   * acosh(x) = ln(x + sqrt(x^2 - 1))
+   *
+   * acosh(x < 1)     = NaN
+   * acosh(NaN)       = NaN
+   * acosh(Infinity)  = Infinity
+   * acosh(-Infinity) = NaN
+   * acosh(0)         = NaN
+   * acosh(-0)        = NaN
+   * acosh(1)         = 0
+   * acosh(-1)        = NaN
+   *
+   */
+  P.inverseHyperbolicCosine = P.acosh = function () {
+    var pr, rm,
+      x = this,
+      Ctor = x.constructor;
+
+    if (x.lte(1)) return new Ctor(x.eq(1) ? 0 : NaN);
+    if (!x.isFinite()) return new Ctor(x);
+
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+    Ctor.precision = pr + Math.max(Math.abs(x.e), x.sd()) + 4;
+    Ctor.rounding = 1;
+    external = false;
+
+    x = x.times(x).minus(1).sqrt().plus(x);
+
+    external = true;
+    Ctor.precision = pr;
+    Ctor.rounding = rm;
+
+    return x.ln();
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the inverse of the hyperbolic sine in radians of the value
+   * of this Decimal.
+   *
+   * Domain: [-Infinity, Infinity]
+   * Range: [-Infinity, Infinity]
+   *
+   * asinh(x) = ln(x + sqrt(x^2 + 1))
+   *
+   * asinh(NaN)       = NaN
+   * asinh(Infinity)  = Infinity
+   * asinh(-Infinity) = -Infinity
+   * asinh(0)         = 0
+   * asinh(-0)        = -0
+   *
+   */
+  P.inverseHyperbolicSine = P.asinh = function () {
+    var pr, rm,
+      x = this,
+      Ctor = x.constructor;
+
+    if (!x.isFinite() || x.isZero()) return new Ctor(x);
+
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+    Ctor.precision = pr + 2 * Math.max(Math.abs(x.e), x.sd()) + 6;
+    Ctor.rounding = 1;
+    external = false;
+
+    x = x.times(x).plus(1).sqrt().plus(x);
+
+    external = true;
+    Ctor.precision = pr;
+    Ctor.rounding = rm;
+
+    return x.ln();
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the inverse of the hyperbolic tangent in radians of the
+   * value of this Decimal.
+   *
+   * Domain: [-1, 1]
+   * Range: [-Infinity, Infinity]
+   *
+   * atanh(x) = 0.5 * ln((1 + x) / (1 - x))
+   *
+   * atanh(|x| > 1)   = NaN
+   * atanh(NaN)       = NaN
+   * atanh(Infinity)  = NaN
+   * atanh(-Infinity) = NaN
+   * atanh(0)         = 0
+   * atanh(-0)        = -0
+   * atanh(1)         = Infinity
+   * atanh(-1)        = -Infinity
+   *
+   */
+  P.inverseHyperbolicTangent = P.atanh = function () {
+    var pr, rm, wpr, xsd,
+      x = this,
+      Ctor = x.constructor;
+
+    if (!x.isFinite()) return new Ctor(NaN);
+    if (x.e >= 0) return new Ctor(x.abs().eq(1) ? x.s / 0 : x.isZero() ? x : NaN);
+
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+    xsd = x.sd();
+
+    if (Math.max(xsd, pr) < 2 * -x.e - 1) return finalise(new Ctor(x), pr, rm, true);
+
+    Ctor.precision = wpr = xsd - x.e;
+
+    x = divide(x.plus(1), new Ctor(1).minus(x), wpr + pr, 1);
+
+    Ctor.precision = pr + 4;
+    Ctor.rounding = 1;
+
+    x = x.ln();
+
+    Ctor.precision = pr;
+    Ctor.rounding = rm;
+
+    return x.times(0.5);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the arcsine (inverse sine) in radians of the value of this
+   * Decimal.
+   *
+   * Domain: [-Infinity, Infinity]
+   * Range: [-pi/2, pi/2]
+   *
+   * asin(x) = 2*atan(x/(1 + sqrt(1 - x^2)))
+   *
+   * asin(0)       = 0
+   * asin(-0)      = -0
+   * asin(1/2)     = pi/6
+   * asin(-1/2)    = -pi/6
+   * asin(1)       = pi/2
+   * asin(-1)      = -pi/2
+   * asin(|x| > 1) = NaN
+   * asin(NaN)     = NaN
+   *
+   * TODO? Compare performance of Taylor series.
+   *
+   */
+  P.inverseSine = P.asin = function () {
+    var halfPi, k,
+      pr, rm,
+      x = this,
+      Ctor = x.constructor;
+
+    if (x.isZero()) return new Ctor(x);
+
+    k = x.abs().cmp(1);
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+
+    if (k !== -1) {
+
+      // |x| is 1
+      if (k === 0) {
+        halfPi = getPi(Ctor, pr + 4, rm).times(0.5);
+        halfPi.s = x.s;
+        return halfPi;
+      }
+
+      // |x| > 1 or x is NaN
+      return new Ctor(NaN);
+    }
+
+    // TODO? Special case asin(1/2) = pi/6 and asin(-1/2) = -pi/6
+
+    Ctor.precision = pr + 6;
+    Ctor.rounding = 1;
+
+    x = x.div(new Ctor(1).minus(x.times(x)).sqrt().plus(1)).atan();
+
+    Ctor.precision = pr;
+    Ctor.rounding = rm;
+
+    return x.times(2);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the arctangent (inverse tangent) in radians of the value
+   * of this Decimal.
+   *
+   * Domain: [-Infinity, Infinity]
+   * Range: [-pi/2, pi/2]
+   *
+   * atan(x) = x - x^3/3 + x^5/5 - x^7/7 + ...
+   *
+   * atan(0)         = 0
+   * atan(-0)        = -0
+   * atan(1)         = pi/4
+   * atan(-1)        = -pi/4
+   * atan(Infinity)  = pi/2
+   * atan(-Infinity) = -pi/2
+   * atan(NaN)       = NaN
+   *
+   */
+  P.inverseTangent = P.atan = function () {
+    var i, j, k, n, px, t, r, wpr, x2,
+      x = this,
+      Ctor = x.constructor,
+      pr = Ctor.precision,
+      rm = Ctor.rounding;
+
+    if (!x.isFinite()) {
+      if (!x.s) return new Ctor(NaN);
+      if (pr + 4 <= PI_PRECISION) {
+        r = getPi(Ctor, pr + 4, rm).times(0.5);
+        r.s = x.s;
+        return r;
+      }
+    } else if (x.isZero()) {
+      return new Ctor(x);
+    } else if (x.abs().eq(1) && pr + 4 <= PI_PRECISION) {
+      r = getPi(Ctor, pr + 4, rm).times(0.25);
+      r.s = x.s;
+      return r;
+    }
+
+    Ctor.precision = wpr = pr + 10;
+    Ctor.rounding = 1;
+
+    // TODO? if (x >= 1 && pr <= PI_PRECISION) atan(x) = halfPi * x.s - atan(1 / x);
+
+    // Argument reduction
+    // Ensure |x| < 0.42
+    // atan(x) = 2 * atan(x / (1 + sqrt(1 + x^2)))
+
+    k = Math.min(28, wpr / LOG_BASE + 2 | 0);
+
+    for (i = k; i; --i) x = x.div(x.times(x).plus(1).sqrt().plus(1));
+
+    external = false;
+
+    j = Math.ceil(wpr / LOG_BASE);
+    n = 1;
+    x2 = x.times(x);
+    r = new Ctor(x);
+    px = x;
+
+    // atan(x) = x - x^3/3 + x^5/5 - x^7/7 + ...
+    for (; i !== -1;) {
+      px = px.times(x2);
+      t = r.minus(px.div(n += 2));
+
+      px = px.times(x2);
+      r = t.plus(px.div(n += 2));
+
+      if (r.d[j] !== void 0) for (i = j; r.d[i] === t.d[i] && i--;);
+    }
+
+    if (k) r = r.times(2 << (k - 1));
+
+    external = true;
+
+    return finalise(r, Ctor.precision = pr, Ctor.rounding = rm, true);
+  };
+
+
+  /*
+   * Return true if the value of this Decimal is a finite number, otherwise return false.
+   *
+   */
+  P.isFinite = function () {
+    return !!this.d;
+  };
+
+
+  /*
+   * Return true if the value of this Decimal is an integer, otherwise return false.
+   *
+   */
+  P.isInteger = P.isInt = function () {
+    return !!this.d && mathfloor(this.e / LOG_BASE) > this.d.length - 2;
+  };
+
+
+  /*
+   * Return true if the value of this Decimal is NaN, otherwise return false.
+   *
+   */
+  P.isNaN = function () {
+    return !this.s;
+  };
+
+
+  /*
+   * Return true if the value of this Decimal is negative, otherwise return false.
+   *
+   */
+  P.isNegative = P.isNeg = function () {
+    return this.s < 0;
+  };
+
+
+  /*
+   * Return true if the value of this Decimal is positive, otherwise return false.
+   *
+   */
+  P.isPositive = P.isPos = function () {
+    return this.s > 0;
+  };
+
+
+  /*
+   * Return true if the value of this Decimal is 0 or -0, otherwise return false.
+   *
+   */
+  P.isZero = function () {
+    return !!this.d && this.d[0] === 0;
+  };
+
+
+  /*
+   * Return true if the value of this Decimal is less than `y`, otherwise return false.
+   *
+   */
+  P.lessThan = P.lt = function (y) {
+    return this.cmp(y) < 0;
+  };
+
+
+  /*
+   * Return true if the value of this Decimal is less than or equal to `y`, otherwise return false.
+   *
+   */
+  P.lessThanOrEqualTo = P.lte = function (y) {
+    return this.cmp(y) < 1;
+  };
+
+
+  /*
+   * Return the logarithm of the value of this Decimal to the specified base, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   * If no base is specified, return log[10](arg).
+   *
+   * log[base](arg) = ln(arg) / ln(base)
+   *
+   * The result will always be correctly rounded if the base of the log is 10, and 'almost always'
+   * otherwise:
+   *
+   * Depending on the rounding mode, the result may be incorrectly rounded if the first fifteen
+   * rounding digits are [49]99999999999999 or [50]00000000000000. In that case, the maximum error
+   * between the result and the correctly rounded result will be one ulp (unit in the last place).
+   *
+   * log[-b](a)       = NaN
+   * log[0](a)        = NaN
+   * log[1](a)        = NaN
+   * log[NaN](a)      = NaN
+   * log[Infinity](a) = NaN
+   * log[b](0)        = -Infinity
+   * log[b](-0)       = -Infinity
+   * log[b](-a)       = NaN
+   * log[b](1)        = 0
+   * log[b](Infinity) = Infinity
+   * log[b](NaN)      = NaN
+   *
+   * [base] {number|string|Decimal} The base of the logarithm.
+   *
+   */
+  P.logarithm = P.log = function (base) {
+    var isBase10, d, denominator, k, inf, num, sd, r,
+      arg = this,
+      Ctor = arg.constructor,
+      pr = Ctor.precision,
+      rm = Ctor.rounding,
+      guard = 5;
+
+    // Default base is 10.
+    if (base == null) {
+      base = new Ctor(10);
+      isBase10 = true;
+    } else {
+      base = new Ctor(base);
+      d = base.d;
+
+      // Return NaN if base is negative, or non-finite, or is 0 or 1.
+      if (base.s < 0 || !d || !d[0] || base.eq(1)) return new Ctor(NaN);
+
+      isBase10 = base.eq(10);
+    }
+
+    d = arg.d;
+
+    // Is arg negative, non-finite, 0 or 1?
+    if (arg.s < 0 || !d || !d[0] || arg.eq(1)) {
+      return new Ctor(d && !d[0] ? -1 / 0 : arg.s != 1 ? NaN : d ? 0 : 1 / 0);
+    }
+
+    // The result will have a non-terminating decimal expansion if base is 10 and arg is not an
+    // integer power of 10.
+    if (isBase10) {
+      if (d.length > 1) {
+        inf = true;
+      } else {
+        for (k = d[0]; k % 10 === 0;) k /= 10;
+        inf = k !== 1;
+      }
+    }
+
+    external = false;
+    sd = pr + guard;
+    num = naturalLogarithm(arg, sd);
+    denominator = isBase10 ? getLn10(Ctor, sd + 10) : naturalLogarithm(base, sd);
+
+    // The result will have 5 rounding digits.
+    r = divide(num, denominator, sd, 1);
+
+    // If at a rounding boundary, i.e. the result's rounding digits are [49]9999 or [50]0000,
+    // calculate 10 further digits.
+    //
+    // If the result is known to have an infinite decimal expansion, repeat this until it is clear
+    // that the result is above or below the boundary. Otherwise, if after calculating the 10
+    // further digits, the last 14 are nines, round up and assume the result is exact.
+    // Also assume the result is exact if the last 14 are zero.
+    //
+    // Example of a result that will be incorrectly rounded:
+    // log[1048576](4503599627370502) = 2.60000000000000009610279511444746...
+    // The above result correctly rounded using ROUND_CEIL to 1 decimal place should be 2.7, but it
+    // will be given as 2.6 as there are 15 zeros immediately after the requested decimal place, so
+    // the exact result would be assumed to be 2.6, which rounded using ROUND_CEIL to 1 decimal
+    // place is still 2.6.
+    if (checkRoundingDigits(r.d, k = pr, rm)) {
+
+      do {
+        sd += 10;
+        num = naturalLogarithm(arg, sd);
+        denominator = isBase10 ? getLn10(Ctor, sd + 10) : naturalLogarithm(base, sd);
+        r = divide(num, denominator, sd, 1);
+
+        if (!inf) {
+
+          // Check for 14 nines from the 2nd rounding digit, as the first may be 4.
+          if (+digitsToString(r.d).slice(k + 1, k + 15) + 1 == 1e14) {
+            r = finalise(r, pr + 1, 0);
+          }
+
+          break;
+        }
+      } while (checkRoundingDigits(r.d, k += 10, rm));
+    }
+
+    external = true;
+
+    return finalise(r, pr, rm);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the maximum of the arguments and the value of this Decimal.
+   *
+   * arguments {number|string|Decimal}
+   *
+  P.max = function () {
+    Array.prototype.push.call(arguments, this);
+    return maxOrMin(this.constructor, arguments, 'lt');
+  };
+   */
+
+
+  /*
+   * Return a new Decimal whose value is the minimum of the arguments and the value of this Decimal.
+   *
+   * arguments {number|string|Decimal}
+   *
+  P.min = function () {
+    Array.prototype.push.call(arguments, this);
+    return maxOrMin(this.constructor, arguments, 'gt');
+  };
+   */
+
+
+  /*
+   *  n - 0 = n
+   *  n - N = N
+   *  n - I = -I
+   *  0 - n = -n
+   *  0 - 0 = 0
+   *  0 - N = N
+   *  0 - I = -I
+   *  N - n = N
+   *  N - 0 = N
+   *  N - N = N
+   *  N - I = N
+   *  I - n = I
+   *  I - 0 = I
+   *  I - N = N
+   *  I - I = N
+   *
+   * Return a new Decimal whose value is the value of this Decimal minus `y`, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   */
+  P.minus = P.sub = function (y) {
+    var d, e, i, j, k, len, pr, rm, xd, xe, xLTy, yd,
+      x = this,
+      Ctor = x.constructor;
+
+    y = new Ctor(y);
+
+    // If either is not finite...
+    if (!x.d || !y.d) {
+
+      // Return NaN if either is NaN.
+      if (!x.s || !y.s) y = new Ctor(NaN);
+
+      // Return y negated if x is finite and y is ±Infinity.
+      else if (x.d) y.s = -y.s;
+
+      // Return x if y is finite and x is ±Infinity.
+      // Return x if both are ±Infinity with different signs.
+      // Return NaN if both are ±Infinity with the same sign.
+      else y = new Ctor(y.d || x.s !== y.s ? x : NaN);
+
+      return y;
+    }
+
+    // If signs differ...
+    if (x.s != y.s) {
+      y.s = -y.s;
+      return x.plus(y);
+    }
+
+    xd = x.d;
+    yd = y.d;
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+
+    // If either is zero...
+    if (!xd[0] || !yd[0]) {
+
+      // Return y negated if x is zero and y is non-zero.
+      if (yd[0]) y.s = -y.s;
+
+      // Return x if y is zero and x is non-zero.
+      else if (xd[0]) y = new Ctor(x);
+
+      // Return zero if both are zero.
+      // From IEEE 754 (2008) 6.3: 0 - 0 = -0 - -0 = -0 when rounding to -Infinity.
+      else return new Ctor(rm === 3 ? -0 : 0);
+
+      return external ? finalise(y, pr, rm) : y;
+    }
+
+    // x and y are finite, non-zero numbers with the same sign.
+
+    // Calculate base 1e7 exponents.
+    e = mathfloor(y.e / LOG_BASE);
+    xe = mathfloor(x.e / LOG_BASE);
+
+    xd = xd.slice();
+    k = xe - e;
+
+    // If base 1e7 exponents differ...
+    if (k) {
+      xLTy = k < 0;
+
+      if (xLTy) {
+        d = xd;
+        k = -k;
+        len = yd.length;
+      } else {
+        d = yd;
+        e = xe;
+        len = xd.length;
+      }
+
+      // Numbers with massively different exponents would result in a very high number of
+      // zeros needing to be prepended, but this can be avoided while still ensuring correct
+      // rounding by limiting the number of zeros to `Math.ceil(pr / LOG_BASE) + 2`.
+      i = Math.max(Math.ceil(pr / LOG_BASE), len) + 2;
+
+      if (k > i) {
+        k = i;
+        d.length = 1;
+      }
+
+      // Prepend zeros to equalise exponents.
+      d.reverse();
+      for (i = k; i--;) d.push(0);
+      d.reverse();
+
+    // Base 1e7 exponents equal.
+    } else {
+
+      // Check digits to determine which is the bigger number.
+
+      i = xd.length;
+      len = yd.length;
+      xLTy = i < len;
+      if (xLTy) len = i;
+
+      for (i = 0; i < len; i++) {
+        if (xd[i] != yd[i]) {
+          xLTy = xd[i] < yd[i];
+          break;
+        }
+      }
+
+      k = 0;
+    }
+
+    if (xLTy) {
+      d = xd;
+      xd = yd;
+      yd = d;
+      y.s = -y.s;
+    }
+
+    len = xd.length;
+
+    // Append zeros to `xd` if shorter.
+    // Don't add zeros to `yd` if shorter as subtraction only needs to start at `yd` length.
+    for (i = yd.length - len; i > 0; --i) xd[len++] = 0;
+
+    // Subtract yd from xd.
+    for (i = yd.length; i > k;) {
+
+      if (xd[--i] < yd[i]) {
+        for (j = i; j && xd[--j] === 0;) xd[j] = BASE - 1;
+        --xd[j];
+        xd[i] += BASE;
+      }
+
+      xd[i] -= yd[i];
+    }
+
+    // Remove trailing zeros.
+    for (; xd[--len] === 0;) xd.pop();
+
+    // Remove leading zeros and adjust exponent accordingly.
+    for (; xd[0] === 0; xd.shift()) --e;
+
+    // Zero?
+    if (!xd[0]) return new Ctor(rm === 3 ? -0 : 0);
+
+    y.d = xd;
+    y.e = getBase10Exponent(xd, e);
+
+    return external ? finalise(y, pr, rm) : y;
+  };
+
+
+  /*
+   *   n % 0 =  N
+   *   n % N =  N
+   *   n % I =  n
+   *   0 % n =  0
+   *  -0 % n = -0
+   *   0 % 0 =  N
+   *   0 % N =  N
+   *   0 % I =  0
+   *   N % n =  N
+   *   N % 0 =  N
+   *   N % N =  N
+   *   N % I =  N
+   *   I % n =  N
+   *   I % 0 =  N
+   *   I % N =  N
+   *   I % I =  N
+   *
+   * Return a new Decimal whose value is the value of this Decimal modulo `y`, rounded to
+   * `precision` significant digits using rounding mode `rounding`.
+   *
+   * The result depends on the modulo mode.
+   *
+   */
+  P.modulo = P.mod = function (y) {
+    var q,
+      x = this,
+      Ctor = x.constructor;
+
+    y = new Ctor(y);
+
+    // Return NaN if x is ±Infinity or NaN, or y is NaN or ±0.
+    if (!x.d || !y.s || y.d && !y.d[0]) return new Ctor(NaN);
+
+    // Return x if y is ±Infinity or x is ±0.
+    if (!y.d || x.d && !x.d[0]) {
+      return finalise(new Ctor(x), Ctor.precision, Ctor.rounding);
+    }
+
+    // Prevent rounding of intermediate calculations.
+    external = false;
+
+    if (Ctor.modulo == 9) {
+
+      // Euclidian division: q = sign(y) * floor(x / abs(y))
+      // result = x - q * y    where  0 <= result < abs(y)
+      q = divide(x, y.abs(), 0, 3, 1);
+      q.s *= y.s;
+    } else {
+      q = divide(x, y, 0, Ctor.modulo, 1);
+    }
+
+    q = q.times(y);
+
+    external = true;
+
+    return x.minus(q);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the natural exponential of the value of this Decimal,
+   * i.e. the base e raised to the power the value of this Decimal, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   */
+  P.naturalExponential = P.exp = function () {
+    return naturalExponential(this);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the natural logarithm of the value of this Decimal,
+   * rounded to `precision` significant digits using rounding mode `rounding`.
+   *
+   */
+  P.naturalLogarithm = P.ln = function () {
+    return naturalLogarithm(this);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the value of this Decimal negated, i.e. as if multiplied by
+   * -1.
+   *
+   */
+  P.negated = P.neg = function () {
+    var x = new this.constructor(this);
+    x.s = -x.s;
+    return finalise(x);
+  };
+
+
+  /*
+   *  n + 0 = n
+   *  n + N = N
+   *  n + I = I
+   *  0 + n = n
+   *  0 + 0 = 0
+   *  0 + N = N
+   *  0 + I = I
+   *  N + n = N
+   *  N + 0 = N
+   *  N + N = N
+   *  N + I = N
+   *  I + n = I
+   *  I + 0 = I
+   *  I + N = N
+   *  I + I = I
+   *
+   * Return a new Decimal whose value is the value of this Decimal plus `y`, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   */
+  P.plus = P.add = function (y) {
+    var carry, d, e, i, k, len, pr, rm, xd, yd,
+      x = this,
+      Ctor = x.constructor;
+
+    y = new Ctor(y);
+
+    // If either is not finite...
+    if (!x.d || !y.d) {
+
+      // Return NaN if either is NaN.
+      if (!x.s || !y.s) y = new Ctor(NaN);
+
+      // Return x if y is finite and x is ±Infinity.
+      // Return x if both are ±Infinity with the same sign.
+      // Return NaN if both are ±Infinity with different signs.
+      // Return y if x is finite and y is ±Infinity.
+      else if (!x.d) y = new Ctor(y.d || x.s === y.s ? x : NaN);
+
+      return y;
+    }
+
+     // If signs differ...
+    if (x.s != y.s) {
+      y.s = -y.s;
+      return x.minus(y);
+    }
+
+    xd = x.d;
+    yd = y.d;
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+
+    // If either is zero...
+    if (!xd[0] || !yd[0]) {
+
+      // Return x if y is zero.
+      // Return y if y is non-zero.
+      if (!yd[0]) y = new Ctor(x);
+
+      return external ? finalise(y, pr, rm) : y;
+    }
+
+    // x and y are finite, non-zero numbers with the same sign.
+
+    // Calculate base 1e7 exponents.
+    k = mathfloor(x.e / LOG_BASE);
+    e = mathfloor(y.e / LOG_BASE);
+
+    xd = xd.slice();
+    i = k - e;
+
+    // If base 1e7 exponents differ...
+    if (i) {
+
+      if (i < 0) {
+        d = xd;
+        i = -i;
+        len = yd.length;
+      } else {
+        d = yd;
+        e = k;
+        len = xd.length;
+      }
+
+      // Limit number of zeros prepended to max(ceil(pr / LOG_BASE), len) + 1.
+      k = Math.ceil(pr / LOG_BASE);
+      len = k > len ? k + 1 : len + 1;
+
+      if (i > len) {
+        i = len;
+        d.length = 1;
+      }
+
+      // Prepend zeros to equalise exponents. Note: Faster to use reverse then do unshifts.
+      d.reverse();
+      for (; i--;) d.push(0);
+      d.reverse();
+    }
+
+    len = xd.length;
+    i = yd.length;
+
+    // If yd is longer than xd, swap xd and yd so xd points to the longer array.
+    if (len - i < 0) {
+      i = len;
+      d = yd;
+      yd = xd;
+      xd = d;
+    }
+
+    // Only start adding at yd.length - 1 as the further digits of xd can be left as they are.
+    for (carry = 0; i;) {
+      carry = (xd[--i] = xd[i] + yd[i] + carry) / BASE | 0;
+      xd[i] %= BASE;
+    }
+
+    if (carry) {
+      xd.unshift(carry);
+      ++e;
+    }
+
+    // Remove trailing zeros.
+    // No need to check for zero, as +x + +y != 0 && -x + -y != 0
+    for (len = xd.length; xd[--len] == 0;) xd.pop();
+
+    y.d = xd;
+    y.e = getBase10Exponent(xd, e);
+
+    return external ? finalise(y, pr, rm) : y;
+  };
+
+
+  /*
+   * Return the number of significant digits of the value of this Decimal.
+   *
+   * [z] {boolean|number} Whether to count integer-part trailing zeros: true, false, 1 or 0.
+   *
+   */
+  P.precision = P.sd = function (z) {
+    var k,
+      x = this;
+
+    if (z !== void 0 && z !== !!z && z !== 1 && z !== 0) throw Error(invalidArgument + z);
+
+    if (x.d) {
+      k = getPrecision(x.d);
+      if (z && x.e + 1 > k) k = x.e + 1;
+    } else {
+      k = NaN;
+    }
+
+    return k;
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the value of this Decimal rounded to a whole number using
+   * rounding mode `rounding`.
+   *
+   */
+  P.round = function () {
+    var x = this,
+      Ctor = x.constructor;
+
+    return finalise(new Ctor(x), x.e + 1, Ctor.rounding);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the sine of the value in radians of this Decimal.
+   *
+   * Domain: [-Infinity, Infinity]
+   * Range: [-1, 1]
+   *
+   * sin(x) = x - x^3/3! + x^5/5! - ...
+   *
+   * sin(0)         = 0
+   * sin(-0)        = -0
+   * sin(Infinity)  = NaN
+   * sin(-Infinity) = NaN
+   * sin(NaN)       = NaN
+   *
+   */
+  P.sine = P.sin = function () {
+    var pr, rm,
+      x = this,
+      Ctor = x.constructor;
+
+    if (!x.isFinite()) return new Ctor(NaN);
+    if (x.isZero()) return new Ctor(x);
+
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+    Ctor.precision = pr + Math.max(x.e, x.sd()) + LOG_BASE;
+    Ctor.rounding = 1;
+
+    x = sine(Ctor, toLessThanHalfPi(Ctor, x));
+
+    Ctor.precision = pr;
+    Ctor.rounding = rm;
+
+    return finalise(quadrant > 2 ? x.neg() : x, pr, rm, true);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the square root of this Decimal, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   *  sqrt(-n) =  N
+   *  sqrt(N)  =  N
+   *  sqrt(-I) =  N
+   *  sqrt(I)  =  I
+   *  sqrt(0)  =  0
+   *  sqrt(-0) = -0
+   *
+   */
+  P.squareRoot = P.sqrt = function () {
+    var m, n, sd, r, rep, t,
+      x = this,
+      d = x.d,
+      e = x.e,
+      s = x.s,
+      Ctor = x.constructor;
+
+    // Negative/NaN/Infinity/zero?
+    if (s !== 1 || !d || !d[0]) {
+      return new Ctor(!s || s < 0 && (!d || d[0]) ? NaN : d ? x : 1 / 0);
+    }
+
+    external = false;
+
+    // Initial estimate.
+    s = Math.sqrt(+x);
+
+    // Math.sqrt underflow/overflow?
+    // Pass x to Math.sqrt as integer, then adjust the exponent of the result.
+    if (s == 0 || s == 1 / 0) {
+      n = digitsToString(d);
+
+      if ((n.length + e) % 2 == 0) n += '0';
+      s = Math.sqrt(n);
+      e = mathfloor((e + 1) / 2) - (e < 0 || e % 2);
+
+      if (s == 1 / 0) {
+        n = '1e' + e;
+      } else {
+        n = s.toExponential();
+        n = n.slice(0, n.indexOf('e') + 1) + e;
+      }
+
+      r = new Ctor(n);
+    } else {
+      r = new Ctor(s.toString());
+    }
+
+    sd = (e = Ctor.precision) + 3;
+
+    // Newton-Raphson iteration.
+    for (;;) {
+      t = r;
+      r = t.plus(divide(x, t, sd + 2, 1)).times(0.5);
+
+      // TODO? Replace with for-loop and checkRoundingDigits.
+      if (digitsToString(t.d).slice(0, sd) === (n = digitsToString(r.d)).slice(0, sd)) {
+        n = n.slice(sd - 3, sd + 1);
+
+        // The 4th rounding digit may be in error by -1 so if the 4 rounding digits are 9999 or
+        // 4999, i.e. approaching a rounding boundary, continue the iteration.
+        if (n == '9999' || !rep && n == '4999') {
+
+          // On the first iteration only, check to see if rounding up gives the exact result as the
+          // nines may infinitely repeat.
+          if (!rep) {
+            finalise(t, e + 1, 0);
+
+            if (t.times(t).eq(x)) {
+              r = t;
+              break;
+            }
+          }
+
+          sd += 4;
+          rep = 1;
+        } else {
+
+          // If the rounding digits are null, 0{0,4} or 50{0,3}, check for an exact result.
+          // If not, then there are further digits and m will be truthy.
+          if (!+n || !+n.slice(1) && n.charAt(0) == '5') {
+
+            // Truncate to the first rounding digit.
+            finalise(r, e + 1, 1);
+            m = !r.times(r).eq(x);
+          }
+
+          break;
+        }
+      }
+    }
+
+    external = true;
+
+    return finalise(r, e, Ctor.rounding, m);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the tangent of the value in radians of this Decimal.
+   *
+   * Domain: [-Infinity, Infinity]
+   * Range: [-Infinity, Infinity]
+   *
+   * tan(0)         = 0
+   * tan(-0)        = -0
+   * tan(Infinity)  = NaN
+   * tan(-Infinity) = NaN
+   * tan(NaN)       = NaN
+   *
+   */
+  P.tangent = P.tan = function () {
+    var pr, rm,
+      x = this,
+      Ctor = x.constructor;
+
+    if (!x.isFinite()) return new Ctor(NaN);
+    if (x.isZero()) return new Ctor(x);
+
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+    Ctor.precision = pr + 10;
+    Ctor.rounding = 1;
+
+    x = x.sin();
+    x.s = 1;
+    x = divide(x, new Ctor(1).minus(x.times(x)).sqrt(), pr + 10, 0);
+
+    Ctor.precision = pr;
+    Ctor.rounding = rm;
+
+    return finalise(quadrant == 2 || quadrant == 4 ? x.neg() : x, pr, rm, true);
+  };
+
+
+  /*
+   *  n * 0 = 0
+   *  n * N = N
+   *  n * I = I
+   *  0 * n = 0
+   *  0 * 0 = 0
+   *  0 * N = N
+   *  0 * I = N
+   *  N * n = N
+   *  N * 0 = N
+   *  N * N = N
+   *  N * I = N
+   *  I * n = I
+   *  I * 0 = N
+   *  I * N = N
+   *  I * I = I
+   *
+   * Return a new Decimal whose value is this Decimal times `y`, rounded to `precision` significant
+   * digits using rounding mode `rounding`.
+   *
+   */
+  P.times = P.mul = function (y) {
+    var carry, e, i, k, r, rL, t, xdL, ydL,
+      x = this,
+      Ctor = x.constructor,
+      xd = x.d,
+      yd = (y = new Ctor(y)).d;
+
+    y.s *= x.s;
+
+     // If either is NaN, ±Infinity or ±0...
+    if (!xd || !xd[0] || !yd || !yd[0]) {
+
+      return new Ctor(!y.s || xd && !xd[0] && !yd || yd && !yd[0] && !xd
+
+        // Return NaN if either is NaN.
+        // Return NaN if x is ±0 and y is ±Infinity, or y is ±0 and x is ±Infinity.
+        ? NaN
+
+        // Return ±Infinity if either is ±Infinity.
+        // Return ±0 if either is ±0.
+        : !xd || !yd ? y.s / 0 : y.s * 0);
+    }
+
+    e = mathfloor(x.e / LOG_BASE) + mathfloor(y.e / LOG_BASE);
+    xdL = xd.length;
+    ydL = yd.length;
+
+    // Ensure xd points to the longer array.
+    if (xdL < ydL) {
+      r = xd;
+      xd = yd;
+      yd = r;
+      rL = xdL;
+      xdL = ydL;
+      ydL = rL;
+    }
+
+    // Initialise the result array with zeros.
+    r = [];
+    rL = xdL + ydL;
+    for (i = rL; i--;) r.push(0);
+
+    // Multiply!
+    for (i = ydL; --i >= 0;) {
+      carry = 0;
+      for (k = xdL + i; k > i;) {
+        t = r[k] + yd[i] * xd[k - i - 1] + carry;
+        r[k--] = t % BASE | 0;
+        carry = t / BASE | 0;
+      }
+
+      r[k] = (r[k] + carry) % BASE | 0;
+    }
+
+    // Remove trailing zeros.
+    for (; !r[--rL];) r.pop();
+
+    if (carry) ++e;
+    else r.shift();
+
+    y.d = r;
+    y.e = getBase10Exponent(r, e);
+
+    return external ? finalise(y, Ctor.precision, Ctor.rounding) : y;
+  };
+
+
+  /*
+   * Return a string representing the value of this Decimal in base 2, round to `sd` significant
+   * digits using rounding mode `rm`.
+   *
+   * If the optional `sd` argument is present then return binary exponential notation.
+   *
+   * [sd] {number} Significant digits. Integer, 1 to MAX_DIGITS inclusive.
+   * [rm] {number} Rounding mode. Integer, 0 to 8 inclusive.
+   *
+   */
+  P.toBinary = function (sd, rm) {
+    return toStringBinary(this, 2, sd, rm);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the value of this Decimal rounded to a maximum of `dp`
+   * decimal places using rounding mode `rm` or `rounding` if `rm` is omitted.
+   *
+   * If `dp` is omitted, return a new Decimal whose value is the value of this Decimal.
+   *
+   * [dp] {number} Decimal places. Integer, 0 to MAX_DIGITS inclusive.
+   * [rm] {number} Rounding mode. Integer, 0 to 8 inclusive.
+   *
+   */
+  P.toDecimalPlaces = P.toDP = function (dp, rm) {
+    var x = this,
+      Ctor = x.constructor;
+
+    x = new Ctor(x);
+    if (dp === void 0) return x;
+
+    checkInt32(dp, 0, MAX_DIGITS);
+
+    if (rm === void 0) rm = Ctor.rounding;
+    else checkInt32(rm, 0, 8);
+
+    return finalise(x, dp + x.e + 1, rm);
+  };
+
+
+  /*
+   * Return a string representing the value of this Decimal in exponential notation rounded to
+   * `dp` fixed decimal places using rounding mode `rounding`.
+   *
+   * [dp] {number} Decimal places. Integer, 0 to MAX_DIGITS inclusive.
+   * [rm] {number} Rounding mode. Integer, 0 to 8 inclusive.
+   *
+   */
+  P.toExponential = function (dp, rm) {
+    var str,
+      x = this,
+      Ctor = x.constructor;
+
+    if (dp === void 0) {
+      str = finiteToString(x, true);
+    } else {
+      checkInt32(dp, 0, MAX_DIGITS);
+
+      if (rm === void 0) rm = Ctor.rounding;
+      else checkInt32(rm, 0, 8);
+
+      x = finalise(new Ctor(x), dp + 1, rm);
+      str = finiteToString(x, true, dp + 1);
+    }
+
+    return x.isNeg() && !x.isZero() ? '-' + str : str;
+  };
+
+
+  /*
+   * Return a string representing the value of this Decimal in normal (fixed-point) notation to
+   * `dp` fixed decimal places and rounded using rounding mode `rm` or `rounding` if `rm` is
+   * omitted.
+   *
+   * As with JavaScript numbers, (-0).toFixed(0) is '0', but e.g. (-0.00001).toFixed(0) is '-0'.
+   *
+   * [dp] {number} Decimal places. Integer, 0 to MAX_DIGITS inclusive.
+   * [rm] {number} Rounding mode. Integer, 0 to 8 inclusive.
+   *
+   * (-0).toFixed(0) is '0', but (-0.1).toFixed(0) is '-0'.
+   * (-0).toFixed(1) is '0.0', but (-0.01).toFixed(1) is '-0.0'.
+   * (-0).toFixed(3) is '0.000'.
+   * (-0.5).toFixed(0) is '-0'.
+   *
+   */
+  P.toFixed = function (dp, rm) {
+    var str, y,
+      x = this,
+      Ctor = x.constructor;
+
+    if (dp === void 0) {
+      str = finiteToString(x);
+    } else {
+      checkInt32(dp, 0, MAX_DIGITS);
+
+      if (rm === void 0) rm = Ctor.rounding;
+      else checkInt32(rm, 0, 8);
+
+      y = finalise(new Ctor(x), dp + x.e + 1, rm);
+      str = finiteToString(y, false, dp + y.e + 1);
+    }
+
+    // To determine whether to add the minus sign look at the value before it was rounded,
+    // i.e. look at `x` rather than `y`.
+    return x.isNeg() && !x.isZero() ? '-' + str : str;
+  };
+
+
+  /*
+   * Return an array representing the value of this Decimal as a simple fraction with an integer
+   * numerator and an integer denominator.
+   *
+   * The denominator will be a positive non-zero value less than or equal to the specified maximum
+   * denominator. If a maximum denominator is not specified, the denominator will be the lowest
+   * value necessary to represent the number exactly.
+   *
+   * [maxD] {number|string|Decimal} Maximum denominator. Integer >= 1 and < Infinity.
+   *
+   */
+  P.toFraction = function (maxD) {
+    var d, d0, d1, d2, e, k, n, n0, n1, pr, q, r,
+      x = this,
+      xd = x.d,
+      Ctor = x.constructor;
+
+    if (!xd) return new Ctor(x);
+
+    n1 = d0 = new Ctor(1);
+    d1 = n0 = new Ctor(0);
+
+    d = new Ctor(d1);
+    e = d.e = getPrecision(xd) - x.e - 1;
+    k = e % LOG_BASE;
+    d.d[0] = mathpow(10, k < 0 ? LOG_BASE + k : k);
+
+    if (maxD == null) {
+
+      // d is 10**e, the minimum max-denominator needed.
+      maxD = e > 0 ? d : n1;
+    } else {
+      n = new Ctor(maxD);
+      if (!n.isInt() || n.lt(n1)) throw Error(invalidArgument + n);
+      maxD = n.gt(d) ? (e > 0 ? d : n1) : n;
+    }
+
+    external = false;
+    n = new Ctor(digitsToString(xd));
+    pr = Ctor.precision;
+    Ctor.precision = e = xd.length * LOG_BASE * 2;
+
+    for (;;)  {
+      q = divide(n, d, 0, 1, 1);
+      d2 = d0.plus(q.times(d1));
+      if (d2.cmp(maxD) == 1) break;
+      d0 = d1;
+      d1 = d2;
+      d2 = n1;
+      n1 = n0.plus(q.times(d2));
+      n0 = d2;
+      d2 = d;
+      d = n.minus(q.times(d2));
+      n = d2;
+    }
+
+    d2 = divide(maxD.minus(d0), d1, 0, 1, 1);
+    n0 = n0.plus(d2.times(n1));
+    d0 = d0.plus(d2.times(d1));
+    n0.s = n1.s = x.s;
+
+    // Determine which fraction is closer to x, n0/d0 or n1/d1?
+    r = divide(n1, d1, e, 1).minus(x).abs().cmp(divide(n0, d0, e, 1).minus(x).abs()) < 1
+        ? [n1, d1] : [n0, d0];
+
+    Ctor.precision = pr;
+    external = true;
+
+    return r;
+  };
+
+
+  /*
+   * Return a string representing the value of this Decimal in base 16, round to `sd` significant
+   * digits using rounding mode `rm`.
+   *
+   * If the optional `sd` argument is present then return binary exponential notation.
+   *
+   * [sd] {number} Significant digits. Integer, 1 to MAX_DIGITS inclusive.
+   * [rm] {number} Rounding mode. Integer, 0 to 8 inclusive.
+   *
+   */
+  P.toHexadecimal = P.toHex = function (sd, rm) {
+    return toStringBinary(this, 16, sd, rm);
+  };
+
+
+
+  /*
+   * Returns a new Decimal whose value is the nearest multiple of the magnitude of `y` to the value
+   * of this Decimal.
+   *
+   * If the value of this Decimal is equidistant from two multiples of `y`, the rounding mode `rm`,
+   * or `Decimal.rounding` if `rm` is omitted, determines the direction of the nearest multiple.
+   *
+   * In the context of this method, rounding mode 4 (ROUND_HALF_UP) is the same as rounding mode 0
+   * (ROUND_UP), and so on.
+   *
+   * The return value will always have the same sign as this Decimal, unless either this Decimal
+   * or `y` is NaN, in which case the return value will be also be NaN.
+   *
+   * The return value is not affected by the value of `precision`.
+   *
+   * y {number|string|Decimal} The magnitude to round to a multiple of.
+   * [rm] {number} Rounding mode. Integer, 0 to 8 inclusive.
+   *
+   * 'toNearest() rounding mode not an integer: {rm}'
+   * 'toNearest() rounding mode out of range: {rm}'
+   *
+   */
+  P.toNearest = function (y, rm) {
+    var x = this,
+      Ctor = x.constructor;
+
+    x = new Ctor(x);
+
+    if (y == null) {
+
+      // If x is not finite, return x.
+      if (!x.d) return x;
+
+      y = new Ctor(1);
+      rm = Ctor.rounding;
+    } else {
+      y = new Ctor(y);
+      if (rm !== void 0) checkInt32(rm, 0, 8);
+
+      // If x is not finite, return x if y is not NaN, else NaN.
+      if (!x.d) return y.s ? x : y;
+
+      // If y is not finite, return Infinity with the sign of x if y is Infinity, else NaN.
+      if (!y.d) {
+        if (y.s) y.s = x.s;
+        return y;
+      }
+    }
+
+    // If y is not zero, calculate the nearest multiple of y to x.
+    if (y.d[0]) {
+      external = false;
+      if (rm < 4) rm = [4, 5, 7, 8][rm];
+      x = divide(x, y, 0, rm, 1).times(y);
+      external = true;
+      finalise(x);
+
+    // If y is zero, return zero with the sign of x.
+    } else {
+      y.s = x.s;
+      x = y;
+    }
+
+    return x;
+  };
+
+
+  /*
+   * Return the value of this Decimal converted to a number primitive.
+   * Zero keeps its sign.
+   *
+   */
+  P.toNumber = function () {
+    return +this;
+  };
+
+
+  /*
+   * Return a string representing the value of this Decimal in base 8, round to `sd` significant
+   * digits using rounding mode `rm`.
+   *
+   * If the optional `sd` argument is present then return binary exponential notation.
+   *
+   * [sd] {number} Significant digits. Integer, 1 to MAX_DIGITS inclusive.
+   * [rm] {number} Rounding mode. Integer, 0 to 8 inclusive.
+   *
+   */
+  P.toOctal = function (sd, rm) {
+    return toStringBinary(this, 8, sd, rm);
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the value of this Decimal raised to the power `y`, rounded
+   * to `precision` significant digits using rounding mode `rounding`.
+   *
+   * ECMAScript compliant.
+   *
+   *   pow(x, NaN)                           = NaN
+   *   pow(x, ±0)                            = 1
+
+   *   pow(NaN, non-zero)                    = NaN
+   *   pow(abs(x) > 1, +Infinity)            = +Infinity
+   *   pow(abs(x) > 1, -Infinity)            = +0
+   *   pow(abs(x) == 1, ±Infinity)           = NaN
+   *   pow(abs(x) < 1, +Infinity)            = +0
+   *   pow(abs(x) < 1, -Infinity)            = +Infinity
+   *   pow(+Infinity, y > 0)                 = +Infinity
+   *   pow(+Infinity, y < 0)                 = +0
+   *   pow(-Infinity, odd integer > 0)       = -Infinity
+   *   pow(-Infinity, even integer > 0)      = +Infinity
+   *   pow(-Infinity, odd integer < 0)       = -0
+   *   pow(-Infinity, even integer < 0)      = +0
+   *   pow(+0, y > 0)                        = +0
+   *   pow(+0, y < 0)                        = +Infinity
+   *   pow(-0, odd integer > 0)              = -0
+   *   pow(-0, even integer > 0)             = +0
+   *   pow(-0, odd integer < 0)              = -Infinity
+   *   pow(-0, even integer < 0)             = +Infinity
+   *   pow(finite x < 0, finite non-integer) = NaN
+   *
+   * For non-integer or very large exponents pow(x, y) is calculated using
+   *
+   *   x^y = exp(y*ln(x))
+   *
+   * Assuming the first 15 rounding digits are each equally likely to be any digit 0-9, the
+   * probability of an incorrectly rounded result
+   * P([49]9{14} | [50]0{14}) = 2 * 0.2 * 10^-14 = 4e-15 = 1/2.5e+14
+   * i.e. 1 in 250,000,000,000,000
+   *
+   * If a result is incorrectly rounded the maximum error will be 1 ulp (unit in last place).
+   *
+   * y {number|string|Decimal} The power to which to raise this Decimal.
+   *
+   */
+  P.toPower = P.pow = function (y) {
+    var e, k, pr, r, rm, s,
+      x = this,
+      Ctor = x.constructor,
+      yn = +(y = new Ctor(y));
+
+    // Either ±Infinity, NaN or ±0?
+    if (!x.d || !y.d || !x.d[0] || !y.d[0]) return new Ctor(mathpow(+x, yn));
+
+    x = new Ctor(x);
+
+    if (x.eq(1)) return x;
+
+    pr = Ctor.precision;
+    rm = Ctor.rounding;
+
+    if (y.eq(1)) return finalise(x, pr, rm);
+
+    // y exponent
+    e = mathfloor(y.e / LOG_BASE);
+
+    // If y is a small integer use the 'exponentiation by squaring' algorithm.
+    if (e >= y.d.length - 1 && (k = yn < 0 ? -yn : yn) <= MAX_SAFE_INTEGER) {
+      r = intPow(Ctor, x, k, pr);
+      return y.s < 0 ? new Ctor(1).div(r) : finalise(r, pr, rm);
+    }
+
+    s = x.s;
+
+    // if x is negative
+    if (s < 0) {
+
+      // if y is not an integer
+      if (e < y.d.length - 1) return new Ctor(NaN);
+
+      // Result is positive if x is negative and the last digit of integer y is even.
+      if ((y.d[e] & 1) == 0) s = 1;
+
+      // if x.eq(-1)
+      if (x.e == 0 && x.d[0] == 1 && x.d.length == 1) {
+        x.s = s;
+        return x;
+      }
+    }
+
+    // Estimate result exponent.
+    // x^y = 10^e,  where e = y * log10(x)
+    // log10(x) = log10(x_significand) + x_exponent
+    // log10(x_significand) = ln(x_significand) / ln(10)
+    k = mathpow(+x, yn);
+    e = k == 0 || !isFinite(k)
+      ? mathfloor(yn * (Math.log('0.' + digitsToString(x.d)) / Math.LN10 + x.e + 1))
+      : new Ctor(k + '').e;
+
+    // Exponent estimate may be incorrect e.g. x: 0.999999999999999999, y: 2.29, e: 0, r.e: -1.
+
+    // Overflow/underflow?
+    if (e > Ctor.maxE + 1 || e < Ctor.minE - 1) return new Ctor(e > 0 ? s / 0 : 0);
+
+    external = false;
+    Ctor.rounding = x.s = 1;
+
+    // Estimate the extra guard digits needed to ensure five correct rounding digits from
+    // naturalLogarithm(x). Example of failure without these extra digits (precision: 10):
+    // new Decimal(2.32456).pow('2087987436534566.46411')
+    // should be 1.162377823e+764914905173815, but is 1.162355823e+764914905173815
+    k = Math.min(12, (e + '').length);
+
+    // r = x^y = exp(y*ln(x))
+    r = naturalExponential(y.times(naturalLogarithm(x, pr + k)), pr);
+
+    // r may be Infinity, e.g. (0.9999999999999999).pow(-1e+40)
+    if (r.d) {
+
+      // Truncate to the required precision plus five rounding digits.
+      r = finalise(r, pr + 5, 1);
+
+      // If the rounding digits are [49]9999 or [50]0000 increase the precision by 10 and recalculate
+      // the result.
+      if (checkRoundingDigits(r.d, pr, rm)) {
+        e = pr + 10;
+
+        // Truncate to the increased precision plus five rounding digits.
+        r = finalise(naturalExponential(y.times(naturalLogarithm(x, e + k)), e), e + 5, 1);
+
+        // Check for 14 nines from the 2nd rounding digit (the first rounding digit may be 4 or 9).
+        if (+digitsToString(r.d).slice(pr + 1, pr + 15) + 1 == 1e14) {
+          r = finalise(r, pr + 1, 0);
+        }
+      }
+    }
+
+    r.s = s;
+    external = true;
+    Ctor.rounding = rm;
+
+    return finalise(r, pr, rm);
+  };
+
+
+  /*
+   * Return a string representing the value of this Decimal rounded to `sd` significant digits
+   * using rounding mode `rounding`.
+   *
+   * Return exponential notation if `sd` is less than the number of digits necessary to represent
+   * the integer part of the value in normal notation.
+   *
+   * [sd] {number} Significant digits. Integer, 1 to MAX_DIGITS inclusive.
+   * [rm] {number} Rounding mode. Integer, 0 to 8 inclusive.
+   *
+   */
+  P.toPrecision = function (sd, rm) {
+    var str,
+      x = this,
+      Ctor = x.constructor;
+
+    if (sd === void 0) {
+      str = finiteToString(x, x.e <= Ctor.toExpNeg || x.e >= Ctor.toExpPos);
+    } else {
+      checkInt32(sd, 1, MAX_DIGITS);
+
+      if (rm === void 0) rm = Ctor.rounding;
+      else checkInt32(rm, 0, 8);
+
+      x = finalise(new Ctor(x), sd, rm);
+      str = finiteToString(x, sd <= x.e || x.e <= Ctor.toExpNeg, sd);
+    }
+
+    return x.isNeg() && !x.isZero() ? '-' + str : str;
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the value of this Decimal rounded to a maximum of `sd`
+   * significant digits using rounding mode `rm`, or to `precision` and `rounding` respectively if
+   * omitted.
+   *
+   * [sd] {number} Significant digits. Integer, 1 to MAX_DIGITS inclusive.
+   * [rm] {number} Rounding mode. Integer, 0 to 8 inclusive.
+   *
+   * 'toSD() digits out of range: {sd}'
+   * 'toSD() digits not an integer: {sd}'
+   * 'toSD() rounding mode not an integer: {rm}'
+   * 'toSD() rounding mode out of range: {rm}'
+   *
+   */
+  P.toSignificantDigits = P.toSD = function (sd, rm) {
+    var x = this,
+      Ctor = x.constructor;
+
+    if (sd === void 0) {
+      sd = Ctor.precision;
+      rm = Ctor.rounding;
+    } else {
+      checkInt32(sd, 1, MAX_DIGITS);
+
+      if (rm === void 0) rm = Ctor.rounding;
+      else checkInt32(rm, 0, 8);
+    }
+
+    return finalise(new Ctor(x), sd, rm);
+  };
+
+
+  /*
+   * Return a string representing the value of this Decimal.
+   *
+   * Return exponential notation if this Decimal has a positive exponent equal to or greater than
+   * `toExpPos`, or a negative exponent equal to or less than `toExpNeg`.
+   *
+   */
+  P.toString = function () {
+    var x = this,
+      Ctor = x.constructor,
+      str = finiteToString(x, x.e <= Ctor.toExpNeg || x.e >= Ctor.toExpPos);
+
+    return x.isNeg() && !x.isZero() ? '-' + str : str;
+  };
+
+
+  /*
+   * Return a new Decimal whose value is the value of this Decimal truncated to a whole number.
+   *
+   */
+  P.truncated = P.trunc = function () {
+    return finalise(new this.constructor(this), this.e + 1, 1);
+  };
+
+
+  /*
+   * Return a string representing the value of this Decimal.
+   * Unlike `toString`, negative zero will include the minus sign.
+   *
+   */
+  P.valueOf = P.toJSON = function () {
+    var x = this,
+      Ctor = x.constructor,
+      str = finiteToString(x, x.e <= Ctor.toExpNeg || x.e >= Ctor.toExpPos);
+
+    return x.isNeg() ? '-' + str : str;
+  };
+
+
+  /*
+  // Add aliases to match BigDecimal method names.
+  // P.add = P.plus;
+  P.subtract = P.minus;
+  P.multiply = P.times;
+  P.divide = P.div;
+  P.remainder = P.mod;
+  P.compareTo = P.cmp;
+  P.negate = P.neg;
+   */
+
+
+  // Helper functions for Decimal.prototype (P) and/or Decimal methods, and their callers.
+
+
+  /*
+   *  digitsToString           P.cubeRoot, P.logarithm, P.squareRoot, P.toFraction, P.toPower,
+   *                           finiteToString, naturalExponential, naturalLogarithm
+   *  checkInt32               P.toDecimalPlaces, P.toExponential, P.toFixed, P.toNearest,
+   *                           P.toPrecision, P.toSignificantDigits, toStringBinary, random
+   *  checkRoundingDigits      P.logarithm, P.toPower, naturalExponential, naturalLogarithm
+   *  convertBase              toStringBinary, parseOther
+   *  cos                      P.cos
+   *  divide                   P.atanh, P.cubeRoot, P.dividedBy, P.dividedToIntegerBy,
+   *                           P.logarithm, P.modulo, P.squareRoot, P.tan, P.tanh, P.toFraction,
+   *                           P.toNearest, toStringBinary, naturalExponential, naturalLogarithm,
+   *                           taylorSeries, atan2, parseOther
+   *  finalise                 P.absoluteValue, P.atan, P.atanh, P.ceil, P.cos, P.cosh,
+   *                           P.cubeRoot, P.dividedToIntegerBy, P.floor, P.logarithm, P.minus,
+   *                           P.modulo, P.negated, P.plus, P.round, P.sin, P.sinh, P.squareRoot,
+   *                           P.tan, P.times, P.toDecimalPlaces, P.toExponential, P.toFixed,
+   *                           P.toNearest, P.toPower, P.toPrecision, P.toSignificantDigits,
+   *                           P.truncated, divide, getLn10, getPi, naturalExponential,
+   *                           naturalLogarithm, ceil, floor, round, trunc
+   *  finiteToString           P.toExponential, P.toFixed, P.toPrecision, P.toString, P.valueOf,
+   *                           toStringBinary
+   *  getBase10Exponent        P.minus, P.plus, P.times, parseOther
+   *  getLn10                  P.logarithm, naturalLogarithm
+   *  getPi                    P.acos, P.asin, P.atan, toLessThanHalfPi, atan2
+   *  getPrecision             P.precision, P.toFraction
+   *  getZeroString            digitsToString, finiteToString
+   *  intPow                   P.toPower, parseOther
+   *  isOdd                    toLessThanHalfPi
+   *  maxOrMin                 max, min
+   *  naturalExponential       P.naturalExponential, P.toPower
+   *  naturalLogarithm         P.acosh, P.asinh, P.atanh, P.logarithm, P.naturalLogarithm,
+   *                           P.toPower, naturalExponential
+   *  nonFiniteToString        finiteToString, toStringBinary
+   *  parseDecimal             Decimal
+   *  parseOther               Decimal
+   *  sin                      P.sin
+   *  taylorSeries             P.cosh, P.sinh, cos, sin
+   *  toLessThanHalfPi         P.cos, P.sin
+   *  toStringBinary           P.toBinary, P.toHexadecimal, P.toOctal
+   *  truncate                 intPow
+   *
+   *  Throws:                  P.logarithm, P.precision, P.toFraction, checkInt32, getLn10, getPi,
+   *                           naturalLogarithm, config, parseOther, random, Decimal
+   */
+
+
+  function digitsToString(d) {
+    var i, k, ws,
+      indexOfLastWord = d.length - 1,
+      str = '',
+      w = d[0];
+
+    if (indexOfLastWord > 0) {
+      str += w;
+      for (i = 1; i < indexOfLastWord; i++) {
+        ws = d[i] + '';
+        k = LOG_BASE - ws.length;
+        if (k) str += getZeroString(k);
+        str += ws;
+      }
+
+      w = d[i];
+      ws = w + '';
+      k = LOG_BASE - ws.length;
+      if (k) str += getZeroString(k);
+    } else if (w === 0) {
+      return '0';
+    }
+
+    // Remove trailing zeros of last w.
+    for (; w % 10 === 0;) w /= 10;
+
+    return str + w;
   }
+
+
+  function checkInt32(i, min, max) {
+    if (i !== ~~i || i < min || i > max) {
+      throw Error(invalidArgument + i);
+    }
   }
-  this.mant=this.ZERO.mant; // canonical mantissa
-  return this;
+
+
+  /*
+   * Check 5 rounding digits if `repeating` is null, 4 otherwise.
+   * `repeating == null` if caller is `log` or `pow`,
+   * `repeating != null` if caller is `naturalLogarithm` or `naturalExponential`.
+   */
+  function checkRoundingDigits(d, i, rm, repeating) {
+    var di, k, r, rd;
+
+    // Get the length of the first word of the array d.
+    for (k = d[0]; k >= 10; k /= 10) --i;
+
+    // Is the rounding digit in the first word of d?
+    if (--i < 0) {
+      i += LOG_BASE;
+      di = 0;
+    } else {
+      di = Math.ceil((i + 1) / LOG_BASE);
+      i %= LOG_BASE;
+    }
+
+    // i is the index (0 - 6) of the rounding digit.
+    // E.g. if within the word 3487563 the first rounding digit is 5,
+    // then i = 4, k = 1000, rd = 3487563 % 1000 = 563
+    k = mathpow(10, LOG_BASE - i);
+    rd = d[di] % k | 0;
+
+    if (repeating == null) {
+      if (i < 3) {
+        if (i == 0) rd = rd / 100 | 0;
+        else if (i == 1) rd = rd / 10 | 0;
+        r = rm < 4 && rd == 99999 || rm > 3 && rd == 49999 || rd == 50000 || rd == 0;
+      } else {
+        r = (rm < 4 && rd + 1 == k || rm > 3 && rd + 1 == k / 2) &&
+          (d[di + 1] / k / 100 | 0) == mathpow(10, i - 2) - 1 ||
+            (rd == k / 2 || rd == 0) && (d[di + 1] / k / 100 | 0) == 0;
+      }
+    } else {
+      if (i < 4) {
+        if (i == 0) rd = rd / 1000 | 0;
+        else if (i == 1) rd = rd / 100 | 0;
+        else if (i == 2) rd = rd / 10 | 0;
+        r = (repeating || rm < 4) && rd == 9999 || !repeating && rm > 3 && rd == 4999;
+      } else {
+        r = ((repeating || rm < 4) && rd + 1 == k ||
+        (!repeating && rm > 3) && rd + 1 == k / 2) &&
+          (d[di + 1] / k / 1000 | 0) == mathpow(10, i - 3) - 1;
+      }
+    }
+
+    return r;
   }
 
- function isGreaterThan(other) {
-  return this.compareTo(other) > 0;
- };
- function isLessThan(other) {
-  return this.compareTo(other) < 0;
- };
- function isGreaterThanOrEqualTo(other) {
-  return this.compareTo(other) >= 0;
- };
- function isLessThanOrEqualTo(other) {
-  return this.compareTo(other) <= 0;
- };
- function isPositive() {
-  return this.compareTo(BigDecimal.prototype.ZERO) > 0;
- };
- function isNegative() {
-  return this.compareTo(BigDecimal.prototype.ZERO) < 0;
- };
- function isZero() {
-  return this.compareTo(BigDecimal.prototype.ZERO) === 0;
- };
-return BigDecimal;
-})(MathContext); // BigDecimal depends on MathContext
 
-if (typeof define === "function" && define.amd != null) {
-	// AMD-loader compatible resource declaration
-	// require('bigdecimal') will return JS Object:
-	// {'BigDecimal':BigDecimalPointer, 'MathContext':MathContextPointer}
-	define({'BigDecimal':BigDecimal, 'MathContext':MathContext});
-} else if (typeof this === "object"){
-	// global-polluting outcome.
-	this.BigDecimal = BigDecimal;
-	this.MathContext = MathContext;
-}
+  // Convert string of `baseIn` to an array of numbers of `baseOut`.
+  // Eg. convertBase('255', 10, 16) returns [15, 15].
+  // Eg. convertBase('ff', 16, 10) returns [2, 5, 5].
+  function convertBase(str, baseIn, baseOut) {
+    var j,
+      arr = [0],
+      arrL,
+      i = 0,
+      strL = str.length;
 
-}).call(this); // in browser 'this' will be 'window' or simulated window object in AMD-loading scenarios.
+    for (; i < strL;) {
+      for (arrL = arr.length; arrL--;) arr[arrL] *= baseIn;
+      arr[0] += NUMERALS.indexOf(str.charAt(i++));
+      for (j = 0; j < arr.length; j++) {
+        if (arr[j] > baseOut - 1) {
+          if (arr[j + 1] === void 0) arr[j + 1] = 0;
+          arr[j + 1] += arr[j] / baseOut | 0;
+          arr[j] %= baseOut;
+        }
+      }
+    }
+
+    return arr.reverse();
+  }
+
+
+  /*
+   * cos(x) = 1 - x^2/2! + x^4/4! - ...
+   * |x| < pi/2
+   *
+   */
+  function cosine(Ctor, x) {
+    var k, y,
+      len = x.d.length;
+
+    // Argument reduction: cos(4x) = 8*(cos^4(x) - cos^2(x)) + 1
+    // i.e. cos(x) = 8*(cos^4(x/4) - cos^2(x/4)) + 1
+
+    // Estimate the optimum number of times to use the argument reduction.
+    if (len < 32) {
+      k = Math.ceil(len / 3);
+      y = Math.pow(4, -k).toString();
+    } else {
+      k = 16;
+      y = '2.3283064365386962890625e-10';
+    }
+
+    Ctor.precision += k;
+
+    x = taylorSeries(Ctor, 1, x.times(y), new Ctor(1));
+
+    // Reverse argument reduction
+    for (var i = k; i--;) {
+      var cos2x = x.times(x);
+      x = cos2x.times(cos2x).minus(cos2x).times(8).plus(1);
+    }
+
+    Ctor.precision -= k;
+
+    return x;
+  }
+
+
+  /*
+   * Perform division in the specified base.
+   */
+  var divide = (function () {
+
+    // Assumes non-zero x and k, and hence non-zero result.
+    function multiplyInteger(x, k, base) {
+      var temp,
+        carry = 0,
+        i = x.length;
+
+      for (x = x.slice(); i--;) {
+        temp = x[i] * k + carry;
+        x[i] = temp % base | 0;
+        carry = temp / base | 0;
+      }
+
+      if (carry) x.unshift(carry);
+
+      return x;
+    }
+
+    function compare(a, b, aL, bL) {
+      var i, r;
+
+      if (aL != bL) {
+        r = aL > bL ? 1 : -1;
+      } else {
+        for (i = r = 0; i < aL; i++) {
+          if (a[i] != b[i]) {
+            r = a[i] > b[i] ? 1 : -1;
+            break;
+          }
+        }
+      }
+
+      return r;
+    }
+
+    function subtract(a, b, aL, base) {
+      var i = 0;
+
+      // Subtract b from a.
+      for (; aL--;) {
+        a[aL] -= i;
+        i = a[aL] < b[aL] ? 1 : 0;
+        a[aL] = i * base + a[aL] - b[aL];
+      }
+
+      // Remove leading zeros.
+      for (; !a[0] && a.length > 1;) a.shift();
+    }
+
+    return function (x, y, pr, rm, dp, base) {
+      var cmp, e, i, k, logBase, more, prod, prodL, q, qd, rem, remL, rem0, sd, t, xi, xL, yd0,
+        yL, yz,
+        Ctor = x.constructor,
+        sign = x.s == y.s ? 1 : -1,
+        xd = x.d,
+        yd = y.d;
+
+      // Either NaN, Infinity or 0?
+      if (!xd || !xd[0] || !yd || !yd[0]) {
+
+        return new Ctor(// Return NaN if either NaN, or both Infinity or 0.
+          !x.s || !y.s || (xd ? yd && xd[0] == yd[0] : !yd) ? NaN :
+
+          // Return ±0 if x is 0 or y is ±Infinity, or return ±Infinity as y is 0.
+          xd && xd[0] == 0 || !yd ? sign * 0 : sign / 0);
+      }
+
+      if (base) {
+        logBase = 1;
+        e = x.e - y.e;
+      } else {
+        base = BASE;
+        logBase = LOG_BASE;
+        e = mathfloor(x.e / logBase) - mathfloor(y.e / logBase);
+      }
+
+      yL = yd.length;
+      xL = xd.length;
+      q = new Ctor(sign);
+      qd = q.d = [];
+
+      // Result exponent may be one less than e.
+      // The digit array of a Decimal from toStringBinary may have trailing zeros.
+      for (i = 0; yd[i] == (xd[i] || 0); i++);
+
+      if (yd[i] > (xd[i] || 0)) e--;
+
+      if (pr == null) {
+        sd = pr = Ctor.precision;
+        rm = Ctor.rounding;
+      } else if (dp) {
+        sd = pr + (x.e - y.e) + 1;
+      } else {
+        sd = pr;
+      }
+
+      if (sd < 0) {
+        qd.push(1);
+        more = true;
+      } else {
+
+        // Convert precision in number of base 10 digits to base 1e7 digits.
+        sd = sd / logBase + 2 | 0;
+        i = 0;
+
+        // divisor < 1e7
+        if (yL == 1) {
+          k = 0;
+          yd = yd[0];
+          sd++;
+
+          // k is the carry.
+          for (; (i < xL || k) && sd--; i++) {
+            t = k * base + (xd[i] || 0);
+            qd[i] = t / yd | 0;
+            k = t % yd | 0;
+          }
+
+          more = k || i < xL;
+
+        // divisor >= 1e7
+        } else {
+
+          // Normalise xd and yd so highest order digit of yd is >= base/2
+          k = base / (yd[0] + 1) | 0;
+
+          if (k > 1) {
+            yd = multiplyInteger(yd, k, base);
+            xd = multiplyInteger(xd, k, base);
+            yL = yd.length;
+            xL = xd.length;
+          }
+
+          xi = yL;
+          rem = xd.slice(0, yL);
+          remL = rem.length;
+
+          // Add zeros to make remainder as long as divisor.
+          for (; remL < yL;) rem[remL++] = 0;
+
+          yz = yd.slice();
+          yz.unshift(0);
+          yd0 = yd[0];
+
+          if (yd[1] >= base / 2) ++yd0;
+
+          do {
+            k = 0;
+
+            // Compare divisor and remainder.
+            cmp = compare(yd, rem, yL, remL);
+
+            // If divisor < remainder.
+            if (cmp < 0) {
+
+              // Calculate trial digit, k.
+              rem0 = rem[0];
+              if (yL != remL) rem0 = rem0 * base + (rem[1] || 0);
+
+              // k will be how many times the divisor goes into the current remainder.
+              k = rem0 / yd0 | 0;
+
+              //  Algorithm:
+              //  1. product = divisor * trial digit (k)
+              //  2. if product > remainder: product -= divisor, k--
+              //  3. remainder -= product
+              //  4. if product was < remainder at 2:
+              //    5. compare new remainder and divisor
+              //    6. If remainder > divisor: remainder -= divisor, k++
+
+              if (k > 1) {
+                if (k >= base) k = base - 1;
+
+                // product = divisor * trial digit.
+                prod = multiplyInteger(yd, k, base);
+                prodL = prod.length;
+                remL = rem.length;
+
+                // Compare product and remainder.
+                cmp = compare(prod, rem, prodL, remL);
+
+                // product > remainder.
+                if (cmp == 1) {
+                  k--;
+
+                  // Subtract divisor from product.
+                  subtract(prod, yL < prodL ? yz : yd, prodL, base);
+                }
+              } else {
+
+                // cmp is -1.
+                // If k is 0, there is no need to compare yd and rem again below, so change cmp to 1
+                // to avoid it. If k is 1 there is a need to compare yd and rem again below.
+                if (k == 0) cmp = k = 1;
+                prod = yd.slice();
+              }
+
+              prodL = prod.length;
+              if (prodL < remL) prod.unshift(0);
+
+              // Subtract product from remainder.
+              subtract(rem, prod, remL, base);
+
+              // If product was < previous remainder.
+              if (cmp == -1) {
+                remL = rem.length;
+
+                // Compare divisor and new remainder.
+                cmp = compare(yd, rem, yL, remL);
+
+                // If divisor < new remainder, subtract divisor from remainder.
+                if (cmp < 1) {
+                  k++;
+
+                  // Subtract divisor from remainder.
+                  subtract(rem, yL < remL ? yz : yd, remL, base);
+                }
+              }
+
+              remL = rem.length;
+            } else if (cmp === 0) {
+              k++;
+              rem = [0];
+            }    // if cmp === 1, k will be 0
+
+            // Add the next digit, k, to the result array.
+            qd[i++] = k;
+
+            // Update the remainder.
+            if (cmp && rem[0]) {
+              rem[remL++] = xd[xi] || 0;
+            } else {
+              rem = [xd[xi]];
+              remL = 1;
+            }
+
+          } while ((xi++ < xL || rem[0] !== void 0) && sd--);
+
+          more = rem[0] !== void 0;
+        }
+
+        // Leading zero?
+        if (!qd[0]) qd.shift();
+      }
+
+      // logBase is 1 when divide is being used for base conversion.
+      if (logBase == 1) {
+        q.e = e;
+        inexact = more;
+      } else {
+
+        // To calculate q.e, first get the number of digits of qd[0].
+        for (i = 1, k = qd[0]; k >= 10; k /= 10) i++;
+        q.e = i + e * logBase - 1;
+
+        finalise(q, dp ? pr + q.e + 1 : pr, rm, more);
+      }
+
+      return q;
+    };
+  })();
+
+
+  /*
+   * Round `x` to `sd` significant digits using rounding mode `rm`.
+   * Check for over/under-flow.
+   */
+   function finalise(x, sd, rm, isTruncated) {
+    var digits, i, j, k, rd, roundUp, w, xd, xdi,
+      Ctor = x.constructor;
+
+    // Don't round if sd is null or undefined.
+    out: if (sd != null) {
+      xd = x.d;
+
+      // Infinity/NaN.
+      if (!xd) return x;
+
+      // rd: the rounding digit, i.e. the digit after the digit that may be rounded up.
+      // w: the word of xd containing rd, a base 1e7 number.
+      // xdi: the index of w within xd.
+      // digits: the number of digits of w.
+      // i: what would be the index of rd within w if all the numbers were 7 digits long (i.e. if
+      // they had leading zeros)
+      // j: if > 0, the actual index of rd within w (if < 0, rd is a leading zero).
+
+      // Get the length of the first word of the digits array xd.
+      for (digits = 1, k = xd[0]; k >= 10; k /= 10) digits++;
+      i = sd - digits;
+
+      // Is the rounding digit in the first word of xd?
+      if (i < 0) {
+        i += LOG_BASE;
+        j = sd;
+        w = xd[xdi = 0];
+
+        // Get the rounding digit at index j of w.
+        rd = w / mathpow(10, digits - j - 1) % 10 | 0;
+      } else {
+        xdi = Math.ceil((i + 1) / LOG_BASE);
+        k = xd.length;
+        if (xdi >= k) {
+          if (isTruncated) {
+
+            // Needed by `naturalExponential`, `naturalLogarithm` and `squareRoot`.
+            for (; k++ <= xdi;) xd.push(0);
+            w = rd = 0;
+            digits = 1;
+            i %= LOG_BASE;
+            j = i - LOG_BASE + 1;
+          } else {
+            break out;
+          }
+        } else {
+          w = k = xd[xdi];
+
+          // Get the number of digits of w.
+          for (digits = 1; k >= 10; k /= 10) digits++;
+
+          // Get the index of rd within w.
+          i %= LOG_BASE;
+
+          // Get the index of rd within w, adjusted for leading zeros.
+          // The number of leading zeros of w is given by LOG_BASE - digits.
+          j = i - LOG_BASE + digits;
+
+          // Get the rounding digit at index j of w.
+          rd = j < 0 ? 0 : w / mathpow(10, digits - j - 1) % 10 | 0;
+        }
+      }
+
+      // Are there any non-zero digits after the rounding digit?
+      isTruncated = isTruncated || sd < 0 ||
+        xd[xdi + 1] !== void 0 || (j < 0 ? w : w % mathpow(10, digits - j - 1));
+
+      // The expression `w % mathpow(10, digits - j - 1)` returns all the digits of w to the right
+      // of the digit at (left-to-right) index j, e.g. if w is 908714 and j is 2, the expression
+      // will give 714.
+
+      roundUp = rm < 4
+        ? (rd || isTruncated) && (rm == 0 || rm == (x.s < 0 ? 3 : 2))
+        : rd > 5 || rd == 5 && (rm == 4 || isTruncated || rm == 6 &&
+
+          // Check whether the digit to the left of the rounding digit is odd.
+          ((i > 0 ? j > 0 ? w / mathpow(10, digits - j) : 0 : xd[xdi - 1]) % 10) & 1 ||
+            rm == (x.s < 0 ? 8 : 7));
+
+      if (sd < 1 || !xd[0]) {
+        xd.length = 0;
+        if (roundUp) {
+
+          // Convert sd to decimal places.
+          sd -= x.e + 1;
+
+          // 1, 0.1, 0.01, 0.001, 0.0001 etc.
+          xd[0] = mathpow(10, (LOG_BASE - sd % LOG_BASE) % LOG_BASE);
+          x.e = -sd || 0;
+        } else {
+
+          // Zero.
+          xd[0] = x.e = 0;
+        }
+
+        return x;
+      }
+
+      // Remove excess digits.
+      if (i == 0) {
+        xd.length = xdi;
+        k = 1;
+        xdi--;
+      } else {
+        xd.length = xdi + 1;
+        k = mathpow(10, LOG_BASE - i);
+
+        // E.g. 56700 becomes 56000 if 7 is the rounding digit.
+        // j > 0 means i > number of leading zeros of w.
+        xd[xdi] = j > 0 ? (w / mathpow(10, digits - j) % mathpow(10, j) | 0) * k : 0;
+      }
+
+      if (roundUp) {
+        for (;;) {
+
+          // Is the digit to be rounded up in the first word of xd?
+          if (xdi == 0) {
+
+            // i will be the length of xd[0] before k is added.
+            for (i = 1, j = xd[0]; j >= 10; j /= 10) i++;
+            j = xd[0] += k;
+            for (k = 1; j >= 10; j /= 10) k++;
+
+            // if i != k the length has increased.
+            if (i != k) {
+              x.e++;
+              if (xd[0] == BASE) xd[0] = 1;
+            }
+
+            break;
+          } else {
+            xd[xdi] += k;
+            if (xd[xdi] != BASE) break;
+            xd[xdi--] = 0;
+            k = 1;
+          }
+        }
+      }
+
+      // Remove trailing zeros.
+      for (i = xd.length; xd[--i] === 0;) xd.pop();
+    }
+
+    if (external) {
+
+      // Overflow?
+      if (x.e > Ctor.maxE) {
+
+        // Infinity.
+        x.d = null;
+        x.e = NaN;
+
+      // Underflow?
+      } else if (x.e < Ctor.minE) {
+
+        // Zero.
+        x.e = 0;
+        x.d = [0];
+        // Ctor.underflow = true;
+      } // else Ctor.underflow = false;
+    }
+
+    return x;
+  }
+
+
+  function finiteToString(x, isExp, sd) {
+    if (!x.isFinite()) return nonFiniteToString(x);
+    var k,
+      e = x.e,
+      str = digitsToString(x.d),
+      len = str.length;
+
+    if (isExp) {
+      if (sd && (k = sd - len) > 0) {
+        str = str.charAt(0) + '.' + str.slice(1) + getZeroString(k);
+      } else if (len > 1) {
+        str = str.charAt(0) + '.' + str.slice(1);
+      }
+
+      str = str + (x.e < 0 ? 'e' : 'e+') + x.e;
+    } else if (e < 0) {
+      str = '0.' + getZeroString(-e - 1) + str;
+      if (sd && (k = sd - len) > 0) str += getZeroString(k);
+    } else if (e >= len) {
+      str += getZeroString(e + 1 - len);
+      if (sd && (k = sd - e - 1) > 0) str = str + '.' + getZeroString(k);
+    } else {
+      if ((k = e + 1) < len) str = str.slice(0, k) + '.' + str.slice(k);
+      if (sd && (k = sd - len) > 0) {
+        if (e + 1 === len) str += '.';
+        str += getZeroString(k);
+      }
+    }
+
+    return str;
+  }
+
+
+  // Calculate the base 10 exponent from the base 1e7 exponent.
+  function getBase10Exponent(digits, e) {
+    var w = digits[0];
+
+    // Add the number of digits of the first word of the digits array.
+    for ( e *= LOG_BASE; w >= 10; w /= 10) e++;
+    return e;
+  }
+
+
+  function getLn10(Ctor, sd, pr) {
+    if (sd > LN10_PRECISION) {
+
+      // Reset global state in case the exception is caught.
+      external = true;
+      if (pr) Ctor.precision = pr;
+      throw Error(precisionLimitExceeded);
+    }
+    return finalise(new Ctor(LN10), sd, 1, true);
+  }
+
+
+  function getPi(Ctor, sd, rm) {
+    if (sd > PI_PRECISION) throw Error(precisionLimitExceeded);
+    return finalise(new Ctor(PI), sd, rm, true);
+  }
+
+
+  function getPrecision(digits) {
+    var w = digits.length - 1,
+      len = w * LOG_BASE + 1;
+
+    w = digits[w];
+
+    // If non-zero...
+    if (w) {
+
+      // Subtract the number of trailing zeros of the last word.
+      for (; w % 10 == 0; w /= 10) len--;
+
+      // Add the number of digits of the first word.
+      for (w = digits[0]; w >= 10; w /= 10) len++;
+    }
+
+    return len;
+  }
+
+
+  function getZeroString(k) {
+    var zs = '';
+    for (; k--;) zs += '0';
+    return zs;
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the value of Decimal `x` to the power `n`, where `n` is an
+   * integer of type number.
+   *
+   * Implements 'exponentiation by squaring'. Called by `pow` and `parseOther`.
+   *
+   */
+  function intPow(Ctor, x, n, pr) {
+    var isTruncated,
+      r = new Ctor(1),
+
+      // Max n of 9007199254740991 takes 53 loop iterations.
+      // Maximum digits array length; leaves [28, 34] guard digits.
+      k = Math.ceil(pr / LOG_BASE + 4);
+
+    external = false;
+
+    for (;;) {
+      if (n % 2) {
+        r = r.times(x);
+        if (truncate(r.d, k)) isTruncated = true;
+      }
+
+      n = mathfloor(n / 2);
+      if (n === 0) {
+
+        // To ensure correct rounding when r.d is truncated, increment the last word if it is zero.
+        n = r.d.length - 1;
+        if (isTruncated && r.d[n] === 0) ++r.d[n];
+        break;
+      }
+
+      x = x.times(x);
+      truncate(x.d, k);
+    }
+
+    external = true;
+
+    return r;
+  }
+
+
+  function isOdd(n) {
+    return n.d[n.d.length - 1] & 1;
+  }
+
+
+  /*
+   * Handle `max` and `min`. `ltgt` is 'lt' or 'gt'.
+   */
+  function maxOrMin(Ctor, args, ltgt) {
+    var y,
+      x = new Ctor(args[0]),
+      i = 0;
+
+    for (; ++i < args.length;) {
+      y = new Ctor(args[i]);
+      if (!y.s) {
+        x = y;
+        break;
+      } else if (x[ltgt](y)) {
+        x = y;
+      }
+    }
+
+    return x;
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the natural exponential of `x` rounded to `sd` significant
+   * digits.
+   *
+   * Taylor/Maclaurin series.
+   *
+   * exp(x) = x^0/0! + x^1/1! + x^2/2! + x^3/3! + ...
+   *
+   * Argument reduction:
+   *   Repeat x = x / 32, k += 5, until |x| < 0.1
+   *   exp(x) = exp(x / 2^k)^(2^k)
+   *
+   * Previously, the argument was initially reduced by
+   * exp(x) = exp(r) * 10^k  where r = x - k * ln10, k = floor(x / ln10)
+   * to first put r in the range [0, ln10], before dividing by 32 until |x| < 0.1, but this was
+   * found to be slower than just dividing repeatedly by 32 as above.
+   *
+   * Max integer argument: exp('20723265836946413') = 6.3e+9000000000000000
+   * Min integer argument: exp('-20723265836946411') = 1.2e-9000000000000000
+   * (Math object integer min/max: Math.exp(709) = 8.2e+307, Math.exp(-745) = 5e-324)
+   *
+   *  exp(Infinity)  = Infinity
+   *  exp(-Infinity) = 0
+   *  exp(NaN)       = NaN
+   *  exp(±0)        = 1
+   *
+   *  exp(x) is non-terminating for any finite, non-zero x.
+   *
+   *  The result will always be correctly rounded.
+   *
+   */
+  function naturalExponential(x, sd) {
+    var denominator, guard, j, pow, sum, t, wpr,
+      rep = 0,
+      i = 0,
+      k = 0,
+      Ctor = x.constructor,
+      rm = Ctor.rounding,
+      pr = Ctor.precision;
+
+    // 0/NaN/Infinity?
+    if (!x.d || !x.d[0] || x.e > 17) {
+
+      return new Ctor(x.d
+        ? !x.d[0] ? 1 : x.s < 0 ? 0 : 1 / 0
+        : x.s ? x.s < 0 ? 0 : x : 0 / 0);
+    }
+
+    if (sd == null) {
+      external = false;
+      wpr = pr;
+    } else {
+      wpr = sd;
+    }
+
+    t = new Ctor(0.03125);
+
+    // while abs(x) >= 0.1
+    while (x.e > -2) {
+
+      // x = x / 2^5
+      x = x.times(t);
+      k += 5;
+    }
+
+    // Use 2 * log10(2^k) + 5 (empirically derived) to estimate the increase in precision
+    // necessary to ensure the first 4 rounding digits are correct.
+    guard = Math.log(mathpow(2, k)) / Math.LN10 * 2 + 5 | 0;
+    wpr += guard;
+    denominator = pow = sum = new Ctor(1);
+    Ctor.precision = wpr;
+
+    for (;;) {
+      pow = finalise(pow.times(x), wpr, 1);
+      denominator = denominator.times(++i);
+      t = sum.plus(divide(pow, denominator, wpr, 1));
+
+      if (digitsToString(t.d).slice(0, wpr) === digitsToString(sum.d).slice(0, wpr)) {
+        j = k;
+        while (j--) sum = finalise(sum.times(sum), wpr, 1);
+
+        // Check to see if the first 4 rounding digits are [49]999.
+        // If so, repeat the summation with a higher precision, otherwise
+        // e.g. with precision: 18, rounding: 1
+        // exp(18.404272462595034083567793919843761) = 98372560.1229999999 (should be 98372560.123)
+        // `wpr - guard` is the index of first rounding digit.
+        if (sd == null) {
+
+          if (rep < 3 && checkRoundingDigits(sum.d, wpr - guard, rm, rep)) {
+            Ctor.precision = wpr += 10;
+            denominator = pow = t = new Ctor(1);
+            i = 0;
+            rep++;
+          } else {
+            return finalise(sum, Ctor.precision = pr, rm, external = true);
+          }
+        } else {
+          Ctor.precision = pr;
+          return sum;
+        }
+      }
+
+      sum = t;
+    }
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the natural logarithm of `x` rounded to `sd` significant
+   * digits.
+   *
+   *  ln(-n)        = NaN
+   *  ln(0)         = -Infinity
+   *  ln(-0)        = -Infinity
+   *  ln(1)         = 0
+   *  ln(Infinity)  = Infinity
+   *  ln(-Infinity) = NaN
+   *  ln(NaN)       = NaN
+   *
+   *  ln(n) (n != 1) is non-terminating.
+   *
+   */
+  function naturalLogarithm(y, sd) {
+    var c, c0, denominator, e, numerator, rep, sum, t, wpr, x1, x2,
+      n = 1,
+      guard = 10,
+      x = y,
+      xd = x.d,
+      Ctor = x.constructor,
+      rm = Ctor.rounding,
+      pr = Ctor.precision;
+
+    // Is x negative or Infinity, NaN, 0 or 1?
+    if (x.s < 0 || !xd || !xd[0] || !x.e && xd[0] == 1 && xd.length == 1) {
+      return new Ctor(xd && !xd[0] ? -1 / 0 : x.s != 1 ? NaN : xd ? 0 : x);
+    }
+
+    if (sd == null) {
+      external = false;
+      wpr = pr;
+    } else {
+      wpr = sd;
+    }
+
+    Ctor.precision = wpr += guard;
+    c = digitsToString(xd);
+    c0 = c.charAt(0);
+
+    if (Math.abs(e = x.e) < 1.5e15) {
+
+      // Argument reduction.
+      // The series converges faster the closer the argument is to 1, so using
+      // ln(a^b) = b * ln(a),   ln(a) = ln(a^b) / b
+      // multiply the argument by itself until the leading digits of the significand are 7, 8, 9,
+      // 10, 11, 12 or 13, recording the number of multiplications so the sum of the series can
+      // later be divided by this number, then separate out the power of 10 using
+      // ln(a*10^b) = ln(a) + b*ln(10).
+
+      // max n is 21 (gives 0.9, 1.0 or 1.1) (9e15 / 21 = 4.2e14).
+      //while (c0 < 9 && c0 != 1 || c0 == 1 && c.charAt(1) > 1) {
+      // max n is 6 (gives 0.7 - 1.3)
+      while (c0 < 7 && c0 != 1 || c0 == 1 && c.charAt(1) > 3) {
+        x = x.times(y);
+        c = digitsToString(x.d);
+        c0 = c.charAt(0);
+        n++;
+      }
+
+      e = x.e;
+
+      if (c0 > 1) {
+        x = new Ctor('0.' + c);
+        e++;
+      } else {
+        x = new Ctor(c0 + '.' + c.slice(1));
+      }
+    } else {
+
+      // The argument reduction method above may result in overflow if the argument y is a massive
+      // number with exponent >= 1500000000000000 (9e15 / 6 = 1.5e15), so instead recall this
+      // function using ln(x*10^e) = ln(x) + e*ln(10).
+      t = getLn10(Ctor, wpr + 2, pr).times(e + '');
+      x = naturalLogarithm(new Ctor(c0 + '.' + c.slice(1)), wpr - guard).plus(t);
+      Ctor.precision = pr;
+
+      return sd == null ? finalise(x, pr, rm, external = true) : x;
+    }
+
+    // x1 is x reduced to a value near 1.
+    x1 = x;
+
+    // Taylor series.
+    // ln(y) = ln((1 + x)/(1 - x)) = 2(x + x^3/3 + x^5/5 + x^7/7 + ...)
+    // where x = (y - 1)/(y + 1)    (|x| < 1)
+    sum = numerator = x = divide(x.minus(1), x.plus(1), wpr, 1);
+    x2 = finalise(x.times(x), wpr, 1);
+    denominator = 3;
+
+    for (;;) {
+      numerator = finalise(numerator.times(x2), wpr, 1);
+      t = sum.plus(divide(numerator, new Ctor(denominator), wpr, 1));
+
+      if (digitsToString(t.d).slice(0, wpr) === digitsToString(sum.d).slice(0, wpr)) {
+        sum = sum.times(2);
+
+        // Reverse the argument reduction. Check that e is not 0 because, besides preventing an
+        // unnecessary calculation, -0 + 0 = +0 and to ensure correct rounding -0 needs to stay -0.
+        if (e !== 0) sum = sum.plus(getLn10(Ctor, wpr + 2, pr).times(e + ''));
+        sum = divide(sum, new Ctor(n), wpr, 1);
+
+        // Is rm > 3 and the first 4 rounding digits 4999, or rm < 4 (or the summation has
+        // been repeated previously) and the first 4 rounding digits 9999?
+        // If so, restart the summation with a higher precision, otherwise
+        // e.g. with precision: 12, rounding: 1
+        // ln(135520028.6126091714265381533) = 18.7246299999 when it should be 18.72463.
+        // `wpr - guard` is the index of first rounding digit.
+        if (sd == null) {
+          if (checkRoundingDigits(sum.d, wpr - guard, rm, rep)) {
+            Ctor.precision = wpr += guard;
+            t = numerator = x = divide(x1.minus(1), x1.plus(1), wpr, 1);
+            x2 = finalise(x.times(x), wpr, 1);
+            denominator = rep = 1;
+          } else {
+            return finalise(sum, Ctor.precision = pr, rm, external = true);
+          }
+        } else {
+          Ctor.precision = pr;
+          return sum;
+        }
+      }
+
+      sum = t;
+      denominator += 2;
+    }
+  }
+
+
+  // ±Infinity, NaN.
+  function nonFiniteToString(x) {
+    // Unsigned.
+    return String(x.s * x.s / 0);
+  }
+
+
+  /*
+   * Parse the value of a new Decimal `x` from string `str`.
+   */
+  function parseDecimal(x, str) {
+    var e, i, len;
+
+    // Decimal point?
+    if ((e = str.indexOf('.')) > -1) str = str.replace('.', '');
+
+    // Exponential form?
+    if ((i = str.search(/e/i)) > 0) {
+
+      // Determine exponent.
+      if (e < 0) e = i;
+      e += +str.slice(i + 1);
+      str = str.substring(0, i);
+    } else if (e < 0) {
+
+      // Integer.
+      e = str.length;
+    }
+
+    // Determine leading zeros.
+    for (i = 0; str.charCodeAt(i) === 48; i++);
+
+    // Determine trailing zeros.
+    for (len = str.length; str.charCodeAt(len - 1) === 48; --len);
+    str = str.slice(i, len);
+
+    if (str) {
+      len -= i;
+      x.e = e = e - i - 1;
+      x.d = [];
+
+      // Transform base
+
+      // e is the base 10 exponent.
+      // i is where to slice str to get the first word of the digits array.
+      i = (e + 1) % LOG_BASE;
+      if (e < 0) i += LOG_BASE;
+
+      if (i < len) {
+        if (i) x.d.push(+str.slice(0, i));
+        for (len -= LOG_BASE; i < len;) x.d.push(+str.slice(i, i += LOG_BASE));
+        str = str.slice(i);
+        i = LOG_BASE - str.length;
+      } else {
+        i -= len;
+      }
+
+      for (; i--;) str += '0';
+      x.d.push(+str);
+
+      if (external) {
+
+        // Overflow?
+        if (x.e > x.constructor.maxE) {
+
+          // Infinity.
+          x.d = null;
+          x.e = NaN;
+
+        // Underflow?
+        } else if (x.e < x.constructor.minE) {
+
+          // Zero.
+          x.e = 0;
+          x.d = [0];
+          // x.constructor.underflow = true;
+        } // else x.constructor.underflow = false;
+      }
+    } else {
+
+      // Zero.
+      x.e = 0;
+      x.d = [0];
+    }
+
+    return x;
+  }
+
+
+  /*
+   * Parse the value of a new Decimal `x` from a string `str`, which is not a decimal value.
+   */
+  function parseOther(x, str) {
+    var base, Ctor, divisor, i, isFloat, len, p, xd, xe;
+
+    if (str === 'Infinity' || str === 'NaN') {
+      if (!+str) x.s = NaN;
+      x.e = NaN;
+      x.d = null;
+      return x;
+    }
+
+    if (isHex.test(str))  {
+      base = 16;
+      str = str.toLowerCase();
+    } else if (isBinary.test(str))  {
+      base = 2;
+    } else if (isOctal.test(str))  {
+      base = 8;
+    } else {
+      throw Error(invalidArgument + str);
+    }
+
+    // Is there a binary exponent part?
+    i = str.search(/p/i);
+
+    if (i > 0) {
+      p = +str.slice(i + 1);
+      str = str.substring(2, i);
+    } else {
+      str = str.slice(2);
+    }
+
+    // Convert `str` as an integer then divide the result by `base` raised to a power such that the
+    // fraction part will be restored.
+    i = str.indexOf('.');
+    isFloat = i >= 0;
+    Ctor = x.constructor;
+
+    if (isFloat) {
+      str = str.replace('.', '');
+      len = str.length;
+      i = len - i;
+
+      // log[10](16) = 1.2041... , log[10](88) = 1.9444....
+      divisor = intPow(Ctor, new Ctor(base), i, i * 2);
+    }
+
+    xd = convertBase(str, base, BASE);
+    xe = xd.length - 1;
+
+    // Remove trailing zeros.
+    for (i = xe; xd[i] === 0; --i) xd.pop();
+    if (i < 0) return new Ctor(x.s * 0);
+    x.e = getBase10Exponent(xd, xe);
+    x.d = xd;
+    external = false;
+
+    // At what precision to perform the division to ensure exact conversion?
+    // maxDecimalIntegerPartDigitCount = ceil(log[10](b) * otherBaseIntegerPartDigitCount)
+    // log[10](2) = 0.30103, log[10](8) = 0.90309, log[10](16) = 1.20412
+    // E.g. ceil(1.2 * 3) = 4, so up to 4 decimal digits are needed to represent 3 hex int digits.
+    // maxDecimalFractionPartDigitCount = {Hex:4|Oct:3|Bin:1} * otherBaseFractionPartDigitCount
+    // Therefore using 4 * the number of digits of str will always be enough.
+    if (isFloat) x = divide(x, divisor, len * 4);
+
+    // Multiply by the binary exponent part if present.
+    if (p) x = x.times(Math.abs(p) < 54 ? Math.pow(2, p) : Decimal.pow(2, p));
+    external = true;
+
+    return x;
+  }
+
+
+  /*
+   * sin(x) = x - x^3/3! + x^5/5! - ...
+   * |x| < pi/2
+   *
+   */
+  function sine(Ctor, x) {
+    var k,
+      len = x.d.length;
+
+    if (len < 3) return taylorSeries(Ctor, 2, x, x);
+
+    // Argument reduction: sin(5x) = 16*sin^5(x) - 20*sin^3(x) + 5*sin(x)
+    // i.e. sin(x) = 16*sin^5(x/5) - 20*sin^3(x/5) + 5*sin(x/5)
+    // and  sin(x) = sin(x/5)(5 + sin^2(x/5)(16sin^2(x/5) - 20))
+
+    // Estimate the optimum number of times to use the argument reduction.
+    k = 1.4 * Math.sqrt(len);
+    k = k > 16 ? 16 : k | 0;
+
+    // Max k before Math.pow precision loss is 22
+    x = x.times(Math.pow(5, -k));
+    x = taylorSeries(Ctor, 2, x, x);
+
+    // Reverse argument reduction
+    var sin2_x,
+      d5 = new Ctor(5),
+      d16 = new Ctor(16),
+      d20 = new Ctor(20);
+    for (; k--;) {
+      sin2_x = x.times(x);
+      x = x.times(d5.plus(sin2_x.times(d16.times(sin2_x).minus(d20))));
+    }
+
+    return x;
+  }
+
+
+  // Calculate Taylor series for `cos`, `cosh`, `sin` and `sinh`.
+  function taylorSeries(Ctor, n, x, y, isHyperbolic) {
+    var j, t, u, x2,
+      i = 1,
+      pr = Ctor.precision,
+      k = Math.ceil(pr / LOG_BASE);
+
+    external = false;
+    x2 = x.times(x);
+    u = new Ctor(y);
+
+    for (;;) {
+      t = divide(u.times(x2), new Ctor(n++ * n++), pr, 1);
+      u = isHyperbolic ? y.plus(t) : y.minus(t);
+      y = divide(t.times(x2), new Ctor(n++ * n++), pr, 1);
+      t = u.plus(y);
+
+      if (t.d[k] !== void 0) {
+        for (j = k; t.d[j] === u.d[j] && j--;);
+        if (j == -1) break;
+      }
+
+      j = u;
+      u = y;
+      y = t;
+      t = j;
+      i++;
+    }
+
+    external = true;
+    t.d.length = k + 1;
+
+    return t;
+  }
+
+
+  // Return the absolute value of `x` reduced to less than or equal to half pi.
+  function toLessThanHalfPi(Ctor, x) {
+    var t,
+      isNeg = x.s < 0,
+      pi = getPi(Ctor, Ctor.precision, 1),
+      halfPi = pi.times(0.5);
+
+    x = x.abs();
+
+    if (x.lte(halfPi)) {
+      quadrant = isNeg ? 4 : 1;
+      return x;
+    }
+
+    t = x.divToInt(pi);
+
+    if (t.isZero()) {
+      quadrant = isNeg ? 3 : 2;
+    } else {
+      x = x.minus(t.times(pi));
+
+      // 0 <= x < pi
+      if (x.lte(halfPi)) {
+        quadrant = isOdd(t) ? (isNeg ? 2 : 3) : (isNeg ? 4 : 1);
+        return x;
+      }
+
+      quadrant = isOdd(t) ? (isNeg ? 1 : 4) : (isNeg ? 3 : 2);
+    }
+
+    return x.minus(pi).abs();
+  }
+
+
+  /*
+   * Return the value of Decimal `x` as a string in base `baseOut`.
+   *
+   * If the optional `sd` argument is present include a binary exponent suffix.
+   */
+  function toStringBinary(x, baseOut, sd, rm) {
+    var base, e, i, k, len, roundUp, str, xd, y,
+      Ctor = x.constructor,
+      isExp = sd !== void 0;
+
+    if (isExp) {
+      checkInt32(sd, 1, MAX_DIGITS);
+      if (rm === void 0) rm = Ctor.rounding;
+      else checkInt32(rm, 0, 8);
+    } else {
+      sd = Ctor.precision;
+      rm = Ctor.rounding;
+    }
+
+    if (!x.isFinite()) {
+      str = nonFiniteToString(x);
+    } else {
+      str = finiteToString(x);
+      i = str.indexOf('.');
+
+      // Use exponential notation according to `toExpPos` and `toExpNeg`? No, but if required:
+      // maxBinaryExponent = floor((decimalExponent + 1) * log[2](10))
+      // minBinaryExponent = floor(decimalExponent * log[2](10))
+      // log[2](10) = 3.321928094887362347870319429489390175864
+
+      if (isExp) {
+        base = 2;
+        if (baseOut == 16) {
+          sd = sd * 4 - 3;
+        } else if (baseOut == 8) {
+          sd = sd * 3 - 2;
+        }
+      } else {
+        base = baseOut;
+      }
+
+      // Convert the number as an integer then divide the result by its base raised to a power such
+      // that the fraction part will be restored.
+
+      // Non-integer.
+      if (i >= 0) {
+        str = str.replace('.', '');
+        y = new Ctor(1);
+        y.e = str.length - i;
+        y.d = convertBase(finiteToString(y), 10, base);
+        y.e = y.d.length;
+      }
+
+      xd = convertBase(str, 10, base);
+      e = len = xd.length;
+
+      // Remove trailing zeros.
+      for (; xd[--len] == 0;) xd.pop();
+
+      if (!xd[0]) {
+        str = isExp ? '0p+0' : '0';
+      } else {
+        if (i < 0) {
+          e--;
+        } else {
+          x = new Ctor(x);
+          x.d = xd;
+          x.e = e;
+          x = divide(x, y, sd, rm, 0, base);
+          xd = x.d;
+          e = x.e;
+          roundUp = inexact;
+        }
+
+        // The rounding digit, i.e. the digit after the digit that may be rounded up.
+        i = xd[sd];
+        k = base / 2;
+        roundUp = roundUp || xd[sd + 1] !== void 0;
+
+        roundUp = rm < 4
+          ? (i !== void 0 || roundUp) && (rm === 0 || rm === (x.s < 0 ? 3 : 2))
+          : i > k || i === k && (rm === 4 || roundUp || rm === 6 && xd[sd - 1] & 1 ||
+            rm === (x.s < 0 ? 8 : 7));
+
+        xd.length = sd;
+
+        if (roundUp) {
+
+          // Rounding up may mean the previous digit has to be rounded up and so on.
+          for (; ++xd[--sd] > base - 1;) {
+            xd[sd] = 0;
+            if (!sd) {
+              ++e;
+              xd.unshift(1);
+            }
+          }
+        }
+
+        // Determine trailing zeros.
+        for (len = xd.length; !xd[len - 1]; --len);
+
+        // E.g. [4, 11, 15] becomes 4bf.
+        for (i = 0, str = ''; i < len; i++) str += NUMERALS.charAt(xd[i]);
+
+        // Add binary exponent suffix?
+        if (isExp) {
+          if (len > 1) {
+            if (baseOut == 16 || baseOut == 8) {
+              i = baseOut == 16 ? 4 : 3;
+              for (--len; len % i; len++) str += '0';
+              xd = convertBase(str, base, baseOut);
+              for (len = xd.length; !xd[len - 1]; --len);
+
+              // xd[0] will always be be 1
+              for (i = 1, str = '1.'; i < len; i++) str += NUMERALS.charAt(xd[i]);
+            } else {
+              str = str.charAt(0) + '.' + str.slice(1);
+            }
+          }
+
+          str =  str + (e < 0 ? 'p' : 'p+') + e;
+        } else if (e < 0) {
+          for (; ++e;) str = '0' + str;
+          str = '0.' + str;
+        } else {
+          if (++e > len) for (e -= len; e-- ;) str += '0';
+          else if (e < len) str = str.slice(0, e) + '.' + str.slice(e);
+        }
+      }
+
+      str = (baseOut == 16 ? '0x' : baseOut == 2 ? '0b' : baseOut == 8 ? '0o' : '') + str;
+    }
+
+    return x.s < 0 ? '-' + str : str;
+  }
+
+
+  // Does not strip trailing zeros.
+  function truncate(arr, len) {
+    if (arr.length > len) {
+      arr.length = len;
+      return true;
+    }
+  }
+
+
+  // Decimal methods
+
+
+  /*
+   *  abs
+   *  acos
+   *  acosh
+   *  add
+   *  asin
+   *  asinh
+   *  atan
+   *  atanh
+   *  atan2
+   *  cbrt
+   *  ceil
+   *  clone
+   *  config
+   *  cos
+   *  cosh
+   *  div
+   *  exp
+   *  floor
+   *  hypot
+   *  ln
+   *  log
+   *  log2
+   *  log10
+   *  max
+   *  min
+   *  mod
+   *  mul
+   *  pow
+   *  random
+   *  round
+   *  set
+   *  sign
+   *  sin
+   *  sinh
+   *  sqrt
+   *  sub
+   *  tan
+   *  tanh
+   *  trunc
+   */
+
+
+  /*
+   * Return a new Decimal whose value is the absolute value of `x`.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function abs(x) {
+    return new this(x).abs();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the arccosine in radians of `x`.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function acos(x) {
+    return new this(x).acos();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the inverse of the hyperbolic cosine of `x`, rounded to
+   * `precision` significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal} A value in radians.
+   *
+   */
+  function acosh(x) {
+    return new this(x).acosh();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the sum of `x` and `y`, rounded to `precision` significant
+   * digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   * y {number|string|Decimal}
+   *
+   */
+  function add(x, y) {
+    return new this(x).plus(y);
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the arcsine in radians of `x`, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function asin(x) {
+    return new this(x).asin();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the inverse of the hyperbolic sine of `x`, rounded to
+   * `precision` significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal} A value in radians.
+   *
+   */
+  function asinh(x) {
+    return new this(x).asinh();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the arctangent in radians of `x`, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function atan(x) {
+    return new this(x).atan();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the inverse of the hyperbolic tangent of `x`, rounded to
+   * `precision` significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal} A value in radians.
+   *
+   */
+  function atanh(x) {
+    return new this(x).atanh();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the arctangent in radians of `y/x` in the range -pi to pi
+   * (inclusive), rounded to `precision` significant digits using rounding mode `rounding`.
+   *
+   * Domain: [-Infinity, Infinity]
+   * Range: [-pi, pi]
+   *
+   * y {number|string|Decimal} The y-coordinate.
+   * x {number|string|Decimal} The x-coordinate.
+   *
+   * atan2(±0, -0)               = ±pi
+   * atan2(±0, +0)               = ±0
+   * atan2(±0, -x)               = ±pi for x > 0
+   * atan2(±0, x)                = ±0 for x > 0
+   * atan2(-y, ±0)               = -pi/2 for y > 0
+   * atan2(y, ±0)                = pi/2 for y > 0
+   * atan2(±y, -Infinity)        = ±pi for finite y > 0
+   * atan2(±y, +Infinity)        = ±0 for finite y > 0
+   * atan2(±Infinity, x)         = ±pi/2 for finite x
+   * atan2(±Infinity, -Infinity) = ±3*pi/4
+   * atan2(±Infinity, +Infinity) = ±pi/4
+   * atan2(NaN, x) = NaN
+   * atan2(y, NaN) = NaN
+   *
+   */
+  function atan2(y, x) {
+    y = new this(y);
+    x = new this(x);
+    var r,
+      pr = this.precision,
+      rm = this.rounding,
+      wpr = pr + 4;
+
+    // Either NaN
+    if (!y.s || !x.s) {
+      r = new this(NaN);
+
+    // Both ±Infinity
+    } else if (!y.d && !x.d) {
+      r = getPi(this, wpr, 1).times(x.s > 0 ? 0.25 : 0.75);
+      r.s = y.s;
+
+    // x is ±Infinity or y is ±0
+    } else if (!x.d || y.isZero()) {
+      r = x.s < 0 ? getPi(this, pr, rm) : new this(0);
+      r.s = y.s;
+
+    // y is ±Infinity or x is ±0
+    } else if (!y.d || x.isZero()) {
+      r = getPi(this, wpr, 1).times(0.5);
+      r.s = y.s;
+
+    // Both non-zero and finite
+    } else if (x.s < 0) {
+      this.precision = wpr;
+      this.rounding = 1;
+      r = this.atan(divide(y, x, wpr, 1));
+      x = getPi(this, wpr, 1);
+      this.precision = pr;
+      this.rounding = rm;
+      r = y.s < 0 ? r.minus(x) : r.plus(x);
+    } else {
+      r = this.atan(divide(y, x, wpr, 1));
+    }
+
+    return r;
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the cube root of `x`, rounded to `precision` significant
+   * digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function cbrt(x) {
+    return new this(x).cbrt();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is `x` rounded to an integer using `ROUND_CEIL`.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function ceil(x) {
+    return finalise(x = new this(x), x.e + 1, 2);
+  }
+
+
+  /*
+   * Configure global settings for a Decimal constructor.
+   *
+   * `obj` is an object with one or more of the following properties,
+   *
+   *   precision  {number}
+   *   rounding   {number}
+   *   toExpNeg   {number}
+   *   toExpPos   {number}
+   *   maxE       {number}
+   *   minE       {number}
+   *   modulo     {number}
+   *   crypto     {boolean|number}
+   *
+   * E.g. Decimal.config({ precision: 20, rounding: 4 })
+   *
+   */
+  function config(obj) {
+    if (!obj || typeof obj !== 'object') throw Error(decimalError + 'Object expected');
+    var i, p, v,
+      ps = [
+        'precision', 1, MAX_DIGITS,
+        'rounding', 0, 8,
+        'toExpNeg', -EXP_LIMIT, 0,
+        'toExpPos', 0, EXP_LIMIT,
+        'maxE', 0, EXP_LIMIT,
+        'minE', -EXP_LIMIT, 0,
+        'modulo', 0, 9
+      ];
+
+    for (i = 0; i < ps.length; i += 3) {
+      if ((v = obj[p = ps[i]]) !== void 0) {
+        if (mathfloor(v) === v && v >= ps[i + 1] && v <= ps[i + 2]) this[p] = v;
+        else throw Error(invalidArgument + p + ': ' + v);
+      }
+    }
+
+    if ((v = obj[p = 'crypto']) !== void 0) {
+      if (v === true || v === false || v === 0 || v === 1) {
+        if (v) {
+          if (typeof crypto != 'undefined' && crypto &&
+            (crypto.getRandomValues || crypto.randomBytes)) {
+            this[p] = true;
+          } else {
+            throw Error(cryptoUnavailable);
+          }
+        } else {
+          this[p] = false;
+        }
+      } else {
+        throw Error(invalidArgument + p + ': ' + v);
+      }
+    }
+
+    return this;
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the cosine of `x`, rounded to `precision` significant
+   * digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal} A value in radians.
+   *
+   */
+  function cos(x) {
+    return new this(x).cos();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the hyperbolic cosine of `x`, rounded to precision
+   * significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal} A value in radians.
+   *
+   */
+  function cosh(x) {
+    return new this(x).cosh();
+  }
+
+
+  /*
+   * Create and return a Decimal constructor with the same configuration properties as this Decimal
+   * constructor.
+   *
+   */
+  function clone(obj) {
+    var i, p, ps;
+
+    /*
+     * The Decimal constructor and exported function.
+     * Return a new Decimal instance.
+     *
+     * v {number|string|Decimal} A numeric value.
+     *
+     */
+    function Decimal(v) {
+      var e, i, t,
+        x = this;
+
+      // Decimal called without new.
+      if (!(x instanceof Decimal)) return new Decimal(v);
+
+      // Retain a reference to this Decimal constructor, and shadow Decimal.prototype.constructor
+      // which points to Object.
+      x.constructor = Decimal;
+
+      // Duplicate.
+      if (v instanceof Decimal) {
+        x.s = v.s;
+        x.e = v.e;
+        x.d = (v = v.d) ? v.slice() : v;
+        return;
+      }
+
+      t = typeof v;
+
+      if (t === 'number') {
+        if (v === 0) {
+          x.s = 1 / v < 0 ? -1 : 1;
+          x.e = 0;
+          x.d = [0];
+          return;
+        }
+
+        if (v < 0) {
+          v = -v;
+          x.s = -1;
+        } else {
+          x.s = 1;
+        }
+
+        // Fast path for small integers.
+        if (v === ~~v && v < 1e7) {
+          for (e = 0, i = v; i >= 10; i /= 10) e++;
+          x.e = e;
+          x.d = [v];
+          return;
+
+        // Infinity, NaN.
+        } else if (v * 0 !== 0) {
+          if (!v) x.s = NaN;
+          x.e = NaN;
+          x.d = null;
+          return;
+        }
+
+        return parseDecimal(x, v.toString());
+
+      } else if (t !== 'string') {
+        throw Error(invalidArgument + v);
+      }
+
+      // Minus sign?
+      if (v.charCodeAt(0) === 45) {
+        v = v.slice(1);
+        x.s = -1;
+      } else {
+        x.s = 1;
+      }
+
+      return isDecimal.test(v) ? parseDecimal(x, v) : parseOther(x, v);
+    }
+
+    Decimal.prototype = P;
+
+    Decimal.ROUND_UP = 0;
+    Decimal.ROUND_DOWN = 1;
+    Decimal.ROUND_CEIL = 2;
+    Decimal.ROUND_FLOOR = 3;
+    Decimal.ROUND_HALF_UP = 4;
+    Decimal.ROUND_HALF_DOWN = 5;
+    Decimal.ROUND_HALF_EVEN = 6;
+    Decimal.ROUND_HALF_CEIL = 7;
+    Decimal.ROUND_HALF_FLOOR = 8;
+    Decimal.EUCLID = 9;
+
+    Decimal.config = Decimal.set = config;
+    Decimal.clone = clone;
+
+    Decimal.abs = abs;
+    Decimal.acos = acos;
+    Decimal.acosh = acosh;        // ES6
+    Decimal.add = add;
+    Decimal.asin = asin;
+    Decimal.asinh = asinh;        // ES6
+    Decimal.atan = atan;
+    Decimal.atanh = atanh;        // ES6
+    Decimal.atan2 = atan2;
+    Decimal.cbrt = cbrt;          // ES6
+    Decimal.ceil = ceil;
+    Decimal.cos = cos;
+    Decimal.cosh = cosh;          // ES6
+    Decimal.div = div;
+    Decimal.exp = exp;
+    Decimal.floor = floor;
+    Decimal.hypot = hypot;        // ES6
+    Decimal.ln = ln;
+    Decimal.log = log;
+    Decimal.log10 = log10;        // ES6
+    Decimal.log2 = log2;          // ES6
+    Decimal.max = max;
+    Decimal.min = min;
+    Decimal.mod = mod;
+    Decimal.mul = mul;
+    Decimal.pow = pow;
+    Decimal.random = random;
+    Decimal.round = round;
+    Decimal.sign = sign;          // ES6
+    Decimal.sin = sin;
+    Decimal.sinh = sinh;          // ES6
+    Decimal.sqrt = sqrt;
+    Decimal.sub = sub;
+    Decimal.tan = tan;
+    Decimal.tanh = tanh;          // ES6
+    Decimal.trunc = trunc;        // ES6
+
+    if (obj === void 0) obj = {};
+    if (obj) {
+      ps = ['precision', 'rounding', 'toExpNeg', 'toExpPos', 'maxE', 'minE', 'modulo', 'crypto'];
+      for (i = 0; i < ps.length;) if (!obj.hasOwnProperty(p = ps[i++])) obj[p] = this[p];
+    }
+
+    Decimal.config(obj);
+
+    return Decimal;
+  }
+
+
+  /*
+   * Return a new Decimal whose value is `x` divided by `y`, rounded to `precision` significant
+   * digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   * y {number|string|Decimal}
+   *
+   */
+  function div(x, y) {
+    return new this(x).div(y);
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the natural exponential of `x`, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal} The power to which to raise the base of the natural log.
+   *
+   */
+  function exp(x) {
+    return new this(x).exp();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is `x` round to an integer using `ROUND_FLOOR`.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function floor(x) {
+    return finalise(x = new this(x), x.e + 1, 3);
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the square root of the sum of the squares of the arguments,
+   * rounded to `precision` significant digits using rounding mode `rounding`.
+   *
+   * hypot(a, b, ...) = sqrt(a^2 + b^2 + ...)
+   *
+   */
+  function hypot() {
+    var i, n,
+      t = new this(0);
+
+    external = false;
+
+    for (i = 0; i < arguments.length;) {
+      n = new this(arguments[i++]);
+      if (!n.d) {
+        if (n.s) {
+          external = true;
+          return new this(1 / 0);
+        }
+        t = n;
+      } else if (t.d) {
+        t = t.plus(n.times(n));
+      }
+    }
+
+    external = true;
+
+    return t.sqrt();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the natural logarithm of `x`, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function ln(x) {
+    return new this(x).ln();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the log of `x` to the base `y`, or to base 10 if no base
+   * is specified, rounded to `precision` significant digits using rounding mode `rounding`.
+   *
+   * log[y](x)
+   *
+   * x {number|string|Decimal} The argument of the logarithm.
+   * y {number|string|Decimal} The base of the logarithm.
+   *
+   */
+  function log(x, y) {
+    return new this(x).log(y);
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the base 2 logarithm of `x`, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function log2(x) {
+    return new this(x).log(2);
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the base 10 logarithm of `x`, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function log10(x) {
+    return new this(x).log(10);
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the maximum of the arguments.
+   *
+   * arguments {number|string|Decimal}
+   *
+   */
+  function max() {
+    return maxOrMin(this, arguments, 'lt');
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the minimum of the arguments.
+   *
+   * arguments {number|string|Decimal}
+   *
+   */
+  function min() {
+    return maxOrMin(this, arguments, 'gt');
+  }
+
+
+  /*
+   * Return a new Decimal whose value is `x` modulo `y`, rounded to `precision` significant digits
+   * using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   * y {number|string|Decimal}
+   *
+   */
+  function mod(x, y) {
+    return new this(x).mod(y);
+  }
+
+
+  /*
+   * Return a new Decimal whose value is `x` multiplied by `y`, rounded to `precision` significant
+   * digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   * y {number|string|Decimal}
+   *
+   */
+  function mul(x, y) {
+    return new this(x).mul(y);
+  }
+
+
+  /*
+   * Return a new Decimal whose value is `x` raised to the power `y`, rounded to precision
+   * significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal} The base.
+   * y {number|string|Decimal} The exponent.
+   *
+   */
+  function pow(x, y) {
+    return new this(x).pow(y);
+  }
+
+
+  /*
+   * Returns a new Decimal with a random value equal to or greater than 0 and less than 1, and with
+   * `sd`, or `Decimal.precision` if `sd` is omitted, significant digits (or less if trailing zeros
+   * are produced).
+   *
+   * [sd] {number} Significant digits. Integer, 0 to MAX_DIGITS inclusive.
+   *
+   */
+  function random(sd) {
+    var d, e, k, n,
+      i = 0,
+      r = new this(1),
+      rd = [];
+
+    if (sd === void 0) sd = this.precision;
+    else checkInt32(sd, 1, MAX_DIGITS);
+
+    k = Math.ceil(sd / LOG_BASE);
+
+    if (!this.crypto) {
+      for (; i < k;) rd[i++] = Math.random() * 1e7 | 0;
+
+    // Browsers supporting crypto.getRandomValues.
+    } else if (crypto.getRandomValues) {
+      d = crypto.getRandomValues(new Uint32Array(k));
+
+      for (; i < k;) {
+        n = d[i];
+
+        // 0 <= n < 4294967296
+        // Probability n >= 4.29e9, is 4967296 / 4294967296 = 0.00116 (1 in 865).
+        if (n >= 4.29e9) {
+          d[i] = crypto.getRandomValues(new Uint32Array(1))[0];
+        } else {
+
+          // 0 <= n <= 4289999999
+          // 0 <= (n % 1e7) <= 9999999
+          rd[i++] = n % 1e7;
+        }
+      }
+
+    // Node.js supporting crypto.randomBytes.
+    } else if (crypto.randomBytes) {
+
+      // buffer
+      d = crypto.randomBytes(k *= 4);
+
+      for (; i < k;) {
+
+        // 0 <= n < 2147483648
+        n = d[i] + (d[i + 1] << 8) + (d[i + 2] << 16) + ((d[i + 3] & 0x7f) << 24);
+
+        // Probability n >= 2.14e9, is 7483648 / 2147483648 = 0.0035 (1 in 286).
+        if (n >= 2.14e9) {
+          crypto.randomBytes(4).copy(d, i);
+        } else {
+
+          // 0 <= n <= 2139999999
+          // 0 <= (n % 1e7) <= 9999999
+          rd.push(n % 1e7);
+          i += 4;
+        }
+      }
+
+      i = k / 4;
+    } else {
+      throw Error(cryptoUnavailable);
+    }
+
+    k = rd[--i];
+    sd %= LOG_BASE;
+
+    // Convert trailing digits to zeros according to sd.
+    if (k && sd) {
+      n = mathpow(10, LOG_BASE - sd);
+      rd[i] = (k / n | 0) * n;
+    }
+
+    // Remove trailing words which are zero.
+    for (; rd[i] === 0; i--) rd.pop();
+
+    // Zero?
+    if (i < 0) {
+      e = 0;
+      rd = [0];
+    } else {
+      e = -1;
+
+      // Remove leading words which are zero and adjust exponent accordingly.
+      for (; rd[0] === 0; e -= LOG_BASE) rd.shift();
+
+      // Count the digits of the first word of rd to determine leading zeros.
+      for (k = 1, n = rd[0]; n >= 10; n /= 10) k++;
+
+      // Adjust the exponent for leading zeros of the first word of rd.
+      if (k < LOG_BASE) e -= LOG_BASE - k;
+    }
+
+    r.e = e;
+    r.d = rd;
+
+    return r;
+  }
+
+
+  /*
+   * Return a new Decimal whose value is `x` rounded to an integer using rounding mode `rounding`.
+   *
+   * To emulate `Math.round`, set rounding to 7 (ROUND_HALF_CEIL).
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function round(x) {
+    return finalise(x = new this(x), x.e + 1, this.rounding);
+  }
+
+
+  /*
+   * Return
+   *   1    if x > 0,
+   *  -1    if x < 0,
+   *   0    if x is 0,
+   *  -0    if x is -0,
+   *   NaN  otherwise
+   *
+   */
+  function sign(x) {
+    x = new this(x);
+    return x.d ? (x.d[0] ? x.s : 0 * x.s) : x.s || NaN;
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the sine of `x`, rounded to `precision` significant digits
+   * using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal} A value in radians.
+   *
+   */
+  function sin(x) {
+    return new this(x).sin();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the hyperbolic sine of `x`, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal} A value in radians.
+   *
+   */
+  function sinh(x) {
+    return new this(x).sinh();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the square root of `x`, rounded to `precision` significant
+   * digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function sqrt(x) {
+    return new this(x).sqrt();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is `x` minus `y`, rounded to `precision` significant digits
+   * using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal}
+   * y {number|string|Decimal}
+   *
+   */
+  function sub(x, y) {
+    return new this(x).sub(y);
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the tangent of `x`, rounded to `precision` significant
+   * digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal} A value in radians.
+   *
+   */
+  function tan(x) {
+    return new this(x).tan();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is the hyperbolic tangent of `x`, rounded to `precision`
+   * significant digits using rounding mode `rounding`.
+   *
+   * x {number|string|Decimal} A value in radians.
+   *
+   */
+  function tanh(x) {
+    return new this(x).tanh();
+  }
+
+
+  /*
+   * Return a new Decimal whose value is `x` truncated to an integer.
+   *
+   * x {number|string|Decimal}
+   *
+   */
+  function trunc(x) {
+    return finalise(x = new this(x), x.e + 1, 1);
+  }
+
+
+  // Create and configure initial Decimal constructor.
+  Decimal = clone(Decimal);
+
+  Decimal['default'] = Decimal.Decimal = Decimal;
+
+  // Create the internal constants from their string values.
+  LN10 = new Decimal(LN10);
+  PI = new Decimal(PI);
+
+
+  // Export.
+
+
+  // AMD.
+  if (typeof define == 'function' && define.amd) {
+    define(function () {
+      return Decimal;
+    });
+
+  // Node and other environments that support module.exports.
+  } else if (typeof module != 'undefined' && module.exports) {
+    module.exports = Decimal;
+
+  // Browser.
+  } else {
+    if (!globalScope) {
+      globalScope = typeof self != 'undefined' && self && self.self == self
+        ? self : Function('return this')();
+    }
+
+    noConflict = globalScope.Decimal;
+    Decimal.noConflict = function () {
+      globalScope.Decimal = noConflict;
+      return Decimal;
+    };
+
+    globalScope.Decimal = Decimal;
+  }
+})(this);
 
 },{}],2:[function(require,module,exports){
-const decimal = require('big-decimal')
+var decimal = require('decimal.js')
 
 module.exports = {
-    toPercent: function(input, decimals) {
-        let total = this.sumWithPrecision(input)
-        console.log(input)
-        let result = []
+    toPercent: function(input, total, decimals) {
+        total = new decimal(total)
 
-        for (let i = 0; i < input.length; i++) {
-            result[i] = (input[i] / total) * 100
-            if (typeof decimals !== "undefined") result[i] = setDecimals((input[i] / total) * 100, decimals)
+        var result = []
+        var lastWithValue = undefined
+
+        for (var i = 0; i < input.length; i++) {
+            result[i] = new decimal(input[i])
+
+            result[i] = result[i].div(total).mul(100)
+            
+            if (decimals) result[i] = setDecimals(result[i], decimals)
+            if (result[i].greaterThan(0)) lastWithValue = i
         }
 
-        let houndred = new decimal('100')
-        let current = new decimal(this.sumWithPrecision(result).toString())
-        var remainder = houndred.subtract(current)
+        if (lastWithValue) {
+            var percentOfTotal = new decimal(this.sumWithPrecision(input)).div(total).mul(100)
 
-        if (remainder != 0) result[result.length-1] = parseFloat(remainder.add(new decimal(result[result.length-1].toString())).toString())
+            var remainder = percentOfTotal.sub(this.sumWithPrecision(result))
+            result[lastWithValue] = result[lastWithValue].add(remainder)
+        }
 
-        console.log(result)
+        for (var i = 0; i < result.length; i++) {
+            result[i] = result[i].toString()
+        }
+        
         return result
     },
 
     toAbsolute: function(total, spread) {
-        let result = []
-        total = new decimal(total.toString())
+        total = new decimal(total)
 
-        for (let i = 0; i < spread.length; i++) {
-            let split = new decimal(parseFloat(spread[i]).toString())
-            split = split.multiply(new decimal('0.01'))
-            result[i] = setDecimals(parseFloat(total.multiply(split)), 2)
+        var result = []
+        var lastWithValue = undefined
+        for (var i = 0; i < spread.length; i++) {
+            var split = new decimal(spread[i]).div(100)
+
+            result[i] = setDecimals(total.mul(split), 2)
+
+            if (!split.eq(0)) lastWithValue = i
         }
 
-        let current = new decimal(this.sumWithPrecision(result).toString())
-        var remainder = total.subtract(current)
+        if (lastWithValue) {
+            var remainder = total.mul(new decimal(this.sumWithPrecision(spread)).div(100)).sub(this.sumWithPrecision(result))
+            result[lastWithValue] = result[lastWithValue].add(remainder)
+        }
 
-        if (remainder != 0) result[result.length-1] = parseFloat(remainder.add(new decimal(result[result.length-1].toString())).toString())
+        for (var i = 0; i < result.length; i++) {
+            result[i] = result[i].toString()
+        }
 
         return result
     },
 
     sumWithPrecision: function(input) {
-        let total = new decimal('0')
-        for (let i = 0; i < input.length; i++) {
-            total = total.add(new decimal(input[i].toString()))
+        var total = new decimal(0)
+
+        for (var i = 0; i < input.length; i++) {
+            total = total.add(input[i])
         }
 
-        return parseFloat(total.toString())
+        return total.toString()
     }
 }
 
 function setDecimals(num, decimals) {
-    return Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals)
+    return new decimal(num.toFixed(decimals))
 }
-},{"big-decimal":1}],3:[function(require,module,exports){
+},{"decimal.js":1}],3:[function(require,module,exports){
 var rounding = require('./lib/rounding.js')
 
 function DonationWidget(widgetElement) {
@@ -5919,6 +5027,10 @@ function DonationWidget(widgetElement) {
                 if (i == inputs.length-1) {
                     inputs[i].addEventListener("keydown", function(e) {
                         if (_self.activeError) hideError();
+                        if (e.keyCode == 109) {
+                            e.preventDefault(); 
+                            e.stopPropagation();
+                        }
                         if (e.keyCode == 13) {
                             pane.submit();
                         }
@@ -5927,8 +5039,11 @@ function DonationWidget(widgetElement) {
                     (function() {
                         var next = inputs[i+1];
                         inputs[i].addEventListener("keydown", function(e) {
-                            console.log("Keydown")
                             if (_self.activeError) hideError();
+                            if (e.keyCode == 109) {
+                                e.preventDefault(); 
+                                e.stopPropagation();
+                            }
                             if (e.keyCode == 13) {
                                 next.focus();
                             }
@@ -6022,14 +5137,15 @@ function DonationWidget(widgetElement) {
     }
 
     function submitDonation() {
-        var donationSplit = _self.organizations.map((org) => {
+        var donationSplit = _self.organizations.map(function(org) {
             return {
                 id: org.id,
                 split: (_self.sharesType == "decimal" ? (org.setValue / _self.donationAmount) * 100 : org.setValue)
             }
         })
 
-        if (donationSplit.reduce(function(acc, donationItem) { return acc + donationItem.split }, 0) == 100) {
+        console.log(rounding.sumWithPrecision(donationSplit.map(function(item) {return item.split})));
+        if (rounding.sumWithPrecision(donationSplit.map(function(item) {return item.split})) === '100') {
             var nxtBtn = this.getElementsByClassName("btn")[0];
             nxtBtn.classList.add("loading");
 
@@ -6053,6 +5169,7 @@ function DonationWidget(widgetElement) {
                 nxtBtn.classList.remove("loading");
                 return;
             }
+            nxtBtn.classList.remove("loading");
 
             var resultPane = _self.element.getElementsByClassName("result")[0];
 
@@ -6172,8 +5289,8 @@ function DonationWidget(widgetElement) {
 
                         input.addEventListener("input", function(e) {
                             var val;
-                            if (this.value.length > 0) val = parseFloat(this.value);
-                            else val = 0;
+                            if (this.value.length > 0) val = this.value;
+                            else val = "0";
                             
                             org.setValue = val;
                             updateTotalShares();
@@ -6232,8 +5349,8 @@ function DonationWidget(widgetElement) {
     }
 
     function organizationValuesToPercent() {
-        var input = _self.organizations.map((org) => org.setValue);
-        var converted = rounding.toPercent(input,1);
+        var input = _self.organizations.map(function(org) {return org.setValue} );
+        var converted = rounding.toPercent(input, _self.donationAmount, 2);
         for (var i = 0; i < _self.organizations.length; i++) {
             var org = _self.organizations[i];
 
@@ -6244,7 +5361,7 @@ function DonationWidget(widgetElement) {
     }
 
     function organizationValuesToAmount() {
-        var input = _self.organizations.map((org) => org.setValue);
+        var input = _self.organizations.map(function(org) {return org.setValue});
         var converted = rounding.toAbsolute(_self.donationAmount, input);
         for (var i = 0; i < _self.organizations.length; i++) {
             var org = _self.organizations[i];
@@ -6256,7 +5373,7 @@ function DonationWidget(widgetElement) {
     }
 
     function updateTotalShares() {
-        var total = rounding.sumWithPrecision(organizations.map((org) => org.setValue));
+        var total = rounding.sumWithPrecision(organizations.map(function(org) {return org.setValue}));
         if (!isNaN(total)) {
             if (_self.sharesType == "decimal") {
                 if (total == _self.donationAmount) setDonationSplitValidAmount();
@@ -6275,12 +5392,12 @@ function DonationWidget(widgetElement) {
     }
 
     function setDonationSplitValidAmount() {
-        _self.splitSharesTotal.classList.add("hidden");
+        _self.splitSharesTotal.classList.add("total-hidden");
         _self.panes[_self.currentSlide].getElementsByClassName("btn")[0].classList.remove("inactive");
     }
 
     function setDonationSplitInvalidAmount() {
-        _self.splitSharesTotal.classList.remove("hidden");
+        _self.splitSharesTotal.classList.remove("total-hidden");
         _self.panes[_self.currentSlide].getElementsByClassName("btn")[0].classList.add("inactive");
     }
 
@@ -6323,11 +5440,17 @@ function DonationWidget(widgetElement) {
 
         if (pane.getElementsByClassName("btn").length > 0) {
             //If pane has button, make room for those
+            console.log("Has button");
             var padding = 90;
         } else {
+            console.log("Does not have button");
             var padding = 50;
         }
-        _self.element.style.height = (pane.getElementsByClassName("inner")[0].clientHeight + padding) + "px";
+
+        var height = pane.getElementsByClassName("inner")[0].clientHeight + padding;
+        console.log("Height: " + height);
+        if (height < 300) height = 300;
+        _self.element.style.height = height + "px";
         pane.focus();
 
         _self.currentSlide = slidenum;
@@ -6379,8 +5502,8 @@ function DonationWidget(widgetElement) {
     }
 
     /* Network helpers */
-    //var api_url = "https://effektapi.azurewebsites.net/"
     var api_url = "https://api.gieffektivt.no/";
+    //var api_url = "http://localhost:3000/";
 
     this.request = function(endpoint, type, data, cb) {
         var http = new XMLHttpRequest();
@@ -6460,6 +5583,8 @@ function DonationWidget(widgetElement) {
         setTimeout(function() {
             _self.wrapper.style.zIndex = -1;
             if (_self.currentSlide == _self.panes.length-1) _self.goToSlide(0);
+            _self.panes[2].classList.remove("hidden");
+            _self.panes[2].style.display = "inline-block";
         }, 800);
     }
 
@@ -6478,16 +5603,4 @@ function DonationWidget(widgetElement) {
 }
 
 window.DonationWidget = DonationWidget;
-
-document.addEventListener("onload", function() {
-    console.log("internal setup");
-
-    var donationWidgetElement = document.getElementById("donation-widget");
-    var widget = DonationWidget(donationWidgetElement);
-    
-    document.getElementById("donationBtn").addEventListener("click", function(e) {
-        console.log("Show widget");
-        widget.show();
-    });
-});
 },{"./lib/rounding.js":2}]},{},[3]);

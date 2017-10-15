@@ -120,6 +120,7 @@ async function getStandardSplit() {
 async function sendDonationReciept(donationObject, recieverEmail, recieverName) {
   try {
     var KIDstring = donationObject.KID.toString()
+    KIDstring = KIDstring.substr(0,3) + " " + KIDstring.substr(2,2) + " " + KIDstring.substr(5,3)
 
     var result = await Mail.send({
       subject: 'GiEffektivt.no - Donasjon klar for innbetaling',
