@@ -102,7 +102,7 @@ module.exports = {
                         name: org.org_abbriv,
                         shortDesc: org.shortDesc,
                         standardShare: org.std_percentage_share,
-                        infoUrl: org.infoUrl
+                        infoUrl: org.info_url
                     }
                 }))
             })
