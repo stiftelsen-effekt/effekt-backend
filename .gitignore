@@ -1,2 +1,4 @@
 /node_modules
 config.js
+bundle.js
+bundle.min.js
