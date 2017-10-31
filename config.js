@@ -36,5 +36,8 @@ module.exports = {
     serverAddress: "91.225.63.22",
 
     //Security
-    ssl: false
+    ssl: false,
+
+    //Debugging
+    debugReturnExceptions: true
 }

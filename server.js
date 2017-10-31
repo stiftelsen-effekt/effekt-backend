@@ -26,7 +26,7 @@ const https = require('https')
 const http = require('http')
 
 const DAO = require('./custom_modules/DAO.js')
-DAO.createConnection()
+DAO.connect()
 
 const errorHandler = require('./handlers/errorHandler.js')
 
@@ -80,12 +80,12 @@ app.use(function (req, res, next) {
 })
 
 //Routes
-const usersRoute = require('./routes/users.js')
+const donorsRoute = require('./routes/donors.js')
 const donationsRoute = require('./routes/donations.js')
 const organizationsRoute = require('./routes/organizations.js')
 const ocrParserRoute = require('./routes/ocrParser.js')
 
-app.use('/users', usersRoute)
+app.use('/donors', donorsRoute)
 app.use('/donations', donationsRoute)
 app.use('/organizations', organizationsRoute)
 app.use('/ocr', ocrParserRoute)

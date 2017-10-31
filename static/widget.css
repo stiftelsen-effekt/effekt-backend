@@ -159,11 +159,13 @@ html, body {
             font-weight: 300;
             color: #aaa; }
         #donation-widget .slider .pane.amount .select-split {
-          font-size: 10px;
+          font-size: 12px;
           text-align: center;
-          padding-top: 8px;
-          color: #aaa;
+          padding-top: 6px;
+          color: #777;
           user-select: none; }
+          #donation-widget .slider .pane.amount .select-split:nth-child(2n) {
+            padding-top: 0; }
           #donation-widget .slider .pane.amount .select-split > * {
             vertical-align: middle;
             cursor: pointer; }
@@ -175,6 +177,7 @@ html, body {
             box-shadow: 0 0 0 1px #aaa;
             cursor: pointer;
             display: inline-block;
+            border-radius: 50%;
             cursor: pointer;
             margin-left: 6px; }
           #donation-widget .slider .pane.amount .select-split input {
@@ -278,7 +281,9 @@ html, body {
             font-size: 12px;
             text-align: right;
             width: 120px;
-            margin-right: 8px; }
+            margin-right: 8px;
+            white-space: normal;
+            line-height: 120%; }
           #donation-widget .slider .pane.shares .share-distribution ul.organizations li .input-wrapper {
             position: relative; }
             #donation-widget .slider .pane.shares .share-distribution ul.organizations li .input-wrapper input {
@@ -321,9 +326,9 @@ html, body {
       #donation-widget .slider .pane.shares .share-distribution .total {
         display: block;
         font-size: 12px;
-        margin: 2px auto;
+        margin: 4px auto;
         text-align: center;
-        color: #aaa;
+        color: #777;
         opacity: 1;
         transition: opacity 200ms; }
         #donation-widget .slider .pane.shares .share-distribution .total.total-hidden {

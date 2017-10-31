@@ -13,7 +13,7 @@ const Mail = require('../custom_modules/mail.js')
 
 const DAO = require('../custom_modules/DAO.js')
 
-router.post("/", urlEncodeParser, async (req,res) => {
+router.post("/", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
 
   var parsedData = JSON.parse(req.body.data)
@@ -149,7 +149,7 @@ async function sendDonationReciept(donationObject, recieverEmail, recieverName) 
   }
 }
 
-router.get('/total', urlEncodeParser, (req, res) => {
+router.get('/total', urlEncodeParser, (req,res,next) => {
   //Check if no parameters
   if (!req.query) return res.json({ status: 400, content: "Malformed request" })
 
@@ -165,7 +165,7 @@ router.get('/total', urlEncodeParser, (req, res) => {
   })
 })
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req,res,next) => {
   try {
     var donation = await DAO.donations.getFullDonationById(req.params.id)
   } catch(ex) {
@@ -182,7 +182,7 @@ router.get('/:id', async (req, res) => {
   })
 })
 
-router.get('/kid/:kid', async (req, res) => {
+router.get('/kid/:kid', async (req,res,next) => {
   try {
     var donations = await DAO.donations.getFullDonationByDonor(req.params.kid)
   } catch(ex) {

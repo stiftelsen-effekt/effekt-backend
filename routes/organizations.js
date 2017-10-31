@@ -6,7 +6,7 @@ const DAO = require('../custom_modules/DAO.js')
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
-router.get("/active", urlEncodeParser, async (req,res) => {
+router.get("/active", urlEncodeParser, async (req,res, next) => {
   try {
     var activeOrganizations = await DAO.organizations.getActive()
 

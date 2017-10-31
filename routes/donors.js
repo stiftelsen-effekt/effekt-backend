@@ -7,7 +7,7 @@ const KID = require('../custom_modules/KID.js')
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
-router.post("/", urlEncodeParser, async (req,res) => {
+router.post("/", urlEncodeParser, async (req,res,next) => {
     if (!req.body.data) return res.sendStatus(400)
 
     var data = JSON.parse(req.body.data)
@@ -59,6 +59,28 @@ router.post("/", urlEncodeParser, async (req,res) => {
         next({ex: ex})
       }
     }
+})
+
+router.get('/:id', async (req,res,next) => {
+  try {
+    var donor = await DAO.donors.getByID(req.params.id)
+
+    if (donor) {
+      return res.json({
+        status: 200,
+        content: donor
+      })
+    }
+    else {
+      return res.json({
+        status: 404,
+        content: "No donor found with ID " + req.params.id
+      })
+    }
+  }
+  catch (ex) {
+    next({ex:ex})
+  }
 })
 
 module.exports = router

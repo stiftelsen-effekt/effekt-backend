@@ -4960,7 +4960,6 @@ function DonationWidget(widgetElement) {
 
     setupCloseBtn();
     setupSelectOnClick();
-    preventNegativeInput();
     setupSavedUser();
 
     /* Setup helpers */
@@ -5026,6 +5025,12 @@ function DonationWidget(widgetElement) {
             for (var i = 0; i < inputs.length; i++) {
                 if (i == inputs.length-1) {
                     inputs[i].addEventListener("keydown", function(e) {
+                        var valid = true;
+                        console.log(this.type);
+                        if (this.type == "number") {
+                            valid = numberInputWhitelistCheck(e);
+                        }
+
                         if (_self.activeError) hideError();
                         if (e.keyCode == 109) {
                             e.preventDefault(); 
@@ -5034,11 +5039,18 @@ function DonationWidget(widgetElement) {
                         if (e.keyCode == 13) {
                             pane.submit();
                         }
+                        return valid;
                     });
                 } else {
                     (function() {
                         var next = inputs[i+1];
                         inputs[i].addEventListener("keydown", function(e) {
+                            var valid = true;
+                            console.log(this.type);
+                            if (this.type == "number") {
+                                valid = numberInputWhitelistCheck(e);
+                            }
+
                             if (_self.activeError) hideError();
                             if (e.keyCode == 109) {
                                 e.preventDefault(); 
@@ -5047,6 +5059,8 @@ function DonationWidget(widgetElement) {
                             if (e.keyCode == 13) {
                                 next.focus();
                             }
+
+                            return valid;
                         });
                     }());
                 }
@@ -5055,18 +5069,15 @@ function DonationWidget(widgetElement) {
         }
     }
 
-    function preventNegativeInput() {
-        var inputs = _self.element.querySelectorAll("input[type=number]");
-         
-        for (var i = 0; i < inputs.length; i++) {
-            inputs[i].addEventListener("keydown", function (e) {
-                if(!((e.keyCode > 95 && e.keyCode < 106)
-                || (e.keyCode > 47 && e.keyCode < 58) 
-                || e.keyCode == 8 || e.keyCode == 13 || e.keyCode == 9)) {
-                    return false;
-                }
-            })
+    function numberInputWhitelistCheck(e) {
+        var valid = (e.keyCode >= 48 && e.keyCode <= 57) || e.keyCode == 188 || e.keyCode == 190 || e.keyCode == 13 || e.keyCode == 8 || e.keyCode == 39 || e.keyCode == 37 || e.keyCode == 9 || e.keyCode == 46 || e.keyCode == 38 || e.keyCode == 40;
+        
+        if (!valid) {
+            e.preventDefault();
+            e.stopPropagation();
         }
+
+        return valid;
     }
 
     function setupSavedUser() {
@@ -5214,21 +5225,22 @@ function DonationWidget(widgetElement) {
 
     /* Setup select split checkbox */
     function setupSelectSplitCheckbox() {
-        var checkbox = document.getElementById("check-select-split");
+        var selectSplit = document.getElementById("check-select-split");
+        var selectRecommended = document.getElementById("check-select-recommended");
 
-        checkbox.addEventListener("change", function(e) {
-            if (this.checked) {
-                _self.element.getElementsByClassName("shares")[0].classList.remove("hidden");
-                _self.submitOnAmount = false;
-                _self.activePanes++;
-            }
-            else {
-                _self.element.getElementsByClassName("shares")[0].classList.add("hidden");
-                _self.submitOnAmount = true;
-                _self.activePanes--;
-            }
+        selectSplit.addEventListener("change", function(e) {
+            _self.element.getElementsByClassName("shares")[0].classList.remove("hidden");
+            _self.submitOnAmount = false;
+            _self.activePanes++;
             updateSliderProgress();
         });
+
+        selectRecommended.addEventListener("change", function(e) {
+            _self.element.getElementsByClassName("shares")[0].classList.add("hidden");
+            _self.submitOnAmount = true;
+            _self.activePanes--;
+            updateSliderProgress();
+        })
     }
 
     /* Setup donation split pane */
@@ -5378,13 +5390,13 @@ function DonationWidget(widgetElement) {
             if (_self.sharesType == "decimal") {
                 if (total == _self.donationAmount) setDonationSplitValidAmount();
                 else {
-                    _self.splitSharesTotal.innerHTML = total + " / " + _self.donationAmount;
+                    _self.splitSharesTotal.innerHTML = "Du har fordelt " + total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " av " + _self.donationAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + "kr";
                     setDonationSplitInvalidAmount();
                 }
             } else if (_self.sharesType == "percentage") {
                 if (total == 100) setDonationSplitValidAmount();
                 else {
-                    _self.splitSharesTotal.innerHTML = total + " / 100"; 
+                    _self.splitSharesTotal.innerHTML = "Du har fordelt " + total.toString().toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " av 100%"; 
                     setDonationSplitInvalidAmount();
                 }
             }
