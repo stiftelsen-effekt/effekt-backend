@@ -1,4 +1,6 @@
-//Get
+var con
+
+//region Get
 function getKIDByEmail(email) {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -24,8 +26,9 @@ function getByID(ID) {
         else fulfill(null)
     })
 }
+//endregion
 
-//Add
+//region Add
 function add(userObject) {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -49,19 +52,26 @@ function add(userObject) {
         fulfill(res[0].insertId)
     })
 }
+//endregion
 
-//Modify
+//region Modify
+//endregion
 
-//Delete
+//region Delete
 function remove(userID) {
     return new Promise(async (fulfill, reject) => {
         reject(new Error("Not implemented"))
     })
 }
+//endregion
 
-module.exports =  {
-    getByID,
-    getKIDByEmail,
-    add,
-    remove
-}
+module.exports = function(dbPool) {
+    con = dbPool
+
+    return {
+        getByID,
+        getKIDByEmail,
+        add,
+        remove
+    }
+} 

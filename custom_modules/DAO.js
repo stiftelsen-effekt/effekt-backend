@@ -2,28 +2,21 @@ const config = require('../config.js')
 const mysql = require('mysql2/promise')
 const rounding = require('./rounding.js')
 
-//Load sub-modules
-const donors = require('./DAO_modules/donors.js')
-const organizations = require('./DAO_modules/organizations.js')
-const donations = require('./DAO_modules/donations.js')
-
 //Export DAO
 module.exports = {
     connect: async function() {
-        var con = await mysql.createPool({
+        var dbPool = await mysql.createPool({
             host: config.db_host,
             user: config.db_username,
             password: config.db_password,
             database: config.db_name
         })
     
-        global.con = con
+        //Load submodules
+        this.donors = require('./DAO_modules/donors.js')(dbPool)
+        this.organizations = require('./DAO_modules/organizations.js')(dbPool)
+        this.donations = require('./DAO_modules/donations.js')(dbPool)
 
         console.log("Connected to DB")
-    },
-
-    //SubModules
-    donors: donors,
-    organizations: organizations,
-    donations: donations,
+    }
 }

@@ -1,4 +1,6 @@
-//Get
+var con
+
+//region Get
 function getByIDs(IDs) {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -52,15 +54,23 @@ function getStandardSplit() {
         }))
     })
 }
+//endregion
 
-//Add
+//region Add
+//endregion
 
-//Modify
+//region Modify
+//endregion
 
-//Delete
+//region Delete
+//endregion
 
-module.exports = {
-    getByIDs,
-    getActive,
-    getStandardSplit
-}
+module.exports = function(dbPool) {
+    con = dbPool
+
+    return {
+        getByIDs,
+        getActive,
+        getStandardSplit
+    }
+} 

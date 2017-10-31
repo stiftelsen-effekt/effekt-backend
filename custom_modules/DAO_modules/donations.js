@@ -1,4 +1,6 @@
-//Get
+var con
+
+//region Get
 function getByID(ID) {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -110,7 +112,9 @@ function getAggregateByTime(startTime, endTime) {
     })
 }
 
-//Add
+//endregion
+
+//region Add
 function add(donationObject) {
     return new Promise(async (fulfill, reject) => {
 
@@ -174,8 +178,9 @@ function add(donationObject) {
         fulfill()
     })
 }
+//endregion
 
-//Modify
+//region Modify
 function registerConfirmedByIDs(IDs) {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -191,17 +196,24 @@ function registerConfirmedByIDs(IDs) {
         fulfill()
     })
 }
+//endregion
 
-//Delete
+//region Delete
 
-module.exports = {
-    getByID,
-    getStandardShares,
-    getFullDonationByKID,
-    getByDonor,
-    getNonRegisteredByDonors,
-    getFullDonationByKID,
-    getAggregateByTime,
-    add,
-    registerConfirmedByIDs
+//endregion
+
+module.exports = function(dbPool) {
+    con = dbPool
+
+    return {
+        getByID,
+        getStandardShares,
+        getFullDonationByKID,
+        getByDonor,
+        getNonRegisteredByDonors,
+        getFullDonationByKID,
+        getAggregateByTime,
+        add,
+        registerConfirmedByIDs
+    }
 }
