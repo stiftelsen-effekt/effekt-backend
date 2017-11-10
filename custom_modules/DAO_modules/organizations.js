@@ -14,6 +14,20 @@ function getByIDs(IDs) {
     })
 }
 
+function getByID(ID) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var [organization] = await con.execute("SELECT * FROM Organizations WHERE ID = ? LIMIT 1", [ID])
+        }
+        catch (ex) {
+            reject(ex)
+        }
+        
+        if (organization.length > 0) fulfill(organization[0])
+        else fulfill(null)
+    })
+}
+
 function getActive() {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -39,7 +53,7 @@ function getActive() {
 function getStandardSplit() {
     return new Promise(async (fulfill, reject) => {
         try {
-            var [standardSplit] = await con.execute(`SELECT * FROM Organizations WHERE std_percentage_share > 0 AND active = 1`)
+            var [standardSplit] = await con.execute(`SELECT * FROM Organizations WHERE std_percentage_share > 0 AND is_active = 1`)
         }
         catch(ex) {
             return reject(ex)
@@ -70,6 +84,7 @@ module.exports = function(dbPool) {
 
     return {
         getByIDs,
+        getByID,
         getActive,
         getStandardSplit
     }

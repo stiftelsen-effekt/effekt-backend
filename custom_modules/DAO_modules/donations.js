@@ -1,108 +1,20 @@
+//const rounding = require('./rounding.js')
+const KID = require('../KID.js')
+const sqlString = require('sqlstring')
+
 var con
 
 //region Get
-function getByID(ID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [donation] = await con.execute(`SELECT * FROM Donations WHERE ID = ? LIMIT 1`, [ID])
-        } catch(ex) {
-            return reject(ex)
-        }
-
-        fulfill(donation)
-    })
-}
-
-function getStandardShares() {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [organizations] = await con.execute(`SELECT 
-                ID, 
-                std_percentage_share 
-                
-                FROM Organizations 
-                
-                WHERE 
-                    std_percentage_share > 0 
-                    AND 
-                    active = 1`)
-        } catch(ex) {
-            return reject(ex)
-        }
-
-        fulfill(organizations)
-    })
-}
-
-function getFullDonationByKID(kid) {
-    return new Promise(async (fulfill, reject) => {
-        var fullDonations;
-        try {
-            var [donations] = await con.execute(`SELECT * FROM Donations WHERE KID_fordeling = ?`, [kid])
-
-            var donationIDs = donations.map((donation) => donation.ID);
-
-            var [split] = await con.execute(`
-                SELECT orgID, DonationID, percentage_share FROM Donation_distribution 
-                WHERE DonationID IN (` + ("?,").repeat(donationIDs.length).slice(0,-1) + `)`, donationIDs)
-
-            donations.map((donation) => {
-                var donation = donation;
-                donation.split = split.filter((split) => split.DonationID == donation.ID).map((split) => { delete split.DonationID; return split; })})
-        }
-        catch(ex) {
-            return reject(ex)
-        }
-
-        fulfill(donations)
-    })
-}
 
 function getByDonor(KID) {
     return new Promise(async (fulfill, reject) => {
-        try {
-            var [donations] = await con.execute(`SELECT * FROM Donations WHERE KID = ?`, [KID])
-        }
-        catch (ex) {
-            reject(ex)
-        }
-
-        fulfill(donation)
+        reject(new Error("Not implemented"))
     })
 }
 
-function getNonRegisteredByDonors(KIDs) {
+function getByID(ID) {
     return new Promise(async (fulfill, reject) => {
-        try {
-            var [donations] = await con.execute(`SELECT * FROM EffektDonasjonDB.Donations 
-                WHERE 
-                Donor_KID IN (` + ("?,").repeat(KIDs.length).slice(0,-1) + `)
-                AND date_confirmed IS NULL
-                ORDER BY date_notified DESC`, KIDs)
-        }
-        catch(ex) {
-            reject(ex)
-        }
-
-        fulfill(donations)
-    })
-}
-
-function getFullDonationById(ID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [donation] = await con.execute(`SELECT * FROM Donations WHERE Donor_KID = ? LIMIT 1`, [ID])
-            var [split] = await con.execute(`SELECT * FROM Donation_distribution WHERE Dist_DonationID IN ?`, [ID])
-        }
-        catch(ex) {
-            return reject(ex)
-        }
-
-        if (donation.length > 0) {
-            donation[0].split = split
-        }
-        
-        fulfill(donation[0])
+        reject(new Error("Not implemented"))
     })
 }
 
@@ -112,70 +24,71 @@ function getAggregateByTime(startTime, endTime) {
     })
 }
 
+function KIDexists(KID) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var [res] = await con.query("SELECT * FROM EffektDonasjonDB.Combining_table WHERE KID = ? LIMIT 1", [KID])
+        } catch(ex) {
+            reject(ex)
+        }
+
+        if (res.length > 0) fulfill(true)
+        else fulfill(false)
+    })
+}
+
+function getKIDbySplit(split) {
+    return new Promise(async (fulfill, reject) => {
+        let KID = null
+        //Check if existing KID
+        try {
+            //Construct query
+            let query = `SELECT KID, Count(KID) as KID_count FROM EffektDonasjonDB.Distribution as D
+            
+            INNER JOIN Combining_table as C 
+            ON C.Distribution_ID = D.ID
+            
+            WHERE
+            `;
+            
+            for (let i = 0; i < split.length; i++) {
+                query += `(OrgID = ${sqlString.escape(split[i].organizationID)} AND percentage_share = ${sqlString.escape(split[i].share)})`
+                if (i < split.length-1) query += ` OR `
+            }
+
+            query += ` GROUP BY C.KID
+            
+            HAVING KID_count = ` + split.length
+
+            var [res] = await con.execute(query)
+        } catch(ex) {
+            reject(ex)
+        }
+
+        if (res.length > 0) fulfill(res[0].KID)
+        else fulfill(null)
+    })
+}
+
 //endregion
 
 //region Add
+function addSplit(split, KID) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            let values = split.map((item) => {return [item.organizationID, item.share]})
+            var res = await con.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [values])
+        } catch(ex) {
+            reject(ex)
+        }
+
+        fulfill(true)
+    })
+}
+
 function add(donationObject) {
     return new Promise(async (fulfill, reject) => {
-
-        //Run checks
-        console.log("Trying to round")
-        console.log("Rounding")
-        if (rounding.sumWithPrecision(donationObject.split.map(split => split.share)) != 100) return reject(new Error("Donation shares do not sum to 100"))
-        
-        //Insert donation
-        try {
-            var [res] = await con.execute(`INSERT INTO Donations (
-                    Donor_KID, 
-                    sum_notified, 
-                    payment_method, 
-                    is_own_dist, 
-                    is_std_dist
-                ) VALUES (?,?,?,?,?)`,
-                [
-                    donationObject.KID,
-                    donationObject.amount,
-                    "bank",
-                    (!donationObject.standardSplit ? 1 : 0),
-                    (donationObject.standardSplit ? 1 : 0)
-                ])
-            
-            console.log(res)
-        }
-        catch(ex) {
-            return reject(ex)
-        }
-        
-        //Insert donation distribution rows
-        var donationID = res.insertId
-
-        try {
-            await con.query(`INSERT INTO Donation_distribution (
-                DonationID,
-                OrgID,
-                percentage_share
-            ) VALUES ?`,
-            [
-                donationObject.split.reduce((acc, org) => {
-                    acc.push([donationID, org.organizationID, org.share]);
-                    return acc
-                }, [])
-            ])
-        } 
-        catch(ex) {
-            //clean up donation registration
-            try {
-                await con.execute("DELETE FROM Donations WHERE ID = ?", [donationID])
-            } 
-            catch (ex) {
-                console.log("Failed to delete Donation after distribution failed")
-                console.log(ex)
-            }
-
-            return reject(ex)
-        }
-
-        fulfill()
+        reject(Error("Not implemented"))
     })
 }
 //endregion
@@ -202,17 +115,22 @@ function registerConfirmedByIDs(IDs) {
 
 //endregion
 
+//region Helpers
+function generateKID() {
+
+}
+//endregion
+
 module.exports = function(dbPool) {
     con = dbPool
 
     return {
         getByID,
-        getStandardShares,
-        getFullDonationByKID,
         getByDonor,
-        getNonRegisteredByDonors,
-        getFullDonationByKID,
         getAggregateByTime,
+        getKIDbySplit,
+        KIDexists,
+        addSplit,
         add,
         registerConfirmedByIDs
     }

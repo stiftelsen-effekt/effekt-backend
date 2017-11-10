@@ -20,6 +20,26 @@ router.get("/active", urlEncodeParser, async (req,res, next) => {
   }
 })
 
+router.get("/:id", async (req, res, next) => {
+  try {
+    org = await DAO.organizations.getByID(req.params.id)
+
+    if (org) {
+      res.json({
+        status: 200,
+        content: org
+      })
+    } else {
+      res.json({
+        status: 404,
+        content: "Organization not found with id " + req.params.id
+      })
+    }
+  } catch(ex) {
+    next({ex:ex})
+  }
+})
+
 /* 
   TODO: POST to '/' - Create Organization
 */

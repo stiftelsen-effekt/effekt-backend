@@ -1,26 +1,19 @@
+console.log("--------------------------------------------------")
+console.log("| gieffektivt.no donation backend (╯°□°）╯︵ ┻━┻ |")
+console.log("--------------------------------------------------")
 console.log("Loading config")
-
 const config = require('./config.js')
-
-/*
-if (typeof config.db_connection_string === "undefined" ||
-    typeof config.mailgun_api_key === "undefined" || 
-    typeof config.port === "undefined") {
-  
-  console.error(('\x1b[' + '31' + 'm') + "Error: " + ('\x1b[' + '37' + 'm') + "Change config.js in root before running") 
-  process.exit()
-}
-*/
 
 console.log("Loading dependencies")
 
 const express = require('express')
 const fileUpload = require('express-fileupload')
 const pretty = require('express-prettify')
-const mysql = require('mysql')
 const path = require('path')
 const rateLimit = require('express-rate-limit')
 const honeypot = require('honeypot')
+const morgan = require('morgan')
+const logging = require('./handlers/loggingHandler.js')
 const fs = require('fs')
 const https = require('https')
 const http = require('http')
@@ -35,6 +28,13 @@ const app = express()
 
 //Set global application variable root path
 global.appRoot = path.resolve(__dirname)
+
+//Setup request logging
+logging(app)
+
+app.get("/", (req, res, next) => {
+  res.send("Hello world")
+})
 
 //Pretty printing of JSON
 app.use(pretty({ 
@@ -52,12 +52,12 @@ const pot = new honeypot(config.honeypot_api_key)
 app.use((req,res,next) => {
   pot.query(req.ip, function(err, response){
     if (!response) {
-        next()
+      next()
     } else {
-        res.status(403).json({
-          status: 403,
-          content: "IP blacklisted"
-        })
+      res.status(403).json({
+        status: 403,
+        content: "IP blacklisted"
+      })
     }
   })
 })
@@ -67,7 +67,7 @@ app.use(new rateLimit({
   windowMs: 15*60*1000, // 15 minutes
   //limit each IP to 10 000 requests per windowMs (10 000 requests in 15 minutes)
   //Why so many? Becuse of shared IP's such as NTNU campus.
-  max: 10000, 
+  max: 1000, 
   delayMs: 0 // disable delaying - full speed until the max limit is reached 
 }))
 
@@ -95,6 +95,12 @@ app.use('/static', express.static('static'))
 //Error handling
 app.use(errorHandler)
 
+//Load testing verification endpoint
+//Loader.io (website for service)
+app.get("/loaderio-66c56b6216728d162150350fd76fc76a/", (req, res, next) => {
+  res.status(200).send("loaderio-66c56b6216728d162150350fd76fc76a");
+})
+
 //Server
 if (config.ssl) {
   //SSL
@@ -105,7 +111,9 @@ if (config.ssl) {
     key: privateKey,
     cert: certificate
   }, app).listen(443)
+  console.log("Server listening")
 }
 else {
   http.createServer(app).listen(3000);
+  console.log("Server listening")
 }

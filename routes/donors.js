@@ -72,7 +72,7 @@ router.get('/:id', async (req,res,next) => {
       })
     }
     else {
-      return res.json({
+      return res.status(404).json({
         status: 404,
         content: "No donor found with ID " + req.params.id
       })
@@ -80,6 +80,18 @@ router.get('/:id', async (req,res,next) => {
   }
   catch (ex) {
     next({ex:ex})
+  }
+})
+
+router.get("/remove/:id", async (req,res,next) => {
+  try {
+    await DAO.donors.remove(req.params.id)
+    res.json({
+      status: 200,
+      content: "Removed donor with ID " + req.params.id
+    })
+  } catch(ex) {
+    next({ex: ex})
   }
 })
 

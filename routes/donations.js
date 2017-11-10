@@ -16,20 +16,20 @@ const DAO = require('../custom_modules/DAO.js')
 router.post("/", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
 
-  var parsedData = JSON.parse(req.body.data)
+  let parsedData = JSON.parse(req.body.data)
 
-  var donationOrganizations = parsedData.organizations
-  var KID = parsedData.KID
+  let donationOrganizations = parsedData.organizations
+  let donor = parsedData.donor
 
-  var donationObject = {
-    KID: KID,
-    amount: parsedData.amount,
-    standardSplit: undefined,
-    split: []
-  }
-
-  //Create a donation split object
   try {
+    var donationObject = {
+      KID: KID,
+      amount: parsedData.amount,
+      standardSplit: undefined,
+      split: []
+    }
+  
+    //Create a donation split object
     if (parsedData.organizations) {
       donationObject.split = await createDonationSplitArray(parsedData.organizations)
       donationObject.standardSplit = false
@@ -38,31 +38,54 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
       donationObject.split = await getStandardSplit()
       donationObject.standardSplit = true
     }
+
+    //Check if existing donor
+    let donorID = await DAO.donors.getIDbyEmail(donor.email)
+  
+    if (donorID == null) {
+      //Donor does not exist, create donor
+      let donorID = await DAO.donors.add(donor)
+    }
+    
+    //Try to get existing KID
+    let donationKID = await DAO.donations.getKIDbySplit(donationObject.split)
+  
+    /*  We are now about to change data in the DB
+        This happens in two discrete steps (addSplit and add)
+        Therefore, we must start a transaction
+        If we succesfully add the split, but not the donation
+        we error and rollback the previously added split        */
+
+    DAO.startTransaction()
+
+    //Split does not exist create new KID and split
+    if (!donationKID) {
+      donationKID = await createKID()
+      await DAO.donations.addSplit(donationObject.split, KID)
+    }
+
+    //Add donation to database
+    try {
+      await DAO.donations.add(donationObject)
+      await DAO.commitTransaction()
+    } catch(ex) {
+      await DAO.rollbackTransaction()
+      return next({ex: ex})
+    }
   }
   catch (ex) {
-    next({ex: ex})
+    return next({ex: ex})
   }
-
-  //Add donation to database
-  console.log("Add donation to DB")
-  try {
-    await DAO.donations.add(donationObject)
-  } catch (ex) {
-    console.log("exception!")
-    next({ex: ex})
-  }
-
+  
   //In case the email component should fail, register the donation anyways, and notify client
   res.json({ status: 200, content: {
     KID: donationObject.KID
   }})
 
-  var donor = await DAO.donors.getByKID(donationObject.KID)
-  sendDonationReciept(donationObject, donor.email, donor.first_name + " " + donor.last_name)
+  sendDonationReciept(donationObject, donor.email, donor.name)
 })
 
 async function createDonationSplitArray(passedOrganizations) {
-  console.log(passedOrganizations)
   return new Promise(async function(fulfill, reject) {
     //Filter passed organizations for 0 shares
     var filteredOrganizations = passedOrganizations.filter(org => org.split > 0)
@@ -120,6 +143,7 @@ async function getStandardSplit() {
 async function sendDonationReciept(donationObject, recieverEmail, recieverName) {
   try {
     var KIDstring = donationObject.KID.toString()
+    //Add seperators for KID, makes it easier to read
     KIDstring = KIDstring.substr(0,3) + " " + KIDstring.substr(2,2) + " " + KIDstring.substr(5,3)
 
     var result = await Mail.send({
@@ -130,7 +154,6 @@ async function sendDonationReciept(donationObject, recieverEmail, recieverName) 
         header: "Hei, " + (recieverName.length > 0 ? recieverName : ""),
         //Add thousand seperator regex at end of amount
         donationSum: donationObject.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-        //Add seperators for KID, makes it easier to read
         kid: KIDstring,
         accountNumber: config.bankAccount,
         organizations: donationObject.split.map(function(split) {
@@ -149,31 +172,28 @@ async function sendDonationReciept(donationObject, recieverEmail, recieverName) 
   }
 }
 
-router.get('/total', urlEncodeParser, (req,res,next) => {
+router.get('/total', urlEncodeParser, async (req,res,next) => {
   //Check if no parameters
   if (!req.query) return res.json({ status: 400, content: "Malformed request" })
 
   //Check if dates are valid ISO 8601
-  if (!moment(req.query.fromDate, moment.ISO_8601, true).isValid() || !moment(req.query.toDate, moment.ISO_8601, true).isValid()) return res.json({ status: 400, content: "date must be in ISO 8601 format" })
+  if (!moment(req.query.fromDate, moment.ISO_8601, true).isValid() || !moment(req.query.toDate, moment.ISO_8601, true).isValid()) return res.json({ status: 400, content: "Date must be in ISO 8601 format" })
 
   let fromDate = new Date(req.query.fromDate)
   let toDate = new Date(req.query.toDate)
 
-  Donation.getTotalAggregatedDonations(fromDate, toDate, (err, result) => {
-    if (err) res.json({ status: 400, content: err })
-    else res.json({ status: 200, content: result })
-  })
+  try {
+    let res = await Donation.getTotalAggregatedDonations(fromDate, toDate)
+  } catch(ex) {
+    next({ex: ex})
+  }
 })
 
 router.get('/:id', async (req,res,next) => {
   try {
-    var donation = await DAO.donations.getFullDonationById(req.params.id)
+    var donation = await DAO.donations.getByID(req.params.id)
   } catch(ex) {
-    console.log(ex)
-    return res.status(500).json({
-      status: 500,
-      content: "Internal server error"
-    })
+    next({ex: ex})
   }
   
   res.json({
@@ -182,21 +202,22 @@ router.get('/:id', async (req,res,next) => {
   })
 })
 
-router.get('/kid/:kid', async (req,res,next) => {
-  try {
-    var donations = await DAO.donations.getFullDonationByDonor(req.params.kid)
-  } catch(ex) {
-    console.log(ex)
-    return res.status(500).json({
-      status: 500,
-      content: "Internal server error"
-    })
-  }
-
-  res.json({
-    status: 200,
-    content: donations
+//Helper functions
+function createKID() {
+  return new Promise(async (fulfill, reject) => {
+    //Create new valid KID
+    let newKID = KID.generate()
+    //If KID already exists, try new kid, call this function recursively
+    try {
+      if (await DAO.donations.KIDexists(newKID)) {
+        newKID = await createKID()
+      }
+    } catch(ex) {
+      reject(ex)
+    }
+    
+    fulfill(newKID)
   })
-})
+}
 
 module.exports = router
