@@ -16,16 +16,18 @@ module.exports = {
         this.organizations = require('./DAO_modules/organizations.js')(dbPool)
         this.donations = require('./DAO_modules/donations.js')(dbPool)
 
-        this.startTransaction = async function() {
-            await dbPool.query("START TRANSACTION")
+        dbPool.startTransaction = async function() {
+            let transaction = await dbPool.getConnection()
+            await transaction.query("START TRANSACTION")
+            return transaction
         }
 
-        this.rollbackTransaction = async function() {
-            await dbPool.query("ROLLBACK")
+        dbPool.rollbackTransaction = async function(transaction) {
+            await transaction.query("ROLLBACK")
         }
 
-        this.commitTransaction = async function() {
-            await dbPool.query("COMMIT")
+        dbPool.commitTransaction = async function(transaction) {
+            await transaction.query("COMMIT")
         }
 
         console.log("Connected to DB")

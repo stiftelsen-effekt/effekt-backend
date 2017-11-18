@@ -8,19 +8,19 @@ var con
 
 function getByDonor(KID) {
     return new Promise(async (fulfill, reject) => {
-        reject(new Error("Not implemented"))
+        return reject(new Error("Not implemented"))
     })
 }
 
 function getByID(ID) {
     return new Promise(async (fulfill, reject) => {
-        reject(new Error("Not implemented"))
+        return reject(new Error("Not implemented"))
     })
 }
 
 function getAggregateByTime(startTime, endTime) {
     return new Promise(async (fulfill, reject) => {
-        reject(new Error("Not implemented"))
+        return reject(new Error("Not implemented"))
     })
 }
 
@@ -29,7 +29,7 @@ function KIDexists(KID) {
         try {
             var [res] = await con.query("SELECT * FROM EffektDonasjonDB.Combining_table WHERE KID = ? LIMIT 1", [KID])
         } catch(ex) {
-            reject(ex)
+            return reject(ex)
         }
 
         if (res.length > 0) fulfill(true)
@@ -62,7 +62,7 @@ function getKIDbySplit(split) {
 
             var [res] = await con.execute(query)
         } catch(ex) {
-            reject(ex)
+            return reject(ex)
         }
 
         if (res.length > 0) fulfill(res[0].KID)
@@ -73,13 +73,28 @@ function getKIDbySplit(split) {
 //endregion
 
 //region Add
-function addSplit(split, KID) {
+function addSplit(donationObject) {
     return new Promise(async (fulfill, reject) => {
         try {
-            let values = split.map((item) => {return [item.organizationID, item.share]})
-            var res = await con.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [values])
+            var transaction = await con.startTransaction()
+
+            let split = donationObject.split
+            let KID = donationObject.KID
+            let donorID = donationObject.donorID
+
+            let distribution_table_values = split.map((item) => {return [item.organizationID, item.share]})
+            var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [distribution_table_values])
+
+            let first_inserted_id = res[0].insertId
+            var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {return [donorID, first_inserted_id+i, KID]})
+
+            //Update combining table
+            var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID) VALUES ?", [combining_table_values])
+
+            con.commitTransaction(transaction)
         } catch(ex) {
-            reject(ex)
+            con.rollbackTransaction(transaction)
+            return reject(ex)
         }
 
         fulfill(true)
@@ -88,7 +103,13 @@ function addSplit(split, KID) {
 
 function add(donationObject) {
     return new Promise(async (fulfill, reject) => {
-        reject(Error("Not implemented"))
+        try {
+            var [res] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, sum_confirmed, KID_fordeling) VALUES (?)", [[donationObject.donorID, 2, donationObject.amount, donationObject.KID]])
+        } catch(ex) {
+            return reject(ex)
+        }
+
+        fulfill(true)
     })
 }
 //endregion

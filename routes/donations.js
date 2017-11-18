@@ -23,7 +23,8 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
 
   try {
     var donationObject = {
-      KID: KID,
+      KID: null, //Set later in code
+      donorID: null, //Set later in code
       amount: parsedData.amount,
       standardSplit: undefined,
       split: []
@@ -40,37 +41,20 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
     }
 
     //Check if existing donor
-    let donorID = await DAO.donors.getIDbyEmail(donor.email)
+    donationObject.donorID = await DAO.donors.getIDbyEmail(donor.email)
   
-    if (donorID == null) {
+    if (donationObject.donorID == null) {
       //Donor does not exist, create donor
-      let donorID = await DAO.donors.add(donor)
+      donationObject.donorID = await DAO.donors.add(donor)
     }
     
     //Try to get existing KID
-    let donationKID = await DAO.donations.getKIDbySplit(donationObject.split)
-  
-    /*  We are now about to change data in the DB
-        This happens in two discrete steps (addSplit and add)
-        Therefore, we must start a transaction
-        If we succesfully add the split, but not the donation
-        we error and rollback the previously added split        */
-
-    DAO.startTransaction()
+    donationObject.KID = await DAO.donations.getKIDbySplit(donationObject.split)
 
     //Split does not exist create new KID and split
-    if (!donationKID) {
-      donationKID = await createKID()
-      await DAO.donations.addSplit(donationObject.split, KID)
-    }
-
-    //Add donation to database
-    try {
-      await DAO.donations.add(donationObject)
-      await DAO.commitTransaction()
-    } catch(ex) {
-      await DAO.rollbackTransaction()
-      return next({ex: ex})
+    if (donationObject.KID == null) {
+      donationObject.KID = await createKID()
+      await DAO.donations.addSplit(donationObject)
     }
   }
   catch (ex) {
@@ -78,9 +62,12 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
   }
   
   //In case the email component should fail, register the donation anyways, and notify client
-  res.json({ status: 200, content: {
-    KID: donationObject.KID
-  }})
+  res.json({ 
+    status: 200, //Temp for testing
+    content: {
+      KID: donationObject.KID
+    }
+  })
 
   sendDonationReciept(donationObject, donor.email, donor.name)
 })
@@ -111,7 +98,7 @@ async function createDonationSplitArray(passedOrganizations) {
           donationSplits.push({
             organizationID: orgs[i].ID,
             share: filteredOrganizations[j].split,
-            name: orgs[i].org_full_name
+            name: orgs[i].full_name
           })
 
           filteredOrganizations.splice(j,1)

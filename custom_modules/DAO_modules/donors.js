@@ -35,7 +35,7 @@ function add(donorObject) {
             var res = await con.execute(`INSERT INTO Donors (
                 email,
                 full_name
-            ) VALUES (?,?,?,?)`, 
+            ) VALUES (?,?)`, 
             [
                 donorObject.email,
                 donorObject.name

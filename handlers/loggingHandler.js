@@ -8,7 +8,7 @@ module.exports = function(app) {
             format:`dev`, 
             stream: { 
                 write: function(str) { 
-                    console.log(str.substr(0,str.length-1) + ` Worker: ${chalk.red(process.pid)}`)
+                    console.log(str.substr(0,str.length-1) + ` | Worker: ${chalk.red(process.pid)}`)
                 }
             }
         }
