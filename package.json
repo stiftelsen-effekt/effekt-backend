@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/fellmirr/effekt-backend#readme",
   "dependencies": {
+    "apicache": "^1.1.0",
     "basic-auth": "^1.1.0",
     "body-parser": "^1.18.2",
     "chai-datetime": "^1.5.0",

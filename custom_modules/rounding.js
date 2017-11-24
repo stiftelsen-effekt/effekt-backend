@@ -38,7 +38,7 @@ module.exports = {
         for (var i = 0; i < spread.length; i++) {
             var split = new decimal(spread[i]).div(100)
 
-            result[i] = setDecimals(total.mul(split), 2)
+            result[i] = setDecimals(total.mul(split), 0)
 
             if (!split.eq(0)) lastWithValue = i
         }

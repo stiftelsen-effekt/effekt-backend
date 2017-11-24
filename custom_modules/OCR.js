@@ -30,7 +30,7 @@ module.exports = {
 
             const date = new Date(
                 parseInt("20" + line.substr(19,2)),
-                parseInt(line.substr(17,2)), //Month is zero indexed. Terrible API design
+                parseInt(line.substr(17,2)),
                 parseInt(line.substr(15,2)))
 
             transaction.date = date

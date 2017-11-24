@@ -12,6 +12,10 @@ router.post('/', async (req, res, next) => {
 
     console.log(OCRRecords)
 
+    for (var i = 0; i < OCRRecords.length; i++) {
+        
+    }
+
     res.json({
         status: 200,
         content: "OK"

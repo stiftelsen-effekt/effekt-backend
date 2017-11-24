@@ -37,7 +37,7 @@ function KIDexists(KID) {
     })
 }
 
-function getKIDbySplit(split) {
+function getKIDbySplit(split, donorID) {
     return new Promise(async (fulfill, reject) => {
         let KID = null
         //Check if existing KID
@@ -52,7 +52,7 @@ function getKIDbySplit(split) {
             `;
             
             for (let i = 0; i < split.length; i++) {
-                query += `(OrgID = ${sqlString.escape(split[i].organizationID)} AND percentage_share = ${sqlString.escape(split[i].share)})`
+                query += `(OrgID = ${sqlString.escape(split[i].organizationID)} AND percentage_share = ${sqlString.escape(split[i].share)} AND Donor_ID = ${sqlString.escape(donorID)})`
                 if (i < split.length-1) query += ` OR `
             }
 
@@ -101,10 +101,12 @@ function addSplit(donationObject) {
     })
 }
 
-function add(donationObject) {
+function addByKID() {
     return new Promise(async (fulfill, reject) => {
+        throw new Error("Not implemented")
+        
         try {
-            var [res] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, sum_confirmed, KID_fordeling) VALUES (?)", [[donationObject.donorID, 2, donationObject.amount, donationObject.KID]])
+            
         } catch(ex) {
             return reject(ex)
         }
@@ -152,7 +154,6 @@ module.exports = function(dbPool) {
         getKIDbySplit,
         KIDexists,
         addSplit,
-        add,
         registerConfirmedByIDs
     }
 }

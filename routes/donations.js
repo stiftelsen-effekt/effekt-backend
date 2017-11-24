@@ -49,7 +49,7 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
     }
     
     //Try to get existing KID
-    donationObject.KID = await DAO.donations.getKIDbySplit(donationObject.split)
+    donationObject.KID = await DAO.donations.getKIDbySplit(donationObject.split, donationObject.donorID)
 
     //Split does not exist create new KID and split
     if (donationObject.KID == null) {
@@ -131,7 +131,7 @@ async function sendDonationReciept(donationObject, recieverEmail, recieverName) 
   try {
     var KIDstring = donationObject.KID.toString()
     //Add seperators for KID, makes it easier to read
-    KIDstring = KIDstring.substr(0,3) + " " + KIDstring.substr(2,2) + " " + KIDstring.substr(5,3)
+    KIDstring = KIDstring.substr(0,3) + " " + KIDstring.substr(3,2) + " " + KIDstring.substr(5,3)
 
     var result = await Mail.send({
       subject: 'GiEffektivt.no - Donasjon klar for innbetaling',
