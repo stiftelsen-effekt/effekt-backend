@@ -4,7 +4,7 @@
   "description": "Backend for stiftelsen effekt sitt donasjonsystem",
   "main": "sudo pm2 start server.js -i max",
   "engines": {
-    "node": "6.9.1"
+    "node": ">=8.0.0"
   },
   "scripts": {
     "test": "nyc mocha"
@@ -32,6 +32,7 @@
     "express-rate-limit": "^2.9.0",
     "fs-extra": "^4.0.2",
     "graceful-fs": "^4.1.11",
+    "he": "^1.1.1",
     "honeypot": "0.0.2",
     "jsonfile": "^4.0.0",
     "moment": "^2.19.1",
