@@ -15,6 +15,7 @@ module.exports = {
         this.donors = require('./DAO_modules/donors.js')(dbPool)
         this.organizations = require('./DAO_modules/organizations.js')(dbPool)
         this.donations = require('./DAO_modules/donations.js')(dbPool)
+        this.csr = require('./DAO_modules/csr.js')(dbPool)
 
         dbPool.startTransaction = async function() {
             let transaction = await dbPool.getConnection()

@@ -84,11 +84,13 @@ const donorsRoute = require('./routes/donors.js')
 const donationsRoute = require('./routes/donations.js')
 const organizationsRoute = require('./routes/organizations.js')
 const ocrParserRoute = require('./routes/ocrParser.js')
+const csrRoute = require('./routes/csr.js')
 
 app.use('/donors', donorsRoute)
 app.use('/donations', donationsRoute)
 app.use('/organizations', organizationsRoute)
 app.use('/ocr', ocrParserRoute)
+app.use('/csr', csrRoute)
 
 app.use('/static', express.static('static'))
 
