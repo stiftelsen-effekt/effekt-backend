@@ -59,10 +59,12 @@ function getStandardSplit() {
             return reject(ex)
         }
 
+        if (standardSplit.reduce((acc, org) => acc+=org.std_percentage_share, 0) != 100) reject(Error("Standard split does not sum to 100 percent"))
+
         fulfill(standardSplit.map((org) => {
             return {
                 organizationID: org.ID,
-                name: org.org_full_name,
+                name: org.full_name,
                 share: org.std_percentage_share
             }
         }))
