@@ -69,6 +69,7 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
     }
   })
 
+  /* Move to BANK DONATION AREA */
   sendDonationReciept(donationObject, donor.email, donor.name)
 })
 
@@ -144,10 +145,13 @@ async function sendDonationReciept(donationObject, recieverEmail, recieverName) 
         kid: KIDstring,
         accountNumber: config.bankAccount,
         organizations: donationObject.split.map(function(split) {
+          var amount = donationObject.amount * split.share * 0.01
+          var roundedAmount = (amount > 1 ? Math.round(amount) : 1)
+
           return {
             name: split.name,
             //Add thousand seperator regex at end of amount
-            amount: (donationObject.amount * split.share * 0.01).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+            amount: (roundedAmount != amount ? "~ " : "") + roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             percentage: split.share
           }
         })

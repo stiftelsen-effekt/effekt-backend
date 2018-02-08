@@ -101,12 +101,18 @@ function addSplit(donationObject) {
     })
 }
 
-function addByKID() {
+function add(KID, paymentMethodID, sum) {
     return new Promise(async (fulfill, reject) => {
-        throw new Error("Not implemented")
-        
         try {
-            
+            var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
+            var donorID = donorIDQuery[0].Donor_ID
+
+            console.log(donorID)
+            console.log(KID)
+            console.log(sum)
+            console.log(paymentMethodID)
+
+            var res = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, sum_confirmed, KID_fordeling) VALUES (?,?,?,?)", [donorID, paymentMethodID, sum, KID])
         } catch(ex) {
             return reject(ex)
         }
@@ -154,6 +160,7 @@ module.exports = function(dbPool) {
         getKIDbySplit,
         KIDexists,
         addSplit,
+        add,
         registerConfirmedByIDs
     }
 }

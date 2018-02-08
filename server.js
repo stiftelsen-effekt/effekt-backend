@@ -22,6 +22,7 @@ const DAO = require('./custom_modules/DAO.js')
 DAO.connect()
 
 const errorHandler = require('./handlers/errorHandler.js')
+const websocketsHandler = require('./handlers/websocketsHandler.js')()
 
 //Setup express
 const app = express()
@@ -84,12 +85,15 @@ const donorsRoute = require('./routes/donors.js')
 const donationsRoute = require('./routes/donations.js')
 const organizationsRoute = require('./routes/organizations.js')
 const ocrParserRoute = require('./routes/ocrParser.js')
+console.log(websocketsHandler)
+const paypalRoute = require('./routes/paypal.js')(websocketsHandler)
 const csrRoute = require('./routes/csr.js')
 
 app.use('/donors', donorsRoute)
 app.use('/donations', donationsRoute)
 app.use('/organizations', organizationsRoute)
 app.use('/ocr', ocrParserRoute)
+app.use('/paypal', paypalRoute)
 app.use('/csr', csrRoute)
 
 app.use('/static', express.static('static'))

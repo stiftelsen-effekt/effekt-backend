@@ -17,7 +17,7 @@ module.exports = {
         }
 
         if (lastWithValue) {
-            var percentOfTotal = new decimal(this.sumWithPrecision(input)).div(total).mul(100)
+            var percentOfTotal = setDecimals(new decimal(this.sumWithPrecision(input)).div(total).mul(100), decimals)
 
             var remainder = percentOfTotal.sub(this.sumWithPrecision(result))
             result[lastWithValue] = result[lastWithValue].add(remainder)
@@ -44,7 +44,7 @@ module.exports = {
         }
 
         if (lastWithValue) {
-            var remainder = total.mul(new decimal(this.sumWithPrecision(spread)).div(100)).sub(this.sumWithPrecision(result))
+            var remainder = setDecimals(total.mul(new decimal(this.sumWithPrecision(spread)).div(100)).sub(this.sumWithPrecision(result)),0)
             result[lastWithValue] = result[lastWithValue].add(remainder)
         }
 
