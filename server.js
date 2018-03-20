@@ -120,6 +120,6 @@ if (config.ssl) {
   console.log("Server listening")
 }
 else {
-  http.createServer(app).listen(3000);
+  http.createServer(app).listen(3000)
   console.log("Server listening")
 }

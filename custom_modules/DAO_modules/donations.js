@@ -1,5 +1,3 @@
-//const rounding = require('./rounding.js')
-const KID = require('../KID.js')
 const sqlString = require('sqlstring')
 
 var con
@@ -12,15 +10,14 @@ function getByDonor(KID) {
     })
 }
 
-function getByID(ID) {
-    return new Promise(async (fulfill, reject) => {
-        return reject(new Error("Not implemented"))
-    })
-}
-
 function getAggregateByTime(startTime, endTime) {
     return new Promise(async (fulfill, reject) => {
-        return reject(new Error("Not implemented"))
+        try {
+            var [getAggregateQuery] = await con.query("CALL `EffektDonasjonDB`.`get_aggregate_donations_by_period`(?, ?)", [startTime, endTime])
+            return fulfill(getAggregateQuery[0])
+        } catch(ex) {
+            return reject(ex)
+        }
     })
 }
 
@@ -70,6 +67,62 @@ function getKIDbySplit(split, donorID) {
     })
 }
 
+function getByID(donationID) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            let donation = {}
+
+            var [getDonationFromIDquery] = await con.execute(`SELECT 
+                Donation.sum_confirmed, 
+                Donation.KID_fordeling,
+                Donor.full_name,
+                Donor.email
+                FROM 
+                    Donations as Donation
+                INNER JOIN 
+                    Donors as Donor
+                ON 
+                    Donation.Donor_ID = Donor.ID
+                WHERE Donation.ID = ${sqlString.escape(donationID)}`)
+
+
+            if (getDonationFromIDquery.length != 1) reject("Could not find donation with ID " + donationID)
+
+            donation.donorName = getDonationFromIDquery[0].full_name
+            donation.sum = getDonationFromIDquery[0].sum_confirmed
+            donation.mail = getDonationFromIDquery[0].email
+            donation.KID = getDonationFromIDquery[0].KID_fordeling
+
+            donation.organizations = await getSplitByKID(donation.KID)
+
+            return fulfill(donation)
+        } catch(ex) {
+            return reject(ex)
+        }
+    })
+}
+
+function getSplitByKID(KID) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            let [getOrganizationsSplitByKIDQuery] = await con.execute(`SELECT 
+            Organizations.full_name, Distribution.percentage_share
+            FROM Combining_table as Combining
+            INNER JOIN Distribution as Distribution
+            ON Combining.Distribution_ID = Distribution.ID
+            INNER JOIN Organizations as Organizations
+            ON Organizations.ID = Distribution.OrgID
+            WHERE KID = ${sqlString.escape(KID)}`)
+
+            if (getOrganizationsSplitByKIDQuery.length == 0) return reject("No split with the KID " + KID)
+
+            return fulfill(getOrganizationsSplitByKIDQuery)
+        } catch(ex) {
+            reject(ex)
+        }
+    })
+}
+
 //endregion
 
 //region Add
@@ -105,19 +158,20 @@ function add(KID, paymentMethodID, sum) {
     return new Promise(async (fulfill, reject) => {
         try {
             var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
+
+            if (donorIDQuery.length != 1) { 
+                reject("KID " + KID + " does not exist");
+                return false;
+            }
+
             var donorID = donorIDQuery[0].Donor_ID
 
-            console.log(donorID)
-            console.log(KID)
-            console.log(sum)
-            console.log(paymentMethodID)
+            var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, sum_confirmed, KID_fordeling) VALUES (?,?,?,?)", [donorID, paymentMethodID, sum, KID])
 
-            var res = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, sum_confirmed, KID_fordeling) VALUES (?,?,?,?)", [donorID, paymentMethodID, sum, KID])
+            return fulfill(addDonationQuery.insertId)
         } catch(ex) {
             return reject(ex)
         }
-
-        fulfill(true)
     })
 }
 //endregion
@@ -145,9 +199,7 @@ function registerConfirmedByIDs(IDs) {
 //endregion
 
 //region Helpers
-function generateKID() {
 
-}
 //endregion
 
 module.exports = function(dbPool) {
