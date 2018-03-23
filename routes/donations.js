@@ -1,17 +1,18 @@
 const express = require('express')
-const router = express.Router()
-
 const bodyParser = require('body-parser')
-const urlEncodeParser = bodyParser.urlencoded({ extended: false })
-
+const multer = require('multer');
 const moment = require('moment')
-
 const config = require('../config.js')
-
 const KID = require('../custom_modules/KID.js')
 const Mail = require('../custom_modules/mail.js')
-
+const VippsParser = require('../custom_modules/vipps_parser.js')
 const DAO = require('../custom_modules/DAO.js')
+
+const router = express.Router()
+const storage = multer.memoryStorage()
+const urlEncodeParser = bodyParser.urlencoded({ extended: false })
+const upload = multer({ storage })
+const VIPPS_ID = 4
 
 router.post("/", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -29,7 +30,7 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
       standardSplit: undefined,
       split: []
     }
-  
+
     //Create a donation split object
     if (parsedData.organizations) {
       donationObject.split = await createDonationSplitArray(parsedData.organizations)
@@ -42,12 +43,12 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
 
     //Check if existing donor
     donationObject.donorID = await DAO.donors.getIDbyEmail(donor.email)
-  
+
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
       donationObject.donorID = await DAO.donors.add(donor)
     }
-    
+
     //Try to get existing KID
     donationObject.KID = await DAO.donations.getKIDbySplit(donationObject.split, donationObject.donorID)
 
@@ -60,9 +61,9 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
   catch (ex) {
     return next({ex: ex})
   }
-  
+
   //In case the email component should fail, register the donation anyways, and notify client
-  res.json({ 
+  res.json({
     status: 200, //Temp for testing
     content: {
       KID: donationObject.KID
@@ -72,6 +73,39 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
   /* Move to BANK DONATION AREA */
   sendDonationReciept(donationObject, donor.email, donor.name)
 })
+
+router.post("/report", upload.single('report'), async (req,res,next) => {
+  if (!req.files || !req.files.report) return res.sendStatus(400)
+  transactions = VippsParser.parse_report(req.files.report.data)
+
+  const failed = []
+  const success = []
+
+  await Promise.all(
+        transactions.map(({ kidNumber, amount, message, firstName, lastName }) =>
+          DAO.donations.add(kidNumber, VIPPS_ID, amount)
+            .then(() => {
+              success.push({ kidNumber, amount, message, firstName, lastName })
+              console.log("Added");
+            })
+            .catch(err => {
+              failed.push({ kidNumber, amount, message, firstName, lastName })
+              console.error(err);
+            })
+        ))
+        .then(() => {
+          res.json({
+            processed: failed.length + success.length,
+            numFailed: failed.length,
+            numSuccess: success.length,
+            success,
+            failed
+          })
+        })
+        .catch(ex => {
+          next({ ex });
+        })
+  })
 
 async function createDonationSplitArray(passedOrganizations) {
   return new Promise(async function(fulfill, reject) {
@@ -88,7 +122,7 @@ async function createDonationSplitArray(passedOrganizations) {
     catch (ex) {
       return reject(ex)
     }
-    
+
     if (orgs.length != filteredOrganizations.length) return reject(new Error("Could not find all organizations in DB"))
 
     var donationSplits = []
@@ -186,7 +220,7 @@ router.get('/:id', async (req,res,next) => {
   } catch(ex) {
     next({ex: ex})
   }
-  
+
   res.json({
     status: 200,
     content: donation
@@ -206,7 +240,7 @@ function createKID() {
     } catch(ex) {
       reject(ex)
     }
-    
+
     fulfill(newKID)
   })
 }
