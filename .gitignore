@@ -2,3 +2,4 @@
 config.js
 bundle.js
 bundle.min.js
+.DS_Store
