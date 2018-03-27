@@ -5,5 +5,5 @@
 
 # find . -path ./node_modules -prune -o -type d
 
-sftp -o StrictHostKeyChecking=no -b ./deploy/sftp_batch.txt gieffektivt@api.gieffektivt.no
+# sftp -o StrictHostKeyChecking=no -b ./deploy/sftp_batch.txt gieffektivt@api.gieffektivt.no
 

@@ -1,18 +1,18 @@
 cd /var/www/api/
 mkdir custom_modules
-put custom_modules
+put -r custom_modules
 mkdir deploy
-put deploy
+put -r deploy
 mkdir handlers
-put handlers
+put -r handlers
 mkdir mail_templates
-put mail_templates
+put -r mail_templates
 mkdir routes
-put routes
+put -r routes
 mkdir static
-put static
+put -r static
 mkdir test
-put test
+put -r test
 mkdir tools
 put tools
 put config.js
