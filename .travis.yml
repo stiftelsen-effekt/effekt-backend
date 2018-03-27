@@ -1,12 +1,6 @@
 language: node_js
 node_js:
   "8"
-env:
-  global:
-    - "FTP_USER=user"
-    - "FTP_PASSWORD=password"
-after_success:
-    "curl --ftp-create-dirs -T uploadfilename -u $FTP_USER:$FTP_PASSWORD sftp://api.gieffektivt.no/home/fellmirr/api -k"
 
 notifications:
   email: false
@@ -14,3 +8,9 @@ notifications:
     rooms:
       - effektteam:E4fggEJ9TPpFLTpgn4eNEnGy#prosjekt_automagi
     on_success: never
+
+deploy:
+  provider: script
+  script: ./deploy.sh
+  on:
+    branch: production
