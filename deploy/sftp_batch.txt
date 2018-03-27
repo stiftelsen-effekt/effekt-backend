@@ -1,0 +1,14 @@
+cd /var/www/api/
+put custom_modules
+put deploy
+put handlers
+put mail_templates
+put routes
+put static
+put test
+put tools
+put config.js
+put package.json
+put package-lock.json
+put README.md
+put server.js
