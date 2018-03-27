@@ -52,6 +52,10 @@ ansicolors@~0.2.1:
   version "0.2.1"
   resolved "https://registry.yarnpkg.com/ansicolors/-/ansicolors-0.2.1.tgz#be089599097b74a5c9c4a84a0cdbcdb62bd87aef"
 
+apicache@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/apicache/-/apicache-1.1.0.tgz#248795fd164c92403ff1e44b2174be67add0f245"
+
 append-transform@^0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/append-transform/-/append-transform-0.4.0.tgz#d76ebf8ca94d276e247a36bad44a4b74ab611991"
