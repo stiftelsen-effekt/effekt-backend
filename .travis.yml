@@ -12,7 +12,7 @@ notifications:
 deploy:
   provider: script
   # script: bash ./deploy/deploy.sh
-  script: rsync -r --delete-after --quiet $TRAVIS_BUILD_DIR $FTP_USER@api.gieffektivt.no:var/www/api
+  script: rsync -r -e "ssh -o StrictHostKeyChecking=no" --delete-after --quiet $TRAVIS_BUILD_DIR $FTP_USER@api.gieffektivt.no:var/www/api
   skip_cleanup: true
   on:
     branch: production
