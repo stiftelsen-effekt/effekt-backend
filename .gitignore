@@ -1,4 +1,5 @@
-/node_modules
-config.js
+node_modules/
 bundle.js
 bundle.min.js
+.idea/
+.vscode/
