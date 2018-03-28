@@ -42,9 +42,9 @@ module.exports = {
 
 
 
-    //Security
+    //Security, default to false for development
 
-    ssl: true,
+    ssl: process.env.SSL || false,
 
 
 
