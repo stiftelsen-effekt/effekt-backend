@@ -109,7 +109,7 @@ app.get("/loaderio-66c56b6216728d162150350fd76fc76a/", (req, res, next) => {
 //Server
 if (config.ssl) {
   //SSL
-  const privateKey = fs.readFileSync('./cert/private.key')
+  const privateKey = fs.readFileSync('./cert/api_gieffektivt_no.key')
   const certificate = fs.readFileSync('./cert/api_gieffektivt_no.crt')
 
   https.createServer({
