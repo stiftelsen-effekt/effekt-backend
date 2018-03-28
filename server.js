@@ -107,18 +107,5 @@ app.get("/loaderio-66c56b6216728d162150350fd76fc76a/", (req, res, next) => {
 })
 
 //Server
-if (config.ssl) {
-  //SSL
-  const privateKey = fs.readFileSync('./cert/api_gieffektivt_no.key')
-  const certificate = fs.readFileSync('./cert/api_gieffektivt_no.crt')
-
-  https.createServer({
-    key: privateKey,
-    cert: certificate
-  }, app).listen(config.port)
-  console.log("Server listening")
-}
-else {
-  http.createServer(app).listen(config.port)
-  console.log("Server listening")
-}
+http.createServer(app).listen(config.port)
+console.log("Server listening on port " + config.port)

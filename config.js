@@ -41,13 +41,6 @@ module.exports = {
     serverAddress: process.env.SERVER_ADDRESS,
 
 
-
-    //Security, default to false for development
-
-    ssl: (process.env.SSL == "true" ? true : false) || false,
-
-
-
     //Debugging
 
     debugReturnExceptions: true
