@@ -44,7 +44,7 @@ module.exports = {
 
     //Security, default to false for development
 
-    ssl: process.env.SSL || false,
+    ssl: (process.env.SSL == "true" ? true : false) || false,
 
 
 
