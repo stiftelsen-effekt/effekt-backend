@@ -85,7 +85,6 @@ const donorsRoute = require('./routes/donors.js')
 const donationsRoute = require('./routes/donations.js')
 const organizationsRoute = require('./routes/organizations.js')
 const ocrParserRoute = require('./routes/ocrParser.js')
-console.log(websocketsHandler)
 const paypalRoute = require('./routes/paypal.js')(websocketsHandler)
 const csrRoute = require('./routes/csr.js')
 
@@ -116,10 +115,10 @@ if (config.ssl) {
   https.createServer({
     key: privateKey,
     cert: certificate
-  }, app).listen(443)
+  }, app).listen(config.port)
   console.log("Server listening")
 }
 else {
-  http.createServer(app).listen(3000)
+  http.createServer(app).listen(config.port)
   console.log("Server listening")
 }
