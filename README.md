@@ -5,4 +5,3 @@ Backend for stiftelsen effekt
 
 ## Prerequisites
 Node version 8 or higher
-
