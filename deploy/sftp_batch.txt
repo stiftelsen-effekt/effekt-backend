@@ -1,0 +1,22 @@
+cd /var/www/api/
+mkdir custom_modules
+put -r custom_modules
+mkdir deploy
+put -r deploy
+mkdir handlers
+put -r handlers
+mkdir mail_templates
+put -r mail_templates
+mkdir routes
+put -r routes
+mkdir static
+put -r static
+mkdir test
+put -r test
+mkdir tools
+put tools
+put config.js
+put package.json
+put package-lock.json
+put README.md
+put server.js

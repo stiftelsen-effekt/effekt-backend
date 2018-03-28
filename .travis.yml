@@ -11,6 +11,8 @@ notifications:
 
 deploy:
   provider: script
-  script: ./deploy.sh
+  # script: bash ./deploy/deploy.sh
+  script: rsync -r -e "ssh -o StrictHostKeyChecking=no" $TRAVIS_BUILD_DIR/ $FTP_USER@api.gieffektivt.no:/var/www/api/
+  skip_cleanup: true
   on:
     branch: production
