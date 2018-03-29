@@ -8,6 +8,7 @@ var clients = []
 
 //Private
 function connection(ws) {
+    console.log("Connection got ws-argument: " + ws);
     let clientID = uuid()
     clients[clientID] = ws
     send(clientID, clientID) //Notify the client what their ID is
@@ -19,9 +20,9 @@ function send(clientID, msg) {
     clients[clientID].send(msg)
 }
 
-module.exports = function() {
-    let server = new WebSocket.Server({ port: config.websocketsPort })
-    console.log("Websockets server listening on port " + config.websocketsPort)
+module.exports = function(httpServer) {
+    let server = new WebSocket.Server({ server: httpServer })
+    console.log("Websockets server listening")
 
     server.on("connection", connection)
 
