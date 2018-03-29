@@ -8,6 +8,7 @@ var clients = []
 
 //Private
 function connection(ws) {
+    console.log("Connection got ws-argument: " + ws);
     let clientID = uuid()
     clients[clientID] = ws
     send(clientID, clientID) //Notify the client what their ID is
