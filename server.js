@@ -22,7 +22,6 @@ const DAO = require('./custom_modules/DAO.js')
 DAO.connect()
 
 const errorHandler = require('./handlers/errorHandler.js')
-const websocketsHandler = require('./handlers/websocketsHandler.js')()
 
 //Setup express
 const app = express()
@@ -80,6 +79,20 @@ app.use(function (req, res, next) {
     next()
 })
 
+//Error handling
+app.use(errorHandler)
+
+//Load testing verification endpoint
+//Loader.io (website for service)
+app.get("/loaderio-66c56b6216728d162150350fd76fc76a/", (req, res, next) => {
+  res.status(200).send("loaderio-66c56b6216728d162150350fd76fc76a");
+})
+
+//Server
+var mainServer = http.createServer(app).listen(config.port)
+console.log("Server listening on port " + config.port)
+const websocketsHandler = require('./handlers/websocketsHandler.js')(mainServer)
+
 //Routes
 const donorsRoute = require('./routes/donors.js')
 const donationsRoute = require('./routes/donations.js')
@@ -96,16 +109,3 @@ app.use('/paypal', paypalRoute)
 app.use('/csr', csrRoute)
 
 app.use('/static', express.static('static'))
-
-//Error handling
-app.use(errorHandler)
-
-//Load testing verification endpoint
-//Loader.io (website for service)
-app.get("/loaderio-66c56b6216728d162150350fd76fc76a/", (req, res, next) => {
-  res.status(200).send("loaderio-66c56b6216728d162150350fd76fc76a");
-})
-
-//Server
-http.createServer(app).listen(config.port)
-console.log("Server listening on port " + config.port)
