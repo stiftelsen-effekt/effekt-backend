@@ -5,3 +5,11 @@ Backend for stiftelsen effekt
 
 ## Prerequisites
 Node version 8 or higher
+
+## Setting environment variables
+Before you run the application, you need to setup some environment variables
+In windows this is done in the following way:
+
+`setx DB_HOST api.gieffektivt.no`
+
+Repeat for all variables needed by config.js.
