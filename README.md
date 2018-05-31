@@ -13,3 +13,4 @@ In windows this is done in the following way:
 `setx DB_HOST api.gieffektivt.no`
 
 Repeat for all variables needed by config.js.
+Any terminal you have open, including in IDEs will need to be restarted for the changes to take effekt.
