@@ -14,7 +14,7 @@ const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 const upload = multer({ storage })
 const VIPPS_ID = 4
 
-router.post("/", urlEncodeParser, async (req,res,next) => {
+router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
 
   let parsedData = JSON.parse(req.body.data)
@@ -69,9 +69,14 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
       KID: donationObject.KID
     }
   })
+})
 
-  /* Move to BANK DONATION AREA */
-  sendDonationReciept(donationObject, donor.email, donor.name)
+router.post("/bank/:KID/:sum", (req, res) => {
+  res.status(501).json({
+    status: 501,
+    content: "Not implemented"
+  })
+  //sendDonationReciept(donationObject, donor.email, donor.name)
 })
 
 router.post("/report", upload.single('report'), async (req,res,next) => {
@@ -162,40 +167,6 @@ async function getStandardSplit() {
   })
 }
 
-async function sendDonationReciept(donationObject, recieverEmail, recieverName) {
-  try {
-    var KIDstring = donationObject.KID.toString()
-    //Add seperators for KID, makes it easier to read
-    KIDstring = KIDstring.substr(0,3) + " " + KIDstring.substr(3,2) + " " + KIDstring.substr(5,3)
-
-    var result = await Mail.send({
-      subject: 'GiEffektivt.no - Donasjon klar for innbetaling',
-      reciever: recieverEmail,
-      templateName: 'registered',
-      templateData: {
-        header: "Hei, " + (recieverName.length > 0 ? recieverName : ""),
-        //Add thousand seperator regex at end of amount
-        donationSum: donationObject.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-        kid: KIDstring,
-        accountNumber: config.bankAccount,
-        organizations: donationObject.split.map(function(split) {
-          var amount = donationObject.amount * split.share * 0.01
-          var roundedAmount = (amount > 1 ? Math.round(amount) : 1)
-
-          return {
-            name: split.name,
-            //Add thousand seperator regex at end of amount
-            amount: (roundedAmount != amount ? "~ " : "") + roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-            percentage: split.share
-          }
-        })
-      }
-    })
-  }
-  catch(ex) {
-    console.log(ex)
-  }
-}
 
 router.get('/total', urlEncodeParser, async (req,res,next) => {
   //Check if no parameters
@@ -208,7 +179,12 @@ router.get('/total', urlEncodeParser, async (req,res,next) => {
   let toDate = new Date(req.query.toDate)
 
   try {
-    let res = await Donation.getTotalAggregatedDonations(fromDate, toDate)
+    var aggregate = await DAO.donations.getAggregateByTime(fromDate, toDate)
+
+    res.json({
+      status: 200,
+      content: aggregate
+    })
   } catch(ex) {
     next({ex: ex})
   }
@@ -217,10 +193,14 @@ router.get('/total', urlEncodeParser, async (req,res,next) => {
 router.get('/:id', async (req,res,next) => {
   try {
     var donation = await DAO.donations.getByID(req.params.id)
+
+    res.json({
+      status: 200,
+      content: donation
+    })
   } catch(ex) {
     next({ex: ex})
   }
-
   res.json({
     status: 200,
     content: donation
