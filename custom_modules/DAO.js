@@ -10,6 +10,16 @@ module.exports = {
             password: config.db_password,
             database: config.db_name
         })
+
+        //Check whether connection was successfull
+        //Weirdly, this is the proposed way to do it
+        try {
+            await dbPool.query("SELECT 1 + 1 AS Solution")
+            console.log("Connected to database")
+        } catch(ex) {
+            console.error("Connection to database failed!")
+            console.log(ex)
+        } 
     
         //Load submodules
         this.donors = require('./DAO_modules/donors.js')(dbPool)
@@ -31,6 +41,6 @@ module.exports = {
             await transaction.query("COMMIT")
         }
 
-        console.log("Connected to DB")
+        console.log("DAO setup complete")
     }
 }

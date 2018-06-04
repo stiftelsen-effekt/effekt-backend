@@ -19,6 +19,9 @@ const https = require('https')
 const http = require('http')
 
 const DAO = require('./custom_modules/DAO.js')
+
+//Connect to the DB
+//If unsucsessfull, quit app
 DAO.connect()
 
 const errorHandler = require('./handlers/errorHandler.js')
