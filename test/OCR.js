@@ -5,7 +5,7 @@ const expect = (chai.expect);
 const fs = require('fs')
 
 // Internal
-const OCR = require('../custom_modules/OCR.js');
+const OCR = require('../custom_modules/parsers/OCR.js');
 
 const sampleOCRfile = fs.readFileSync('test/data/ocr_test.ocr').toString("utf8")
 const noTransactionOCRFile =  fs.readFileSync('test/data/ocr_no_valid_records.ocr').toString("utf8")

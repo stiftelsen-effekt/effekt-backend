@@ -96,7 +96,7 @@ async function sendDonationRegistered(KID, sum) {
         }
 */
 async function send(options) {
-    const templateRoot = appRoot + '/mail_templates/' + options.templateName
+    const templateRoot = appRoot + '/pages/mail/' + options.templateName
 
     var templateRawHTML = await fs.readFile(templateRoot + "/index.html", 'utf8')
     var templateHTML = template(templateRawHTML, options.templateData)

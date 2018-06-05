@@ -24,7 +24,20 @@ function getAggregateByTime(startTime, endTime) {
 function KIDexists(KID) {
     return new Promise(async (fulfill, reject) => {
         try {
-            var [res] = await con.query("SELECT * FROM EffektDonasjonDB.Combining_table WHERE KID = ? LIMIT 1", [KID])
+            var [res] = await con.query("SELECT * FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
+        } catch(ex) {
+            return reject(ex)
+        }
+
+        if (res.length > 0) fulfill(true)
+        else fulfill(false)
+    })
+}
+
+function ExternalPaymentIDExists(externalPaymentID, paymentID) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var [res] = await con.query("SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ? LIMIT 1", [externalPaymentID, paymentID])
         } catch(ex) {
             return reject(ex)
         }
@@ -154,7 +167,7 @@ function addSplit(donationObject) {
     })
 }
 
-function add(KID, paymentMethodID, sum) {
+function add(KID, paymentMethodID, sum, externalPaymentID = null) {
     return new Promise(async (fulfill, reject) => {
         try {
             var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
@@ -164,9 +177,21 @@ function add(KID, paymentMethodID, sum) {
                 return false;
             }
 
+            /*  External transaction ID can be passed to prevent duplicates.
+                For example if you upload the same vipps report multiple
+                times, we must check the vipps transaction ID against the
+                stored ones in the database, to ensure that we are not creating
+                a duplicate donation. */
+            if (externalPaymentID != null) {
+                if (await ExternalPaymentIDExists(externalPaymentID,paymentMethodID)) {
+                    reject("Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID)
+                    return false
+                }
+            }
+
             var donorID = donorIDQuery[0].Donor_ID
 
-            var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, sum_confirmed, KID_fordeling) VALUES (?,?,?,?)", [donorID, paymentMethodID, sum, KID])
+            var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, KID_fordeling) VALUES (?,?,?,?,?)", [donorID, paymentMethodID, externalPaymentID, sum, KID])
 
             return fulfill(addDonationQuery.insertId)
         } catch(ex) {
@@ -211,6 +236,7 @@ module.exports = function(dbPool) {
         getAggregateByTime,
         getKIDbySplit,
         KIDexists,
+        ExternalPaymentIDExists,
         addSplit,
         add,
         registerConfirmedByIDs

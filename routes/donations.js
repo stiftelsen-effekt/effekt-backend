@@ -1,18 +1,13 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const multer = require('multer');
 const moment = require('moment')
 const config = require('../config.js')
 const KID = require('../custom_modules/KID.js')
 const Mail = require('../custom_modules/mail.js')
-const VippsParser = require('../custom_modules/vipps_parser.js')
 const DAO = require('../custom_modules/DAO.js')
 
 const router = express.Router()
-const storage = multer.memoryStorage()
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
-const upload = multer({ storage })
-const VIPPS_ID = 4
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -78,39 +73,6 @@ router.post("/bank/:KID/:sum", (req, res) => {
   })
   //sendDonationReciept(donationObject, donor.email, donor.name)
 })
-
-router.post("/report", upload.single('report'), async (req,res,next) => {
-  if (!req.files || !req.files.report) return res.sendStatus(400)
-  transactions = VippsParser.parse_report(req.files.report.data)
-
-  const failed = []
-  const success = []
-
-  await Promise.all(
-        transactions.map(({ kidNumber, amount, message, firstName, lastName }) =>
-          DAO.donations.add(kidNumber, VIPPS_ID, amount)
-            .then(() => {
-              success.push({ kidNumber, amount, message, firstName, lastName })
-              console.log("Added");
-            })
-            .catch(err => {
-              failed.push({ kidNumber, amount, message, firstName, lastName })
-              console.error(err);
-            })
-        ))
-        .then(() => {
-          res.json({
-            processed: failed.length + success.length,
-            numFailed: failed.length,
-            numSuccess: success.length,
-            success,
-            failed
-          })
-        })
-        .catch(ex => {
-          next({ ex });
-        })
-  })
 
 async function createDonationSplitArray(passedOrganizations) {
   return new Promise(async function(fulfill, reject) {
@@ -201,10 +163,6 @@ router.get('/:id', async (req,res,next) => {
   } catch(ex) {
     next({ex: ex})
   }
-  res.json({
-    status: 200,
-    content: donation
-  })
 })
 
 //Helper functions
