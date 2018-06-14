@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,700');
+
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Open Sans', sans-serif;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-image: url('/img/bg.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+
+    min-height: 100%;
+}
+
+.dialog {
+    background: white;
+    box-shadow: 0px 0px 7px 5px rgba(0,0,0,.3);
+    max-width: 320px;
+    position: relative;
+
+    .inner {
+        padding: 20px;
+        box-sizing: border-box;
+
+        h1 {
+            font-weight: 300;
+            font-size: 24px;
+            margin-top: 8px;
+            margin-bottom: 0;
+        }
+
+        h2 {
+            font-size: 14px;
+            color: #222;
+            text-transform: uppercase;
+            font-weight: 300;
+            letter-spacing: 1px;
+            margin-top: 0;
+        }
+
+        p {
+            margin-bottom: 20px;
+        }
+    
+        form {
+            text-align: center;
+    
+            .btn {
+                padding: 16px 24px;
+                margin-top: 14px;
+                border: 2px solid #f58020;
+                color: #f58020;
+                background: none;
+                font-size: 14px;
+                text-transform: uppercase;
+                font-weight: 700;
+                font-family: 'Open Sans';
+                cursor: pointer;
+
+                &:hover {
+                    background: #f58020;
+                    color: white;
+                }
+            }
+        }
+    }
+    
+    .help {
+        background: #397093;
+        width: 100%;
+        padding: 8px;
+        font-size: 11px;
+        color: white;
+        text-align: center;
+        box-sizing: border-box;
+    }
+}
+
+input[type="text"], input[type="password"] {
+    background: #eee;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 300;
+    margin-bottom: 8px;
+    border: none;
+    font-family: 'Open Sans';
+}
+
+A:link, A:visited {
+    color: #2196F3;
+}

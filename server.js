@@ -17,6 +17,7 @@ const logging = require('./handlers/loggingHandler.js')
 const fs = require('fs')
 const https = require('https')
 const http = require('http')
+const hogan = require('hogan-express')
 
 const DAO = require('./custom_modules/DAO.js')
 
@@ -85,11 +86,11 @@ app.use(function (req, res, next) {
 //Error handling
 app.use(errorHandler)
 
-//Load testing verification endpoint
-//Loader.io (website for service)
-app.get("/loaderio-66c56b6216728d162150350fd76fc76a/", (req, res, next) => {
-  res.status(200).send("loaderio-66c56b6216728d162150350fd76fc76a");
-})
+//Render engine for served views
+app.set('view engine', 'mustache')
+app.set('layout', __dirname + '/views/layout.mustache')
+
+app.engine('mustache', hogan)
 
 //Server
 var mainServer = http.createServer(app).listen(config.port)
@@ -97,18 +98,22 @@ console.log("Server listening on port " + config.port)
 const websocketsHandler = require('./handlers/websocketsHandler.js')(mainServer)
 
 //Routes
-const donorsRoute = require('./routes/donors.js')
-const donationsRoute = require('./routes/donations.js')
-const organizationsRoute = require('./routes/organizations.js')
-const reportsRoute = require('./routes/reports.js')
-const paypalRoute = require('./routes/paypal.js')(websocketsHandler)
-const csrRoute = require('./routes/csr.js')
+const donorsRoute =         require('./routes/donors.js')
+const donationsRoute =      require('./routes/donations.js')
+const organizationsRoute =  require('./routes/organizations.js')
+const reportsRoute =        require('./routes/reports.js')
+const paypalRoute =         require('./routes/paypal.js')(websocketsHandler)
+const csrRoute =            require('./routes/csr.js')
+const authRoute =           require('./routes/auth.js')
 
-app.use('/donors', donorsRoute)
-app.use('/donations', donationsRoute)
+app.use('/donors',        donorsRoute)
+app.use('/donations',     donationsRoute)
 app.use('/organizations', organizationsRoute)
-app.use('/reports', reportsRoute)
-app.use('/paypal', paypalRoute)
-app.use('/csr', csrRoute)
+app.use('/reports',       reportsRoute)
+app.use('/paypal',        paypalRoute)
+app.use('/csr',           csrRoute)
+app.use('/auth',          authRoute)
 
-app.use('/static', express.static('static'))
+app.use('/static',  express.static(__dirname + '/static'))
+app.use('/style',   express.static(__dirname + '/views/style'))
+app.use('/img',     express.static(__dirname + '/views/img'))
