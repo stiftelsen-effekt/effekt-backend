@@ -2,7 +2,6 @@ const chai = require('chai')
 const expect = (chai.expect)
 
 const round = require('../custom_modules/rounding.js')
-console.log(round)
 
 describe('round', function() {
     describe('sumWithPrecision', function() {

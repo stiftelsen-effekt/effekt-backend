@@ -31,7 +31,9 @@ html, body {
       text-transform: uppercase;
       font-weight: 300;
       letter-spacing: 1px;
-      margin-top: 0; }
+      margin-top: 0;
+      border-bottom: 1px solid #ced6e7;
+      padding-bottom: 12px; }
     .dialog .inner p {
       margin-bottom: 20px; }
     .dialog .inner form {
@@ -50,6 +52,13 @@ html, body {
         .dialog .inner form .btn:hover {
           background: #f58020;
           color: white; }
+  .dialog #error {
+    background: #cb2e2e;
+    color: white;
+    text-align: center;
+    padding: 8px;
+    font-size: 12px;
+    display: none; }
   .dialog .help {
     background: #397093;
     width: 100%;
