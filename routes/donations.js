@@ -1,10 +1,10 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const moment = require('moment')
-const config = require('../config.js')
 const KID = require('../custom_modules/KID.js')
-const Mail = require('../custom_modules/mail.js')
+const dateRangeHelper = require('../custom_modules/dateRangeHelper.js')
+const reporting = require('../custom_modules/reporting.js')
 const DAO = require('../custom_modules/DAO.js')
+const moment = require('moment')
 
 const router = express.Router()
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
@@ -131,23 +131,46 @@ async function getStandardSplit() {
 
 
 router.get('/total', urlEncodeParser, async (req,res,next) => {
-  //Check if no parameters
-  if (!req.query) return res.json({ status: 400, content: "Malformed request" })
-
-  //Check if dates are valid ISO 8601
-  if (!moment(req.query.fromDate, moment.ISO_8601, true).isValid() || !moment(req.query.toDate, moment.ISO_8601, true).isValid()) return res.json({ status: 400, content: "Date must be in ISO 8601 format" })
-
-  let fromDate = new Date(req.query.fromDate)
-  let toDate = new Date(req.query.toDate)
-
   try {
-    var aggregate = await DAO.donations.getAggregateByTime(fromDate, toDate)
+    let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
+
+    let aggregate = await DAO.donations.getAggregateByTime(dates.fromDate, dates.toDate)
 
     res.json({
       status: 200,
       content: aggregate
     })
-  } catch(ex) {
+  }
+  catch(ex) {
+    next({ex: ex})
+  }
+})
+
+router.get('/range', urlEncodeParser, async (req, res, next) => {
+  try {
+    let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
+
+    let donationsFromRange = await DAO.donations.getFromRange(dates.fromDate, dates.toDate)
+
+    if (!req.query.excel) {
+      res.json({
+        status: 200,
+        content: donationsFromRange
+      })
+    }
+    else {
+      let organizations = await DAO.organizations.getAll();
+      let excelFile = reporting.createExcelFromIndividualDonations(donationsFromRange, organizations)
+
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.ms-excel',
+        'Content-disposition': 'attachment;filename=Individual Donations ' + moment(dates.fromDate).format('YYYY-MM-DD') + ' to ' + moment(dates.toDate).format('YYYY-MM-DD') + '.xlsx',
+        'Content-Length': excelFile.length
+      });
+      res.end(excelFile);
+    }
+  }
+  catch(ex) {
     next({ex: ex})
   }
 })

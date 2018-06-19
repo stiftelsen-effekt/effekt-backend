@@ -80,9 +80,6 @@ app.use(function (req, res, next) {
     next()
 })
 
-//Error handling
-app.use(errorHandler)
-
 //Render engine for served views
 app.set('view engine', 'mustache')
 app.set('layout', __dirname + '/views/layout.mustache')
@@ -114,3 +111,6 @@ app.use('/auth',          authRoute)
 app.use('/static',  express.static(__dirname + '/static'))
 app.use('/style',   express.static(__dirname + '/views/style'))
 app.use('/img',     express.static(__dirname + '/views/img'))
+
+//Error handling
+app.use(errorHandler)

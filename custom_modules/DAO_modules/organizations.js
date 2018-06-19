@@ -37,16 +37,24 @@ function getActive() {
             return reject(ex)
         }
 
-        fulfill(organizations.map((org) => {
-            return {
-                id: org.ID,
-                name: org.full_name,
-                abbriv: org.abbriv,
-                shortDesc: org.short_desc,
-                standardShare: org.std_percentage_share,
-                infoUrl: org.info_url
-            }
-        }))
+        fulfill(organizations.map(mapOrganization))
+    })
+}
+
+/**
+ * Returns all organizations in the database
+ * @returns {Array} All organizations in DB
+ */
+function getAll() {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var [organizations] = await con.execute(`SELECT * FROM Organizations`)
+        }
+        catch (ex) {
+            return reject(ex)
+        }
+
+        fulfill(organizations.map(mapOrganization))
     })
 }
 
@@ -81,6 +89,23 @@ function getStandardSplit() {
 //region Delete
 //endregion
 
+//region Helpers
+/**
+ * Used in array.map, used to map database rows to JS like naming
+ * @param {Object} org A line from a database query representing an organization
+ * @returns {Object} A mapping with JS like syntax instead of the db fields, camel case instead of underscore and so on 
+ */
+function mapOrganization(org) {
+    return {
+        id: org.ID,
+        name: org.full_name,
+        abbriv: org.abbriv,
+        shortDesc: org.short_desc,
+        standardShare: org.std_percentage_share,
+        infoUrl: org.info_url
+    }
+}
+
 module.exports = function(dbPool) {
     con = dbPool
 
@@ -88,6 +113,7 @@ module.exports = function(dbPool) {
         getByIDs,
         getByID,
         getActive,
+        getAll,
         getStandardSplit
     }
 } 
