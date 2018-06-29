@@ -1,23 +1,29 @@
-const crypto = require(global.appRoot + '/custom_modules/crypto.js')
+const crypto = require(global.appRoot + '/custom_modules/authorization/crypto.js')
 
 var con
 
 //region Get
 
 /**
- * Returns a Donor object if a valid change password key is found in Database
- * @param {string} key A 40 hcaracter long random key
+ * Returns a Donor object if a valid change password token is found in Database
+ * @param {string} token A 40 hcaracter long random token
  * @returns {?object} A Donor object
  */
-function getDonorByChangePassKey(key) {
+function getDonorByChangePassToken(token) {
     return new Promise(async (fulfill, reject) => {
         try {
-            var [result] = await con.query(`SELECT D.ID, D.full_name 
+            var [result] = await con.query(`
+            SELECT 
+                D.ID, 
+                D.full_name 
+            
             FROM ChangePass as C 
-            INNER JOIN Donors as D
-            ON C.userID = D.ID
-            WHERE C.key = ? AND expires > NOW()
-            LIMIT 1`, [key])
+                INNER JOIN Donors as D
+                    ON C.userID = D.ID
+            
+            WHERE C.token = ? AND expires > NOW()
+            
+            LIMIT 1`, [token])
         } catch (ex) {
             reject(ex)
             return false
@@ -28,6 +34,41 @@ function getDonorByChangePassKey(key) {
             fullName: result[0].full_name
         })
         else fulfill(null)
+    })
+}
+
+/**
+ * Checks whether access token grants a given permission
+ * @param {String} token Access token
+ * @param {String} permission A specific permission
+ * @returns {boolean}
+ */
+function getCheckPermissionByToken(token, permission) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            throw "Needs updating for tokens instead of keys"
+            var [result] = await con.query(`
+                SELECT 1 
+                    FROM Access_token as T
+                    
+                    INNER JOIN Access_keys_permissions as Combine
+                        ON K.ID = Combine.Key_ID
+                    
+                    INNER JOIN Access_permissions as P
+                        ON P.ID = Combine.Permission_ID
+                        
+                    WHERE 
+                        T.token = ?
+                        AND
+                        P.shortName = ?`, 
+                    [token, permission])
+        } catch (ex) {
+            reject(ex)
+            return false
+        }
+
+        if (result.length > 0) fulfill(true)
+        else fulfill(false)
     })
 }
 
@@ -69,7 +110,8 @@ module.exports = function(dbPool) {
     con = dbPool
 
     return {
-        getDonorByChangePassKey,
+        getDonorByChangePassToken,
+        getCheckPermissionByToken,
         updateDonorPassword
     }
 } 

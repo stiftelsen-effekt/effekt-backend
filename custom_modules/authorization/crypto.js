@@ -1,10 +1,10 @@
 const crypto = require('crypto')
 
 module.exports = {
-    /** Gets a random string for use in password reset keys
+    /** Gets a random string for use in password reset tokens
      *  @returns {string} - A 40 character long hex string
      */
-    getPasswordResetKey: function() {
+    getPasswordResetToken: function() {
         return crypto.randomBytes(20).toString('hex');
     },
 

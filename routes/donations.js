@@ -8,6 +8,7 @@ const moment = require('moment')
 
 const router = express.Router()
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
+const authMiddleware = require("../custom_modules/authorization/authMiddleware.js")
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -146,7 +147,7 @@ router.get('/total', urlEncodeParser, async (req,res,next) => {
   }
 })
 
-router.get('/range', urlEncodeParser, async (req, res, next) => {
+router.get('/range', urlEncodeParser, authMiddleware('read_all_donations', true), async (req, res, next) => {
   try {
     let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
 
