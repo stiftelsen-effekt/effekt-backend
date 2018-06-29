@@ -6,8 +6,34 @@ const crypto = require(global.appRoot + '/custom_modules/authorization/crypto.js
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
+router.get("/login", urlEncodeParser, async (req, res, next) => {
+    if (!req.query.response_type || !req.query.client_id || !req.query.redirect_uri || !req.query.scope || !req.query.state) {
+        res.send("Buhuu")
+    } else {
+        try {
+            var application = await DAO.auth.getApplicationByClientID(req.query.client_id)
+        } catch (ex) {
+            throw ex
+        }
+
+        let permissions = req.query.scope.split(" ")
+
+
+
+        res.render(global.appRoot + '/views/auth/dialog', {
+            title: "GiEffektivt.no - Logg inn",
+            applicationName: application.name
+        })
+    }
+    
+})
+
 router.get("/password/change/:token", urlEncodeParser, async (req,res, next) => {
-    let donor = await DAO.auth.getDonorByChangePassToken(req.params.token)
+    try {
+        var donor = await DAO.auth.getDonorByChangePassToken(req.params.token)
+    } catch(ex) {
+        next({ex:ex})
+    }
 
     if (donor) {
         res.render(global.appRoot + '/views/auth/changePassword', {
@@ -29,7 +55,9 @@ router.get("/password/change/:token", urlEncodeParser, async (req,res, next) => 
 })
 
 router.post("/password/change/:token", urlEncodeParser, async (req,res, next) => {
-    let donor = await DAO.auth.getDonorByChangePassToken(req.params.token)
+    try {
+        var donor = await DAO.auth.getDonorByChangePassToken(req.params.token)
+    } catch(ex) { next({ex:ex}) }
 
     if (donor) {
         await DAO.auth.updateDonorPassword(donor.id, req.body.password)

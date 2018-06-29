@@ -9,7 +9,6 @@ const fileUpload = require('express-fileupload')
 const BANK_ID = 1
 const VIPPS_ID = 4
 
-
 router.post('/ocr', async (req, res, next) => {
     var data = req.files.report.data.toString('UTF-8')
 
@@ -40,7 +39,7 @@ router.post("/vipps", async (req,res,next) => {
       if (transaction.valid) {
         try {
           //Add donation
-          var donationID = await DAO.donations.add(transaction.KID, 4, transaction.amount, transaction.transactionId)
+          var donationID = await DAO.donations.add(transaction.KID, VIPPS_ID, transaction.amount, transaction.transactionId)
   
           valid++
         } catch (ex) {

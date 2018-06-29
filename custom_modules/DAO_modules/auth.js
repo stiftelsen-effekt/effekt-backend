@@ -41,7 +41,7 @@ function getDonorByChangePassToken(token) {
  * Checks whether access token grants a given permission
  * @param {String} token Access token
  * @param {String} permission A specific permission
- * @returns {boolean}
+ * @returns {Boolean}
  */
 function getCheckPermissionByToken(token, permission) {
     return new Promise(async (fulfill, reject) => {
@@ -69,6 +69,66 @@ function getCheckPermissionByToken(token, permission) {
 
         if (result.length > 0) fulfill(true)
         else fulfill(false)
+    })
+}
+
+/**
+ * Checks whether permissions are valid and user has access to them
+ * @param {Array} permissions An array of string permissions
+ * @param {Number} userID The ID of the user in the database
+ * @returns {Boolean}
+ */
+function checkUserPermissions(userID, permissions) {
+
+}
+
+/**
+ * Checks whether application has access to given permissions
+ * @param {Array} permissions An array of string permissions
+ * @param {Number} applicationID The ID of the application in the database
+ * @returns {Boolean}
+ */
+function checkApplicationPermissions(applicationID, permissions) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var [result] = await con.query(`
+                SELECT P.shortName FROM Access_permissions
+                    INNER JOIN Access_applications_permissions as AP
+                        ON AP.Permission_ID = P.ID
+                        
+                WHERE AP.Application_ID = ?`, 
+                    [applicationID])
+        } catch (ex) {
+            reject(ex)
+            return false
+        }
+
+        console.log(result)
+        if (result.length > 0) fulfill(true)
+        else fulfill(false)
+    })
+}
+
+/**
+ * Get application data from clientID
+ * @param {String} clientID The clientID
+ * @return {Object} An object with the applications name, id, secret and redirect uri
+ */
+function getApplicationByClientID(clientID) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var [result] = await con.query(`
+                SELECT * FROM Access_applications
+                        
+                WHERE clientID = ?`, 
+                    [clientID])
+        } catch (ex) {
+            reject(ex)
+            return false
+        }
+
+        if (result.length > 0) fulfill(result[0])
+        else fulfill(null)
     })
 }
 
@@ -112,6 +172,7 @@ module.exports = function(dbPool) {
     return {
         getDonorByChangePassToken,
         getCheckPermissionByToken,
+        getApplicationByClientID,
         updateDonorPassword
     }
 } 
