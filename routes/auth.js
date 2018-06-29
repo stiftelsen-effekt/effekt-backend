@@ -1,13 +1,13 @@
 const express = require('express')
 const router = express.Router()
 const DAO = require(global.appRoot + '/custom_modules/DAO.js')
-const crypto = require(global.appRoot + '/custom_modules/crypto.js')
+const crypto = require(global.appRoot + '/custom_modules/authorization/crypto.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
-router.get("/password/change/:key", urlEncodeParser, async (req,res, next) => {
-    let donor = await DAO.auth.getDonorByChangePassKey(req.params.key)
+router.get("/password/change/:token", urlEncodeParser, async (req,res, next) => {
+    let donor = await DAO.auth.getDonorByChangePassToken(req.params.token)
 
     if (donor) {
         res.render(global.appRoot + '/views/auth/changePassword', {
@@ -18,7 +18,7 @@ router.get("/password/change/:key", urlEncodeParser, async (req,res, next) => {
     else {
         res.render(global.appRoot + '/views/auth/error', {
             title: "GiEffektivt.no - Feilmelding",
-            errorCode: "INVALID_LINK",
+            errorCode: "INVALID_TOKEN",
             errorMessage: "Det ser ut som linken du har fått tilsendt for å endre passord ikke er gyldig.",
             "nextStep?": {
                 directions: "Du kan få tilsendt en ny link",
@@ -28,8 +28,8 @@ router.get("/password/change/:key", urlEncodeParser, async (req,res, next) => {
     }
 })
 
-router.post("/password/change/:key", urlEncodeParser, async (req,res, next) => {
-    let donor = await DAO.auth.getDonorByChangePassKey(req.params.key)
+router.post("/password/change/:token", urlEncodeParser, async (req,res, next) => {
+    let donor = await DAO.auth.getDonorByChangePassToken(req.params.token)
 
     if (donor) {
         await DAO.auth.updateDonorPassword(donor.id, req.body.password)
