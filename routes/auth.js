@@ -69,16 +69,59 @@ router.get("/login", async (req, res, next) => {
 })
 
 router.post("/login", urlEncodeParser, async(req, res, next) => {
+    //First check user credentials
     try {
-        var user = await DAO.auth.getDonorByCredentials(req.body.email, req.body.password)
-    } catch(ex) { next({ex: ex}) }
+        var donor = await DAO.auth.getDonorByCredentials(req.body.email, req.body.password)
 
-    if (user) {
-        console.log(user)
-        res.send("Logged in!")
-    } else {
-        res.send("Invalid credentials")
+        if (!donor) {
+            res.status(400).send("Invalid credentials")
+            return
+        }
+    } catch(ex) {
+        next({ex: ex}) 
+        return
     }
+
+    //Get the application provided based on client ID
+    try {
+        var application = await DAO.auth.getApplicationByClientID(req.body.clientid)
+
+        if (!application) {
+            res.status(400).send("No application with given clientID")
+            return
+        }
+    } catch (ex) {
+        next({ex: ex})
+        return
+    }
+
+    //Check permissions on user and application
+    var scope = req.body.scope.split(" ")
+    try {
+        var applicationHasPermissions = await DAO.auth.checkApplicationPermissions(application.ID, scope)
+
+        if (!applicationHasPermissions) {
+            res.status(401).send("Application does not have access to requested scopes")
+            return
+        }
+    } catch(ex) { 
+        next({ex: ex}) 
+        return
+    }
+
+    try {
+        var donorHasPermissions = await DAO.auth.checkDonorPermissions(donor.ID, scope)
+
+        if (!donorHasPermissions) {
+            res.status(401).send("Donor does not have access to requested scope")
+            return
+        }
+    } catch(ex) { 
+        next({ex: ex}) 
+        return
+    }
+
+    res.send("Success")
 })
 
 router.get("/password/change/:token", async (req,res, next) => {

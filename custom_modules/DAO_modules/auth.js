@@ -73,16 +73,6 @@ function getCheckPermissionByToken(token, permission) {
 }
 
 /**
- * Checks whether permissions are valid and user has access to them
- * @param {Array} permissions An array of string permissions
- * @param {Number} userID The ID of the user in the database
- * @returns {Boolean}
- */
-function checkUserPermissions(userID, permissions) {
-
-}
-
-/**
  * Checks whether application has access to given permissions
  * @param {Array} permissions An array of string permissions
  * @param {Number} applicationID The ID of the application in the database
@@ -96,16 +86,64 @@ function checkApplicationPermissions(applicationID, permissions) {
                     INNER JOIN Access_permissions as P
                         ON AP.Permission_ID = P.ID
                         
-                WHERE AP.Application_ID = ?`, 
-                    [applicationID])
+                WHERE 
+                    AP.Application_ID = ?
+                    AND
+                    P.shortname IN(?)`, 
+                    [applicationID, permissions])
         } catch (ex) {
             reject(ex)
             return false
         }
 
-        console.log(result)
-        if (result.length > 0) fulfill(true)
+        if (result.length == permissions.length) fulfill(true)
         else fulfill(false)
+    })
+}
+
+/**
+ * Checks whether donor has access to given permissions
+ * @param {Array} permissions An array of string permissions
+ * @param {Number} donorID The ID of the donor in the database
+ * @returns {Boolean}
+ */
+function checkDonorPermissions(donorID, permissions) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var [restrictedQuery] = await con.query(`
+                SELECT P.shortname FROM Access_restricted_permissions as RP
+                    INNER JOIN Access_permissions as P
+                        ON RP.Permission_ID = P.ID
+                        
+                WHERE
+                    RP.Donor_ID = ?
+                    AND
+                    P.shortname IN(?)
+                    AND
+                    P.restricted = 1`,
+                    [donorID, permissions])
+
+            let restrictedPermissionsFound = restrictedQuery.length
+
+            var [defaultQuery] = await con.query(`
+                SELECT shortname FROM Access_permissions
+                
+                WHERE shortname IN(?)`,
+                [permissions])
+
+            let openPermissionsFound = defaultQuery.length
+
+            if (restrictedPermissionsFound + openPermissionsFound == permissions.length) {
+                fulfill(true)
+                return true
+            } else {
+                fulfill(false)
+                return false
+            }
+        } catch (ex) {
+            reject(ex)
+            return false
+        }
     })
 }
 
@@ -252,6 +290,7 @@ module.exports = function(dbPool) {
         getPermissionsFromShortnames,
         getDonorByCredentials,
         checkApplicationPermissions,
+        checkDonorPermissions,
         updateDonorPassword
     }
 } 
