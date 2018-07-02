@@ -1,4 +1,4 @@
-const crypto = require(global.appRoot + '/custom_modules/authorization/crypto.js')
+const crypto = require('../authorization/crypto.js')
 
 var con
 
@@ -92,8 +92,8 @@ function checkApplicationPermissions(applicationID, permissions) {
     return new Promise(async (fulfill, reject) => {
         try {
             var [result] = await con.query(`
-                SELECT P.shortName FROM Access_permissions
-                    INNER JOIN Access_applications_permissions as AP
+                SELECT P.shortname FROM Access_applications_permissions as AP
+                    INNER JOIN Access_permissions as P
                         ON AP.Permission_ID = P.ID
                         
                 WHERE AP.Application_ID = ?`, 
@@ -132,6 +132,82 @@ function getApplicationByClientID(clientID) {
     })
 }
 
+/**
+ * Gets permission data from an array of permission shortnames
+ * @param {Array} shortnames an array of string shortnames
+ * @returns {Array} an array of permissions 
+ */
+function getPermissionsFromShortnames(shortnames) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var [result] = await con.query(`
+                SELECT shortname, description FROM Access_permissions
+
+                WHERE shortname IN (?)
+            `, [shortnames])
+        } catch(ex) {
+            reject(ex)
+            return false
+        }
+
+        fulfill(result)
+    })
+}
+
+/**
+ * Checks email password combination, returns donor
+ * @param {String} email
+ * @param {String} password
+ * @returns {Object} A Donor object, with id, name etc.
+ */
+function getDonorByCredentials(email, password) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            //First get salt
+            let [saltQuery] = await con.query(`
+                SELECT password_salt from Donors
+
+                WHERE email = ?
+            `, [email])
+
+            if (saltQuery.length == 0) {
+                fulfill(null)
+                return false
+            } else {
+                let salt = saltQuery[0].password_salt
+
+                let passwordHash = crypto.hashPassword(password, salt)
+
+                let [donorQuery] = await con.query(`
+                    SELECT ID, full_name, email, date_registered FROM Donors
+
+                    WHERE 
+                        email = ?
+                        AND
+                        password_hash = ?
+                `, [email, passwordHash])
+
+                if (donorQuery.length > 0) {
+                    fulfill(donorQuery.map((line) => {
+                        return {
+                            id: line.ID,
+                            fullname: line.full_name,
+                            email: line.email,
+                            registered: line.date_registered
+                        }
+                    })[0])
+                    return true
+                } else {
+                    fulfill(null)
+                    return false
+                }
+            }
+        } catch(ex) {
+            reject(ex)
+            return false
+        }
+    })
+}
 //endregion
 
 //region Add
@@ -147,8 +223,8 @@ function getApplicationByClientID(clientID) {
  */
 function updateDonorPassword(donorID ,password) {
     return new Promise(async (fulfill, reject) => {
-        let salt = crypto.getPasswordSalt();
-        let hashedPassword = crypto.hashPassword(password, salt);
+        let salt = crypto.getPasswordSalt()
+        let hashedPassword = crypto.hashPassword(password, salt)
 
         try {
             var [result] = await con.query(`UPDATE Donors SET password_hash = ?, password_salt = ? WHERE ID = ?`, [hashedPassword, salt, donorID])
@@ -173,6 +249,9 @@ module.exports = function(dbPool) {
         getDonorByChangePassToken,
         getCheckPermissionByToken,
         getApplicationByClientID,
+        getPermissionsFromShortnames,
+        getDonorByCredentials,
+        checkApplicationPermissions,
         updateDonorPassword
     }
 } 

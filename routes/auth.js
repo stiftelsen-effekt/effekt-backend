@@ -6,29 +6,82 @@ const crypto = require(global.appRoot + '/custom_modules/authorization/crypto.js
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
-router.get("/login", urlEncodeParser, async (req, res, next) => {
-    if (!req.query.response_type || !req.query.client_id || !req.query.redirect_uri || !req.query.scope || !req.query.state) {
-        res.send("Buhuu")
-    } else {
-        try {
-            var application = await DAO.auth.getApplicationByClientID(req.query.client_id)
-        } catch (ex) {
-            throw ex
-        }
-
-        let permissions = req.query.scope.split(" ")
-
-
-
-        res.render(global.appRoot + '/views/auth/dialog', {
-            title: "GiEffektivt.no - Logg inn",
-            applicationName: application.name
-        })
+//http://localhost:3000/auth/login?client_id=clientID&response_type=code&redirect_uri=oko&scope=read_user_info%20read_user_donations&state=oksi
+router.get("/login", async (req, res, next) => {
+    //Check that all query parameters are present
+    if (!req.query.response_type || !req.query.client_id || !req.query.scope || !req.query.state) {
+        res.status(400).send("Some parameters in the URL is missing")
+        return
     }
     
+    //Check if response type is code
+    if (req.query.response_type != "code") {
+        res.status(400).send("Only response type code is supported")
+        return
+    }
+
+    //Get the application provided based on client ID
+    try {
+        var application = await DAO.auth.getApplicationByClientID(req.query.client_id)
+
+        if (!application) {
+            res.status(400).send("No application with given clientID")
+            return
+        }
+    } catch (ex) {
+        next({ex: ex})
+        return
+    }
+
+    //Check if application has access to requested permissions
+    let permissions = req.query.scope.split(" ")
+    try {
+        let applicationHasPermissions = await DAO.auth.checkApplicationPermissions(application.ID, permissions)
+
+        if (!applicationHasPermissions) {
+            res.status(400).send("Application does not have access to requested permissions")
+            return
+        }
+    } catch(ex) {
+        next({ex: ex})
+        return
+    }
+
+    //Get permission info from shortnames
+    try {
+        permissions = await DAO.auth.getPermissionsFromShortnames(permissions)
+    } catch(ex) {
+        next({ex: ex})
+        return
+    }
+
+
+    res.render(global.appRoot + '/views/auth/dialog', {
+        title: "GiEffektivt.no - Logg inn",
+        applicationName: application.name,
+        permissions: permissions,
+
+        //Pass on to POST request
+        state: req.query.state,
+        clientid: req.query.client_id,
+        scope: req.query.scope
+    })
 })
 
-router.get("/password/change/:token", urlEncodeParser, async (req,res, next) => {
+router.post("/login", urlEncodeParser, async(req, res, next) => {
+    try {
+        var user = await DAO.auth.getDonorByCredentials(req.body.email, req.body.password)
+    } catch(ex) { next({ex: ex}) }
+
+    if (user) {
+        console.log(user)
+        res.send("Logged in!")
+    } else {
+        res.send("Invalid credentials")
+    }
+})
+
+router.get("/password/change/:token", async (req,res, next) => {
     try {
         var donor = await DAO.auth.getDonorByChangePassToken(req.params.token)
     } catch(ex) {
