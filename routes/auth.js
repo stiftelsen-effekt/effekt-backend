@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const DAO = require(global.appRoot + '/custom_modules/DAO.js')
-const crypto = require(global.appRoot + '/custom_modules/authorization/crypto.js')
+const crypto = require('../custom_modules/authorization/crypto.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
@@ -110,7 +110,7 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
     }
 
     try {
-        var donorHasPermissions = await DAO.auth.checkDonorPermissions(donor.ID, scope)
+        var donorHasPermissions = await DAO.auth.checkDonorPermissions(donor.id, scope)
 
         if (!donorHasPermissions) {
             res.status(401).send("Donor does not have access to requested scope")
@@ -121,7 +121,8 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
         return
     }
 
-    res.send("Success")
+    //OK, all good, create an access key
+    let accessKey = crypto.
 })
 
 router.get("/password/change/:token", async (req,res, next) => {

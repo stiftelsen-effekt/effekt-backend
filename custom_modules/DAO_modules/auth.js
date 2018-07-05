@@ -128,7 +128,10 @@ function checkDonorPermissions(donorID, permissions) {
             var [defaultQuery] = await con.query(`
                 SELECT shortname FROM Access_permissions
                 
-                WHERE shortname IN(?)`,
+                WHERE 
+                    shortname IN(?)
+                    AND
+                    restricted = 0`,
                 [permissions])
 
             let openPermissionsFound = defaultQuery.length

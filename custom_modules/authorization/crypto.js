@@ -15,6 +15,20 @@ module.exports = {
         return crypto.randomBytes(16).toString('hex');
     },
 
+    /** Gets a random string for use in password salts
+     *  @returns {string} - A 32 character long hex string
+     */
+    getAccessKey: function() {
+        return crypto.randomBytes(32).toString('hex');
+    },
+
+    /** Gets a random string for use in password salts
+     *  @returns {string} - A 32 character long hex string
+     */
+    getAccessToken: function() {
+        return crypto.randomBytes(32).toString('hex');
+    },
+
     /** Hashes the input with SHA-256
      *  @param {string} password  - The password itself
      *  @param {string} salt - A salt that gets added to the password
