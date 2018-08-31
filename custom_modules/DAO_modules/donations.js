@@ -256,7 +256,7 @@ function addSplit(donationObject) {
     })
 }
 
-function add(KID, paymentMethodID, sum, externalPaymentID = null) {
+function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null) {
     return new Promise(async (fulfill, reject) => {
         try {
             var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
@@ -280,7 +280,7 @@ function add(KID, paymentMethodID, sum, externalPaymentID = null) {
 
             var donorID = donorIDQuery[0].Donor_ID
 
-            var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, KID_fordeling) VALUES (?,?,?,?,?)", [donorID, paymentMethodID, externalPaymentID, sum, KID])
+            var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling) VALUES (?,?,?,?,?,?)", [donorID, paymentMethodID, externalPaymentID, sum, registeredDate, KID])
 
             return fulfill(addDonationQuery.insertId)
         } catch(ex) {

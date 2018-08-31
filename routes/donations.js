@@ -1,14 +1,12 @@
 const express = require('express')
-const bodyParser = require('body-parser')
+
 const KID = require('../custom_modules/KID.js')
-const dateRangeHelper = require('../custom_modules/dateRangeHelper.js')
-const reporting = require('../custom_modules/reporting.js')
 const DAO = require('../custom_modules/DAO.js')
-const moment = require('moment')
 
 const router = express.Router()
+
+const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
-const authMiddleware = require("../custom_modules/authorization/authMiddleware.js")
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -141,35 +139,6 @@ router.get('/total', urlEncodeParser, async (req,res,next) => {
       status: 200,
       content: aggregate
     })
-  }
-  catch(ex) {
-    next({ex: ex})
-  }
-})
-
-router.get('/range', urlEncodeParser, authMiddleware('read_all_donations', true), async (req, res, next) => {
-  try {
-    let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
-
-    let donationsFromRange = await DAO.donations.getFromRange(dates.fromDate, dates.toDate)
-
-    if (!req.query.excel) {
-      res.json({
-        status: 200,
-        content: donationsFromRange
-      })
-    }
-    else {
-      let organizations = await DAO.organizations.getAll();
-      let excelFile = reporting.createExcelFromIndividualDonations(donationsFromRange, organizations)
-
-      res.writeHead(200, {
-        'Content-Type': 'application/vnd.ms-excel',
-        'Content-disposition': 'attachment;filename=Individual Donations ' + moment(dates.fromDate).format('YYYY-MM-DD') + ' to ' + moment(dates.toDate).format('YYYY-MM-DD') + '.xlsx',
-        'Content-Length': excelFile.length
-      });
-      res.end(excelFile);
-    }
   }
   catch(ex) {
     next({ex: ex})
