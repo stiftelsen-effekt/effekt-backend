@@ -29,17 +29,32 @@ module.exports = {
         this.auth =             require('./DAO_modules/auth.js')(dbPool)
 
         dbPool.startTransaction = async function() {
-            let transaction = await dbPool.getConnection()
-            await transaction.query("START TRANSACTION")
-            return transaction
+            try {
+                let transaction = await dbPool.getConnection()
+                await transaction.query("START TRANSACTION")
+                return transaction
+            } catch(ex) {
+                console.log(ex)
+                throw new Error("Fatal error, failed to start transaction")
+            }
         }
 
         dbPool.rollbackTransaction = async function(transaction) {
-            await transaction.query("ROLLBACK")
+            try {
+                await transaction.query("ROLLBACK")
+            } catch(ex) {
+                console.log(ex)
+                throw new Error("Fatal error, failed to rollback transaction")
+            }
         }
 
         dbPool.commitTransaction = async function(transaction) {
-            await transaction.query("COMMIT")
+            try {
+                await transaction.query("COMMIT")
+            } catch(ex) {
+                console.log(ex)
+                throw new Error("Fatal error, failed to commit transaction")
+            }
         }
 
         console.log("DAO setup complete")

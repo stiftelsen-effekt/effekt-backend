@@ -48,6 +48,16 @@ html, body {
         p {
             margin-bottom: 20px;
         }
+
+        ul {
+            padding: 0;
+            padding-left: 14px;
+            margin-bottom: 22px;
+
+            li {
+                font-weight: 700;
+            }
+        }
     
         form {
             text-align: center;

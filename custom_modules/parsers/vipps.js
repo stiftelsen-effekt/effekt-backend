@@ -1,4 +1,5 @@
 const { parse } = require('node-xlsx')
+const moment = require('moment')
 const KID = require('./../KID.js')
 
 const HEADER_ROW = 7;
@@ -51,6 +52,9 @@ module.exports = {
             if (KIDsubstr + checkDigit.toString() != attemptedExtraction) throw "Numeric sequence extracted is not valid KID";
 
             properties.KID = Number(attemptedExtraction);
+
+            properties["dateObj"] = moment(properties.date, "DD.MM.YYYY")
+
             properties.valid = true;
           } catch(ex) {
             //console.log(ex)

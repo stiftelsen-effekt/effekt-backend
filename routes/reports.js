@@ -4,7 +4,15 @@ const OCR = require('../custom_modules/parsers/OCR.js')
 const vipps = require('../custom_modules/parsers/vipps.js')
 const DAO = require('../custom_modules/DAO.js')
 
-const fileUpload = require('express-fileupload')
+const moment = require('moment')
+const reporting = require('../custom_modules/reporting.js')
+const dateRangeHelper = require('../custom_modules/dateRangeHelper.js')
+const authMiddleware = require("../custom_modules/authorization/authMiddleware.js")
+
+const bodyParser = require('body-parser')
+const urlEncodeParser = bodyParser.urlencoded({ extended: false })
+
+//const fileUpload = require('express-fileupload')
 
 const BANK_ID = 1
 const VIPPS_ID = 4
@@ -39,7 +47,7 @@ router.post("/vipps", async (req,res,next) => {
       if (transaction.valid) {
         try {
           //Add donation
-          var donationID = await DAO.donations.add(transaction.KID, VIPPS_ID, transaction.amount, transaction.transactionId)
+          var donationID = await DAO.donations.add(transaction.KID, VIPPS_ID, transaction.amount, transaction.dateObj.toDate(), transaction.transactionId)
   
           valid++
         } catch (ex) {
@@ -68,5 +76,34 @@ router.post("/vipps", async (req,res,next) => {
       }
     })
   })
+
+router.get('/range', urlEncodeParser, /*authMiddleware('read_all_donations', true),*/ async (req, res, next) => {
+  try {
+    let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
+
+    let donationsFromRange = await DAO.donations.getFromRange(dates.fromDate, dates.toDate)
+
+    if (!req.query.excel) {
+      res.json({
+        status: 200,
+        content: donationsFromRange
+      })
+    }
+    else {
+      let organizations = await DAO.organizations.getAll();
+      let excelFile = reporting.createExcelFromIndividualDonations(donationsFromRange, organizations)
+
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.ms-excel',
+        'Content-disposition': 'attachment;filename=Individual_Donations_' + moment(dates.fromDate).format('YYYY-MM-DD') + '_to_' + moment(dates.toDate).format('YYYY-MM-DD') + '.xlsx',
+        'Content-Length': excelFile.length
+      });
+      res.end(excelFile);
+    }
+  }
+  catch(ex) {
+    next({ex: ex})
+  }
+})
 
 module.exports = router
