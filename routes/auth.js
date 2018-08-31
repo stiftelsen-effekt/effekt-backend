@@ -6,7 +6,6 @@ const crypto = require('../custom_modules/authorization/crypto.js')
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
-//http://localhost:3000/auth/login?client_id=clientID&response_type=code&redirect_uri=oko&scope=read_user_info%20read_user_donations&state=oksi
 router.get("/login", async (req, res, next) => {
     //Check that all query parameters are present
     if (!req.query.response_type || !req.query.client_id || !req.query.scope || !req.query.state) {
@@ -54,7 +53,6 @@ router.get("/login", async (req, res, next) => {
         next({ex: ex})
         return
     }
-
 
     res.render(global.appRoot + '/views/auth/dialog', {
         title: "GiEffektivt.no - Logg inn",
@@ -121,8 +119,46 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
         return
     }
 
-    //OK, all good, create an access key
-    let accessKey = crypto.
+    //Get permissions from shortnames
+    try {
+        var permissions = await DAO.auth.getPermissionsFromShortnames(scope)
+    } catch(ex) {
+       next({ex: ex})
+       return
+    }
+
+    //OK, all good, create an access key, then redirect to redirect URL with key appended
+    try {
+        accessKey = await DAO.auth.addAccessKey(donor.id, application.ID, permissions)
+    } catch(ex) {
+        next({ex: ex}) 
+        return
+    }
+
+    res.redirect(`${application.redirect}?key=${accessKey.key}&expires=${encodeURIComponent(accessKey.expires.toString())}&state=${req.body.state}`)
+})
+
+router.get("/token", async(req,res,next) => {
+    try {
+        var key = req.query.key
+        if (!key) throw new Error("Access Key parameter missing")
+
+        var token = await DAO.auth.addAccessTokenByAccessKey(key)
+
+        res.json({
+            status: 200,
+            content: token
+        })
+    } catch(ex) {
+        if (ex.message === "Invalid access key") {
+            res.status(401).json({
+                status: 401,
+                content: "Invalid access key"
+            })
+        } else {
+            next({ex: ex})
+        }
+    }
 })
 
 router.get("/password/change/:token", async (req,res, next) => {
