@@ -24,7 +24,20 @@ function getAggregateByTime(startTime, endTime) {
 function KIDexists(KID) {
     return new Promise(async (fulfill, reject) => {
         try {
-            var [res] = await con.query("SELECT * FROM EffektDonasjonDB.Combining_table WHERE KID = ? LIMIT 1", [KID])
+            var [res] = await con.query("SELECT * FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
+        } catch(ex) {
+            return reject(ex)
+        }
+
+        if (res.length > 0) fulfill(true)
+        else fulfill(false)
+    })
+}
+
+function ExternalPaymentIDExists(externalPaymentID, paymentID) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var [res] = await con.query("SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ? LIMIT 1", [externalPaymentID, paymentID])
         } catch(ex) {
             return reject(ex)
         }
@@ -40,10 +53,14 @@ function getKIDbySplit(split, donorID) {
         //Check if existing KID
         try {
             //Construct query
-            let query = `SELECT KID, Count(KID) as KID_count FROM EffektDonasjonDB.Distribution as D
-            
-            INNER JOIN Combining_table as C 
-            ON C.Distribution_ID = D.ID
+            let query = `
+            SELECT 
+                KID, 
+                Count(KID) as KID_count 
+                
+            FROM EffektDonasjonDB.Distribution as D
+                INNER JOIN Combining_table as C 
+                    ON C.Distribution_ID = D.ID
             
             WHERE
             `;
@@ -55,7 +72,8 @@ function getKIDbySplit(split, donorID) {
 
             query += ` GROUP BY C.KID
             
-            HAVING KID_count = ` + split.length
+            HAVING 
+                KID_count = ` + split.length
 
             var [res] = await con.execute(query)
         } catch(ex) {
@@ -72,18 +90,19 @@ function getByID(donationID) {
         try {
             let donation = {}
 
-            var [getDonationFromIDquery] = await con.execute(`SELECT 
-                Donation.sum_confirmed, 
-                Donation.KID_fordeling,
-                Donor.full_name,
-                Donor.email
-                FROM 
-                    Donations as Donation
-                INNER JOIN 
-                    Donors as Donor
-                ON 
-                    Donation.Donor_ID = Donor.ID
-                WHERE Donation.ID = ${sqlString.escape(donationID)}`)
+            var [getDonationFromIDquery] = await con.execute(`
+                SELECT 
+                    Donation.sum_confirmed, 
+                    Donation.KID_fordeling,
+                    Donor.full_name,
+                    Donor.email
+                
+                FROM Donations as Donation
+                    INNER JOIN Donors as Donor
+                        ON Donation.Donor_ID = Donor.ID
+                
+                WHERE 
+                    Donation.ID = ${sqlString.escape(donationID)}`)
 
 
             if (getDonationFromIDquery.length != 1) reject("Could not find donation with ID " + donationID)
@@ -105,18 +124,101 @@ function getByID(donationID) {
 function getSplitByKID(KID) {
     return new Promise(async (fulfill, reject) => {
         try {
-            let [getOrganizationsSplitByKIDQuery] = await con.execute(`SELECT 
-            Organizations.full_name, Distribution.percentage_share
+            let [getOrganizationsSplitByKIDQuery] = await con.execute(`
+            SELECT 
+                Organizations.full_name, 
+                Distribution.percentage_share
+            
             FROM Combining_table as Combining
-            INNER JOIN Distribution as Distribution
-            ON Combining.Distribution_ID = Distribution.ID
-            INNER JOIN Organizations as Organizations
-            ON Organizations.ID = Distribution.OrgID
-            WHERE KID = ${sqlString.escape(KID)}`)
+                INNER JOIN Distribution as Distribution
+                    ON Combining.Distribution_ID = Distribution.ID
+                INNER JOIN Organizations as Organizations
+                    ON Organizations.ID = Distribution.OrgID
+            
+            WHERE 
+                KID = ${sqlString.escape(KID)}`)
 
             if (getOrganizationsSplitByKIDQuery.length == 0) return reject("No split with the KID " + KID)
 
             return fulfill(getOrganizationsSplitByKIDQuery)
+        } catch(ex) {
+            reject(ex)
+        }
+    })
+}
+
+/**
+ * Fetches all the donations in the database for a given inclusive range. Passed two equal dates, returns given day.
+ * @param {Date} [fromDate=1. Of January 2000] The date in which to start the selection, inclusive interval.
+ * @param {Date} [toDate=Today] The date in which to end the selection, inclusive interval.
+ */
+function getFromRange(fromDate, toDate) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            if (!fromDate) fromDate = new Date(2000,0, 1)
+            if (!toDate) toDate = new Date()
+
+                let [getFromRangeQuery] = await con.query(`
+                    SELECT 
+                        Donations.ID as Donation_ID,
+                        Donations.timestamp_confirmed,  
+                        Donations.Donor_ID, 
+                        Donors.full_name as donor_name, 
+                        Donations.sum_confirmed, 
+                        Payment.payment_name,
+                        Distribution.OrgID as Org_ID, 
+                        Organizations.full_name as org_name, 
+                        Distribution.percentage_share, 
+                        (Donations.sum_confirmed*Distribution.percentage_share)/100 as actual_share 
+
+                    FROM Donations
+                        INNER JOIN Combining_table 
+                            ON Donations.KID_fordeling = Combining_table.KID
+                        INNER JOIN Distribution 
+                            ON Combining_table.Distribution_ID = Distribution.ID
+                        INNER JOIN Donors 
+                            ON Donors.ID = Donations.Donor_ID
+                        INNER JOIN Organizations 
+                            ON Organizations.ID = Distribution.OrgID
+                        INNER JOIN Payment
+                            ON Payment.ID = Donations.Payment_ID
+                    
+                    WHERE 
+                        Donations.timestamp_confirmed >= Date(?)  
+                        AND 
+                        Donations.timestamp_confirmed < Date(Date_add(Date(?), interval 1 day))
+                    `, [fromDate, toDate])
+
+                let donations = new Map()
+                getFromRangeQuery.forEach((row) => {
+                    if(!donations.get(row.Donation_ID)) donations.set(row.Donation_ID, {
+                        ID: null,
+                        time: null,
+                        name: null,
+                        donorID: null,
+                        sum: null,
+                        paymentMethod: null,
+                        split: []
+                    })
+
+                    donations.get(row.Donation_ID).ID = row.Donation_ID
+                    donations.get(row.Donation_ID).time = row.timestamp_confirmed
+                    donations.get(row.Donation_ID).name = row.donor_name
+                    donations.get(row.Donation_ID).donorID = row.Donor_ID
+                    donations.get(row.Donation_ID).sum = row.sum_confirmed
+                    donations.get(row.Donation_ID).paymentMethod = row.payment_name
+
+                    donations.get(row.Donation_ID).split.push({
+                        id: row.Org_ID,
+                        name: row.org_name,
+                        percentage: row.percentage_share,
+                        amount: row.actual_share
+                    })
+                })
+
+                donations = [...donations.values()].sort((a,b) => a.time - b.time)
+
+                fulfill(donations)
         } catch(ex) {
             reject(ex)
         }
@@ -154,7 +256,7 @@ function addSplit(donationObject) {
     })
 }
 
-function add(KID, paymentMethodID, sum) {
+function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null) {
     return new Promise(async (fulfill, reject) => {
         try {
             var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
@@ -164,9 +266,21 @@ function add(KID, paymentMethodID, sum) {
                 return false;
             }
 
+            /*  External transaction ID can be passed to prevent duplicates.
+                For example if you upload the same vipps report multiple
+                times, we must check the vipps transaction ID against the
+                stored ones in the database, to ensure that we are not creating
+                a duplicate donation. */
+            if (externalPaymentID != null) {
+                if (await ExternalPaymentIDExists(externalPaymentID,paymentMethodID)) {
+                    reject("Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID)
+                    return false
+                }
+            }
+
             var donorID = donorIDQuery[0].Donor_ID
 
-            var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, sum_confirmed, KID_fordeling) VALUES (?,?,?,?)", [donorID, paymentMethodID, sum, KID])
+            var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling) VALUES (?,?,?,?,?,?)", [donorID, paymentMethodID, externalPaymentID, sum, registeredDate, KID])
 
             return fulfill(addDonationQuery.insertId)
         } catch(ex) {
@@ -210,7 +324,9 @@ module.exports = function(dbPool) {
         getByDonor,
         getAggregateByTime,
         getKIDbySplit,
+        getFromRange,
         KIDexists,
+        ExternalPaymentIDExists,
         addSplit,
         add,
         registerConfirmedByIDs

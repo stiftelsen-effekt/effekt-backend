@@ -59,11 +59,11 @@ describe('round', function() {
         })
 
         it('should return an array', function() {
-            //expect(round.toPercent(testCases[0])).to.be.an('array')
+            expect(round.toPercent(testCases[0], round.sumWithPrecision(testCases[0]), 0)).to.be.an('array')
         })
 
         it('should return an array of equal length as input', function() {
-            //expect(round.toPercent(testCases[0])).to.be.length(testCases[0].length)
+            expect(round.toPercent(testCases[0], round.sumWithPrecision(testCases[0]), 0)).to.be.length(testCases[0].length)
         })
 
         it ('should sum to total', function() {

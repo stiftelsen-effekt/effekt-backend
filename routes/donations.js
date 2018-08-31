@@ -1,17 +1,12 @@
 const express = require('express')
+
+const KID = require('../custom_modules/KID.js')
+const DAO = require('../custom_modules/DAO.js')
+
 const router = express.Router()
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
-
-const moment = require('moment')
-
-const config = require('../config.js')
-
-const KID = require('../custom_modules/KID.js')
-const Mail = require('../custom_modules/mail.js')
-
-const DAO = require('../custom_modules/DAO.js')
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -29,7 +24,7 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       standardSplit: undefined,
       split: []
     }
-  
+
     //Create a donation split object
     if (parsedData.organizations) {
       donationObject.split = await createDonationSplitArray(parsedData.organizations)
@@ -42,12 +37,12 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
 
     //Check if existing donor
     donationObject.donorID = await DAO.donors.getIDbyEmail(donor.email)
-  
+
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
       donationObject.donorID = await DAO.donors.add(donor)
     }
-    
+
     //Try to get existing KID
     donationObject.KID = await DAO.donations.getKIDbySplit(donationObject.split, donationObject.donorID)
 
@@ -60,7 +55,8 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
   catch (ex) {
     return next({ex: ex})
   }
-  
+
+  //In case the email component should fail, register the donation anyways, and notify client
   res.json({
     status: 200, //Temp for testing
     content: {
@@ -92,7 +88,7 @@ async function createDonationSplitArray(passedOrganizations) {
     catch (ex) {
       return reject(ex)
     }
-    
+
     if (orgs.length != filteredOrganizations.length) return reject(new Error("Could not find all organizations in DB"))
 
     var donationSplits = []
@@ -134,23 +130,17 @@ async function getStandardSplit() {
 
 
 router.get('/total', urlEncodeParser, async (req,res,next) => {
-  //Check if no parameters
-  if (!req.query) return res.json({ status: 400, content: "Malformed request" })
-
-  //Check if dates are valid ISO 8601
-  if (!moment(req.query.fromDate, moment.ISO_8601, true).isValid() || !moment(req.query.toDate, moment.ISO_8601, true).isValid()) return res.json({ status: 400, content: "Date must be in ISO 8601 format" })
-
-  let fromDate = new Date(req.query.fromDate)
-  let toDate = new Date(req.query.toDate)
-
   try {
-    var aggregate = await DAO.donations.getAggregateByTime(fromDate, toDate)
+    let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
+
+    let aggregate = await DAO.donations.getAggregateByTime(dates.fromDate, dates.toDate)
 
     res.json({
       status: 200,
       content: aggregate
     })
-  } catch(ex) {
+  }
+  catch(ex) {
     next({ex: ex})
   }
 })
@@ -181,7 +171,7 @@ function createKID() {
     } catch(ex) {
       reject(ex)
     }
-    
+
     fulfill(newKID)
   })
 }

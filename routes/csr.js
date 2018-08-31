@@ -4,7 +4,7 @@ const router = express.Router()
 const cache = apicache.middleware
 
 const DAO = require('../custom_modules/DAO.js')
-const GDLiveParser = require('../custom_modules/GDLive_parser')
+const GDLiveParser = require('../custom_modules/parsers/GDLive')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })

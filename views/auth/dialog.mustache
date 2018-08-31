@@ -1,0 +1,27 @@
+<div class="dialog">
+    <div class="inner">
+        <header>
+            <h1>GiEffektivt.no</h1>
+            <h2>Autorisasjon</h2>
+        </header>
+        <span>Applikasjonen <strong>{{applicationName}}</strong> ønsker tilgang til din informasjon hos gieffektivt.no.</span>
+
+        <ul>
+            {{#permissions}}
+                <li>{{description}}</li>
+            {{/permissions}}
+        </ul>
+
+        <form action="" method="post">
+            <input type="hidden" name="state" value="{{state}}" />
+            <input type="hidden" name="scope" value="{{scope}}" />
+            <input type="hidden" name="clientid" value="{{clientid}}" />
+
+            <input type="text" placeholder="email" name="email"></input>
+            <input type="password" placeholder="passord" name="password"></input>
+            <input type="submit" class="btn" value="Logg inn">
+        </form>
+    </div>
+
+    <div class="help">Jeg trenger hjelp</div>
+</div>

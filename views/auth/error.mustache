@@ -1,0 +1,18 @@
+<div class="dialog">
+    <div class="inner">
+        <h1>Her gikk noe galt!</h1>
+        <h2>{{errorCode}}</h2>
+        <p>{{errorMessage}}</p>
+        {{#nextStep?}}
+          <p>{{directions}} <a href="{{link}}">her</a>.</p>
+        {{/nextStep?}}
+        
+        <img src="/img/broken_robot.jpg" class="brokenRobot" />
+    </div>
+
+    <div class="help">Jeg trenger hjelp</div>
+</div>
+
+{{#yield-styles}}
+  <link rel="stylesheet" type="text/css" href="/style/auth/error.css"></link> 
+{{/yield-styles}}
