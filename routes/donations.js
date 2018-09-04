@@ -2,6 +2,7 @@ const express = require('express')
 
 const KID = require('../custom_modules/KID.js')
 const DAO = require('../custom_modules/DAO.js')
+const dateRangeHelper = require('../custom_modules/dateRangeHelper.js')
 
 const router = express.Router()
 
