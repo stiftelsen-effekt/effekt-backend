@@ -83,13 +83,13 @@ router.get('/range', urlEncodeParser, /*authMiddleware('read_all_donations', tru
 
     let donationsFromRange = await DAO.donations.getFromRange(dates.fromDate, dates.toDate)
 
-    if (!req.query.excel) {
+    if (req.query.filetype === "json") {
       res.json({
         status: 200,
         content: donationsFromRange
       })
     }
-    else {
+    else if (req.query.filetype === "excel") {
       let organizations = await DAO.organizations.getAll();
       let excelFile = reporting.createExcelFromIndividualDonations(donationsFromRange, organizations)
 
@@ -99,6 +99,11 @@ router.get('/range', urlEncodeParser, /*authMiddleware('read_all_donations', tru
         'Content-Length': excelFile.length
       });
       res.end(excelFile);
+    } else {
+      res.status(400).json({
+        code: 400,
+        content: "Please provide a query parameter 'filetype' with either excel or json as value"
+      })
     }
   }
   catch(ex) {
