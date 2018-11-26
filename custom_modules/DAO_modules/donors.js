@@ -26,6 +26,30 @@ function getByID(ID) {
         else fulfill(null)
     })
 }
+
+/**
+ * Searches for a user with either email or name matching the query
+ * @param {string} query A query string trying to match agains full name and email
+ * @return {array} An array of donor objects
+ */
+function search(query) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var [result] = await con.execute(`SELECT * FROM Donors WHERE MATCH (full_name, email) AGAINST (?)`, [query])
+        } catch(ex) {
+            reject(ex)
+        }
+
+        if (result.length > 0) fulfill(result.map((donor) => {
+            return {
+                id: donor.ID,
+                name: donor.full_name,
+                email: donor.email
+            }
+        }))
+        else fulfill(null)
+    })
+}
 //endregion
 
 //region Add
@@ -67,6 +91,7 @@ module.exports = function(dbPool) {
     return {
         getByID,
         getIDbyEmail,
+        search,
         add,
         remove
     }

@@ -15,9 +15,9 @@ module.exports = {
         //Weirdly, this is the proposed way to do it
         try {
             await dbPool.query("SELECT 1 + 1 AS Solution")
-            console.log("Connected to database | Using " + config.db_name)
+            console.log("Connected to database | Using database " + config.db_name)
         } catch(ex) {
-            console.error("Connection to database failed! | Using " + config.db_name)
+            console.error("Connection to database failed! | Using database " + config.db_name)
             console.log(ex)
         } 
     
@@ -25,7 +25,9 @@ module.exports = {
         this.donors =           require('./DAO_modules/donors.js')(dbPool)
         this.organizations =    require('./DAO_modules/organizations.js')(dbPool)
         this.donations =        require('./DAO_modules/donations.js')(dbPool)
+        this.payment =          require('./DAO_modules/payment.js')(dbPool)
         this.csr =              require('./DAO_modules/csr.js')(dbPool)
+        this.parsing =          require('./DAO_modules/parsing.js')(dbPool)
         this.auth =             require('./DAO_modules/auth.js')(dbPool)
 
         dbPool.startTransaction = async function() {

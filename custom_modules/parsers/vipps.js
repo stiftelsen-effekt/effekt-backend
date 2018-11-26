@@ -1,68 +1,71 @@
-const { parse } = require('node-xlsx')
+//const { parse } = require('node-xlsx')
 const moment = require('moment')
 const KID = require('./../KID.js')
-
-const HEADER_ROW = 7;
-const VIPPS_ID = 4
-const NUMBER_FIELDS = ['transactionId', 'amount']
-const FIELD_MAPPING = {
-  Salgsdato : 'date',
-  Salgssted : 'location',
-  Fornavn : 'firstName',
-  Etternavn : 'lastName',
-  'Transaksjons-ID': 'transactionId',
-  Brutto: 'amount',
-  Melding : 'message',
-  Salg : 'amount',
-  Status : 'status'
-}
+const parse = require('csv-parse/lib/sync')
 
 module.exports = {
   parseReport: function(report) {
-    const [{ data }] = parse(report, { raw: false });
-    const header = data[HEADER_ROW];
-    const rows = data.slice(HEADER_ROW + 1, data.length - 1)
-    const transactions = rows.map((row) => {
-        const properties = {};
-          row.forEach((field, index) => {
-            const key = FIELD_MAPPING[header[index]];
-            if (!key) {
-              return;
-            }
+    let data = parse(report.toString())
 
-            if (NUMBER_FIELDS.includes(key)) {
-              properties[key] = Number(field);
-            } else {
-              properties[key] = field;
-            }
-          });
+    let currentMinDate = null
+    let currentMaxDate = null
+    let transactions = data.reduce((acc, dataRow) => {
+      let transaction = buildTransactionFromArray(dataRow)
+      if(transaction == false) return acc
+      if (transaction.date.toDate() < currentMinDate || currentMinDate == null) currentMinDate = transaction.date.toDate()
+      if (transaction.date.toDate() > currentMaxDate || currentMaxDate == null) currentMaxDate = transaction.date.toDate()
+      acc.push(transaction)
+      return acc
+    }, [])
 
-          //Attempt to extract KID
-          try {
-            let extractionRegex = /(?=(\d{8}))/
-            let attemptedExtraction = extractionRegex.exec(String(properties.message));
-
-            if (!attemptedExtraction || attemptedExtraction.length < 2) throw "Could not extract numeric sequence";
-
-            attemptedExtraction = attemptedExtraction[1];
-
-            let KIDsubstr = attemptedExtraction.substr(0,7);
-            let checkDigit = KID.luhn_caclulate(KIDsubstr)
-
-            if (KIDsubstr + checkDigit.toString() != attemptedExtraction) throw "Numeric sequence extracted is not valid KID";
-
-            properties.KID = Number(attemptedExtraction);
-
-            properties["dateObj"] = moment(properties.date, "DD.MM.YYYY")
-
-            properties.valid = true;
-          } catch(ex) {
-            //console.log(ex)
-            properties.valid = false;
-          }
-        return properties
-      }).filter((transaction) => (transaction.date && transaction.date != "Til utbetaling netto"));
-
-      return transactions
+    return {
+      minDate: currentMinDate,
+      maxDate: currentMaxDate,
+      transactions: transactions
     }
+  },
+}
+
+const fieldMapping = {
+  SalesDate: 0,
+  SalesLocation: 1,
+  TransactionID: 4,
+  GrossAmount: 6,
+  Fee: 7,
+  NetAmount: 8,
+  TransactionType: 9,
+  FirstName: 14,
+  LastName: 15,
+  Message: 16
+}
+
+function buildTransactionFromArray(inputArray) {
+  if (inputArray[fieldMapping.TransactionType] !== "Salg") return false
+  let transaction = {
+    date: moment(inputArray[fieldMapping.SalesDate], "DD.MM.YYYY"),
+    location: inputArray[fieldMapping.SalesLocation],
+    transactionID: inputArray[fieldMapping.TransactionID],
+    amount: Number(inputArray[fieldMapping.GrossAmount]),
+    name: inputArray[fieldMapping.FirstName] + " " + inputArray[fieldMapping.LastName],
+    message: inputArray[fieldMapping.Message],
+    KID: extractKID(inputArray[fieldMapping.Message])
+  }
+
+  return transaction
+}
+
+function extractKID(inputString) {
+  let extractionRegex = /(?=(\d{8}))/
+  let attemptedExtraction = extractionRegex.exec(String(inputString))
+
+  if (!attemptedExtraction || attemptedExtraction.length < 2) return null
+
+  attemptedExtraction = attemptedExtraction[1]
+
+  let KIDsubstr = attemptedExtraction.substr(0,7)
+  let checkDigit = KID.luhn_caclulate(KIDsubstr)
+
+  if (KIDsubstr + checkDigit.toString() != attemptedExtraction) return null
+
+  return Number(attemptedExtraction)
 }

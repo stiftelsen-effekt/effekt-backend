@@ -2,7 +2,6 @@ const express = require('express')
 
 const KID = require('../custom_modules/KID.js')
 const DAO = require('../custom_modules/DAO.js')
-const dateRangeHelper = require('../custom_modules/dateRangeHelper.js')
 
 const router = express.Router()
 
@@ -66,14 +65,6 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
   })
 })
 
-router.post("/bank/:KID/:sum", (req, res) => {
-  res.status(501).json({
-    status: 501,
-    content: "Not implemented"
-  })
-  //sendDonationReciept(donationObject, donor.email, donor.name)
-})
-
 async function createDonationSplitArray(passedOrganizations) {
   return new Promise(async function(fulfill, reject) {
     //Filter passed organizations for 0 shares
@@ -128,36 +119,6 @@ async function getStandardSplit() {
     fulfill(split)
   })
 }
-
-
-router.get('/total', urlEncodeParser, async (req,res,next) => {
-  try {
-    let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
-
-    let aggregate = await DAO.donations.getAggregateByTime(dates.fromDate, dates.toDate)
-
-    res.json({
-      status: 200,
-      content: aggregate
-    })
-  }
-  catch(ex) {
-    next({ex: ex})
-  }
-})
-
-router.get('/:id', async (req,res,next) => {
-  try {
-    var donation = await DAO.donations.getByID(req.params.id)
-
-    res.json({
-      status: 200,
-      content: donation
-    })
-  } catch(ex) {
-    next({ex: ex})
-  }
-})
 
 //Helper functions
 function createKID() {
