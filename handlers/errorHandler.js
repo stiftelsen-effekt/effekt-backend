@@ -5,7 +5,7 @@ module.exports = (err, req, res, next) => {
         return next(err)
     }
 
-    console.log(err.ex) //Log the error
+    console.log(err) //Log the error
 
     if (!err.status) err.status = 500
     if (!err.msg) err.msg = "Internal server error"

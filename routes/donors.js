@@ -61,7 +61,7 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
     }
 })
 
-router.get('/:id', async (req,res,next) => {
+router.get('/id/:id', async (req,res,next) => {
   try {
     var donor = await DAO.donors.getByID(req.params.id)
 
@@ -72,13 +72,35 @@ router.get('/:id', async (req,res,next) => {
       })
     }
     else {
-      return res.status(204).json({
-        status: 204,
+      return res.status(404).json({
+        status: 404,
         content: "No donor found with ID " + req.params.id
       })
     }
   }
   catch (ex) {
+    next({ex:ex})
+  }
+})
+
+router.get('/search/', async (req,res, next) => {
+  try {
+    var donors = await DAO.donors.search(req.query.q)
+
+    console.log("koko")
+
+    if (donors) {
+      return res.json({
+        status: 200,
+        content: donors
+      })
+    } else {
+      return res.status(404).json({
+        status: 404,
+        content: "No donors found matching query"
+      })
+    }
+  } catch(ex) {
     next({ex:ex})
   }
 })

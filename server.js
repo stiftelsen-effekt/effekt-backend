@@ -34,7 +34,7 @@ global.appRoot = path.resolve(__dirname)
 logging(app)
 
 app.get("/", (req, res, next) => {
-  res.send("Hello Travis")
+  res.send("Dr. Livingstone I presume?")
 })
 
 //Pretty printing of JSON

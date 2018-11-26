@@ -4,3 +4,6 @@ bundle.min.js
 .DS_Store
 .idea/
 .vscode/
+coverage/
+.nyc_output/
+out/
