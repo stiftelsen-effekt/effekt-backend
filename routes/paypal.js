@@ -23,6 +23,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     let KID = paypalCustomData[0]
     let wsClientID = paypalCustomData[1]
     let sum = parseFloat(req.body.mc_gross)
+    let transactionID = req.body.txn_id
     //Fee gets sent form paypal, but is also stored in our DB
     //Maybe update fee in DB if it's different from our stored fees?
     //Possible that paypal changes fees and we forget to update them
@@ -44,7 +45,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     if (verification == "VERIFIED") {
         try {
             //Add donation
-            var donationID = await DAO.donations.add(KID, 3,sum)
+            var donationID = await DAO.donations.add(KID, 3,sum, null, transactionID)
         } catch (ex) {
             console.error("Failed to update DB for paypal donation with KID: " + KID)
             console.error(ex)
