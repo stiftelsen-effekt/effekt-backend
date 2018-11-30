@@ -1,9 +1,13 @@
-//const { parse } = require('node-xlsx')
 const moment = require('moment')
 const KID = require('./../KID.js')
 const parse = require('csv-parse/lib/sync')
 
 module.exports = {
+  /**
+   * Parses a csv file from vipps reports
+   * @param {Buffer} report A file buffer, from a csv comma seperated file
+   * @return {Object} An object with a min- and maxDate field, representing the minimum and maximum date from the provided transactions, and an array of transactions in the field transaction
+   */
   parseReport: function(report) {
     let data = parse(report.toString())
 

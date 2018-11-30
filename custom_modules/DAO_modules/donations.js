@@ -225,6 +225,37 @@ function getFromRange(fromDate, toDate) {
     })
 }
 
+/**
+ * Gets KIDs from historic paypal donors, matching them against a ReferenceTransactionId
+ * @param {Array} transactions A list of transactions that must have a ReferenceTransactionId 
+ * @returns {Object} Returns an object with referenceTransactionId's as keys and KIDs as values
+ */
+function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            let [res] = await con.query(`SELECT 
+                ReferenceTransactionNumber,
+                KID 
+                
+                FROM Paypal_historic_distributions 
+
+                WHERE 
+                    ReferenceTransactionNumber IN (?);`, [referenceIDs])
+
+            let mapping = res.reduce((acc, row) => {
+                acc[row.ReferenceTransactionNumber] = row.KID
+                return acc
+            }, {})
+
+            fulfill(mapping)
+        } catch(ex) {
+            reject(ex)
+            return false
+        }
+    })
+}
+
+
 //endregion
 
 //region Add
@@ -325,6 +356,7 @@ module.exports = function(dbPool) {
         getAggregateByTime,
         getKIDbySplit,
         getFromRange,
+        getHistoricPaypalSubscriptionKIDS,
         KIDexists,
         ExternalPaymentIDExists,
         addSplit,
