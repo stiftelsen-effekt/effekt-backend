@@ -87,8 +87,6 @@ router.get('/search/', async (req,res, next) => {
   try {
     var donors = await DAO.donors.search(req.query.q)
 
-    console.log("koko")
-
     if (donors) {
       return res.json({
         status: 200,

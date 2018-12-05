@@ -7,7 +7,7 @@ const auth = require('./auth.js')
  * @param {String} permission Shortname permission
  * @param {Boolean} api Indicates whether the request is an api request or a view request
  */
-module.exports = (permission, api) => {
+module.exports = (permission, api = true) => {
     return async (req, res, next) => {
         try {
             if (!api) api = true;

@@ -45,10 +45,8 @@ function getMethods() {
 //region Delete
 //endregion
 
-module.exports = function(dbPool) {
-    con = dbPool
+module.exports = {
+    getMethods,
 
-    return {
-        
-    }
-} 
+    setup: (dbPool) => { con = dbPool }
+}

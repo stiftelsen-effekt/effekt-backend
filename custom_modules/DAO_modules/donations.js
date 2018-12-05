@@ -10,6 +10,12 @@ function getByDonor(KID) {
     })
 }
 
+/**
+ * Gets aggregate donations from a spesific time period
+ * @param {Date} startTime 
+ * @param {Date} endTime
+ * @returns {Array} Returns an array of organizations names and their aggregate donations
+ */
 function getAggregateByTime(startTime, endTime) {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -347,20 +353,18 @@ function registerConfirmedByIDs(IDs) {
 
 //endregion
 
-module.exports = function(dbPool) {
-    con = dbPool
+module.exports = {
+    getByID,
+    getByDonor,
+    getAggregateByTime,
+    getKIDbySplit,
+    getFromRange,
+    getHistoricPaypalSubscriptionKIDS,
+    KIDexists,
+    ExternalPaymentIDExists,
+    addSplit,
+    add,
+    registerConfirmedByIDs,
 
-    return {
-        getByID,
-        getByDonor,
-        getAggregateByTime,
-        getKIDbySplit,
-        getFromRange,
-        getHistoricPaypalSubscriptionKIDS,
-        KIDexists,
-        ExternalPaymentIDExists,
-        addSplit,
-        add,
-        registerConfirmedByIDs
-    }
+    setup: (dbPool) => { con = dbPool }
 }
