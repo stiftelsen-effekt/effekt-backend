@@ -2,7 +2,7 @@ console.log("--------------------------------------------------")
 console.log("| gieffektivt.no donation backend (╯°□°）╯︵ ┻━┻ |")
 console.log("--------------------------------------------------")
 const config = require('./config.js')
-console.log("✅ Config loaded")
+console.log("Config loaded")
 
 const express = require('express')
 const fileUpload = require('express-fileupload')
@@ -14,14 +14,14 @@ const logging = require('./handlers/loggingHandler.js')
 const http = require('http')
 const hogan = require('hogan-express')
 
-console.log("✅ Top level dependencies loaded")
+console.log("Top level dependencies loaded")
 
 const DAO = require('./custom_modules/DAO.js')
 
 //Connect to the DB
 //If unsucsessfull, quit app
 DAO.connect(() => {
-  console.log("✅ DAO setup complete")
+  console.log("DAO setup complete")
 
   const errorHandler = require('./handlers/errorHandler.js')
 
@@ -116,8 +116,9 @@ DAO.connect(() => {
   app.use(errorHandler)
 
   mainServer.listen(config.port, () => {
-    console.log("📞 Main http server listening on port " + config.port)
+    console.log("Main http server listening on port " + config.port + " 📞")
 
-    console.log("🐬 Don’t Panic.")
+    console.log("Don’t Panic. 🐬")
+    console.log("---")
   })
 })

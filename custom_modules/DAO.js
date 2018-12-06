@@ -28,7 +28,7 @@ module.exports = {
         //Weirdly, this is the proposed way to do it
         try {
             await dbPool.query("SELECT 1 + 1 AS Solution")
-            console.log("✅ Connected to database | Using database " + config.db_name)
+            console.log("Connected to database | Using database " + config.db_name)
         } catch(ex) {
             console.error("❌ Connection to database failed! | Using database " + config.db_name)
             console.log(ex)
