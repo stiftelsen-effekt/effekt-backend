@@ -58,7 +58,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     }
 })
 
-module.exports = function(wsHandler) {
+module.exports = (wsHandler) => {
     websocketsHandler = wsHandler
 
     return router

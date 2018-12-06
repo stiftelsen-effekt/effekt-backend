@@ -11,14 +11,14 @@ module.exports = {
     //Set port for API listening, default to 3000
     port: process.env.EFFEKT_PORT || 3000,
 
-    //Set port for websockets listening, default to 8080
-    websocketsPort: process.env.EFFEKT_WS_PORT || 8080,
-
     //Bank account for recieving donations
     bankAccount: process.env.BANK_ACCOUNT,
 
     //Server addresss
     serverAddress: process.env.SERVER_ADDRESS,
+
+    //Ignor authorization requirements for endpoints
+    authorizationRequired: (process.env.AUTH_REQUIRED == false ? false : true),
 
     //Debugging
     debugReturnExceptions: true

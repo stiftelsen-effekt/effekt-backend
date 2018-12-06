@@ -14,8 +14,9 @@ module.exports = {
 
     /**
      * Sets up a connection to the database, uses config.js file for parameters
+     * @param {function} cb Callback for when DAO has been sucessfully set up
      */
-    connect: async function() {
+    connect: async function(cb) {
         var dbPool = await mysql.createPool({
             host: config.db_host,
             user: config.db_username,
@@ -27,10 +28,11 @@ module.exports = {
         //Weirdly, this is the proposed way to do it
         try {
             await dbPool.query("SELECT 1 + 1 AS Solution")
-            console.log("Connected to database | Using database " + config.db_name)
+            console.log("✅ Connected to database | Using database " + config.db_name)
         } catch(ex) {
-            console.error("Connection to database failed! | Using database " + config.db_name)
+            console.error("❌ Connection to database failed! | Using database " + config.db_name)
             console.log(ex)
+            process.exit()
         } 
     
         //Setup submodules
@@ -73,6 +75,6 @@ module.exports = {
             }
         }
 
-        console.log("DAO setup complete")
+        cb()
     }
 }

@@ -22,7 +22,7 @@ function send(clientID, msg) {
 
 module.exports = function(httpServer) {
     let server = new WebSocket.Server({ server: httpServer })
-    console.log("Websockets server listening")
+    console.log("📞 Websockets listening on main http server")
 
     server.on("connection", connection)
 

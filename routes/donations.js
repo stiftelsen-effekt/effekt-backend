@@ -27,8 +27,8 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     }
 
     //Create a donation split object
-    if (parsedData.organizations) {
-      donationObject.split = await createDonationSplitArray(parsedData.organizations)
+    if (donationOrganizations) {
+      donationObject.split = await createDonationSplitArray(donationOrganizations)
       donationObject.standardSplit = false
     }
     else {
