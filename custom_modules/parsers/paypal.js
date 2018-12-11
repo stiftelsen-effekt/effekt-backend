@@ -31,10 +31,10 @@ function getTransactions(data) {
     return data.reduce((acc, row) => {
         if(row[fieldMapping.type] == "Abonnementsbetaling") {
             acc.push({
-                date: moment(row[fieldMapping.date + " " + row[fieldMapping.time]], "dd.mm.yyyy hh:mm:ss"),
+                date: moment(row[fieldMapping.date] + " " + row[fieldMapping.time], "DD.MM.YYYY hh:mm:ss"),
                 transactionID: row[fieldMapping.transactionID],
                 referenceTransactionID: row[fieldMapping.referenceTransactionID],
-                amount: Number(row[fieldMapping.grossAmount].replace(/[,]/, ".")),
+                amount: Number(row[fieldMapping.grossAmount].replace(/[,]/, ".").replace(/\s/g, '')),
                 email: row[fieldMapping.email]
             })
         }
