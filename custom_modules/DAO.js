@@ -30,7 +30,7 @@ module.exports = {
             await dbPool.query("SELECT 1 + 1 AS Solution")
             console.log("Connected to database | Using database " + config.db_name)
         } catch(ex) {
-            console.error("❌ Connection to database failed! | Using database " + config.db_name)
+            console.error("Connection to database failed! | Using database " + config.db_name)
             console.log(ex)
             process.exit()
         } 

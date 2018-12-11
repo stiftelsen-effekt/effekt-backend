@@ -57,9 +57,8 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     return next({ex: ex})
   }
 
-  //In case the email component should fail, register the donation anyways, and notify client
   res.json({
-    status: 200, //Temp for testing
+    status: 200,
     content: {
       KID: donationObject.KID
     }
