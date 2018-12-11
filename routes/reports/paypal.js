@@ -33,7 +33,7 @@ module.exports = async (req,res,next) => {
         await DAO.donations.add(transaction.KID, PAYPAL_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
       }
     } catch(ex) {
-      next(ex)
+      next({ex: ex})
       return false
     }
 
