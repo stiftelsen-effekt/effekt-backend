@@ -317,7 +317,7 @@ function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID
                 times, we must check the vipps transaction ID against the
                 stored ones in the database, to ensure that we are not creating
                 a duplicate donation. */
-            if (externalPaymentID != null && paymentMethodID != 3) {
+            if (externalPaymentID != null) {
                 if (await ExternalPaymentIDExists(externalPaymentID,paymentMethodID)) {
                     reject("Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID)
                     return false
