@@ -22,10 +22,8 @@ function getAllDonationsByDonorId(donorId) {
     })
 }
 
-module.exports = function(dbPool) {
-    con = dbPool
+module.exports = {
+    getAllDonationsByDonorId,
 
-    return {
-        getAllDonationsByDonorId,
-    }
+    setup: (dbPool) => { con = dbPool }
 }

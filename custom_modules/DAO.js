@@ -3,7 +3,20 @@ const mysql = require('mysql2/promise')
 
 //Export DAO
 module.exports = {
-    connect: async function() {
+    //Submodules
+    donors: require('./DAO_modules/donors.js'),
+    organizations: require('./DAO_modules/organizations.js'),
+    donations: require('./DAO_modules/donations.js'),
+    payment: require('./DAO_modules/payment.js'),
+    csr: require('./DAO_modules/csr.js'),
+    parsing: require('./DAO_modules/parsing.js'),
+    auth: require('./DAO_modules/auth.js'),
+
+    /**
+     * Sets up a connection to the database, uses config.js file for parameters
+     * @param {function} cb Callback for when DAO has been sucessfully set up
+     */
+    connect: async function(cb) {
         var dbPool = await mysql.createPool({
             host: config.db_host,
             user: config.db_username,
@@ -19,17 +32,20 @@ module.exports = {
         } catch(ex) {
             console.error("Connection to database failed! | Using database " + config.db_name)
             console.log(ex)
+            process.exit()
         } 
     
-        //Load submodules
-        this.donors =           require('./DAO_modules/donors.js')(dbPool)
-        this.organizations =    require('./DAO_modules/organizations.js')(dbPool)
-        this.donations =        require('./DAO_modules/donations.js')(dbPool)
-        this.payment =          require('./DAO_modules/payment.js')(dbPool)
-        this.csr =              require('./DAO_modules/csr.js')(dbPool)
-        this.parsing =          require('./DAO_modules/parsing.js')(dbPool)
-        this.auth =             require('./DAO_modules/auth.js')(dbPool)
+        //Setup submodules
+        this.donors.setup(dbPool)      
+        this.organizations.setup(dbPool)
+        this.donations.setup(dbPool)
+        this.payment.setup(dbPool)
+        this.csr.setup(dbPool)
+        this.parsing.setup(dbPool)
+        this.auth.setup(dbPool)
 
+        //Convenience functions for transactions
+        //Use the returned transaction object for queries in the transaction
         dbPool.startTransaction = async function() {
             try {
                 let transaction = await dbPool.getConnection()
@@ -59,6 +75,6 @@ module.exports = {
             }
         }
 
-        console.log("DAO setup complete")
+        cb()
     }
 }

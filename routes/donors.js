@@ -1,67 +1,25 @@
 const express = require('express')
 const router = express.Router()
+const auth = require('../custom_modules/authorization/authMiddleware')
+const roles = require('../enums/authorizationRoles')
 
 const DAO = require('../custom_modules/DAO.js')
-const KID = require('../custom_modules/KID.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
 router.post("/", urlEncodeParser, async (req,res,next) => {
-    if (!req.body.data) return res.sendStatus(400)
-
-    var data = JSON.parse(req.body.data)
-    var email = data.email
-    var name = data.name
-
-    if (name.length > 0) {
-      if (name.indexOf(' ') == -1) {
-        var firstName = name
-      }
-      else {
-        var firstName = name.substring(0, name.indexOf(' '))
-        var lastName = name.substring(name.indexOf(' ')+1)
-      }
-    }
-    
-    if (typeof email === "undefined") {
-      return res.status(400).json({
-        status: 400,
-        content: "Missing email in request"
-      })
-    }
-
-    var existingUserKID = await DAO.donors.getKIDByEmail(email)
-    if (existingUserKID != null) {
-      return res.json({
-        status: 200,
-        content: {
-          KID: existingUserKID
-        }
-      })
-    } else {
-      try {
-        var newUserKID = await DAO.donors.add({
-          KID: await KID.getNonColliding(),
-          email: email,
-          firstName: (firstName ? firstName : ""),
-          lastName: (lastName ? lastName : "")
-        })
-
-        return res.json({
-          status: 200,
-          content: {
-            KID: newUserKID
-          }
-        })
-      } 
-      catch (ex) {
-        next({ex: ex})
-      }
-    }
+  try {
+    res.status(501).json({
+      status: 501,
+      content: "Not implemented"
+    })
+  } catch(ex) {
+    next({ex:ex})
+  }
 })
 
-router.get('/id/:id', async (req,res,next) => {
+router.get('/id/:id', auth(roles.read_all_donations) ,async (req,res,next) => {
   try {
     var donor = await DAO.donors.getByID(req.params.id)
 
@@ -83,11 +41,9 @@ router.get('/id/:id', async (req,res,next) => {
   }
 })
 
-router.get('/search/', async (req,res, next) => {
+router.get('/search/', auth(auth.read_all_donations), async (req,res, next) => {
   try {
     var donors = await DAO.donors.search(req.query.q)
-
-    console.log("koko")
 
     if (donors) {
       return res.json({

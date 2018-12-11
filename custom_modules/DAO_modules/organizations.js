@@ -106,14 +106,12 @@ function mapOrganization(org) {
     }
 }
 
-module.exports = function(dbPool) {
-    con = dbPool
+module.exports = {
+    getByIDs,
+    getByID,
+    getActive,
+    getAll,
+    getStandardSplit,
 
-    return {
-        getByIDs,
-        getByID,
-        getActive,
-        getAll,
-        getStandardSplit
-    }
-} 
+    setup: (dbPool) => { con = dbPool }
+}

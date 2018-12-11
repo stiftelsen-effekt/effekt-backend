@@ -418,19 +418,17 @@ function updateDonorPassword(donorID ,password) {
 //region Delete
 //endregion
 
-module.exports = function(dbPool) {
-    con = dbPool
+module.exports = {
+    getDonorByChangePassToken,
+    getCheckPermissionByToken,
+    getApplicationByClientID,
+    getPermissionsFromShortnames,
+    getDonorByCredentials,
+    checkApplicationPermissions,
+    checkDonorPermissions,
+    updateDonorPassword,
+    addAccessKey,
+    addAccessTokenByAccessKey,
 
-    return {
-        getDonorByChangePassToken,
-        getCheckPermissionByToken,
-        getApplicationByClientID,
-        getPermissionsFromShortnames,
-        getDonorByCredentials,
-        checkApplicationPermissions,
-        checkDonorPermissions,
-        updateDonorPassword,
-        addAccessKey,
-        addAccessTokenByAccessKey
-    }
-} 
+    setup: (dbPool) => { con = dbPool }
+}

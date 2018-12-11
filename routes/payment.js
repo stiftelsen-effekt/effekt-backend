@@ -8,11 +8,11 @@ const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
 router.get("/methods", async (req,res, next) => {
   try {
-    var activeOrganizations = await DAO.organizations.getActive()
+    //TODO: Not implemented
 
-    res.json({
-      status: 200,
-      content: activeOrganizations
+    res.status(501).json({
+      status: 501,
+      content: "Not implemented"
     })
   }
   catch(ex) {

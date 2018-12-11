@@ -41,7 +41,7 @@ router.get("/:id", async (req, res, next) => {
 })
 
 /* 
-  TODO: POST to '/' - Create Organization
+  TODO: POST to '/' - Create Organization, for admin panel
 */
 
 module.exports = router

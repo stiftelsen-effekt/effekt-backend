@@ -1,6 +1,11 @@
 var con
 
 //region Get
+/**
+ * Gets the ID of a Donor based on their email
+ * @param {String} email An email
+ * @returns {Number} An ID
+ */
 function getIDbyEmail(email) {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -14,6 +19,11 @@ function getIDbyEmail(email) {
     })
 }
 
+/**
+ * Selects a Donor object from the database with the given ID
+ * @param {Number} ID The ID in the database for the donor
+ * @returns {Object} A donor object
+ */
 function getByID(ID) {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -53,6 +63,11 @@ function search(query) {
 //endregion
 
 //region Add
+/**
+ * Adds a new Donor to the database
+ * @param {Object} donorObject A donorObject with two properties, email (string) and name(string)
+ * @returns {Number} The ID of the new Donor if successfull
+ */
 function add(donorObject) {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -78,21 +93,13 @@ function add(donorObject) {
 //endregion
 
 //region Delete
-function remove(userID) {
-    return new Promise(async (fulfill, reject) => {
-        reject(new Error("Not implemented"))
-    })
-}
 //endregion
 
-module.exports = function(dbPool) {
-    con = dbPool
+module.exports = {
+    getByID,
+    getIDbyEmail,
+    search,
+    add,
 
-    return {
-        getByID,
-        getIDbyEmail,
-        search,
-        add,
-        remove
-    }
-} 
+    setup: (dbPool) => { con = dbPool }
+}

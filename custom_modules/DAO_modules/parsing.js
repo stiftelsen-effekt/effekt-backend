@@ -26,10 +26,8 @@ function getVippsParsingRules(periodStart, periodEnd) {
     })
 }
 
-module.exports = function(dbPool) {
-    con = dbPool
+module.exports = {
+    getVippsParsingRules,
 
-    return {
-        getVippsParsingRules,
-    }
+    setup: (dbPool) => { con = dbPool }
 }

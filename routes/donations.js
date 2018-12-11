@@ -7,6 +7,7 @@ const router = express.Router()
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
+const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -26,8 +27,8 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     }
 
     //Create a donation split object
-    if (parsedData.organizations) {
-      donationObject.split = await createDonationSplitArray(parsedData.organizations)
+    if (donationOrganizations) {
+      donationObject.split = await createDonationSplitArray(donationOrganizations)
       donationObject.standardSplit = false
     }
     else {
@@ -56,15 +57,30 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     return next({ex: ex})
   }
 
-  //In case the email component should fail, register the donation anyways, and notify client
   res.json({
-    status: 200, //Temp for testing
+    status: 200,
     content: {
       KID: donationObject.KID
     }
   })
 })
 
+router.get("/total", async (req, res, next) => {
+  try {
+    let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
+
+    let aggregate = await DAO.donations.getAggregateByTime(dates.fromDate, dates.toDate)
+
+    res.json({
+      status: 200,
+      content: aggregate
+    })
+  } catch(ex) {
+    next({ex: ex})
+  }
+})
+
+//Helper functions
 async function createDonationSplitArray(passedOrganizations) {
   return new Promise(async function(fulfill, reject) {
     //Filter passed organizations for 0 shares
@@ -120,7 +136,6 @@ async function getStandardSplit() {
   })
 }
 
-//Helper functions
 function createKID() {
   return new Promise(async (fulfill, reject) => {
     //Create new valid KID
