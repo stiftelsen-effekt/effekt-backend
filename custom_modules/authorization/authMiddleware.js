@@ -17,6 +17,7 @@ module.exports = (permission, api = true) => {
                     status: 400,
                     content: "Missing authorization token from request"
                 })
+                return false
             }
 
             let authorized = await auth.checkPermissionByToken(token, permission)
