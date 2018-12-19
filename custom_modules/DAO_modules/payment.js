@@ -6,7 +6,7 @@ var con
  * @returns {Array} An array of payment method objects
  */
 function getMethods() {
-    return new Promise(async (async, reject) => {
+    return new Promise(async (fulfill, reject) => {
         try {
             var [res] = await con.query(`SELECT * FROM Payment`)
 
