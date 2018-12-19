@@ -19,7 +19,27 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
   }
 })
 
-router.get('/id/:id', auth(roles.read_all_donations) ,async (req,res,next) => {
+router.get('/search/', auth(auth.read_all_donations), async (req,res, next) => {
+  try {
+    var donors = await DAO.donors.search(req.query.q)
+
+    if (donors) {
+      return res.json({
+        status: 200,
+        content: donors
+      })
+    } else {
+      return res.status(404).json({
+        status: 404,
+        content: "No donors found matching query"
+      })
+    }
+  } catch(ex) {
+    next({ex:ex})
+  }
+})
+
+router.get('/:id', auth(roles.read_all_donations) ,async (req,res,next) => {
   try {
     var donor = await DAO.donors.getByID(req.params.id)
 
@@ -41,24 +61,6 @@ router.get('/id/:id', auth(roles.read_all_donations) ,async (req,res,next) => {
   }
 })
 
-router.get('/search/', auth(auth.read_all_donations), async (req,res, next) => {
-  try {
-    var donors = await DAO.donors.search(req.query.q)
 
-    if (donors) {
-      return res.json({
-        status: 200,
-        content: donors
-      })
-    } else {
-      return res.status(404).json({
-        status: 404,
-        content: "No donors found matching query"
-      })
-    }
-  } catch(ex) {
-    next({ex:ex})
-  }
-})
 
 module.exports = router
