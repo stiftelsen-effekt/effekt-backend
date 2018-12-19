@@ -61,7 +61,7 @@ module.exports = {
 
                 donationRow[startIndex] = split.name;
                 donationRow[startIndex+1] = Number(split.percentage);
-                donationRow[startIndex+2] = Number(split.amount);
+                donationRow[startIndex+2] = Math.round(Number(split.amount));
             })
 
             dataRows.push(donationRow)
