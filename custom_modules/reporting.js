@@ -18,16 +18,17 @@ module.exports = {
         let sumifnameColumn = COLUMN_MAPPING[3] //Metode header
 
         let simifcomparisonrange = `${sumifnameColumn + dataStartRow}:${sumifnameColumn + (donations.length+dataStartRow)}`
-        let sumationRange = `${COLUMN_MAPPING[4] + dataStartRow}:${COLUMN_MAPPING[4] + (donations.length+dataStartRow)}`
-        let checkSumRange = `${COLUMN_MAPPING[6]}1:${COLUMN_MAPPING[6 + (organizations.length * 3)]}1`;
+        let sumationRange =     `${COLUMN_MAPPING[4] + dataStartRow}:${COLUMN_MAPPING[4] + (donations.length+dataStartRow)}`
+        let sumationFeesRange = `${COLUMN_MAPPING[5] + dataStartRow}:${COLUMN_MAPPING[5] + (donations.length+dataStartRow)}`
+        let checkSumRange =     `${COLUMN_MAPPING[7]}1:${COLUMN_MAPPING[7 + (organizations.length * 3)]}1`;
 
-        let dataTopRow =            ['ID',  'Donasjon registrert',  'Navn',     'Metode',   'Sum']
-        let dataSumation =          ['Checksum', formula(`${COLUMN_MAPPING[4]}1 - SUM(${checkSumRange})`), '','Sum',formula(`SUM(${sumationRange})`)]
+        let dataTopRow =            ['ID',  'Donasjon registrert',  'Navn',     'Metode',   'Sum', 'Avgifter']
+        let dataSumation =          ['Checksum', formula(`${COLUMN_MAPPING[4]}1 - SUM(${checkSumRange})`), '','Sum',formula(`SUM(${sumationRange})`), formula(`SUM(${sumationFeesRange})`)]
 
         //Sumation for specific payment methods
         
-        let dataSumationPayPal =    ['',    '',                     '',         'Sum PayPal',formula(`SUMIF(${simifcomparisonrange}, "PayPal", ${sumationRange})`)]
-        let dataSumationVipps =     ['',    '',                     '',         'Sum Vipps', formula(`SUMIF(${simifcomparisonrange}, "Vipps", ${sumationRange})`)]
+        let dataSumationPayPal =    ['Antall paypal', formula(`COUNTIF(D${dataStartRow}:D1000,"PayPal")`) ,'','Sum PayPal',formula(`SUMIF(${simifcomparisonrange}, "PayPal", ${sumationRange})`), formula(`SUMIF(${simifcomparisonrange}, "PayPal", ${sumationFeesRange})`)]
+        let dataSumationVipps =     ['Antall vipps',  formula(`COUNTIF(D${dataStartRow}:D1000,"Vipps")`),'',  'Sum Vipps', formula(`SUMIF(${simifcomparisonrange}, "Vipps", ${sumationRange})`), formula(`SUMIF(${simifcomparisonrange}, "Vipps", ${sumationFeesRange})`)]
 
         let currentColumn = dataTopRow.length
 
@@ -54,14 +55,14 @@ module.exports = {
         //Generate the actual donation data
         let dataRows = []
         donations.forEach((donation) => {
-            let donationRow = [donation.ID, donation.time, donation.name, donation.paymentMethod, donation.sum]
+            let donationRow = [donation.ID, donation.time, donation.name, donation.paymentMethod, donation.sum, Number(donation.transactionCost)]
 
             donation.split.forEach((split) => {
                 let startIndex = organizationMapping.get(split.id)
 
                 donationRow[startIndex] = split.name;
                 donationRow[startIndex+1] = Number(split.percentage);
-                donationRow[startIndex+2] = Number(split.amount);
+                donationRow[startIndex+2] = Math.round(Number(split.amount));
             })
 
             dataRows.push(donationRow)

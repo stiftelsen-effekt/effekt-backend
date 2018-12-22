@@ -169,6 +169,7 @@ function getFromRange(fromDate, toDate) {
                         Donations.ID as Donation_ID,
                         Donations.timestamp_confirmed,  
                         Donations.Donor_ID, 
+                        Donations.transaction_cost,
                         Donors.full_name as donor_name, 
                         Donations.sum_confirmed, 
                         Payment.payment_name,
@@ -204,6 +205,7 @@ function getFromRange(fromDate, toDate) {
                         donorID: null,
                         sum: null,
                         paymentMethod: null,
+                        transactionCost: null,
                         split: []
                     })
 
@@ -213,6 +215,7 @@ function getFromRange(fromDate, toDate) {
                     donations.get(row.Donation_ID).donorID = row.Donor_ID
                     donations.get(row.Donation_ID).sum = row.sum_confirmed
                     donations.get(row.Donation_ID).paymentMethod = row.payment_name
+                    donations.get(row.Donation_ID).transactionCost = row.transaction_cost
 
                     donations.get(row.Donation_ID).split.push({
                         id: row.Org_ID,

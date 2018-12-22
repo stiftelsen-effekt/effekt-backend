@@ -97,6 +97,7 @@ DAO.connect(() => {
   const organizationsRoute =  require('./routes/organizations.js')
   const reportsRoute =        require('./routes/reports.js')
   const paypalRoute =         require('./routes/paypal.js')(websocketsHandler)
+  const paymentRoute =        require('./routes/payment.js')
   const csrRoute =            require('./routes/csr.js')
   const authRoute =           require('./routes/auth.js')
 
@@ -105,6 +106,7 @@ DAO.connect(() => {
   app.use('/organizations', organizationsRoute)
   app.use('/reports',       reportsRoute)
   app.use('/paypal',        paypalRoute)
+  app.use('/payment',       paymentRoute)
   app.use('/csr',           csrRoute)
   app.use('/auth',          authRoute)
 
