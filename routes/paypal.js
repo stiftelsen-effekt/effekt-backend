@@ -24,6 +24,9 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     let wsClientID = paypalCustomData[1]
     let sum = parseFloat(req.body.mc_gross)
     let transactionID = req.body.txn_id
+
+    let paymentStatus = req.body.payment_status
+
     //Fee gets sent form paypal, but is also stored in our DB
     //Maybe update fee in DB if it's different from our stored fees?
     //Possible that paypal changes fees and we forget to update them
@@ -42,7 +45,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     }
 
     if (sum < 0) return false; //Refunded donation. Might want to automate this aswell.
-    if (verification == "VERIFIED") {
+    if (verification == "VERIFIED" && paymentStatus.toLower() === "completed") {
         try {
             //Add donation
             var donationID = await DAO.donations.add(KID, 3,sum, null, transactionID)
