@@ -45,7 +45,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     }
 
     if (sum < 0) return false; //Refunded donation. Might want to automate this aswell.
-    if (verification == "VERIFIED" && paymentStatus.toLower() === "completed") {
+    if (verification == "VERIFIED" && paymentStatus === "Completed") {
         try {
             //Add donation
             var donationID = await DAO.donations.add(KID, 3,sum, null, transactionID)
