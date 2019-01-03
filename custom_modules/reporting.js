@@ -62,7 +62,7 @@ module.exports = {
 
                 donationRow[startIndex] = split.name;
                 donationRow[startIndex+1] = Number(split.percentage);
-                donationRow[startIndex+2] = Math.round(Number(split.amount));
+                donationRow[startIndex+2] = roundCurrency(Number(split.amount));
             })
 
             dataRows.push(donationRow)
@@ -83,6 +83,10 @@ module.exports = {
         //Helper functions
         function formula(formula) {
             return {v: '', f: `=${formula}`}
+        }
+
+        function roundCurrency(num) {
+            return (Math.round(num * 100) / 100);
         }
     }
 }
