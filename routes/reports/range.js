@@ -6,9 +6,24 @@ const moment = require('moment')
 module.exports = async (req, res, next) => {
     try {
       let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
-  
-      let donationsFromRange = await DAO.donations.getFromRange(dates.fromDate, dates.toDate)
-  
+
+      if (req.query.paymentMethodIDs) {
+        try {
+          var paymentMethodIDs = req.query.paymentMethodIDs.split('|').map(n => parseInt(n))
+        } catch(ex) {
+          res.json({
+            status: 400,
+            content: 'Failed to parse payment method IDs. Should be passed on the form int.int.int, e.g. 3|5|8'
+          })
+        }
+
+        var paymentMethods = await DAO.payment.getPaymentMethodsByIDs(paymentMethodIDs)
+        var donationsFromRange = await DAO.donations.getFromRange(dates.fromDate, dates.toDate, paymentMethodIDs)
+      } else {
+        var paymentMethods = await DAO.payment.getMethods()
+        var donationsFromRange = await DAO.donations.getFromRange(dates.fromDate, dates.toDate)
+      }
+      
       if (req.query.filetype === "json") {
         res.json({
           status: 200,
@@ -17,7 +32,7 @@ module.exports = async (req, res, next) => {
       }
       else if (req.query.filetype === "excel") {
         let organizations = await DAO.organizations.getAll();
-        let excelFile = reporting.createExcelFromIndividualDonations(donationsFromRange, organizations)
+        let excelFile = reporting.createExcelFromIndividualDonations(donationsFromRange, organizations, paymentMethods)
   
         res.writeHead(200, {
           'Content-Type': 'application/vnd.ms-excel',

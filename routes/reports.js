@@ -10,14 +10,14 @@ const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 router.post('/ocr',
             authMiddleware(authRoles.write_all_donations),
             require('./reports/ocr'))
-router.post("/vipps", 
+router.post("/vipps",
             authMiddleware(authRoles.write_all_donations),
             require('./reports/vipps'))
-router.post("/paypal", 
+router.post("/paypal",
             authMiddleware(authRoles.write_all_donations),
             require('./reports/paypal'))
-router.get('/range', 
-            urlEncodeParser, 
+router.get('/range',
+            urlEncodeParser,
             authMiddleware(authRoles.read_all_donations),
             require('./reports/range'))
 
