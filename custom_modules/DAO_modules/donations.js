@@ -154,11 +154,12 @@ function getSplitByKID(KID) {
 }
 
 /**
- * Fetches all the donations in the database for a given inclusive range. Passed two equal dates, returns given day.
+ * Fetches all the donations in the database for a given inclusive range. If passed two equal dates, returns given day.
  * @param {Date} [fromDate=1. Of January 2000] The date in which to start the selection, inclusive interval.
  * @param {Date} [toDate=Today] The date in which to end the selection, inclusive interval.
+ * @param {Array<Integer>} [paymentMethodIDs=null] Provide optional PaymentMethodID to filter to a payment method
  */
-function getFromRange(fromDate, toDate) {
+function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
     return new Promise(async (fulfill, reject) => {
         try {
             if (!fromDate) fromDate = new Date(2000,0, 1)
@@ -194,7 +195,11 @@ function getFromRange(fromDate, toDate) {
                         Donations.timestamp_confirmed >= Date(?)  
                         AND 
                         Donations.timestamp_confirmed < Date(Date_add(Date(?), interval 1 day))
-                    `, [fromDate, toDate])
+                    ${(paymentMethodIDs != null ? `
+                        AND
+                        Donations.Payment_ID IN (?)
+                    ` : '')}
+                    `, [fromDate, toDate, paymentMethodIDs])
 
                 let donations = new Map()
                 getFromRangeQuery.forEach((row) => {

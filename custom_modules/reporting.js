@@ -5,11 +5,12 @@ module.exports = {
      * Creates an excel file from individual donations
      * @param {Array} donations An array containing individual donations
      * @param {Array} organizations An array of all the organizations in the database
+     * @param {Array} paymentMethods An array of paymentmethods in the donation-list
      * @returns {Buffer} The output excel file
      */
-    createExcelFromIndividualDonations: function(donations, organizations) {
+    createExcelFromIndividualDonations: function(donations, organizations, paymentMethods) {
         let organizationMapping = new Map();
-        const dataStartRow = 6;
+        const dataStartRow = 4 + paymentMethods.length;
 
         //A 2-dimensional array representing rows and columns
         let data = []
@@ -17,22 +18,28 @@ module.exports = {
         //Generate headers for data
         let sumifnameColumn = COLUMN_MAPPING[3] //Metode header
 
-        let simifcomparisonrange = `${sumifnameColumn + dataStartRow}:${sumifnameColumn + (donations.length+dataStartRow)}`
+        let sumifcomparisonrange = `${sumifnameColumn + dataStartRow}:${sumifnameColumn + (donations.length+dataStartRow)}`
         let sumationRange =     `${COLUMN_MAPPING[4] + dataStartRow}:${COLUMN_MAPPING[4] + (donations.length+dataStartRow)}`
         let sumationFeesRange = `${COLUMN_MAPPING[5] + dataStartRow}:${COLUMN_MAPPING[5] + (donations.length+dataStartRow)}`
         let checkSumRange =     `${COLUMN_MAPPING[7]}1:${COLUMN_MAPPING[7 + (organizations.length * 3)]}1`;
 
         let dataTopRow =            ['ID',  'Donasjon registrert',  'Navn',     'Metode',   'Sum', 'Avgifter']
-        let dataSumation =          ['Checksum', formula(`${COLUMN_MAPPING[4]}1 - SUM(${checkSumRange})`), '','Sum',formula(`SUM(${sumationRange})`), formula(`SUM(${sumationFeesRange})`)]
-
-        //Sumation for specific payment methods
         
-        let dataSumationPayPal =    ['Antall paypal', formula(`COUNTIF(D${dataStartRow}:D1000,"PayPal")`) ,'','Sum PayPal',formula(`SUMIF(${simifcomparisonrange}, "PayPal", ${sumationRange})`), formula(`SUMIF(${simifcomparisonrange}, "PayPal", ${sumationFeesRange})`)]
-        let dataSumationVipps =     ['Antall vipps',  formula(`COUNTIF(D${dataStartRow}:D1000,"Vipps")`),'',  'Sum Vipps', formula(`SUMIF(${simifcomparisonrange}, "Vipps", ${sumationRange})`), formula(`SUMIF(${simifcomparisonrange}, "Vipps", ${sumationFeesRange})`)]
+        //Sumation-rows
+        let dataSumation =          ['Checksum', formula(`${COLUMN_MAPPING[4]}1 - SUM(${checkSumRange})`), '','Sum',formula(`SUM(${sumationRange})`), formula(`SUM(${sumationFeesRange})`)]
+            //Sumation for specific payment methods
+            let methodSumationRows = []
+            paymentMethods.forEach((method) => {
+                methodSumationRows.push([   `Antall ${method.name}`, 
+                                            formula(`COUNTIF(D${dataStartRow}:D1000,"${method.name}")`),
+                                            '',
+                                            `Sum ${method.name}`,
+                                            formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationRange})`), 
+                                            formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationFeesRange})`)])
+            })
+        
 
         let currentColumn = dataTopRow.length
-
-        
 
         organizations.forEach((org) => {
             let organizationHeaders = [org.name, '%', 'Kr']
@@ -43,10 +50,12 @@ module.exports = {
 
             let organizationSumColumns = [org.abbriv, '', formula(`SUM(${sumationRange})`)]
             dataSumation.push(...organizationSumColumns)
-            let organizationSumPayPalColumns = [org.abbriv, '', formula(`SUMIF(${simifcomparisonrange}, "PayPal", ${sumationRange})`)]
-            dataSumationPayPal.push(...organizationSumPayPalColumns)
-            let organizationSumVippsColumns = [org.abbriv, '', formula(`SUMIF(${simifcomparisonrange}, "Vipps", ${sumationRange})`)]
-            dataSumationVipps.push(...organizationSumVippsColumns)
+
+            //Add sumation for each organization filtered on each payment method
+            paymentMethods.forEach((method, i) => {
+                let organizationSumMethodColumns = [org.abbriv, '', formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationRange})`)]
+                methodSumationRows[i].push(...organizationSumMethodColumns)
+            })
 
             organizationMapping.set(org.id, currentColumn)
             currentColumn += organizationHeaders.length
@@ -70,8 +79,7 @@ module.exports = {
 
         //Add all the generated data
         data.push(dataSumation)
-        data.push(dataSumationPayPal)
-        data.push(dataSumationVipps)
+        data.push(...methodSumationRows)
         data.push([]) //Spacing row
         data.push(dataTopRow)
         data.push(...dataRows)
