@@ -1,5 +1,6 @@
 const DAO = require('../../custom_modules/DAO.js')
 const paypal = require('../../custom_modules/parsers/paypal.js')
+const mail = require('../../custom_modules/mail')
 
 const PAYPAL_ID = 3
 
@@ -30,7 +31,8 @@ module.exports = async (req,res,next) => {
       //Add paypal donations
       for(let i = 0; i < transactions.length; i++) {
         let transaction = transactions[i]
-        await DAO.donations.add(transaction.KID, PAYPAL_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
+        let donationID = await DAO.donations.add(transaction.KID, PAYPAL_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
+        mail.sendDonationReciept(donationID)
       }
     } catch(ex) {
       next({ex: ex})

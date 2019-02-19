@@ -22,8 +22,9 @@ async function sendDonationReciept(donationID) {
     try {
         var donation = await DAO.donations.getByID(donationID)
     } catch(ex) {
-        console.error("Failed to send mail donation reciept")
+        console.error("Failed to send mail donation reciept, could not get donation by ID")
         console.error(ex)
+        return false
     }
 
     donation.organizations = donation.organizations.map(function(org) {

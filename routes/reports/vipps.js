@@ -1,5 +1,6 @@
 const vippsParser = require('../../custom_modules/parsers/vipps.js')
 const DAO = require('../../custom_modules/DAO.js')
+const mail = require('../../custom_modules/mail')
 
 const VIPPS_ID = 4
 
@@ -26,7 +27,8 @@ module.exports = async (req,res,next) => {
              * Managed to grab a KID straight from the message field, go ahead and add to DB
              */
             try {
-                await DAO.donations.add(transaction.KID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
+                let donationID = await DAO.donations.add(transaction.KID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
+                mail.sendDonationReciept(donationID);
 
                 valid++
             } catch (ex) {
