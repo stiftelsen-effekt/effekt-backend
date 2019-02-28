@@ -31,7 +31,9 @@ function getByID(ID) {
 function getActive() {
     return new Promise(async (fulfill, reject) => {
         try {
-            var [organizations] = await con.execute(`SELECT * FROM Organizations WHERE is_active = 1`)
+            var [organizations] = await con.execute(`SELECT * FROM Organizations 
+                                                        WHERE is_active = 1
+                                                        ORDER BY std_percentage_share DESC`)
         }
         catch (ex) {
             return reject(ex)
