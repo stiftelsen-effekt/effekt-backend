@@ -13,7 +13,7 @@ module.exports = async (req, res, next) => {
         } catch(ex) {
           res.json({
             status: 400,
-            content: 'Failed to parse payment method IDs. Should be passed on the form int.int.int, e.g. 3|5|8'
+            content: 'Failed to parse payment method IDs. Should be passed on the form int|int|int, e.g. 3|5|8'
           })
         }
 
