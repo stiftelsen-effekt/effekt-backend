@@ -41,8 +41,8 @@ html, body {
       padding-left: 14px;
       margin-bottom: 22px; }
       .dialog .inner ul li {
-        font-size: 14px;
-        font-weight: 700; }
+        font-weight: 700;
+        font-size: 14px; }
     .dialog .inner form {
       text-align: center; }
       .dialog .inner form .btn {

@@ -1,4 +1,5 @@
 const auth = require('./auth.js')
+const config = require('./../../config')
 
 /**
  * Express middleware, checks if token passed in request grants permission 
@@ -10,17 +11,27 @@ const auth = require('./auth.js')
 module.exports = (permission, api = true) => {
     return async (req, res, next) => {
         try {
-            let token = req.query.token
+            //Initialize authorized to false
+            let authorized = false
 
-            if(!token) { 
-                res.status(400).json({
-                    status: 400,
-                    content: "Missing authorization token from request"
-                })
-                return false
+            //If authorization is required
+            if (config.authorizationRequired) {
+                let token = req.query.token
+
+                if(!token) { 
+                    res.status(400).json({
+                        status: 400,
+                        content: "Missing authorization token from request"
+                    })
+                    return false
+                }
+
+                authorized = await auth.checkPermissionByToken(token, permission)
+            } 
+            //If authorization is not required
+            else {
+                authorized = true
             }
-
-            let authorized = await auth.checkPermissionByToken(token, permission)
 
             if (!authorized) {
                 if (api) res.status(401).json({status: 401, content: 'Unauthorized'})

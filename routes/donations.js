@@ -3,10 +3,13 @@ const express = require('express')
 const KID = require('../custom_modules/KID.js')
 const DAO = require('../custom_modules/DAO.js')
 
+const authMiddleware = require('../custom_modules/authorization/authMiddleware')
+const authRoles = require('../enums/authorizationRoles')
+
 const router = express.Router()
 
 const bodyParser = require('body-parser')
-const urlEncodeParser = bodyParser.urlencoded({ extended: false })
+const urlEncodeParser = bodyParser.urlencoded({ extended: true })
 const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
@@ -63,6 +66,31 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       KID: donationObject.KID
     }
   })
+})
+
+router.post("/confirm", 
+  authMiddleware(authRoles.write_all_donations),
+  urlEncodeParser,
+  async (req, res, next) => {
+  try {
+    let sum_confirmed = Number(req.body.sum_confirmed)
+    let sum_confirmed_repeat = Number(req.body.sum_confirmed_repeat)
+    if (sum_confirmed !== sum_confirmed_repeat) throw "Sum confirm mismatch";
+
+    let timestamp_confirmed = new Date(req.body.date_confirmed + " " + req.body.time_confirmed + " GMT+01:00");
+    let KID = Number(req.body.KID)
+    let payment_method_id = Number(req.body.payment_method_id)
+    let external_ref = req.body.external_ref
+
+    await DAO.donations.add(KID, payment_method_id, sum_confirmed, timestamp_confirmed, external_ref)
+
+    res.json({
+      status: 200,
+      content: "OK"
+    })
+  } catch(ex) {
+    next({ex: ex})
+  }
 })
 
 router.get("/total", async (req, res, next) => {

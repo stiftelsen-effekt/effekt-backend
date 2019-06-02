@@ -28,7 +28,9 @@ module.exports = async (req,res,next) => {
              */
             try {
                 let donationID = await DAO.donations.add(transaction.KID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
+                /*
                 mail.sendDonationReciept(donationID);
+                */
 
                 valid++
             } catch (ex) {
