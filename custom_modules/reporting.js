@@ -22,45 +22,36 @@ module.exports = {
         let sumationGrossRange =`${COLUMN_MAPPING[4] + dataStartRow}:${COLUMN_MAPPING[4] + (donations.length+dataStartRow)}`
         let sumationFeesRange = `${COLUMN_MAPPING[5] + dataStartRow}:${COLUMN_MAPPING[5] + (donations.length+dataStartRow)}`
         let sumationNetRange =  `${COLUMN_MAPPING[6] + dataStartRow}:${COLUMN_MAPPING[6] + (donations.length+dataStartRow)}`
-        let checkSumRange =     `${COLUMN_MAPPING[7]}1:${COLUMN_MAPPING[7 + (organizations.length)]}1`;
+        let checkSumRange =     `${COLUMN_MAPPING[7]}2:${COLUMN_MAPPING[7 + (organizations.length-1)]}2`;
 
         //Generate headers for data
-        let dataTopRow =            ['ID',  'Donasjon registrert',  'Navn',     'Metode',   'Brutto', 'Avgifter', 'Netto']
+        let headerRow =             ['Checksum', formula(`${COLUMN_MAPPING[4]}2-SUM(${checkSumRange})`), '', 'Metode', 'Brutto', 'Avgifter', 'Netto']
+        let dataTopRow =            ['ID',  'Donasjon registrert',  'Navn']
         
         //Sumation-rows
-        let dataSumation =         ['Checksum', 
-                                    formula(`${COLUMN_MAPPING[4]}1 - SUM(${checkSumRange})`), 
-                                    '',
-                                    'Sum',
-                                    formula(`SUM(${sumationGrossRange})`), 
-                                    formula(`SUM(${sumationFeesRange})`),
-                                    formula(`SUM(${sumationNetRange})`)]
-            //Sumation for specific payment methods
-            let methodSumationRows = []
-            paymentMethods.forEach((method) => {
-                methodSumationRows.push([   `Antall ${method.name}`, 
-                                            formula(`COUNTIF(D${dataStartRow}:D1000,"${method.name}")`),
-                                            '',
-                                            `Sum ${method.name}`,
-                                            formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationGrossRange})`), 
-                                            formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationFeesRange})`),
-                                            formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationNetRange})`)
-                                        ])
-                                             
-            })
-        
+        //Sumation for specific payment methods
+        let methodSumationRows = []
+        paymentMethods.forEach((method) => {
+            methodSumationRows.push([   `Antall ${method.name}`, 
+                                        formula(`COUNTIF(D${dataStartRow}:D1000,"${method.name}")`),
+                                        '',
+                                        `Sum ${method.name}`,
+                                        formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationGrossRange})`), 
+                                        formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationFeesRange})`),
+                                        formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationNetRange})`)
+                                    ])
+        })
 
-        let currentColumn = dataTopRow.length
+        let currentColumn = headerRow.length
 
         organizations.forEach((org) => {
             let organizationHeaders = [org.abbriv]
-            dataTopRow.push(...organizationHeaders)
+            headerRow.push(...organizationHeaders)
 
-            let sumationColumn = COLUMN_MAPPING[dataSumation.length]
+            let sumationColumn = COLUMN_MAPPING[headerRow.length-1]
             let sumationRange = `${sumationColumn + dataStartRow}:${sumationColumn + (donations.length+dataStartRow)}`;
 
             let organizationSumColumns = [formula(`SUM(${sumationRange})`)]
-            dataSumation.push(...organizationSumColumns)
 
             //Add sumation for each organization filtered on each payment method
             paymentMethods.forEach((method, i) => {
@@ -94,7 +85,7 @@ module.exports = {
         })
 
         //Add all the generated data
-        data.push(dataSumation)             //Overall sumation
+        data.push(headerRow)                //Overall sumation
         data.push(...methodSumationRows)    //Sumation for all the payment methods
         data.push([])                       //Spacing row
         data.push(dataTopRow)               //Headers for individual donations
