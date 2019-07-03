@@ -13,6 +13,7 @@ const honeypot = require('honeypot')
 const logging = require('./handlers/loggingHandler.js')
 const http = require('http')
 const hogan = require('hogan-express')
+const bearerToken = require('express-bearer-token')
 
 console.log("Top level dependencies loaded")
 
@@ -37,6 +38,9 @@ DAO.connect(() => {
   app.get("/", (req, res, next) => {
     res.send("Dr. Livingstone I presume?")
   })
+
+  //Parse post body
+  app.use(express.json());
 
   //Pretty printing of JSON
   app.use(pretty({ 
@@ -77,9 +81,13 @@ DAO.connect(() => {
   app.use(function (req, res, next) {
       res.setHeader('Access-Control-Allow-Origin', '*')
       res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+      res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS')
       next()
   })
+
+  //Look for bearer tokens
+  app.use(bearerToken())
 
   //Render engine for served views
   app.set('view engine', 'mustache')

@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const DAO = require(global.appRoot + '/custom_modules/DAO.js')
+const DAO = require('../custom_modules/DAO.js')
 const crypto = require('../custom_modules/authorization/crypto.js')
 
 const bodyParser = require('body-parser')
@@ -8,7 +8,7 @@ const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
 router.get("/login", async (req, res, next) => {
     //Check that all query parameters are present
-    if (!req.query.response_type || !req.query.client_id || !req.query.scope || !req.query.state) {
+    if (!req.query.response_type || !req.query.client_id || !req.query.scope || !req.query.state || !req.query.redirect_uri) {
         res.status(400).send("Some parameters in the URL is missing")
         return
     }
@@ -25,6 +25,12 @@ router.get("/login", async (req, res, next) => {
 
         if (!application) {
             res.status(400).send("No application with given clientID")
+            return
+        }
+
+        var callback = req.query.redirect_uri
+        if (!application.callbacks.includes(callback)) {
+            res.status(401).send("Application has not specified given callback as a valid callback")
             return
         }
     } catch (ex) {
@@ -58,6 +64,7 @@ router.get("/login", async (req, res, next) => {
         title: "GiEffektivt.no - Logg inn",
         applicationName: application.name,
         permissions: permissions,
+        callback: callback,
 
         //Pass on to POST request
         state: req.query.state,
@@ -86,6 +93,12 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
 
         if (!application) {
             res.status(400).send("No application with given clientID")
+            return
+        }
+
+        var callback = req.body.callback
+        if (!application.callbacks.includes(req.body.callback)) {
+            res.status(401).send("Application has not specified given callback as a valid callback")
             return
         }
     } catch (ex) {
@@ -135,7 +148,7 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
         return
     }
 
-    res.redirect(`${application.redirect}?key=${accessKey.key}&expires=${encodeURIComponent(accessKey.expires.toString())}&state=${req.body.state}`)
+    res.redirect(`${callback}?key=${accessKey.key}&expires=${encodeURIComponent(accessKey.expires.toString())}&state=${req.body.state}`)
 })
 
 router.get("/token", async(req,res,next) => {
@@ -158,6 +171,25 @@ router.get("/token", async(req,res,next) => {
         } else {
             next({ex: ex})
         }
+    }
+})
+
+router.post("/logout", async (req, res, next) => {
+    try {
+        if (req.body.key == null)
+            return res.status(400).json({
+                status: 400,
+                content: "Missing field key in post body"
+            })
+        
+        let success = await DAO.auth.deleteAccessKey(req.body.key)
+        
+        if (success)
+            return res.json({status: 200, content: "OK"})
+        else
+            return res.json({status: 401, content: "Key does not exist"})
+    } catch(ex) {
+        return next({ex:ex})
     }
 })
 

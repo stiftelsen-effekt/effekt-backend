@@ -30,6 +30,7 @@
     "csv-parse": "^4.0.1",
     "decimal.js": "^7.5.1",
     "express": "^4.16.4",
+    "express-bearer-token": "^2.4.0",
     "express-fileupload": "^0.1.4",
     "express-prettify": "0.0.7",
     "express-rate-limit": "^2.14.2",

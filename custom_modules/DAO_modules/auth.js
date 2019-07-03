@@ -63,13 +63,32 @@ function getPermissionsFromShortnames(shortnames) {
  * Checks whether access token grants a given permission
  * @param {String} token Access token
  * @param {String} permission A specific permission
- * @returns {Boolean}
+ * @returns {Number} The userID of the authorized user, returns null if no found
+ * 
+ * @throws {Error} Error with string message 'invalid_token'
+ * @throws {Error} Error with string message 'insufficient_scope'
  */
 function getCheckPermissionByToken(token, permission) {
     return new Promise(async (fulfill, reject) => {
         try {
+            var [user] = await con.query(`
+                SELECT  
+                    K.Donor_ID
+                    
+                    FROM Access_tokens as T
+
+                    INNER JOIN Access_keys as K
+                        ON T.Key_ID = K.ID
+
+                    WHERE T.token = ?
+                    LIMIT 1
+            `, [token])
+
+            if (user.length == 0)
+                reject(new Error("invalid_token"))
+
             var [result] = await con.query(`
-                SELECT 1 
+                SELECT 1
                     FROM Access_tokens as T
                     
                     INNER JOIN Access_keys_permissions as Combine
@@ -77,19 +96,22 @@ function getCheckPermissionByToken(token, permission) {
                     
                     INNER JOIN Access_permissions as P
                         ON P.ID = Combine.Permission_ID
-                        
+
                     WHERE 
                         T.token = ?
                         AND
-                        P.shortName = ?`, 
+                        P.shortName = ?
+                    `, 
                     [token, permission])
+
+            if (result.length > 0) 
+                fulfill(user[0].Donor_ID)
+            else 
+                reject(new Error("insufficient_scope"))
         } catch (ex) {
             reject(ex)
             return false
         }
-
-        if (result.length > 0) fulfill(true)
-        else fulfill(false)
     })
 }
 
@@ -174,7 +196,7 @@ function checkDonorPermissions(donorID, permissions) {
 /**
  * Get application data from clientID
  * @param {String} clientID The clientID
- * @return {Object} An object with the applications name, id, secret and redirect uri
+ * @return {Object} An object with the applications name, id, secret and an array of allowed redirect uris
  */
 function getApplicationByClientID(clientID) {
     return new Promise(async (fulfill, reject) => {
@@ -184,13 +206,24 @@ function getApplicationByClientID(clientID) {
                         
                 WHERE clientID = ?`, 
                     [clientID])
+
+            if (result.length == 0) return fulfill(null)
+
+            var application = result[0]
+
+            var [callbacks] = await con.query(`
+                SELECT callback FROM Access_applications_callbacks
+
+                WHERE ApplicationID = ?`, 
+                    [application.ID]);
+
+            application.callbacks = callbacks.map((row) => row.callback)
+
+            fulfill(application)
         } catch (ex) {
             reject(ex)
             return false
         }
-
-        if (result.length > 0) fulfill(result[0])
-        else fulfill(null)
     })
 }
 
@@ -416,6 +449,28 @@ function updateDonorPassword(donorID ,password) {
 //endregion
 
 //region Delete
+/**
+ * Deletes an access key and associated tokens
+ * Essentially a logout function
+ * @param {string} accessKey The access key to be the basis of deletion
+ * @returns {boolean} To indicate success or failure
+ */
+function deleteAccessKey(accessKey) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var result = await con.query(`
+                DELETE FROM Access_keys
+                WHERE 
+                    \`key\` = ?`, [accessKey])
+
+            fulfill(result[0].affectedRows == 1)
+        }
+        catch(ex) {
+            reject(ex)
+            return false
+        }
+    })
+}
 //endregion
 
 module.exports = {
@@ -429,6 +484,7 @@ module.exports = {
     updateDonorPassword,
     addAccessKey,
     addAccessTokenByAccessKey,
+    deleteAccessKey,
 
     setup: (dbPool) => { con = dbPool }
 }
