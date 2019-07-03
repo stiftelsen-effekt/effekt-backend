@@ -1,5 +1,4 @@
 const auth = require('./auth.js')
-const config = require('./../../config')
 
 /**
  * Express middleware, checks if token passed in request grants permission 
@@ -11,43 +10,53 @@ const config = require('./../../config')
 module.exports = (permission, api = true) => {
     return async (req, res, next) => {
         try {
-            //Initialize authorized to false
-            let authorized = false
+            //Initialize authorized to false and userID to null
+            let authorized, userID
+            let token = req.token
 
-            //If authorization is required
-            if (config.authorizationRequired) {
-                let token = req.query.token
-
-                if(!token) { 
-                    res.status(400).json({
-                        status: 400,
-                        content: "Missing authorization token from request"
-                    })
-                    return false
-                }
-
-                authorized = await auth.checkPermissionByToken(token, permission)
-            } 
-            //If authorization is not required
-            else {
-                authorized = true
+            if(!token) { 
+                res.status(401).json({
+                    status: 401,
+                    content: "Missing authorization token from request"
+                })
+                return false
             }
 
+            userID = await auth.checkPermissionByToken(token, permission)
+            authorized = (userID != null)
+
             if (!authorized) {
-                if (api) res.status(401).json({status: 401, content: 'Unauthorized'})
+                if (api) {
+                    res.status(401)
+                    res.append("error", "invalid_token")
+                    res.json({status: 401, content: 'Unauthorized'})
+                }
                 else {
                     req.authorized = false
                     next()
                 }
             } else {
+                req.userID = userID
                 req.authorized = true
                 next()
             }
         } catch(ex) {
-            res.status(500).json({
-                status: 500,
-                content: "Internal error during authorization"
-            })
+            if (ex.message === "invalid_token") {
+                res.status(401)
+                res.append("error", "invalid_token")
+                res.json({status: 401, content: 'Invalid token'})
+            }
+            else if (ex.message === "insufficient_scope") {
+                res.status(401)
+                res.append("error", "insufficient_scope")
+                res.json({status: 401, content: 'Insufficent scope'})
+            }
+            else {
+                res.status(500).json({
+                    status: 500,
+                    content: "Internal error during authorization"
+                })
+            }
         }
     }
 }

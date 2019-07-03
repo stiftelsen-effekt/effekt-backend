@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const DAO = require(global.appRoot + '/custom_modules/DAO.js')
+const DAO = require('../custom_modules/DAO.js')
 const crypto = require('../custom_modules/authorization/crypto.js')
 
 const bodyParser = require('body-parser')
@@ -158,6 +158,25 @@ router.get("/token", async(req,res,next) => {
         } else {
             next({ex: ex})
         }
+    }
+})
+
+router.post("/logout", async (req, res, next) => {
+    try {
+        if (req.body.key == null)
+            return res.status(400).json({
+                status: 400,
+                content: "Missing field key in post body"
+            })
+        
+        let success = await DAO.auth.deleteAccessKey(req.body.key)
+        
+        if (success)
+            return res.json({status: 200, content: "OK"})
+        else
+            return res.json({status: 401, content: "Key does not exist"})
+    } catch(ex) {
+        return next({ex:ex})
     }
 })
 
