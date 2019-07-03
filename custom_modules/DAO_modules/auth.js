@@ -196,7 +196,7 @@ function checkDonorPermissions(donorID, permissions) {
 /**
  * Get application data from clientID
  * @param {String} clientID The clientID
- * @return {Object} An object with the applications name, id, secret and redirect uri
+ * @return {Object} An object with the applications name, id, secret and an array of allowed redirect uris
  */
 function getApplicationByClientID(clientID) {
     return new Promise(async (fulfill, reject) => {
@@ -206,13 +206,24 @@ function getApplicationByClientID(clientID) {
                         
                 WHERE clientID = ?`, 
                     [clientID])
+
+            if (result.length == 0) return fulfill(null)
+
+            var application = result[0]
+
+            var [callbacks] = await con.query(`
+                SELECT callback FROM Access_applications_callbacks
+
+                WHERE ApplicationID = ?`, 
+                    [application.ID]);
+
+            application.callbacks = callbacks.map((row) => row.callback)
+
+            fulfill(application)
         } catch (ex) {
             reject(ex)
             return false
         }
-
-        if (result.length > 0) fulfill(result[0])
-        else fulfill(null)
     })
 }
 
