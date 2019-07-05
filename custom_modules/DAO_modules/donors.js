@@ -45,7 +45,8 @@ function getByID(ID) {
 function search(query) {
     return new Promise(async (fulfill, reject) => {
         try {
-            var [result] = await con.execute(`SELECT * FROM Donors WHERE MATCH (full_name, email) AGAINST (?)`, [query])
+            if (query === "") var [result] = await con.execute(`SELECT * FROM Donors LIMIT 100`, [query])
+            else var [result] = await con.execute(`SELECT * FROM Donors WHERE MATCH (full_name, email) AGAINST (? IN NATURAL LANGUAGE MODE)`, [query])
         } catch(ex) {
             reject(ex)
         }
@@ -54,7 +55,8 @@ function search(query) {
             return {
                 id: donor.ID,
                 name: donor.full_name,
-                email: donor.email
+                email: donor.email,
+                registered: donor.date_registered
             }
         }))
         else fulfill(null)
