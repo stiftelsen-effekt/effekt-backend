@@ -19,7 +19,7 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
   }
 })
 
-router.get('/search/', auth(auth.read_all_donations), async (req,res, next) => {
+router.get('/search/', auth(roles.read_all_donations), async (req,res, next) => {
   try {
     var donors = await DAO.donors.search(req.query.q)
 
