@@ -1,23 +1,18 @@
-const gulp = require('gulp')
-const sass = require('gulp-sass')
-const watch = require('gulp-watch')
+const gulp = require('gulp');
+const sass = require('gulp-sass');
 
-gulp.task('style', function(done) {
-    gulp.src('views/style/**/*.scss')
-        .pipe(sass({
-            errLogToConsole: true
-        }))
-        .pipe(gulp.dest('views/style/'))
+const stylesPath = './views/style/**/*.scss'
 
-    done()
-})
+function styles() {
+    return gulp.src(stylesPath)
+        .pipe(sass().on('error', sass.logError))
+        .pipe(gulp.dest('./views/style/'));
+}
 
-gulp.task('watch', function(done) {
-    gulp.watch('views/style/**/*.scss').on("change", (path, stats) => {
-        gulp.series('style');
-    })
+function watch() {
+    //gulp.series('styles')
+    return gulp.watch(stylesPath, gulp.series(styles))
+}
 
-    done()
-})
-
-gulp.task('default', gulp.series('style'))
+exports.default = styles
+exports.watch = watch
