@@ -471,6 +471,28 @@ function deleteAccessKey(accessKey) {
         }
     })
 }
+
+/** 
+ * Deletes a password resett token
+ * @param {string} token The password reset token
+ * @returns {boolean} To indicate success or failure 
+ * */
+function deletePasswordResetToken(token) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            var result = await con.query(`
+                DELETE FROM ChangePass
+                WHERE
+                    token = ?`, [token])
+
+            fulfill(result[0].affectedRows > 0)
+            return true
+        } catch(ex) {
+            reject(ex)
+            return false
+        }
+    })
+}
 //endregion
 
 module.exports = {
@@ -485,6 +507,7 @@ module.exports = {
     addAccessKey,
     addAccessTokenByAccessKey,
     deleteAccessKey,
+    deletePasswordResetToken,
 
     setup: (dbPool) => { con = dbPool }
 }
