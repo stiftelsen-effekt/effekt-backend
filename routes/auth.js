@@ -222,25 +222,28 @@ router.get("/password/change/:token", async (req,res, next) => {
 router.post("/password/change/:token", urlEncodeParser, async (req,res, next) => {
     try {
         var donor = await DAO.auth.getDonorByChangePassToken(req.params.token)
-    } catch(ex) { next({ex:ex}) }
 
-    if (donor) {
-        await DAO.auth.updateDonorPassword(donor.id, req.body.password)
-
-        res.render(global.appRoot + '/views/auth/changedPassword', {
-            title: "GiEffektivt.no - Passord oppdatert"
-        })
-    }
-    else {
-        res.render(global.appRoot + '/views/auth/error', {
-            title: "GiEffektivt.no - Feilmelding",
-            errorCode: "INVALID_LINK",
-            errorMessage: "Det ser ut som linken du har fått tilsendt for å endre passord ikke er gyldig.",
-            "nextStep?": {
-                directions: "Du kan få tilsendt en ny link",
-                link: "#"
-            }
-        })
+        if (donor) {
+            await DAO.auth.updateDonorPassword(donor.id, req.body.password)
+            await DAO.auth.deletePasswordResetToken(req.params.token)
+    
+            res.render(global.appRoot + '/views/auth/changedPassword', {
+                title: "GiEffektivt.no - Passord oppdatert"
+            })
+        }
+        else {
+            res.render(global.appRoot + '/views/auth/error', {
+                title: "GiEffektivt.no - Feilmelding",
+                errorCode: "INVALID_LINK",
+                errorMessage: "Det ser ut som linken du har fått tilsendt for å endre passord ikke er gyldig.",
+                "nextStep?": {
+                    directions: "Du kan få tilsendt en ny link",
+                    link: "#"
+                }
+            })
+        }
+    } catch(ex) { 
+        next({ex:ex}) 
     }
 })
 
