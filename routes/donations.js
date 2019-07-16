@@ -53,7 +53,7 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     //Split does not exist create new KID and split
     if (donationObject.KID == null) {
       donationObject.KID = await createKID()
-      await DAO.donations.addSplit(donationObject)
+      await DAO.donations.addSplit(donationObject.split, donationObject.KID, donationObject.donorID)
     }
   }
   catch (ex) {
@@ -68,21 +68,41 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
   })
 })
 
+router.post("/distribution", 
+  authMiddleware(authRoles.write_all_donations),
+  async (req, res, next) => {
+  try {
+    let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.value }}),
+        donorId = req.body.donor.id
+    //Check for existing distribution with that KID
+    let KID = await DAO.donations.getKIDbySplit(split, donorId)
+
+    if (!KID) {
+      KID = await createKID()
+      await DAO.donations.addSplit(split, KID, donorId)
+    }
+    
+    res.json({
+      status: 200,
+      content: KID
+    })
+  } catch(ex) {
+    next({ex})
+  }
+})
+
 router.post("/confirm", 
   authMiddleware(authRoles.write_all_donations),
   urlEncodeParser,
   async (req, res, next) => {
   try {
-    let sum_confirmed = Number(req.body.sum_confirmed)
-    let sum_confirmed_repeat = Number(req.body.sum_confirmed_repeat)
-    if (sum_confirmed !== sum_confirmed_repeat) throw "Sum confirm mismatch";
-
-    let timestamp_confirmed = new Date(req.body.date_confirmed + " " + req.body.time_confirmed + " GMT+01:00");
+    let sum = Number(req.body.sum)
+    let timestamp = new Date(req.body.time);
     let KID = Number(req.body.KID)
-    let payment_method_id = Number(req.body.payment_method_id)
-    let external_ref = req.body.external_ref
+    let methodId = Number(req.body.methodId)
+    let externalRef = req.body.externalRef
 
-    await DAO.donations.add(KID, payment_method_id, sum_confirmed, timestamp_confirmed, external_ref)
+    await DAO.donations.add(KID, methodId, sum, timestamp, externalRef)
 
     res.json({
       status: 200,
