@@ -27,12 +27,21 @@ module.exports = async (req,res,next) => {
       return acc
     }, [])
 
+    var valid = 0;
     try {
       //Add paypal donations
       for(let i = 0; i < transactions.length; i++) {
         let transaction = transactions[i]
-        let donationID = await DAO.donations.add(transaction.KID, PAYPAL_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
-        mail.sendDonationReciept(donationID)
+        try {
+          var donationID = await DAO.donations.add(transaction.KID, PAYPAL_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
+          valid++
+          mail.sendDonationReciept(donationID)
+        }
+        catch(ex) {
+          //If the donation already existed, ignore and keep moving
+          if (ex.indexOf("EXISTING_DONATION") !== 0) throw ex
+        }
+        
       }
     } catch(ex) {
       next({ex: ex})
@@ -41,6 +50,10 @@ module.exports = async (req,res,next) => {
 
     res.json({
       status: 200,
-      content: "A OK"
+      content: {
+        valid: valid,
+        invalid: 0,
+        invalidTransactions: []
+      }
     })
 }

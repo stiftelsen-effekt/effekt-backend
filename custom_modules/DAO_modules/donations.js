@@ -273,14 +273,10 @@ function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
 //endregion
 
 //region Add
-function addSplit(donationObject) {
+function addSplit(split, KID, donorID) {
     return new Promise(async (fulfill, reject) => {
         try {
             var transaction = await con.startTransaction()
-
-            let split = donationObject.split
-            let KID = donationObject.KID
-            let donorID = donationObject.donorID
 
             let distribution_table_values = split.map((item) => {return [item.organizationID, item.share]})
             var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [distribution_table_values])
@@ -292,12 +288,11 @@ function addSplit(donationObject) {
             var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID) VALUES ?", [combining_table_values])
 
             con.commitTransaction(transaction)
+            fulfill(true)
         } catch(ex) {
             con.rollbackTransaction(transaction)
-            return reject(ex)
+            reject(ex)
         }
-
-        fulfill(true)
     })
 }
 
@@ -316,7 +311,7 @@ function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID
             var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
 
             if (donorIDQuery.length != 1) { 
-                reject("KID " + KID + " does not exist");
+                reject("NO_KID | KID " + KID + " does not exist");
                 return false;
             }
 
@@ -327,7 +322,7 @@ function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID
                 a duplicate donation. */
             if (externalPaymentID != null) {
                 if (await ExternalPaymentIDExists(externalPaymentID,paymentMethodID)) {
-                    reject("Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID)
+                    reject("EXISTING_DONATION | Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID)
                     return false
                 }
             }
