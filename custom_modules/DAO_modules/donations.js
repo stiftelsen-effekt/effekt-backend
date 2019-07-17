@@ -311,7 +311,7 @@ function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID
             var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
 
             if (donorIDQuery.length != 1) { 
-                reject("KID " + KID + " does not exist");
+                reject("NO_KID | KID " + KID + " does not exist");
                 return false;
             }
 
@@ -322,7 +322,7 @@ function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID
                 a duplicate donation. */
             if (externalPaymentID != null) {
                 if (await ExternalPaymentIDExists(externalPaymentID,paymentMethodID)) {
-                    reject("Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID)
+                    reject("EXISTING_DONATION | Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID)
                     return false
                 }
             }
