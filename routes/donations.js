@@ -72,6 +72,12 @@ router.post("/distribution",
   authMiddleware(authRoles.write_all_donations),
   async (req, res, next) => {
   try {
+    if (req.body.distribution.length === 0) {
+      return res.status(400).json({
+        status: 400,
+        content: "Empty distribution array provided"
+      })
+    } 
     let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.value }}),
         donorId = req.body.donor.id
     //Check for existing distribution with that KID
