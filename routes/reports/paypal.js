@@ -41,6 +41,10 @@ module.exports = async (req,res,next) => {
 
     res.json({
       status: 200,
-      content: "A OK"
+      content: {
+        valid: transactions.length,
+        invalid: 0,
+        invalidTransactions: []
+      }
     })
 }
