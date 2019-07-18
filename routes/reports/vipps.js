@@ -1,6 +1,7 @@
 const vippsParser = require('../../custom_modules/parsers/vipps.js')
 const DAO = require('../../custom_modules/DAO.js')
 const mail = require('../../custom_modules/mail')
+const config = require('../../config')
 
 const VIPPS_ID = 4
 
