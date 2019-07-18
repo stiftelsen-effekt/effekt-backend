@@ -26,10 +26,9 @@ module.exports = async (req,res,next) => {
             /**
              * Managed to grab a KID straight from the message field, go ahead and add to DB
              */
+            let donationID;
             try {
-                let donationID = await DAO.donations.add(transaction.KID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
-                if (config.env === 'production') mail.sendDonationReciept(donationID);
-
+                donationID = await DAO.donations.add(transaction.KID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
                 valid++
             } catch (ex) {
                 console.error("Failed to update DB for vipps donation with KID: " + transaction.KID)
@@ -40,6 +39,13 @@ module.exports = async (req,res,next) => {
                     transaction: transaction
                 })
             }
+
+            try {
+                if (config.env === 'production') mail.sendDonationReciept(donationID);
+            } catch (ex) {
+                console.error("Failed to send donation reciept")
+                console.error(ex)
+            }
         } else if ((matchingRuleKID = checkForMatchingParsingRule(transaction, parsingRules)) != false) {
             /**
              * Transaction matched against a parsing rule
@@ -48,7 +54,6 @@ module.exports = async (req,res,next) => {
              */
             try {
                 await DAO.donations.add(matchingRuleKID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
-
                 valid++
             } catch (ex) {
                 console.error("Failed to update DB for vipps donation that matched against a parsing rule with KID: " + transaction.KID)
