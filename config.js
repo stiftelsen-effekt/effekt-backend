@@ -1,4 +1,7 @@
 module.exports = {
+    //Environment
+    env: process.env.NODE_ENV || 'dev',
+
     //Insert db connection values
     db_host: process.env.DB_HOST,
     db_username: process.env.DB_USER,

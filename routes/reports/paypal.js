@@ -35,7 +35,7 @@ module.exports = async (req,res,next) => {
         try {
           var donationID = await DAO.donations.add(transaction.KID, PAYPAL_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
           valid++
-          mail.sendDonationReciept(donationID)
+          if (config.env === 'production') mail.sendDonationReciept(donationID)
         }
         catch(ex) {
           //If the donation already existed, ignore and keep moving
