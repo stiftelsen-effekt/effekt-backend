@@ -59,7 +59,11 @@ module.exports = {
         var total = new decimal(0)
 
         for (var i = 0; i < input.length; i++) {
-            total = total.add(input[i])
+            let toAdd;
+            if (typeof input[i] === "string") toAdd = new decimal(input[i])
+            else if (typeof input[i] === "decimal") toAdd = input[i]
+            else throw new Error("Invalid input in sumWithPrecision method, use either string or decimal")
+            total = total.add(toAdd)
         }
 
         return total.toString()

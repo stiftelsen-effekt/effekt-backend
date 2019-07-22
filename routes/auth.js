@@ -34,7 +34,7 @@ router.get("/login", async (req, res, next) => {
             return
         }
     } catch (ex) {
-        next({ex: ex})
+        next(ex)
         return
     }
 
@@ -48,7 +48,7 @@ router.get("/login", async (req, res, next) => {
             return
         }
     } catch(ex) {
-        next({ex: ex})
+        next(ex)
         return
     }
 
@@ -56,7 +56,7 @@ router.get("/login", async (req, res, next) => {
     try {
         permissions = await DAO.auth.getPermissionsFromShortnames(permissions)
     } catch(ex) {
-        next({ex: ex})
+        next(ex)
         return
     }
 
@@ -83,7 +83,7 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
             return
         }
     } catch(ex) {
-        next({ex: ex}) 
+        next(ex) 
         return
     }
 
@@ -102,7 +102,7 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
             return
         }
     } catch (ex) {
-        next({ex: ex})
+        next(ex)
         return
     }
 
@@ -116,7 +116,7 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
             return
         }
     } catch(ex) { 
-        next({ex: ex}) 
+        next(ex) 
         return
     }
 
@@ -128,7 +128,7 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
             return
         }
     } catch(ex) { 
-        next({ex: ex}) 
+        next(ex) 
         return
     }
 
@@ -136,7 +136,7 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
     try {
         var permissions = await DAO.auth.getPermissionsFromShortnames(scope)
     } catch(ex) {
-       next({ex: ex})
+       next(ex)
        return
     }
 
@@ -144,7 +144,7 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
     try {
         accessKey = await DAO.auth.addAccessKey(donor.id, application.ID, permissions)
     } catch(ex) {
-        next({ex: ex}) 
+        next(ex) 
         return
     }
 
@@ -169,7 +169,7 @@ router.get("/token", async(req,res,next) => {
                 content: "Invalid access key"
             })
         } else {
-            next({ex: ex})
+            next(ex)
         }
     }
 })
@@ -189,7 +189,7 @@ router.post("/logout", async (req, res, next) => {
         else
             return res.json({status: 401, content: "Key does not exist"})
     } catch(ex) {
-        return next({ex:ex})
+        return next(ex)
     }
 })
 
@@ -197,7 +197,7 @@ router.get("/password/change/:token", async (req,res, next) => {
     try {
         var donor = await DAO.auth.getDonorByChangePassToken(req.params.token)
     } catch(ex) {
-        next({ex:ex})
+        next(ex)
     }
 
     if (donor) {
@@ -243,7 +243,7 @@ router.post("/password/change/:token", urlEncodeParser, async (req,res, next) =>
             })
         }
     } catch(ex) { 
-        next({ex:ex}) 
+        next(ex) 
     }
 })
 

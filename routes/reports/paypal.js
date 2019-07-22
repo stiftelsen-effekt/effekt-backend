@@ -39,12 +39,12 @@ module.exports = async (req,res,next) => {
         }
         catch(ex) {
           //If the donation already existed, ignore and keep moving
-          if (ex.indexOf("EXISTING_DONATION") === -1) throw ex
+          if (ex.message.indexOf("EXISTING_DONATION") === -1) throw ex
         }
         
       }
     } catch(ex) {
-      next({ex: ex})
+      next(ex)
       return false
     }
 

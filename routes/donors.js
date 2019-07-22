@@ -15,7 +15,7 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
       content: "Not implemented"
     })
   } catch(ex) {
-    next({ex:ex})
+    next(ex)
   }
 })
 
@@ -35,7 +35,7 @@ router.get('/search/', auth(roles.read_all_donations), async (req,res, next) => 
       })
     }
   } catch(ex) {
-    next({ex:ex})
+    next(ex)
   }
 })
 
@@ -57,7 +57,7 @@ router.get('/:id', auth(roles.read_all_donations) ,async (req,res,next) => {
     }
   }
   catch (ex) {
-    next({ex:ex})
+    next(ex)
   }
 })
 

@@ -16,7 +16,7 @@ router.get("/active", urlEncodeParser, async (req,res, next) => {
     })
   }
   catch(ex) {
-    next({ex: ex})
+    next(ex)
   }
 })
 
@@ -36,7 +36,7 @@ router.get("/:id", async (req, res, next) => {
       })
     }
   } catch(ex) {
-    next({ex:ex})
+    next(ex)
   }
 })
 

@@ -36,7 +36,7 @@ module.exports = async (req,res,next) => {
                 console.error(ex)
 
                 invalid.push({
-                    reason: ex,
+                    reason: ex.message,
                     transaction: transaction
                 })
             }
@@ -61,7 +61,7 @@ module.exports = async (req,res,next) => {
                 console.error(ex)
 
                 invalid.push({
-                    reason: ex,
+                    reason: ex.message,
                     transaction: transaction
                 })
             }
