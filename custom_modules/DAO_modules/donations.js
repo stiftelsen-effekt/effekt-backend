@@ -111,7 +111,7 @@ function getByID(donationID) {
                     Donation.ID = ${sqlString.escape(donationID)}`)
 
 
-            if (getDonationFromIDquery.length != 1) reject("Could not find donation with ID " + donationID)
+            if (getDonationFromIDquery.length != 1) reject(new Error("Could not find donation with ID " + donationID))
 
             donation.donorName = getDonationFromIDquery[0].full_name
             donation.sum = getDonationFromIDquery[0].sum_confirmed
@@ -144,7 +144,7 @@ function getSplitByKID(KID) {
             WHERE 
                 KID = ${sqlString.escape(KID)}`)
 
-            if (getOrganizationsSplitByKIDQuery.length == 0) return reject("No split with the KID " + KID)
+            if (getOrganizationsSplitByKIDQuery.length == 0) return reject(new Error("No split with the KID " + KID))
 
             return fulfill(getOrganizationsSplitByKIDQuery)
         } catch(ex) {
@@ -311,7 +311,7 @@ function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID
             var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
 
             if (donorIDQuery.length != 1) { 
-                reject("NO_KID | KID " + KID + " does not exist");
+                reject(new Error("NO_KID | KID " + KID + " does not exist"));
                 return false;
             }
 
@@ -322,7 +322,7 @@ function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID
                 a duplicate donation. */
             if (externalPaymentID != null) {
                 if (await ExternalPaymentIDExists(externalPaymentID,paymentMethodID)) {
-                    reject("EXISTING_DONATION | Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID)
+                    reject(new Error("EXISTING_DONATION | Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID))
                     return false
                 }
             }

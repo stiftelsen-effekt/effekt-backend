@@ -8,6 +8,8 @@ const authRoles = require('../enums/authorizationRoles')
 
 const router = express.Router()
 
+const rounding = require("../custom_modules/rounding")
+
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: true })
 const dateRangeHelper = require('../custom_modules/dateRangeHelper')
@@ -57,7 +59,7 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     }
   }
   catch (ex) {
-    return next({ex: ex})
+    return next(ex)
   }
 
   res.json({
@@ -72,14 +74,21 @@ router.post("/distribution",
   authMiddleware(authRoles.write_all_donations),
   async (req, res, next) => {
   try {
-    if (req.body.distribution.length === 0) {
-      return res.status(400).json({
-        status: 400,
-        content: "Empty distribution array provided"
-      })
-    } 
     let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.value }}),
-        donorId = req.body.donor.id
+      donorId = req.body.donor.id
+
+    if (split.length === 0) {
+      let err = new Error("Empty distribution array provided")
+      err.status = 400
+      return next(err)
+    }
+
+    if (rounding.sumWithPrecision(split.map(split => split.share)) !== "100") {
+      let err = new Error("Distribution does not sum to 100")
+      err.status = 400
+      return next(err)
+    }
+    
     //Check for existing distribution with that KID
     let KID = await DAO.donations.getKIDbySplit(split, donorId)
 
@@ -103,10 +112,10 @@ router.post("/confirm",
   async (req, res, next) => {
   try {
     let sum = Number(req.body.sum)
-    let timestamp = new Date(req.body.time);
+    let timestamp = new Date(req.body.timestamp);
     let KID = Number(req.body.KID)
-    let methodId = Number(req.body.methodId)
-    let externalRef = req.body.externalRef
+    let methodId = Number(req.body.paymentId)
+    let externalRef = req.body.paymentExternalRef
 
     await DAO.donations.add(KID, methodId, sum, timestamp, externalRef)
 
@@ -115,7 +124,7 @@ router.post("/confirm",
       content: "OK"
     })
   } catch(ex) {
-    next({ex: ex})
+    next(ex)
   }
 })
 
@@ -130,7 +139,7 @@ router.get("/total", async (req, res, next) => {
       content: aggregate
     })
   } catch(ex) {
-    next({ex: ex})
+    next(ex)
   }
 })
 

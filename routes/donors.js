@@ -10,12 +10,23 @@ const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
 router.post("/", urlEncodeParser, async (req,res,next) => {
   try {
-    res.status(501).json({
-      status: 501,
-      content: "Not implemented"
+    if (!req.body.email || !req.body.name) {
+      let error = new Error("Missing param email or param name")
+      error.status = 400
+      throw error
+    }
+
+    await DAO.donors.add({
+      email: req.body.email,
+      name: req.body.name
+    })
+
+    return res.json({
+      status: 200,
+      content: "OK"
     })
   } catch(ex) {
-    next({ex:ex})
+    next(ex)
   }
 })
 
@@ -35,7 +46,7 @@ router.get('/search/', auth(roles.read_all_donations), async (req,res, next) => 
       })
     }
   } catch(ex) {
-    next({ex:ex})
+    next(ex)
   }
 })
 
@@ -57,7 +68,7 @@ router.get('/:id', auth(roles.read_all_donations) ,async (req,res,next) => {
     }
   }
   catch (ex) {
-    next({ex:ex})
+    next(ex)
   }
 })
 

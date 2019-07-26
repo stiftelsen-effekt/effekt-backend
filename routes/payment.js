@@ -3,7 +3,6 @@ const router = express.Router()
 
 const DAO = require('../custom_modules/DAO.js')
 
-
 router.get("/methods", async (req,res, next) => {
   try {
     let paymentMethods = await DAO.payment.getMethods()
@@ -14,7 +13,7 @@ router.get("/methods", async (req,res, next) => {
     })
   }
   catch(ex) {
-    next({ex: ex})
+    next(ex)
   }
 })
 

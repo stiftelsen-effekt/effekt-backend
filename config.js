@@ -12,7 +12,7 @@ module.exports = {
     mailgun_api_key: process.env.MAILGUN_API_KEY, 
 
     //Set port for API listening, default to 3000
-    port: process.env.EFFEKT_PORT || 3000,
+    port: process.env.PORT || 3000,
 
     //Bank account for recieving donations
     bankAccount: process.env.BANK_ACCOUNT,

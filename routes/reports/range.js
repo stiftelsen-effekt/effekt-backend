@@ -48,6 +48,6 @@ module.exports = async (req, res, next) => {
       }
     }
     catch(ex) {
-      next({ex: ex})
+      next(ex)
     }
   }
