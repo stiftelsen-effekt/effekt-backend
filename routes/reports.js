@@ -16,7 +16,7 @@ router.post("/vipps",
 router.post("/paypal",
             authMiddleware(authRoles.write_all_donations),
             require('./reports/paypal'))
-router.get('/range',
+router.post('/range',
             urlEncodeParser,
             authMiddleware(authRoles.read_all_donations),
             require('./reports/range'))

@@ -7,9 +7,9 @@ module.exports = async (req, res, next) => {
     try {
       let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
 
-      if (req.query.paymentMethodIDs) {
+      if (req.body.paymentMethodIDs) {
         try {
-          var paymentMethodIDs = req.query.paymentMethodIDs.split('|').map(n => parseInt(n))
+          var paymentMethodIDs = req.body.paymentMethodIDs.split('|').map(n => parseInt(n))
         } catch(ex) {
           res.json({
             status: 400,
@@ -24,13 +24,13 @@ module.exports = async (req, res, next) => {
         var donationsFromRange = await DAO.donations.getFromRange(dates.fromDate, dates.toDate)
       }
       
-      if (req.query.filetype === "json") {
+      if (req.body.filetype === "json") {
         res.json({
           status: 200,
           content: donationsFromRange
         })
       }
-      else if (req.query.filetype === "excel") {
+      else if (req.body.filetype === "excel") {
         let organizations = await DAO.organizations.getAll();
         let excelFile = reporting.createExcelFromIndividualDonations(donationsFromRange, organizations, paymentMethods)
   
