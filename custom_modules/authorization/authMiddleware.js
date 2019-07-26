@@ -12,7 +12,7 @@ module.exports = (permission, api = true) => {
         try {
             //Initialize authorized to false and userID to null
             let authorized, userID
-            let token = req.token
+            let token = req.token || req.body.token
 
             if(!token) { 
                 res.status(401).json({
