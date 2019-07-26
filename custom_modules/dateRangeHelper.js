@@ -7,14 +7,17 @@ module.exports = {
      */
     createDateObjectsFromExpressRequest: function(req) {
         //Check if no parameters
-        if (!req.query) throw new Error("No query parameters, please include fromDate and toDate parameters in ISO_8601 format.")
+        if (!req.query || !req.body) throw new Error("No query or body parameters, please include fromDate and toDate parameters in ISO_8601 format.")
+
+        var fromDate = req.query.fromDate || req.body.fromDate 
+        var toDate = req.query.toDate || req.body.toDate
 
         //Check if dates are valid ISO 8601
-        if (!moment(req.query.fromDate, moment.ISO_8601, true).isValid() || !moment(req.query.toDate, moment.ISO_8601, true).isValid()) throw new Error("Dates must be in ISO 8601 format");
+        if (!moment(fromDate, moment.ISO_8601, true).isValid() || !moment(toDate, moment.ISO_8601, true).isValid()) throw new Error("Dates must be in ISO 8601 format");
 
         return {
-            fromDate: new Date(req.query.fromDate),
-            toDate: new Date(req.query.toDate)
+            fromDate: new Date(fromDate),
+            toDate: new Date(toDate)
         }
     }
 }
