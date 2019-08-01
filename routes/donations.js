@@ -74,7 +74,7 @@ router.post("/distribution",
   authMiddleware(authRoles.write_all_donations),
   async (req, res, next) => {
   try {
-    let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.value }}),
+    let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }}),
       donorId = req.body.donor.id
 
     if (split.length === 0) {
@@ -139,6 +139,34 @@ router.get("/total", async (req, res, next) => {
       content: aggregate
     })
   } catch(ex) {
+    next(ex)
+  }
+})
+
+router.post("/", authMiddleware(authRoles.read_all_donations), async(req, res, next) => {
+  try {
+    var results = await DAO.donations.getAll(req.body.sort, req.body.page, req.body.limit)
+    return res.json({ 
+      status: 200, 
+      content: {
+        rows: results.rows,
+        pages: results.pages
+      } 
+    })
+  } catch(ex) {
+    next(ex)
+  }
+})
+
+router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
+  try {
+    var donation = await DAO.donations.getByID(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: donation
+    })
+  } catch (ex) {
     next(ex)
   }
 })

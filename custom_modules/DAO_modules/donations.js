@@ -3,12 +3,65 @@ const sqlString = require('sqlstring')
 var con
 
 //region Get
+/**
+ * Gets all donations, ordered by the specified column, limited by the limit, and starting at the specified cursor
+ * @param {id: string, desc: boolean | null} sort If null, don't sort
+ * @param {string | number | Date} cursor Used for pagination
+ * @param {number=10} limit Defaults to 10
+ * @returns {[Array<IDonation & donorName: string>, nextcursor]} An array of donations pluss the donorname
+ */
+async function getAll(sort, page, limit = 10) {
+    try {
+        if (sort) {
+            const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1]
 
-function getByDonor(KID) {
-    return new Promise(async (fulfill, reject) => {
-        return reject(new Error("Not implemented"))
-    })
+            const [donations] = await con.query(`SELECT 
+                    Donations.ID,
+                    Donors.full_name,
+                    Payment.payment_name,
+                    Donations.sum_confirmed,
+                    Donations.transaction_cost,
+                    Donations.KID_fordeling,
+                    Donations.timestamp_confirmed
+                FROM Donations
+                INNER JOIN Donors
+                    ON Donations.Donor_ID = Donors.ID
+                INNER JOIN Payment
+                    ON Donations.Payment_ID = Payment.ID
+                ORDER BY ${sortColumn}
+                ${sort.desc ? 'DESC' : ''} 
+                LIMIT ? OFFSET ?`, [limit, page*limit])
+
+            const [counter] = await con.query(`SELECT COUNT(*) as count FROM Donations`)
+            const pages = parseInt(counter[0].count / limit)
+
+            return {
+                rows: mapToJS(donations),
+                pages
+            }
+        }
+    } catch(ex) {
+        throw ex
+    }
 }
+
+const jsDBmapping = [
+    ["id",              "ID"],
+    ["donor",           "full_name"],
+    ["paymentMethod",   "payment_name"],
+    ["sum",             "sum_confirmed"],
+    ["transactionCost", "transaction_cost"],
+    ["kid",             "KID_fordeling"],
+    ["timestamp",       "timestamp_confirmed"]
+]
+
+const mapToJS = (obj) => obj.map((donation) => {
+    var returnObj = {}
+    jsDBmapping.forEach((map) => {
+        returnObj[map[0]] = donation[map[1]]
+    })
+    return returnObj
+})
 
 /**
  * Gets aggregate donations from a spesific time period
@@ -19,7 +72,7 @@ function getByDonor(KID) {
 function getAggregateByTime(startTime, endTime) {
     return new Promise(async (fulfill, reject) => {
         try {
-            var [getAggregateQuery] = await con.query("CALL `EffektDonasjonDB`.`get_aggregate_donations_by_period`(?, ?)", [startTime, endTime])
+            var [getAggregateQuery] = await con.query("CALL `get_aggregate_donations_by_period`(?, ?)", [startTime, endTime])
             return fulfill(getAggregateQuery[0])
         } catch(ex) {
             return reject(ex)
@@ -94,31 +147,48 @@ function getKIDbySplit(split, donorID) {
 function getByID(donationID) {
     return new Promise(async (fulfill, reject) => {
         try {
-            let donation = {}
-
-            var [getDonationFromIDquery] = await con.execute(`
+            var [getDonationFromIDquery] = await con.query(`
                 SELECT 
+                    Donation.ID,
                     Donation.sum_confirmed, 
                     Donation.KID_fordeling,
+                    Donation.transaction_cost,
+                    Donation.timestamp_confirmed,
                     Donor.full_name,
-                    Donor.email
+                    Donor.email,
+                    Payment.payment_name
                 
                 FROM Donations as Donation
                     INNER JOIN Donors as Donor
                         ON Donation.Donor_ID = Donor.ID
+
+                    INNER JOIN Payment
+                        ON Donation.Payment_ID = Payment.ID
                 
                 WHERE 
-                    Donation.ID = ${sqlString.escape(donationID)}`)
+                    Donation.ID = ?`, [donationID])
 
 
             if (getDonationFromIDquery.length != 1) reject(new Error("Could not find donation with ID " + donationID))
 
-            donation.donorName = getDonationFromIDquery[0].full_name
-            donation.sum = getDonationFromIDquery[0].sum_confirmed
-            donation.mail = getDonationFromIDquery[0].email
-            donation.KID = getDonationFromIDquery[0].KID_fordeling
+            let dbDonation = getDonationFromIDquery[0]
 
-            donation.organizations = await getSplitByKID(donation.KID)
+            let donation = {
+                id: dbDonation.ID,
+                donor: dbDonation.full_name,
+                sum: dbDonation.sum_confirmed,
+                transactionCost: dbDonation.transaction_cost,
+                timestamp: dbDonation.timestamp_confirmed,
+                method: dbDonation.payment_name,
+                KID: dbDonation.KID_fordeling
+            }
+
+            //TODO: Standardize split object form
+            let split = await getSplitByKID(donation.KID)
+            donation.distribution = split.map((split) => ({
+                abbriv: split.abbriv,
+                share: split.percentage_share
+            }))
 
             return fulfill(donation)
         } catch(ex) {
@@ -130,23 +200,24 @@ function getByID(donationID) {
 function getSplitByKID(KID) {
     return new Promise(async (fulfill, reject) => {
         try {
-            let [getOrganizationsSplitByKIDQuery] = await con.execute(`
-            SELECT 
-                Organizations.full_name, 
-                Distribution.percentage_share
-            
-            FROM Combining_table as Combining
-                INNER JOIN Distribution as Distribution
-                    ON Combining.Distribution_ID = Distribution.ID
-                INNER JOIN Organizations as Organizations
-                    ON Organizations.ID = Distribution.OrgID
-            
-            WHERE 
-                KID = ${sqlString.escape(KID)}`)
+            let [result] = await con.query(`
+                SELECT 
+                    Organizations.full_name,
+                    Organizations.abbriv, 
+                    Distribution.percentage_share
+                
+                FROM Combining_table as Combining
+                    INNER JOIN Distribution as Distribution
+                        ON Combining.Distribution_ID = Distribution.ID
+                    INNER JOIN Organizations as Organizations
+                        ON Organizations.ID = Distribution.OrgID
+                
+                WHERE 
+                    KID = ?`, [KID])
 
-            if (getOrganizationsSplitByKIDQuery.length == 0) return reject(new Error("No split with the KID " + KID))
+            if (result.length == 0) return reject(new Error("No distribution with the KID " + KID))
 
-            return fulfill(getOrganizationsSplitByKIDQuery)
+            return fulfill(result)
         } catch(ex) {
             reject(ex)
         }
@@ -366,8 +437,8 @@ function registerConfirmedByIDs(IDs) {
 //endregion
 
 module.exports = {
+    getAll,
     getByID,
-    getByDonor,
     getAggregateByTime,
     getKIDbySplit,
     getFromRange,
