@@ -90,6 +90,28 @@ const mapToJS = (obj) => obj.map((donation) => {
 })
 
 /**
+ * Gets a histogram of all donations by donation sum
+ * Creates buckets with 100 NOK spacing
+ * Skips empty buckets
+ * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
+ */
+async function getHistogramBySum() {
+    try {
+        [results] = await con.query(`
+            SELECT ROUND(sum_confirmed, -2)     AS bucket,
+            COUNT(*)                            AS items,
+            ROUND(100*LN(COUNT(*)))             AS bar
+            FROM   Donations
+            GROUP  BY bucket;
+        `)
+
+        return results
+    } catch(ex) {
+        throw ex;
+    }
+}
+
+/**
  * Gets aggregate donations from a spesific time period
  * @param {Date} startTime 
  * @param {Date} endTime
@@ -474,6 +496,7 @@ module.exports = {
     addSplit,
     add,
     registerConfirmedByIDs,
+    getHistogramBySum,
 
     setup: (dbPool) => { con = dbPool }
 }

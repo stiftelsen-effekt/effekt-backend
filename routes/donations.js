@@ -158,6 +158,19 @@ router.post("/", authMiddleware(authRoles.read_all_donations), async(req, res, n
   }
 })
 
+router.get("/histogram", async (req,res,next) => {
+  try {
+    let buckets = await DAO.donations.getHistogramBySum()
+
+    res.json({
+      status: 200,
+      content: buckets
+    })
+  } catch(ex) {
+    next(ex)
+  }
+})
+
 router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
   try {
     var donation = await DAO.donations.getByID(req.params.id)
