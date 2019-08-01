@@ -8,12 +8,29 @@ var con
  * @param {id: string, desc: boolean | null} sort If null, don't sort
  * @param {string | number | Date} cursor Used for pagination
  * @param {number=10} limit Defaults to 10
+ * @param {object} filter Filtering object
  * @returns {[Array<IDonation & donorName: string>, nextcursor]} An array of donations pluss the donorname
  */
-async function getAll(sort, page, limit = 10) {
+async function getAll(sort, page, limit = 10, filter = null) {
     try {
         if (sort) {
             const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1]
+
+            let where = [];
+            if (filter) {
+                if (filter.sum) {
+                    if (filter.sum.from) where.push(`sum_confirmed >= ${sqlString.escape(filter.sum.from)} `)
+                    if (filter.sum.to) where.push(`sum_confirmed <= ${sqlString.escape(filter.sum.to)} `)
+                }
+    
+                if (filter.date) {
+                    if (filter.date.from) where.push(`timestamp_confirmed >= ${sqlString.escape(filter.date.from)} `)
+                    if (filter.date.to) where.push(`timestamp_confirmed <= ${sqlString.escape(filter.date.to)} `)
+                }
+    
+                if (filter.KID) where.push(` CAST(KID_fordeling as CHAR) LIKE '%${sqlString.escape(filter.KID)}%' `)
+                if (filter.paymentMethodIDs) where.push(` Payment_ID IN (${filter.paymentMethodIDs.map((ID) => sqlString.escape(ID)).join(',')}) `)
+            }
 
             const [donations] = await con.query(`SELECT 
                     Donations.ID,
@@ -28,12 +45,21 @@ async function getAll(sort, page, limit = 10) {
                     ON Donations.Donor_ID = Donors.ID
                 INNER JOIN Payment
                     ON Donations.Payment_ID = Payment.ID
+
+                WHERE 
+                    ${(where.length !== 0 ? where.join(" AND ") : '1')}
+
                 ORDER BY ${sortColumn}
                 ${sort.desc ? 'DESC' : ''} 
                 LIMIT ? OFFSET ?`, [limit, page*limit])
 
-            const [counter] = await con.query(`SELECT COUNT(*) as count FROM Donations`)
-            const pages = parseInt(counter[0].count / limit)
+            const [counter] = await con.query(`
+                SELECT COUNT(*) as count FROM Donations
+                
+                WHERE 
+                    ${(where.length !== 0 ? where.join(" AND ") : ' 1')}`)
+
+            const pages = Math.ceil(counter[0].count / limit)
 
             return {
                 rows: mapToJS(donations),

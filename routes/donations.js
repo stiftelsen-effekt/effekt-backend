@@ -145,7 +145,7 @@ router.get("/total", async (req, res, next) => {
 
 router.post("/", authMiddleware(authRoles.read_all_donations), async(req, res, next) => {
   try {
-    var results = await DAO.donations.getAll(req.body.sort, req.body.page, req.body.limit)
+    var results = await DAO.donations.getAll(req.body.sort, req.body.page, req.body.limit, req.body.filter)
     return res.json({ 
       status: 200, 
       content: {
