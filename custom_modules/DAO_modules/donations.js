@@ -28,7 +28,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
                     if (filter.date.to) where.push(`timestamp_confirmed <= ${sqlString.escape(filter.date.to)} `)
                 }
     
-                if (filter.KID) where.push(` CAST(KID_fordeling as CHAR) LIKE '%${sqlString.escape(filter.KID)}%' `)
+                if (filter.KID) where.push(` CAST(KID_fordeling as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
                 if (filter.paymentMethodIDs) where.push(` Payment_ID IN (${filter.paymentMethodIDs.map((ID) => sqlString.escape(ID)).join(',')}) `)
             }
 
