@@ -1,17 +1,15 @@
 const express = require('express')
-
-const KID = require('../custom_modules/KID.js')
-const DAO = require('../custom_modules/DAO.js')
+const router = express.Router()
 
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 const authRoles = require('../enums/authorizationRoles')
 
-const router = express.Router()
-
-const rounding = require("../custom_modules/rounding")
+const KID = require('../custom_modules/KID.js')
+const DAO = require('../custom_modules/DAO.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: true })
+
 const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
@@ -50,12 +48,12 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     }
 
     //Try to get existing KID
-    donationObject.KID = await DAO.donations.getKIDbySplit(donationObject.split, donationObject.donorID)
+    donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
 
     //Split does not exist create new KID and split
     if (donationObject.KID == null) {
       donationObject.KID = await createKID()
-      await DAO.donations.addSplit(donationObject.split, donationObject.KID, donationObject.donorID)
+      await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
     }
   }
   catch (ex) {
@@ -68,42 +66,6 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       KID: donationObject.KID
     }
   })
-})
-
-router.post("/distribution", 
-  authMiddleware(authRoles.write_all_donations),
-  async (req, res, next) => {
-  try {
-    let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }}),
-      donorId = req.body.donor.id
-
-    if (split.length === 0) {
-      let err = new Error("Empty distribution array provided")
-      err.status = 400
-      return next(err)
-    }
-
-    if (rounding.sumWithPrecision(split.map(split => split.share)) !== "100") {
-      let err = new Error("Distribution does not sum to 100")
-      err.status = 400
-      return next(err)
-    }
-    
-    //Check for existing distribution with that KID
-    let KID = await DAO.donations.getKIDbySplit(split, donorId)
-
-    if (!KID) {
-      KID = await createKID()
-      await DAO.donations.addSplit(split, KID, donorId)
-    }
-    
-    res.json({
-      status: 200,
-      content: KID
-    })
-  } catch(ex) {
-    next({ex})
-  }
 })
 
 router.post("/confirm", 
@@ -246,7 +208,7 @@ function createKID() {
     let newKID = KID.generate()
     //If KID already exists, try new kid, call this function recursively
     try {
-      if (await DAO.donations.KIDexists(newKID)) {
+      if (await DAO.distributions.KIDexists(newKID)) {
         newKID = await createKID()
       }
     } catch(ex) {

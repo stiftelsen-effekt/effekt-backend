@@ -11,7 +11,7 @@ module.exports = async (req,res,next) => {
 
     try {
       let referenceIDs = transactions.map((transaction) => transaction.referenceTransactionID)
-      var referenceTransactionID_To_KID = await DAO.donations.getHistoricPaypalSubscriptionKIDS(referenceIDs)
+      var referenceTransactionID_To_KID = await DAO.distributions.getHistoricPaypalSubscriptionKIDS(referenceIDs)
     } catch(ex) {
       next(ex)
       return false
