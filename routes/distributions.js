@@ -1,9 +1,12 @@
 const express = require('express')
 const router = express.Router()
+const authMiddleware = require('../custom_modules/authorization/authMiddleware')
+const authRoles = require('../enums/authorizationRoles')
 
 const DAO = require('../custom_modules/DAO.js')
 
 const rounding = require("../custom_modules/rounding")
+const donationHelpers = require("../custom_modules/donationHelpers")
 
 router.post("/", 
   authMiddleware(authRoles.write_all_donations),
@@ -28,7 +31,7 @@ router.post("/",
     let KID = await DAO.distributions.getKIDbySplit(split, donorId)
 
     if (!KID) {
-      KID = await createKID()
+      KID = await donationHelpers.createKID()
       await DAO.distributions.add(split, KID, donorId)
     }
     
@@ -37,7 +40,7 @@ router.post("/",
       content: KID
     })
   } catch(ex) {
-    next({ex})
+    next(ex)
   }
 })
 
@@ -50,3 +53,5 @@ router.get("/",
         next(ex)
     }
 })
+
+module.exports = router

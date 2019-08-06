@@ -1,5 +1,5 @@
 const sqlString = require('sqlstring')
-const DAO = require('../DAO')
+const distributions = require('./distributions.js')
 
 var con
 
@@ -166,7 +166,7 @@ function getByID(donationID) {
             }
 
             //TODO: Standardize split object form
-            let split = await DAO.distributions.getSplitByKID(donation.KID)
+            let split = await distributions.getSplitByKID(donation.KID)
             
             donation.distribution = split.map((split) => ({
                 abbriv: split.abbriv,
