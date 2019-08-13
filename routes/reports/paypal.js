@@ -7,11 +7,17 @@ const PAYPAL_ID = 3
 module.exports = async (req,res,next) => {
     if (!req.files || !req.files.report) return res.sendStatus(400)
   
-    var transactions = paypal.parse(req.files.report.data)
+    try {
+      var transactions = paypal.parse(req.files.report.data)
+    } catch(ex) {
+      console.error(ex)
+      next(new Error("Error in parsing report"))
+    }
+    
 
     try {
       let referenceIDs = transactions.map((transaction) => transaction.referenceTransactionID)
-      var referenceTransactionID_To_KID = await DAO.donations.getHistoricPaypalSubscriptionKIDS(referenceIDs)
+      var referenceTransactionID_To_KID = await DAO.distributions.getHistoricPaypalSubscriptionKIDS(referenceIDs)
     } catch(ex) {
       next(ex)
       return false

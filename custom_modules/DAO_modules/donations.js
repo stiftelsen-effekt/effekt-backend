@@ -1,4 +1,5 @@
 const sqlString = require('sqlstring')
+const distributions = require('./distributions.js')
 
 var con
 
@@ -71,23 +72,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
     }
 }
 
-const jsDBmapping = [
-    ["id",              "ID"],
-    ["donor",           "full_name"],
-    ["paymentMethod",   "payment_name"],
-    ["sum",             "sum_confirmed"],
-    ["transactionCost", "transaction_cost"],
-    ["kid",             "KID_fordeling"],
-    ["timestamp",       "timestamp_confirmed"]
-]
 
-const mapToJS = (obj) => obj.map((donation) => {
-    var returnObj = {}
-    jsDBmapping.forEach((map) => {
-        returnObj[map[0]] = donation[map[1]]
-    })
-    return returnObj
-})
 
 /**
  * Gets a histogram of all donations by donation sum
@@ -128,19 +113,6 @@ function getAggregateByTime(startTime, endTime) {
     })
 }
 
-function KIDexists(KID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [res] = await con.query("SELECT * FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
-        } catch(ex) {
-            return reject(ex)
-        }
-
-        if (res.length > 0) fulfill(true)
-        else fulfill(false)
-    })
-}
-
 function ExternalPaymentIDExists(externalPaymentID, paymentID) {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -151,44 +123,6 @@ function ExternalPaymentIDExists(externalPaymentID, paymentID) {
 
         if (res.length > 0) fulfill(true)
         else fulfill(false)
-    })
-}
-
-function getKIDbySplit(split, donorID) {
-    return new Promise(async (fulfill, reject) => {
-        let KID = null
-        //Check if existing KID
-        try {
-            //Construct query
-            let query = `
-            SELECT 
-                KID, 
-                Count(KID) as KID_count 
-                
-            FROM EffektDonasjonDB.Distribution as D
-                INNER JOIN Combining_table as C 
-                    ON C.Distribution_ID = D.ID
-            
-            WHERE
-            `;
-            
-            for (let i = 0; i < split.length; i++) {
-                query += `(OrgID = ${sqlString.escape(split[i].organizationID)} AND percentage_share = ${sqlString.escape(split[i].share)} AND Donor_ID = ${sqlString.escape(donorID)})`
-                if (i < split.length-1) query += ` OR `
-            }
-
-            query += ` GROUP BY C.KID
-            
-            HAVING 
-                KID_count = ` + split.length
-
-            var [res] = await con.execute(query)
-        } catch(ex) {
-            return reject(ex)
-        }
-
-        if (res.length > 0) fulfill(res[0].KID)
-        else fulfill(null)
     })
 }
 
@@ -232,7 +166,8 @@ function getByID(donationID) {
             }
 
             //TODO: Standardize split object form
-            let split = await getSplitByKID(donation.KID)
+            let split = await distributions.getSplitByKID(donation.KID)
+            
             donation.distribution = split.map((split) => ({
                 abbriv: split.abbriv,
                 share: split.percentage_share
@@ -241,33 +176,6 @@ function getByID(donationID) {
             return fulfill(donation)
         } catch(ex) {
             return reject(ex)
-        }
-    })
-}
-
-function getSplitByKID(KID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            let [result] = await con.query(`
-                SELECT 
-                    Organizations.full_name,
-                    Organizations.abbriv, 
-                    Distribution.percentage_share
-                
-                FROM Combining_table as Combining
-                    INNER JOIN Distribution as Distribution
-                        ON Combining.Distribution_ID = Distribution.ID
-                    INNER JOIN Organizations as Organizations
-                        ON Organizations.ID = Distribution.OrgID
-                
-                WHERE 
-                    KID = ?`, [KID])
-
-            if (result.length == 0) return reject(new Error("No distribution with the KID " + KID))
-
-            return fulfill(result)
-        } catch(ex) {
-            reject(ex)
         }
     })
 }
@@ -358,62 +266,12 @@ function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
     })
 }
 
-/**
- * Gets KIDs from historic paypal donors, matching them against a ReferenceTransactionId
- * @param {Array} transactions A list of transactions that must have a ReferenceTransactionId 
- * @returns {Object} Returns an object with referenceTransactionId's as keys and KIDs as values
- */
-function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            let [res] = await con.query(`SELECT 
-                ReferenceTransactionNumber,
-                KID 
-                
-                FROM Paypal_historic_distributions 
 
-                WHERE 
-                    ReferenceTransactionNumber IN (?);`, [referenceIDs])
-
-            let mapping = res.reduce((acc, row) => {
-                acc[row.ReferenceTransactionNumber] = row.KID
-                return acc
-            }, {})
-
-            fulfill(mapping)
-        } catch(ex) {
-            reject(ex)
-            return false
-        }
-    })
-}
 
 
 //endregion
 
 //region Add
-function addSplit(split, KID, donorID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var transaction = await con.startTransaction()
-
-            let distribution_table_values = split.map((item) => {return [item.organizationID, item.share]})
-            var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [distribution_table_values])
-
-            let first_inserted_id = res[0].insertId
-            var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {return [donorID, first_inserted_id+i, KID]})
-
-            //Update combining table
-            var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID) VALUES ?", [combining_table_values])
-
-            con.commitTransaction(transaction)
-            fulfill(true)
-        } catch(ex) {
-            con.rollbackTransaction(transaction)
-            reject(ex)
-        }
-    })
-}
 
 /**
  * Adds a donation to the database
@@ -481,19 +339,31 @@ function registerConfirmedByIDs(IDs) {
 //endregion
 
 //region Helpers
+const jsDBmapping = [
+    ["id",              "ID"],
+    ["donor",           "full_name"],
+    ["paymentMethod",   "payment_name"],
+    ["sum",             "sum_confirmed"],
+    ["transactionCost", "transaction_cost"],
+    ["kid",             "KID_fordeling"],
+    ["timestamp",       "timestamp_confirmed"]
+]
 
+const mapToJS = (obj) => obj.map((donation) => {
+    var returnObj = {}
+    jsDBmapping.forEach((map) => {
+        returnObj[map[0]] = donation[map[1]]
+    })
+    return returnObj
+})
 //endregion
 
 module.exports = {
     getAll,
     getByID,
     getAggregateByTime,
-    getKIDbySplit,
     getFromRange,
-    getHistoricPaypalSubscriptionKIDS,
-    KIDexists,
     ExternalPaymentIDExists,
-    addSplit,
     add,
     registerConfirmedByIDs,
     getHistogramBySum,
