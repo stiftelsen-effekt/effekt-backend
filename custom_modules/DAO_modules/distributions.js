@@ -3,6 +3,58 @@ const sqlString = require('sqlstring')
 var con
 
 //region GET
+async function getAll(page=0, limit=10, sort, filter=null) {
+    let where = []
+    if (filter) {
+        if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
+        if (filter.donor) where.push(` (full_name LIKE ${sqlString.escape(`%${filter.donor}%`)} or email LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
+    }
+
+    let queryString = `
+    SELECT
+        Combining.KID,
+        Donations.sum,
+        Donations.count,
+        Donors.full_name,
+        Donors.email
+
+        FROM Combining_table as Combining
+
+        LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
+            ON Donations.KID_fordeling = Combining.KID
+
+        INNER JOIN Donors
+            ON Combining.Donor_ID = Donors.ID
+
+        ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}
+
+        GROUP BY Combining.KID, Donors.full_name, Donors.email
+
+        ORDER BY ${sort.id} ${sort.desc ? ' DESC' : ''}
+
+        LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit*page)}`;
+
+    const [rows] = await con.query(queryString)
+
+    const [counter] = await con.query(`
+        SELECT COUNT(*) as count 
+            FROM Combining_table as Combining
+
+            LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
+                ON Donations.KID_fordeling = Combining.KID
+
+            INNER JOIN Donors
+                ON Combining.Donor_ID = Donors.ID
+
+            ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}`)
+    
+    const pages = Math.ceil(counter[0].count / limit)
+
+    return {
+        rows,
+        pages
+    };
+}
 
 /**
  * Checks whether given KID exists in DB
@@ -164,6 +216,7 @@ module.exports = {
     getKIDbySplit,
     getSplitByKID,
     getHistoricPaypalSubscriptionKIDS,
+    getAll,
 
     add,
 

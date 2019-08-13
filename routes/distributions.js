@@ -44,11 +44,21 @@ router.post("/",
   }
 })
 
-router.get("/",
+router.post("/search",
     authMiddleware(authRoles.read_all_donations),
     async (req, res, next) => {
     try {
+      let limit = req.body.limit, 
+          page = req.body.page, 
+          filter = req.body.filter,
+          sort = req.body.sort
 
+      let distributions = await DAO.distributions.getAll(page, limit, sort, filter)
+
+      res.json({
+        status: 200,
+        content: distributions
+      })
     } catch(ex) {
         next(ex)
     }

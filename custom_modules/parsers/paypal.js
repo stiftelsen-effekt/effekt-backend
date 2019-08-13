@@ -8,7 +8,7 @@ module.exports = {
      * @return {Object} An array of transactions
      */
     parse: function(report) {
-        let data = parse(report.toString())
+        let data = parse(report.toString().replace(/^\ufeff/, ''))
 
         let transactions = getTransactions(data)
 
