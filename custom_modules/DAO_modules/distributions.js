@@ -120,12 +120,19 @@ function getKIDbySplit(split, donorID) {
 /**
  * Gets organizaitons and distribution share from a KID
  * @param {number} KID 
+ * @returns {[{
+ *  ID: number,
+ *  full_name: string,
+ *  abbriv: string,
+ *  percentage_share: Decimal
+ * }]}
  */
 function getSplitByKID(KID) {
     return new Promise(async (fulfill, reject) => {
         try {
             let [result] = await con.query(`
                 SELECT 
+                    Organizations.ID,
                     Organizations.full_name,
                     Organizations.abbriv, 
                     Distribution.percentage_share
@@ -139,7 +146,7 @@ function getSplitByKID(KID) {
                 WHERE 
                     KID = ?`, [KID])
 
-            if (result.length == 0) return reject(new Error("No distribution with the KID " + KID))
+            if (result.length == 0) return reject(new Error("NOT FOUND | No distribution with the KID " + KID))
 
             return fulfill(result)
         } catch(ex) {
@@ -147,7 +154,6 @@ function getSplitByKID(KID) {
         }
     })
 }
-
 
 /**
  * Gets KIDs from historic paypal donors, matching them against a ReferenceTransactionId

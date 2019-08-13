@@ -64,4 +64,29 @@ router.post("/search",
     }
 })
 
+router.get("/:KID", 
+  //authMiddleware(authRoles.read_all_donations), 
+  async (req,res,next) => {
+  try {
+    if (!req.params.KID) res.status(400).json({ status: 400, content: "No KID provided" })
+    let distribution = await DAO.distributions.getSplitByKID(req.params.KID)
+    let donor = await DAO.donors.getByKID(req.params.KID)
+    return res.json({
+      status: 200,
+      content: {
+        donor,
+        distribution
+      }
+    })
+  } catch(ex) {
+    if (ex.message.indexOf("NOT FOUND") !== -1) res.status(404).send({
+      status: 404,
+      content: ex.message
+    })
+    else {
+      next(ex)
+    }
+  }
+})
+
 module.exports = router

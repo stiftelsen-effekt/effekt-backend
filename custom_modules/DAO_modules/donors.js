@@ -38,6 +38,38 @@ function getByID(ID) {
 }
 
 /**
+ * Takes a KID and returns the Donor associated with the KID
+ * Returns null if no donor found
+ * @param {Number} KID 
+ */
+async function getByKID(KID) {
+    let [result] = await con.query(`
+        SELECT
+            Donors.ID,
+            Donors.email,
+            Donors.full_name,
+            Donors.date_registered
+            
+            FROM Donors
+            
+            INNER JOIN Combining_table
+                ON Donors.ID = Combining_table.Donor_ID
+                
+            WHERE KID = ?
+            
+            GROUP BY Donors.ID`, [KID])
+    
+    if (result.length === 0) return null; 
+
+    return {
+        id: result[0].ID,
+        name: result[0].full_name,
+        email: result[0].email,
+        registered: result[0].date_registered
+    };
+}
+
+/**
  * Searches for a user with either email or name matching the query
  * @param {string} query A query string trying to match agains full name and email
  * @return {array} An array of donor objects
@@ -106,6 +138,7 @@ function add(donorObject) {
 module.exports = {
     getByID,
     getIDbyEmail,
+    getByKID,
     search,
     add,
 
