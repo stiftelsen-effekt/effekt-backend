@@ -31,11 +31,11 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
 
     //Create a donation split object
     if (donationOrganizations) {
-      donationObject.split = await createDonationSplitArray(donationOrganizations)
+      donationObject.split = await donationHelpers.createDonationSplitArray(donationOrganizations)
       donationObject.standardSplit = false
     }
     else {
-      donationObject.split = await getStandardSplit()
+      donationObject.split = await donationHelpers.getStandardSplit()
       donationObject.standardSplit = true
     }
 
