@@ -8,6 +8,8 @@ const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 const request = require('request-promise-native')
 
+const config = require('../config')
+
 var websocketsHandler
 
 require('request').debug = true
