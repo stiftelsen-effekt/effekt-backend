@@ -9,7 +9,7 @@ module.exports = {
    * @return {Object} An object with a min- and maxDate field, representing the minimum and maximum date from the provided transactions, and an array of transactions in the field transaction
    */
   parseReport: function(report) {
-    let data = parse(report.toString())
+    let data = parse(report.toString(), { delimiter: ';' })
 
     let currentMinDate = null
     let currentMaxDate = null
@@ -49,7 +49,7 @@ function buildTransactionFromArray(inputArray) {
     date: moment(inputArray[fieldMapping.SalesDate], "DD.MM.YYYY"),
     location: inputArray[fieldMapping.SalesLocation],
     transactionID: inputArray[fieldMapping.TransactionID],
-    amount: Number(inputArray[fieldMapping.GrossAmount]),
+    amount: Number(inputArray[fieldMapping.GrossAmount].replace(/,/g, '.')),
     name: inputArray[fieldMapping.FirstName] + " " + inputArray[fieldMapping.LastName],
     message: inputArray[fieldMapping.Message],
     KID: extractKID(inputArray[fieldMapping.Message])
