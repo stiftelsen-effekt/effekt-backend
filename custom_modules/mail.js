@@ -27,7 +27,15 @@ async function sendDonationReciept(donationID) {
         return false
     }
 
-    donation.organizations = donation.organizations.map(function(org) {
+    try {
+      var split = await DAO.distributions.getSplitByKID(donation.KID)
+    } catch (ex) {
+      console.error("Failed to send mail donation reciept, could not get donation split by KID")
+      console.error(ex)
+      return false
+    }
+
+    let organizations = split.map(function(org) {
         var amount = donation.sum * parseFloat(org.percentage_share) * 0.01
         var roundedAmount = (amount > 1 ? Math.round(amount) : 1)
 
@@ -46,7 +54,7 @@ async function sendDonationReciept(donationID) {
         templateData: {
             header: "Hei " + donation.donorName + ",",
             donationSum: donation.sum,
-            organizations: donation.organizations
+            organizations: organizations
         }
     })
 }
@@ -58,7 +66,7 @@ async function sendDonationRegistered(KID, sum) {
       //Add seperators for KID, makes it easier to read
       KIDstring = KIDstring.substr(0,3) + " " + KIDstring.substr(3,2) + " " + KIDstring.substr(5,3)
   
-      var result = await send({
+      await send({
         subject: 'GiEffektivt.no - Donasjon klar for innbetaling',
         reciever: recieverEmail,
         templateName: 'registered',
