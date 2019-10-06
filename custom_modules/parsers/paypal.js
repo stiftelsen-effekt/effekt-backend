@@ -8,8 +8,23 @@ module.exports = {
      * @return {Object} An array of transactions
      */
     parse: function(report) {
-        let data = parse(report.toString().replace(/^\ufeff/, ''))
+        try {
+            var data = parse(report.toString(), { delimiter: ';', bom: true, skip_empty_lines: true })
+        }
+        catch (ex) {
+            console.error("Using semicolon delimiter failed, trying comma.")
 
+            try {
+                var data = parse(reportText, { delimiter: ',', bom: true, skip_empty_lines: true })
+            }
+            catch(ex) {
+                console.error("Using comma delimiter failed.")
+                console.error("Parsing vipps failed.")
+                console.error(ex)
+                return false
+            }
+        }
+        
         let transactions = getTransactions(data)
 
         return transactions
