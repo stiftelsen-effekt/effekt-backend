@@ -1,4 +1,5 @@
 const xlsx = require('node-xlsx').default
+const moment = require('moment')
 
 module.exports = {
     /**
@@ -65,9 +66,11 @@ module.exports = {
 
         //Generate the actual donation data
         let dataRows = []
+
         donations.forEach((donation) => {
+            let donationTime = moment(donation.time)
             let donationRow = [ donation.ID, 
-                                donation.time, 
+                                { v: new Date(donationTime.utc(true)), t :'d' },
                                 donation.name, 
                                 donation.paymentMethod, 
                                 donation.sum, 
