@@ -113,5 +113,5 @@ async function runVipps(filename) {
 }
 
 function readCSV(type, filename) {
-    return fs.readFileSync(`test/data/${type}/${filename}.csv`)
+    return fs.readFileSync(`test/data/${type}/${filename}.CSV`)
 }

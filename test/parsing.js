@@ -60,5 +60,5 @@ describe("Vipps CSV", () => {
 })
 
 function readCSV(type, filename) {
-    return fs.readFileSync(`test/data/${type}/${filename}.csv`)
+    return fs.readFileSync(`test/data/${type}/${filename}.CSV`)
 }
