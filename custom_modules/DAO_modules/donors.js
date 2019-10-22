@@ -117,7 +117,7 @@ function add(donor) {
  * @returns {boolean}
  */
 async function updateSsn(donorID, ssn) {
-    let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [donorID, ssn])
+    let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
     return true
 }
 //endregion
