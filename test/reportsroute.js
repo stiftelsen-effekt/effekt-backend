@@ -4,13 +4,10 @@ const DAO = require('../custom_modules/DAO');
 const expect = (chai.expect);
 const mail = require('../custom_modules/mail')
 const fs = require('fs');
+const config = require('../config')
 
 const paypalroute = require('../routes/reports/paypal')
 const vippsRoute = require('../routes/reports/vipps')
-
-const HistoricMapping = {
-    'I-YE66CY1W4DPU': 23
-}
 
 const addStub = sinon
     .stub(DAO.donations, 'add')
@@ -22,30 +19,48 @@ const mailStub = sinon
 
 const historicSub = sinon
     .stub(DAO.distributions, 'getHistoricPaypalSubscriptionKIDS')
-    .resolves(HistoricMapping)
 
 const parsingRulesStub = sinon
     .stub(DAO.parsing, 'getVippsParsingRules')
     .resolves([])
 
 beforeEach(() => {
+    historicSub.reset()
     addStub.reset()
 })
 
 describe('PayPal report route handles correctly', () => {
-    it('adds donations to DB', async () => {
+    it('adds donations to DB when historic matching exists', async () => {
+        historicSub.resolves({
+            'I-YE66CY1W4DPU': 23
+        })
+
         await runPaypal('Paypal April 2019')
 
         expect(addStub.callCount).to.be.equal(1)
     })
     
+    it('does not fail on 0 historic paypal matches', async() => {
+        historicSub.resolves([])
+
+        await runPaypal('Paypal Special')
+
+        expect(addStub.callCount).to.be.equal(0)
+    })
 })
 
 describe('Vipps route handles report correctly', () => {
     it('Adds donations to DB', async () => {
         await runVipps('Vipps April 2019')
-
         expect(addStub.callCount).to.be.equal(10)
+    })
+
+    it('Attempts to send mail when in production', async () => {
+        config.env = "production";
+        await runVipps('Vipps April 2019');
+        config.env = "development";
+
+        expect(mailStub.callCount).to.be.equal(10);
     })
 
     it('Adds default donations', async () => {

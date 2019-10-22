@@ -41,6 +41,13 @@ describe("Paypal CSV", () => {
         let transactions = paypal.parse(sample)
         expect(transactions).to.be.length(9)
     })
+
+    it("Parses problematic paypal CSV for september", () => {
+        const sample = readCSV(reportType.paypal, "Paypal Special")
+
+        let transactions = paypal.parse(sample)
+        expect(transactions).to.be.length(6)
+    })
 })
 
 describe("Vipps CSV", () => {

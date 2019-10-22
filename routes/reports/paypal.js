@@ -15,7 +15,6 @@ module.exports = async (req,res,next) => {
       next(new Error("Error in parsing report"))
       return false
     }
-    
 
     try {
       let referenceIDs = transactions.map((transaction) => transaction.referenceTransactionID)
