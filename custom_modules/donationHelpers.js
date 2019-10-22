@@ -6,7 +6,7 @@ module.exports = {
         //Filter passed organizations for 0 shares
         var filteredOrganizations = passedOrganizations.filter(org => org.split > 0)
     
-        var organizationIDs = filteredOrganizations.map(org => org.ID)
+        var organizationIDs = filteredOrganizations.map(org => org.id)
         var orgs = await DAO.organizations.getByIDs(organizationIDs)
     
         if (orgs.length != filteredOrganizations.length) throw new Error("Could not find all organizations in DB")

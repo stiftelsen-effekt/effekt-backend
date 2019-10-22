@@ -3,6 +3,8 @@ const paypal = require('../../custom_modules/parsers/paypal.js')
 const mail = require('../../custom_modules/mail')
 const config = require('../../config')
 
+const config = require('../../config')
+
 const PAYPAL_ID = 3
 
 module.exports = async (req,res,next) => {
