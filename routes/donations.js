@@ -42,6 +42,15 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     //Check if existing donor
     donationObject.donorID = await DAO.donors.getIDbyEmail(donor.email)
 
+    //Check for existing SSN if provided
+    if (typeof donor.ssn !== "undefined" && donor.ssn != null) {
+      donor = await DAO.donors.getByID(donationObject.donorID)
+
+      if (donor.ssn == null) {
+        await DAO.donors.updateSsn(donationObject.donorID, donor.ssn)
+      }
+    }
+
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
       donationObject.donorID = await DAO.donors.add(donor)
