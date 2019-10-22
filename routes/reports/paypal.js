@@ -1,7 +1,6 @@
 const DAO = require('../../custom_modules/DAO.js')
 const paypal = require('../../custom_modules/parsers/paypal.js')
 const mail = require('../../custom_modules/mail')
-
 const config = require('../../config')
 
 const PAYPAL_ID = 3
@@ -14,8 +13,8 @@ module.exports = async (req,res,next) => {
     } catch(ex) {
       console.error(ex)
       next(new Error("Error in parsing report"))
+      return false
     }
-    
 
     try {
       let referenceIDs = transactions.map((transaction) => transaction.referenceTransactionID)

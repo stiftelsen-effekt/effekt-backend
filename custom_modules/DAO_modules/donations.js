@@ -31,6 +31,8 @@ async function getAll(sort, page, limit = 10, filter = null) {
     
                 if (filter.KID) where.push(` CAST(KID_fordeling as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
                 if (filter.paymentMethodIDs) where.push(` Payment_ID IN (${filter.paymentMethodIDs.map((ID) => sqlString.escape(ID)).join(',')}) `)
+
+                if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)} OR Donors.email LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
             }
 
             const [donations] = await con.query(`SELECT 
@@ -56,6 +58,9 @@ async function getAll(sort, page, limit = 10, filter = null) {
 
             const [counter] = await con.query(`
                 SELECT COUNT(*) as count FROM Donations
+
+                INNER JOIN Donors
+                    ON Donations.Donor_ID = Donors.ID
                 
                 WHERE 
                     ${(where.length !== 0 ? where.join(" AND ") : ' 1')}`)

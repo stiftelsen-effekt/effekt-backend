@@ -42,9 +42,22 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     //Check if existing donor
     donationObject.donorID = await DAO.donors.getIDbyEmail(donor.email)
 
+    
+
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
       donationObject.donorID = await DAO.donors.add(donor)
+    }
+    else {
+      //Check for existing SSN if provided
+      if (typeof donor.ssn !== "undefined" && donor.ssn != null) {
+        dbDonor = await DAO.donors.getByID(donationObject.donorID)
+
+        if (dbDonor.ssn == null) {
+          //No existing ssn found, updating donor
+          await DAO.donors.updateSsn(donationObject.donorID, donor.ssn)
+        }
+      }
     }
 
     //Try to get existing KID

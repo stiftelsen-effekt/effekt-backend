@@ -1,5 +1,14 @@
 var con
 
+/**
+ * @typedef Donor
+ * @prop {number} id
+ * @prop {string} email
+ * @prop {string} name
+ * @prop {string} ssn Social security number 
+ * @prop {Date} registered
+ */
+
 //region Get
 /**
  * Gets the ID of a Donor based on their email
@@ -22,7 +31,7 @@ function getIDbyEmail(email) {
 /**
  * Selects a Donor object from the database with the given ID
  * @param {Number} ID The ID in the database for the donor
- * @returns {Object} A donor object
+ * @returns {Donor} A donor object
  */
 function getByID(ID) {
     return new Promise(async (fulfill, reject) => {
@@ -40,7 +49,7 @@ function getByID(ID) {
 /**
  * Searches for a user with either email or name matching the query
  * @param {string} query A query string trying to match agains full name and email
- * @return {array} An array of donor objects
+ * @returns {Array<Donor>} An array of donor objects
  */
 function search(query) {
     return new Promise(async (fulfill, reject) => {
@@ -62,6 +71,7 @@ function search(query) {
                 id: donor.ID,
                 name: donor.full_name,
                 email: donor.email,
+                ssn: donor.ssn,
                 registered: donor.date_registered
             }
         }))
@@ -73,19 +83,21 @@ function search(query) {
 //region Add
 /**
  * Adds a new Donor to the database
- * @param {Object} donorObject A donorObject with two properties, email (string) and name(string)
+ * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
  * @returns {Number} The ID of the new Donor if successfull
  */
-function add(donorObject) {
+function add(donor) {
     return new Promise(async (fulfill, reject) => {
         try {
             var res = await con.execute(`INSERT INTO Donors (
                 email,
-                full_name
-            ) VALUES (?,?)`, 
+                full_name, 
+                ssn
+            ) VALUES (?,?, ?)`, 
             [
-                donorObject.email,
-                donorObject.name
+                donor.email,
+                donor.name,
+                donor.ssn
             ])
         }
         catch(ex) {
@@ -98,6 +110,16 @@ function add(donorObject) {
 //endregion
 
 //region Modify
+/**
+ * Updates donor and sets new SSN
+ * @param {number} donorID
+ * @param {string} ssn Social security number
+ * @returns {boolean}
+ */
+async function updateSsn(donorID, ssn) {
+    let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
+    return true
+}
 //endregion
 
 //region Delete
@@ -108,6 +130,7 @@ module.exports = {
     getIDbyEmail,
     search,
     add,
+    updateSsn,
 
     setup: (dbPool) => { con = dbPool }
 }
