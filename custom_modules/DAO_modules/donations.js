@@ -163,6 +163,7 @@ function getByID(donationID) {
             let donation = {
                 id: dbDonation.ID,
                 donor: dbDonation.full_name,
+                email: dbDonation.email,
                 sum: dbDonation.sum_confirmed,
                 transactionCost: dbDonation.transaction_cost,
                 timestamp: dbDonation.timestamp_confirmed,

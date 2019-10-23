@@ -48,7 +48,7 @@ async function sendDonationReciept(donationID) {
       })
 
     send({
-        reciever: donation.mail,
+        reciever: donation.email,
         subject: "GiEffektivt.no - Din donasjon er mottatt",
         templateName: "reciept",
         templateData: {
