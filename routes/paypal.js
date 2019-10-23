@@ -20,7 +20,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     let responseBody = req.body
     responseBody = Object.assign({cmd: "_notify-validate"}, responseBody)
 
-    console.log(req.body)
+    console.log(responseBody)
 
     //Paypal custom data comes in the form KID|websocketClientID
     var paypalCustomData = req.body.custom.split("|")
