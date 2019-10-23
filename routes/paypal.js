@@ -21,6 +21,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     responseBody = Object.assign({cmd: "_notify-validate"}, responseBody)
 
     console.log(responseBody)
+    console.log(req.body.charset)
 
     //Paypal custom data comes in the form KID|websocketClientID
     var paypalCustomData = req.body.custom.split("|")
@@ -38,7 +39,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     try {
         //"https://ipnpb.sandbox.paypal.com/cgi-bin/webscr/"
         var verification = await request.post("https://ipnpb.paypal.com/cgi-bin/webscr", {
-            encoding: "UTF-8",
+            encoding: req.body.charset,
             headers: {
                 'User-Agent': 'Stiftelsen Effekt IPN Script - Node'
             },
