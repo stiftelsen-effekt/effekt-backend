@@ -35,17 +35,7 @@ async function sendDonationReciept(donationID) {
       return false
     }
 
-    let organizations = split.map(function(org) {
-        var amount = donation.sum * parseFloat(org.percentage_share) * 0.01
-        var roundedAmount = (amount > 1 ? Math.round(amount) : 1)
-
-        return {
-          name: org.full_name,
-          //Add thousand seperator regex at end of amount
-          amount: (roundedAmount != amount ? "~ " : "") + roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-          percentage: parseFloat(org.percentage_share)
-        }
-      })
+    let organizations = formatOrganizationsFromSplit(split)
 
     send({
         reciever: donation.email,
@@ -59,34 +49,60 @@ async function sendDonationReciept(donationID) {
     })
 }
 
+function formatOrganizationsFromSplit(split) {
+  return split.map(function(org) {
+    var amount = donation.sum * parseFloat(org.percentage_share) * 0.01
+    var roundedAmount = (amount > 1 ? Math.round(amount) : 1)
+
+    return {
+      name: org.full_name,
+      //Add thousand seperator regex at end of amount
+      amount: (roundedAmount != amount ? "~ " : "") + roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+      percentage: parseFloat(org.percentage_share)
+    }
+  })
+}
 
 async function sendDonationRegistered(KID, sum) {
     try {
-      var KIDstring = donationObject.KID.toString()
+      try {
+        var donor = await DAO.donors.getByKID(KID)
+      } catch(ex) {
+        console.error("Failed to send mail donation reciept, could not get donor by KID")
+        console.error(ex)
+        return false
+      }
+
+      if (!donor) {
+        console.error(`Failed to send mail donation reciept, no donors attached to KID ${KID}`)
+        return false
+      }
+
+      try {
+        var split = await DAO.distributions.getSplitByKID(KID)
+      } catch(ex) {
+        console.error("Failed to send mail donation reciept, could not get donation split by KID")
+        console.error(ex)
+        return false
+      }
+
+      let organizations = formatOrganizationsFromSplit(split)
+
+      var KIDstring = KID.toString()
       //Add seperators for KID, makes it easier to read
       KIDstring = KIDstring.substr(0,3) + " " + KIDstring.substr(3,2) + " " + KIDstring.substr(5,3)
   
       await send({
         subject: 'GiEffektivt.no - Donasjon klar for innbetaling',
-        reciever: recieverEmail,
+        reciever: donor.email,
         templateName: 'registered',
         templateData: {
-          header: "Hei, " + (recieverName.length > 0 ? recieverName : ""),
+          header: "Hei, " + (donor.name.length > 0 ? donor.name : ""),
           //Add thousand seperator regex at end of amount
-          donationSum: donationObject.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+          donationSum: sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
           kid: KIDstring,
           accountNumber: config.bankAccount,
-          organizations: donationObject.split.map(function(split) {
-            var amount = donationObject.amount * split.share * 0.01
-            var roundedAmount = (amount > 1 ? Math.round(amount) : 1)
-  
-            return {
-              name: split.name,
-              //Add thousand seperator regex at end of amount
-              amount: (roundedAmount != amount ? "~ " : "") + roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-              percentage: split.share
-            }
-          })
+          organizations: organizations
         }
       })
     }

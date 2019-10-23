@@ -47,6 +47,41 @@ function getByID(ID) {
 }
 
 /**
+ * Gets a donor based on KID
+ * @param {Number} KID
+ * @returns {Donor} A donor Object
+ */
+async function getByKID() {
+    let [dbDonor] = await con.query(`SELECT    
+        ID,
+        email, 
+        full_name,
+        ssn,
+        date_registered
+        
+        FROM Donors 
+        
+        INNER JOIN Combining_table 
+            ON Donor_ID = Donors.ID 
+            
+        WHERE KID = ? 
+        GROUP BY Donors.ID LIMIT 1`)
+
+    if (dbDonor.length > 0) {
+        return {
+            id: dbDonor[0].ID,
+            email: dbDonor[0].email,
+            name: dbDonor[0].full_name,
+            ssn: dbDonor[0].ssn, 
+            registered: dbDonor[0].date_registered
+        }
+    }
+    else {
+        return null
+    }
+}
+
+/**
  * Searches for a user with either email or name matching the query
  * @param {string} query A query string trying to match agains full name and email
  * @returns {Array<Donor>} An array of donor objects
@@ -128,6 +163,7 @@ async function updateSsn(donorID, ssn) {
 module.exports = {
     getByID,
     getIDbyEmail,
+    getByKID,
     search,
     add,
     updateSsn,
