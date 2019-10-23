@@ -39,7 +39,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     try {
         //"https://ipnpb.sandbox.paypal.com/cgi-bin/webscr/"
         var verification = await request.post("https://ipnpb.paypal.com/cgi-bin/webscr", {
-            encoding: req.body.charset,
+            encoding: 'UTF-8',
             headers: {
                 'User-Agent': 'Stiftelsen Effekt IPN Script - Node'
             },
