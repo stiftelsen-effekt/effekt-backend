@@ -81,6 +81,10 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
   })
 })
 
+router.post("/bank/pending", urlEncodeParser, async (req,res,next) => {
+  
+})
+
 router.post("/confirm", 
   authMiddleware(authRoles.write_all_donations),
   urlEncodeParser,
