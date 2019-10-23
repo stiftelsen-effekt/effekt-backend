@@ -61,6 +61,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
             console.error(ex)
         }
 
+        console.log(config.env)
         if (config.env === 'production') mail.sendDonationReciept(donationID)
         websocketsHandler.send(wsClientID, "PAYPAL_VERIFIED")
     } else {
