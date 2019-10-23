@@ -51,7 +51,7 @@ function getByID(ID) {
  * @param {Number} KID
  * @returns {Donor} A donor Object
  */
-async function getByKID() {
+async function getByKID(KID) {
     let [dbDonor] = await con.query(`SELECT    
         ID,
         email, 
@@ -65,7 +65,7 @@ async function getByKID() {
             ON Donor_ID = Donors.ID 
             
         WHERE KID = ? 
-        GROUP BY Donors.ID LIMIT 1`)
+        GROUP BY Donors.ID LIMIT 1`, [KID])
 
     if (dbDonor.length > 0) {
         return {
