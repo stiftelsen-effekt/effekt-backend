@@ -52,7 +52,7 @@ async function sendDonationReciept(donationID) {
         subject: "GiEffektivt.no - Din donasjon er mottatt",
         templateName: "reciept",
         templateData: {
-            header: "Hei " + donation.donorName + ",",
+            header: "Hei " + donation.donor + ",",
             donationSum: donation.sum,
             organizations: organizations
         }
@@ -111,7 +111,7 @@ async function send(options) {
     var templateHTML = template(templateRawHTML, options.templateData)
 
     var data = {
-        from: 'Stiftelsen Effekt <mailgun@mg.stiftelseneffekt.no>',
+        from: 'gieffektivt.no <mailgun@mg.stiftelseneffekt.no>',
         to: options.reciever,
         subject: options.subject,
         text: 'Your mail client does not support HTML email',
