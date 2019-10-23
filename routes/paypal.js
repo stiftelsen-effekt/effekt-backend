@@ -44,6 +44,8 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
             },
             form: responseBody
         })
+
+        console.log(verification)
     }  catch(ex) {
         console.error("Failed to send paypal verification postback for KID: " + KID)
     }
