@@ -105,6 +105,8 @@ async function sendDonationRegistered(KID, sum) {
           organizations: organizations
         }
       })
+
+      return true
     }
     catch(ex) {
         console.error("Failed to send mail donation registered")
