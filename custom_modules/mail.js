@@ -124,6 +124,10 @@ async function send(options) {
         data.inline.push(fs.createReadStream(templateRoot + "/images/" + filesInDir[i]))
     }
 
+    console.log(options)
+    console.log(config)
+    console.log(data)
+
     return await request.post({
         url: 'https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages',
         auth: {
