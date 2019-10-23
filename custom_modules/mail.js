@@ -35,7 +35,7 @@ async function sendDonationReciept(donationID) {
       return false
     }
 
-    let organizations = formatOrganizationsFromSplit(split)
+    let organizations = formatOrganizationsFromSplit(split, donation.sum)
 
     send({
         reciever: donation.email,
@@ -49,9 +49,9 @@ async function sendDonationReciept(donationID) {
     })
 }
 
-function formatOrganizationsFromSplit(split) {
+function formatOrganizationsFromSplit(split, sum) {
   return split.map(function(org) {
-    var amount = donation.sum * parseFloat(org.percentage_share) * 0.01
+    var amount = sum * parseFloat(org.percentage_share) * 0.01
     var roundedAmount = (amount > 1 ? Math.round(amount) : 1)
 
     return {
@@ -86,7 +86,7 @@ async function sendDonationRegistered(KID, sum) {
         return false
       }
 
-      let organizations = formatOrganizationsFromSplit(split)
+      let organizations = formatOrganizationsFromSplit(split, sum)
 
       var KIDstring = KID.toString()
       //Add seperators for KID, makes it easier to read
