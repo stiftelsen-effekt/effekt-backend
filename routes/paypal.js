@@ -20,9 +20,6 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     let responseBody = req.body
     responseBody = Object.assign({cmd: "_notify-validate"}, responseBody)
 
-    console.log(responseBody)
-    console.log(req.body.charset)
-
     //Paypal custom data comes in the form KID|websocketClientID
     var paypalCustomData = req.body.custom.split("|")
     let KID = paypalCustomData[0]
@@ -45,8 +42,6 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
             },
             form: responseBody
         })
-
-        console.log(verification)
     }  catch(ex) {
         console.error("Failed to send paypal verification postback for KID: " + KID)
     }
@@ -61,7 +56,6 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
             console.error(ex)
         }
 
-        console.log(config.env)
         if (config.env === 'production') mail.sendDonationReciept(donationID)
         websocketsHandler.send(wsClientID, "PAYPAL_VERIFIED")
     } else {
