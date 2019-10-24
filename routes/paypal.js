@@ -60,7 +60,11 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
 
         if (config.env === 'production') mail.sendDonationReciept(donationID)
         websocketsHandler.send(wsClientID, "PAYPAL_VERIFIED")
-    } else {
+    } 
+    else if (req.body.txn_type == "subscr_signup") {
+        //Subscribtion IPN, ignore
+    }
+    else {
         websocketsHandler.send(wsClientID, "PAYPAL_ERROR")
     }
 })
