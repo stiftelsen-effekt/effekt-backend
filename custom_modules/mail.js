@@ -39,7 +39,7 @@ async function sendDonationReciept(donationID) {
 
     send({
         reciever: donation.email,
-        subject: "GiEffektivt.no - Din donasjon er mottatt",
+        subject: "gieffektivt.no - Din donasjon er mottatt",
         templateName: "reciept",
         templateData: {
             header: "Hei " + donation.donor + ",",
@@ -93,7 +93,7 @@ async function sendDonationRegistered(KID, sum) {
       KIDstring = KIDstring.substr(0,3) + " " + KIDstring.substr(3,2) + " " + KIDstring.substr(5,3)
   
       await send({
-        subject: 'GiEffektivt.no - Donasjon klar for innbetaling',
+        subject: 'gieffektivt.no - Donasjon klar for innbetaling',
         reciever: donor.email,
         templateName: 'registered',
         templateData: {
