@@ -98,6 +98,7 @@ async function sendDonationRegistered(KID, sum) {
         templateName: 'registered',
         templateData: {
           header: "Hei, " + (donor.name.length > 0 ? donor.name : ""),
+          name: donor.name,
           //Add thousand seperator regex at end of amount
           donationSum: sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
           kid: KIDstring,
