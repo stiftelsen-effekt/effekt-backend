@@ -1,6 +1,7 @@
 const sqlString = require('sqlstring')
 
 var con
+var DAO
 
 //region GET
 async function getAll(page=0, limit=10, sort, filter=null) {
@@ -90,7 +91,7 @@ function getKIDbySplit(split, donorID) {
                 KID, 
                 Count(KID) as KID_count 
                 
-            FROM EffektDonasjonDB.Distribution as D
+            FROM Distribution as D
                 INNER JOIN Combining_table as C 
                     ON C.Distribution_ID = D.ID
             
@@ -186,20 +187,25 @@ function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
  * @param {Array<object>} split 
  * @param {number} KID 
  * @param {number} donorID 
+ * @param {number} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
  */
-function add(split, KID, donorID) {
+function add(split, KID, donorID, metaOwnerID = null) {
     return new Promise(async (fulfill, reject) => {
         try {
             var transaction = await con.startTransaction()
+
+            if (metaOwnerID == null) {
+                metaOwnerID = await DAO.meta.getDefaultOwnerID()
+            }
 
             let distribution_table_values = split.map((item) => {return [item.organizationID, item.share]})
             var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [distribution_table_values])
 
             let first_inserted_id = res[0].insertId
-            var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {return [donorID, first_inserted_id+i, KID]})
+            var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {return [donorID, first_inserted_id+i, KID, metaOwnerID]})
 
             //Update combining table
-            var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID) VALUES ?", [combining_table_values])
+            var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID, Meta_owner_ID) VALUES ?", [combining_table_values])
 
             con.commitTransaction(transaction)
             fulfill(true)
@@ -220,5 +226,5 @@ module.exports = {
 
     add,
 
-    setup: (dbPool) => { con = dbPool }
+    setup: (dbPool, DAOObject) => { con = dbPool, DAO = DAOObject }
 }

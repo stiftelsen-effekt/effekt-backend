@@ -40,8 +40,8 @@ module.exports = {
         //Setup submodules
         this.donors.setup(dbPool)      
         this.organizations.setup(dbPool)
-        this.donations.setup(dbPool)
-        this.distributions.setup(dbPool)
+        this.donations.setup(dbPool, this)
+        this.distributions.setup(dbPool, this)
         this.payment.setup(dbPool)
         this.csr.setup(dbPool)
         this.parsing.setup(dbPool)

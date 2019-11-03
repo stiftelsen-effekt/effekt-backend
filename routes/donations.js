@@ -97,8 +97,9 @@ router.post("/confirm",
     let KID = Number(req.body.KID)
     let methodId = Number(req.body.paymentId)
     let externalRef = req.body.paymentExternalRef
+    let metaOwnerID = req.body.metaOwnerID
 
-    await DAO.donations.add(KID, methodId, sum, timestamp, externalRef)
+    await DAO.donations.add(KID, methodId, sum, timestamp, externalRef, metaOwnerID)
 
     res.json({
       status: 200,

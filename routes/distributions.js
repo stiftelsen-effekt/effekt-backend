@@ -13,7 +13,8 @@ router.post("/",
   async (req, res, next) => {
   try {
     let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }}),
-      donorId = req.body.donor.id
+      donorId = req.body.donor.id,
+      metaOwnerID = req.body.metaOwnerID
 
     if (split.length === 0) {
       let err = new Error("Empty distribution array provided")
@@ -32,7 +33,7 @@ router.post("/",
 
     if (!KID) {
       KID = await donationHelpers.createKID()
-      await DAO.distributions.add(split, KID, donorId)
+      await DAO.distributions.add(split, KID, donorId, metaOwnerID)
     }
     
     res.json({

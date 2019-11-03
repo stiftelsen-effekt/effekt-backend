@@ -7,6 +7,7 @@ const VIPPS_ID = 4
 
 module.exports = async (req,res,next) => {
     if (!req.files || !req.files.report) return res.sendStatus(400)
+    let metaOwnerID = parseInt(req.body.metaOwnerID)
 
     try {
         parsedReport = vippsParser.parseReport(req.files.report.data)
@@ -29,7 +30,7 @@ module.exports = async (req,res,next) => {
              */
             let donationID;
             try {
-                donationID = await DAO.donations.add(transaction.KID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
+                donationID = await DAO.donations.add(transaction.KID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID, metaOwnerID)
                 valid++
             } catch (ex) {
                 console.error("Failed to update DB for vipps donation with KID: " + transaction.KID)
@@ -54,7 +55,7 @@ module.exports = async (req,res,next) => {
              * The rules are defined in the database
              */
             try {
-                await DAO.donations.add(matchingRuleKID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
+                await DAO.donations.add(matchingRuleKID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID, metaOwnerID)
                 valid++
             } catch (ex) {
                 console.error("Failed to update DB for vipps donation that matched against a parsing rule with KID: " + transaction.KID)

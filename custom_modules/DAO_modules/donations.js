@@ -2,6 +2,7 @@ const sqlString = require('sqlstring')
 const distributions = require('./distributions.js')
 
 var con
+var DAO
 
 //region Get
 /**
@@ -287,8 +288,9 @@ function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
  * @param {Number} sum The gross amount of the donation (net amount is calculated in the database)
  * @param {Date} [registeredDate=null] Date the transaction was confirmed
  * @param {String} [externalPaymentID=null] Used to track payments in external payment systems (paypal and vipps ex.)
+ * @param {Number} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
  */
-function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null) {
+function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null, metaOwnerID = null) {
     return new Promise(async (fulfill, reject) => {
         try {
             var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
@@ -296,6 +298,15 @@ function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID
             if (donorIDQuery.length != 1) { 
                 reject(new Error("NO_KID | KID " + KID + " does not exist"));
                 return false;
+            }
+
+            /** The meta owner ID is the ID of the organization / group that
+             *  are the owners of the data in the DB. If now ID is provided,
+             *  fetch the default from the DB.
+             */
+
+            if (metaOwnerID == null) {
+                metaOwnerID = await DAO.meta.getDefaultOwnerID()
             }
 
             /*  External transaction ID can be passed to prevent duplicates.
@@ -312,7 +323,7 @@ function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID
 
             var donorID = donorIDQuery[0].Donor_ID
 
-            var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling) VALUES (?,?,?,?,?,?)", [donorID, paymentMethodID, externalPaymentID, sum, registeredDate, KID])
+            var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling, Meta_owner_ID) VALUES (?,?,?,?,?,?,?)", [donorID, paymentMethodID, externalPaymentID, sum, registeredDate, KID, metaOwnerID])
 
             return fulfill(addDonationQuery.insertId)
         } catch(ex) {
@@ -374,5 +385,5 @@ module.exports = {
     registerConfirmedByIDs,
     getHistogramBySum,
 
-    setup: (dbPool) => { con = dbPool }
+    setup: (dbPool, DAOObject) => { con = dbPool, DAO = DAOObject }
 }

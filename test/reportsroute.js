@@ -83,6 +83,9 @@ async function runPaypal(filename) {
     const jsonStub = sinon.stub(res, 'json')
 
     var query = {
+        body: {
+            metaOwnerID: 3
+        },
         files: {
             report: {
                 data: readCSV('paypal',filename)
@@ -102,6 +105,9 @@ async function runVipps(filename) {
         .stub(res, 'json')
 
     const query = {
+        body: {
+            metaOwnerID: 3
+        },
         files: {
             report: {
                 data: readCSV('vipps', filename)

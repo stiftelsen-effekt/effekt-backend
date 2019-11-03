@@ -7,6 +7,7 @@ const PAYPAL_ID = 3
 
 module.exports = async (req,res,next) => {
     if (!req.files || !req.files.report) return res.sendStatus(400)
+    let metaOwnerID = parseInt(req.body.metaOwnerID)
   
     try {
       var transactions = paypal.parse(req.files.report.data)
@@ -40,7 +41,7 @@ module.exports = async (req,res,next) => {
       for(let i = 0; i < transactions.length; i++) {
         let transaction = transactions[i]
         try {
-          var donationID = await DAO.donations.add(transaction.KID, PAYPAL_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID)
+          var donationID = await DAO.donations.add(transaction.KID, PAYPAL_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID, metaOwnerID)
           valid++
           if (config.env === 'production') mail.sendDonationReciept(donationID)
         }
