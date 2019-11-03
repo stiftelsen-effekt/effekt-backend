@@ -1,4 +1,19 @@
 module.exports = {
+    /**
+     * @typedef Transaction
+     * @property {number} transactionCode
+     * @property {number} recordType
+     * @property {number} serviceCode
+     * @property {number} amount
+     * @property {Date} date
+     * @property {number} KID
+     */
+
+    /**
+     * Takes in an OCR file in string form and returns valid transations
+     * @param {string} data A string from an OCR file
+     * @returns {Array<Transaction>} An array of transactions
+     */
     parse: function(data) {
         var lines = data.split('\r\n')
 
@@ -15,6 +30,9 @@ module.exports = {
     },
 
     parseLine: function(line) {
+        /**
+         * @type Transaction
+         * */
         var transaction = {}
 
         transaction.serviceCode = parseInt(line.substr(2,2))
