@@ -12,6 +12,7 @@ module.exports = {
     csr: require('./DAO_modules/csr'),
     parsing: require('./DAO_modules/parsing'),
     auth: require('./DAO_modules/auth'),
+    meta: require('./DAO_modules/meta'),
 
     /**
      * Sets up a connection to the database, uses config.js file for parameters
@@ -45,6 +46,7 @@ module.exports = {
         this.csr.setup(dbPool)
         this.parsing.setup(dbPool)
         this.auth.setup(dbPool)
+        this.meta.setup(dbPool)
 
         //Convenience functions for transactions
         //Use the returned transaction object for queries in the transaction

@@ -109,6 +109,7 @@ DAO.connect(() => {
   const paymentRoute =        require('./routes/payment')
   const csrRoute =            require('./routes/csr')
   const authRoute =           require('./routes/auth')
+  const metaRoute =           require('./routes/meta')
   const debugRoute =          require('./routes/debug')
 
   app.use('/donors',        donorsRoute)
@@ -120,6 +121,7 @@ DAO.connect(() => {
   app.use('/payment',       paymentRoute)
   app.use('/csr',           csrRoute)
   app.use('/auth',          authRoute)
+  app.use('/meta',          metaRoute)
   app.use('/debug',         debugRoute)
 
   app.use('/static',  express.static(__dirname + '/static'))
