@@ -9,7 +9,8 @@ const OCR = require('../custom_modules/parsers/OCR.js');
 
 const sampleOCRfile = fs.readFileSync('test/data/ocr_test.ocr').toString("utf8")
 const noTransactionOCRFile =  fs.readFileSync('test/data/ocr_no_valid_records.ocr').toString("utf8")
-const sampleOCRline =               "NY091330000000022001700000000000000000000000100000000000000000000012345678000000"
+const sampleOCRline =               "NY091330000000022011700000000000000000000000100000000000000000000012345678000000"
+const sampleOCRnextliner =          "NY091331000000100003233427974208710000000061119150623218380000000000000000000000"
 const sampleUninterestingOCRline =  "NY091031000000196368271940990385620000000160192999905123410000000000000000000000"
 
 // Tests for Generate() in KID.js
@@ -33,16 +34,18 @@ describe('OCR', function() {
             expect(OCR.parseLine).to.be.a('function')
         })
 
-        var transaction = OCR.parseLine(sampleOCRline)
+        var transaction = OCR.parseLine(sampleOCRline, sampleOCRnextliner)
         it('should return a transaction object', function() {
             expect(transaction).to.be.an('object')
             expect(transaction).to.have.property('amount')
             expect(transaction).to.have.property('KID')
             expect(transaction).to.have.property('date')
+            expect(transaction).to.have.property('externalReference')
 
             expect(transaction.amount).to.be.a('number')
             expect(transaction.KID).to.be.a('number')
             expect(transaction.date).to.be.a('date')
+            expect(transaction.externalReference).to.be.a('string')
         })
 
         describe('transaction object tests', function() {
@@ -56,6 +59,10 @@ describe('OCR', function() {
 
             it('should be correct amount', function() {
                 expect(transaction.amount).to.equal(100)
+            })
+
+            it('should have correct external reference', function() {
+                expect(transaction.externalReference).to.equal("220117.797420871")
             })
         })
     })

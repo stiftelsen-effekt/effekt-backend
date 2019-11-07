@@ -5,6 +5,7 @@ module.exports = {
      * @property {number} recordType
      * @property {number} serviceCode
      * @property {number} amount
+     * @property {string} externalReference
      * @property {Date} date
      * @property {number} KID
      */
@@ -18,9 +19,9 @@ module.exports = {
         var lines = data.split('\r\n')
 
         var transactions = []
-        for (var i = 0; i < lines.length; i++) {
+        for (var i = 0; i < lines.length-1; i++) {
             if (lines[i].length > 0) {
-                var transaction = this.parseLine(lines[i])
+                var transaction = this.parseLine(lines[i], lines[i+1])
 
                 if (transaction.transactionCode == 13 && transaction.recordType == 30) transactions.push(transaction)
             }
@@ -29,7 +30,7 @@ module.exports = {
         return transactions
     },
 
-    parseLine: function(line) {
+    parseLine: function(line, nextline) {
         /**
          * @type Transaction
          * */
@@ -41,15 +42,20 @@ module.exports = {
 
         if (transaction.serviceCode == 9 && 
             transaction.transactionCode == 13 && 
-            transaction.recordType == 30) {
+            transaction.recordType == 30 &&
+            nextline != null) {
             const number = parseInt(8,7)
 
             transaction.number = number
 
+            let year = line.substr(19,2)
+            let month = line.substr(17,2)
+            let day = line.substr(15,2)
+
             const date = new Date(
-                parseInt("20" + line.substr(19,2)),
-                parseInt(line.substr(17,2)),
-                parseInt(line.substr(15,2)))
+                parseInt("20" + year),
+                parseInt(month)-1,
+                parseInt(day))
 
             transaction.date = date
 
@@ -60,6 +66,11 @@ module.exports = {
             const KID = parseInt(line.substr(49, 25))
 
             transaction.KID = KID
+
+            const archivalReference = nextline.substr(25, 9)
+            const externalReference = day + month + year + "." + archivalReference
+
+            transaction.externalReference = externalReference
         }
 
         return transaction
