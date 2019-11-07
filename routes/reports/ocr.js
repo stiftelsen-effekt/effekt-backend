@@ -1,6 +1,7 @@
 const OCRparser = require('../../custom_modules/parsers/OCR.js')
 const DAO = require('../../custom_modules/DAO.js')
 const config = require('../../config')
+const mail = require('../../custom_modules/mail')
 
 const BANK_ID = 2
 
