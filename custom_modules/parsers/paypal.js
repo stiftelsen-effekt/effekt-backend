@@ -8,15 +8,18 @@ module.exports = {
      * @return {Object} An array of transactions
      */
     parse: function(report) {
-        let reportText = report.toString()
+        let reportTextWithQuotes = report.toString()
+        //strip all ""
+        reportTextNoQuotes = reportTextWithQuotes.replace(/\"/g, '')
         try {
-            var data = parse(reportText, { delimiter: ';', bom: true, skip_empty_lines: true })
+            if (reportTextWithQuotes.indexOf(";") == -1) throw "No semicolon in file"
+            var data = parse(reportTextNoQuotes, { delimiter: ';', bom: true, skip_empty_lines: true })
         }
         catch (ex) {
             console.error("Using semicolon delimiter failed, trying comma.")
 
             try {
-                var data = parse(reportText, { delimiter: ',', bom: true, skip_empty_lines: true })
+                var data = parse(reportTextWithQuotes, { delimiter: ',', bom: true, skip_empty_lines: true })
             }
             catch(ex) {
                 console.error("Using comma delimiter failed.")

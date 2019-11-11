@@ -8,6 +8,7 @@ const config = require('../config')
 
 const paypalroute = require('../routes/reports/paypal')
 const vippsRoute = require('../routes/reports/vipps')
+const ocrRoute = require('../routes/reports/ocr')
 
 const addStub = sinon
     .stub(DAO.donations, 'add')
@@ -76,6 +77,13 @@ describe('Vipps route handles report correctly', () => {
     })
 })
 
+/*
+describe('OCR route handles correctly', () => {
+    it('Adds donations to DB', () => {
+        await runOCR('')
+    })
+})*/
+
 async function runPaypal(filename) {
     var res = {
         json: () => {}
@@ -88,7 +96,7 @@ async function runPaypal(filename) {
         },
         files: {
             report: {
-                data: readCSV('paypal',filename)
+                data: readReport('paypal',filename)
             }
         }
     }
@@ -110,7 +118,7 @@ async function runVipps(filename) {
         },
         files: {
             report: {
-                data: readCSV('vipps', filename)
+                data: readReport('vipps', filename)
             }
         }
     }
@@ -118,6 +126,28 @@ async function runVipps(filename) {
     await vippsRoute(query, res, (ex) => { throw ex })
 }
 
-function readCSV(type, filename) {
-    return fs.readFileSync(`test/data/${type}/${filename}.CSV`)
+async function runOCR(filename) {
+    let res = {
+        json: () => {}
+    }
+
+    const jsonStub = sinon
+        .stub(res, 'json')
+
+    const query = {
+        body: {
+            metaOwnerID: 3
+        },
+        files: {
+            report: {
+                data: readReport('ocr', filename, 'DAT')
+            }
+        }
+    }
+
+    await ocrRoute(query, res, (ex) => { throw ex })
+}
+
+function readReport(type, filename, extension = "CSV") {
+    return fs.readFileSync(`test/data/${type}/${filename}.${extension}`)
 }
