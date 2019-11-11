@@ -28,6 +28,7 @@ const parsingRulesStub = sinon
 beforeEach(() => {
     historicSub.reset()
     addStub.reset()
+    mailStub.reset()
 })
 
 describe('PayPal report route handles correctly', () => {
@@ -77,12 +78,22 @@ describe('Vipps route handles report correctly', () => {
     })
 })
 
-/*
+
 describe('OCR route handles correctly', () => {
-    it('Adds donations to DB', () => {
-        await runOCR('')
+    it('Adds donations to DB', async () => {
+        await runOCR('TBOC2072')
+
+        expect(addStub.callCount).to.be.equal(2)
     })
-})*/
+
+    it('Sends donation reciept', async () => {
+        config.env = "production"
+        await runOCR('TBOC2072')
+        config.env = "development"
+
+        expect(mailStub.callCount).to.be.equal(2)
+    })
+})
 
 async function runPaypal(filename) {
     var res = {
