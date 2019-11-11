@@ -66,4 +66,15 @@ describe('OCR', function() {
             })
         })
     })
+
+    describe('Parses sample OCR file', () => {
+        it('Parses sample file correctly', async () => {
+            let filecontents = fs.readFileSync('test/data/ocr/TBOC2072.DAT').toString("utf8")
+            let transactions = OCR.parse(filecontents)
+
+            expect(transactions.length).to.be.equal(2)
+            expect(transactions[0].KID).to.be.equal(47914510)
+            expect(transactions[0].amount).to.be.equal(5000)
+        })
+    })
 })
