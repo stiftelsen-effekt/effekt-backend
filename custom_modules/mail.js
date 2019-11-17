@@ -132,6 +132,7 @@ async function send(options) {
     var data = {
         from: 'gieffektivt.no <mailgun@mg.stiftelseneffekt.no>',
         to: options.reciever,
+        bcc: "donasjon@gieffektivt.no",
         subject: options.subject,
         text: 'Your mail client does not support HTML email',
         html: templateHTML,
