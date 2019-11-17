@@ -121,18 +121,18 @@ function search(query) {
  * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
  * @returns {Number} The ID of the new Donor if successfull
  */
-function add(donor) {
+function add(email="", name, ssn="") {
     return new Promise(async (fulfill, reject) => {
         try {
             var res = await con.execute(`INSERT INTO Donors (
                 email,
                 full_name, 
                 ssn
-            ) VALUES (?,?, ?)`, 
+            ) VALUES (?,?,?)`, 
             [
-                donor.email,
-                donor.name,
-                donor.ssn
+                email,
+                name,
+                ssn
             ])
         }
         catch(ex) {

@@ -3,10 +3,12 @@ const chai = require('chai');
 chai.use(require('chai-datetime'))
 const expect = (chai.expect);
 const fs = require('fs')
+const moment = require('moment')
 
 //Custom modules
-const paypal = require('../custom_modules/parsers/paypal.js')
-const vipps = require('../custom_modules/parsers/vipps.js')
+const paypal = require('../custom_modules/parsers/paypal')
+const vipps = require('../custom_modules/parsers/vipps')
+const bank = require('../custom_modules/parsers/bank')
 
 const reportType = {
     vipps: "vipps",
@@ -63,6 +65,17 @@ describe("Vipps CSV", () => {
 
         let transactions = vipps.parseReport(sample).transactions
         expect(transactions).to.be.length(15)
+    })
+})
+
+describe("Bank CSV", () => {
+    it("Parses bank report correctly when downloaded from google drive", () => {
+        let transactions = bank.parseReport(readCSV("bank", "sampleReport"))
+
+        expect(transactions[0].KID).to.be.equal(57967549)
+        expect(transactions[6].date.isSame(moment("02.01.2019", "DD.MM.YYYY"))).to.be.equal(true)
+        expect(transactions[2].amount).to.be.equal(250)
+        expect(transactions[4].externalRef).to.be.equal("1264")
     })
 })
 

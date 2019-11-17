@@ -10,16 +10,13 @@ const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
 router.post("/", urlEncodeParser, async (req,res,next) => {
   try {
-    if (!req.body.email || !req.body.name) {
+    if (!req.body.name) {
       let error = new Error("Missing param email or param name")
       error.status = 400
       throw error
     }
 
-    await DAO.donors.add({
-      email: req.body.email,
-      name: req.body.name
-    })
+    await DAO.donors.add(req.body.email, req.body.name)
 
     return res.json({
       status: 200,

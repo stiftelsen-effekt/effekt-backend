@@ -23,6 +23,7 @@ module.exports = async (req,res,next) => {
     let valid = 0
     for (let i = 0; i < transactions.length; i++) {
         let transaction = transactions[i]
+        transaction.paymentID = VIPPS_ID
 
         if (transaction.KID != null) {
             /**
@@ -77,9 +78,9 @@ module.exports = async (req,res,next) => {
     res.json({
         status: 200,
         content: {
-        valid: valid,
-        invalid: invalid.length,
-        invalidTransactions: invalid
+            valid: valid,
+            invalid: invalid.length,
+            invalidTransactions: invalid
         }
     })
 }

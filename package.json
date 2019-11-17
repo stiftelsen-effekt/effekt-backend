@@ -45,6 +45,7 @@
     "honeypot": "0.0.2",
     "iconv-lite": "^0.4.24",
     "jsonfile": "^4.0.0",
+    "luxon": "^1.21.1",
     "mime": "^2.4.4",
     "moment": "^2.24.0",
     "morgan": "^1.9.1",

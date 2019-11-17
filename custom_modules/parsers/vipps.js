@@ -1,6 +1,19 @@
 const moment = require('moment')
-const KID = require('./../KID.js')
+const parseUtil = require('./util')
 const parse = require('csv-parse/lib/sync')
+
+const fieldMapping = {
+  SalesDate: 0,
+  SalesLocation: 1,
+  TransactionID: 4,
+  GrossAmount: 6,
+  Fee: 7,
+  NetAmount: 8,
+  TransactionType: 9,
+  FirstName: 14,
+  LastName: 15,
+  Message: 16
+}
 
 module.exports = {
   /**
@@ -46,19 +59,6 @@ module.exports = {
   },
 }
 
-const fieldMapping = {
-  SalesDate: 0,
-  SalesLocation: 1,
-  TransactionID: 4,
-  GrossAmount: 6,
-  Fee: 7,
-  NetAmount: 8,
-  TransactionType: 9,
-  FirstName: 14,
-  LastName: 15,
-  Message: 16
-}
-
 function buildTransactionFromArray(inputArray) {
   if (inputArray[fieldMapping.TransactionType] !== "Salg") return false
   let transaction = {
@@ -68,24 +68,8 @@ function buildTransactionFromArray(inputArray) {
     amount: Number(inputArray[fieldMapping.GrossAmount].replace(/,/g, '.').replace(/\s/g, '')),
     name: inputArray[fieldMapping.FirstName] + " " + inputArray[fieldMapping.LastName],
     message: inputArray[fieldMapping.Message],
-    KID: extractKID(inputArray[fieldMapping.Message])
+    KID: parseUtil.extractKID(inputArray[fieldMapping.Message])
   }
 
   return transaction
-}
-
-function extractKID(inputString) {
-  let extractionRegex = /(?=(\d{8}))/
-  let attemptedExtraction = extractionRegex.exec(String(inputString))
-
-  if (!attemptedExtraction || attemptedExtraction.length < 2) return null
-
-  attemptedExtraction = attemptedExtraction[1]
-
-  let KIDsubstr = attemptedExtraction.substr(0,7)
-  let checkDigit = KID.luhn_caclulate(KIDsubstr)
-
-  if (KIDsubstr + checkDigit.toString() != attemptedExtraction) return null
-
-  return Number(attemptedExtraction)
 }

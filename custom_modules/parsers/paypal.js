@@ -1,11 +1,20 @@
 const moment = require('moment')
 const parse = require('csv-parse/lib/sync')
 
+/**
+ * @typedef PaypalTransaction 
+ * @property {moment.Moment} date
+ * @property {String} transactionID
+ * @property {String} referenceTransactionID
+ * @property {Number} amount
+ * @property {String} email
+ */
+
 module.exports = {
     /**
      * Parses a csv file from paypal reports
      * @param {Buffer} report A file buffer, from a csv comma seperated file
-     * @return {Object} An array of transactions
+     * @return {Array<PaypalTransaction>} An array of transactions
      */
     parse: function(report) {
         let reportTextWithQuotes = report.toString()
@@ -35,17 +44,11 @@ module.exports = {
     }
 }
 
-const fieldMapping = {
-    date: 0,
-    time: 1,
-    timeZone: 2,
-    type: 4,
-    grossAmount: 7,
-    email: 10,
-    transactionID: 12,
-    referenceTransactionID: 13
-}
-
+/**
+ * Gets transactions from parsed CSV data
+ * @param {Array<Array<Object>>} data A two dimensional array representing the CSV data
+ * @returns {Array<PaypalTransaction>} 
+ */
 function getTransactions(data) {
     return data.reduce((acc, row) => {
         if(row[fieldMapping.type] == "Abonnementsbetaling") {
@@ -59,4 +62,15 @@ function getTransactions(data) {
         }
         return acc
     }, [])
+}
+
+const fieldMapping = {
+    date: 0,
+    time: 1,
+    timeZone: 2,
+    type: 4,
+    grossAmount: 7,
+    email: 10,
+    transactionID: 12,
+    referenceTransactionID: 13
 }

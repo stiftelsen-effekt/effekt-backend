@@ -10,6 +10,9 @@ const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 router.post('/ocr',
             authMiddleware(authRoles.write_all_donations),
             require('./reports/ocr'))
+router.post('/bank',
+            authMiddleware(authRoles.write_all_donations),
+            require('./reports/bank'))
 router.post("/vipps",
             authMiddleware(authRoles.write_all_donations),
             require('./reports/vipps'))
