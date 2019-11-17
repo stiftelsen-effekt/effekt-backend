@@ -4,6 +4,7 @@ const mail = require('../custom_modules/mail')
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 const authRoles = require('../enums/authorizationRoles')
 const DAO = require('../custom_modules/DAO.js')
+const config = require('../config')
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: true })
 const dateRangeHelper = require('../custom_modules/dateRangeHelper')
@@ -99,7 +100,10 @@ router.post("/confirm",
     let externalRef = req.body.paymentExternalRef
     let metaOwnerID = req.body.metaOwnerID
 
-    await DAO.donations.add(KID, methodId, sum, timestamp, externalRef, metaOwnerID)
+    let donationID = await DAO.donations.add(KID, methodId, sum, timestamp, externalRef, metaOwnerID)
+
+    if (config.env === "production" && req.body.reciept === true) 
+      await mail.sendDonationReciept(donationID)
 
     res.json({
       status: 200,
