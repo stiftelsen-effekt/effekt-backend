@@ -78,7 +78,7 @@ describe('Vipps route handles report correctly', () => {
     })
 })
 
-
+/*
 describe('OCR route handles correctly', () => {
     it('Adds donations to DB', async () => {
         await runOCR('TBOC2072')
@@ -94,6 +94,7 @@ describe('OCR route handles correctly', () => {
         expect(mailStub.callCount).to.be.equal(2)
     })
 })
+*/
 
 async function runPaypal(filename) {
     var res = {
