@@ -1,7 +1,6 @@
 const config = require('../config')
 const mysql = require('mysql2/promise')
 
-//Export DAO
 module.exports = {
     //Submodules
     donors: require('./DAO_modules/donors'),
@@ -11,6 +10,7 @@ module.exports = {
     payment: require('./DAO_modules/payment'),
     csr: require('./DAO_modules/csr'),
     parsing: require('./DAO_modules/parsing'),
+    referrals: require('./DAO_modules/referrals'),
     auth: require('./DAO_modules/auth'),
     meta: require('./DAO_modules/meta'),
 
@@ -45,6 +45,7 @@ module.exports = {
         this.payment.setup(dbPool)
         this.csr.setup(dbPool)
         this.parsing.setup(dbPool)
+        this.referrals.setup(dbPool)
         this.auth.setup(dbPool)
         this.meta.setup(dbPool)
 
