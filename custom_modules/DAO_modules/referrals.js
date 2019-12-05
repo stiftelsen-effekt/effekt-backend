@@ -50,7 +50,7 @@ async function getAggregate() {
  * @param {number} referralTypeID
  * @param {number} donorID
  */
-async function addRecord(referralTypeID, userID) {
+async function addRecord(referralTypeID, donorID) {
     let [query] = await con.query(`INSERT INTO Referral_records (ReferralID, UserID) VALUES (?,?)`, [referralTypeID, donorID])
 
     console.log(query)

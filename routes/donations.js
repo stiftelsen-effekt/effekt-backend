@@ -74,7 +74,8 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
   res.json({
     status: 200,
     content: {
-      KID: donationObject.KID
+      KID: donationObject.KID,
+      donorID: donationObject.donorID
     }
   })
 })

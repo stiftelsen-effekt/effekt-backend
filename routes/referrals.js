@@ -1,5 +1,7 @@
 const express = require('express')
 const router = express.Router()
+const bodyParser = require('body-parser')
+const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
 const DAO = require('../custom_modules/DAO.js')
 
@@ -31,15 +33,16 @@ router.get("/aggregate", async (req,res, next) => {
     }
 })
 
-router.post("/", async(req,res,next) => {
+router.post("/", urlEncodeParser, async(req,res,next) => {
     try {
-        if (!req.body.referralTypeID)
+        let parsedData = JSON.parse(req.body.data)
+        if (!parsedData.referralTypeID)
             throw new Error("Missing parameter referralTypeID")
 
-        if (!req.body.donorID)
+        if (!parsedData.donorID)
             throw new Error("Missing parameter donorID")
 
-        let types = await DAO.referrals.addRecord(req.body.referralTypeID, req.body.donorID)
+        let types = await DAO.referrals.addRecord(parsedData.referralTypeID, parsedData.donorID)
     
         res.json({
             status: 200,
