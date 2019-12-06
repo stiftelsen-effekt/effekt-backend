@@ -74,7 +74,7 @@ describe("Bank CSV", () => {
 
         expect(transactions[0].KID).to.be.equal(57967549)
         expect(transactions[6].date.isSame(moment("02.01.2019", "DD.MM.YYYY"))).to.be.equal(true)
-        expect(transactions[2].amount).to.be.equal(250)
+        expect(transactions[2].amount).to.be.equal(250.15)
         expect(transactions[4].transactionID).to.be.equal("1264")
     })
 })
