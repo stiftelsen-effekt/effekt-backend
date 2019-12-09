@@ -18,7 +18,7 @@ module.exports = {
     sendDonationRegistered
 }
 
-async function sendDonationReciept(donationID) {
+async function sendDonationReciept(donationID, reciever = null) {
     try {
         var donation = await DAO.donations.getByID(donationID)
     } catch(ex) {
@@ -38,7 +38,7 @@ async function sendDonationReciept(donationID) {
     let organizations = formatOrganizationsFromSplit(split, donation.sum)
 
     send({
-        reciever: donation.email,
+        reciever: (reciever ? reciever : donation.email),
         subject: "gieffektivt.no - Din donasjon er mottatt",
         templateName: "reciept",
         templateData: {

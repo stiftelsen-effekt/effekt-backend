@@ -171,4 +171,10 @@ router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,
   }
 })
 
+router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+  let donationID = req.body.donationID
+
+  await mail.sendDonationReciept(donationID, req.body.email)
+})
+
 module.exports = router
