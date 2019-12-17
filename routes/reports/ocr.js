@@ -17,19 +17,29 @@ module.exports = async (req, res, next) => {
     }
 
     let valid = 0
-    try {
-        for (let i = 0; i < transactions.length; i++) {
-            let transaction = transactions[i]
+    let invalid = 0
+    let invalidTransactions = []
+    
+    for (let i = 0; i < transactions.length; i++) {
+        let transaction = transactions[i]
+        try {
             let donationID = await DAO.donations.add(transaction.KID, BANK_ID, transaction.amount, transaction.date, transaction.externalReference, metaOwnerID)
             valid++
             if (config.env === 'production') await mail.sendDonationReciept(donationID)
         }
-    } catch (ex) {
-        //If the donation already existed, ignore and keep moving
-        if (ex.message.indexOf("EXISTING_DONATION") === -1) {
-            next(ex)
-            return false
-        }  
+        catch (ex) {
+            //If the donation already existed, ignore and keep moving
+            if (ex.message.indexOf("EXISTING_DONATION") === -1) {
+                
+            }  
+            else {
+                invalidTransactions.push({
+                    reason: ex.message,
+                    transaction
+                })
+                invalid++
+            }
+        }
     }
     
 
@@ -38,7 +48,7 @@ module.exports = async (req, res, next) => {
         content: {
             valid: valid,
             //Not used
-            invalid: 0,
+            invalid: invalid,
             invalidTransactions: []
         }
     })

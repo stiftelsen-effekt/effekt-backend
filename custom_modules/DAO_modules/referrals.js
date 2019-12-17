@@ -42,6 +42,22 @@ async function getAggregate() {
     return aggregates
 }
 
+/**
+ * Checks if the donor has answered referral question before
+ * @param {number} donorID 
+ */
+async function getDonorAnswered(donorID) {
+    let [answersCount] = await con.query(`
+        SELECT count(DonorID) as count
+            FROM Referral_records
+            
+            WHERE DonorID = ?
+    `, [donorID])
+
+    if (answersCount[0].count > 0) return true
+    else return false
+}
+
 //endregion
 
 //region Add
@@ -71,6 +87,7 @@ async function addRecord(referralTypeID, donorID) {
 module.exports = {
     getTypes,
     getAggregate,
+    getDonorAnswered,
     addRecord,
 
     setup: (dbPool) => { con = dbPool }
