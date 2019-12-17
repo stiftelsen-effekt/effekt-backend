@@ -174,7 +174,25 @@ router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,
 router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   let donationID = req.body.donationID
 
-  await mail.sendDonationReciept(donationID, req.body.email)
+  if (req.body.donorID) {
+    let reciever = await DAO.donors.getByID(req.body.donorID)
+    var mailStatus = await mail.sendDonationReciept(donationID, reciever.email)
+  } else {
+    var mailStatus = await mail.sendDonationReciept(donationID)
+  }
+
+  if (mailStatus === true) { 
+    res.json({
+      status: 200,
+      content: `Reciept sent for donation id ${donationID} to donor ID {}`
+    }) 
+  }
+  else {
+    res.json({
+      status: 500,
+      content: `Reciept failed with error code ${mailStatus}`
+    })
+  }
 })
 
 module.exports = router

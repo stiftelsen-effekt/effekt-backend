@@ -7,17 +7,15 @@ const request = require('request-promise-native')
 const fs = require('fs-extra')
 
 module.exports = {
-    /* 
-    @param donationID int
-    */
     sendDonationReciept,
-    /* 
-    @param KID int
-    @param sum int
-    */
     sendDonationRegistered
 }
 
+/**
+ * Sends a donation reciept
+ * @param {number} donationID
+ * @param {string} reciever Reciever email
+*/
 async function sendDonationReciept(donationID, reciever = null) {
     try {
         var donation = await DAO.donations.getByID(donationID)
@@ -37,7 +35,8 @@ async function sendDonationReciept(donationID, reciever = null) {
 
     let organizations = formatOrganizationsFromSplit(split, donation.sum)
 
-    send({
+    try {
+      await send({
         reciever: (reciever ? reciever : donation.email),
         subject: "gieffektivt.no - Din donasjon er mottatt",
         templateName: "reciept",
@@ -46,7 +45,15 @@ async function sendDonationReciept(donationID, reciever = null) {
             donationSum: donation.sum,
             organizations: organizations
         }
-    })
+      })
+
+      return true
+    } catch(ex) {
+      console.error("Failed to send donatin reciept")
+      console.error(ex)
+      return ex.statusCode
+    }
+    
 }
 
 function formatOrganizationsFromSplit(split, sum) {
@@ -63,6 +70,10 @@ function formatOrganizationsFromSplit(split, sum) {
   })
 }
 
+/** 
+ * @param {number} KID 
+ * @param {number} sum
+*/
 async function sendDonationRegistered(KID, sum) {
     try {
       try {
@@ -112,17 +123,23 @@ async function sendDonationRegistered(KID, sum) {
     catch(ex) {
         console.error("Failed to send mail donation registered")
         console.log(ex)
+        return ex.statusCode
     }
 }
 
-/*
-@param  options {
-            reciever: string,
-            subject: string,
-            templateName: string, //Name of html template for 
-            templateData: object //Object with template data on the form {key: value, key2: value2 ...}
-        }
+/**
+ * @typedef MailOptions
+ * @prop {string} reciever
+ * @prop {string} subject
+ * @prop {string} templateName Name of html template, found in views folder
+ * @prop {object} templateData Object with template data on the form {key: value, key2: value2 ...}
 */
+
+/**
+ * Sends a mail to 
+ * @param {MailOptions} options 
+ * @returns {boolean | number} True if success, status code else
+ */
 async function send(options) {
     const templateRoot = appRoot + '/views/mail/' + options.templateName
 
@@ -144,7 +161,8 @@ async function send(options) {
         data.inline.push(fs.createReadStream(templateRoot + "/images/" + filesInDir[i]))
     }
 
-    return await request.post({
+    //Exceptions bubble up
+    await request.post({
         url: 'https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages',
         auth: {
             user: 'api',
