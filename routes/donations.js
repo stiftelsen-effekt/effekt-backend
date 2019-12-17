@@ -71,11 +71,19 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     return next(ex)
   }
 
+  try {
+    var hasAnsweredReferral = await DAO.referrals.getDonorAnswered(donationObject.donorID)
+  } catch(ex) {
+    console.error(`Could not get whether donor answered referral for donorID ${donationObject.donorID}`)
+    var hasAnsweredReferral = false
+  }
+
   res.json({
     status: 200,
     content: {
       KID: donationObject.KID,
-      donorID: donationObject.donorID
+      donorID: donationObject.donorID,
+      hasAnsweredReferral
     }
   })
 })

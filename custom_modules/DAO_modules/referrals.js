@@ -48,10 +48,10 @@ async function getAggregate() {
  */
 async function getDonorAnswered(donorID) {
     let [answersCount] = await con.query(`
-        SELECT count(DonorID) as count
+        SELECT count(UserID) as count
             FROM Referral_records
             
-            WHERE DonorID = ?
+            WHERE UserID = ?
     `, [donorID])
 
     if (answersCount[0].count > 0) return true
