@@ -174,9 +174,8 @@ router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,
 router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   let donationID = req.body.donationID
 
-  if (req.body.donorID) {
-    let reciever = await DAO.donors.getByID(req.body.donorID)
-    var mailStatus = await mail.sendDonationReciept(donationID, reciever.email)
+  if (req.body.email && req.body.email.indexOf("@") > -1) {
+    var mailStatus = await mail.sendDonationReciept(donationID, req.body.email)
   } else {
     var mailStatus = await mail.sendDonationReciept(donationID)
   }
