@@ -15,31 +15,32 @@ const requestStub = sinon
 
 const getDnonorStub = sinon
     .stub(DAO.donors, 'getByID')
-    .resolves({
-
-    })
 
 beforeEach(() => {
     requestStub.reset()
-    addStub.reset()
-    mailStub.reset()
+    getDnonorStub.reset()
 })
 
 describe('', () => {
     it('Sens a request to mailchimp api when subscribe called with correct parameters', async () => {
+        getDnonorStub.resolves({
+            id: 20,
+            name: "Some Name"
+        })
+        
         requestStub.resolves({
-            'I-YE66CY1W4DPU': 23
+            data: {
+                subscribed: true
+            }
         })
 
-        let result = await mailchimp.subscribeDonor(99)
-
-
-        expect(result).to.be.true()
+        let result = await mailchimp.subscribeDonor(20)
+        
+        expect(result).to.be.equal(true)
     })
 
+    /*
     it('Handles no donor found nicely', async () => {
-
-
         let result = await mailchimp.subscribeDonor(99)
 
         expect(result).to.be.false()
@@ -50,4 +51,5 @@ describe('', () => {
 
         expect(result).to.be.false()
     })
+    */
 })

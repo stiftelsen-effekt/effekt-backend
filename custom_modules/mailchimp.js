@@ -20,7 +20,7 @@ async function subscribeDonor(donorID) {
         let firstname = donorHelper.getFirstname(donor)
         let lastname = donorHelper.getLastname(donor)
 
-        await request.post({
+        let res = await request.post({
                 url: `/3.0/lists/${config.mailchimp_audience_id}/members/`,
                 data: {
                     email_address: "urist.mcvankab@freddiesjokes.com",
@@ -35,8 +35,14 @@ async function subscribeDonor(donorID) {
                     pass: config.mailchimp_api_key
                 }
             })
+
+        if (res.data && res.data.subscribed == true) return true
+        else {
+            console.error(res)
+            return false
+        }
     } catch(ex) {
-        console.error(`Error communicatin with the mailchimp API for donor ${donorID}`)
+        console.error(`Error communicating with the mailchimp API for donor ${donorID}`)
         console.error(ex)
         return false
     }

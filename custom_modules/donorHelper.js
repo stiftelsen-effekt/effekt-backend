@@ -13,14 +13,14 @@ function getFirstname(donor) {
  * @param {Donor} donor 
  * @param {boolean} full Whether to include all names after firstname, or only last name
  */
-function getLastName(donor, full=true) {
+function getLastname(donor, full=true) {
     let nameSplit = donor.name.split(' ')
 
     if (!full) return nameSplit[nameSplit.length - 1]
-    else return nameSplit.shift().join(' ')
+    else return nameSplit.shift() && nameSplit.join(' ')
 }
 
 module.exports = {
     getFirstname,
-    getLastName
+    getLastname
 }
