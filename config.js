@@ -8,8 +8,10 @@ module.exports = {
     db_password: process.env.DB_PASS,
     db_name: process.env.DB_NAME,
 
-    //Insert mailgun API key
+    //API keys
     mailgun_api_key: process.env.MAILGUN_API_KEY, 
+    mailchimp_api_key: process.env.MAILCHIMP_API_KEY,
+    mailchimp_audience_id: process.env.MAILCHIMP_AUDIENCE_ID,
 
     //Set port for API listening, default to 3000
     port: process.env.PORT || 3000,

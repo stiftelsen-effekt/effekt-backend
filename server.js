@@ -70,10 +70,8 @@ DAO.connect(() => {
 
   //Rate limiting
   app.use(new rateLimit({
-    windowMs: 15*60*1000, // 15 minutes
-    //limit each IP to 10 000 requests per windowMs (10 000 requests in 15 minutes)
-    //Why so many? Becuse of shared IP's such as NTNU campus.
-    max: 10000, 
+    windowMs: 60*1000, // 1 minute
+    max: 50, //limit each IP to 10 000 requests per windowMs (50 requests per minute)
     delayMs: 0 // disable delaying - full speed until the max limit is reached 
   }))
 

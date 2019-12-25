@@ -7,6 +7,7 @@ const DAO = require('../custom_modules/DAO.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
+const rateLimit = require('express-rate-limit')
 
 router.post("/", urlEncodeParser, async (req,res,next) => {
   try {
@@ -69,6 +70,13 @@ router.get('/:id', auth(roles.read_all_donations) ,async (req,res,next) => {
   }
 })
 
-
+let newsletterRateLimit = new rateLimit({
+  windowMs: 60*1000, // 1 minute
+  max: 5,
+  delayMs: 0 // disable delaying - full speed until the max limit is reached 
+})
+router.post("/newsletter", newsletterRateLimit, (req,res) => {
+  
+})
 
 module.exports = router
