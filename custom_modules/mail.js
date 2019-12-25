@@ -44,7 +44,7 @@ async function sendDonationReciept(donationID, reciever = null) {
             header: "Hei " + donation.donor + ",",
             donationSum: donation.sum,
             organizations: organizations,
-            donationDate: donation.timestamp
+            donationDate: moment(donation.timestamp).format("dd.MM YYYY hh:mm")
         }
       })
 
