@@ -76,7 +76,7 @@
                             </tr>
                             <tr>
                                 <td class="bodycopy">
-                                    <img src="cid:donation_complete_icon.png" style="width: 20px; height: 20px; vertical-align: middle; min-width: auto;" /> <span style="vertical-align: middle;">Vi har mottatt din donasjon</span> <br>
+                                    <img src="cid:donation_complete_icon.png" style="width: 20px; height: 20px; vertical-align: middle; min-width: auto;" /> <span style="vertical-align: middle;">Vi mottok din donasjon <% this.donationDate %></span> <br/><br/>
                                 </td>
                             </tr>
                             <tr>
@@ -84,6 +84,7 @@
                                     <tr>
                                         <td>
                                             Vi har registrert følgende fordeling av din donasjon: 
+                                            <br/>
                                             <br/>
                                             <% for (var i = 0; i < organizations.length; i++) { %>
                                             <table width="100%" border="0" cellspacing="0" cellpadding="0">

@@ -43,7 +43,8 @@ async function sendDonationReciept(donationID, reciever = null) {
         templateData: {
             header: "Hei " + donation.donor + ",",
             donationSum: donation.sum,
-            organizations: organizations
+            organizations: organizations,
+            donationDate: donation.timestamp
         }
       })
 

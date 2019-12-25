@@ -4,6 +4,17 @@ const distributions = require('./distributions.js')
 var con
 var DAO
 
+/** @typedef Donation
+ * @prop {number} id
+ * @prop {string} donor Donor full name
+ * @prop {string} email
+ * @prop {number} sum 
+ * @prop {number} transactionCost
+ * @prop {Date} timestamp Timestamp of when the donation was recieved
+ * @prop {number} method The payment method used for the donation
+ * @prop {number} KID
+ */
+
 //region Get
 /**
  * Gets all donations, ordered by the specified column, limited by the limit, and starting at the specified cursor
@@ -132,6 +143,11 @@ function ExternalPaymentIDExists(externalPaymentID, paymentID) {
     })
 }
 
+/**
+ * Gets donation by ID
+ * @param {numer} donationID 
+ * @returns {Donation} A donation object
+ */
 function getByID(donationID) {
     return new Promise(async (fulfill, reject) => {
         try {
@@ -161,6 +177,7 @@ function getByID(donationID) {
 
             let dbDonation = getDonationFromIDquery[0]
 
+            /** @type Donation */
             let donation = {
                 id: dbDonation.ID,
                 donor: dbDonation.full_name,
