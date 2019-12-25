@@ -69,8 +69,6 @@ async function getDonorAnswered(donorID) {
 async function addRecord(referralTypeID, donorID) {
     let [query] = await con.query(`INSERT INTO Referral_records (ReferralID, UserID) VALUES (?,?)`, [referralTypeID, donorID])
 
-    console.log(query)
-
     return true
 }
 //endregion
