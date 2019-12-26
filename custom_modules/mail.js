@@ -19,6 +19,10 @@ module.exports = {
 async function sendDonationReciept(donationID, reciever = null) {
     try {
         var donation = await DAO.donations.getByID(donationID)
+        if (!donation.email)  {
+          console.error("No email provided for donatin ID " + donationID)
+          return false
+        }
     } catch(ex) {
         console.error("Failed to send mail donation reciept, could not get donation by ID")
         console.error(ex)
