@@ -155,7 +155,7 @@ async function send(options) {
     var templateHTML = template(templateRawHTML, options.templateData)
 
     var data = {
-        from: 'gieffektivt.no <mailgun@mg.stiftelseneffekt.no>',
+        from: 'gieffektivt.no <donasjon@gieffektivt.no>',
         to: options.reciever,
         bcc: "donasjon@gieffektivt.no",
         subject: options.subject,
