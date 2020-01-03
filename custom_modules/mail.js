@@ -47,7 +47,8 @@ async function sendDonationReciept(donationID, reciever = null) {
         templateName: "reciept",
         templateData: {
             header: "Hei " + donation.donor + ",",
-            donationSum: donation.sum,
+            //Add thousand seperator regex at end of amount
+            donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
             paymentMethod: donation.method 
