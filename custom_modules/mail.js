@@ -49,7 +49,8 @@ async function sendDonationReciept(donationID, reciever = null) {
             header: "Hei " + donation.donor + ",",
             donationSum: donation.sum,
             organizations: organizations,
-            donationDate: moment(donation.timestamp).format("DD.MM YYYY hh:mm")
+            donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
+            paymentMethod: donation.method 
         }
       })
 

@@ -11,7 +11,7 @@ var DAO
  * @prop {number} sum 
  * @prop {number} transactionCost
  * @prop {Date} timestamp Timestamp of when the donation was recieved
- * @prop {number} method The payment method used for the donation
+ * @prop {string} method The name of the payment method used for the donation
  * @prop {number} KID
  */
 
