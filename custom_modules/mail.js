@@ -80,7 +80,6 @@ function formatOrganizationsFromSplit(split, sum) {
 
 /** 
  * @param {number} KID 
- * @param {number} sum
 */
 async function sendDonationRegistered(KID) {
     try {
@@ -119,7 +118,6 @@ async function sendDonationRegistered(KID) {
           header: "Hei, " + (donor.name.length > 0 ? donor.name : ""),
           name: donor.name,
           //Add thousand seperator regex at end of amount
-          donationSum: sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
           kid: KIDstring,
           accountNumber: config.bankAccount,
           organizations: organizations
