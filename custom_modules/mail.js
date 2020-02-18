@@ -82,7 +82,7 @@ function formatOrganizationsFromSplit(split, sum) {
  * @param {number} KID 
  * @param {number} sum
 */
-async function sendDonationRegistered(KID, sum) {
+async function sendDonationRegistered(KID) {
     try {
       try {
         var donor = await DAO.donors.getByKID(KID)
@@ -105,7 +105,7 @@ async function sendDonationRegistered(KID, sum) {
         return false
       }
 
-      let organizations = formatOrganizationsFromSplit(split, sum)
+      let organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
 
       var KIDstring = KID.toString()
       //Add seperators for KID, makes it easier to read
@@ -130,7 +130,7 @@ async function sendDonationRegistered(KID, sum) {
     }
     catch(ex) {
         console.error("Failed to send mail donation registered")
-        console.log(ex)
+        console.error(ex)
         return ex.statusCode
     }
 }
