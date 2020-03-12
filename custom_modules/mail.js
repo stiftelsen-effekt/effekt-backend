@@ -1,5 +1,6 @@
 const config = require('../config.js')
 const DAO = require('./DAO.js')
+const moment = require('moment')
 
 const template = require('./template.js')
 
@@ -19,6 +20,10 @@ module.exports = {
 async function sendDonationReciept(donationID, reciever = null) {
     try {
         var donation = await DAO.donations.getByID(donationID)
+        if (!donation.email)  {
+          console.error("No email provided for donatin ID " + donationID)
+          return false
+        }
     } catch(ex) {
         console.error("Failed to send mail donation reciept, could not get donation by ID")
         console.error(ex)
@@ -42,8 +47,11 @@ async function sendDonationReciept(donationID, reciever = null) {
         templateName: "reciept",
         templateData: {
             header: "Hei " + donation.donor + ",",
-            donationSum: donation.sum,
-            organizations: organizations
+            //Add thousand seperator regex at end of amount
+            donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+            organizations: organizations,
+            donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
+            paymentMethod: donation.method 
         }
       })
 
@@ -72,9 +80,8 @@ function formatOrganizationsFromSplit(split, sum) {
 
 /** 
  * @param {number} KID 
- * @param {number} sum
 */
-async function sendDonationRegistered(KID, sum) {
+async function sendDonationRegistered(KID) {
     try {
       try {
         var donor = await DAO.donors.getByKID(KID)
@@ -97,7 +104,7 @@ async function sendDonationRegistered(KID, sum) {
         return false
       }
 
-      let organizations = formatOrganizationsFromSplit(split, sum)
+      let organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
 
       var KIDstring = KID.toString()
       //Add seperators for KID, makes it easier to read
@@ -111,7 +118,6 @@ async function sendDonationRegistered(KID, sum) {
           header: "Hei, " + (donor.name.length > 0 ? donor.name : ""),
           name: donor.name,
           //Add thousand seperator regex at end of amount
-          donationSum: sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
           kid: KIDstring,
           accountNumber: config.bankAccount,
           organizations: organizations
@@ -122,7 +128,7 @@ async function sendDonationRegistered(KID, sum) {
     }
     catch(ex) {
         console.error("Failed to send mail donation registered")
-        console.log(ex)
+        console.error(ex)
         return ex.statusCode
     }
 }
@@ -147,7 +153,7 @@ async function send(options) {
     var templateHTML = template(templateRawHTML, options.templateData)
 
     var data = {
-        from: 'gieffektivt.no <mailgun@mg.stiftelseneffekt.no>',
+        from: 'gieffektivt.no <donasjon@gieffektivt.no>',
         to: options.reciever,
         bcc: "donasjon@gieffektivt.no",
         subject: options.subject,

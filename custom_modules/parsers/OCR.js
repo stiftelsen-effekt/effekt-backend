@@ -68,7 +68,8 @@ module.exports = {
             transaction.KID = KID
 
             const archivalReference = nextline.substr(25, 9)
-            const externalReference = day + month + year + "." + archivalReference
+            const transactionRunningNumber = parseInt(nextline.substr(9,6))
+            const externalReference = day + month + year + "." + archivalReference + transactionRunningNumber
 
             transaction.externalReference = externalReference
         }

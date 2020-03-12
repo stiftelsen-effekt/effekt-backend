@@ -91,7 +91,7 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
 router.post("/bank/pending", urlEncodeParser, async (req,res,next) => {
   let parsedData = JSON.parse(req.body.data)
 
-  let success = await mail.sendDonationRegistered(parsedData.KID, parsedData.sum)
+  let success = await mail.sendDonationRegistered(parsedData.KID)
 
   if (success) res.json({ status: 200, content: "OK" })
   else res.status(500).json({ status: 500, content: "Could not send bank donation pending email" })

@@ -10,8 +10,7 @@ const OCR = require('../custom_modules/parsers/OCR.js');
 const sampleOCRfile = fs.readFileSync('test/data/ocr_test.ocr').toString("utf8")
 const noTransactionOCRFile =  fs.readFileSync('test/data/ocr_no_valid_records.ocr').toString("utf8")
 const sampleOCRline =               "NY091330000000022011700000000000000000000000100000000000000000000012345678000000"
-const sampleOCRnextliner =          "NY091331000000100003233427974208710000000061119150623218380000000000000000000000"
-const sampleUninterestingOCRline =  "NY091031000000196368271940990385620000000160192999905123410000000000000000000000"
+const sampleOCRnextliner =          "NY091331000000800003233427974208710000000061119150623218380000000000000000000000"
 
 // Tests for Generate() in KID.js
 describe('OCR', function() {
@@ -62,7 +61,7 @@ describe('OCR', function() {
             })
 
             it('should have correct external reference', function() {
-                expect(transaction.externalReference).to.equal("220117.797420871")
+                expect(transaction.externalReference).to.equal("220117.7974208718")
             })
         })
     })
