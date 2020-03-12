@@ -9,6 +9,8 @@ const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: true })
 const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 const donationHelpers = require('../custom_modules/donationHelpers')
+const apicache = require('apicache')
+const cache = apicache.middleware
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -132,6 +134,28 @@ router.get("/total", async (req, res, next) => {
     res.json({
       status: 200,
       content: aggregate
+    })
+  } catch(ex) {
+    next(ex)
+  }
+})
+
+router.get("/median", cache("5 minutes"), async (req, res, next) => {
+  try {
+    let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
+
+    let median = await DAO.donations.getMedianFromRange(dates.fromDate, dates.toDate)
+
+    if (median == null) {
+      return res.json({
+        status: 404,
+        content: "No donations found in range"
+      })
+    }
+
+    res.json({
+      status: 200,
+      content: median
     })
   } catch(ex) {
     next(ex)
