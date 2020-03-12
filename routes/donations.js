@@ -138,6 +138,21 @@ router.get("/total", async (req, res, next) => {
   }
 })
 
+router.get("/median", async (req, res, next) => {
+  try {
+    let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
+
+    let median = await DAO.donations.getMedianFromRange(dates.fromDate, dates.toDate)
+
+    res.json({
+      status: 200,
+      content: median
+    })
+  } catch(ex) {
+    next(ex)
+  }
+})
+
 router.post("/", authMiddleware(authRoles.read_all_donations), async(req, res, next) => {
   try {
     var results = await DAO.donations.getAll(req.body.sort, req.body.page, req.body.limit, req.body.filter)

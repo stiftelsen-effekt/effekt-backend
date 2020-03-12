@@ -1,5 +1,6 @@
 const sqlString = require('sqlstring')
 const distributions = require('./distributions.js')
+const quickselect = require('quickselect')
 
 var con
 var DAO
@@ -273,7 +274,41 @@ function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
     })
 }
 
+/**
+ * Fetches median donation in the database for a given inclusive range. If passed two equal dates, returns given day.
+ * @param {Date} [fromDate=1. Of January 2000] The date in which to start the selection, inclusive interval.
+ * @param {Date} [toDate=Today] The date in which to end the selection, inclusive interval.
+ */
+function getMedianFromRange(fromDate, toDate) {
+    return new Promise(async (fulfill, reject) => {
+        try {
+            if (!fromDate) fromDate = new Date(2000,0, 1)
+            if (!toDate) toDate = new Date()
 
+                let [donations] = await con.query(`
+                    SELECT 
+                        Donations.sum_confirmed, 
+                    
+                    FROM Donations 
+                    
+                    WHERE 
+                        Donations.timestamp_confirmed >= Date(?)  
+                        AND 
+                        Donations.timestamp_confirmed < Date(Date_add(Date(?), interval 1 day))
+                    `, [fromDate, toDate])
+
+                // Ikke helt presist siden ved partall antall donasjoner vil denne funksjonen
+                // returnere det største av de to midterste elementene (om de er ulike), 
+                // men tenker det går greit
+                const medianIndex = Math.floor(donations.length / 2)
+                quickselect(donations, medianIndex)
+
+                fulfill(donations[medianIndex])
+        } catch(ex) {
+            reject(ex)
+        }
+    })
+}
 
 
 //endregion
@@ -380,6 +415,7 @@ module.exports = {
     getByID,
     getAggregateByTime,
     getFromRange,
+    getMedianFromRange,
     ExternalPaymentIDExists,
     add,
     registerConfirmedByIDs,
