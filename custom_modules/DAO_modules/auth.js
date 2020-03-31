@@ -80,7 +80,10 @@ function getCheckPermissionByToken(token, permission) {
                     INNER JOIN Access_keys as K
                         ON T.Key_ID = K.ID
 
-                    WHERE T.token = ?
+                    WHERE 
+                        T.token = ?
+                        AND
+                        T.expires > now()
                     LIMIT 1
             `, [token])
 
