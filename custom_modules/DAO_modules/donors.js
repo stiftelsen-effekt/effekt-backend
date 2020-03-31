@@ -7,6 +7,7 @@ var con
  * @prop {string} name
  * @prop {string} ssn Social security number 
  * @prop {Date} registered
+ * @prop {boolean} newsletter
  */
 
 //region Get
@@ -121,18 +122,20 @@ function search(query) {
  * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
  * @returns {Number} The ID of the new Donor if successfull
  */
-function add(email="", name, ssn="") {
+function add(email="", name, ssn="", newsletter) {
     return new Promise(async (fulfill, reject) => {
         try {
             var res = await con.execute(`INSERT INTO Donors (
                 email,
                 full_name, 
-                ssn
-            ) VALUES (?,?,?)`, 
+                ssn,
+                newsletter
+            ) VALUES (?,?,?,?)`, 
             [
                 email,
                 name,
-                ssn
+                ssn,
+                newsletter
             ])
         }
         catch(ex) {
