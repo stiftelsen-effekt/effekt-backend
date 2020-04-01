@@ -42,11 +42,14 @@ router.post("/", urlEncodeParser, async(req,res,next) => {
         if (!parsedData.donorID)
             throw new Error("Missing parameter donorID")
 
-        let types = await DAO.referrals.addRecord(parsedData.referralTypeID, parsedData.donorID)
+        if (parsedData.otherComment === undefined)
+            parsedData.otherComment = null
+
+        let status = await DAO.referrals.addRecord(parsedData.referralTypeID, parsedData.donorID, parsedData.otherComment)
     
         res.json({
             status: 200,
-            content: types
+            content: status
         })
       }
       catch(ex) {
