@@ -122,7 +122,7 @@ function search(query) {
  * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
  * @returns {Number} The ID of the new Donor if successfull
  */
-function add(email="", name, ssn="", newsletter) {
+function add(email="", name, ssn="", newsletter=null) {
     return new Promise(async (fulfill, reject) => {
         try {
             var res = await con.execute(`INSERT INTO Donors (
