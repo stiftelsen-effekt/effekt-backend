@@ -65,9 +65,10 @@ async function getDonorAnswered(donorID) {
  * Adds a referral record
  * @param {number} referralTypeID
  * @param {number} donorID
+ * @param {string} otherComment
  */
-async function addRecord(referralTypeID, donorID) {
-    let [query] = await con.query(`INSERT INTO Referral_records (ReferralID, UserID) VALUES (?,?)`, [referralTypeID, donorID])
+async function addRecord(referralTypeID, donorID, otherComment) {
+    let [query] = await con.query(`INSERT INTO Referral_records (ReferralID, UserID, other_comment) VALUES (?,?,?)`, [referralTypeID, donorID, otherComment])
 
     return true
 }
