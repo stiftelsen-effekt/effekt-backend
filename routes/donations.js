@@ -59,8 +59,16 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
           await DAO.donors.updateSsn(donationObject.donorID, donor.ssn)
         }
       }
-    }
 
+      //Check if registered for newsletter
+      if (typeof donor.newsletter !== "undefined" && donor.newsletter != null) {
+        dbDonor = await DAO.donors.getByID(donationObject.donorID)
+        if (dbDonor.newsletter == null || dbDonor.newsletter == 0) {
+          //Not registered for newsletter, updating donor
+          await DAO.donors.updateNewsletter(donationObject.donorID, donor.newsletter)
+        }
+      }
+    }
     //Try to get existing KID
     donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
 
@@ -70,6 +78,7 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
     }
   }
+
   catch (ex) {
     return next(ex)
   }
