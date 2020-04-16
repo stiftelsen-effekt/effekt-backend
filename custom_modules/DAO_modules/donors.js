@@ -158,6 +158,18 @@ async function updateSsn(donorID, ssn) {
     let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
     return true
 }
+
+/**
+ * Updates donor and sets new newsletter value
+ * @param {number} donorID
+ * @param {boolean} newsletter 
+ * @returns {boolean}
+ */
+async function updateNewsletter(donorID, newsletter) {
+    let res = await con.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [newsletter, donorID])
+    return true
+}
+
 //endregion
 
 //region Delete
@@ -170,6 +182,7 @@ module.exports = {
     search,
     add,
     updateSsn,
+    updateNewsletter,
 
     setup: (dbPool) => { con = dbPool }
 }
