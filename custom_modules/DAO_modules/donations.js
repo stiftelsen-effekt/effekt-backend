@@ -102,7 +102,7 @@ async function getHistogramBySum() {
         [results] = await con.query(`
             SELECT ROUND(sum_confirmed, -2)     AS bucket,
             COUNT(*)                            AS items,
-            ROUND(100*LN(COUNT(*)))             AS bar
+            ROUND(200*LN(COUNT(*)))             AS bar
             FROM   Donations
             GROUP  BY bucket;
         `)
