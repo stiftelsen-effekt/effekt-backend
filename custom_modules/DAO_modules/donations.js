@@ -100,11 +100,13 @@ async function getAll(sort, page, limit = 10, filter = null) {
 async function getHistogramBySum() {
     try {
         [results] = await con.query(`
-            SELECT ROUND(sum_confirmed, -2)     AS bucket,
-            COUNT(*)                            AS items,
-            ROUND(200*LN(COUNT(*)))             AS bar
-            FROM   Donations
-            GROUP  BY bucket;
+            SELECT 
+                floor(sum_confirmed/500)*500 	AS bucket, 
+                count(*) 						AS items,
+                ROUND(100*LN(COUNT(*)))         AS bar
+            FROM Donations
+            GROUP BY 1
+            ORDER BY 1;
         `)
 
         return results
