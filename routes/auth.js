@@ -154,7 +154,12 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
 router.get("/token", async(req,res,next) => {
     try {
         var key = req.query.key
-        if (!key) throw new Error("Access Key parameter missing")
+        if (!key) {
+            return res.status(401).json({
+                status: 401,
+                content: "Access Key parameter missing"
+            })
+        } 
 
         var token = await DAO.auth.addAccessTokenByAccessKey(key)
 
