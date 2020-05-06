@@ -20,9 +20,12 @@ var con
  * @returns {Array<ReferralType>} An array of payment method objects
  */
 async function getTypes() {
-    let [types] = await con.query(`SELECT * FROM Referral_types`)
+    let [types] = await con.query(`
+        SELECT * FROM Referral_types 
+            WHERE is_active = 1
+            ORDER BY ordering`)
 
-    return types
+    return types.map((type) => ({ID, name, ordering}))
 }
 
 /**
