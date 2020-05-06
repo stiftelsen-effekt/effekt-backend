@@ -25,7 +25,11 @@ async function getTypes() {
             WHERE is_active = 1
             ORDER BY ordering`)
 
-    return types.map((type) => ({ID, name, ordering}))
+    return types.map((type) => ({
+        ID: type.ID, 
+        name: type.name, 
+        ordering: type.ordering
+    }))
 }
 
 /**
