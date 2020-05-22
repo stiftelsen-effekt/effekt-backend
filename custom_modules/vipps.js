@@ -44,15 +44,16 @@ module.exports = {
      * Initiates a vipps order
      * @param {number} donorPhoneNumber The phone number of the donor
      * @param {VippsToken} token
+     * @param {number} sum The chosen donation in NOK
      * @return {string} Returns a URL for which to redirect the user to when finishing the payment
      */
-    async initiateOrder(donorPhoneNumber, token) {
+    async initiateOrder(KID, sum) {
+        let token = await this.fetchToken()
+
         let data = {
-            "customerInfo": {
-                "mobileNumber": donorPhoneNumber
-            },
+            "customerInfo": {},
             "merchantInfo": {
-                "authToken": token,
+                "authToken": token.token,
                 "callbackPrefix": "https://data.gieffektivt.no/vipps/callback",
                 "fallBack": "https://gieffektivt.no/vipps-kansellert",
                 "isApp": false,
@@ -60,8 +61,8 @@ module.exports = {
                 "paymentType": "eComm Regular Payment"
             },
             "transaction": {
-                "amount": 100,
-                "orderId": "56448919814918809841",
+                "amount": sum * 100, //Specified in øre, therefore NOK * 100
+                "orderId": `${KID}-${+new Date()}`,
                 "timeStamp": new Date(),
                 "transactionText": "Donasjon til Gieffektivt.no",
                 "skipLandingPage": false
@@ -69,16 +70,15 @@ module.exports = {
         }
 
         let vippsRequest = await request.post({
-            uri: "https://apitest.vipps.no/accesstoken/get",
+            uri: "https://apitest.vipps.no/ecomm/v2/payments",
             headers: {
+                'content-type': 'application/json',
                 'merchant_serial_number': config.vipps_merchant_serial_number,
                 'Ocp-Apim-Subscription-Key': config.vipps_ocp_apim_subscription_key,
                 'Authorization': `${token.type} ${token.token}`
             },
-            body: data
+            json: data
         })
-
-        let vippsRequest = JSON.parse(vippsRequest)
 
         return vippsRequest.url
     }

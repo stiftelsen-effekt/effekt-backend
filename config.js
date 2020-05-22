@@ -19,7 +19,7 @@ module.exports = {
     vipps_merchant_serial_number: process.env.VIPPS_MERCHANT_SERIAL_NUMBER,
 
     //Set port for API listening, default to 3000
-    port: process.env.PORT || 3000,
+    port: process.env.EFFEKT_PORT || 3000,
 
     //Bank account for recieving donations
     bankAccount: process.env.BANK_ACCOUNT,

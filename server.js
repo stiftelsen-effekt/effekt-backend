@@ -36,7 +36,7 @@ DAO.connect(() => {
   logging(app)
 
   app.get("/", (req, res, next) => {
-    res.send("Dr. Livingstone I presume?")
+    res.send("Dr. Livingstone, I presume?")
   })
 
   //Parse post body
@@ -104,9 +104,10 @@ DAO.connect(() => {
   const organizationsRoute =  require('./routes/organizations')
   const reportsRoute =        require('./routes/reports')
   const paypalRoute =         require('./routes/paypal')(websocketsHandler)
+  const vippsRoute =          require('./routes/vipps')
   const paymentRoute =        require('./routes/payment')
   const csrRoute =            require('./routes/csr')
-  const referralsRoute =       require('./routes/referrals')
+  const referralsRoute =      require('./routes/referrals')
   const authRoute =           require('./routes/auth')
   const metaRoute =           require('./routes/meta')
   const debugRoute =          require('./routes/debug')
@@ -117,6 +118,7 @@ DAO.connect(() => {
   app.use('/organizations', organizationsRoute)
   app.use('/reports',       reportsRoute)
   app.use('/paypal',        paypalRoute)
+  app.use('/vipps',         vippsRoute)
   app.use('/payment',       paymentRoute)
   app.use('/csr',           csrRoute)
   app.use('/referrals',     referralsRoute)
