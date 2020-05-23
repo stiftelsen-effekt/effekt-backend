@@ -31,7 +31,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     let orderId = req.body.orderId
 
     //Make sure the request actually came from the vipps callback servers
-    if (!whitelisted(req.ip)) {
+    if (!await whitelisted(req.ip)) {
         res.sendStatus(401).json({status: 401, content: "Host not whitelisted"})
         return false
     }
@@ -85,7 +85,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
  * Checks whether the provided IP is one of the vipps callback servers
  * @param {string} ip 
  */
-function whitelisted(ip) {
+async function whitelisted(ip) {
     let whitelistedHosts
     if (config.env === 'production') {
         whitelistedHosts = [...vippsCallbackProdServers, ...vippsCallbackDisasterServers]
