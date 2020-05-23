@@ -94,7 +94,7 @@ async function addOrder(order) {
  */
 async function addOrderTransactionStatus(status) {
     let [result] = await con.query(`
-            INSERT INTO Vipps_orders
+            INSERT INTO Vipps_order_transaction_statuses
                     (orderID, transactionID, amount, status, timestamp)
                     VALUES
                     (?,?,?,?,?)
