@@ -31,24 +31,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     let orderId = req.body.orderId
 
     //Make sure the request actually came from the vipps callback servers
-    let whitelistedHosts
-    if (config.env === 'production') {
-        whitelistedHosts = [...vippsCallbackProdServers, ...vippsCallbackDisasterServers]
-    }
-    else {
-        whitelistedHosts = vippsCallbackDevServers
-    }
-
-    let whitelisted = false
-    for (let i = 0; i < whitelistedHosts.length; i++) {
-        let ipv4s = await dns.resolve4(whitelistedHosts[i])
-        let ipv6s = await dns.resolve6(whitelistedHosts[i])
-        if (ipv4s.indexOf(whitelistedHosts[i]) != -1 || ipv6s.indexOf(whitelistedHosts[i]) != -1) {
-            whitelisted = true
-            break
-        }
-    }
-    if (!whitelisted) {
+    if (!whitelisted(req.ip)) {
         res.sendStatus(401).json({status: 401, content: "Host not whitelisted"})
         return false
     }
@@ -97,5 +80,30 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
 
     res.sendStatus(200)
 })
+
+/**
+ * Checks whether the provided IP is one of the vipps callback servers
+ * @param {string} ip 
+ */
+function whitelisted(ip) {
+    let whitelistedHosts
+    if (config.env === 'production') {
+        whitelistedHosts = [...vippsCallbackProdServers, ...vippsCallbackDisasterServers]
+    }
+    else {
+        whitelistedHosts = vippsCallbackDevServers
+    }
+
+    let whitelisted = false
+    for (let i = 0; i < whitelistedHosts.length; i++) {
+        let ipv4s = await dns.resolve4(whitelistedHosts[i])
+        let ipv6s = await dns.resolve6(whitelistedHosts[i])
+        if (ipv4s.indexOf(whitelistedHosts[i]) != -1 || ipv6s.indexOf(whitelistedHosts[i]) != -1) {
+            whitelisted = true
+            break
+        }
+    }
+    return whitelisted
+}
 
 module.exports = router
