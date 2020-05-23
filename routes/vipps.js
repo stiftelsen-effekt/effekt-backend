@@ -66,10 +66,22 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
         case "RESERVED":
             //TODO: Capture
             break;
-        case "CAPTURED":
-            //TODO: Add new donation to DB
+        case "SALE":
+            //Not applicable
             break;
-        case ""
+        case "SALE_FAILED":
+            //Not applicable
+            break;
+        case "CANCELLED":
+            //User cancelled in Vipps
+            //Perhaps send a follow up email?
+            break;
+        case "REJECTED":
+            //User did not act on the payment (timeout etc.)
+            //Perhaps send a follow-up email?
+            break;
+        default:
+            break;
     }
 
     res.sendStatus(200)
