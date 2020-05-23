@@ -1,5 +1,7 @@
 const express = require('express')
 const router = express.Router()
+const bodyParser = require('body-parser')
+const jsonBody = bodyParser.json()
 
 const vipps = require('../custom_modules/vipps')
 
@@ -14,8 +16,10 @@ router.get("/initiate/:phonenumber", async(req, res, next) => {
     res.json(url)
 })
 
-router.post("/v2/payments/:orderid", async(req,res,next) => {
-    console.log(req)
+router.post("/v2/payments/:orderid", jsonBody, async(req,res,next) => {
+    console.log(req.body)
+
+    res.sendStatus(200)
 })
 
 module.exports = router
