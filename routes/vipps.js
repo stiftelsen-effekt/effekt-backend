@@ -96,6 +96,11 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
  * @param {string} ip 
  */
 async function whitelisted(ip) {
+    //ipv6 check
+    if (ip.substr(0, 7) == "::ffff:") {
+        ip = ip.substr(7)
+    }
+
     let whitelistedHosts
     if (config.env === 'production') {
         whitelistedHosts = [...vippsCallbackProdServers, ...vippsCallbackDisasterServers]
