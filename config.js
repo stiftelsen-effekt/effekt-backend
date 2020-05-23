@@ -1,6 +1,7 @@
 module.exports = {
     //Environment
     env: process.env.NODE_ENV || 'development',
+    api_url: (process.env.NODE_ENV === 'production' ? 'https://data.gieffektivt.no' : 'https://dev.data.gieffektivt.no'),
 
     //Insert db connection values
     db_host: process.env.DB_HOST,
