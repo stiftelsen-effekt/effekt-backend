@@ -95,13 +95,18 @@ async function whitelisted(ip) {
     }
 
     let whitelisted = false
-    for (let i = 0; i < whitelistedHosts.length; i++) {
-        let ipv4s = await dns.resolve4(whitelistedHosts[i])
-        let ipv6s = await dns.resolve6(whitelistedHosts[i])
-        if (ipv4s.indexOf(whitelistedHosts[i]) != -1 || ipv6s.indexOf(whitelistedHosts[i]) != -1) {
-            whitelisted = true
-            break
+    try {
+        for (let i = 0; i < whitelistedHosts.length; i++) {
+            let ipv4s = await dns.resolve4(whitelistedHosts[i])
+            //Should possibly also check for ipv6?
+            if (ipv4s.indexOf(whitelistedHosts[i]) != -1) {
+                whitelisted = true
+                break
+            }
         }
+    }
+    catch(ex) {
+        console.warn("Checking for whitelisted IPs failed", ex)
     }
     return whitelisted
 }
