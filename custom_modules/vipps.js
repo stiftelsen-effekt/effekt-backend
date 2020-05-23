@@ -86,6 +86,7 @@ module.exports = {
             json: data
         })
 
+        console.log(initiateRequest)
         console.log(order)
         await DAO.vipps.addOrder(order)
 
