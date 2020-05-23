@@ -54,8 +54,8 @@ module.exports = {
             "customerInfo": {},
             "merchantInfo": {
                 "authToken": token.token,
-                "callbackPrefix": "https://data.gieffektivt.no/vipps/callback",
-                "fallBack": "https://gieffektivt.no/vipps-kansellert",
+                "callbackPrefix": "https://data.gieffektivt.no/vipps/",
+                "fallBack": "https://gieffektivt.no/vipps-fallback",
                 "isApp": false,
                 "merchantSerialNumber": 212771,
                 "paymentType": "eComm Regular Payment"
