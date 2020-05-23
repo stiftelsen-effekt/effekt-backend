@@ -56,7 +56,7 @@ module.exports = {
         let order = {
             orderID: `${KID}-${+new Date()}`,
             KID: KID,
-            donorID: await DAO.donors.getByKID(kid),
+            donorID: await DAO.donors.getByKID(KID),
             token: crypto.getPasswordSalt()
         }
 
