@@ -1,6 +1,7 @@
 const request = require('request-promise-native')
 const config = require('./../config')
 const DAO = require('./DAO')
+const crypto = require('../custom_modules/authorization/crypto')
 
 module.exports = {
     /**
@@ -52,6 +53,13 @@ module.exports = {
 
         if (token === false) return false
 
+        let order = {
+            orderID: `${KID}-${+new Date()}`,
+            KID: KID,
+            donorID: await DAO.donors.getByKID(kid),
+            token: crypto.getPasswordSalt()
+        }
+
         let data = {
             "customerInfo": {},
             "merchantInfo": {
@@ -63,8 +71,8 @@ module.exports = {
                 "paymentType": "eComm Regular Payment"
             },
             "transaction": {
-                "amount": sum * 100, //Specified in øre, therefore NOK * 100
-                "orderId": `${KID}-${+new Date()}`,
+                "amount": sum*100, //Specified in øre, therefore NOK * 100
+                "orderId": order.orderID,
                 "timeStamp": new Date(),
                 "transactionText": "Donasjon til Gieffektivt.no",
                 "skipLandingPage": false
@@ -76,6 +84,8 @@ module.exports = {
             headers: this.getVippsHeaders(token),
             json: data
         })
+
+        await DAO.vipps.addOrder(order)
 
         return initiateRequest.url
     },
