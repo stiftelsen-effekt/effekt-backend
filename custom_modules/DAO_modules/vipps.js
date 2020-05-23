@@ -10,6 +10,26 @@ var con
  * @property {string} token
  */
 
+/**
+ * @typedef VippsOrder
+ * @property {number} ID
+ * @property {string} orderID
+ * @property {number} donorID
+ * @property {string} KID
+ * @property {string} token
+ * @property {Date} registered
+ */
+
+/**
+ * @typedef VippsOrderTransactionStatus
+ * @property {number} ID
+ * @property {string} orderID
+ * @property {string} transactionID
+ * @property {number} amount
+ * @property {string} status
+ * @property {Date} timestamp
+ */
+
  /**
   * Fetches the latest token, if available
   * @returns {VippsToken | boolean} The most recent vipps token, false if expiration is within 10 minutes
@@ -50,6 +70,38 @@ async function addToken(token) {
 
     return result.insertId
 }
+
+/**
+ * Adds a Vipps order
+ * @param {VippsOrder} order
+ * @return {number} ID of inserted order
+ */
+async function addOrder(order) {
+    let [result] = await con.query(`
+            INSERT INTO Vipps_orders
+                    (orderID, donorID, KID, token)
+                    VALUES
+                    (?,?,?)
+        `, [order.orderID, order.donorID, order.KID, order.token])
+
+    return result.insertId
+}
+
+/**
+ * Adds a Vipps order transaction status
+ * @param {VippsOrderTransactionStatus} status
+ * @return {number} ID of inserted order
+ */
+async function addOrderTransactionStatus(status) {
+    let [result] = await con.query(`
+            INSERT INTO Vipps_orders
+                    (orderID, transactionID, amount, status, timestamp)
+                    VALUES
+                    (?,?,?,?,?)
+        `, [status.orderID, status.transactionID, status.amount, status.status, status.timestamp])
+
+    return result.insertId
+}
 //endregion
 
 //region Modify
@@ -65,6 +117,8 @@ async function addToken(token) {
 module.exports = {
     getLatestToken,
     addToken,
+    addOrder,
+    addOrderTransactionStatus,
 
     setup: (dbPool) => { con = dbPool }
 }
