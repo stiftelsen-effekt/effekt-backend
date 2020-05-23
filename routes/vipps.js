@@ -50,7 +50,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
         transactionID: req.body.transactionInfo.transactionId,
         amount: req.body.transactionInfo.amount,
         status: req.body.transactionInfo.status,
-        timestamp: req.body.transactionInfo.timestamp
+        timestamp: req.body.transactionInfo.timeStamp
     }
 
     //Add transaction details to database
