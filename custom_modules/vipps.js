@@ -53,10 +53,11 @@ module.exports = {
 
         if (token === false) return false
 
+        let donorID = await DAO.donors.getByKID(KID)
         let order = {
             orderID: `${KID}-${+new Date()}`,
+            donorID: donorID,
             KID: KID,
-            donorID: await DAO.donors.getByKID(KID),
             token: crypto.getPasswordSalt()
         }
 
@@ -85,6 +86,7 @@ module.exports = {
             json: data
         })
 
+        console.log(order)
         await DAO.vipps.addOrder(order)
 
         return initiateRequest.url
