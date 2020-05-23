@@ -118,7 +118,17 @@ module.exports = {
             json: data
         })
 
-        
+        let KID = orderId.split("-")[0]
+        console.log(KID)
+
+        if (captureRequest.transactionInfo.status == "captured") {
+            await DAO.donations.add(KID, paymentMethods.vipps, (transactionStatus.amount/100), transactionStatus.timestamp, transactionStatus.transactionID)
+            return true
+        }
+        else {
+            //Handle?
+            return false
+        }
     },
 
     /**

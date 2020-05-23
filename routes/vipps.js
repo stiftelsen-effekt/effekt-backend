@@ -59,21 +59,16 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     //Order ID is on the format KID:timestamp, e.g. 21938932-138981748279238
     let KID = orderId.split("-")[0]
 
-    console.log(`KID ${KID}`)
-
     //Handle different transactions states
     switch(transactionStatus.status) {
         case "RESERVED":
             await vipps.captureOrder(orderId, transactionStatus)
             break;
         case "SALE":
-            //After capture
-            await DAO.donations.add(KID, paymentMethods.vipps, (transactionStatus.amount/100), transactionStatus.timestamp, transactionStatus.transactionID)
-            //TODO: Email
+            //Not applicable POS sale
             break;
         case "SALE_FAILED":
-            //Capture failed because of insufficent funds, card expired, etc.
-            //Perhaps send a follow up email?
+            //Not applicable POS sale
             break;
         case "CANCELLED":
             //User cancelled in Vipps
