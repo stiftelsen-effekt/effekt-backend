@@ -114,7 +114,7 @@ async function whitelisted(ip) {
         for (let i = 0; i < whitelistedHosts.length; i++) {
             let ipv4s = await dns.resolve4(whitelistedHosts[i])
             //Should possibly also check for ipv6?
-            if (ipv4s.indexOf(whitelistedHosts[i]) != -1) {
+            if (ipv4s.indexOf(ip) != -1) {
                 whitelisted = true
                 break
             }
