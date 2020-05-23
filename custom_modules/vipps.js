@@ -73,7 +73,7 @@ module.exports = {
 
         let initiateRequest = await request.post({
             uri: "https://apitest.vipps.no/ecomm/v2/payments",
-            headers: this.getVippsHeaders(),
+            headers: this.getVippsHeaders(token),
             json: data
         })
 
@@ -101,7 +101,7 @@ module.exports = {
 
         let captureRequest = await request.post({
             uri: `https://apitest.vipps.no/ecomm/v2/payments/${orderId}/capture`,
-            headers: this.getVippsHeaders(),
+            headers: this.getVippsHeaders(token),
             json: data
         })
 
