@@ -27,7 +27,10 @@ router.get("/initiate/:phonenumber", async(req, res, next) => {
 })
 
 router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
-    if (req.body.orderId !== req.params.orderId) res.sendStatus(400)
+    if (req.body.orderId !== req.params.orderId) {
+        res.sendStatus(400)
+        return false
+    }
     let orderId = req.body.orderId
 
     //Make sure the request actually came from the vipps callback servers
@@ -48,8 +51,8 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     //Add transaction details to database
     await DAO.vipps.addOrderTransactionStatus(transactionStatus)
 
-    //Order ID is on the format KID:timestamp, e.g. 21938932:138981748279238
-    let KID = orderId.split(":")[0]
+    //Order ID is on the format KID:timestamp, e.g. 21938932-138981748279238
+    let KID = orderId.split("-")[0]
 
     //Handle different transactions states
     switch(transactionStatus.status) {
