@@ -66,7 +66,7 @@ module.exports = {
             "merchantInfo": {
                 "authToken": token.token,
                 "callbackPrefix": `${config.api_url}/vipps/`,
-                "fallBack": "https://gieffektivt.no/vipps-fallback",
+                "fallBack": "https://gieffektivt.no/donation-recived/",
                 "isApp": false,
                 "merchantSerialNumber": 212771,
                 "paymentType": "eComm Regular Payment"
