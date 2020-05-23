@@ -3,7 +3,7 @@ const router = express.Router()
 const bodyParser = require('body-parser')
 const jsonBody = bodyParser.json()
 const dns = require('dns').promises
-
+const moment = require('moment')
 const config = require('../config')
 const DAO = require('../custom_modules/DAO')
 
@@ -50,7 +50,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
         transactionID: req.body.transactionInfo.transactionId,
         amount: req.body.transactionInfo.amount,
         status: req.body.transactionInfo.status,
-        timestamp: req.body.transactionInfo.timeStamp
+        timestamp: moment(req.body.transactionInfo.timeStamp).toDate()
     }
 
     //Add transaction details to database
