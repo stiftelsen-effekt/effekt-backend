@@ -45,10 +45,12 @@ module.exports = {
      * @param {number} donorPhoneNumber The phone number of the donor
      * @param {VippsToken} token
      * @param {number} sum The chosen donation in NOK
-     * @return {string} Returns a URL for which to redirect the user to when finishing the payment
+     * @return {string | false} Returns a URL for which to redirect the user to when finishing the payment
      */
     async initiateOrder(KID, sum) {
         let token = await this.fetchToken()
+
+        if (token === false) return false
 
         let data = {
             "customerInfo": {},
@@ -69,17 +71,53 @@ module.exports = {
             }
         }
 
-        let vippsRequest = await request.post({
+        let initiateRequest = await request.post({
             uri: "https://apitest.vipps.no/ecomm/v2/payments",
-            headers: {
-                'content-type': 'application/json',
-                'merchant_serial_number': config.vipps_merchant_serial_number,
-                'Ocp-Apim-Subscription-Key': config.vipps_ocp_apim_subscription_key,
-                'Authorization': `${token.type} ${token.token}`
-            },
+            headers: this.getVippsHeaders(),
             json: data
         })
 
-        return vippsRequest.url
+        return initiateRequest.url
+    },
+
+    /**
+     * Captures a order with a reserved amount
+     * @param {string} orderId
+     * @param {VippsOrderTransactionStatus} transactionStatus The reserved transaction status
+     * @return {boolean} Captured or not
+     */
+    async captureOrder(orderId, transactionStatus) {
+        let token = await this.fetchToken()
+
+        let data = {
+            merchantInfo: {
+                merchantSerialNumber: config.vipps_merchant_serial_number
+            },
+            transaction: {
+                amount: transactionStatus.amount,
+                transactionText: "Donasjon til Gieffektivt.no"
+            }
+        }
+
+        let captureRequest = await request.post({
+            uri: `https://apitest.vipps.no/ecomm/v2/payments/${orderId}/capture`,
+            headers: this.getVippsHeaders(),
+            json: data
+        })
+
+        
+    },
+
+    /**
+     * Gets vipps authorization headers
+     * @param {VippsToken} token
+     */
+    getVippsHeaders(token) {
+        return {
+            'content-type': 'application/json',
+            'merchant_serial_number': config.vipps_merchant_serial_number,
+            'Ocp-Apim-Subscription-Key': config.vipps_ocp_apim_subscription_key,
+            'Authorization': `${token.type} ${token.token}`
+        }
     }
 }
