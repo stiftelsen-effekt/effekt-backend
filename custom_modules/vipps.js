@@ -53,10 +53,10 @@ module.exports = {
 
         if (token === false) return false
 
-        let donorID = await DAO.donors.getByKID(KID)
+        let donor = await DAO.donors.getByKID(KID)
         let order = {
             orderID: `${KID}-${+new Date()}`,
-            donorID: donorID,
+            donorID: donor.id,
             KID: KID,
             token: crypto.getPasswordSalt()
         }
