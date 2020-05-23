@@ -54,7 +54,7 @@ module.exports = {
             "customerInfo": {},
             "merchantInfo": {
                 "authToken": token.token,
-                "callbackPrefix": "https://data.gieffektivt.no/vipps/",
+                "callbackPrefix": `${config.api_url}/vipps/`,
                 "fallBack": "https://gieffektivt.no/vipps-fallback",
                 "isApp": false,
                 "merchantSerialNumber": 212771,

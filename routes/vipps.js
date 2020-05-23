@@ -18,6 +18,7 @@ router.get("/initiate/:phonenumber", async(req, res, next) => {
 
 router.post("/v2/payments/:orderid", jsonBody, async(req,res,next) => {
     console.log(req.body)
+    console.log(req.params.orderid)
 
     res.sendStatus(200)
 })
