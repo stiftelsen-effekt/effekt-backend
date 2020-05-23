@@ -81,7 +81,7 @@ async function addOrder(order) {
             INSERT INTO Vipps_orders
                     (orderID, donorID, KID, token)
                     VALUES
-                    (?,?,?)
+                    (?,?,?,?)
         `, [order.orderID, order.donorID, order.KID, order.token])
 
     return result.insertId
