@@ -16,7 +16,7 @@ var con
   */
 async function getLatestToken() {
     let [res] = await con.query(`
-        SELECT * FROM Vipps_token
+        SELECT * FROM Vipps_tokens
             ORDER BY expires DESC
             LIMIT 1`)
 
@@ -42,7 +42,7 @@ async function getLatestToken() {
  */
 async function addToken(token) {
     let [result] = await con.query(`
-        INSERT INTO Vipps_token
+        INSERT INTO Vipps_tokens
             (expires, type, token)
             VALUES
             (?,?,?)
