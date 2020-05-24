@@ -107,7 +107,7 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
         for(let i = 0; i < 5; i++) {
             console.log("Wait 1000")
             await delay(1000)
-            let order = await DAO.vipps.getOrder(order.orderID)
+            order = await DAO.vipps.getOrder(order.orderID)
             console.log(order)
             if (order.donationID != null) {
                 res.json({status: 200, content: "Donation registered successfully"})
