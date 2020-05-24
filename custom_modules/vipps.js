@@ -102,6 +102,8 @@ module.exports = {
     async captureOrder(orderId, transactionStatus) {
         let token = await this.fetchToken()
 
+        console.log("capture")
+
         let data = {
             merchantInfo: {
                 merchantSerialNumber: config.vipps_merchant_serial_number
@@ -160,15 +162,17 @@ module.exports = {
             token: linkToken
         }
 
-        let approveRequest = await request.post({
-            uri: `https://${config.vipps_api_url}/ecomm/v2/integration-test/payments/${orderId}/approve`,
-            headers: this.getVippsHeaders(token),
-            json: data
-        })
-
-        console.log(approveRequest)
-        if (approveRequest.statusCode == 200) return true
-        else return false
+        try {
+            let approveRequest = await request.post({
+                uri: `https://${config.vipps_api_url}/ecomm/v2/integration-test/payments/${orderId}/approve`,
+                headers: this.getVippsHeaders(token),
+                json: data
+            })
+            return true
+        } 
+        catch(ex) {
+            return false
+        }
     },
 
     /**
