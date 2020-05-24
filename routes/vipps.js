@@ -86,7 +86,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     res.sendStatus(200)
 })
 
-router.get("/integration-test/", async () => {
+router.get("/integration-test/", async (req, res, next) => {
     if (config.env === 'production') {
         res.status(403).json({status: 403, content: 'Integration test not applicable in production environment'})
         return false
