@@ -2,6 +2,7 @@ const request = require('request-promise-native')
 const config = require('./../config')
 const DAO = require('./DAO')
 const crypto = require('../custom_modules/authorization/crypto')
+const paymentMethods = require('../enums/paymentMethods')
 
 module.exports = {
     /**
