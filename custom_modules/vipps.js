@@ -156,7 +156,8 @@ module.exports = {
         let token = await this.fetchToken()
 
         let data = {
-            customerPhoneNumber: 93279221
+            customerPhoneNumber: 93279221,
+            token: token.token
         }
 
         let captureRequest = await request.post({
