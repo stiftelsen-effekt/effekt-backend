@@ -161,7 +161,7 @@ module.exports = {
         }
 
         let captureRequest = await request.post({
-            uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/approve`,
+            uri: `https://${config.vipps_api_url}/ecomm/v2/integration-test/payments/${orderId}/approve`,
             headers: this.getVippsHeaders(token),
             json: data
         })
