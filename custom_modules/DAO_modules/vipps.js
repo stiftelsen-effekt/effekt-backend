@@ -62,7 +62,7 @@ async function getOrder(orderID) {
         SELECT * FROM Vipps_orders
             WHERE
                 orderID = ?
-            LIMIT 1`)
+            LIMIT 1`, [orderID])
     
     if (res.length === 0) return false
     else return res[0]
