@@ -94,22 +94,31 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
 
     try {
         let order = await DAO.vipps.getRecentOrder()
+
+        console.log(order)
+
         let approved = await vipps.approveOrder(order.orderID, req.params.linkToken)
+
+        console.log("Approved", approved)
 
         if(!approved) throw new Error("Could not approve recent order")
         
         //Try five times for a maximum of 5 seconds
         for(let i = 0; i < 5; i++) {
+            console.log("Wait 1000")
             await delay(1000)
             let order = await DAO.vipps.getOrder(order.orderID)
+            console.log(order)
             if (order.donationID != null) {
                 res.json({status: 200, content: "Donation registered successfully"})
                 return true
             }
         }
+        console.log("Timeout")
         throw new Error("Timed out when attempting to verify integration")
     }
     catch(ex) {
+        console.warn(ex)
         res.status(500).json({status: 500, content: ex.message})
     }
     

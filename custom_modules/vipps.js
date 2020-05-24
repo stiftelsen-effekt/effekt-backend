@@ -160,14 +160,14 @@ module.exports = {
             token: linkToken
         }
 
-        let captureRequest = await request.post({
+        let approveRequest = await request.post({
             uri: `https://${config.vipps_api_url}/ecomm/v2/integration-test/payments/${orderId}/approve`,
             headers: this.getVippsHeaders(token),
             json: data
         })
 
-        console.log(captureRequest)
-        if (captureRequest.statusCode == 200) return true
+        console.log(approveRequest)
+        if (approveRequest.statusCode == 200) return true
         else return false
     },
 
