@@ -14,7 +14,7 @@ module.exports = {
 
             if (!token) {
                 let tokenResponse = await request.post({
-                    uri: "https://apitest.vipps.no/accesstoken/get",
+                    uri: `https://${config.vipps_api_url}/accesstoken/get`,
                     headers: {
                         'client_id': config.vipps_client_id,
                         'client_secret': config.vipps_client_secret,
@@ -64,7 +64,7 @@ module.exports = {
         let data = {
             "customerInfo": {},
             "merchantInfo": {
-                "authToken": token.token,
+                "authToken": order.token,
                 "callbackPrefix": `${config.api_url}/vipps/`,
                 "fallBack": "https://gieffektivt.no/donation-recived/",
                 "isApp": false,
@@ -81,7 +81,7 @@ module.exports = {
         }
 
         let initiateRequest = await request.post({
-            uri: "https://apitest.vipps.no/ecomm/v2/payments",
+            uri: `https://${config.vipps_api_url}/ecomm/v2/payments`,
             headers: this.getVippsHeaders(token),
             json: data
         })
@@ -113,7 +113,7 @@ module.exports = {
         }
 
         let captureRequest = await request.post({
-            uri: `https://apitest.vipps.no/ecomm/v2/payments/${orderId}/capture`,
+            uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/capture`,
             headers: this.getVippsHeaders(token),
             json: data
         })
@@ -122,13 +122,53 @@ module.exports = {
         console.log(KID)
 
         if (captureRequest.transactionInfo.status == "captured") {
-            await DAO.donations.add(KID, paymentMethods.vipps, (transactionStatus.amount/100), transactionStatus.timestamp, transactionStatus.transactionID)
+            let donationID = await DAO.donations.add(KID, paymentMethods.vipps, (transactionStatus.amount/100), transactionStatus.timestamp, transactionStatus.transactionID)
+            await DAO.vipps.updateVippsOrderDonation(orderId, donationID)
             return true
         }
         else {
             //Handle?
             return false
         }
+    },
+
+    /**
+     * Refunds an order and deletes the associated donation
+     * @param {string} orderId 
+     * @return {boolean} Refunded or not
+     */
+    async refundOrder(orderId) {
+        let token = await this.fetchToken()
+
+        return false
+    },
+
+    /**
+     * Approves an order manually (without using the vipps app)
+     * Used for integration testing
+     * @param {string} orderId
+     * @param {string} orderToken Token sendt to vipps when initiating order. Not to be confused with token used to access the vipps API
+     * @return {boolean} Approved or not
+     */
+    async approveOrder(orderId, orderToken) {
+        if (config.env === 'production') return false
+
+        let token = await this.fetchToken()
+
+        let data = {
+            customerPhoneNumber: 93279221,
+            token: orderToken
+        }
+
+        let captureRequest = await request.post({
+            uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/approve`,
+            headers: this.getVippsHeaders(token),
+            json: data
+        })
+
+        console.log(captureRequest)
+        if (captureRequest.statusCode == 200) return true
+        else return false
     },
 
     /**

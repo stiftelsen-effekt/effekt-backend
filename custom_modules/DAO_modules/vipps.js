@@ -15,6 +15,7 @@ var con
  * @property {number} ID
  * @property {string} orderID
  * @property {number} donorID
+ * @property {number} donationID
  * @property {string} KID
  * @property {string} token
  * @property {Date} registered
@@ -40,7 +41,7 @@ async function getLatestToken() {
             ORDER BY expires DESC
             LIMIT 1`)
 
-    if (res.length == 0) return false
+    if (res.length === 0) return false
     if (res[0].expires - Date.now() < 10*60*1000) return false
 
     return ({
@@ -49,6 +50,37 @@ async function getLatestToken() {
         type: res[0].type,
         token: res[0].token
     })
+}
+
+/**
+ * Fetches a vipps order
+ * @property {string} orderID
+ * @return {VippsOrder | false} 
+ */
+async function getOrder(orderID) {
+    let [res] = await con.query(`
+        SELECT * FROM Vipps_orders
+            WHERE
+                orderID = ?
+            LIMIT 1`)
+    
+    if (res.length === 0) return false
+    else return res[0]
+}
+
+/**
+ * Fetches the most recent vipps order
+ * @return {VippsOrder | false} 
+ */
+async function getRecentOrder() {
+    let [res] = await con.query(`
+        SELECT * FROM Vipps_orders
+            ORDER BY 
+                registered DESC
+            LIMIT 1`)
+    
+    if (res.length === 0) return false
+    else return res[0]
 }
 
 //endregion
@@ -105,7 +137,21 @@ async function addOrderTransactionStatus(status) {
 //endregion
 
 //region Modify
+/**
+ * Updates the donationID associated with a vipps order
+ * @param {string} orderID
+ * @param {number} donationID
+ * @return {boolean} Success or failure
+ */
+async function updateVippsOrderDonation(orderID, donationID) {
+    let [result] = await con.query(`
+            UPDATE Vipps_orders
+                SET donationID = ?
+                WHERE orderID = ?
+        `, [donationID, orderID])
 
+    return (result.affectedRows != 0 ? true : false)
+}
 //endregion
 
 //region Delete
@@ -116,9 +162,12 @@ async function addOrderTransactionStatus(status) {
 
 module.exports = {
     getLatestToken,
+    getOrder,
+    getRecentOrder,
     addToken,
     addOrder,
     addOrderTransactionStatus,
+    updateVippsOrderDonation,
 
     setup: (dbPool) => { con = dbPool }
 }

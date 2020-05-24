@@ -86,6 +86,35 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     res.sendStatus(200)
 })
 
+router.get("/integration-test/", () => {
+    if (config.env === 'production') {
+        res.status(403).json({status: 403, content: 'Integration test not applicable in production environment'})
+        return false
+    }
+
+    try {
+        let order = await DAO.vipps.getRecentOrder()
+        let approved = await vipps.approveOrder(order.orderID, order.token)
+
+        if(!approved) throw new Error("Could not approve recent order")
+        
+        //Try five times for a maximum of 5 seconds
+        for(let i = 0; i < 5; i++) {
+            await delay(1000)
+            let order = await DAO.vipps.getOrder(order.orderID)
+            if (order.donationID != null) {
+                res.json({status: 200, content: "Donation registered successfully"})
+                return true
+            }
+        }
+        throw new Error("Timed out when attempting to verify integration")
+    }
+    catch(ex) {
+        res.status(500).json({status: 500, content: ex})
+    }
+    
+})
+
 /**
  * Checks whether the provided IP is one of the vipps callback servers
  * @param {string} ip 
@@ -124,5 +153,14 @@ async function whitelisted(ip) {
     }
     return whitelisted
 }
+
+//Helper for integration test
+function delay(t) {
+    return new Promise(function(resolve) {
+        setTimeout(function() {
+            resolve();
+        }, t);
+    });
+ }
 
 module.exports = router
