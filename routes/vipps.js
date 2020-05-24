@@ -110,7 +110,7 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
         throw new Error("Timed out when attempting to verify integration")
     }
     catch(ex) {
-        res.status(500).json({status: 500, content: ex})
+        res.status(500).json({status: 500, content: ex.message})
     }
     
 })

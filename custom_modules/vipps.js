@@ -150,7 +150,7 @@ module.exports = {
      * @param {string} linkToken Token returned from the vipps api when initating an order
      * @return {boolean} Approved or not
      */
-    async approveOrder(orderId, orderToken) {
+    async approveOrder(orderId, linkToken) {
         if (config.env === 'production') return false
 
         let token = await this.fetchToken()
