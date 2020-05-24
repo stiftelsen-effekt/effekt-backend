@@ -86,7 +86,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     res.sendStatus(200)
 })
 
-router.get("/integration-test/", async (req, res, next) => {
+router.get("/integration-test/:linkToken", async (req, res, next) => {
     if (config.env === 'production') {
         res.status(403).json({status: 403, content: 'Integration test not applicable in production environment'})
         return false
@@ -94,7 +94,7 @@ router.get("/integration-test/", async (req, res, next) => {
 
     try {
         let order = await DAO.vipps.getRecentOrder()
-        let approved = await vipps.approveOrder(order.orderID, order.token)
+        let approved = await vipps.approveOrder(order.orderID, req.params.linkToken)
 
         if(!approved) throw new Error("Could not approve recent order")
         

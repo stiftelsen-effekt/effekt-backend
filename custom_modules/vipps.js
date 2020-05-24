@@ -147,7 +147,7 @@ module.exports = {
      * Approves an order manually (without using the vipps app)
      * Used for integration testing
      * @param {string} orderId
-     * @param {string} orderToken Token sendt to vipps when initiating order. Not to be confused with token used to access the vipps API
+     * @param {string} linkToken Token returned from the vipps api when initating an order
      * @return {boolean} Approved or not
      */
     async approveOrder(orderId, orderToken) {
@@ -157,7 +157,7 @@ module.exports = {
 
         let data = {
             customerPhoneNumber: 93279221,
-            token: token.token
+            token: linkToken
         }
 
         let captureRequest = await request.post({
