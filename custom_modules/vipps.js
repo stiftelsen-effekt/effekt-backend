@@ -120,10 +120,12 @@ module.exports = {
             json: data
         })
 
+        console.log(captureRequest)
         let KID = orderId.split("-")[0]
         console.log(KID)
 
         if (captureRequest.transactionInfo.status == "captured") {
+            console.log("CAPTURED")
             let donationID = await DAO.donations.add(KID, paymentMethods.vipps, (transactionStatus.amount/100), transactionStatus.timestamp, transactionStatus.transactionID)
             await DAO.vipps.updateVippsOrderDonation(orderId, donationID)
             return true
