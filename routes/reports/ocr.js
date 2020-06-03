@@ -29,8 +29,8 @@ module.exports = async (req, res, next) => {
         }
         catch (ex) {
             //If the donation already existed, ignore and keep moving
-            if (ex.message.indexOf("EXISTING_DONATION") === -1) {
-                
+            if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
+                invalid++
             }  
             else {
                 invalidTransactions.push({
