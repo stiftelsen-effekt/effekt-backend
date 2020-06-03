@@ -49,7 +49,7 @@ module.exports = async (req, res, next) => {
             valid: valid,
             //Not used
             invalid: invalid,
-            invalidTransactions: []
+            invalidTransactions: invalidTransactions
         }
     })
 }
