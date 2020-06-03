@@ -23,7 +23,7 @@ module.exports = async (req, res, next) => {
     for (let i = 0; i < transactions.length; i++) {
         let transaction = transactions[i]
         try {
-            let donationID = await DAO.donations.add(transaction.KID, BANK_ID, transaction.amount, transaction.date, transaction.externalReference, metaOwnerID)
+            let donationID = await DAO.donations.add(transaction.KID, BANK_ID, transaction.amount, transaction.date, transaction.transactionID, metaOwnerID)
             valid++
             if (config.env === 'production') await mail.sendDonationReciept(donationID)
         }
