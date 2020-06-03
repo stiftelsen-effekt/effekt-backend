@@ -39,12 +39,12 @@ describe('OCR', function() {
             expect(transaction).to.have.property('amount')
             expect(transaction).to.have.property('KID')
             expect(transaction).to.have.property('date')
-            expect(transaction).to.have.property('externalReference')
+            expect(transaction).to.have.property('transactionID')
 
             expect(transaction.amount).to.be.a('number')
             expect(transaction.KID).to.be.a('number')
             expect(transaction.date).to.be.a('date')
-            expect(transaction.externalReference).to.be.a('string')
+            expect(transaction.transactionID).to.be.a('string')
         })
 
         describe('transaction object tests', function() {
@@ -61,7 +61,7 @@ describe('OCR', function() {
             })
 
             it('should have correct external reference', function() {
-                expect(transaction.externalReference).to.equal("220117.7974208718")
+                expect(transaction.transactionID).to.equal("220117.7974208718")
             })
         })
     })
