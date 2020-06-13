@@ -1,3 +1,5 @@
+const BANK_ID = 2
+
 module.exports = {
     /**
      * @typedef Transaction
@@ -5,7 +7,7 @@ module.exports = {
      * @property {number} recordType
      * @property {number} serviceCode
      * @property {number} amount
-     * @property {string} externalReference
+     * @property {string} transactionID
      * @property {Date} date
      * @property {number} KID
      */
@@ -69,9 +71,10 @@ module.exports = {
 
             const archivalReference = nextline.substr(25, 9)
             const transactionRunningNumber = parseInt(nextline.substr(9,6))
-            const externalReference = day + month + year + "." + archivalReference + transactionRunningNumber
+            const transactionID = day + month + year + "." + archivalReference + transactionRunningNumber
 
-            transaction.externalReference = externalReference
+            transaction.transactionID = transactionID
+            transaction.paymentID = BANK_ID
         }
 
         return transaction

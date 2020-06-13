@@ -23,14 +23,14 @@ module.exports = async (req, res, next) => {
     for (let i = 0; i < transactions.length; i++) {
         let transaction = transactions[i]
         try {
-            let donationID = await DAO.donations.add(transaction.KID, BANK_ID, transaction.amount, transaction.date, transaction.externalReference, metaOwnerID)
+            let donationID = await DAO.donations.add(transaction.KID, BANK_ID, transaction.amount, transaction.date, transaction.transactionID, metaOwnerID)
             valid++
             if (config.env === 'production') await mail.sendDonationReciept(donationID)
         }
         catch (ex) {
             //If the donation already existed, ignore and keep moving
-            if (ex.message.indexOf("EXISTING_DONATION") === -1) {
-                
+            if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
+                invalid++
             }  
             else {
                 invalidTransactions.push({
@@ -49,7 +49,7 @@ module.exports = async (req, res, next) => {
             valid: valid,
             //Not used
             invalid: invalid,
-            invalidTransactions: []
+            invalidTransactions: invalidTransactions
         }
     })
 }

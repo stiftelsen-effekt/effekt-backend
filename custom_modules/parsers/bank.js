@@ -63,7 +63,8 @@ module.exports = {
             message: row[fieldMapping.message].replace(/(\r\n|\r|\n)/g, ""),
             amount: Number(row[fieldMapping.sum].replace(/\./g, "").replace(/\,/g, ".")),
             KID: parseUtil.extractKID(row[fieldMapping.KID]),
-            transactionID: row[fieldMapping.externalRef]
+            transactionID: row[fieldMapping.externalRef],
+            paymentID: 5
         }
     }
 }

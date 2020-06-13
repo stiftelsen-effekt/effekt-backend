@@ -111,6 +111,7 @@ DAO.connect(() => {
   const authRoute =           require('./routes/auth')
   const metaRoute =           require('./routes/meta')
   const debugRoute =          require('./routes/debug')
+  const philipRoute =         require('./routes/philip')
 
   app.use('/donors',        donorsRoute)
   app.use('/donations',     donationsRoute)
@@ -125,6 +126,7 @@ DAO.connect(() => {
   app.use('/auth',          authRoute)
   app.use('/meta',          metaRoute)
   app.use('/debug',         debugRoute)
+  app.use('/philip',         philipRoute)
 
   app.use('/static',  express.static(__dirname + '/static'))
   app.use('/style',   express.static(__dirname + '/views/style'))
