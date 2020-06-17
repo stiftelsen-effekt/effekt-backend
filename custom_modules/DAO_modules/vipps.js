@@ -22,14 +22,15 @@ var con
  */
 
 /**
- * @typedef VippsOrderTransactionStatus
- * @property {number} ID
- * @property {string} orderID
- * @property {string} transactionID
- * @property {number} amount
- * @property {string} status
- * @property {Date} timestamp
- */
+ * @typedef VippsTransactionLogItem
+ * @property {number} amount In øre
+ * @property {string} transactionText
+ * @property {number} transactionId
+ * @property {string} timestamp JSON timestamp
+ * @property {string} operation
+ * @property {number} requestId 
+ * @property {boolean} operationSuccess
+ */    
 
  /**
   * Fetches the latest token, if available
@@ -118,25 +119,40 @@ async function addOrder(order) {
 
     return result.insertId
 }
-
-/**
- * Adds a Vipps order transaction status
- * @param {VippsOrderTransactionStatus} status
- * @return {number} ID of inserted order
- */
-async function addOrderTransactionStatus(status) {
-    let [result] = await con.query(`
-            INSERT INTO Vipps_order_transaction_statuses
-                    (orderID, transactionID, amount, status, timestamp)
-                    VALUES
-                    (?,?,?,?,?)
-        `, [status.orderID, status.transactionID, status.amount, status.status, status.timestamp])
-
-    return result.insertId
-}
 //endregion
 
 //region Modify
+/**
+ * Adds a Vipps order transaction status
+ * @param {string} orderId
+ * @param {Array<VippsTransactionLogItem>} transactionHistory
+ * @return {boolean} Success
+ */
+async function updateOrderTransactionStatusHistory(orderId,transactionHistory) {
+    let transaction = await con.startTransaction()
+    try {
+        await transaction.query(`DELETE FROM Vipps_order_transaction_statuses WHERE orderID = ?`, [orderId])
+
+        const mappedInsertValues = transactionHistory.map((logItem) => ([orderId, logItem.transactionId, logItem.amount, logItem.operation, logItem.timestamp, logItem.operationSuccess]))
+
+        await transaction.query(`
+            INSERT INTO Vipps_order_transaction_statuses
+                    (orderID, transactionID, amount, operation, timestamp, success)
+                    VALUES
+                    ?
+        `, [mappedInsertValues])
+
+        await con.commitTransaction(transaction)
+
+        return true
+    }
+    catch(ex) {
+        await con.rollbackTransaction(transaction)
+        console.error(`Failed to update order transaction history for orderId ${orderId}`,ex)
+        return false
+    }
+}
+
 /**
  * Updates the donationID associated with a vipps order
  * @param {string} orderID
@@ -166,7 +182,7 @@ module.exports = {
     getRecentOrder,
     addToken,
     addOrder,
-    addOrderTransactionStatus,
+    updateOrderTransactionStatusHistory,
     updateVippsOrderDonation,
 
     setup: (dbPool) => { con = dbPool }
