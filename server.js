@@ -36,7 +36,7 @@ DAO.connect(() => {
   logging(app)
 
   app.get("/", (req, res, next) => {
-    res.send("Dr. Livingstone I presume?")
+    res.send("Dr. Livingstone, I presume?")
   })
 
   //Parse post body
