@@ -11,7 +11,7 @@ function getSummary(donorID) {
             INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
             where Donations.Donor_ID = ` + donorID + ` ORDER BY timestamp_confirmed DESC limit 10000`)
 
-            var summary = {}    
+            var summary = {}
             
             res.forEach(row => {
                 if(row.full_name in summary) {
@@ -64,9 +64,9 @@ function getHistory(donorID) {
 function mapHistory(historyObject) {
     return historyObject.map((dist) => {
         return {
-            full_name: dist.full_name,
-            timestamp_confirmed: dist.timestamp_confirmed,
-            sum_distribution: dist.sum_distribution
+            fullName: dist.full_name,
+            timestampConfirmed: dist.timestamp_confirmed,
+            sumDistribution: dist.sum_distribution
         }
     })
 }

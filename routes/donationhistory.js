@@ -30,18 +30,4 @@ router.get("/:donorID", async (req, res, next) => {
     }
 })
 
-router.get("/test", async (req, res, next) => {
-    try {
-        var history = await DAO.donationhistory.getMethods()
-
-        res.json({
-            status: 200,
-            content: history
-        })
-    }
-    catch(ex) {
-        next(ex)
-    }
-})
-
 module.exports = router
