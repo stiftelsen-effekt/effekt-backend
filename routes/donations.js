@@ -236,4 +236,32 @@ router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (re
   }
 })
 
+router.get("/summary/:donorID", async (req, res, next) => {
+  try {
+      var summary = await DAO.donations.getSummary(req.params.donorID)
+
+      res.json({
+          status: 200,
+          content: summary
+      })
+  }
+  catch(ex) {
+      next(ex)
+  }
+})
+
+router.get("/history/:donorID", async (req, res, next) => {
+  try {
+      var history = await DAO.donations.getHistory(req.params.donorID)
+
+      res.json({
+          status: 200,
+          content: history
+      })
+  }
+  catch(ex) {
+      next(ex)
+  }
+})
+
 module.exports = router
