@@ -345,6 +345,7 @@ async function getMedianFromRange(fromDate, toDate) {
  * @param {Date} [registeredDate=null] Date the transaction was confirmed
  * @param {String} [externalPaymentID=null] Used to track payments in external payment systems (paypal and vipps ex.)
  * @param {Number} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
+ * @return {Number} The donations ID
  */
 function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null, metaOwnerID = null) {
     return new Promise(async (fulfill, reject) => {
