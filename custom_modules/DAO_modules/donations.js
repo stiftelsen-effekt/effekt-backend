@@ -15,6 +15,17 @@ var DAO
  * @prop {number} KID
  */
 
+ /** @typedef DonationSummary
+  * @prop {string} organization Name of organization
+  * @prop {number} sum
+  */
+
+ /** @typedef DonationDistributions
+  * @prop {number} donationID
+  * @prop {Date} date
+  * @prop {Array} distributions
+ */
+
 //region Get
 /**
  * Gets all donations, ordered by the specified column, limited by the limit, and starting at the specified cursor
@@ -334,82 +345,78 @@ async function getMedianFromRange(fromDate, toDate) {
 /**
  * Fetches the total amount of money donated to each organization by a specific donor
  * @param {Number} donorID
- * @returns {Object|null}
+ * @returns {Array<DonationSummary>} Array of DonationSummary objects
  */
-function getSummary(donorID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [res] = await con.query(`SELECT
-            Organizations.full_name, (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, transaction_cost
-            FROM Donations
-            INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
-            INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
-            INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
-            where Donations.Donor_ID = ` + donorID + ` ORDER BY timestamp_confirmed DESC limit 10000`)
+async function getSummary(donorID) {
+    var [res] = await con.query(`SELECT
+    Organizations.full_name, (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, transaction_cost
+    FROM Donations
+    INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
+    INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
+    INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
+    where Donations.Donor_ID = ` + donorID + ` ORDER BY timestamp_confirmed DESC limit 10000`)
 
-            // 
-            var summary = {}
-            res.forEach(row => {
-                if(row.full_name in summary) {
-                    summary[row.full_name] += parseInt(row.sum_distribution)
-                }
-                else {
-                    summary[row.full_name] = parseInt(row.sum_distribution)
-                }
+    const summary = []
+    const map = new Map()
+    for (const item of res) {
+        if(!map.has(item.full_name)){
+            map.set(item.full_name, true)
+            summary.push({
+                organization: item.full_name,
+                sum: 0
             })
-
-            if (res.length > 0) {
-                fulfill(summary)
-            } else {
-                fulfill(null)
-            }
-        } catch(ex) {
-            reject(ex)
-            return false
         }
+    }
+    res.forEach(row => {
+        summary.forEach(obj => {
+            if(row.full_name == obj.organization) {
+                obj.sum += parseInt(row.sum_distribution)
+            }
+        })
     })
+    return summary
 }
 
 /**
  * Fetches all donations recieved by a specific donor
  * @param {Number} donorID
- * @returns {Object|null}
+ * @returns {Array<DonationDistributions>}
  */
-function getHistory(donorID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [res] = await con.query(`SELECT
-            Organizations.full_name organizationName,
-            Donations.timestamp_confirmed,
-            Donations.ID as donation_id,
-            Distribution.ID as distribution_id,
-            (Donations.sum_confirmed * percentage_share / 100) as sum_distribution
-            FROM Donations
-            INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
-            INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
-            INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
-            where Donations.Donor_ID = ` + donorID + ` ORDER BY timestamp_confirmed DESC limit 10000`)
+async function getHistory(donorID) {
+    var [res] = await con.query(`SELECT
+    Organizations.full_name,
+    Donations.timestamp_confirmed,
+    Donations.ID as donation_id,
+    Distribution.ID as distribution_id,
+    (Donations.sum_confirmed * percentage_share / 100) as sum_distribution
+    FROM Donations
+    INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
+    INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
+    INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
+    where Donations.Donor_ID = ` + donorID + ` ORDER BY timestamp_confirmed DESC limit 10000`)
 
-            history = {}
-
-            res.forEach(row => {
-                console.log(row.donation_id)
-                if(!(row.donation_id in history)) {
-                    history[row.donation_id] = {date: row.timestamp_confirmed, distributions: []}
-                }
-                history[row.donation_id].distributions.push({organization: row.organizationName, sum: row.sum_distribution})
+    const history = []
+    const map = new Map()
+    for (const item of res) {
+        if(!map.has(item.donation_id)){
+            map.set(item.donation_id, true)
+            history.push({
+                donationID: item.donation_id,
+                date: item.timestamp_confirmed,
+                distributions: []
             })
-
-            if (res.length > 0) {
-                fulfill(history)
-            } else {
-                fulfill(null)
-            }
-        } catch(ex) {
-            reject(ex)
-            return false
         }
+    }
+
+    res.forEach(row => {
+        history.forEach(obj => {
+            if(obj.donationID == row.donation_id) {
+                obj.distributions.push({organization: row.full_name, sum: row.sum_distribution})
+            }
+        })
     })
+
+    return history
 }
 
 //endregion
