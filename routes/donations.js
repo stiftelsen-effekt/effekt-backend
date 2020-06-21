@@ -248,7 +248,7 @@ router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (re
   }
 })
 
-router.get("/summary/:donorID", async (req, res, next) => {
+router.get("/summary/:donorID", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
   try {
       var summary = await DAO.donations.getSummary(req.params.donorID)
 
@@ -262,7 +262,7 @@ router.get("/summary/:donorID", async (req, res, next) => {
   }
 })
 
-router.get("/history/:donorID", async (req, res, next) => {
+router.get("/history/:donorID", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
   try {
       var history = await DAO.donations.getHistory(req.params.donorID)
 
