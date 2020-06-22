@@ -137,7 +137,7 @@ async function sendDonationHistory(donorID)
     try {
       var donationSummary = await DAO.donations.getSummary(donorID)
       var donationHistory = await DAO.donations.getHistory(donorID)
-      var donor = await DAO.donors.getByID(donationSummary[donationSummary.length].donorID)
+      var donor = await DAO.donors.getByID(donationSummary[donationSummary.length - 1].donorID)
       var email = donor.email
       if (!email)  {
         console.error("No email provided for donor ID " + donorID)
