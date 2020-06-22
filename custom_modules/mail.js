@@ -133,6 +133,49 @@ async function sendDonationRegistered(KID) {
     }
 }
 
+async function sendDonationHistory(donorID)
+    try {
+      var donationSummary = await DAO.donations.getSummary(donorID)
+      var donationHistory = await DAO.donations.getHistory(donorID)
+      if (donationSummary.email != donationHistory.email){
+        console.error("Email is different " + donorID)
+        return false
+      }
+      if (!donationSummary.email)  {
+        console.error("No email provided for donor ID " + donorID)
+        return false
+      }
+    } catch(ex) {
+      console.error("Failed to send mail donation reciept, could not get donation by ID")
+      console.error(ex)
+      return false
+    }
+
+    
+
+    try {
+      await send({
+        reciever: donationSummary.email,
+        subject: "gieffektivt.no - Din donasjonshistorikk",
+        templateName: "donationHistory",
+        templateData: /*{ //Må finne ut av ting med DAO funksjonen
+            header: "Hei " + donationSummary.donor + ",",
+            //Add thousand seperator regex at end of amount
+            donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+            organizations: organizations,
+            donationDate: moment(donation.timestamp).format("DD.MM YYYY"), 
+        }*/data,
+      })
+
+      return true
+    } catch(ex) {
+      console.error("Failed to send donatin history")
+      console.error(ex)
+      return ex.statusCode
+    }
+
+
+
 /**
  * @typedef MailOptions
  * @prop {string} reciever
