@@ -1,16 +1,21 @@
+const config = require('../config')
+
 const express = require('express')
 const router = express.Router()
-const mail = require('../custom_modules/mail')
-const authMiddleware = require('../custom_modules/authorization/authMiddleware')
-const authRoles = require('../enums/authorizationRoles')
-const DAO = require('../custom_modules/DAO.js')
-const config = require('../config')
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: true })
-const dateRangeHelper = require('../custom_modules/dateRangeHelper')
-const donationHelpers = require('../custom_modules/donationHelpers')
 const apicache = require('apicache')
 const cache = apicache.middleware
+const authMiddleware = require('../custom_modules/authorization/authMiddleware')
+
+const authRoles = require('../enums/authorizationRoles')
+const methods = require('../enums/methods')
+
+const DAO = require('../custom_modules/DAO.js')
+const mail = require('../custom_modules/mail')
+const vipps = require('../custom_modules/vipps')
+const dateRangeHelper = require('../custom_modules/dateRangeHelper')
+const donationHelpers = require('../custom_modules/donationHelpers')
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -19,10 +24,12 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
 
   let donationOrganizations = parsedData.organizations
   let donor = parsedData.donor
+  let paymentProviderUrl = null
 
   try {
     var donationObject = {
       KID: null, //Set later in code
+      method: parsedData.method,
       donorID: null, //Set later in code
       amount: parsedData.amount,
       standardSplit: undefined,
@@ -42,12 +49,9 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     //Check if existing donor
     donationObject.donorID = await DAO.donors.getIDbyEmail(donor.email)
 
-    
-
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
       donationObject.donorID = await DAO.donors.add(donor.email, donor.name, donor.ssn, donor.newsletter)
-      
     }
     else {
       //Check for existing SSN if provided
@@ -77,6 +81,10 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       donationObject.KID = await donationHelpers.createKID()
       await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
     }
+
+    //Get external paymentprovider URL
+    if (donationObject.method == methods.VIPPS)
+      paymentProviderUrl = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
   }
 
   catch (ex) {
@@ -95,7 +103,8 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     content: {
       KID: donationObject.KID,
       donorID: donationObject.donorID,
-      hasAnsweredReferral
+      hasAnsweredReferral,
+      paymentProviderUrl
     }
   })
 })
@@ -103,7 +112,10 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
 router.post("/bank/pending", urlEncodeParser, async (req,res,next) => {
   let parsedData = JSON.parse(req.body.data)
 
-  let success = await mail.sendDonationRegistered(parsedData.KID)
+  if(config.env === "production")
+    var success = await mail.sendDonationRegistered(parsedData.KID)
+  else
+    var success = true
 
   if (success) res.json({ status: 200, content: "OK" })
   else res.status(500).json({ status: 500, content: "Could not send bank donation pending email" })
@@ -233,6 +245,34 @@ router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (re
       status: 500,
       content: `Reciept failed with error code ${mailStatus}`
     })
+  }
+})
+
+router.get("/summary/:donorID", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
+  try {
+      var summary = await DAO.donations.getSummary(req.params.donorID)
+
+      res.json({
+          status: 200,
+          content: summary
+      })
+  }
+  catch(ex) {
+      next(ex)
+  }
+})
+
+router.get("/history/:donorID", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
+  try {
+      var history = await DAO.donations.getHistory(req.params.donorID)
+
+      res.json({
+          status: 200,
+          content: history
+      })
+  }
+  catch(ex) {
+      next(ex)
   }
 })
 
