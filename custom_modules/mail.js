@@ -137,11 +137,9 @@ async function sendDonationHistory(donorID)
     try {
       var donationSummary = await DAO.donations.getSummary(donorID)
       var donationHistory = await DAO.donations.getHistory(donorID)
-      if (donationSummary.email != donationHistory.email){
-        console.error("Email is different " + donorID)
-        return false
-      }
-      if (!donationSummary.email)  {
+      var donor = await DAO.donors.getByID(donationSummary[donationSummary.length - 1].donorID)
+      var email = donor.email
+      if (!email)  {
         console.error("No email provided for donor ID " + donorID)
         return false
       }
@@ -157,11 +155,11 @@ async function sendDonationHistory(donorID)
 
     try {
       await send({
-        reciever: donationSummary.email,
+        reciever: email,
         subject: "gieffektivt.no - Din donasjonshistorikk",
         templateName: "donationHistory",
         templateData: { //Må finne ut av ting med DAO funksjonen
-            header: "Hei " + donationSummary.donor + ",",
+            header: "Hei " + donor.full_name + ",",
             total: total,
             donationSummary: donationSummary,
             donationHistory: donationHistory

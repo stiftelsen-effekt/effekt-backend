@@ -84,7 +84,7 @@
                                             Donasjonene har følgende fordeling: 
                                             <br>
                                             <br>
-                                            <% for (this.donationSummary.map(obj) => { %>
+                                            <% for (this.donationSummary.map(obj => { %>
                                                 <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                                     <tbody><tr>
                                                         <td>
@@ -105,7 +105,7 @@
                                                         </td>
                                                     </tr>
                                                 </tbody></table>
-                                            <% } %>
+                                            <% }) %>
                                             
                                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                                 <tbody><tr>
@@ -142,7 +142,7 @@
                                             Donasjonshistorikk:
                                             <br>
                                             <br>
-                                            <% this.donationHistory.map(obj) => { %>
+                                            <% this.donationHistory.map(obj => { %>
                                             obj.date.slice(0,4)
                                             <table width="100%" bordercolor="white" border="15%" cellspacing="0" cellpadding="0">
                                                 <tbody><tr>
@@ -168,7 +168,7 @@
                                                                 </td>
                                                             </tr>
                                                         </tbody></table>
-                                                        <% } %>
+                                                        <% }) %>
                                                     </td>
                                                 </tr>
                                             </tbody></table>
