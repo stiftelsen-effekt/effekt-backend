@@ -15,6 +15,17 @@ var DAO
  * @prop {number} KID
  */
 
+ /** @typedef DonationSummary
+  * @prop {string} organization Name of organization
+  * @prop {number} sum
+  */
+
+ /** @typedef DonationDistributions
+  * @prop {number} donationID
+  * @prop {Date} date
+  * @prop {Array} distributions
+ */
+
 //region Get
 /**
  * Gets all donations, ordered by the specified column, limited by the limit, and starting at the specified cursor
@@ -331,6 +342,83 @@ async function getMedianFromRange(fromDate, toDate) {
     }
 }
 
+/**
+ * Fetches the total amount of money donated to each organization by a specific donor
+ * @param {Number} donorID
+ * @returns {Array<DonationSummary>} Array of DonationSummary objects
+ */
+async function getSummary(donorID) {
+    var [res] = await con.query(`SELECT
+    Organizations.full_name, (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, transaction_cost, Donations.Donor_ID
+    FROM Donations
+    INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
+    INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
+    INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
+    where Donations.Donor_ID = ` + donorID + ` ORDER BY timestamp_confirmed DESC limit 10000`)
+
+    const summary = []
+    const map = new Map()
+    for (const item of res) {
+        if(!map.has(item.full_name)){
+            map.set(item.full_name, true)
+            summary.push({
+                organization: item.full_name,
+                sum: 0
+            })
+        }
+    }
+    res.forEach(row => {
+        summary.forEach(obj => {
+            if(row.full_name == obj.organization) {
+                obj.sum += parseInt(row.sum_distribution)
+            }
+        })
+    })
+    summary.push({donorID: res[0].Donor_ID})
+    return summary
+}
+
+/**
+ * Fetches all donations recieved by a specific donor
+ * @param {Number} donorID
+ * @returns {Array<DonationDistributions>}
+ */
+async function getHistory(donorID) {
+    var [res] = await con.query(`SELECT
+    Organizations.full_name,
+    Donations.timestamp_confirmed,
+    Donations.ID as donation_id,
+    Distribution.ID as distribution_id,
+    (Donations.sum_confirmed * percentage_share / 100) as sum_distribution
+    FROM Donations
+    INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
+    INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
+    INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
+    where Donations.Donor_ID = ` + donorID + ` ORDER BY timestamp_confirmed DESC limit 10000`)
+
+    const history = []
+    const map = new Map()
+    for (const item of res) {
+        if(!map.has(item.donation_id)){
+            map.set(item.donation_id, true)
+            history.push({
+                donationID: item.donation_id,
+                date: item.timestamp_confirmed,
+                distributions: []
+            })
+        }
+    }
+
+    res.forEach(row => {
+        history.forEach(obj => {
+            if(obj.donationID == row.donation_id) {
+                obj.distributions.push({organization: row.full_name, sum: row.sum_distribution})
+            }
+        })
+    })
+
+    return history
+}
 
 //endregion
 
@@ -345,6 +433,7 @@ async function getMedianFromRange(fromDate, toDate) {
  * @param {Date} [registeredDate=null] Date the transaction was confirmed
  * @param {String} [externalPaymentID=null] Used to track payments in external payment systems (paypal and vipps ex.)
  * @param {Number} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
+ * @return {Number} The donations ID
  */
 function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null, metaOwnerID = null) {
     return new Promise(async (fulfill, reject) => {
@@ -437,6 +526,8 @@ module.exports = {
     getAggregateByTime,
     getFromRange,
     getMedianFromRange,
+    getSummary,
+    getHistory,
     ExternalPaymentIDExists,
     add,
     registerConfirmedByIDs,
