@@ -7,10 +7,6 @@ const template = require('./template.js')
 const request = require('request-promise-native')
 const fs = require('fs-extra')
 
-module.exports = {
-    sendDonationReciept,
-    sendDonationRegistered
-}
 
 /**
  * Sends a donation reciept
@@ -133,17 +129,18 @@ async function sendDonationRegistered(KID) {
     }
 }
 
-async function sendDonationHistory(donorID)
+async function sendDonationHistory(donorID) {
+  let total = 0
     try {
       var donationSummary = await DAO.donations.getSummary(donorID)
       var donationHistory = await DAO.donations.getHistory(donorID)
       var donor = await DAO.donors.getByID(donationSummary[donationSummary.length - 1].donorID)
       var email = donor.email
+
       if (!email)  {
         console.error("No email provided for donor ID " + donorID)
         return false
       }
-      let total = 0
       donationSummary.map(obj => {
         total += obj.sum
       })
@@ -158,7 +155,7 @@ async function sendDonationHistory(donorID)
         reciever: email,
         subject: "gieffektivt.no - Din donasjonshistorikk",
         templateName: "donationHistory",
-        templateData: { //Må finne ut av ting med DAO funksjonen
+        templateData: { 
             header: "Hei " + donor.full_name + ",",
             total: total,
             donationSummary: donationSummary,
@@ -172,6 +169,7 @@ async function sendDonationHistory(donorID)
       console.error(ex)
       return ex.statusCode
     }
+}
 
 
 
@@ -210,12 +208,24 @@ async function send(options) {
     }
 
     //Exceptions bubble up
-    await request.post({
+    let result = await request.post({
         url: 'https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages',
         auth: {
             user: 'api',
             password: config.mailgun_api_key
         },
-        formData: data
+        formData: data,
+        resolveWithFullResponse: true
     })
+    if(result.statusCode === 200) {
+      return true
+    } else {
+      return false
+    }
+}
+
+module.exports = {
+  sendDonationReciept,
+  sendDonationRegistered,
+  sendDonationHistory
 }
