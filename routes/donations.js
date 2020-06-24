@@ -276,4 +276,27 @@ router.get("/history/:donorID", authMiddleware(authRoles.read_all_donations), as
   }
 })
 
+router.post("/history/mail", async (req, res, next) => {
+  try {
+      let email = req.body.email
+      res.send(email)
+      //var mailsent = await mail.sendDonationHistory(req.params.donorID)
+
+      // if (mailsent) {
+      //   res.json({
+      //       status: 200,
+      //       content: "ok"
+      //   })
+      // } else {
+      //   res.status(500).json({
+      //     status: 500,
+      //     content: "failed"
+      //   })
+      // }
+  }
+  catch(ex) {
+      next(ex)
+  }
+})
+
 module.exports = router
