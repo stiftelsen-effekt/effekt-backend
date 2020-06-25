@@ -16,6 +16,7 @@ const mail = require('../custom_modules/mail')
 const vipps = require('../custom_modules/vipps')
 const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 const donationHelpers = require('../custom_modules/donationHelpers')
+const { getIDbyEmail } = require('../custom_modules/DAO_modules/donors')
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -276,12 +277,18 @@ router.get("/history/:donorID", authMiddleware(authRoles.read_all_donations), as
   }
 })
 
-router.post("/history/mail", async (req, res, next) => {
+router.post("/history/email", async (req, res, next) => {
   try {
       let email = req.body.email
-      res.send(email)
-      //var mailsent = await mail.sendDonationHistory(req.params.donorID)
+      console.log(email)
+      res.send(req.body)
 
+      let id = await getIDbyEmail(email)
+      console.log(id)
+      var mailsent = await mail.sendDonationHistory(id)
+
+      // Trenger vi denne koden her?
+      
       // if (mailsent) {
       //   res.json({
       //       status: 200,
