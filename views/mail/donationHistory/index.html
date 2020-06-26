@@ -125,28 +125,38 @@
                                                             </tr>
                                                         </tbody></table>
                                                         
-                                                        <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                                        <!-- <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
                                                             <tbody><tr>
                                                                 <td>
-                                                                    <!--[endif]-->
+                                                                    [endif]
                                                                 </td>
                                                             </tr>
-                                                        </tbody></table>
+                                                        </tbody></table> -->
                                                     </td>
                                                 </tr>
                                             </tbody></table>
-                                            <br>
-                                            <br>
-                                            <br>
-                                            <br>
-                                            Donasjonshistorikk:
-                                            <br>
-                                            <br>
+                                        </tbody></table>
+                                    </tbody></table><table class="content" bgcolor="#ffffff" align="center" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                            <th>Donasjonshistorikk:</th>
+                                            </tr>
+                                            <tr><br></tr>
+                                            <tr>
+                                                <th>Dato</th>
+                                                <th>Organisasjon</th>
+                                                <th>Sum</th>
+                                            </tr>
                                             <% for (var i = 0; i < donationHistory.length; i++ ) { %>
-                                            <table width="100%" bordercolor="white" border="15%" cellspacing="0" cellpadding="0">
+                                                <tr><br></tr>
                                                 <tbody><tr>
-                                                    <td>
+                                                    
+                                                    <td style="font-size: 14px;"> <% this.dates[i] %> </td>
+                                                    
                                                     <% for (var j = 0; j < donationHistory[i].distributions.length; j++ ) { %>
+                                                    <td>
+
+                                                    </td>
+                                                    <!-- <td>
                                                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                                             <tbody><tr>
                                                                 <td>
@@ -160,44 +170,18 @@
                                                                     <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                         <tbody><tr>
                                                                             <td style="font-size: 14px;">
-                                                                                <% donationHistory[i].distributions[j].sum %>
+                                                                                <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %>
                                                                             </td>
                                                                         </tr>
                                                                     </tbody></table>
                                                                 </td>
                                                             </tr>
                                                         </tbody></table>
+                                                    </td> -->
                                                         <% } %>
                                                     </td>
                                                 </tr>
-                                            </tbody></table>
-                                        <% } %>
-                                        <table width="100%" bordercolor="white" border="15%" cellspacing="0" cellpadding="0">
-                                            <tbody><tr>
-                                                <td>
-                                                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                                        <tbody><tr>
-                                                            <td>
-                                                                <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                    <tbody><tr>
-                                                                        <td style="font-size: 14px;">
-                                                                            orgtest
-                                                                        </td>
-                                                                    </tr>
-                                                                </tbody></table>
-                                                                <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                    <tbody><tr>
-                                                                        <td style="font-size: 14px;">
-                                                                            sumtest
-                                                                        </td>
-                                                                    </tr>
-                                                                </tbody></table>
-                                                            </td>
-                                                        </tr>
-                                                    </tbody></table>
-                                                   
-                                                </td>
-                                            </tr>
+                                            <% } %>
                                         </tbody></table>
                                         </td>
                                     </tr>
