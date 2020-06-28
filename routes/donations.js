@@ -281,12 +281,19 @@ router.post("/history/email", async (req, res, next) => {
   try {
       let email = req.body.email
       let id = await getIDbyEmail(email)
-      var mailsent = await mail.sendDonationHistory(id)
       
-      if (mailsent) {
-        res.json({
-            status: 200,
-            content: "ok"
+      if (id != null) {
+        var mailsent = await mail.sendDonationHistory(id)
+        if (mailsent) {
+          res.json({
+              status: 200,
+              content: "ok"
+          })
+        }
+      } else if(id == null) {
+        res.status(404).json({
+          status: 404,
+          content: "email not found"
         })
       } else {
         res.status(500).json({
