@@ -7,6 +7,7 @@ const DAO = require('../custom_modules/DAO.js')
 
 const rounding = require("../custom_modules/rounding")
 const donationHelpers = require("../custom_modules/donationHelpers")
+const distributions = require('../custom_modules/DAO_modules/distributions')
 
 router.post("/", 
   authMiddleware(authRoles.write_all_donations),
@@ -78,6 +79,27 @@ router.get("/:KID",
         donor,
         distribution
       }
+    })
+  } catch(ex) {
+    if (ex.message.indexOf("NOT FOUND") !== -1) res.status(404).send({
+      status: 404,
+      content: ex.message
+    })
+    else {
+      next(ex)
+    }
+  }
+})
+
+router.get("/all/:donorID", 
+  //authMiddleware(authRoles.read_all_donations), 
+  async (req,res,next) => {
+  try {
+    if (!req.params.donorID) res.status(400).json({ status: 400, content: "No KID provided" })
+    let distributions = await DAO.distributions.getAllByDonor(req.params.donorID)
+    return res.json({
+      status: 200,
+      content: distributions
     })
   } catch(ex) {
     if (ex.message.indexOf("NOT FOUND") !== -1) res.status(404).send({
