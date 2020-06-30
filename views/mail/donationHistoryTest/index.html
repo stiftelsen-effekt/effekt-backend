@@ -48,15 +48,6 @@
                                 </td>
                             </tr>
                         </tbody></table>
-                        <!--[if (gte mso 9)|(IE)]>
-                        <table width="100%" style="max-width:640px;" align="center" cellpadding="0" cellspacing="0" border="0">
-                            <tr>
-                                <td>
-                                    <img src="images/epostmal_header_image.png" width="100%" />
-                                </td>
-                            </tr>
-                        </table>
-                        <![endif]-->
                     </td>
                 </tr>
                 <tr>
@@ -98,7 +89,7 @@
                                                             </tbody></table>
                                                             <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                                 <tbody><tr>
-                                                                    <td style="font-size: 16px;">
+                                                                    <td style="font-size: 16px;"> 
                                                                         <% donationSummary[i].sum %>
                                                                     </td>
                                                                 </tr>
@@ -125,22 +116,23 @@
                                                                 </td>
                                                             </tr>
                                                         </tbody></table>
-                                                        
-                                                        <!-- <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                                            <tbody><tr>
-                                                                <td>
-                                                                    [endif]
-                                                                </td>
-                                                            </tr>
-                                                        </tbody></table> -->
                                                     </td>
                                                 </tr>
                                             </tbody></table>
-                                        </tbody></table>
-                                    </tbody></table><table class="content" bgcolor="#ffffff" align="center" cellpadding="0" cellspacing="0" border="0">
+                                    </tbody></table>
+                                </tbody></table>
+
+
+
+                            
+                            <table class="content" bgcolor="#ffffff" align="center" cellpadding="0" cellspacing="0" border="0">
+                                <td class="innerpadding borderbottom">
+                                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                         <thead>
                                             <tr>
-                                                <th>Donasjonshistorikk:</th>
+                                                <td class="bodycopy">
+                                                <span style="vertical-align: middle;"> Donasjonshistorikk </span> <br><br>
+                                                </td>
                                             </tr>
                                             <tr><br></tr>
                                             <tr>
@@ -152,7 +144,9 @@
                                             <% for (var i = 0; i < donationHistory.length; i++ ) { %>
                                                 <tbody><tr>
                                                     
-                                                    <td style="font-size: 14px;" rowspan= "<% this.donationHistory[i].distributions.length %>" > <% this.dates[i] %> </td>
+                                                    <td style="font-size: 14px;" rowspan="5"> 
+                                                        <% this.dates[i] %> 
+                                                    </td>
                                                     
                                                     <% for (var j = 0; j < donationHistory[i].distributions.length; j++ ) { %>
                                                         <td style="font-size: 14px;">
@@ -161,31 +155,6 @@
                                                         <td style="font-size: 14px;">
                                                             <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %>
                                                         </td>
-                                                    <!-- <td>
-                                                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                                            <tbody><tr>
-                                                                <td>
-                                                                    <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                        <tbody><tr>
-                                                                            <td style="font-size: 14px;">
-                                                                                <% donationHistory[i].distributions[j].organization %>
-                                                                            </td>
-                                                                            <td style="font-size: 14px;">
-                                                                                <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %>
-                                                                            </td>
-                                                                        </tr></tbody>
-                                                                    </table>
-                                                                    <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                        <tbody><tr>
-                                                                            <td style="font-size: 14px;">
-                                                                                <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %>
-                                                                            </td>
-                                                                        </tr>
-                                                                    </tbody></table>
-                                                                </td>
-                                                            </tr>
-                                                        </tbody></table>
-                                                    </td> -->
                                                         <% } %>
                                                     </td>
                                                 </tr>
@@ -227,11 +196,6 @@
                                                     </font></td>
                                                 </tr>
                                             </tbody></table>
-                                            <!--[if (gte mso 9)|(IE)]>
-                                            <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                                <tr>
-                                                    <td>
-                                            <![endif]-->
                                             <table width="75" align="right" border="0" cellpadding="0" cellspacing="0">
                                                 <tbody><tr>
                                                     <td>
@@ -241,11 +205,6 @@
                                                     </td>
                                                 </tr>
                                             </tbody></table>
-                                            <!--[if (gte mso 9)|(IE)]>
-                                            <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                                <tr>
-                                                    <td>
-                                            <![endif]-->
                                         </td>
                                     </tr>
 
@@ -253,11 +212,6 @@
                             </td>
                         </tr>
                     </tbody></table>
-                    <!--[if (gte mso 9)|(IE)]>
-                    </td>
-                    </tr>
-                    </table>
-                    <![endif]-->
                 </td>
             </tr>
         </tbody></table>
