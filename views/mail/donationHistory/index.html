@@ -150,11 +150,13 @@
                                             </tr>
                                         </thead>
                                             <% for (var i = 0; i < donationHistory.length; i++ ) { %>
-                                                <tbody><tr>
+                                                <tbody>
+                                                    <% for (var j = 0; j < donationHistory[i].distributions.length; j++ ) { %>
+                                                    <tr>
                                                     
                                                     <td style="font-size: 14px;" rowspan= "<% this.donationHistory[i].distributions.length %>" > <% this.dates[i] %> </td>
                                                     
-                                                    <% for (var j = 0; j < donationHistory[i].distributions.length; j++ ) { %>
+                                                    
                                                         <td style="font-size: 14px;">
                                                             <% donationHistory[i].distributions[j].organization %>
                                                         </td>
@@ -186,11 +188,13 @@
                                                             </tr>
                                                         </tbody></table>
                                                     </td> -->
-                                                        <% } %>
-                                                    </td>
-                                                </tr>
+                                                        
+                                                        </td>
+                                                    </tr>
+                                                    <% } %>
+                                                </tbody>
                                             <% } %>
-                                        </tbody></table>
+                                            </table>
                                         </td>
                                     </tr>
                                 </tbody></table>
