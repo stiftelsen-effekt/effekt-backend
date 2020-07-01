@@ -20,6 +20,7 @@
         .footer {padding: 20px 30px 15px 30px;}
         .footercopy {font-family: sans-serif; font-size: 16px; color: #ffffff;}
         .footercopy a {color: #ffffff; text-decoration: underline;}
+        .donation {margin-top: 10px;}
         .emailHeaderImage {
             height:auto !important;
             max-width:600px !important;
@@ -140,7 +141,9 @@
                                     </tbody></table><table class="content" bgcolor="#ffffff" align="center" cellpadding="0" cellspacing="0" border="0">
                                         <thead>
                                             <tr>
-                                                <th>Donasjonshistorikk:</th>
+                                                <td class="bodycopy">
+                                                    <span style="vertical-align: middle;"> Donasjonshistorikk </span> <br><br>
+                                                </td>
                                             </tr>
                                             <tr><br></tr>
                                             <tr>
@@ -150,12 +153,12 @@
                                             </tr>
                                         </thead>
                                             <% for (var i = 0; i < donationHistory.length; i++ ) { %>
-                                                <tbody>
+                                                <tbody class="donation" >
                                                     <% for (var j = 0; j < donationHistory[i].distributions.length; j++ ) { %>
-                                                    <tr>
-                                                    
+                                                    <tr class="donation">
+                                                    <% if (j == 0) { %>
                                                     <td style="font-size: 14px;" rowspan= "<% this.donationHistory[i].distributions.length %>" > <% this.dates[i] %> </td>
-                                                    
+                                                    <% } %>
                                                     
                                                         <td style="font-size: 14px;">
                                                             <% donationHistory[i].distributions[j].organization %>
@@ -163,33 +166,8 @@
                                                         <td style="font-size: 14px;">
                                                             <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %>
                                                         </td>
-                                                    <!-- <td>
-                                                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                                            <tbody><tr>
-                                                                <td>
-                                                                    <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                        <tbody><tr>
-                                                                            <td style="font-size: 14px;">
-                                                                                <% donationHistory[i].distributions[j].organization %>
-                                                                            </td>
-                                                                            <td style="font-size: 14px;">
-                                                                                <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %>
-                                                                            </td>
-                                                                        </tr></tbody>
-                                                                    </table>
-                                                                    <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                        <tbody><tr>
-                                                                            <td style="font-size: 14px;">
-                                                                                <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %>
-                                                                            </td>
-                                                                        </tr>
-                                                                    </tbody></table>
-                                                                </td>
-                                                            </tr>
-                                                        </tbody></table>
-                                                    </td> -->
                                                         
-                                                        </td>
+                                                    
                                                     </tr>
                                                     <% } %>
                                                 </tbody>
