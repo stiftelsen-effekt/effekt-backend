@@ -3,7 +3,6 @@ const DAO = require('./DAO')
 const crypto = require('../custom_modules/authorization/crypto')
 const paymentMethods = require('../enums/paymentMethods')
 const request = require('request-promise-native')
-const moment = require('moment')
 
 //Timings selected based on the vipps guidelines
 //https://www.vipps.no/developers-documentation/ecom/documentation/#polling-guidelines
@@ -140,14 +139,13 @@ module.exports = {
      * @param {string} orderId 
      */
     async pollOrder(orderId) {
-        let count = 0
-        
-        setTimeout(() => {
-            let interval = setInterval(async () => {
-                let shouldCancel = await this.checkOrderDetails(orderId, count)
-                if (shouldCancel) clearInterval(interval)
-            }, POLLING_INTERVAL)
-        }, POLLING_START_DELAY)
+        setTimeout(() => { this.pollLoop(orderId) }, POLLING_START_DELAY)
+    },
+
+    async pollLoop(orderId, count = 1) {
+        console.log("Polling")
+        let shouldCancel = await this.checkOrderDetails(orderId, count)
+        if (!shouldCancel) setTimeout(() => { this.pollLoop(orderId, count+1) }, POLLING_INTERVAL)
     },
 
     /**
@@ -159,24 +157,24 @@ module.exports = {
      * @returns {boolean} True if we should cancel the polling, false otherwise
      */
     async checkOrderDetails(orderId, polls) {
+        console.log(`Polling ${orderId}, ${polls}th poll`)
         let orderDetails = await this.getOrderDetails(orderId)
 
         //If we've been polling for more than eleven minutes, stop polling for updates
         if ((polls * POLLING_INTERVAL) + POLLING_START_DELAY > 1000 * 60 * 10) {
             //Update transaction log history with all information we have
             await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory)
-            return false
+            return true
         }
 
         let captureLogItem = this.findTransactionLogItem(orderDetails.transactionLogHistory, "CAPTURE")
         let reserveLogItem = this.findTransactionLogItem(orderDetails.transactionLogHistory, "RESERVE")
         if (orderDetails.transactionLogHistory.some((logItem) => this.transactionLogItemFinalIsFinalState(logItem))) {
-            
             if (captureLogItem !== null) {
                 let KID = orderId.split("-")[0]
 
                 try {
-                    let donationID = await DAO.donations.add(KID, paymentMethods.vipps, (captureLogItem.amount/100), captureLogItem.timestamp, captureLogItem.transactionID)
+                    let donationID = await DAO.donations.add(KID, paymentMethods.vipps, (captureLogItem.amount/100), captureLogItem.timestamp, captureLogItem.transactionId)
                     await DAO.vipps.updateVippsOrderDonation(orderId, donationID)
                 }
                 catch(ex) {
@@ -261,7 +259,7 @@ module.exports = {
             ...orderDetails,
             transactionLogHistory: orderDetails.transactionLogHistory.map((logItem) => ({
                 ...logItem,
-                timestamp: moment(logItem.timestamp).toDate()
+                timestamp: new Date(logItem.timestamp)
             }))
         }
 
