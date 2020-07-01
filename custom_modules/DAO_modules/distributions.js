@@ -62,17 +62,15 @@ async function getAll(page=0, limit=10, sort, filter=null) {
  * @param {number} KID 
  * @returns {boolean}
  */
-function KIDexists(KID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [res] = await con.query("SELECT * FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
-        } catch(ex) {
-            return reject(ex)
-        }
+async function KIDexists(KID) {
+    try {
+        var [res] = await con.query("SELECT * FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
+    } catch(ex) {
+        throw ex
+    }
 
-        if (res.length > 0) fulfill(true)
-        else fulfill(false)
-    })
+    if (res.length > 0) return true
+    else return false
 }
 
 /**
@@ -81,41 +79,39 @@ function KIDexists(KID) {
  * @param {number} donorID 
  * @returns {number | null} KID or null if no KID found
  */
-function getKIDbySplit(split, donorID) {
-    return new Promise(async (fulfill, reject) => {
-        //Check if existing KID
-        try {
-            //Construct query
-            let query = `
-            SELECT 
-                KID, 
-                Count(KID) as KID_count 
-                
-            FROM Distribution as D
-                INNER JOIN Combining_table as C 
-                    ON C.Distribution_ID = D.ID
+async function getKIDbySplit(split, donorID) {
+    //Check if existing KID
+    try {
+        //Construct query
+        let query = `
+        SELECT 
+            KID, 
+            Count(KID) as KID_count 
             
-            WHERE
-            `;
-            
-            for (let i = 0; i < split.length; i++) {
-                query += `(OrgID = ${sqlString.escape(split[i].organizationID)} AND percentage_share = ${sqlString.escape(split[i].share)} AND Donor_ID = ${sqlString.escape(donorID)})`
-                if (i < split.length-1) query += ` OR `
-            }
-
-            query += ` GROUP BY C.KID
-            
-            HAVING 
-                KID_count = ` + split.length
-
-            var [res] = await con.execute(query)
-        } catch(ex) {
-            return reject(ex)
+        FROM Distribution as D
+            INNER JOIN Combining_table as C 
+                ON C.Distribution_ID = D.ID
+        
+        WHERE
+        `;
+        
+        for (let i = 0; i < split.length; i++) {
+            query += `(OrgID = ${sqlString.escape(split[i].organizationID)} AND percentage_share = ${sqlString.escape(split[i].share)} AND Donor_ID = ${sqlString.escape(donorID)})`
+            if (i < split.length-1) query += ` OR `
         }
 
-        if (res.length > 0) fulfill(res[0].KID)
-        else fulfill(null)
-    })
+        query += ` GROUP BY C.KID
+        
+        HAVING 
+            KID_count = ` + split.length
+
+        var [res] = await con.execute(query)
+    } catch(ex) {
+        throw ex
+    }
+
+    if (res.length > 0) return res[0].KID
+    else return null
 }
 
 /**
@@ -128,32 +124,30 @@ function getKIDbySplit(split, donorID) {
  *  percentage_share: Decimal
  * }]}
  */
-function getSplitByKID(KID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            let [result] = await con.query(`
-                SELECT 
-                    Organizations.ID,
-                    Organizations.full_name,
-                    Organizations.abbriv, 
-                    Distribution.percentage_share
-                
-                FROM Combining_table as Combining
-                    INNER JOIN Distribution as Distribution
-                        ON Combining.Distribution_ID = Distribution.ID
-                    INNER JOIN Organizations as Organizations
-                        ON Organizations.ID = Distribution.OrgID
-                
-                WHERE 
-                    KID = ?`, [KID])
+async function getSplitByKID(KID) {
+    try {
+        let [result] = await con.query(`
+            SELECT 
+                Organizations.ID,
+                Organizations.full_name,
+                Organizations.abbriv, 
+                Distribution.percentage_share
+            
+            FROM Combining_table as Combining
+                INNER JOIN Distribution as Distribution
+                    ON Combining.Distribution_ID = Distribution.ID
+                INNER JOIN Organizations as Organizations
+                    ON Organizations.ID = Distribution.OrgID
+            
+            WHERE 
+                KID = ?`, [KID])
 
-            if (result.length == 0) return reject(new Error("NOT FOUND | No distribution with the KID " + KID))
+        if (result.length == 0) return new Error("NOT FOUND | No distribution with the KID " + KID)
 
-            return fulfill(result)
-        } catch(ex) {
-            reject(ex)
-        }
-    })
+        return result
+    } catch(ex) {
+        throw ex
+    }
 }
 
 /**
@@ -161,29 +155,27 @@ function getSplitByKID(KID) {
  * @param {Array} transactions A list of transactions that must have a ReferenceTransactionId 
  * @returns {Object} Returns an object with referenceTransactionId's as keys and KIDs as values
  */
-function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            let [res] = await con.query(`SELECT 
-                ReferenceTransactionNumber,
-                KID 
-                
-                FROM Paypal_historic_distributions 
+async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
+    try {
+        let [res] = await con.query(`SELECT 
+            ReferenceTransactionNumber,
+            KID 
+            
+            FROM Paypal_historic_distributions 
 
-                WHERE 
-                    ReferenceTransactionNumber IN (?);`, [referenceIDs])
+            WHERE 
+                ReferenceTransactionNumber IN (?);`, [referenceIDs])
 
-            let mapping = res.reduce((acc, row) => {
-                acc[row.ReferenceTransactionNumber] = row.KID
-                return acc
-            }, {})
+        let mapping = res.reduce((acc, row) => {
+            acc[row.ReferenceTransactionNumber] = row.KID
+            return acc
+        }, {})
 
-            fulfill(mapping)
-        } catch(ex) {
-            reject(ex)
-            return false
-        }
-    })
+        return mapping
+    } catch(ex) {
+        throw ex
+        return false
+    }
 }
 //endregion
 
@@ -195,31 +187,29 @@ function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
  * @param {number} donorID 
  * @param {number} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
  */
-function add(split, KID, donorID, metaOwnerID = null) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var transaction = await con.startTransaction()
+async function add(split, KID, donorID, metaOwnerID = null) {
+    try {
+        var transaction = await con.startTransaction()
 
-            if (metaOwnerID == null) {
-                metaOwnerID = await DAO.meta.getDefaultOwnerID()
-            }
-
-            let distribution_table_values = split.map((item) => {return [item.organizationID, item.share]})
-            var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [distribution_table_values])
-
-            let first_inserted_id = res[0].insertId
-            var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {return [donorID, first_inserted_id+i, KID, metaOwnerID]})
-
-            //Update combining table
-            var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID, Meta_owner_ID) VALUES ?", [combining_table_values])
-
-            con.commitTransaction(transaction)
-            fulfill(true)
-        } catch(ex) {
-            con.rollbackTransaction(transaction)
-            reject(ex)
+        if (metaOwnerID == null) {
+            metaOwnerID = await DAO.meta.getDefaultOwnerID()
         }
-    })
+
+        let distribution_table_values = split.map((item) => {return [item.organizationID, item.share]})
+        var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [distribution_table_values])
+
+        let first_inserted_id = res[0].insertId
+        var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {return [donorID, first_inserted_id+i, KID, metaOwnerID]})
+
+        //Update combining table
+        var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID, Meta_owner_ID) VALUES ?", [combining_table_values])
+
+        con.commitTransaction(transaction)
+        return true
+    } catch(ex) {
+        con.rollbackTransaction(transaction)
+        throw ex
+    }
 }
 //endregion
 
@@ -229,8 +219,7 @@ module.exports = {
     getSplitByKID,
     getHistoricPaypalSubscriptionKIDS,
     getAll,
-
     add,
-
+    
     setup: (dbPool, DAOObject) => { con = dbPool, DAO = DAOObject }
 }
