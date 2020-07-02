@@ -163,7 +163,7 @@ async function sendDonationHistory(donorID) {
       await send({
         reciever: email,
         subject: "gieffektivt.no - Din donasjonshistorikk",
-        templateName: "donationHistoryTest",
+        templateName: "donationHistory",
         templateData: { 
             header: "Hei " + donor.full_name + ",",
             total: total,
