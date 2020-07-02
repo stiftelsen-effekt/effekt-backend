@@ -212,7 +212,6 @@ async function getApplicationByClientID(clientID) {
         return application
     } catch (ex) {
         throw ex
-        return false
     }
 }
 
@@ -222,53 +221,48 @@ async function getApplicationByClientID(clientID) {
  * @param {String} password
  * @returns {Object} A Donor object, with id, name etc.
  */
-function getDonorByCredentials(email, password) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            //First get salt
-            let [saltQuery] = await con.query(`
-                SELECT password_salt from Donors
+async function getDonorByCredentials(email, password) {
+    try {
+        //First get salt
+        let [saltQuery] = await con.query(`
+            SELECT password_salt from Donors
 
-                WHERE email = ?
-            `, [email])
+            WHERE email = ?
+        `, [email])
 
-            if (saltQuery.length == 0) {
-                fulfill(null)
-                return false
-            } else {
-                let salt = saltQuery[0].password_salt
-
-                let passwordHash = crypto.hashPassword(password, salt)
-
-                let [donorQuery] = await con.query(`
-                    SELECT ID, full_name, email, date_registered FROM Donors
-
-                    WHERE 
-                        email = ?
-                        AND
-                        password_hash = ?
-                `, [email, passwordHash])
-
-                if (donorQuery.length > 0) {
-                    fulfill(donorQuery.map((line) => {
-                        return {
-                            id: line.ID,
-                            fullname: line.full_name,
-                            email: line.email,
-                            registered: line.date_registered
-                        }
-                    })[0])
-                    return true
-                } else {
-                    fulfill(null)
-                    return false
-                }
-            }
-        } catch(ex) {
-            reject(ex)
+        if (saltQuery.length == 0) {
+            fulfill(null)
             return false
+        } else {
+            let salt = saltQuery[0].password_salt
+
+            let passwordHash = crypto.hashPassword(password, salt)
+
+            let [donorQuery] = await con.query(`
+                SELECT ID, full_name, email, date_registered FROM Donors
+
+                WHERE 
+                    email = ?
+                    AND
+                    password_hash = ?
+            `, [email, passwordHash])
+
+            if (donorQuery.length > 0) {
+                return(donorQuery.map((line) => {
+                    return {
+                        id: line.ID,
+                        fullname: line.full_name,
+                        email: line.email,
+                        registered: line.date_registered
+                    }
+                })[0])
+            } else {
+                return null
+            }
         }
-    })
+    } catch(ex) {
+        throw ex
+    }
 }
 
 /**
@@ -286,7 +280,6 @@ async function getValidAccessKey(accessKey) {
         `, [accessKey])
     } catch(ex) {
         throw ex
-        return false
     }
 
     if (res.length > 0) return(res[0])
