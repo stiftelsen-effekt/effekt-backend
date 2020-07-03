@@ -231,8 +231,7 @@ async function getDonorByCredentials(email, password) {
         `, [email])
 
         if (saltQuery.length == 0) {
-            fulfill(null)
-            return false
+            return(null)
         } else {
             let salt = saltQuery[0].password_salt
 
