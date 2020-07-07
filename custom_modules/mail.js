@@ -144,7 +144,8 @@ async function sendDonationHistory(donorID) {
       }
       
       for (let i = 0; i < donationHistory.length; i++) {
-        let dateFormat = donationHistory[i].date.getDate().toString() + "/" + donationHistory[i].date.getMonth().toString() + "/" + donationHistory[i].date.getFullYear().toString()
+        let month = donationHistory[i].date.getMonth()+1
+        let dateFormat = donationHistory[i].date.getDate().toString() + "/" + month.toString() + "/" + donationHistory[i].date.getFullYear().toString()
         dates.push(dateFormat)  
       }
       
@@ -154,7 +155,7 @@ async function sendDonationHistory(donorID) {
       }
       
     } catch(ex) {
-      console.error("Failed to send mail donation reciept, could not get donation by ID")
+      console.error("Failed to send donation history, could not get donation by ID")
       console.error(ex)
       return false
     }
