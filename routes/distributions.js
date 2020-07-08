@@ -67,7 +67,7 @@ router.post("/search",
 })
 
 router.get("/:KID", 
-  //authMiddleware(authRoles.read_all_donations), 
+  authMiddleware(authRoles.read_all_donations), 
   async (req,res,next) => {
   try {
     if (!req.params.KID) res.status(400).json({ status: 400, content: "No KID provided" })
@@ -92,7 +92,7 @@ router.get("/:KID",
 })
 
 router.get("/all/:donorID", 
-  //authMiddleware(authRoles.read_all_donations), 
+  authMiddleware(authRoles.read_all_donations), 
   async (req,res,next) => {
   try {
     if (!req.params.donorID) res.status(400).json({ status: 400, content: "No KID provided" })
