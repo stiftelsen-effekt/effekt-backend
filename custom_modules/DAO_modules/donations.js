@@ -349,7 +349,7 @@ async function getMedianFromRange(fromDate, toDate) {
  */
 async function getSummary(donorID) {
     var [res] = await con.query(`SELECT
-    Organizations.full_name, (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, transaction_cost
+    Organizations.full_name, (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, transaction_cost, Donations.Donor_ID
     FROM Donations
     INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
     INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
@@ -374,6 +374,7 @@ async function getSummary(donorID) {
             }
         })
     })
+    summary.push({donorID: res[0].Donor_ID})
     return summary
 }
 
