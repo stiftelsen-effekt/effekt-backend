@@ -50,11 +50,8 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
         transactionId: req.body.transactionInfo.transactionId,
         amount: req.body.transactionInfo.amount,
         status: req.body.transactionInfo.status,
-        timestamp: moment(req.body.transactionInfo.timeStamp).toDate()
+        timestamp: new Date(req.body.transactionInfo.timeStamp)
     }
-
-    //Order ID is on the format KID:timestamp, e.g. 21938932-138981748279238
-    let KID = orderId.split("-")[0]
 
     //Handle different transactions states
     switch(transactionInfo.status) {

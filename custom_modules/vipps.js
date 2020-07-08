@@ -3,7 +3,6 @@ const DAO = require('./DAO')
 const crypto = require('../custom_modules/authorization/crypto')
 const paymentMethods = require('../enums/paymentMethods')
 const request = require('request-promise-native')
-const moment = require('moment')
 
 //Timings selected based on the vipps guidelines
 //https://www.vipps.no/developers-documentation/ecom/documentation/#polling-guidelines
@@ -15,7 +14,7 @@ const POLLING_INTERVAL = 2000
  * @property {number} amount In øre
  * @property {string} transactionText
  * @property {number} transactionId
- * @property {string} timestamp JSON timestamp
+ * @property {string} timeStamp JSON timestamp
  * @property {string} operation
  * @property {number} requestId 
  * @property {boolean} operationSuccess
@@ -115,7 +114,7 @@ module.exports = {
             "transaction": {
                 "amount": sum*100, //Specified in øre, therefore NOK * 100
                 "orderId": order.orderID,
-                "timestamp": new Date(),
+                "timeStamp": new Date(),
                 "transactionText": "Donasjon til Gieffektivt.no",
                 "skipLandingPage": false
             }
@@ -140,14 +139,13 @@ module.exports = {
      * @param {string} orderId 
      */
     async pollOrder(orderId) {
-        let count = 0
-        
-        setTimeout(() => {
-            let interval = setInterval(async () => {
-                let shouldCancel = await this.checkOrderDetails(orderId, count)
-                if (shouldCancel) clearInterval(interval)
-            }, POLLING_INTERVAL)
-        }, POLLING_START_DELAY)
+        setTimeout(() => { this.pollLoop(orderId) }, POLLING_START_DELAY)
+    },
+
+    async pollLoop(orderId, count = 1) {
+        console.log("Polling")
+        let shouldCancel = await this.checkOrderDetails(orderId, count)
+        if (!shouldCancel) setTimeout(() => { this.pollLoop(orderId, count+1) }, POLLING_INTERVAL)
     },
 
     /**
@@ -159,24 +157,24 @@ module.exports = {
      * @returns {boolean} True if we should cancel the polling, false otherwise
      */
     async checkOrderDetails(orderId, polls) {
+        console.log(`Polling ${orderId}, ${polls}th poll`)
         let orderDetails = await this.getOrderDetails(orderId)
 
         //If we've been polling for more than eleven minutes, stop polling for updates
         if ((polls * POLLING_INTERVAL) + POLLING_START_DELAY > 1000 * 60 * 10) {
             //Update transaction log history with all information we have
             await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory)
-            return false
+            return true
         }
 
         let captureLogItem = this.findTransactionLogItem(orderDetails.transactionLogHistory, "CAPTURE")
         let reserveLogItem = this.findTransactionLogItem(orderDetails.transactionLogHistory, "RESERVE")
         if (orderDetails.transactionLogHistory.some((logItem) => this.transactionLogItemFinalIsFinalState(logItem))) {
-            
             if (captureLogItem !== null) {
                 let KID = orderId.split("-")[0]
 
                 try {
-                    let donationID = await DAO.donations.add(KID, paymentMethods.vipps, (captureLogItem.amount/100), captureLogItem.timestamp, captureLogItem.transactionID)
+                    let donationID = await DAO.donations.add(KID, paymentMethods.vipps, (captureLogItem.amount/100), captureLogItem.timeStamp, captureLogItem.transactionId)
                     await DAO.vipps.updateVippsOrderDonation(orderId, donationID)
                 }
                 catch(ex) {
@@ -261,7 +259,7 @@ module.exports = {
             ...orderDetails,
             transactionLogHistory: orderDetails.transactionLogHistory.map((logItem) => ({
                 ...logItem,
-                timestamp: moment(logItem.timestamp).toDate()
+                timeStamp: new Date(logItem.timeStamp)
             }))
         }
 
@@ -308,7 +306,7 @@ module.exports = {
         let KID = orderId.split("-")[0]
 
         if (captureRequest.transactionInfo.status == "Captured") {
-            let donationID = await DAO.donations.add(KID, paymentMethods.vipps, (transactionInfo.amount/100), transactionInfo.timestamp, transactionInfo.transactionId)
+            let donationID = await DAO.donations.add(KID, paymentMethods.vipps, (transactionInfo.amount/100), transactionInfo.timeStamp, transactionInfo.transactionId)
             await DAO.vipps.updateVippsOrderDonation(orderId, donationID)
             return true
         }
@@ -324,6 +322,35 @@ module.exports = {
      * @return {boolean} Refunded or not
      */
     async refundOrder(orderId) {
+        let token = await this.fetchToken()
+
+        try {
+            var captureRequest = await request.post({
+                uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/capture`,
+                headers: this.getVippsHeaders(token),
+                json: data
+            })
+        }
+        catch(ex) {
+            if (ex.statusCode === 423 || ex.statusCode === 402) {
+                //This is most likely a case of the polling trying to capture an order already captured by the callback, simply return true
+                return true
+            }
+            else {
+                console.error(`Failed to capture order with id ${orderId}`, ex)
+                throw ex
+            }    
+        }
+
+        return false
+    },
+
+    /**
+     * Cancels order
+     * @param {string} orderId 
+     * @return {boolean} Cancelled or not
+     */
+    async cancelOrder(orderId) {
         let token = await this.fetchToken()
 
         return false
