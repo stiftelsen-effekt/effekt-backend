@@ -45,24 +45,18 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     }
 
     //TODO: Check whether order exists and, if captured, whether reserved before
-    let transactionStatus = {
-        orderID: orderId,
-        transactionID: req.body.transactionInfo.transactionId,
+    let transactionInfo = {
+        orderId: orderId,
+        transactionId: req.body.transactionInfo.transactionId,
         amount: req.body.transactionInfo.amount,
         status: req.body.transactionInfo.status,
-        timestamp: moment(req.body.transactionInfo.timeStamp).toDate()
+        timestamp: new Date(req.body.transactionInfo.timeStamp)
     }
 
-    //Add transaction details to database
-    await DAO.vipps.addOrderTransactionStatus(transactionStatus)
-
-    //Order ID is on the format KID:timestamp, e.g. 21938932-138981748279238
-    let KID = orderId.split("-")[0]
-
     //Handle different transactions states
-    switch(transactionStatus.status) {
+    switch(transactionInfo.status) {
         case "RESERVED":
-            await vipps.captureOrder(orderId, transactionStatus)
+            await vipps.captureOrder(orderId, transactionInfo)
             break;
         case "SALE":
             //Not applicable POS sale
@@ -79,7 +73,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
             //Perhaps send a follow-up email?
             break;
         default:
-            console.warn("Unknown vipps state", transactionStatus.status)
+            console.warn("Unknown vipps state", transactionInfo.status)
             break;
     }
 
