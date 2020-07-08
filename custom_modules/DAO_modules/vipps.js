@@ -133,7 +133,7 @@ async function updateOrderTransactionStatusHistory(orderId,transactionHistory) {
     try {
         await transaction.query(`DELETE FROM Vipps_order_transaction_statuses WHERE orderID = ?`, [orderId])
 
-        const mappedInsertValues = transactionHistory.map((logItem) => ([orderId, logItem.transactionId, logItem.amount, logItem.operation, logItem.timestamp, logItem.operationSuccess]))
+        const mappedInsertValues = transactionHistory.map((logItem) => ([orderId, logItem.transactionId, logItem.amount, logItem.operation, logItem.timeStamp, logItem.operationSuccess]))
 
         await transaction.query(`
             INSERT INTO Vipps_order_transaction_statuses
