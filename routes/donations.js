@@ -16,7 +16,6 @@ const mail = require('../custom_modules/mail')
 const vipps = require('../custom_modules/vipps')
 const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 const donationHelpers = require('../custom_modules/donationHelpers')
-const { getIDbyEmail } = require('../custom_modules/DAO_modules/donors')
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -282,7 +281,7 @@ router.get("/history/:donorID", authMiddleware(authRoles.read_all_donations), as
 router.post("/history/email", async (req, res, next) => {
   try {
     let email = req.body.email
-    let id = await getIDbyEmail(email)
+    let id = await DAO.donors.getIDbyEmail(email)
     
     if (id != null) {
       var mailsent = await mail.sendDonationHistory(id)
