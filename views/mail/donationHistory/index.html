@@ -1,0 +1,266 @@
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>A Simple Responsive HTML Email</title>
+    <style type="text/css">
+        body {margin: 0; padding: 0; min-width: 100%!important; overflow: hidden;}
+        img {height: auto; min-width: 100%;}
+        .content {width: 100%; max-width: 600px;}
+        .innerpadding {padding: 30px 30px 30px 30px;}
+        .borderbottom {border-bottom: 1px solid #f2eeed;}
+        .subhead {font-size: 15px; color: #ffffff; font-family: sans-serif; letter-spacing: 10px;}
+        .h1, .h2, .h3, .h4, .bodycopy, .boldTableRow, .tableRow {color: #153643; font-family: sans-serif;}
+        .h1 {font-size: 33px; line-height: 38px; font-weight: bold;}
+        .h2 {padding: 0 0 15px 0; font-size: 24px; line-height: 28px; font-weight: bold;}
+        .h3 {padding: 0 0 15px 0; font-size: 18px; line-height: 26px; font-weight: bold;}
+        .h4 {padding: 0 0 15px 0; font-size: 16px; line-height: 19px; font-weight: bold;}
+        .boldTableRow {padding: 0 0 0 0; font-size: 16px; line-height: 22px; font-weight: bold}
+        .tableRow {padding: 0 0 10px 0; font-size: 16px; line-height: 22px;}
+        .blank_row {height: 10px; background-color: #FFFFFF;}
+        .bodycopy {font-size: 16px; line-height: 22px;}
+        .footer {padding: 20px 30px 15px 30px;}
+        .footercopy {font-family: sans-serif; font-size: 16px; color: #ffffff;}
+        .footercopy a {color: #ffffff; text-decoration: underline;}
+        
+        .emailHeaderImage {
+            height:auto !important;
+            max-width:600px !important;
+            width: 100% !important;
+        }
+        @media only screen and (max-width: 550px), screen and (max-device-width: 550px) {
+            body[yahoo] .hide {display: none!important;}
+            body[yahoo] .buttonwrapper {background-color: transparent!important;}
+            body[yahoo] .button {padding: 0px!important;}
+            body[yahoo] .unsubscribe {display: block; margin-top: 20px; padding: 10px 50px; background: #8e8989; border-radius: 5px; text-decoration: none!important; font-weight: bold;}
+        }
+        td.spaceover {padding-top: 0.5em; border-top:1px solid black;}
+        img {
+            width: 0px;
+            height: 0px;
+        }
+        table img {
+            width: auto;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body yahoo="" bgcolor="#f6f8f1">
+<table width="100%" bgcolor="#f6f8f1" border="0" cellpadding="0" cellspacing="0">
+    <tbody><tr>
+        <td>
+            <table class="content" bgcolor="#ffffff" align="center" cellpadding="0" cellspacing="0" border="0">
+                <tbody><tr>
+                    <td bgcolor="#c7d8a7" class="header">
+                        <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:640px; padding: 0 0 0 0;">
+                            <tbody><tr>
+                                <td height="auto" style="padding: 0 0 0 0;">
+                                    <img class="emailHeaderImage" src="cid:epost_banner.jpg" border="0" alt="gieffektivt.no">
+                                </td>
+                            </tr>
+                        </tbody></table>
+                        <!--[if (gte mso 9)|(IE)]>
+                        <table width="100%" style="max-width:640px;" align="center" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td>
+                                    <img src="images/epostmal_header_image.png" width="100%" />
+                                </td>
+                            </tr>
+                        </table>
+                        <![endif]-->
+                    </td>
+                </tr>
+                <tr>
+                    <td class="innerpadding borderbottom">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            <tbody><tr>
+                                <td class="h2">
+                                    <% this.header %>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="h2">
+                                    Tusen takk for dine bidrag!
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="bodycopy">
+                                <br>
+                                    <span style="vertical-align: middle;">Vi har totalt mottatt <% this.total %> kr via dine donasjoner </span> <br><br>
+                                </td>
+                            </tr>
+                            <tr>
+                                </tr></tbody></table><table border="0" cellspacing="0" cellpadding="0">
+                                    <tbody><tr>
+                                        <td>
+                                            Donasjonene har følgende fordeling: 
+                                            <br>
+                                            <br>
+                                            <% for (var i = 0; i < donationSummary.length - 1; i++ ) { %>
+                                                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                    <tbody><tr>
+                                                        <td>
+                                                            <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                <tbody><tr>
+                                                                    <td style="font-size: 16px;">
+                                                                        <% donationSummary[i].organization %>
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody></table>
+                                                            <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                <tbody><tr>
+                                                                    <td style="font-size: 16px;">
+                                                                        <% donationSummary[i].sum %> kr
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody></table>
+                                                        </td>
+                                                    </tr>
+                                                </tbody></table>
+                                            <% } %>
+                                            
+                                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                <tbody><tr>
+                                                    <td>
+                                                        <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                            <tbody><tr>
+                                                                <td style="font-size: 16px; font-weight: 600;">
+                                                                    <strong>Totalt</strong>
+                                                                </td>
+                                                            </tr>
+                                                        </tbody></table>
+                                                        <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                            <tbody><tr>
+                                                                <td style="font-size: 16px; font-weight: 600;">
+                                                                    <% this.total %> kr
+                                                                </td>
+                                                            </tr>
+                                                        </tbody></table>
+                                                    </td>
+                                                </tr>
+                                            </tbody></table>
+                                        </tbody></table>
+                                    </tbody></table>
+                                    
+                                    
+                                    <table class="content" bgcolor="#ffffff" align="center" cellpadding="0" cellspacing="0" border="0">
+                                        <thead >
+                                            <tr>
+                                                <td class="bodycopy">
+                                                    <span style="vertical-align: middle;"> Donasjonshistorikk </span> <br><br>
+                                                </td>
+                                            </tr>
+                                            <tr><br></tr>
+                                            <tr><td align="center"><table><tr>
+                                                <th width="150" align="left">Dato</th>
+                                                <th width="205" align="left">Organisasjon</th>
+                                                <th width="90" align="left">Sum</th>
+                                            </tr></table></td></tr>
+                                        </thead>
+                                        
+                                            <% for (var i = 0; i < donationHistory.length; i++ ) { %>
+                                                <table width="100%" class="content" bgcolor="#ffffff" align="center" cellpadding="0" cellspacing="0" border="0"><tbody>
+                                                    <% for (var j = 0; j < donationHistory[i].distributions.length; j++ ) { %>
+                                                    <tr>
+                                                        <td align="center">
+                                                            <table><tr>
+                                                                <% if (j == 0) { %>
+                                                                    <td class="spaceover" width="150" style="font-size: 14px;" align="left" > <% this.dates[i] %> </td>
+                                                                    <td class="spaceover" width="205" style="font-size: 14px;" align="left">
+                                                                        <% donationHistory[i].distributions[j].organization %>
+                                                                    </td>
+    
+                                                                    <td class="spaceover" width="90" style="font-size: 14px;" align="left">
+                                                                        <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %> kr
+                                                                    </td>
+                                                                <% } else { %>
+                                                                    <td width="150" style="font-size: 14px;" align="left" > - </td>
+
+                                                                    <td width="205" style="font-size: 14px;" align="left">
+                                                                        <% donationHistory[i].distributions[j].organization %>
+                                                                    </td>
+    
+                                                                    <td width="90" style="font-size: 14px;" align="left">
+                                                                        <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %> kr
+                                                                    </td>
+                                                                <% } %>
+                                                                    
+                                                            </tr></table>
+                                                        </td>
+                                                    </tr>
+                                                    <% } %>
+                                                </tbody></table>
+                                            <% } %>
+                                            </table>
+                                        </td>
+                                    </tr>
+                            </td></tr>
+                        <tr>
+                            <table class="content" bgcolor="#ffffff" align="center" cellpadding="0" cellspacing="0" border="0">
+                                        <td class="innerpadding">
+                                            <br>
+                                            Vi takker for alle dine bidrag, og håper at du fortsetter å støtte anbefalte organisasjoner via vår giverportal. 
+                                            <br><br>
+                                            Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
+                                            ved å sende en mail til
+                                            <a href="mailto:donasjon@gieffektivt.no" style="color: #153643;"><font color="#153643">donasjon@gieffektivt.no</font></a><font color="#153643"><br><br>
+                                            Håper du får en fantastisk dag!<br><br><br>
+                                            <b>Vennlig hilsen</b><br>
+                                            oss i gieffektivt.no
+                                        </font></td>
+                            
+                        </tr>
+                        <tr>
+                            <td class="footer" bgcolor="#b0aaaa">
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    <tbody><tr>
+                                        <td align="center" class="footercopy">
+                                            <table width="194" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                <tbody><tr>
+                                                    <td style="color: #00000099; font-family: Arial, sans-serif; font-size: 14px;">
+                                                        gieffektivt.no
+                                                        <a href="mailto:donasjon@gieffektivt.no" style="color: #00000099;"><font color="#00000099">donasjon@gieffektivt.no</font></a><font color="#00000099"><br>
+                                                        <span>Orgnr. 916 625 308</span><br><br>
+                                                    </font></td>
+                                                </tr>
+                                            </tbody></table>
+                                            <!--[if (gte mso 9)|(IE)]>
+                                            <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                                <tr>
+                                                    <td>
+                                            <![endif]-->
+                                            <table width="75" align="right" border="0" cellpadding="0" cellspacing="0">
+                                                <tbody><tr>
+                                                    <td>
+                                                        <a href="https://gieffektivt.no/">
+                                                            <img src="cid:gieffektivt.png" alt="gieffektivt" style="display: block; width:75px; height:75px;" border="0">
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            </tbody></table>
+                                            <!--[if (gte mso 9)|(IE)]>
+                                            <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                                <tr>
+                                                    <td>
+                                            <![endif]-->
+                                        </td>
+                                    </tr>
+                                </table>
+                                </tbody></table>
+                            </td>
+                        </tr>
+                    </tbody></table>
+                    <!--[if (gte mso 9)|(IE)]>
+                    </td>
+                    </tr>
+                    </table>
+                    <![endif]-->
+                </td>
+            </tr>
+        </tbody></table>
+    
+
+
+
+    
+
+</body></html>

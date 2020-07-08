@@ -278,4 +278,29 @@ router.get("/history/:donorID", authMiddleware(authRoles.read_all_donations), as
   }
 })
 
+router.post("/history/email", async (req, res, next) => {
+  try {
+    let email = req.body.email
+    let id = await DAO.donors.getIDbyEmail(email)
+    
+    if (id != null) {
+      var mailsent = await mail.sendDonationHistory(id)
+      if (mailsent) {
+        res.json({
+            status: 200,
+            content: "ok"
+        })
+      }
+    } else {
+      res.status(500).json({
+        status: 500,
+        content: "failed"
+      })
+    }
+  }
+  catch(ex) {
+      next(ex)
+  }
+})
+
 module.exports = router
