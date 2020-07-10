@@ -264,7 +264,7 @@ router.get("/summary/:donorID", authMiddleware(authRoles.read_all_donations), as
   }
 })
 
-router.get("/history/:donorID", async (req, res, next) => {
+router.get("/history/:donorID", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
   try {
       var history = await DAO.donations.getHistory(req.params.donorID)
 
@@ -278,7 +278,7 @@ router.get("/history/:donorID", async (req, res, next) => {
   }
 })
 
-router.post("/history/email", async (req, res, next) => {
+router.post("/history/email", authMiddleware(authRoles.real_all_donations), async (req, res, next) => {
   try {
     let email = req.body.email
     let id = await DAO.donors.getIDbyEmail(email)
