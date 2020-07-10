@@ -374,7 +374,7 @@ async function getSummary(donorID) {
             }
         })
     })
-    summary.push({donorID: res[0].Donor_ID})
+    summary.push({donorID: donorID})
     return summary
 }
 
