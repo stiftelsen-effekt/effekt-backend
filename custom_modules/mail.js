@@ -137,24 +137,32 @@ async function sendDonationHistory(donorID) {
       var donor = await DAO.donors.getByID(donationSummary[donationSummary.length - 1].donorID)
       var email = donor.email
       var dates = []
+      var templateName;
 
       if (!email)  {
         console.error("No email provided for donor ID " + donorID)
         return false
-      }
-      
-      for (let i = 0; i < donationHistory.length; i++) {
-        let dateFormat = donationHistory[i].date.getDate().toString() + "/" + donationHistory[i].date.getMonth().toString() + "/" + donationHistory[i].date.getFullYear().toString()
-        dates.push(dateFormat)  
-      }
-      
+      } 
 
-      for (let i = 0; i < donationSummary.length - 1; i++) {
-        total += donationSummary[i].sum;
+      if(donationHistory.length == 0) {
+        templateName = "noDonationHistory"
+      }
+      else { 
+        templateName = "donationHistory"
+        for (let i = 0; i < donationHistory.length; i++) {
+          let month = donationHistory[i].date.getMonth()+1
+          let dateFormat = donationHistory[i].date.getDate().toString() + "/" + month.toString() + "/" + donationHistory[i].date.getFullYear().toString()
+          dates.push(dateFormat)  
+        }
+        
+
+        for (let i = 0; i < donationSummary.length - 1; i++) {
+          total += donationSummary[i].sum;
+        }
       }
       
     } catch(ex) {
-      console.error("Failed to send mail donation reciept, could not get donation by ID")
+      console.error("Failed to send donation history, could not get donation by ID")
       console.error(ex)
       return false
     }
@@ -163,7 +171,7 @@ async function sendDonationHistory(donorID) {
       await send({
         reciever: email,
         subject: "gieffektivt.no - Din donasjonshistorikk",
-        templateName: "donationHistory",
+        templateName: templateName,
         templateData: { 
             header: "Hei " + donor.full_name + ",",
             total: total,
