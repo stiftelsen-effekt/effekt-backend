@@ -1,4 +1,6 @@
 const sqlString = require('sqlstring')
+const { distributions } = require('../DAO')
+const donors = require('./donors')
 
 var con
 var DAO
@@ -55,6 +57,54 @@ async function getAll(page=0, limit=10, sort, filter=null) {
         rows,
         pages
     };
+}
+
+/**
+ * Fetches all distributions belonging to a specific donor
+ * @param {Number} donorID
+ * @returns {{
+ *  donorID: number,
+ *  distributions: [{
+ *      KID: number,
+ *      organizations: [{
+ *          name: string,
+ *          share: number
+ *      }]}]}}
+ */
+async function getAllByDonor(donorID) {
+    var [res] = await con.query(`select Donors.ID as donID, Combining_table.KID as KID, Distribution.ID, Organizations.full_name, Distribution.percentage_share 
+    from Donors
+    inner join Combining_table on Combining_table.Donor_ID = Donors.ID
+    inner join Distribution on Distribution.ID = Combining_table.Distribution_ID
+    inner join Organizations on Organizations.ID = Distribution.OrgID
+    where Donors.ID = ` + donorID)
+
+    var distObj = {
+        donorID: res[0].donID,
+        distributions: []
+    }
+
+    // Finds all unique KID numbers
+    const map = new Map()
+    for (const item of res) {
+        if(!map.has(item.KID)){
+            map.set(item.KID, true)
+            distObj.distributions.push({
+                kid: item.KID,
+                organizations: []
+            })
+        }
+    }
+    // Adds organization and shares to each KID number
+    res.forEach(row => {
+        distObj.distributions.forEach(obj => {
+            if(row.KID == obj.kid) {
+                obj.organizations.push({name: row.full_name, share: row.percentage_share})
+            }
+        })
+    })
+
+    return distObj
 }
 
 /**
@@ -219,6 +269,7 @@ module.exports = {
     getSplitByKID,
     getHistoricPaypalSubscriptionKIDS,
     getAll,
+    getAllByDonor,
     add,
     
     setup: (dbPool, DAOObject) => { con = dbPool, DAO = DAOObject }
