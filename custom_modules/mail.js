@@ -7,10 +7,6 @@ const template = require('./template.js')
 const request = require('request-promise-native')
 const fs = require('fs-extra')
 
-module.exports = {
-    sendDonationReciept,
-    sendDonationRegistered
-}
 
 /**
  * Sends a donation reciept
@@ -133,6 +129,60 @@ async function sendDonationRegistered(KID) {
     }
 }
 
+async function sendDonationHistory(donorID) {
+  let total = 0
+    try {
+      var donationSummary = await DAO.donations.getSummary(donorID)
+      var donationHistory = await DAO.donations.getHistory(donorID)
+      var donor = await DAO.donors.getByID(donationSummary[donationSummary.length - 1].donorID)
+      var email = donor.email
+      var dates = []
+
+      if (!email)  {
+        console.error("No email provided for donor ID " + donorID)
+        return false
+      }
+      
+      for (let i = 0; i < donationHistory.length; i++) {
+        let dateFormat = donationHistory[i].date.getDate().toString() + "/" + donationHistory[i].date.getMonth().toString() + "/" + donationHistory[i].date.getFullYear().toString()
+        dates.push(dateFormat)  
+      }
+      
+
+      for (let i = 0; i < donationSummary.length - 1; i++) {
+        total += donationSummary[i].sum;
+      }
+      
+    } catch(ex) {
+      console.error("Failed to send mail donation reciept, could not get donation by ID")
+      console.error(ex)
+      return false
+    }
+
+    try {
+      await send({
+        reciever: email,
+        subject: "gieffektivt.no - Din donasjonshistorikk",
+        templateName: "donationHistory",
+        templateData: { 
+            header: "Hei " + donor.full_name + ",",
+            total: total,
+            donationSummary: donationSummary,
+            donationHistory: donationHistory,
+            dates: dates
+        }
+      })
+
+      return true
+    } catch(ex) {
+      console.error("Failed to send donation history")
+      console.error(ex)
+      return ex.statusCode
+    }
+}
+
+
+
 /**
  * @typedef MailOptions
  * @prop {string} reciever
@@ -168,12 +218,24 @@ async function send(options) {
     }
 
     //Exceptions bubble up
-    await request.post({
+    let result = await request.post({
         url: 'https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages',
         auth: {
             user: 'api',
             password: config.mailgun_api_key
         },
-        formData: data
+        formData: data,
+        resolveWithFullResponse: true
     })
+    if(result.statusCode === 200) {
+      return true
+    } else {
+      return false
+    }
+}
+
+module.exports = {
+  sendDonationReciept,
+  sendDonationRegistered,
+  sendDonationHistory
 }
