@@ -21,7 +21,7 @@ module.exports = {
     vipps_api_url: (process.env.NODE_ENV === 'production' ? 'api.vipps.no' : 'apitest.vipps.no'),
 
     //Set port for API listening, default to 3000
-    port: process.env.EFFEKT_PORT || 3000,
+    port: process.env.PORT || 3000,
 
     //Bank account for recieving donations
     bankAccount: process.env.BANK_ACCOUNT,
