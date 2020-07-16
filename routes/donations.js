@@ -83,10 +83,10 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     }
 
     //Get external paymentprovider URL
-    if (donationObject.method == methods.VIPPS)
-      initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
-      //Start polling for updates
-      await vipps.pollOrder(initiatedOrder.orderId)
+    // if (donationObject.method == methods.VIPPS)
+    //   initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
+    //   //Start polling for updates
+    //   await vipps.pollOrder(initiatedOrder.orderId)
   }
 
   catch (ex) {
@@ -105,8 +105,8 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     content: {
       KID: donationObject.KID,
       donorID: donationObject.donorID,
-      hasAnsweredReferral,
-      paymentProviderUrl: initiatedOrder.externalPaymentUrl
+      hasAnsweredReferral
+      //paymentProviderUrl: initiatedOrder.externalPaymentUrl
     }
   })
 })
