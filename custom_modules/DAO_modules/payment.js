@@ -5,21 +5,18 @@ var con
  * Get payment methods from database
  * @returns {Array} An array of payment method objects
  */
-function getMethods() {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [res] = await con.query(`SELECT * FROM Payment`)
+async function getMethods() {
+    try {
+        var [res] = await con.query(`SELECT * FROM Payment`)
 
-            if (res.length > 0) {
-                fulfill(mapDBpaymentToObject(res))
-            } else {
-                fulfill(null)
-            }
-        } catch(ex) {
-            reject(ex)
-            return false
+        if (res.length > 0) {
+            return(mapDBpaymentToObject(res))
+        } else {
+            return(null)
         }
-    })
+    } catch(ex) {
+        throw(ex)
+    }
 }
 
 /**
@@ -27,22 +24,19 @@ function getMethods() {
  * @param paymentMethodIDs The payment method ID's to filter on
  * @returns {Array} An array of payment method objects
  */
-function getPaymentMethodsByIDs(paymentMethodIDs) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [res] = await con.query(`SELECT * FROM Payment 
-                                            WHERE ID IN (?)`, [paymentMethodIDs])
+async function getPaymentMethodsByIDs(paymentMethodIDs) {
+    try {
+        var [res] = await con.query(`SELECT * FROM Payment 
+                                        WHERE ID IN (?)`, [paymentMethodIDs])
 
-            if (res.length > 0) {
-                fulfill(mapDBpaymentToObject(res))
-            } else {
-                fulfill(null)
-            }
-        } catch(ex) {
-            reject(ex)
-            return false
+        if (res.length > 0) {
+            return(mapDBpaymentToObject(res))
+        } else {
+            return(null)
         }
-    })
+    } catch(ex) {
+        throw ex
+    }
 }
 
 //endregion
