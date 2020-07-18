@@ -409,7 +409,17 @@ function registerConfirmedByIDs(IDs) {
 //endregion
 
 //region Delete
+/**
+ * Deletes a donation from the database
+ * @param {number} donationId
+ * @returns {boolean} Returns true if a donation was deleted, false else
+ */
+async function remove(donationId) {
+    var result = await con.query(`DELETE FROM Donations WHERE ID = ?`, [donationId])
 
+    if (result[0].affectedRows > 0) return true
+    else return false
+}
 //endregion
 
 //region Helpers
@@ -442,6 +452,7 @@ module.exports = {
     add,
     registerConfirmedByIDs,
     getHistogramBySum,
+    remove,
 
     setup: (dbPool, DAOObject) => { con = dbPool, DAO = DAOObject }
 }

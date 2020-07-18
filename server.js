@@ -71,7 +71,7 @@ DAO.connect(() => {
   //Rate limiting
   app.use(new rateLimit({
     windowMs: 60*1000, // 1 minute
-    max: 50, //limit each IP to 10 000 requests per windowMs (50 requests per minute)
+    max: 50, //limit each IP to 50 requests per minute
     delayMs: 0 // disable delaying - full speed until the max limit is reached 
   }))
 

@@ -9,6 +9,8 @@ const request = require('request-promise-native')
 const POLLING_START_DELAY = 5000
 const POLLING_INTERVAL = 2000
 
+const VIPPS_TEXT = "Donasjon til GiEffektivt.no"
+
 /**
  * @typedef TransactionLogItem
  * @property {number} amount In øre
@@ -115,7 +117,7 @@ module.exports = {
                 "amount": sum*100, //Specified in øre, therefore NOK * 100
                 "orderId": order.orderID,
                 "timeStamp": new Date(),
-                "transactionText": "Donasjon til Gieffektivt.no",
+                "transactionText": VIPPS_TEXT,
                 "skipLandingPage": false
             }
         }
@@ -242,7 +244,7 @@ module.exports = {
     /**
      * Fetches order details
      * @param {string} orderId
-     * @return {OrderDetails}
+     * @returns {OrderDetails}
      */
     async getOrderDetails(orderId) {
         let token = await this.fetchToken()
@@ -281,7 +283,7 @@ module.exports = {
             },
             transaction: {
                 amount: transactionInfo.amount,
-                transactionText: "Donasjon til Gieffektivt.no"
+                transactionText: VIPPS_TEXT
             }
         }
 
@@ -325,24 +327,41 @@ module.exports = {
         let token = await this.fetchToken()
 
         try {
-            var captureRequest = await request.post({
-                uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/capture`,
+            let order = await DAO.vipps.getOrder(orderId)
+
+            if (order.donationID == null) {
+                console.error(`Could not refund order with id ${orderId}, order has not been captured`)
+                return false
+            }
+
+            let donation = await DAO.donations.getByID(order.donationID)
+
+            const data = {
+                merchantInfo: {
+                    merchantSerialNumber: config.vipps_merchant_serial_number
+                },
+                transaction: {
+                    amount: donation.sum*100,
+                    transactionText: VIPPS_TEXT
+                }
+            }
+
+            var refundRequest = await request.post({
+                uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/refund`,
                 headers: this.getVippsHeaders(token),
                 json: data
             })
+
+            await DAO.donations.remove(order.donationID)
+            let orderDetails = await this.getOrderDetails(orderId)
+            await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory)
+        
+            return true
         }
         catch(ex) {
-            if (ex.statusCode === 423 || ex.statusCode === 402) {
-                //This is most likely a case of the polling trying to capture an order already captured by the callback, simply return true
-                return true
-            }
-            else {
-                console.error(`Failed to capture order with id ${orderId}`, ex)
-                throw ex
-            }    
+            console.error(`Failed to refund vipps order with id ${orderId}`, ex)
+            return false 
         }
-
-        return false
     },
 
     /**
@@ -353,7 +372,31 @@ module.exports = {
     async cancelOrder(orderId) {
         let token = await this.fetchToken()
 
-        return false
+        try {
+            const data = {
+                merchantInfo: {
+                    merchantSerialNumber: config.vipps_merchant_serial_number
+                },
+                transaction: {
+                    transactionText: VIPPS_TEXT
+                }
+            }
+
+            var cancelRequest = await request.put({
+                uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/cancel`,
+                headers: this.getVippsHeaders(token),
+                json: data
+            })
+
+            let orderDetails = await this.getOrderDetails(orderId)
+            await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory)
+        
+            return true
+        }
+        catch(ex) {
+            console.error(`Failed to cancel vipps order with id ${orderId}`, ex)
+            return false 
+        }
     },
 
     /**
