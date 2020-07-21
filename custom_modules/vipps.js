@@ -6,7 +6,8 @@ const request = require('request-promise-native')
 
 //Timings selected based on the vipps guidelines
 //https://www.vipps.no/developers-documentation/ecom/documentation/#polling-guidelines
-const POLLING_START_DELAY = 5000
+//Polling start was increased from 5s to 30s, since we support callbacks
+const POLLING_START_DELAY = 30000
 const POLLING_INTERVAL = 2000
 
 const VIPPS_TEXT = "Donasjon til GiEffektivt.no"
