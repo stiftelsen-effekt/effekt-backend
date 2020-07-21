@@ -97,8 +97,9 @@ module.exports = {
         if (token === false) return false
 
         let donor = await DAO.donors.getByKID(KID)
+        let orderId = `${KID}-${+new Date()}`
         let order = {
-            orderID: `${KID}-${+new Date()}`,
+            orderID: orderId,
             donorID: donor.id,
             KID: KID,
             token: crypto.getPasswordSalt()
@@ -109,7 +110,7 @@ module.exports = {
             "merchantInfo": {
                 "authToken": order.token,
                 "callbackPrefix": `${config.api_url}/vipps/`,
-                "fallBack": `${config.api_url}/vipps/redirect/`,
+                "fallBack": `${config.api_url}/vipps/redirect/${orderId}`,
                 "isApp": false,
                 "merchantSerialNumber": 212771,
                 "paymentType": "eComm Regular Payment"
