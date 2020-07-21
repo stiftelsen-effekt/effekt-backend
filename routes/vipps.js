@@ -78,6 +78,17 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     res.sendStatus(200)
 })
 
+router.get("/redirect/:orderId", (req, res, next) => {
+    let orderId = req.params.orderId
+
+    let order = await DAO.vipps.getOrder(orderId)
+
+    if (order && order.donationID != null)
+        res.redirect('https://gieffektivt.no/donation-recived/')
+    else
+        res.redirect('https://gieffektivt.no/donation-failed/')
+})
+
 router.get("/integration-test/:linkToken", async (req, res, next) => {
     if (config.env === 'production') {
         res.status(403).json({status: 403, content: 'Integration test not applicable in production environment'})
