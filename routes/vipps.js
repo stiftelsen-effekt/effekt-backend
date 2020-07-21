@@ -78,7 +78,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     res.sendStatus(200)
 })
 
-router.get("/redirect/:orderId", (req, res, next) => {
+router.get("/redirect/:orderId", async (req, res, next) => {
     let orderId = req.params.orderId
 
     let order = await DAO.vipps.getOrder(orderId)
