@@ -79,27 +79,31 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
 })
 
 router.get("/redirect/:orderId", async (req, res, next) => {
-    let orderId = req.params.orderId
+    try {
+        let orderId = req.params.orderId
 
-    let retry = async (retries) => {
-        let order = await DAO.vipps.getOrder(orderId)
-
-        if (order && order.donationID != null) {
-            res.redirect('https://gieffektivt.no/donation-recived/')
-            return true
+        let retry = async (retries) => {
+            let order = await DAO.vipps.getOrder(orderId)
+    
+            if (order && order.donationID != null) {
+                res.redirect('https://gieffektivt.no/donation-recived/')
+                return true
+            }
+            else if (retries >= 10) {
+                res.redirect('https://gieffektivt.no/donation-failed')
+                return false
+            }
+            else {
+                setTimeout(async () => {
+                    retry(retries + 1)
+                }, 1000)
+            }
         }
-        else if (retries >= 10) {
-            res.redirect('https://gieffektivt.no/donation-failed')
-            return false
-        }
-        else {
-            setTimeout(async () => {
-                retry(retries + 1)
-            }, 1000)
-        }
+    
+        await retry(0)
+    } catch(ex) {
+        next(ex)
     }
-
-    await retry(0)
 })
 
 router.get("/integration-test/:linkToken", async (req, res, next) => {
