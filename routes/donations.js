@@ -280,8 +280,8 @@ router.get("/history/:donorID", authMiddleware(authRoles.read_all_donations), as
 })
 
 let historyRateLimit = new rateLimit({
-    windowMs: 60*1000*60*24, // 24 hours
-    max: 10,
+    windowMs: 60*1000*60, // 1 hour
+    max: 5,
     delayMs: 0 // disable delaying - full speed until the max limit is reached 
   })
 router.post("/history/email", historyRateLimit, async (req, res, next) => {
