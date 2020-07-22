@@ -81,7 +81,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
 router.get("/redirect/:orderId", async (req, res, next) => {
     let orderId = req.params.orderId
 
-    let retry = (retries) => {
+    let retry = async (retries) => {
         let order = await DAO.vipps.getOrder(orderId)
 
         if (order && order.donationID != null) {
@@ -93,13 +93,13 @@ router.get("/redirect/:orderId", async (req, res, next) => {
             return false
         }
         else {
-            setTimeout(() => {
+            setTimeout(async () => {
                 retry(retries + 1)
             }, 1000)
         }
     }
 
-    retry(0)
+    await retry(0)
 })
 
 router.get("/integration-test/:linkToken", async (req, res, next) => {
