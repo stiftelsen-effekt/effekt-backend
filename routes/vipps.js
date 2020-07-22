@@ -82,7 +82,7 @@ router.get("/redirect/:orderId", async (req, res, next) => {
     let orderId = req.params.orderId
 
     let retries = 0
-    setInterval(() => {
+    setInterval(async () => {
         let order = await DAO.vipps.getOrder(orderId)
 
         if (order && order.donationID != null) {
