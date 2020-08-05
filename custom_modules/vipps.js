@@ -112,7 +112,7 @@ module.exports = {
                 "callbackPrefix": `${config.api_url}/vipps/`,
                 "fallBack": `${config.api_url}/vipps/redirect/${orderId}`,
                 "isApp": false,
-                "merchantSerialNumber": 212771,
+                "merchantSerialNumber": config.VIPPS_MERCHANT_SERIAL_NUMBER,
                 "paymentType": "eComm Regular Payment"
             },
             "transaction": {
