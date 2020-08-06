@@ -183,7 +183,7 @@ module.exports = {
                 }
                 catch(ex) {
                     if (ex.message.indexOf("EXISTING_DONATION") === -1) {
-                        console.error(`Failed to add vipps donation for orderid ${orderId}`, ex)
+                        console.info(`Vipps donation for orderid ${orderId} already exists`, ex)
                     }
                     //Donation already registered, no additional actions required
                 }
@@ -310,7 +310,13 @@ module.exports = {
         let KID = orderId.split("-")[0]
 
         if (captureRequest.transactionInfo.status == "Captured") {
-            let donationID = await DAO.donations.add(KID, paymentMethods.vipps, (transactionInfo.amount/100), transactionInfo.timeStamp, transactionInfo.transactionId)
+            let donationID = await DAO.donations.add(
+                KID, 
+                paymentMethods.vipps, 
+                (captureRequest.transactionInfo.amount/100), 
+                captureRequest.transactionInfo.timeStamp, 
+                captureRequest.transactionInfo.transactionId)
+                
             await DAO.vipps.updateVippsOrderDonation(orderId, donationID)
             return true
         }
