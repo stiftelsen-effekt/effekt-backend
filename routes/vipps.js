@@ -95,7 +95,7 @@ router.get("/redirect/:orderId", async (req, res, next) => {
             }
             else {
                 setTimeout(async () => {
-                    retry(retries + 1)
+                    await retry(retries + 1)
                 }, 1000)
             }
         }
