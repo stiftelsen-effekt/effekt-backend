@@ -3,6 +3,7 @@ const DAO = require('./DAO')
 const crypto = require('../custom_modules/authorization/crypto')
 const paymentMethods = require('../enums/paymentMethods')
 const request = require('request-promise-native')
+const mail = require('../custom_modules/mail')
 
 //Timings selected based on the vipps guidelines
 //https://www.vipps.no/developers-documentation/ecom/documentation/#polling-guidelines
@@ -178,8 +179,14 @@ module.exports = {
                 let KID = orderId.split("-")[0]
 
                 try {
-                    let donationID = await DAO.donations.add(KID, paymentMethods.vipps, (captureLogItem.amount/100), captureLogItem.timeStamp, captureLogItem.transactionId)
+                    let donationID = await DAO.donations.add(
+                        KID, 
+                        paymentMethods.vipps, 
+                        (captureLogItem.amount/100), 
+                        captureLogItem.timeStamp, 
+                        captureLogItem.transactionId)
                     await DAO.vipps.updateVippsOrderDonation(orderId, donationID)
+                    await mail.sendDonationReciept(donationID)
                 }
                 catch(ex) {
                     if (ex.message.indexOf("EXISTING_DONATION") === -1) {
@@ -318,6 +325,7 @@ module.exports = {
                 captureRequest.transactionInfo.transactionId)
                 
             await DAO.vipps.updateVippsOrderDonation(orderId, donationID)
+            await mail.sendDonationReciept(donationID)
             return true
         }
         else {
