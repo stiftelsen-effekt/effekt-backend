@@ -89,7 +89,7 @@ router.get("/redirect/:orderId", async (req, res, next) => {
                 res.redirect('https://gieffektivt.no/donation-recived/')
                 return true
             }
-            else if (retries >= 10) {
+            else if (retries >= 20) {
                 res.redirect('https://gieffektivt.no/donation-failed')
                 return false
             }
