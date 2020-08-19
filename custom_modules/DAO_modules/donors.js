@@ -1,4 +1,4 @@
-var con
+var pool
 
 /**
  * @typedef Donor
@@ -17,14 +17,18 @@ var con
  * @returns {Number} An ID
  */
 async function getIDbyEmail(email) {
-        try {
-            var [result] = await con.execute(`SELECT ID FROM Donors where email = ?`, [email])
-        } catch (ex) {
-            throw(ex)
-        }
+    try {
+        var con = await pool.getConnection()
+        var [result] = await con.execute(`SELECT ID FROM Donors where email = ?`, [email])
 
+        con.release()
         if (result.length > 0) return(result[0].ID)
         else return(null)
+    } 
+    catch (ex) {
+        con.release()
+        throw(ex)
+    }
 }
 
 /**
@@ -33,14 +37,20 @@ async function getIDbyEmail(email) {
  * @returns {Donor} A donor object
  */
 async function getByID(ID) {
-        try {
-            var [result] = await con.execute(`SELECT * FROM Donors where ID = ? LIMIT 1`, [ID])
-        } catch (ex) {
-            throw ex
-        }
+    try {
+        var con = await pool.getConnection()
+        var [result] = await con.execute(`SELECT * FROM Donors where ID = ? LIMIT 1`, [ID])
+
+        con.release()
 
         if (result.length > 0) return(result[0])
         else return(null)
+        
+    } 
+    catch (ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
@@ -49,32 +59,40 @@ async function getByID(ID) {
  * @returns {Donor} A donor Object
  */
 async function getByKID(KID) {
-    let [dbDonor] = await con.query(`SELECT    
-        ID,
-        email, 
-        full_name,
-        ssn,
-        date_registered
-        
-        FROM Donors 
-        
-        INNER JOIN Combining_table 
-            ON Donor_ID = Donors.ID 
+    try {
+        var con = await pool.getConnection()
+        let [dbDonor] = await con.query(`SELECT    
+            ID,
+            email, 
+            full_name,
+            ssn,
+            date_registered
             
-        WHERE KID = ? 
-        GROUP BY Donors.ID LIMIT 1`, [KID])
+            FROM Donors 
+            
+            INNER JOIN Combining_table 
+                ON Donor_ID = Donors.ID 
+                
+            WHERE KID = ? 
+            GROUP BY Donors.ID LIMIT 1`, [KID])
 
-    if (dbDonor.length > 0) {
-        return {
-            id: dbDonor[0].ID,
-            email: dbDonor[0].email,
-            name: dbDonor[0].full_name,
-            ssn: dbDonor[0].ssn, 
-            registered: dbDonor[0].date_registered
+        con.release()
+        if (dbDonor.length > 0) {
+            return {
+                id: dbDonor[0].ID,
+                email: dbDonor[0].email,
+                name: dbDonor[0].full_name,
+                ssn: dbDonor[0].ssn, 
+                registered: dbDonor[0].date_registered
+            }
+        }
+        else {
+            return null
         }
     }
-    else {
-        return null
+    catch(ex) {
+        con.release()
+        throw ex
     }
 }
 
@@ -85,6 +103,8 @@ async function getByKID(KID) {
  */
 async function search(query) {
     try {
+        var con = await pool.getConnection()
+
         if (query === "" || query.length < 3) var [result] = await con.execute(`SELECT * FROM Donors LIMIT 100`, [query])
         else var [result] = await con.execute(`SELECT * FROM Donors 
             WHERE 
@@ -93,20 +113,28 @@ async function search(query) {
                 OR email LIKE ?
                 
             LIMIT 100`, [query, `%${query}%`, `%${query}%`])
-    } catch(ex) {
+
+        con.release()
+        
+        if (result.length > 0) {
+            return(result.map((donor) => {
+                return {
+                    id: donor.ID,
+                    name: donor.full_name,
+                    email: donor.email,
+                    ssn: donor.ssn,
+                    registered: donor.date_registered
+                }
+            }))
+        } 
+        else {
+            return null
+        }
+    } 
+    catch(ex) {
+        con.release()
         throw ex
     }
-
-    if (result.length > 0) return(result.map((donor) => {
-        return {
-            id: donor.ID,
-            name: donor.full_name,
-            email: donor.email,
-            ssn: donor.ssn,
-            registered: donor.date_registered
-        }
-    }))
-    else return(null)
 }
 //endregion
 
@@ -118,6 +146,8 @@ async function search(query) {
  */
 async function add(email="", name, ssn="", newsletter=null) {
     try {
+        var con = await pool.getConnection()
+
         var res = await con.execute(`INSERT INTO Donors (
             email,
             full_name, 
@@ -130,12 +160,14 @@ async function add(email="", name, ssn="", newsletter=null) {
             ssn,
             newsletter
         ])
+
+        con.release()
+        return(res[0].insertId)
     }
     catch(ex) {
+        con.release()
         throw ex
     }
-    
-    return(res[0].insertId)
 }
 //endregion
 
@@ -147,8 +179,16 @@ async function add(email="", name, ssn="", newsletter=null) {
  * @returns {boolean}
  */
 async function updateSsn(donorID, ssn) {
-    let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
-    return true
+    try {
+        var con = await pool.getConnection()
+        let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
@@ -158,8 +198,16 @@ async function updateSsn(donorID, ssn) {
  * @returns {boolean}
  */
 async function updateNewsletter(donorID, newsletter) {
-    let res = await con.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [newsletter, donorID])
-    return true
+    try {
+        var con = await pool.getConnection()
+        let res = await con.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [newsletter, donorID])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 //endregion
@@ -176,5 +224,5 @@ module.exports = {
     updateSsn,
     updateNewsletter,
 
-    setup: (dbPool) => { con = dbPool }
+    setup: (dbPool) => { pool = dbPool }
 }
