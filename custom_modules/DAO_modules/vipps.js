@@ -152,12 +152,12 @@ async function updateOrderTransactionStatusHistory(orderId,transactionHistory) {
                     ?
         `, [mappedInsertValues])
 
-        await con.commitTransaction(transaction)
+        await pool.commitTransaction(transaction)
 
         return true
     }
     catch(ex) {
-        await con.rollbackTransaction(transaction)
+        await pool.rollbackTransaction(transaction)
         console.error(`Failed to update order transaction history for orderId ${orderId}`,ex)
         return false
     }
