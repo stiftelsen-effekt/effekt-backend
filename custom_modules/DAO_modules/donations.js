@@ -423,7 +423,7 @@ async function getSummary(donorID) {
  */
 async function getHistory(donorID) {
     try {
-        var con = pool.getConnection()
+        var con = await pool.getConnection()
         var [res] = await con.query(`
             SELECT
                 Organizations.full_name,
@@ -490,7 +490,7 @@ async function getHistory(donorID) {
  */
 async function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null, metaOwnerID = null) {
     try {
-        var con = pool.getConnection()
+        var con = await pool.getConnection()
         var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
 
         if (donorIDQuery.length != 1) { 
@@ -541,7 +541,7 @@ async function add(KID, paymentMethodID, sum, registeredDate = null, externalPay
 //region Modify
 async function registerConfirmedByIDs(IDs) {
     try {
-        var con = pool.getConnection()
+        var con = await pool.getConnection()
         
         var [donations] = await con.execute(`UPDATE EffektDonasjonDB.Donations 
             SET date_confirmed = NOW()
@@ -566,7 +566,7 @@ async function registerConfirmedByIDs(IDs) {
  */
 async function remove(donationId) {
     try {
-        var con = pool.getConnection()
+        var con = await pool.getConnection()
         var result = await con.query(`DELETE FROM Donations WHERE ID = ?`, [donationId])
 
         con.release()
