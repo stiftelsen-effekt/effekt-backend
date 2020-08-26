@@ -139,7 +139,7 @@ async function addOrder(order) {
  * @return {boolean} Success
  */
 async function updateOrderTransactionStatusHistory(orderId,transactionHistory) {
-    let transaction = await con.startTransaction()
+    let transaction = await pool.startTransaction()
     try {
         await transaction.query(`DELETE FROM Vipps_order_transaction_statuses WHERE orderID = ?`, [orderId])
 
