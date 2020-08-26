@@ -457,6 +457,10 @@ async function add(KID, paymentMethodID, sum, registeredDate = null, externalPay
             }
         }
 
+        if (typeof registeredDate === "string")
+            registeredDate = new Date(registeredDate)
+
+
         var donorID = donorIDQuery[0].Donor_ID
 
         var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling, Meta_owner_ID) VALUES (?,?,?,?,?,?,?)", [donorID, paymentMethodID, externalPaymentID, sum, registeredDate, KID, metaOwnerID])
