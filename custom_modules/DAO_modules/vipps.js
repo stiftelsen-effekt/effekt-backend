@@ -1,4 +1,4 @@
-var con
+var pool
 
 //region Get
 
@@ -37,10 +37,12 @@ var con
   * @returns {VippsToken | boolean} The most recent vipps token, false if expiration is within 10 minutes
   */
 async function getLatestToken() {
+    let con = pool.getConnection()
     let [res] = await con.query(`
         SELECT * FROM Vipps_tokens
             ORDER BY expires DESC
             LIMIT 1`)
+    con.release()
 
     if (res.length === 0) return false
     if (res[0].expires - Date.now() < 10*60*1000) return false
@@ -59,11 +61,13 @@ async function getLatestToken() {
  * @return {VippsOrder | false} 
  */
 async function getOrder(orderID) {
+    let con = pool.getConnection()
     let [res] = await con.query(`
         SELECT * FROM Vipps_orders
             WHERE
                 orderID = ?
             LIMIT 1`, [orderID])
+    con.release()
     
     if (res.length === 0) return false
     else return res[0]
@@ -74,11 +78,13 @@ async function getOrder(orderID) {
  * @return {VippsOrder | false} 
  */
 async function getRecentOrder() {
+    let con = pool.getConnection()
     let [res] = await con.query(`
         SELECT * FROM Vipps_orders
             ORDER BY 
                 registered DESC
             LIMIT 1`)
+    con.release()
     
     if (res.length === 0) return false
     else return res[0]
@@ -94,12 +100,14 @@ async function getRecentOrder() {
  * @return {number} token ID in database
  */
 async function addToken(token) {
+    let con = pool.getConnection()
     let [result] = await con.query(`
         INSERT INTO Vipps_tokens
             (expires, type, token)
             VALUES
             (?,?,?)
     `, [token.expires, token.type, token.token])
+    con.release()
 
     return result.insertId
 }
@@ -110,12 +118,14 @@ async function addToken(token) {
  * @return {number} ID of inserted order
  */
 async function addOrder(order) {
+    let con = pool.getConnection()
     let [result] = await con.query(`
             INSERT INTO Vipps_orders
                     (orderID, donorID, KID, token)
                     VALUES
                     (?,?,?,?)
         `, [order.orderID, order.donorID, order.KID, order.token])
+    con.release()
 
     return result.insertId
 }
@@ -160,11 +170,13 @@ async function updateOrderTransactionStatusHistory(orderId,transactionHistory) {
  * @return {boolean} Success or failure
  */
 async function updateVippsOrderDonation(orderID, donationID) {
+    let con = pool.getConnection()
     let [result] = await con.query(`
             UPDATE Vipps_orders
                 SET donationID = ?
                 WHERE orderID = ?
         `, [donationID, orderID])
+    con.release()
 
     return (result.affectedRows != 0 ? true : false)
 }
@@ -185,5 +197,5 @@ module.exports = {
     updateOrderTransactionStatusHistory,
     updateVippsOrderDonation,
 
-    setup: (dbPool) => { con = dbPool }
+    setup: (dbPool) => { pool = dbPool }
 }
