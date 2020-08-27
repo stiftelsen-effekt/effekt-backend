@@ -25,7 +25,7 @@ module.exports = {
             user: config.db_username,
             password: config.db_password,
             database: config.db_name,
-            keepAlive: true
+            enableKeepAlive: true
         })
 
         //Check whether connection was successfull
