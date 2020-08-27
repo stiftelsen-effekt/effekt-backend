@@ -108,7 +108,7 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       KID: donationObject.KID,
       donorID: donationObject.donorID,
       hasAnsweredReferral,
-      paymentProviderUrl: initiatedOrder.externalPaymentUrl
+      paymentProviderUrl: (initiadedOrder !== null ? initiatedOrder.externalPaymentUrl : "")
     }
   })
 })
