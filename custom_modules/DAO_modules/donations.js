@@ -92,7 +92,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
 
             const pages = Math.ceil(counter[0].count / limit)
 
-            pool.releaseConnection(con)
+            con.release()
             return {
                 rows: mapToJS(donations),
                 pages
