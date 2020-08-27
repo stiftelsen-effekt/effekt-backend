@@ -273,11 +273,9 @@ async function add(split, KID, donorID, metaOwnerID = null) {
         var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID, Meta_owner_ID) VALUES ?", [combining_table_values])
 
         pool.commitTransaction(transaction)
-        transaction.release()
         return true
     } catch(ex) {
         pool.rollbackTransaction(transaction)
-        transaction.release()
         throw ex
     }
 }
