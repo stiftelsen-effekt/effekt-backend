@@ -47,7 +47,7 @@ async function sendDonationReciept(donationID, reciever = null) {
             donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: donation.method 
+            paymentMethod: decideUIPaymentMethod(donation.method),
         }
       })
 
@@ -58,6 +58,11 @@ async function sendDonationReciept(donationID, reciever = null) {
       return ex.statusCode
     }
     
+}
+
+function decideUIPaymentMethod(donationMethod){
+  if(donationMethod.toUpperCase() == 'BANK U/ KID')
+  donationMethod = 'Bank';
 }
 
 function formatOrganizationsFromSplit(split, sum) {
