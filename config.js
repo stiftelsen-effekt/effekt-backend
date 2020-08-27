@@ -1,7 +1,7 @@
 module.exports = {
     //Environment
     env: process.env.NODE_ENV || 'development',
-    api_url: (process.env.NODE_ENV === 'production' ? 'https://data.gieffektivt.no' : 'https://dev.data.gieffektivt.no'),
+    api_url: process.env.EFFEKT_API_URL,
 
     //Insert db connection values
     db_host: process.env.DB_HOST,
@@ -21,7 +21,7 @@ module.exports = {
     vipps_api_url: (process.env.NODE_ENV === 'production' ? 'api.vipps.no' : 'apitest.vipps.no'),
 
     //Set port for API listening, default to 3000
-    port: process.env.PORT || 3000,
+    port: process.env.EFFEKT_PORT || process.env.PORT || 3000,
 
     //Bank account for recieving donations
     bankAccount: process.env.BANK_ACCOUNT,

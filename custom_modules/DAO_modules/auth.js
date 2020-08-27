@@ -9,32 +9,30 @@ var con
  * @param {string} token A 40 hcaracter long random token
  * @returns {?object} A Donor object
  */
-function getDonorByChangePassToken(token) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [result] = await con.query(`
-            SELECT 
-                D.ID, 
-                D.full_name 
-            
-            FROM ChangePass as C 
-                INNER JOIN Donors as D
-                    ON C.userID = D.ID
-            
-            WHERE C.token = ? AND expires > NOW()
-            
-            LIMIT 1`, [token])
-        } catch (ex) {
-            reject(ex)
-            return false
-        }
+async function getDonorByChangePassToken(token) {
+    try {
+        var [result] = await con.query(`
+        SELECT 
+            D.ID, 
+            D.full_name 
+        
+        FROM ChangePass as C 
+            INNER JOIN Donors as D
+                ON C.userID = D.ID
+        
+        WHERE C.token = ? AND expires > NOW()
+        
+        LIMIT 1`, [token])
+    } catch (ex) {
+        throw ex
+        return false
+    }
 
-        if (result.length > 0) fulfill({
-            id: result[0].ID,
-            fullName: result[0].full_name
-        })
-        else fulfill(null)
+    if (result.length > 0) return({
+        id: result[0].ID,
+        fullName: result[0].full_name
     })
+    return null
 }
 
 /**
@@ -42,8 +40,7 @@ function getDonorByChangePassToken(token) {
  * @param {Array} shortnames an array of string shortnames
  * @returns {Array} an array of permissions 
  */
-function getPermissionsFromShortnames(shortnames) {
-    return new Promise(async (fulfill, reject) => {
+async function getPermissionsFromShortnames(shortnames) {
         try {
             var [result] = await con.query(`
                 SELECT ID, shortname, description FROM Access_permissions
@@ -51,12 +48,11 @@ function getPermissionsFromShortnames(shortnames) {
                 WHERE shortname IN (?)
             `, [shortnames])
         } catch(ex) {
-            reject(ex)
+            throw ex
             return false
         }
 
-        fulfill(result)
-    })
+        return result
 }
 
 /**
@@ -68,54 +64,52 @@ function getPermissionsFromShortnames(shortnames) {
  * @throws {Error} Error with string message 'invalid_token'
  * @throws {Error} Error with string message 'insufficient_scope'
  */
-function getCheckPermissionByToken(token, permission) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [user] = await con.query(`
-                SELECT  
-                    K.Donor_ID
-                    
-                    FROM Access_tokens as T
+async function getCheckPermissionByToken(token, permission) {
+    try {
+        var [user] = await con.query(`
+            SELECT  
+                K.Donor_ID
+                
+                FROM Access_tokens as T
 
-                    INNER JOIN Access_keys as K
-                        ON T.Key_ID = K.ID
+                INNER JOIN Access_keys as K
+                    ON T.Key_ID = K.ID
 
-                    WHERE 
-                        T.token = ?
-                        AND
-                        T.expires > now()
-                    LIMIT 1
-            `, [token])
+                WHERE 
+                    T.token = ?
+                    AND
+                    T.expires > now()
+                LIMIT 1
+        `, [token])
 
-            if (user.length == 0)
-                reject(new Error("invalid_token"))
+        if (user.length == 0)
+            return new Error("invalid_token")
 
-            var [result] = await con.query(`
-                SELECT 1
-                    FROM Access_tokens as T
-                    
-                    INNER JOIN Access_keys_permissions as Combine
-                        ON T.Key_ID = Combine.Key_ID
-                    
-                    INNER JOIN Access_permissions as P
-                        ON P.ID = Combine.Permission_ID
+        var [result] = await con.query(`
+            SELECT 1
+                FROM Access_tokens as T
+                
+                INNER JOIN Access_keys_permissions as Combine
+                    ON T.Key_ID = Combine.Key_ID
+                
+                INNER JOIN Access_permissions as P
+                    ON P.ID = Combine.Permission_ID
 
-                    WHERE 
-                        T.token = ?
-                        AND
-                        P.shortName = ?
-                    `, 
-                    [token, permission])
+                WHERE 
+                    T.token = ?
+                    AND
+                    P.shortName = ?
+                `, 
+                [token, permission])
 
-            if (result.length > 0) 
-                fulfill(user[0].Donor_ID)
-            else 
-                reject(new Error("insufficient_scope"))
-        } catch (ex) {
-            reject(ex)
-            return false
-        }
-    })
+        if (result.length > 0) 
+            return user[0].Donor_ID
+        else 
+            return new Error("insufficient_scope")
+    } catch (ex) {
+        throw ex
+        return false
+    }
 }
 
 /**
@@ -124,27 +118,25 @@ function getCheckPermissionByToken(token, permission) {
  * @param {Number} applicationID The ID of the application in the database
  * @returns {Boolean}
  */
-function checkApplicationPermissions(applicationID, permissions) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [result] = await con.query(`
-                SELECT P.shortname FROM Access_applications_permissions as AP
-                    INNER JOIN Access_permissions as P
-                        ON AP.Permission_ID = P.ID
-                        
-                WHERE 
-                    AP.Application_ID = ?
-                    AND
-                    P.shortname IN(?)`, 
-                    [applicationID, permissions])
-        } catch (ex) {
-            reject(ex)
-            return false
-        }
+async function checkApplicationPermissions(applicationID, permissions) {
+    try {
+        var [result] = await con.query(`
+            SELECT P.shortname FROM Access_applications_permissions as AP
+                INNER JOIN Access_permissions as P
+                    ON AP.Permission_ID = P.ID
+                    
+            WHERE 
+                AP.Application_ID = ?
+                AND
+                P.shortname IN(?)`, 
+                [applicationID, permissions])
+    } catch (ex) {
+        throw ex
+        return false
+    }
 
-        if (result.length == permissions.length) fulfill(true)
-        else fulfill(false)
-    })
+    if (result.length == permissions.length) return true
+    else return false
 }
 
 /**
@@ -153,47 +145,43 @@ function checkApplicationPermissions(applicationID, permissions) {
  * @param {Number} donorID The ID of the donor in the database
  * @returns {Boolean}
  */
-function checkDonorPermissions(donorID, permissions) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [restrictedQuery] = await con.query(`
-                SELECT P.shortname FROM Access_restricted_permissions as RP
-                    INNER JOIN Access_permissions as P
-                        ON RP.Permission_ID = P.ID
-                        
-                WHERE
-                    RP.Donor_ID = ?
-                    AND
-                    P.shortname IN(?)
-                    AND
-                    P.restricted = 1`,
-                    [donorID, permissions])
+async function checkDonorPermissions(donorID, permissions) {
+    try {
+        var [restrictedQuery] = await con.query(`
+            SELECT P.shortname FROM Access_restricted_permissions as RP
+                INNER JOIN Access_permissions as P
+                    ON RP.Permission_ID = P.ID
+                    
+            WHERE
+                RP.Donor_ID = ?
+                AND
+                P.shortname IN(?)
+                AND
+                P.restricted = 1`,
+                [donorID, permissions])
 
-            let restrictedPermissionsFound = restrictedQuery.length
+        let restrictedPermissionsFound = restrictedQuery.length
 
-            var [defaultQuery] = await con.query(`
-                SELECT shortname FROM Access_permissions
-                
-                WHERE 
-                    shortname IN(?)
-                    AND
-                    restricted = 0`,
-                [permissions])
+        var [defaultQuery] = await con.query(`
+            SELECT shortname FROM Access_permissions
+            
+            WHERE 
+                shortname IN(?)
+                AND
+                restricted = 0`,
+            [permissions])
 
-            let openPermissionsFound = defaultQuery.length
+        let openPermissionsFound = defaultQuery.length
 
-            if (restrictedPermissionsFound + openPermissionsFound == permissions.length) {
-                fulfill(true)
-                return true
-            } else {
-                fulfill(false)
-                return false
-            }
-        } catch (ex) {
-            reject(ex)
+        if (restrictedPermissionsFound + openPermissionsFound == permissions.length) {
+            return true
+        } else {
             return false
         }
-    })
+    } catch (ex) {
+        throw ex
+        return false
+    }
 }
 
 /**
@@ -201,33 +189,30 @@ function checkDonorPermissions(donorID, permissions) {
  * @param {String} clientID The clientID
  * @return {Object} An object with the applications name, id, secret and an array of allowed redirect uris
  */
-function getApplicationByClientID(clientID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [result] = await con.query(`
-                SELECT * FROM Access_applications
-                        
-                WHERE clientID = ?`, 
-                    [clientID])
+async function getApplicationByClientID(clientID) {
+    try {
+        var [result] = await con.query(`
+            SELECT * FROM Access_applications
+                    
+            WHERE clientID = ?`, 
+                [clientID])
 
-            if (result.length == 0) return fulfill(null)
+        if (result.length == 0) return(null)
 
-            var application = result[0]
+        var application = result[0]
 
-            var [callbacks] = await con.query(`
-                SELECT callback FROM Access_applications_callbacks
+        var [callbacks] = await con.query(`
+            SELECT callback FROM Access_applications_callbacks
 
-                WHERE ApplicationID = ?`, 
-                    [application.ID]);
+            WHERE ApplicationID = ?`, 
+                [application.ID]);
 
-            application.callbacks = callbacks.map((row) => row.callback)
+        application.callbacks = callbacks.map((row) => row.callback)
 
-            fulfill(application)
-        } catch (ex) {
-            reject(ex)
-            return false
-        }
-    })
+        return application
+    } catch (ex) {
+        throw ex
+    }
 }
 
 /**
@@ -236,53 +221,47 @@ function getApplicationByClientID(clientID) {
  * @param {String} password
  * @returns {Object} A Donor object, with id, name etc.
  */
-function getDonorByCredentials(email, password) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            //First get salt
-            let [saltQuery] = await con.query(`
-                SELECT password_salt from Donors
+async function getDonorByCredentials(email, password) {
+    try {
+        //First get salt
+        let [saltQuery] = await con.query(`
+            SELECT password_salt from Donors
 
-                WHERE email = ?
-            `, [email])
+            WHERE email = ?
+        `, [email])
 
-            if (saltQuery.length == 0) {
-                fulfill(null)
-                return false
+        if (saltQuery.length == 0) {
+            return(null)
+        } else {
+            let salt = saltQuery[0].password_salt
+
+            let passwordHash = crypto.hashPassword(password, salt)
+
+            let [donorQuery] = await con.query(`
+                SELECT ID, full_name, email, date_registered FROM Donors
+
+                WHERE 
+                    email = ?
+                    AND
+                    password_hash = ?
+            `, [email, passwordHash])
+
+            if (donorQuery.length > 0) {
+                return(donorQuery.map((line) => {
+                    return {
+                        id: line.ID,
+                        fullname: line.full_name,
+                        email: line.email,
+                        registered: line.date_registered
+                    }
+                })[0])
             } else {
-                let salt = saltQuery[0].password_salt
-
-                let passwordHash = crypto.hashPassword(password, salt)
-
-                let [donorQuery] = await con.query(`
-                    SELECT ID, full_name, email, date_registered FROM Donors
-
-                    WHERE 
-                        email = ?
-                        AND
-                        password_hash = ?
-                `, [email, passwordHash])
-
-                if (donorQuery.length > 0) {
-                    fulfill(donorQuery.map((line) => {
-                        return {
-                            id: line.ID,
-                            fullname: line.full_name,
-                            email: line.email,
-                            registered: line.date_registered
-                        }
-                    })[0])
-                    return true
-                } else {
-                    fulfill(null)
-                    return false
-                }
+                return null
             }
-        } catch(ex) {
-            reject(ex)
-            return false
         }
-    })
+    } catch(ex) {
+        throw ex
+    }
 }
 
 /**
@@ -290,23 +269,20 @@ function getDonorByCredentials(email, password) {
  * @param {String} accessKey 
  * @returns {Object} an access key object from DB
  */
-function getValidAccessKey(accessKey) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [res] = await con.query(`
-                SELECT * FROM Access_keys
-                    WHERE \`key\` = ? 
-                    AND 
-                    expires > NOW()
-            `, [accessKey])
-        } catch(ex) {
-            reject(ex)
-            return false
-        }
+async function getValidAccessKey(accessKey) {
+    try {
+        var [res] = await con.query(`
+            SELECT * FROM Access_keys
+                WHERE \`key\` = ? 
+                AND 
+                expires > NOW()
+        `, [accessKey])
+    } catch(ex) {
+        throw ex
+    }
 
-        if (res.length > 0) fulfill(res[0])
-        else fulfill(null)
-    })
+    if (res.length > 0) return(res[0])
+    else return null
 }
 //endregion
 
@@ -318,67 +294,64 @@ function getValidAccessKey(accessKey) {
  * @param {Array} permissions an array of Permission objects from database
  * @returns {Object} an access key object, with key and expires as properties
  */
-function addAccessKey(donorID, applicationID, permissions) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var transaction = await con.startTransaction()
-            
-            //Create and insert access new key
-            let accessKey = crypto.getAccessKey()
+async function addAccessKey(donorID, applicationID, permissions) {
+    try {
+        var transaction = await con.startTransaction()
+        
+        //Create and insert access new key
+        let accessKey = crypto.getAccessKey()
 
-            var res = await transaction.query(`
-                INSERT INTO Access_keys
-                    SET
-                    ?
-            `, {
-                key: accessKey, 
-                Donor_ID: donorID, 
-                Application_ID: applicationID
-            })
+        var res = await transaction.query(`
+            INSERT INTO Access_keys
+                SET
+                ?
+        `, {
+            key: accessKey, 
+            Donor_ID: donorID, 
+            Application_ID: applicationID
+        })
 
-            let accessKeyID = res[0].insertId;
+        let accessKeyID = res[0].insertId;
 
-            if (!accessKeyID) {
-                await con.rollbackTransaction(transaction)
-                reject(new Error("Access key insert failed"))
-                return false;
-            }
-
-            //Insert permissions connected to key
-            var res = await transaction.query(`
-                INSERT INTO Access_keys_permissions
-                    (Key_ID, Permission_ID) VALUES ?`, 
-                [
-                    permissions.map((permission) => {
-                        return [accessKeyID, permission.ID];
-                    })
-                ])
-
-            //Get access key
-            var [accessKeyQuery] = await transaction.query(`
-                SELECT * FROM Access_keys
-                WHERE ID = ?
-                LIMIT 1
-            `, [accessKeyID])
-
-            if (accessKeyQuery.length > 0) {
-                await con.commitTransaction(transaction)
-                fulfill({
-                    key: accessKeyQuery[0].key,
-                    expires: new Date(accessKeyQuery[0].expires)
-                })
-                return true
-            } else {
-                await con.rollbackTransaction(transaction) 
-                reject(new Error("Recently inserted AccessKey not found in DB"))
-                return false
-            }
-        } catch(ex) {
+        if (!accessKeyID) {
             await con.rollbackTransaction(transaction)
-            reject(ex)
-            return false
+            return(new Error("Access key insert failed"))
+            //return false
         }
-    })
+
+        //Insert permissions connected to key
+        var res = await transaction.query(`
+            INSERT INTO Access_keys_permissions
+                (Key_ID, Permission_ID) VALUES ?`, 
+            [
+                permissions.map((permission) => {
+                    return [accessKeyID, permission.ID];
+                })
+            ])
+
+        //Get access key
+        var [accessKeyQuery] = await transaction.query(`
+            SELECT * FROM Access_keys
+            WHERE ID = ?
+            LIMIT 1
+        `, [accessKeyID])
+
+        if (accessKeyQuery.length > 0) {
+            await con.commitTransaction(transaction)
+            return({
+                key: accessKeyQuery[0].key,
+                expires: new Date(accessKeyQuery[0].expires)
+            })
+            // return true
+        } else {
+            await con.rollbackTransaction(transaction) 
+            return(new Error("Recently inserted AccessKey not found in DB"))
+            //return false
+        }
+    } catch(ex) {
+        await con.rollbackTransaction(transaction)
+        throw ex
+    }
 } 
 
 /**
@@ -386,42 +359,39 @@ function addAccessKey(donorID, applicationID, permissions) {
  * @param {String} accessKey The access key
  * @returns {String} Inserted access token
  */
-function addAccessTokenByAccessKey(accessKey) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var accesKey = await getValidAccessKey(accessKey)
-            if (!accesKey) {
-                throw new Error("Invalid access key")
-            }
-
-            var token = crypto.getAccessToken()
-
-            var [res] = await con.query(`
-                INSERT INTO Access_tokens
-                    SET ?
-            `, {
-                Key_ID: accesKey.ID, 
-                token: token
-            })
-
-            var [expires] = await con.query(`SELECT 
-                expires
-                FROM Access_tokens
-                WHERE token = ?`, [token])
-
-            if (!res.insertId) {
-                throw new Error("Failed to insert access token")
-            } else {
-                fulfill({
-                    token,
-                    expires: new Date(expires[0].expires)
-                })
-            }
-        } catch(ex) {
-            reject(ex)
-            return false
+async function addAccessTokenByAccessKey(accessKey) {
+    try {
+        var accesKey = await getValidAccessKey(accessKey)
+        if (!accesKey) {
+            throw new Error("Invalid access key")
         }
-    })
+
+        var token = crypto.getAccessToken()
+
+        var [res] = await con.query(`
+            INSERT INTO Access_tokens
+                SET ?
+        `, {
+            Key_ID: accesKey.ID, 
+            token: token
+        })
+
+        var [expires] = await con.query(`SELECT 
+            expires
+            FROM Access_tokens
+            WHERE token = ?`, [token])
+
+        if (!res.insertId) {
+            throw new Error("Failed to insert access token")
+        } else {
+            return({
+                token,
+                expires: new Date(expires[0].expires)
+            })
+        }
+    } catch(ex) {
+        throw ex
+    }
 }
 //endregion
 
@@ -433,21 +403,18 @@ function addAccessTokenByAccessKey(accessKey) {
  * @param {string} password Donors chosen password in plaintext
  * @returns {boolean} To indicate success or failiure
  */
-function updateDonorPassword(donorID ,password) {
-    return new Promise(async (fulfill, reject) => {
-        let salt = crypto.getPasswordSalt()
-        let hashedPassword = crypto.hashPassword(password, salt)
+async function updateDonorPassword(donorID ,password) {
+    let salt = crypto.getPasswordSalt()
+    let hashedPassword = crypto.hashPassword(password, salt)
 
-        try {
-            var [result] = await con.query(`UPDATE Donors SET password_hash = ?, password_salt = ? WHERE ID = ?`, [hashedPassword, salt, donorID])
-        } catch (ex) {
-            reject(ex)
-            return false
-        }
+    try {
+        var [result] = await con.query(`UPDATE Donors SET password_hash = ?, password_salt = ? WHERE ID = ?`, [hashedPassword, salt, donorID])
+    } catch (ex) {
+        throw ex
+    }
 
-        if (result.length > 0) fulfill(true)
-        else fulfill(false)
-    })
+    if (result.length > 0) return true
+    else return false
 }
 //endregion
 
@@ -458,21 +425,18 @@ function updateDonorPassword(donorID ,password) {
  * @param {string} accessKey The access key to be the basis of deletion
  * @returns {boolean} To indicate success or failure
  */
-function deleteAccessKey(accessKey) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var result = await con.query(`
-                DELETE FROM Access_keys
-                WHERE 
-                    \`key\` = ?`, [accessKey])
+async function deleteAccessKey(accessKey) {
+    try {
+        var result = await con.query(`
+            DELETE FROM Access_keys
+            WHERE 
+                \`key\` = ?`, [accessKey])
 
-            fulfill(result[0].affectedRows == 1)
-        }
-        catch(ex) {
-            reject(ex)
-            return false
-        }
-    })
+        return(result[0].affectedRows == 1)
+    }
+    catch(ex) {
+        throw ex
+    }
 }
 
 /** 
@@ -480,21 +444,18 @@ function deleteAccessKey(accessKey) {
  * @param {string} token The password reset token
  * @returns {boolean} To indicate success or failure 
  * */
-function deletePasswordResetToken(token) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var result = await con.query(`
-                DELETE FROM ChangePass
-                WHERE
-                    token = ?`, [token])
+async function deletePasswordResetToken(token) {
+    try {
+        var result = await con.query(`
+            DELETE FROM ChangePass
+            WHERE
+                token = ?`, [token])
 
-            fulfill(result[0].affectedRows > 0)
-            return true
-        } catch(ex) {
-            reject(ex)
-            return false
-        }
-    })
+        return(result[0].affectedRows > 0)
+        // return true
+    } catch(ex) {
+        throw ex
+    }
 }
 //endregion
 

@@ -1,84 +1,107 @@
-var con
+var pool
 
 //region Get
-function getByIDs(IDs) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [organizations] = await con.execute("SELECT * FROM Organizations WHERE ID in (" + ("?,").repeat(IDs.length).slice(0,-1) + ")", IDs)
-        }
-        catch (ex) {
-            reject(ex)
-        }
-        
-        fulfill(organizations)
-    })
+
+/**
+ * Returns all organizations found with given IDs
+ * @param {Array<number>} IDs
+ * @returns {Array<Organization>}
+ */
+async function getByIDs(IDs) {
+    try {
+        var con = await pool.getConnection()
+        var [organizations] = await con.execute("SELECT * FROM Organizations WHERE ID in (" + ("?,").repeat(IDs.length).slice(0,-1) + ")", IDs)
+
+        con.release()
+        return organizations
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
 }
 
-function getByID(ID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [organization] = await con.execute("SELECT * FROM Organizations WHERE ID = ? LIMIT 1", [ID])
-        }
-        catch (ex) {
-            reject(ex)
-        }
-        
-        if (organization.length > 0) fulfill(organization[0])
-        else fulfill(null)
-    })
+/**
+ * Returns an organization with given ID
+ * @param {number} ID
+ * @returns {Organization}
+ */
+async function getByID(ID) {
+    try {
+        var con = await pool.getConnection()
+        var [organization] = await con.execute("SELECT * FROM Organizations WHERE ID = ? LIMIT 1", [ID])
+
+        con.release()
+        if (organization.length > 0) return(organization[0])
+        else return(null)
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
 }
 
-function getActive() {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [organizations] = await con.execute(`SELECT * FROM Organizations 
-                                                        WHERE is_active = 1
-                                                        ORDER BY std_percentage_share DESC`)
-        }
-        catch (ex) {
-            return reject(ex)
-        }
+/**
+ * Returns current active organiztions
+ * Active meaning we accept donations for them
+ * Inactive organizations are organizations which we no longer support
+ * @returns {Array<Organization>}
+ */
+async function getActive() {
+    try {
+        var con = await pool.getConnection()
+        var [organizations] = await con.execute(`
+            SELECT * FROM Organizations 
+                WHERE is_active = 1
+                ORDER BY std_percentage_share DESC`)
 
-        fulfill(organizations.map(mapOrganization))
-    })
+        con.release()
+        return organizations.map(mapOrganization)
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
  * Returns all organizations in the database
- * @returns {Array} All organizations in DB
+ * @returns {Array<Organization>} All organizations in DB
  */
-function getAll() {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [organizations] = await con.execute(`SELECT * FROM Organizations`)
-        }
-        catch (ex) {
-            return reject(ex)
-        }
+async function getAll() {
+    try {
+        var con = await pool.getConnection()
+        var [organizations] = await con.execute(`SELECT * FROM Organizations`)
 
-        fulfill(organizations.map(mapOrganization))
-    })
+        con.release()
+        return organizations.map(mapOrganization)
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
 }
 
-function getStandardSplit() {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [standardSplit] = await con.execute(`SELECT * FROM Organizations WHERE std_percentage_share > 0 AND is_active = 1`)
-        }
-        catch(ex) {
-            return reject(ex)
-        }
+async function getStandardSplit() {
+    try {
+        var con = await pool.getConnection()
+        var [standardSplit] = await con.execute(`SELECT * FROM Organizations WHERE std_percentage_share > 0 AND is_active = 1`)
+        con.release()
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
 
-        if (standardSplit.reduce((acc, org) => acc+=org.std_percentage_share, 0) != 100) reject(Error("Standard split does not sum to 100 percent"))
+    if (standardSplit.reduce((acc, org) => acc+=org.std_percentage_share, 0) != 100) return(Error("Standard split does not sum to 100 percent"))
 
-        fulfill(standardSplit.map((org) => {
-            return {
-                organizationID: org.ID,
-                name: org.full_name,
-                share: org.std_percentage_share
-            }
-        }))
-    })
+    return(standardSplit.map((org) => {
+        return {
+            organizationID: org.ID,
+            name: org.full_name,
+            share: org.std_percentage_share
+        }
+    }))
 }
 //endregion
 
@@ -115,5 +138,5 @@ module.exports = {
     getAll,
     getStandardSplit,
 
-    setup: (dbPool) => { con = dbPool }
+    setup: (dbPool) => { pool = dbPool }
 }

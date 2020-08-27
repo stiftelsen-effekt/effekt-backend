@@ -1,7 +1,7 @@
 const sqlString = require('sqlstring')
 const distributions = require('./distributions.js')
 
-var con
+var pool
 var DAO
 
 /** @typedef Donation
@@ -37,6 +37,8 @@ var DAO
  */
 async function getAll(sort, page, limit = 10, filter = null) {
     try {
+        var con = await pool.getConnection()
+
         if (sort) {
             const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1]
 
@@ -90,12 +92,18 @@ async function getAll(sort, page, limit = 10, filter = null) {
 
             const pages = Math.ceil(counter[0].count / limit)
 
+            pool.releaseConnection(con)
             return {
                 rows: mapToJS(donations),
                 pages
             }
         }
+        else {
+            con.release()
+            throw new Error("No sort provided")
+        }
     } catch(ex) {
+        con.release()
         throw ex
     }
 }
@@ -120,9 +128,11 @@ async function getHistogramBySum() {
             ORDER BY 1;
         `)
 
+        con.release()
         return results
     } catch(ex) {
-        throw ex;
+        con.release()
+        throw ex
     }
 }
 
@@ -132,28 +142,32 @@ async function getHistogramBySum() {
  * @param {Date} endTime
  * @returns {Array} Returns an array of organizations names and their aggregate donations
  */
-function getAggregateByTime(startTime, endTime) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [getAggregateQuery] = await con.query("CALL `get_aggregate_donations_by_period`(?, ?)", [startTime, endTime])
-            return fulfill(getAggregateQuery[0])
-        } catch(ex) {
-            return reject(ex)
-        }
-    })
+async function getAggregateByTime(startTime, endTime) {
+    try {
+        var con = await pool.getConnection()
+        var [getAggregateQuery] = await con.query("CALL `get_aggregate_donations_by_period`(?, ?)", [startTime, endTime])
+
+        con.release()
+        return getAggregateQuery[0]
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
-function ExternalPaymentIDExists(externalPaymentID, paymentID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [res] = await con.query("SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ? LIMIT 1", [externalPaymentID, paymentID])
-        } catch(ex) {
-            return reject(ex)
-        }
+async function ExternalPaymentIDExists(externalPaymentID, paymentID) {
+    try {
+        var con = await pool.getConnection()
+        var [res] = await con.query("SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ? LIMIT 1", [externalPaymentID, paymentID])
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
 
-        if (res.length > 0) fulfill(true)
-        else fulfill(false)
-    })
+    con.release()
+    if (res.length > 0) return true
+    else return false
 }
 
 /**
@@ -161,60 +175,65 @@ function ExternalPaymentIDExists(externalPaymentID, paymentID) {
  * @param {numer} donationID 
  * @returns {Donation} A donation object
  */
-function getByID(donationID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [getDonationFromIDquery] = await con.query(`
-                SELECT 
-                    Donation.ID,
-                    Donation.sum_confirmed, 
-                    Donation.KID_fordeling,
-                    Donation.transaction_cost,
-                    Donation.timestamp_confirmed,
-                    Donor.full_name,
-                    Donor.email,
-                    Payment.payment_name
-                
-                FROM Donations as Donation
-                    INNER JOIN Donors as Donor
-                        ON Donation.Donor_ID = Donor.ID
+async function getByID(donationID) {
+    try {
+        var con = await pool.getConnection()
 
-                    INNER JOIN Payment
-                        ON Donation.Payment_ID = Payment.ID
-                
-                WHERE 
-                    Donation.ID = ?`, [donationID])
-
-
-            if (getDonationFromIDquery.length != 1) reject(new Error("Could not find donation with ID " + donationID))
-
-            let dbDonation = getDonationFromIDquery[0]
-
-            /** @type Donation */
-            let donation = {
-                id: dbDonation.ID,
-                donor: dbDonation.full_name,
-                email: dbDonation.email,
-                sum: dbDonation.sum_confirmed,
-                transactionCost: dbDonation.transaction_cost,
-                timestamp: dbDonation.timestamp_confirmed,
-                method: dbDonation.payment_name,
-                KID: dbDonation.KID_fordeling
-            }
-
-            //TODO: Standardize split object form
-            let split = await distributions.getSplitByKID(donation.KID)
+        var [getDonationFromIDquery] = await con.query(`
+            SELECT 
+                Donation.ID,
+                Donation.sum_confirmed, 
+                Donation.KID_fordeling,
+                Donation.transaction_cost,
+                Donation.timestamp_confirmed,
+                Donor.full_name,
+                Donor.email,
+                Payment.payment_name
             
-            donation.distribution = split.map((split) => ({
-                abbriv: split.abbriv,
-                share: split.percentage_share
-            }))
+            FROM Donations as Donation
+                INNER JOIN Donors as Donor
+                    ON Donation.Donor_ID = Donor.ID
 
-            return fulfill(donation)
-        } catch(ex) {
-            return reject(ex)
+                INNER JOIN Payment
+                    ON Donation.Payment_ID = Payment.ID
+            
+            WHERE 
+                Donation.ID = ?`, [donationID])
+
+
+        if (getDonationFromIDquery.length != 1) {
+            con.release()
+            return new Error("Could not find donation with ID " + donationID)
         }
-    })
+
+        let dbDonation = getDonationFromIDquery[0]
+
+        /** @type Donation */
+        let donation = {
+            id: dbDonation.ID,
+            donor: dbDonation.full_name,
+            email: dbDonation.email,
+            sum: dbDonation.sum_confirmed,
+            transactionCost: dbDonation.transaction_cost,
+            timestamp: dbDonation.timestamp_confirmed,
+            method: dbDonation.payment_name,
+            KID: dbDonation.KID_fordeling
+        }
+
+        //TODO: Standardize split object form
+        let split = await distributions.getSplitByKID(donation.KID)
+        
+        donation.distribution = split.map((split) => ({
+            abbriv: split.abbriv,
+            share: split.percentage_share
+        }))
+
+        con.release()
+        return donation
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
@@ -223,84 +242,86 @@ function getByID(donationID) {
  * @param {Date} [toDate=Today] The date in which to end the selection, inclusive interval.
  * @param {Array<Integer>} [paymentMethodIDs=null] Provide optional PaymentMethodID to filter to a payment method
  */
-function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            if (!fromDate) fromDate = new Date(2000,0, 1)
-            if (!toDate) toDate = new Date()
+async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
+    try {
+        var con = await pool.getConnection()
 
-                let [getFromRangeQuery] = await con.query(`
-                    SELECT 
-                        Donations.ID as Donation_ID,
-                        Donations.timestamp_confirmed,  
-                        Donations.Donor_ID, 
-                        Donations.transaction_cost,
-                        Donors.full_name as donor_name, 
-                        Donations.sum_confirmed, 
-                        Payment.payment_name,
-                        Distribution.OrgID as Org_ID, 
-                        Organizations.full_name as org_name, 
-                        Distribution.percentage_share, 
-                        (Donations.sum_confirmed*Distribution.percentage_share)/100 as actual_share 
+        if (!fromDate) fromDate = new Date(2000,0, 1)
+        if (!toDate) toDate = new Date()
 
-                    FROM Donations
-                        INNER JOIN Combining_table 
-                            ON Donations.KID_fordeling = Combining_table.KID
-                        INNER JOIN Distribution 
-                            ON Combining_table.Distribution_ID = Distribution.ID
-                        INNER JOIN Donors 
-                            ON Donors.ID = Donations.Donor_ID
-                        INNER JOIN Organizations 
-                            ON Organizations.ID = Distribution.OrgID
-                        INNER JOIN Payment
-                            ON Payment.ID = Donations.Payment_ID
-                    
-                    WHERE 
-                        Donations.timestamp_confirmed >= Date(?)  
-                        AND 
-                        Donations.timestamp_confirmed < Date(Date_add(Date(?), interval 1 day))
-                    ${(paymentMethodIDs != null ? `
-                        AND
-                        Donations.Payment_ID IN (?)
-                    ` : '')}
-                    `, [fromDate, toDate, paymentMethodIDs])
+            let [getFromRangeQuery] = await con.query(`
+                SELECT 
+                    Donations.ID as Donation_ID,
+                    Donations.timestamp_confirmed,  
+                    Donations.Donor_ID, 
+                    Donations.transaction_cost,
+                    Donors.full_name as donor_name, 
+                    Donations.sum_confirmed, 
+                    Payment.payment_name,
+                    Distribution.OrgID as Org_ID, 
+                    Organizations.full_name as org_name, 
+                    Distribution.percentage_share, 
+                    (Donations.sum_confirmed*Distribution.percentage_share)/100 as actual_share 
 
-                let donations = new Map()
-                getFromRangeQuery.forEach((row) => {
-                    if(!donations.get(row.Donation_ID)) donations.set(row.Donation_ID, {
-                        ID: null,
-                        time: null,
-                        name: null,
-                        donorID: null,
-                        sum: null,
-                        paymentMethod: null,
-                        transactionCost: null,
-                        split: []
-                    })
+                FROM Donations
+                    INNER JOIN Combining_table 
+                        ON Donations.KID_fordeling = Combining_table.KID
+                    INNER JOIN Distribution 
+                        ON Combining_table.Distribution_ID = Distribution.ID
+                    INNER JOIN Donors 
+                        ON Donors.ID = Donations.Donor_ID
+                    INNER JOIN Organizations 
+                        ON Organizations.ID = Distribution.OrgID
+                    INNER JOIN Payment
+                        ON Payment.ID = Donations.Payment_ID
+                
+                WHERE 
+                    Donations.timestamp_confirmed >= Date(?)  
+                    AND 
+                    Donations.timestamp_confirmed < Date(Date_add(Date(?), interval 1 day))
+                ${(paymentMethodIDs != null ? `
+                    AND
+                    Donations.Payment_ID IN (?)
+                ` : '')}
+                `, [fromDate, toDate, paymentMethodIDs])
 
-                    donations.get(row.Donation_ID).ID = row.Donation_ID
-                    donations.get(row.Donation_ID).time = row.timestamp_confirmed
-                    donations.get(row.Donation_ID).name = row.donor_name
-                    donations.get(row.Donation_ID).donorID = row.Donor_ID
-                    donations.get(row.Donation_ID).sum = row.sum_confirmed
-                    donations.get(row.Donation_ID).paymentMethod = row.payment_name
-                    donations.get(row.Donation_ID).transactionCost = row.transaction_cost
-
-                    donations.get(row.Donation_ID).split.push({
-                        id: row.Org_ID,
-                        name: row.org_name,
-                        percentage: row.percentage_share,
-                        amount: row.actual_share
-                    })
+            let donations = new Map()
+            getFromRangeQuery.forEach((row) => {
+                if(!donations.get(row.Donation_ID)) donations.set(row.Donation_ID, {
+                    ID: null,
+                    time: null,
+                    name: null,
+                    donorID: null,
+                    sum: null,
+                    paymentMethod: null,
+                    transactionCost: null,
+                    split: []
                 })
 
-                donations = [...donations.values()].sort((a,b) => a.time - b.time)
+                donations.get(row.Donation_ID).ID = row.Donation_ID
+                donations.get(row.Donation_ID).time = row.timestamp_confirmed
+                donations.get(row.Donation_ID).name = row.donor_name
+                donations.get(row.Donation_ID).donorID = row.Donor_ID
+                donations.get(row.Donation_ID).sum = row.sum_confirmed
+                donations.get(row.Donation_ID).paymentMethod = row.payment_name
+                donations.get(row.Donation_ID).transactionCost = row.transaction_cost
 
-                fulfill(donations)
-        } catch(ex) {
-            reject(ex)
-        }
-    })
+                donations.get(row.Donation_ID).split.push({
+                    id: row.Org_ID,
+                    name: row.org_name,
+                    percentage: row.percentage_share,
+                    amount: row.actual_share
+                })
+            })
+
+            donations = [...donations.values()].sort((a,b) => a.time - b.time)
+
+            con.release()
+            return donations
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
@@ -311,6 +332,8 @@ function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
  */
 async function getMedianFromRange(fromDate, toDate) {
     try {
+        var con = await pool.getConnection()
+
         if (!fromDate) fromDate = new Date(2000,0, 1)
         if (!toDate) toDate = new Date()
 
@@ -329,16 +352,21 @@ async function getMedianFromRange(fromDate, toDate) {
                 Donations.sum_confirmed
             `, [fromDate, toDate])
 
-        if (donations.length == 0) return null
+        if (donations.length === 0) {
+            con.release()
+            return null
+        }
 
         // Ikke helt presist siden ved partall antall donasjoner vil denne funksjonen
         // returnere det største av de to midterste elementene (om de er ulike), 
         // men tenker det går greit
         const medianIndex = Math.floor(donations.length / 2)
 
-        return parseFloat(donations[medianIndex].sum_confirmed);
+        con.release()
+        return parseFloat(donations[medianIndex].sum_confirmed)
     } catch(ex) {
-        throw ex;
+        con.release()
+        throw ex
     }
 }
 
@@ -348,34 +376,57 @@ async function getMedianFromRange(fromDate, toDate) {
  * @returns {Array<DonationSummary>} Array of DonationSummary objects
  */
 async function getSummary(donorID) {
-    var [res] = await con.query(`SELECT
-    Organizations.full_name, (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, transaction_cost, Donations.Donor_ID
-    FROM Donations
-    INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
-    INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
-    INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
-    where Donations.Donor_ID = ` + donorID + ` ORDER BY timestamp_confirmed DESC limit 10000`)
+    try {
+        var con = await pool.getConnection()
 
-    const summary = []
-    const map = new Map()
-    for (const item of res) {
-        if(!map.has(item.full_name)){
-            map.set(item.full_name, true)
-            summary.push({
-                organization: item.full_name,
-                sum: 0
-            })
-        }
-    }
-    res.forEach(row => {
-        summary.forEach(obj => {
-            if(row.full_name == obj.organization) {
-                obj.sum += parseInt(row.sum_distribution)
+        var [res] = await con.query(`SELECT
+            Organizations.full_name, 
+            (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, 
+            transaction_cost, 
+            Donations.Donor_ID
+        
+        FROM Donations
+            INNER JOIN Combining_table 
+                ON Combining_table.KID = Donations.KID_fordeling
+            INNER JOIN Distribution 
+                ON Combining_table.Distribution_ID = Distribution.ID
+            INNER JOIN Organizations 
+                ON Organizations.ID = Distribution.OrgID
+        WHERE 
+            Donations.Donor_ID = ? 
+            
+        ORDER BY timestamp_confirmed DESC
+         
+        LIMIT 10000`, [donorID])
+
+        const summary = []
+        const map = new Map()
+        for (const item of res) {
+            if(!map.has(item.full_name)){
+                map.set(item.full_name, true)
+                summary.push({
+                    organization: item.full_name,
+                    sum: 0
+                })
             }
+        }
+        res.forEach(row => {
+            summary.forEach(obj => {
+                if(row.full_name == obj.organization) {
+                    obj.sum += parseInt(row.sum_distribution)
+                }
+            })
         })
-    })
-    summary.push({donorID: donorID})
-    return summary
+        
+        summary.push({donorID: donorID})
+
+        con.release()
+        return summary
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
@@ -384,40 +435,55 @@ async function getSummary(donorID) {
  * @returns {Array<DonationDistributions>}
  */
 async function getHistory(donorID) {
-    var [res] = await con.query(`SELECT
-    Organizations.full_name,
-    Donations.timestamp_confirmed,
-    Donations.ID as donation_id,
-    Distribution.ID as distribution_id,
-    (Donations.sum_confirmed * percentage_share / 100) as sum_distribution
-    FROM Donations
-    INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
-    INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
-    INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
-    where Donations.Donor_ID = ` + donorID + ` ORDER BY timestamp_confirmed DESC limit 10000`)
+    try {
+        var con = await pool.getConnection()
+        var [res] = await con.query(`
+            SELECT
+                Organizations.full_name,
+                Donations.timestamp_confirmed,
+                Donations.ID as donation_id,
+                Distribution.ID as distribution_id,
+                (Donations.sum_confirmed * percentage_share / 100) as sum_distribution
+            
+            FROM Donations
+                INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
+                INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
+                INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
 
-    const history = []
-    const map = new Map()
-    for (const item of res) {
-        if(!map.has(item.donation_id)){
-            map.set(item.donation_id, true)
-            history.push({
-                donationID: item.donation_id,
-                date: item.timestamp_confirmed,
-                distributions: []
-            })
-        }
-    }
+            WHERE Donations.Donor_ID = ?
+            
+            ORDER BY timestamp_confirmed DESC
+             
+            LIMIT 10000`, [donorID])
 
-    res.forEach(row => {
-        history.forEach(obj => {
-            if(obj.donationID == row.donation_id) {
-                obj.distributions.push({organization: row.full_name, sum: row.sum_distribution})
+        const history = []
+        const map = new Map()
+        for (const item of res) {
+            if(!map.has(item.donation_id)){
+                map.set(item.donation_id, true)
+                history.push({
+                    donationID: item.donation_id,
+                    date: item.timestamp_confirmed,
+                    distributions: []
+                })
             }
-        })
-    })
+        }
 
-    return history
+        res.forEach(row => {
+            history.forEach(obj => {
+                if(obj.donationID == row.donation_id) {
+                    obj.distributions.push({organization: row.full_name, sum: row.sum_distribution})
+                }
+            })
+        })
+
+        con.release()
+        return history
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 //endregion
@@ -435,69 +501,96 @@ async function getHistory(donorID) {
  * @param {Number} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
  * @return {Number} The donations ID
  */
-function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null, metaOwnerID = null) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
+async function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null, metaOwnerID = null) {
+    try {
+        var con = await pool.getConnection()
+        var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
 
-            if (donorIDQuery.length != 1) { 
-                reject(new Error("NO_KID | KID " + KID + " does not exist"));
-                return false;
-            }
-
-            /** The meta owner ID is the ID of the organization / group that
-             *  are the owners of the data in the DB. If now ID is provided,
-             *  fetch the default from the DB.
-             */
-
-            if (metaOwnerID == null) {
-                metaOwnerID = await DAO.meta.getDefaultOwnerID()
-            }
-
-            /*  External transaction ID can be passed to prevent duplicates.
-                For example if you upload the same vipps report multiple
-                times, we must check the vipps transaction ID against the
-                stored ones in the database, to ensure that we are not creating
-                a duplicate donation. */
-            if (externalPaymentID != null) {
-                if (await ExternalPaymentIDExists(externalPaymentID,paymentMethodID)) {
-                    reject(new Error("EXISTING_DONATION | Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID))
-                    return false
-                }
-            }
-
-            var donorID = donorIDQuery[0].Donor_ID
-
-            var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling, Meta_owner_ID) VALUES (?,?,?,?,?,?,?)", [donorID, paymentMethodID, externalPaymentID, sum, registeredDate, KID, metaOwnerID])
-
-            return fulfill(addDonationQuery.insertId)
-        } catch(ex) {
-            return reject(ex)
+        if (donorIDQuery.length != 1) { 
+            // return new Error("NO_KID | KID " + KID + " does not exist");
+            con.release()
+            return false;
         }
-    })
+
+        /** The meta owner ID is the ID of the organization / group that
+         *  are the owners of the data in the DB. If now ID is provided,
+         *  fetch the default from the DB.
+         */
+
+        if (metaOwnerID == null) {
+            metaOwnerID = await DAO.meta.getDefaultOwnerID()
+        }
+
+        /*  External transaction ID can be passed to prevent duplicates.
+            For example if you upload the same vipps report multiple
+            times, we must check the vipps transaction ID against the
+            stored ones in the database, to ensure that we are not creating
+            a duplicate donation. */
+        if (externalPaymentID != null) {
+            if (await ExternalPaymentIDExists(externalPaymentID,paymentMethodID)) {
+                // return new Error("EXISTING_DONATION | Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID))
+                con.release()
+                return false
+            }
+        }
+
+        if (typeof registeredDate === "string")
+            registeredDate = new Date(registeredDate)
+
+
+        var donorID = donorIDQuery[0].Donor_ID
+
+        var [addDonationQuery] = await con.query("INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling, Meta_owner_ID) VALUES (?,?,?,?,?,?,?)", [donorID, paymentMethodID, externalPaymentID, sum, registeredDate, KID, metaOwnerID])
+
+        con.release()
+        return addDonationQuery.insertId
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 //endregion
 
 //region Modify
-function registerConfirmedByIDs(IDs) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [donations] = await con.execute(`UPDATE EffektDonasjonDB.Donations 
-                SET date_confirmed = NOW()
-                WHERE 
-                ID IN (` + ("?,").repeat(IDs.length).slice(0,-1) + `)`, IDs)
-        }
-        catch(ex) {
-            reject(ex)
-        }
+async function registerConfirmedByIDs(IDs) {
+    try {
+        var con = await pool.getConnection()
+        
+        var [donations] = await con.execute(`UPDATE EffektDonasjonDB.Donations 
+            SET date_confirmed = NOW()
+            WHERE 
+            ID IN (` + ("?,").repeat(IDs.length).slice(0,-1) + `)`, IDs)
 
-        fulfill()
-    })
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 //endregion
 
 //region Delete
+/**
+ * Deletes a donation from the database
+ * @param {number} donationId
+ * @returns {boolean} Returns true if a donation was deleted, false else
+ */
+async function remove(donationId) {
+    try {
+        var con = await pool.getConnection()
+        var result = await con.query(`DELETE FROM Donations WHERE ID = ?`, [donationId])
 
+        con.release()
+        if (result[0].affectedRows > 0) return true
+        else return false
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
+}
 //endregion
 
 //region Helpers
@@ -532,6 +625,7 @@ module.exports = {
     add,
     registerConfirmedByIDs,
     getHistogramBySum,
+    remove,
 
-    setup: (dbPool, DAOObject) => { con = dbPool, DAO = DAOObject }
+    setup: (dbPool, DAOObject) => { pool = dbPool, DAO = DAOObject }
 }

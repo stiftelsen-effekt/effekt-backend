@@ -6,10 +6,12 @@ const dns = require('dns').promises
 const moment = require('moment')
 const config = require('../config')
 const DAO = require('../custom_modules/DAO')
+const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 
 const vipps = require('../custom_modules/vipps')
 
 const paymentMethods = require('../enums/paymentMethods')
+const authorizationRoles = require('../enums/authorizationRoles')
 
 const vippsCallbackProdServers = ["callback-1.vipps.no","callback-2.vipps.no","callback-3.vipps.no","callback-4.vipps.no"]
 const vippsCallbackDisasterServers = ["callback-dr-1.vipps.no","callback-dr-2.vipps.no","callback-dr-3.vipps.no","callback-dr-4.vipps.no"]
@@ -27,10 +29,6 @@ router.get("/initiate/:phonenumber", async(req, res, next) => {
 })
 
 router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
-    console.log(req.body)
-    console.log(req.ip)
-    console.log(req.params.orderId)
-
     if (req.body.orderId !== req.params.orderId) {
         res.sendStatus(400)
         return false
@@ -80,6 +78,34 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     res.sendStatus(200)
 })
 
+router.get("/redirect/:orderId", async (req, res, next) => {
+    try {
+        let orderId = req.params.orderId
+
+        let retry = async (retries) => {
+            let order = await DAO.vipps.getOrder(orderId)
+    
+            if (order && order.donationID != null) {
+                res.redirect('https://gieffektivt.no/donation-recived/')
+                return true
+            }
+            else if (retries >= 20) {
+                res.redirect('https://gieffektivt.no/donation-failed')
+                return false
+            }
+            else {
+                setTimeout(async () => {
+                    await retry(retries + 1)
+                }, 1000)
+            }
+        }
+    
+        await retry(0)
+    } catch(ex) {
+        next(ex)
+    }
+})
+
 router.get("/integration-test/:linkToken", async (req, res, next) => {
     if (config.env === 'production') {
         res.status(403).json({status: 403, content: 'Integration test not applicable in production environment'})
@@ -116,6 +142,50 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
         res.status(500).json({status: 500, content: ex.message})
     }
     
+})
+
+router.post("/refund/:orderId", authMiddleware(authorizationRoles.write_vipps_api), async (req,res,next) => {
+    try {
+        let refunded = await vipps.refundOrder(req.params.orderId)
+
+        if (refunded) {
+            return res.json({
+                status: 200,
+                content: "OK"
+            })
+        }
+        else {
+            return res.status(409).json({
+                status: 409,
+                content: "Could not refund the order. This might be because the order has not been captured."
+            })
+        }
+    }
+    catch(ex) {
+        next(ex)
+    }
+})
+
+router.put("/cancel/:orderId", authMiddleware(authorizationRoles.write_vipps_api), async (req,res,next) => {
+    try {
+        let cancelled = await vipps.cancelOrder(req.params.orderId)
+
+        if (cancelled) {
+            return res.json({
+                status: 200,
+                content: "OK"
+            })
+        }
+        else {
+            return res.status(409).json({
+                status: 409,
+                content: "Could not cancel the order. This might be because the order has been captured."
+            })
+        }
+    }
+    catch(ex) {
+        next(ex)
+    }
 })
 
 /**
