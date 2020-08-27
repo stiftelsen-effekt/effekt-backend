@@ -2,8 +2,7 @@ const vippsParser = require('../../custom_modules/parsers/vipps.js')
 const DAO = require('../../custom_modules/DAO.js')
 const mail = require('../../custom_modules/mail')
 const config = require('../../config')
-
-const VIPPS_ID = 4
+const payment = require('../../enums/paymentMethods')
 
 module.exports = async (req,res,next) => {
     if (!req.files || !req.files.report) return res.sendStatus(400)
@@ -23,7 +22,7 @@ module.exports = async (req,res,next) => {
     let valid = 0
     for (let i = 0; i < transactions.length; i++) {
         let transaction = transactions[i]
-        transaction.paymentID = VIPPS_ID
+        transaction.paymentID = payment.vipps_KID
 
         if (transaction.KID != null) {
             /**
@@ -31,7 +30,7 @@ module.exports = async (req,res,next) => {
              */
             let donationID;
             try {
-                donationID = await DAO.donations.add(transaction.KID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID, metaOwnerID)
+                donationID = await DAO.donations.add(transaction.KID, payment.vipps_KID, transaction.amount, transaction.date.toDate(), transaction.transactionID, metaOwnerID)
                 valid++
             } catch (ex) {
                 console.error("Failed to update DB for vipps donation with KID: " + transaction.KID)
@@ -56,7 +55,7 @@ module.exports = async (req,res,next) => {
              * The rules are defined in the database
              */
             try {
-                await DAO.donations.add(matchingRuleKID, VIPPS_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID, metaOwnerID)
+                await DAO.donations.add(matchingRuleKID, payment.vipps_KID, transaction.amount, transaction.date.toDate(), transaction.transactionID, metaOwnerID)
                 valid++
             } catch (ex) {
                 console.error("Failed to update DB for vipps donation that matched against a parsing rule with KID: " + transaction.KID)
