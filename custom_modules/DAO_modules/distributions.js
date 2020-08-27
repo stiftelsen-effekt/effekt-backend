@@ -1,12 +1,12 @@
 const sqlString = require('sqlstring')
-const { distributions } = require('../DAO')
-const donors = require('./donors')
 
-var con
+var pool
 var DAO
 
 //region GET
 async function getAll(page=0, limit=10, sort, filter=null) {
+    var con = await pool.getConnection()
+
     let where = []
     if (filter) {
         if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
@@ -14,28 +14,28 @@ async function getAll(page=0, limit=10, sort, filter=null) {
     }
 
     let queryString = `
-    SELECT
-        Combining.KID,
-        Donations.sum,
-        Donations.count,
-        Donors.full_name,
-        Donors.email
+        SELECT
+            Combining.KID,
+            Donations.sum,
+            Donations.count,
+            Donors.full_name,
+            Donors.email
 
-        FROM Combining_table as Combining
+            FROM Combining_table as Combining
 
-        LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
-            ON Donations.KID_fordeling = Combining.KID
+            LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
+                ON Donations.KID_fordeling = Combining.KID
 
-        INNER JOIN Donors
-            ON Combining.Donor_ID = Donors.ID
+            INNER JOIN Donors
+                ON Combining.Donor_ID = Donors.ID
 
-        ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}
+            ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}
 
-        GROUP BY Combining.KID, Donors.full_name, Donors.email
+            GROUP BY Combining.KID, Donors.full_name, Donors.email
 
-        ORDER BY ${sort.id} ${sort.desc ? ' DESC' : ''}
+            ORDER BY ${sort.id} ${sort.desc ? ' DESC' : ''}
 
-        LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit*page)}`;
+            LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit*page)}`;
 
     const [rows] = await con.query(queryString)
 
@@ -53,6 +53,7 @@ async function getAll(page=0, limit=10, sort, filter=null) {
     
     const pages = Math.ceil(counter[0].count / limit)
 
+    con.release()
     return {
         rows,
         pages
@@ -72,6 +73,8 @@ async function getAll(page=0, limit=10, sort, filter=null) {
  *      }]}]}}
  */
 async function getAllByDonor(donorID) {
+    var con = await pool.getConnection()
+
     var [res] = await con.query(`select Donors.ID as donID, Combining_table.KID as KID, Distribution.ID, Organizations.full_name, Distribution.percentage_share 
     from Donors
     inner join Combining_table on Combining_table.Donor_ID = Donors.ID
@@ -104,6 +107,7 @@ async function getAllByDonor(donorID) {
         })
     })
 
+    con.release()
     return distObj
 }
 
@@ -114,13 +118,19 @@ async function getAllByDonor(donorID) {
  */
 async function KIDexists(KID) {
     try {
+        var con = await pool.getConnection()
+
         var [res] = await con.query("SELECT * FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
+
+        con.release()
+        if (res.length > 0) return true
+        else return false
     } catch(ex) {
+        con.release()
         throw ex
     }
 
-    if (res.length > 0) return true
-    else return false
+    
 }
 
 /**
@@ -130,9 +140,9 @@ async function KIDexists(KID) {
  * @returns {number | null} KID or null if no KID found
  */
 async function getKIDbySplit(split, donorID) {
-    //Check if existing KID
     try {
-        //Construct query
+        var con = await pool.getConnection()
+
         let query = `
         SELECT 
             KID, 
@@ -156,12 +166,14 @@ async function getKIDbySplit(split, donorID) {
             KID_count = ` + split.length
 
         var [res] = await con.execute(query)
+
+        con.release()
+        if (res.length > 0) return res[0].KID
+        else return null
     } catch(ex) {
+        con.release()
         throw ex
     }
-
-    if (res.length > 0) return res[0].KID
-    else return null
 }
 
 /**
@@ -176,6 +188,8 @@ async function getKIDbySplit(split, donorID) {
  */
 async function getSplitByKID(KID) {
     try {
+        var con = await pool.getConnection()
+
         let [result] = await con.query(`
             SELECT 
                 Organizations.ID,
@@ -192,10 +206,11 @@ async function getSplitByKID(KID) {
             WHERE 
                 KID = ?`, [KID])
 
+        con.release()
         if (result.length == 0) return new Error("NOT FOUND | No distribution with the KID " + KID)
-
         return result
     } catch(ex) {
+        con.release()
         throw ex
     }
 }
@@ -207,6 +222,8 @@ async function getSplitByKID(KID) {
  */
 async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
     try {
+        var con = await pool.getConnection()
+
         let [res] = await con.query(`SELECT 
             ReferenceTransactionNumber,
             KID 
@@ -221,10 +238,11 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
             return acc
         }, {})
 
+        con.release()
         return mapping
     } catch(ex) {
+        con.release()
         throw ex
-        return false
     }
 }
 //endregion
@@ -239,7 +257,7 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
  */
 async function add(split, KID, donorID, metaOwnerID = null) {
     try {
-        var transaction = await con.startTransaction()
+        var transaction = await pool.startTransaction()
 
         if (metaOwnerID == null) {
             metaOwnerID = await DAO.meta.getDefaultOwnerID()
@@ -254,10 +272,12 @@ async function add(split, KID, donorID, metaOwnerID = null) {
         //Update combining table
         var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID, Meta_owner_ID) VALUES ?", [combining_table_values])
 
-        con.commitTransaction(transaction)
+        pool.commitTransaction(transaction)
+        transaction.release()
         return true
     } catch(ex) {
-        con.rollbackTransaction(transaction)
+        pool.rollbackTransaction(transaction)
+        transaction.release()
         throw ex
     }
 }
@@ -272,5 +292,5 @@ module.exports = {
     getAllByDonor,
     add,
     
-    setup: (dbPool, DAOObject) => { con = dbPool, DAO = DAOObject }
+    setup: (dbPool, DAOObject) => { pool = dbPool, DAO = DAOObject }
 }
