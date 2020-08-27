@@ -92,7 +92,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
 
             const pages = Math.ceil(counter[0].count / limit)
 
-            pool.releaseConnection(con)
+            con.release()
             return {
                 rows: mapToJS(donations),
                 pages
@@ -118,7 +118,8 @@ async function getAll(sort, page, limit = 10, filter = null) {
  */
 async function getHistogramBySum() {
     try {
-        [results] = await con.query(`
+        var con = await pool.getConnection()
+        let [results] = await con.query(`
             SELECT 
                 floor(sum_confirmed/500)*500 	AS bucket, 
                 count(*) 						AS items,
