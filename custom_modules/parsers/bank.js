@@ -38,7 +38,7 @@ module.exports = {
             }
             catch(ex) {
                 console.error("Using comma delimiter failed.")
-                console.error("Parsing vipps failed.")
+                console.error("Parsing bank custom transactions failed.")
                 console.error(ex)
                 return false
             }

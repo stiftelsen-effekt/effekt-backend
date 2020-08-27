@@ -31,7 +31,7 @@ module.exports = async (req, res, next) => {
                 donationID = await DAO.donations.add(transaction.KID, BANK_NO_KID_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID, metaOwnerID)
                 valid++
             } catch (ex) {
-                console.error("Failed to update DB for vipps donation with KID: " + transaction.KID)
+                console.error("Failed to update DB for bank_custom donation with KID: " + transaction.KID)
                 console.error(ex)
 
                 invalid.push({
