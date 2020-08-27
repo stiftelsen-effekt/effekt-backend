@@ -1,12 +1,12 @@
 const sqlString = require('sqlstring')
-const { distributions } = require('../DAO')
-const donors = require('./donors')
 
-var con
+var pool
 var DAO
 
 //region GET
 async function getAll(page=0, limit=10, sort, filter=null) {
+    var con = await pool.getConnection()
+
     let where = []
     if (filter) {
         if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
@@ -14,28 +14,28 @@ async function getAll(page=0, limit=10, sort, filter=null) {
     }
 
     let queryString = `
-    SELECT
-        Combining.KID,
-        Donations.sum,
-        Donations.count,
-        Donors.full_name,
-        Donors.email
+        SELECT
+            Combining.KID,
+            Donations.sum,
+            Donations.count,
+            Donors.full_name,
+            Donors.email
 
-        FROM Combining_table as Combining
+            FROM Combining_table as Combining
 
-        LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
-            ON Donations.KID_fordeling = Combining.KID
+            LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
+                ON Donations.KID_fordeling = Combining.KID
 
-        INNER JOIN Donors
-            ON Combining.Donor_ID = Donors.ID
+            INNER JOIN Donors
+                ON Combining.Donor_ID = Donors.ID
 
-        ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}
+            ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}
 
-        GROUP BY Combining.KID, Donors.full_name, Donors.email
+            GROUP BY Combining.KID, Donors.full_name, Donors.email
 
-        ORDER BY ${sort.id} ${sort.desc ? ' DESC' : ''}
+            ORDER BY ${sort.id} ${sort.desc ? ' DESC' : ''}
 
-        LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit*page)}`;
+            LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit*page)}`;
 
     const [rows] = await con.query(queryString)
 
@@ -53,6 +53,7 @@ async function getAll(page=0, limit=10, sort, filter=null) {
     
     const pages = Math.ceil(counter[0].count / limit)
 
+    con.release()
     return {
         rows,
         pages
@@ -72,6 +73,8 @@ async function getAll(page=0, limit=10, sort, filter=null) {
  *      }]}]}}
  */
 async function getAllByDonor(donorID) {
+    var con = await pool.getConnection()
+
     var [res] = await con.query(`select Donors.ID as donID, Combining_table.KID as KID, Distribution.ID, Organizations.full_name, Distribution.percentage_share 
     from Donors
     inner join Combining_table on Combining_table.Donor_ID = Donors.ID
@@ -104,6 +107,7 @@ async function getAllByDonor(donorID) {
         })
     })
 
+    con.release()
     return distObj
 }
 
@@ -112,17 +116,21 @@ async function getAllByDonor(donorID) {
  * @param {number} KID 
  * @returns {boolean}
  */
-function KIDexists(KID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [res] = await con.query("SELECT * FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
-        } catch(ex) {
-            return reject(ex)
-        }
+async function KIDexists(KID) {
+    try {
+        var con = await pool.getConnection()
 
-        if (res.length > 0) fulfill(true)
-        else fulfill(false)
-    })
+        var [res] = await con.query("SELECT * FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
+
+        con.release()
+        if (res.length > 0) return true
+        else return false
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+
+    
 }
 
 /**
@@ -131,41 +139,41 @@ function KIDexists(KID) {
  * @param {number} donorID 
  * @returns {number | null} KID or null if no KID found
  */
-function getKIDbySplit(split, donorID) {
-    return new Promise(async (fulfill, reject) => {
-        //Check if existing KID
-        try {
-            //Construct query
-            let query = `
-            SELECT 
-                KID, 
-                Count(KID) as KID_count 
-                
-            FROM Distribution as D
-                INNER JOIN Combining_table as C 
-                    ON C.Distribution_ID = D.ID
-            
-            WHERE
-            `;
-            
-            for (let i = 0; i < split.length; i++) {
-                query += `(OrgID = ${sqlString.escape(split[i].organizationID)} AND percentage_share = ${sqlString.escape(split[i].share)} AND Donor_ID = ${sqlString.escape(donorID)})`
-                if (i < split.length-1) query += ` OR `
-            }
+async function getKIDbySplit(split, donorID) {
+    try {
+        var con = await pool.getConnection()
 
-            query += ` GROUP BY C.KID
+        let query = `
+        SELECT 
+            KID, 
+            Count(KID) as KID_count 
             
-            HAVING 
-                KID_count = ` + split.length
-
-            var [res] = await con.execute(query)
-        } catch(ex) {
-            return reject(ex)
+        FROM Distribution as D
+            INNER JOIN Combining_table as C 
+                ON C.Distribution_ID = D.ID
+        
+        WHERE
+        `;
+        
+        for (let i = 0; i < split.length; i++) {
+            query += `(OrgID = ${sqlString.escape(split[i].organizationID)} AND percentage_share = ${sqlString.escape(split[i].share)} AND Donor_ID = ${sqlString.escape(donorID)})`
+            if (i < split.length-1) query += ` OR `
         }
 
-        if (res.length > 0) fulfill(res[0].KID)
-        else fulfill(null)
-    })
+        query += ` GROUP BY C.KID
+        
+        HAVING 
+            KID_count = ` + split.length
+
+        var [res] = await con.execute(query)
+
+        con.release()
+        if (res.length > 0) return res[0].KID
+        else return null
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
@@ -178,32 +186,33 @@ function getKIDbySplit(split, donorID) {
  *  percentage_share: Decimal
  * }]}
  */
-function getSplitByKID(KID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            let [result] = await con.query(`
-                SELECT 
-                    Organizations.ID,
-                    Organizations.full_name,
-                    Organizations.abbriv, 
-                    Distribution.percentage_share
-                
-                FROM Combining_table as Combining
-                    INNER JOIN Distribution as Distribution
-                        ON Combining.Distribution_ID = Distribution.ID
-                    INNER JOIN Organizations as Organizations
-                        ON Organizations.ID = Distribution.OrgID
-                
-                WHERE 
-                    KID = ?`, [KID])
+async function getSplitByKID(KID) {
+    try {
+        var con = await pool.getConnection()
 
-            if (result.length == 0) return reject(new Error("NOT FOUND | No distribution with the KID " + KID))
+        let [result] = await con.query(`
+            SELECT 
+                Organizations.ID,
+                Organizations.full_name,
+                Organizations.abbriv, 
+                Distribution.percentage_share
+            
+            FROM Combining_table as Combining
+                INNER JOIN Distribution as Distribution
+                    ON Combining.Distribution_ID = Distribution.ID
+                INNER JOIN Organizations as Organizations
+                    ON Organizations.ID = Distribution.OrgID
+            
+            WHERE 
+                KID = ?`, [KID])
 
-            return fulfill(result)
-        } catch(ex) {
-            reject(ex)
-        }
-    })
+        con.release()
+        if (result.length == 0) return new Error("NOT FOUND | No distribution with the KID " + KID)
+        return result
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
@@ -211,29 +220,30 @@ function getSplitByKID(KID) {
  * @param {Array} transactions A list of transactions that must have a ReferenceTransactionId 
  * @returns {Object} Returns an object with referenceTransactionId's as keys and KIDs as values
  */
-function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            let [res] = await con.query(`SELECT 
-                ReferenceTransactionNumber,
-                KID 
-                
-                FROM Paypal_historic_distributions 
+async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
+    try {
+        var con = await pool.getConnection()
 
-                WHERE 
-                    ReferenceTransactionNumber IN (?);`, [referenceIDs])
+        let [res] = await con.query(`SELECT 
+            ReferenceTransactionNumber,
+            KID 
+            
+            FROM Paypal_historic_distributions 
 
-            let mapping = res.reduce((acc, row) => {
-                acc[row.ReferenceTransactionNumber] = row.KID
-                return acc
-            }, {})
+            WHERE 
+                ReferenceTransactionNumber IN (?);`, [referenceIDs])
 
-            fulfill(mapping)
-        } catch(ex) {
-            reject(ex)
-            return false
-        }
-    })
+        let mapping = res.reduce((acc, row) => {
+            acc[row.ReferenceTransactionNumber] = row.KID
+            return acc
+        }, {})
+
+        con.release()
+        return mapping
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 //endregion
 
@@ -245,31 +255,29 @@ function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
  * @param {number} donorID 
  * @param {number} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
  */
-function add(split, KID, donorID, metaOwnerID = null) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var transaction = await con.startTransaction()
+async function add(split, KID, donorID, metaOwnerID = null) {
+    try {
+        var transaction = await pool.startTransaction()
 
-            if (metaOwnerID == null) {
-                metaOwnerID = await DAO.meta.getDefaultOwnerID()
-            }
-
-            let distribution_table_values = split.map((item) => {return [item.organizationID, item.share]})
-            var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [distribution_table_values])
-
-            let first_inserted_id = res[0].insertId
-            var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {return [donorID, first_inserted_id+i, KID, metaOwnerID]})
-
-            //Update combining table
-            var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID, Meta_owner_ID) VALUES ?", [combining_table_values])
-
-            con.commitTransaction(transaction)
-            fulfill(true)
-        } catch(ex) {
-            con.rollbackTransaction(transaction)
-            reject(ex)
+        if (metaOwnerID == null) {
+            metaOwnerID = await DAO.meta.getDefaultOwnerID()
         }
-    })
+
+        let distribution_table_values = split.map((item) => {return [item.organizationID, item.share]})
+        var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [distribution_table_values])
+
+        let first_inserted_id = res[0].insertId
+        var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {return [donorID, first_inserted_id+i, KID, metaOwnerID]})
+
+        //Update combining table
+        var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID, Meta_owner_ID) VALUES ?", [combining_table_values])
+
+        pool.commitTransaction(transaction)
+        return true
+    } catch(ex) {
+        pool.rollbackTransaction(transaction)
+        throw ex
+    }
 }
 //endregion
 
@@ -281,6 +289,6 @@ module.exports = {
     getAll,
     getAllByDonor,
     add,
-
-    setup: (dbPool, DAOObject) => { con = dbPool, DAO = DAOObject }
+    
+    setup: (dbPool, DAOObject) => { pool = dbPool, DAO = DAOObject }
 }

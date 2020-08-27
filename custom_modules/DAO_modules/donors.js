@@ -1,4 +1,4 @@
-var con
+var pool
 
 /**
  * @typedef Donor
@@ -16,17 +16,19 @@ var con
  * @param {String} email An email
  * @returns {Number} An ID
  */
-function getIDbyEmail(email) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [result] = await con.execute(`SELECT ID FROM Donors where email = ?`, [email])
-        } catch (ex) {
-            reject(ex)
-        }
+async function getIDbyEmail(email) {
+    try {
+        var con = await pool.getConnection()
+        var [result] = await con.execute(`SELECT ID FROM Donors where email = ?`, [email])
 
-        if (result.length > 0) fulfill(result[0].ID)
-        else fulfill(null)
-    })
+        con.release()
+        if (result.length > 0) return(result[0].ID)
+        else return(null)
+    } 
+    catch (ex) {
+        con.release()
+        throw(ex)
+    }
 }
 
 /**
@@ -34,17 +36,21 @@ function getIDbyEmail(email) {
  * @param {Number} ID The ID in the database for the donor
  * @returns {Donor} A donor object
  */
-function getByID(ID) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var [result] = await con.execute(`SELECT * FROM Donors where ID = ? LIMIT 1`, [ID])
-        } catch (ex) {
-            reject(ex)
-        }
+async function getByID(ID) {
+    try {
+        var con = await pool.getConnection()
+        var [result] = await con.execute(`SELECT * FROM Donors where ID = ? LIMIT 1`, [ID])
 
-        if (result.length > 0) fulfill(result[0])
-        else fulfill(null)
-    })
+        con.release()
+
+        if (result.length > 0) return(result[0])
+        else return(null)
+        
+    } 
+    catch (ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
@@ -53,32 +59,40 @@ function getByID(ID) {
  * @returns {Donor} A donor Object
  */
 async function getByKID(KID) {
-    let [dbDonor] = await con.query(`SELECT    
-        ID,
-        email, 
-        full_name,
-        ssn,
-        date_registered
-        
-        FROM Donors 
-        
-        INNER JOIN Combining_table 
-            ON Donor_ID = Donors.ID 
+    try {
+        var con = await pool.getConnection()
+        let [dbDonor] = await con.query(`SELECT    
+            ID,
+            email, 
+            full_name,
+            ssn,
+            date_registered
             
-        WHERE KID = ? 
-        GROUP BY Donors.ID LIMIT 1`, [KID])
+            FROM Donors 
+            
+            INNER JOIN Combining_table 
+                ON Donor_ID = Donors.ID 
+                
+            WHERE KID = ? 
+            GROUP BY Donors.ID LIMIT 1`, [KID])
 
-    if (dbDonor.length > 0) {
-        return {
-            id: dbDonor[0].ID,
-            email: dbDonor[0].email,
-            name: dbDonor[0].full_name,
-            ssn: dbDonor[0].ssn, 
-            registered: dbDonor[0].date_registered
+        con.release()
+        if (dbDonor.length > 0) {
+            return {
+                id: dbDonor[0].ID,
+                email: dbDonor[0].email,
+                name: dbDonor[0].full_name,
+                ssn: dbDonor[0].ssn, 
+                registered: dbDonor[0].date_registered
+            }
+        }
+        else {
+            return null
         }
     }
-    else {
-        return null
+    catch(ex) {
+        con.release()
+        throw ex
     }
 }
 
@@ -87,32 +101,40 @@ async function getByKID(KID) {
  * @param {string} query A query string trying to match agains full name and email
  * @returns {Array<Donor>} An array of donor objects
  */
-function search(query) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            if (query === "" || query.length < 3) var [result] = await con.execute(`SELECT * FROM Donors LIMIT 100`, [query])
-            else var [result] = await con.execute(`SELECT * FROM Donors 
-                WHERE 
-                    MATCH (full_name, email) AGAINST (?)
-                    OR full_name LIKE ?
-                    OR email LIKE ?
-                    
-                LIMIT 100`, [query, `%${query}%`, `%${query}%`])
-        } catch(ex) {
-            reject(ex)
-        }
+async function search(query) {
+    try {
+        var con = await pool.getConnection()
 
-        if (result.length > 0) fulfill(result.map((donor) => {
-            return {
-                id: donor.ID,
-                name: donor.full_name,
-                email: donor.email,
-                ssn: donor.ssn,
-                registered: donor.date_registered
-            }
-        }))
-        else fulfill(null)
-    })
+        if (query === "" || query.length < 3) var [result] = await con.execute(`SELECT * FROM Donors LIMIT 100`, [query])
+        else var [result] = await con.execute(`SELECT * FROM Donors 
+            WHERE 
+                MATCH (full_name, email) AGAINST (?)
+                OR full_name LIKE ?
+                OR email LIKE ?
+                
+            LIMIT 100`, [query, `%${query}%`, `%${query}%`])
+
+        con.release()
+        
+        if (result.length > 0) {
+            return(result.map((donor) => {
+                return {
+                    id: donor.ID,
+                    name: donor.full_name,
+                    email: donor.email,
+                    ssn: donor.ssn,
+                    registered: donor.date_registered
+                }
+            }))
+        } 
+        else {
+            return null
+        }
+    } 
+    catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 //endregion
 
@@ -122,28 +144,30 @@ function search(query) {
  * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
  * @returns {Number} The ID of the new Donor if successfull
  */
-function add(email="", name, ssn="", newsletter=null) {
-    return new Promise(async (fulfill, reject) => {
-        try {
-            var res = await con.execute(`INSERT INTO Donors (
-                email,
-                full_name, 
-                ssn,
-                newsletter
-            ) VALUES (?,?,?,?)`, 
-            [
-                email,
-                name,
-                ssn,
-                newsletter
-            ])
-        }
-        catch(ex) {
-            return reject(ex)
-        }
-        
-        fulfill(res[0].insertId)
-    })
+async function add(email="", name, ssn="", newsletter=null) {
+    try {
+        var con = await pool.getConnection()
+
+        var res = await con.execute(`INSERT INTO Donors (
+            email,
+            full_name, 
+            ssn,
+            newsletter
+        ) VALUES (?,?,?,?)`, 
+        [
+            email,
+            name,
+            ssn,
+            newsletter
+        ])
+
+        con.release()
+        return(res[0].insertId)
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 //endregion
 
@@ -155,8 +179,16 @@ function add(email="", name, ssn="", newsletter=null) {
  * @returns {boolean}
  */
 async function updateSsn(donorID, ssn) {
-    let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
-    return true
+    try {
+        var con = await pool.getConnection()
+        let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
@@ -166,8 +198,16 @@ async function updateSsn(donorID, ssn) {
  * @returns {boolean}
  */
 async function updateNewsletter(donorID, newsletter) {
-    let res = await con.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [newsletter, donorID])
-    return true
+    try {
+        var con = await pool.getConnection()
+        let res = await con.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [newsletter, donorID])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 //endregion
@@ -184,5 +224,5 @@ module.exports = {
     updateSsn,
     updateNewsletter,
 
-    setup: (dbPool) => { con = dbPool }
+    setup: (dbPool) => { pool = dbPool }
 }

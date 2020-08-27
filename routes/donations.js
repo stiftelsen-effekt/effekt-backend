@@ -16,6 +16,7 @@ const mail = require('../custom_modules/mail')
 const vipps = require('../custom_modules/vipps')
 const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 const donationHelpers = require('../custom_modules/donationHelpers')
+const rateLimit = require('express-rate-limit')
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -24,7 +25,7 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
 
   let donationOrganizations = parsedData.organizations
   let donor = parsedData.donor
-  let paymentProviderUrl = null
+  let initiatedOrder = null
 
   try {
     var donationObject = {
@@ -83,10 +84,11 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     }
 
     //Get external paymentprovider URL
-    // if (donationObject.method == methods.VIPPS)
-    //   initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
-    //   //Start polling for updates
-    //   await vipps.pollOrder(initiatedOrder.orderId)
+    if (donationObject.method == methods.VIPPS) {
+      initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
+      //Start polling for updates
+      await vipps.pollOrder(initiatedOrder.orderId)
+    }
   }
 
   catch (ex) {
@@ -105,8 +107,8 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
     content: {
       KID: donationObject.KID,
       donorID: donationObject.donorID,
-      hasAnsweredReferral
-      //paymentProviderUrl: initiatedOrder.externalPaymentUrl
+      hasAnsweredReferral,
+      paymentProviderUrl: (initiatedOrder !== null ? initiatedOrder.externalPaymentUrl : "")
     }
   })
 })
@@ -278,7 +280,12 @@ router.get("/history/:donorID", authMiddleware(authRoles.read_all_donations), as
   }
 })
 
-router.post("/history/email", async (req, res, next) => {
+let historyRateLimit = new rateLimit({
+    windowMs: 60*1000*60, // 1 hour
+    max: 5,
+    delayMs: 0 // disable delaying - full speed until the max limit is reached 
+  })
+router.post("/history/email", historyRateLimit, async (req, res, next) => {
   try {
     let email = req.body.email
     let id = await DAO.donors.getIDbyEmail(email)
@@ -292,9 +299,9 @@ router.post("/history/email", async (req, res, next) => {
         })
       }
     } else {
-      res.status(500).json({
-        status: 500,
-        content: "failed"
+      res.json({
+        status: 200,
+        content: "ok"
       })
     }
   }

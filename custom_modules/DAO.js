@@ -37,7 +37,7 @@ module.exports = {
             console.error("Connection to database failed! | Using database " + config.db_name)
             console.log(ex)
             process.exit()
-        } 
+        }
     
         //Setup submodules
         this.donors.setup(dbPool)      
@@ -68,6 +68,7 @@ module.exports = {
         dbPool.rollbackTransaction = async function(transaction) {
             try {
                 await transaction.query("ROLLBACK")
+                transaction.release()
             } catch(ex) {
                 console.log(ex)
                 throw new Error("Fatal error, failed to rollback transaction")
@@ -77,6 +78,7 @@ module.exports = {
         dbPool.commitTransaction = async function(transaction) {
             try {
                 await transaction.query("COMMIT")
+                transaction.release()
             } catch(ex) {
                 console.log(ex)
                 throw new Error("Fatal error, failed to commit transaction")
