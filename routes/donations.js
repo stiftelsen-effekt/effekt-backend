@@ -298,9 +298,9 @@ router.post("/history/email", historyRateLimit, async (req, res, next) => {
         })
       }
     } else {
-      res.status(500).json({
-        status: 500,
-        content: "failed"
+      res.json({
+        status: 200,
+        content: "ok"
       })
     }
   }

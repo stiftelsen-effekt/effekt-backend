@@ -36,7 +36,7 @@ module.exports = {
             console.error("Connection to database failed! | Using database " + config.db_name)
             console.log(ex)
             process.exit()
-        } 
+        }
     
         //Setup submodules
         this.donors.setup(dbPool)      
