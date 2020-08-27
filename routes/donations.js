@@ -25,7 +25,7 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
 
   let donationOrganizations = parsedData.organizations
   let donor = parsedData.donor
-  let paymentProviderUrl = null
+  let initiatedOrder = null
 
   try {
     var donationObject = {
