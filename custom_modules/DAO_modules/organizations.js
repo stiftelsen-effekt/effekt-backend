@@ -53,7 +53,7 @@ async function getActive() {
         var [organizations] = await con.execute(`
             SELECT * FROM Organizations 
                 WHERE is_active = 1
-                ORDER BY std_percentage_share DESC`)
+                ORDER BY ordering ASC`)
 
         con.release()
         return organizations.map(mapOrganization)
