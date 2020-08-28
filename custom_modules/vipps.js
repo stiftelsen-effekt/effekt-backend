@@ -321,9 +321,9 @@ module.exports = {
                 let donationID = await DAO.donations.add(
                     KID, 
                     paymentMethods.vipps, 
-                    (captureRequest.amount/100), 
-                    captureRequest.timeStamp, 
-                    captureRequest.transactionId)
+                    (captureRequest.transactionInfo.amount/100), 
+                    captureRequest.transactionInfo.timeStamp, 
+                    captureRequest.transactionInfo.transactionId)
                 await DAO.vipps.updateVippsOrderDonation(orderId, donationID)
                 await mail.sendDonationReciept(donationID)
                 return true
