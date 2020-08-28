@@ -508,9 +508,8 @@ async function add(KID, paymentMethodID, sum, registeredDate = null, externalPay
         var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
 
         if (donorIDQuery.length != 1) { 
-            // return new Error("NO_KID | KID " + KID + " does not exist");
             con.release()
-            return false;
+            return new Error("NO_KID | KID " + KID + " does not exist");
         }
 
         /** The meta owner ID is the ID of the organization / group that
@@ -529,9 +528,8 @@ async function add(KID, paymentMethodID, sum, registeredDate = null, externalPay
             a duplicate donation. */
         if (externalPaymentID != null) {
             if (await ExternalPaymentIDExists(externalPaymentID,paymentMethodID)) {
-                // return new Error("EXISTING_DONATION | Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID))
                 con.release()
-                return false
+                return new Error("EXISTING_DONATION | Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID))
             }
         }
 
