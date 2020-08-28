@@ -99,7 +99,6 @@ async function getAll(sort, page, limit = 10, filter = null) {
             }
         }
         else {
-            con.release()
             throw new Error("No sort provided")
         }
     } catch(ex) {
@@ -203,8 +202,7 @@ async function getByID(donationID) {
 
 
         if (getDonationFromIDquery.length != 1) {
-            con.release()
-            return new Error("Could not find donation with ID " + donationID)
+            throw new Error("Could not find donation with ID " + donationID)
         }
 
         let dbDonation = getDonationFromIDquery[0]
