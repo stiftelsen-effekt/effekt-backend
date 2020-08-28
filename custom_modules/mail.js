@@ -210,6 +210,8 @@ async function sendDonationHistory(donorID) {
  * @returns {boolean | number} True if success, status code else
  */
 async function send(options) {
+    console.log(options.templateData)
+
     const templateRoot = appRoot + '/views/mail/' + options.templateName
 
     var templateRawHTML = await fs.readFile(templateRoot + "/index.html", 'utf8')
