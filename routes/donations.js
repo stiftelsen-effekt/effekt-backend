@@ -20,7 +20,6 @@ const rateLimit = require('express-rate-limit')
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
-
   let parsedData = JSON.parse(req.body.data)
 
   let donationOrganizations = parsedData.organizations
@@ -82,13 +81,15 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       donationObject.KID = await donationHelpers.createKID()
       await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
     }
-
+    
     //Get external paymentprovider URL
     if (donationObject.method == methods.VIPPS) {
       initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
       //Start polling for updates
       await vipps.pollOrder(initiatedOrder.orderId)
     }
+  
+    await DAO.initialpaymentmethod.addPaymentIntent(donationObject.method, donationObject.KID)  
   }
 
   catch (ex) {
