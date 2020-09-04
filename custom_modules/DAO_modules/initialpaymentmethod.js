@@ -19,8 +19,8 @@ async function addPaymentIntent(KID, paymentMethod) {
             Payment_method,
             KID_fordeling) VALUES (?,?)`, 
         [
-            KID,
-            paymentMethod
+            paymentMethod,
+            KID
         ])
 
         con.release()

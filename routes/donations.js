@@ -89,7 +89,7 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       await vipps.pollOrder(initiatedOrder.orderId)
     }
   
-    await DAO.initialpaymentmethod.addPaymentIntent(donationObject.method, donationObject.KID)  
+    await DAO.initialpaymentmethod.addPaymentIntent(donationObject.KID, donationObject.method)  
   }
 
   catch (ex) {
