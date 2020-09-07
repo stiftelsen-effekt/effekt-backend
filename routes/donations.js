@@ -196,7 +196,7 @@ router.post("/", authMiddleware(authRoles.read_all_donations), async(req, res, n
       content: {
         rows: results.rows,
         pages: results.pages
-      } 
+      }
     })
   } catch(ex) {
     next(ex)
@@ -249,6 +249,28 @@ router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (re
       status: 500,
       content: `Reciept failed with error code ${mailStatus}`
     })
+  }
+})
+
+router.post("/reciepts",  async (req,res,next) => {
+  let donationIDs = req.body.donationIDs
+
+  try {
+    for (let i = 0; i < donationIDs.length; i++) {
+      let donationID = donationIDs[i];
+
+      var mailStatus = await mail.sendDonationReciept(donationID)
+
+      if (mailStatus == false)
+        console.error(`Failed to send donation for donationID ${donationID}`)
+    }
+
+    res.json({
+      status: 200,
+      content: "OK"
+    })
+  } catch(ex) {
+    next(ex)
   }
 })
 
