@@ -14,6 +14,7 @@ module.exports = {
     referrals: require('./DAO_modules/referrals'),
     auth: require('./DAO_modules/auth'),
     meta: require('./DAO_modules/meta'),
+    initialpaymentmethod: require ('./DAO_modules/initialpaymentmethod'),
 
     /**
      * Sets up a connection to the database, uses config.js file for parameters
@@ -51,6 +52,8 @@ module.exports = {
         this.referrals.setup(dbPool)
         this.auth.setup(dbPool)
         this.meta.setup(dbPool)
+        this.initialpaymentmethod.setup(dbPool)
+        
 
         //Convenience functions for transactions
         //Use the returned transaction object for queries in the transaction
