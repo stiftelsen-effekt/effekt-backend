@@ -15,7 +15,7 @@ async function addPaymentIntent(KID, paymentMethod) {
         var con = await pool.getConnection()
 
         var res = await con.execute(
-            `INSERT INTO Initial_distribution_method (
+            `INSERT INTO Payment_intent (
             Payment_method,
             KID_fordeling) VALUES (?,?)`, 
         [

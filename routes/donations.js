@@ -88,8 +88,13 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       //Start polling for updates
       await vipps.pollOrder(initiatedOrder.orderId)
     }
+
+    try {
+      await DAO.initialpaymentmethod.addPaymentIntent(donationObject.KID, donationObject.method)  
+    } catch (error) {
+      console.error(error)
+    }
   
-    await DAO.initialpaymentmethod.addPaymentIntent(donationObject.KID, donationObject.method)  
   }
 
   catch (ex) {
