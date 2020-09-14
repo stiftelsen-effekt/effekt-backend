@@ -258,7 +258,7 @@ router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (re
   }
 })
 
-router.post("/reciepts",  async (req,res,next) => {
+router.post("/reciepts", authMiddleware(authRoles.write_all_donations) ,async (req,res,next) => {
   let donationIDs = req.body.donationIDs
 
   try {
