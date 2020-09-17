@@ -17,7 +17,7 @@ async function sendDonationReciept(donationID, reciever = null) {
     try {
         var donation = await DAO.donations.getByID(donationID)
         if (!donation.email)  {
-          console.error("No email provided for donatin ID " + donationID)
+          console.error("No email provided for donation ID " + donationID)
           return false
         }
     } catch(ex) {
@@ -61,7 +61,7 @@ async function sendDonationReciept(donationID, reciever = null) {
 }
 
 function decideUIPaymentMethod(donationMethod){
-  if(donationMethod.toUpperCase() == 'BANK U/ KID') {
+  if(donationMethod.toUpperCase() == 'BANK U/KID') {
     donationMethod = 'Bank'
   }
 
