@@ -129,6 +129,33 @@ async function addOrder(order) {
 
     return result.insertId
 }
+
+/**
+ * Add a new vipps recurring donation agreement
+ * @param {string} agreementId Provided by vipps
+ * @param {number} donorId The Donor the agreement concerns
+ * @param {number} KID The KID used for recurring payments
+ * @param {number} sum The SUM used for recurring payments (in NOK)
+ * @param {boolean} active Whether the agreement has been activated. Defaults to false
+ * @return {boolean} Success or not
+ */
+async function addAgreement(ID, donorId, KID, sum, active = false) {
+    let con = await pool.getConnection()
+    try {
+        con.query(`
+            INSERT INTO Vipps_agreements
+                (ID, KID, donorID, sum, active)
+            VALUES
+                (?,?,?,?,?)`, 
+            [ID, donorId, KID, sum, active])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        return false
+    }
+}
 //endregion
 
 //region Modify
@@ -136,7 +163,7 @@ async function addOrder(order) {
  * Adds a Vipps order transaction status
  * @param {string} orderId
  * @param {Array<VippsTransactionLogItem>} transactionHistory
- * @return {boolean} Success
+ * @return {boolean} Success or not
  */
 async function updateOrderTransactionStatusHistory(orderId,transactionHistory) {
     let transaction = await pool.startTransaction()
@@ -180,6 +207,25 @@ async function updateVippsOrderDonation(orderID, donationID) {
 
     return (result.affectedRows != 0 ? true : false)
 }
+
+/**
+ * Updates agreement activation status
+ * @param {string} ID The agreement ID
+ * @param {boolean} active 
+ * @return {boolean} Success
+ */
+async function updateAgreementActive(ID, active) {
+    let con = await pool.getConnection()
+    try {
+        con.query(`UPDATE Vipps_agreements SET active = ?`, [active])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        return false
+    }
+}
 //endregion
 
 //region Delete
@@ -194,8 +240,10 @@ module.exports = {
     getRecentOrder,
     addToken,
     addOrder,
+    addAgreement,
     updateOrderTransactionStatusHistory,
     updateVippsOrderDonation,
+    updateAgreementActive,
 
     setup: (dbPool) => { pool = dbPool }
 }

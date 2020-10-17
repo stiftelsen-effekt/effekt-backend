@@ -28,6 +28,19 @@ router.get("/initiate/:phonenumber", async(req, res, next) => {
     res.json(url)
 })
 
+router.post("/agreement/draft", jsonBody, async(req,res,next) => {
+    const KID = 0;
+    const SUM = 100;
+    const NUMBER = 93279221;
+
+    try {
+        let response = await vipps.draftAgreement(KID, SUM, NUMBER)
+        res.json(response)
+    } catch(ex) {
+        next({ex})
+    }
+})
+
 router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     if (req.body.orderId !== req.params.orderId) {
         res.sendStatus(400)

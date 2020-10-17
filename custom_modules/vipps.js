@@ -22,7 +22,7 @@ const VIPPS_TEXT = "Donasjon til GiEffektivt.no"
  * @property {string} operation
  * @property {number} requestId 
  * @property {boolean} operationSuccess
- */    
+ */
 
 /**
  * @typedef TransactionSummary
@@ -39,6 +39,21 @@ const VIPPS_TEXT = "Donasjon til GiEffektivt.no"
  * @property {string} orderId
  * @property {TransactionSummary} transactionSummary
  * @property {Array<TransactionLogItem>} transactionLogHistory
+ */
+
+/**
+ * @typedef DraftRespone
+ * @property {string} agreementResource The REST resource of the agreement
+ * @property {string} agreementId The ID of the agreement
+ * @property {string} vippsConfirmationUrl URL to confirm the agreement
+ * @property {string} chargeId The id of the initial charge (not used)
+ */
+
+/**
+ * @typedef VippsError
+ * @property {string} code //https://www.vipps.no/developers-documentation/ecom/documentation/#error-codes
+ * @property {string} message
+ * @property {string} contextId
  */
 
 module.exports = {
@@ -446,8 +461,63 @@ module.exports = {
                 json: data
             })
             return true
+        }
+        catch(ex) {
+            return false
+        }
+    },
+
+    /**
+     * 
+     * ------------------
+     * WIP Vipps recurring
+     * ------------------
+     * 
+     */
+
+    /**
+     * Drafts an agreement for a recurring payment
+     * @param {string} KID 
+     * @param {number} sum 
+     * @param {number} phoneNumber
+     */
+    async draftAgreement(KID, sum, phoneNumber) {
+        let token = await this.fetchToken()
+
+        if (token === false) return false
+
+        const data = {
+            "currency": "NOK",
+            //Not needed?
+            "customerPhoneNumber": phoneNumber,
+            "interval": "MONTH",
+            //Set to today?
+            "intervalCount": 1,
+            "isApp": false,
+            "merchantRedirectUrl": `https://gieffektivt.no/vipps/recurring/confirmation`,
+            "merchantAgreementUrl": `https://gieffektivt.no/vipps/recurring/customer-agreement`,
+            "price": sum*100,
+            "productDescription": "Månedlig donasjon til GiEffektivt.no",
+            "productName": "Donasjon til gieffektivt.no"
+        }
+
+        try {
+            let draftRequest = await request.post({
+                uri: `https://${config.vipps_api_url}/ecomm/v2/agreements`,
+                headers: this.getVippsHeaders(token),
+                json: data
+            })
+
+            /** @type {DraftRespone} */
+            let response = JSON.parse(draftRequest)
+
+            let donor = await DAO.donors.getByKID(KID)
+            await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, sum)
+
+            return response
         } 
         catch(ex) {
+            console.error(ex)
             return false
         }
     },
