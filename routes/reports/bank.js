@@ -41,7 +41,7 @@ module.exports = async (req, res, next) => {
             }
 
             try {
-                if (config.env === 'production') mail.sendDonationReciept(donationID);
+                if (config.env === 'production') await mail.sendDonationReciept(donationID);
             } catch (ex) {
                 console.error("Failed to send donation reciept")
                 console.error(ex)
