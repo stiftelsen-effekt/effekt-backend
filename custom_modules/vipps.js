@@ -501,9 +501,15 @@ module.exports = {
             "productName": "Donasjon til gieffektivt.no"
         }
 
+        console.log({
+            uri: `https://${config.vipps_api_url}/recurring/v2/agreements`,
+            headers: this.getVippsHeaders(token),
+            json: data
+        });
+
         try {
             let draftRequest = await request.post({
-                uri: `https://${config.vipps_api_url}/ecomm/v2/agreements`,
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements`,
                 headers: this.getVippsHeaders(token),
                 json: data
             })
