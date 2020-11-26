@@ -242,7 +242,7 @@ router.delete("/:id", authMiddleware(authRoles.write_all_donations), async (req,
     if (removed) {
       return res.json({
         status: 200,
-        content: remove
+        content: removed
       })
     } 
     else {
