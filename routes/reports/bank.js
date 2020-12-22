@@ -17,7 +17,8 @@ module.exports = async (req, res, next) => {
     }
 
     let valid = 0
-    let invalid = []
+    let invalid = 0
+    let invalidTransactions = []
     for (let i = 0; i < transactions.length; i++) {
         let transaction = transactions[i]
         transaction.paymentID = BANK_NO_KID_ID
@@ -31,13 +32,20 @@ module.exports = async (req, res, next) => {
                 donationID = await DAO.donations.add(transaction.KID, BANK_NO_KID_ID, transaction.amount, transaction.date.toDate(), transaction.transactionID, metaOwnerID)
                 valid++
             } catch (ex) {
-                console.error("Failed to update DB for bank_custom donation with KID: " + transaction.KID)
-                console.error(ex)
+                //If the donation already existed, ignore and keep moving
+                if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
+                    invalid++
+                }  
+                else {
+                    console.error("Failed to update DB for bank_custom donation with KID: " + transaction.KID)
+                    console.error(ex)
 
-                invalid.push({
-                    reason: ex.message,
-                    transaction: transaction
-                })
+                    invalidTransactions.push({
+                        reason: ex.message,
+                        transaction
+                    })
+                    invalid++
+                }
             }
 
             try {
@@ -54,19 +62,20 @@ module.exports = async (req, res, next) => {
              */
             
         } else  {
-            invalid.push({
+            invalidTransactions.push({
                 reason: "Could not find valid KID or matching parsing rule",
                 transaction: transaction
             })
+            invalid++
         }
     }
 
     res.json({
         status: 200,
         content: {
-            valid: valid,
-            invalid: invalid.length,
-            invalidTransactions: invalid
+            valid,
+            invalid,
+            invalidTransactions
         }
     })
 }
