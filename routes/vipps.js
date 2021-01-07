@@ -29,12 +29,23 @@ router.get("/initiate/:phonenumber", async(req, res, next) => {
 })
 
 router.post("/agreement/draft", jsonBody, async(req,res,next) => {
-    const KID = 0;
+    const KID = 51615227;
     const SUM = 100;
     const NUMBER = 93279221;
 
     try {
         let response = await vipps.draftAgreement(KID, SUM, NUMBER)
+        //TODO: Check for false
+        res.json(response)
+    } catch(ex) {
+        next({ex})
+    }
+})
+
+router.get("/agreement/:id", async(req, res, next) => {
+    try {
+        const response = await vipps.getAgreement(req.params.id)
+        //TODO: Check for false
         res.json(response)
     } catch(ex) {
         next({ex})

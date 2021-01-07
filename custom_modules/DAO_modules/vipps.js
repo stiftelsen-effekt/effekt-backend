@@ -209,15 +209,15 @@ async function updateVippsOrderDonation(orderID, donationID) {
 }
 
 /**
- * Updates agreement activation status
- * @param {string} ID The agreement ID
- * @param {boolean} active 
+ * Updates agreement status
+ * @param {string} id The agreement ID
+ * @param {"PENDING" | "ACTIVE" | "STOPPED" | "EXPIRED"} status 
  * @return {boolean} Success
  */
-async function updateAgreementActive(ID, active) {
+async function updateAgreementStatus(id, status) {
     let con = await pool.getConnection()
     try {
-        con.query(`UPDATE Vipps_agreements SET active = ?`, [active])
+        con.query(`UPDATE Vipps_agreements SET status = ? WHERE ID = ?`, [status, id])
         con.release()
         return true
     }

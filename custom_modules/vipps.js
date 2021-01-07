@@ -50,6 +50,38 @@ const VIPPS_TEXT = "Donasjon til GiEffektivt.no"
  */
 
 /**
+ * @typedef VippsRecurringAgreementCampaign
+ * @property {Date} start The start of the campaign price
+ * @property {Date} end The end of the campaign price
+ * @property {number} campaignPrice The campaign price
+ */
+
+/**
+ * @typedef VippsRecurringAgreementInitialCharge
+ * @property {number} amount Amount in the smallest denomination of the currency, e.g. øre for NOK
+ * @property {string} currency A three letter currency code, e.g. NOK
+ * @property {string} description
+ * @property {"DIRECT_CAPTURE" | "RESERVE_CAPTURE"} transactionType https://github.com/vippsas/vipps-ecom-api/blob/master/vipps-ecom-api-faq.md#what-is-the-difference-between-reserve-capture-and-direct-capture
+ */
+
+/**
+ * @typedef VippsRecurringAgreement
+ * @property {string} currency A three letter currency code, e.g. NOK
+ * @property {string} id
+ * @property {"DAY" | "WEEK" | "MONTH"} interval The agreement interval type, such as MONTH and DAY
+ * @property {number} intervalCount How often to charge per interval type
+ * @property {number} price Price in the smallest denomination of the currency, e.g. øre for NOK
+ * @property {string} productName 
+ * @property {string} productDescription
+ * @property {"PENDING" | "ACTIVE" | "STOPPED" | "EXPIRED"} status The status of the agreement
+ * @property {Date | null} start When the agreement was started
+ * @property {Date | null} stop When the agreement is stopped
+ * @property {VippsRecurringAgreementCampaign | undefined} campaign Special campaign pricing of applicable
+ * @property {VippsRecurringAgreementInitialCharge | undefined } initialCharte Initial charge for the agreement
+ * 
+ */
+
+/**
  * @typedef VippsError
  * @property {string} code //https://www.vipps.no/developers-documentation/ecom/documentation/#error-codes
  * @property {string} message
@@ -468,14 +500,6 @@ module.exports = {
     },
 
     /**
-     * 
-     * ------------------
-     * WIP Vipps recurring
-     * ------------------
-     * 
-     */
-
-    /**
      * Drafts an agreement for a recurring payment
      * @param {string} KID 
      * @param {number} sum 
@@ -501,12 +525,6 @@ module.exports = {
             "productName": "Donasjon til gieffektivt.no"
         }
 
-        console.log({
-            uri: `https://${config.vipps_api_url}/recurring/v2/agreements`,
-            headers: this.getVippsHeaders(token),
-            json: data
-        });
-
         try {
             let draftRequest = await request.post({
                 uri: `https://${config.vipps_api_url}/recurring/v2/agreements`,
@@ -515,10 +533,43 @@ module.exports = {
             })
 
             /** @type {DraftRespone} */
-            let response = JSON.parse(draftRequest)
+            let response = draftRequest
 
             let donor = await DAO.donors.getByKID(KID)
+
+            if (!donor) {
+                console.error(`No donor found with KID ${KID}`)
+                return false
+            }
+
             await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, sum)
+
+            return response
+        } 
+        catch(ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
+    /***
+     * Fetches an agreement from vipps by ID
+     * @param {number} id The agreement id
+     * @returns {VippsRecurringAgreement} The vipps agreement
+     */
+    async getAgreement(id) {
+        let token = await this.fetchToken()
+
+        if (token === false) return false
+
+        try {
+            let agreementRequest = await request.get({
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${id}`,
+                headers: this.getVippsHeaders(token)
+            })
+
+            /** @type {VippsRecurringAgreement} */
+            let response = JSON.parse(agreementRequest)
 
             return response
         } 

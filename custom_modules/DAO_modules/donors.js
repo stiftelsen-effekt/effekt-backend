@@ -56,7 +56,7 @@ async function getByID(ID) {
 /**
  * Gets a donor based on KID
  * @param {Number} KID
- * @returns {Donor} A donor Object
+ * @returns {Donor | null} A donor Object
  */
 async function getByKID(KID) {
     try {
