@@ -82,6 +82,16 @@ const VIPPS_TEXT = "Donasjon til GiEffektivt.no"
  */
 
 /**
+ * @typedef ChargePayload
+ * @property {number} amount Amount in the smallest denomination of the currency, e.g. øre for NOK
+ * @property {string} currency A three letter currency code, e.g. NOK
+ * @property {string} description
+ * @property {string} due ISO-8601 date string for due date
+ * @property {number} retryDays For how many days vipps shall attempt to retry charge
+ * @property {string} orderId The ID of the order 
+ */
+
+/**
  * @typedef VippsError
  * @property {string} code //https://www.vipps.no/developers-documentation/ecom/documentation/#error-codes
  * @property {string} message
@@ -570,6 +580,55 @@ module.exports = {
 
             /** @type {VippsRecurringAgreement} */
             let response = JSON.parse(agreementRequest)
+
+            return response
+        } 
+        catch(ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
+    /**
+     * Charges an agreement
+     * @param {string} id The agreement id
+     * @param {number} amount The amount to charge in NOK
+     * @param {Date} due When the charge is due
+     * @return {boolean} Success
+     */
+    async chargeAgreement(id, amount, KID, due) {
+        //Charges must be created at least two days before the due date
+        const timeDelta = due - new Date()
+        const dayDelta = timeDelta / (1000 * 60 * 60 * 24)
+        if (dayDelta < 2) {
+            console.error(`Could not charge vipps agreement with id ${id} because due date is less than two days away (${due})`)
+            return false
+        }
+
+        const token = await this.fetchToken()
+
+        if (token === false) return false
+
+        const orderId = `${KID}-${+new Date()}`
+
+        /** @type {ChargePayload} */
+        const data = {
+            amount: amount*100,
+            currency: "NOK",
+            description: "Fast donasjon til gieffektivt.no",
+            due: due.toISOString(),
+            retryDays: 5,
+            orderId
+        }
+
+        try {
+            let chargeRequest = await request.post({
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${id}/charges`,
+                headers: this.getVippsHeaders(token),
+                body: data
+            })
+
+            let response = chargeRequest
 
             return response
         } 
