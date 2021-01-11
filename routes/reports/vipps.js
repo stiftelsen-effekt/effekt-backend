@@ -18,8 +18,9 @@ module.exports = async (req,res,next) => {
     }
 
     let transactions = parsedReport.transactions
-    let invalid = []
+    let invalidTransactions = []
     let valid = 0
+    let invalid = 0
     for (let i = 0; i < transactions.length; i++) {
         let transaction = transactions[i]
         transaction.paymentID = payment.vipps_KID
@@ -36,10 +37,15 @@ module.exports = async (req,res,next) => {
                 console.error("Failed to update DB for vipps donation with KID: " + transaction.KID)
                 console.error(ex)
 
-                invalid.push({
-                    reason: ex.message,
-                    transaction: transaction
-                })
+                if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
+                    invalid++
+                } else {
+                    invalidTransactions.push({
+                        reason: ex.message,
+                        transaction: transaction
+                    })
+                    invalid++
+                }
             }
 
             try {
@@ -61,13 +67,19 @@ module.exports = async (req,res,next) => {
                 console.error("Failed to update DB for vipps donation that matched against a parsing rule with KID: " + transaction.KID)
                 console.error(ex)
 
-                invalid.push({
-                    reason: ex.message,
-                    transaction: transaction
-                })
+                if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
+                    invalid++
+                } else {
+                    invalidTransactions.push({
+                        reason: ex.message,
+                        transaction: transaction
+                    })
+                    invalid++
+                }
             }
         } else  {
-            invalid.push({
+            invalid++
+            invalidTransactions.push({
                 reason: "Could not find valid KID or matching parsing rule",
                 transaction: transaction
             })
@@ -77,9 +89,9 @@ module.exports = async (req,res,next) => {
     res.json({
         status: 200,
         content: {
-            valid: valid,
-            invalid: invalid.length,
-            invalidTransactions: invalid
+            valid,
+            invalid,
+            invalidTransactions
         }
     })
 }
