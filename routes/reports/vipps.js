@@ -99,7 +99,7 @@ module.exports = async (req,res,next) => {
 function checkForMatchingParsingRule(transaction, rules) {
     for (let i = 0; i < rules.length; i++) {
         let rule = rules[i]
-        if (rule.salesLocation == transaction.location && (rule.message == transaction.message || rule.message == null || rule.message == '')) return rule.resolveKID
+        if (rule.salesLocation == transaction.location && (rule.message == transaction.message || rule.message == null || transaction.message == '')) return rule.resolveKID
     }
     return false
 }
