@@ -17,7 +17,7 @@ async function sendDonationReciept(donationID, reciever = null) {
     try {
         var donation = await DAO.donations.getByID(donationID)
         if (!donation.email)  {
-          console.error("No email provided for donatin ID " + donationID)
+          console.error("No email provided for donation ID " + donationID)
           return false
         }
     } catch(ex) {
@@ -47,13 +47,13 @@ async function sendDonationReciept(donationID, reciever = null) {
             donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: decideUIPaymentMethod(donation.method),
+            paymentMethod: decideUIPaymentMethod(donation.method)
         }
       })
 
       return true
     } catch(ex) {
-      console.error("Failed to send donatin reciept")
+      console.error("Failed to send donation reciept")
       console.error(ex)
       return ex.statusCode
     }
@@ -61,8 +61,11 @@ async function sendDonationReciept(donationID, reciever = null) {
 }
 
 function decideUIPaymentMethod(donationMethod){
-  if(donationMethod.toUpperCase() == 'BANK U/ KID')
-  donationMethod = 'Bank';
+  if(donationMethod.toUpperCase() == 'BANK U/KID') {
+    donationMethod = 'Bank'
+  }
+
+  return donationMethod
 }
 
 function formatOrganizationsFromSplit(split, sum) {

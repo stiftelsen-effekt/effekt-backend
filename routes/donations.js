@@ -20,7 +20,6 @@ const rateLimit = require('express-rate-limit')
 
 router.post("/register", urlEncodeParser, async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
-
   let parsedData = JSON.parse(req.body.data)
 
   let donationOrganizations = parsedData.organizations
@@ -82,13 +81,20 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       donationObject.KID = await donationHelpers.createKID()
       await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
     }
-
+    
     //Get external paymentprovider URL
     if (donationObject.method == methods.VIPPS) {
       initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
       //Start polling for updates
       await vipps.pollOrder(initiatedOrder.orderId)
     }
+
+    try {
+      await DAO.initialpaymentmethod.addPaymentIntent(donationObject.KID, donationObject.method)  
+    } catch (error) {
+      console.error(error)
+    }
+  
   }
 
   catch (ex) {
@@ -196,7 +202,7 @@ router.post("/", authMiddleware(authRoles.read_all_donations), async(req, res, n
       content: {
         rows: results.rows,
         pages: results.pages
-      } 
+      }
     })
   } catch(ex) {
     next(ex)
@@ -229,6 +235,24 @@ router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,
   }
 })
 
+router.delete("/:id", authMiddleware(authRoles.write_all_donations), async (req,res,next) => {
+  try {
+    var removed = await DAO.donations.remove(req.params.id)
+
+    if (removed) {
+      return res.json({
+        status: 200,
+        content: removed
+      })
+    } 
+    else {
+      throw new Error("Could not remove donation")
+    }
+  } catch (ex) {
+    next(ex)
+  }
+})
+
 router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   let donationID = req.body.donationID
 
@@ -249,6 +273,28 @@ router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (re
       status: 500,
       content: `Reciept failed with error code ${mailStatus}`
     })
+  }
+})
+
+router.post("/reciepts", authMiddleware(authRoles.write_all_donations) ,async (req,res,next) => {
+  let donationIDs = req.body.donationIDs
+
+  try {
+    for (let i = 0; i < donationIDs.length; i++) {
+      let donationID = donationIDs[i];
+
+      var mailStatus = await mail.sendDonationReciept(donationID)
+
+      if (mailStatus == false)
+        console.error(`Failed to send donation for donationID ${donationID}`)
+    }
+
+    res.json({
+      status: 200,
+      content: "OK"
+    })
+  } catch(ex) {
+    next(ex)
   }
 })
 
