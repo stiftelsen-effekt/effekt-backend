@@ -201,13 +201,7 @@ module.exports = {
      * @param {string} orderId 
      */
     async pollOrder(orderId) {
-        setTimeout(() => { this.pollLoop(orderId) }, POLLING_START_DELAY)
-    },
-
-    async pollLoop(orderId, count = 1) {
-        console.log("Polling")
-        let shouldCancel = await this.checkOrderDetails(orderId, count)
-        if (!shouldCancel) setTimeout(() => { this.pollLoop(orderId, count+1) }, POLLING_INTERVAL)
+        setTimeout(() => { this.pollLoop(orderId, this.checkOrderDetails) }, POLLING_START_DELAY)
     },
 
     /**
@@ -639,6 +633,47 @@ module.exports = {
     },
 
     /**
+     * Poll agreement
+     * @param {string} agreementId 
+     */
+    async pollAgreement(agreementId) {
+        setTimeout(() => { this.pollLoop(agreementId, this.checkAgreement) }, POLLING_START_DELAY)
+    },
+
+    /**
+     * This function is polled after an agreement has been drafted, to check whether
+     * the user has accepted the agreement.
+     * @param {string} agreementId 
+     * @param {number} polls The number of times we've polled
+     * @returns {boolean} True if we should cancel the polling, false otherwise
+     */
+    async checkAgreement(agreementId, polls) {
+        //If we've been polling for more than eleven minutes, stop polling for updates
+        if ((polls * POLLING_INTERVAL) + POLLING_START_DELAY > 1000 * 60 * 10) {
+            return true
+        }
+
+        const agreement = await this.getAgreement(agreementId)
+
+        if (agreement.status === "ACTIVE") {
+            DAO.vipps.updateAgreementStatus(agreementId, agreement.status)
+            return true
+            //Should we perhaps do an initial charge here?
+        }
+        else if (agreement.status === "STOPPED" || agreement.status === "EXPIRED") {
+            DAO.vipps.updateAgreementStatus(agreementId, agreement.status)
+            return true
+        }
+
+        //Keep polling for updates (status = pending)
+        return false
+    },
+
+    /**
+     * UTIL
+     */
+
+    /**
      * Gets vipps authorization headers
      * @param {VippsToken} token
      */
@@ -649,5 +684,17 @@ module.exports = {
             'Ocp-Apim-Subscription-Key': config.vipps_ocp_apim_subscription_key,
             'Authorization': `${token.type} ${token.token}`
         }
-    }
+    },
+
+    /**
+     * 
+     * @param {string} id Resource ID
+     * @param {function} fn Function that does the polling
+     * @param {number} count The count of how many times we've polled
+     */
+    async pollLoop(id, fn, count = 1) {
+        console.log("Polling")
+        let shouldCancel = await fn(id, count)
+        if (!shouldCancel) setTimeout(() => { fn(id, count+1) }, POLLING_INTERVAL)
+    },
 }

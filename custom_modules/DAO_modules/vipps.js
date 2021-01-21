@@ -136,18 +136,18 @@ async function addOrder(order) {
  * @param {number} donorId The Donor the agreement concerns
  * @param {number} KID The KID used for recurring payments
  * @param {number} sum The SUM used for recurring payments (in NOK)
- * @param {boolean} active Whether the agreement has been activated. Defaults to false
+ * @param {"PENDING" | "ACTIVE" | "STOPPED" | "EXPIRED"} status Whether the agreement has been activated. Defaults to false
  * @return {boolean} Success or not
  */
-async function addAgreement(ID, donorId, KID, sum, active = false) {
+async function addAgreement(ID, donorId, KID, sum, status = "PENDING") {
     let con = await pool.getConnection()
     try {
         con.query(`
             INSERT INTO Vipps_agreements
-                (ID, KID, donorID, sum, active)
+                (ID, KID, donorID, sum, status)
             VALUES
                 (?,?,?,?,?)`, 
-            [ID, donorId, KID, sum, active])
+            [ID, donorId, KID, sum, status])
         con.release()
         return true
     }
@@ -243,7 +243,7 @@ module.exports = {
     addAgreement,
     updateOrderTransactionStatusHistory,
     updateVippsOrderDonation,
-    updateAgreementActive,
+    updateAgreementStatus,
 
     setup: (dbPool) => { pool = dbPool }
 }
