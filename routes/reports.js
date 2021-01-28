@@ -23,5 +23,9 @@ router.post('/range',
             urlEncodeParser,
             authMiddleware(authRoles.read_all_donations),
             require('./reports/range'))
+router.post('/taxdeductions',
+            urlEncodeParser,
+            authMiddleware(authRoles.write_all_donations),
+            require('./reports/tax'))
 
 module.exports = router
