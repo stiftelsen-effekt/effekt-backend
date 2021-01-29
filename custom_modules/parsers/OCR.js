@@ -27,7 +27,8 @@ module.exports = {
         var transactions = []
         for (var i = 0; i < lines.length-1; i++) {
             if (lines[i].length > 0) {
-                transactions.push(new Transaction(lines[i], lines[i+1]));
+                let transaction = new Transaction(lines[i], lines[i+1])
+                transactions.push(transaction);
             }
         }
 
@@ -72,7 +73,6 @@ class Transaction{
                 }
             }
         }
-        
     }
     
     isOCR() {
