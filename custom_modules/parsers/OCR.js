@@ -36,12 +36,18 @@ module.exports = {
         /**
          * @type Transaction
          * */
-        var transaction = {}
 
-        transaction.serviceCode = parseInt(line.substr(2,2))
-        transaction.transactionCode = parseInt(line.substr(4,2))
-        transaction.recordType = parseInt(line.substr(6,2))
+        function Transaction(line) {
+            this.serviceCode = parseInt(line.substr(2,2));
+            this.transactionCode = parseInt(line.substr(4,2));
+            this.recordType = parseInt(line.substr(6,2));
+        }
 
+        transaction = new Transaction(line)
+
+        // enums 
+        // lage et objekt 
+        // is hva enn 9, 13 og 30 
         if (transaction.serviceCode == 9 && 
             transaction.transactionCode == 13 && 
             transaction.recordType == 30 &&
@@ -75,6 +81,10 @@ module.exports = {
 
             transaction.transactionID = transactionID
             transaction.paymentID = BANK_ID
+        } else if(
+            transaction.serviceCode == 00 
+        ){
+
         }
 
         return transaction
