@@ -1,3 +1,4 @@
 module.exports = {
-    bank: 2,
+    post1: 30,
+    post2: 31
 }

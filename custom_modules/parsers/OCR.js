@@ -1,3 +1,7 @@
+const serviceCodeEnum = require('../enums/serviceCode')
+const transactionCodeEnum = require('../enums/transactionCode')
+const recordTypeEnum = require('../enums/recordType')
+
 const BANK_ID = 2
 
 module.exports = {
@@ -23,70 +27,74 @@ module.exports = {
         var transactions = []
         for (var i = 0; i < lines.length-1; i++) {
             if (lines[i].length > 0) {
-                var transaction = this.parseLine(lines[i], lines[i+1])
-
-                if (transaction.transactionCode == 13 && transaction.recordType == 30) transactions.push(transaction)
+                transactions.push(new Transaction(lines[i], lines[i+1]));
             }
         }
 
         return transactions
-    },
-
-    parseLine: function(line, nextline) {
-        /**
-         * @type Transaction
-         * */
-
-        function Transaction(line) {
-            this.serviceCode = parseInt(line.substr(2,2));
-            this.transactionCode = parseInt(line.substr(4,2));
-            this.recordType = parseInt(line.substr(6,2));
-        }
-
-        transaction = new Transaction(line)
-
-        // enums 
-        // lage et objekt 
-        // is hva enn 9, 13 og 30 
-        if (transaction.serviceCode == 9 && 
-            transaction.transactionCode == 13 && 
-            transaction.recordType == 30 &&
-            nextline != null) {
-            const number = parseInt(8,7)
-
-            transaction.number = number
-
-            let year = line.substr(19,2)
-            let month = line.substr(17,2)
-            let day = line.substr(15,2)
-
-            const date = new Date(
-                parseInt("20" + year),
-                parseInt(month)-1,
-                parseInt(day))
-
-            transaction.date = date
-
-            const amount = parseInt(line.substr(32, 17)) / 100
-
-            transaction.amount = amount
-
-            const KID = parseInt(line.substr(49, 25))
-
-            transaction.KID = KID
-
-            const archivalReference = nextline.substr(25, 9)
-            const transactionRunningNumber = parseInt(nextline.substr(9,6))
-            const transactionID = day + month + year + "." + archivalReference + transactionRunningNumber
-
-            transaction.transactionID = transactionID
-            transaction.paymentID = BANK_ID
-        } else if(
-            transaction.serviceCode == 00 
-        ){
-
-        }
-
-        return transaction
     }
 }
+
+class Transaction{
+    constructor(line, nextline) {
+        this.serviceCode = parseInt(line.substr(2,2));
+        this.transactionCode = parseInt(line.substr(4,2));
+        this.recordType = parseInt(line.substr(6,2));
+
+        if(this.isOCR || this.isAvtaleGiro){
+            if(this.isBeløpsPost1){
+                this.number = parseInt(8,7);
+                                
+                let day = line.substr(15,2);
+                let month = line.substr(17,2);
+                let year = line.substr(19,2);
+
+                this.date = function() {        
+                    return parseInt("20" + year), parseInt(month)-1, parseInt(day)
+                };
+        
+                this.amount = function() {
+                    return parseInt(line.substr(32, 17)) / 100;
+                };
+        
+                this.KID = line.substr(49, 25);
+                
+                if(this.nextline){
+                    const recordType = parseInt(line.substr(6,2));
+                    if(recordType != recordTypeEnum.post2)
+                        return;
+                    this.transNr = nextline.substr(8,7)
+                    // ??
+                    // const transactionRunningNumber = parseInt(nextline.substr(9,6))
+                    this.archivalReference = nextline.substr(25, 9)
+
+                    this.transactionID = day + month + year + "." + this.archivalReference + this.transactionRunningNumber
+                }
+            }
+        }
+        
+    }
+    
+    isOCR() {
+        return this.serviceCode == serviceCodeEnum.ocr 
+        // this.transactionCode == this.transactionCode.btg && 
+        // this.recordType == this.recordType.post1 &&
+        // nextline != null;
+    };
+
+    isAvtaleGiro(){
+        return this.serviceCode == serviceCodeEnum.avtalegiro 
+        // && this.recordType == this.recordType.post1
+    }
+
+    isBeløpsPost1() {
+        return this.recordType == recordTypeEnum.post1
+    }
+    
+    isBeløpsPost2() {
+        return this.recordType == recordTypeEnum.post2
+    }
+    
+}
+
+
