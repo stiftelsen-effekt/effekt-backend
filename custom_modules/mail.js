@@ -197,7 +197,35 @@ async function sendDonationHistory(donorID) {
     }
 }
 
+/**
+ * Sends donors confirmation of their tax deductible donation for a given year
+ * @param {TaxDeductionRecord} taxDeductionRecord 
+ * @param {number} year The year the tax deductions are counted for
+ */
+async function sendTaxDeductions(taxDeductionRecord, year) {
+  
+  try {
+    await send({
+      reciever: taxDeductionRecord.email,
+      subject: `gieffektivt.no - Årsoppgave, skattefradrag donasjoner ${year}`,
+      templateName: "taxDeduction",
+      templateData: { 
+          header: "Hei " + taxDeductionRecord.firstname + ",",
+          donationSum: taxDeductionRecord.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+          fullname: taxDeductionRecord.fullname,
+          ssn: taxDeductionRecord.ssn,
+          year: year.toString(),
+          nextYear: (year+1).toString()
+      }
+    })
 
+    return true
+  } catch(ex) {
+    console.error("Failed to tax deduction mail")
+    console.error(ex)
+    return ex.statusCode
+  }
+}
 
 /**
  * @typedef MailOptions
@@ -255,5 +283,6 @@ async function send(options) {
 module.exports = {
   sendDonationReciept,
   sendDonationRegistered,
-  sendDonationHistory
+  sendDonationHistory,
+  sendTaxDeductions
 }
