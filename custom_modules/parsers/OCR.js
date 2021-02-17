@@ -18,7 +18,7 @@ module.exports = {
      * @returns {Array<Transaction>} An array of transactions
      */
     parse: function(data) {
-        var lines = data.split('\r\n')
+        var lines = data.split(/\r?\n/)
 
         var transactions = []
         for (var i = 0; i < lines.length-1; i++) {
