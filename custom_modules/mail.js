@@ -228,6 +228,36 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
 }
 
 /**
+ * Sends OCR file for backup
+ * @param {Buffer} fileContents 
+ */
+async function sendOcrBackup(fileContents) {
+  var data = {
+    from: 'gieffektivt.no <donasjon@gieffektivt.no>',
+    to: 'hakon.harnes@effektivaltruisme.no',
+    bcc: "donasjon@gieffektivt.no",
+    subject: 'OCR backup',
+    text: fileContents.toString(),
+    inline: []
+  }
+
+  let result = await request.post({
+    url: 'https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages',
+    auth: {
+        user: 'api',
+        password: config.mailgun_api_key
+    },
+    formData: data,
+    resolveWithFullResponse: true
+  })
+  if(result.statusCode === 200) {
+    return true
+  } else {
+    return false
+  }
+}
+
+/**
  * @typedef MailOptions
  * @prop {string} reciever
  * @prop {string} subject
@@ -241,8 +271,6 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
  * @returns {boolean | number} True if success, status code else
  */
 async function send(options) {
-    console.log(options.templateData)
-
     const templateRoot = appRoot + '/views/mail/' + options.templateName
 
     var templateRawHTML = await fs.readFile(templateRoot + "/index.html", 'utf8')
@@ -284,5 +312,6 @@ module.exports = {
   sendDonationReciept,
   sendDonationRegistered,
   sendDonationHistory,
-  sendTaxDeductions
+  sendTaxDeductions,
+  sendOcrBackup
 }

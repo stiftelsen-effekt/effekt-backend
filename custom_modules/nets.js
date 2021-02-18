@@ -1,4 +1,5 @@
 const config = require('./../config')
+const mail = require('./mail')
 const SftpClient = require('ssh2-sftp-client')
 
 /**
@@ -21,6 +22,9 @@ async function getOCRFile(name) {
   const connection = await getConnection()
   const buffer = await connection.get(`/Outbound/${name}`)
   connection.end()
+
+  await mail.sendOcrBackup(buffer)
+
   return buffer
 }
 
@@ -41,8 +45,10 @@ async function getLatestOCRFile() {
   const latest = sortedFiles[sortedFiles.length - 1]
 
   const buffer = await connection.get(`/Outbound/${latest.name}`)
-
   connection.end()
+
+  await mail.sendOcrBackup(buffer)
+
   return buffer
 }
 
@@ -51,9 +57,6 @@ async function getLatestOCRFile() {
  */
 async function getConnection() {
   const sftp = new SftpClient();
-
-  console.log(config.nets_private_key_location)
-  console.log(config.nets_sftp_key)
 
   await sftp.connect({
     host: config.nets_sftp_server,
