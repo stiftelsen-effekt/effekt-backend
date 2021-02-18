@@ -1,5 +1,5 @@
 module.exports = {
-    VIPPS: "VIPPS",
-    BANK: "BANK",
-    PAYPAL: "PAYPAL"
+    VIPPS: 6,
+    BANK: 2,
+    PAYPAL: 3
 }
