@@ -141,6 +141,7 @@ async function sendDonationHistory(donorID) {
   let total = 0
     try {
       var donationSummary = await DAO.donations.getSummary(donorID)
+      var yearlyDonationSummary = await DAO.donations.getSummaryByYear(donorID)
       var donationHistory = await DAO.donations.getHistory(donorID)
       var donor = await DAO.donors.getByID(donationSummary[donationSummary.length - 1].donorID)
       var email = donor.email
@@ -162,7 +163,6 @@ async function sendDonationHistory(donorID) {
           let dateFormat = donationHistory[i].date.getDate().toString() + "/" + month.toString() + "/" + donationHistory[i].date.getFullYear().toString()
           dates.push(dateFormat)  
         }
-        
 
         for (let i = 0; i < donationSummary.length - 1; i++) {
           total += donationSummary[i].sum;
@@ -184,6 +184,7 @@ async function sendDonationHistory(donorID) {
             header: "Hei " + donor.full_name + ",",
             total: total,
             donationSummary: donationSummary,
+            yearlyDonationSummary: yearlyDonationSummary,
             donationHistory: donationHistory,
             dates: dates
         }

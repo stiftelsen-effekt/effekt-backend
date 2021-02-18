@@ -8,6 +8,7 @@
         .content {width: 100%; max-width: 600px;word-break: break-word;}
         .innerpadding {padding: 30px 30px 30px 30px;}
         .borderbottom {border-bottom: 1px solid #f2eeed;}
+        .bordertop {border-top: 1px solid #f2eeed;}
         .subhead {font-size: 15px; color: #ffffff; font-family: sans-serif; letter-spacing: 10px;}
         .h1, .h2, .h3, .h4, .bodycopy, .boldTableRow, .tableRow {color: #153643; font-family: sans-serif;}
         .h1 {font-size: 33px; line-height: 38px; font-weight: bold;}
@@ -28,7 +29,7 @@
             body[yahoo] .button {padding: 0px!important;}
             body[yahoo] .unsubscribe {display: block; margin-top: 20px; padding: 10px 50px; background: #8e8989; border-radius: 5px; text-decoration: none!important; font-weight: bold;}
         }
-        td.spaceover {padding-top: 3em; }
+        td.spaceover {padding-top: 0.5em; }
         table.donation-summary { font-size: 14px; }
         table.donation-summary td { padding-top: 3px; }
         table.donation-history{padding: 0 30px; width: 100%;}
@@ -71,13 +72,17 @@
                               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                  <tbody>
                                     <tr>
-                                       <td class="h2">
-                                          <% this.header %>
+                                       <td>
+                                          <h2>
+                                             <% this.header %>
+                                          </h2>
                                        </td>
                                     </tr>
                                     <tr>
-                                       <td class="h2">
-                                          tusen takk for dine bidrag!
+                                       <td>
+                                          <h1>
+                                             tusen takk for dine bidrag!
+                                          </h1>
                                        </td>
                                     </tr>
                                     <tr>
@@ -90,14 +95,12 @@
                                     </tr>
                                  </tbody>
                               </table>
+                              <h2>Årlig summering</h2>
                               <table class="donation-summary" border="0" cellspacing="0" cellpadding="0">
                                  <tbody>
                                     <tr>
                                        <td>
-                                          Donasjonene har følgende fordeling: 
-                                          <br>
-                                          <br>
-                                          <% for (var i = 0; i < donationSummary.length - 1; i++ ) { %>
+                                          <% for (var i = 0; i < yearlyDonationSummary.length; i++ ) { %>
                                           <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                              <tbody>
                                                 <tr>
@@ -106,7 +109,7 @@
                                                          <tbody>
                                                             <tr>
                                                                <td>
-                                                                  <% donationSummary[i].organization %>
+                                                                  <% yearlyDonationSummary[i].year %>
                                                                </td>
                                                             </tr>
                                                          </tbody>
@@ -115,7 +118,7 @@
                                                          <tbody>
                                                             <tr>
                                                                <td>
-                                                                  <% donationSummary[i].sum %> kr
+                                                                  <% parseFloat(yearlyDonationSummary[i].yearSum) %> kr
                                                                </td>
                                                             </tr>
                                                          </tbody>
@@ -153,15 +156,65 @@
                                           </table>
                                  </tbody>
                               </table>
+                              <h2>Donasjonsfordeling</h2>
+                              <table class="donation-summary" border="0" cellspacing="0" cellpadding="0">
+                                 <tbody>
+                                    <tr>
+                                       <td>
+                                          <% for (var i = 0; i < donationSummary.length - 1; i++ ) { %>
+                                          <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                             <tbody>
+                                                <tr>
+                                                   <td>
+                                                      <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                         <tbody>
+                                                            <tr>
+                                                               <td>
+                                                                  <% donationSummary[i].organization %>
+                                                               </td>
+                                                            </tr>
+                                                         </tbody>
+                                                      </table>
+                                                      <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                         <tbody>
+                                                            <tr>
+                                                               <td>
+                                                                  <% donationSummary[i].sum %> kr
+                                                               </td>
+                                                            </tr>
+                                                         </tbody>
+                                                      </table>
+                                                   </td>
+                                                </tr>
+                                             </tbody>
+                                          </table>
+                                          <% } %>
+                                 </tbody>
+                              </table>
                             </td>
                         </tr>
+                        <tr>
+                           <td class="innerpadding">
+                               <br>
+                               Vi takker for alle dine bidrag, og håper at du fortsetter å støtte anbefalte organisasjoner via vår giverportal.
+                               For fullstendig donasjonshistorikk, se nederst i denne e-posten.
+                               <br><br>
+                               Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
+                               ved å sende en e-post til
+                               <a href="mailto:donasjon@gieffektivt.no" style="color: #153643;"><font color="#153643">donasjon@gieffektivt.no</font></a><font color="#153643">.<br><br>
+                               Håper du får en fantastisk dag!<br><br><br>
+                               <b>Vennlig hilsen</b><br>
+                               oss i gieffektivt.no
+                               </font>
+                           </td>
+                       </tr>
                         <tr>
                             <td>
                                 <table class="donation-history">
                                     <thead>
                                         <tr>
                                            <td class="bodycopy">
-                                              <span style="vertical-align: middle;"> Donasjonshistorikk </span> <br><br>
+                                              <h3> Donasjonshistorikk </h3>
                                            </td>
                                         </tr>
                                         <tr><br></tr>
@@ -179,26 +232,25 @@
                                      </thead>
                                      <tbody>
                                      <% for (var i = 0; i < donationHistory.length; i++ ) { %>
-                                        
                                            <% for (var j = 0; j < donationHistory[i].distributions.length; j++ ) { %>
                                            <tr>
                                               <td align="center">
                                                  <table>
-                                                    <tr>
+                                                    <tr class="bordertop">
                                                        <% if (j == 0) { %>
-                                                       <td class="spaceover" width="150" style="font-size: 14px;" align="left" > <% this.dates[i] %> </td>
-                                                       <td class="spaceover" width="205" style="font-size: 14px;" align="left">
+                                                       <td class="spaceover" width="150"> <% this.dates[i] %> </td>
+                                                       <td class="spaceover" width="205">
                                                           <% donationHistory[i].distributions[j].organization %>
                                                        </td>
-                                                       <td class="spaceover" width="90" style="font-size: 14px;" align="left">
+                                                       <td class="spaceover" width="90">
                                                           <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %> kr
                                                        </td>
                                                        <% } else { %>
-                                                       <td width="150" style="font-size: 14px;" align="left" ></td>
-                                                       <td width="205" style="font-size: 14px;" align="left">
+                                                       <td width="150"></td>
+                                                       <td width="205">
                                                           <% donationHistory[i].distributions[j].organization %>
                                                        </td>
-                                                       <td width="90" style="font-size: 14px;" align="left">
+                                                       <td width="90">
                                                           <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %> kr
                                                        </td>
                                                        <% } %>
@@ -210,20 +262,6 @@
                                      <% } %>
                                     </tbody>
                                 </table>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="innerpadding">
-                                <br>
-                                Vi takker for alle dine bidrag, og håper at du fortsetter å støtte anbefalte organisasjoner via vår giverportal. 
-                                <br><br>
-                                Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
-                                ved å sende en mail til
-                                <a href="mailto:donasjon@gieffektivt.no" style="color: #153643;"><font color="#153643">donasjon@gieffektivt.no</font></a><font color="#153643"><br><br>
-                                Håper du får en fantastisk dag!<br><br><br>
-                                <b>Vennlig hilsen</b><br>
-                                oss i gieffektivt.no
-                                </font>
                             </td>
                         </tr>
                         <tr>
