@@ -18,9 +18,9 @@ const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 const donationHelpers = require('../custom_modules/donationHelpers')
 const rateLimit = require('express-rate-limit')
 
-router.post("/register", urlEncodeParser, async (req,res,next) => {
+router.post("/register", async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
-  let parsedData = JSON.parse(req.body.data)
+  let parsedData = req.body
 
   let donationOrganizations = parsedData.organizations
   let donor = parsedData.donor
