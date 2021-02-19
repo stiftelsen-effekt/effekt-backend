@@ -114,11 +114,11 @@
                                                             </tr>
                                                          </tbody>
                                                       </table>
-                                                      <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                      <table width="150" align="left" style="text-align: end;" border="0" cellpadding="0" cellspacing="0">
                                                          <tbody>
                                                             <tr>
                                                                <td>
-                                                                  <% parseFloat(yearlyDonationSummary[i].yearSum) %> kr
+                                                                  <% yearlyDonationSummary[i].yearSum %> kr
                                                                </td>
                                                             </tr>
                                                          </tbody>
@@ -144,7 +144,7 @@
                                                       <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                          <tbody>
                                                             <tr>
-                                                               <td style="font-size: 16px; font-weight: 600;">
+                                                               <td style="font-size: 16px; font-weight: 600; text-align: end;">
                                                                   <% this.total %> kr
                                                                </td>
                                                             </tr>
@@ -175,7 +175,7 @@
                                                             </tr>
                                                          </tbody>
                                                       </table>
-                                                      <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                      <table width="150" align="left" border="0" style="text-align: end;" cellpadding="0" cellspacing="0">
                                                          <tbody>
                                                             <tr>
                                                                <td>
@@ -242,16 +242,16 @@
                                                        <td class="spaceover" width="205">
                                                           <% donationHistory[i].distributions[j].organization %>
                                                        </td>
-                                                       <td class="spaceover" width="90">
-                                                          <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %> kr
+                                                       <td class="spaceover" width="90" style="text-align: end;">
+                                                          <% donationHistory[i].distributions[j].sum %> kr
                                                        </td>
                                                        <% } else { %>
                                                        <td width="150"></td>
                                                        <td width="205">
                                                           <% donationHistory[i].distributions[j].organization %>
                                                        </td>
-                                                       <td width="90">
-                                                          <% Math.round(donationHistory[i].distributions[j].sum * 100) / 100 %> kr
+                                                       <td width="90" style="text-align: end;">
+                                                          <% donationHistory[i].distributions[j].sum %> kr
                                                        </td>
                                                        <% } %>
                                                     </tr>

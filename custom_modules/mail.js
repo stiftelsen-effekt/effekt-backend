@@ -137,6 +137,13 @@ async function sendDonationRegistered(KID) {
     }
 }
 
+function formatCurrency(currencyString) {
+  return Number.parseFloat(currencyString).toFixed(2)
+    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
+    .replace(",", " ")
+    .replace(".", ",");
+}
+
 async function sendDonationHistory(donorID) {
   let total = 0
     try {
@@ -168,6 +175,24 @@ async function sendDonationHistory(donorID) {
           total += donationSummary[i].sum;
         }
       }
+
+      // Formatting all currencies
+
+      yearlyDonationSummary.forEach((obj) => {
+        obj.yearSum = formatCurrency(obj.yearSum);
+      })
+
+      donationSummary.forEach((obj) => {
+        obj.sum = formatCurrency(obj.sum);
+      })
+
+      donationHistory.forEach((obj) => {
+        obj.distributions.forEach((distribution) => {
+          distribution.sum = formatCurrency(distribution.sum);
+        })
+      })
+
+      total = formatCurrency(total);
       
     } catch(ex) {
       console.error("Failed to send donation history, could not get donation by ID")
