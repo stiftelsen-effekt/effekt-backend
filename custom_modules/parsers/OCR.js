@@ -1,6 +1,7 @@
 const serviceCodeEnum = require('../enums/serviceCode')
 const transactionCodeEnum = require('../enums/transactionCode')
 const recordTypeEnum = require('../enums/recordType')
+const transactionCode = require('../../enums/transactionCode')
 
 const BANK_ID = 2
 
@@ -42,7 +43,7 @@ class Transaction{
         this.transactionCode = parseInt(line.substr(4,2));
         this.recordType = parseInt(line.substr(6,2));
 
-        if(this.isOCR || this.isAvtaleGiro){
+        if(this.isOCR){
             if(this.isBeløpsPost1){
                 this.number = parseInt(8,7);
                                 
@@ -72,6 +73,17 @@ class Transaction{
                     this.transactionID = day + month + year + "." + this.archivalReference + this.transactionRunningNumber
                 }
             }
+        } else if (this.isAvtaleGiro){
+            if(this.transactionCode == transactionCode.egneKundersFasteBetalingsoppdrag){
+                if(this.recordType == 70){
+                    new
+                    this.fboNumber = parseInt(8,7);
+                    this.registrationType = parseInt(15,1);
+                    this.kid = parseInt(16,26);
+                    this.skriftligVarsel = parseInt(41,1);
+                }
+
+            }
         }
     }
     
@@ -81,6 +93,11 @@ class Transaction{
         // this.recordType == this.recordType.post1 &&
         // nextline != null;
     };
+
+    isAvtaleGiro(){
+        return this.serviceCode == serviceCodeEnum.avtalegiro 
+        // && this.recordType == this.recordType.post1
+    }
 
     isAvtaleGiro(){
         return this.serviceCode == serviceCodeEnum.avtalegiro 
@@ -97,4 +114,23 @@ class Transaction{
     
 }
 
+class AvtaleGiro{
+    constructor(line, nextline) {
+        this.serviceCode = parseInt(line.substr(2,2));
+        this.transactionCode = parseInt(line.substr(4,2));
+        this.recordType = parseInt(line.substr(6,2));
+
+        if (this.isAvtaleGiro){
+            if(this.transactionCode == transactionCode.egneKundersFasteBetalingsoppdrag){
+                if(this.recordType == 70){
+                    this.fboNumber = parseInt(8,7);
+                    this.registrationType = parseInt(15,1);
+                    this.kid = parseInt(16,26);
+                    this.skriftligVarsel = parseInt(41,1);
+                }
+
+            }
+        }
+    }
+}
 
