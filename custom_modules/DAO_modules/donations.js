@@ -20,6 +20,11 @@ var DAO
   * @prop {number} sum
   */
 
+   /** @typedef DonationSummary
+  * @prop {string} year Year
+  * @prop {number} yearSum Sum of donations per year 
+  */
+
  /** @typedef DonationDistributions
   * @prop {number} donationID
   * @prop {Date} date

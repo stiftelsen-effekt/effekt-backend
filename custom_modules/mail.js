@@ -144,6 +144,9 @@ function formatCurrency(currencyString) {
     .replace(".", ",");
 }
 
+/** 
+ * @param {number} donorID 
+*/
 async function sendDonationHistory(donorID) {
   let total = 0
     try {
