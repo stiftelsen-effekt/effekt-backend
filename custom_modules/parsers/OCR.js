@@ -25,10 +25,8 @@ module.exports = {
     parse: function(data) {
         var lines = data.split('\r\n')
 
-        var transactions = {
-            ocrTransactions = [],
-            avtalegiroTransactions = []
-        }
+        var transactions =  []; 
+
         for (var i = 0; i < lines.length-1; i++) {
             if (lines[i].length > 0) {
                 let currLine = lines[i]; 
@@ -38,28 +36,17 @@ module.exports = {
                 const transactionCode = currLine.substr(4,2);
                 const recordType = currLine.substr(6,2);
 
-                if(serviceCode == serviceCodeEnum.ocr && transactionCode == transactionCodeEnum.btg && recordType == recordTypeEnum.post1){ 
-                    this.transactions.ocrTransactions.push(new OCRTransaction(element, nextLine));
-                } else if(serviceCode == serviceCodeEnum.avtalegiro && transactionCode == transactionCodeEnum.egneKundersFasteBetalingsoppdrag){
-                    this.transactions.avtalegiroTransactions.push(new AvtalegiroTransaction(element));
-                }
+                if(serviceCode == serviceCodeEnum.ocr && (transactionCode == transactionCodeEnum.btg || transactionCode == transactionCodeEnum.avtalegiro) && recordType == recordTypeEnum.post1){ 
+                    this.transactions.push(new Transaction(element, nextLine));
+                } 
             }
         }
 
         return transactions
     }
 }
-
-class AvtalegiroTransaction{
-    constructor(element) {
-      this.fboNumber = element.substr(8,7);
-      this.registrationType = element.substr(15,1);
-      this.kid = element.substr(16,26);
-      this.notice = element.substr(41,1);
-    }
-  }
   
-  class OCRTransaction{
+  class Transaction{
     constructor(element, nextline) {
       this.number = element.substr(8,7);
   
