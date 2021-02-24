@@ -25,19 +25,19 @@ module.exports = {
     parse: function(data) {
         var lines = data.split('\r\n')
 
-        var transactions =  [];
+        var transactions = [];
 
         for (var i = 0; i < lines.length-1; i++) {
             if (lines[i].length > 0) {
                 let currLine = lines[i]; 
-                let nextLine = lines[i+1]; 
 
                 const serviceCode = currLine.substr(2,2);
                 const transactionCode = currLine.substr(4,2);
                 const recordType = currLine.substr(6,2);
 
-                if(serviceCode == serviceCodeEnum.ocr && (transactionCode == transactionCodeEnum.btg) && recordType == recordTypeEnum.post1){ 
-                    this.transactions.push(new OCRTransaction(element, nextLine));
+                //translate these numeric values to enum values
+                if(serviceCode == "21" && transactionCode == "94" && recordType == "70"){ 
+                    this.transactions.push(new AvtalegiroTransaction(element));
                 }
             }
         }
@@ -45,30 +45,25 @@ module.exports = {
         return transactions
     }
 }
-  class OCRTransaction{
-    constructor(element, nextline) {
-      this.number = element.substr(8,7);
-  
-      let year = element.substr(19,2);
-      let month = element.substr(17,2);
-      let day = element.substr(15,2);
-      const date = new Date(
-        parseInt("20" + year),
-        parseInt(month)-1,
-        parseInt(day)
-      );
-  
-      this.date = date;
-      this.amount = parseInt(element.substr(32, 17)) / 100;
-      this.kid = parseInt(element.substr(49, 25));
-  
-      const archivalReference = nextline.substr(25, 9);
-      const transactionRunningNumber = parseInt(nextline.substr(9,6));
-      const transactionID = day + month + year + "." + archivalReference + transactionRunningNumber;
-    
-      this.transactionID = transactionID;
-      this.paymentID = "221"
+class AvtalegiroTransaction{
+  constructor(element) {
+    this.fboNumber = element.substr(8,7);
+    this.KID = element.substr(16,26);
+    this.skriftligVarsel = element.substr(41,1);
+    this.registrationType = element.substr(15,1);
+
+    //slik jeg forstår det vil vi sjelden få 0 her? Hva betyr i så fall 0?
+    if(this.registrationType == 1){
+      //bedrevariabelnavn
+      this.isTerminated = true;
+    } else if(this.registrationType == 2){
+      this.isAltered = true;
     }
+
+    //this.amount = substr kid
+    //this.date = substr kid
+    //this.korholdernavn ? substr kid
   }
+}
    
 
