@@ -7,10 +7,7 @@ const BANK_ID = 2
 
 module.exports = {
     /**
-     * @typedef Transaction
-     * @property {number} transactionCode
-     * @property {number} recordType
-     * @property {number} serviceCode
+     * @typedef OCRTransaction
      * @property {number} amount
      * @property {string} transactionID
      * @property {Date} date
@@ -20,7 +17,7 @@ module.exports = {
     /**
      * Takes in an OCR file in string form and returns valid transations
      * @param {string} data A string from an OCR file
-     * @returns {Array<Transaction>} An array of transactions
+     * @returns {Array<OCRTransaction>} An array of transactions
      */
     parse: function(data) {
         var lines = data.split('\r\n')
@@ -67,6 +64,7 @@ module.exports = {
       const transactionID = day + month + year + "." + archivalReference + transactionRunningNumber;
     
       this.transactionID = transactionID;
+      //TODO: WTH happened here??
       this.paymentID = "221"
     }
   }

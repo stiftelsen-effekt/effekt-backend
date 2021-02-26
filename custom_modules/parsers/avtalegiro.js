@@ -3,24 +3,19 @@ const transactionCodeEnum = require('../enums/transactionCode')
 const recordTypeEnum = require('../enums/recordType')
 const transactionCode = require('../../enums/transactionCode')
 
-const BANK_ID = 2
-
 module.exports = {
     /**
-     * @typedef Transaction
-     * @property {number} transactionCode
-     * @property {number} recordType
-     * @property {number} serviceCode
-     * @property {number} amount
-     * @property {string} transactionID
-     * @property {Date} date
-     * @property {number} KID
+     * @typedef AvtalegiroTransaction
+     * @property {number} fboNumber
+     * @property {string} KID
+     * @property {boolean} isAltered
+     * @property {boolean} isTerminated
      */
 
     /**
      * Takes in an OCR file in string form and returns valid transations
      * @param {string} data A string from an OCR file
-     * @returns {Array<Transaction>} An array of transactions
+     * @returns {Array<AvtalegiroTransaction>} An array of transactions
      */
     parse: function(data) {
         var lines = data.split('\r\n')
@@ -47,22 +42,17 @@ module.exports = {
 }
 class AvtalegiroTransaction{
   constructor(element) {
-    this.fboNumber = element.substr(8,7);
-    this.KID = element.substr(16,26);
-    this.skriftligVarsel = element.substr(41,1);
-    this.registrationType = element.substr(15,1);
+    this.fboNumber = parseInt(element.substr(8,7));
+    this.KID = parseInt(element.substr(16,26));
+    this.notice = element.substr(41,1);
+    let registrationType = element.substr(15,1);
 
     //slik jeg forstår det vil vi sjelden få 0 her? Hva betyr i så fall 0?
-    if(this.registrationType == 1){
-      //bedrevariabelnavn
+    if(registrationType == 1){
       this.isTerminated = true;
-    } else if(this.registrationType == 2){
+    } else if(registrationType){
       this.isAltered = true;
     }
-
-    //this.amount = substr kid
-    //this.date = substr kid
-    //this.korholdernavn ? substr kid
   }
 }
    

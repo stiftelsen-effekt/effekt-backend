@@ -3,10 +3,7 @@ const DAO = require('../../custom_modules/DAO.js')
 const config = require('../../config')
 const mail = require('../../custom_modules/mail')
 
-const BANK_ID = 2
-
 module.exports = async (req, res, next) => {
-    //what is this used for 
     let metaOwnerID = parseInt(req.body.metaOwnerID)
 
     var data = req.files.report.data.toString('UTF-8')
@@ -25,24 +22,19 @@ module.exports = async (req, res, next) => {
         let transaction = transactions[i]
         try {
             if(transaction.isAltered){
-                //slette fra db
-            } else if (transaction.isTerminated){
+                
                 // verdien 1 indikerer Nye /endrede faste betalingsoppdrag
                 //tenker det lureste er å sjekke i db om kid eksisterer i tabellen, hvis ikke addde. funker?
+            } else if (transaction.isTerminated){
+                //slette fra db
             }
         }
         catch (ex) {
-            //If the donation already existed, ignore and keep moving
-            if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
-                invalid++
-            }  
-            else {
-                invalidTransactions.push({
-                    reason: ex.message,
-                    transaction
-                })
-                invalid++
-            }
+            invalidTransactions.push({
+                reason: ex.message,
+                transaction
+            })
+            invalid++
         }
     }
     

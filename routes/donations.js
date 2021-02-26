@@ -87,6 +87,8 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
       //Start polling for updates
       await vipps.pollOrder(initiatedOrder.orderId)
+    } else if (donationObject.method == methods.AVTALEGIRO){
+      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount, donationObject.drawdate, donationObject.notice)  
     }
 
     try {
