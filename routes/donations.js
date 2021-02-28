@@ -34,10 +34,10 @@ router.post("/register", async (req,res,next) => {
       amount: parsedData.amount,
       standardSplit: undefined,
       split: [],
-      drawdate: parsedData.drawdate,
-      notice: parsedData.notice,
+      paymentDate: parsedData.paymentDate,
+      notice: parsedData.notice
     }
-
+    
     //Create a donation split object
     if (donationOrganizations) {
       donationObject.split = await donationHelpers.createDonationSplitArray(donationOrganizations)
@@ -95,7 +95,7 @@ router.post("/register", async (req,res,next) => {
     }
   
     if (donationObject.method == methods.AVTALEGIRO){
-      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount, donationObject.drawdate, donationObject.notice)  
+      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount, donationObject.paymentDate, donationObject.notice)  
     }
 
     try {
