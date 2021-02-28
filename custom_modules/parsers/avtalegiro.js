@@ -1,7 +1,7 @@
-const serviceCodeEnum = require('../enums/serviceCode')
-const transactionCodeEnum = require('../enums/transactionCode')
-const recordTypeEnum = require('../enums/recordType')
-const transactionCode = require('../../enums/transactionCode')
+// const serviceCodeEnum = require('../enums/serviceCode')
+// const transactionCodeEnum = require('../enums/transactionCode')
+// const recordTypeEnum = require('../enums/recordType')
+// const transactionCode = require('../../enums/transactionCode')
 
 module.exports = {
     /**
