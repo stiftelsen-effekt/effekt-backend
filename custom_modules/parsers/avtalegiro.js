@@ -1,11 +1,11 @@
-// const serviceCodeEnum = require('../enums/serviceCode')
-// const transactionCodeEnum = require('../enums/transactionCode')
-// const recordTypeEnum = require('../enums/recordType')
-// const transactionCode = require('../../enums/transactionCode')
+const serviceCodeEnum = require('../../enums/serviceCode')
+const transactionCodeEnum = require('../../enums/transactionCode')
+const recordTypeEnum = require('../../enums/recordType')
+const transactionCode = require('../../enums/transactionCode')
 
 module.exports = {
     /**
-     * @typedef AvtalegiroTransaction
+     * @typedef AvtalegiroAgreement
      * @property {number} fboNumber
      * @property {string} KID
      * @property {boolean} isAltered
@@ -15,12 +15,12 @@ module.exports = {
     /**
      * Takes in an OCR file in string form and returns valid transations
      * @param {string} data A string from an OCR file
-     * @returns {Array<AvtalegiroTransaction>} An array of transactions
+     * @returns {Array<AvtalegiroAgreement>} An array of transactions
      */
     parse: function(data) {
         var lines = data.split('\r\n')
 
-        var transactions = [];
+        var agreements = [];
 
         for (var i = 0; i < lines.length-1; i++) {
             if (lines[i].length > 0) {
@@ -32,15 +32,15 @@ module.exports = {
 
                 //translate these numeric values to enum values
                 if(serviceCode == "21" && transactionCode == "94" && recordType == "70"){ 
-                    this.transactions.push(new AvtalegiroTransaction(element));
+                    this.transactions.push(new AvtalegiroAgreement(element));
                 }
             }
         }
 
-        return transactions
+        return agreements
     }
 }
-class AvtalegiroTransaction{
+class AvtalegiroAgreement{
   constructor(element) {
     this.fboNumber = parseInt(element.substr(8,7));
     this.KID = parseInt(element.substr(16,26));
@@ -50,7 +50,7 @@ class AvtalegiroTransaction{
     //slik jeg forstår det vil vi sjelden få 0 her? Hva betyr i så fall 0?
     if(registrationType == 1){
       this.isTerminated = true;
-    } else if(registrationType){
+    } else if(registrationType == 2){
       this.isAltered = true;
     }
   }

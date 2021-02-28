@@ -1,7 +1,7 @@
-// const serviceCodeEnum = require('../enums/serviceCode')
-// const transactionCodeEnum = require('../enums/transactionCode')
-// const recordTypeEnum = require('../enums/recordType')
-// const transactionCode = require('../../enums/transactionCode')
+const serviceCodeEnum = require('../../enums/serviceCode')
+const transactionCodeEnum = require('../../enums/transactionCode')
+const recordTypeEnum = require('../../enums/recordType')
+const transactionCode = require('../../enums/transactionCode')
 
 const BANK_ID = 2
 
@@ -33,15 +33,16 @@ module.exports = {
                 const transactionCode = currLine.substr(4,2);
                 const recordType = currLine.substr(6,2);
 
-                // if(serviceCode == serviceCodeEnum.ocr && (transactionCode == transactionCodeEnum.btg) && recordType == recordTypeEnum.post1){ 
-                //     this.transactions.push(new OCRTransaction(element, nextLine));
-                // }
+                if(serviceCode == serviceCodeEnum.ocr && (transactionCode == transactionCodeEnum.btg || transactionCode == transactionCodeEnum.avtalegiro) && recordType == recordTypeEnum.post1){ 
+                    this.transactions.push(new OCRTransaction(element, nextLine));
+                }
             }
         }
 
         return transactions
     }
 }
+
   class OCRTransaction{
     constructor(element, nextline) {
       this.number = element.substr(8,7);
@@ -64,8 +65,7 @@ module.exports = {
       const transactionID = day + month + year + "." + archivalReference + transactionRunningNumber;
     
       this.transactionID = transactionID;
-      //TODO: WTH happened here??
-      this.paymentID = "221"
+      this.paymentID = BANK_ID;
     }
   }
    

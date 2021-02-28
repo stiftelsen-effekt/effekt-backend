@@ -12,21 +12,21 @@ var pool
  * @param {boolean} notice
  */
 
-async function add(KID, amount, drawdate, notice) {
+async function add(KID, amount, paymentDate, notice) {
     try {
         var con = await pool.getConnection()
 
         var res = await con.execute(
-            `INSERT INTO Avtalegiro_agreement (
+            `INSERT INTO Avtalegiro_agreements (
             KID,
             amount,
-            drawdate, 
+            payment_date, 
             notice
             ) VALUES (?,?,?,?)`, 
         [
             KID,
             amount, 
-            drawdate,
+            paymentDate,
             notice
         ])
 
@@ -43,11 +43,7 @@ async function update(KID, notice) {
     try {
         var con = await pool.getConnection()
 
-        if (await DAO.distributions.KIDexists(KID)){
-            let res = await con.query(`UPDATE avtalegiro_agreement SET notice = ? where KID = ?`, [notice, KID])
-        } else {
-
-        }
+        let res = await con.query(`UPDATE avtalegiro_agreement SET notice = ? where KID = ?`, [notice, KID])
 
         con.release()
         return true
@@ -58,10 +54,10 @@ async function update(KID, notice) {
     }
 }
 
-async function remove(donationId) {
+async function remove(KID) {
     try {
         var con = await pool.getConnection()
-        var result = await con.query(`DELETE FROM avtalegiro_agreement WHERE ID = ?`, [donationId])
+        var result = await con.query(`DELETE FROM Avtalegiro_agreements WHERE KID = ?`, [KID])
 
         con.release()
         if (result[0].affectedRows > 0) return true

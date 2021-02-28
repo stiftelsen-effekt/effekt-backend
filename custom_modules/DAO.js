@@ -15,6 +15,8 @@ module.exports = {
     auth: require('./DAO_modules/auth'),
     meta: require('./DAO_modules/meta'),
     initialpaymentmethod: require ('./DAO_modules/initialpaymentmethod'),
+    avtalegiroagreements: require ('./DAO_modules/avtalegiroagreements'),
+
 
     /**
      * Sets up a connection to the database, uses config.js file for parameters
@@ -53,6 +55,7 @@ module.exports = {
         this.auth.setup(dbPool)
         this.meta.setup(dbPool)
         this.initialpaymentmethod.setup(dbPool)
+        this.avtalegiroagreements.setup(dbPool)
         
 
         //Convenience functions for transactions

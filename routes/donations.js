@@ -33,7 +33,9 @@ router.post("/register", async (req,res,next) => {
       donorID: null, //Set later in code
       amount: parsedData.amount,
       standardSplit: undefined,
-      split: []
+      split: [],
+      drawdate: parsedData.drawdate,
+      notice: parsedData.notice,
     }
 
     //Create a donation split object
@@ -51,7 +53,10 @@ router.post("/register", async (req,res,next) => {
 
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
+      console.log("donor does not exist. adding donor")
       donationObject.donorID = await DAO.donors.add(donor.email, donor.name, donor.ssn, donor.newsletter)
+      console.log("donor added")
+      console.log(donationObject.donorID)
     }
     else {
       //Check for existing SSN if provided
@@ -87,7 +92,9 @@ router.post("/register", async (req,res,next) => {
       initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
       //Start polling for updates
       await vipps.pollOrder(initiatedOrder.orderId)
-    } else if (donationObject.method == methods.AVTALEGIRO){
+    }
+  
+    if (donationObject.method == methods.AVTALEGIRO){
       await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount, donationObject.drawdate, donationObject.notice)  
     }
 

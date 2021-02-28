@@ -9,30 +9,33 @@ module.exports = async (req, res, next) => {
     var data = req.files.report.data.toString('UTF-8')
 
     try {
-        var transactions = AvtalegiroParser.parse(data)
+        var agreements = AvtalegiroParser.parse(data)
     }   catch(ex) {
         return next(ex)
     }
 
     let valid = 0
     let invalid = 0
-    let invalidTransactions = []
+    let invalidAgreeemebts = []
     
-    for (let i = 0; i < transactions.length; i++) {
-        let transaction = transactions[i]
+    for (let i = 0; i < agreements.length; i++) {
+        let agreement = agreements[i]
         try {
-            if(transaction.isAltered){
-                
-                // verdien 1 indikerer Nye /endrede faste betalingsoppdrag
-                //tenker det lureste er å sjekke i db om kid eksisterer i tabellen, hvis ikke addde. funker?
-            } else if (transaction.isTerminated){
-                //slette fra db
+            if(agreement.isAltered){
+                if(await DAO.distributions.KIDexists(agreement.KID)){
+                    await DAO.avtalegiroagreements.update(agreement.KID, agreement.notice)
+                }
+            } else if (agreement.isTerminated){
+                await DAO.avtalegiroagreements.remove(agreement.KID)
+                // Should probably deleted from combined table and donors to? 
+                // Should we delete in the DB, or could we just have a isactive value and set to false? feel like that makes more sense
+                // - BEX
             }
         }
         catch (ex) {
-            invalidTransactions.push({
+            invalidAgreements.push({
                 reason: ex.message,
-                transaction
+                agreement
             })
             invalid++
         }
@@ -45,7 +48,7 @@ module.exports = async (req, res, next) => {
             valid: valid,
             //Not used
             invalid: invalid,
-            invalidTransactions: invalidTransactions
+            invalidAgreements: invalidAgreements
         }
     })
 }
