@@ -444,7 +444,7 @@ async function getSummaryByYear(donorID) {
 
         var [res] = await con.query(`
             SELECT SUM(sum_confirmed) AS yearSum, YEAR(timestamp_confirmed) as year
-            FROM EffektDonasjonDB_Dev.Donations 
+            FROM Donations 
             WHERE Donor_ID = ? 
             GROUP BY year
             ORDER BY year DESC`, 
