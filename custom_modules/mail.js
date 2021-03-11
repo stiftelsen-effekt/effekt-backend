@@ -137,10 +137,21 @@ async function sendDonationRegistered(KID) {
     }
 }
 
+function formatCurrency(currencyString) {
+  return Number.parseFloat(currencyString).toFixed(2)
+    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
+    .replace(",", " ")
+    .replace(".", ",");
+}
+
+/** 
+ * @param {number} donorID 
+*/
 async function sendDonationHistory(donorID) {
   let total = 0
     try {
       var donationSummary = await DAO.donations.getSummary(donorID)
+      var yearlyDonationSummary = await DAO.donations.getSummaryByYear(donorID)
       var donationHistory = await DAO.donations.getHistory(donorID)
       var donor = await DAO.donors.getByID(donationSummary[donationSummary.length - 1].donorID)
       var email = donor.email
@@ -162,12 +173,29 @@ async function sendDonationHistory(donorID) {
           let dateFormat = donationHistory[i].date.getDate().toString() + "/" + month.toString() + "/" + donationHistory[i].date.getFullYear().toString()
           dates.push(dateFormat)  
         }
-        
 
         for (let i = 0; i < donationSummary.length - 1; i++) {
           total += donationSummary[i].sum;
         }
       }
+
+      // Formatting all currencies
+
+      yearlyDonationSummary.forEach((obj) => {
+        obj.yearSum = formatCurrency(obj.yearSum);
+      })
+
+      donationSummary.forEach((obj) => {
+        obj.sum = formatCurrency(obj.sum);
+      })
+
+      donationHistory.forEach((obj) => {
+        obj.distributions.forEach((distribution) => {
+          distribution.sum = formatCurrency(distribution.sum);
+        })
+      })
+
+      total = formatCurrency(total);
       
     } catch(ex) {
       console.error("Failed to send donation history, could not get donation by ID")
@@ -184,6 +212,7 @@ async function sendDonationHistory(donorID) {
             header: "Hei " + donor.full_name + ",",
             total: total,
             donationSummary: donationSummary,
+            yearlyDonationSummary: yearlyDonationSummary,
             donationHistory: donationHistory,
             dates: dates
         }
@@ -228,6 +257,36 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
 }
 
 /**
+ * Sends OCR file for backup
+ * @param {Buffer} fileContents 
+ */
+async function sendOcrBackup(fileContents) {
+  var data = {
+    from: 'gieffektivt.no <donasjon@gieffektivt.no>',
+    to: 'hakon.harnes@effektivaltruisme.no',
+    bcc: "donasjon@gieffektivt.no",
+    subject: 'OCR backup',
+    text: fileContents.toString(),
+    inline: []
+  }
+
+  let result = await request.post({
+    url: 'https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages',
+    auth: {
+        user: 'api',
+        password: config.mailgun_api_key
+    },
+    formData: data,
+    resolveWithFullResponse: true
+  })
+  if(result.statusCode === 200) {
+    return true
+  } else {
+    return false
+  }
+}
+
+/**
  * @typedef MailOptions
  * @prop {string} reciever
  * @prop {string} subject
@@ -241,8 +300,6 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
  * @returns {boolean | number} True if success, status code else
  */
 async function send(options) {
-    console.log(options.templateData)
-
     const templateRoot = appRoot + '/views/mail/' + options.templateName
 
     var templateRawHTML = await fs.readFile(templateRoot + "/index.html", 'utf8')
@@ -284,5 +341,6 @@ module.exports = {
   sendDonationReciept,
   sendDonationRegistered,
   sendDonationHistory,
-  sendTaxDeductions
+  sendTaxDeductions,
+  sendOcrBackup
 }

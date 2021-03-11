@@ -33,19 +33,19 @@ router.get("/aggregate", async (req,res, next) => {
     }
 })
 
-router.post("/", urlEncodeParser, async(req,res,next) => {
+router.post("/", async(req,res,next) => {
     try {
-        let parsedData = JSON.parse(req.body.data)
-        if (!parsedData.referralTypeID)
-            throw new Error("Missing parameter referralTypeID")
+        let parsedData = req.body
+        if (!parsedData.referralID)
+            throw new Error("Missing parameter referralID")
 
         if (!parsedData.donorID)
             throw new Error("Missing parameter donorID")
 
-        if (parsedData.otherComment === undefined)
-            parsedData.otherComment = null
+        if (parsedData.comment === undefined)
+            parsedData.comment = null
 
-        let status = await DAO.referrals.addRecord(parsedData.referralTypeID, parsedData.donorID, parsedData.otherComment)
+        let status = await DAO.referrals.addRecord(parsedData.referralID, parsedData.donorID, parsedData.comment)
     
         res.json({
             status: 200,

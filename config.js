@@ -1,3 +1,5 @@
+const fs = require('fs')
+
 module.exports = {
     //Environment
     env: process.env.NODE_ENV || 'development',
@@ -19,6 +21,12 @@ module.exports = {
     vipps_ocp_apim_subscription_key: process.env.VIPPS_OCP_APIM_SUBSCRIPTION_KEY,
     vipps_merchant_serial_number: process.env.VIPPS_MERCHANT_SERIAL_NUMBER,
     vipps_api_url: (process.env.NODE_ENV === 'production' ? 'api.vipps.no' : 'apitest.vipps.no'),
+
+    nets_sftp_server: process.env.NETS_SFTP_SERVER,
+    nets_sftp_user: process.env.NETS_SFTP_USER,
+    nets_private_key_location: process.env.NETS_SFTP_PRIVATE_KEY_LOCATION,
+    nets_sftp_key: (process.env.NETS_SFTP_PRIVATE_KEY_LOCATION ? fs.readFileSync(process.env.NETS_SFTP_PRIVATE_KEY_LOCATION) : process.env.NETS_SFTP_PRIVATE_KEY),
+    nets_sftp_key_passphrase: process.env.NETS_SFTP_PRIVATE_KEY_PASSPHRASE,
 
     //Set port for API listening, default to 3000
     port: process.env.EFFEKT_PORT || process.env.PORT || 3000,
