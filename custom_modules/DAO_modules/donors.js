@@ -22,12 +22,12 @@ async function getIDbyEmail(email) {
         var [result] = await con.execute(`SELECT ID FROM Donors where email = ?`, [email])
 
         con.release()
-        if (result.length > 0) return(result[0].ID)
-        else return(null)
-    } 
+        if (result.length > 0) return (result[0].ID)
+        else return (null)
+    }
     catch (ex) {
         con.release()
-        throw(ex)
+        throw (ex)
     }
 }
 
@@ -43,10 +43,10 @@ async function getByID(ID) {
 
         con.release()
 
-        if (result.length > 0) return(result[0])
-        else return(null)
-        
-    } 
+        if (result.length > 0) return (result[0])
+        else return (null)
+
+    }
     catch (ex) {
         con.release()
         throw ex
@@ -82,7 +82,7 @@ async function getByKID(KID) {
                 id: dbDonor[0].ID,
                 email: dbDonor[0].email,
                 name: dbDonor[0].full_name,
-                ssn: dbDonor[0].ssn, 
+                ssn: dbDonor[0].ssn,
                 registered: dbDonor[0].date_registered
             }
         }
@@ -90,7 +90,7 @@ async function getByKID(KID) {
             return null
         }
     }
-    catch(ex) {
+    catch (ex) {
         con.release()
         throw ex
     }
@@ -115,9 +115,9 @@ async function search(query) {
             LIMIT 100`, [query, `%${query}%`, `%${query}%`])
 
         con.release()
-        
+
         if (result.length > 0) {
-            return(result.map((donor) => {
+            return (result.map((donor) => {
                 return {
                     id: donor.ID,
                     name: donor.full_name,
@@ -126,12 +126,12 @@ async function search(query) {
                     registered: donor.date_registered
                 }
             }))
-        } 
+        }
         else {
             return null
         }
-    } 
-    catch(ex) {
+    }
+    catch (ex) {
         con.release()
         throw ex
     }
@@ -144,7 +144,7 @@ async function search(query) {
  * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
  * @returns {Number} The ID of the new Donor if successfull
  */
-async function add(email="", name, ssn="", newsletter=null) {
+async function add(email = "", name, ssn = "", newsletter = null) {
     try {
         var con = await pool.getConnection()
 
@@ -153,18 +153,18 @@ async function add(email="", name, ssn="", newsletter=null) {
             full_name, 
             ssn,
             newsletter
-        ) VALUES (?,?,?,?)`, 
-        [
-            email,
-            name,
-            ssn,
-            newsletter
-        ])
+        ) VALUES (?,?,?,?)`,
+            [
+                email,
+                name,
+                ssn,
+                newsletter
+            ])
 
         con.release()
-        return(res[0].insertId)
+        return (res[0].insertId)
     }
-    catch(ex) {
+    catch (ex) {
         con.release()
         throw ex
     }
@@ -173,19 +173,20 @@ async function add(email="", name, ssn="", newsletter=null) {
 
 //region Modify
 /**
- * Updates donor and sets new SSN
- * @param {number} donorID
+ * Updates donor and sets new SSN if ssn is empty
  * @param {string} ssn Social security number
+ * @param {number} donorID
  * @returns {boolean}
  */
-async function updateSsn(donorID, ssn) {
+async function updateSsn(ssn, donorID) {
     try {
         var con = await pool.getConnection()
-        let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
+        await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
         con.release()
+
         return true
     }
-    catch(ex) {
+    catch (ex) {
         con.release()
         throw ex
     }
@@ -204,7 +205,7 @@ async function updateNewsletter(donorID, newsletter) {
         con.release()
         return true
     }
-    catch(ex) {
+    catch (ex) {
         con.release()
         throw ex
     }
@@ -222,6 +223,7 @@ module.exports = {
     search,
     add,
     updateSsn,
+    updateName,
     updateNewsletter,
 
     setup: (dbPool) => { pool = dbPool }
