@@ -87,25 +87,6 @@ router.post("/register/payment", async (req, res, next) => {
   }
 })
 
-router.post("/edit/name", async (req, res, next) => {
-  try {
-    if (!req.body.name) {
-      let error = new Error("Missing param full_name")
-      error.status = 400
-      throw error
-    }
-
-    await DAO.donors.updateName(req.body.full_name)
-
-    return res.json({
-      status: 200,
-      content: "OK"
-    })
-  } catch (ex) {
-    next(ex)
-  }
-})
-
 router.post("/edit/ssn", async (req, res, next) => {
   try {
     if (!req.body.name) {
