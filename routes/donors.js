@@ -89,7 +89,7 @@ router.post("/register/payment", async (req, res, next) => {
 
 router.post("/edit/ssn", async (req, res, next) => {
   try {
-    if (!req.body.name) {
+    if (!req.body.ssn) {
       let error = new Error("Missing param ssn")
       error.status = 400
       throw error
