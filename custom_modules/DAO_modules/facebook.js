@@ -5,7 +5,7 @@ var con
 async function registerPaymentFB(donorID, paymentID) {
     try {
         await con.query(`
-            INSERT INTO FB_payment_id (donorID, fb_paymentID)
+            INSERT INTO FB_payment_ID (donorID, paymentID)
             VALUES (?, ?)`, [donorID, paymentID]
         )
 

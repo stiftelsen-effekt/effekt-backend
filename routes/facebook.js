@@ -1,3 +1,4 @@
+const e = require('express')
 const express = require('express')
 const router = express.Router()
 const DAO = require('../custom_modules/DAO.js')
@@ -10,37 +11,41 @@ function throwError(message) {
 
 router.post("/register/payment", async (req, res, next) => {
     try {
-        let parsedData = req.body
 
-        if (!parsedData.paymentID) {
+        const paymentID = req.body.paymentID
+        const email = req.body.email
+        const full_name = req.body.full_name
+        const ssn = req.body.ssn
+
+        if (!paymentID) {
             throwError("Missing param paymentID")
         }
-        else if (!parsedData.email) {
+        else if (!email) {
             throwError("Missing param paymentID")
         }
-        else if (!parsedData.full_name) {
+        else if (!full_name) {
             throwError("Missing param full_name")
         }
-        else if (!parsedData.ssn) {
+        else if (!ssn) {
             throwError("Missing param ssn")
         }
 
-        let ID = await DAO.donors.getIDbyEmail(email)
+        const ID = await DAO.donors.getIDbyEmail(email)
 
         // If donor does not exist, create new donor
         if (!ID) {
-            let donorID = await DAO.donors.add(email, full_name, ssn)
+            const donorID = await DAO.donors.add(email, full_name, ssn)
 
-            DAO.facebook.registerPaymentFB(donorID, parsedData.paymentID)
+            DAO.facebook.registerPaymentFB(donorID, paymentID)
         }
         // If donor already exists, update ssn if empty
         else if (ID) {
-            let donorID = ID
-            let donor = await DAO.donors.getByID(ID)
+            const donorID = ID
+            const donor = await DAO.donors.getByID(ID)
 
             if (!donor.ssn) await DAO.donors.updateSsn(donorID, ssn)
 
-            DAO.facebook.registerPaymentFB(donorID, parsedData.paymentID)
+            DAO.facebook.registerPaymentFB(donorID, paymentID)
         }
 
         res.json({
