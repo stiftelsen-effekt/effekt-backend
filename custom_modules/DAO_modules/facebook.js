@@ -18,16 +18,6 @@ async function registerPaymentFB(donorID, paymentID) {
 
 //endregion
 
-//region Modify
-
-//endregion
-
-//region Delete
-
-//endregion
-
-//Helpers
-
 module.exports = {
     registerPaymentFB,
     setup: (dbPool) => { con = dbPool }

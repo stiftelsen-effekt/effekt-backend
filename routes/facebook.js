@@ -38,7 +38,7 @@ router.post("/register/payment", async (req, res, next) => {
             let donorID = ID
             let donor = await DAO.donors.getByID(ID)
 
-            if (!donor.ssn) await DAO.donors.updateSsn(ssn)
+            if (!donor.ssn) await DAO.donors.updateSsn(donorID, ssn)
 
             DAO.facebook.registerPaymentFB(donorID, parsedData.paymentID)
         }
