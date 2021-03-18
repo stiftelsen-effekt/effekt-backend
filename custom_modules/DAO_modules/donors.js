@@ -173,17 +173,16 @@ async function add(email = "", name, ssn = "", newsletter = null) {
 
 //region Modify
 /**
- * Updates donor and sets new ssn only if ssn is empty
+ * Updates donor and sets new SSN
+ * @param {number} donorID
  * @param {string} ssn Social security number
- * @param {number} donorID Donor ID
  * @returns {boolean}
  */
-async function updateSsn(ssn, donorID) {
+async function updateSsn(donorID, ssn) {
     try {
         var con = await pool.getConnection()
-        await con.query(`UPDATE Donors SET ssn = ? where ID = ? and ssn = ""`, [ssn, donorID])
+        let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
         con.release()
-
         return true
     }
     catch (ex) {

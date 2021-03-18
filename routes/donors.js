@@ -70,42 +70,6 @@ router.get('/:id', auth(roles.read_all_donations), async (req, res, next) => {
   }
 })
 
-router.post("/register/payment", async (req, res, next) => {
-  try {
-    let parsedData = req.body
-
-    let isNewDonor = await (await DAO.facebook.registerPaymentFB(parsedData.paymentID, parsedData.email)).isNewDonor
-
-    // Used in tax deduction form for Facebook
-    res.json({
-      status: 200,
-      content: isNewDonor
-    })
-  }
-  catch (ex) {
-    next(ex)
-  }
-})
-
-router.post("/edit/ssn", async (req, res, next) => {
-  try {
-    if (!req.body.ssn) {
-      let error = new Error("Missing param ssn")
-      error.status = 400
-      throw error
-    }
-
-    await DAO.donors.updateSsn(req.body.ssn)
-
-    return res.json({
-      status: 200,
-      content: "OK"
-    })
-  } catch (ex) {
-    next(ex)
-  }
-})
-
 let newsletterRateLimit = new rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 5,
