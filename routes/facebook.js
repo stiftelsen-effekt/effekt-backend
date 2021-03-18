@@ -25,20 +25,20 @@ router.post("/register/payment", async (req, res, next) => {
             throwError("Missing param ssn")
         }
 
-        let ID = await donorsDAO.getIDbyEmail(email)
+        let ID = await DAO.donors.getIDbyEmail(email)
 
         // If donor does not exist, create new donor
         if (!ID) {
-            let donorID = await donorsDAO.add(email, full_name, ssn)
+            let donorID = await DAO.donors.add(email, full_name, ssn)
 
             DAO.facebook.registerPaymentFB(donorID, parsedData.paymentID)
         }
         // If donor already exists, update ssn if empty
         else if (ID) {
             let donorID = ID
-            let donor = await donorsDAO.getByID(ID)
+            let donor = await DAO.donors.getByID(ID)
 
-            if (!donor.ssn) await donorsDAO.updateSsn(ssn)
+            if (!donor.ssn) await DAO.donors.updateSsn(ssn)
 
             DAO.facebook.registerPaymentFB(donorID, parsedData.paymentID)
         }
