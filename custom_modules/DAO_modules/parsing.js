@@ -10,13 +10,13 @@ async function getVippsParsingRules(periodStart, periodEnd) {
     try {
         var [res] = await con.query('SELECT * FROM Vipps_matching_rules WHERE PeriodFrom <= ? and PeriodTo >= ? ORDER BY precedence DESC', [periodStart, periodEnd])
 
-        resolve(res.map((res) => {
+        return res.map((res) => {
             return {
                 salesLocation: res.SalesLocation,
                 message: res.Message,
                 resolveKID: res.ResolveKID
             }
-        }))
+        })
     }
     catch (ex) {
         throw ex

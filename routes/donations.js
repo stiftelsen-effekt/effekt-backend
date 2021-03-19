@@ -18,9 +18,9 @@ const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 const donationHelpers = require('../custom_modules/donationHelpers')
 const rateLimit = require('express-rate-limit')
 
-router.post("/register", urlEncodeParser, async (req,res,next) => {
+router.post("/register", async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
-  let parsedData = JSON.parse(req.body.data)
+  let parsedData = req.body
 
   let donationOrganizations = parsedData.organizations
   let donor = parsedData.donor
@@ -33,9 +33,11 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       donorID: null, //Set later in code
       amount: parsedData.amount,
       standardSplit: undefined,
-      split: []
+      split: [],
+      paymentDate: parsedData.paymentDate,
+      notice: parsedData.notice
     }
-
+    
     //Create a donation split object
     if (donationOrganizations) {
       donationObject.split = await donationHelpers.createDonationSplitArray(donationOrganizations)
@@ -51,7 +53,10 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
 
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
+      console.log("donor does not exist. adding donor")
       donationObject.donorID = await DAO.donors.add(donor.email, donor.name, donor.ssn, donor.newsletter)
+      console.log("donor added")
+      console.log(donationObject.donorID)
     }
     else {
       //Check for existing SSN if provided
@@ -87,6 +92,10 @@ router.post("/register", urlEncodeParser, async (req,res,next) => {
       initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
       //Start polling for updates
       await vipps.pollOrder(initiatedOrder.orderId)
+    }
+  
+    if (donationObject.method == methods.AVTALEGIRO){
+      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount, donationObject.paymentDate, donationObject.notice)  
     }
 
     try {

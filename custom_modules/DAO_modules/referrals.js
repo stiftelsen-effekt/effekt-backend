@@ -26,7 +26,7 @@ async function getTypes() {
             ORDER BY ordering`)
 
     return types.map((type) => ({
-        ID: type.ID, 
+        id: type.ID, 
         name: type.name, 
         ordering: type.ordering
     }))
