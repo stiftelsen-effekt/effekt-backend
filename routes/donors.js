@@ -7,9 +7,9 @@ const DAO = require('../custom_modules/DAO.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
-const rateLimit = require('express-rate-limit')
+const rateLimit = require('express-rate-limit')
 
-router.post("/", urlEncodeParser, async (req,res,next) => {
+router.post("/", urlEncodeParser, async (req, res, next) => {
   try {
     if (!req.body.name) {
       let error = new Error("Missing param email or param name")
@@ -23,12 +23,12 @@ router.post("/", urlEncodeParser, async (req,res,next) => {
       status: 200,
       content: "OK"
     })
-  } catch(ex) {
+  } catch (ex) {
     next(ex)
   }
 })
 
-router.get('/search/', auth(roles.read_all_donations), async (req,res, next) => {
+router.get('/search/', auth(roles.read_all_donations), async (req, res, next) => {
   try {
     var donors = await DAO.donors.search(req.query.q)
 
@@ -43,12 +43,12 @@ router.get('/search/', auth(roles.read_all_donations), async (req,res, next) => 
         content: "No donors found matching query"
       })
     }
-  } catch(ex) {
+  } catch (ex) {
     next(ex)
   }
 })
 
-router.get('/:id', auth(roles.read_all_donations) ,async (req,res,next) => {
+router.get('/:id', auth(roles.read_all_donations), async (req, res, next) => {
   try {
     var donor = await DAO.donors.getByID(req.params.id)
 
@@ -70,13 +70,13 @@ router.get('/:id', auth(roles.read_all_donations) ,async (req,res,next) => {
   }
 })
 
-let newsletterRateLimit = new rateLimit({
-  windowMs: 60*1000, // 1 minute
-  max: 5,
-  delayMs: 0 // disable delaying - full speed until the max limit is reached 
+let newsletterRateLimit = new rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  delayMs: 0 // disable delaying - full speed until the max limit is reached 
 })
-router.post("/newsletter", newsletterRateLimit, (req,res) => {
-  
+router.post("/newsletter", newsletterRateLimit, (req, res) => {
+
 })
 
 module.exports = router
