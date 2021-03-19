@@ -1,11 +1,13 @@
+const serviceCodeEnum = require('../../enums/serviceCode')
+const transactionCodeEnum = require('../../enums/transactionCode')
+const recordTypeEnum = require('../../enums/recordType')
+const transactionCode = require('../../enums/transactionCode')
+
 const BANK_ID = 2
 
 module.exports = {
     /**
-     * @typedef Transaction
-     * @property {number} transactionCode
-     * @property {number} recordType
-     * @property {number} serviceCode
+     * @typedef OCRTransaction
      * @property {number} amount
      * @property {string} transactionID
      * @property {Date} date
@@ -15,68 +17,56 @@ module.exports = {
     /**
      * Takes in an OCR file in string form and returns valid transations
      * @param {string} data A string from an OCR file
-     * @returns {Array<Transaction>} An array of transactions
+     * @returns {Array<OCRTransaction>} An array of transactions
      */
     parse: function(data) {
         var lines = data.split(/\r?\n/)
 
-        var transactions = []
+        var transactions =  [];
+
         for (var i = 0; i < lines.length-1; i++) {
             if (lines[i].length > 0) {
-                var transaction = this.parseLine(lines[i], lines[i+1])
+                let currLine = lines[i]; 
+                let nextLine = lines[i+1]; 
 
-                if (transaction.transactionCode == 13 && transaction.recordType == 30) transactions.push(transaction)
+                const serviceCode = currLine.substr(2,2);
+                const transactionCode = currLine.substr(4,2);
+                const recordType = currLine.substr(6,2);
+
+                if(serviceCode == serviceCodeEnum.ocr && (transactionCode == transactionCodeEnum.btg || transactionCode == transactionCodeEnum.avtalegiro) && recordType == recordTypeEnum.post1){ 
+                    this.transactions.push(new OCRTransaction(element, nextLine));
+                }
             }
         }
 
         return transactions
-    },
-
-    parseLine: function(line, nextline) {
-        /**
-         * @type Transaction
-         * */
-        var transaction = {}
-
-        transaction.serviceCode = parseInt(line.substr(2,2))
-        transaction.transactionCode = parseInt(line.substr(4,2))
-        transaction.recordType = parseInt(line.substr(6,2))
-
-        if (transaction.serviceCode == 9 && 
-            transaction.transactionCode == 13 && 
-            transaction.recordType == 30 &&
-            nextline != null) {
-            const number = parseInt(8,7)
-
-            transaction.number = number
-
-            let year = line.substr(19,2)
-            let month = line.substr(17,2)
-            let day = line.substr(15,2)
-
-            const date = new Date(
-                parseInt("20" + year),
-                parseInt(month)-1,
-                parseInt(day))
-
-            transaction.date = date
-
-            const amount = parseInt(line.substr(32, 17)) / 100
-
-            transaction.amount = amount
-
-            const KID = parseInt(line.substr(49, 25))
-
-            transaction.KID = KID
-
-            const archivalReference = nextline.substr(25, 9)
-            const transactionRunningNumber = parseInt(nextline.substr(9,6))
-            const transactionID = day + month + year + "." + archivalReference + transactionRunningNumber
-
-            transaction.transactionID = transactionID
-            transaction.paymentID = BANK_ID
-        }
-
-        return transaction
     }
 }
+
+  class OCRTransaction{
+    constructor(element, nextline) {
+      this.number = element.substr(8,7);
+  
+      let year = element.substr(19,2);
+      let month = element.substr(17,2);
+      let day = element.substr(15,2);
+      const date = new Date(
+        parseInt("20" + year),
+        parseInt(month)-1,
+        parseInt(day)
+      );
+  
+      this.date = date;
+      this.amount = parseInt(element.substr(32, 17)) / 100;
+      this.kid = parseInt(element.substr(49, 25));
+  
+      const archivalReference = nextline.substr(25, 9);
+      const transactionRunningNumber = parseInt(nextline.substr(9,6));
+      const transactionID = day + month + year + "." + archivalReference + transactionRunningNumber;
+    
+      this.transactionID = transactionID;
+      this.paymentID = BANK_ID;
+    }
+  }
+   
+
