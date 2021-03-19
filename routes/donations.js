@@ -244,6 +244,24 @@ router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,
   }
 })
 
+router.delete("/:id", authMiddleware(authRoles.write_all_donations), async (req,res,next) => {
+  try {
+    var removed = await DAO.donations.remove(req.params.id)
+
+    if (removed) {
+      return res.json({
+        status: 200,
+        content: removed
+      })
+    } 
+    else {
+      throw new Error("Could not remove donation")
+    }
+  } catch (ex) {
+    next(ex)
+  }
+})
+
 router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   let donationID = req.body.donationID
 

@@ -20,6 +20,11 @@ var DAO
   * @prop {number} sum
   */
 
+   /** @typedef DonationSummary
+  * @prop {string} year Year
+  * @prop {number} yearSum Sum of donations per year 
+  */
+
  /** @typedef DonationDistributions
   * @prop {number} donationID
   * @prop {Date} date
@@ -412,12 +417,40 @@ async function getSummary(donorID) {
         res.forEach(row => {
             summary.forEach(obj => {
                 if(row.full_name == obj.organization) {
-                    obj.sum += parseInt(row.sum_distribution)
+                    obj.sum += parseFloat(row.sum_distribution)
                 }
             })
         })
         
         summary.push({donorID: donorID})
+
+        con.release()
+        return summary
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
+ * Fetches the total amount of money donated per year by a specific donor
+ * @param {Number} donorID
+ * @returns {Array<YearlyDonationSummary>} Array of YearlyDonationSummary objects
+ */
+async function getSummaryByYear(donorID) {
+    try {
+        var con = await pool.getConnection()
+
+        var [res] = await con.query(`
+            SELECT SUM(sum_confirmed) AS yearSum, YEAR(timestamp_confirmed) as year
+            FROM Donations 
+            WHERE Donor_ID = ? 
+            GROUP BY year
+            ORDER BY year DESC`, 
+            [donorID])
+
+        summary = res;
 
         con.release()
         return summary
@@ -615,6 +648,7 @@ module.exports = {
     getFromRange,
     getMedianFromRange,
     getSummary,
+    getSummaryByYear,
     getHistory,
     ExternalPaymentIDExists,
     add,

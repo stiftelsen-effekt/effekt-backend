@@ -1,6 +1,6 @@
 module.exports = {
-    VIPPS: "VIPPS",
-    BANK: "BANK",
-    PAYPAL: "PAYPAL",
-    AVTALEGIRO: "AVTALEGIRO"
+    VIPPS: 6,
+    BANK: 2,
+    PAYPAL: 3,
+    AVTALEGIRO: 7
 }

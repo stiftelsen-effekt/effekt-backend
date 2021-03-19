@@ -16,13 +16,13 @@ module.exports = {
     meta: require('./DAO_modules/meta'),
     initialpaymentmethod: require ('./DAO_modules/initialpaymentmethod'),
     avtalegiroagreements: require ('./DAO_modules/avtalegiroagreements'),
-
+    facebook: require('./DAO_modules/facebook'),
 
     /**
      * Sets up a connection to the database, uses config.js file for parameters
      * @param {function} cb Callback for when DAO has been sucessfully set up
      */
-    connect: async function(cb) {
+    connect: async function (cb) {
         var dbPool = await mysql.createPool({
             host: config.db_host,
             user: config.db_username,
@@ -36,14 +36,14 @@ module.exports = {
         try {
             await dbPool.query("SELECT 1 + 1 AS Solution")
             console.log("Connected to database | Using database " + config.db_name)
-        } catch(ex) {
+        } catch (ex) {
             console.error("Connection to database failed! | Using database " + config.db_name)
             console.log(ex)
             process.exit()
         }
-    
+
         //Setup submodules
-        this.donors.setup(dbPool)      
+        this.donors.setup(dbPool)
         this.organizations.setup(dbPool)
         this.donations.setup(dbPool, this)
         this.distributions.setup(dbPool, this)
@@ -56,36 +56,36 @@ module.exports = {
         this.meta.setup(dbPool)
         this.initialpaymentmethod.setup(dbPool)
         this.avtalegiroagreements.setup(dbPool)
-        
+        this.facebook.setup(dbPool)
 
         //Convenience functions for transactions
         //Use the returned transaction object for queries in the transaction
-        dbPool.startTransaction = async function() {
+        dbPool.startTransaction = async function () {
             try {
                 let transaction = await dbPool.getConnection()
                 await transaction.query("START TRANSACTION")
                 return transaction
-            } catch(ex) {
+            } catch (ex) {
                 console.log(ex)
                 throw new Error("Fatal error, failed to start transaction")
             }
         }
 
-        dbPool.rollbackTransaction = async function(transaction) {
+        dbPool.rollbackTransaction = async function (transaction) {
             try {
                 await transaction.query("ROLLBACK")
                 transaction.release()
-            } catch(ex) {
+            } catch (ex) {
                 console.log(ex)
                 throw new Error("Fatal error, failed to rollback transaction")
             }
         }
 
-        dbPool.commitTransaction = async function(transaction) {
+        dbPool.commitTransaction = async function (transaction) {
             try {
                 await transaction.query("COMMIT")
                 transaction.release()
-            } catch(ex) {
+            } catch (ex) {
                 console.log(ex)
                 throw new Error("Fatal error, failed to commit transaction")
             }

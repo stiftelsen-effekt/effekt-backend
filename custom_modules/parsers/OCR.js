@@ -20,7 +20,7 @@ module.exports = {
      * @returns {Array<OCRTransaction>} An array of transactions
      */
     parse: function(data) {
-        var lines = data.split('\r\n')
+        var lines = data.split(/\r?\n/)
 
         var transactions =  [];
 
