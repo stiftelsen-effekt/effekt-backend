@@ -16,6 +16,7 @@ router.post("/register/payment", async (req, res, next) => {
         const email = req.body.email
         const full_name = req.body.full_name
         const ssn = req.body.ssn
+        const newsletter = req.body.newsletter
 
         if (!paymentID) {
             throwError("Missing param paymentID")
@@ -34,7 +35,7 @@ router.post("/register/payment", async (req, res, next) => {
 
         // If donor does not exist, create new donor
         if (!ID) {
-            const donorID = await DAO.donors.add(email, full_name, ssn)
+            const donorID = await DAO.donors.add(email, full_name, ssn, newsletter)
 
             DAO.facebook.registerPaymentFB(donorID, paymentID)
         }
@@ -44,6 +45,7 @@ router.post("/register/payment", async (req, res, next) => {
             const donor = await DAO.donors.getByID(ID)
 
             if (!donor.ssn) await DAO.donors.updateSsn(donorID, ssn)
+            DAO.donors.updateNewsletter(donorID, newsletter)
 
             DAO.facebook.registerPaymentFB(donorID, paymentID)
         }
