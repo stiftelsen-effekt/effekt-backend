@@ -30,6 +30,9 @@ router.post("/register/payment", async (req, res, next) => {
         else if (!ssn) {
             throwError("Missing param ssn")
         }
+        else if (!newsletter) {
+            throwError("Missing param newsletter")
+        }
 
         const ID = await DAO.donors.getIDbyEmail(email)
 
