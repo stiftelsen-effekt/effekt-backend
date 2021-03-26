@@ -60,6 +60,57 @@ async function sendDonationReciept(donationID, reciever = null) {
     
 }
 
+/**
+ * Sends a donation reciept with notice of old system
+ * @param {number} donationID
+ * @param {string} reciever Reciever email
+*/
+async function sendEffektDonationReciept(donationID, reciever = null) {
+    try {
+        var donation = await DAO.donations.getByID(donationID)
+        if (!donation.email)  {
+          console.error("No email provided for donation ID " + donationID)
+          return false
+        }
+    } catch(ex) {
+        console.error("Failed to send mail donation reciept, could not get donation by ID")
+        console.error(ex)
+        return false
+    }
+
+    try {
+        var split = await DAO.distributions.getSplitByKID(donation.KID)
+    } catch (ex) {
+        console.error("Failed to send mail donation reciept, could not get donation split by KID")
+        console.error(ex)
+        return false
+    }
+
+    let organizations = formatOrganizationsFromSplit(split, donation.sum)
+
+    try {
+        await send({
+        reciever: (reciever ? reciever : donation.email),
+        subject: "gieffektivt.no - Din donasjon er mottatt",
+        templateName: "recieptEffekt",
+        templateData: {
+            header: "Hei " + donation.donor + ",",
+            //Add thousand seperator regex at end of amount
+            donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+            organizations: organizations,
+            donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
+            paymentMethod: decideUIPaymentMethod(donation.method)
+        }
+        })
+
+        return true
+    } catch(ex) {
+        console.error("Failed to send donation reciept")
+        console.error(ex)
+        return ex.statusCode
+    }   
+}
+
 function decideUIPaymentMethod(donationMethod){
   if(donationMethod.toUpperCase() == 'BANK U/KID') {
     donationMethod = 'Bank'
@@ -339,6 +390,7 @@ async function send(options) {
 
 module.exports = {
   sendDonationReciept,
+  sendEffektDonationReciept,
   sendDonationRegistered,
   sendDonationHistory,
   sendTaxDeductions,
