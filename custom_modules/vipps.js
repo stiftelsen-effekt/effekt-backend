@@ -7,8 +7,7 @@ const mail = require('../custom_modules/mail')
 
 //Timings selected based on the vipps guidelines
 //https://www.vipps.no/developers-documentation/ecom/documentation/#polling-guidelines
-//Polling start was increased from 5s to 30s, since we support callbacks
-const POLLING_START_DELAY = 30000
+const POLLING_START_DELAY = 5000
 const POLLING_INTERVAL = 2000
 
 const VIPPS_TEXT = "Donasjon til GiEffektivt.no"
@@ -548,6 +547,8 @@ module.exports = {
 
             await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, sum)
 
+            this.pollAgreement(response.agreementId)
+
             return response
         } 
         catch(ex) {
@@ -637,7 +638,7 @@ module.exports = {
      * @param {string} agreementId 
      */
     async pollAgreement(agreementId) {
-        setTimeout(() => { this.pollLoop(agreementId, this.checkAgreement) }, POLLING_START_DELAY)
+        setTimeout(() => { this.pollLoop(agreementId, this.checkAgreement.bind(this)) }, POLLING_START_DELAY)
     },
 
     /**
@@ -650,18 +651,19 @@ module.exports = {
     async checkAgreement(agreementId, polls) {
         //If we've been polling for more than eleven minutes, stop polling for updates
         if ((polls * POLLING_INTERVAL) + POLLING_START_DELAY > 1000 * 60 * 10) {
+            console.log("Polled enough")
             return true
         }
 
         const agreement = await this.getAgreement(agreementId)
 
         if (agreement.status === "ACTIVE") {
-            DAO.vipps.updateAgreementStatus(agreementId, agreement.status)
+            await DAO.vipps.updateAgreementStatus(agreementId, agreement.status)
             return true
             //Should we perhaps do an initial charge here?
         }
         else if (agreement.status === "STOPPED" || agreement.status === "EXPIRED") {
-            DAO.vipps.updateAgreementStatus(agreementId, agreement.status)
+            await DAO.vipps.updateAgreementStatus(agreementId, agreement.status)
             return true
         }
 
@@ -693,8 +695,7 @@ module.exports = {
      * @param {number} count The count of how many times we've polled
      */
     async pollLoop(id, fn, count = 1) {
-        console.log("Polling")
         let shouldCancel = await fn(id, count)
-        if (!shouldCancel) setTimeout(() => { fn(id, count+1) }, POLLING_INTERVAL)
+        if (!shouldCancel) setTimeout(() => { this.pollLoop(id, fn, count+1) }, POLLING_INTERVAL)
     },
 }

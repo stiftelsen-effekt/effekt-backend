@@ -144,7 +144,7 @@ async function addAgreement(ID, donorId, KID, sum, status = "PENDING") {
     try {
         con.query(`
             INSERT INTO Vipps_agreements
-                (ID, KID, donorID, sum, status)
+                (ID, donorID, KID, sum, status)
             VALUES
                 (?,?,?,?,?)`, 
             [ID, donorId, KID, sum, status])
