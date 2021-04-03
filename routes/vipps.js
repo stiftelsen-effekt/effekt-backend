@@ -13,22 +13,22 @@ const vipps = require('../custom_modules/vipps')
 const paymentMethods = require('../enums/paymentMethods')
 const authorizationRoles = require('../enums/authorizationRoles')
 
-const vippsCallbackProdServers = ["callback-1.vipps.no","callback-2.vipps.no","callback-3.vipps.no","callback-4.vipps.no"]
-const vippsCallbackDisasterServers = ["callback-dr-1.vipps.no","callback-dr-2.vipps.no","callback-dr-3.vipps.no","callback-dr-4.vipps.no"]
-const vippsCallbackDevServers = ["callback-mt-1.vipps.no","callback-mt-2.vipps.no","callback-mt-3.vipps.no","callback-mt-4.vipps.no"]
+const vippsCallbackProdServers = ["callback-1.vipps.no", "callback-2.vipps.no", "callback-3.vipps.no", "callback-4.vipps.no"]
+const vippsCallbackDisasterServers = ["callback-dr-1.vipps.no", "callback-dr-2.vipps.no", "callback-dr-3.vipps.no", "callback-dr-4.vipps.no"]
+const vippsCallbackDevServers = ["callback-mt-1.vipps.no", "callback-mt-2.vipps.no", "callback-mt-3.vipps.no", "callback-mt-4.vipps.no"]
 
-router.get("/token", async(req,res,next) => {
+router.get("/token", async (req, res, next) => {
     let token = await vipps.fetchToken()
     res.json(token)
 })
 
-router.get("/initiate/:phonenumber", async(req, res, next) => {
+router.get("/initiate/:phonenumber", async (req, res, next) => {
     let token = await vipps.fetchToken()
     let url = await vipps.initiateOrder(req.params.phonenumber, token)
     res.json(url)
 })
 
-router.post("/agreement/draft", jsonBody, async(req,res,next) => {
+router.post("/agreement/draft", jsonBody, async (req, res, next) => {
     const KID = 51615227;
     const SUM = 100;
     const NUMBER = 93279221;
@@ -37,22 +37,59 @@ router.post("/agreement/draft", jsonBody, async(req,res,next) => {
         let response = await vipps.draftAgreement(KID, SUM, NUMBER)
         //TODO: Check for false
         res.json(response)
-    } catch(ex) {
-        next({ex})
+    } catch (ex) {
+        next({ ex })
     }
 })
 
-router.get("/agreement/:id", async(req, res, next) => {
+router.get("/agreement/:id", async (req, res, next) => {
     try {
         const response = await vipps.getAgreement(req.params.id)
+
         //TODO: Check for false
         res.json(response)
-    } catch(ex) {
-        next({ex})
+    } catch (ex) {
+        next({ ex })
     }
 })
 
-router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
+router.post("/agreement/charge/create/:id", jsonBody, async (req, res, next) => {
+    try {
+        const id = req.params.id
+        const amount = req.body.amount
+        const KID = req.body.KID
+        const due = req.body.due
+
+        if (!id) return "Missing parameter id"
+        if (!amount) return "Missing amount from body"
+        if (!KID) return "Missing KID from body"
+        if (!due) return "Missing due from body"
+        if (amount <= 0) return "Amount must be larger than 0"
+
+        const response = await vipps.chargeAgreement(id, amount, KID, due)
+
+        //TODO: Check for false
+        res.json(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.post("/agreement/charge/cancel", jsonBody, async (req, res, next) => {
+    try {
+        const agreementId = req.body.agreementId
+        const chargeId = req.body.chargeId
+        if (!agreementId) return "Missing agreementId from body"
+        if (!chargeId) return "Missing chargeId from body"
+
+        vipps.cancelCharge(agreementId, chargeId)
+
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.post("/v2/payments/:orderId", jsonBody, async (req, res, next) => {
     if (req.body.orderId !== req.params.orderId) {
         res.sendStatus(400)
         return false
@@ -62,7 +99,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     //Make sure the request actually came from the vipps callback servers
     if (!await whitelisted(req.ip)) {
         console.warn(`Vipps callback host (${req.ip}) not whitelisted`)
-        res.status(401).json({status: 401, content: "Host not whitelisted"})
+        res.status(401).json({ status: 401, content: "Host not whitelisted" })
         return false
     }
 
@@ -76,7 +113,7 @@ router.post("/v2/payments/:orderId", jsonBody, async(req,res,next) => {
     }
 
     //Handle different transactions states
-    switch(transactionInfo.status) {
+    switch (transactionInfo.status) {
         case "RESERVED":
             await vipps.captureOrder(orderId, transactionInfo)
             break;
@@ -108,7 +145,7 @@ router.get("/redirect/:orderId", async (req, res, next) => {
 
         let retry = async (retries) => {
             let order = await DAO.vipps.getOrder(orderId)
-    
+
             if (order && order.donationID != null) {
                 res.redirect('https://gieffektivt.no/donation-recived/')
                 return true
@@ -123,16 +160,16 @@ router.get("/redirect/:orderId", async (req, res, next) => {
                 }, 1000)
             }
         }
-    
+
         await retry(0)
-    } catch(ex) {
+    } catch (ex) {
         next(ex)
     }
 })
 
 router.get("/integration-test/:linkToken", async (req, res, next) => {
     if (config.env === 'production') {
-        res.status(403).json({status: 403, content: 'Integration test not applicable in production environment'})
+        res.status(403).json({ status: 403, content: 'Integration test not applicable in production environment' })
         return false
     }
 
@@ -145,30 +182,30 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
 
         console.log("Approved", approved)
 
-        if(!approved) throw new Error("Could not approve recent order")
-        
+        if (!approved) throw new Error("Could not approve recent order")
+
         //Try five times for a maximum of 5 seconds
-        for(let i = 0; i < 5; i++) {
+        for (let i = 0; i < 5; i++) {
             console.log("Wait 1000")
             await delay(1000)
             order = await DAO.vipps.getOrder(order.orderID)
             console.log(order)
             if (order.donationID != null) {
-                res.json({status: 200, content: "Donation registered successfully"})
+                res.json({ status: 200, content: "Donation registered successfully" })
                 return true
             }
         }
         console.log("Timeout")
         throw new Error("Timed out when attempting to verify integration")
     }
-    catch(ex) {
+    catch (ex) {
         console.warn(ex)
-        res.status(500).json({status: 500, content: ex.message})
+        res.status(500).json({ status: 500, content: ex.message })
     }
-    
+
 })
 
-router.post("/refund/:orderId", authMiddleware(authorizationRoles.write_vipps_api), async (req,res,next) => {
+router.post("/refund/:orderId", authMiddleware(authorizationRoles.write_vipps_api), async (req, res, next) => {
     try {
         let refunded = await vipps.refundOrder(req.params.orderId)
 
@@ -185,12 +222,12 @@ router.post("/refund/:orderId", authMiddleware(authorizationRoles.write_vipps_ap
             })
         }
     }
-    catch(ex) {
+    catch (ex) {
         next(ex)
     }
 })
 
-router.put("/cancel/:orderId", authMiddleware(authorizationRoles.write_vipps_api), async (req,res,next) => {
+router.put("/cancel/:orderId", authMiddleware(authorizationRoles.write_vipps_api), async (req, res, next) => {
     try {
         let cancelled = await vipps.cancelOrder(req.params.orderId)
 
@@ -207,7 +244,7 @@ router.put("/cancel/:orderId", authMiddleware(authorizationRoles.write_vipps_api
             })
         }
     }
-    catch(ex) {
+    catch (ex) {
         next(ex)
     }
 })
@@ -245,7 +282,7 @@ async function whitelisted(ip) {
             }
         }
     }
-    catch(ex) {
+    catch (ex) {
         console.warn("Checking for whitelisted IPs failed", ex)
     }
     return whitelisted
@@ -253,11 +290,11 @@ async function whitelisted(ip) {
 
 //Helper for integration test
 function delay(t) {
-    return new Promise(function(resolve) {
-        setTimeout(function() {
+    return new Promise(function (resolve) {
+        setTimeout(function () {
             resolve();
         }, t);
     });
- }
+}
 
 module.exports = router

@@ -76,7 +76,7 @@ const VIPPS_TEXT = "Donasjon til GiEffektivt.no"
  * @property {Date | null} start When the agreement was started
  * @property {Date | null} stop When the agreement is stopped
  * @property {VippsRecurringAgreementCampaign | undefined} campaign Special campaign pricing of applicable
- * @property {VippsRecurringAgreementInitialCharge | undefined } initialCharte Initial charge for the agreement
+ * @property {VippsRecurringAgreementInitialCharge | undefined } initialCharge Initial charge for the agreement
  * 
  */
 
@@ -119,17 +119,17 @@ module.exports = {
                 tokenResponse = JSON.parse(tokenResponse)
 
                 token = {
-                    expires: new Date(parseInt(tokenResponse.expires_on)*1000),
+                    expires: new Date(parseInt(tokenResponse.expires_on) * 1000),
                     type: tokenResponse.token_type,
                     token: tokenResponse.access_token
                 }
-                
+
                 token.ID = await DAO.vipps.addToken(token)
             }
-            
+
             return token
         }
-        catch(ex) {
+        catch (ex) {
             console.error("Failed to fetch vipps token", ex)
             throw ex
         }
@@ -173,7 +173,7 @@ module.exports = {
                 "paymentType": "eComm Regular Payment"
             },
             "transaction": {
-                "amount": sum*100, //Specified in øre, therefore NOK * 100
+                "amount": sum * 100, //Specified in øre, therefore NOK * 100
                 "orderId": order.orderID,
                 "timeStamp": new Date(),
                 "transactionText": VIPPS_TEXT,
@@ -230,15 +230,15 @@ module.exports = {
 
                 try {
                     let donationID = await DAO.donations.add(
-                        KID, 
-                        paymentMethods.vipps, 
-                        (captureLogItem.amount/100), 
-                        captureLogItem.timeStamp, 
+                        KID,
+                        paymentMethods.vipps,
+                        (captureLogItem.amount / 100),
+                        captureLogItem.timeStamp,
                         captureLogItem.transactionId)
                     await DAO.vipps.updateVippsOrderDonation(orderId, donationID)
                     await mail.sendDonationReciept(donationID)
                 }
-                catch(ex) {
+                catch (ex) {
                     if (ex.message.indexOf("EXISTING_DONATION") === -1) {
                         console.info(`Vipps donation for orderid ${orderId} already exists`, ex)
                     }
@@ -287,7 +287,7 @@ module.exports = {
             return true
         else if (transactionLogItem.operation === "SALE" && transactionLogItem.operationSuccess === true)
             return true
-        
+
         return false
     },
 
@@ -335,7 +335,7 @@ module.exports = {
      */
     async captureOrder(orderId, transactionInfo) {
         let token = await this.fetchToken()
-        
+
         let data = {
             merchantInfo: {
                 merchantSerialNumber: config.vipps_merchant_serial_number
@@ -353,7 +353,7 @@ module.exports = {
                 json: data
             })
         }
-        catch(ex) {
+        catch (ex) {
             if (ex.statusCode === 423 || ex.statusCode === 402) {
                 //This is most likely a case of the polling trying to capture an order already captured by the callback, simply return true
                 return true
@@ -361,7 +361,7 @@ module.exports = {
             else {
                 console.error(`Failed to capture order with id ${orderId}`, ex)
                 throw ex
-            }    
+            }
         }
 
         let KID = orderId.split("-")[0]
@@ -369,16 +369,16 @@ module.exports = {
         if (captureRequest.transactionInfo.status == "Captured") {
             try {
                 let donationID = await DAO.donations.add(
-                    KID, 
-                    paymentMethods.vipps, 
-                    (captureRequest.transactionInfo.amount/100), 
-                    captureRequest.transactionInfo.timeStamp, 
+                    KID,
+                    paymentMethods.vipps,
+                    (captureRequest.transactionInfo.amount / 100),
+                    captureRequest.transactionInfo.timeStamp,
                     captureRequest.transactionInfo.transactionId)
                 await DAO.vipps.updateVippsOrderDonation(orderId, donationID)
                 await mail.sendDonationReciept(donationID)
                 return true
             }
-            catch(ex) {
+            catch (ex) {
                 if (ex.message.indexOf("EXISTING_DONATION") === -1) {
                     console.info(`Vipps donation for orderid ${orderId} already exists`, ex)
                 }
@@ -414,7 +414,7 @@ module.exports = {
                     merchantSerialNumber: config.vipps_merchant_serial_number
                 },
                 transaction: {
-                    amount: donation.sum*100,
+                    amount: donation.sum * 100,
                     transactionText: VIPPS_TEXT
                 }
             }
@@ -428,12 +428,12 @@ module.exports = {
             await DAO.donations.remove(order.donationID)
             let orderDetails = await this.getOrderDetails(orderId)
             await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory)
-        
+
             return true
         }
-        catch(ex) {
+        catch (ex) {
             console.error(`Failed to refund vipps order with id ${orderId}`, ex)
-            return false 
+            return false
         }
     },
 
@@ -463,12 +463,12 @@ module.exports = {
 
             let orderDetails = await this.getOrderDetails(orderId)
             await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory)
-        
+
             return true
         }
-        catch(ex) {
+        catch (ex) {
             console.error(`Failed to cancel vipps order with id ${orderId}`, ex)
-            return false 
+            return false
         }
     },
 
@@ -497,7 +497,7 @@ module.exports = {
             })
             return true
         }
-        catch(ex) {
+        catch (ex) {
             return false
         }
     },
@@ -515,15 +515,16 @@ module.exports = {
 
         const data = {
             "currency": "NOK",
-            //Not needed?
+            // Not needed?
             "customerPhoneNumber": phoneNumber,
             "interval": "MONTH",
-            //Set to today?
+            // Set to today?
             "intervalCount": 1,
             "isApp": false,
-            "merchantRedirectUrl": `https://gieffektivt.no/vipps/recurring/confirmation`,
-            "merchantAgreementUrl": `https://gieffektivt.no/vipps/recurring/customer-agreement`,
-            "price": sum*100,
+            "merchantRedirectUrl": `https://gieffektivt.no/vipps/recurring/confirmation`, // TODO: Create page
+            "merchantAgreementUrl": `https://gieffektivt.no/vipps/recurring/customer-agreement`, // TODO: Figure out solution and create page
+            // Price is set in øre
+            "price": sum * 100,
             "productDescription": "Månedlig donasjon til GiEffektivt.no",
             "productName": "Donasjon til gieffektivt.no"
         }
@@ -550,8 +551,8 @@ module.exports = {
             this.pollAgreement(response.agreementId)
 
             return response
-        } 
-        catch(ex) {
+        }
+        catch (ex) {
             console.error(ex)
             return false
         }
@@ -577,8 +578,8 @@ module.exports = {
             let response = JSON.parse(agreementRequest)
 
             return response
-        } 
-        catch(ex) {
+        }
+        catch (ex) {
             console.error(ex)
             return false
         }
@@ -608,7 +609,7 @@ module.exports = {
 
         /** @type {ChargePayload} */
         const data = {
-            amount: amount*100,
+            amount: amount * 100,
             currency: "NOK",
             description: "Fast donasjon til gieffektivt.no",
             due: due.toISOString(),
@@ -626,8 +627,75 @@ module.exports = {
             let response = chargeRequest
 
             return response
-        } 
-        catch(ex) {
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
+
+    /**
+     * Cancels a charge
+     * @param {string} agreementId The ID of the agreement
+     * @param {string} chargeId The ID of the charge being deleted
+     * @return {boolean} Success
+     */
+    async cancelCharge(agreementId, chargeId) {
+        try {
+            let deleteRequest = await request.delete({
+                uri: `https://${config.vipps_api_url}/v2/agreements/${agreementId}/charges/${chargeId}`,
+                headers: this.getVippsHeaders(token)
+            })
+
+            let response = deleteRequest
+
+            return response
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
+    /**
+     * Updates an agreement
+     * @param {string} agreementId The ID of the agreement being updated
+     * @param {string} productName Product name to update (optional)
+     * @param {string} productDescription Product description to update (optional)
+     * @param {number} price Agreement price to update (optional)
+     * @param {string} status Status to update (optional)
+     * @return {boolean} Success
+     */
+    async updateAgreement(
+        agreementId,
+        productName = undefined,
+        productDescription = undefined,
+        price = undefined,
+        status = undefined
+    ) {
+        let body = {}
+
+        // When updating status, status must be the only body property
+        if (status) body.status = status
+        else {
+            if (productName) body.productName = productName
+            if (productDescription) body.productDescription = productDescription
+            if (price) body.price = price
+        }
+
+        try {
+            let updateRequest = await request.patch({
+                uri: `https://${config.vipps_api_url}/v2/agreements/${agreementId}`,
+                headers: this.getVippsHeaders(token),
+                body
+            })
+
+            let response = updateRequest
+
+            return response
+        }
+        catch (ex) {
             console.error(ex)
             return false
         }
@@ -662,7 +730,7 @@ module.exports = {
             return true
             //Should we perhaps do an initial charge here?
         }
-        else if (agreement.status === "STOPPED" || agreement.status === "EXPIRED") {
+        else if (agreement.status === "STOPPED" || agreement.status === "EXPIRED") {
             await DAO.vipps.updateAgreementStatus(agreementId, agreement.status)
             return true
         }
@@ -696,6 +764,6 @@ module.exports = {
      */
     async pollLoop(id, fn, count = 1) {
         let shouldCancel = await fn(id, count)
-        if (!shouldCancel) setTimeout(() => { this.pollLoop(id, fn, count+1) }, POLLING_INTERVAL)
+        if (!shouldCancel) setTimeout(() => { this.pollLoop(id, fn, count + 1) }, POLLING_INTERVAL)
     },
 }
