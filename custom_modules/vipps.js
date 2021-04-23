@@ -522,7 +522,7 @@ module.exports = {
             "intervalCount": 1,
             "isApp": false,
             "merchantRedirectUrl": `https://gieffektivt.no/vipps/recurring/confirmation`, // TODO: Create page
-            "merchantAgreementUrl": `https://gieffektivt.no/vipps/recurring/customer-agreement`, // TODO: Figure out solution and create page
+            "merchantAgreementUrl": `https://gieffektivt.no/vipps/recurring/customer-agreement`, // TODO: Figure out login solution and create page
             // Price is set in øre
             "price": sum * 100,
             "productDescription": "Månedlig donasjon til GiEffektivt.no",
@@ -592,7 +592,7 @@ module.exports = {
      * @param {Date} due When the charge is due
      * @return {boolean} Success
      */
-    async chargeAgreement(id, amount, KID, due) {
+    async createCharge(id, amount, KID, due) {
         //Charges must be created at least two days before the due date
         const timeDelta = due - new Date()
         const dayDelta = timeDelta / (1000 * 60 * 60 * 24)

@@ -66,7 +66,7 @@ router.post("/agreement/charge/create/:id", jsonBody, async (req, res, next) => 
         if (!due) return "Missing due from body"
         if (amount <= 0) return "Amount must be larger than 0"
 
-        const response = await vipps.chargeAgreement(id, amount, KID, due)
+        const response = await vipps.createCharge(id, amount, KID, due)
 
         //TODO: Check for false
         res.json(response)
