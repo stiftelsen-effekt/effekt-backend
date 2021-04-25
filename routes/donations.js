@@ -262,16 +262,16 @@ router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (re
     var mailStatus = await mail.sendDonationReciept(donationID)
   }
 
-  if (mailStatus === true) { 
+  if (mailStatus === true) {
     res.json({
       status: 200,
-      content: `Reciept sent for donation id ${donationID} to donor ID {}`
+      content: `Receipt sent for donation id ${donationID} to donor ID {}`
     }) 
   }
   else {
     res.json({
       status: 500,
-      content: `Reciept failed with error code ${mailStatus}`
+      content: `Receipt failed with error code ${mailStatus}`
     })
   }
 })

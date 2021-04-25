@@ -15,15 +15,15 @@ const fs = require('fs-extra')
 */
 async function sendDonationReciept(donationID, reciever = null) {
     try {
-        var donation = await DAO.donations.getByID(donationID)
-        if (!donation.email)  {
-          console.error("No email provided for donation ID " + donationID)
-          return false
-        }
-    } catch(ex) {
-        console.error("Failed to send mail donation reciept, could not get donation by ID")
-        console.error(ex)
+      var donation = await DAO.donations.getByID(donationID)
+      if (!donation.email)  {
+        console.error("No email provided for donation ID " + donationID)
         return false
+      }
+    } catch(ex) {
+      console.error("Failed to send mail donation reciept, could not get donation by ID")
+      console.error(ex)
+      return false
     }
 
     try {
@@ -31,6 +31,13 @@ async function sendDonationReciept(donationID, reciever = null) {
     } catch (ex) {
       console.error("Failed to send mail donation reciept, could not get donation split by KID")
       console.error(ex)
+      return false
+    }
+
+    try {
+      var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID)
+    } catch(ex) {
+      console.log(ex)
       return false
     }
 
@@ -47,7 +54,8 @@ async function sendDonationReciept(donationID, reciever = null) {
             donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: decideUIPaymentMethod(donation.method)
+            paymentMethod: decideUIPaymentMethod(donation.method),
+            hasReplacedOrgs
         }
       })
 
@@ -57,7 +65,6 @@ async function sendDonationReciept(donationID, reciever = null) {
       console.error(ex)
       return ex.statusCode
     }
-    
 }
 
 /**

@@ -146,18 +146,26 @@
                                 <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                     <tr>
                                         <td class="bodycopy">
-                                            <% if (this.paymentMethod.toUpperCase() != 'VIPPS') { %>
-                                            Hvis du ønsker å donere med samme fordeling senere kan du bruke samme KID-nummer igjen.
-                                            Du står helt fritt til å endre beløpet du donerer.<br/><br/>
+                                            <% if (hasReplacedOrgs == 1) { %>
+                                                MERK: Din fordeling ble endret av oss for donasjoner gitt fra og med 01.01.2021. 
+                                                Fra denne datoen støtter vi ikke lengre donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children 
+                                                som opplyst på våre nettsider, i nyhetsbrev, på epost og gjennom sosiale medier. 
+                                                Andelene som var oppført til disse organisasjonene blir i stedet gitt til vår standardfordeling som nå er GiveWell Maximum Impact Fund. 
+                                                Om du ønsker en annen fordeling kan du gå inn på www.gieffektivt.no/gi og fylle ut donasjonsskjema på nytt med ønsket fordeling. Ta kontakt om du har noen spørsmål.
+                                                <br/><br/>
                                             <% } %>
-                                           Alle donasjoner på mellom kr 500 og 50 000 gitt til oss i løpet av et år kvalifiserer til skattefradrag. 
-                                           Dersom du har oppgitt ditt fødselsnummer til oss registreres dine donasjoner automatisk hos Skatteetaten til neste års skattemelding.<br/><br/>
-                                           Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
-                                           ved å sende en mail til<br/>
-                                           <a href= "mailto:donasjon@gieffektivt.no" style="color: #153643;"><font color="#153643">donasjon@gieffektivt.no</a><br/><br/>
-                                           Håper du får en fantastisk dag!<br/><br/>
-                                           <b>Vennlig hilsen</b><br/>
-                                           oss i gieffektivt.no
+                                            <% if (this.paymentMethod.toUpperCase() != 'VIPPS') { %>
+                                                Hvis du ønsker å donere med samme fordeling senere kan du bruke samme KID-nummer igjen.
+                                                Du står helt fritt til å endre beløpet du donerer.<br/><br/>
+                                            <% } %>
+                                            Alle donasjoner på mellom kr 500 og 50 000 gitt til oss i løpet av et år kvalifiserer til skattefradrag. 
+                                            Dersom du har oppgitt ditt fødselsnummer til oss registreres dine donasjoner automatisk hos Skatteetaten til neste års skattemelding.<br/><br/>
+                                            Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
+                                            ved å sende en mail til<br/>
+                                            <a href= "mailto:donasjon@gieffektivt.no" style="color: #153643;"><font color="#153643">donasjon@gieffektivt.no</a><br/><br/>
+                                            Håper du får en fantastisk dag!<br/><br/>
+                                            <b>Vennlig hilsen</b><br/>
+                                            oss i gieffektivt.no
                                         </td>
                                     </tr>
                                 </table>
