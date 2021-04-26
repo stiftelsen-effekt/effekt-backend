@@ -240,6 +240,11 @@ async function getByID(donationID) {
     }
 }
 
+/**
+ * Gets whether or not a donation has replaced inactive organizations
+ * @param {number} donationID 
+ * @returns {number} zero or one
+ */
 async function getHasReplacedOrgs(donationID) {
     try {
         var con = await pool.getConnection()
@@ -252,7 +257,7 @@ async function getHasReplacedOrgs(donationID) {
                 and iD = ?
             `, [donationID])
 
-            return result.Replaced_old_organizations
+            return result[0]?.Replaced_old_organizations || 0
         }
     } 
     catch(ex) {

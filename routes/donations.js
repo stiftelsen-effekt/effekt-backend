@@ -265,7 +265,7 @@ router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (re
   if (mailStatus === true) {
     res.json({
       status: 200,
-      content: `Receipt sent for donation id ${donationID} to donor ID {}`
+      content: `Receipt sent for donation id ${donationID}`
     }) 
   }
   else {

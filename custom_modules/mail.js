@@ -55,6 +55,7 @@ async function sendDonationReciept(donationID, reciever = null) {
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
             paymentMethod: decideUIPaymentMethod(donation.method),
+            //Adds a message to donations with inactive organizations
             hasReplacedOrgs
         }
       })
