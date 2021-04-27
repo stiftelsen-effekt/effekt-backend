@@ -241,6 +241,31 @@ async function getByID(donationID) {
 }
 
 /**
+ * Gets whether or not a donation has replaced inactive organizations
+ * @param {number} donationID 
+ * @returns {number} zero or one
+ */
+async function getHasReplacedOrgs(donationID) {
+    try {
+        var con = await pool.getConnection()
+
+        if (donationID) {
+            let [result] = await con.query(`
+                select Replaced_old_organizations from Donations as D
+                inner join Combining_table as CT on CT.KID = D.KID_fordeling
+                where Replaced_old_organizations = 1
+                and iD = ?
+            `, [donationID])
+
+            return result[0]?.Replaced_old_organizations || 0
+        }
+    } 
+    catch(ex) {
+        throw ex
+    }
+}
+
+/**
  * Fetches all the donations in the database for a given inclusive range. If passed two equal dates, returns given day.
  * @param {Date} [fromDate=1. Of January 2000] The date in which to start the selection, inclusive interval.
  * @param {Date} [toDate=Today] The date in which to end the selection, inclusive interval.
@@ -647,6 +672,7 @@ module.exports = {
     getAggregateByTime,
     getFromRange,
     getMedianFromRange,
+    getHasReplacedOrgs,
     getSummary,
     getSummaryByYear,
     getHistory,
