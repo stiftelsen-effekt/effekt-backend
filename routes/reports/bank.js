@@ -49,7 +49,15 @@ module.exports = async (req, res, next) => {
             }
 
             try {
-                if (config.env === 'production') await mail.sendDonationReciept(donationID);
+                if (config.env === 'production') {
+                    if (metaOwnerID === 1) {
+                        //Send special reciept if the donation is for the old effekt system
+                        await mail.sendEffektDonationReciept(donationID);
+                    }
+                    else {
+                        await mail.sendDonationReciept(donationID);
+                    }
+                }
             } catch (ex) {
                 console.error("Failed to send donation reciept")
                 console.error(ex)
