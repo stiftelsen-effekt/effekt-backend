@@ -94,6 +94,13 @@ async function sendEffektDonationReciept(donationID, reciever = null) {
         return false
     }
 
+    try {
+      var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID)
+    } catch(ex) {
+      console.log(ex)
+      return false
+    }
+
     let organizations = formatOrganizationsFromSplit(split, donation.sum)
 
     try {
@@ -107,7 +114,9 @@ async function sendEffektDonationReciept(donationID, reciever = null) {
             donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: decideUIPaymentMethod(donation.method)
+            paymentMethod: decideUIPaymentMethod(donation.method),
+            //Adds a message to donations with inactive organizations
+            hasReplacedOrgs
         }
         })
 
