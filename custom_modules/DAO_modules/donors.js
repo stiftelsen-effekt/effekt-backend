@@ -76,6 +76,8 @@ async function getByKID(KID) {
             WHERE KID_fordeling = ? 
             GROUP BY Donors.ID LIMIT 1`, [KID])
 
+            // //TODO: might aswell join on distributions?
+
             // SELECT Donors.ID, email, full_name, ssn, date_registered 
             // FROM EffektDonasjonDB_Dev.Donors 
             // INNER JOIN EffektDonasjonDB_Dev.Donations 

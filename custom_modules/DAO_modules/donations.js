@@ -268,10 +268,8 @@ async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
                     (Donations.sum_confirmed*Distribution.percentage_share)/100 as actual_share 
 
                 FROM Donations
-                    INNER JOIN Combining_table 
-                        ON Donations.KID_fordeling = Combining_table.KID
-                    INNER JOIN Distribution 
-                        ON Combining_table.Distribution_ID = Distribution.ID
+                    INNER JOIN Distribution
+                        ON Donations.KID_fordeling = Distribution.KID
                     INNER JOIN Donors 
                         ON Donors.ID = Donations.Donor_ID
                     INNER JOIN Organizations 
@@ -390,10 +388,8 @@ async function getSummary(donorID) {
             Donations.Donor_ID
         
         FROM Donations
-            INNER JOIN Combining_table 
-                ON Combining_table.KID = Donations.KID_fordeling
             INNER JOIN Distribution 
-                ON Combining_table.Distribution_ID = Distribution.ID
+                ON Distribution.KID = Donations.KID_fordeling
             INNER JOIN Organizations 
                 ON Organizations.ID = Distribution.OrgID
         WHERE 
@@ -402,6 +398,20 @@ async function getSummary(donorID) {
         ORDER BY timestamp_confirmed DESC
          
         LIMIT 10000`, [donorID])
+
+        // SELECT
+        //     Organizations.full_name, 
+        //     (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, 
+        //     Donations.transaction_cost, 
+        //     Donations.Donor_ID
+        
+        // FROM EffektDonasjonDB_Dev.Donations
+        //     INNER JOIN EffektDonasjonDB_Dev.Distribution 
+        //         ON Distribution.KID = Donations.KID_fordeling
+        //     INNER JOIN EffektDonasjonDB_Dev.Organizations 
+        //         ON Organizations.ID = Distribution.OrgID
+        // WHERE 
+        //     Donations.Donor_ID = 341;
 
         const summary = []
         const map = new Map()
@@ -536,7 +546,8 @@ async function getHistory(donorID) {
 async function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null, metaOwnerID = null) {
     try {
         var con = await pool.getConnection()
-        var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Donations WHERE KID_fordeling = ? LIMIT 1", [KID])
+        //should maybe be from dsit?
+        var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Distributions WHERE KID_fordeling = ? LIMIT 1", [KID])
 
         // SELECT ID FROM Donations WHERE KID_fordeling = 16391823
         if (donorIDQuery.length != 1) { 
