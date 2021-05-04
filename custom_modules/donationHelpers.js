@@ -1,4 +1,5 @@
 const KID = require('./KID')
+const Distnr = require('./distnr')
 const DAO = require('./DAO')
 
 module.exports = {
@@ -38,12 +39,20 @@ module.exports = {
         return await DAO.organizations.getStandardSplit()
     },
       
-    createKID: async () => {
+    createKID: async (donorId, distributionNumber) => {
         //Create new valid KID
-        let newKID = KID.generate()
+        let newKID = KID.generate(donorId, distributionNumber)
         //If KID already exists, try new kid, call this function recursively
         if (await DAO.distributions.KIDexists(newKID))
             newKID = await this.createKID()
+    
+        return newKID
+    },
+
+    createDistributionNumber: async () => {
+        let distNr = distNr.generate()
+        if (await DAO.distributions.DistnrExists(newKID))
+            newKID = await this.createDistributionNumber()
     
         return newKID
     }

@@ -129,8 +129,21 @@ async function KIDexists(KID) {
         con.release()
         throw ex
     }
+}
 
-    
+async function DistnrExists(Distnr) {
+    try {
+        var con = await pool.getConnection()
+
+        var [res] = await con.query("SELECT * FROM Distributions WHERE distribution_nr = ? LIMIT 1", [Distnr])
+
+        con.release()
+        if (res.length > 0) return true
+        else return false
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
@@ -255,7 +268,7 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
  * @param {number} donorID 
  * @param {number} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
  */
-async function add(split, KID, donorID, metaOwnerID = null) {
+async function add(split, distributionNumber, KID, metaOwnerID = null) {
     try {
         var transaction = await pool.startTransaction()
 
@@ -263,14 +276,8 @@ async function add(split, KID, donorID, metaOwnerID = null) {
             metaOwnerID = await DAO.meta.getDefaultOwnerID()
         }
 
-        let distribution_table_values = split.map((item) => {return [item.organizationID, item.share]})
-        var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [distribution_table_values])
-
-        let first_inserted_id = res[0].insertId
-        var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {return [donorID, first_inserted_id+i, KID, metaOwnerID]})
-
-        //Update combining table
-        var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID, Meta_owner_ID) VALUES ?", [combining_table_values])
+        let distribution_table_values = split.map((item) => {return [item.organizationID, item.share, distributionNumber, KID]})
+        var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share, distribution_number, KID) VALUES ?", [distribution_table_values])
 
         pool.commitTransaction(transaction)
         return true

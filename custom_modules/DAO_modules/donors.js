@@ -76,6 +76,12 @@ async function getByKID(KID) {
             WHERE KID = ? 
             GROUP BY Donors.ID LIMIT 1`, [KID])
 
+            // SELECT ID, email, full_name, ssn, date_registered 
+            // FROM EffektDonasjonDB_Dev.Donors 
+            // INNER JOIN Combining_table 
+            // ON Donor_ID = Donors.ID 
+            // WHERE KID_fordeling = 16391823
+
         con.release()
         if (dbDonor.length > 0) {
             return {
