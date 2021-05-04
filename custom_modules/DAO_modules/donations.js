@@ -536,8 +536,9 @@ async function getHistory(donorID) {
 async function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null, metaOwnerID = null) {
     try {
         var con = await pool.getConnection()
-        var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
+        var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Donations WHERE KID_fordeling = ? LIMIT 1", [KID])
 
+        // SELECT ID FROM Donations WHERE KID_fordeling = 16391823
         if (donorIDQuery.length != 1) { 
             throw new Error("NO_KID | KID " + KID + " does not exist");
         }
