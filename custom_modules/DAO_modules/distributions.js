@@ -296,6 +296,7 @@ module.exports = {
     getAll,
     getAllByDonor,
     add,
+    distnrExists,
     
     setup: (dbPool, DAOObject) => { pool = dbPool, DAO = DAOObject }
 }

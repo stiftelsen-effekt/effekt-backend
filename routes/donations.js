@@ -84,7 +84,7 @@ router.post("/register", async (req,res,next) => {
       donationObject.distributionNumber = await donationHelpers.createDistributionNumber();
       donationObject.KID = await donationHelpers.createKID(donationObject.donorID, donationObject.distributionNumber)
 
-      await DAO.distributions.add(donationObject.split, donationObject.distributionNumber, donationObject.KID, donationObject.donorID)
+      await DAO.distributions.add(donationObject.split, donationObject.distributionNumber, donationObject.KID)
     }
     
     //Get external paymentprovider URL
