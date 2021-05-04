@@ -488,8 +488,7 @@ async function getHistory(donorID) {
                 (Donations.sum_confirmed * percentage_share / 100) as sum_distribution
             
             FROM Donations
-                INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
-                INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
+                INNER JOIN Distribution ON Distribution.KID = Donations.KID_fordeling
                 INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
 
             WHERE Donations.Donor_ID = ?
