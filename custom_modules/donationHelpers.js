@@ -51,7 +51,7 @@ module.exports = {
 
     createDistributionNumber: async () => {
         let distNr = distNr.generate()
-        if (await DAO.distributions.DistnrExists(newKID))
+        if (await DAO.distributions.distnrExists(newKID))
             newKID = await this.createDistributionNumber()
     
         return newKID

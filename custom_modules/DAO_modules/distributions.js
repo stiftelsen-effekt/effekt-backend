@@ -131,7 +131,7 @@ async function KIDexists(KID) {
     }
 }
 
-async function DistnrExists(Distnr) {
+async function distnrExists(Distnr) {
     try {
         var con = await pool.getConnection()
 
