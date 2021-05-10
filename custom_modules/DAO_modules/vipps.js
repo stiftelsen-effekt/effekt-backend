@@ -22,6 +22,17 @@ var pool
  */
 
 /**
+ * @typedef VippsAgreement
+ * @property {number} ID
+ * @property {number} donorID
+ * @property {string} KID
+ * @property {number} sum
+ * @property {string} status
+ * @property {number} chargeDayOfMonth
+ */
+
+
+/**
  * @typedef VippsTransactionLogItem
  * @property {number} amount In øre
  * @property {string} transactionText
@@ -90,6 +101,25 @@ async function getRecentOrder() {
     else return res[0]
 }
 
+/**
+ * Fetches all active agreements that are due to be charged on the specified date
+ * @property {number} chargeDayOfMonth
+ * @return {[VippsAgreement]} 
+ */
+ async function getActiveAgreementsByChargeDay(chargeDayOfMonth) {
+    let con = await pool.getConnection()
+    let [res] = await con.query(`
+        SELECT * FROM 
+            EffektDonasjonDB_Dev.Vipps_agreements 
+        WHERE 
+            status = "ACTIVE" and chargeDayOfMonth = ?
+        `, [chargeDayOfMonth])
+    con.release()
+
+    if (res.length === 0) return false
+    else return res
+}
+
 //endregion
 
 //region Add
@@ -131,23 +161,29 @@ async function addOrder(order) {
 }
 
 /**
- * Add a new vipps recurring donation agreement
- * @param {string} agreementId Provided by vipps
- * @param {number} donorId The Donor the agreement concerns
+ * Add a new Vipps recurring donation agreement
+ * @param {string} agreementID Provided by vipps
+ * @param {number} donorID The Donor the agreement concerns
  * @param {number} KID The KID used for recurring payments
  * @param {number} sum The SUM used for recurring payments (in NOK)
  * @param {"PENDING" | "ACTIVE" | "STOPPED" | "EXPIRED"} status Whether the agreement has been activated. Defaults to false
  * @return {boolean} Success or not
  */
-async function addAgreement(ID, donorId, KID, sum, status = "PENDING") {
+async function addAgreement(agreementID, donorID, KID, sum, status = "PENDING") {
     let con = await pool.getConnection()
+
+    let chargeDayOfMonth = String(new Date().getDate()).padStart(2, '0');
+
+    // Set all dates above 28th to 28th for a simple solution to support leap years
+    if (chargeDayOfMonth > 28) chargeDayOfMonth = 28
+
     try {
         con.query(`
             INSERT INTO Vipps_agreements
-                (ID, donorID, KID, sum, status)
+                (ID, donorID, KID, sum, chargeDayOfMonth, status)
             VALUES
-                (?,?,?,?,?)`, 
-            [ID, donorId, KID, sum, status])
+                (?,?,?,?,?,?)`, 
+            [agreementID, donorID, KID, sum, chargeDayOfMonth, status])
         con.release()
         return true
     }
@@ -156,6 +192,34 @@ async function addAgreement(ID, donorId, KID, sum, status = "PENDING") {
         return false
     }
 }
+
+/**
+ * Add a charge to an agreement
+ * @param {string} agreementId Provided by vipps
+ * @param {number} sum The amount of money for each charge
+ * @param {number} KID The KID of the agreement
+ * @param {Date} due Due date of the charge 
+ * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status The new status of the charge
+ * @return {boolean} Success or not
+ */
+ async function addCharge(agreementID, sum, KID, due, status = "PENDING") {
+    let con = await pool.getConnection()
+    try {
+        con.query(`
+            INSERT INTO Vipps_agreement_charges
+                (agreementId, sum, KID, due, status)
+            VALUES
+                (?,?,?,?,?)`, 
+            [agreementID, sum, KID, due, status])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        return false
+    }
+}
+
 //endregion
 
 //region Modify
@@ -209,6 +273,25 @@ async function updateVippsOrderDonation(orderID, donationID) {
 }
 
 /**
+ * Updates agreement price
+ * @param {string} id The agreement ID
+ * @param {number} price 
+ * @return {boolean} Success
+ */
+ async function updateAgreementPrice(id, price) {
+    let con = await pool.getConnection()
+    try {
+        con.query(`UPDATE Vipps_agreements SET sum = ? WHERE ID = ?`, [price, id])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        return false
+    }
+}
+
+/**
  * Updates agreement status
  * @param {string} id The agreement ID
  * @param {"PENDING" | "ACTIVE" | "STOPPED" | "EXPIRED"} status 
@@ -238,11 +321,14 @@ module.exports = {
     getLatestToken,
     getOrder,
     getRecentOrder,
+    getActiveAgreementsByChargeDay,
     addToken,
     addOrder,
     addAgreement,
+    addCharge,
     updateOrderTransactionStatusHistory,
     updateVippsOrderDonation,
+    updateAgreementPrice,
     updateAgreementStatus,
 
     setup: (dbPool) => { pool = dbPool }

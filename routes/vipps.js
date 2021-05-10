@@ -29,6 +29,8 @@ router.get("/initiate/:phonenumber", async (req, res, next) => {
 })
 
 router.post("/agreement/draft", jsonBody, async (req, res, next) => {
+
+    // TEMPORARY
     const KID = 51615227;
     const SUM = 100;
     const NUMBER = 93279221;
@@ -53,22 +55,17 @@ router.get("/agreement/:id", async (req, res, next) => {
     }
 })
 
-router.post("/agreement/charge/create/:id", jsonBody, async (req, res, next) => {
+router.post("/agreement/price/:agreementId", jsonBody, async (req, res, next) => {
     try {
-        const id = req.params.id
-        const amount = req.body.amount
-        const KID = req.body.KID
-        const due = req.body.due
 
-        if (!id) return "Missing parameter id"
-        if (!amount) return "Missing amount from body"
-        if (!KID) return "Missing KID from body"
-        if (!due) return "Missing due from body"
-        if (amount <= 0) return "Amount must be larger than 0"
+        const price = req.body.price
+        const agreementId = req.params.agreementId
 
-        const response = await vipps.createCharge(id, amount, KID, due)
+        if (!price) return "Missing price in JSON body"
+        if (price < 1) return "Price must be more than 0"
 
-        //TODO: Check for false
+        const response = await vipps.updateAgreementPrice(agreementId, price)
+
         res.json(response)
     } catch (ex) {
         next({ ex })
@@ -84,6 +81,7 @@ router.post("/agreement/charge/cancel", jsonBody, async (req, res, next) => {
 
         vipps.cancelCharge(agreementId, chargeId)
 
+        res.json(response)
     } catch (ex) {
         next({ ex })
     }

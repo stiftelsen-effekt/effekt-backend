@@ -4,13 +4,14 @@ const crypto = require('../custom_modules/authorization/crypto')
 const paymentMethods = require('../enums/paymentMethods')
 const request = require('request-promise-native')
 const mail = require('../custom_modules/mail')
+const cron = require('node-cron');
 
 //Timings selected based on the vipps guidelines
 //https://www.vipps.no/developers-documentation/ecom/documentation/#polling-guidelines
 const POLLING_START_DELAY = 5000
 const POLLING_INTERVAL = 2000
 
-const VIPPS_TEXT = "Donasjon til GiEffektivt.no"
+const VIPPS_TEXT = "Donasjon til gieffektivt.no"
 
 /**
  * @typedef TransactionLogItem
@@ -586,13 +587,41 @@ module.exports = {
     },
 
     /**
-     * Charges an agreement
-     * @param {string} id The agreement id
+     * Updates the price of an agreement
+     * @param {string} agreementId The ID of the agreement being updated
+     * @param {number} price Agreement price to update (optional)
+     * @return {boolean} Success
+     */
+    async updateAgreementPrice(agreementId, price) {
+        let body = {}
+
+        if (!agreementId) return "Missing parameter agreementId"
+        if (!price) return "Missing parameter price"
+        if (price) body.price = price
+
+        try {
+            let response = await request.patch({
+                uri: `https://${config.vipps_api_url}/v2/agreements/${agreementId}`,
+                headers: this.getVippsHeaders(token),
+                body
+            })
+
+            return response
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
+    /**
+     * Creates a charge an agreement
+     * @param {string} agreementId The agreement id
      * @param {number} amount The amount to charge in NOK
      * @param {Date} due When the charge is due
      * @return {boolean} Success
      */
-    async createCharge(id, amount, KID, due) {
+    async createCharge(agreementId, amount, KID, due) {
         //Charges must be created at least two days before the due date
         const timeDelta = due - new Date()
         const dayDelta = timeDelta / (1000 * 60 * 60 * 24)
@@ -602,7 +631,6 @@ module.exports = {
         }
 
         const token = await this.fetchToken()
-
         if (token === false) return false
 
         const orderId = `${KID}-${+new Date()}`
@@ -619,7 +647,7 @@ module.exports = {
 
         try {
             let chargeRequest = await request.post({
-                uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${id}/charges`,
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges`,
                 headers: this.getVippsHeaders(token),
                 body: data
             })
@@ -634,6 +662,32 @@ module.exports = {
         }
     },
 
+    /**
+     * Fetches a single charge
+     * @param {string} agreementId The agreement id
+     * @param {string} chargeId The charge id
+     */
+    async getCharge(agreementId, chargeId) {
+
+        const token = await this.fetchToken()
+        if (token === false) return false
+
+        try {
+            let chargeRequest = await request.get({
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}`,
+                headers: this.getVippsHeaders(token)
+            })
+
+            let response = chargeRequest
+
+            return response
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+        },
+
 
     /**
      * Cancels a charge
@@ -642,6 +696,10 @@ module.exports = {
      * @return {boolean} Success
      */
     async cancelCharge(agreementId, chargeId) {
+
+        const token = await this.fetchToken()
+        if (token === false) return false
+
         try {
             let deleteRequest = await request.delete({
                 uri: `https://${config.vipps_api_url}/v2/agreements/${agreementId}/charges/${chargeId}`,
@@ -649,49 +707,6 @@ module.exports = {
             })
 
             let response = deleteRequest
-
-            return response
-        }
-        catch (ex) {
-            console.error(ex)
-            return false
-        }
-    },
-
-    /**
-     * Updates an agreement
-     * @param {string} agreementId The ID of the agreement being updated
-     * @param {string} productName Product name to update (optional)
-     * @param {string} productDescription Product description to update (optional)
-     * @param {number} price Agreement price to update (optional)
-     * @param {string} status Status to update (optional)
-     * @return {boolean} Success
-     */
-    async updateAgreement(
-        agreementId,
-        productName = undefined,
-        productDescription = undefined,
-        price = undefined,
-        status = undefined
-    ) {
-        let body = {}
-
-        // When updating status, status must be the only body property
-        if (status) body.status = status
-        else {
-            if (productName) body.productName = productName
-            if (productDescription) body.productDescription = productDescription
-            if (price) body.price = price
-        }
-
-        try {
-            let updateRequest = await request.patch({
-                uri: `https://${config.vipps_api_url}/v2/agreements/${agreementId}`,
-                headers: this.getVippsHeaders(token),
-                body
-            })
-
-            let response = updateRequest
 
             return response
         }
@@ -767,3 +782,17 @@ module.exports = {
         if (!shouldCancel) setTimeout(() => { this.pollLoop(id, fn, count + 1) }, POLLING_INTERVAL)
     },
 }
+
+// Create Vipps charges for agreement due dates 3 days in advance
+cron.schedule('* * * * *', async () => {
+    console.log("Creating charges");
+    var dayOfMonth = String(new Date().getDate()).padStart(2, '0');
+    console.log(dayOfMonth)
+
+    const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(dayOfMonth)
+
+
+    console.log(activeAgreements[0])
+
+    //this.createCharge()
+});
