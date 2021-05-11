@@ -4,7 +4,9 @@ const crypto = require('../custom_modules/authorization/crypto')
 const paymentMethods = require('../enums/paymentMethods')
 const request = require('request-promise-native')
 const mail = require('../custom_modules/mail')
-const cron = require('node-cron');
+const moment = require('moment');
+const randomstring = require("randomstring");
+const hash = require('object-hash');
 
 //Timings selected based on the vipps guidelines
 //https://www.vipps.no/developers-documentation/ecom/documentation/#polling-guidelines
@@ -618,43 +620,52 @@ module.exports = {
      * Creates a charge an agreement
      * @param {string} agreementId The agreement id
      * @param {number} amount The amount to charge in NOK
-     * @param {Date} due When the charge is due
+     * @param {Date} dueDate When the charge is due
      * @return {boolean} Success
      */
-    async createCharge(agreementId, amount, KID, due) {
-        //Charges must be created at least two days before the due date
-        const timeDelta = due - new Date()
+    async createCharge(agreementId, amount, dueDate) {
+        // Charges must be created at least two days before the due date
+        const timeDelta = dueDate.getTime() - new Date().getTime()
         const dayDelta = timeDelta / (1000 * 60 * 60 * 24)
         if (dayDelta < 2) {
             console.error(`Could not charge vipps agreement with id ${id} because due date is less than two days away (${due})`)
             return false
         }
 
+        const formattedDueDate = moment(dueDate).format('YYYY-MM-DD')
+
         const token = await this.fetchToken()
         if (token === false) return false
 
-        const orderId = `${KID}-${+new Date()}`
+        // Create Idempotency-Key to prevent duplicate insertions
+        const idempotencyKey = hash(agreementId + amount + formattedDueDate)
+
+        let headers = this.getVippsHeaders(token)
+        headers['Idempotency-Key'] = idempotencyKey
+        headers['agreementId'] = agreementId
+
 
         /** @type {ChargePayload} */
         const data = {
             amount: amount * 100,
             currency: "NOK",
             description: "Fast donasjon til gieffektivt.no",
-            due: due.toISOString(),
-            retryDays: 5,
-            orderId
+            due: formattedDueDate,
+            retryDays: 5
         }
 
         try {
-            let chargeRequest = await request.post({
+            const chargeRequest = await request.post({
                 uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges`,
-                headers: this.getVippsHeaders(token),
-                body: data
+                headers: headers,
+                body: JSON.stringify(data)
             })
 
-            let response = chargeRequest
+            const response = JSON.parse(chargeRequest)
+            
+            await DAO.vipps.addCharge(response["chargeId"], agreementId, amount, formattedDueDate)
 
-            return response
+            return true
         }
         catch (ex) {
             console.error(ex)
@@ -782,17 +793,3 @@ module.exports = {
         if (!shouldCancel) setTimeout(() => { this.pollLoop(id, fn, count + 1) }, POLLING_INTERVAL)
     },
 }
-
-// Create Vipps charges for agreement due dates 3 days in advance
-cron.schedule('* * * * *', async () => {
-    console.log("Creating charges");
-    var dayOfMonth = String(new Date().getDate()).padStart(2, '0');
-    console.log(dayOfMonth)
-
-    const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(dayOfMonth)
-
-
-    console.log(activeAgreements[0])
-
-    //this.createCharge()
-});

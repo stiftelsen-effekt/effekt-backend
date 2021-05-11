@@ -110,7 +110,7 @@ async function getRecentOrder() {
     let con = await pool.getConnection()
     let [res] = await con.query(`
         SELECT * FROM 
-            EffektDonasjonDB_Dev.Vipps_agreements 
+            Vipps_agreements 
         WHERE 
             status = "ACTIVE" and chargeDayOfMonth = ?
         `, [chargeDayOfMonth])
@@ -202,20 +202,22 @@ async function addAgreement(agreementID, donorID, KID, sum, status = "PENDING") 
  * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status The new status of the charge
  * @return {boolean} Success or not
  */
- async function addCharge(agreementID, sum, KID, due, status = "PENDING") {
+ async function addCharge(chargeID, agreementID, amount, dueDate, status = "PENDING") {
     let con = await pool.getConnection()
     try {
         con.query(`
             INSERT INTO Vipps_agreement_charges
-                (agreementId, sum, KID, due, status)
+                (chargeID, agreementId, amount, dueDate, status)
             VALUES
                 (?,?,?,?,?)`, 
-            [agreementID, sum, KID, due, status])
+            [chargeID, agreementID, amount, dueDate, status])
+
         con.release()
         return true
     }
     catch(ex) {
         con.release()
+        console.error("Error inserting charge")
         return false
     }
 }

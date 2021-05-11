@@ -7,6 +7,7 @@ const moment = require('moment')
 const config = require('../config')
 const DAO = require('../custom_modules/DAO')
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
+const cron = require('node-cron');
 
 const vipps = require('../custom_modules/vipps')
 
@@ -294,5 +295,32 @@ function delay(t) {
         }, t);
     });
 }
+
+// Is this a good place for this?
+// Check for active agreements and create Vipps charges
+// Scheduled to run once per day
+cron.schedule('* * * * *', async () => {
+    console.log("Creating daily charges");
+    const timeNow = new Date().getTime()
+    const timeThreeDaysAhead = new Date(timeNow + (1000 * 60 * 60 * 24 * 3))
+
+    const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(timeThreeDaysAhead.getDate())
+
+    if (activeAgreements) {
+        for (let i = 0; i < activeAgreements.length; i++) {
+            const agreement = activeAgreements[i]
+            // Set due date to 3 days from now
+            // const dueDate = new Date(timeNow + (1000 * 60 * 60 * 24 * 3))
+            const dueDate = new Date(timeThreeDaysAhead)
+            
+            try {
+                await vipps.createCharge(agreement.ID, agreement.sum, dueDate)
+            } 
+            catch(ex) {
+                console.error("Error creating charge for " + agreementID + " due " + dueDate)
+            }
+        }
+    }
+});
 
 module.exports = router
