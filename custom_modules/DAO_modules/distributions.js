@@ -129,8 +129,6 @@ async function KIDexists(KID) {
         con.release()
         throw ex
     }
-
-    
 }
 
 /**

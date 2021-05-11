@@ -1,6 +1,9 @@
 const sqlString = require('sqlstring')
 const distributions = require('./distributions.js')
 
+/**
+ * @type {import('mysql2/promise').Pool}
+ */
 var pool
 var DAO
 
@@ -257,10 +260,12 @@ async function getHasReplacedOrgs(donationID) {
                 and iD = ?
             `, [donationID])
 
+            await con.release()
             return result[0]?.Replaced_old_organizations || 0
         }
     } 
     catch(ex) {
+        await con.release()
         throw ex
     }
 }
