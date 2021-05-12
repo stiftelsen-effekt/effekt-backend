@@ -507,29 +507,35 @@ module.exports = {
 
     /**
      * Drafts an agreement for a recurring payment
-     * @param {string} KID 
-     * @param {number} sum 
-     * @param {number} phoneNumber
+     * @param {string} KID KID for organization share
+     * @param {number} amount Amount in kroner, not øre
      */
-    async draftAgreement(KID, sum, phoneNumber) {
+    async draftAgreement(KID, amount) {
         let token = await this.fetchToken()
 
         if (token === false) return false
 
+        // Real price is set in øre
+        const realAmount = amount * 100
+        const description = "Første belastning skjer umiddelbart"
+
         const data = {
             "currency": "NOK",
-            // Not needed?
-            "customerPhoneNumber": phoneNumber,
+            "scope": "name email phoneNumber birthdate",
+            "initialCharge": {
+                "amount": realAmount,
+                "currency": "NOK",
+                "description": description,
+                "transactionType": "DIRECT_CAPTURE"
+            },
             "interval": "MONTH",
-            // Set to today?
             "intervalCount": 1,
             "isApp": false,
             "merchantRedirectUrl": `https://gieffektivt.no/vipps/recurring/confirmation`, // TODO: Create page
             "merchantAgreementUrl": `https://gieffektivt.no/vipps/recurring/customer-agreement`, // TODO: Figure out login solution and create page
-            // Price is set in øre
-            "price": sum * 100,
-            "productDescription": "Månedlig donasjon til GiEffektivt.no",
-            "productName": "Donasjon til gieffektivt.no"
+            "price": realAmount,
+            "productDescription": description,
+            "productName": "Månedlig donasjon til gieffektivt.no"
         }
 
         try {
@@ -549,7 +555,8 @@ module.exports = {
                 return false
             }
 
-            await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, sum)
+            // Amount in EffektDonasjonDB is stored in kroner, not øre 
+            await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, amount)
 
             this.pollAgreement(response.agreementId)
 
@@ -591,21 +598,29 @@ module.exports = {
     /**
      * Updates the price of an agreement
      * @param {string} agreementId The ID of the agreement being updated
-     * @param {number} price Agreement price to update (optional)
+     * @param {number} price The new agreement price
      * @return {boolean} Success
      */
     async updateAgreementPrice(agreementId, price) {
-        let body = {}
+        let token = await this.fetchToken()
+        if (token === false) return false
 
-        if (!agreementId) return "Missing parameter agreementId"
-        if (!price) return "Missing parameter price"
-        if (price) body.price = price
+        if (!agreementId || !price) {
+            console.error("Missing parameter agreementId")
+            return false
+        }
+        if (price < 100) {
+            console.error("Price must be more than 100 øre")
+            return false
+        }
+        let body = {}
+        body.price = price
 
         try {
             let response = await request.patch({
-                uri: `https://${config.vipps_api_url}/v2/agreements/${agreementId}`,
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}`,
                 headers: this.getVippsHeaders(token),
-                body
+                body: JSON.stringify(body)
             })
 
             return response
@@ -617,21 +632,60 @@ module.exports = {
     },
 
     /**
-     * Creates a charge an agreement
-     * @param {string} agreementId The agreement id
-     * @param {number} amount The amount to charge in NOK
-     * @param {Date} dueDate When the charge is due
+     * Updates the price of an agreement
+     * @param {string} agreementId The ID of the agreement being updated
+     * @param {"PENDING" | "ACTIVE" | "STOPPED" | "EXPIRED"} status The new agreement status
      * @return {boolean} Success
      */
-    async createCharge(agreementId, amount, dueDate) {
-        // Charges must be created at least two days before the due date
-        const timeDelta = dueDate.getTime() - new Date().getTime()
-        const dayDelta = timeDelta / (1000 * 60 * 60 * 24)
-        if (dayDelta < 2) {
-            console.error(`Could not charge vipps agreement with id ${id} because due date is less than two days away (${due})`)
+    async updateAgreementStatus(agreementId, status) {
+        let token = await this.fetchToken()
+        if (token === false) return false
+
+        if (!agreementId || !status) {
+            console.error("Missing parameter")
+            return false
+        }
+        let body = {}
+        body.status = status
+
+        const vippsAgreement = await this.getAgreement(agreementId)
+        if (vippsAgreement.status === "STOPPED") {
+            console.error("Cannot modify STOPPED agreements")
             return false
         }
 
+        try {
+            await request.patch({
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}`,
+                headers: this.getVippsHeaders(token),
+                body: JSON.stringify(body)
+            })
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
+    /**
+     * Creates a charge an agreement
+     * @param {string} agreementId The agreement id
+     * @param {number} amount The amount to charge in NOK
+     * @param {Date} daysInAdvance How many days in advance of today the charge is due
+     * @return {boolean} Success
+     */
+    async createCharge(agreementId, amount, daysInAdvance = 3) {
+
+        if (daysInAdvance <= 2) {
+            console.error("Due date must be more than 2 days in advance of today")
+            return false
+        }
+
+        const timeNow = new Date().getTime()
+        const dueDateTime = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
+        const dueDate = new Date(dueDateTime)
+
+        // This is the date format that Vipps accepts
         const formattedDueDate = moment(dueDate).format('YYYY-MM-DD')
 
         const token = await this.fetchToken()
@@ -652,6 +706,12 @@ module.exports = {
             description: "Fast donasjon til gieffektivt.no",
             due: formattedDueDate,
             retryDays: 5
+        }
+
+        const vippsAgreement = await this.getAgreement(agreementId)
+        if (vippsAgreement.status !== "ACTIVE") {
+            console.error("Agreement status must be ACTIVE to create charges")
+            return false
         }
 
         try {
@@ -684,12 +744,10 @@ module.exports = {
         if (token === false) return false
 
         try {
-            let chargeRequest = await request.get({
+            const response = await request.get({
                 uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}`,
                 headers: this.getVippsHeaders(token)
             })
-
-            let response = chargeRequest
 
             return response
         }
@@ -697,13 +755,13 @@ module.exports = {
             console.error(ex)
             return false
         }
-        },
+    },
 
 
     /**
      * Cancels a charge
      * @param {string} agreementId The ID of the agreement
-     * @param {string} chargeId The ID of the charge being deleted
+     * @param {string} chargeId The ID of the charge being cancelled
      * @return {boolean} Success
      */
     async cancelCharge(agreementId, chargeId) {
@@ -712,12 +770,36 @@ module.exports = {
         if (token === false) return false
 
         try {
-            let deleteRequest = await request.delete({
-                uri: `https://${config.vipps_api_url}/v2/agreements/${agreementId}/charges/${chargeId}`,
+            const response = await request.delete({
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}`,
                 headers: this.getVippsHeaders(token)
             })
 
-            let response = deleteRequest
+            return response
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
+    /**
+     * Refunds a charge
+     * @param {string} agreementId The ID of the agreement
+     * @param {string} chargeId The ID of the charge being refunded
+     * @return {boolean} Success
+     */
+    async refundCharge(agreementId, chargeId) {
+
+        const token = await this.fetchToken()
+        if (token === false) return false
+
+        try {
+            const response = await request.post({
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}/refund`,
+                headers: this.getVippsHeaders(token)
+            })
+
 
             return response
         }
@@ -745,7 +827,7 @@ module.exports = {
     async checkAgreement(agreementId, polls) {
         //If we've been polling for more than eleven minutes, stop polling for updates
         if ((polls * POLLING_INTERVAL) + POLLING_START_DELAY > 1000 * 60 * 10) {
-            console.log("Polled enough")
+            console.log("Stopped polling checkAgreement for agreementId " + agreementId)
             return true
         }
 

@@ -1,5 +1,8 @@
 var pool
 
+// Valid states for Vipps recurring charges
+const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PARTIALLY_REFUNDED", "RESERVED", "CANCELLED", "PROCESSING" ]
+
 //region Get
 
 /**
@@ -169,21 +172,24 @@ async function addOrder(order) {
  * @param {"PENDING" | "ACTIVE" | "STOPPED" | "EXPIRED"} status Whether the agreement has been activated. Defaults to false
  * @return {boolean} Success or not
  */
-async function addAgreement(agreementID, donorID, KID, sum, status = "PENDING") {
+async function addAgreement(agreementID, donorID, KID, amount, status = "PENDING") {
     let con = await pool.getConnection()
 
-    let chargeDayOfMonth = String(new Date().getDate()).padStart(2, '0');
+    const todaysDayOfMonth = String(new Date().getDate()).padStart(2, '0')
+    let chargeDayOfMonth = todaysDayOfMonth
 
-    // Set all dates above 28th to 28th for a simple solution to support leap years
-    if (chargeDayOfMonth > 28) chargeDayOfMonth = 28
+    // Simple and safe solution to support leap years
+    if (todaysDayOfMonth > 28) {
+        chargeDayOfMonth = 28
+    }
 
     try {
         con.query(`
             INSERT INTO Vipps_agreements
-                (ID, donorID, KID, sum, chargeDayOfMonth, status)
+                (ID, donorID, KID, amount, chargeDayOfMonth, status)
             VALUES
                 (?,?,?,?,?,?)`, 
-            [agreementID, donorID, KID, sum, chargeDayOfMonth, status])
+            [agreementID, donorID, KID, amount, chargeDayOfMonth, status])
         con.release()
         return true
     }
@@ -196,10 +202,10 @@ async function addAgreement(agreementID, donorID, KID, sum, status = "PENDING") 
 /**
  * Add a charge to an agreement
  * @param {string} agreementId Provided by vipps
- * @param {number} sum The amount of money for each charge
+ * @param {number} amount The amount of money for each charge
  * @param {number} KID The KID of the agreement
  * @param {Date} due Due date of the charge 
- * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status The new status of the charge
+ * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status The status of the charge
  * @return {boolean} Success or not
  */
  async function addCharge(chargeID, agreementID, amount, dueDate, status = "PENDING") {
@@ -275,15 +281,15 @@ async function updateVippsOrderDonation(orderID, donationID) {
 }
 
 /**
- * Updates agreement price
+ * Updates price of a recurring agreement
  * @param {string} id The agreement ID
  * @param {number} price 
  * @return {boolean} Success
  */
- async function updateAgreementPrice(id, price) {
+ async function updateAgreementPrice(agreementId, price) {
     let con = await pool.getConnection()
     try {
-        con.query(`UPDATE Vipps_agreements SET sum = ? WHERE ID = ?`, [price, id])
+        con.query(`UPDATE Vipps_agreements SET price = ? WHERE ID = ?`, [price, agreementId])
         con.release()
         return true
     }
@@ -294,15 +300,15 @@ async function updateVippsOrderDonation(orderID, donationID) {
 }
 
 /**
- * Updates agreement status
- * @param {string} id The agreement ID
+ * Updates status of a recurring agreement
+ * @param {string} agreementID The agreement ID
  * @param {"PENDING" | "ACTIVE" | "STOPPED" | "EXPIRED"} status 
  * @return {boolean} Success
  */
-async function updateAgreementStatus(id, status) {
+async function updateAgreementStatus(agreementID, status) {
     let con = await pool.getConnection()
     try {
-        con.query(`UPDATE Vipps_agreements SET status = ? WHERE ID = ?`, [status, id])
+        con.query(`UPDATE Vipps_agreements SET status = ? WHERE ID = ?`, [status, agreementID])
         con.release()
         return true
     }
@@ -311,6 +317,40 @@ async function updateAgreementStatus(id, status) {
         return false
     }
 }
+
+/**
+ * Updated status of a charge
+ * @param {string} agreementID agreementID
+ * @param {string} chargeID chargeID
+ * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status The new status of the charge
+ */
+ async function updateChargeStatus(newStatus, agreementID, chargeID) {
+    let con = await pool.getConnection()
+
+    if (!chargeStatuses.includes(newStatus)) {
+        console.error(newStatus + " is not a valid charge state")
+        return false
+    }
+
+    try {
+        con.query(`
+            UPDATE Vipps_agreement_charges
+            SET status = ?
+            WHERE agreementID = ?
+            AND chargeID = ?
+        `, 
+        [newStatus, agreementID, chargeID])
+
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        console.error("Error setting charge status to CANCELLED")
+        return false
+    }
+}
+
 //endregion
 
 //region Delete
@@ -332,6 +372,7 @@ module.exports = {
     updateVippsOrderDonation,
     updateAgreementPrice,
     updateAgreementStatus,
+    updateChargeStatus,
 
     setup: (dbPool) => { pool = dbPool }
 }

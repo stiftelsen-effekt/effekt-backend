@@ -7,7 +7,7 @@ const moment = require('moment')
 const config = require('../config')
 const DAO = require('../custom_modules/DAO')
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
-const cron = require('node-cron');
+const cron = require('node-cron')
 
 const vipps = require('../custom_modules/vipps')
 
@@ -34,10 +34,9 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
     // TEMPORARY
     const KID = 51615227;
     const SUM = 100;
-    const NUMBER = 93279221;
 
     try {
-        let response = await vipps.draftAgreement(KID, SUM, NUMBER)
+        let response = await vipps.draftAgreement(KID, SUM)
         //TODO: Check for false
         res.json(response)
     } catch (ex) {
@@ -56,16 +55,41 @@ router.get("/agreement/:id", async (req, res, next) => {
     }
 })
 
-router.post("/agreement/price/:agreementId", jsonBody, async (req, res, next) => {
+router.put("/agreement/price", jsonBody, async (req, res, next) => {
     try {
-
+        const agreementId = req.body.agreementId
         const price = req.body.price
-        const agreementId = req.params.agreementId
 
-        if (!price) return "Missing price in JSON body"
-        if (price < 1) return "Price must be more than 0"
+        await vipps.updateAgreementPrice(agreementId, price)
+        await DAO.vipps.updateAgreementPrice(agreementId, price)
 
-        const response = await vipps.updateAgreementPrice(agreementId, price)
+        res.send()
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.put("/agreement/status", jsonBody, async (req, res, next) => {
+    try {
+        const agreementId = req.body.agreementId
+        const status = req.body.status
+
+        await vipps.updateAgreementStatus(agreementId, status)
+        await DAO.vipps.updateAgreementStatus(agreementId, status)
+
+        res.send(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+
+router.post("/agreement/charge/create", jsonBody, async (req, res, next) => {
+    try {
+        const agreementId = req.body.agreementId
+        const amount = req.body.amount
+
+        const response = await vipps.createCharge(agreementId, amount)
 
         res.json(response)
     } catch (ex) {
@@ -73,14 +97,26 @@ router.post("/agreement/price/:agreementId", jsonBody, async (req, res, next) =>
     }
 })
 
+
 router.post("/agreement/charge/cancel", jsonBody, async (req, res, next) => {
     try {
         const agreementId = req.body.agreementId
         const chargeId = req.body.chargeId
-        if (!agreementId) return "Missing agreementId from body"
-        if (!chargeId) return "Missing chargeId from body"
 
-        vipps.cancelCharge(agreementId, chargeId)
+        const response = await vipps.cancelCharge(agreementId, chargeId)
+
+        res.json(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.post("/agreement/charge/refund", jsonBody, async (req, res, next) => {
+    try {
+        const agreementId = req.body.agreementId
+        const chargeId = req.body.chargeId
+
+        const response = await vipps.refundCharge(agreementId, chargeId)
 
         res.json(response)
     } catch (ex) {
@@ -298,28 +334,38 @@ function delay(t) {
 
 // Is this a good place for this?
 // Check for active agreements and create Vipps charges
-// Scheduled to run once per day
+// Runs once per day
 cron.schedule('* * * * *', async () => {
-    console.log("Creating daily charges");
+    const daysInAdvance = 3
     const timeNow = new Date().getTime()
-    const timeThreeDaysAhead = new Date(timeNow + (1000 * 60 * 60 * 24 * 3))
+    const dueDateTime = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
+    const dueDate = new Date(dueDateTime)
 
+    // Find agreements with due dates that are 3 days from now
     const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(timeThreeDaysAhead.getDate())
 
     if (activeAgreements) {
         for (let i = 0; i < activeAgreements.length; i++) {
             const agreement = activeAgreements[i]
-            // Set due date to 3 days from now
-            // const dueDate = new Date(timeNow + (1000 * 60 * 60 * 24 * 3))
-            const dueDate = new Date(timeThreeDaysAhead)
-            
+
             try {
-                await vipps.createCharge(agreement.ID, agreement.sum, dueDate)
-            } 
+                // Check if agreement from EffektDonasjonDB also exists and is active in Vipps database
+                const vippsAgreement = await vipps.getAgreement(agreement.ID)
+                if (vippsAgreement.status === "ACTIVE") {
+                    await vipps.createCharge(
+                        vippsAgreement.ID, 
+                        vippsAgreement.price, 
+                        dueDate
+                    )
+                }
+            }
             catch(ex) {
                 console.error("Error creating charge for " + agreementID + " due " + dueDate)
             }
         }
+    }
+    else {
+        console.log("No active Vipps agreements with due date " + moment(dueDate).format('DD/MM/YYYY'))
     }
 });
 
