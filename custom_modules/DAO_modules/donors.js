@@ -70,11 +70,19 @@ async function getByKID(KID) {
             
             FROM Donors 
             
-            INNER JOIN Combining_table 
-                ON Donor_ID = Donors.ID 
+            INNER JOIN Donations 
+                ON ID = Donors_ID 
                 
-            WHERE KID = ? 
+            WHERE KID_fordeling = ? 
             GROUP BY Donors.ID LIMIT 1`, [KID])
+
+            // //TODO: might aswell join on distributions?
+
+            // SELECT Donors.ID, email, full_name, ssn, date_registered 
+            // FROM EffektDonasjonDB_Dev.Donors 
+            // INNER JOIN EffektDonasjonDB_Dev.Donations 
+            // ON Donors.ID = Donations.Donor_ID
+            // WHERE KID_fordeling = 16391823
 
         con.release()
         if (dbDonor.length > 0) {
