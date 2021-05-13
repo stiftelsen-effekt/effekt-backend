@@ -47,4 +47,13 @@ router.post("/nets/complete", authMiddleware(authRoles.write_all_donations), asy
   }
 })
 
+router.post("/vipps", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
+  try {
+
+    res.json("Ran vipps schedule")
+  } catch(ex) {
+    next({ex})
+  }
+})
+
 module.exports = router
