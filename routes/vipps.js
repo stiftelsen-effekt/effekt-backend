@@ -105,7 +105,7 @@ router.post("/agreement/charge/cancel", jsonBody, async (req, res, next) => {
 
         const response = await vipps.cancelCharge(agreementId, chargeId)
 
-        res.json(response)
+        res.send(response)
     } catch (ex) {
         next({ ex })
     }
@@ -342,14 +342,14 @@ cron.schedule('* * * * *', async () => {
     const dueDate = new Date(dueDateTime)
 
     // Find agreements with due dates that are 3 days from now
-    const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(timeThreeDaysAhead.getDate())
+    const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(dueDateTime.getDate())
 
     if (activeAgreements) {
         for (let i = 0; i < activeAgreements.length; i++) {
             const agreement = activeAgreements[i]
 
             try {
-                // Check if agreement from EffektDonasjonDB also exists and is active in Vipps database
+                // Check if agreement exists and is active in Vipps database
                 const vippsAgreement = await vipps.getAgreement(agreement.ID)
                 if (vippsAgreement.status === "ACTIVE") {
                     await vipps.createCharge(
@@ -360,7 +360,7 @@ cron.schedule('* * * * *', async () => {
                 }
             }
             catch(ex) {
-                console.error("Error creating charge for " + agreementID + " due " + dueDate)
+                console.error(ex)
             }
         }
     }

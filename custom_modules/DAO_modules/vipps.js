@@ -26,7 +26,7 @@ const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PART
 
 /**
  * @typedef VippsAgreement
- * @property {number} ID
+ * @property {string} ID
  * @property {number} donorID
  * @property {string} KID
  * @property {number} sum
@@ -34,6 +34,14 @@ const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PART
  * @property {number} chargeDayOfMonth
  */
 
+/**
+ * @typedef AgreementCharge
+ * @property {string} chargeID
+ * @property {string} agreementID
+ * @property {number} amount
+ * @property {string} dueDate
+ * @property {string} status
+ */
 
 /**
  * @typedef VippsTransactionLogItem
@@ -103,6 +111,27 @@ async function getRecentOrder() {
     if (res.length === 0) return false
     else return res[0]
 }
+
+/**
+ * Fetches an agreement charge by chargeID
+ * @property {string} chargeID
+ * @return {AgreementCharge} 
+ */
+ async function getCharge(chargeID) {
+    let con = await pool.getConnection()
+    let [res] = await con.query(`
+        SELECT * FROM 
+            Vipps_agreement_charges
+        WHERE 
+            chargeID = ?
+        `, [chargeID])
+    con.release()
+
+    if (res.length === 0) return false
+    else return res
+}
+
+
 
 /**
  * Fetches all active agreements that are due to be charged on the specified date
@@ -363,6 +392,7 @@ module.exports = {
     getLatestToken,
     getOrder,
     getRecentOrder,
+    getCharge,
     getActiveAgreementsByChargeDay,
     addToken,
     addOrder,

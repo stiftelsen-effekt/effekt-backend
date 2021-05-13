@@ -668,13 +668,13 @@ module.exports = {
     },
 
     /**
-     * Creates a charge an agreement
+     * Creates a charge for an agreement
      * @param {string} agreementId The agreement id
-     * @param {number} amount The amount to charge in NOK
-     * @param {Date} daysInAdvance How many days in advance of today the charge is due
+     * @param {number} amountKroner The amount to charge in kroner, not øre
+     * @param {number} daysInAdvance How many days in advance of today the charge is due
      * @return {boolean} Success
      */
-    async createCharge(agreementId, amount, daysInAdvance = 3) {
+    async createCharge(agreementId, amountKroner, daysInAdvance = 3) {
 
         if (daysInAdvance <= 2) {
             console.error("Due date must be more than 2 days in advance of today")
@@ -692,16 +692,16 @@ module.exports = {
         if (token === false) return false
 
         // Create Idempotency-Key to prevent duplicate insertions
-        const idempotencyKey = hash(agreementId + amount + formattedDueDate)
+        // Vipps returns the same chargeId for all requests with the same Idempotency-Key
+        const idempotencyKey = hash(agreementId + amountKroner + formattedDueDate)
 
         let headers = this.getVippsHeaders(token)
         headers['Idempotency-Key'] = idempotencyKey
         headers['agreementId'] = agreementId
 
-
         /** @type {ChargePayload} */
         const data = {
-            amount: amount * 100,
+            amount: amountKroner * 100,
             currency: "NOK",
             description: "Fast donasjon til gieffektivt.no",
             due: formattedDueDate,
@@ -721,9 +721,15 @@ module.exports = {
                 body: JSON.stringify(data)
             })
 
-            const response = JSON.parse(chargeRequest)
-            
-            await DAO.vipps.addCharge(response["chargeId"], agreementId, amount, formattedDueDate)
+            const vippsResponse = JSON.parse(chargeRequest)
+            const vippsChargeId = vippsResponse.chargeId
+
+            // Add to effektDonasjonDB if charge does not exist already
+            const chargeInEffektDB = await DAO.vipps.getCharge(vippsChargeId)
+            if (chargeInEffektDB === false) {
+                await DAO.vipps.addCharge(vippsResponse["chargeId"], agreementId, amountKroner, formattedDueDate)
+                return true
+            }
 
             return true
         }
@@ -749,7 +755,7 @@ module.exports = {
                 headers: this.getVippsHeaders(token)
             })
 
-            return response
+            return JSON.parse(response)
         }
         catch (ex) {
             console.error(ex)
@@ -775,7 +781,7 @@ module.exports = {
                 headers: this.getVippsHeaders(token)
             })
 
-            return response
+            return true
         }
         catch (ex) {
             console.error(ex)
@@ -794,14 +800,32 @@ module.exports = {
         const token = await this.fetchToken()
         if (token === false) return false
 
+        // Create Idempotency-Key to prevent duplicate insertions
+        // Vipps returns the same chargeId for all requests with the same Idempotency-Key
+        const idempotencyKey = hash(agreementId + chargeId)
+
+        let headers = this.getVippsHeaders(token)
+        headers['Idempotency-Key'] = idempotencyKey
+
+        const charge = await this.getCharge(agreementId, chargeId)
+
+        // Charge must be paid to be refunded
+        if (charge.status !== "CHARGED") return false 
+
+        let body = {}
+        body.amount = charge.amount
+        body.description = "Donasjonen din blir nå refundert"
+
         try {
             const response = await request.post({
                 uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}/refund`,
-                headers: this.getVippsHeaders(token)
+                headers,
+                body: JSON.stringify(body)
             })
 
+            console.log(response)
 
-            return response
+            return true
         }
         catch (ex) {
             console.error(ex)
@@ -825,25 +849,25 @@ module.exports = {
      * @returns {boolean} True if we should cancel the polling, false otherwise
      */
     async checkAgreement(agreementId, polls) {
-        //If we've been polling for more than eleven minutes, stop polling for updates
+        // If we've been polling for more than eleven minutes, stop polling for updates
         if ((polls * POLLING_INTERVAL) + POLLING_START_DELAY > 1000 * 60 * 10) {
             console.log("Stopped polling checkAgreement for agreementId " + agreementId)
             return true
         }
 
-        const agreement = await this.getAgreement(agreementId)
+        // Agreement from Vipps database
+        const vippsAgreement = await this.getAgreement(agreementId)
 
-        if (agreement.status === "ACTIVE") {
-            await DAO.vipps.updateAgreementStatus(agreementId, agreement.status)
-            return true
-            //Should we perhaps do an initial charge here?
-        }
-        else if (agreement.status === "STOPPED" || agreement.status === "EXPIRED") {
-            await DAO.vipps.updateAgreementStatus(agreementId, agreement.status)
+        if (
+            vippsAgreement.status === "STOPPED" || 
+            vippsAgreement.status === "EXPIRED" ||
+            vippsAgreement.status === "ACTIVE"
+        ) {
+            await DAO.vipps.updateAgreementStatus(agreementId, vippsAgreement.status)
             return true
         }
 
-        //Keep polling for updates (status = pending)
+        // Keep polling for updates (status = pending)
         return false
     },
 
