@@ -131,7 +131,23 @@ async function getRecentOrder() {
     else return res
 }
 
+/**
+ * Fetches the inital charge of an agreement
+ * @property {string} agreementID
+ */
+ async function getInitialCharge(agreementID) {
+    let con = await pool.getConnection()
+    let [res] = await con.query(`
+        SELECT * FROM 
+            Vipps_agreement_charges
+        WHERE 
+            agreementID = ? and status = "RESERVED"
+        `, [agreementID])
+    con.release()
 
+    if (res.length === 0) return false
+    else return res[0]
+}
 
 /**
  * Fetches all active agreements that are due to be charged on the specified date
@@ -230,6 +246,7 @@ async function addAgreement(agreementID, donorID, KID, amount, status = "PENDING
 
 /**
  * Add a charge to an agreement
+ * @param {string} chargeID
  * @param {string} agreementId Provided by vipps
  * @param {number} amountNOK The amount of money for each charge in NOK, not øre
  * @param {number} KID The KID of the agreement
@@ -237,15 +254,15 @@ async function addAgreement(agreementID, donorID, KID, amount, status = "PENDING
  * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status The status of the charge
  * @return {boolean} Success or not
  */
- async function addCharge(chargeID, agreementID, amountNOK, dueDate, status) {
+ async function addCharge(chargeID, agreementID, amountNOK, KID, dueDate, status) {
     let con = await pool.getConnection()
     try {
         con.query(`
             INSERT INTO Vipps_agreement_charges
-                (chargeID, agreementId, amountNOK, dueDate, status)
+                (chargeID, agreementId, amountNOK, KID, dueDate, status)
             VALUES
-                (?,?,?,?,?)`, 
-            [chargeID, agreementID, amountNOK, dueDate, status])
+                (?,?,?,?,?,?)`, 
+            [chargeID, agreementID, amountNOK, KID, dueDate, status])
 
         con.release()
         return true
@@ -393,6 +410,7 @@ module.exports = {
     getOrder,
     getRecentOrder,
     getCharge,
+    getInitialCharge,
     getActiveAgreementsByChargeDay,
     addToken,
     addOrder,

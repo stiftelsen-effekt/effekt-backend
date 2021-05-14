@@ -48,7 +48,7 @@ const VIPPS_TEXT = "Donasjon til gieffektivt.no"
  * @property {string} agreementResource The REST resource of the agreement
  * @property {string} agreementId The ID of the agreement
  * @property {string} vippsConfirmationUrl URL to confirm the agreement
- * @property {string} chargeId The id of the initial charge (not used)
+ * @property {string} chargeId The id of the initial charge
  */
 
 /**
@@ -521,12 +521,11 @@ module.exports = {
 
         const data = {
             "currency": "NOK",
-            "scope": "name email phoneNumber birthdate",
             "initialCharge": {
                 "amount": realAmount,
                 "currency": "NOK",
                 "description": description,
-                "transactionType": "DIRECT_CAPTURE"
+                "transactionType": "RESERVE_CAPTURE"
             },
             "interval": "MONTH",
             "intervalCount": 1,
@@ -556,9 +555,10 @@ module.exports = {
             }
 
             // Amount in EffektDonasjonDB is stored in kroner, not øre 
-            await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, amount)
+            await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, amount, "PENDING")
+            await DAO.vipps.addCharge(response.chargeId, response.agreementId, amount, KID, new Date(), "RESERVED")
 
-            this.pollAgreement(response.agreementId)
+            this.pollAgreement(response.agreementId, response.chargeId)
 
             return response
         }
@@ -664,6 +664,36 @@ module.exports = {
                 headers: this.getVippsHeaders(token),
                 body: JSON.stringify(body)
             })
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
+    /**
+     * Captures a charge created by initialCharge in draftAgreement
+     * @param {string} agreementId The agreement id
+     * @param {string} chargeId The charge id
+     */
+    async captureInitalCharge(agreementId, chargeId) {
+
+        const token = await this.fetchToken()
+        if (token === false) return false
+
+        // Required by Vipps, prevents duplicate requests
+        const idempotencyKey = hash(agreementId + chargeId)
+
+        let headers = this.getVippsHeaders(token)
+        headers['Idempotency-Key'] = idempotencyKey
+
+        try {
+            await request.post({
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}/capture`,
+                headers
+            })
+
+            return true
         }
         catch (ex) {
             console.error(ex)
@@ -863,11 +893,26 @@ module.exports = {
         // Agreement from Vipps database
         const vippsAgreement = await this.getAgreement(agreementId)
 
-        if (
-            vippsAgreement.status === "STOPPED" || 
-            vippsAgreement.status === "EXPIRED" ||
-            vippsAgreement.status === "ACTIVE"
-        ) {
+        if (vippsAgreement.status === "ACTIVE") {
+            await DAO.vipps.updateAgreementStatus(agreementId, vippsAgreement.status)
+
+            const initialCharge = await DAO.vipps.getInitialCharge(agreementId)
+            const initialChargeID = initialCharge.chargeID
+
+            // Keep polling until initial charge has been captured
+            if (initialChargeID && initialCharge.status === "RESERVED") {
+                const isCaptured = await this.captureInitalCharge(agreementId, initialChargeID)
+
+                // Update database and stop polling only if capture was successful 
+                if (isCaptured) {
+                    await DAO.vipps.updateChargeStatus("CHARGED", agreementId, initialChargeID)
+                    return true
+                }
+            }
+        }
+
+        // Stop polling agreement if it has another status than pending or active
+        if (vippsAgreement.status !== "PENDING" && vippsAgreement.status !== "ACTIVE") {
             await DAO.vipps.updateAgreementStatus(agreementId, vippsAgreement.status)
             return true
         }

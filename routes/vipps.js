@@ -343,9 +343,11 @@ function delay(t) {
     });
 }
 
-// Is this a good place for this?
-// Check for active agreements and create Vipps charges
-// Runs once per day
+/** 
+ * JUST FOR TESTING
+ * Check for active agreements and create Vipps charges
+ * Runs once per minute
+*/
 cron.schedule('* * * * *', async () => {
     const daysInAdvance = 3
     const timeNow = new Date().getTime()
