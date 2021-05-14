@@ -61,7 +61,6 @@ router.put("/agreement/price", jsonBody, async (req, res, next) => {
         const price = req.body.price
 
         await vipps.updateAgreementPrice(agreementId, price)
-        await DAO.vipps.updateAgreementPrice(agreementId, price)
 
         res.send()
     } catch (ex) {
@@ -75,7 +74,6 @@ router.put("/agreement/status", jsonBody, async (req, res, next) => {
         const status = req.body.status
 
         await vipps.updateAgreementStatus(agreementId, status)
-        await DAO.vipps.updateAgreementStatus(agreementId, status)
 
         res.send(response)
     } catch (ex) {
@@ -90,6 +88,19 @@ router.post("/agreement/charge/create", jsonBody, async (req, res, next) => {
         const amount = req.body.amount
 
         const response = await vipps.createCharge(agreementId, amount)
+
+        res.json(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.get("/agreement/:agreementId/charge/:chargeId", jsonBody, async (req, res, next) => {
+    try {
+        const agreementId = req.params.agreementId
+        const chargeId = req.params.chargeId
+
+        const response = await vipps.getCharge(agreementId, chargeId)
 
         res.json(response)
     } catch (ex) {
