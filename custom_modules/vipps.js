@@ -606,7 +606,7 @@ module.exports = {
         if (token === false) return false
 
         if (!agreementId || !price) {
-            console.error("Missing parameter agreementId")
+            console.error("Missing parameter")
             return false
         }
         if (price < 100) {
@@ -622,6 +622,10 @@ module.exports = {
                 headers: this.getVippsHeaders(token),
                 body: JSON.stringify(body)
             })
+
+            console.log(response)
+
+            await DAO.vipps.updateAgreementPrice(agreementId, price)
 
             return response
         }
@@ -671,7 +675,7 @@ module.exports = {
      * Creates a charge for an agreement
      * @param {string} agreementId The agreement id
      * @param {number} amountKroner The amount to charge in kroner, not øre
-     * @param {number} daysInAdvance How many days in advance of today the charge is due
+     * @param {number} daysInAdvance How many days in advance of the due date
      * @return {boolean} Success
      */
     async createCharge(agreementId, amountKroner, daysInAdvance = 3) {
@@ -708,26 +712,27 @@ module.exports = {
             retryDays: 5
         }
 
-        const vippsAgreement = await this.getAgreement(agreementId)
-        if (vippsAgreement.status !== "ACTIVE") {
-            console.error("Agreement status must be ACTIVE to create charges")
-            return false
-        }
-
         try {
-            const chargeRequest = await request.post({
+            const vippsAgreement = await this.getAgreement(agreementId)
+            if (vippsAgreement.status !== "ACTIVE") {
+                console.error("Agreement status must be ACTIVE to create charges")
+                return false
+            }
+
+            const createResponse = await request.post({
                 uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges`,
                 headers: headers,
                 body: JSON.stringify(data)
             })
 
-            const vippsResponse = JSON.parse(chargeRequest)
-            const vippsChargeId = vippsResponse.chargeId
+            const chargeId = JSON.parse(createResponse).chargeId
+
+            const getResponse = await this.getCharge(agreementId, chargeId)
 
             // Add to effektDonasjonDB if charge does not exist already
-            const chargeInEffektDB = await DAO.vipps.getCharge(vippsChargeId)
+            const chargeInEffektDB = await DAO.vipps.getCharge(chargeId)
             if (chargeInEffektDB === false) {
-                await DAO.vipps.addCharge(vippsResponse["chargeId"], agreementId, amountKroner, formattedDueDate)
+                await DAO.vipps.addCharge(chargeId, agreementId, amountKroner, formattedDueDate, getResponse.status)
                 return true
             }
 

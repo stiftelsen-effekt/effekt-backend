@@ -231,21 +231,21 @@ async function addAgreement(agreementID, donorID, KID, amount, status = "PENDING
 /**
  * Add a charge to an agreement
  * @param {string} agreementId Provided by vipps
- * @param {number} amount The amount of money for each charge
+ * @param {number} amountNOK The amount of money for each charge in NOK, not øre
  * @param {number} KID The KID of the agreement
  * @param {Date} due Due date of the charge 
  * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status The status of the charge
  * @return {boolean} Success or not
  */
- async function addCharge(chargeID, agreementID, amount, dueDate, status = "PENDING") {
+ async function addCharge(chargeID, agreementID, amountNOK, dueDate, status) {
     let con = await pool.getConnection()
     try {
         con.query(`
             INSERT INTO Vipps_agreement_charges
-                (chargeID, agreementId, amount, dueDate, status)
+                (chargeID, agreementId, amountNOK, dueDate, status)
             VALUES
                 (?,?,?,?,?)`, 
-            [chargeID, agreementID, amount, dueDate, status])
+            [chargeID, agreementID, amountNOK, dueDate, status])
 
         con.release()
         return true
