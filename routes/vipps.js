@@ -349,37 +349,7 @@ function delay(t) {
  * Runs once per minute
 */
 cron.schedule('* * * * *', async () => {
-    const daysInAdvance = 3
-    const timeNow = new Date().getTime()
-    const dueDateTime = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
-    const dueDate = new Date(dueDateTime)
-
-    // Find agreements with due dates that are 3 days from now
-    const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(dueDateTime.getDate())
-
-    if (activeAgreements) {
-        for (let i = 0; i < activeAgreements.length; i++) {
-            const agreement = activeAgreements[i]
-
-            try {
-                // Check if agreement exists and is active in Vipps database
-                const vippsAgreement = await vipps.getAgreement(agreement.ID)
-                if (vippsAgreement.status === "ACTIVE") {
-                    await vipps.createCharge(
-                        vippsAgreement.ID, 
-                        vippsAgreement.price, 
-                        dueDate
-                    )
-                }
-            }
-            catch(ex) {
-                console.error(ex)
-            }
-        }
-    }
-    else {
-        console.log("No active Vipps agreements with due date " + moment(dueDate).format('DD/MM/YYYY'))
-    }
+    await vipps.createFutureDueCharges()
 });
 
 module.exports = router

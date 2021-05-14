@@ -6,6 +6,7 @@ const authMiddleware = require("../custom_modules/authorization/authMiddleware.j
 const nets = require('../custom_modules/nets')
 const ocrParser = require('../custom_modules/parsers/OCR')
 const ocr = require('../custom_modules/ocr')
+const vipps = require('../custom_modules/vipps')
 
 const META_OWNER_ID = 3
 
@@ -49,31 +50,7 @@ router.post("/nets/complete", authMiddleware(authRoles.write_all_donations), asy
 
 router.post("/vipps", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
-    const daysInAdvance = 3
-    const timeNow = new Date().getTime()
-    const dueDateTime = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
-    const dueDate = new Date(dueDateTime)
-
-    // Find agreements with due dates that are 3 days from now
-    const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(dueDateTime.getDate())
-
-    if (activeAgreements) {
-        for (let i = 0; i < activeAgreements.length; i++) {
-            const agreement = activeAgreements[i]
-
-            // Check if agreement exists and is active in Vipps database
-            const vippsAgreement = await vipps.getAgreement(agreement.ID)
-            if (vippsAgreement.status === "ACTIVE") {
-                await vipps.createCharge(
-                    vippsAgreement.ID, 
-                    vippsAgreement.price, 
-                    dueDate
-            )}
-        }
-    }
-    else {
-        console.log("No active Vipps agreements with due date " + moment(dueDate).format('DD/MM/YYYY'))
-    }
+    await vipps.createFutureDueCharges()
 
     res.json("Ran vipps schedule for recurring agreements")
   } catch(ex) {
