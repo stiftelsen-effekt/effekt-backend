@@ -44,9 +44,20 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
     }
 })
 
-router.get("/agreement/:id", async (req, res, next) => {
+router.get("/agreement/vipps/:id", async (req, res, next) => {
     try {
         const response = await vipps.getAgreement(req.params.id)
+
+        //TODO: Check for false
+        res.json(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.get("/agreement/:id", async (req, res, next) => {
+    try {
+        const response = await DAO.vipps.getAgreement(req.params.id)
 
         //TODO: Check for false
         res.json(response)
