@@ -32,6 +32,7 @@ const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PART
  * @property {number} sum
  * @property {string} status
  * @property {number} chargeDayOfMonth
+ * @property {string} agreement_url
  */
 
 /**
@@ -108,6 +109,25 @@ async function getRecentOrder() {
             LIMIT 1`)
     con.release()
     
+    if (res.length === 0) return false
+    else return res[0]
+}
+
+/**
+ * Fetches an agreement by agreementId
+ * @property {string} agreementID
+ * @return {Agreement} 
+ */
+ async function getAgreement(agreementID) {
+    let con = await pool.getConnection()
+    let [res] = await con.query(`
+        SELECT * FROM 
+            Vipps_agreements
+        WHERE 
+            ID = ?
+        `, [agreementID])
+    con.release()
+
     if (res.length === 0) return false
     else return res[0]
 }
@@ -409,6 +429,7 @@ module.exports = {
     getLatestToken,
     getOrder,
     getRecentOrder,
+    getAgreement,
     getCharge,
     getInitialCharge,
     getActiveAgreementsByChargeDay,

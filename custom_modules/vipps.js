@@ -879,6 +879,7 @@ module.exports = {
     /**
      * This function is polled after an agreement has been drafted, to check whether
      * the user has accepted the agreement.
+     * When the agreement is accepted, poll until initial charge (reserve capture) is captured
      * @param {string} agreementId 
      * @param {number} polls The number of times we've polled
      * @returns {boolean} True if we should cancel the polling, false otherwise
@@ -939,23 +940,22 @@ module.exports = {
     },
 
     /**
-     * Checks for 
-     * @param {VippsToken} token
+     * Checks for future agreement due dates and creates charges for them
      */
     async createFutureDueCharges() {
-        const daysInAdvance = 3
-        const timeNow = new Date().getTime()
-        const dueDateTime = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
-        const dueDate = new Date(dueDateTime)
+        try {
+            const daysInAdvance = 3
+            const timeNow = new Date().getTime()
+            const dueDateTime = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
+            const dueDate = new Date(dueDateTime)
+        
+            // Find agreements with due dates that are 3 days from now
+            const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(dueDateTime.getDate())
+        
+            if (activeAgreements) {
+                for (let i = 0; i < activeAgreements.length; i++) {
+                    const agreement = activeAgreements[i]
     
-        // Find agreements with due dates that are 3 days from now
-        const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(dueDateTime.getDate())
-    
-        if (activeAgreements) {
-            for (let i = 0; i < activeAgreements.length; i++) {
-                const agreement = activeAgreements[i]
-    
-                try {
                     // Check if agreement exists and is active in Vipps database
                     const vippsAgreement = await this.getAgreement(agreement.ID)
                     if (vippsAgreement.status === "ACTIVE") {
@@ -965,14 +965,15 @@ module.exports = {
                             dueDate
                         )
                     }
-                }
-                catch(ex) {
-                    console.error(ex)
+                    
                 }
             }
+            else {
+                console.log("No active Vipps agreements with due date " + moment(dueDate).format('DD/MM/YYYY'))
+            }
         }
-        else {
-            console.log("No active Vipps agreements with due date " + moment(dueDate).format('DD/MM/YYYY'))
+        catch(ex) {
+            console.error(ex)
         }
     },
 
