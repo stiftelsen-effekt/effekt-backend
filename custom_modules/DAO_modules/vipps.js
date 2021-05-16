@@ -121,7 +121,7 @@ async function getRecentOrder() {
  async function getAgreement(agreementID) {
     let con = await pool.getConnection()
     let [res] = await con.query(`
-        SELECT * FROM 
+        SELECT ID, KID, chargeDayOfMonth, amount FROM 
             Vipps_agreements
         WHERE 
             ID = ?
