@@ -204,7 +204,7 @@ async function getSplitByKID(KID) {
                     ON Organizations.ID = Distribution.OrgID
             
             WHERE 
-                KID = ?`, [KID])
+                Distribution.KID = ?`, [KID])
 
         con.release()
         if (result.length == 0) return new Error("NOT FOUND | No distribution with the KID " + KID)
