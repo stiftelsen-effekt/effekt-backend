@@ -138,10 +138,8 @@ async function sendDonationRegistered(KID) {
 }
 
 function formatCurrency(currencyString) {
-  return Number.parseFloat(currencyString).toFixed(2)
-    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
-    .replace(",", " ")
-    .replace(".", ",");
+  return Number.parseFloat(currencyString).toFixed(0)
+    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1.")
 }
 
 /** 
