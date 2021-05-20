@@ -9,6 +9,8 @@ const DAO = require('../custom_modules/DAO')
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 const cron = require('node-cron')
 
+const rounding = require("../custom_modules/rounding")
+const donationHelpers = require("../custom_modules/donationHelpers")
 const vipps = require('../custom_modules/vipps')
 
 const paymentMethods = require('../enums/paymentMethods')
@@ -44,9 +46,17 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
     }
 })
 
-router.get("/agreement/vipps/:id", async (req, res, next) => {
+router.get("/agreement/urlcode/:urlcode", async (req, res, next) => {
     try {
-        const response = await vipps.getAgreement(req.params.id)
+        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.params.urlcode)
+        
+        // Synchronize agreements
+        const responseVipps = await vipps.getAgreement(agreementId)
+        await DAO.vipps.updateAgreementStatus(agreementId, responseVipps.status)
+        await DAO.vipps.updateAgreementPrice(agreementId, responseVipps.price / 100)
+
+        const responseDAO = await DAO.vipps.getAgreement(agreementId)
+        const response = {...responseVipps, ...responseDAO }
 
         //TODO: Check for false
         res.json(response)
@@ -56,8 +66,17 @@ router.get("/agreement/vipps/:id", async (req, res, next) => {
 })
 
 router.get("/agreement/:id", async (req, res, next) => {
-    try {
-        const response = await DAO.vipps.getAgreement(req.params.id)
+    try { 
+        const agreementId = req.params.id
+
+        // Synchronize agreements
+        const responseVipps = await vipps.getAgreement(agreementId)
+        await vipps.DAO.updateAgreementStatus(agreementId, responseVipps.status)
+        await vipps.DAO.updateAgreementPrice(agreementId, responseVipps.price / 100)
+
+        const responseDAO = await DAO.vipps.getAgreement(agreementId)
+        const response = {...responseVipps, ...responseDAO }
+
 
         //TODO: Check for false
         res.json(response)
@@ -68,10 +87,12 @@ router.get("/agreement/:id", async (req, res, next) => {
 
 router.put("/agreement/price", jsonBody, async (req, res, next) => {
     try {
-        const agreementId = req.body.agreementId
         const price = req.body.price
+        const agreementCode = req.body.agreementCode
+        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
+        const response = await vipps.updateAgreementPrice(agreementId, price)
 
-        await vipps.updateAgreementPrice(agreementId, price)
+        if (response) await DAO.vipps.updateAgreementPrice(agreementId, price/100)
 
         res.send()
     } catch (ex) {
@@ -92,6 +113,62 @@ router.put("/agreement/status", jsonBody, async (req, res, next) => {
     }
 })
 
+router.put("/agreement/chargeday", jsonBody, async (req, res, next) => {
+    try {
+        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.body.agreementCode)
+        const chargeDay = req.body.chargeDay
+
+        if (chargeDay < 1 || chargeDay > 28) {
+            let err = new Error("Invalid chargeDay, must be between 1 and 28")
+            err.status = 400
+            return next(err)
+        }
+
+        const response = await DAO.vipps.updateAgreementChargeDay(agreementId, chargeDay)
+
+        res.send(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.put("/agreement/distribution", jsonBody, async (req, res, next) => {
+    try {
+        // This route does not accept regular agreementId's
+        // Instead it uses the long agreement_url_codes to prevent guessing
+        const agreementCode = req.body.agreementCode
+        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
+        const donorId = await DAO.donors.getIDByAgreementCode(agreementCode)
+        const split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }})
+        const metaOwnerID = 3
+  
+        if (split.length === 0) {
+            let err = new Error("Empty distribution array provided")
+            err.status = 400
+            return next(err)
+        }
+    
+        if (rounding.sumWithPrecision(split.map(split => split.share)) !== "100") {
+            let err = new Error("Distribution does not sum to 100")
+            err.status = 400
+            return next(err)
+        }
+        
+        //Check for existing distribution with that KID
+        let KID = await DAO.distributions.getKIDbySplit(split, donorId)
+    
+        if (!KID) {
+            KID = await donationHelpers.createKID()
+            await DAO.distributions.add(split, KID, donorId, metaOwnerID)
+        }
+
+        await DAO.vipps.updateAgreementKID(agreementId, KID)
+
+        res.send({KID})
+        } catch (ex) {
+            next({ ex })
+        }
+})
 
 router.post("/agreement/charge/create", jsonBody, async (req, res, next) => {
     try {

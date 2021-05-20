@@ -598,7 +598,7 @@ module.exports = {
     /**
      * Updates the price of an agreement
      * @param {string} agreementId The ID of the agreement being updated
-     * @param {number} price The new agreement price
+     * @param {number} price The new agreement price in øre
      * @return {boolean} Success
      */
     async updateAgreementPrice(agreementId, price) {
@@ -617,17 +617,13 @@ module.exports = {
         body.price = price
 
         try {
-            let response = await request.patch({
+            await request.patch({
                 uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}`,
                 headers: this.getVippsHeaders(token),
                 body: JSON.stringify(body)
             })
 
-            console.log(response)
-
-            await DAO.vipps.updateAgreementPrice(agreementId, price)
-
-            return response
+            return true
         }
         catch (ex) {
             console.error(ex)

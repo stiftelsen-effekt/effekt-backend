@@ -50,6 +50,7 @@ router.post("/nets/complete", authMiddleware(authRoles.write_all_donations), asy
 
 router.post("/vipps", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
+    // Creates charges for all Vipps recurring agreements that are due three days ahead
     await vipps.createFutureDueCharges()
 
     res.json("Ran vipps schedule for recurring agreements")

@@ -133,6 +133,25 @@ async function getRecentOrder() {
 }
 
 /**
+ * Fetches an agreement by agreementId
+ * @property {string} agreementUrlCode The code used in the Vipps merchantAgreementUrl
+ * @return {string} agreementId 
+ */
+ async function getAgreementIdByUrlCode(agreementUrlCode) {
+    let con = await pool.getConnection()
+    let [res] = await con.query(`
+        SELECT ID FROM 
+            Vipps_agreements
+        WHERE 
+            agreement_url_code = ?
+        `, [agreementUrlCode])
+    con.release()
+
+    if (res.length === 0) return false
+    else return res[0].ID
+}
+
+/**
  * Fetches an agreement charge by chargeID
  * @property {string} chargeID
  * @return {AgreementCharge} 
@@ -348,14 +367,14 @@ async function updateVippsOrderDonation(orderID, donationID) {
 
 /**
  * Updates price of a recurring agreement
- * @param {string} id The agreement ID
+ * @param {string} agreementId The agreement ID
  * @param {number} price 
  * @return {boolean} Success
  */
  async function updateAgreementPrice(agreementId, price) {
     let con = await pool.getConnection()
     try {
-        con.query(`UPDATE Vipps_agreements SET price = ? WHERE ID = ?`, [price, agreementId])
+        con.query(`UPDATE Vipps_agreements SET amount = ? WHERE ID = ?`, [price, agreementId])
         con.release()
         return true
     }
@@ -375,6 +394,44 @@ async function updateAgreementStatus(agreementID, status) {
     let con = await pool.getConnection()
     try {
         con.query(`UPDATE Vipps_agreements SET status = ? WHERE ID = ?`, [status, agreementID])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        return false
+    }
+}
+
+/**
+ * Updates the chargeDayOfMonth of an agreement
+ * @param {string} agreementId The agreement ID
+ * @param {string} chargeDay Any day between 1 and 28
+ * @return {boolean} Success
+ */
+ async function updateAgreementChargeDay(agreementId, chargeDay) {
+    let con = await pool.getConnection()
+    try {
+        con.query(`UPDATE Vipps_agreements SET chargeDayOfMonth = ? WHERE ID = ?`, [chargeDay, agreementId])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        return false
+    }
+}
+
+/**
+ * Updates the KID of an agreement
+ * @param {string} agreementId The agreement ID
+ * @param {string} KID KID
+ * @return {boolean} Success
+ */
+ async function updateAgreementKID(agreementId, KID) {
+    let con = await pool.getConnection()
+    try {
+        con.query(`UPDATE Vipps_agreements SET KID = ? WHERE ID = ?`, [KID, agreementId])
         con.release()
         return true
     }
@@ -432,6 +489,7 @@ module.exports = {
     getAgreement,
     getCharge,
     getInitialCharge,
+    getAgreementIdByUrlCode,
     getActiveAgreementsByChargeDay,
     addToken,
     addOrder,
@@ -441,6 +499,8 @@ module.exports = {
     updateVippsOrderDonation,
     updateAgreementPrice,
     updateAgreementStatus,
+    updateAgreementChargeDay,
+    updateAgreementKID,
     updateChargeStatus,
 
     setup: (dbPool) => { pool = dbPool }

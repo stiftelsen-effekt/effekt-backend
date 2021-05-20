@@ -97,6 +97,23 @@ async function getByKID(KID) {
 }
 
 /**
+ * Gets donorID by agreement_url_code in Vipps_agreements
+ * @property {string} agreementUrlCode
+ * @return {number} donorID
+ */
+ async function getIDByAgreementCode(agreementUrlCode) {
+    let con = await pool.getConnection()
+    let [res] = await con.query(`
+        SELECT donorID FROM Vipps_agreements
+        where agreement_url_code = ?
+        `, [agreementUrlCode])
+    con.release()
+
+    if (res.length === 0) return false
+    else return res[0].donorID
+}
+
+/**
  * Searches for a user with either email or name matching the query
  * @param {string} query A query string trying to match agains full name and email
  * @returns {Array<Donor>} An array of donor objects
@@ -219,6 +236,7 @@ module.exports = {
     getByID,
     getIDbyEmail,
     getByKID,
+    getIDByAgreementCode,
     search,
     add,
     updateSsn,
