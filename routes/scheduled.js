@@ -9,6 +9,7 @@ const avtalegiro = require('../custom_modules/avtalegiro')
 const DAO = require('../custom_modules/DAO')
 
 const META_OWNER_ID = 3
+var fs = require('fs');
 
 router.post("/nets", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
@@ -112,6 +113,10 @@ router.post("/nets/avtalegiro", authMiddleware(authRoles.write_all_donations), a
 
       avtaleGiroFile += getEndRecordAccountingData(89, totalAgreements, sumTerminatedAmounts, sumAmount, latestDate, earliestDate)
 
+      fs.writeFile('mynewfile3.txt', avtaleGiroFile, function (err) {
+        if (err) throw err;
+      });
+      
       //seems fair to do?, might wanna do it later on when its returned through ocr files idk
       const result = await ocr.addDonations(parsed, META_OWNER_ID);
       results.push(result);

@@ -68,7 +68,7 @@ async function remove(KID) {
         throw ex
     }
 }
-
+//TODO: change name
 async function avtaleGiroAgreementExists(KID) {
     try {
         var con = await pool.getConnection()
