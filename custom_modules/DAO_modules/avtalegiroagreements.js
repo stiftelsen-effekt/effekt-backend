@@ -69,18 +69,58 @@ async function remove(KID) {
     }
 }
 
-//endregion
+async function avtaleGiroAgreementExists(KID) {
+    try {
+        var con = await pool.getConnection()
 
-//region Modify
-//endregion
+        var [res] = await con.query("SELECT * FROM Distribution WHERE KID = ? LIMIT 1", [KID])
 
-//region Delete
-//endregion
+        con.release()
+        if (res.length > 0) return true
+        else return false
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+async function getByAvtalegiroKID(KID) {
+    try {
+        var con = await pool.getConnection()
+        let [dbDonor] = await con.query(`SELECT    
+            payment_date,
+            amount, 
+            KID,
+            
+            FROM Avtalegiro_agreements 
+
+            WHERE KID_fordeling = ? 
+            GROUP BY Donors.ID LIMIT 1`, [KID])
+
+        con.release()
+        if (dbDonor.length > 0) {
+            return {
+                payment_date: dbDonor[0].payment_date,
+                amount: dbDonor[0].amount,
+                KID: dbDonor[0].KID,
+            }
+        }
+        else {
+            return null
+        }
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
 
 module.exports = {
     add,
     update,
     remove,
+    avtaleGiroAgreementExists, 
+    getByAvtalegiroKID,
 
     setup: (dbPool) => { pool = dbPool }
 }
