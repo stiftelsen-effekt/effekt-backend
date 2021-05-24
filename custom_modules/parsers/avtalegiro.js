@@ -47,11 +47,15 @@ class AvtalegiroAgreement{
     this.notice = element.substr(41,1);
     let registrationType = element.substr(15,1);
 
-    //slik jeg forstår det vil vi sjelden få 0 her? Hva betyr i så fall 0?
-    if(registrationType == 1){
+    if (registrationType == 0) {
+      /**
+       * We can ask nets to list ALL of the active agreements on the account
+       * They will then get 0 as their 
+       */
+      this.totalReadout = true;
+    }
+    if(registrationType == 1) {
       this.isTerminated = true;
-    } else if(registrationType == 2){
-      this.isAltered = true;
     }
   }
 }

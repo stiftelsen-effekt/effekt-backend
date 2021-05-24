@@ -39,7 +39,7 @@ async function add(KID, amount, paymentDate, notice) {
     }
 }
 
-async function update(KID, notice) {
+async function updateNotification(KID, notice) {
     try {
         var con = await pool.getConnection()
 
@@ -47,6 +47,40 @@ async function update(KID, notice) {
 
         con.release()
         return true
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+async function setActive(KID, active) {
+    try {
+        var con = await pool.getConnection()
+
+        let res = await con.query(`UPDATE avtalegiro_agreement SET active = ? where KID = ?`, [active, KID])
+
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+async function isActive(KID) {
+    try {
+        var con = await pool.getConnection()
+
+        let res = await con.query(`SELECT FROM avtalegiro_agreement active where KID = ?`, [KID])
+
+        con.release()
+
+        if (res[0] == 1)
+            return true
+        else
+            return false
     }
     catch(ex) {
         con.release()
@@ -68,8 +102,8 @@ async function remove(KID) {
         throw ex
     }
 }
-//TODO: change name
-async function avtaleGiroAgreementExists(KID) {
+
+async function exists(KID) {
     try {
         var con = await pool.getConnection()
 
@@ -84,10 +118,10 @@ async function avtaleGiroAgreementExists(KID) {
     }
 }
 
-async function getByAvtalegiroKID(KID) {
+async function getByKID(KID) {
     try {
         var con = await pool.getConnection()
-        let [dbDonor] = await con.query(`SELECT    
+        let [agreement] = await con.query(`SELECT    
             payment_date,
             amount, 
             KID,
@@ -98,11 +132,11 @@ async function getByAvtalegiroKID(KID) {
             GROUP BY Donors.ID LIMIT 1`, [KID])
 
         con.release()
-        if (dbDonor.length > 0) {
+        if (agreement.length > 0) {
             return {
-                payment_date: dbDonor[0].payment_date,
-                amount: dbDonor[0].amount,
-                KID: dbDonor[0].KID,
+                payment_date: agreement[0].payment_date,
+                amount: agreement[0].amount,
+                KID: agreement[0].KID,
             }
         }
         else {
@@ -115,12 +149,78 @@ async function getByAvtalegiroKID(KID) {
     }
 }
 
+/**
+ * Returns all agreements with a given payment date
+ * @param {Date} date 
+ * @returns {Array<import("../../src/custom_modules/parsers/avtalegiro").AvtalegiroAgreement>}
+ */
+async function getByPaymentDate(dayInMonth) {
+    try {
+        var con = await pool.getConnection()
+
+        
+
+        let [agreements] = await con.query(`SELECT    
+            payment_date,
+            amount, 
+            KID
+            
+            FROM Avtalegiro_agreements 
+
+            WHERE payment_date = ? AND active = 1`, [dayInMonth])
+
+        con.release()
+        if (agreements.length > 0) {
+            return agreements.map((agreement) => (
+                {
+                    payment_date: agreement.payment_date,
+                    amount: agreement.amount,
+                    KID: agreement.KID,
+                }
+            ))
+        }
+        else {
+            return null
+        }
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
+ * Adds a new shipment row to db
+ * @param {Number} numClaims The number of claims in that shipment
+ * @returns {Number} The shipment nr.
+ */
+async function addShipment(numClaims) {
+    try {
+        var con = await pool.getConnection()
+        let [result] = await con.query(`INSERT INTO
+            Avtalegiro_shipment
+            
+            (num_claims) VALUES (?)`, [numClaims])
+
+        con.release()
+        return result.insertId
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
 module.exports = {
     add,
-    update,
+    setActive,
+    isActive,
+    updateNotification,
     remove,
-    avtaleGiroAgreementExists, 
-    getByAvtalegiroKID,
+    exists, 
+    getByKID,
+    getByPaymentDate,
+    addShipment,
 
     setup: (dbPool) => { pool = dbPool }
 }
