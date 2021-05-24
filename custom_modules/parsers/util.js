@@ -49,7 +49,7 @@ module.exports = {
         firstLine += amount;
 
         var KID = DAOagreement.KID;
-        KID.padStart(25, 0);
+        KID.padStart(25, " ");
         firstLine += KID;
         
         firstLine.padEnd(80, 0);

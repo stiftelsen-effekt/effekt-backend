@@ -51,19 +51,11 @@ router.post("/nets/complete", authMiddleware(authRoles.write_all_donations), asy
 
 router.post("/nets/avtalegiro", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
-    const files = await nets.getOCRFiles(); 
+    const latestOcrFile = await nets.getLatestOCRFile()
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      const fileBuffer = await nets.getOCRFile(file.name)
-      const parsed = avtalegiroParser.parse(fileBuffer.toString())
-      const result = await ocr.addDonations(parsed, META_OWNER_ID)
-      results.push(result)
-    }
+    const avtaleGiroFile = await avtalegiro.generateAvtaleGiroFile(latestOcrFile); 
 
-    const file = await avtalegiro.generateAvtaleGiroFile(files); 
-
-    await nets.sendOCRFile(file);
+    await nets.sendOCRFile(avtaleGiroFile);
     
     res.json(file)
   } catch(ex) {

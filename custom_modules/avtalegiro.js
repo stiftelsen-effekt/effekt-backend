@@ -31,7 +31,7 @@ async function generateAvtaleGiroFile(files) {
 
     if (agreement.terminated) {
       terminatedAgreements += `\n${parseUtil.getFirstAndSecondLine(DAOagreement, 93)}`
-      //ask håkon
+      //slette
       await DAO.avtalegiroagreements.remove(agreement.KID)
       totalTerminatedAgreements += 1;
       sumTerminatedAmounts += DAOagreement.amount;
@@ -55,7 +55,7 @@ async function generateAvtaleGiroFile(files) {
 
   avtaleGiroFile += getEndRecordAccountingData(88, totalActiveAgreements, sumActiveAmounts, latestActiveDate, earliestActiveDate)
 
-  avtaleGiroFile += getStartRecordAccountingData(36);
+  avtaleGiroFile += getStartRecordAccountingDataAndDeleted(36);
   avtaleGiroFile += terminatedAgreements;
   avtaleGiroFile += getEndRecordAccountingData(36, totalTerminatedAgreements, sumTerminatedAmounts, latestTerminatedDate, earliestTerminatedDate)
 
