@@ -518,6 +518,7 @@ module.exports = {
         // Real price is set in øre
         const realAmount = amount * 100
         const description = "Første belastning skjer umiddelbart"
+        const agreementUrlCode = hash(Math.random().toString())
 
         const data = {
             "currency": "NOK",
@@ -531,7 +532,7 @@ module.exports = {
             "intervalCount": 1,
             "isApp": false,
             "merchantRedirectUrl": `https://gieffektivt.no/vipps/recurring/confirmation`, // TODO: Create page
-            "merchantAgreementUrl": `https://gieffektivt.no/vipps/recurring/customer-agreement`, // TODO: Figure out login solution and create page
+            "merchantAgreementUrl": `https://gieffektivt.no/vipps/recurring/customer-agreement`,
             "price": realAmount,
             "productDescription": description,
             "productName": "Månedlig donasjon til gieffektivt.no"
@@ -547,7 +548,7 @@ module.exports = {
             /** @type {DraftRespone} */
             let response = draftRequest
 
-            let donor = await DAO.donors.getByKID(KID)
+            const donor = await DAO.donors.getByKID(KID)
 
             if (!donor) {
                 console.error(`No donor found with KID ${KID}`)
@@ -555,7 +556,7 @@ module.exports = {
             }
 
             // Amount in EffektDonasjonDB is stored in kroner, not øre 
-            await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, amount, "PENDING")
+            await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, amount, agreementUrlCode)
             await DAO.vipps.addCharge(response.chargeId, response.agreementId, amount, KID, new Date(), "RESERVED")
 
             this.pollAgreement(response.agreementId, response.chargeId)

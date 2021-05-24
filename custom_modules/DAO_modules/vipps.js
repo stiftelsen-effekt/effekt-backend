@@ -133,7 +133,7 @@ async function getRecentOrder() {
 }
 
 /**
- * Fetches an agreement by agreementId
+ * Fetches an agreement ID by agreementUrlCode
  * @property {string} agreementUrlCode The code used in the Vipps merchantAgreementUrl
  * @return {string} agreementId 
  */
@@ -256,7 +256,7 @@ async function addOrder(order) {
  * @param {"PENDING" | "ACTIVE" | "STOPPED" | "EXPIRED"} status Whether the agreement has been activated. Defaults to false
  * @return {boolean} Success or not
  */
-async function addAgreement(agreementID, donorID, KID, amount, status = "PENDING") {
+async function addAgreement(agreementID, donorID, KID, amount, agreementUrlCode, status = "PENDING") {
     let con = await pool.getConnection()
 
     const todaysDayOfMonth = String(new Date().getDate()).padStart(2, '0')
@@ -270,10 +270,10 @@ async function addAgreement(agreementID, donorID, KID, amount, status = "PENDING
     try {
         con.query(`
             INSERT INTO Vipps_agreements
-                (ID, donorID, KID, amount, chargeDayOfMonth, status)
+                (ID, donorID, KID, amount, chargeDayOfMonth, agreement_url_code, status)
             VALUES
-                (?,?,?,?,?,?)`, 
-            [agreementID, donorID, KID, amount, chargeDayOfMonth, status])
+                (?,?,?,?,?,?,?)`, 
+            [agreementID, donorID, KID, amount, chargeDayOfMonth, agreementUrlCode, status])
         con.release()
         return true
     }
@@ -445,7 +445,7 @@ async function updateAgreementStatus(agreementID, status) {
  * Updated status of a charge
  * @param {string} agreementID agreementID
  * @param {string} chargeID chargeID
- * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status The new status of the charge
+ * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} newStatus The new status of the charge
  */
  async function updateChargeStatus(newStatus, agreementID, chargeID) {
     let con = await pool.getConnection()

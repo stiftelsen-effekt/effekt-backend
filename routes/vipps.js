@@ -8,6 +8,7 @@ const config = require('../config')
 const DAO = require('../custom_modules/DAO')
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 const cron = require('node-cron')
+const hash = require('object-hash');
 
 const rounding = require("../custom_modules/rounding")
 const donationHelpers = require("../custom_modules/donationHelpers")
@@ -49,9 +50,16 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
 router.get("/agreement/urlcode/:urlcode", async (req, res, next) => {
     try {
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.params.urlcode)
+
+        if (!agreementId) {
+            let err = new Error("Can't find agreement")
+            err.status = 404
+            return next(err)
+        }
         
         // Synchronize agreements
         const responseVipps = await vipps.getAgreement(agreementId)
+
         await DAO.vipps.updateAgreementStatus(agreementId, responseVipps.status)
         await DAO.vipps.updateAgreementPrice(agreementId, responseVipps.price / 100)
 
@@ -71,8 +79,8 @@ router.get("/agreement/:id", async (req, res, next) => {
 
         // Synchronize agreements
         const responseVipps = await vipps.getAgreement(agreementId)
-        await vipps.DAO.updateAgreementStatus(agreementId, responseVipps.status)
-        await vipps.DAO.updateAgreementPrice(agreementId, responseVipps.price / 100)
+        await DAO.vipps.updateAgreementStatus(agreementId, responseVipps.status)
+        await DAO.vipps.updateAgreementPrice(agreementId, responseVipps.price / 100)
 
         const responseDAO = await DAO.vipps.getAgreement(agreementId)
         const response = {...responseVipps, ...responseDAO }
@@ -80,6 +88,17 @@ router.get("/agreement/:id", async (req, res, next) => {
 
         //TODO: Check for false
         res.json(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.put("/agreement/cancel/:urlcode", async (req, res, next) => {
+    try {
+        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.params.urlcode)
+        const response = await vipps.updateAgreementStatus(agreementId, "STOPPED")
+
+        res.send(response)
     } catch (ex) {
         next({ ex })
     }
@@ -134,8 +153,7 @@ router.put("/agreement/chargeday", jsonBody, async (req, res, next) => {
 
 router.put("/agreement/distribution", jsonBody, async (req, res, next) => {
     try {
-        // This route does not accept regular agreementId's
-        // Instead it uses the long agreement_url_codes to prevent guessing
+
         const agreementCode = req.body.agreementCode
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
         const donorId = await DAO.donors.getIDByAgreementCode(agreementCode)
@@ -216,6 +234,7 @@ router.post("/agreement/charge/refund", jsonBody, async (req, res, next) => {
         const chargeId = req.body.chargeId
 
         const response = await vipps.refundCharge(agreementId, chargeId)
+        if (response) await DAO.vipps.updateChargeStatus("REFUNDED", agreementId, chargeId)
 
         res.json(response)
     } catch (ex) {
@@ -437,7 +456,7 @@ function delay(t) {
  * Runs once per minute
 */
 cron.schedule('* * * * *', async () => {
-    await vipps.createFutureDueCharges()
+    //await vipps.createFutureDueCharges()
 });
 
 module.exports = router
