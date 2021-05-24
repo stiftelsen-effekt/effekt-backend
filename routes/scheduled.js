@@ -51,78 +51,21 @@ router.post("/nets/complete", authMiddleware(authRoles.write_all_donations), asy
 
 router.post("/nets/avtalegiro", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
-    let avtaleGiroFile = getStartRecordTransmission() + getStartRecordAccountingData(10);
-
-    //ask håkon about this part
-    const files = await nets.getOCRFiles()
+    const files = await nets.getOCRFiles(); 
 
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const fileBuffer = await nets.getOCRFile(file.name);
-      const agreementsArray = avtalegiro.parse(fileBuffer.toString());
-
-      let terminatedAgreements = "";
-      let dates = [];
-
-      let totalActiveAgreements = 0;
-      let sumActiveAmounts = 0; 
-      let activeDates = [];
-
-      let totalTerminatedAgreements = 0;
-      let sumTerminatedAmounts = 0; 
-      let terminatedDates = [];
-
-      agreementsArray.forEach(agreement => {
-        DAOagreement = DAO.avtalegiroagreements.getByAvtalegiroKID(agreement.KID)
-
-        if(agreement.terminated){
-          terminatedAgreements += `\n${getFirstAndSecondLine(DAOagreement, 93)}`
-          await DAO.avtalegiroagreements.remove(agreement.KID)
-          totalTerminatedAgreements += 1;
-          sumTerminatedAmounts += DAOagreement.amount;
-          terminatedDates.push(DAOagreement.payment_date);
-        } else {
-          avtaleGiroFile += getFirstAndSecondLine(DAOagreement, 02)
-          dates.push(new Date(DAOagreement.payment_date));
-          if(agreement.isAltered){
-            await DAO.avtalegiroagreements.update(agreement.KID, agreement.notice);
-          }
-          totalActiveAgreements += 1;
-          sumActiveAmounts += DAOagreement.amount;
-          activeDates.push(DAOagreement.payment_date);
-        }
-      });
-
-      var latestTerminatedDate=new Date(Math.max.apply(null,dates));
-      var earliestTerminatedDate=new Date(Math.min.apply(null,dates));
-
-      var latestActiveDate=new Date(Math.max.apply(null,dates));
-      var earliestActiveDate=new Date(Math.min.apply(null,dates));
-
-      avtaleGiroFile += getEndRecordAccountingData(88, totalActiveAgreements, sumActiveAmounts, latestActiveDate, earliestActiveDate)
-
-      avtaleGiroFile += getStartRecordAccountingData(36);
-      avtaleGiroFile += terminatedAgreements;
-      avtaleGiroFile += getEndRecordAccountingData(36, totalTerminatedAgreements, sumTerminatedAmounts, latestTerminatedDate, earliestTerminatedDate)
-
-      totalAgreements = totalActiveAgreements + totalTerminatedAgreements;
-      sumAmount = sumActiveAmounts + sumAmount;
-
-      var latestDate = (latestActiveDate >= latestTerminatedDate) ? latestActiveDate : latestTerminatedDate;
-      var earliestDate = (earliestActiveDate >= earliestTerminatedDate) ? earliestActiveDate : earliestTerminatedDate;
-
-      avtaleGiroFile += getEndRecordAccountingData(89, totalAgreements, sumTerminatedAmounts, sumAmount, latestDate, earliestDate)
-
-      fs.writeFile('mynewfile3.txt', avtaleGiroFile, function (err) {
-        if (err) throw err;
-      });
-      
-      //seems fair to do?, might wanna do it later on when its returned through ocr files idk
-      const result = await ocr.addDonations(parsed, META_OWNER_ID);
-      results.push(result);
+      const file = files[i]
+      const fileBuffer = await nets.getOCRFile(file.name)
+      const parsed = avtalegiroParser.parse(fileBuffer.toString())
+      const result = await ocr.addDonations(parsed, META_OWNER_ID)
+      results.push(result)
     }
 
-    res.json(results)
+    const file = await avtalegiro.generateAvtaleGiroFile(files); 
+
+    await nets.sendOCRFile(file);
+    
+    res.json(file)
   } catch(ex) {
     next({ex})
   }

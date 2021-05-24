@@ -39,7 +39,6 @@ module.exports = {
       },
       //make generic 
       getFirstAndSecondLine: function(DAOagreement, type) {
-
         TRANSNR
         var firstLine =`\nNY21${type}30-------`;
         firstLine += DAOagreement.payment_date;
@@ -62,7 +61,7 @@ module.exports = {
 
         secondLine.padEnd(80, 0);
 
-        lines = `${firstLine}\n${secondLine}`
+        lines = `${firstLine}${secondLine}`
         return lines
       },
 
