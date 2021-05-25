@@ -72,7 +72,7 @@ router.post("/nets", /* authMiddleware(authRoles.write_all_donations), */ async 
       updatedAgreements,
       notifiedAgreements,
       claimsFile: avtaleGiroClaimsFile,
-      latestOcrFile: latestOcrFile
+      latestOcrFile: latestOcrFile.toString()
     })
   } catch(ex) {
     next({ex})

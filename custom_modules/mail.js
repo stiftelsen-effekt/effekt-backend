@@ -340,7 +340,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
   }
   
   try {
-    split = await DAO.distributions.getSplitByKID(donation.KID)
+    split = await DAO.distributions.getSplitByKID(agreement.KID)
   } catch (ex) {
     console.error(`Failed to send mail AvtaleGiro claim notification, could not get donation split by KID ${agreement.KID}`)
     console.error(ex)
@@ -356,8 +356,8 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
       subject: `gieffektivt.no - Varsel trekk AvtaleGiro`,
       templateName: "avtalegironotice",
       templateData: { 
-          header: "Hei " + donor.firstname + ",",
-          agreementSum: agreement.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+          header: "Hei " + donor.name + ",",
+          agreementSum: (agreement.amount / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
           organizations: organizations
       }
     })

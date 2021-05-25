@@ -18,7 +18,7 @@ module.exports = {
      * @returns {Array<AvtalegiroAgreement>} An array of transactions
      */
     parse: function(data) {
-        var lines = data.split('\r\n')
+        var lines = data.split(/\r?\n/)
 
         var agreements = []
 
@@ -41,9 +41,13 @@ module.exports = {
 }
 
 class AvtalegiroAgreement {
+  /**
+   * Constructor
+   * @param {string} currLine 
+   */
   constructor(currLine) {
     this.fboNumber = parseInt(currLine.substr(8,7))
-    this.KID = parseInt(currLine.substr(16,26))
+    this.KID = parseInt(currLine.substr(16,25))
     this.notice = (currLine.substr(41,1) == 1)
     let registrationType = currLine.substr(15,1)
 

@@ -1,6 +1,7 @@
 const DAO = require('./DAO')
 const writer = require('./avtalegiro/filewriterutil')
 const mail = require('../custom_modules/mail')
+const config = require('../config')
 
 /**
  * Generates a claims file to claim payments for AvtaleGiro agreements
@@ -47,7 +48,7 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
 async function notifyAgreements(agreements) {
   //TODO: Remove or true
   if (config.env === 'production' || true) {
-    const tasks = agreements.map((agreement) => mail.sendAvtalegiroNotification(agreement.KID))
+    const tasks = agreements.map((agreement) => mail.sendAvtalegiroNotification(agreement))
     //Send mails in paralell
     const result = await Promise.allSettled(tasks)
     const failed = result.filter(task => task.status === 'rejected')
@@ -63,7 +64,8 @@ async function notifyAgreements(agreements) {
  * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} agreements Agreements parced from the file from nets 
  */
 async function updateAgreements(agreements) {
-  agreements.forEach(async (agreement) => {
+  for (let i = 0; i < agreements.length; i++) {
+    const agreement = agreements[i]
     /**
      * It's possible to ask for a complete listing of all the
      * agreements connected to the account. If we've done so
@@ -92,7 +94,7 @@ async function updateAgreements(agreements) {
         }
       }
     }
-  });
+  }
 }
 
 module.exports = {

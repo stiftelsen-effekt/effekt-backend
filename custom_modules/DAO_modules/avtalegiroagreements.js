@@ -43,7 +43,7 @@ async function updateNotification(KID, notice) {
     try {
         var con = await pool.getConnection()
 
-        let res = await con.query(`UPDATE avtalegiro_agreement SET notice = ? where KID = ?`, [notice, KID])
+        let res = await con.query(`UPDATE Avtalegiro_agreements SET notice = ? where KID = ?`, [notice, KID])
 
         con.release()
         return true
@@ -58,7 +58,7 @@ async function setActive(KID, active) {
     try {
         var con = await pool.getConnection()
 
-        let res = await con.query(`UPDATE avtalegiro_agreement SET active = ? where KID = ?`, [active, KID])
+        let res = await con.query(`UPDATE Avtalegiro_agreements SET active = ? where KID = ?`, [active, KID])
 
         con.release()
         return true
@@ -73,11 +73,11 @@ async function isActive(KID) {
     try {
         var con = await pool.getConnection()
 
-        let res = await con.query(`SELECT FROM avtalegiro_agreement active where KID = ?`, [KID])
+        let [res] = await con.query(`SELECT active FROM Avtalegiro_agreements active where KID = ?`, [KID])
 
         con.release()
 
-        if (res[0] == 1)
+        if (res[0].active == 1)
             return true
         else
             return false
@@ -107,7 +107,7 @@ async function exists(KID) {
     try {
         var con = await pool.getConnection()
 
-        var [res] = await con.query("SELECT * FROM Distribution WHERE KID = ? LIMIT 1", [KID])
+        var [res] = await con.query("SELECT * FROM Avtalegiro_agreements WHERE KID = ?", [KID])
 
         con.release()
         if (res.length > 0) return true
@@ -163,6 +163,7 @@ async function getByPaymentDate(dayInMonth) {
         let [agreements] = await con.query(`SELECT    
             payment_date,
             amount, 
+            notice,
             KID
             
             FROM Avtalegiro_agreements 
@@ -174,6 +175,7 @@ async function getByPaymentDate(dayInMonth) {
             return agreements.map((agreement) => (
                 {
                     payment_date: agreement.payment_date,
+                    notice: agreement.notice,
                     amount: agreement.amount,
                     KID: agreement.KID,
                 }
