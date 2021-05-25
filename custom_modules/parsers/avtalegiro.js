@@ -8,6 +8,7 @@ module.exports = {
      * @typedef AvtalegiroAgreement
      * @property {number} fboNumber
      * @property {string} KID
+     * @property {boolean} notice
      * @property {boolean} isAltered
      * @property {boolean} isTerminated
      */
@@ -44,13 +45,13 @@ class AvtalegiroAgreement{
   constructor(element) {
     this.fboNumber = parseInt(element.substr(8,7));
     this.KID = parseInt(element.substr(16,26));
-    this.notice = element.substr(41,1);
+    this.notice = (element.substr(41,1) == 1);
     let registrationType = element.substr(15,1);
 
     if (registrationType == 0) {
       /**
        * We can ask nets to list ALL of the active agreements on the account
-       * They will then get 0 as their 
+       * They will then get 0 as their registration type
        */
       this.totalReadout = true;
     }

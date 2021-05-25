@@ -232,7 +232,6 @@ async function sendDonationHistory(donorID) {
  * @param {number} year The year the tax deductions are counted for
  */
 async function sendTaxDeductions(taxDeductionRecord, year) {
-  
   try {
     await send({
       reciever: taxDeductionRecord.email,
@@ -245,6 +244,53 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
           ssn: taxDeductionRecord.ssn,
           year: year.toString(),
           nextYear: (year+1).toString()
+      }
+    })
+
+    return true
+  } catch(ex) {
+    console.error("Failed to tax deduction mail")
+    console.error(ex)
+    return ex.statusCode
+  }
+}
+
+/**
+ * Sends donors confirmation of their tax deductible donation for a given year
+ * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement 
+ * @returns {true | number} True if successfull, or an error code if failed
+ */
+ async function sendAvtalegiroNotification(agreement) {
+  let donor, split, organizations
+  
+  try {
+    donor = await DAO.donors.getByKID(agreement.KID)
+  } catch(ex) {
+    console.error(`Failed to send mail donation reciept, could not get donor form KID ${agreement.KID}`)
+    console.error(ex)
+    return false
+  }
+  
+  try {
+    split = await DAO.distributions.getSplitByKID(donation.KID)
+  } catch (ex) {
+    console.error(`Failed to send mail donation reciept, could not get donation split by KID ${agreement.KID}`)
+    console.error(ex)
+    return false
+  }
+
+  organizations = formatOrganizationsFromSplit(split, donation.sum)
+  
+  try {
+    await send({
+      reciever: donor.email,
+      subject: `gieffektivt.no - Varsel trekk avtalegiro`,
+      templateName: "avtalegironotice",
+      templateData: { 
+          header: "Hei " + donor.firstname + ",",
+          agreementSum: agreement.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+          fullname: donor.fullname,
+          organizations: organizations
       }
     })
 
@@ -342,5 +388,6 @@ module.exports = {
   sendDonationRegistered,
   sendDonationHistory,
   sendTaxDeductions,
+  sendAvtalegiroNotification,
   sendOcrBackup
 }
