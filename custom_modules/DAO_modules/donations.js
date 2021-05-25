@@ -1,6 +1,9 @@
 const sqlString = require('sqlstring')
 const distributions = require('./distributions.js')
 
+/**
+ * @type {import('mysql2/promise').Pool}
+ */
 var pool
 var DAO
 
@@ -241,6 +244,33 @@ async function getByID(donationID) {
 }
 
 /**
+ * Gets whether or not a donation has replaced inactive organizations
+ * @param {number} donationID 
+ * @returns {number} zero or one
+ */
+async function getHasReplacedOrgs(donationID) {
+    try {
+        var con = await pool.getConnection()
+
+        if (donationID) {
+            let [result] = await con.query(`
+                select Replaced_old_organizations from Donations as D
+                inner join Combining_table as CT on CT.KID = D.KID_fordeling
+                where Replaced_old_organizations = 1
+                and iD = ?
+            `, [donationID])
+
+            await con.release()
+            return result[0]?.Replaced_old_organizations || 0
+        }
+    } 
+    catch(ex) {
+        await con.release()
+        throw ex
+    }
+}
+
+/**
  * Fetches all the donations in the database for a given inclusive range. If passed two equal dates, returns given day.
  * @param {Date} [fromDate=1. Of January 2000] The date in which to start the selection, inclusive interval.
  * @param {Date} [toDate=Today] The date in which to end the selection, inclusive interval.
@@ -268,10 +298,8 @@ async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
                     (Donations.sum_confirmed*Distribution.percentage_share)/100 as actual_share 
 
                 FROM Donations
-                    INNER JOIN Combining_table 
-                        ON Donations.KID_fordeling = Combining_table.KID
-                    INNER JOIN Distribution 
-                        ON Combining_table.Distribution_ID = Distribution.ID
+                    INNER JOIN Distribution
+                        ON Donations.KID_fordeling = Distribution.KID
                     INNER JOIN Donors 
                         ON Donors.ID = Donations.Donor_ID
                     INNER JOIN Organizations 
@@ -390,10 +418,8 @@ async function getSummary(donorID) {
             Donations.Donor_ID
         
         FROM Donations
-            INNER JOIN Combining_table 
-                ON Combining_table.KID = Donations.KID_fordeling
             INNER JOIN Distribution 
-                ON Combining_table.Distribution_ID = Distribution.ID
+                ON Distribution.KID = Donations.KID_fordeling
             INNER JOIN Organizations 
                 ON Organizations.ID = Distribution.OrgID
         WHERE 
@@ -402,6 +428,20 @@ async function getSummary(donorID) {
         ORDER BY timestamp_confirmed DESC
          
         LIMIT 10000`, [donorID])
+
+        // SELECT
+        //     Organizations.full_name, 
+        //     (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, 
+        //     Donations.transaction_cost, 
+        //     Donations.Donor_ID
+        
+        // FROM EffektDonasjonDB_Dev.Donations
+        //     INNER JOIN EffektDonasjonDB_Dev.Distribution 
+        //         ON Distribution.KID = Donations.KID_fordeling
+        //     INNER JOIN EffektDonasjonDB_Dev.Organizations 
+        //         ON Organizations.ID = Distribution.OrgID
+        // WHERE 
+        //     Donations.Donor_ID = 341;
 
         const summary = []
         const map = new Map()
@@ -478,8 +518,7 @@ async function getHistory(donorID) {
                 (Donations.sum_confirmed * percentage_share / 100) as sum_distribution
             
             FROM Donations
-                INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
-                INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
+                INNER JOIN Distribution ON Distribution.KID = Donations.KID_fordeling
                 INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
 
             WHERE Donations.Donor_ID = ?
@@ -536,8 +575,10 @@ async function getHistory(donorID) {
 async function add(KID, paymentMethodID, sum, registeredDate = null, externalPaymentID = null, metaOwnerID = null) {
     try {
         var con = await pool.getConnection()
-        var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
+        //should maybe be from dsit?
+        var [donorIDQuery] = await con.query("SELECT Donor_ID FROM Distributions WHERE KID_fordeling = ? LIMIT 1", [KID])
 
+        // SELECT ID FROM Donations WHERE KID_fordeling = 16391823
         if (donorIDQuery.length != 1) { 
             throw new Error("NO_KID | KID " + KID + " does not exist");
         }
@@ -647,6 +688,7 @@ module.exports = {
     getAggregateByTime,
     getFromRange,
     getMedianFromRange,
+    getHasReplacedOrgs,
     getSummary,
     getSummaryByYear,
     getHistory,

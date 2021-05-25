@@ -25,6 +25,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     let KID = paypalCustomData[0]
     let wsClientID = paypalCustomData[1]
     let sum = parseFloat(req.body.mc_gross)
+    const paymentDate = new Date(req.body.payment_date)
     let transactionID = req.body.txn_id
 
     let paymentStatus = req.body.payment_status
@@ -50,7 +51,7 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
     if (verification == "VERIFIED" && paymentStatus === "Completed") {
         try {
             //Add donation
-            var donationID = await DAO.donations.add(KID, 3,sum, null, transactionID)
+            var donationID = await DAO.donations.add(KID, 3,sum, paymentDate, transactionID)
         } catch (ex) {
             console.error("Failed to update DB for paypal donation with KID: " + KID)
             console.error(ex)

@@ -268,7 +268,11 @@ router.post("/v2/payments/:orderId", jsonBody, async (req, res, next) => {
     //Handle different transactions states
     switch (transactionInfo.status) {
         case "RESERVED":
-            await vipps.captureOrder(orderId, transactionInfo)
+            try {
+                await vipps.captureOrder(orderId, transactionInfo)
+            } catch (ex) {
+                next(ex)
+            }
             break;
         case "SALE":
             //Not applicable POS sale
