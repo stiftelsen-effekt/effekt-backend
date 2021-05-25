@@ -1,7 +1,7 @@
 const serviceCodeEnum = require('../../enums/serviceCode')
 const transactionCodeEnum = require('../../enums/transactionCode')
 const recordTypeEnum = require('../../enums/recordType')
-const transactionCode = require('../../enums/transactionCode')
+const paymentMethodsEnum = require('../../enums/paymentMethods')
 
 const BANK_ID = 2
 
@@ -12,6 +12,7 @@ module.exports = {
      * @property {string} transactionID
      * @property {Date} date
      * @property {number} KID
+     * @property {import('../../enums/paymentMethods')} paymentMethod
      */
 
     /**
@@ -29,12 +30,12 @@ module.exports = {
                 let currLine = lines[i]; 
                 let nextLine = lines[i+1]; 
 
-                const serviceCode = currLine.substr(2,2);
-                const transactionCode = currLine.substr(4,2);
-                const recordType = currLine.substr(6,2);
+                const serviceCode = parseInt(currLine.substr(2,2))
+                const transactionCode = parseInt(currLine.substr(4,2))
+                const recordType = parseInt(currLine.substr(6,2))
 
                 if(serviceCode == serviceCodeEnum.ocr && (transactionCode == transactionCodeEnum.btg || transactionCode == transactionCodeEnum.avtalegiro) && recordType == recordTypeEnum.post1){ 
-                    this.transactions.push(new OCRTransaction(element, nextLine));
+                    this.transactions.push(new OCRTransaction(currLine, nextLine, transactionCode));
                 }
             }
         }
@@ -44,12 +45,13 @@ module.exports = {
 }
 
   class OCRTransaction{
-    constructor(element, nextline) {
-      this.number = element.substr(8,7);
+    constructor(currLine, nextline, transactionCode) {
+      this.transactionCode = transactionCode
+      this.number = currLine.substr(8,7);
   
-      let year = element.substr(19,2);
-      let month = element.substr(17,2);
-      let day = element.substr(15,2);
+      let year = currLine.substr(19,2);
+      let month = currLine.substr(17,2);
+      let day = currLine.substr(15,2);
       const date = new Date(
         parseInt("20" + year),
         parseInt(month)-1,
@@ -57,15 +59,21 @@ module.exports = {
       );
   
       this.date = date;
-      this.amount = parseInt(element.substr(32, 17)) / 100;
-      this.kid = parseInt(element.substr(49, 25));
+      this.amount = parseInt(currLine.substr(32, 17)) / 100;
+      this.KID = parseInt(currLine.substr(49, 25));
   
       const archivalReference = nextline.substr(25, 9);
       const transactionRunningNumber = parseInt(nextline.substr(9,6));
       const transactionID = day + month + year + "." + archivalReference + transactionRunningNumber;
     
       this.transactionID = transactionID;
-      this.paymentID = BANK_ID;
+
+      if (transactionCode == transactionCodeEnum.btg)
+        this.paymentMethod = paymentMethodsEnum.bank
+      else if (transactionCode == transactionCodeEnum.avtalegiro)
+        this.paymentMethod = paymentMethodsEnum.avtalegiro
+      else
+        throw new Error(`Unknown transaction code ${transactionCode}`)
     }
   }
    

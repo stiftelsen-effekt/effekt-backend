@@ -7,12 +7,15 @@ const nets = require('../custom_modules/nets')
 const avtalegiroParser = require('../custom_modules/parsers/avtalegiro')
 const avtalegiro = require('../custom_modules/avtalegiro')
 const DAO = require('../custom_modules/DAO')
-const mail = require('../custom_modules/mail')
 const luxon = require('luxon')
+
+//TODO: Remove after testing
+const fs = require('fs')
 
 const META_OWNER_ID = 3
 
-router.post("/nets", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
+//TODO: Turn on access control
+router.post("/nets", /* authMiddleware(authRoles.write_all_donations), */ async (req,res, next) => {
   try {
     let today = luxon.DateTime.fromJSDate(new Date())
     let inThreeDays = today.plus(luxon.Duration.fromObject({ days: 3 }))
@@ -24,44 +27,51 @@ router.post("/nets", authMiddleware(authRoles.write_all_donations), async (req,r
      * It also contains information about created, updated and deleted avtalegiro
      * agreements.
      */
-    const latestOcrFile = await nets.getLatestOCRFile()
+    // const latestOcrFile = await nets.getLatestOCRFile()
+    const latestOcrFile = fs.readFileSync('~/Documents/OcrInFile.dat')
 
     /**
      * Parse incomming transactions and add them to the database
      */
     const parsedTransactions = ocrParser.parse(latestOcrFile.toString())
-    const result = await ocr.addDonations(parsedTransactions, META_OWNER_ID)
+
+    // Results are added in paralell to the database
+    // Alongside sending donation reciepts
+    const addedDonations = await ocr.addDonations(parsedTransactions, META_OWNER_ID)
 
     /**
-     * Parse changes in avtalegiro agreements and update database
+     * Parse avtalegiro agreement updates from file and update database
      */
     const parsedAgreements = avtalegiroParser.parse(latestOcrFile.toString())
-    await avtalegiro.updateAgreements(parsedAgreements)
+    const updatedAgreements = await avtalegiro.updateAgreements(parsedAgreements)
 
     /**
      * Notify all with agreements that are to be charged in three days
      */
     const comingAgreements = await DAO.avtalegiroagreements.getByPaymentDate(inThreeDays.day)
     const agreementsToBeNotified = comingAgreements.filter(agreement => agreement.notice == true)
-    for (let i = 0; i < agreementsToBeNotified.length; i++) {
-      const tasks = agreementsToBeNotified.map((agreement) => mail.sendAvtalegiroNotification(agreement.KID))
-      //Send mails in paralell
-      await Promise.all(tasks)
-    }
+    const notifiedAgreements = await avtaleGiro.noifyAgreements(agreementsToBeNotified)
 
     /**
      * Create file to charge agreements for current day
      */
     const agreementsToCharge = await DAO.avtalegiroagreements.getByPaymentDate(today.day)
     const shipmentID = await DAO.avtalegiroagreements.addShipment(agreementsToCharge.length)
-    const avtaleGiroFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreementsToCharge)
+    const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreementsToCharge)
 
     /**
      * Send file to nets
      */
-    await nets.sendOCRFile(avtaleGiroFile)    
+    //TODO: Decide filename
+    //await nets.sendOCRFile(avtaleGiroFile)
 
-    res.json(result)
+    res.json({
+      addedDonations,
+      updatedAgreements,
+      notifiedAgreements,
+      claimsFile: avtaleGiroClaimsFile,
+      latestOcrFile: latestOcrFile
+    })
   } catch(ex) {
     next({ex})
   }

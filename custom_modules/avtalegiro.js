@@ -1,192 +1,64 @@
 const DAO = require('./DAO')
-const config = require('../config')
-const luxon = require('luxon')
+const writer = require('./avtalegiro/filewriterutil')
+const mail = require('../custom_modules/mail')
 
+/**
+ * Generates a claims file to claim payments for AvtaleGiro agreements
+ * @param {number} shipmentID A shipment ID from the database
+ * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} paymentClaims Agreements that we should claim payment from
+ * @returns {string} The file contents
+ */
 async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
   let fileContents = ''
 
-  fileContents += getStartRecordTransmission(shipmentID)
+  fileContents += writer.startRecordTransmission(shipmentID)
   
   /**
    * Claim requests
    */
-  fileContents += getStartRecordPaymentClaims()
+  fileContents += writer.startRecordPaymentClaims()
 
   for (let transactionNumber = 0; transactionNumber < paymentClaims.length; transactionNumber++) {
     const claim = paymentClaims[transactionNumber]
-    fileContents += await getFirstAndSecondLine(claim, "02", transactionNumber)
+    const donor = await DAO.donors.getByKID(claim.KID)
+    fileContents += writer.firstAndSecondLine(claim, donor, "02", transactionNumber)
   }
 
-  fileContents += getEndRecordPaymentClaims(paymentClaims)
+  fileContents += writer.endRecordPaymentClaims(paymentClaims)
 
   /**
    * Deletion requests
    * Currently not utilized
    */
-  fileContents += getStartRecordDeletionRequest()
-  fileContents += getEndRecordDeletionRequest()
+  fileContents += writer.startRecordDeletionRequest()
+  fileContents += writer.endRecordDeletionRequest()
 
-  fileContents += getEndRecordTransmission(paymentClaims)
+  fileContents += writer.endRecordTransmission(paymentClaims)
 
   return fileContents
 }
 
-function getStartRecordTransmission(shipmentID) { 
-  //TODO: Use config
-  //let customerId = config.nets_customer_id;
-  let customerId = '00230456';
-
-  var line = `NY000010${customerId.padStart(8,'0')}${shipmentID.toString().padStart(7,'0')}00008080`
-  line = line.padEnd(80, '0')
-  line += '\n'
-  return line;
+/**
+ * Takes in agreements with a claim date three days from now
+ * We are required to notify those who have chosen to be notified
+ * three days in advance of any claims.
+ * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} agreements Agreements to notify
+ */
+async function notifyAgreements(agreements) {
+  const tasks = agreements.map((agreement) => mail.sendAvtalegiroNotification(agreement.KID))
+  //Send mails in paralell
+  const result = await Promise.allSettled(tasks)
+  const failed = result.filter(task => task.status === 'rejected')
+  for (let i = 0; i < failed.length; i++) {
+    console.error(`Failed to send an AvtaleGiro notification ${failed[i].reason}`)
+  }
 }
 
-function getStartRecordPaymentClaims() {
-  var line =`NY210020`
-  line = line.padEnd(17, '0')
-  // Oppdragsnr.
-  line += '1'.padStart(7, '0')
-  // Accountnr.
-  line += '15062995960'
-  line = line.padEnd(80, '0')
-
-  line += '\n'
-  return line
-}
-
-
-async function getFirstAndSecondLine(agreement, type, transactionNumber) {
-  /**
-   * First line
-   */
-  var firstLine =`NY21${type}30${transactionNumber.toString().padStart(7,'0')}`
-  let agreementDate = luxon.DateTime.fromJSDate(new Date())
-  firstLine += agreementDate.toFormat("ddLLyy")
-  firstLine = firstLine.padEnd(32, '0')
-
-  var amount = agreement.amount
-  amount = amount.toString().padStart(17, '0')
-  firstLine += amount
-
-  var KID = agreement.KID
-  KID = KID.toString().padStart(25, ' ')
-  firstLine += KID
-  
-  firstLine = firstLine.padEnd(80, '0')
-  firstLine += '\n'
-
-  /**
-   * Second line
-   */
-  
-  //TODO: Trouble with distribution and combining table must be fixed
-  /*
-  const donor = await DAO.donors.getByKID(agreement.KID)
-  const shortname = donor.name.toUpperCase().substr(0,10).replace(/\s+/g, '').padStart(10, 0)
-  */
-  const shortname = 'Håkon Harnes'.toUpperCase().substr(0,10).replace(/\s+/g, '').padStart(10, 0)
-
-  var secondLine =`NY210231${transactionNumber.toString().padStart(7,'0')}${shortname}`
-
-  secondLine = secondLine.padEnd(80, '0')
-
-  /**
-   * Combine lines
-   */
-  lines = `${firstLine}${secondLine}`
-  lines += '\n'
-  return lines
-}
-
-function getEndRecordPaymentClaims(claims) {
-  var line =`NY210088`
-
-  //Number of transactions
-  line += claims.length.toString().padStart(8,'0')
-
-  //Number of records, including start and end record
-  line += (claims.length*2+2).toString().padStart(8,'0')
-
-  //Sum of payment claims
-  line += claims.reduce((acc, claim) => acc += claim.amount, 0).toString().padStart(17, '0')
-
-  const today = luxon.DateTime.fromJSDate(new Date()).toFormat("ddLLyy")
-
-  //Min day
-  line += today
-
-  //Max day
-  line += today
-
-  line = line.padEnd(80, '0')
-  line += '\n'
-  return line
-}
-
-function getStartRecordDeletionRequest() {
-  var line =`NY213620`
-  line = line.padEnd(17, '0')
-  // Oppdragsnr.
-  line += '2'.padStart(7, '0')
-  // Accountnr.
-  line += '15062995960'
-  line = line.padEnd(80, '0')
-
-  line += '\n'
-  return line
-}
-
-function getEndRecordDeletionRequest() {
-  var line =`NY210088`
-
-  //Number of transactions
-  line += '0'.padStart(8,'0')
-
-  //Number of records, including start and end record
-  line += '2'.padStart(8,'0')
-
-  //Sum of deletion requests amount
-  line += '0'.padStart(17, '0')
-
-  const today = luxon.DateTime.fromJSDate(new Date()).toFormat("ddLLyy")
-
-  //Min day
-  line += today
-
-  //Max day
-  line += today
-
-  line = line.padEnd(80, '0')
-  line += '\n'
-  return line
-}
-
-function getEndRecordTransmission(claims) {
-  var line =`NY000089`
-
-  //Number of transactions
-  line += claims.length.toString().padStart(8,'0')
-
-  //Number of records, including start and end record
-  line += (claims.length*2+6).toString().padStart(8,'0')
-
-  //Sum of payment claims
-  line += claims.reduce((acc, claim) => acc += claim.amount, 0).toString().padStart(17, '0')
-
-  const today = luxon.DateTime.fromJSDate(new Date()).toFormat("ddLLyy")
-
-  //Min day
-  line += today
-
-  //Max day
-  line += today
-
-  line = line.padEnd(80, '0')
-  line += '\n'
-  return line
-}
-
+/**
+ * Takes in agreements recieved on the OCR file
+ * They may either need to be created, updated or deleted
+ * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} agreements Agreements parced from the file from nets 
+ */
 async function updateAgreements(agreements) {
   agreements.forEach(async (agreement) => {
     /**
@@ -222,5 +94,6 @@ async function updateAgreements(agreements) {
 
 module.exports = {
   generateAvtaleGiroFile,
+  notifyAgreements,
   updateAgreements
 }

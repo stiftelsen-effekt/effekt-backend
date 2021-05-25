@@ -324,7 +324,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
 }
 
 /**
- * Sends donors confirmation of their tax deductible donation for a given year
+ * Sends donors with avtalegiro agreement a notification of an upcomming claim
  * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement 
  * @returns {true | number} True if successfull, or an error code if failed
  */
@@ -334,7 +334,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
   try {
     donor = await DAO.donors.getByKID(agreement.KID)
   } catch(ex) {
-    console.error(`Failed to send mail donation reciept, could not get donor form KID ${agreement.KID}`)
+    console.error(`Failed to send mail AvtaleGiro claim notification, could not get donor form KID ${agreement.KID}`)
     console.error(ex)
     return false
   }
@@ -342,29 +342,29 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
   try {
     split = await DAO.distributions.getSplitByKID(donation.KID)
   } catch (ex) {
-    console.error(`Failed to send mail donation reciept, could not get donation split by KID ${agreement.KID}`)
+    console.error(`Failed to send mail AvtaleGiro claim notification, could not get donation split by KID ${agreement.KID}`)
     console.error(ex)
     return false
   }
 
-  organizations = formatOrganizationsFromSplit(split, donation.sum)
+  // Agreement amount is stored in øre
+  organizations = formatOrganizationsFromSplit(split, (agreement.amount/100))
   
   try {
     await send({
       reciever: donor.email,
-      subject: `gieffektivt.no - Varsel trekk avtalegiro`,
+      subject: `gieffektivt.no - Varsel trekk AvtaleGiro`,
       templateName: "avtalegironotice",
       templateData: { 
           header: "Hei " + donor.firstname + ",",
           agreementSum: agreement.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-          fullname: donor.fullname,
           organizations: organizations
       }
     })
 
     return true
   } catch(ex) {
-    console.error("Failed to tax deduction mail")
+    console.error("Failed to send AvtaleGiro claim notification")
     console.error(ex)
     return ex.statusCode
   }
