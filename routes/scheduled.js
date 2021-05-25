@@ -16,7 +16,7 @@ const META_OWNER_ID = 3
 /**
  * Triggered every day by a google cloud scheduler webhook at 20:00
  */
-router.post("/nets", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
+router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
     /**
      * Fetch the latest OCR file
@@ -84,12 +84,12 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
     /**
     * Send file to nets
     */
-    const filename = shipmentid.toString().padStart(9, '0')
+    const filename = shipmentID.toString().padStart(9, '0')
     await nets.sendFile(avtaleGiroClaimsFile, filename)
 
     res.json({
       notifiedAgreements,
-      avtaleGiroClaimsFile
+      claimsFile: avtaleGiroClaimsFile.toString()
     })
   } catch(ex) {
     next({ex})

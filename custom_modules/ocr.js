@@ -56,7 +56,6 @@ module.exports = {
   async addDonation(transaction, metaOwnerID) {
     try {
       let donationID = await DAO.donations.add(transaction.KID, transaction.paymentMethod, transaction.amount, transaction.date, transaction.transactionID, metaOwnerID)
-      valid++
       if (config.env === 'production') await mail.sendDonationReciept(donationID)
       return true
     } catch (ex) {

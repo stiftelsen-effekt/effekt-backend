@@ -36,7 +36,7 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
 
   fileContents += writer.endRecordTransmission(paymentClaims)
 
-  const fileBuffer = Buffer.from(avtaleGiroClaimsFile, 'utf8')
+  const fileBuffer = Buffer.from(fileContents, 'utf8')
 
   return fileBuffer
 }
