@@ -152,7 +152,7 @@ async function getByKID(KID) {
 /**
  * Returns all agreements with a given payment date
  * @param {Date} date 
- * @returns {Array<import("../../src/custom_modules/parsers/avtalegiro").AvtalegiroAgreement>}
+ * @returns {Array<import("../parsers/avtalegiro").AvtalegiroAgreement>}
  */
 async function getByPaymentDate(dayInMonth) {
     try {
