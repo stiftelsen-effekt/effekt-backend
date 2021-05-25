@@ -24,8 +24,6 @@ module.exports = async (req, res, next) => {
             if(agreement.isAltered){
                 if(await DAO.distributions.KIDexists(agreement.KID)){
                     await DAO.avtalegiroagreements.update(agreement.KID, agreement.notice)
-                } else{
-                    //TODO:
                 }
             } else if (agreement.isTerminated){
                 await DAO.avtalegiroagreements.remove(agreement.KID)
