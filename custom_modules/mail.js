@@ -14,15 +14,15 @@ const fs = require('fs-extra')
 */
 async function sendDonationReciept(donationID, reciever = null) {
     try {
-        var donation = await DAO.donations.getByID(donationID)
-        if (!donation.email)  {
-          console.error("No email provided for donation ID " + donationID)
-          return false
-        }
-    } catch(ex) {
-        console.error("Failed to send mail donation reciept, could not get donation by ID")
-        console.error(ex)
+      var donation = await DAO.donations.getByID(donationID)
+      if (!donation.email)  {
+        console.error("No email provided for donation ID " + donationID)
         return false
+      }
+    } catch(ex) {
+      console.error("Failed to send mail donation reciept, could not get donation by ID")
+      console.error(ex)
+      return false
     }
 
     try {
@@ -30,6 +30,13 @@ async function sendDonationReciept(donationID, reciever = null) {
     } catch (ex) {
       console.error("Failed to send mail donation reciept, could not get donation split by KID")
       console.error(ex)
+      return false
+    }
+
+    try {
+      var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID)
+    } catch(ex) {
+      console.log(ex)
       return false
     }
 
@@ -46,7 +53,9 @@ async function sendDonationReciept(donationID, reciever = null) {
             donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: decideUIPaymentMethod(donation.method)
+            paymentMethod: decideUIPaymentMethod(donation.method),
+            //Adds a message to donations with inactive organizations
+            hasReplacedOrgs
         }
       })
 
@@ -56,7 +65,6 @@ async function sendDonationReciept(donationID, reciever = null) {
       console.error(ex)
       return ex.statusCode
     }
-    
 }
 
 /**
@@ -85,6 +93,13 @@ async function sendEffektDonationReciept(donationID, reciever = null) {
         return false
     }
 
+    try {
+      var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID)
+    } catch(ex) {
+      console.log(ex)
+      return false
+    }
+
     let organizations = formatOrganizationsFromSplit(split, donation.sum)
 
     try {
@@ -98,7 +113,9 @@ async function sendEffektDonationReciept(donationID, reciever = null) {
             donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: decideUIPaymentMethod(donation.method)
+            paymentMethod: decideUIPaymentMethod(donation.method),
+            //Adds a message to donations with inactive organizations
+            hasReplacedOrgs
         }
         })
 
@@ -314,7 +331,6 @@ async function sendDonationHistory(donorID) {
  * @param {number} year The year the tax deductions are counted for
  */
 async function sendTaxDeductions(taxDeductionRecord, year) {
-  
   try {
     await send({
       reciever: taxDeductionRecord.email,
@@ -333,6 +349,53 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
     return true
   } catch(ex) {
     console.error("Failed to tax deduction mail")
+    console.error(ex)
+    return ex.statusCode
+  }
+}
+
+/**
+ * Sends donors with avtalegiro agreement a notification of an upcomming claim
+ * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement 
+ * @returns {true | number} True if successfull, or an error code if failed
+ */
+ async function sendAvtalegiroNotification(agreement) {
+  let donor, split, organizations
+  
+  try {
+    donor = await DAO.donors.getByKID(agreement.KID)
+  } catch(ex) {
+    console.error(`Failed to send mail AvtaleGiro claim notification, could not get donor form KID ${agreement.KID}`)
+    console.error(ex)
+    return false
+  }
+  
+  try {
+    split = await DAO.distributions.getSplitByKID(agreement.KID)
+  } catch (ex) {
+    console.error(`Failed to send mail AvtaleGiro claim notification, could not get donation split by KID ${agreement.KID}`)
+    console.error(ex)
+    return false
+  }
+
+  // Agreement amount is stored in øre
+  organizations = formatOrganizationsFromSplit(split, (agreement.amount/100))
+  
+  try {
+    await send({
+      reciever: donor.email,
+      subject: `gieffektivt.no - Varsel trekk AvtaleGiro`,
+      templateName: "avtalegironotice",
+      templateData: { 
+          header: "Hei " + donor.name + ",",
+          agreementSum: (agreement.amount / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+          organizations: organizations
+      }
+    })
+
+    return true
+  } catch(ex) {
+    console.error("Failed to send AvtaleGiro claim notification")
     console.error(ex)
     return ex.statusCode
   }
@@ -426,5 +489,6 @@ module.exports = {
   sendDonationHistory,
   sendFacebookTaxConfirmation,
   sendTaxDeductions,
+  sendAvtalegiroNotification,
   sendOcrBackup
 }
