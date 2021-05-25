@@ -135,7 +135,7 @@ function formatOrganizationsFromSplit(split, sum) {
 /** 
  * @param {number} KID 
 */
-async function sendDonationRegistered(KID) {
+async function sendDonationRegistered(KID, sum) {
     try {
       try {
         var donor = await DAO.donors.getByKID(KID)
@@ -174,7 +174,8 @@ async function sendDonationRegistered(KID) {
           //Add thousand seperator regex at end of amount
           kid: KIDstring,
           accountNumber: config.bankAccount,
-          organizations: organizations
+          organizations: organizations,
+          sum: formatCurrency(sum)
         }
       })
 
