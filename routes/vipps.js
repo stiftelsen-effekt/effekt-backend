@@ -8,13 +8,10 @@ const config = require('../config')
 const DAO = require('../custom_modules/DAO')
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 const cron = require('node-cron')
-const hash = require('object-hash');
-
+const mail = require('../custom_modules/mail')
 const rounding = require("../custom_modules/rounding")
 const donationHelpers = require("../custom_modules/donationHelpers")
 const vipps = require('../custom_modules/vipps')
-
-const paymentMethods = require('../enums/paymentMethods')
 const authorizationRoles = require('../enums/authorizationRoles')
 
 const vippsCallbackProdServers = ["callback-1.vipps.no", "callback-2.vipps.no", "callback-3.vipps.no", "callback-4.vipps.no"]
@@ -235,6 +232,29 @@ router.post("/agreement/charge/refund", jsonBody, async (req, res, next) => {
 
         const response = await vipps.refundCharge(agreementId, chargeId)
         if (response) await DAO.vipps.updateChargeStatus("REFUNDED", agreementId, chargeId)
+
+        res.json(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
+    try {
+        const agreementCode = req.body.agreementCode
+        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
+        const agreement = await DAO.vipps.getAgreement(agreementId)
+        const donor = await DAO.donors.getByID(agreement.donorID)
+        const email = donor.email
+
+        if (!email) {
+            res.sendStatus(404)
+            return false
+        }
+
+        const change = req.body.change
+        const newValue = req.body.newValue
+        const response = await mail.sendVippsAgreementChange(email, change, newValue)
 
         res.json(response)
     } catch (ex) {

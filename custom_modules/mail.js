@@ -238,11 +238,20 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
 
 /** 
  * @param {string} email 
- * @param {string} change What was changed
- * @param {string} newValue New value of what was changed
+ * @param {"PAUSED" | "CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
+ * @param {string} newValue New value of what was changed (if applicable)
 */
-async function sendVippsAgreementChange(email, change, newValue) {
+async function sendVippsAgreementChange(email, change, newValue = "") {
   try {
+    const donorID = await DAO.donors.getIDbyEmail(email)
+    const donor = await DAO.donors.getByID(donorID)
+    let organizations = []
+
+    if (change === "SHARES") {
+      const split = await DAO.distributions.getSplitByKID(newValue)
+      organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
+    }
+
     try {
     } catch(ex) {
       console.error("Failed to send mail donation reciept, could not get donor by id")
@@ -251,13 +260,14 @@ async function sendVippsAgreementChange(email, change, newValue) {
     }
 
     await send({
-      subject: 'gieffektivt.no - Din Vipps-avtale har blitt endret',
+      subject: 'gieffektivt.no - Din betalingsavtale via Vipps har blitt endret',
       reciever: email,
-      templateName: 'facebookTaxConfirmation',
+      templateName: 'vippsAgreementChange',
       templateData: {
-        header: "Hei, " + fullName,
+        header: "Hei, " + donor.full_name,
         change,
-        newValue
+        newValue: change === "AMOUNT" ? formatCurrency(newValue) : newValue,
+        organizations
       }
     })
 
@@ -519,6 +529,7 @@ module.exports = {
   sendEffektDonationReciept,
   sendDonationRegistered,
   sendDonationHistory,
+  sendVippsAgreementChange,
   sendFacebookTaxConfirmation,
   sendTaxDeductions,
   sendAvtalegiroNotification,
