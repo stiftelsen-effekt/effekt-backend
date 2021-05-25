@@ -144,7 +144,7 @@ function getEndRecordDeletionRequest() {
   line += '0'.padStart(8,'0')
 
   //Number of records, including start and end record
-  line += '0'.padStart(8,'0')
+  line += '2'.padStart(8,'0')
 
   //Sum of deletion requests amount
   line += '0'.padStart(17, '0')
