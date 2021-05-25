@@ -62,7 +62,7 @@ router.post("/nets", authMiddleware(authRoles.write_all_donations), async (req,r
 /**
  * Triggered by a google cloud scheduler webhook every day at 10:00
  */
-router.post("/nets/avtalegiro", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   try {
     let today = luxon.DateTime.fromJSDate(new Date())
     let inThreeDays = today.plus(luxon.Duration.fromObject({ days: 3 }))
