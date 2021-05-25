@@ -14,7 +14,7 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
 
   for (let transactionNumber = 0; transactionNumber < paymentClaims.length; transactionNumber++) {
     const claim = paymentClaims[transactionNumber]
-    fileContents += await getFirstAndSecondLine(claim, 02, transactionNumber)
+    fileContents += await getFirstAndSecondLine(claim, "02", transactionNumber)
   }
 
   fileContents += getEndRecordPaymentClaims(paymentClaims)
@@ -60,17 +60,17 @@ async function getFirstAndSecondLine(agreement, type, transactionNumber) {
   /**
    * First line
    */
-  var firstLine =`NY21${type}30${transactionNumber.toString().padStart(7,'0')}`
+  var firstLine =`NY21${type}30${transactionNumber.padStart(7,'0')}`
   let agreementDate = luxon.DateTime.fromJSDate(new Date())
   firstLine += agreementDate.toFormat("ddLLyy")
   firstLine = firstLine.padEnd(32, '0')
 
   var amount = agreement.amount
-  amount.toString().padStart(17, '0')
+  amount = amount.toString().padStart(17, '0')
   firstLine += amount
 
   var KID = agreement.KID
-  KID.toString().padStart(25, " ")
+  KID = KID.toString().padStart(25, " ")
   firstLine += KID
   
   firstLine = firstLine.padEnd(80, '0')
