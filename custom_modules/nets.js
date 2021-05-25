@@ -52,9 +52,9 @@ async function getLatestOCRFile() {
   return buffer
 }
 
-async function sendOCRFile(file) {
+async function sendFile(file, filename) {
  const connection = await getConnection()
- const buffer = await connection.put(file, `/Inbound`)
+ const buffer = await connection.put(file, `/Inbound/${filename}`)
  connection.end()
 
  await mail.sendOcrBackup(buffer)
@@ -83,5 +83,5 @@ module.exports = {
   getOCRFiles,
   getOCRFile,
   getLatestOCRFile,
-  sendOCRFile
+  sendFile
 }

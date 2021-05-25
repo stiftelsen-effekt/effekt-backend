@@ -46,8 +46,7 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
  * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} agreements Agreements to notify
  */
 async function notifyAgreements(agreements) {
-  //TODO: Remove or true
-  if (config.env === 'production' || true) {
+  if (config.env === 'production') {
     const tasks = agreements.map((agreement) => mail.sendAvtalegiroNotification(agreement))
     //Send mails in paralell
     const result = await Promise.allSettled(tasks)

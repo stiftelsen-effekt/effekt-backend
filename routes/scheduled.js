@@ -11,13 +11,9 @@ const avtalegiro = require('../custom_modules/avtalegiro')
 const DAO = require('../custom_modules/DAO')
 const luxon = require('luxon')
 
-//TODO: Remove after testing
-const fs = require('fs')
-
 const META_OWNER_ID = 3
 
-//TODO: Turn on access control
-router.post("/nets", /* authMiddleware(authRoles.write_all_donations), */ async (req,res, next) => {
+router.post("/nets", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
     let today = luxon.DateTime.fromJSDate(new Date())
     let inThreeDays = today.plus(luxon.Duration.fromObject({ days: 3 }))
@@ -29,8 +25,7 @@ router.post("/nets", /* authMiddleware(authRoles.write_all_donations), */ async 
      * It also contains information about created, updated and deleted avtalegiro
      * agreements.
      */
-    // const latestOcrFile = await nets.getLatestOCRFile()
-    const latestOcrFile = fs.readFileSync('/Users/hakonharnes/Documents/OcrInFile.dat')
+    const latestOcrFile = await nets.getLatestOCRFile()
 
     /**
      * Parse incomming transactions and add them to the database
@@ -64,8 +59,7 @@ router.post("/nets", /* authMiddleware(authRoles.write_all_donations), */ async 
     /**
      * Send file to nets
      */
-    //TODO: Decide filename
-    //await nets.sendOCRFile(avtaleGiroFile)
+    await nets.sendFile(Buffer.from(avtaleGiroClaimsFile, 'utf8'), shipmentid.toString().padStart(9, '0'))
 
     res.json({
       addedDonations,

@@ -57,8 +57,7 @@ module.exports = {
     try {
       let donationID = await DAO.donations.add(transaction.KID, transaction.paymentMethod, transaction.amount, transaction.date, transaction.transactionID, metaOwnerID)
       valid++
-      //TODO: Remove or true
-      if (config.env === 'production' || true) await mail.sendDonationReciept(donationID)
+      if (config.env === 'production') await mail.sendDonationReciept(donationID)
       return true
     } catch (ex) {
       //Only return a failed if it failed because the donation exists
