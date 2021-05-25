@@ -1,6 +1,9 @@
 const sqlString = require('sqlstring')
 const distributions = require('./distributions.js')
 
+/**
+ * @type {import('mysql2/promise').Pool}
+ */
 var pool
 var DAO
 
@@ -295,6 +298,33 @@ async function getByID(donationID) {
         return donation
     } catch(ex) {
         con.release()
+        throw ex
+    }
+}
+
+/**
+ * Gets whether or not a donation has replaced inactive organizations
+ * @param {number} donationID 
+ * @returns {number} zero or one
+ */
+async function getHasReplacedOrgs(donationID) {
+    try {
+        var con = await pool.getConnection()
+
+        if (donationID) {
+            let [result] = await con.query(`
+                select Replaced_old_organizations from Donations as D
+                inner join Combining_table as CT on CT.KID = D.KID_fordeling
+                where Replaced_old_organizations = 1
+                and iD = ?
+            `, [donationID])
+
+            await con.release()
+            return result[0]?.Replaced_old_organizations || 0
+        }
+    } 
+    catch(ex) {
+        await con.release()
         throw ex
     }
 }
@@ -717,6 +747,7 @@ module.exports = {
     getAggregateByTime,
     getFromRange,
     getMedianFromRange,
+    getHasReplacedOrgs,
     getSummary,
     getSummaryByYear,
     getHistory,
