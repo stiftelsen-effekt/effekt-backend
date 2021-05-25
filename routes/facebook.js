@@ -2,6 +2,7 @@ const e = require('express')
 const express = require('express')
 const router = express.Router()
 const DAO = require('../custom_modules/DAO.js')
+const mail = require('../custom_modules/mail')
 
 function throwError(message) {
     let error = new Error(message)
@@ -52,6 +53,8 @@ router.post("/register/payment", async (req, res, next) => {
 
             DAO.facebook.registerPaymentFB(donorID, paymentID)
         }
+        
+        mail.sendFacebookTaxConfirmation(email, full_name, paymentID)
 
         res.json({
             status: 200,

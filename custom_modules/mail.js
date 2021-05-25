@@ -1,7 +1,6 @@
 const config = require('../config.js')
 const DAO = require('./DAO.js')
 const moment = require('moment')
-
 const template = require('./template.js')
 
 const request = require('request-promise-native')
@@ -186,6 +185,37 @@ async function sendDonationRegistered(KID) {
         console.error(ex)
         return ex.statusCode
     }
+}
+
+/** 
+ * @param {string} email 
+*/
+async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
+  try {
+    try {
+    } catch(ex) {
+      console.error("Failed to send mail donation reciept, could not get donor by id")
+      console.error(ex)
+      return false
+    }
+
+    await send({
+      subject: 'gieffektivt.no - Facebook-donasjoner registrert for skattefradrag',
+      reciever: email,
+      templateName: 'facebookTaxConfirmation',
+      templateData: {
+        header: "Hei, " + fullName,
+        paymentID
+      }
+    })
+
+    return true
+  }
+  catch(ex) {
+      console.error("Failed to send mail donation registered")
+      console.error(ex)
+      return ex.statusCode
+  }
 }
 
 function formatCurrency(currencyString) {
@@ -393,6 +423,7 @@ module.exports = {
   sendEffektDonationReciept,
   sendDonationRegistered,
   sendDonationHistory,
+  sendFacebookTaxConfirmation,
   sendTaxDeductions,
   sendOcrBackup
 }
