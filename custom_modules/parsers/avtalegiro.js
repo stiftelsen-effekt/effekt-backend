@@ -1,13 +1,13 @@
 const serviceCodeEnum = require('../../enums/serviceCode')
 const transactionCodeEnum = require('../../enums/transactionCode')
 const recordTypeEnum = require('../../enums/recordType')
-const transactionCode = require('../../enums/transactionCode')
 
 module.exports = {
     /**
      * @typedef AvtalegiroAgreement
      * @property {number} fboNumber
      * @property {string} KID
+     * @property {boolean} notice
      * @property {boolean} isAltered
      * @property {boolean} isTerminated
      */
@@ -18,40 +18,48 @@ module.exports = {
      * @returns {Array<AvtalegiroAgreement>} An array of transactions
      */
     parse: function(data) {
-        var lines = data.split('\r\n')
+        var lines = data.split(/\r?\n/)
 
-        var agreements = [];
+        var agreements = []
 
         for (var i = 0; i < lines.length-1; i++) {
             if (lines[i].length > 0) {
-                let currLine = lines[i]; 
+                let currLine = lines[i];
 
-                const serviceCode = currLine.substr(2,2);
-                const transactionCode = currLine.substr(4,2);
-                const recordType = currLine.substr(6,2);
+                const serviceCode = parseInt(currLine.substr(2,2))
+                const transactionCode = parseInt(currLine.substr(4,2))
+                const recordType = parseInt(currLine.substr(6,2))
 
-                //translate these numeric values to enum values
-                if(serviceCode == "21" && transactionCode == "94" && recordType == "70"){ 
-                    this.transactions.push(new AvtalegiroAgreement(element));
+                if(serviceCode == serviceCodeEnum.avtaleGiro && transactionCode == transactionCodeEnum.avtalegiroInfo && recordType == recordTypeEnum.avtaleGiroInfo) { 
+                  agreements.push(new AvtalegiroAgreement(currLine))
                 }
             }
         }
-
+        
         return agreements
     }
 }
-class AvtalegiroAgreement{
-  constructor(element) {
-    this.fboNumber = parseInt(element.substr(8,7));
-    this.KID = parseInt(element.substr(16,26));
-    this.notice = element.substr(41,1);
-    let registrationType = element.substr(15,1);
 
-    //slik jeg forstår det vil vi sjelden få 0 her? Hva betyr i så fall 0?
-    if(registrationType == 1){
-      this.isTerminated = true;
-    } else if(registrationType == 2){
-      this.isAltered = true;
+class AvtalegiroAgreement {
+  /**
+   * Constructor
+   * @param {string} currLine 
+   */
+  constructor(currLine) {
+    this.fboNumber = parseInt(currLine.substr(8,7))
+    this.KID = parseInt(currLine.substr(16,25))
+    this.notice = (currLine.substr(41,1) == 1)
+    let registrationType = currLine.substr(15,1)
+
+    if (registrationType == 0) {
+      /**
+       * We can ask nets to list ALL of the active agreements on the account
+       * They will then get 0 as their registration type
+       */
+      this.totalReadout = true
+    }
+    if(registrationType == 1) {
+      this.isTerminated = true
     }
   }
 }
