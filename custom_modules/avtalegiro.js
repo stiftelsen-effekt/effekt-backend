@@ -45,12 +45,15 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
  * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} agreements Agreements to notify
  */
 async function notifyAgreements(agreements) {
-  const tasks = agreements.map((agreement) => mail.sendAvtalegiroNotification(agreement.KID))
-  //Send mails in paralell
-  const result = await Promise.allSettled(tasks)
-  const failed = result.filter(task => task.status === 'rejected')
-  for (let i = 0; i < failed.length; i++) {
-    console.error(`Failed to send an AvtaleGiro notification ${failed[i].reason}`)
+  //TODO: Remove or true
+  if (config.env === 'production' || true) {
+    const tasks = agreements.map((agreement) => mail.sendAvtalegiroNotification(agreement.KID))
+    //Send mails in paralell
+    const result = await Promise.allSettled(tasks)
+    const failed = result.filter(task => task.status === 'rejected')
+    for (let i = 0; i < failed.length; i++) {
+      console.error(`Failed to send an AvtaleGiro notification ${failed[i].reason}`)
+    }
   }
 }
 

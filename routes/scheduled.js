@@ -4,6 +4,8 @@ const authRoles = require('../enums/authorizationRoles')
 const authMiddleware = require("../custom_modules/authorization/authMiddleware.js")
 
 const nets = require('../custom_modules/nets')
+const ocrParser = require('../custom_modules/parsers/OCR')
+const ocr = require('../custom_modules/ocr')
 const avtalegiroParser = require('../custom_modules/parsers/avtalegiro')
 const avtalegiro = require('../custom_modules/avtalegiro')
 const DAO = require('../custom_modules/DAO')
@@ -28,7 +30,7 @@ router.post("/nets", /* authMiddleware(authRoles.write_all_donations), */ async 
      * agreements.
      */
     // const latestOcrFile = await nets.getLatestOCRFile()
-    const latestOcrFile = fs.readFileSync('~/Documents/OcrInFile.dat')
+    const latestOcrFile = fs.readFileSync('/Users/hakonharnes/Documents/OcrInFile.dat')
 
     /**
      * Parse incomming transactions and add them to the database
@@ -50,7 +52,7 @@ router.post("/nets", /* authMiddleware(authRoles.write_all_donations), */ async 
      */
     const comingAgreements = await DAO.avtalegiroagreements.getByPaymentDate(inThreeDays.day)
     const agreementsToBeNotified = comingAgreements.filter(agreement => agreement.notice == true)
-    const notifiedAgreements = await avtaleGiro.noifyAgreements(agreementsToBeNotified)
+    const notifiedAgreements = await avtalegiro.notifyAgreements(agreementsToBeNotified)
 
     /**
      * Create file to charge agreements for current day

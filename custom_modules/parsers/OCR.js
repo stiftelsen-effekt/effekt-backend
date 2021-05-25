@@ -3,45 +3,43 @@ const transactionCodeEnum = require('../../enums/transactionCode')
 const recordTypeEnum = require('../../enums/recordType')
 const paymentMethodsEnum = require('../../enums/paymentMethods')
 
-const BANK_ID = 2
-
 module.exports = {
-    /**
-     * @typedef OCRTransaction
-     * @property {number} amount
-     * @property {string} transactionID
-     * @property {Date} date
-     * @property {number} KID
-     * @property {import('../../enums/paymentMethods')} paymentMethod
-     */
+  /**
+   * @typedef OCRTransaction
+   * @property {number} amount
+   * @property {string} transactionID
+   * @property {Date} date
+   * @property {number} KID
+   * @property {import('../../enums/paymentMethods')} paymentMethod
+   */
 
-    /**
-     * Takes in an OCR file in string form and returns valid transations
-     * @param {string} data A string from an OCR file
-     * @returns {Array<OCRTransaction>} An array of transactions
-     */
-    parse: function(data) {
-        var lines = data.split(/\r?\n/)
+  /**
+   * Takes in an OCR file in string form and returns valid transations
+   * @param {string} data A string from an OCR file
+   * @returns {Array<OCRTransaction>} An array of transactions
+   */
+  parse: function(data) {
+    var lines = data.split(/\r?\n/)
 
-        var transactions =  [];
+    var transactions =  [];
 
-        for (var i = 0; i < lines.length-1; i++) {
-            if (lines[i].length > 0) {
-                let currLine = lines[i]; 
-                let nextLine = lines[i+1]; 
+    for (var i = 0; i < lines.length-1; i++) {
+      if (lines[i].length > 0) {
+        let currLine = lines[i]; 
+        let nextLine = lines[i+1]; 
 
-                const serviceCode = parseInt(currLine.substr(2,2))
-                const transactionCode = parseInt(currLine.substr(4,2))
-                const recordType = parseInt(currLine.substr(6,2))
+        const serviceCode = parseInt(currLine.substr(2,2))
+        const transactionCode = parseInt(currLine.substr(4,2))
+        const recordType = parseInt(currLine.substr(6,2))
 
-                if(serviceCode == serviceCodeEnum.ocr && (transactionCode == transactionCodeEnum.btg || transactionCode == transactionCodeEnum.avtalegiro) && recordType == recordTypeEnum.post1){ 
-                    this.transactions.push(new OCRTransaction(currLine, nextLine, transactionCode));
-                }
-            }
+        if(serviceCode == serviceCodeEnum.ocr && (transactionCode == transactionCodeEnum.btg || transactionCode == transactionCodeEnum.avtalegiro) && recordType == recordTypeEnum.post1){ 
+          transactions.push(new OCRTransaction(currLine, nextLine, transactionCode));
         }
-
-        return transactions
+      }
     }
+
+    return transactions
+  }
 }
 
   class OCRTransaction{
