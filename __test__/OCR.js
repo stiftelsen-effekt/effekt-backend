@@ -28,54 +28,14 @@ describe('OCR', function() {
         })
     });
 
-    describe('OCR parse line', function() {
-        it('should be a function', function() {
-            expect(OCR.parseLine).to.be.a('function')
-        })
-
-        var transaction = OCR.parseLine(sampleOCRline, sampleOCRnextliner)
-        it('should return a transaction object', function() {
-            expect(transaction).to.be.an('object')
-            expect(transaction).to.have.property('amount')
-            expect(transaction).to.have.property('KID')
-            expect(transaction).to.have.property('date')
-            expect(transaction).to.have.property('transactionID')
-
-            expect(transaction.amount).to.be.a('number')
-            expect(transaction.KID).to.be.a('number')
-            expect(transaction.date).to.be.a('date')
-            expect(transaction.transactionID).to.be.a('string')
-        })
-
-        describe('transaction object tests', function() {
-            it('should be correct date', function() {
-                expect(transaction.date).to.equalTime(new Date(2017, 0, 22))
-            })
-
-            it('should be correct kid', function() {
-                expect(transaction.KID).to.equal(12345678)
-            })
-
-            it('should be correct amount', function() {
-                expect(transaction.amount).to.equal(100)
-            })
-
-            it('should have correct external reference', function() {
-                expect(transaction.transactionID).to.equal("220117.7974208718")
-            })
-        })
-    })
-
-    /*
     describe('Parses sample OCR file', () => {
         it('Parses sample file correctly', async () => {
-            let filecontents = fs.readFileSync('test/data/ocr/TBOC2072.DAT').toString("utf8")
+            let filecontents = fs.readFileSync('./__test__/data/ocr/TBOC2072.DAT').toString("utf8")
             let transactions = OCR.parse(filecontents)
 
             expect(transactions.length).to.be.equal(2)
             expect(transactions[0].KID).to.be.equal(47914510)
-            expect(transactions[0].amount).to.be.equal(5000)
+            expect(transactions[0].amount).to.be.equal(5000.49)
         })
     })
-    */
 })
