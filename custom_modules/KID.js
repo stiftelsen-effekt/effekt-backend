@@ -2,11 +2,13 @@ const DAO = require('./DAO.js')
 
 module.exports = {
     generate: function() {
-        const partKid = donorId + distributionNumber
+        var KID = Array.from({length: 7}, () => {
+            return Math.floor(9 * Math.random()) + 1;
+        }).join("")
 
-        var KID = partKid + this.luhn_caclulate(partKid)
+        KID = KID + this.luhn_caclulate(KID)
 
-        return KID
+        return parseInt(KID)
     },
 
     luhn_checksum: function(code) {

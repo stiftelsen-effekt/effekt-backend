@@ -15,23 +15,23 @@ async function getAll(page=0, limit=10, sort, filter=null) {
 
     let queryString = `
         SELECT
-            Distribution.KID,
+            Combining.KID,
             Donations.sum,
             Donations.count,
             Donors.full_name,
             Donors.email
 
-            FROM Distribution
+            FROM Combining_table as Combining
 
             LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
-                ON Donations.KID_fordeling = Distribution.KID
+                ON Donations.KID_fordeling = Combining.KID
 
             INNER JOIN Donors
-                ON Distribution.DonorID = Donors.ID
+                ON Combining.Donor_ID = Donors.ID
 
             ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}
 
-            GROUP BY Distribution.KID, Donors.full_name, Donors.email
+            GROUP BY Combining.KID, Donors.full_name, Donors.email
 
             ORDER BY ${sort.id} ${sort.desc ? ' DESC' : ''}
 
@@ -41,13 +41,13 @@ async function getAll(page=0, limit=10, sort, filter=null) {
 
     const [counter] = await con.query(`
         SELECT COUNT(*) as count 
-            FROM Distribution
+            FROM Combining_table as Combining
 
             LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
-                ON Donations.KID_fordeling = Distribution.KID
+                ON Donations.KID_fordeling = Combining.KID
 
             INNER JOIN Donors
-                ON Distribution.DonorID = Donors.ID
+                ON Combining.Donor_ID = Donors.ID
 
             ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}`)
     
@@ -75,9 +75,10 @@ async function getAll(page=0, limit=10, sort, filter=null) {
 async function getAllByDonor(donorID) {
     var con = await pool.getConnection()
 
-    var [res] = await con.query(`select Donors.ID as donID, Distribution.KID as KID, Distribution.ID, Organizations.full_name, Distribution.percentage_share 
+    var [res] = await con.query(`select Donors.ID as donID, Combining_table.KID as KID, Distribution.ID, Organizations.full_name, Distribution.percentage_share 
     from Donors
-    inner join Distribution on Distribution.DonorID = Donors.ID
+    inner join Combining_table on Combining_table.Donor_ID = Donors.ID
+    inner join Distribution on Distribution.ID = Combining_table.Distribution_ID
     inner join Organizations on Organizations.ID = Distribution.OrgID
     where Donors.ID = ` + donorID)
 
@@ -119,7 +120,7 @@ async function KIDexists(KID) {
     try {
         var con = await pool.getConnection()
 
-        var [res] = await con.query("SELECT * FROM Distribution WHERE KID = ? LIMIT 1", [KID])
+        var [res] = await con.query("SELECT * FROM Combining_table WHERE KID = ? LIMIT 1", [KID])
 
         con.release()
         if (res.length > 0) return true
@@ -128,21 +129,8 @@ async function KIDexists(KID) {
         con.release()
         throw ex
     }
-}
 
-async function distnrExists(Distnr) {
-    try {
-        var con = await pool.getConnection()
-
-        var [res] = await con.query("SELECT * FROM Distributions WHERE distribution_nr = ? LIMIT 1", [Distnr])
-
-        con.release()
-        if (res.length > 0) return true
-        else return false
-    } catch(ex) {
-        con.release()
-        throw ex
-    }
+    
 }
 
 /**
@@ -161,6 +149,8 @@ async function getKIDbySplit(split, donorID) {
             Count(KID) as KID_count 
             
         FROM Distribution as D
+            INNER JOIN Combining_table as C 
+                ON C.Distribution_ID = D.ID
         
         WHERE
         `;
@@ -170,7 +160,7 @@ async function getKIDbySplit(split, donorID) {
             if (i < split.length-1) query += ` OR `
         }
 
-        query += ` GROUP BY D.KID
+        query += ` GROUP BY C.KID
         
         HAVING 
             KID_count = ` + split.length
@@ -207,7 +197,9 @@ async function getSplitByKID(KID) {
                 Organizations.abbriv, 
                 Distribution.percentage_share
             
-            FROM Distribution
+            FROM Combining_table as Combining
+                INNER JOIN Distribution as Distribution
+                    ON Combining.Distribution_ID = Distribution.ID
                 INNER JOIN Organizations as Organizations
                     ON Organizations.ID = Distribution.OrgID
             
@@ -263,7 +255,7 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
  * @param {number} donorID 
  * @param {number} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
  */
-async function add(split, distributionNumber, KID, metaOwnerID = null) {
+async function add(split, KID, donorID, metaOwnerID = null) {
     try {
         var transaction = await pool.startTransaction()
 
@@ -271,8 +263,14 @@ async function add(split, distributionNumber, KID, metaOwnerID = null) {
             metaOwnerID = await DAO.meta.getDefaultOwnerID()
         }
 
-        let distribution_table_values = split.map((item) => {return [item.organizationID, item.share, distributionNumber, KID]})
-        var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share, distribution_number, KID) VALUES ?", [distribution_table_values])
+        let distribution_table_values = split.map((item) => {return [item.organizationID, item.share]})
+        var res = await transaction.query("INSERT INTO Distribution (OrgID, percentage_share) VALUES ?", [distribution_table_values])
+
+        let first_inserted_id = res[0].insertId
+        var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {return [donorID, first_inserted_id+i, KID, metaOwnerID]})
+
+        //Update combining table
+        var res = await transaction.query("INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID, Meta_owner_ID) VALUES ?", [combining_table_values])
 
         pool.commitTransaction(transaction)
         return true
@@ -291,7 +289,6 @@ module.exports = {
     getAll,
     getAllByDonor,
     add,
-    distnrExists,
     
     setup: (dbPool, DAOObject) => { pool = dbPool, DAO = DAOObject }
 }
