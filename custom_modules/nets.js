@@ -38,7 +38,7 @@ async function getLatestOCRFile() {
   const files = await connection.list('/Outbound')
 
   if (files.length == 0)
-    throw new Error("No files in SFTP directory")
+    return null
 
   const sortedFiles = files.sort(file => file.modifyTime)
 
@@ -52,14 +52,20 @@ async function getLatestOCRFile() {
   return buffer
 }
 
+/**
+ * 
+ * @param {Buffer} file 
+ * @param {string} filename 
+ * @returns {Buffer} A buffer of the file contents
+ */
 async function sendFile(file, filename) {
  const connection = await getConnection()
- const buffer = await connection.put(file, `/Inbound/${filename}`)
+ await connection.put(file, `/Inbound/${filename}`)
  connection.end()
 
- await mail.sendOcrBackup(buffer)
+ await mail.sendOcrBackup(file)
 
- return buffer
+ return file
 }
 
 /**

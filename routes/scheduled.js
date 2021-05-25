@@ -13,11 +13,11 @@ const luxon = require('luxon')
 
 const META_OWNER_ID = 3
 
+/**
+ * Triggered every day by a google cloud scheduler webhook at 20:00
+ */
 router.post("/nets", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
-    let today = luxon.DateTime.fromJSDate(new Date())
-    let inThreeDays = today.plus(luxon.Duration.fromObject({ days: 3 }))
-
     /**
      * Fetch the latest OCR file
      * This file contains transactions to our account with KID, both with normal
@@ -26,6 +26,13 @@ router.post("/nets", authMiddleware(authRoles.write_all_donations), async (req,r
      * agreements.
      */
     const latestOcrFile = await nets.getLatestOCRFile()
+
+    if (latestOcrFile === null) {
+      //No files found in SFTP folder
+      //Most likely because it's a holiday or weekend
+      res.send("No file")
+      return true
+    }
 
     /**
      * Parse incomming transactions and add them to the database
@@ -42,31 +49,47 @@ router.post("/nets", authMiddleware(authRoles.write_all_donations), async (req,r
     const parsedAgreements = avtalegiroParser.parse(latestOcrFile.toString())
     const updatedAgreements = await avtalegiro.updateAgreements(parsedAgreements)
 
+    res.json({
+      addedDonations,
+      updatedAgreements,
+      latestOcrFile: latestOcrFile.toString()
+    })
+  } catch(ex) {
+    next({ex})
+  }
+})
+
+/**
+ * Triggered by a google cloud scheduler webhook every day at 10:00
+ */
+router.post("/nets/avtalegiro", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+  try {
+    let today = luxon.DateTime.fromJSDate(new Date())
+    let inThreeDays = today.plus(luxon.Duration.fromObject({ days: 3 }))
+
     /**
-     * Notify all with agreements that are to be charged in three days
-     */
+    * Notify all with agreements that are to be charged in three days
+    */
     const comingAgreements = await DAO.avtalegiroagreements.getByPaymentDate(inThreeDays.day)
     const agreementsToBeNotified = comingAgreements.filter(agreement => agreement.notice == true)
     const notifiedAgreements = await avtalegiro.notifyAgreements(agreementsToBeNotified)
 
     /**
-     * Create file to charge agreements for current day
-     */
+    * Create file to charge agreements for current day
+    */
     const agreementsToCharge = await DAO.avtalegiroagreements.getByPaymentDate(today.day)
     const shipmentID = await DAO.avtalegiroagreements.addShipment(agreementsToCharge.length)
     const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreementsToCharge)
 
     /**
-     * Send file to nets
-     */
-    await nets.sendFile(Buffer.from(avtaleGiroClaimsFile, 'utf8'), shipmentid.toString().padStart(9, '0'))
+    * Send file to nets
+    */
+    const filename = shipmentid.toString().padStart(9, '0')
+    await nets.sendFile(avtaleGiroClaimsFile, filename)
 
     res.json({
-      addedDonations,
-      updatedAgreements,
       notifiedAgreements,
-      claimsFile: avtaleGiroClaimsFile,
-      latestOcrFile: latestOcrFile.toString()
+      avtaleGiroClaimsFile
     })
   } catch(ex) {
     next({ex})

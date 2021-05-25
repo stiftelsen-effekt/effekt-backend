@@ -7,7 +7,7 @@ const config = require('../config')
  * Generates a claims file to claim payments for AvtaleGiro agreements
  * @param {number} shipmentID A shipment ID from the database
  * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} paymentClaims Agreements that we should claim payment from
- * @returns {string} The file contents
+ * @returns {Buffer} The file buffer
  */
 async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
   let fileContents = ''
@@ -36,7 +36,9 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
 
   fileContents += writer.endRecordTransmission(paymentClaims)
 
-  return fileContents
+  const fileBuffer = Buffer.from(avtaleGiroClaimsFile, 'utf8')
+
+  return fileBuffer
 }
 
 /**
