@@ -29,7 +29,6 @@ router.post("/register", async (req,res,next) => {
   try {
     var donationObject = {
       KID: null, //Set later in code
-      distributionNumber: null,
       method: parsedData.method,
       donorID: null, //Set later in code
       amount: parsedData.amount,
@@ -54,7 +53,10 @@ router.post("/register", async (req,res,next) => {
 
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
+      console.log("donor does not exist. adding donor")
       donationObject.donorID = await DAO.donors.add(donor.email, donor.name, donor.ssn, donor.newsletter)
+      console.log("donor added")
+      console.log(donationObject.donorID)
     }
     else {
       //Check for existing SSN if provided
@@ -81,10 +83,8 @@ router.post("/register", async (req,res,next) => {
 
     //Split does not exist create new KID and split
     if (donationObject.KID == null) {
-      donationObject.distributionNumber = await donationHelpers.createDistributionNumber();
-      donationObject.KID = await donationHelpers.createKID(donationObject.donorID, donationObject.distributionNumber)
-
-      await DAO.distributions.add(donationObject.split, donationObject.distributionNumber, donationObject.KID)
+      donationObject.KID = await donationHelpers.createKID()
+      await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
     }
     
     //Get external paymentprovider URL
@@ -132,7 +132,7 @@ router.post("/bank/pending", urlEncodeParser, async (req,res,next) => {
   let parsedData = JSON.parse(req.body.data)
 
   if(config.env === "production")
-    var success = await mail.sendDonationRegistered(parsedData.KID)
+    var success = await mail.sendDonationRegistered(parsedData.KID, parsedData.sum)
   else
     var success = true
 
