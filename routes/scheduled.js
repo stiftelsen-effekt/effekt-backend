@@ -66,7 +66,7 @@ router.post("/nets/avtalegiro", /* authMiddleware(authRoles.write_all_donations)
     */
     
     //todo remove
-    const agreementsToCharge = await DAO.avtalegiroagreements.getByPaymentDate(today.day-1)
+    const agreementsToCharge = await DAO.avtalegiroagreements.getByPaymentDate(today.day)
 
     const shipmentID = await DAO.avtalegiroagreements.addShipment(agreementsToCharge.length)
     
