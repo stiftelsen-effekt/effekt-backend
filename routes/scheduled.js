@@ -54,8 +54,7 @@ router.post("/nets/complete", authMiddleware(authRoles.write_all_donations), asy
 
 router.post("/nets/avtalegiro", /* authMiddleware(authRoles.write_all_donations) ,*/ async (req,res, next) => {
   try {
-    
-    let today = luxon.DateTime.fromJSDate(new Date())
+        let today = luxon.DateTime.fromJSDate(new Date())
     /*
     let inThreeDays = today.plus(luxon.Duration.fromObject({ days: 3 }))
 
@@ -66,7 +65,9 @@ router.post("/nets/avtalegiro", /* authMiddleware(authRoles.write_all_donations)
     }
     */
     
-    const agreementsToCharge = await DAO.avtalegiroagreements.getByPaymentDate(today.day)
+    //todo remove
+    const agreementsToCharge = await DAO.avtalegiroagreements.getByPaymentDate(today.day-1)
+
     const shipmentID = await DAO.avtalegiroagreements.addShipment(agreementsToCharge.length)
     
     const avtaleGiroFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreementsToCharge)

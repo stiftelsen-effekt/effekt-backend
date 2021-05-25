@@ -38,7 +38,7 @@ function getStartRecordTransmission(shipmentID) {
 
   var line = `NY000010${customerId.padStart(8,'0')}${shipmentID.toString().padStart(7,'0')}00008080`
   line = line.padEnd(80, '0')
-  line += '<br>'
+  line += '\n'
   return line;
 }
 
@@ -51,7 +51,7 @@ function getStartRecordPaymentClaims() {
   line += '15062995960'
   line = line.padEnd(80, '0')
 
-  line += '<br>'
+  line += '\n'
   return line
 }
 
@@ -60,7 +60,7 @@ async function getFirstAndSecondLine(agreement, type, transactionNumber) {
   /**
    * First line
    */
-  var firstLine =`NY21${type}30${transactionNumber.padStart(7,'0')}`
+  var firstLine =`NY21${type}30${transactionNumber.toString().padStart(7,'0')}`
   let agreementDate = luxon.DateTime.fromJSDate(new Date())
   firstLine += agreementDate.toFormat("ddLLyy")
   firstLine = firstLine.padEnd(32, '0')
@@ -70,11 +70,11 @@ async function getFirstAndSecondLine(agreement, type, transactionNumber) {
   firstLine += amount
 
   var KID = agreement.KID
-  KID = KID.toString().padStart(25, " ")
+  KID = KID.toString().padStart(25, ' ')
   firstLine += KID
   
   firstLine = firstLine.padEnd(80, '0')
-  firstLine += "<br>"
+  firstLine += '\n'
 
   /**
    * Second line
@@ -95,7 +95,7 @@ async function getFirstAndSecondLine(agreement, type, transactionNumber) {
    * Combine lines
    */
   lines = `${firstLine}${secondLine}`
-  lines += '<br>'
+  lines += '\n'
   return lines
 }
 
@@ -120,25 +120,25 @@ function getEndRecordPaymentClaims(claims) {
   line += today
 
   line = line.padEnd(80, '0')
-  line += '<br>'
+  line += '\n'
   return line
 }
 
 function getStartRecordDeletionRequest() {
-  var line =`NY210036`
-  line.padEnd(17, '0')
+  var line =`NY213620`
+  line = line.padEnd(17, '0')
   // Oppdragsnr.
   line += '2'.padStart(7, '0')
   // Accountnr.
   line += '15062995960'
   line = line.padEnd(80, '0')
 
-  line += '<br>'
+  line += '\n'
   return line
 }
 
 function getEndRecordDeletionRequest() {
-  var line =`NY210036`
+  var line =`NY210088`
 
   //Number of transactions
   line += '0'.padStart(8,'0')
@@ -158,12 +158,12 @@ function getEndRecordDeletionRequest() {
   line += today
 
   line = line.padEnd(80, '0')
-  line += '<br>'
+  line += '\n'
   return line
 }
 
 function getEndRecordTransmission(claims) {
-  var line =`NY210089`
+  var line =`NY000089`
 
   //Number of transactions
   line += claims.length.toString().padStart(8,'0')
@@ -183,7 +183,7 @@ function getEndRecordTransmission(claims) {
   line += today
 
   line = line.padEnd(80, '0')
-  line += '<br>'
+  line += '\n'
   return line
 }
 
