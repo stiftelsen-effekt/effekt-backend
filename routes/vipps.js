@@ -242,18 +242,19 @@ router.post("/agreement/charge/refund", jsonBody, async (req, res, next) => {
 router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
     try {
         const agreementCode = req.body.agreementCode
+        const change = req.body.change
+        const newValue = req.body.newValue
+
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
         const agreement = await DAO.vipps.getAgreement(agreementId)
         const donor = await DAO.donors.getByID(agreement.donorID)
         const email = donor.email
 
         if (!email) {
-            res.sendStatus(404)
+            res.sendStatus(400)
             return false
         }
 
-        const change = req.body.change
-        const newValue = req.body.newValue
         const response = await mail.sendVippsAgreementChange(email, agreement, change, newValue)
 
         res.json(response)

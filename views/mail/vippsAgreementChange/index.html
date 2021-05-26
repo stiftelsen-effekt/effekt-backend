@@ -99,12 +99,88 @@
                                     <% if (this.change == "SHARES") { %>
                                         Fordelingen din har blitt endret, se ny fordeling under.
                                     <% } %>
-                                    <br/>
-                                    Her er din betalingsavtale etter endringene:
+                                    <br/><br/>
 
+                                    <h3>Betalingsavtale etter endring</h3>
+                                    <table class="donation-summary" border="0" cellspacing="0" cellpadding="0">
+                                       <tbody>
+                                          <tr>
+                                             <td>
+                                                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                   <tbody>
+                                                      <tr>
+                                                         <td>
+                                                            <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                               <tbody>
+                                                                  <tr>
+                                                                     <td style="font-size: 16px;">
+                                                                        Sum per måned:
+                                                                     </td>
+                                                                  </tr>
+                                                               </tbody>
+                                                            </table>
+                                                            <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                               <tbody>
+                                                                  <tr>
+                                                                     <td style="font-size: 16px; text-align: end;">
+                                                                        <% this.sum %> kr
+                                                                     </td>
+                                                                  </tr>
+                                                               </tbody>
+                                                            </table>
+                                                         </td>
+                                                      </tr>
+                                                      <tr>
+                                                        <td>
+                                                           <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                              <tbody>
+                                                                 <tr>
+                                                                    <td style="font-size: 16px;">
+                                                                       Trekkdag:
+                                                                    </td>
+                                                                 </tr>
+                                                              </tbody>
+                                                           </table>
+                                                           <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                              <tbody>
+                                                                 <tr>
+                                                                    <td style="font-size: 16px; text-align: end;">
+                                                                       Den <% this.agreement.chargeDayOfMonth %>. hver måned
+                                                                    </td>
+                                                                 </tr>
+                                                              </tbody>
+                                                           </table>
+                                                        </td>
+                                                     </tr>
+                                                     <tr>
+                                                        <td>
+                                                           <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                              <tbody>
+                                                                 <tr>
+                                                                    <td style="font-size: 16px;">
+                                                                       Fordelings-ID
+                                                                    </td>
+                                                                 </tr>
+                                                              </tbody>
+                                                           </table>
+                                                           <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                              <tbody>
+                                                                 <tr>
+                                                                    <td style="font-size: 16px; text-align: end;">
+                                                                        <% this.agreement.KID %>
+                                                                    </td>
+                                                                 </tr>
+                                                              </tbody>
+                                                           </table>
+                                                        </td>
+                                                     </tr>
+                                                   </tbody>
+                                                </table>
+                                            </td>
+                                       </tbody>
+                                    </table>
                                     
-
-                                    Fordeling
+                                    <h3>Fordeling</h3>
                                     <% for (var i = 0; i < this.organizations.length; i++) { %>
                                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                             <tr>
@@ -137,10 +213,9 @@
                                             </tr>
                                         </table>
                                     <% } %>
-                                    
-                                    Var det ikke du som gjorde denne endringen? Vennligst ta kontakt via <a href= "mailto:donasjon@gieffektivt.no" style="color: #fb8f29;">donasjon@gieffektivt.no</a>.
                                     <br/><br/>
-                                    Hvis du har noen andre spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
+
+                                    Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
                                     ved å sende en mail til 
                                     <a href= "mailto:donasjon@gieffektivt.no" style="color: #fb8f29;">donasjon@gieffektivt.no</a><br/><br/>
                                     Håper du får en fantastisk dag!<br/><br/><br/>

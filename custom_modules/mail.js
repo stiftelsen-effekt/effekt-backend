@@ -11,10 +11,9 @@ const fs = require('fs-extra')
  * @property {string} ID
  * @property {number} donorID
  * @property {string} KID
- * @property {number} sum
+ * @property {number} amount
  * @property {string} status
  * @property {number} chargeDayOfMonth
- * @property {string} agreement_url_code
  */
 
 /**
@@ -220,12 +219,6 @@ async function sendDonationRegistered(KID, sum) {
 */
 async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
   try {
-    try {
-    } catch(ex) {
-      console.error("Failed to send mail donation reciept, could not get donor by id")
-      console.error(ex)
-      return false
-    }
 
     await send({
       subject: 'gieffektivt.no - Facebook-donasjoner registrert for skattefradrag',
@@ -267,12 +260,15 @@ async function sendVippsAgreementChange(email, agreement, change, newValue = "")
 
     try {
     } catch(ex) {
-      console.error("Failed to send Vipp agreement changed email")
+      console.error("Failed to send Vipps agreement changed email")
       console.error(ex)
       return false
     }
 
-    const subject = 'gieffektivt.no - Din betalingsavtale via Vipps har blitt ' + change === "CANCELLED" ? "avsluttet" : "endret" 
+    let changeDesc = "endret"
+    if (change === "CANCELLED") changeDesc = "avsluttet"
+    if (change === "PAUSED") changeDesc = "satt på pause"
+    const subject = `gieffektivt.no - Din betalingsavtale via Vipps har blitt ${changeDesc}`
     
     await send({
       subject,
@@ -283,7 +279,8 @@ async function sendVippsAgreementChange(email, agreement, change, newValue = "")
         change,
         newValue: change === "AMOUNT" ? formatCurrency(newValue) : newValue,
         organizations,
-        agreement
+        agreement,
+        sum: formatCurrency(agreement.amount)
       }
     })
 
@@ -294,11 +291,6 @@ async function sendVippsAgreementChange(email, agreement, change, newValue = "")
       console.error(ex)
       return ex.statusCode
   }
-}
-
-function formatCurrency(currencyString) {
-  return Number.parseFloat(currencyString).toFixed(0)
-    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1.")
 }
 
 /** 
@@ -538,6 +530,11 @@ async function send(options) {
     } else {
       return false
     }
+}
+
+function formatCurrency(currencyString) {
+  return Number.parseFloat(currencyString).toFixed(0)
+    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1.")
 }
 
 module.exports = {
