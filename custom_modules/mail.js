@@ -1,7 +1,6 @@
 const config = require('../config.js')
 const DAO = require('./DAO.js')
 const moment = require('moment')
-
 const template = require('./template.js')
 
 const request = require('request-promise-native')
@@ -151,9 +150,9 @@ function formatOrganizationsFromSplit(split, sum) {
 }
 
 /** 
- * @param {number} KID 
+ * @param {string} KID 
 */
-async function sendDonationRegistered(KID) {
+async function sendDonationRegistered(KID, sum) {
     try {
       try {
         var donor = await DAO.donors.getByKID(KID)
@@ -192,7 +191,8 @@ async function sendDonationRegistered(KID) {
           //Add thousand seperator regex at end of amount
           kid: KIDstring,
           accountNumber: config.bankAccount,
-          organizations: organizations
+          organizations: organizations,
+          sum: formatCurrency(sum)
         }
       })
 
@@ -203,6 +203,37 @@ async function sendDonationRegistered(KID) {
         console.error(ex)
         return ex.statusCode
     }
+}
+
+/** 
+ * @param {string} email 
+*/
+async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
+  try {
+    try {
+    } catch(ex) {
+      console.error("Failed to send mail donation reciept, could not get donor by id")
+      console.error(ex)
+      return false
+    }
+
+    await send({
+      subject: 'gieffektivt.no - Facebook-donasjoner registrert for skattefradrag',
+      reciever: email,
+      templateName: 'facebookTaxConfirmation',
+      templateData: {
+        header: "Hei, " + fullName,
+        paymentID
+      }
+    })
+
+    return true
+  }
+  catch(ex) {
+      console.error("Failed to send mail donation registered")
+      console.error(ex)
+      return ex.statusCode
+  }
 }
 
 function formatCurrency(currencyString) {
@@ -300,7 +331,6 @@ async function sendDonationHistory(donorID) {
  * @param {number} year The year the tax deductions are counted for
  */
 async function sendTaxDeductions(taxDeductionRecord, year) {
-  
   try {
     await send({
       reciever: taxDeductionRecord.email,
@@ -319,6 +349,53 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
     return true
   } catch(ex) {
     console.error("Failed to tax deduction mail")
+    console.error(ex)
+    return ex.statusCode
+  }
+}
+
+/**
+ * Sends donors with avtalegiro agreement a notification of an upcomming claim
+ * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement 
+ * @returns {true | number} True if successfull, or an error code if failed
+ */
+ async function sendAvtalegiroNotification(agreement) {
+  let donor, split, organizations
+  
+  try {
+    donor = await DAO.donors.getByKID(agreement.KID)
+  } catch(ex) {
+    console.error(`Failed to send mail AvtaleGiro claim notification, could not get donor form KID ${agreement.KID}`)
+    console.error(ex)
+    return false
+  }
+  
+  try {
+    split = await DAO.distributions.getSplitByKID(agreement.KID)
+  } catch (ex) {
+    console.error(`Failed to send mail AvtaleGiro claim notification, could not get donation split by KID ${agreement.KID}`)
+    console.error(ex)
+    return false
+  }
+
+  // Agreement amount is stored in øre
+  organizations = formatOrganizationsFromSplit(split, (agreement.amount/100))
+  
+  try {
+    await send({
+      reciever: donor.email,
+      subject: `gieffektivt.no - Varsel trekk AvtaleGiro`,
+      templateName: "avtalegironotice",
+      templateData: { 
+          header: "Hei " + donor.name + ",",
+          agreementSum: (agreement.amount / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+          organizations: organizations
+      }
+    })
+
+    return true
+  } catch(ex) {
+    console.error("Failed to send AvtaleGiro claim notification")
     console.error(ex)
     return ex.statusCode
   }
@@ -410,6 +487,8 @@ module.exports = {
   sendEffektDonationReciept,
   sendDonationRegistered,
   sendDonationHistory,
+  sendFacebookTaxConfirmation,
   sendTaxDeductions,
+  sendAvtalegiroNotification,
   sendOcrBackup
 }

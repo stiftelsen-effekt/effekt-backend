@@ -1,6 +1,9 @@
 const sqlString = require('sqlstring')
 const distributions = require('./distributions.js')
 
+/**
+ * @type {import('mysql2/promise').Pool}
+ */
 var pool
 var DAO
 
@@ -142,6 +145,65 @@ async function getHistogramBySum() {
 }
 
 /**
+ * Fetches the latest donation with a given KID
+ * @param {string} KID
+ * @returns {Donation | null} Donation of found, null if not 
+ */
+ async function getLatestByKID(KID) {
+    try {
+        var con = await pool.getConnection()
+        let [results] = await con.query(`
+            SELECT 
+                Donation.ID,
+                Donation.sum_confirmed, 
+                Donation.KID_fordeling,
+                Donation.transaction_cost,
+                Donation.timestamp_confirmed,
+                Donor.full_name,
+                Donor.email,
+                Payment.payment_name
+            
+            FROM Donations as Donation
+                INNER JOIN Donors as Donor
+                    ON Donation.Donor_ID = Donor.ID
+
+                INNER JOIN Payment
+                    ON Donation.Payment_ID = Payment.ID
+            
+            WHERE 
+                Donation.KID_fordeling = ?
+
+            ORDER BY timestamp_confirmed DESC
+
+            LIMIT 1
+        `)
+        con.release()
+
+        if (results.length == 0)
+            return null
+
+        const dbDonation = results[0]
+
+        /** @type Donation */
+        let donation = {
+            id: dbDonation.ID,
+            donor: dbDonation.full_name,
+            email: dbDonation.email,
+            sum: dbDonation.sum_confirmed,
+            transactionCost: dbDonation.transaction_cost,
+            timestamp: dbDonation.timestamp_confirmed,
+            method: dbDonation.payment_name,
+            KID: dbDonation.KID_fordeling
+        }
+
+        return donation
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
  * Gets aggregate donations from a spesific time period
  * @param {Date} startTime 
  * @param {Date} endTime
@@ -257,10 +319,12 @@ async function getHasReplacedOrgs(donationID) {
                 and iD = ?
             `, [donationID])
 
+            await con.release()
             return result[0]?.Replaced_old_organizations || 0
         }
     } 
     catch(ex) {
+        await con.release()
         throw ex
     }
 }
@@ -676,6 +740,7 @@ module.exports = {
     getSummary,
     getSummaryByYear,
     getHistory,
+    getLatestByKID,
     ExternalPaymentIDExists,
     add,
     registerConfirmedByIDs,

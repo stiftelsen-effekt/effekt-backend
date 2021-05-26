@@ -33,6 +33,7 @@ module.exports = {
 
     //Bank account for recieving donations
     bankAccount: process.env.BANK_ACCOUNT,
+    nets_customer_id: process.env.NETS_CUSTOMER_ID,
 
     //Server addresss
     serverAddress: process.env.SERVER_ADDRESS,

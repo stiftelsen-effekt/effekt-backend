@@ -70,13 +70,8 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td class="h2">
-                                    Tusen takk for ditt bidrag!
-                                </td>
-                            </tr>
-                            <tr>
                                 <td class="bodycopy">
-                                    <span style="vertical-align: middle;">Vi mottok din donasjon <% this.donationDate %> gjennom <% this.paymentMethod %> til Stiftelsen Effekt</span> <br/><br/>
+                                    <span style="vertical-align: middle;">Tusen takk for du bidrar! Dette er et varsel om at vi vil trekke deg <% this.agreementSum %> kr i henhold til AvtaleGiro avtalen du har med oss. Trekket vil skje om tre dager. Dersom du ønsker å endre varslingsinnstillinger eller avslutte avtalen kan du gjøre det i din nettbank.</span> <br/><br/>
                                 </td>
                             </tr>
                             <tr>
@@ -122,7 +117,7 @@
                                                         <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
                                                             <tr>
                                                                 <td class="tableRow">
-                                                                    <% this.donationSum %> kr
+                                                                    <% this.agreementSum %> kr
                                                                 </td>
                                                             </tr>
                                                         </table>
@@ -146,26 +141,14 @@
                                 <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                     <tr>
                                         <td class="bodycopy">
-                                            <% if (hasReplacedOrgs == 1) { %>
-                                                MERK: Din fordeling ble endret av oss for donasjoner gitt fra og med 01.01.2021. 
-                                                Fra denne datoen støtter vi ikke lengre donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children 
-                                                som opplyst på våre nettsider, i nyhetsbrev, på epost og gjennom sosiale medier. 
-                                                <br/>
-                                                Andelene som var oppført til disse organisasjonene blir i stedet gitt til vår standardfordeling som nå er <a href="https://www.givewell.org/maximum-impact-fund" style="color: #fb8f29;">GiveWell Maximum Impact Fund</a>. 
-                                                Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/gi" style="color: #fb8f29;">www.gieffektivt.no/gi</a> og fylle ut donasjonsskjema på nytt med ønsket fordeling. Ta kontakt om du har noen spørsmål.
-                                                <br/><br/>
-                                            <% } %>
-                                            <strong>Denne donasjonen er på vår gamle donasjonsløsning.</strong> 
-                                            Vi ber deg om å gå til www.gieffektivt.no/gi og fylle ut giverskjema på nytt og følge instruksjonene der. 
-                                            Det nye systemet er mer automatisert og sparer oss for administrasjon. 
-                                            Dine donasjoner vil da også være godkjent for skattefradrag, noe de ikke er så lenge du donerer med denne gamle løsningen. 
-                                            Husk å skru av dine faste overføringer i den gamle løsningen etterpå. På forhånd takk!<br/><br/>
+                                            Alle donasjoner på mellom kr 500 og 50 000 gitt til oss i løpet av et år kvalifiserer til skattefradrag. 
+                                            Dersom du har oppgitt ditt fødselsnummer til oss registreres dine donasjoner automatisk hos Skatteetaten til neste års skattemelding.<br/><br/>
                                             Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
                                             ved å sende en mail til<br/>
-                                            <a href= "mailto:donasjon@gieffektivt.no" style="color: #fb8f29;"><font color="#153643">donasjon@gieffektivt.no</a><br/><br/>
+                                            <a href= "mailto:donasjon@gieffektivt.no" style="color: #fb8f29;">donasjon@gieffektivt.no</a><br/><br/>
                                             Håper du får en fantastisk dag!<br/><br/>
                                             <b>Vennlig hilsen</b><br/>
-                                            oss i <a href= "https://gieffektivt.no" style="color: #fb8f29;">gieffektivt.no</a>
+                                            <a href="https://gieffektivt.no" style="color: black; text-decoration: none;">oss i gieffektivt.no</a>
                                         </td>
                                     </tr>
                                 </table>

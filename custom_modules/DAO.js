@@ -14,7 +14,8 @@ module.exports = {
     referrals: require('./DAO_modules/referrals'),
     auth: require('./DAO_modules/auth'),
     meta: require('./DAO_modules/meta'),
-    initialpaymentmethod: require('./DAO_modules/initialpaymentmethod'),
+    initialpaymentmethod: require ('./DAO_modules/initialpaymentmethod'),
+    avtalegiroagreements: require ('./DAO_modules/avtalegiroagreements'),
     facebook: require('./DAO_modules/facebook'),
 
     /**
@@ -54,8 +55,8 @@ module.exports = {
         this.auth.setup(dbPool)
         this.meta.setup(dbPool)
         this.initialpaymentmethod.setup(dbPool)
+        this.avtalegiroagreements.setup(dbPool)
         this.facebook.setup(dbPool)
-
 
         //Convenience functions for transactions
         //Use the returned transaction object for queries in the transaction
