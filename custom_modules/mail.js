@@ -248,7 +248,7 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
 
 /** 
  * @param {string} email 
- * @param {VippsAgreement}
+ * @param {VippsAgreement} agreement
  * @param {"PAUSED" | "CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
 */
@@ -265,7 +265,7 @@ async function sendVippsAgreementChange(email, agreement, change, newValue = "")
 
     try {
     } catch(ex) {
-      console.error("Failed to send mail donation reciept, could not get donor by id")
+      console.error("Failed to send Vipp agreement changed email")
       console.error(ex)
       return false
     }
