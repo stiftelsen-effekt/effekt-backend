@@ -236,40 +236,6 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
   }
 }
 
-/** 
- * @param {string} email 
- * @param {string} change What was changed
- * @param {string} newValue New value of what was changed
-*/
-async function sendVippsAgreementChange(email, change, newValue) {
-  try {
-    try {
-    } catch(ex) {
-      console.error("Failed to send mail donation reciept, could not get donor by id")
-      console.error(ex)
-      return false
-    }
-
-    await send({
-      subject: 'gieffektivt.no - Din Vipps-avtale har blitt endret',
-      reciever: email,
-      templateName: 'facebookTaxConfirmation',
-      templateData: {
-        header: "Hei, " + fullName,
-        change,
-        newValue
-      }
-    })
-
-    return true
-  }
-  catch(ex) {
-      console.error("Failed to send mail donation registered")
-      console.error(ex)
-      return ex.statusCode
-  }
-}
-
 function formatCurrency(currencyString) {
   return Number.parseFloat(currencyString).toFixed(2)
     .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
