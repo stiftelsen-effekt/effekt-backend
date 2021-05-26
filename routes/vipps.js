@@ -254,7 +254,7 @@ router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
 
         const change = req.body.change
         const newValue = req.body.newValue
-        const response = await mail.sendVippsAgreementChange(email, change, newValue)
+        const response = await mail.sendVippsAgreementChange(email, agreement, change, newValue)
 
         res.json(response)
     } catch (ex) {

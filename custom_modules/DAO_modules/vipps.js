@@ -32,7 +32,7 @@ const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PART
  * @property {number} sum
  * @property {string} status
  * @property {number} chargeDayOfMonth
- * @property {string} agreement_url
+ * @property {string} agreement_url_code
  */
 
 /**

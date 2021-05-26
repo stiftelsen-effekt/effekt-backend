@@ -6,6 +6,16 @@ const template = require('./template.js')
 const request = require('request-promise-native')
 const fs = require('fs-extra')
 
+/**
+ * @typedef VippsAgreement
+ * @property {string} ID
+ * @property {number} donorID
+ * @property {string} KID
+ * @property {number} sum
+ * @property {string} status
+ * @property {number} chargeDayOfMonth
+ * @property {string} agreement_url_code
+ */
 
 /**
  * Sends a donation reciept
@@ -238,10 +248,11 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
 
 /** 
  * @param {string} email 
+ * @param {VippsAgreement}
  * @param {"PAUSED" | "CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
 */
-async function sendVippsAgreementChange(email, change, newValue = "") {
+async function sendVippsAgreementChange(email, agreement, change, newValue = "") {
   try {
     const donorID = await DAO.donors.getIDbyEmail(email)
     const donor = await DAO.donors.getByID(donorID)
@@ -259,15 +270,18 @@ async function sendVippsAgreementChange(email, change, newValue = "") {
       return false
     }
 
+    const subject = 'gieffektivt.no - Din betalingsavtale via Vipps har blitt ' + change === "CANCELLED" ? "avsluttet" : "endret" 
+    
     await send({
-      subject: 'gieffektivt.no - Din betalingsavtale via Vipps har blitt endret',
+      subject,
       reciever: email,
       templateName: 'vippsAgreementChange',
       templateData: {
         header: "Hei, " + donor.full_name,
         change,
         newValue: change === "AMOUNT" ? formatCurrency(newValue) : newValue,
-        organizations
+        organizations,
+        agreement
       }
     })
 

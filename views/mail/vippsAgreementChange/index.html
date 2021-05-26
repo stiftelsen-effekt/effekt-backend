@@ -71,7 +71,13 @@
                             </tr>
                             <tr>
                                 <td class="h3">
-                                    Din måndelige betalingsavtale via Vipps har blitt endret
+                                    <% if (this.change == "CANCELLED") { %>
+                                        Betalingsavtalen din har blitt avsluttet.
+                                    <% } else if (this.change == "PAUSED") { %>
+                                        Din betalingsavtale via Vipps har blitt satt på pause
+                                    <% } else { %>
+                                        Din betalingsavtale via Vipps har blitt endret
+                                    <% } %>
                                 </td>
                             </tr>
                         </table>
@@ -82,51 +88,55 @@
                                         Den månedlige summen til betalingsavtalen din har blitt endret til <% this.newValue %>kr.
                                     <% } %>
                                     <% if (this.change == "PAUSED") { %>
-                                        Den månedlige summen til betalingsavtalen din har blitt satt på pause fram til <% this.newValue %>.
+                                        Betalingsavtalen din har blitt satt på pause frem til <% this.newValue %>.
                                     <% } %>
                                     <% if (this.change == "CANCELLED") { %>
-                                        Den månedlige betalingsavtalen din har blitt avsluttet.
+                                        Betalingsavtalen din har blitt avsluttet.
                                     <% } %>
                                     <% if (this.change == "CHARGEDAY") { %>
                                         Den månedlige trekkdagen til betalingsavtalen din har blitt endret til den <% this.newValue %>. hver måned.
                                     <% } %>
                                     <% if (this.change == "SHARES") { %>
-                                        Fordelingen din har blitt endret til:
-                                        <br/><br/>
-                                        <% for (var i = 0; i < this.organizations.length; i++) { %>
-                                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                                <tr>
-                                                    <td>
-                                                        <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                            <tr>
-                                                                <td class="boldTableRow">
-                                                                    <% this.organizations[i].name %>
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                        <!--[if (gte mso 9)|(IE)]>
-                                                        <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                                            <tr>
-                                                                <td>
-                                                        <![endif]-->
-                                                        <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                            <tr>
-                                                                <td class="tableRow">
-                                                                    <% this.organizations[i].percentage%> %
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                        <!--[if (gte mso 9)|(IE)]>
-                                                        <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                                            <tr>
-                                                                <td>
-                                                        <![endif]-->
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        <% } %>
+                                        Fordelingen din har blitt endret, se ny fordeling under.
                                     <% } %>
                                     <br/>
+                                    Her er din betalingsavtale etter endringene:
+
+                                    
+
+                                    Fordeling
+                                    <% for (var i = 0; i < this.organizations.length; i++) { %>
+                                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                            <tr>
+                                                <td>
+                                                    <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                        <tr>
+                                                            <td class="boldTableRow">
+                                                                <% this.organizations[i].name %>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                    <!--[if (gte mso 9)|(IE)]>
+                                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                                        <tr>
+                                                            <td>
+                                                    <![endif]-->
+                                                    <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                        <tr>
+                                                            <td class="tableRow">
+                                                                <% this.organizations[i].percentage%> %
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                    <!--[if (gte mso 9)|(IE)]>
+                                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                                        <tr>
+                                                            <td>
+                                                    <![endif]-->
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    <% } %>
                                     
                                     Var det ikke du som gjorde denne endringen? Vennligst ta kontakt via <a href= "mailto:donasjon@gieffektivt.no" style="color: #fb8f29;">donasjon@gieffektivt.no</a>.
                                     <br/><br/>
