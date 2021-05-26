@@ -150,7 +150,7 @@ function formatOrganizationsFromSplit(split, sum) {
 }
 
 /** 
- * @param {number} KID 
+ * @param {string} KID 
 */
 async function sendDonationRegistered(KID, sum) {
     try {
