@@ -132,7 +132,7 @@ router.post("/bank/pending", urlEncodeParser, async (req,res,next) => {
   let parsedData = JSON.parse(req.body.data)
 
   if(config.env === "production")
-    var success = await mail.sendDonationRegistered(parsedData.KID)
+    var success = await mail.sendDonationRegistered(parsedData.KID, parsedData.sum)
   else
     var success = true
 
