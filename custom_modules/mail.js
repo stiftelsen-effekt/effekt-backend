@@ -263,6 +263,8 @@ async function sendVippsAgreementChange(email, agreement, change, newValue = "")
       organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
     }
 
+    if (agreement.status !== "ACTIVE") return false
+
     try {
     } catch(ex) {
       console.error("Failed to send Vipp agreement changed email")
