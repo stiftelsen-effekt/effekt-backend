@@ -32,8 +32,8 @@ router.get("/initiate/:phonenumber", async (req, res, next) => {
 router.post("/agreement/draft", jsonBody, async (req, res, next) => {
 
     // TEMPORARY
-    const KID = 51615227;
-    const SUM = 100;
+    const KID = 28925758;
+    const SUM = 1000;
 
     try {
         let response = await vipps.draftAgreement(KID, SUM)
@@ -95,6 +95,7 @@ router.put("/agreement/cancel/:urlcode", async (req, res, next) => {
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.params.urlcode)
         const response = await vipps.updateAgreementStatus(agreementId, "STOPPED")
 
+        await mail.sendVippsAgreementChange(agreementCode, "STOPPED")
         res.send(response)
     } catch (ex) {
         next({ ex })
@@ -108,7 +109,12 @@ router.put("/agreement/price", jsonBody, async (req, res, next) => {
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
         const response = await vipps.updateAgreementPrice(agreementId, price)
 
-        if (response) await DAO.vipps.updateAgreementPrice(agreementId, price/100)
+        // Only update database if Vipps update was successful
+        if (response) {
+            await DAO.vipps.updateAgreementPrice(agreementId, price/100)
+            await mail.sendVippsAgreementChange(agreementCode, "AMOUNT", price/100)
+        }
+
 
         res.send()
     } catch (ex) {
@@ -131,16 +137,19 @@ router.put("/agreement/status", jsonBody, async (req, res, next) => {
 
 router.put("/agreement/chargeday", jsonBody, async (req, res, next) => {
     try {
-        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.body.agreementCode)
+        const agreementCode = req.body.agreementCode
         const chargeDay = req.body.chargeDay
+        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
 
-        if (chargeDay < 1 || chargeDay > 28) {
-            let err = new Error("Invalid chargeDay, must be between 1 and 28")
+        // 0 means last day of each month
+        if (chargeDay < 0 || chargeDay > 28) {
+            let err = new Error("Invalid charge day, must be between 0 and 28")
             err.status = 400
             return next(err)
         }
 
         const response = await DAO.vipps.updateAgreementChargeDay(agreementId, chargeDay)
+        if (response) await mail.sendVippsAgreementChange(agreementCode, "CHARGEDAY", chargeDay)
 
         res.send(response)
     } catch (ex) {
@@ -177,7 +186,9 @@ router.put("/agreement/distribution", jsonBody, async (req, res, next) => {
             await DAO.distributions.add(split, KID, donorId, metaOwnerID)
         }
 
-        await DAO.vipps.updateAgreementKID(agreementId, KID)
+        const response = await DAO.vipps.updateAgreementKID(agreementId, KID)
+        console.log(response)
+        if (response) await mail.sendVippsAgreementChange(agreementCode, "SHARES", KID)
 
         res.send({KID})
         } catch (ex) {
@@ -245,17 +256,7 @@ router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
         const change = req.body.change
         const newValue = req.body.newValue
 
-        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
-        const agreement = await DAO.vipps.getAgreement(agreementId)
-        const donor = await DAO.donors.getByID(agreement.donorID)
-        const email = donor.email
-
-        if (!email) {
-            res.sendStatus(400)
-            return false
-        }
-
-        const response = await mail.sendVippsAgreementChange(email, agreement, change, newValue)
+        const response = await mail.sendVippsAgreementChange(agreementCode, change, newValue)
 
         res.json(response)
     } catch (ex) {

@@ -85,133 +85,135 @@
                             <tr>
                                 <td class="bodycopy">
                                     <% if (this.change == "AMOUNT") { %>
-                                        Den månedlige summen til betalingsavtalen din har blitt endret til <% this.newValue %>kr.
+                                        Den månedlige summen til betalingsavtalen din har blitt endret til <% this.newValue %> kr.
                                     <% } %>
                                     <% if (this.change == "PAUSED") { %>
                                         Betalingsavtalen din har blitt satt på pause frem til <% this.newValue %>.
                                     <% } %>
-                                    <% if (this.change == "CANCELLED") { %>
-                                        Betalingsavtalen din har blitt avsluttet.
+                                    <% if (this.change == "STOPPED") { %>
+                                        Den månedlige betalingsavtalen din via Vipps har blitt avsluttet.
                                     <% } %>
                                     <% if (this.change == "CHARGEDAY") { %>
-                                        Den månedlige trekkdagen til betalingsavtalen din har blitt endret til den <% this.newValue %>. hver måned.
+                                        Trekkdagen til betalingsavtalen din har blitt endret til den <% this.newValue %>. hver måned.
                                     <% } %>
                                     <% if (this.change == "SHARES") { %>
                                         Fordelingen din har blitt endret, se ny fordeling under.
                                     <% } %>
                                     <br/><br/>
-
-                                    <h3>Betalingsavtale etter endring</h3>
-                                    <table class="donation-summary" border="0" cellspacing="0" cellpadding="0">
-                                       <tbody>
-                                          <tr>
-                                             <td>
-                                                <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                                   <tbody>
-                                                      <tr>
-                                                         <td>
-                                                            <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                               <tbody>
-                                                                  <tr>
-                                                                     <td style="font-size: 16px;">
-                                                                        Sum per måned:
-                                                                     </td>
-                                                                  </tr>
-                                                               </tbody>
-                                                            </table>
-                                                            <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                               <tbody>
-                                                                  <tr>
-                                                                     <td style="font-size: 16px; text-align: end;">
-                                                                        <% this.sum %> kr
-                                                                     </td>
-                                                                  </tr>
-                                                               </tbody>
-                                                            </table>
-                                                         </td>
-                                                      </tr>
-                                                      <tr>
-                                                        <td>
-                                                           <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                              <tbody>
-                                                                 <tr>
-                                                                    <td style="font-size: 16px;">
-                                                                       Trekkdag:
-                                                                    </td>
-                                                                 </tr>
-                                                              </tbody>
-                                                           </table>
-                                                           <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                              <tbody>
-                                                                 <tr>
-                                                                    <td style="font-size: 16px; text-align: end;">
-                                                                       Den <% this.agreement.chargeDayOfMonth %>. hver måned
-                                                                    </td>
-                                                                 </tr>
-                                                              </tbody>
-                                                           </table>
-                                                        </td>
-                                                     </tr>
-                                                     <tr>
-                                                        <td>
-                                                           <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                              <tbody>
-                                                                 <tr>
-                                                                    <td style="font-size: 16px;">
-                                                                       Fordelings-ID
-                                                                    </td>
-                                                                 </tr>
-                                                              </tbody>
-                                                           </table>
-                                                           <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                              <tbody>
-                                                                 <tr>
-                                                                    <td style="font-size: 16px; text-align: end;">
-                                                                        <% this.agreement.KID %>
-                                                                    </td>
-                                                                 </tr>
-                                                              </tbody>
-                                                           </table>
-                                                        </td>
-                                                     </tr>
-                                                   </tbody>
-                                                </table>
-                                            </td>
-                                       </tbody>
-                                    </table>
                                     
-                                    <h3>Fordeling</h3>
-                                    <% for (var i = 0; i < this.organizations.length; i++) { %>
-                                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    <% if(this.change !== "STOPPED") { %>
+                                        <h3>Betalingsavtale</h3>
+                                        <table class="donation-summary" border="0" cellspacing="0" cellpadding="0">
+                                        <tbody>
                                             <tr>
                                                 <td>
-                                                    <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                        <tr>
-                                                            <td class="boldTableRow">
-                                                                <% this.organizations[i].name %>
-                                                            </td>
-                                                        </tr>
-                                                    </table>
-                                                    <!--[if (gte mso 9)|(IE)]>
-                                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                    <tbody>
                                                         <tr>
                                                             <td>
-                                                    <![endif]-->
-                                                    <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                        <tr>
-                                                            <td class="tableRow">
-                                                                <% this.organizations[i].percentage%> %
+                                                                <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <td style="font-size: 16px;">
+                                                                            Sum per måned:
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                                </table>
+                                                                <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <td style="font-size: 16px; text-align: end;">
+                                                                            <% this.sum %> kr
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                                </table>
                                                             </td>
                                                         </tr>
-                                                    </table>
-                                                    <!--[if (gte mso 9)|(IE)]>
-                                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
                                                         <tr>
                                                             <td>
-                                                    <![endif]-->
+                                                            <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <td style="font-size: 16px;">
+                                                                        Trekkdag:
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                            <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <td style="font-size: 16px; text-align: end;">
+                                                                        Den <% this.agreement.chargeDayOfMonth %>. hver måned
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>
+                                                            <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <td style="font-size: 16px;">
+                                                                        Fordelings-ID
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                            <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <td style="font-size: 16px; text-align: end;">
+                                                                            <% this.agreement.KID %>
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                    </table>
                                                 </td>
-                                            </tr>
+                                        </tbody>
                                         </table>
+                                        
+                                        <h3>Fordeling</h3>
+                                        <% for (var i = 0; i < this.organizations.length; i++) { %>
+                                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                <tr>
+                                                    <td>
+                                                        <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                            <tr>
+                                                                <td class="boldTableRow">
+                                                                    <% this.organizations[i].name %>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                        <!--[if (gte mso 9)|(IE)]>
+                                                        <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                                            <tr>
+                                                                <td>
+                                                        <![endif]-->
+                                                        <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                            <tr>
+                                                                <td class="tableRow">
+                                                                    <% this.organizations[i].percentage%> %
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                        <!--[if (gte mso 9)|(IE)]>
+                                                        <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                                            <tr>
+                                                                <td>
+                                                        <![endif]-->
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        <% } %>
                                     <% } %>
                                     <br/><br/>
 

@@ -233,37 +233,28 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
     return true
   }
   catch(ex) {
-      console.error("Failed to send mail donation registered")
+      console.error("Failed to send facebook tax confirmation email")
       console.error(ex)
       return ex.statusCode
   }
 }
 
 /** 
- * @param {string} email 
- * @param {VippsAgreement} agreement
- * @param {"PAUSED" | "CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
+ * @param {string} agreementCode
+ * @param {"PAUSED" | "STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
 */
-async function sendVippsAgreementChange(email, agreement, change, newValue = "") {
+async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
   try {
-    const donorID = await DAO.donors.getIDbyEmail(email)
-    const donor = await DAO.donors.getByID(donorID)
-    let organizations = []
+    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
+    const agreement = await DAO.vipps.getAgreement(agreementId)
+    const donor = await DAO.donors.getByID(agreement.donorID)
+    const email = donor.email
 
-    if (change === "SHARES") {
-      const split = await DAO.distributions.getSplitByKID(newValue)
-      organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
-    }
+    const split = await DAO.distributions.getSplitByKID(agreement.KID)
+    const organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
 
     if (agreement.status !== "ACTIVE") return false
-
-    try {
-    } catch(ex) {
-      console.error("Failed to send Vipps agreement changed email")
-      console.error(ex)
-      return false
-    }
 
     let changeDesc = "endret"
     if (change === "CANCELLED") changeDesc = "avsluttet"
@@ -287,7 +278,7 @@ async function sendVippsAgreementChange(email, agreement, change, newValue = "")
     return true
   }
   catch(ex) {
-      console.error("Failed to send mail donation registered")
+      console.error("Failed to send vipps agreement change email")
       console.error(ex)
       return ex.statusCode
   }
