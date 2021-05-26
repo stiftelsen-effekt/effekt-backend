@@ -708,7 +708,7 @@ module.exports = {
     async createCharge(agreementId, amountKroner, daysInAdvance = 3) {
 
         if (daysInAdvance <= 2) {
-            console.error("Due date must be more than 2 days in advance of today")
+            console.error("Today must be more than 2 days in advance of the due date")
             return false
         }
 
@@ -746,24 +746,19 @@ module.exports = {
                 return false
             }
 
-            const createResponse = await request.post({
+            const response = await request.post({
                 uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges`,
                 headers: headers,
                 body: JSON.stringify(data)
             })
 
-            const chargeId = JSON.parse(createResponse).chargeId
+            const chargeId = JSON.parse(response).chargeId
+            const charge = await this.getCharge(agreementId, chargeId)
+            console.log(charge)
+            const agreement = await DAO.vipps.getAgreement(agreementId)
+            await DAO.vipps.addCharge(chargeId, agreementId, amountKroner, agreement.KID, formattedDueDate, charge.status)
 
-            const getResponse = await this.getCharge(agreementId, chargeId)
-
-            // Add to effektDonasjonDB if charge does not exist already
-            const chargeInEffektDB = await DAO.vipps.getCharge(chargeId)
-            if (chargeInEffektDB === false) {
-                await DAO.vipps.addCharge(chargeId, agreementId, amountKroner, formattedDueDate, getResponse.status)
-                return true
-            }
-
-            return true
+            return chargeId
         }
         catch (ex) {
             console.error(ex)
