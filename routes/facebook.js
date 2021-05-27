@@ -2,6 +2,7 @@ const e = require('express')
 const express = require('express')
 const router = express.Router()
 const DAO = require('../custom_modules/DAO.js')
+const mail = require('../custom_modules/mail')
 
 function throwError(message) {
     let error = new Error(message)
@@ -40,7 +41,7 @@ router.post("/register/payment", async (req, res, next) => {
         if (!ID) {
             const donorID = await DAO.donors.add(email, full_name, ssn, newsletter)
 
-            DAO.facebook.registerPaymentFB(donorID, paymentID)
+            await DAO.facebook.registerPaymentFB(donorID, paymentID)
         }
         // If donor already exists, update ssn if empty
         else if (ID) {
@@ -48,10 +49,12 @@ router.post("/register/payment", async (req, res, next) => {
             const donor = await DAO.donors.getByID(ID)
 
             if (!donor.ssn) await DAO.donors.updateSsn(donorID, ssn)
-            DAO.donors.updateNewsletter(donorID, newsletter)
+            await DAO.donors.updateNewsletter(donorID, newsletter)
 
-            DAO.facebook.registerPaymentFB(donorID, paymentID)
+            await DAO.facebook.registerPaymentFB(donorID, paymentID)
         }
+        
+        await mail.sendFacebookTaxConfirmation(email, full_name, paymentID)
 
         res.json({
             status: 200,
