@@ -161,6 +161,20 @@ router.put("/agreement/pause", jsonBody, async (req, res, next) => {
     }
 })
 
+router.put("/agreement/pause/end", jsonBody, async (req, res, next) => {
+    try {
+        const agreementCode = req.body.agreementCode
+        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
+
+        const response = await DAO.vipps.updateAgreementPauseDate(agreementId, null)
+        
+
+        res.send(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
 router.put("/agreement/chargeday", jsonBody, async (req, res, next) => {
     try {
         const agreementCode = req.body.agreementCode
