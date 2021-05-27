@@ -596,6 +596,33 @@ module.exports = {
         }
     },
 
+    /***
+     * Fetches all Vipps recurring agreement
+     * @returns {[VippsRecurringAgreement]} Array of agreements
+     */
+    async getAgreements() {
+        let token = await this.fetchToken()
+        if (token === false) return false
+
+        try {
+            let agreementRequest = await request.get({
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements`,
+                headers: this.getVippsHeaders(token)
+            })
+
+            /** @type {[VippsRecurringAgreement]} */
+            let response = JSON.parse(agreementRequest)
+
+            console.log(response)
+
+            return response
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
     /**
      * Updates the price of an agreement
      * @param {string} agreementId The ID of the agreement being updated

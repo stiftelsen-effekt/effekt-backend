@@ -121,7 +121,7 @@ async function getRecentOrder() {
  async function getAgreement(agreementID) {
     let con = await pool.getConnection()
     let [res] = await con.query(`
-        SELECT ID, status, donorID, KID, chargeDayOfMonth, amount FROM 
+        SELECT ID, status, donorID, KID, chargeDayOfMonth, paused_until_date, amount FROM 
             Vipps_agreements
         WHERE 
             ID = ?
@@ -130,6 +130,21 @@ async function getRecentOrder() {
 
     if (res.length === 0) return false
     else return res[0]
+}
+
+/**
+ * Fetches an agreement by agreementId
+ * @return {[Agreement]} Array of agreements
+ */
+ async function getAgreements() {
+    let con = await pool.getConnection()
+    let [res] = await con.query(`
+        SELECT * FROM Vipps_agreements
+        `, [])
+    con.release()
+
+    if (res.length === 0) return false
+    else return res
 }
 
 /**
@@ -189,7 +204,7 @@ async function getRecentOrder() {
 }
 
 /**
- * Fetches all active agreements that are due to be charged on the specified date
+ * Fetches all active agreements that are due to be charged on the specified charge day
  * @property {number} chargeDayOfMonth
  * @return {[VippsAgreement]} 
  */
@@ -442,6 +457,27 @@ async function updateAgreementStatus(agreementID, status) {
 }
 
 /**
+ * Updates the KID of an agreement
+ * @param {string} agreementId The agreement ID
+ * @param {string} pausedUntilDate The date when the pause ends
+ * @return {boolean} Success
+ */
+ async function updateAgreementPauseDate(agreementId, pausedUntilDate) {
+    let con = await pool.getConnection()
+    try {
+        con.query(
+            `UPDATE Vipps_agreements SET paused_until_date = ? WHERE ID = ?`, 
+            [pausedUntilDate, agreementId])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        return false
+    }
+}
+
+/**
  * Updated status of a charge
  * @param {string} agreementID agreementID
  * @param {string} chargeID chargeID
@@ -487,6 +523,7 @@ module.exports = {
     getOrder,
     getRecentOrder,
     getAgreement,
+    getAgreements,
     getCharge,
     getInitialCharge,
     getAgreementIdByUrlCode,
@@ -501,6 +538,7 @@ module.exports = {
     updateAgreementStatus,
     updateAgreementChargeDay,
     updateAgreementKID,
+    updateAgreementPauseDate,
     updateChargeStatus,
 
     setup: (dbPool) => { pool = dbPool }

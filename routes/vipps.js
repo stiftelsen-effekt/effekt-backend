@@ -90,6 +90,17 @@ router.get("/agreement/:id", async (req, res, next) => {
     }
 })
 
+router.get("/agreements", async (req, res, next) => {
+    try {
+        const response = await DAO.vipps.getAgreements()
+
+        //TODO: Check for false
+        res.json(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
 router.put("/agreement/cancel/:urlcode", async (req, res, next) => {
     try {
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.params.urlcode)
@@ -128,6 +139,21 @@ router.put("/agreement/status", jsonBody, async (req, res, next) => {
         const status = req.body.status
 
         await vipps.updateAgreementStatus(agreementId, status)
+
+        res.send(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.put("/agreement/pause", jsonBody, async (req, res, next) => {
+    try {
+        const pausedUntilDate = req.body.pausedUntilDate
+        const agreementCode = req.body.agreementCode
+        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
+
+        const response = await DAO.vipps.updateAgreementPauseDate(agreementId, pausedUntilDate)
+        
 
         res.send(response)
     } catch (ex) {
