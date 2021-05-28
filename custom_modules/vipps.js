@@ -960,6 +960,7 @@ module.exports = {
 
     /**
      * Checks for future agreement due dates and creates charges for them
+     * Used in daily schedule
      */
     async createFutureDueCharges() {
         try {

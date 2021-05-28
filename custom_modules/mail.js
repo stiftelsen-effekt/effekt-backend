@@ -241,7 +241,7 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
 
 /** 
  * @param {string} agreementCode
- * @param {"PAUSED" | "STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
+ * @param {"PAUSED" | "UNPAUSED" | "STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
 */
 async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
@@ -259,7 +259,11 @@ async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
     let changeDesc = "endret"
     if (change === "CANCELLED") changeDesc = "avsluttet"
     if (change === "PAUSED") changeDesc = "satt på pause"
+    if (change === "UNPAUSED") changeDesc = "gjenstartet"
     const subject = `gieffektivt.no - Din betalingsavtale via Vipps har blitt ${changeDesc}`
+
+    if (change === "PAUSED") newValue = formatDate(newValue)
+    if (change === "AMOUNT") newValue = formatCurrency(newValue)
     
     await send({
       subject,
@@ -268,7 +272,7 @@ async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
       templateData: {
         header: "Hei, " + donor.full_name,
         change,
-        newValue: change === "AMOUNT" ? formatCurrency(newValue) : newValue,
+        newValue,
         organizations,
         agreement,
         sum: formatCurrency(agreement.amount)
@@ -526,6 +530,10 @@ async function send(options) {
 function formatCurrency(currencyString) {
   return Number.parseFloat(currencyString).toFixed(0)
     .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1.")
+}
+
+function formatDate(date) {
+  return moment(date).format("DD.MM.YYYY")
 }
 
 module.exports = {

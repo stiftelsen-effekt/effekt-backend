@@ -148,13 +148,20 @@ router.put("/agreement/status", jsonBody, async (req, res, next) => {
 
 router.put("/agreement/pause", jsonBody, async (req, res, next) => {
     try {
-        const pausedUntilDate = req.body.pausedUntilDate
+        const pausedUntilDateString = req.body.pausedUntilDate
         const agreementCode = req.body.agreementCode
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
 
-        const response = await DAO.vipps.updateAgreementPauseDate(agreementId, pausedUntilDate)
-        
+        // The actual pause ending date is four days prior to the next charge day
+        // This is to make time for the daily schedule to create the charge
+        const dayMs = 86400000
+        const pausedUntilDate = new Date(pausedUntilDateString)
+        const exactPauseEnd = new Date(pausedUntilDate.getTime() - (dayMs * 4))
+        const response = await DAO.vipps.updateAgreementPauseDate(agreementId, exactPauseEnd)
 
+        console.log(response)
+        if (response) await mail.sendVippsAgreementChange(agreementCode, "PAUSED", pausedUntilDate)
+        
         res.send(response)
     } catch (ex) {
         next({ ex })
@@ -165,9 +172,9 @@ router.put("/agreement/pause/end", jsonBody, async (req, res, next) => {
     try {
         const agreementCode = req.body.agreementCode
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
-
         const response = await DAO.vipps.updateAgreementPauseDate(agreementId, null)
-        
+
+        if (response) await mail.sendVippsAgreementChange(agreementCode, "UNPAUSED")
 
         res.send(response)
     } catch (ex) {

@@ -75,6 +75,8 @@
                                         Betalingsavtalen din har blitt avsluttet.
                                     <% } else if (this.change == "PAUSED") { %>
                                         Din betalingsavtale via Vipps har blitt satt på pause
+                                    <% } else if (this.change == "UNPAUSED") { %>
+                                        Din betalingsavtale via Vipps har blitt gjenstartet
                                     <% } else { %>
                                         Din betalingsavtale via Vipps har blitt endret
                                     <% } %>
@@ -88,7 +90,7 @@
                                         Den månedlige summen til betalingsavtalen din har blitt endret til <% this.newValue %> kr.
                                     <% } %>
                                     <% if (this.change == "PAUSED") { %>
-                                        Betalingsavtalen din har blitt satt på pause frem til <% this.newValue %>.
+                                        Pausen opphører automatisk <% this.newValue %>.
                                     <% } %>
                                     <% if (this.change == "STOPPED") { %>
                                         Den månedlige betalingsavtalen din via Vipps har blitt avsluttet.
