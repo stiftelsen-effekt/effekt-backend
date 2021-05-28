@@ -1,7 +1,7 @@
 var pool
 
 // Valid states for Vipps recurring charges
-const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PARTIALLY_REFUNDED", "RESERVED", "CANCELLED", "PROCESSING" ]
+const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PARTIALLY_REFUNDED", "RESERVED", "CANCELLED", "PROCESSING"]
 
 //region Get
 
@@ -41,7 +41,7 @@ const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PART
  * @property {string} agreementID
  * @property {number} amount
  * @property {string} dueDate
- * @property {string} status
+ * @property {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status
  */
 
 /**

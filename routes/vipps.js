@@ -13,6 +13,7 @@ const rounding = require("../custom_modules/rounding")
 const donationHelpers = require("../custom_modules/donationHelpers")
 const vipps = require('../custom_modules/vipps')
 const authorizationRoles = require('../enums/authorizationRoles')
+const { hasChargedThisMonth } = require('../custom_modules/vipps')
 
 const vippsCallbackProdServers = ["callback-1.vipps.no", "callback-2.vipps.no", "callback-3.vipps.no", "callback-4.vipps.no"]
 const vippsCallbackDisasterServers = ["callback-dr-1.vipps.no", "callback-dr-2.vipps.no", "callback-dr-3.vipps.no", "callback-dr-4.vipps.no"]
@@ -56,12 +57,12 @@ router.get("/agreement/urlcode/:urlcode", async (req, res, next) => {
         
         // Synchronize agreements
         const responseVipps = await vipps.getAgreement(agreementId)
-
         await DAO.vipps.updateAgreementStatus(agreementId, responseVipps.status)
         await DAO.vipps.updateAgreementPrice(agreementId, responseVipps.price / 100)
-
         const responseDAO = await DAO.vipps.getAgreement(agreementId)
-        const response = {...responseVipps, ...responseDAO }
+
+        const monthAlreadyCharged = await vipps.hasChargedThisMonth(agreementId)
+        const response = {...responseVipps, ...responseDAO, monthAlreadyCharged}
 
         //TODO: Check for false
         res.json(response)
@@ -78,8 +79,8 @@ router.get("/agreement/:id", async (req, res, next) => {
         const responseVipps = await vipps.getAgreement(agreementId)
         await DAO.vipps.updateAgreementStatus(agreementId, responseVipps.status)
         await DAO.vipps.updateAgreementPrice(agreementId, responseVipps.price / 100)
-
         const responseDAO = await DAO.vipps.getAgreement(agreementId)
+
         const response = {...responseVipps, ...responseDAO }
 
 
@@ -262,6 +263,18 @@ router.get("/agreement/:agreementId/charge/:chargeId", jsonBody, async (req, res
         const chargeId = req.params.chargeId
 
         const response = await vipps.getCharge(agreementId, chargeId)
+
+        res.json(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.get("/agreement/:agreementId/charges", jsonBody, async (req, res, next) => {
+    try {
+        const agreementId = req.params.agreementId
+
+        const response = await vipps.getCharges(agreementId)
 
         res.json(response)
     } catch (ex) {

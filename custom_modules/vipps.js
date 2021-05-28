@@ -84,6 +84,21 @@ const VIPPS_TEXT = "Donasjon til gieffektivt.no"
  */
 
 /**
+ * @typedef VippsRecurringCharge
+ * @property {string} id
+ * @property {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status
+ * @property {string} due Due date
+ * @property {number} amount Amount in øre
+ * @property {number} amountRefunded Amount refunded in øre
+ * @property {string} transactionId
+ * @property {string} description
+ * @property {"RECURRING" | "INITIAL"} type 
+ * @property {string} failureReason
+ * @property {string} failureDescription
+ * 
+ */
+
+/**
  * @typedef ChargePayload
  * @property {number} amount Amount in the smallest denomination of the currency, e.g. øre for NOK
  * @property {string} currency A three letter currency code, e.g. NOK
@@ -797,6 +812,7 @@ module.exports = {
      * Fetches a single charge
      * @param {string} agreementId The agreement id
      * @param {string} chargeId The charge id
+     * @returns {[Charge]}
      */
     async getCharge(agreementId, chargeId) {
 
@@ -817,6 +833,57 @@ module.exports = {
         }
     },
 
+    /**
+     * Fetches all charges for an agreement
+     * @param {string} agreementId The agreement id
+     * @returns {[VippsRecurringCharge]} Array of charges
+     */
+    async getCharges(agreementId) {
+        const token = await this.fetchToken()
+        if (token === false) return false
+
+        try {
+            const response = await request.get({
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges`,
+                headers: this.getVippsHeaders(token)
+            })
+
+            return JSON.parse(response)
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
+    /**
+     * Checks if an agreement has been charged this month
+     * @param {string} agreementId The agreement id
+     * @returns {boolean} True if charged this month
+     */
+    async hasChargedThisMonth(agreementId) {
+        const charges = await this.getCharges(agreementId)
+        let hasCharged = false
+
+        try {
+            charges.forEach(charge => {
+                const chargeDate = new Date(charge.due)
+                const today = new Date()
+                if (
+                    today.getFullYear() === chargeDate.getFullYear() &&
+                    today.getMonth() === chargeDate.getMonth() &&
+                    charge.status === "CHARGED"
+                ) {
+                    hasCharged = true
+                }
+            })
+            return hasCharged
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+    },
 
     /**
      * Cancels a charge
@@ -830,7 +897,7 @@ module.exports = {
         if (token === false) return false
 
         try {
-            const response = await request.delete({
+            await request.delete({
                 uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}`,
                 headers: this.getVippsHeaders(token)
             })
