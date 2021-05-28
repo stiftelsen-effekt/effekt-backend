@@ -95,7 +95,6 @@ const VIPPS_TEXT = "Donasjon til gieffektivt.no"
  * @property {"RECURRING" | "INITIAL"} type 
  * @property {string} failureReason
  * @property {string} failureDescription
- * 
  */
 
 /**
@@ -757,16 +756,17 @@ module.exports = {
         const timeNow = new Date().getTime()
         const dueDateTime = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
         const dueDate = new Date(dueDateTime)
-
-        // This is the date format that Vipps accepts
-        const formattedDueDate = moment(dueDate).format('YYYY-MM-DD')
+        const chargeMonth = new Date(dueDateTime).getMonth() + new Date(dueDateTime).getFullYear()
 
         const token = await this.fetchToken()
         if (token === false) return false
 
-        // Create Idempotency-Key to prevent duplicate insertions
+        // Create Idempotency-Key to prevent multiple charges in a single month
         // Vipps returns the same chargeId for all requests with the same Idempotency-Key
-        const idempotencyKey = hash(agreementId + amountKroner + formattedDueDate)
+        const idempotencyKey = hash(agreementId + chargeMonth)
+
+        // This is the date format that Vipps accepts
+        const formattedDueDate = moment(dueDate).format('YYYY-MM-DD')
 
         let headers = this.getVippsHeaders(token)
         headers['Idempotency-Key'] = idempotencyKey
@@ -798,8 +798,9 @@ module.exports = {
             const charge = await this.getCharge(agreementId, chargeId)
             console.log(charge)
             const agreement = await DAO.vipps.getAgreement(agreementId)
-            await DAO.vipps.addCharge(chargeId, agreementId, amountKroner, agreement.KID, formattedDueDate, charge.status)
 
+            if (response) await DAO.vipps.addCharge(chargeId, agreementId, amountKroner, agreement.KID, formattedDueDate, charge.status)
+            
             return chargeId
         }
         catch (ex) {
@@ -1026,7 +1027,7 @@ module.exports = {
     },
 
     /**
-     * Checks for future agreement due dates and creates charges for them
+     * Checks for future agreement charge due dates and creates charges for them
      * Used in daily schedule
      */
     async createFutureDueCharges() {
@@ -1035,24 +1036,30 @@ module.exports = {
             const timeNow = new Date().getTime()
             const dueDateTime = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
             const dueDate = new Date(dueDateTime)
-        
-            // Find agreements with due dates that are 3 days from now
             const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(dueDateTime.getDate())
         
+            // Find agreements with due dates that are 3 days from now
             if (activeAgreements) {
                 for (let i = 0; i < activeAgreements.length; i++) {
                     const agreement = activeAgreements[i]
-    
-                    // Check if agreement exists and is active in Vipps database
-                    const vippsAgreement = await this.getAgreement(agreement.ID)
-                    if (vippsAgreement.status === "ACTIVE") {
-                        await this.createCharge(
-                            vippsAgreement.ID, 
-                            vippsAgreement.price, 
-                            dueDate
-                        )
+
+                    // If agreement is not currently paused
+                    if (new Date(agreement.paused_until_date) < new Date()) {
+
+                        // Invalid date means it is not paused
+                        if (isNan(Date.parse(agreement.paused_until_date))) {
+                        
+                            // Check if agreement exists and is active in Vipps database
+                            const vippsAgreement = await this.getAgreement(agreement.ID)
+                            if (vippsAgreement.status === "ACTIVE") {
+                                await this.createCharge(
+                                    vippsAgreement.ID, 
+                                    vippsAgreement.price, 
+                                    dueDate
+                                )
+                            }
+                        }
                     }
-                    
                 }
             }
             else {

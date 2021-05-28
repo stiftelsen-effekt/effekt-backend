@@ -153,11 +153,21 @@ router.put("/agreement/pause", jsonBody, async (req, res, next) => {
         const agreementCode = req.body.agreementCode
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
 
-        // The actual pause ending date is four days prior to the next charge day
-        // This is to make time for the daily schedule to create the charge
         const dayMs = 86400000
         const pausedUntilDate = new Date(pausedUntilDateString)
+
+        // The actual pause ending date is four days before the first charge day after the pause
+        // This is to make time for the daily schedule to create the charge three days before
         const exactPauseEnd = new Date(pausedUntilDate.getTime() - (dayMs * 4))
+        const charges = await vipps.getCharges(agreementId)
+
+        // Cancel all pending or due charges
+        for (let i = 0; i < charges.length; i++) {
+            if (charges[i].status === "PENDING" || charges[i].status === "DUE") {
+                await vipps.cancelCharge(agreementId, charges[i].id)
+            }
+        }
+
         const response = await DAO.vipps.updateAgreementPauseDate(agreementId, exactPauseEnd)
 
         console.log(response)
