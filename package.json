@@ -61,7 +61,7 @@
     "sqlstring": "^2.3.1",
     "ssh2-sftp-client": "^6.0.1",
     "validator": "^7.2.0",
-    "ws": "^5.2.2"
+    "ws": "^7.4.6"
   },
   "devDependencies": {
     "@types/chai": "^4.2.7",
