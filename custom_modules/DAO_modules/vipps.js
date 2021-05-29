@@ -459,7 +459,7 @@ async function updateAgreementStatus(agreementID, status) {
 }
 
 /**
- * Updates the KID of an agreement
+ * Updates the pause date of an agreement
  * @param {string} agreementId The agreement ID
  * @param {string} pausedUntilDate The date when the pause ends
  * @return {boolean} Success
@@ -470,6 +470,25 @@ async function updateAgreementStatus(agreementID, status) {
         con.query(
             `UPDATE Vipps_agreements SET paused_until_date = ? WHERE ID = ?`, 
             [pausedUntilDate, agreementId])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        return false
+    }
+}
+
+/**
+ * Updates the forced charge date of an agreement
+ * @param {string} agreementId The agreement ID
+ * @param {string} forceChargeDate The date of the forced charge
+ * @return {boolean} Success
+ */
+ async function updateAgreementForcedCharge(agreementId, forceChargeDate) {
+    let con = await pool.getConnection()
+    try {
+        con.query(`UPDATE Vipps_agreements SET force_charge_date = ? WHERE ID = ?`, [forceChargeDate, agreementId])
         con.release()
         return true
     }

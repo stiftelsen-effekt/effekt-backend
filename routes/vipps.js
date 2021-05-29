@@ -13,7 +13,6 @@ const rounding = require("../custom_modules/rounding")
 const donationHelpers = require("../custom_modules/donationHelpers")
 const vipps = require('../custom_modules/vipps')
 const authorizationRoles = require('../enums/authorizationRoles')
-const { hasChargedThisMonth } = require('../custom_modules/vipps')
 
 const vippsCallbackProdServers = ["callback-1.vipps.no", "callback-2.vipps.no", "callback-3.vipps.no", "callback-4.vipps.no"]
 const vippsCallbackDisasterServers = ["callback-dr-1.vipps.no", "callback-dr-2.vipps.no", "callback-dr-3.vipps.no", "callback-dr-4.vipps.no"]
@@ -292,10 +291,10 @@ router.get("/agreement/:agreementId/charges", jsonBody, async (req, res, next) =
     }
 })
 
-
 router.post("/agreement/charge/cancel", jsonBody, async (req, res, next) => {
     try {
-        const agreementId = req.body.agreementId
+        const agreementCode = req.body.agreementCode
+        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
         const chargeId = req.body.chargeId
 
         const response = await vipps.cancelCharge(agreementId, chargeId)
