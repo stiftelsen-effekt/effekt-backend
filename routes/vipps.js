@@ -61,7 +61,8 @@ router.get("/agreement/urlcode/:urlcode", async (req, res, next) => {
         const responseDAO = await DAO.vipps.getAgreement(agreementId)
 
         const monthAlreadyCharged = await vipps.hasChargedThisMonth(agreementId)
-        const response = {...responseVipps, ...responseDAO, monthAlreadyCharged}
+        const closestDueCharge = await vipps.getClosestDueCharge(agreementId)
+        const response = {...responseVipps, ...responseDAO, monthAlreadyCharged, closestDueCharge}
 
         //TODO: Check for false
         res.json(response)

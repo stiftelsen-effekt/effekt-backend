@@ -858,6 +858,31 @@ module.exports = {
     },
 
     /**
+     * Get the closest future charge with status "DUE"
+     * @param {string} agreementId The agreement id
+     * @returns {Date} The date of the pending charge
+     */
+    async getClosestDueCharge(agreementId) {
+        const charges = await this.getCharges(agreementId)
+        let dueCharges = []
+
+        try {
+            charges.forEach(charge => {
+                if (charge.status === "DUE") dueCharges.push(charge)
+            })
+            if (dueCharges.length > 0) {
+                const sortedByDue = dueCharges.sort((a,b) => (a.due > b.due) ? 1 : ((b.due > a.due) ? -1 : 0))
+                return sortedByDue[0]
+            }
+            return false
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
+    /**
      * Checks if an agreement has been charged this month
      * @param {string} agreementId The agreement id
      * @returns {boolean} True if charged this month
