@@ -48,7 +48,7 @@ class AvtalegiroAgreement {
   constructor(currLine) {
     this.fboNumber = parseInt(currLine.substr(8,7))
     this.KID = parseInt(currLine.substr(16,25))
-    this.notice = (currLine.substr(41,1) == 1)
+    this.notice = (currLine.substr(41,1) == "J")
     let registrationType = currLine.substr(15,1)
 
     if (registrationType == 0) {
