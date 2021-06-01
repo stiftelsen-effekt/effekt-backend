@@ -176,7 +176,7 @@ async function getHistogramBySum() {
             ORDER BY timestamp_confirmed DESC
 
             LIMIT 1
-        `)
+        `, [KID])
         con.release()
 
         if (results.length == 0)

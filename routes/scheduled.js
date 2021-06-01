@@ -8,6 +8,7 @@ const ocrParser = require('../custom_modules/parsers/OCR')
 const ocr = require('../custom_modules/ocr')
 const avtalegiroParser = require('../custom_modules/parsers/avtalegiro')
 const avtalegiro = require('../custom_modules/avtalegiro')
+const mail = require('../custom_modules/mail')
 const DAO = require('../custom_modules/DAO')
 const luxon = require('luxon')
 
@@ -49,11 +50,14 @@ router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,re
     const parsedAgreements = avtalegiroParser.parse(latestOcrFile.toString())
     const updatedAgreements = await avtalegiro.updateAgreements(parsedAgreements)
 
-    res.json({
+    const result = {
       addedDonations,
       updatedAgreements,
       latestOcrFile: latestOcrFile.toString()
-    })
+    }
+
+    await mail.sendOcrBackup(JSON.stringify(result, null, 2))
+    res.json(result)
   } catch(ex) {
     next({ex})
   }
@@ -63,6 +67,7 @@ router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,re
  * Triggered by a google cloud scheduler webhook every day at 10:00
  */
 router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+  let result
   try {
     let today = luxon.DateTime.fromJSDate(new Date())
     let inThreeDays = today.plus(luxon.Duration.fromObject({ days: 3 }))
@@ -78,19 +83,30 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
     * Create file to charge agreements for current day
     */
     const agreementsToCharge = await DAO.avtalegiroagreements.getByPaymentDate(today.day)
-    const shipmentID = await DAO.avtalegiroagreements.addShipment(agreementsToCharge.length)
-    const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreementsToCharge)
 
-    /**
-    * Send file to nets
-    */
-    const filename = shipmentID.toString().padStart(9, '0')
-    await nets.sendFile(avtaleGiroClaimsFile, filename)
+    if (agreementsToCharge.length > 0) {
+      const shipmentID = await DAO.avtalegiroagreements.addShipment(agreementsToCharge.length)
+      const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreementsToCharge)
 
-    res.json({
-      notifiedAgreements,
-      claimsFile: avtaleGiroClaimsFile.toString()
-    })
+      /**
+      * Send file to nets
+      */
+      const filename = 'DIRREN' + today.toFormat("ddLLyy")
+      await nets.sendFile(avtaleGiroClaimsFile, filename)
+
+      result = {
+        notifiedAgreements,
+        claimsFile: avtaleGiroClaimsFile.toString()
+      }
+    } else {
+      result = {
+        notifiedAgreements,
+        claimsFile: null
+      }
+    }
+
+    await mail.sendOcrBackup(JSON.stringify(result, null, 2))
+    res.json(result)
   } catch(ex) {
     next({ex})
   }

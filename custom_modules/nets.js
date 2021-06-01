@@ -63,8 +63,6 @@ async function sendFile(file, filename) {
  await connection.put(file, `/Inbound/${filename}`)
  connection.end()
 
- await mail.sendOcrBackup(file)
-
  return file
 }
 
