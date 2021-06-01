@@ -892,7 +892,7 @@ module.exports = {
         let hasCharged = false
 
         try {
-            charges.forEach(charge => {
+            if (charges) charges.forEach(charge => {
                 const chargeDate = new Date(charge.due)
                 const today = new Date()
                 if (
@@ -1068,10 +1068,10 @@ module.exports = {
                 for (let i = 0; i < activeAgreements.length; i++) {
                     const agreement = activeAgreements[i]
 
-                    // If agreement is not currently paused
+                    // If agreement is not paused
                     if (new Date(agreement.paused_until_date) < new Date()) {
 
-                        // Invalid date means it is not paused
+                        // null or invalid date means it is not paused
                         if (isNan(Date.parse(agreement.paused_until_date))) {
                         
                             // Check if agreement exists and is active in Vipps database

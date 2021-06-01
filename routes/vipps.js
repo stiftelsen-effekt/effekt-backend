@@ -170,7 +170,6 @@ router.put("/agreement/pause", jsonBody, async (req, res, next) => {
 
         const response = await DAO.vipps.updateAgreementPauseDate(agreementId, exactPauseEnd)
 
-        console.log(response)
         if (response) await mail.sendVippsAgreementChange(agreementCode, "PAUSED", pausedUntilDate)
         
         res.send(response)
@@ -208,6 +207,20 @@ router.put("/agreement/chargeday", jsonBody, async (req, res, next) => {
 
         const response = await DAO.vipps.updateAgreementChargeDay(agreementId, chargeDay)
         if (response) await mail.sendVippsAgreementChange(agreementCode, "CHARGEDAY", chargeDay)
+
+        res.send(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.put("/agreement/forcedcharge", jsonBody, async (req, res, next) => {
+    try {
+        const agreementCode = req.body.agreementCode
+        const forcedChargeDate = req.body.forcedChargeDate
+        const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
+
+        const response = await DAO.vipps.updateAgreementForcedCharge(agreementId, forcedChargeDate)
 
         res.send(response)
     } catch (ex) {
@@ -292,15 +305,20 @@ router.get("/agreement/:agreementId/charges", jsonBody, async (req, res, next) =
     }
 })
 
-router.post("/agreement/charge/cancel", jsonBody, async (req, res, next) => {
+router.post("/agreement/charges/cancel", jsonBody, async (req, res, next) => {
     try {
         const agreementCode = req.body.agreementCode
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
-        const chargeId = req.body.chargeId
+        const charges = await vipps.getCharges(agreementId)
 
-        const response = await vipps.cancelCharge(agreementId, chargeId)
+        // Cancel all pending or due charges
+        for (let i = 0; i < charges.length; i++) {
+            if (charges[i].status === "PENDING" || charges[i].status === "DUE") {
+                await vipps.cancelCharge(agreementId, charges[i].id)
+            }
+        }
 
-        res.send(response)
+        res.send(true)
     } catch (ex) {
         next({ ex })
     }

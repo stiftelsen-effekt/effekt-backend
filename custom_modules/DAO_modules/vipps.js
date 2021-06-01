@@ -123,7 +123,7 @@ async function getRecentOrder() {
  async function getAgreement(agreementID) {
     let con = await pool.getConnection()
     let [res] = await con.query(`
-        SELECT ID, status, donorID, KID, chargeDayOfMonth, paused_until_date, amount FROM 
+        SELECT ID, status, donorID, KID, chargeDayOfMonth, force_charge_date, paused_until_date, amount FROM 
             Vipps_agreements
         WHERE 
             ID = ?
@@ -560,6 +560,7 @@ module.exports = {
     updateAgreementChargeDay,
     updateAgreementKID,
     updateAgreementPauseDate,
+    updateAgreementForcedCharge,
     updateChargeStatus,
 
     setup: (dbPool) => { pool = dbPool }
