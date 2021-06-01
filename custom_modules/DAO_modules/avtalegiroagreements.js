@@ -158,8 +158,6 @@ async function getByPaymentDate(dayInMonth) {
     try {
         var con = await pool.getConnection()
 
-        
-
         let [agreements] = await con.query(`SELECT    
             payment_date,
             amount, 
@@ -171,19 +169,15 @@ async function getByPaymentDate(dayInMonth) {
             WHERE payment_date = ? AND active = 1`, [dayInMonth])
 
         con.release()
-        if (agreements.length > 0) {
-            return agreements.map((agreement) => (
-                {
-                    payment_date: agreement.payment_date,
-                    notice: agreement.notice,
-                    amount: agreement.amount,
-                    KID: agreement.KID,
-                }
-            ))
-        }
-        else {
-            return null
-        }
+        
+        return agreements.map((agreement) => (
+            {
+                payment_date: agreement.payment_date,
+                notice: agreement.notice,
+                amount: agreement.amount,
+                KID: agreement.KID,
+            }
+        ))
     }
     catch (ex) {
         con.release()

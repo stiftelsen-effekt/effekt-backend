@@ -47,18 +47,20 @@ class AvtalegiroAgreement {
    */
   constructor(currLine) {
     this.fboNumber = parseInt(currLine.substr(8,7))
-    this.KID = parseInt(currLine.substr(16,25))
-    this.notice = (currLine.substr(41,1) == 1)
+    this.KID = currLine.substr(16+10,15) //Goes to 25, but we use length 15
+    this.notice = (currLine.substr(41,1) == "J")
     let registrationType = currLine.substr(15,1)
 
-    if (registrationType == 0) {
+    if (registrationType == '0') {
       /**
        * We can ask nets to list ALL of the active agreements on the account
        * They will then get 0 as their registration type
        */
       this.totalReadout = true
-    }
-    if(registrationType == 1) {
+    } else if (registrationType == '1') {
+      // New or changed agreements
+    } else if(registrationType == '2') {
+      // Terminated agreements
       this.isTerminated = true
     }
   }
