@@ -47,7 +47,7 @@ module.exports = {
     /**
      * Second line
      */
-    const shortname = donor.name.toUpperCase().substr(0,10).replace(/\s+/g, '').padStart(10, 0)
+    const shortname = donor.name.toUpperCase().substr(0,10).replace(/\s+/g, '').padStart(10, '0')
 
     var secondLine =`NY210231${transactionNumber.toString().padStart(7,'0')}${shortname}`
 

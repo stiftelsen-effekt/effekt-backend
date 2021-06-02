@@ -23,7 +23,7 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
   for (let transactionNumber = 0; transactionNumber < paymentClaims.length; transactionNumber++) {
     const claim = paymentClaims[transactionNumber]
     const donor = await DAO.donors.getByKID(claim.KID)
-    fileContents += writer.firstAndSecondLine(claim, donor, "02", transactionNumber)
+    fileContents += writer.firstAndSecondLine(claim, donor, "02", transactionNumber+1)
   }
 
   fileContents += writer.endRecordPaymentClaims(paymentClaims)
