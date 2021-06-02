@@ -91,7 +91,7 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
       /**
       * Send file to nets
       */
-      const filename = 'DIRREN' + today.toFormat("ddLLyy")
+      const filename = 'DIRREM' + today.toFormat("ddLLyy")
       await nets.sendFile(avtaleGiroClaimsFile, filename)
 
       result = {
