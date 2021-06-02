@@ -1058,23 +1058,31 @@ module.exports = {
     async createFutureDueCharges() {
         try {
             const daysInAdvance = 3
+            const today = new Date().getDate()
             const timeNow = new Date().getTime()
-            const dueDateTime = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
-            const dueDate = new Date(dueDateTime)
-            const activeAgreements = await DAO.vipps.getActiveAgreementsByChargeDay(dueDateTime.getDate())
+            const dueDate = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance)).setHours(0,0,0,0)
+            // Used for checking if due date is last day of month
+            const dayAfterDue = new Date(timeNow + (1000 * 60 * 60 * 24 * (daysInAdvance+1))).getDate()
+            const activeAgreements = await DAO.vipps.getActiveAgreements(dueDate.getDate())
         
             // Find agreements with due dates that are 3 days from now
             if (activeAgreements) {
                 for (let i = 0; i < activeAgreements.length; i++) {
                     const agreement = activeAgreements[i]
+                    const pauseEnd = agreement.paused_until_date
+                    const chargeDay = agreement.chargeDayOfMonth
+                    const forceChargeDate = new Date(agreement.force_charge_date).setHours(0,0,0,0)
 
-                    // If agreement is not paused
-                    if (new Date(agreement.paused_until_date) < new Date()) {
+                    // If agreement charge should be created today
+                    if (chargeDay === dueDate.getDate() 
+                        || (chargeDay === 0 && dayAfterDue === 1) // 0 means last day of month, 1 means the first day of next month
+                        || dueDate === forceChargeDate) {
 
-                        // null or invalid date means it is not paused
-                        if (isNan(Date.parse(agreement.paused_until_date))) {
-                        
-                            // Check if agreement exists and is active in Vipps database
+
+                        // If agreement is not paused
+                        if (new Date(pauseEnd) < new Date() || isNan(Date.parse(pauseEnd))){
+
+                            // Check if agreement also is active in Vipps database
                             const vippsAgreement = await this.getAgreement(agreement.ID)
                             if (vippsAgreement.status === "ACTIVE") {
                                 await this.createCharge(

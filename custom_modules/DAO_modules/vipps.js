@@ -206,18 +206,18 @@ async function getRecentOrder() {
 }
 
 /**
- * Fetches all active agreements that are due to be charged on the specified charge day
+ * Fetches all active agreements
  * @property {number} chargeDayOfMonth
  * @return {[VippsAgreement]} 
  */
- async function getActiveAgreementsByChargeDay(chargeDayOfMonth) {
+ async function getActiveAgreements() {
     let con = await pool.getConnection()
     let [res] = await con.query(`
         SELECT * FROM 
             Vipps_agreements 
         WHERE 
-            status = "ACTIVE" and chargeDayOfMonth = ?
-        `, [chargeDayOfMonth])
+            status = "ACTIVE"
+        `)
     con.release()
 
     if (res.length === 0) return false
@@ -548,7 +548,7 @@ module.exports = {
     getCharge,
     getInitialCharge,
     getAgreementIdByUrlCode,
-    getActiveAgreementsByChargeDay,
+    getActiveAgreements,
     addToken,
     addOrder,
     addAgreement,
