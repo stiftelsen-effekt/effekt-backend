@@ -29,7 +29,7 @@ async function getEntries(limit = 10, offset = 0) {
       SELECT 
         ID, label, timestamp 
       
-      FROM EffektDonasjonDB_Dev.ImportLog 
+      FROM Import_logs 
       
       ORDER BY timestamp DESC 
       LIMIT ? 
@@ -56,7 +56,7 @@ async function get(id) {
     let [res] = await con.query(`
       SELECT *
       
-      FROM EffektDonasjonDB_Dev.ImportLog 
+      FROM Import_logs
       
       WHERE ID = ?`, [id])
 
@@ -85,7 +85,7 @@ async function add(label, result) {
     var con = await pool.getConnection()
 
     var res = await con.execute(
-        `INSERT INTO Avtalegiro_agreements 
+        `INSERT INTO Import_logs
           (label, result) 
           VALUES 
           (?,?)`, [label, JSON.stringify(result)])

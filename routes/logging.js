@@ -5,16 +5,19 @@ const roles = require('../enums/authorizationRoles')
 
 const DAO = require('../custom_modules/DAO.js')
 
-router.get("/", auth(roles.read_all_donations), async (req,res, next) => {
+router.post("/", auth(roles.read_all_donations), async (req,res, next) => {
   try {
-    const limit = parseInt(req.query.limit)
-    const offset = parseInt(req.query.offset)
+    const limit = parseInt(req.body.limit)
+    const offset = parseInt(req.body.page*limit)
 
     const entries = await DAO.logging.getEntries(limit, offset)
 
     res.json({
       status: 200,
-      content: entries
+      content: {
+        rows: entries,
+        pages: 1
+      }
     })
   }
   catch(ex) {
