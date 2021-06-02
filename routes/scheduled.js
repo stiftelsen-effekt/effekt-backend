@@ -56,6 +56,7 @@ router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,re
       latestOcrFile: latestOcrFile.toString()
     }
 
+    await DAO.logging.add("OCR", result)
     await mail.sendOcrBackup(JSON.stringify(result, null, 2))
     res.json(result)
   } catch(ex) {
@@ -105,6 +106,7 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
       }
     }
 
+    await DAO.logging.add("AvtaleGiro", result)
     await mail.sendOcrBackup(JSON.stringify(result, null, 2))
     res.json(result)
   } catch(ex) {
