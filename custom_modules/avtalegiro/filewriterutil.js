@@ -131,7 +131,7 @@ module.exports = {
     line += claims.length.toString().padStart(8,'0')
 
     //Number of records, including start and end record
-    line += (claims.length*2+6).toString().padStart(8,'0')
+    line += (claims.length*2+4).toString().padStart(8,'0')
 
     //Sum of payment claims
     line += claims.reduce((acc, claim) => acc += claim.amount, 0).toString().padStart(17, '0')

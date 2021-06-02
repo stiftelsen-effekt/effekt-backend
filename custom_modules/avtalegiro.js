@@ -32,8 +32,11 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
    * Deletion requests
    * Currently not utilized
    */
+
+  /*
   fileContents += writer.startRecordDeletionRequest()
   fileContents += writer.endRecordDeletionRequest()
+  */
 
   fileContents += writer.endRecordTransmission(paymentClaims)
 
