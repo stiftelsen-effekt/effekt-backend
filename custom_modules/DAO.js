@@ -17,6 +17,7 @@ module.exports = {
     initialpaymentmethod: require ('./DAO_modules/initialpaymentmethod'),
     avtalegiroagreements: require ('./DAO_modules/avtalegiroagreements'),
     facebook: require('./DAO_modules/facebook'),
+    logging: require('./DAO_modules/logging'),
 
     /**
      * Sets up a connection to the database, uses config.js file for parameters
@@ -57,6 +58,7 @@ module.exports = {
         this.initialpaymentmethod.setup(dbPool)
         this.avtalegiroagreements.setup(dbPool)
         this.facebook.setup(dbPool)
+        this.logging.setup(dbPool)
 
         //Convenience functions for transactions
         //Use the returned transaction object for queries in the transaction
