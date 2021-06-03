@@ -27,7 +27,7 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims, date) {
     fileContents += writer.firstAndSecondLine(claim, donor, "02", transactionNumber+1, date)
   }
 
-  fileContents += writer.endRecordPaymentClaims(paymentClaims)
+  fileContents += writer.endRecordPaymentClaims(paymentClaims, date)
 
   /**
    * Deletion requests
@@ -36,10 +36,10 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims, date) {
 
   /*
   fileContents += writer.startRecordDeletionRequest()
-  fileContents += writer.endRecordDeletionRequest()
+  fileContents += writer.endRecordDeletionRequest(date)
   */
 
-  fileContents += writer.endRecordTransmission(paymentClaims)
+  fileContents += writer.endRecordTransmission(paymentClaims, date)
 
   const fileBuffer = Buffer.from(fileContents, 'utf8')
 

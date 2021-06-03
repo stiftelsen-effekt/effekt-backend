@@ -70,7 +70,13 @@ module.exports = {
     return lines
   },
 
-  endRecordPaymentClaims: function(claims) {
+  /**
+   * 
+   * @param {import('../parsers/avtalegiro').AvtalegiroAgreement} claims 
+   * @param {DateTime} dueDate 
+   * @returns 
+   */
+  endRecordPaymentClaims: function(claims, dueDate) {
     var line =`NY210088`
 
     //Number of transactions
@@ -82,13 +88,13 @@ module.exports = {
     //Sum of payment claims
     line += claims.reduce((acc, claim) => acc += claim.amount, 0).toString().padStart(17, '0')
 
-    const today = luxon.DateTime.fromJSDate(new Date()).toFormat("ddLLyy")
+    const minMaxDate = dueDate.toFormat("ddLLyy")
 
     //Min day
-    line += today
+    line += minMaxDate
 
     //Max day
-    line += today
+    line += minMaxDate
 
     line = line.padEnd(80, '0')
     line += '\n'
@@ -108,7 +114,7 @@ module.exports = {
     return line
   },
 
-  endRecordDeletionRequest: function() {
+  endRecordDeletionRequest: function(dueDate) {
     var line =`NY213688`
 
     //Number of transactions
@@ -120,20 +126,20 @@ module.exports = {
     //Sum of deletion requests amount
     line += '0'.padStart(17, '0')
 
-    const today = luxon.DateTime.fromJSDate(new Date()).toFormat("ddLLyy")
+    const minMaxDate = dueDate.toFormat("ddLLyy")
 
     //Min day
-    line += today
+    line += minMaxDate
 
     //Max day
-    line += today
+    line += minMaxDate
 
     line = line.padEnd(80, '0')
     line += '\n'
     return line
   },
 
-  endRecordTransmission: function(claims) {
+  endRecordTransmission: function(claims, dueDate) {
     var line =`NY000089`
 
     //Number of transactions
@@ -145,13 +151,13 @@ module.exports = {
     //Sum of payment claims
     line += claims.reduce((acc, claim) => acc += claim.amount, 0).toString().padStart(17, '0')
 
-    const today = luxon.DateTime.fromJSDate(new Date()).toFormat("ddLLyy")
+    const minMaxDate = dueDate.toFormat("ddLLyy")
 
     //Min day
-    line += today
+    line += minMaxDate
 
     //Max day
-    line += today
+    line += minMaxDate
 
     line = line.padEnd(80, '0')
     line += '\n'
