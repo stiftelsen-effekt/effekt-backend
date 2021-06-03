@@ -156,9 +156,6 @@ module.exports = {
     //Min day
     line += minMaxDate
 
-    //Max day
-    line += minMaxDate
-
     line = line.padEnd(80, '0')
     line += '\n'
     return line
