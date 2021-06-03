@@ -31,6 +31,7 @@ router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,re
     if (latestOcrFile === null) {
       //No files found in SFTP folder
       //Most likely because it's a holiday or weekend
+      await DAO.logging.add("OCR", { nofile: true })
       res.send("No file")
       return true
     }
