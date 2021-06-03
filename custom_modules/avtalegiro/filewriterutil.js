@@ -1,5 +1,6 @@
 const config = require('../../config')
-const luxon = require('luxon')
+const luxon = require('luxon');
+const { DateTime } = require('luxon');
 
 module.exports = {
   startRecordTransmission: function(shipmentID) { 
@@ -24,13 +25,21 @@ module.exports = {
     return line
   },
 
-  firstAndSecondLine: function(agreement, donor, type, transactionNumber) {
+  /**
+   * 
+   * @param {import('../parsers/avtalegiro').AvtalegiroAgreement} agreement 
+   * @param {import('../DAO_modules/donors').Donor} donor 
+   * @param {string} type 
+   * @param {number} transactionNumber 
+   * @param {DateTime} claimDate 
+   * @returns {string}
+   */
+  firstAndSecondLine: function(agreement, donor, type, transactionNumber, claimDate) {
     /**
      * First line
      */
     var firstLine =`NY21${type}30${transactionNumber.toString().padStart(7,'0')}`
-    let agreementDate = luxon.DateTime.fromJSDate(new Date())
-    firstLine += agreementDate.toFormat("ddLLyy")
+    firstLine += claimDate.toFormat("ddLLyy")
     firstLine = firstLine.padEnd(32, '0')
 
     var amount = agreement.amount

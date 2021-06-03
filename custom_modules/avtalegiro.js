@@ -2,15 +2,16 @@ const DAO = require('./DAO')
 const writer = require('./avtalegiro/filewriterutil')
 const mail = require('../custom_modules/mail')
 const config = require('../config')
-const { task } = require('gulp')
+const { DateTime } = require('luxon')
 
 /**
  * Generates a claims file to claim payments for AvtaleGiro agreements
  * @param {number} shipmentID A shipment ID from the database
  * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} paymentClaims Agreements that we should claim payment from
+ * @param {DateTime} date Due date
  * @returns {Buffer} The file buffer
  */
-async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
+async function generateAvtaleGiroFile(shipmentID, paymentClaims, date) {
   let fileContents = ''
 
   fileContents += writer.startRecordTransmission(shipmentID)
@@ -23,7 +24,7 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims) {
   for (let transactionNumber = 0; transactionNumber < paymentClaims.length; transactionNumber++) {
     const claim = paymentClaims[transactionNumber]
     const donor = await DAO.donors.getByKID(claim.KID)
-    fileContents += writer.firstAndSecondLine(claim, donor, "02", transactionNumber+1)
+    fileContents += writer.firstAndSecondLine(claim, donor, "02", transactionNumber+1, date)
   }
 
   fileContents += writer.endRecordPaymentClaims(paymentClaims)
