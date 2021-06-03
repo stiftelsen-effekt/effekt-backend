@@ -72,24 +72,23 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
   let result
   try {
     let today = luxon.DateTime.fromJSDate(new Date())
-    let inOneDay = today.plus(luxon.Duration.fromObject({ days: 1 }))
-    let inThreeDays = today.plus(luxon.Duration.fromObject({ days: 3 }))
+    let claimDate = today.plus(luxon.Duration.fromObject({ days: 5 }))
+    let notificationDate = today.plus(luxon.Duration.fromObject({ days: 3 }))
 
     /**
     * Notify all with agreements that are to be charged in three days
     */
-    const comingAgreements = await DAO.avtalegiroagreements.getByPaymentDate(inThreeDays.day)
-    const agreementsToBeNotified = comingAgreements.filter(agreement => agreement.notice == true)
+    const agreementsToBeNotified = (await DAO.avtalegiroagreements.getByPaymentDate(notificationDate.day)).filter(agreement => agreement.notice == true)
     const notifiedAgreements = await avtalegiro.notifyAgreements(agreementsToBeNotified)
 
     /**
     * Create file to charge agreements for current day
     */
-    const agreementsToCharge = await DAO.avtalegiroagreements.getByPaymentDate(inOneDay.day)
+    const agreementsToCharge = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day)
 
     if (agreementsToCharge.length > 0) {
       const shipmentID = await DAO.avtalegiroagreements.addShipment(agreementsToCharge.length)
-      const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreementsToCharge, inOneDay)
+      const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreementsToCharge, claimDate)
 
       /**
       * Send file to nets
