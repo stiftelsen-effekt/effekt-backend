@@ -524,7 +524,7 @@ module.exports = {
      * @param {string} KID KID for organization share
      * @param {number} amount Amount in kroner, not øre
      */
-    async draftAgreement(KID, amount) {
+    async draftAgreement(KID, amount, initialCharge = true) {
         let token = await this.fetchToken()
 
         if (token === false) return false
@@ -534,22 +534,29 @@ module.exports = {
         const description = "Første belastning skjer umiddelbart"
         const agreementUrlCode = hash(Math.random().toString())
 
+        let env = ""
+        if (config.env === "stage") env = "stage."
+        if (config.env === "development") env = "dev."
+
         const data = {
             "currency": "NOK",
-            "initialCharge": {
-                "amount": realAmount,
-                "currency": "NOK",
-                "description": description,
-                "transactionType": "RESERVE_CAPTURE"
-            },
             "interval": "MONTH",
             "intervalCount": 1,
             "isApp": false,
             "merchantRedirectUrl": `https://gieffektivt.no/vipps/recurring/confirmation`, // TODO: Create page
-            "merchantAgreementUrl": `https://gieffektivt.no/vipps/recurring/customer-agreement`,
+            "merchantAgreementUrl": `https://${env}minside.gieffektivt.no/${agreementUrlCode}`,
             "price": realAmount,
             "productDescription": description,
             "productName": "Månedlig donasjon til gieffektivt.no"
+        }
+
+        if (initialCharge) {
+            data["initialCharge"] = {
+                "amount": realAmount,
+                "currency": "NOK",
+                "description": description,
+                "transactionType": "RESERVE_CAPTURE"
+            }
         }
 
         try {
@@ -573,7 +580,7 @@ module.exports = {
             await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, amount, agreementUrlCode)
             await DAO.vipps.addCharge(response.chargeId, response.agreementId, amount, KID, new Date(), "RESERVED")
 
-            this.pollAgreement(response.agreementId, response.chargeId)
+            this.pollAgreement(response.agreementId)
 
             return response
         }
@@ -1058,9 +1065,8 @@ module.exports = {
     async createFutureDueCharges() {
         try {
             const daysInAdvance = 3
-            const today = new Date().getDate()
             const timeNow = new Date().getTime()
-            const dueDate = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance)).setHours(0,0,0,0)
+            const dueDate = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
             // Used for checking if due date is last day of month
             const dayAfterDue = new Date(timeNow + (1000 * 60 * 60 * 24 * (daysInAdvance+1))).getDate()
             const activeAgreements = await DAO.vipps.getActiveAgreements(dueDate.getDate())
@@ -1071,13 +1077,12 @@ module.exports = {
                     const agreement = activeAgreements[i]
                     const pauseEnd = agreement.paused_until_date
                     const chargeDay = agreement.chargeDayOfMonth
-                    const forceChargeDate = new Date(agreement.force_charge_date).setHours(0,0,0,0)
+                    const forceChargeDate = new Date(agreement.force_charge_date)
 
                     // If agreement charge should be created today
                     if (chargeDay === dueDate.getDate() 
                         || (chargeDay === 0 && dayAfterDue === 1) // 0 means last day of month, 1 means the first day of next month
-                        || dueDate === forceChargeDate) {
-
+                        || dueDate.setHours(0,0,0,0) === forceChargeDate.setHours(0,0,0,0)) {
 
                         // If agreement is not paused
                         if (new Date(pauseEnd) < new Date() || isNan(Date.parse(pauseEnd))){
