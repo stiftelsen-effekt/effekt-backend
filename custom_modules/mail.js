@@ -13,7 +13,7 @@ const fs = require('fs-extra')
  * @property {string} KID
  * @property {number} amount
  * @property {string} status
- * @property {number} chargeDayOfMonth
+ * @property {number} monthly_charge_day
  */
 
 /**

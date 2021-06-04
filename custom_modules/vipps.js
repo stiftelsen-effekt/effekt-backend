@@ -1076,7 +1076,7 @@ module.exports = {
                 for (let i = 0; i < activeAgreements.length; i++) {
                     const agreement = activeAgreements[i]
                     const pauseEnd = agreement.paused_until_date
-                    const chargeDay = agreement.chargeDayOfMonth
+                    const chargeDay = agreement.monthly_charge_day
                     const forceChargeDate = new Date(agreement.force_charge_date)
 
                     // If agreement charge should be created today

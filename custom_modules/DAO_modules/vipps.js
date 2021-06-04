@@ -31,7 +31,7 @@ const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PART
  * @property {string} KID
  * @property {number} sum
  * @property {string} status
- * @property {number} chargeDayOfMonth
+ * @property {number} monthly_charge_day
  * @property {string} agreement_url_code
  * @property {string} paused_until_date
  * @property {string} force_charge_date
@@ -123,7 +123,7 @@ async function getRecentOrder() {
  async function getAgreement(agreementID) {
     let con = await pool.getConnection()
     let [res] = await con.query(`
-        SELECT ID, status, donorID, KID, chargeDayOfMonth, force_charge_date, paused_until_date, amount FROM 
+        SELECT ID, status, donorID, KID, monthly_charge_day, force_charge_date, paused_until_date, amount FROM 
             Vipps_agreements
         WHERE 
             ID = ?
@@ -207,7 +207,7 @@ async function getRecentOrder() {
 
 /**
  * Fetches all active agreements
- * @property {number} chargeDayOfMonth
+ * @property {number} monthly_charge_day
  * @return {[VippsAgreement]} 
  */
  async function getActiveAgreements() {
@@ -277,20 +277,20 @@ async function addAgreement(agreementID, donorID, KID, amount, agreementUrlCode,
     let con = await pool.getConnection()
 
     const todaysDayOfMonth = String(new Date().getDate()).padStart(2, '0')
-    let chargeDayOfMonth = todaysDayOfMonth
+    let monthly_charge_day = todaysDayOfMonth
 
     // Simple and safe solution to support leap years
     if (todaysDayOfMonth > 28) {
-        chargeDayOfMonth = 28
+        monthly_charge_day = 28
     }
 
     try {
         con.query(`
             INSERT INTO Vipps_agreements
-                (ID, donorID, KID, amount, chargeDayOfMonth, agreement_url_code, status)
+                (ID, donorID, KID, amount, monthly_charge_day, agreement_url_code, status)
             VALUES
                 (?,?,?,?,?,?,?)`, 
-            [agreementID, donorID, KID, amount, chargeDayOfMonth, agreementUrlCode, status])
+            [agreementID, donorID, KID, amount, monthly_charge_day, agreementUrlCode, status])
         con.release()
         return true
     }
@@ -421,15 +421,15 @@ async function updateAgreementStatus(agreementID, status) {
 }
 
 /**
- * Updates the chargeDayOfMonth of an agreement
+ * Updates the monthly_charge_day of an agreement
  * @param {string} agreementId The agreement ID
- * @param {string} chargeDay Any day between 1 and 28
+ * @param {number} chargeDay Any day between 1 and 28
  * @return {boolean} Success
  */
  async function updateAgreementChargeDay(agreementId, chargeDay) {
     let con = await pool.getConnection()
     try {
-        con.query(`UPDATE Vipps_agreements SET chargeDayOfMonth = ? WHERE ID = ?`, [chargeDay, agreementId])
+        con.query(`UPDATE Vipps_agreements SET monthly_charge_day = ? WHERE ID = ?`, [chargeDay, agreementId])
         con.release()
         return true
     }
