@@ -524,15 +524,16 @@ module.exports = {
      * @param {string} KID KID for organization share
      * @param {number} amount Amount in kroner, not øre
      */
-    async draftAgreement(KID, amount, initialCharge = true) {
+    async draftAgreement(KID, amount, initialCharge) {
         let token = await this.fetchToken()
 
         if (token === false) return false
 
         // Real price is set in øre
         const realAmount = amount * 100
-        const description = "Første belastning skjer umiddelbart"
+        const description = "Donasjon"
         const agreementUrlCode = hash(Math.random().toString())
+        console.log(realAmount)
 
         let env = ""
         if (config.env === "stage") env = "stage."
@@ -560,13 +561,13 @@ module.exports = {
         }
 
         try {
+            /** @type {DraftRespone} */
             let draftRequest = await request.post({
                 uri: `https://${config.vipps_api_url}/recurring/v2/agreements`,
                 headers: this.getVippsHeaders(token),
                 json: data
             })
 
-            /** @type {DraftRespone} */
             let response = draftRequest
 
             const donor = await DAO.donors.getByKID(KID)
@@ -578,10 +579,11 @@ module.exports = {
 
             // Amount in EffektDonasjonDB is stored in kroner, not øre 
             await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, amount, agreementUrlCode)
-            await DAO.vipps.addCharge(response.chargeId, response.agreementId, amount, KID, new Date(), "RESERVED")
+            if (initialCharge) await DAO.vipps.addCharge(response.chargeId, response.agreementId, amount, KID, new Date(), "RESERVED")
 
             this.pollAgreement(response.agreementId)
 
+            response.agreementUrlCode = agreementUrlCode
             return response
         }
         catch (ex) {

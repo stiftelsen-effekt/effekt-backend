@@ -30,15 +30,22 @@ router.get("/initiate/:phonenumber", async (req, res, next) => {
 })
 
 router.post("/agreement/draft", jsonBody, async (req, res, next) => {
+    
+    console.log(req.body)
+    const body = req.body
+    const KID = body.KID
+    const amount = body.amount
+    console.log(amount)
+    const initialCharge = body.initialCharge
 
-    // TEMPORARY
-    const KID = 28925758;
-    const SUM = 1000;
 
     try {
-        let response = await vipps.draftAgreement(KID, SUM)
+        const content = await vipps.draftAgreement(KID, amount, initialCharge)
         //TODO: Check for false
-        res.json(response)
+        res.json({
+            status: 200,
+            content
+          })
     } catch (ex) {
         next({ ex })
     }
