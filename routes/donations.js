@@ -24,7 +24,8 @@ router.post("/register", async (req,res,next) => {
 
   let donationOrganizations = parsedData.organizations
   let donor = parsedData.donor
-  let initiatedOrder = null
+  let paymentProviderUrl = ""
+  let recurring = parsedData.recurring
 
   try {
     var donationObject = {
@@ -87,11 +88,13 @@ router.post("/register", async (req,res,next) => {
       await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
     }
     
-    //Get external paymentprovider URL
-    if (donationObject.method == methods.VIPPS) {
-      initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
-      //Start polling for updates
-      await vipps.pollOrder(initiatedOrder.orderId)
+    // Vipps one-time donation (recurring === 1 means one-time donation)
+    if (donationObject.method == methods.VIPPS && recurring === 1) {
+      const res = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
+      paymentProviderUrl = res.externalPaymentUrl
+
+      //Start polling for updates (move this to inside initiateOrder?)
+      await vipps.pollOrder(res.orderId)
     }
   
     if (donationObject.method == methods.AVTALEGIRO){
@@ -123,7 +126,7 @@ router.post("/register", async (req,res,next) => {
       KID: donationObject.KID,
       donorID: donationObject.donorID,
       hasAnsweredReferral,
-      paymentProviderUrl: (initiatedOrder !== null ? initiatedOrder.externalPaymentUrl : "")
+      paymentProviderUrl
     }
   })
 })
