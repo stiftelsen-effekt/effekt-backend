@@ -56,7 +56,7 @@ async function getByID(ID) {
 /**
  * Gets a donor based on KID
  * @param {Number} KID
- * @returns {Donor} A donor Object
+ * @returns {Donor | null} A donor Object
  */
 async function getByKID(KID) {
     try {
@@ -94,6 +94,23 @@ async function getByKID(KID) {
         con.release()
         throw ex
     }
+}
+
+/**
+ * Gets donorID by agreement_url_code in Vipps_agreements
+ * @property {string} agreementUrlCode
+ * @return {number} donorID
+ */
+ async function getIDByAgreementCode(agreementUrlCode) {
+    let con = await pool.getConnection()
+    let [res] = await con.query(`
+        SELECT donorID FROM Vipps_agreements
+        where agreement_url_code = ?
+        `, [agreementUrlCode])
+    con.release()
+
+    if (res.length === 0) return false
+    else return res[0].donorID
 }
 
 /**
@@ -219,6 +236,7 @@ module.exports = {
     getByID,
     getIDbyEmail,
     getByKID,
+    getIDByAgreementCode,
     search,
     add,
     updateSsn,

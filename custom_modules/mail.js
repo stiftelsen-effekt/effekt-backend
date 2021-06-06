@@ -6,6 +6,15 @@ const template = require('./template.js')
 const request = require('request-promise-native')
 const fs = require('fs-extra')
 
+/**
+ * @typedef VippsAgreement
+ * @property {string} ID
+ * @property {number} donorID
+ * @property {string} KID
+ * @property {number} amount
+ * @property {string} status
+ * @property {number} monthly_charge_day
+ */
 
 /**
  * Sends a donation reciept
@@ -210,12 +219,6 @@ async function sendDonationRegistered(KID, sum) {
 */
 async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
   try {
-    try {
-    } catch(ex) {
-      console.error("Failed to send mail donation reciept, could not get donor by id")
-      console.error(ex)
-      return false
-    }
 
     await send({
       subject: 'gieffektivt.no - Facebook-donasjoner registrert for skattefradrag',
@@ -230,17 +233,59 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
     return true
   }
   catch(ex) {
-      console.error("Failed to send mail donation registered")
+      console.error("Failed to send facebook tax confirmation email")
       console.error(ex)
       return ex.statusCode
   }
 }
 
-function formatCurrency(currencyString) {
-  return Number.parseFloat(currencyString).toFixed(2)
-    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
-    .replace(",", " ")
-    .replace(".", ",");
+/** 
+ * @param {string} agreementCode
+ * @param {"PAUSED" | "UNPAUSED" | "STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
+ * @param {string} newValue New value of what was changed (if applicable)
+*/
+async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
+  try {
+    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
+    const agreement = await DAO.vipps.getAgreement(agreementId)
+    const donor = await DAO.donors.getByID(agreement.donorID)
+    const email = donor.email
+
+    const split = await DAO.distributions.getSplitByKID(agreement.KID)
+    const organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
+
+    if (agreement.status !== "ACTIVE") return false
+
+    let changeDesc = "endret"
+    if (change === "CANCELLED") changeDesc = "avsluttet"
+    if (change === "PAUSED") changeDesc = "satt på pause"
+    if (change === "UNPAUSED") changeDesc = "gjenstartet"
+    const subject = `gieffektivt.no - Din betalingsavtale via Vipps har blitt ${changeDesc}`
+
+    if (change === "PAUSED") newValue = formatDate(newValue)
+    if (change === "AMOUNT") newValue = formatCurrency(newValue)
+    
+    await send({
+      subject,
+      reciever: email,
+      templateName: 'vippsAgreementChange',
+      templateData: {
+        header: "Hei, " + donor.full_name,
+        change,
+        newValue,
+        organizations,
+        agreement,
+        sum: formatCurrency(agreement.amount)
+      }
+    })
+
+    return true
+  }
+  catch(ex) {
+      console.error("Failed to send vipps agreement change email")
+      console.error(ex)
+      return ex.statusCode
+  }
 }
 
 /** 
@@ -482,11 +527,21 @@ async function send(options) {
     }
 }
 
+function formatCurrency(currencyString) {
+  return Number.parseFloat(currencyString).toFixed(0)
+    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1.")
+}
+
+function formatDate(date) {
+  return moment(date).format("DD.MM.YYYY")
+}
+
 module.exports = {
   sendDonationReciept,
   sendEffektDonationReciept,
   sendDonationRegistered,
   sendDonationHistory,
+  sendVippsAgreementChange,
   sendFacebookTaxConfirmation,
   sendTaxDeductions,
   sendAvtalegiroNotification,
