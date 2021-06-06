@@ -34,8 +34,9 @@ router.post("/register", async (req,res,next) => {
       amount: parsedData.amount,
       standardSplit: undefined,
       split: [],
-      paymentDate: parsedData.paymentDate,
-      notice: parsedData.notice
+      dueDay: parsedData.dueDay,
+      notice: parsedData.notice,
+      recurring: parsedData.recurring
     }
     
     //Create a donation split object
@@ -78,24 +79,37 @@ router.post("/register", async (req,res,next) => {
         }
       }
     }
-    //Try to get existing KID
-    donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
 
-    //Split does not exist create new KID and split
-    if (donationObject.KID == null) {
-      donationObject.KID = await donationHelpers.createKID()
-      await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
+    /** Use new KID for avtalegiro */
+    if (donationObject.method == methods.BANK && donationObject.recurring == true){
+      //Try to get existing KID
+      donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID, 12)
+
+      //Split does not exist, generate new KID
+      if (donationObject.KID == null) {
+        donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID)
+        await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
+      }
+
+      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount, donationObject.dueDay, true)  
+    } else {
+      //Try to get existing KID
+      donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
+
+      //Split does not exist create new KID and split
+      if (donationObject.KID == null) {
+        donationObject.KID = await donationHelpers.createKID()
+        await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
+      }
     }
+
+    
     
     //Get external paymentprovider URL
     if (donationObject.method == methods.VIPPS) {
       initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
       //Start polling for updates
       await vipps.pollOrder(initiatedOrder.orderId)
-    }
-  
-    if (donationObject.method == methods.AVTALEGIRO){
-      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount, donationObject.paymentDate, donationObject.notice)  
     }
 
     try {
@@ -105,7 +119,6 @@ router.post("/register", async (req,res,next) => {
     }
   
   }
-
   catch (ex) {
     return next(ex)
   }

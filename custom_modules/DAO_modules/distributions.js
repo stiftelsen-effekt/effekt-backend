@@ -135,9 +135,10 @@ async function KIDexists(KID) {
  * Takes in a distribution array and a Donor ID, and returns the KID if the specified distribution exists for the given donor.
  * @param {array<object>} split 
  * @param {number} donorID 
+ * @param {number} minKidLength Specify a minimum length of KID to match against
  * @returns {number | null} KID or null if no KID found
  */
-async function getKIDbySplit(split, donorID) {
+async function getKIDbySplit(split, donorID, minKidLength = 0) {
     try {
         var con = await pool.getConnection()
 
@@ -161,7 +162,9 @@ async function getKIDbySplit(split, donorID) {
         query += ` GROUP BY C.KID
         
         HAVING 
-            KID_count = ` + split.length
+            KID_count = ${split.length}
+            AND
+            LENGTH(KID) >= ${sqlString.escape(minKidLength)}`
 
         var [res] = await con.execute(query)
 
