@@ -533,7 +533,6 @@ module.exports = {
         const realAmount = amount * 100
         const description = "Donasjon"
         const agreementUrlCode = hash(Math.random().toString())
-        console.log(realAmount)
 
         let env = ""
         if (config.env === "stage") env = "stage."

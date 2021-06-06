@@ -31,11 +31,9 @@ router.get("/initiate/:phonenumber", async (req, res, next) => {
 
 router.post("/agreement/draft", jsonBody, async (req, res, next) => {
     
-    console.log(req.body)
     const body = req.body
     const KID = body.KID
     const amount = body.amount
-    console.log(amount)
     const initialCharge = body.initialCharge
 
 
@@ -206,12 +204,14 @@ router.put("/agreement/chargeday", jsonBody, async (req, res, next) => {
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
 
         // 0 means last day of each month
-        if (chargeDay < 0 || chargeDay > 28) {
+        if (chargeDay <= 0 || chargeDay > 28) {
             let err = new Error("Invalid charge day, must be between 0 and 28")
             err.status = 400
             return next(err)
         }
 
+        console.log(agreementId)
+        console.log(chargeDay)
         const response = await DAO.vipps.updateAgreementChargeDay(agreementId, chargeDay)
         if (response) await mail.sendVippsAgreementChange(agreementCode, "CHARGEDAY", chargeDay)
 
@@ -226,6 +226,8 @@ router.put("/agreement/forcedcharge", jsonBody, async (req, res, next) => {
         const agreementCode = req.body.agreementCode
         const forcedChargeDate = req.body.forcedChargeDate
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
+        console.log(agreementId)
+        console.log(forcedChargeDate)
 
         const response = await DAO.vipps.updateAgreementForcedCharge(agreementId, forcedChargeDate)
 
@@ -265,7 +267,6 @@ router.put("/agreement/distribution", jsonBody, async (req, res, next) => {
         }
 
         const response = await DAO.vipps.updateAgreementKID(agreementId, KID)
-        console.log(response)
         if (response) await mail.sendVippsAgreementChange(agreementCode, "SHARES", KID)
 
         res.send({KID})
