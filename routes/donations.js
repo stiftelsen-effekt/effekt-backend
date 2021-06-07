@@ -55,9 +55,7 @@ router.post("/register", async (req,res,next) => {
 
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
-      console.log("donor does not exist. adding donor")
       donationObject.donorID = await DAO.donors.add(donor.email, donor.name, donor.ssn, donor.newsletter)
-      console.log("donor added")
       console.log(donationObject.donorID)
     }
     else {
@@ -92,7 +90,8 @@ router.post("/register", async (req,res,next) => {
         await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
       }
 
-      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount, donationObject.dueDay, true)  
+      // Amount is given in NOK in Widget, but øre is used for agreements
+      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount*100, donationObject.dueDay, true)  
     } else {
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
@@ -378,6 +377,17 @@ router.post("/history/email", historyRateLimit, async (req, res, next) => {
   }
   catch(ex) {
       next(ex)
+  }
+})
+
+router.get('/status', async (req, res, next) => {
+  try {
+    if (req.query.status !== null && req.query.status.toUpperCase() === "OK")
+      res.redirect('https://gieffektivt.no/donation-recived/')
+    else
+      res.redirect('https://gieffektivt.no/donation-failed/')
+  } catch (ex) {
+    next({ ex })
   }
 })
 
