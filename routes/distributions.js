@@ -91,6 +91,16 @@ router.get("/:KID",
   }
 })
 
+router.get("/without/donor/:KID", async (req, res, next) => {
+  try {
+      const response = await DAO.distributions.getSplitByKID(req.params.KID)
+
+      res.json(response)
+  } catch (ex) {
+      next({ ex })
+  }
+})
+
 router.get("/all/:donorID", 
   authMiddleware(authRoles.read_all_donations), 
   async (req,res,next) => {
