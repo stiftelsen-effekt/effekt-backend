@@ -20,7 +20,7 @@ describe('KID module', function() {
 		});
 
 		it('generate should return a string', function() {
-			expect(KID.generate()).to.be.a('number');
+			expect(KID.generate()).to.be.a('string');
 		});
 
 		// Numbers based on data from wiki https://no.wikipedia.org/wiki/KID-nummer
