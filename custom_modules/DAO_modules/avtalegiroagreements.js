@@ -8,10 +8,9 @@ var pool
  * Adds a new avtalegiroagreement to the database
  * @param {number} KID
  * @param {number} amount  
- * @param {Date} drawdate
+ * @param {Date} paymentDate
  * @param {boolean} notice
  */
-
 async function add(KID, amount, paymentDate, notice) {
     try {
         var con = await pool.getConnection()

@@ -1,14 +1,48 @@
 const DAO = require('./DAO.js')
 
 module.exports = {
-    generate: function() {
-        var KID = Array.from({length: 7}, () => {
+    /**
+     * Generates a new KID
+     * Uses donorID for new KID format
+     * @param {8 | 15} length 
+     * @param {number | null} donorID 
+     * @returns {string} The KID
+     */
+    generate: function(length = 8, donorID = null) {
+        let KID
+
+        // Legacy KID format
+        if (length == 8) {
+            KID = this.getRandomNumbers(7)
+        }
+        //New KID format
+        else if (length == 15 && donorID != null) {
+            // The format is 
+            // 6 positions for donor ID right aligned
+            // 8 positions of random numbers
+            // 1 position for checksum
+            // Total length 15
+            KID = `${donorID.toString().padStart(6, '0')}${this.getRandomNumbers(8)}`
+        }
+        else {
+            throw new Error(`Unknown KID generate input. Length: ${length}, DonorID: ${donorID}`)
+        }
+
+        // Add checksum
+        KID = `${KID}${this.luhn_caclulate(KID)}`
+
+        return KID
+    },
+
+    /**
+     * Generates a string of random numbers
+     * @param {number} length 
+     * @returns {string} Random numbers
+     */
+    getRandomNumbers(length = 7) {
+        return Array.from({length: length}, () => {
             return Math.floor(9 * Math.random()) + 1;
         }).join("")
-
-        KID = KID + this.luhn_caclulate(KID)
-
-        return parseInt(KID)
     },
 
     luhn_checksum: function(code) {

@@ -35,8 +35,9 @@ router.post("/register", async (req,res,next) => {
       amount: parsedData.amount,
       standardSplit: undefined,
       split: [],
-      paymentDate: parsedData.paymentDate,
-      notice: parsedData.notice
+      dueDay: parsedData.dueDay,
+      notice: parsedData.notice,
+      recurring: parsedData.recurring
     }
     
     //Create a donation split object
@@ -54,9 +55,7 @@ router.post("/register", async (req,res,next) => {
 
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
-      console.log("donor does not exist. adding donor")
       donationObject.donorID = await DAO.donors.add(donor.email, donor.name, donor.ssn, donor.newsletter)
-      console.log("donor added")
       console.log(donationObject.donorID)
     }
     else {
@@ -79,14 +78,32 @@ router.post("/register", async (req,res,next) => {
         }
       }
     }
-    //Try to get existing KID
-    donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
 
-    //Split does not exist create new KID and split
-    if (donationObject.KID == null) {
-      donationObject.KID = await donationHelpers.createKID()
-      await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
+    /** Use new KID for avtalegiro */
+    if (donationObject.method == methods.BANK && donationObject.recurring == true){
+      //Try to get existing KID
+      donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID, 12)
+
+      //Split does not exist, generate new KID
+      if (donationObject.KID == null) {
+        donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID)
+        await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
+      }
+
+      // Amount is given in NOK in Widget, but øre is used for agreements
+      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount*100, donationObject.dueDay, true)  
+    } else {
+      //Try to get existing KID
+      donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
+
+      //Split does not exist create new KID and split
+      if (donationObject.KID == null) {
+        donationObject.KID = await donationHelpers.createKID()
+        await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
+      }
     }
+
+    
     
     // Vipps one-time donation (recurring === 1 means one-time donation)
     if (donationObject.method == methods.VIPPS && recurring === 1) {
@@ -96,10 +113,6 @@ router.post("/register", async (req,res,next) => {
       //Start polling for updates (move this to inside initiateOrder?)
       await vipps.pollOrder(res.orderId)
     }
-  
-    if (donationObject.method == methods.AVTALEGIRO){
-      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount, donationObject.paymentDate, donationObject.notice)  
-    }
 
     try {
       await DAO.initialpaymentmethod.addPaymentIntent(donationObject.KID, donationObject.method)  
@@ -108,7 +121,6 @@ router.post("/register", async (req,res,next) => {
     }
   
   }
-
   catch (ex) {
     return next(ex)
   }
@@ -231,6 +243,17 @@ router.get("/histogram", async (req,res,next) => {
     })
   } catch(ex) {
     next(ex)
+  }
+})
+
+router.get('/status', async (req, res, next) => {
+  try {
+    if (req.query.status && req.query.status.toUpperCase() === "OK")
+      res.redirect('https://gieffektivt.no/donation-recived/')
+    else
+      res.redirect('https://gieffektivt.no/donation-failed/')
+  } catch (ex) {
+    next({ ex })
   }
 })
 

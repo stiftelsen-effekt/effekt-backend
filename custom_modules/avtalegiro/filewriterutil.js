@@ -1,5 +1,6 @@
 const config = require('../../config')
-const luxon = require('luxon')
+const luxon = require('luxon');
+const { DateTime } = require('luxon');
 
 module.exports = {
   startRecordTransmission: function(shipmentID) { 
@@ -24,13 +25,21 @@ module.exports = {
     return line
   },
 
-  firstAndSecondLine: function(agreement, donor, type, transactionNumber) {
+  /**
+   * 
+   * @param {import('../parsers/avtalegiro').AvtalegiroAgreement} agreement 
+   * @param {import('../DAO_modules/donors').Donor} donor 
+   * @param {string} type 
+   * @param {number} transactionNumber 
+   * @param {DateTime} claimDate 
+   * @returns {string}
+   */
+  firstAndSecondLine: function(agreement, donor, type, transactionNumber, claimDate) {
     /**
      * First line
      */
     var firstLine =`NY21${type}30${transactionNumber.toString().padStart(7,'0')}`
-    let agreementDate = luxon.DateTime.fromJSDate(new Date())
-    firstLine += agreementDate.toFormat("ddLLyy")
+    firstLine += claimDate.toFormat("ddLLyy")
     firstLine = firstLine.padEnd(32, '0')
 
     var amount = agreement.amount
@@ -47,7 +56,7 @@ module.exports = {
     /**
      * Second line
      */
-    const shortname = donor.name.toUpperCase().substr(0,10).replace(/\s+/g, '').padStart(10, 0)
+    const shortname = donor.name.toUpperCase().substr(0,10).replace(/\s+/g, '').padStart(10, '0')
 
     var secondLine =`NY210231${transactionNumber.toString().padStart(7,'0')}${shortname}`
 
@@ -61,7 +70,13 @@ module.exports = {
     return lines
   },
 
-  endRecordPaymentClaims: function(claims) {
+  /**
+   * 
+   * @param {import('../parsers/avtalegiro').AvtalegiroAgreement} claims 
+   * @param {DateTime} dueDate 
+   * @returns 
+   */
+  endRecordPaymentClaims: function(claims, dueDate) {
     var line =`NY210088`
 
     //Number of transactions
@@ -73,13 +88,13 @@ module.exports = {
     //Sum of payment claims
     line += claims.reduce((acc, claim) => acc += claim.amount, 0).toString().padStart(17, '0')
 
-    const today = luxon.DateTime.fromJSDate(new Date()).toFormat("ddLLyy")
+    const minMaxDate = dueDate.toFormat("ddLLyy")
 
     //Min day
-    line += today
+    line += minMaxDate
 
     //Max day
-    line += today
+    line += minMaxDate
 
     line = line.padEnd(80, '0')
     line += '\n'
@@ -99,7 +114,7 @@ module.exports = {
     return line
   },
 
-  endRecordDeletionRequest: function() {
+  endRecordDeletionRequest: function(dueDate) {
     var line =`NY213688`
 
     //Number of transactions
@@ -111,38 +126,35 @@ module.exports = {
     //Sum of deletion requests amount
     line += '0'.padStart(17, '0')
 
-    const today = luxon.DateTime.fromJSDate(new Date()).toFormat("ddLLyy")
+    const minMaxDate = dueDate.toFormat("ddLLyy")
 
     //Min day
-    line += today
+    line += minMaxDate
 
     //Max day
-    line += today
+    line += minMaxDate
 
     line = line.padEnd(80, '0')
     line += '\n'
     return line
   },
 
-  endRecordTransmission: function(claims) {
+  endRecordTransmission: function(claims, dueDate) {
     var line =`NY000089`
 
     //Number of transactions
     line += claims.length.toString().padStart(8,'0')
 
     //Number of records, including start and end record
-    line += (claims.length*2+6).toString().padStart(8,'0')
+    line += (claims.length*2+4).toString().padStart(8,'0')
 
     //Sum of payment claims
     line += claims.reduce((acc, claim) => acc += claim.amount, 0).toString().padStart(17, '0')
 
-    const today = luxon.DateTime.fromJSDate(new Date()).toFormat("ddLLyy")
+    const minMaxDate = dueDate.toFormat("ddLLyy")
 
     //Min day
-    line += today
-
-    //Max day
-    line += today
+    line += minMaxDate
 
     line = line.padEnd(80, '0')
     line += '\n'
