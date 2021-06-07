@@ -246,6 +246,17 @@ router.get("/histogram", async (req,res,next) => {
   }
 })
 
+router.get('/status', async (req, res, next) => {
+  try {
+    if (req.query.status && req.query.status.toUpperCase() === "OK")
+      res.redirect('https://gieffektivt.no/donation-recived/')
+    else
+      res.redirect('https://gieffektivt.no/donation-failed/')
+  } catch (ex) {
+    next({ ex })
+  }
+})
+
 router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
   try {
     var donation = await DAO.donations.getByID(req.params.id)
@@ -377,17 +388,6 @@ router.post("/history/email", historyRateLimit, async (req, res, next) => {
   }
   catch(ex) {
       next(ex)
-  }
-})
-
-router.get('/status', async (req, res, next) => {
-  try {
-    if (req.query.status !== null && req.query.status.toUpperCase() === "OK")
-      res.redirect('https://gieffektivt.no/donation-recived/')
-    else
-      res.redirect('https://gieffektivt.no/donation-failed/')
-  } catch (ex) {
-    next({ ex })
   }
 })
 
