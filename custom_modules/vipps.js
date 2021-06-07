@@ -534,17 +534,13 @@ module.exports = {
         const description = "Donasjon"
         const agreementUrlCode = hash(Math.random().toString())
 
-        let env = ""
-        if (config.env === "stage") env = "stage."
-        if (config.env === "development") env = "dev."
-
         const data = {
             "currency": "NOK",
             "interval": "MONTH",
             "intervalCount": 1,
             "isApp": false,
             "merchantRedirectUrl": `https://gieffektivt.no/vipps/recurring/confirmation`, // TODO: Create page
-            "merchantAgreementUrl": `https://${env}minside.gieffektivt.no/${agreementUrlCode}`,
+            "merchantAgreementUrl": `${config.minside_url}/${agreementUrlCode}`,
             "price": realAmount,
             "productDescription": description,
             "productName": "Månedlig donasjon til gieffektivt.no"

@@ -4,6 +4,7 @@ module.exports = {
     //Environment
     env: process.env.NODE_ENV || 'development',
     api_url: process.env.EFFEKT_API_URL,
+    minside_url: process.env.MIN_SIDE_URL,
 
     //Insert db connection values
     db_host: process.env.DB_HOST,
