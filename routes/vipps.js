@@ -204,7 +204,7 @@ router.put("/agreement/chargeday", jsonBody, async (req, res, next) => {
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
 
         // 0 means last day of each month
-        if (chargeDay <= 0 || chargeDay > 28) {
+        if (chargeDay < 0 || chargeDay > 28) {
             let err = new Error("Invalid charge day, must be between 0 and 28")
             err.status = 400
             return next(err)
