@@ -210,8 +210,6 @@ router.put("/agreement/chargeday", jsonBody, async (req, res, next) => {
             return next(err)
         }
 
-        console.log(agreementId)
-        console.log(chargeDay)
         const response = await DAO.vipps.updateAgreementChargeDay(agreementId, chargeDay)
         if (response) await mail.sendVippsAgreementChange(agreementCode, "CHARGEDAY", chargeDay)
 
@@ -226,8 +224,6 @@ router.put("/agreement/forcedcharge", jsonBody, async (req, res, next) => {
         const agreementCode = req.body.agreementCode
         const forcedChargeDate = req.body.forcedChargeDate
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
-        console.log(agreementId)
-        console.log(forcedChargeDate)
 
         const response = await DAO.vipps.updateAgreementForcedCharge(agreementId, forcedChargeDate)
 
