@@ -95,9 +95,11 @@
                                     <% if (this.change == "STOPPED") { %>
                                         Den månedlige betalingsavtalen din via Vipps har blitt avsluttet.
                                     <% } %>
-                                    <% if (this.change == "CHARGEDAY") { %>
+                                    <% if (this.change == "CHARGEDAY" && this.newValue != 0) { %>
                                         Trekkdagen til betalingsavtalen din har blitt endret til den <% this.newValue %>. hver måned.
                                     <% } %>
+                                    <% if (this.change == "CHARGEDAY" && this.newValue == 0) { %>
+                                        Trekkdagen til betalingsavtalen din har blitt endret til den siste hver måned.
                                     <% if (this.change == "SHARES") { %>
                                         Fordelingen din har blitt endret, se ny fordeling under.
                                     <% } %>
