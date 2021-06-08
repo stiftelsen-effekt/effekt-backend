@@ -539,7 +539,7 @@ module.exports = {
             "interval": "MONTH",
             "intervalCount": 1,
             "isApp": false,
-            "merchantRedirectUrl": `https://gieffektivt.no/vipps/recurring/confirmation`, // TODO: Create page
+            "merchantRedirectUrl": `${config.minside_url}/${agreementUrlCode}`,
             "merchantAgreementUrl": `${config.minside_url}/${agreementUrlCode}`,
             "price": realAmount,
             "productDescription": description,
