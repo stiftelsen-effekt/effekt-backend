@@ -1078,19 +1078,23 @@ module.exports = {
 
                     // If agreement charge should be created today
                     if (chargeDay === dueDate.getDate() 
-                        || (chargeDay === 0 && dayAfterDue === 1) // 0 means last day of month, 1 means the first day of next month
+                        || (chargeDay === 0 && dayAfterDue === 1) // 0 means last day of month, 1 means the first day of next month, i.e the due date is on the last day of month
                         || dueDate.setHours(0,0,0,0) === forceChargeDate.setHours(0,0,0,0)) {
 
                         // If agreement is not paused
                         if (new Date(pauseEnd) < new Date() || isNan(Date.parse(pauseEnd))){
 
-                            // Check if agreement also is active in Vipps database
+                            // Check if agreement is active in Vipps database
                             const vippsAgreement = await this.getAgreement(agreement.ID)
                             if (vippsAgreement.status === "ACTIVE") {
+                                
+                                const formattedDueDate = moment(dueDate).format('YYYY-MM-DD')
+                                console.log("Creating charge due " + formattedDueDate + " for agreement " + vippsAgreement.id)
+                                
                                 await this.createCharge(
-                                    vippsAgreement.ID, 
-                                    vippsAgreement.price, 
-                                    dueDate
+                                    vippsAgreement.id, 
+                                    vippsAgreement.price/100, 
+                                    daysInAdvance
                                 )
                             }
                         }
