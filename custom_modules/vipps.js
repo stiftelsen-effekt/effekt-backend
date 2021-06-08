@@ -539,7 +539,7 @@ module.exports = {
             "interval": "MONTH",
             "intervalCount": 1,
             "isApp": false,
-            "merchantRedirectUrl": `${config.minside_url}/${agreementUrlCode}`,
+            "merchantRedirectUrl": `${config.minside_url}/${agreementUrlCode}/status`,
             "merchantAgreementUrl": `${config.minside_url}/${agreementUrlCode}`,
             "price": realAmount,
             "productDescription": description,
@@ -573,7 +573,17 @@ module.exports = {
             }
 
             // Amount in EffektDonasjonDB is stored in kroner, not øre 
-            await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, amount, agreementUrlCode)
+            const addResponse = await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, amount, agreementUrlCode)
+            
+            // If adding to effekt database failed, cancel agreement
+            if (addResponse === false) {
+                await this.updateAgreementStatus(response.agreementId, "STOPPED")
+                await DAO.vipps.updateAgreementStatus(response.agreementId, "STOPPED")
+
+                console.error("Failed adding agreement to database, draft agreement cancelled")
+                return false
+            }
+
             if (initialCharge) await DAO.vipps.addCharge(response.chargeId, response.agreementId, amount, KID, new Date(), "RESERVED")
 
             this.pollAgreement(response.agreementId)
