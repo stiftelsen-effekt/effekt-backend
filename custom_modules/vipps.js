@@ -767,17 +767,15 @@ module.exports = {
         const timeNow = new Date().getTime()
         const dueDateTime = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
         const dueDate = new Date(dueDateTime)
-        const chargeMonth = new Date(dueDateTime).getMonth() + new Date(dueDateTime).getFullYear()
+
+        // This is the date format that Vipps accepts
+        const formattedDueDate = moment(dueDate).format('YYYY-MM-DD')
 
         const token = await this.fetchToken()
         if (token === false) return false
 
-        // Create Idempotency-Key to prevent multiple charges in a single month
-        // Vipps returns the same chargeId for all requests with the same Idempotency-Key
-        const idempotencyKey = hash(agreementId + chargeMonth)
-
-        // This is the date format that Vipps accepts
-        const formattedDueDate = moment(dueDate).format('YYYY-MM-DD')
+        // idempotencyKey required by Vipps, not currently used for anything
+        const idempotencyKey = hash(new Date())
 
         let headers = this.getVippsHeaders(token)
         headers['Idempotency-Key'] = idempotencyKey
@@ -838,6 +836,28 @@ module.exports = {
             })
 
             return JSON.parse(response)
+        }
+        catch (ex) {
+            console.error(ex)
+            return false
+        }
+    },
+
+    /**
+     * Fetches the most recent charged charge
+     * @param {string} agreementId The agreement id
+     * @returns {[Charge]}
+     */
+    async getLastCharge(agreementId) {
+        try {
+            const charges = await this.getCharges(agreementId)
+
+            if (charges) {
+                const chargedCharges = charges.filter(charge => charge.status === "CHARGED")
+                chargedCharges.sort((a,b) => (new Date(a.due).getTime() < new Date(b.due).getTime()) ? 1 : ((new Date(b.due).getTime() < new Date(a.due).getTime()) ? -1 : 0))
+                return chargedCharges[0]
+            }
+            return false
         }
         catch (ex) {
             console.error(ex)
@@ -959,7 +979,7 @@ module.exports = {
         if (token === false) return false
 
         // Create Idempotency-Key to prevent duplicate insertions
-        // Vipps returns the same chargeId for all requests with the same Idempotency-Key
+        // Required by Vipps
         const idempotencyKey = hash(agreementId + chargeId)
 
         let headers = this.getVippsHeaders(token)

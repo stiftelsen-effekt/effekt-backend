@@ -67,7 +67,8 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
 
         const monthAlreadyCharged = await vipps.hasChargedThisMonth(agreementId)
         const pendingDueCharge = await vipps.getPendingDueCharge(agreementId)
-        const response = {...responseVipps, ...responseDAO, monthAlreadyCharged, pendingDueCharge}
+        const mostRecentCharge = await vipps.getLastCharge(agreementId)
+        const response = {...responseVipps, ...responseDAO, monthAlreadyCharged, pendingDueCharge, mostRecentCharge}
 
         //TODO: Check for false
         res.json(response)
