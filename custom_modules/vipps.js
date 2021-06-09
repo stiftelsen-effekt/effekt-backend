@@ -557,13 +557,11 @@ module.exports = {
 
         try {
             /** @type {DraftRespone} */
-            let draftRequest = await request.post({
+            let response = await request.post({
                 uri: `https://${config.vipps_api_url}/recurring/v2/agreements`,
                 headers: this.getVippsHeaders(token),
                 json: data
             })
-
-            let response = draftRequest
 
             const donor = await DAO.donors.getByKID(KID)
 
@@ -640,8 +638,6 @@ module.exports = {
 
             /** @type {[VippsRecurringAgreement]} */
             let response = JSON.parse(agreementRequest)
-
-            console.log(response)
 
             return response
         }

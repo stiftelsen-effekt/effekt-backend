@@ -90,7 +90,7 @@
                                         Den månedlige summen til betalingsavtalen din har blitt endret til <% this.newValue %> kr.
                                     <% } %>
                                     <% if (this.change == "PAUSED") { %>
-                                        Pausen opphører automatisk <% this.newValue %>.
+                                        Avtalen din er satt på pause og gjenstarter automatisk <% this.newValue %>.
                                     <% } %>
                                     <% if (this.change == "STOPPED") { %>
                                         Den månedlige betalingsavtalen din via Vipps har blitt avsluttet.
@@ -99,7 +99,7 @@
                                         Trekkdagen til betalingsavtalen din har blitt endret til den <% this.newValue %>. hver måned.
                                     <% } %>
                                     <% if (this.change == "CHARGEDAY" && this.newValue == 0) { %>
-                                        Trekkdagen til betalingsavtalen din har blitt endret til den siste hver måned.
+                                        Trekkdagen til betalingsavtalen din har blitt endret til den siste dagen hver måned.
                                     <% if (this.change == "SHARES") { %>
                                         Fordelingen din har blitt endret, se ny fordeling under.
                                     <% } %>
