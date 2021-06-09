@@ -49,7 +49,7 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
     }
 })
 
-router.get("/agreement/urlcode/:urlcode", async (req, res, next) => {
+router.get("/agreement/minside/:urlcode", async (req, res, next) => {
     try {
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.params.urlcode)
 
@@ -116,6 +116,8 @@ router.put("/agreement/cancel/:urlcode", async (req, res, next) => {
     try {
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.params.urlcode)
         const response = await vipps.updateAgreementStatus(agreementId, "STOPPED")
+
+        if (response) await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED")
 
         await mail.sendVippsAgreementChange(agreementCode, "STOPPED")
         res.send(response)

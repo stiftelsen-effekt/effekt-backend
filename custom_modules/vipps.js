@@ -539,7 +539,7 @@ module.exports = {
             "interval": "MONTH",
             "intervalCount": 1,
             "isApp": false,
-            "merchantRedirectUrl": `${config.minside_url}/${agreementUrlCode}/status`,
+            "merchantRedirectUrl": `${config.minside_url}/landing/${agreementUrlCode}`,
             "merchantAgreementUrl": `${config.minside_url}/${agreementUrlCode}`,
             "price": realAmount,
             "productDescription": description,
@@ -712,6 +712,7 @@ module.exports = {
                 headers: this.getVippsHeaders(token),
                 body: JSON.stringify(body)
             })
+            return true
         }
         catch (ex) {
             console.error(ex)
