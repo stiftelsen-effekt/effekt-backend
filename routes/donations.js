@@ -56,7 +56,6 @@ router.post("/register", async (req,res,next) => {
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
       donationObject.donorID = await DAO.donors.add(donor.email, donor.name, donor.ssn, donor.newsletter)
-      console.log(donationObject.donorID)
     }
     else {
       //Check for existing SSN if provided
@@ -103,10 +102,7 @@ router.post("/register", async (req,res,next) => {
       }
     }
 
-    
-    
-    // Vipps one-time donation (recurring === 1 means one-time donation)
-    if (donationObject.method == methods.VIPPS && recurring === 1) {
+    if (donationObject.method == methods.VIPPS && recurring == false) {
       const res = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
       paymentProviderUrl = res.externalPaymentUrl
 

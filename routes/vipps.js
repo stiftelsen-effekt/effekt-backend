@@ -49,7 +49,7 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
     }
 })
 
-router.get("/agreement/urlcode/:urlcode", async (req, res, next) => {
+router.get("/agreement/minside/:urlcode", async (req, res, next) => {
     try {
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.params.urlcode)
 
@@ -98,9 +98,14 @@ router.get("/agreement/:id", async (req, res, next) => {
 
 router.get("/agreements", async (req, res, next) => {
     try {
-        const response = await DAO.vipps.getAgreements()
+        const response = await vipps.getAgreements()
 
-        //TODO: Check for false
+        if (!response) {
+            let err = new Error("Failed fetching agreements")
+            err.status = 500
+            return next(err)
+        }
+
         res.json(response)
     } catch (ex) {
         next({ ex })
@@ -111,6 +116,8 @@ router.put("/agreement/cancel/:urlcode", async (req, res, next) => {
     try {
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.params.urlcode)
         const response = await vipps.updateAgreementStatus(agreementId, "STOPPED")
+
+        if (response) await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED")
 
         await mail.sendVippsAgreementChange(agreementCode, "STOPPED")
         res.send(response)
@@ -131,7 +138,6 @@ router.put("/agreement/price", jsonBody, async (req, res, next) => {
             await DAO.vipps.updateAgreementPrice(agreementId, price/100)
             await mail.sendVippsAgreementChange(agreementCode, "AMOUNT", price/100)
         }
-
 
         res.send()
     } catch (ex) {
@@ -574,7 +580,7 @@ function delay(t) {
  * Runs once per minute
 */
 cron.schedule('* * * * *', async () => {
-    console.log("Creating charges")
+    // console.log("Creating charges")
     //await vipps.createFutureDueCharges()
 });
 
