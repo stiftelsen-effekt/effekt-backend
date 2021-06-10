@@ -539,7 +539,7 @@ module.exports = {
             "interval": "MONTH",
             "intervalCount": 1,
             "isApp": false,
-            "merchantRedirectUrl": `${config.minside_url}/landing/${agreementUrlCode}`,
+            "merchantRedirectUrl": `${config.minside_url}/${agreementUrlCode}_landing`,
             "merchantAgreementUrl": `${config.minside_url}/${agreementUrlCode}`,
             "price": realAmount,
             "productDescription": description,
@@ -582,7 +582,7 @@ module.exports = {
                 return false
             }
 
-            if (initialCharge) await DAO.vipps.addCharge(response.chargeId, response.agreementId, amount, KID, new Date(), "RESERVED")
+            if (initialCharge) await DAO.vipps.addCharge(response.chargeId, response.agreementId, amount, KID, new Date(), "RESERVED", "INITIAL")
 
             this.pollAgreement(response.agreementId)
 
