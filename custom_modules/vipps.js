@@ -523,8 +523,11 @@ module.exports = {
      * Drafts an agreement for a recurring payment
      * @param {string} KID KID for organization share
      * @param {number} amount Amount in kroner, not øre
+     * @param {number} monthlyChargeDay Monthly charge day
+     * @param {Date} captureChargeDate The capture date of the initial reserve charge
+     * @return {DraftRespone | boolean} success
      */
-    async draftAgreement(KID, amount, initialCharge) {
+    async draftAgreement(KID, amount, initialCharge, monthlyChargeDay, captureChargeDate) {
         let token = await this.fetchToken()
 
         if (token === false) return false
@@ -570,8 +573,14 @@ module.exports = {
                 return false
             }
 
-            // Amount in EffektDonasjonDB is stored in kroner, not øre 
-            const addResponse = await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, amount, agreementUrlCode)
+            const addResponse = await DAO.vipps.addAgreement(
+                response.agreementId, 
+                donor.id, 
+                KID, 
+                amount, 
+                monthlyChargeDay, 
+                agreementUrlCode
+            )
             
             // If adding to effekt database failed, cancel agreement
             if (addResponse === false) {
@@ -582,7 +591,18 @@ module.exports = {
                 return false
             }
 
-            if (initialCharge) await DAO.vipps.addCharge(response.chargeId, response.agreementId, amount, KID, new Date(), "RESERVED", "INITIAL")
+            const reservedCharge = await this.getCharge(response.chargeId)
+
+            if (reservedCharge) await DAO.vipps.addCharge(
+                response.chargeId, 
+                response.agreementId, 
+                amount, 
+                KID, 
+                reservedCharge.due, 
+                reservedCharge.status, 
+                reservedCharge.type, 
+                captureChargeDate
+            )
 
             this.pollAgreement(response.agreementId)
 
@@ -808,7 +828,7 @@ module.exports = {
             console.log(charge)
             const agreement = await DAO.vipps.getAgreement(agreementId)
 
-            if (response) await DAO.vipps.addCharge(chargeId, agreementId, amountKroner, agreement.KID, formattedDueDate, charge.status)
+            if (response) await DAO.vipps.addCharge(chargeId, agreementId, amountKroner, agreement.KID, formattedDueDate, charge.status, "RECURRING")
             
             return chargeId
         }
@@ -822,7 +842,7 @@ module.exports = {
      * Fetches a single charge
      * @param {string} agreementId The agreement id
      * @param {string} chargeId The charge id
-     * @returns {[Charge]}
+     * @returns {VippsRecurringCharge}
      */
     async getCharge(agreementId, chargeId) {
 
@@ -846,7 +866,7 @@ module.exports = {
     /**
      * Fetches the most recent charged charge
      * @param {string} agreementId The agreement id
-     * @returns {[Charge]}
+     * @returns {VippsRecurringCharge}
      */
     async getLastCharge(agreementId) {
         try {
