@@ -305,18 +305,17 @@ async function addAgreement(agreementID, donorID, KID, amount, monthlyChargeDay,
  * @param {string} dueDate Due date of the charge 
  * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status The status of the charge
  * @param {"INITIAL" | "RECURRING"} type
- * @param {Date} captureChargeDate 
  * @return {boolean} Success or not
  */
- async function addCharge(chargeID, agreementID, amountNOK, KID, dueDate, status, type, captureChargeDate = "") {
+ async function addCharge(chargeID, agreementID, amountNOK, KID, dueDate, status, type) {
     let con = await pool.getConnection()
     try {
         con.query(`
             INSERT INTO Vipps_agreement_charges
-                (chargeID, agreementId, amountNOK, KID, dueDate, status, type, captureChargeDate)
+                (chargeID, agreementId, amountNOK, KID, dueDate, status, type)
             VALUES
                 (?,?,?,?,?,?,?,?)`, 
-            [chargeID, agreementID, amountNOK, KID, dueDate, status, type, captureChargeDate])
+            [chargeID, agreementID, amountNOK, KID, dueDate, status, type])
 
         con.release()
         return true

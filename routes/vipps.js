@@ -35,11 +35,10 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
     const KID = body.KID
     const amount = body.amount
     const initialCharge = body.initialCharge
-    const monthlyChargeDay = body.monthlyChargeDay
-    const captureChargeDate = body.captureChargeDate
+    const monthlyChargeDay = body.monthlyChargeDay <= 28 || 28
 
     try {
-        const content = await vipps.draftAgreement(KID, amount, initialCharge, monthlyChargeDay, captureChargeDate)
+        const content = await vipps.draftAgreement(KID, amount, initialCharge, monthlyChargeDay)
         
         res.json({
             status: 200,

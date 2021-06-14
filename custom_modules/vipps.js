@@ -524,13 +524,14 @@ module.exports = {
      * @param {string} KID KID for organization share
      * @param {number} amount Amount in kroner, not øre
      * @param {number} monthlyChargeDay Monthly charge day
-     * @param {Date} captureChargeDate The capture date of the initial reserve charge
      * @return {DraftRespone | boolean} success
      */
-    async draftAgreement(KID, amount, initialCharge, monthlyChargeDay, captureChargeDate) {
+    async draftAgreement(KID, amount, initialCharge, monthlyChargeDay) {
         let token = await this.fetchToken()
 
         if (token === false) return false
+
+        if (monthlyChargeDay > 28) monthlyChargeDay = 28
 
         // Real price is set in øre
         const realAmount = amount * 100
@@ -578,7 +579,7 @@ module.exports = {
                 donor.id, 
                 KID, 
                 amount, 
-                monthlyChargeDay, 
+                monthlyChargeDay,
                 agreementUrlCode
             )
             
@@ -591,7 +592,7 @@ module.exports = {
                 return false
             }
 
-            const reservedCharge = await this.getCharge(response.chargeId)
+            const reservedCharge = await this.getCharge(response.agreementId, response.chargeId)
 
             if (reservedCharge) await DAO.vipps.addCharge(
                 response.chargeId, 
@@ -600,16 +601,18 @@ module.exports = {
                 KID, 
                 reservedCharge.due, 
                 reservedCharge.status, 
-                reservedCharge.type, 
-                captureChargeDate
+                reservedCharge.type
             )
 
             this.pollAgreement(response.agreementId)
+
+            // await mail.sendVippsErrorWarning("DRAFT", "ex", {...data, KID, monthlyChargeDay, donor})
 
             response.agreementUrlCode = agreementUrlCode
             return response
         }
         catch (ex) {
+            if (config.env === "production") await mail.sendVippsErrorWarning("DRAFT", "ex", {...data, KID, monthlyChargeDay, donor})
             console.error(ex)
             return false
         }
