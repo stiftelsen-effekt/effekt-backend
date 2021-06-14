@@ -314,7 +314,7 @@ async function addAgreement(agreementID, donorID, KID, amount, monthlyChargeDay,
             INSERT INTO Vipps_agreement_charges
                 (chargeID, agreementId, amountNOK, KID, dueDate, status, type)
             VALUES
-                (?,?,?,?,?,?,?,?)`, 
+                (?,?,?,?,?,?,?)`, 
             [chargeID, agreementID, amountNOK, KID, dueDate, status, type])
 
         con.release()

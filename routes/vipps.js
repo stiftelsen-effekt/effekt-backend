@@ -581,8 +581,8 @@ function delay(t) {
  * Runs once per minute
 */
 cron.schedule('* * * * *', async () => {
-    // console.log("Creating charges")
-    //await vipps.createFutureDueCharges()
+    console.log("Creating charges")
+    await vipps.createFutureDueCharges()
 });
 
 module.exports = router

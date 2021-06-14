@@ -289,6 +289,41 @@ async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
 }
 
 /** 
+ * @param {"DRAFT" | "CHARGE"} errorType What type of error
+ * @param {string} errorMessage Long error message (exception)
+ * @param {string} inputData The input data while the error happened
+*/
+async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
+  try {
+    const timestamp = formatTimestamp(new Date())
+
+    let errorDesc = ""
+    if (errorType === "DRAFT") errorDesc = "Oppretting av Vipps betalingsavtale feilet"
+    if (errorType === "CHARGE") errorDesc = "Trekk av Vipps betalingsavtale feilet"
+    const subject = `Varsling om systemfeil - ${errorDesc}`
+    
+    await send({
+      subject,
+      reciever: "philip.h.andersen@gmail.com",
+      templateName: 'vippsErrorWarning',
+      templateData: {
+        header: errorDesc,
+        timestamp,
+        errorMessage,
+        inputData
+      }
+    })
+
+    return true
+  }
+  catch(ex) {
+      console.error("Failed to send Vipps agreement error email")
+      console.error(ex)
+      return ex.statusCode
+  }
+}
+
+/** 
  * @param {number} donorID 
 */
 async function sendDonationHistory(donorID) {
@@ -536,12 +571,21 @@ function formatDate(date) {
   return moment(date).format("DD.MM.YYYY")
 }
 
+function formatTimestamp(date) {
+  const formattedDate = moment(date).format("DD.MM.YYYY")
+  const hours = date.getHours()
+  const minutes = date.getMinutes()
+  const timestamp = `${formattedDate}, ${hours < 10 ? "0" : "" }${hours}:${minutes < 10 ? "0" : ""}${minutes}`
+  return timestamp
+}
+
 module.exports = {
   sendDonationReciept,
   sendEffektDonationReciept,
   sendDonationRegistered,
   sendDonationHistory,
   sendVippsAgreementChange,
+  sendVippsErrorWarning,
   sendFacebookTaxConfirmation,
   sendTaxDeductions,
   sendAvtalegiroNotification,

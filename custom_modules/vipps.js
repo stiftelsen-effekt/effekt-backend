@@ -592,27 +592,27 @@ module.exports = {
                 return false
             }
 
-            const reservedCharge = await this.getCharge(response.agreementId, response.chargeId)
+            if (response.chargeId) {
+                const reservedCharge = await this.getCharge(response.agreementId, response.chargeId)
 
-            if (reservedCharge) await DAO.vipps.addCharge(
-                response.chargeId, 
-                response.agreementId, 
-                amount, 
-                KID, 
-                reservedCharge.due, 
-                reservedCharge.status, 
-                reservedCharge.type
-            )
+                if (reservedCharge) await DAO.vipps.addCharge(
+                    response.chargeId, 
+                    response.agreementId, 
+                    amount, 
+                    KID, 
+                    reservedCharge.due, 
+                    reservedCharge.status, 
+                    reservedCharge.type
+                )
+            }
 
             this.pollAgreement(response.agreementId)
-
-            // await mail.sendVippsErrorWarning("DRAFT", "ex", {...data, KID, monthlyChargeDay, donor})
 
             response.agreementUrlCode = agreementUrlCode
             return response
         }
         catch (ex) {
-            if (config.env === "production") await mail.sendVippsErrorWarning("DRAFT", "ex", {...data, KID, monthlyChargeDay, donor})
+            if (config.env === "production") await mail.sendVippsErrorWarning("DRAFT", ex, {...data, KID, monthlyChargeDay})
             console.error(ex)
             return false
         }
@@ -836,6 +836,7 @@ module.exports = {
             return chargeId
         }
         catch (ex) {
+            if (config.env === "production") await mail.sendVippsErrorWarning("CHARGE", ex, {...data, agreementId, headers})
             console.error(ex)
             return false
         }
