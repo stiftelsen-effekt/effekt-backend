@@ -81,7 +81,7 @@ router.post("/register", async (req,res,next) => {
     }
 
     /** Use new KID for avtalegiro */
-    if (donationObject.method == methods.BANK && donationObject.recurring == true){
+    if (donationObject.method == methods.BANK && donationObject.recurring == true && false){
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID, 12)
 
