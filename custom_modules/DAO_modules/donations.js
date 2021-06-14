@@ -319,12 +319,12 @@ async function getHasReplacedOrgs(donationID) {
                 and iD = ?
             `, [donationID])
 
-            await con.release()
+            con.release()
             return result[0]?.Replaced_old_organizations || 0
         }
     } 
     catch(ex) {
-        await con.release()
+        con.release()
         throw ex
     }
 }
