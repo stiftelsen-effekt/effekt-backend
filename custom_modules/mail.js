@@ -302,17 +302,22 @@ async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
     if (errorType === "CHARGE") errorDesc = "Trekk av Vipps betalingsavtale feilet"
     const subject = `Varsling om systemfeil - ${errorDesc}`
     
-    await send({
-      subject,
-      reciever: "philip.h.andersen@gmail.com",
-      templateName: 'vippsErrorWarning',
-      templateData: {
-        header: errorDesc,
-        timestamp,
-        errorMessage,
-        inputData
-      }
-    })
+    const recipients = ["philip.h.andersen@gmail.com"]
+
+    for (let i = 0; i < recipients.length; i++) {
+
+      await send({
+        subject,
+        reciever: recipients[i],
+        templateName: 'vippsErrorWarning',
+        templateData: {
+          header: errorDesc,
+          timestamp,
+          errorMessage,
+          inputData
+        }
+      })
+    }
 
     return true
   }
@@ -331,19 +336,24 @@ async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
 async function sendVippsProblemReport(senderUrl, donorMessage, agreement) {
   try {
     const timestamp = formatTimestamp(new Date())
+
+    const recipients = ["philip.h.andersen@gmail.com"]
+
+    for (let i = 0; i < recipients.length; i++) {
     
-    await send({
-      subject: "En donor har rapportert et problem med Vipps",
-      reciever: "philip.h.andersen@gmail.com",
-      templateName: 'vippsProblemReport',
-      templateData: {
-        header: "Problem med Vipps betalingsavtale",
-        timestamp,
-        senderUrl,
-        donorMessage,
-        agreement
-      }
-    })
+      await send({
+        subject: "En donor har rapportert et problem med Vipps",
+        reciever: recipients[i],
+        templateName: 'vippsProblemReport',
+        templateData: {
+          header: "Problem med Vipps betalingsavtale",
+          timestamp,
+          senderUrl,
+          donorMessage,
+          agreement
+        }
+      })
+    }
 
     return true
   }
