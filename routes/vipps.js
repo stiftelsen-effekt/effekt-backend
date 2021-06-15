@@ -363,6 +363,20 @@ router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
     }
 })
 
+router.post("/agreement/report/problem", jsonBody, async (req, res, next) => {
+    try {
+        const senderUrl = req.body.senderUrl
+        const donorMessage = req.body.donorMessage
+        const agreement = req.body.agreement
+
+        const response = await mail.sendVippsProblemReport(senderUrl, donorMessage, agreement)
+
+        res.json(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
 router.post("/v2/payments/:orderId", jsonBody, async (req, res, next) => {
     if (req.body.orderId !== req.params.orderId) {
         res.sendStatus(400)
@@ -581,8 +595,8 @@ function delay(t) {
  * Runs once per minute
 */
 cron.schedule('* * * * *', async () => {
-    console.log("Creating charges")
-    await vipps.createFutureDueCharges()
+    //console.log("Creating charges")
+    //await vipps.createFutureDueCharges()
 });
 
 module.exports = router

@@ -324,6 +324,37 @@ async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
 }
 
 /** 
+ * @param {string} senderUrl The url from where the message was sent
+ * @param {string} donorMessage Written message from donor explaining the problem
+ * @param {VippsAgreement} agreement Vipps agreement data
+*/
+async function sendVippsProblemReport(senderUrl, donorMessage, agreement) {
+  try {
+    const timestamp = formatTimestamp(new Date())
+    
+    await send({
+      subject: "En donor har rapportert et problem med Vipps",
+      reciever: "philip.h.andersen@gmail.com",
+      templateName: 'vippsProblemReport',
+      templateData: {
+        header: "Problem med Vipps betalingsavtale",
+        timestamp,
+        senderUrl,
+        donorMessage,
+        agreement
+      }
+    })
+
+    return true
+  }
+  catch(ex) {
+      console.error("Failed to send Vipps agreement error email")
+      console.error(ex)
+      return ex.statusCode
+  }
+}
+
+/** 
  * @param {number} donorID 
 */
 async function sendDonationHistory(donorID) {
@@ -585,6 +616,7 @@ module.exports = {
   sendDonationRegistered,
   sendDonationHistory,
   sendVippsAgreementChange,
+  sendVippsProblemReport,
   sendVippsErrorWarning,
   sendFacebookTaxConfirmation,
   sendTaxDeductions,
