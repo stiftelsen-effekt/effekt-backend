@@ -74,7 +74,15 @@
                         <h3>Melding fra donor:</h3>
                         <% this.donorMessage %>
                         <br /><br />
-                        <strong>Denne meldingen ble sendt fra <% this.senderUrl %></strong>
+                        <% if (this.senderEmail) { %>
+                            <strong>Donoren ønsker svar på denne eposten: <% this.senderEmail %></strong>
+                        <% } else { %>
+                            <strong>Donoren har ikke oppgitt epost og ønsker ikke svar på henvendelsen</strong>
+                        <% } %>
+                        <br /><br />
+                        <strong>Meldingen ble sendt fra <% this.senderUrl %></strong>
+
+                        <% if (this.senderEmail) { %>
                         <h2>Informasjon om betalingsavtale:</h2>
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
@@ -114,6 +122,9 @@
                                 </td>
                             </tr>
                         </table>
+                        <% } else { %>
+                            <h2>Finner ingen tilknyttet betalingsavtale</h2>
+                        <% } %>
                     </td>
                 </tr>
                 <tr>

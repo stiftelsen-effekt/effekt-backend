@@ -366,10 +366,11 @@ router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
 router.post("/agreement/report/problem", jsonBody, async (req, res, next) => {
     try {
         const senderUrl = req.body.senderUrl
+        const senderEmail = req.body.senderEmail
         const donorMessage = req.body.donorMessage
         const agreement = req.body.agreement
 
-        const response = await mail.sendVippsProblemReport(senderUrl, donorMessage, agreement)
+        const response = await mail.sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agreement)
 
         res.json(response)
     } catch (ex) {

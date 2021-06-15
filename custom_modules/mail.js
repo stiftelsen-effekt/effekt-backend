@@ -330,10 +330,11 @@ async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
 
 /** 
  * @param {string} senderUrl The url from where the message was sent
+ * @param {string | undefined} senderEmail The email adress of the sender, used for replying
  * @param {string} donorMessage Written message from donor explaining the problem
  * @param {VippsAgreement} agreement Vipps agreement data
 */
-async function sendVippsProblemReport(senderUrl, donorMessage, agreement) {
+async function sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agreement) {
   try {
     const timestamp = formatTimestamp(new Date())
 
@@ -349,6 +350,7 @@ async function sendVippsProblemReport(senderUrl, donorMessage, agreement) {
           header: "Problem med Vipps betalingsavtale",
           timestamp,
           senderUrl,
+          senderEmail,
           donorMessage,
           agreement
         }
