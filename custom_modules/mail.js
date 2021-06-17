@@ -302,7 +302,7 @@ async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
     if (errorType === "CHARGE") errorDesc = "Trekk av Vipps betalingsavtale feilet"
     const subject = `Varsling om systemfeil - ${errorDesc}`
     
-    const recipients = ["philip.h.andersen@gmail.com"]
+    const recipients = ["philip.andersen@effektivaltruisme.no", "hakon.harnes@effektivaltruisme.no"]
 
     for (let i = 0; i < recipients.length; i++) {
 
@@ -338,7 +338,7 @@ async function sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agre
   try {
     const timestamp = formatTimestamp(new Date())
 
-    const recipients = ["philip.h.andersen@gmail.com"]
+    const recipients = ["philip.andersen@effektivaltruisme.no", "hakon.harnes@effektivaltruisme.no"]
 
     for (let i = 0; i < recipients.length; i++) {
     
