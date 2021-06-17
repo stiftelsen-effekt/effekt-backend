@@ -523,15 +523,18 @@ module.exports = {
      * Drafts an agreement for a recurring payment
      * @param {string} KID KID for organization share
      * @param {number} amount Amount in kroner, not øre
+     * @param {number} monthlyChargeDay Monthly charge day
+     * @return {DraftRespone | boolean} success
      */
-    async draftAgreement(KID, amount, initialCharge) {
+    async draftAgreement(KID, amount, initialCharge, monthlyChargeDay) {
         let token = await this.fetchToken()
 
         if (token === false) return false
 
+        if (monthlyChargeDay > 28) monthlyChargeDay = 28
+
         // Real price is set in øre
         const realAmount = amount * 100
-        const description = "Donasjon"
         const agreementUrlCode = hash(Math.random().toString())
 
         const data = {
@@ -542,7 +545,7 @@ module.exports = {
             "merchantRedirectUrl": `${config.minside_url}/${agreementUrlCode}_landing`,
             "merchantAgreementUrl": `${config.minside_url}/${agreementUrlCode}`,
             "price": realAmount,
-            "productDescription": description,
+            "productDescription": agreementUrlCode,
             "productName": "Månedlig donasjon til gieffektivt.no"
         }
 
@@ -550,7 +553,7 @@ module.exports = {
             data["initialCharge"] = {
                 "amount": realAmount,
                 "currency": "NOK",
-                "description": description,
+                "description": "Første donasjon",
                 "transactionType": "RESERVE_CAPTURE"
             }
         }
@@ -570,8 +573,14 @@ module.exports = {
                 return false
             }
 
-            // Amount in EffektDonasjonDB is stored in kroner, not øre 
-            const addResponse = await DAO.vipps.addAgreement(response.agreementId, donor.id, KID, amount, agreementUrlCode)
+            const addResponse = await DAO.vipps.addAgreement(
+                response.agreementId, 
+                donor.id, 
+                KID, 
+                amount, 
+                monthlyChargeDay,
+                agreementUrlCode
+            )
             
             // If adding to effekt database failed, cancel agreement
             if (addResponse === false) {
@@ -582,7 +591,19 @@ module.exports = {
                 return false
             }
 
-            if (initialCharge) await DAO.vipps.addCharge(response.chargeId, response.agreementId, amount, KID, new Date(), "RESERVED", "INITIAL")
+            if (response.chargeId) {
+                const reservedCharge = await this.getCharge(response.agreementId, response.chargeId)
+
+                if (reservedCharge) await DAO.vipps.addCharge(
+                    response.chargeId, 
+                    response.agreementId, 
+                    amount, 
+                    KID, 
+                    reservedCharge.due, 
+                    reservedCharge.status, 
+                    reservedCharge.type
+                )
+            }
 
             this.pollAgreement(response.agreementId)
 
@@ -590,6 +611,7 @@ module.exports = {
             return response
         }
         catch (ex) {
+            if (config.env === "production") await mail.sendVippsErrorWarning("DRAFT", ex, {...data, KID, monthlyChargeDay})
             console.error(ex)
             return false
         }
@@ -808,11 +830,12 @@ module.exports = {
             console.log(charge)
             const agreement = await DAO.vipps.getAgreement(agreementId)
 
-            if (response) await DAO.vipps.addCharge(chargeId, agreementId, amountKroner, agreement.KID, formattedDueDate, charge.status)
+            if (response) await DAO.vipps.addCharge(chargeId, agreementId, amountKroner, agreement.KID, formattedDueDate, charge.status, "RECURRING")
             
             return chargeId
         }
         catch (ex) {
+            if (config.env === "production") await mail.sendVippsErrorWarning("CHARGE", ex, {...data, agreementId, headers})
             console.error(ex)
             return false
         }
@@ -822,7 +845,7 @@ module.exports = {
      * Fetches a single charge
      * @param {string} agreementId The agreement id
      * @param {string} chargeId The charge id
-     * @returns {[Charge]}
+     * @returns {VippsRecurringCharge}
      */
     async getCharge(agreementId, chargeId) {
 
@@ -846,7 +869,7 @@ module.exports = {
     /**
      * Fetches the most recent charged charge
      * @param {string} agreementId The agreement id
-     * @returns {[Charge]}
+     * @returns {VippsRecurringCharge}
      */
     async getLastCharge(agreementId) {
         try {
@@ -1111,9 +1134,10 @@ module.exports = {
                         // If agreement is not paused
                         if (new Date(pauseEnd) < new Date() || isNan(Date.parse(pauseEnd))){
 
-                            // Check if agreement is active in Vipps database
+                             // Check if agreement is also active in Vipps database
                             const vippsAgreement = await this.getAgreement(agreement.ID)
-                            if (vippsAgreement.status === "ACTIVE") {
+                            const monthAlreadyCharged = await vipps.hasChargedThisMonth(agreement.ID)
+                            if (vippsAgreement.status === "ACTIVE" && !monthAlreadyCharged) {
                                 
                                 const formattedDueDate = moment(dueDate).format('YYYY-MM-DD')
                                 console.log("Creating charge due " + formattedDueDate + " for agreement " + vippsAgreement.id)

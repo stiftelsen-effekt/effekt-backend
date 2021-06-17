@@ -102,7 +102,7 @@ router.post("/register", async (req,res,next) => {
       }
     }
 
-    if (donationObject.method == methods.VIPPS && recurring == false) {
+    if (donationObject.method == methods.VIPPS && recurring == 0) {
       const res = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
       paymentProviderUrl = res.externalPaymentUrl
 

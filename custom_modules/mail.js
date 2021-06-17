@@ -289,6 +289,84 @@ async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
 }
 
 /** 
+ * @param {"DRAFT" | "CHARGE"} errorType What type of error
+ * @param {string} errorMessage Long error message (exception)
+ * @param {string} inputData The input data while the error happened
+*/
+async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
+  try {
+    const timestamp = formatTimestamp(new Date())
+
+    let errorDesc = ""
+    if (errorType === "DRAFT") errorDesc = "Oppretting av Vipps betalingsavtale feilet"
+    if (errorType === "CHARGE") errorDesc = "Trekk av Vipps betalingsavtale feilet"
+    const subject = `Varsling om systemfeil - ${errorDesc}`
+    
+    const recipients = ["philip.andersen@effektivaltruisme.no", "hakon.harnes@effektivaltruisme.no"]
+
+    for (let i = 0; i < recipients.length; i++) {
+
+      await send({
+        subject,
+        reciever: recipients[i],
+        templateName: 'vippsErrorWarning',
+        templateData: {
+          header: errorDesc,
+          timestamp,
+          errorMessage,
+          inputData
+        }
+      })
+    }
+
+    return true
+  }
+  catch(ex) {
+      console.error("Failed to send Vipps agreement error email")
+      console.error(ex)
+      return ex.statusCode
+  }
+}
+
+/** 
+ * @param {string} senderUrl The url from where the message was sent
+ * @param {string | undefined} senderEmail The email adress of the sender, used for replying
+ * @param {string} donorMessage Written message from donor explaining the problem
+ * @param {VippsAgreement} agreement Vipps agreement data
+*/
+async function sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agreement) {
+  try {
+    const timestamp = formatTimestamp(new Date())
+
+    const recipients = ["philip.andersen@effektivaltruisme.no", "hakon.harnes@effektivaltruisme.no"]
+
+    for (let i = 0; i < recipients.length; i++) {
+    
+      await send({
+        subject: "En donor har rapportert et problem med Vipps",
+        reciever: recipients[i],
+        templateName: 'vippsProblemReport',
+        templateData: {
+          header: "Problem med Vipps betalingsavtale",
+          timestamp,
+          senderUrl,
+          senderEmail,
+          donorMessage,
+          agreement
+        }
+      })
+    }
+
+    return true
+  }
+  catch(ex) {
+      console.error("Failed to send Vipps agreement error email")
+      console.error(ex)
+      return ex.statusCode
+  }
+}
+
+/** 
  * @param {number} donorID 
 */
 async function sendDonationHistory(donorID) {
@@ -536,12 +614,22 @@ function formatDate(date) {
   return moment(date).format("DD.MM.YYYY")
 }
 
+function formatTimestamp(date) {
+  const formattedDate = moment(date).format("DD.MM.YYYY")
+  const hours = date.getHours()
+  const minutes = date.getMinutes()
+  const timestamp = `${formattedDate}, ${hours < 10 ? "0" : "" }${hours}:${minutes < 10 ? "0" : ""}${minutes}`
+  return timestamp
+}
+
 module.exports = {
   sendDonationReciept,
   sendEffektDonationReciept,
   sendDonationRegistered,
   sendDonationHistory,
   sendVippsAgreementChange,
+  sendVippsProblemReport,
+  sendVippsErrorWarning,
   sendFacebookTaxConfirmation,
   sendTaxDeductions,
   sendAvtalegiroNotification,
