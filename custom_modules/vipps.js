@@ -1067,7 +1067,7 @@ module.exports = {
             const initialChargeID = initialCharge.chargeID
 
             // Keep polling until initial charge has been captured
-            if (initialChargeID && initialCharge.status === "RESERVED") {
+            if (initialChargeID) {
                 const isCaptured = await this.captureInitalCharge(agreementId, initialChargeID)
 
                 // Update database and stop polling only if capture was successful 
