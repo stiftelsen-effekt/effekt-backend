@@ -35,11 +35,11 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
     const KID = body.KID
     const amount = body.amount
     const initialCharge = body.initialCharge
-
+    const monthlyChargeDay = body.monthlyChargeDay > 28 ? 28 : body.monthlyChargeDay
 
     try {
-        const content = await vipps.draftAgreement(KID, amount, initialCharge)
-        //TODO: Check for false
+        const content = await vipps.draftAgreement(KID, amount, initialCharge, monthlyChargeDay)
+        
         res.json({
             status: 200,
             content
@@ -59,7 +59,7 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
             return next(err)
         }
         
-        // Synchronize agreements
+        // Synchronize EffektDB with Vipps database
         const responseVipps = await vipps.getAgreement(agreementId)
         await DAO.vipps.updateAgreementStatus(agreementId, responseVipps.status)
         await DAO.vipps.updateAgreementPrice(agreementId, responseVipps.price / 100)
@@ -67,7 +67,8 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
 
         const monthAlreadyCharged = await vipps.hasChargedThisMonth(agreementId)
         const pendingDueCharge = await vipps.getPendingDueCharge(agreementId)
-        const response = {...responseVipps, ...responseDAO, monthAlreadyCharged, pendingDueCharge}
+        const mostRecentCharge = await vipps.getLastCharge(agreementId)
+        const response = {...responseVipps, ...responseDAO, monthAlreadyCharged, pendingDueCharge, mostRecentCharge}
 
         //TODO: Check for false
         res.json(response)
@@ -76,11 +77,11 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
     }
 })
 
-router.get("/agreement/:id", async (req, res, next) => {
+router.get("/agreement/:id", authMiddleware(authorizationRoles.read_vipps_api), async (req, res, next) => {
     try { 
         const agreementId = req.params.id
 
-        // Synchronize agreements
+        // Synchronize EffektDB with Vipps database
         const responseVipps = await vipps.getAgreement(agreementId)
         await DAO.vipps.updateAgreementStatus(agreementId, responseVipps.status)
         await DAO.vipps.updateAgreementPrice(agreementId, responseVipps.price / 100)
@@ -96,9 +97,10 @@ router.get("/agreement/:id", async (req, res, next) => {
     }
 })
 
-router.get("/agreements", async (req, res, next) => {
+router.get("/agreements", authMiddleware(authorizationRoles.read_vipps_api), async (req, res, next) => {
     try {
         const response = await vipps.getAgreements()
+        // TODO: Synchronize EffektDB with agreements fetched from Vipps
 
         if (!response) {
             let err = new Error("Failed fetching agreements")
@@ -140,19 +142,6 @@ router.put("/agreement/price", jsonBody, async (req, res, next) => {
         }
 
         res.send()
-    } catch (ex) {
-        next({ ex })
-    }
-})
-
-router.put("/agreement/status", jsonBody, async (req, res, next) => {
-    try {
-        const agreementId = req.body.agreementId
-        const status = req.body.status
-
-        await vipps.updateAgreementStatus(agreementId, status)
-
-        res.send(response)
     } catch (ex) {
         next({ ex })
     }
@@ -277,7 +266,7 @@ router.put("/agreement/distribution", jsonBody, async (req, res, next) => {
         }
 })
 
-router.post("/agreement/charge/create", jsonBody, async (req, res, next) => {
+router.post("/agreement/charge/create", authMiddleware(authorizationRoles.write_vipps_api), jsonBody, async (req, res, next) => {
     try {
         const agreementId = req.body.agreementId
         const amount = req.body.amount
@@ -290,7 +279,7 @@ router.post("/agreement/charge/create", jsonBody, async (req, res, next) => {
     }
 })
 
-router.get("/agreement/:agreementId/charge/:chargeId", jsonBody, async (req, res, next) => {
+router.get("/agreement/:agreementId/charge/:chargeId", authMiddleware(authorizationRoles.read_vipps_api), jsonBody, async (req, res, next) => {
     try {
         const agreementId = req.params.agreementId
         const chargeId = req.params.chargeId
@@ -303,7 +292,7 @@ router.get("/agreement/:agreementId/charge/:chargeId", jsonBody, async (req, res
     }
 })
 
-router.get("/agreement/:agreementId/charges", jsonBody, async (req, res, next) => {
+router.get("/agreement/:agreementId/charges", authMiddleware(authorizationRoles.read_vipps_api), jsonBody, async (req, res, next) => {
     try {
         const agreementId = req.params.agreementId
 
@@ -334,7 +323,7 @@ router.post("/agreement/charges/cancel", jsonBody, async (req, res, next) => {
     }
 })
 
-router.post("/agreement/charge/refund", jsonBody, async (req, res, next) => {
+router.post("/agreement/charge/refund", authMiddleware(authorizationRoles.write_vipps_api), jsonBody, async (req, res, next) => {
     try {
         const agreementId = req.body.agreementId
         const chargeId = req.body.chargeId
@@ -355,6 +344,21 @@ router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
         const newValue = req.body.newValue
 
         const response = await mail.sendVippsAgreementChange(agreementCode, change, newValue)
+
+        res.json(response)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
+router.post("/agreement/report/problem", jsonBody, async (req, res, next) => {
+    try {
+        const senderUrl = req.body.senderUrl
+        const senderEmail = req.body.senderEmail
+        const donorMessage = req.body.donorMessage
+        const agreement = req.body.agreement
+
+        const response = await mail.sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agreement)
 
         res.json(response)
     } catch (ex) {
@@ -580,7 +584,7 @@ function delay(t) {
  * Runs once per minute
 */
 cron.schedule('* * * * *', async () => {
-    // console.log("Creating charges")
+    //console.log("Creating charges")
     //await vipps.createFutureDueCharges()
 });
 

@@ -273,15 +273,11 @@ async function addOrder(order) {
  * @param {"PENDING" | "ACTIVE" | "STOPPED" | "EXPIRED"} status Whether the agreement has been activated. Defaults to false
  * @return {boolean} Success or not
  */
-async function addAgreement(agreementID, donorID, KID, amount, agreementUrlCode, status = "PENDING") {
+async function addAgreement(agreementID, donorID, KID, amount, monthlyChargeDay, agreementUrlCode, status = "PENDING") {
     let con = await pool.getConnection()
 
-    const todaysDayOfMonth = String(new Date().getDate()).padStart(2, '0')
-    let monthly_charge_day = todaysDayOfMonth
-
-    // Simple and safe solution to support leap years
-    if (todaysDayOfMonth > 28) {
-        monthly_charge_day = 28
+    if (monthlyChargeDay < 0 || monthlyChargeDay > 28) {
+        return false
     }
 
     try {
@@ -290,7 +286,7 @@ async function addAgreement(agreementID, donorID, KID, amount, agreementUrlCode,
                 (ID, donorID, KID, amount, monthly_charge_day, agreement_url_code, status)
             VALUES
                 (?,?,?,?,?,?,?)`, 
-            [agreementID, donorID, KID, amount, monthly_charge_day, agreementUrlCode, status])
+            [agreementID, donorID, KID, amount, monthlyChargeDay, agreementUrlCode, status])
         con.release()
         return true
     }
@@ -306,19 +302,20 @@ async function addAgreement(agreementID, donorID, KID, amount, agreementUrlCode,
  * @param {string} agreementId Provided by vipps
  * @param {number} amountNOK The amount of money for each charge in NOK, not øre
  * @param {number} KID The KID of the agreement
- * @param {Date} due Due date of the charge 
+ * @param {string} dueDate Due date of the charge 
  * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status The status of the charge
+ * @param {"INITIAL" | "RECURRING"} type
  * @return {boolean} Success or not
  */
- async function addCharge(chargeID, agreementID, amountNOK, KID, dueDate, status) {
+ async function addCharge(chargeID, agreementID, amountNOK, KID, dueDate, status, type) {
     let con = await pool.getConnection()
     try {
         con.query(`
             INSERT INTO Vipps_agreement_charges
-                (chargeID, agreementId, amountNOK, KID, dueDate, status)
+                (chargeID, agreementId, amountNOK, KID, dueDate, status, type)
             VALUES
-                (?,?,?,?,?,?)`, 
-            [chargeID, agreementID, amountNOK, KID, dueDate, status])
+                (?,?,?,?,?,?,?)`, 
+            [chargeID, agreementID, amountNOK, KID, dueDate, status, type])
 
         con.release()
         return true
