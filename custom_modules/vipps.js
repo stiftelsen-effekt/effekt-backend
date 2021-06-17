@@ -535,7 +535,6 @@ module.exports = {
 
         // Real price is set in øre
         const realAmount = amount * 100
-        const description = "Donasjon"
         const agreementUrlCode = hash(Math.random().toString())
 
         const data = {
@@ -546,7 +545,7 @@ module.exports = {
             "merchantRedirectUrl": `${config.minside_url}/${agreementUrlCode}_landing`,
             "merchantAgreementUrl": `${config.minside_url}/${agreementUrlCode}`,
             "price": realAmount,
-            "productDescription": description,
+            "productDescription": agreementUrlCode,
             "productName": "Månedlig donasjon til gieffektivt.no"
         }
 
@@ -554,7 +553,7 @@ module.exports = {
             data["initialCharge"] = {
                 "amount": realAmount,
                 "currency": "NOK",
-                "description": description,
+                "description": "Første donasjon",
                 "transactionType": "RESERVE_CAPTURE"
             }
         }
@@ -1135,9 +1134,10 @@ module.exports = {
                         // If agreement is not paused
                         if (new Date(pauseEnd) < new Date() || isNan(Date.parse(pauseEnd))){
 
-                            // Check if agreement is active in Vipps database
+                             // Check if agreement is also active in Vipps database
                             const vippsAgreement = await this.getAgreement(agreement.ID)
-                            if (vippsAgreement.status === "ACTIVE") {
+                            const monthAlreadyCharged = await vipps.hasChargedThisMonth(agreement.ID)
+                            if (vippsAgreement.status === "ACTIVE" && !monthAlreadyCharged) {
                                 
                                 const formattedDueDate = moment(dueDate).format('YYYY-MM-DD')
                                 console.log("Creating charge due " + formattedDueDate + " for agreement " + vippsAgreement.id)
