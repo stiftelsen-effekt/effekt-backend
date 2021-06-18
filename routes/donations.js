@@ -352,7 +352,8 @@ let historyRateLimit = new rateLimit({
     windowMs: 60*1000*60, // 1 hour
     max: 5,
     delayMs: 0 // disable delaying - full speed until the max limit is reached 
-  })
+})
+
 router.post("/history/email", historyRateLimit, async (req, res, next) => {
   try {
     let email = req.body.email

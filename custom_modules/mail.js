@@ -6,6 +6,50 @@ const template = require('./template.js')
 const request = require('request-promise-native')
 const fs = require('fs-extra')
 
+// Reusable components
+
+const effektFooter = 
+  '<td class="footer" bgcolor="#c1bbbb">' + 
+    '<table width="100%" border="0" cellspacing="0" cellpadding="0">' +
+        '<tr>' +
+            '<td align="center" class="footercopy">' +
+                '<table width="194" align="left" border="0" cellpadding="0" cellspacing="0">' +
+                    '<tr>' +
+                        '<td style="color: #ffffff; font-family: Arial, sans-serif; font-size: 14px;">' +
+                            'Stiftelsen Effekt' +
+                            '<br />' +
+                            '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">donasjon@gieffektivt.no</a><br/>' +
+                            '<span>Orgnr. 916 625 308</span><br/><br/>' +
+                            'Effektiv Altruisme Norge' +
+                            '<br />' +
+                            '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">post@effektivaltruisme.no</a><br/>' +
+                            '<span>Orgnr. 919 809 140</span><br/><br/>' +
+                        '</td>' +
+                    '</tr>' +
+                '</table>' +
+                '<!--[if (gte mso 9)|(IE)]>' +
+                '<table width="380" align="left" cellpadding="0" cellspacing="0" border="0">' +
+                    '<tr>' +
+                        '<td>' +
+                '<![endif]-->' +
+                '<table width="75" align="right" border="0" cellpadding="0" cellspacing="0">' +
+                    '<tr>' +
+                        '<td>' +
+                            '<a href="https://gieffektivt.no/">' +
+                                '<img src="cid:gieffektivt.png" alt="gieffektivt" width="75" height="75" style="display: block;" border="0" />' +
+                            '</a>' +
+                        '</td>' +
+                    '</tr>' +
+                '</table>' +
+                '<!--[if (gte mso 9)|(IE)]>' +
+                '<table width="380" align="left" cellpadding="0" cellspacing="0" border="0">' +
+                    '<tr>' +
+                        '<td>' +
+                '<![endif]-->' +
+            '</td>' +
+        '</tr>' +
+    '</table>' +
+  '</td>';
 
 /**
  * Sends a donation reciept
@@ -55,7 +99,8 @@ async function sendDonationReciept(donationID, reciever = null) {
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
             paymentMethod: decideUIPaymentMethod(donation.method),
             //Adds a message to donations with inactive organizations
-            hasReplacedOrgs
+            hasReplacedOrgs,
+            effektFooter
         }
       })
 
@@ -115,7 +160,8 @@ async function sendEffektDonationReciept(donationID, reciever = null) {
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
             paymentMethod: decideUIPaymentMethod(donation.method),
             //Adds a message to donations with inactive organizations
-            hasReplacedOrgs
+            hasReplacedOrgs,
+            effektFooter
         }
         })
 
@@ -192,7 +238,8 @@ async function sendDonationRegistered(KID, sum) {
           kid: KIDstring,
           accountNumber: config.bankAccount,
           organizations: organizations,
-          sum: formatCurrency(sum)
+          sum: formatCurrency(sum),
+          effektFooter
         }
       })
 
@@ -223,7 +270,8 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
       templateName: 'facebookTaxConfirmation',
       templateData: {
         header: "Hei, " + fullName,
-        paymentID
+        paymentID,
+        effektFooter
       }
     })
 
@@ -313,7 +361,8 @@ async function sendDonationHistory(donorID) {
             donationSummary: donationSummary,
             yearlyDonationSummary: yearlyDonationSummary,
             donationHistory: donationHistory,
-            dates: dates
+            dates: dates,
+            effektFooter
         }
       })
 
@@ -342,7 +391,8 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
           fullname: taxDeductionRecord.fullname,
           ssn: taxDeductionRecord.ssn,
           year: year.toString(),
-          nextYear: (year+1).toString()
+          nextYear: (year+1).toString(),
+          effektFooter
       }
     })
 
@@ -389,7 +439,8 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
       templateData: { 
           header: "Hei " + donor.name + ",",
           agreementSum: (agreement.amount / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-          organizations: organizations
+          organizations: organizations,
+          effektFooter
       }
     })
 
