@@ -86,6 +86,7 @@ module.exports = {
   async sendReciepts(donationIDs) {
     //Send mail in paralell
     if (config.env === 'production') {
+      /** 
       const tasks = donationIDs.map(id => mail.sendDonationReciept(id))
       const results = await Promise.allSettled(tasks)
       const failed = results.filter(result => result.status === 'rejected')
@@ -93,6 +94,14 @@ module.exports = {
       for (let i = 0; i < failed.length; i++) {
         console.error(`Failed to send donation reciept for donation`)
         console.errror(failed[i].reason)
+      }
+      */
+      for (let i = 0; i < donationIDs.length; i++) {
+        try {
+          await mail.sendDonationReciept(donationIDs[i])
+        } catch(ex) {
+          console.error(`Failed to send donation reciept for donation ${donationIDs[i]}`)
+        }
       }
     }
   }
