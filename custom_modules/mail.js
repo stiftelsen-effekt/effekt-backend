@@ -6,9 +6,32 @@ const template = require('./template.js')
 const request = require('request-promise-native')
 const fs = require('fs-extra')
 
-// Reusable components
+// Reusable HTML elements
 
-const effektFooter = 
+const replacedOrgsInfo =
+  'MERK: Din fordeling ble endret av oss for donasjoner gitt fra og med 01.01.2021. ' + 
+  'Fra denne datoen støtter vi ikke lenger donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children ' +
+  'som opplyst på våre nettsider, i nyhetsbrev, på epost og gjennom sosiale medier.' +
+  '<br/>' +
+  'Andelene som var oppført til disse organisasjonene blir i stedet gitt til vår standardfordeling som nå er <a href="https://www.givewell.org/maximum-impact-fund" style="color: #fb8f29;">GiveWell Maximum Impact Fund</a>. ' +
+  'Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/gi" style="color: #fb8f29;">www.gieffektivt.no/gi</a> og fylle ut donasjonsskjema på nytt med ønsket fordeling. Ta kontakt om du har noen spørsmål.' + 
+  '<br/><br/>';
+
+const taxDeductionInfo =
+  'Donasjoner til oss som summerer til kr 500-50 000 i kalenderåret kvalifiserer til skattefradrag. Dersom du har oppgitt fødselsnummer eller organisasjonsnummer registrerer vi dette automatisk på neste års skattemelding. ' + 
+  'Les mer <a href= "https://gieffektivt.no/skattefradrag" style="color: #fb8f29;">her</a>.' + 
+  '<br/><br/>';
+
+const greeting = 
+  'Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss ved å sende en mail til ' +
+  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #fb8f29;">donasjon@gieffektivt.no</a>' + 
+  '<br/><br/>' +
+  'Håper du får en fantastisk dag!<br/><br/>' +
+  '<b>Vennlig hilsen</b><br/>' +
+  'oss i <a href= "https://gieffektivt.no" style="color: #fb8f29;">gieffektivt.no</a>' +
+  '<br/><br/>';
+
+const footer = 
   '<td class="footer" bgcolor="#c1bbbb">' + 
     '<table width="100%" border="0" cellspacing="0" cellpadding="0">' +
         '<tr>' +
@@ -50,6 +73,8 @@ const effektFooter =
         '</tr>' +
     '</table>' +
   '</td>';
+
+const reusableHTML = {replacedOrgsInfo, greeting, taxDeductionInfo, footer};
 
 /**
  * Sends a donation reciept
@@ -100,7 +125,7 @@ async function sendDonationReciept(donationID, reciever = null) {
             paymentMethod: decideUIPaymentMethod(donation.method),
             //Adds a message to donations with inactive organizations
             hasReplacedOrgs,
-            effektFooter
+            reusableHTML
         }
       })
 
@@ -161,7 +186,7 @@ async function sendEffektDonationReciept(donationID, reciever = null) {
             paymentMethod: decideUIPaymentMethod(donation.method),
             //Adds a message to donations with inactive organizations
             hasReplacedOrgs,
-            effektFooter
+            reusableHTML
         }
         })
 
@@ -239,7 +264,7 @@ async function sendDonationRegistered(KID, sum) {
           accountNumber: config.bankAccount,
           organizations: organizations,
           sum: formatCurrency(sum),
-          effektFooter
+          reusableHTML
         }
       })
 
@@ -271,7 +296,7 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
       templateData: {
         header: "Hei, " + fullName,
         paymentID,
-        effektFooter
+        reusableHTML
       }
     })
 
@@ -362,7 +387,7 @@ async function sendDonationHistory(donorID) {
             yearlyDonationSummary: yearlyDonationSummary,
             donationHistory: donationHistory,
             dates: dates,
-            effektFooter
+            reusableHTML
         }
       })
 
@@ -392,7 +417,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
           ssn: taxDeductionRecord.ssn,
           year: year.toString(),
           nextYear: (year+1).toString(),
-          effektFooter
+          reusableHTML
       }
     })
 
@@ -440,7 +465,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
           header: "Hei " + donor.name + ",",
           agreementSum: (agreement.amount / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
           organizations: organizations,
-          effektFooter
+          reusableHTML
       }
     })
 
