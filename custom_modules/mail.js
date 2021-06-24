@@ -56,11 +56,11 @@ const footer =
                             'Stiftelsen Effekt' +
                             '<br />' +
                             '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">donasjon@gieffektivt.no</a><br/>' +
-                            '<span>org.nr. 916 625 308</span><br/><br/>' +
+                            '<span>Orgnr. 916 625 308</span><br/><br/>' +
                             'Effektiv Altruisme Norge' +
                             '<br />' +
                             '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">post@effektivaltruisme.no</a><br/>' +
-                            '<span>org.nr. 919 809 140</span><br/><br/>' +
+                            '<span>Orgnr. 919 809 140</span><br/><br/>' +
                         '</td>' +
                     '</tr>' +
                 '</table>' +
