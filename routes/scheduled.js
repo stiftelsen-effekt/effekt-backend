@@ -119,9 +119,10 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
 router.post("/vipps", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
     // Creates charges for all Vipps recurring agreements that are due three days ahead
-    await vipps.createFutureDueCharges()
+    const result = await vipps.createFutureDueCharges()
+    await DAO.logging.add("VippsRecurring", result)
 
-    res.json("Ran vipps schedule for recurring agreements")
+    res.json(result)
   } catch(ex) {
     next({ex})
   }
