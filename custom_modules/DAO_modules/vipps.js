@@ -197,7 +197,7 @@ async function getRecentOrder() {
         SELECT * FROM 
             Vipps_agreement_charges
         WHERE 
-            agreementID = ? and status = "RESERVED"
+            agreementID = ? and status = "PENDING" && type = "INITIAL"
         `, [agreementID])
     con.release()
 
