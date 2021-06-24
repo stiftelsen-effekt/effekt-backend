@@ -578,14 +578,4 @@ function delay(t) {
     });
 }
 
-/** 
- * JUST FOR TESTING
- * Check for active agreements and create Vipps charges
- * Runs once per minute
-*/
-cron.schedule('* * * * *', async () => {
-    //console.log("Creating charges")
-    //await vipps.createFutureDueCharges()
-});
-
 module.exports = router

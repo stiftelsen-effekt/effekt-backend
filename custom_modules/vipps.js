@@ -534,7 +534,7 @@ module.exports = {
 
         // Real price is set in øre
         const realAmount = amount * 100
-        const agreementUrlCode = hash(Math.random().toString())
+        const agreementUrlCode = hash(new Date() + Math.random().toString())
 
         const data = {
             "currency": "NOK",
@@ -1115,10 +1115,12 @@ module.exports = {
             const dueDate = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
             // Used for checking if due date is last day of month
             const dayAfterDue = new Date(timeNow + (1000 * 60 * 60 * 24 * (daysInAdvance+1))).getDate()
-            const activeAgreements = await DAO.vipps.getActiveAgreements(dueDate.getDate())
+            const activeAgreements = await DAO.vipps.getActiveAgreements()
         
             // Find agreements with due dates that are 3 days from now
             if (activeAgreements) {
+                let chargeCount = 0
+
                 for (let i = 0; i < activeAgreements.length; i++) {
                     const agreement = activeAgreements[i]
                     const pauseEnd = agreement.paused_until_date
@@ -1130,16 +1132,18 @@ module.exports = {
                         || (chargeDay === 0 && dayAfterDue === 1) // 0 means last day of month, 1 means the first day of next month, i.e the due date is on the last day of month
                         || dueDate.setHours(0,0,0,0) === forceChargeDate.setHours(0,0,0,0)) {
 
-                        // If agreement is not paused
-                        if (new Date(pauseEnd) < new Date() || isNan(Date.parse(pauseEnd))){
+                        // Check if agreement is not paused
+                        // Invalid pause ending date is treated as not paused
+                        if (new Date(pauseEnd) < new Date() || isNaN(Date.parse(pauseEnd))){
 
                              // Check if agreement is also active in Vipps database
                             const vippsAgreement = await this.getAgreement(agreement.ID)
-                            const monthAlreadyCharged = await vipps.hasChargedThisMonth(agreement.ID)
+                            const monthAlreadyCharged = await this.hasChargedThisMonth(agreement.ID)
                             if (vippsAgreement.status === "ACTIVE" && !monthAlreadyCharged) {
                                 
                                 const formattedDueDate = moment(dueDate).format('YYYY-MM-DD')
                                 console.log("Creating charge due " + formattedDueDate + " for agreement " + vippsAgreement.id)
+                                chargeCount += 1
                                 
                                 await this.createCharge(
                                     vippsAgreement.id, 
@@ -1150,9 +1154,8 @@ module.exports = {
                         }
                     }
                 }
-            }
-            else {
-                console.log("No active Vipps agreements with due date " + moment(dueDate).format('DD/MM/YYYY'))
+
+                return {activeAgreements: activeAgreements.length, createdCharges: chargeCount}
             }
         }
         catch(ex) {
