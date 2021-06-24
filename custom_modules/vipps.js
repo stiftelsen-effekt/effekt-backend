@@ -5,7 +5,6 @@ const paymentMethods = require('../enums/paymentMethods')
 const request = require('request-promise-native')
 const mail = require('../custom_modules/mail')
 const moment = require('moment');
-const randomstring = require("randomstring");
 const hash = require('object-hash');
 
 //Timings selected based on the vipps guidelines

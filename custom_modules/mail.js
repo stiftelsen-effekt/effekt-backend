@@ -615,10 +615,7 @@ function formatDate(date) {
 }
 
 function formatTimestamp(date) {
-  const formattedDate = moment(date).format("DD.MM.YYYY")
-  const hours = date.getHours()
-  const minutes = date.getMinutes()
-  const timestamp = `${formattedDate}, ${hours < 10 ? "0" : "" }${hours}:${minutes < 10 ? "0" : ""}${minutes}`
+  const timestamp = moment(date).format("HH:mm - DD.MM.YYYY")
   return timestamp
 }
 
