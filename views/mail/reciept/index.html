@@ -144,18 +144,18 @@
                             <tr>
                                 <td class="bodycopy">
                                     <% if (hasReplacedOrgs == 1) { %>
-                                        <% reusableHTML.replacedOrgsInfo %>
+                                        <% this.reusableHTML.replacedOrgsInfo %>
                                     <% } %>
                                     <% if (this.paymentMethod.toUpperCase() != 'VIPPS') { %>
                                         Hvis du ønsker å donere med samme fordeling senere kan du bruke samme KID-nummer igjen.
                                         Du står helt fritt til å endre beløpet du donerer.<br/><br/>
                                     <% } %>
-                                    <% reusableHTML.taxDeductionInfo %>
-                                    <% reusableHTML.greeting %>
+                                    <% this.reusableHTML.taxDeductionInfo %>
+                                    <% this.reusableHTML.greeting %>
                                 </td>
                             </tr>
                             <tr>
-                                <% reusableHTML.footer %>
+                                <% this.reusableHTML.footer %>
                             </tr>
                         </table>
                         <!--[if (gte mso 9)|(IE)]>

@@ -6,6 +6,20 @@ const template = require('./template.js')
 const request = require('request-promise-native')
 const fs = require('fs-extra')
 
+// Formatting functions
+
+function formatDateText(date) {
+  const months = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
+  return `${date.getDate()}. ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function formatCurrency(currencyString) {
+  return Number.parseFloat(currencyString).toFixed(2)
+    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
+    .replace(",", " ")
+    .replace(".", ",");
+}
+
 // Reusable HTML elements
 
 const replacedOrgsInfo =
@@ -309,13 +323,6 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
   }
 }
 
-function formatCurrency(currencyString) {
-  return Number.parseFloat(currencyString).toFixed(2)
-    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
-    .replace(",", " ")
-    .replace(".", ",");
-}
-
 /** 
  * @param {number} donorID 
 */
@@ -341,9 +348,7 @@ async function sendDonationHistory(donorID) {
       else { 
         templateName = "donationHistory"
         for (let i = 0; i < donationHistory.length; i++) {
-          let month = donationHistory[i].date.getMonth()+1
-          let dateFormat = donationHistory[i].date.getDate().toString() + "/" + month.toString() + "/" + donationHistory[i].date.getFullYear().toString()
-          dates.push(dateFormat)  
+          dates.push(formatDateText(donationHistory[i].date))  
         }
 
         for (let i = 0; i < donationSummary.length - 1; i++) {
@@ -362,6 +367,7 @@ async function sendDonationHistory(donorID) {
       })
 
       donationHistory.forEach((obj) => {
+        obj.donationSum = formatCurrency(obj.donationSum)
         obj.distributions.forEach((distribution) => {
           distribution.sum = formatCurrency(distribution.sum);
         })
