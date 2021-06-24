@@ -120,15 +120,13 @@ async function exists(KID) {
 async function getByKID(KID) {
     try {
         var con = await pool.getConnection()
-        let [agreement] = await con.query(`SELECT    
-            payment_date,
-            amount, 
-            KID,
-            
+        let [agreement] = await con.query(`
+            SELECT 
+                payment_date,
+                amount, 
+                KID
             FROM Avtalegiro_agreements 
-
-            WHERE KID_fordeling = ? 
-            GROUP BY Donors.ID LIMIT 1`, [KID])
+            WHERE KID = ?`, [KID])
 
         con.release()
         if (agreement.length > 0) {
