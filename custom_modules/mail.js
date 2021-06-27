@@ -46,8 +46,7 @@ const greeting =
   '<br/><br/>';
 
 const footer = 
-  '<td class="footer" bgcolor="#c1bbbb">' + 
-    '<table width="100%" border="0" cellspacing="0" cellpadding="0">' +
+    '<table class="footer" bgcolor="#c1bbbb" width="100%" border="0" cellspacing="0" cellpadding="0">' +
         '<tr>' +
             '<td align="center" class="footercopy">' +
                 '<table width="194" align="left" border="0" cellpadding="0" cellspacing="0">' +
@@ -85,8 +84,7 @@ const footer =
                 '<![endif]-->' +
             '</td>' +
         '</tr>' +
-    '</table>' +
-  '</td>';
+    '</table>';
 
 const reusableHTML = {replacedOrgsInfo, greeting, taxDeductionInfo, footer};
 

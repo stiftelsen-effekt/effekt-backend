@@ -62,7 +62,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td class="borderbottom">
+                    <td class="innerpadding borderbottom">
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td class="h2">
@@ -155,9 +155,6 @@
                                 <% this.reusableHTML.greeting %>
                             </td>
                         </tr>
-                        <tr>
-                            <% this.reusableHTML.footer %>
-                        </tr>
                     </table>
                     <!--[if (gte mso 9)|(IE)]>
                     </td>
@@ -166,6 +163,7 @@
                     <![endif]-->
                 </td>
             </tr>
+            <% this.reusableHTML.footer %>
         </table>
     </td>
 </tr>
