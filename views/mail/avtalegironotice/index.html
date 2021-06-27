@@ -62,8 +62,8 @@
                     </td>
                 </tr>
                 <tr>
-                    <td class="innerpadding borderbottom">
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <td>
+                        <table class="innerpadding" width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td class="h2">
                                     <% this.header %>
@@ -138,13 +138,10 @@
                             </tr>
                         <tr>
                             <td class="bodycopy">
-                                Alle donasjoner på mellom kr 500 og 50 000 gitt til oss i løpet av et år kvalifiserer til skattefradrag. 
-                                Dersom du har oppgitt ditt fødselsnummer til oss registreres dine donasjoner automatisk hos Skatteetaten til neste års skattemelding.<br/><br/>
+                                <br />
+                                <% this.reusableHTML.taxDeductionInfo %>
                                 <% this.reusableHTML.greeting %>
                             </td>
-                        </tr>
-                        <tr>
-                            <% this.reusableHTML.footer %>
                         </tr>
                     </table>
                     <!--[if (gte mso 9)|(IE)]>
@@ -154,6 +151,7 @@
                     <![endif]-->
                 </td>
             </tr>
+            <% this.reusableHTML.footer %>
         </table>
     </td>
 </tr>

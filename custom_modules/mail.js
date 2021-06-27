@@ -461,6 +461,10 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
 
   // Agreement amount is stored in øre
   organizations = formatOrganizationsFromSplit(split, (agreement.amount/100))
+
+  organizations.forEach(org => {
+    org.amount = formatCurrency(org.amount)
+  })
   
   try {
     await send({
@@ -469,7 +473,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
       templateName: "avtalegironotice",
       templateData: { 
           header: "Hei " + donor.name + ",",
-          agreementSum: (agreement.amount / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+          agreementSum: formatCurrency(agreement.amount / 100),
           organizations: organizations,
           reusableHTML
       }
