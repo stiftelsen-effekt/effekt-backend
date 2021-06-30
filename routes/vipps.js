@@ -97,22 +97,20 @@ router.get("/agreement/:id", authMiddleware(authorizationRoles.read_vipps_api), 
     }
 })
 
-router.get("/agreements", authMiddleware(authorizationRoles.read_vipps_api), async (req, res, next) => {
+router.post("/agreements", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
     try {
-        const response = await vipps.getAgreements()
-        // TODO: Synchronize EffektDB with agreements fetched from Vipps
-
-        if (!response) {
-            let err = new Error("Failed fetching agreements")
-            err.status = 500
-            return next(err)
+        var results = await DAO.vipps.getAgreements(req.body.sort, req.body.page, req.body.limit, req.body.filter)
+        return res.json({ 
+            status: 200, 
+            content: {
+                pages: results.pages,
+                rows: results.rows
+            }
+        })
+        } catch(ex) {
+        next(ex)
         }
-
-        res.json(response)
-    } catch (ex) {
-        next({ ex })
-    }
-})
+  })
 
 router.put("/agreement/cancel/:urlcode", async (req, res, next) => {
     try {

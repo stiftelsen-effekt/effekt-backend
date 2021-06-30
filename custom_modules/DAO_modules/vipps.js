@@ -135,18 +135,37 @@ async function getRecentOrder() {
 }
 
 /**
- * Fetches an agreement by agreementId
+ * Fetches all agreements
+ * @param {column: string, desc: boolean} sort Sort object
+ * @param {string | number | Date} page Used for pagination
+ * @param {number=10} limit Agreement count limit per page, defaults to 10
+ * @param {object} filter Filtering object
  * @return {[Agreement]} Array of agreements
  */
- async function getAgreements() {
+ async function getAgreements(sort, page, limit, filter) {
     let con = await pool.getConnection()
-    let [res] = await con.query(`
+
+    const sortColumn = jsDBmapping.find((map) => map[0] === sort.column)[1]
+    const sortDirection = sort.desc ? "DESC" : "ASC"
+    const offset = page*limit
+
+    const [agreements] = await con.query(`
         SELECT * FROM Vipps_agreements
-        `, [])
+        ORDER BY ${sortColumn} ${sortDirection}
+        LIMIT ? OFFSET ?
+        `, [limit, offset])
+
+    const [counter] = await con.query(`
+        SELECT COUNT(*) as count FROM Vipps_agreements
+    `)
+    
     con.release()
 
-    if (res.length === 0) return false
-    else return res
+    if (agreements.length === 0) return false
+    else return {
+        pages: Math.ceil(counter[0].count / limit),
+        rows: agreements
+    }
 }
 
 /**
@@ -535,6 +554,17 @@ async function updateAgreementStatus(agreementID, status) {
 //endregion
 
 //Helpers
+
+const jsDBmapping = [
+    ["id", "ID"],
+    ["donor", "donorID"],
+    ["kid", "KID"],
+    ["amount", "amount"],
+    ["chargeDay", "monthly_charge_day"],
+    ["pausedUntilDate", "paused_until_date"],
+    ["created", "timestamp_created"],
+    ["status", "status"]
+]
 
 module.exports = {
     getLatestToken,
