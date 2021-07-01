@@ -1,4 +1,5 @@
 var pool
+const sqlString = require('sqlstring')
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PARTIALLY_REFUNDED", "RESERVED", "CANCELLED", "PROCESSING"]
@@ -145,12 +146,34 @@ async function getRecentOrder() {
  async function getAgreements(sort, page, limit, filter) {
     let con = await pool.getConnection()
 
-    const sortColumn = jsDBmapping.find((map) => map[0] === sort.column)[1]
+    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1]
     const sortDirection = sort.desc ? "DESC" : "ASC"
     const offset = page*limit
 
+    let where = [];
+    if (filter) {
+        if (filter.amount) {
+            if (filter.amount.from) where.push(`amount >= ${sqlString.escape(filter.amount.from)} `)
+            if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to)} `)
+        }
+
+        if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
+        if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
+        if (filter.status) where.push(` (status LIKE ${sqlString.escape(`%${filter.status}%`)}) `)
+    }
+
     const [agreements] = await con.query(`
-        SELECT * FROM Vipps_agreements
+        SELECT
+            VA.ID,
+            VA.status,
+            VA.amount,
+            VA.KID,
+            VA.monthly_charge_day,
+            VA.timestamp_created,
+            Donors.full_name 
+        FROM Vipps_agreements as VA
+        INNER JOIN Donors 
+            ON VA.donorID = Donors.ID
         ORDER BY ${sortColumn} ${sortDirection}
         LIMIT ? OFFSET ?
         `, [limit, offset])
@@ -557,7 +580,7 @@ async function updateAgreementStatus(agreementID, status) {
 
 const jsDBmapping = [
     ["id", "ID"],
-    ["donor", "donorID"],
+    ["full_name", "full_name"],
     ["kid", "KID"],
     ["amount", "amount"],
     ["chargeDay", "monthly_charge_day"],
