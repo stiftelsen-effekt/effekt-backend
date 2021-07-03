@@ -561,8 +561,10 @@ async function getHistory(donorID) {
         var [res] = await con.query(`
             SELECT
                 Organizations.full_name,
+                Organizations.abbriv,
                 Donations.timestamp_confirmed,
                 Donations.ID as donation_id,
+                Donations.sum_confirmed as sum_donation,
                 Distribution.ID as distribution_id,
                 (Donations.sum_confirmed * percentage_share / 100) as sum_distribution
             
@@ -574,7 +576,7 @@ async function getHistory(donorID) {
             WHERE Donations.Donor_ID = ?
             
             ORDER BY timestamp_confirmed DESC
-             
+            
             LIMIT 10000`, [donorID])
 
         const history = []
@@ -584,6 +586,7 @@ async function getHistory(donorID) {
                 map.set(item.donation_id, true)
                 history.push({
                     donationID: item.donation_id,
+                    donationSum: item.sum_donation,
                     date: item.timestamp_confirmed,
                     distributions: []
                 })
@@ -593,7 +596,7 @@ async function getHistory(donorID) {
         res.forEach(row => {
             history.forEach(obj => {
                 if(obj.donationID == row.donation_id) {
-                    obj.distributions.push({organization: row.full_name, sum: row.sum_distribution})
+                    obj.distributions.push({organization: row.full_name, abbriv: row.abbriv, sum: row.sum_distribution})
                 }
             })
         })

@@ -6,6 +6,87 @@ const template = require('./template.js')
 const request = require('request-promise-native')
 const fs = require('fs-extra')
 
+// Formatting functions
+
+function formatDateText(date) {
+  const months = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
+  return `${date.getDate()}. ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function formatCurrency(currencyString) {
+  return Number.parseFloat(currencyString).toFixed(2)
+    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
+    .replace(",", " ")
+    .replace(".", ",");
+}
+
+// Reusable HTML elements
+
+const replacedOrgsInfo =
+  'MERK: Din fordeling ble endret av oss for donasjoner gitt fra og med 01.01.2021. ' + 
+  'Fra denne datoen støtter vi ikke lenger donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children ' +
+  'som opplyst på våre nettsider, i nyhetsbrev, på epost og gjennom sosiale medier.' +
+  '<br/>' +
+  'Andelene som var oppført til disse organisasjonene blir i stedet gitt til vår standardfordeling som nå er <a href="https://www.givewell.org/maximum-impact-fund" style="color: #fb8f29;">GiveWell Maximum Impact Fund</a>. ' +
+  'Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/gi" style="color: #fb8f29;">www.gieffektivt.no/gi</a> og fylle ut donasjonsskjema på nytt med ønsket fordeling. Ta kontakt om du har noen spørsmål.' + 
+  '<br/><br/>';
+
+const taxDeductionInfo =
+  'Donasjoner til oss som summerer til kr 500-50 000 i kalenderåret kvalifiserer til skattefradrag. Dersom du har oppgitt fødselsnummer eller organisasjonsnummer registrerer vi dette automatisk på neste års skattemelding. ' + 
+  'Les mer <a href= "https://gieffektivt.no/skattefradrag" style="color: #fb8f29;">her</a>.' + 
+  '<br/><br/>';
+
+const greeting = 
+  'Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss ved å sende en mail til ' +
+  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #fb8f29;">donasjon@gieffektivt.no</a>' + 
+  '<br/><br/>' +
+  'Håper du får en fantastisk dag!<br/><br/>' +
+  '<b>Vennlig hilsen</b><br/>' +
+  'oss i <a href= "https://gieffektivt.no" style="color: #fb8f29;">gieffektivt.no</a>' +
+  '<br/><br/>';
+
+const footer = 
+    '<table class="footer" bgcolor="#c1bbbb" width="100%" border="0" cellspacing="0" cellpadding="0">' +
+        '<tr>' +
+            '<td align="center" class="footercopy">' +
+                '<table width="194" align="left" border="0" cellpadding="0" cellspacing="0">' +
+                    '<tr>' +
+                        '<td style="color: #ffffff; font-family: Arial, sans-serif; font-size: 14px;">' +
+                            'Stiftelsen Effekt' +
+                            '<br />' +
+                            '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">donasjon@gieffektivt.no</a><br/>' +
+                            '<span>Orgnr. 916 625 308</span><br/><br/>' +
+                            'Effektiv Altruisme Norge' +
+                            '<br />' +
+                            '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">post@effektivaltruisme.no</a><br/>' +
+                            '<span>Orgnr. 919 809 140</span><br/><br/>' +
+                        '</td>' +
+                    '</tr>' +
+                '</table>' +
+                '<!--[if (gte mso 9)|(IE)]>' +
+                '<table width="380" align="left" cellpadding="0" cellspacing="0" border="0">' +
+                    '<tr>' +
+                        '<td>' +
+                '<![endif]-->' +
+                '<table width="75" align="right" border="0" cellpadding="0" cellspacing="0">' +
+                    '<tr>' +
+                        '<td>' +
+                            '<a href="https://gieffektivt.no/">' +
+                                '<img src="cid:gieffektivt.png" alt="gieffektivt" width="75" height="75" style="display: block;" border="0" />' +
+                            '</a>' +
+                        '</td>' +
+                    '</tr>' +
+                '</table>' +
+                '<!--[if (gte mso 9)|(IE)]>' +
+                '<table width="380" align="left" cellpadding="0" cellspacing="0" border="0">' +
+                    '<tr>' +
+                        '<td>' +
+                '<![endif]-->' +
+            '</td>' +
+        '</tr>' +
+    '</table>';
+
+const reusableHTML = {replacedOrgsInfo, greeting, taxDeductionInfo, footer};
 
 /**
  * Sends a donation reciept
@@ -55,7 +136,8 @@ async function sendDonationReciept(donationID, reciever = null) {
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
             paymentMethod: decideUIPaymentMethod(donation.method),
             //Adds a message to donations with inactive organizations
-            hasReplacedOrgs
+            hasReplacedOrgs,
+            reusableHTML
         }
       })
 
@@ -115,7 +197,8 @@ async function sendEffektDonationReciept(donationID, reciever = null) {
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
             paymentMethod: decideUIPaymentMethod(donation.method),
             //Adds a message to donations with inactive organizations
-            hasReplacedOrgs
+            hasReplacedOrgs,
+            reusableHTML
         }
         })
 
@@ -192,7 +275,8 @@ async function sendDonationRegistered(KID, sum) {
           kid: KIDstring,
           accountNumber: config.bankAccount,
           organizations: organizations,
-          sum: formatCurrency(sum)
+          sum: formatCurrency(sum),
+          reusableHTML
         }
       })
 
@@ -223,7 +307,8 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
       templateName: 'facebookTaxConfirmation',
       templateData: {
         header: "Hei, " + fullName,
-        paymentID
+        paymentID,
+        reusableHTML
       }
     })
 
@@ -234,13 +319,6 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
       console.error(ex)
       return ex.statusCode
   }
-}
-
-function formatCurrency(currencyString) {
-  return Number.parseFloat(currencyString).toFixed(2)
-    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
-    .replace(",", " ")
-    .replace(".", ",");
 }
 
 /** 
@@ -268,9 +346,7 @@ async function sendDonationHistory(donorID) {
       else { 
         templateName = "donationHistory"
         for (let i = 0; i < donationHistory.length; i++) {
-          let month = donationHistory[i].date.getMonth()+1
-          let dateFormat = donationHistory[i].date.getDate().toString() + "/" + month.toString() + "/" + donationHistory[i].date.getFullYear().toString()
-          dates.push(dateFormat)  
+          dates.push(formatDateText(donationHistory[i].date))  
         }
 
         for (let i = 0; i < donationSummary.length - 1; i++) {
@@ -289,6 +365,7 @@ async function sendDonationHistory(donorID) {
       })
 
       donationHistory.forEach((obj) => {
+        obj.donationSum = formatCurrency(obj.donationSum)
         obj.distributions.forEach((distribution) => {
           distribution.sum = formatCurrency(distribution.sum);
         })
@@ -313,7 +390,8 @@ async function sendDonationHistory(donorID) {
             donationSummary: donationSummary,
             yearlyDonationSummary: yearlyDonationSummary,
             donationHistory: donationHistory,
-            dates: dates
+            dates: dates,
+            reusableHTML
         }
       })
 
@@ -342,7 +420,8 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
           fullname: taxDeductionRecord.fullname,
           ssn: taxDeductionRecord.ssn,
           year: year.toString(),
-          nextYear: (year+1).toString()
+          nextYear: (year+1).toString(),
+          reusableHTML
       }
     })
 
@@ -380,6 +459,10 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
 
   // Agreement amount is stored in øre
   organizations = formatOrganizationsFromSplit(split, (agreement.amount/100))
+
+  organizations.forEach(org => {
+    org.amount = formatCurrency(org.amount)
+  })
   
   try {
     await send({
@@ -388,8 +471,9 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
       templateName: "avtalegironotice",
       templateData: { 
           header: "Hei " + donor.name + ",",
-          agreementSum: (agreement.amount / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-          organizations: organizations
+          agreementSum: formatCurrency(agreement.amount / 100),
+          organizations: organizations,
+          reusableHTML
       }
     })
 
