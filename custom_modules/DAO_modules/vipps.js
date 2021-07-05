@@ -266,6 +266,60 @@ async function getRecentOrder() {
     else return res
 }
 
+/**
+ * Gets a histogram of all agreements by agreement sum
+ * Creates buckets with 100 NOK spacing
+ * Skips empty buckets
+ * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
+ */
+ async function getAgreementSumHistogram() {
+    try {
+        var con = await pool.getConnection()
+        let [results] = await con.query(`
+            SELECT 
+                floor(amount/500)*500 	AS bucket, 
+                count(*) 						AS items,
+                ROUND(100*LN(COUNT(*)))         AS bar
+            FROM Vipps_agreements
+            GROUP BY 1
+            ORDER BY 1;
+        `)
+
+        con.release()
+        return results
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
+ * Gets a histogram of all charges by charge sum
+ * Creates buckets with 100 NOK spacing
+ * Skips empty buckets
+ * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
+ */
+ async function getChargeSumHistogram() {
+    try {
+        var con = await pool.getConnection()
+        let [results] = await con.query(`
+            SELECT 
+                floor(amountNOK/500)*500 	AS bucket, 
+                count(*) 						AS items,
+                ROUND(100*LN(COUNT(*)))         AS bar
+            FROM Vipps_agreement_charges
+            GROUP BY 1
+            ORDER BY 1;
+        `)
+
+        con.release()
+        return results
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
 //endregion
 
 //region Add
@@ -598,6 +652,8 @@ module.exports = {
     getCharge,
     getInitialCharge,
     getAgreementIdByUrlCode,
+    getAgreementSumHistogram,
+    getChargeSumHistogram,
     getActiveAgreements,
     addToken,
     addOrder,
