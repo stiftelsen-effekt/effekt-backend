@@ -1,56 +1,163 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>A Simple Responsive HTML Email</title>
     <style type="text/css">
-        body {margin: 0; padding: 0; min-width: 100%!important;}
-        img {height: auto; min-width: 100%;}
-        .content {width: 100%; max-width: 600px;}
-        .innerpadding {padding: 30px 30px 30px 30px;}
-        .borderbottom {border-bottom: 1px solid #f2eeed;}
-        .subhead {font-size: 15px; color: #ffffff; font-family: sans-serif; letter-spacing: 10px;}
-        .h1, .h2, .h3, .h4, .bodycopy, .boldTableRow, .tableRow {color: #153643; font-family: sans-serif;}
-        .h1 {font-size: 33px; line-height: 38px; font-weight: bold;}
-        .h2 {padding: 0 0 15px 0; font-size: 24px; line-height: 28px; font-weight: bold;}
-        .h3 {padding: 0 0 15px 0; font-size: 18px; line-height: 26px; font-weight: bold;}
-        .h4 {padding: 0 0 15px 0; font-size: 16px; line-height: 19px; font-weight: bold;}
-        .boldTableRow {padding: 0 0 0 0; font-size: 16px; line-height: 22px; font-weight: bold}
-        .tableRow {padding: 0 0 10px 0; font-size: 16px; line-height: 22px;}
-        .bodycopy {font-size: 16px; line-height: 22px;}
-        .footer {padding: 20px 30px 15px 30px;}
-        .footercopy {font-family: sans-serif; font-size: 16px; color: #ffffff;}
-        .footercopy a {color: #ffffff; text-decoration: underline;}
+        body {
+            margin: 0;
+            padding: 0;
+            min-width: 100% !important;
+        }
+
+        img {
+            height: auto;
+            min-width: 100%;
+        }
+
+        .content {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .innerpadding {
+            padding: 30px 30px 30px 30px;
+        }
+
+        .borderbottom {
+            border-bottom: 1px solid #f2eeed;
+        }
+
+        .subhead {
+            font-size: 15px;
+            color: #ffffff;
+            font-family: sans-serif;
+            letter-spacing: 10px;
+        }
+
+        .h1,
+        .h2,
+        .h3,
+        .h4,
+        .bodycopy,
+        .boldTableRow,
+        .tableRow {
+            color: #153643;
+            font-family: sans-serif;
+        }
+
+        .h1 {
+            font-size: 33px;
+            line-height: 38px;
+            font-weight: bold;
+        }
+
+        .h2 {
+            padding: 0 0 15px 0;
+            font-size: 24px;
+            line-height: 28px;
+            font-weight: bold;
+        }
+
+        .h3 {
+            padding: 0 0 15px 0;
+            font-size: 18px;
+            line-height: 26px;
+            font-weight: bold;
+        }
+
+        .h4 {
+            padding: 0 0 15px 0;
+            font-size: 16px;
+            line-height: 19px;
+            font-weight: bold;
+        }
+
+        .boldTableRow {
+            padding: 0 0 0 0;
+            font-size: 16px;
+            line-height: 22px;
+            font-weight: bold
+        }
+
+        .tableRow {
+            padding: 0 0 10px 0;
+            font-size: 16px;
+            line-height: 22px;
+        }
+
+        .bodycopy {
+            font-size: 16px;
+            line-height: 22px;
+        }
+
+        .footer {
+            padding: 20px 30px 15px 30px;
+        }
+
+        .footercopy {
+            font-family: sans-serif;
+            font-size: 16px;
+            color: #ffffff;
+        }
+
+        .footercopy a {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
         .emailHeaderImage {
-            height:auto !important;
-            max-width:600px !important;
+            height: auto !important;
+            max-width: 600px !important;
             width: 100% !important;
         }
-        @media only screen and (max-width: 550px), screen and (max-device-width: 550px) {
-            body[yahoo] .hide {display: none!important;}
-            body[yahoo] .buttonwrapper {background-color: transparent!important;}
-            body[yahoo] .button {padding: 0px!important;}
-            body[yahoo] .unsubscribe {display: block; margin-top: 20px; padding: 10px 50px; background: #8e8989; border-radius: 5px; text-decoration: none!important; font-weight: bold;}
+
+        @media only screen and (max-width: 550px),
+        screen and (max-device-width: 550px) {
+            body[yahoo] .hide {
+                display: none !important;
+            }
+
+            body[yahoo] .buttonwrapper {
+                background-color: transparent !important;
+            }
+
+            body[yahoo] .button {
+                padding: 0px !important;
+            }
+
+            body[yahoo] .unsubscribe {
+                display: block;
+                margin-top: 20px;
+                padding: 10px 50px;
+                background: #8e8989;
+                border-radius: 5px;
+                text-decoration: none !important;
+                font-weight: bold;
+            }
         }
     </style>
 </head>
 
 <body yahoo bgcolor="#f6f8f1">
-<table width="100%" bgcolor="#f6f8f1" border="0" cellpadding="0" cellspacing="0">
-    <tr>
-        <td>
-            <table class="content" bgcolor="#ffffff" align="center" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                    <td bgcolor="#c7d8a7" class="header">
-                        <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:640px; padding: 0 0 0 0;">
-                            <tr>
-                                <td height="auto" style="padding: 0 0 0 0;">
-                                    <img class="emailHeaderImage" src="cid:epost_banner.jpg" border="0" alt="gieffektivt.no" />
-                                </td>
-                            </tr>
-                        </table>
-                        <!--[if (gte mso 9)|(IE)]>
+    <table width="100%" bgcolor="#f6f8f1" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+            <td>
+                <table class="content" bgcolor="#ffffff" align="center" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td bgcolor="#c7d8a7" class="header">
+                            <table align="left" border="0" cellpadding="0" cellspacing="0"
+                                style="max-width:640px; padding: 0 0 0 0;">
+                                <tr>
+                                    <td height="auto" style="padding: 0 0 0 0;">
+                                        <img class="emailHeaderImage" src="cid:epost_banner.jpg" border="0"
+                                            alt="gieffektivt.no" />
+                                    </td>
+                                </tr>
+                            </table>
+                            <!--[if (gte mso 9)|(IE)]>
                         <table width="100%" style="max-width:640px;" align="center" cellpadding="0" cellspacing="0" border="0">
                             <tr>
                                 <td>
@@ -59,252 +166,213 @@
                             </tr>
                         </table>
                         <![endif]-->
-                    </td>
-                </tr>
-                <tr>
-                    <td class="innerpadding borderbottom">
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            <tr>
-                                <td class="h2">
-                                    <% this.header %>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="h3">
-                                    Slik fullfører du din donasjon
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="bodycopy">
-                                    Du har nå oppgitt informasjon om din kommende donasjon på gieffektivt.no.<br/><br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="innerpadding borderbottom">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td class="h2">
+                                        <% this.header %>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="h3">
+                                        Slik fullfører du din donasjon
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="bodycopy">
+                                        Du har nå oppgitt informasjon om din kommende donasjon på
+                                        <a href= "https://gieffektivt.no" style="color: #fb8f29;">gieffektivt.no</a>.<br /><br />
 
-                                    <b>Neste:</b><br/>
-                                    Overfør din donasjon i nettbanken
-                                </td>
-                            </tr>
-                            <tr>
-                                <td align="center">
-                                    <table border="0" cellspacing="0" cellpadding="0">
-                                        <tr>
-                                            <td>
-                                                <br/>
-                                                <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                                    <tr>
-                                                        <td>
-                                                            <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                <tr>
-                                                                    <td class="boldTableRow">
-                                                                        Beløp
-                                                                    </td>
-                                                                </tr>
-                                                            </table>
-                                                            <!--[if (gte mso 9)|(IE)]>
+                                        <b>Neste:</b><br />
+                                        Overfør din donasjon i nettbanken
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="center">
+                                        <table border="0" cellspacing="0" cellpadding="0">
+                                            <tr>
+                                                <td>
+                                                    <br />
+                                                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                        <tr>
+                                                            <td>
+                                                                <table width="275" align="left" border="0"
+                                                                    cellpadding="0" cellspacing="0">
+                                                                    <tr>
+                                                                        <td class="boldTableRow">
+                                                                            Beløp
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                                <!--[if (gte mso 9)|(IE)]>
                                                             <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
                                                                 <tr>
                                                                     <td>
                                                             <![endif]-->
-                                                            <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                <tr>
-                                                                    <td class="tableRow">
-                                                                        <% this.sum %> kr
-                                                                    </td>
-                                                                </tr>
-                                                            </table>
-                                                            <!--[if (gte mso 9)|(IE)]>
+                                                                <table width="150" align="left" border="0"
+                                                                    cellpadding="0" cellspacing="0">
+                                                                    <tr>
+                                                                        <td class="tableRow">
+                                                                            <% this.sum %> kr
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                                <!--[if (gte mso 9)|(IE)]>
                                                             <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
                                                                 <tr>
                                                                     <td>
                                                             <![endif]-->
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                                <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                                    <tr>
-                                                        <td>
-                                                            <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                <tr>
-                                                                    <td class="boldTableRow">
-                                                                        Kontonummer
-                                                                    </td>
-                                                                </tr>
-                                                            </table>
-                                                            <!--[if (gte mso 9)|(IE)]>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                        <tr>
+                                                            <td>
+                                                                <table width="275" align="left" border="0"
+                                                                    cellpadding="0" cellspacing="0">
+                                                                    <tr>
+                                                                        <td class="boldTableRow">
+                                                                            Kontonummer
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                                <!--[if (gte mso 9)|(IE)]>
                                                             <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
                                                                 <tr>
                                                                     <td>
                                                             <![endif]-->
-                                                            <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                <tr>
-                                                                    <td class="tableRow">
-                                                                        <% this.accountNumber %>
-                                                                    </td>
-                                                                </tr>
-                                                            </table>
-                                                            <!--[if (gte mso 9)|(IE)]>
+                                                                <table width="150" align="left" border="0"
+                                                                    cellpadding="0" cellspacing="0">
+                                                                    <tr>
+                                                                        <td class="tableRow">
+                                                                            <% this.accountNumber %>
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                                <!--[if (gte mso 9)|(IE)]>
                                                             <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
                                                                 <tr>
                                                                     <td>
                                                             <![endif]-->
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                                <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                                    <tr>
-                                                        <td>
-                                                            <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                <tr>
-                                                                    <td class="boldTableRow">
-                                                                        KID
-                                                                    </td>
-                                                                </tr>
-                                                            </table>
-                                                            <!--[if (gte mso 9)|(IE)]>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                        <tr>
+                                                            <td>
+                                                                <table width="275" align="left" border="0"
+                                                                    cellpadding="0" cellspacing="0">
+                                                                    <tr>
+                                                                        <td class="boldTableRow">
+                                                                            KID
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                                <!--[if (gte mso 9)|(IE)]>
                                                             <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
                                                                 <tr>
                                                                     <td>
                                                             <![endif]-->
-                                                            <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                <tr>
-                                                                    <td class="tableRow">
-                                                                        <% this.kid %>
-                                                                    </td>
-                                                                </tr>
-                                                            </table>
-                                                            <!--[if (gte mso 9)|(IE)]>
+                                                                <table width="150" align="left" border="0"
+                                                                    cellpadding="0" cellspacing="0">
+                                                                    <tr>
+                                                                        <td class="tableRow">
+                                                                            <% this.kid %>
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                                <!--[if (gte mso 9)|(IE)]>
                                                             <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
                                                                 <tr>
                                                                     <td>
                                                             <![endif]-->
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <br/>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="bodycopy">
-                                    <br/>Du vil få en kvittering fra oss når din donasjon er mottatt.<br/><br/>
-                                    Enkelte banker tillater ikke bruk av KID på gjentakende donasjoner. 
-                                    Hvis det gjelder din bank, og du skal gi en gjentakende donasjon, må du sette opp overføringen med melding, og skrive KID-nummeret i meldingsfeltet. Skriv da "KID: <% this.kid %>" i meldingsfeltet.
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="innerpadding borderbottom">
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            <tr>
-                                <td class="bodycopy">
-                                    Vi har registrert følgende fordeling av din donasjon:
-                                    <br/><br/>
-                                </td>
-                            </tr>
-                        </table>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        <br />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="bodycopy">
+                                        <br />Du vil få en kvittering fra oss når din donasjon er mottatt.<br /><br />
+                                        Enkelte banker tillater ikke bruk av KID på gjentakende donasjoner.
+                                        Hvis det gjelder din bank, og du skal gi en gjentakende donasjon, må du sette
+                                        opp overføringen med melding, og skrive KIDen i meldingsfeltet. Skriv da "KID:
+                                        <% this.kid %>" i meldingsfeltet.
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="innerpadding borderbottom">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td class="bodycopy">
+                                        Vi har registrert følgende fordeling av din donasjon:
+                                        <br /><br />
+                                    </td>
+                                </tr>
+                            </table>
 
-                        <% for (var i = 0; i < organizations.length; i++) { %>
-
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            <tr>
-                                <td>
-                                    <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td class="boldTableRow">
-                                                <% this.organizations[i].name %>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <!--[if (gte mso 9)|(IE)]>
+                            <% for (var i=0; i < organizations.length; i++) { %>
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td>
+                                            <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td class="boldTableRow">
+                                                        <% this.organizations[i].name %>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <!--[if (gte mso 9)|(IE)]>
                                     <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
                                         <tr>
                                             <td>
                                     <![endif]-->
-                                    <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td class="tableRow">
-                                                <% this.organizations[i].percentage%> %
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <!--[if (gte mso 9)|(IE)]>
+                                            <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td class="tableRow">
+                                                        <% this.organizations[i].percentage%> %
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <!--[if (gte mso 9)|(IE)]>
                                     <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
                                         <tr>
                                             <td>
                                     <![endif]-->
-                                </td>
-                            </tr>
-                        </table>
-
-                        <% } %>
-                    </td>
+                                        </td>
+                                    </tr>
+                                </table>
+                            <% } %>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="innerpadding bodycopy">
+                            Hvis du ønsker å donere med samme fordeling senere kan du bruke samme KID-nummer
+                            igjen.
+                            Du står helt fritt til å endre beløpet du donerer.<br /><br />
+                            <% this.reusableHTML.greeting %>
+                        </td>
+                    </tr>
+                    <% this.reusableHTML.footer %>
+                </table>
+                <!--[if (gte mso 9)|(IE)]>
+                </td>
                 </tr>
-                <tr>
-                    <td class="innerpadding borderbottom">
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            <tr>
-                                <td class="bodycopy">
-                                    Hvis du ønsker å donere med samme fordeling senere kan du bruke samme KID-nummer igjen.
-                                    Du står helt fritt til å endre beløpet du donerer.<br/><br/>
-                                    Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
-                                    ved å sende en mail til 
-                                    <a href= "mailto:donasjon@gieffektivt.no" style="color: #fb8f29;"><font color="#fb8f29">donasjon@gieffektivt.no</a><br/><br/>
-                                    Håper du får en fantastisk dag!<br/><br/><br/>
-                                    <b>Vennlig hilsen</b><br/>
-                                    oss i <a href= "https://gieffektivt.no" style="color: #fb8f29;">gieffektivt.no</a><br/><br/>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="footer" bgcolor="#c1bbbb">
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            <tr>
-                                <td align="center" class="footercopy">
-                                    <table width="194" align="left" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td style="color: #ffffff; font-family: Arial, sans-serif; font-size: 14px;">
-                                                gieffektivt.no<br/>
-                                                <a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">donasjon@gieffektivt.no</a><br/><br/>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <!--[if (gte mso 9)|(IE)]>
-                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                        <tr>
-                                            <td>
-                                    <![endif]-->
-                                    <table width="75" align="right" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td>
-                                                <a href="https://gieffektivt.no/">
-                                                    <img src="cid:gieffektivt.png" alt="gieffektivt" width="75" height="75" style="display: block;" border="0" />
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <!--[if (gte mso 9)|(IE)]>
-                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                        <tr>
-                                            <td>
-                                    <![endif]-->
-                                </td>
-                            </tr>
-
-                        </table>
-                    </td>
-                </tr>
-            </table>
-            <!--[if (gte mso 9)|(IE)]>
+                </table>
+                <![endif]-->
             </td>
-            </tr>
-            </table>
-            <![endif]-->
-        </td>
-    </tr>
-</table>
+        </tr>
+    </table>
 </body>
+
 </html>

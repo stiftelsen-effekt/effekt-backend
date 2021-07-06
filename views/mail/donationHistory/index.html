@@ -34,8 +34,6 @@
         table.donation-summary td { padding-top: 3px; }
         table.donation-history{padding: 0 30px; width: 100%;}
         table.donation-history table {width: 100%}
-        img { width: 0px; height: 0px; }
-        table img { width: auto; height: auto; }
       </style>
    </head>
    <body yahoo="" bgcolor="#f6f8f1">
@@ -81,7 +79,7 @@
                                     <tr>
                                        <td>
                                           <h1>
-                                             tusen takk for dine bidrag!
+                                             Tusen takk for dine bidrag!
                                           </h1>
                                        </td>
                                     </tr>
@@ -156,7 +154,7 @@
                                           </table>
                                  </tbody>
                               </table>
-                              <h2>Donasjonsfordeling</h2>
+                              <h2>Organisasjonsfordeling</h2>
                               <table class="donation-summary" border="0" cellspacing="0" cellpadding="0">
                                  <tbody>
                                     <tr>
@@ -194,18 +192,11 @@
                             </td>
                         </tr>
                         <tr>
-                           <td class="innerpadding">
-                               <br>
+                           <td class="innerpadding bodycopy">
                                Vi takker for alle dine bidrag, og håper at du fortsetter å støtte anbefalte organisasjoner via vår giverportal.
                                For å se en oversikt over alle dine donasjoner, se nederst i denne e-posten.
                                <br><br>
-                               Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
-                               ved å sende en e-post til
-                               <a href="mailto:donasjon@gieffektivt.no" style="color: #153643;"><font color="#153643">donasjon@gieffektivt.no</font></a><font color="#153643">.<br><br>
-                               Håper du får en fantastisk dag!<br><br><br>
-                               <b>Vennlig hilsen</b><br>
-                               oss i gieffektivt.no
-                               </font>
+                               <% this.reusableHTML.greeting %>
                            </td>
                        </tr>
                         <tr>
@@ -213,18 +204,17 @@
                                 <table class="donation-history">
                                     <thead>
                                         <tr>
-                                           <td class="bodycopy">
-                                              <h3> Alle donasjoner </h3>
+                                           <td class="h3">
+                                             Alle donasjoner
                                            </td>
                                         </tr>
-                                        <tr><br></tr>
                                         <tr>
                                            <td align="center">
                                               <table>
                                                  <tr>
                                                     <th width="150" align="left">Dato</th>
-                                                    <th width="205" align="left">Organisasjon</th>
-                                                    <th width="90" align="left">Sum</th>
+                                                    <th width="120" align="left">Sum</th>
+                                                    <th width="205" align="left">Fordeling</th>
                                                  </tr>
                                               </table>
                                            </td>
@@ -239,19 +229,19 @@
                                                     <tr class="bordertop">
                                                        <% if (j == 0) { %>
                                                        <td class="spaceover" width="150"> <% this.dates[i] %> </td>
-                                                       <td class="spaceover" width="205">
-                                                          <% donationHistory[i].distributions[j].organization %>
+                                                       <td class="spaceover" width="120">
+                                                          <% donationHistory[i].donationSum %> kr
                                                        </td>
-                                                       <td class="spaceover" width="90" style="text-align: end;">
-                                                          <% donationHistory[i].distributions[j].sum %> kr
+                                                       <td class="spaceover" width="205">
+                                                         <% donationHistory[i].distributions[j].abbriv %>
+                                                         (<% donationHistory[i].distributions[j].sum %> kr)
                                                        </td>
                                                        <% } else { %>
                                                        <td width="150"></td>
+                                                       <td width="120"></td>
                                                        <td width="205">
-                                                          <% donationHistory[i].distributions[j].organization %>
-                                                       </td>
-                                                       <td width="90" style="text-align: end;">
-                                                          <% donationHistory[i].distributions[j].sum %> kr
+                                                          <% donationHistory[i].distributions[j].abbriv %>
+                                                           (<% donationHistory[i].distributions[j].sum %> kr)
                                                        </td>
                                                        <% } %>
                                                     </tr>
@@ -262,44 +252,11 @@
                                      <% } %>
                                     </tbody>
                                 </table>
+                                <br/>
                             </td>
                         </tr>
-                        <tr>
-                            <td class="footer" bgcolor="#c1bbbb">
-                               <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                  <tbody>
-                                     <tr>
-                                        <td align="center" class="footercopy">
-                                             <table width="194" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                 <tbody>
-                                                 <tr>
-                                                     <td style="color: #00000099; font-family: Arial, sans-serif; font-size: 14px;">
-                                                         gieffektivt.no
-                                                         <a href="mailto:donasjon@gieffektivt.no" style="color: #00000099;"><font color="#00000099">donasjon@gieffektivt.no</font></a><font color="#00000099"><br>
-                                                         <span>Orgnr. 916 625 308</span><br><br>
-                                                         </font>
-                                                     </td>
-                                                 </tr>
-                                                 </tbody>
-                                             </table>
-                                             <table width="75" align="right" border="0" cellpadding="0" cellspacing="0">
-                                                 <tbody>
-                                                     <tr>
-                                                     <td>
-                                                         <a href="https://gieffektivt.no/">
-                                                         <img src="cid:gieffektivt.png" alt="gieffektivt" style="display: block; width:75px; height:75px;" border="0">
-                                                         </a>
-                                                     </td>
-                                                     </tr>
-                                                 </tbody>
-                                             </table>
-                                         </td>
-                                     </tr>
-                                 </tbody>
-                             </table>
-                            </td>
-                         </tr>
                      </tbody>
+                     <% this.reusableHTML.footer %>
                   </table>
                </td>
             </tr>

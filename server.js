@@ -114,6 +114,7 @@ DAO.connect(() => {
   const debugRoute = require('./routes/debug')
   const facebookRoute = require('./routes/facebook')
   const loggingRoute = require('./routes/logging')
+  const mailRoute = require('./routes/mail')
 
   app.use('/donors', donorsRoute)
   app.use('/donations', donationsRoute)
@@ -131,6 +132,7 @@ DAO.connect(() => {
   app.use('/debug', debugRoute)
   app.use('/facebook', facebookRoute)
   app.use('/logging', loggingRoute)
+  app.use('/mail', mailRoute)
 
   app.use('/static', express.static(__dirname + '/static'))
   app.use('/style', express.static(__dirname + '/views/style'))
