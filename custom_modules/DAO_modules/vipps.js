@@ -136,7 +136,7 @@ async function getRecentOrder() {
 }
 
 /**
- * Fetches all agreements
+ * Fetches all agreements with sorting and filtering
  * @param {column: string, desc: boolean} sort Sort object
  * @param {string | number | Date} page Used for pagination
  * @param {number=10} limit Agreement count limit per page, defaults to 10
@@ -159,7 +159,7 @@ async function getRecentOrder() {
 
         if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
         if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
-        if (filter.status) where.push(` (status LIKE ${sqlString.escape(`%${filter.status}%`)}) `)
+        if (filter.statuses.length > 0) where.push(` status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(',')}) `)
     }
 
     const [agreements] = await con.query(`
@@ -170,10 +170,14 @@ async function getRecentOrder() {
             VA.KID,
             VA.monthly_charge_day,
             VA.timestamp_created,
+            VA.agreement_url_code,
             Donors.full_name 
         FROM Vipps_agreements as VA
         INNER JOIN Donors 
             ON VA.donorID = Donors.ID
+        WHERE
+            ${(where.length !== 0 ? where.join(" AND ") : '1')}
+
         ORDER BY ${sortColumn} ${sortDirection}
         LIMIT ? OFFSET ?
         `, [limit, offset])
@@ -188,6 +192,68 @@ async function getRecentOrder() {
     else return {
         pages: Math.ceil(counter[0].count / limit),
         rows: agreements
+    }
+}
+
+/**
+ * Fetches all charges with sorting and filtering
+ * @param {column: string, desc: boolean} sort Sort object
+ * @param {string | number | Date} page Used for pagination
+ * @param {number=10} limit Agreement count limit per page, defaults to 10
+ * @param {object} filter Filtering object
+ * @return {[Agreement]} Array of agreements
+ */
+ async function getCharges(sort, page, limit, filter) {
+    let con = await pool.getConnection()
+
+    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1]
+    const sortDirection = sort.desc ? "DESC" : "ASC"
+    const offset = page*limit
+
+    let where = [];
+    if (filter) {
+        if (filter.amount) {
+            if (filter.amount.from) where.push(`amountNOK >= ${sqlString.escape(filter.amount.from)} `)
+            if (filter.amount.to) where.push(`amountNOK <= ${sqlString.escape(filter.amount.to)} `)
+        }
+
+        if (filter.dueDate) {
+            if (filter.dueDate.from) where.push(`dueDate >= ${sqlString.escape(filter.dueDate.from)} `)
+            if (filter.dueDate.to) where.push(`dueDate <= ${sqlString.escape(filter.dueDate.to)} `)
+        }
+
+        if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
+        // if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
+        if (filter.statuses.length > 0) where.push(` status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(',')}) `)
+    }
+
+    const [charges] = await con.query(`
+        SELECT
+            VC.chargeID,
+            VC.agreementID,
+            VC.status,
+            VC.type,
+            VC.amountNOK,
+            VC.timestamp_created,
+            VC.dueDate
+        FROM Vipps_agreement_charges as VC
+        WHERE
+            ${(where.length !== 0 ? where.join(" AND ") : '1')}
+
+        ORDER BY ${sortColumn} ${sortDirection}
+        LIMIT ? OFFSET ?
+        `, [limit, offset])
+
+    const [counter] = await con.query(`
+        SELECT COUNT(*) as count FROM Vipps_agreement_charges
+    `)
+    
+    con.release()
+
+    if (charges.length === 0) return false
+    else return {
+        pages: Math.ceil(counter[0].count / limit),
+        rows: charges
     }
 }
 
@@ -640,7 +706,9 @@ const jsDBmapping = [
     ["chargeDay", "monthly_charge_day"],
     ["pausedUntilDate", "paused_until_date"],
     ["created", "timestamp_created"],
-    ["status", "status"]
+    ["status", "status"],
+    ["amountNOK", "amountNOK"],
+    ["dueDate", "dueDate"]
 ]
 
 module.exports = {
@@ -649,6 +717,7 @@ module.exports = {
     getRecentOrder,
     getAgreement,
     getAgreements,
+    getCharges,
     getCharge,
     getInitialCharge,
     getAgreementIdByUrlCode,

@@ -136,7 +136,23 @@ router.post("/agreements", authMiddleware(authorizationRoles.read_all_donations)
         } catch(ex) {
         next(ex)
         }
-  })
+})
+
+
+  router.post("/charges", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
+    try {
+        var results = await DAO.vipps.getCharges(req.body.sort, req.body.page, req.body.limit, req.body.filter)
+        return res.json({ 
+            status: 200, 
+            content: {
+                pages: results.pages,
+                rows: results.rows
+            }
+        })
+        } catch(ex) {
+        next(ex)
+        }
+})
 
 router.put("/agreement/cancel/:urlcode", async (req, res, next) => {
     try {
