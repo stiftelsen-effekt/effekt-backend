@@ -222,9 +222,9 @@ async function getRecentOrder() {
             if (filter.dueDate.to) where.push(`dueDate <= ${sqlString.escape(filter.dueDate.to)} `)
         }
 
-        if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
+        if (filter.KID) where.push(` CAST(VC.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
         // if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
-        if (filter.statuses.length > 0) where.push(` status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(',')}) `)
+        if (filter.statuses.length > 0) where.push(` VC.status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(',')}) `)
     }
 
     const [charges] = await con.query(`
@@ -234,9 +234,15 @@ async function getRecentOrder() {
             VC.status,
             VC.type,
             VC.amountNOK,
+            VC.KID,
             VC.timestamp_created,
-            VC.dueDate
+            VC.dueDate,
+            Donors.full_name
         FROM Vipps_agreement_charges as VC
+        INNER JOIN Vipps_agreements as VA
+            ON VA.ID = VC.agreementID
+        INNER JOIN Donors
+            ON Donors.ID = VA.donorID
         WHERE
             ${(where.length !== 0 ? where.join(" AND ") : '1')}
 
