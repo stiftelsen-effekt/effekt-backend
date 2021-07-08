@@ -108,15 +108,28 @@ router.get("/histogram/agreements", async (req,res,next) => {
     } catch(ex) {
       next(ex)
     }
-  })
+})
 
-  router.get("/histogram/charges", async (req,res,next) => {
+router.get("/histogram/charges", async (req,res,next) => {
     try {
       let buckets = await DAO.vipps.getChargeSumHistogram()
   
       res.json({
         status: 200,
         content: buckets
+      })
+    } catch(ex) {
+      next(ex)
+    }
+})
+
+router.get("/agreements/report", authMiddleware(authorizationRoles.read_all_donations), async (req,res,next) => {
+    try {
+      let content = await DAO.vipps.getAgreementReport()
+  
+      res.json({
+        status: 200,
+        content
       })
     } catch(ex) {
       next(ex)
@@ -139,7 +152,7 @@ router.post("/agreements", authMiddleware(authorizationRoles.read_all_donations)
 })
 
 
-  router.post("/charges", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
+router.post("/charges", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
     try {
         var results = await DAO.vipps.getCharges(req.body.sort, req.body.page, req.body.limit, req.body.filter)
         return res.json({ 

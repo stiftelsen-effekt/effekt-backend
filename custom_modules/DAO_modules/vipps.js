@@ -339,6 +339,40 @@ async function getRecentOrder() {
 }
 
 /**
+ * Fetches key statistics of active agreements
+ * @return {Object} 
+ */
+ async function getAgreementReport() {
+    let con = await pool.getConnection()
+    let [res] = await con.query(`
+    SELECT 
+        count(ID) as activeAgreementCount,
+        round(avg(amount), 2) as averageAgreementSum,
+        round(sum(amount), 2) as totalAgreementSum,
+        round((
+            SELECT AVG(dd.amount) as median_val
+                FROM (
+                    SELECT VA.amount, @rownum:=@rownum+1 as 'row_number', @total_rows:=@rownum
+                    FROM Vipps_agreements as VA, (SELECT @rownum:=0) r
+                        WHERE VA.amount is NOT NULL
+                        -- put some where clause here
+                    ORDER BY VA.amount
+                ) as dd
+            WHERE dd.row_number IN ( FLOOR((@total_rows+1)/2), FLOOR((@total_rows+2)/2) )
+        ), 2) as medianAgreementSum
+    FROM 
+        Vipps_agreements
+    WHERE
+        status = "ACTIVE" and
+    (paused_until_date < (SELECT current_timestamp()) or paused_until_date IS NULL)
+        `)
+    con.release()
+
+    if (res.length === 0) return false
+    else return res
+}
+
+/**
  * Gets a histogram of all agreements by agreement sum
  * Creates buckets with 100 NOK spacing
  * Skips empty buckets
@@ -730,6 +764,7 @@ module.exports = {
     getAgreementSumHistogram,
     getChargeSumHistogram,
     getActiveAgreements,
+    getAgreementReport,
     addToken,
     addOrder,
     addAgreement,
