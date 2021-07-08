@@ -1,4 +1,5 @@
 var pool
+const sqlString = require('sqlstring')
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PARTIALLY_REFUNDED", "RESERVED", "CANCELLED", "PROCESSING"]
@@ -135,18 +136,131 @@ async function getRecentOrder() {
 }
 
 /**
- * Fetches an agreement by agreementId
+ * Fetches all agreements with sorting and filtering
+ * @param {column: string, desc: boolean} sort Sort object
+ * @param {string | number | Date} page Used for pagination
+ * @param {number=10} limit Agreement count limit per page, defaults to 10
+ * @param {object} filter Filtering object
  * @return {[Agreement]} Array of agreements
  */
- async function getAgreements() {
+ async function getAgreements(sort, page, limit, filter) {
     let con = await pool.getConnection()
-    let [res] = await con.query(`
-        SELECT * FROM Vipps_agreements
-        `, [])
+
+    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1]
+    const sortDirection = sort.desc ? "DESC" : "ASC"
+    const offset = page*limit
+
+    let where = [];
+    if (filter) {
+        if (filter.amount) {
+            if (filter.amount.from) where.push(`amount >= ${sqlString.escape(filter.amount.from)} `)
+            if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to)} `)
+        }
+
+        if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
+        if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
+        if (filter.statuses.length > 0) where.push(` status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(',')}) `)
+    }
+
+    const [agreements] = await con.query(`
+        SELECT
+            VA.ID,
+            VA.status,
+            VA.amount,
+            VA.KID,
+            VA.monthly_charge_day,
+            VA.timestamp_created,
+            VA.agreement_url_code,
+            Donors.full_name 
+        FROM Vipps_agreements as VA
+        INNER JOIN Donors 
+            ON VA.donorID = Donors.ID
+        WHERE
+            ${(where.length !== 0 ? where.join(" AND ") : '1')}
+
+        ORDER BY ${sortColumn} ${sortDirection}
+        LIMIT ? OFFSET ?
+        `, [limit, offset])
+
+    const [counter] = await con.query(`
+        SELECT COUNT(*) as count FROM Vipps_agreements
+    `)
+    
     con.release()
 
-    if (res.length === 0) return false
-    else return res
+    if (agreements.length === 0) return false
+    else return {
+        pages: Math.ceil(counter[0].count / limit),
+        rows: agreements
+    }
+}
+
+/**
+ * Fetches all charges with sorting and filtering
+ * @param {column: string, desc: boolean} sort Sort object
+ * @param {string | number | Date} page Used for pagination
+ * @param {number=10} limit Agreement count limit per page, defaults to 10
+ * @param {object} filter Filtering object
+ * @return {[Agreement]} Array of agreements
+ */
+ async function getCharges(sort, page, limit, filter) {
+    let con = await pool.getConnection()
+
+    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1]
+    const sortDirection = sort.desc ? "DESC" : "ASC"
+    const offset = page*limit
+
+    let where = [];
+    if (filter) {
+        if (filter.amount) {
+            if (filter.amount.from) where.push(`amountNOK >= ${sqlString.escape(filter.amount.from)} `)
+            if (filter.amount.to) where.push(`amountNOK <= ${sqlString.escape(filter.amount.to)} `)
+        }
+
+        if (filter.dueDate) {
+            if (filter.dueDate.from) where.push(`dueDate >= ${sqlString.escape(filter.dueDate.from)} `)
+            if (filter.dueDate.to) where.push(`dueDate <= ${sqlString.escape(filter.dueDate.to)} `)
+        }
+
+        if (filter.KID) where.push(` CAST(VC.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
+        // if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
+        if (filter.statuses.length > 0) where.push(` VC.status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(',')}) `)
+    }
+
+    const [charges] = await con.query(`
+        SELECT
+            VC.chargeID,
+            VC.agreementID,
+            VC.status,
+            VC.type,
+            VC.amountNOK,
+            VC.KID,
+            VC.timestamp_created,
+            VC.dueDate,
+            Donors.full_name
+        FROM Vipps_agreement_charges as VC
+        INNER JOIN Vipps_agreements as VA
+            ON VA.ID = VC.agreementID
+        INNER JOIN Donors
+            ON Donors.ID = VA.donorID
+        WHERE
+            ${(where.length !== 0 ? where.join(" AND ") : '1')}
+
+        ORDER BY ${sortColumn} ${sortDirection}
+        LIMIT ? OFFSET ?
+        `, [limit, offset])
+
+    const [counter] = await con.query(`
+        SELECT COUNT(*) as count FROM Vipps_agreement_charges
+    `)
+    
+    con.release()
+
+    if (charges.length === 0) return false
+    else return {
+        pages: Math.ceil(counter[0].count / limit),
+        rows: charges
+    }
 }
 
 /**
@@ -222,6 +336,60 @@ async function getRecentOrder() {
 
     if (res.length === 0) return false
     else return res
+}
+
+/**
+ * Gets a histogram of all agreements by agreement sum
+ * Creates buckets with 100 NOK spacing
+ * Skips empty buckets
+ * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
+ */
+ async function getAgreementSumHistogram() {
+    try {
+        var con = await pool.getConnection()
+        let [results] = await con.query(`
+            SELECT 
+                floor(amount/500)*500 	AS bucket, 
+                count(*) 						AS items,
+                ROUND(100*LN(COUNT(*)))         AS bar
+            FROM Vipps_agreements
+            GROUP BY 1
+            ORDER BY 1;
+        `)
+
+        con.release()
+        return results
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
+ * Gets a histogram of all charges by charge sum
+ * Creates buckets with 100 NOK spacing
+ * Skips empty buckets
+ * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
+ */
+ async function getChargeSumHistogram() {
+    try {
+        var con = await pool.getConnection()
+        let [results] = await con.query(`
+            SELECT 
+                floor(amountNOK/500)*500 	AS bucket, 
+                count(*) 						AS items,
+                ROUND(100*LN(COUNT(*)))         AS bar
+            FROM Vipps_agreement_charges
+            GROUP BY 1
+            ORDER BY 1;
+        `)
+
+        con.release()
+        return results
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
 }
 
 //endregion
@@ -536,15 +704,31 @@ async function updateAgreementStatus(agreementID, status) {
 
 //Helpers
 
+const jsDBmapping = [
+    ["id", "ID"],
+    ["full_name", "full_name"],
+    ["kid", "KID"],
+    ["amount", "amount"],
+    ["chargeDay", "monthly_charge_day"],
+    ["pausedUntilDate", "paused_until_date"],
+    ["created", "timestamp_created"],
+    ["status", "status"],
+    ["amountNOK", "amountNOK"],
+    ["dueDate", "dueDate"]
+]
+
 module.exports = {
     getLatestToken,
     getOrder,
     getRecentOrder,
     getAgreement,
     getAgreements,
+    getCharges,
     getCharge,
     getInitialCharge,
     getAgreementIdByUrlCode,
+    getAgreementSumHistogram,
+    getChargeSumHistogram,
     getActiveAgreements,
     addToken,
     addOrder,
