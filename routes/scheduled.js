@@ -6,6 +6,7 @@ const authMiddleware = require("../custom_modules/authorization/authMiddleware.j
 const nets = require('../custom_modules/nets')
 const ocrParser = require('../custom_modules/parsers/OCR')
 const ocr = require('../custom_modules/ocr')
+const vipps = require('../custom_modules/vipps')
 const avtalegiroParser = require('../custom_modules/parsers/avtalegiro')
 const avtalegiro = require('../custom_modules/avtalegiro')
 const mail = require('../custom_modules/mail')
@@ -109,6 +110,18 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
 
     await DAO.logging.add("AvtaleGiro", result)
     await mail.sendOcrBackup(JSON.stringify(result, null, 2))
+    res.json(result)
+  } catch(ex) {
+    next({ex})
+  }
+})
+
+router.post("/vipps", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
+  try {
+    // Creates charges for all Vipps recurring agreements that are due three days ahead
+    const result = await vipps.createFutureDueCharges()
+    await DAO.logging.add("VippsRecurring", result)
+
     res.json(result)
   } catch(ex) {
     next({ex})

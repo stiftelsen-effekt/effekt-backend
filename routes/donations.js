@@ -24,7 +24,8 @@ router.post("/register", async (req,res,next) => {
 
   let donationOrganizations = parsedData.organizations
   let donor = parsedData.donor
-  let initiatedOrder = null
+  let paymentProviderUrl = ""
+  let recurring = parsedData.recurring
 
   try {
     var donationObject = {
@@ -54,10 +55,7 @@ router.post("/register", async (req,res,next) => {
 
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
-      console.log("donor does not exist. adding donor")
       donationObject.donorID = await DAO.donors.add(donor.email, donor.name, donor.ssn, donor.newsletter)
-      console.log("donor added")
-      console.log(donationObject.donorID)
     }
     else {
       //Check for existing SSN if provided
@@ -91,7 +89,8 @@ router.post("/register", async (req,res,next) => {
         await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
       }
 
-      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount, donationObject.dueDay, true)  
+      // Amount is given in NOK in Widget, but øre is used for agreements
+      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount*100, donationObject.dueDay, true)  
     } else {
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
@@ -103,13 +102,12 @@ router.post("/register", async (req,res,next) => {
       }
     }
 
-    
-    
-    //Get external paymentprovider URL
-    if (donationObject.method == methods.VIPPS) {
-      initiatedOrder = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
-      //Start polling for updates
-      await vipps.pollOrder(initiatedOrder.orderId)
+    if (donationObject.method == methods.VIPPS && recurring == 0) {
+      const res = await vipps.initiateOrder(donationObject.KID, donationObject.amount)
+      paymentProviderUrl = res.externalPaymentUrl
+
+      //Start polling for updates (move this to inside initiateOrder?)
+      await vipps.pollOrder(res.orderId)
     }
 
     try {
@@ -136,7 +134,7 @@ router.post("/register", async (req,res,next) => {
       KID: donationObject.KID,
       donorID: donationObject.donorID,
       hasAnsweredReferral,
-      paymentProviderUrl: (initiatedOrder !== null ? initiatedOrder.externalPaymentUrl : "")
+      paymentProviderUrl
     }
   })
 })
@@ -241,6 +239,17 @@ router.get("/histogram", async (req,res,next) => {
     })
   } catch(ex) {
     next(ex)
+  }
+})
+
+router.get('/status', async (req, res, next) => {
+  try {
+    if (req.query.status && req.query.status.toUpperCase() === "OK")
+      res.redirect('https://gieffektivt.no/donation-recived/')
+    else
+      res.redirect('https://gieffektivt.no/donation-failed/')
+  } catch (ex) {
+    next({ ex })
   }
 })
 

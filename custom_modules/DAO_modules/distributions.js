@@ -129,6 +129,8 @@ async function KIDexists(KID) {
         con.release()
         throw ex
     }
+
+    
 }
 
 /**
@@ -155,7 +157,7 @@ async function getKIDbySplit(split, donorID, minKidLength = 0) {
         `;
         
         for (let i = 0; i < split.length; i++) {
-            query += `(OrgID = ${sqlString.escape(split[i].organizationID)} AND percentage_share = ${sqlString.escape(split[i].share)} AND Donor_ID = ${sqlString.escape(donorID)})`
+            query += `(OrgID = ${sqlString.escape(split[i].organizationID)} AND percentage_share = ${sqlString.escape(split[i].share)} AND C.Donor_ID = ${sqlString.escape(donorID)})`
             if (i < split.length-1) query += ` OR `
         }
 

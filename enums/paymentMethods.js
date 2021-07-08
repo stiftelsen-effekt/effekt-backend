@@ -4,5 +4,6 @@ module.exports = {
     vipps_KID: 4,
     paypal: 3,
     vipps: 6,
-    avtalegiro: 7
+    avtalegiro: 7,
+    vipps_recurring: 8,
 }
