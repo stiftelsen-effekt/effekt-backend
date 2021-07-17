@@ -1,5 +1,6 @@
 var pool
 const sqlString = require('sqlstring')
+const distributions = require('./distributions.js')
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PARTIALLY_REFUNDED", "RESERVED", "CANCELLED", "PROCESSING"]
@@ -129,10 +130,24 @@ async function getRecentOrder() {
         WHERE 
             ID = ?
         `, [agreementID])
+
+    if (res.length != 1) {
+        throw new Error("Could not find agreement with ID " + agreementID)
+    }
+
+    let agreement = res[0]
+
+    let split = await distributions.getSplitByKID(agreement.KID)
+    
+    agreement.distribution = split.map((split) => ({
+        abbriv: split.abbriv,
+        share: split.percentage_share
+    }))
+
     con.release()
 
     if (res.length === 0) return false
-    else return res[0]
+    else return agreement
 }
 
 /**
@@ -222,8 +237,13 @@ async function getRecentOrder() {
             if (filter.dueDate.to) where.push(`dueDate <= ${sqlString.escape(filter.dueDate.to)} `)
         }
 
+        if (filter.timestamp) {
+            if (filter.dueDate.from) where.push(`timestamp_created >= ${sqlString.escape(filter.dueDate.from)} `)
+            if (filter.dueDate.to) where.push(`timestamp_created <= ${sqlString.escape(filter.dueDate.to)} `)
+        }
+
         if (filter.KID) where.push(` CAST(VC.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
-        // if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
+        if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
         if (filter.statuses.length > 0) where.push(` VC.status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(',')}) `)
     }
 
