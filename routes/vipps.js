@@ -108,15 +108,28 @@ router.get("/histogram/agreements", async (req,res,next) => {
     } catch(ex) {
       next(ex)
     }
-  })
+})
 
-  router.get("/histogram/charges", async (req,res,next) => {
+router.get("/histogram/charges", async (req,res,next) => {
     try {
       let buckets = await DAO.vipps.getChargeSumHistogram()
   
       res.json({
         status: 200,
         content: buckets
+      })
+    } catch(ex) {
+      next(ex)
+    }
+})
+
+router.get("/agreements/report", authMiddleware(authorizationRoles.read_all_donations), async (req,res,next) => {
+    try {
+      let content = await DAO.vipps.getAgreementReport()
+  
+      res.json({
+        status: 200,
+        content
       })
     } catch(ex) {
       next(ex)
@@ -139,7 +152,7 @@ router.post("/agreements", authMiddleware(authorizationRoles.read_all_donations)
 })
 
 
-  router.post("/charges", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
+router.post("/charges", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
     try {
         var results = await DAO.vipps.getCharges(req.body.sort, req.body.page, req.body.limit, req.body.filter)
         return res.json({ 
@@ -159,9 +172,12 @@ router.put("/agreement/cancel/:urlcode", async (req, res, next) => {
         const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.params.urlcode)
         const response = await vipps.updateAgreementStatus(agreementId, "STOPPED")
 
-        if (response) await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED")
+        if (response) {
+            await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED")
+            await DAO.vipps.updateAgreementCancellationDate(agreementId)
+        }
 
-        await mail.sendVippsAgreementChange(agreementCode, "STOPPED")
+        await mail.sendVippsAgreementChange(req.params.urlcode, "STOPPED")
         res.send(response)
     } catch (ex) {
         next({ ex })
@@ -363,10 +379,10 @@ router.post("/agreement/charges/cancel", jsonBody, async (req, res, next) => {
     }
 })
 
-router.post("/agreement/charge/refund", authMiddleware(authorizationRoles.write_vipps_api), jsonBody, async (req, res, next) => {
+router.post("/agreement/:agreementId/charge/:chargeId/refund", authMiddleware(authorizationRoles.write_vipps_api), jsonBody, async (req, res, next) => {
     try {
-        const agreementId = req.body.agreementId
-        const chargeId = req.body.chargeId
+        const agreementId = req.params.agreementId
+        const chargeId = req.params.chargeId
 
         const response = await vipps.refundCharge(agreementId, chargeId)
         if (response) await DAO.vipps.updateChargeStatus("REFUNDED", agreementId, chargeId)
