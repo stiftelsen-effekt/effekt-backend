@@ -1,5 +1,6 @@
 var pool
 const sqlString = require('sqlstring')
+const distributions = require('./distributions.js')
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PARTIALLY_REFUNDED", "RESERVED", "CANCELLED", "PROCESSING"]
@@ -124,15 +125,29 @@ async function getRecentOrder() {
  async function getAgreement(agreementID) {
     let con = await pool.getConnection()
     let [res] = await con.query(`
-        SELECT ID, status, donorID, KID, monthly_charge_day, force_charge_date, paused_until_date, amount FROM 
+        SELECT ID, status, donorID, KID, monthly_charge_day, force_charge_date, paused_until_date, amount, agreement_url_code FROM 
             Vipps_agreements
         WHERE 
             ID = ?
         `, [agreementID])
+
+    if (res.length != 1) {
+        throw new Error("Could not find agreement with ID " + agreementID)
+    }
+
+    let agreement = res[0]
+
+    let split = await distributions.getSplitByKID(agreement.KID)
+    
+    agreement.distribution = split.map((split) => ({
+        abbriv: split.abbriv,
+        share: split.percentage_share
+    }))
+
     con.release()
 
     if (res.length === 0) return false
-    else return res[0]
+    else return agreement
 }
 
 /**
@@ -222,8 +237,13 @@ async function getRecentOrder() {
             if (filter.dueDate.to) where.push(`dueDate <= ${sqlString.escape(filter.dueDate.to)} `)
         }
 
+        if (filter.timestamp) {
+            if (filter.dueDate.from) where.push(`timestamp_created >= ${sqlString.escape(filter.dueDate.from)} `)
+            if (filter.dueDate.to) where.push(`timestamp_created <= ${sqlString.escape(filter.dueDate.to)} `)
+        }
+
         if (filter.KID) where.push(` CAST(VC.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
-        // if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
+        if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
         if (filter.statuses.length > 0) where.push(` VC.status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(',')}) `)
     }
 
@@ -347,8 +367,8 @@ async function getRecentOrder() {
     let [res] = await con.query(`
     SELECT 
         count(ID) as activeAgreementCount,
-        round(avg(amount), 2) as averageAgreementSum,
-        round(sum(amount), 2) as totalAgreementSum,
+        round(avg(amount), 0) as averageAgreementSum,
+        round(sum(amount), 0) as totalAgreementSum,
         round((
             SELECT AVG(dd.amount) as median_val
                 FROM (
@@ -359,7 +379,14 @@ async function getRecentOrder() {
                     ORDER BY VA.amount
                 ) as dd
             WHERE dd.row_number IN ( FLOOR((@total_rows+1)/2), FLOOR((@total_rows+2)/2) )
-        ), 2) as medianAgreementSum
+        ), 0) as medianAgreementSum,
+        (SELECT count(ID) 
+            FROM Vipps_agreements 
+            WHERE month(timestamp_created) = month(current_timestamp())
+        ) as startedThisMonth,
+        (SELECT count(ID) 
+            FROM Vipps_agreements 
+            WHERE month(cancellation_date) = month(current_timestamp())) as stoppedThisMonth
     FROM 
         Vipps_agreements
     WHERE
@@ -620,6 +647,30 @@ async function updateAgreementStatus(agreementID, status) {
 }
 
 /**
+ * Update the cancellation date of a Vipps agreement
+ * @param {string} agreementID The agreement ID
+ * @param {Date} date 
+ * @return {boolean} Success
+ */
+ async function updateAgreementCancellationDate(agreementID) {
+    let con = await pool.getConnection()
+
+    const today = new Date()
+    //YYYY-MM-DD format
+    const mysqlDate = today.toISOString().split("T")[0];
+
+    try {
+        con.query(`UPDATE Vipps_agreements SET cancellation_date = ? WHERE ID = ?`, [mysqlDate, agreementID])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        return false
+    }
+}
+
+/**
  * Updates the monthly_charge_day of an agreement
  * @param {string} agreementId The agreement ID
  * @param {number} chargeDay Any day between 1 and 28
@@ -778,6 +829,7 @@ module.exports = {
     updateAgreementPauseDate,
     updateAgreementForcedCharge,
     updateChargeStatus,
+    updateAgreementCancellationDate,
 
     setup: (dbPool) => { pool = dbPool }
 }
