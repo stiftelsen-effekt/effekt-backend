@@ -1113,8 +1113,7 @@ module.exports = {
             const daysInAdvance = 3
             const timeNow = new Date().getTime()
             const dueDate = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
-            // Used for checking if due date is last day of month
-            const dayAfterDue = new Date(timeNow + (1000 * 60 * 60 * 24 * (daysInAdvance+1))).getDate()
+            const dueDayIsLastDayOfMonth = new Date(timeNow + (1000 * 60 * 60 * 24 * (daysInAdvance+1))).getDate() === 1
             const activeAgreements = await DAO.vipps.getActiveAgreements()
         
             // Find agreements with due dates that are 3 days from now
@@ -1129,7 +1128,7 @@ module.exports = {
 
                     // If agreement charge should be created today
                     if (chargeDay === dueDate.getDate() 
-                        || (chargeDay === 0 && dayAfterDue === 1) // 0 means last day of month, 1 means the first day of next month, i.e the due date is on the last day of month
+                        || (chargeDay === 0 && dueDayIsLastDayOfMonth) // chargeDay at 0 means should charge on last day of month
                         || dueDate.setHours(0,0,0,0) === forceChargeDate.setHours(0,0,0,0)) {
 
                         // Check if agreement is not paused
