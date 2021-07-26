@@ -70,7 +70,8 @@
                                 </td>
                             </tr>
                         </table>
-                        <h3><% this.timestamp %></h3>
+                        <h3>Tidspunkt</h3>
+                        <strong><% this.timestamp %></strong>
                         <h3>Melding fra donor:</h3>
                         <% this.donorMessage %>
                         <br /><br />
@@ -82,12 +83,12 @@
                         <br /><br />
                         <strong>Meldingen ble sendt fra <% this.senderUrl %></strong>
 
-                        <% if (this.senderEmail) { %>
+                        <% if (this.agreement) { %>
                         <h2>Informasjon om betalingsavtale:</h2>
                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
                                 <td class="bodycopy">
-                                    <% for (const property in agreement) { %>
+                                    <% for (const property in this.agreement) { %>
                                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                             <tr>
                                                 <td>
