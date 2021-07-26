@@ -151,7 +151,6 @@ router.post("/agreements", authMiddleware(authorizationRoles.read_all_donations)
         }
 })
 
-
 router.post("/charges", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
     try {
         var results = await DAO.vipps.getCharges(req.body.sort, req.body.page, req.body.limit, req.body.filter)
@@ -336,6 +335,24 @@ router.post("/agreement/charge/create", authMiddleware(authorizationRoles.write_
     }
 })
 
+router.get("/agreements/all", authMiddleware(authorizationRoles.read_vipps_api), async (req, res, next) => {
+    try {
+        let agreements = []
+
+        // Vipps does not allow fetching all statuses in a single request
+        const active = await vipps.getAgreements("ACTIVE")
+        const pending = await vipps.getAgreements("PENDING")
+        const stopped = await vipps.getAgreements("STOPPED")
+        const expired = await vipps.getAgreements("EXPIRED")
+
+        agreements = agreements.concat(active, pending, stopped, expired)
+
+        res.json(agreements)
+    } catch (ex) {
+        next({ ex })
+    }
+})
+
 router.get("/agreement/:agreementId/charge/:chargeId", authMiddleware(authorizationRoles.read_vipps_api), jsonBody, async (req, res, next) => {
     try {
         const agreementId = req.params.agreementId
@@ -425,11 +442,11 @@ router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
 router.post("/agreement/report/problem", jsonBody, async (req, res, next) => {
     try {
         const senderUrl = req.body.senderUrl
-        const senderEmail = req.body.senderEmail
+        const donorEmail = req.body.email
         const donorMessage = req.body.donorMessage
         const agreement = req.body.agreement
 
-        const response = await mail.sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agreement)
+        const response = await mail.sendVippsProblemReport(senderUrl, donorEmail, donorMessage, agreement)
 
         res.json(response)
     } catch (ex) {

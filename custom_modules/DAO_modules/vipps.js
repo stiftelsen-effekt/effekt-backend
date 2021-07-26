@@ -43,7 +43,8 @@ const chargeStatuses = ["PENDING", "DUE", "CHARGED", "FAILED", "REFUNDED", "PART
  * @typedef AgreementCharge
  * @property {string} chargeID
  * @property {string} agreementID
- * @property {number} amount
+ * @property {string} KID
+ * @property {number} amountNOK
  * @property {string} dueDate
  * @property {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} status
  */
@@ -120,7 +121,7 @@ async function getRecentOrder() {
 /**
  * Fetches an agreement by agreementId
  * @property {string} agreementID
- * @return {Agreement} 
+ * @return {VippsAgreement} 
  */
  async function getAgreement(agreementID) {
     let con = await pool.getConnection()
@@ -304,26 +305,27 @@ async function getRecentOrder() {
 
 /**
  * Fetches an agreement charge by chargeID
- * @property {string} chargeID
+ * @param {string} agreementId
+ * @param {string} chargeId
  * @return {AgreementCharge} 
  */
- async function getCharge(chargeID) {
+ async function getCharge(agreementId, chargeId) {
     let con = await pool.getConnection()
     let [res] = await con.query(`
         SELECT * FROM 
             Vipps_agreement_charges
-        WHERE 
-            chargeID = ?
-        `, [chargeID])
+        WHERE
+            agreementID = ? AND chargeID = ?
+        `, [agreementId, chargeId])
     con.release()
 
     if (res.length === 0) return false
-    else return res
+    else return res[0]
 }
 
 /**
  * Fetches the inital charge of an agreement
- * @property {string} agreementID
+ * @param {string} agreementID
  */
  async function getInitialCharge(agreementID) {
     let con = await pool.getConnection()
@@ -511,7 +513,7 @@ async function addAgreement(agreementID, donorID, KID, amount, monthlyChargeDay,
 
     try {
         con.query(`
-            INSERT INTO Vipps_agreements
+            INSERT IGNORE INTO Vipps_agreements
                 (ID, donorID, KID, amount, monthly_charge_day, agreement_url_code, status)
             VALUES
                 (?,?,?,?,?,?,?)`, 
@@ -540,7 +542,7 @@ async function addAgreement(agreementID, donorID, KID, amount, monthlyChargeDay,
     let con = await pool.getConnection()
     try {
         con.query(`
-            INSERT INTO Vipps_agreement_charges
+            INSERT IGNORE INTO Vipps_agreement_charges
                 (chargeID, agreementId, amountNOK, KID, dueDate, status, type)
             VALUES
                 (?,?,?,?,?,?,?)`, 

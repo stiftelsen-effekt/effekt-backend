@@ -118,6 +118,9 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
 
 router.post("/vipps", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
+    // Synchronize effektDB with Vipps database before creating daily charges
+    await vipps.synchronizeVippsAgreementDatabase()
+
     // Creates charges for all Vipps recurring agreements that are due three days ahead
     const result = await vipps.createFutureDueCharges()
     await DAO.logging.add("VippsRecurring", result)

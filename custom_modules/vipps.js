@@ -6,6 +6,7 @@ const request = require('request-promise-native')
 const mail = require('../custom_modules/mail')
 const moment = require('moment');
 const hash = require('object-hash');
+const { donations } = require('./DAO')
 
 //Timings selected based on the vipps guidelines
 //https://www.vipps.no/developers-documentation/ecom/documentation/#polling-guidelines
@@ -644,16 +645,17 @@ module.exports = {
     },
 
     /***
-     * Fetches all Vipps recurring agreement
+     * Fetches all Vipps recurring agreements
+     * @param {"PENDING" | "ACTIVE" | "STOPPED" | "EXPIRED"} status Agreement status
      * @returns {[VippsRecurringAgreement]} Array of agreements
      */
-    async getAgreements() {
+    async getAgreements(status) {
         let token = await this.fetchToken()
         if (token === false) return false
 
         try {
             let agreementRequest = await request.get({
-                uri: `https://${config.vipps_api_url}/recurring/v2/agreements`,
+                uri: `https://${config.vipps_api_url}/recurring/v2/agreements?status=${status}`,
                 headers: this.getVippsHeaders(token)
             })
 
@@ -795,8 +797,8 @@ module.exports = {
         const token = await this.fetchToken()
         if (token === false) return false
 
-        // idempotencyKey required by Vipps, not currently used for anything
-        const idempotencyKey = hash(new Date())
+        // idempotencyKey required by Vipps, prevents charging twice in a day
+        const idempotencyKey = `${new Date().setHours(0, 0, 0, 0)}-${agreementId}`
 
         let headers = this.getVippsHeaders(token)
         headers['Idempotency-Key'] = idempotencyKey
@@ -826,7 +828,6 @@ module.exports = {
 
             const chargeId = JSON.parse(response).chargeId
             const charge = await this.getCharge(agreementId, chargeId)
-            console.log(charge)
             const agreement = await DAO.vipps.getAgreement(agreementId)
 
             if (response) await DAO.vipps.addCharge(chargeId, agreementId, amountKroner, agreement.KID, formattedDueDate, charge.status, "RECURRING")
@@ -1000,9 +1001,9 @@ module.exports = {
         const token = await this.fetchToken()
         if (token === false) return false
 
-        // Create Idempotency-Key to prevent duplicate insertions
+        // Idempotency-Key to prevent duplicate refund requests
         // Required by Vipps
-        const idempotencyKey = hash(agreementId + chargeId)
+        const idempotencyKey = `${agreementId}-${chargeId}`
 
         let headers = this.getVippsHeaders(token)
         headers['Idempotency-Key'] = idempotencyKey
@@ -1101,6 +1102,100 @@ module.exports = {
             'merchant_serial_number': config.vipps_merchant_serial_number,
             'Ocp-Apim-Subscription-Key': config.vipps_ocp_apim_subscription_key,
             'Authorization': `${token.type} ${token.token}`
+        }
+    },
+
+    /**
+     * Synchronizes effektDB with agreements and charges from Vipps database
+     * Also adds completed charges to Donations table
+     * Used in daily schedule
+     */
+    async synchronizeVippsAgreementDatabase() {
+        try {
+            let agreements = []
+
+            // Vipps does not allow fetching all statuses in a single request
+            const active = await this.getAgreements("ACTIVE")
+            const pending = await this.getAgreements("PENDING")
+            const stopped = await this.getAgreements("STOPPED")
+            const expired = await this.getAgreements("EXPIRED")
+
+            agreements = agreements.concat(active, pending, stopped, expired)
+
+            console.log("Updating database rows...")
+
+            for (let i = 0; i < agreements.length; i++) {
+
+                const anonDonorId = 1464
+                const standardKID = 87397824
+                const chargeDay = 1
+
+                // Adds agreement if it does not exist in effektDB (with default values)
+                await DAO.vipps.addAgreement(
+                    agreements[i].id,
+                    anonDonorId,
+                    standardKID,
+                    agreements[i].price/100,
+                    chargeDay,
+                    agreements[i].productDescription,
+                    agreements[i].status
+                )
+
+                await DAO.vipps.updateAgreementPrice(agreements[i].id, agreements[i].price/100)
+                await DAO.vipps.updateAgreementStatus(agreements[i].id, agreements[i].status)
+
+                const agreement = await DAO.vipps.getAgreement(agreements[i].id)
+                const charges = await this.getCharges(agreements[i].id)
+
+                for (let j = 0; j < charges.length; j++) {
+                    // Adds charge if it does not exist in effektDB
+                    await DAO.vipps.addCharge(
+                        charges[j].id,
+                        agreements[i].id,
+                        charges[j].amount/100,
+                        agreement.KID,
+                        charges[j].due,
+                        charges[j].status,
+                        charges[j].type
+                    )
+                    await DAO.vipps.updateChargeStatus(charges[j].status, agreements[i].id, charges[j].id)
+
+                    if (charges[j].status === "CHARGED") {
+                        const paymentMethod = 8
+                        const registeredDate = new Date()
+                        const externalPaymentId = `${agreements[i].id}.${charges[j].id}`
+                        const metaOwnerId = 3
+
+                        const charge = await DAO.vipps.getCharge(agreements[i].id, charges[j].id)
+                        const donationExists = await donations.ExternalPaymentIDExists(externalPaymentId, paymentMethod)
+
+                        if (!donationExists) {
+                            // Add completed charges to Donations table (externalPaymentId is a unique column and prevents duplicate insertions)
+                            const result = await DAO.donations.add(
+                                charge.KID,
+                                paymentMethod,
+                                charges[j].amount/100,
+                                registeredDate,
+                                externalPaymentId,
+                                metaOwnerId
+                            )
+                            if (result) console.log(`Added donation for charge ${charges[j].id} from agreement ${agreements[i].id}`)
+                        }
+                    }
+
+                    if (charges[j].status === "REFUNDED") {
+                        // TODO: Update donation sum to 0
+                    }
+                }
+                
+            }
+
+            console.log("Synchronized all Vipps agreements and charges")
+
+            return true
+        }
+        catch(ex) {
+            console.error(ex)
         }
     },
 
