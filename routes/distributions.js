@@ -91,7 +91,7 @@ router.get("/:KID",
   }
 })
 
-router.get("/without/donor/:KID", async (req, res, next) => {
+router.get("/:KID/unauthorized", async (req, res, next) => {
   try {
       const response = await DAO.distributions.getSplitByKID(req.params.KID)
 
