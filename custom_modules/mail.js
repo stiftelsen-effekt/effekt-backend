@@ -360,7 +360,8 @@ async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
         newValue,
         organizations,
         agreement,
-        sum: formatCurrency(agreement.amount)
+        sum: formatCurrency(agreement.amount),
+        reusableHTML
       }
     })
 
@@ -399,7 +400,8 @@ async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
           header: errorDesc,
           timestamp,
           errorMessage,
-          inputData
+          inputData,
+          reusableHTML
         }
       })
     }
@@ -437,7 +439,8 @@ async function sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agre
           senderUrl,
           senderEmail,
           donorMessage,
-          agreement
+          agreement,
+          reusableHTML
         }
       })
     }
