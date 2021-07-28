@@ -73,7 +73,7 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
   let result
   try {
     let today = luxon.DateTime.fromJSDate(new Date())
-    let claimDate = today.plus(luxon.Duration.fromObject({ days: 5 }))
+    let claimDate = today.plus(luxon.Duration.fromObject({ days: 6 }))
     let notificationDate = today.plus(luxon.Duration.fromObject({ days: 3 }))
 
     /**
