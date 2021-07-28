@@ -34,7 +34,7 @@ describe('OCR', function() {
             let transactions = OCR.parse(filecontents)
 
             expect(transactions.length).to.be.equal(2)
-            expect(transactions[0].KID).to.be.equal(47914510)
+            expect(transactions[0].KID).to.be.equal('47914510')
             expect(transactions[0].amount).to.be.equal(5000.49)
         })
     })

@@ -35,8 +35,6 @@ router.post("/register", async (req,res,next) => {
       amount: parsedData.amount,
       standardSplit: undefined,
       split: [],
-      dueDay: parsedData.dueDay,
-      notice: parsedData.notice,
       recurring: parsedData.recurring
     }
     
@@ -88,9 +86,6 @@ router.post("/register", async (req,res,next) => {
         donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID)
         await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
       }
-
-      // Amount is given in NOK in Widget, but øre is used for agreements
-      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount*100, donationObject.dueDay, true)  
     } else {
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
