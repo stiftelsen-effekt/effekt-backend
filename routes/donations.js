@@ -78,14 +78,11 @@ router.post("/register", async (req,res,next) => {
 
     /** Use new KID for avtalegiro */
     if (donationObject.method == methods.BANK && donationObject.recurring == true){
-      //Try to get existing KID
-      donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID, 12)
 
-      //Split does not exist, generate new KID
-      if (donationObject.KID == null) {
-        donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID)
-        await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
-      }
+      //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
+      donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID)
+      await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
+
     } else {
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
