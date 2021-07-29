@@ -35,8 +35,6 @@ router.post("/register", async (req,res,next) => {
       amount: parsedData.amount,
       standardSplit: undefined,
       split: [],
-      dueDay: parsedData.dueDay,
-      notice: parsedData.notice,
       recurring: parsedData.recurring
     }
     
@@ -79,18 +77,12 @@ router.post("/register", async (req,res,next) => {
     }
 
     /** Use new KID for avtalegiro */
-    if (donationObject.method == methods.BANK && donationObject.recurring == true && false){
-      //Try to get existing KID
-      donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID, 12)
+    if (donationObject.method == methods.BANK && donationObject.recurring == true){
 
-      //Split does not exist, generate new KID
-      if (donationObject.KID == null) {
-        donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID)
-        await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
-      }
+      //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
+      donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID)
+      await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
 
-      // Amount is given in NOK in Widget, but øre is used for agreements
-      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount*100, donationObject.dueDay, true)  
     } else {
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
