@@ -117,6 +117,141 @@ async function exists(KID) {
     }
 }
 
+/**
+ * Fetches all agreements with sorting and filtering
+ * @param {column: string, desc: boolean} sort Sort object
+ * @param {string | number | Date} page Used for pagination
+ * @param {number=10} limit Agreement count limit per page, defaults to 10
+ * @param {object} filter Filtering object
+ * @return {[AvtaleGiro]} Array of AvtaleGiro agreements
+ */
+ async function getAgreements(sort, page, limit, filter) {
+    let con = await pool.getConnection()
+
+    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1]
+    const sortDirection = sort.desc ? "DESC" : "ASC"
+    const offset = page*limit
+
+    let where = [];
+    if (filter) {
+        if (filter.amount) {
+            if (filter.amount.from) where.push(`amount >= ${sqlString.escape(filter.amount.from)} `)
+            if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to)} `)
+        }
+
+        if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
+        if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
+        if (filter.active === 1) where.push(` (active = 1) `)
+    }
+
+    const [agreements] = await con.query(`
+        SELECT
+            AG.ID,
+            AG.active,
+            AG.amount,
+            AG.KID,
+            AG.payment_date,
+            AG.created,
+            AG.last_updated,
+            AG.notice,
+            Donors.full_name 
+        FROM Avtalegiro_agreements as AG
+        INNER JOIN Combining_table as CT
+            ON AG.KID = CT.KID
+        INNER JOIN Donors 
+            ON CT.Donor_ID = Donors.ID
+        WHERE
+            ${(where.length !== 0 ? where.join(" AND ") : '1')}
+
+        ORDER BY ${sortColumn} ${sortDirection}
+        LIMIT ? OFFSET ?
+        `, [limit, offset])
+
+    const [counter] = await con.query(`
+        SELECT COUNT(*) as count FROM Avtalegiro_agreements
+    `)
+    
+    con.release()
+
+    if (agreements.length === 0) return false
+    else return {
+        pages: Math.ceil(counter[0].count / limit),
+        rows: agreements
+    }
+}
+
+/**
+ * Fetches all AvtaleGiro donations with sorting and filtering
+ * @param {column: string, desc: boolean} sort Sort object
+ * @param {string | number | Date} page Used for pagination
+ * @param {number=10} limit Agreement count limit per page, defaults to 10
+ * @param {object} filter Filtering object
+ * @return {[Donation]} Array of agreements
+ */
+ async function getDonations(sort, page, limit, filter) {
+    let con = await pool.getConnection()
+
+    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1]
+    const sortDirection = sort.desc ? "DESC" : "ASC"
+    const offset = page*limit
+
+    let where = [];
+    if (filter) {
+        if (filter.amount) {
+            if (filter.amount.from) where.push(`D.sum_confirmed >= ${sqlString.escape(filter.amount.from)} `)
+            if (filter.amount.to) where.push(`D.sum_confirmed <= ${sqlString.escape(filter.amount.to)} `)
+        }
+
+        if (filter.created) {
+            if (filter.dueDate.from) where.push(`D.timestamp_created >= ${sqlString.escape(filter.dueDate.from)} `)
+            if (filter.dueDate.to) where.push(`D.timestamp_created <= ${sqlString.escape(filter.dueDate.to)} `)
+        }
+
+        if (filter.confirmed) {
+            if (filter.dueDate.from) where.push(`D.timestamp_confirmed >= ${sqlString.escape(filter.dueDate.from)} `)
+            if (filter.dueDate.to) where.push(`D.timestamp_confirmed <= ${sqlString.escape(filter.dueDate.to)} `)
+        }
+
+        if (filter.KID) where.push(` CAST(D.KID_fordeling as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
+        if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
+    }
+
+    const [charges] = await con.query(`
+        SELECT
+            D.ID,
+            D.sum_confirmed,
+            D.timestamp_confirmed,
+            D.transaction_cost,
+            D.KID_fordeling,
+            Donors.full_name
+        FROM Donations as D
+        INNER JOIN Avtalegiro_agreements as AG
+            ON AG.KID = D.KID_fordeling
+        INNER JOIN Combining_table as CT
+            ON AG.KID = CT.KID
+        INNER JOIN Donors 
+            ON CT.Donor_ID = Donors.ID
+        WHERE
+            D.Payment_ID = 7 AND
+            ${(where.length !== 0 ? where.join(" AND ") : '1')}
+
+        ORDER BY ${sortColumn} ${sortDirection}
+        LIMIT ? OFFSET ?
+        `, [limit, offset])
+
+    const [counter] = await con.query(`
+        SELECT COUNT(*) as count FROM Vipps_agreement_charges
+    `)
+    
+    con.release()
+
+    if (charges.length === 0) return false
+    else return {
+        pages: Math.ceil(counter[0].count / limit),
+        rows: charges
+    }
+}
+
 async function getByKID(KID) {
     try {
         var con = await pool.getConnection()
@@ -149,7 +284,7 @@ async function getByKID(KID) {
 /**
  * Returns all agreements with a given payment date
  * @param {Date} date 
- * @returns {Array<import("../parsers/avtalegiro").AvtalegiroAgreement>}
+ * @returns {Array<AvtalegiroAgreement>}
  */
 async function getByPaymentDate(dayInMonth) {
     try {
@@ -204,6 +339,21 @@ async function addShipment(numClaims) {
     }
 }
 
+const jsDBmapping = [
+    ["id", "ID"],
+    ["full_name", "full_name"],
+    ["kid", "KID"],
+    ["amount", "amount"],
+    ["paymentDate", "payment_date"],
+    ["notice", "notice"],
+    ["active", "active"],
+    ["created", "created"],
+    ["lastUpdated", "last_updated"],
+    ["sum", "sum_confirmed"],
+    ["confirmed", "timestamp_confirmed"],
+    ["kidFordeling", "KID_fordeling"]
+]
+
 module.exports = {
     add,
     setActive,
@@ -212,6 +362,8 @@ module.exports = {
     remove,
     exists, 
     getByKID,
+    getAgreements,
+    getDonations,
     getByPaymentDate,
     addShipment,
 
