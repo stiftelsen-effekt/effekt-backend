@@ -140,13 +140,13 @@ async function exists(KID) {
             if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to)} `)
         }
 
-        if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
+        if (filter.KID) where.push(` CAST(CT.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
         if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
-        if (filter.active === 1) where.push(` (active = 1) `)
+        if (filter.statuses.length > 0) where.push(` AG.active IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(',')}) `)
     }
 
     const [agreements] = await con.query(`
-        SELECT
+        SELECT DISTINCT
             AG.ID,
             AG.active,
             AG.amount,
