@@ -55,7 +55,7 @@ router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,re
     const result = {
       addedDonations,
       updatedAgreements,
-      latestOcrFile: latestOcrFile.toString()
+      file: latestOcrFile.toString()
     }
 
     await DAO.logging.add("OCR", result)
@@ -99,12 +99,12 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
 
       result = {
         notifiedAgreements,
-        claimsFile: avtaleGiroClaimsFile.toString()
+        file: avtaleGiroClaimsFile.toString()
       }
     } else {
       result = {
         notifiedAgreements,
-        claimsFile: null
+        file: null
       }
     }
 
