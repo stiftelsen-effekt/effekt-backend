@@ -136,8 +136,8 @@ async function exists(KID) {
     let where = [];
     if (filter) {
         if (filter.amount) {
-            if (filter.amount.from) where.push(`amount >= ${sqlString.escape(filter.amount.from)} `)
-            if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to)} `)
+            if (filter.amount.from) where.push(`amount >= ${sqlString.escape(filter.amount.from*100)} `)
+            if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to*100)} `)
         }
 
         if (filter.KID) where.push(` CAST(CT.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
@@ -149,7 +149,7 @@ async function exists(KID) {
         SELECT DISTINCT
             AG.ID,
             AG.active,
-            AG.amount,
+            ROUND(AG.amount / 100, 0) as amount,
             AG.KID,
             AG.payment_date,
             AG.created,
@@ -181,78 +181,6 @@ async function exists(KID) {
     }
 }
 
-/**
- * Fetches all AvtaleGiro donations with sorting and filtering
- * @param {column: string, desc: boolean} sort Sort object
- * @param {string | number | Date} page Used for pagination
- * @param {number=10} limit Agreement count limit per page, defaults to 10
- * @param {object} filter Filtering object
- * @return {[Donation]} Array of agreements
- */
- async function getDonations(sort, page, limit, filter) {
-    let con = await pool.getConnection()
-
-    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1]
-    const sortDirection = sort.desc ? "DESC" : "ASC"
-    const offset = page*limit
-
-    let where = [];
-    if (filter) {
-        if (filter.amount) {
-            if (filter.amount.from) where.push(`D.sum_confirmed >= ${sqlString.escape(filter.amount.from)} `)
-            if (filter.amount.to) where.push(`D.sum_confirmed <= ${sqlString.escape(filter.amount.to)} `)
-        }
-
-        if (filter.created) {
-            if (filter.dueDate.from) where.push(`D.timestamp_created >= ${sqlString.escape(filter.dueDate.from)} `)
-            if (filter.dueDate.to) where.push(`D.timestamp_created <= ${sqlString.escape(filter.dueDate.to)} `)
-        }
-
-        if (filter.confirmed) {
-            if (filter.dueDate.from) where.push(`D.timestamp_confirmed >= ${sqlString.escape(filter.dueDate.from)} `)
-            if (filter.dueDate.to) where.push(`D.timestamp_confirmed <= ${sqlString.escape(filter.dueDate.to)} `)
-        }
-
-        if (filter.KID) where.push(` CAST(D.KID_fordeling as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
-        if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
-    }
-
-    const [charges] = await con.query(`
-        SELECT
-            D.ID,
-            D.sum_confirmed,
-            D.timestamp_confirmed,
-            D.transaction_cost,
-            D.KID_fordeling,
-            Donors.full_name
-        FROM Donations as D
-        INNER JOIN Avtalegiro_agreements as AG
-            ON AG.KID = D.KID_fordeling
-        INNER JOIN Combining_table as CT
-            ON AG.KID = CT.KID
-        INNER JOIN Donors 
-            ON CT.Donor_ID = Donors.ID
-        WHERE
-            D.Payment_ID = 7 AND
-            ${(where.length !== 0 ? where.join(" AND ") : '1')}
-
-        ORDER BY ${sortColumn} ${sortDirection}
-        LIMIT ? OFFSET ?
-        `, [limit, offset])
-
-    const [counter] = await con.query(`
-        SELECT COUNT(*) as count FROM Vipps_agreement_charges
-    `)
-    
-    con.release()
-
-    if (charges.length === 0) return false
-    else return {
-        pages: Math.ceil(counter[0].count / limit),
-        rows: charges
-    }
-}
-
 async function getByKID(KID) {
     try {
         var con = await pool.getConnection()
@@ -277,6 +205,70 @@ async function getByKID(KID) {
         }
     }
     catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
+ * Fetches key statistics of active agreements
+ * @return {Object} 
+ */
+ async function getAgreementReport() {
+    let con = await pool.getConnection()
+    let [res] = await con.query(`
+    SELECT 
+        count(ID) as activeAgreementCount,
+        round(avg(amount)/100, 0) as averageAgreementSum,
+        round(sum(amount)/100, 0) as totalAgreementSum,
+        round((
+            SELECT AVG(subquery.amount) as median_val
+                FROM (
+                    SELECT AG.amount, @rownum:=@rownum+1 as 'row_number', @total_rows:=@rownum
+                    FROM Avtalegiro_agreements as AG, (SELECT @rownum:=0) r
+                        WHERE AG.amount is NOT NULL
+                        -- put some where clause here
+                    ORDER BY AG.amount
+                ) as subquery
+            WHERE subquery.row_number IN ( FLOOR((@total_rows+1)/2), FLOOR((@total_rows+2)/2) )
+        )/100, 0) as medianAgreementSum,
+        (SELECT count(ID) 
+            FROM Avtalegiro_agreements 
+            WHERE month(created) = month(current_timestamp())
+        ) as startedThisMonth
+    FROM 
+        Avtalegiro_agreements
+    WHERE
+        active = 1
+        `)
+    con.release()
+
+    if (res.length === 0) return false
+    else return res
+}
+
+/**
+ * Gets a histogram of all agreements by agreement sum
+ * Creates buckets with 100 NOK spacing
+ * Skips empty buckets
+ * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
+ */
+ async function getAgreementSumHistogram() {
+    try {
+        var con = await pool.getConnection()
+        let [results] = await con.query(`
+            SELECT 
+                floor(amount/500)*500/100 	AS bucket, 
+                count(*) 						AS items,
+                ROUND(100*LN(COUNT(*)))         AS bar
+            FROM Avtalegiro_agreements
+            GROUP BY 1
+            ORDER BY 1;
+        `)
+
+        con.release()
+        return results
+    } catch(ex) {
         con.release()
         throw ex
     }
@@ -363,8 +355,9 @@ module.exports = {
     remove,
     exists, 
     getByKID,
+    getAgreementSumHistogram,
     getAgreements,
-    getDonations,
+    getAgreementReport,
     getByPaymentDate,
     addShipment,
 

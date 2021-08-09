@@ -38,18 +38,29 @@ router.post("/agreements", authMiddleware(authorizationRoles.read_all_donations)
     }
 })
 
-router.post("/donations", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
+router.get("/histogram", async (req,res,next) => {
     try {
-        var results = await DAO.avtalegiroagreements.getDonations(req.body.sort, req.body.page, req.body.limit, req.body.filter)
-        return res.json({ 
-            status: 200, 
-            content: {
-                pages: results.pages,
-                rows: results.rows
-            }
-        })
+      let buckets = await DAO.avtalegiroagreements.getAgreementSumHistogram()
+  
+      res.json({
+        status: 200,
+        content: buckets
+      })
     } catch(ex) {
-    next(ex)
+      next(ex)
+    }
+})
+
+router.get("/report", authMiddleware(authorizationRoles.read_all_donations), async (req,res,next) => {
+    try {
+      let content = await DAO.avtalegiroagreements.getAgreementReport()
+  
+      res.json({
+        status: 200,
+        content
+      })
+    } catch(ex) {
+      next(ex)
     }
 })
 
