@@ -134,7 +134,7 @@ router.get("/agreements/report", authMiddleware(authorizationRoles.read_all_dona
     } catch(ex) {
       next(ex)
     }
-  })
+})
 
 router.post("/agreements", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
     try {

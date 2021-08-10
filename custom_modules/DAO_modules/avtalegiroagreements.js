@@ -1,3 +1,4 @@
+const sqlString = require("sqlstring")
 var pool
 
 //region Get
@@ -117,6 +118,69 @@ async function exists(KID) {
     }
 }
 
+/**
+ * Fetches all agreements with sorting and filtering
+ * @param {column: string, desc: boolean} sort Sort object
+ * @param {string | number | Date} page Used for pagination
+ * @param {number=10} limit Agreement count limit per page, defaults to 10
+ * @param {object} filter Filtering object
+ * @return {[AvtaleGiro]} Array of AvtaleGiro agreements
+ */
+ async function getAgreements(sort, page, limit, filter) {
+    let con = await pool.getConnection()
+
+    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1]
+    const sortDirection = sort.desc ? "DESC" : "ASC"
+    const offset = page*limit
+
+    let where = [];
+    if (filter) {
+        if (filter.amount) {
+            if (filter.amount.from) where.push(`amount >= ${sqlString.escape(filter.amount.from*100)} `)
+            if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to*100)} `)
+        }
+
+        if (filter.KID) where.push(` CAST(CT.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `)
+        if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
+        if (filter.statuses.length > 0) where.push(` AG.active IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(',')}) `)
+    }
+
+    const [agreements] = await con.query(`
+        SELECT DISTINCT
+            AG.ID,
+            AG.active,
+            ROUND(AG.amount / 100, 0) as amount,
+            AG.KID,
+            AG.payment_date,
+            AG.created,
+            AG.last_updated,
+            AG.notice,
+            Donors.full_name 
+        FROM Avtalegiro_agreements as AG
+        INNER JOIN Combining_table as CT
+            ON AG.KID = CT.KID
+        INNER JOIN Donors 
+            ON CT.Donor_ID = Donors.ID
+        WHERE
+            ${(where.length !== 0 ? where.join(" AND ") : '1')}
+
+        ORDER BY ${sortColumn} ${sortDirection}
+        LIMIT ? OFFSET ?
+        `, [limit, offset])
+
+    const [counter] = await con.query(`
+        SELECT COUNT(*) as count FROM Avtalegiro_agreements
+    `)
+    
+    con.release()
+
+    if (agreements.length === 0) return false
+    else return {
+        pages: Math.ceil(counter[0].count / limit),
+        rows: agreements
+    }
+}
+
 async function getByKID(KID) {
     try {
         var con = await pool.getConnection()
@@ -147,9 +211,73 @@ async function getByKID(KID) {
 }
 
 /**
+ * Fetches key statistics of active agreements
+ * @return {Object} 
+ */
+ async function getAgreementReport() {
+    let con = await pool.getConnection()
+    let [res] = await con.query(`
+    SELECT 
+        count(ID) as activeAgreementCount,
+        round(avg(amount)/100, 0) as averageAgreementSum,
+        round(sum(amount)/100, 0) as totalAgreementSum,
+        round((
+            SELECT AVG(subquery.amount) as median_val
+                FROM (
+                    SELECT AG.amount, @rownum:=@rownum+1 as 'row_number', @total_rows:=@rownum
+                    FROM Avtalegiro_agreements as AG, (SELECT @rownum:=0) r
+                        WHERE AG.amount is NOT NULL
+                        -- put some where clause here
+                    ORDER BY AG.amount
+                ) as subquery
+            WHERE subquery.row_number IN ( FLOOR((@total_rows+1)/2), FLOOR((@total_rows+2)/2) )
+        )/100, 0) as medianAgreementSum,
+        (SELECT count(ID) 
+            FROM Avtalegiro_agreements 
+            WHERE month(created) = month(current_timestamp())
+        ) as startedThisMonth
+    FROM 
+        Avtalegiro_agreements
+    WHERE
+        active = 1
+        `)
+    con.release()
+
+    if (res.length === 0) return false
+    else return res
+}
+
+/**
+ * Gets a histogram of all agreements by agreement sum
+ * Creates buckets with 100 NOK spacing
+ * Skips empty buckets
+ * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
+ */
+ async function getAgreementSumHistogram() {
+    try {
+        var con = await pool.getConnection()
+        let [results] = await con.query(`
+            SELECT 
+                floor(amount/500)*500/100 	AS bucket, 
+                count(*) 						AS items,
+                ROUND(100*LN(COUNT(*)))         AS bar
+            FROM Avtalegiro_agreements
+            GROUP BY 1
+            ORDER BY 1;
+        `)
+
+        con.release()
+        return results
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
  * Returns all agreements with a given payment date
  * @param {Date} date 
- * @returns {Array<import("../parsers/avtalegiro").AvtalegiroAgreement>}
+ * @returns {Array<AvtalegiroAgreement>}
  */
 async function getByPaymentDate(dayInMonth) {
     try {
@@ -204,6 +332,21 @@ async function addShipment(numClaims) {
     }
 }
 
+const jsDBmapping = [
+    ["id", "ID"],
+    ["full_name", "full_name"],
+    ["kid", "KID"],
+    ["amount", "amount"],
+    ["paymentDate", "payment_date"],
+    ["notice", "notice"],
+    ["active", "active"],
+    ["created", "created"],
+    ["lastUpdated", "last_updated"],
+    ["sum", "sum_confirmed"],
+    ["confirmed", "timestamp_confirmed"],
+    ["kidFordeling", "KID_fordeling"]
+]
+
 module.exports = {
     add,
     setActive,
@@ -212,6 +355,9 @@ module.exports = {
     remove,
     exists, 
     getByKID,
+    getAgreementSumHistogram,
+    getAgreements,
+    getAgreementReport,
     getByPaymentDate,
     addShipment,
 
