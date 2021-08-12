@@ -594,7 +594,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
   organizations = formatOrganizationsFromSplit(split, (agreement.amount/100))
 
   organizations.forEach(org => {
-    org.amount = formatCurrency(org.amount)
+    org.amount
   })
   
   try {
@@ -697,11 +697,6 @@ async function send(options) {
     } else {
       return false
     }
-}
-
-function formatCurrency(currencyString) {
-  return Number.parseFloat(currencyString).toFixed(0)
-    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1.")
 }
 
 function formatDate(date) {
