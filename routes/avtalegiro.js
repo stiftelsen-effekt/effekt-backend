@@ -7,10 +7,12 @@ const authorizationRoles = require('../enums/authorizationRoles')
 router.post("/draft", async (req,res,next) => {
     if (!req.body) return res.sendStatus(400)
 
+    if (amount <= 0) return res.sendStatus(400)
+
     const parsedData = req.body
     const KID = parsedData.KID
     const amount = parsedData.amount
-    const dueDay = parsedData.dueDay
+    const dueDay = parsedData.dueDay <= 28 ? parsedData.dueDay : 0
 
     try {
         // Amount is given in NOK in Widget, but øre is used for agreements
