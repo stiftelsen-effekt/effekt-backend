@@ -55,7 +55,7 @@ router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,re
     const result = {
       addedDonations,
       updatedAgreements,
-      latestOcrFile: latestOcrFile.toString()
+      file: latestOcrFile.toString()
     }
 
     await DAO.logging.add("OCR", result)
@@ -73,7 +73,7 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
   let result
   try {
     let today = luxon.DateTime.fromJSDate(new Date())
-    let claimDate = today.plus(luxon.Duration.fromObject({ days: 5 }))
+    let claimDate = today.plus(luxon.Duration.fromObject({ days: 6 }))
     let notificationDate = today.plus(luxon.Duration.fromObject({ days: 3 }))
 
     /**
@@ -99,12 +99,12 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
 
       result = {
         notifiedAgreements,
-        claimsFile: avtaleGiroClaimsFile.toString()
+        file: avtaleGiroClaimsFile.toString()
       }
     } else {
       result = {
         notifiedAgreements,
-        claimsFile: null
+        file: null
       }
     }
 
@@ -118,6 +118,9 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
 
 router.post("/vipps", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
+    // Synchronize effektDB with Vipps database before creating daily charges
+    await vipps.synchronizeVippsAgreementDatabase()
+
     // Creates charges for all Vipps recurring agreements that are due three days ahead
     const result = await vipps.createFutureDueCharges()
     await DAO.logging.add("VippsRecurring", result)

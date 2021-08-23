@@ -151,7 +151,12 @@
                                                                 <tbody>
                                                                     <tr>
                                                                         <td style="font-size: 16px; text-align: end;">
-                                                                        Den <% this.agreement.monthly_charge_day %>. hver måned
+                                                                        <% if (this.agreement.monthly_charge_day == 0) { %>
+                                                                            Den siste dagen i måneden
+                                                                        <% } %>
+                                                                        <% if (this.agreement.monthly_charge_day != 0) { %>
+                                                                            Den <% this.agreement.monthly_charge_day %>. hver måned
+                                                                        <% } %>
                                                                         </td>
                                                                     </tr>
                                                                 </tbody>
@@ -233,44 +238,7 @@
                         </table>
                     </td>
                 </tr>
-                <tr>
-                    <td class="footer" bgcolor="#c1bbbb">
-                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            <tr>
-                                <td align="center" class="footercopy">
-                                    <table width="194" align="left" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td style="color: #ffffff; font-family: Arial, sans-serif; font-size: 14px;">
-                                                gieffektivt.no<br/>
-                                                <a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">donasjon@gieffektivt.no</a><br/><br/>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <!--[if (gte mso 9)|(IE)]>
-                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                        <tr>
-                                            <td>
-                                    <![endif]-->
-                                    <table width="75" align="right" border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td>
-                                                <a href="https://gieffektivt.no/">
-                                                    <img src="cid:gieffektivt.png" alt="gieffektivt" width="75" height="75" style="display: block;" border="0" />
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <!--[if (gte mso 9)|(IE)]>
-                                    <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                        <tr>
-                                            <td>
-                                    <![endif]-->
-                                </td>
-                            </tr>
-
-                        </table>
-                    </td>
-                </tr>
+                <% this.reusableHTML.footer %>
             </table>
             <!--[if (gte mso 9)|(IE)]>
             </td>

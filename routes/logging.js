@@ -5,7 +5,7 @@ const roles = require('../enums/authorizationRoles')
 
 const DAO = require('../custom_modules/DAO.js')
 
-router.post("/", auth(roles.read_all_donations), async (req,res, next) => {
+router.post("/", async (req,res, next) => {
   try {
     const limit = parseInt(req.body.limit)
     const offset = parseInt(req.body.page*limit)
@@ -15,8 +15,8 @@ router.post("/", auth(roles.read_all_donations), async (req,res, next) => {
     res.json({
       status: 200,
       content: {
-        rows: entries,
-        pages: 1
+        rows: entries.results,
+        pages: entries.pages
       }
     })
   }

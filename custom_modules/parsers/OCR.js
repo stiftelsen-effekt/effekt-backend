@@ -58,7 +58,7 @@ module.exports = {
   
       this.date = date;
       this.amount = parseInt(currLine.substr(32, 17)) / 100;
-      this.KID = parseInt(currLine.substr(49, 25));
+      this.KID = currLine.substr(49, 25).trim();
   
       const archivalReference = nextline.substr(25, 9);
       const transactionRunningNumber = parseInt(nextline.substr(9,6));

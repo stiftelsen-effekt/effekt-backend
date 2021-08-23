@@ -35,8 +35,6 @@ router.post("/register", async (req,res,next) => {
       amount: parsedData.amount,
       standardSplit: undefined,
       split: [],
-      dueDay: parsedData.dueDay,
-      notice: parsedData.notice,
       recurring: parsedData.recurring
     }
     
@@ -80,17 +78,11 @@ router.post("/register", async (req,res,next) => {
 
     /** Use new KID for avtalegiro */
     if (donationObject.method == methods.BANK && donationObject.recurring == true){
-      //Try to get existing KID
-      donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID, 12)
 
-      //Split does not exist, generate new KID
-      if (donationObject.KID == null) {
-        donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID)
-        await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
-      }
+      //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
+      donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID)
+      await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
 
-      // Amount is given in NOK in Widget, but øre is used for agreements
-      await DAO.avtalegiroagreements.add(donationObject.KID, donationObject.amount*100, donationObject.dueDay, true)  
     } else {
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
@@ -361,7 +353,8 @@ let historyRateLimit = new rateLimit({
     windowMs: 60*1000*60, // 1 hour
     max: 5,
     delayMs: 0 // disable delaying - full speed until the max limit is reached 
-  })
+})
+
 router.post("/history/email", historyRateLimit, async (req, res, next) => {
   try {
     let email = req.body.email
