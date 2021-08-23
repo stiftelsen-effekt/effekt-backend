@@ -7,11 +7,11 @@ const authorizationRoles = require('../enums/authorizationRoles')
 router.post("/draft", async (req,res,next) => {
     if (!req.body) return res.sendStatus(400)
 
-    if (amount <= 0) return res.sendStatus(400)
-
     const parsedData = req.body
     const KID = parsedData.KID
     const amount = parsedData.amount
+    if (amount <= 0) return res.sendStatus(400)
+
     const dueDay = parsedData.dueDay <= 28 ? parsedData.dueDay : 0
 
     try {
