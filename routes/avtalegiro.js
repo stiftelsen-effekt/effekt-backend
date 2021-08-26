@@ -10,7 +10,9 @@ router.post("/draft", async (req,res,next) => {
     const parsedData = req.body
     const KID = parsedData.KID
     const amount = parsedData.amount
-    const dueDay = parsedData.dueDay
+    if (amount <= 0) return res.sendStatus(400)
+
+    const dueDay = parsedData.dueDay <= 28 ? parsedData.dueDay : 0
 
     try {
         // Amount is given in NOK in Widget, but øre is used for agreements
