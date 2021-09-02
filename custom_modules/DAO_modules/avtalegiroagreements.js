@@ -153,6 +153,7 @@ async function exists(KID) {
             AG.KID,
             AG.payment_date,
             AG.created,
+            AG.cancelled,
             AG.last_updated,
             AG.notice,
             Donors.full_name 
@@ -310,6 +311,35 @@ async function getByPaymentDate(dayInMonth) {
     }
 }
 
+
+/**
+ * Updates the cancellation date of a AvtaleGiro agreement
+ * @param {string} KID
+ * @param {Date} date 
+ * @return {boolean} Success
+ */
+ async function cancelAgreement(KID) {
+    let con = await pool.getConnection()
+
+    const today = new Date()
+    //YYYY-MM-DD format
+    const mysqlDate = today.toISOString().slice(0, 19).replace('T', ' ');
+
+    try {
+        con.query(`
+            UPDATE Avtalegiro_agreements
+            SET cancelled = ?, active = 0
+            WHERE KID = ?
+        `, [mysqlDate, KID])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        return false
+    }
+}
+
 /**
  * Adds a new shipment row to db
  * @param {Number} numClaims The number of claims in that shipment
@@ -344,7 +374,8 @@ const jsDBmapping = [
     ["lastUpdated", "last_updated"],
     ["sum", "sum_confirmed"],
     ["confirmed", "timestamp_confirmed"],
-    ["kidFordeling", "KID_fordeling"]
+    ["kidFordeling", "KID_fordeling"],
+    ["cancelled", "cancelled"]
 ]
 
 module.exports = {
@@ -359,6 +390,7 @@ module.exports = {
     getAgreements,
     getAgreementReport,
     getByPaymentDate,
+    cancelAgreement,
     addShipment,
 
     setup: (dbPool) => { pool = dbPool }
