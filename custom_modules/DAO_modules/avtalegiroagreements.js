@@ -326,7 +326,11 @@ async function getByPaymentDate(dayInMonth) {
     const mysqlDate = today.toISOString().slice(0, 19).replace('T', ' ');
 
     try {
-        con.query(`UPDATE Avtalegiro_agreements SET cancelled = ? WHERE KID = ?`, [mysqlDate, KID])
+        con.query(`
+            UPDATE Avtalegiro_agreements
+            SET cancelled = ?, active = 0
+            WHERE KID = ?
+        `, [mysqlDate, KID])
         con.release()
         return true
     }
