@@ -25,7 +25,6 @@ module.exports = {
      */
     connect: async function (cb) {
         var dbPool = await mysql.createPool({
-            host: config.db_host,
             user: config.db_username,
             password: config.db_password,
             database: config.db_name,
