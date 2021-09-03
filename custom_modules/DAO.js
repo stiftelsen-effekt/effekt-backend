@@ -24,10 +24,13 @@ module.exports = {
      * @param {function} cb Callback for when DAO has been sucessfully set up
      */
     connect: async function (cb) {
+        const dbSocketPath = process.env.DB_SOCKET_PATH || '/cloudsql';
+
         var dbPool = await mysql.createPool({
             user: config.db_username,
             password: config.db_password,
             database: config.db_name,
+            socketPath: `${dbSocketPath}/${process.env.CLOUD_SQL_CONNECTION_NAME}`,
             enableKeepAlive: true
         })
 
