@@ -16,7 +16,7 @@ var pool
  * Gets import logs
  * @param {number} limit How many objects to return
  * @param {number} offset By which offset in db
- * @returns {Array<ImportLogEntry>}
+ * @returns {{ results: Array<ImportLogEntry>, pages: number }}
  */
 async function getEntries(limit = 10, offset = 0) {
   /**
@@ -35,8 +35,17 @@ async function getEntries(limit = 10, offset = 0) {
       LIMIT ? 
       OFFSET ?`, [limit, offset])
 
+    let [counter] = await con.query(`
+      SELECT COUNT(*) as count FROM Import_logs 
+    `)
+
+    const pages = Math.ceil(counter[0].count / limit)
+
     con.release()
-    return res
+    return {
+      results: res,
+      pages
+    }
   }
   catch(ex) {
     con.release()

@@ -116,7 +116,7 @@ async function updateAgreements(agreements) {
      */
     if (!agreement.totalReadout) {
       if (agreement.terminated) {
-        await DAO.avtalegiroagreements.terminate(agreement.KID)
+        await DAO.avtalegiroagreements.cancelAgreement(agreement.KID)
         result.terminated++
         continue
       } 
