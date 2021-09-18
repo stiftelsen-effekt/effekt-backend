@@ -223,6 +223,37 @@ async function getAggregateByTime(startTime, endTime) {
     }
 }
 
+/**
+ * Gets the total amount of donations recieved er month for the last year, up to
+ * and including the current time. Excludes current month in previous year.
+ * @returns {Array<{year: number, month: number, sum: number}>}
+ */
+async function getAggregateLastYearByMonth() {
+    try {
+        var con = await pool.getConnection()
+        var [getAggregateQuery] = await con.query(`
+            SELECT 
+                extract(YEAR from timestamp_confirmed) as \`year\`,
+                extract(MONTH from timestamp_confirmed) as \`month\`, 
+                sum(sum_confirmed) as \`sum\`
+                
+                    FROM EffektDonasjonDB.Donations
+                
+                WHERE timestamp_confirmed > DATE_SUB(LAST_DAY(now()), interval 1 YEAR)
+                
+                GROUP BY \`month\`, \`year\`
+                
+                ORDER BY \`year\`, \`month\`;
+        `)
+
+        con.release()
+        return getAggregateQuery
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
 async function ExternalPaymentIDExists(externalPaymentID, paymentID) {
     try {
         var con = await pool.getConnection()
@@ -737,6 +768,7 @@ module.exports = {
     getAll,
     getByID,
     getAggregateByTime,
+    getAggregateLastYearByMonth,
     getFromRange,
     getMedianFromRange,
     getHasReplacedOrgs,

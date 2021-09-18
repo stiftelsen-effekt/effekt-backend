@@ -184,6 +184,19 @@ router.get("/total", async (req, res, next) => {
   }
 })
 
+router.get("/total/monthly", async (req,res,next) => {
+  try {
+    let aggregate = await DAO.donations.getAggregateLastYearByMonth()
+
+    res.json({
+      status: 200,
+      content: aggregate
+    })
+  } catch(ex) {
+    next(ex)
+  }
+})
+
 router.get("/median", cache("5 minutes"), async (req, res, next) => {
   try {
     let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
