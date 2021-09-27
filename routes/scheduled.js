@@ -79,9 +79,11 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
     let notificationDate = today.plus(luxon.Duration.fromObject({ days: notifyDaysInAdvance }))
     let claimDate = today.plus(luxon.Duration.fromObject({ days: claimDaysInAdvance }))
 
+    
     // Check if dates are last day of month
-    const isNotificationDateLastDayOfMonth = new Date(timeNow + (1000 * 60 * 60 * 24 * (notifyDaysInAdvance+1))).getDate() === 1
-    const isClaimDateLastDayOfMonth = new Date(timeNow + (1000 * 60 * 60 * 24 * (claimDaysInAdvance+1))).getDate() === 1
+    const endOfMonth = today.endOf('month')
+    const isNotificationDateLastDayOfMonth = endOfMonth.day == notificationDate.day
+    const isClaimDateLastDayOfMonth = endOfMonth.day == claimDate.day
     
     /**
     * Notify all with agreements that are to be charged in three days
