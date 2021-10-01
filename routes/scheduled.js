@@ -77,7 +77,7 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
     let claimDate = today.plus(luxon.Duration.fromObject({ days: claimDaysInAdvance }))
 
     // Check if dates are last day of month
-    const isClaimDateLastDayOfMonth = endOfMonth.day == today.endOf('month').day
+    const isClaimDateLastDayOfMonth = claimDate.day == today.endOf('month').day
     
     /**
      * Get active agreements 
@@ -87,7 +87,7 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
       agreements = await DAO.avtalegiroagreements.getByPaymentDate(0)
     }
     else {
-      agreements = await DAO.avtalegiroagreements.getByPaymentDate(notificationDate.day)
+      agreements = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day)
     }
 
     if (agreements.length > 0) {
@@ -114,7 +114,7 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
       }
     } else {
       result = {
-        notifiedAgreements,
+        notifiedAgreements: null,
         file: null
       }
     }
