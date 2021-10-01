@@ -72,43 +72,33 @@ router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,re
 router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   let result
   try {
-    const timeNow = new Date().getTime()
-    const notifyDaysInAdvance = 3
     const claimDaysInAdvance = 6
     let today = luxon.DateTime.fromJSDate(new Date())
-    let notificationDate = today.plus(luxon.Duration.fromObject({ days: notifyDaysInAdvance }))
     let claimDate = today.plus(luxon.Duration.fromObject({ days: claimDaysInAdvance }))
 
-    
     // Check if dates are last day of month
-    const endOfMonth = today.endOf('month')
-    const isNotificationDateLastDayOfMonth = endOfMonth.day == notificationDate.day
-    const isClaimDateLastDayOfMonth = endOfMonth.day == claimDate.day
+    const isClaimDateLastDayOfMonth = claimDate.day == today.endOf('month').day
     
     /**
-    * Notify all with agreements that are to be charged in three days
-    */
-    let agreementsToBeNotified = []
-    if (isNotificationDateLastDayOfMonth) {
-      agreementsToBeNotified = (await DAO.avtalegiroagreements.getByPaymentDate(0)).filter(agreement => agreement.notice == true)
-    }
-    else {
-      agreementsToBeNotified = (await DAO.avtalegiroagreements.getByPaymentDate(notificationDate.day)).filter(agreement => agreement.notice == true)
-    }
-    const notifiedAgreements = await avtalegiro.notifyAgreements(agreementsToBeNotified)
-
-    /**
-    * Create file to charge agreements for current day
-    */
-    let agreementsToCharge = []
+     * Get active agreements 
+     */
+    let agreements = []
     if (isClaimDateLastDayOfMonth) {
-     agreementsToCharge = await DAO.avtalegiroagreements.getByPaymentDate(0)
+      agreements = await DAO.avtalegiroagreements.getByPaymentDate(0)
     }
     else {
-      agreementsToCharge = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day)
+      agreements = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day)
     }
 
-    if (agreementsToCharge.length > 0) {
+    if (agreements.length > 0) {
+      /**
+      * Notify agreements to be charged
+      */
+      const notifiedAgreements = await avtalegiro.notifyAgreements(agreements.filter(agreement => agreement.notice == true))
+
+      /**
+      * Create file to charge agreements for current day
+      */
       const shipmentID = await DAO.avtalegiroagreements.addShipment(agreementsToCharge.length)
       const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreementsToCharge, claimDate)
 
@@ -124,7 +114,7 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
       }
     } else {
       result = {
-        notifiedAgreements,
+        notifiedAgreements: null,
         file: null
       }
     }
