@@ -65,16 +65,17 @@ async function notifyAgreements(agreements) {
     failed: 0
   }
   if (config.env === 'production') {
-    const tasks = agreements.map((agreement) => mail.sendAvtalegiroNotification(agreement))
-    //Send mails in paralell
-    const result = await Promise.allSettled(tasks)
-    const failed = result.filter(task => task.status === 'rejected')
-    for (let i = 0; i < failed.length; i++) {
-      console.error(`Failed to send an AvtaleGiro notification ${failed[i].reason}`)
+    for (let i = 0; i < agreements.length; i++) {
+      try {
+        if (await mail.sendAvtalegiroNotification(agreements[i]) === true) {
+          result.success++
+        } else {
+          result.failed++
+        }
+      } catch(ex) {
+        result.failed++
+      }
     }
-
-    result.success = tasks.length - failed.length
-    result.failed = failed.length
   } else {
     result.success = agreements.length
     result.failed = 0
@@ -115,7 +116,7 @@ async function updateAgreements(agreements) {
      * we ignore those agreements (as they are already in the database)
      */
     if (!agreement.totalReadout) {
-      if (agreement.terminated) {
+      if (agreement.isTerminated) {
         await DAO.avtalegiroagreements.cancelAgreement(agreement.KID)
         result.terminated++
         continue
