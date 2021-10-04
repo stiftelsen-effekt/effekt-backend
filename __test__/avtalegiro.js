@@ -5,26 +5,13 @@ const expect = (chai.expect);
 
 const avtalegiro = require('../custom_modules/avtalegiro');
 const { DateTime } = require('luxon');
+const config = require('../config')
 
 describe('AvtaleGiro file generation', () => {
-    const donorStub = sinon
-        .stub(DAO.donors, 'getByKID');
-
-    donorStub
-        .withArgs('002556289731589')
-        .resolves({
-            name: 'Maria Brækkelie'
-        })
-    donorStub
-        .withArgs('000638723319577')
-        .resolves({
-            name: 'Kristian Jørgensen'
-        })
-    donorStub
-        .withArgs('000675978627833')
-        .resolves({
-            name: 'Håkon Harnes'
-        })
+    let donorStub
+    let file
+    let getLines
+    let getSubString
 
     const mockAgreements = [{
         id: 1,
@@ -48,6 +35,42 @@ describe('AvtaleGiro file generation', () => {
         notice: true,
         active: true
     }]
+
+    before(function () {
+        donorStub = sinon
+            .stub(DAO.donors, 'getByKID');
+
+        donorStub
+            .withArgs('002556289731589')
+            .resolves({
+                name: 'Maria Brækkelie'
+            })
+        donorStub
+            .withArgs('000638723319577')
+            .resolves({
+                name: 'Kristian Jørgensen'
+            })
+        donorStub
+            .withArgs('000675978627833')
+            .resolves({
+                name: 'Håkon Harnes'
+            })
+
+        config.nets_customer_id = '00230456'
+
+        getLines = () => {
+            let lines = file.toString('utf-8').split('\n')
+            // Pop last empty line
+            lines.pop()
+            return lines
+        }
+
+        getSubString = (row, start, length) => {
+            const lines = getLines()
+            const line = lines[row-1]
+            return line.substr(start-1, length)
+        }
+    })
 
     it('Has correct overall structure', async () => {
         file = await avtalegiro.generateAvtaleGiroFile(42, mockAgreements, DateTime.fromJSDate(new Date('2021-10-10 10:00')))
@@ -143,16 +166,3 @@ describe('AvtaleGiro file generation', () => {
           expect(getSubString(12, 76, 5)).to.be.equal('00000')
     })
 })
-
-function getLines() {
-    let lines = file.toString('utf-8').split('\n')
-    // Pop last empty line
-    lines.pop()
-    return lines
-}
-
-function getSubString(row, start, length) {
-    const lines = getLines()
-    const line = lines[row-1]
-    return line.substr(start-1, length)
-}
