@@ -73,7 +73,12 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
   let result
   try {
     const claimDaysInAdvance = 6
-    let today = luxon.DateTime.fromJSDate(new Date())
+    let today
+    if (req.query.date != null) {
+      today = luxon.DateTime.fromJSDate(new Date())
+    } else {
+      today = luxon.DateTime.fromJSDate(new Date(req.query.date))
+    }
     let claimDate = today.plus(luxon.Duration.fromObject({ days: claimDaysInAdvance }))
 
     // Check if dates are last day of month
@@ -94,13 +99,19 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
       /**
       * Notify agreements to be charged
       */
-      const notifiedAgreements = await avtalegiro.notifyAgreements(agreements.filter(agreement => agreement.notice == true))
+      let notifiedAgreements = {
+        success: 0,
+        failed: 0
+      }
+      if (req.query.notify != null && req.query.notify !== false) {
+        notifiedAgreements = await avtalegiro.notifyAgreements(agreements.filter(agreement => agreement.notice == true))
+      }
 
       /**
       * Create file to charge agreements for current day
       */
-      const shipmentID = await DAO.avtalegiroagreements.addShipment(agreementsToCharge.length)
-      const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreementsToCharge, claimDate)
+      const shipmentID = await DAO.avtalegiroagreements.addShipment(agreements.length)
+      const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreements, claimDate)
 
       /**
       * Send file to nets
