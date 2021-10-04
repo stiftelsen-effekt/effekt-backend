@@ -99,8 +99,8 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
       /**
       * Create file to charge agreements for current day
       */
-      const shipmentID = await DAO.avtalegiroagreements.addShipment(agreementsToCharge.length)
-      const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreementsToCharge, claimDate)
+      const shipmentID = await DAO.avtalegiroagreements.addShipment(agreements.length)
+      const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreements, claimDate)
 
       /**
       * Send file to nets
