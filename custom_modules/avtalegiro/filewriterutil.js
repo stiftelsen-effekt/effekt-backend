@@ -12,11 +12,11 @@ module.exports = {
     return line;
   },
 
-  startRecordPaymentClaims: function() {
+  startRecordPaymentAssignment: function(currentDate) {
     var line =`NY210020`
     line = line.padEnd(17, '0')
     // Oppdragsnr.
-    line += '1'.padStart(7, '0')
+    line += currentDate.toFormat("ddLLyy").padStart(7, '0')
     // Accountnr.
     line += '15062995960'
     line = line.padEnd(80, '0')
@@ -56,10 +56,11 @@ module.exports = {
     /**
      * Second line
      */
-    const shortname = donor.name.toUpperCase().substr(0,10).replace(/\s+/g, '').padStart(10, '0')
+    const shortname = donor.name.toUpperCase().substr(0,10).replace(/\s+/g, '').padStart(10, ' ')
 
     var secondLine =`NY210231${transactionNumber.toString().padStart(7,'0')}${shortname}`
 
+    secondLine = secondLine.padEnd(75, ' ')
     secondLine = secondLine.padEnd(80, '0')
 
     /**
@@ -73,10 +74,11 @@ module.exports = {
   /**
    * 
    * @param {import('../parsers/avtalegiro').AvtalegiroAgreement} claims 
-   * @param {DateTime} dueDate 
+   * @param {DateTime} minDate Minimum claim date
+   * @param {DateTime} maxDate Maximum claim date
    * @returns 
    */
-  endRecordPaymentClaims: function(claims, dueDate) {
+  endRecordPaymentAssignment: function(claims, minDate, maxDate) {
     var line =`NY210088`
 
     //Number of transactions
@@ -88,13 +90,11 @@ module.exports = {
     //Sum of payment claims
     line += claims.reduce((acc, claim) => acc += claim.amount, 0).toString().padStart(17, '0')
 
-    const minMaxDate = dueDate.toFormat("ddLLyy")
-
     //Min day
-    line += minMaxDate
+    line += minDate.toFormat("ddLLyy")
 
     //Max day
-    line += minMaxDate
+    line += maxDate.toFormat("ddLLyy")
 
     line = line.padEnd(80, '0')
     line += '\n'
@@ -139,22 +139,22 @@ module.exports = {
     return line
   },
 
-  endRecordTransmission: function(claims, dueDate) {
+  endRecordTransmission: function(claims, deletions, minDate) {
     var line =`NY000089`
 
     //Number of transactions
-    line += claims.length.toString().padStart(8,'0')
+    line += (claims.length + deletions.length).toString().padStart(8,'0')
 
     //Number of records, including start and end record
-    line += (claims.length*2+4).toString().padStart(8,'0')
+    line += (claims.length*4 + deletions.length * 4 + 2).toString().padStart(8,'0')
 
     //Sum of payment claims
-    line += claims.reduce((acc, claim) => acc += claim.amount, 0).toString().padStart(17, '0')
-
-    const minMaxDate = dueDate.toFormat("ddLLyy")
+    let claimSum = claims.reduce((acc, claim) => acc += claim.amount, 0)
+    let deletionsSum = deletions.reduce((acc, deletion) => acc += deletion.amount, 0)
+    line += (claimSum + deletionsSum).toString().padStart(17, '0')
 
     //Min day
-    line += minMaxDate
+    line += minDate.toFormat("ddLLyy")
 
     line = line.padEnd(80, '0')
     line += '\n'

@@ -74,11 +74,12 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
   try {
     const claimDaysInAdvance = 6
     let today
-    if (req.query.date != null) {
-      today = luxon.DateTime.fromJSDate(new Date())
-    } else {
+    if (req.query.date) {
       today = luxon.DateTime.fromJSDate(new Date(req.query.date))
+    } else {
+      today = luxon.DateTime.fromJSDate(new Date())
     }
+
     let claimDate = today.plus(luxon.Duration.fromObject({ days: claimDaysInAdvance }))
 
     // Check if dates are last day of month
@@ -103,7 +104,7 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
         success: 0,
         failed: 0
       }
-      if (req.query.notify != null && req.query.notify !== false) {
+      if (req.query.notify) {
         notifiedAgreements = await avtalegiro.notifyAgreements(agreements.filter(agreement => agreement.notice == true))
       }
 

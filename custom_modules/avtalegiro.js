@@ -7,11 +7,12 @@ const { DateTime } = require('luxon')
 /**
  * Generates a claims file to claim payments for AvtaleGiro agreements
  * @param {number} shipmentID A shipment ID from the database
- * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} paymentClaims Agreements that we should claim payment from
- * @param {DateTime} date Due date
+ * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} agreements Agreements that we should claim payment from
+ * @param {DateTime} dueDate Due date
  * @returns {Buffer} The file buffer
  */
-async function generateAvtaleGiroFile(shipmentID, paymentClaims, date) {
+async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
+  const today = DateTime.fromJSDate(new Date())
   let fileContents = ''
 
   fileContents += writer.startRecordTransmission(shipmentID)
@@ -19,27 +20,39 @@ async function generateAvtaleGiroFile(shipmentID, paymentClaims, date) {
   /**
    * Claim requests
    */
-  fileContents += writer.startRecordPaymentClaims()
+  let claims = []
+  for (let i = 0; i < agreements.length; i++) {
+    fileContents += writer.startRecordPaymentAssignment(today)
 
-  for (let transactionNumber = 0; transactionNumber < paymentClaims.length; transactionNumber++) {
-    const claim = paymentClaims[transactionNumber]
-    const donor = await DAO.donors.getByKID(claim.KID)
-    fileContents += writer.firstAndSecondLine(claim, donor, "02", transactionNumber+1, date)
+    let assignmentClaims = []
+    /**
+     * Right now, we only send one transaction
+     * We are able to send claims up to 12 months ahead of time
+     */
+    for (let transactionNumber = 1; transactionNumber <= 1; transactionNumber++) {
+      const claim = agreements[i]
+      const donor = await DAO.donors.getByKID(claim.KID)
+      fileContents += writer.firstAndSecondLine(claim, donor, "02", transactionNumber, dueDate)
+      assignmentClaims.push(claim)
+    }
+
+    fileContents += writer.endRecordPaymentAssignment(assignmentClaims, dueDate, dueDate)
+    claims.push(...assignmentClaims)
   }
-
-  fileContents += writer.endRecordPaymentClaims(paymentClaims, date)
+  
 
   /**
    * Deletion requests
    * Currently not utilized
    */
 
+  let deletions = []
   /*
   fileContents += writer.startRecordDeletionRequest()
   fileContents += writer.endRecordDeletionRequest(date)
   */
 
-  fileContents += writer.endRecordTransmission(paymentClaims, date)
+  fileContents += writer.endRecordTransmission(claims, deletions, dueDate)
 
   const fileBuffer = Buffer.from(fileContents, 'utf8')
 
