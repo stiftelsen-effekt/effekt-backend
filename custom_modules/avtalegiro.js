@@ -22,7 +22,7 @@ async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
    */
   let claims = []
   for (let i = 0; i < agreements.length; i++) {
-    fileContents += writer.startRecordPaymentAssignment(today)
+    fileContents += writer.startRecordPaymentAssignment(today, i)
 
     let assignmentClaims = []
     /**

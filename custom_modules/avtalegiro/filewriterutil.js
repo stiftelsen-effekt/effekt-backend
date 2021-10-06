@@ -12,11 +12,11 @@ module.exports = {
     return line;
   },
 
-  startRecordPaymentAssignment: function(currentDate) {
+  startRecordPaymentAssignment: function(currentDate, number) {
     var line =`NY210020`
     line = line.padEnd(17, '0')
     // Oppdragsnr.
-    line += currentDate.toFormat("ddLLyy").padStart(7, '0')
+    line += currentDate.toFormat("ddLL") + `${number}`.padStart(3,'0')
     // Accountnr.
     line += '15062995960'
     line = line.padEnd(80, '0')
