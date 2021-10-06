@@ -15,6 +15,10 @@ module.exports = {
   startRecordPaymentAssignment: function(currentDate, number) {
     var line =`NY210020`
     line = line.padEnd(17, '0')
+
+    if (number > 999)
+      throw new Error("Cannot handle more than 999 assignments per file")
+
     // Oppdragsnr.
     line += currentDate.toFormat("ddLL") + `${number}`.padStart(3,'0')
     // Accountnr.
