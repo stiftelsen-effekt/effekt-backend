@@ -122,7 +122,7 @@ describe('AvtaleGiro file generation', () => {
 
         // Start record assignment
           // Assignment nr.
-          expect(getSubString(6, 18, 7)).to.be.equal(`0${DateTime.fromJSDate(new Date()).toFormat('ddLLyy')}`)
+          expect(getSubString(6, 18, 7)).to.be.equal(`${DateTime.fromJSDate(new Date()).toFormat('ddLL')}001`)
           // Our bank account nr.
           expect(getSubString(6, 25, 11)).to.be.equal('15062995960')
 
