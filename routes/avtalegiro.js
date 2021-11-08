@@ -40,6 +40,22 @@ router.post("/agreements", authMiddleware(authorizationRoles.read_all_donations)
     }
 })
 
+router.get("/agreement/:id", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
+  try {
+      var result = await DAO.avtalegiroagreements.getAgreement(req.params.id)
+      result["ID"] = result["ID"].toString()
+      
+      return res.json({ 
+          status: 200,
+          content: {
+            ...result
+          }
+      })
+  } catch(ex) {
+  next(ex)
+  }
+})
+
 router.get("/histogram", async (req,res,next) => {
     try {
       let buckets = await DAO.avtalegiroagreements.getAgreementSumHistogram()
@@ -64,6 +80,48 @@ router.get("/report", authMiddleware(authorizationRoles.read_all_donations), asy
     } catch(ex) {
       next(ex)
     }
+})
+
+router.post("/:KID/status", async (req, res, next) => {
+  try {
+      const KID = req.params.KID
+      const active = req.body.active
+
+      const response = await DAO.avtalegiroagreements.setActive(KID, active)
+      
+      //await mail.sendAvtaleGiroChange() // Add later
+      res.send(response)
+  } catch (ex) {
+      next({ ex })
+  }
+})
+
+router.post("/:KID/amount", async (req, res, next) => {
+  try {
+      const KID = req.params.KID
+      const amount = req.body.amount
+
+      const response = await DAO.avtalegiroagreements.updateAmount(KID, amount)
+      
+      //await mail.sendAvtaleGiroChange() // Add later
+      res.send(response)
+  } catch (ex) {
+      next({ ex })
+  }
+})
+
+router.post("/:KID/paymentdate", async (req, res, next) => {
+  try {
+      const KID = req.params.KID
+      const paymentDate = req.body.paymentDate
+
+      const response = await DAO.avtalegiroagreements.updatePaymentDate(KID, paymentDate)
+      
+      //await mail.sendAvtaleGiroChange() // Add later
+      res.send(response)
+  } catch (ex) {
+      next({ ex })
+  }
 })
 
 module.exports = router
