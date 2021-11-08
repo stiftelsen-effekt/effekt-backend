@@ -1,4 +1,5 @@
 const sqlString = require("sqlstring")
+const distributions = require('./distributions.js')
 var pool
 
 //region Get
@@ -54,6 +55,41 @@ async function updateNotification(KID, notice) {
     }
 }
 
+async function updateAmount(KID, amount) {
+    try {
+        var con = await pool.getConnection()
+
+        await con.query(`UPDATE Avtalegiro_agreements SET amount = ? where KID = ?`, [amount, KID])
+
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+async function updatePaymentDate(KID, paymentDate) {
+    try {
+        var con = await pool.getConnection()
+
+        if (paymentDate >= 0 && paymentDate <= 28) {
+            await con.query(`UPDATE Avtalegiro_agreements SET payment_date = ? where KID = ?`, [paymentDate, KID])
+        } else {
+            con.release()
+            return false
+        }
+
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
 async function setActive(KID, active) {
     try {
         var con = await pool.getConnection()
@@ -85,6 +121,34 @@ async function isActive(KID) {
     catch(ex) {
         con.release()
         throw ex
+    }
+}
+
+/**
+ * Updates the cancellation date of a AvtaleGiro agreement
+ * @param {string} KID
+ * @param {Date} date
+ * @return {boolean} Success
+ */
+ async function cancelAgreement(KID) {
+    let con = await pool.getConnection()
+
+    const today = new Date()
+    //YYYY-MM-DD format
+    const mysqlDate = today.toISOString().slice(0, 19).replace('T', ' ');
+
+    try {
+        con.query(`
+            UPDATE Avtalegiro_agreements
+            SET cancelled = ?, active = 0
+            WHERE KID = ?
+        `, [mysqlDate, KID])
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        return false
     }
 }
 
@@ -180,6 +244,50 @@ async function exists(KID) {
         pages: Math.ceil(counter[0].count / limit),
         rows: agreements
     }
+}
+
+/**
+ * Fetches a single AvtaleGiro agreement
+ * @param {string} id AvtaleGiro ID
+ * @return {AvtaleGiro} AvtaleGiro agreement
+ */
+ async function getAgreement(id) {
+    let con = await pool.getConnection()
+
+    const result = await con.query(`
+        SELECT
+            AG.ID,
+            AG.active,
+            ROUND(AG.amount / 100, 0) as amount,
+            AG.KID,
+            AG.payment_date,
+            AG.created,
+            AG.cancelled,
+            AG.last_updated,
+            AG.notice,
+            Donors.full_name 
+        FROM Avtalegiro_agreements as AG
+        INNER JOIN Combining_table as CT
+            ON AG.KID = CT.KID
+        INNER JOIN Donors 
+            ON CT.Donor_ID = Donors.ID
+        WHERE AG.ID = ?
+        `, [id])
+    
+    con.release()
+
+    if (result.length === 0) return false
+
+    const avtaleGiro = result[0][0]
+
+    let split = await distributions.getSplitByKID(avtaleGiro.KID)
+        
+    avtaleGiro.distribution = split.map((split) => ({
+        abbriv: split.abbriv,
+        share: split.percentage_share
+    }))
+
+    return avtaleGiro
 }
 
 async function getByKID(KID) {
@@ -311,35 +419,6 @@ async function getByPaymentDate(dayInMonth) {
     }
 }
 
-
-/**
- * Updates the cancellation date of a AvtaleGiro agreement
- * @param {string} KID
- * @param {Date} date 
- * @return {boolean} Success
- */
- async function cancelAgreement(KID) {
-    let con = await pool.getConnection()
-
-    const today = new Date()
-    //YYYY-MM-DD format
-    const mysqlDate = today.toISOString().slice(0, 19).replace('T', ' ');
-
-    try {
-        con.query(`
-            UPDATE Avtalegiro_agreements
-            SET cancelled = ?, active = 0
-            WHERE KID = ?
-        `, [mysqlDate, KID])
-        con.release()
-        return true
-    }
-    catch(ex) {
-        con.release()
-        return false
-    }
-}
-
 /**
  * Adds a new shipment row to db
  * @param {Number} numClaims The number of claims in that shipment
@@ -382,16 +461,18 @@ module.exports = {
     add,
     setActive,
     isActive,
+    cancelAgreement,
     updateNotification,
+    updatePaymentDate,
+    updateAmount,
     remove,
     exists, 
     getByKID,
     getAgreementSumHistogram,
     getAgreements,
+    getAgreement,
     getAgreementReport,
     getByPaymentDate,
-    cancelAgreement,
     addShipment,
-
     setup: (dbPool) => { pool = dbPool }
 }
