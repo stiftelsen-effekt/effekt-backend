@@ -4,6 +4,36 @@ The Effect Foundation API is used by all our core application for data storage. 
 
 The API is also responsible for handling payment processing.
 
+---
+
+**Table of contents**
+
+* [API endpoints](#api-endpoints)
+* [Get started developing](#get-started-developing)
+  * [Google cloud setup](#google-cloud-setup)
+  * [Google cloud sql auth proxy](#google-cloud-sql-auth-proxy)
+  * [Configuring the API](#configuring-the-api)
+  * [Installing packages and running the project](#installing-packages-and-running-the-project)
+  * [Testing](#testing)
+* [Build and deployment](#build-and-deployment)
+  * [Environments](#environments)
+  * [Google cloud build](#google-cloud-build)
+* [Authentification](#authentification)
+* [Code structure](#code-structure)
+  * [Routes](#routes)
+  * [Business logic](#business-logic)
+  * [Data Access](#data-access)
+  * [Email](#email)
+  * [Logging](#logging)
+  * [Views](#views)
+  * [Scheduled jobs](#scheduled-jobs)
+* [Payment processing](#payment-processing)
+  * [Bank](#bank)
+  * [Vipps](#vipps)
+  * [PayPal](#paypal)
+
+---
+
 ## API endpoints
 
 Our API endpoints are described in the swagger documentation available [here (production)](https://data.gieffektivt.no/docs/) or [here (development)](https://dev.data.gieffektivt.no/docs/)).
