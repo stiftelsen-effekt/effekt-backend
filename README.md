@@ -40,7 +40,7 @@ It's also possible to create an alias on macos / linux to avoid having to type i
 
 If all has gone well, you should be seeing this in your terminal of choice.
 
-![Terminal outout](docs/sql_proxy_terminal.png)
+<img src="docs/sql_proxy_terminal.png" width="500" />
 
 The proxy is now listening for connections on port 3306 (the standard mysql port), and forwards any communication to the internal google cloud network through a secure tunnel.
 
@@ -90,13 +90,14 @@ npm start
 
 again in the root folder of the cloned repository. If all goes well, you should be seeing something like this in your terminal
 
-![Terminal outout](docs/api_terminal.png)
+<img src="docs/api_terminal.png" width="500" />
+
 
 > **Note** Don't forget that the cloud sql auth proxy must be running in the background.
 
 We can verify that the api is indeed operational by testing it in our browser. Navigation go http://localhost:3000 should yield a welcoming message.
 
-![Browser outout](docs/browser_root_route.png)
+<img src="docs/browser_root_route.png" width="500" />
 
 ### Testing
 
@@ -108,7 +109,7 @@ npm test
 
 which will yield something like this 
 
-![Test output](docs/tests_terminal.png)
+<img src="docs/tests_terminal.png" width="500" />
 
 ## Build and deployment
 
@@ -125,6 +126,8 @@ We have three main branches in the repository, `master`, `stage` and `dev`. Any 
 |Branch|Url|Database|Environment variables|
 |-|-|-|-|
 |`Master`|https://data.gieffektivt.no|`EffektDonasjonDB`|Production|
+|`Stage`|https://stage.data.gieffektivt.no|`EffektDonasjonDB`|Production|
+|`Dev`|https://dev.data.gieffektivt.no|`EffektDonasjonDB_Dev`|Development|
 
 ### Google cloud build
 
