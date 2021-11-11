@@ -26,13 +26,25 @@ module.exports = {
     connect: async function (cb) {
         const dbSocketPath = process.env.DB_SOCKET_PATH || '/cloudsql';
 
-        var dbPool = await mysql.createPool({
-            user: config.db_username,
-            password: config.db_password,
-            database: config.db_name,
-            socketPath: `${dbSocketPath}/${process.env.CLOUD_SQL_CONNECTION_NAME}`,
-            enableKeepAlive: true
-        })
+        if (process.env.K_SERVICE != null) {
+            // Running in google cloud
+            var dbPool = await mysql.createPool({
+                user: config.db_username,
+                password: config.db_password,
+                database: config.db_name,
+                socketPath: `${dbSocketPath}/${process.env.CLOUD_SQL_CONNECTION_NAME}`,
+                enableKeepAlive: true
+            })
+        } else {
+            // Running locally
+            var dbPool = await mysql.createPool({
+                user: config.db_username,
+                password: config.db_password,
+                database: config.db_name,
+                host: '127.0.0.1',
+                enableKeepAlive: true
+            })
+        }
 
         //Check whether connection was successfull
         //Weirdly, this is the proposed way to do it
