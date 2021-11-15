@@ -53,6 +53,28 @@ async function getLatestOCRFile() {
 }
 
 /**
+ * Fetches the latest Avtalegiro reciept file as a buffer
+ * @param {String} dateString A date string on the format yyLLdd e.g. 210131
+ * @returns {Boolean} True or false
+ */
+ async function checkIfAcceptedReciept(dateString) {
+  const connection = await getConnection()
+
+  const files = await connection.list('/Inbound')
+  connection.end()
+
+  if (files.length == 0)
+    return false
+
+  const filteredFiles = files.filter(file => file.name.match(`KV\.GODKJENT.*D${dateString}`) !== null)
+
+  if (filteredFiles.length == 0)
+    return false
+  else
+    return true
+}
+
+/**
  * 
  * @param {Buffer} file 
  * @param {string} filename 
@@ -87,5 +109,6 @@ module.exports = {
   getOCRFiles,
   getOCRFile,
   getLatestOCRFile,
+  checkIfAcceptedReciept,
   sendFile
 }

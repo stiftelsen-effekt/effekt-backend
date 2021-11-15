@@ -139,6 +139,88 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
   }
 })
 
+/**
+ * Triggered by a google cloud scheduler webhook every day at 11:00, 12:00 and 13:00
+ */
+ router.post("/avtalegiro/retry", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+  let result
+  try {
+    const claimDaysInAdvance = 6
+    let today
+    if (req.query.date) {
+      today = luxon.DateTime.fromJSDate(new Date(req.query.date))
+    } else {
+      today = luxon.DateTime.fromJSDate(new Date())
+    }
+
+    /**
+     * Check if we have recieved an "accepted" reciept from MasterCard (Nets)
+     * If not, we should retry and send file again
+     */
+    let accepted = await nets.checkIfAcceptedReciept(today.toFormat("yyLLdd"))
+    if (accepted) {
+      return res.json({
+        status: 200,
+        content: "Reciept present"
+      })
+    }
+
+    let claimDate = today.plus(luxon.Duration.fromObject({ days: claimDaysInAdvance }))
+
+    // Check if dates are last day of month
+    const isClaimDateLastDayOfMonth = claimDate.day == today.endOf('month').day
+    
+    /**
+     * Get active agreements 
+     */
+    let agreements = []
+    if (isClaimDateLastDayOfMonth) {
+      agreements = await DAO.avtalegiroagreements.getByPaymentDate(0)
+    }
+    else {
+      agreements = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day)
+    }
+
+    if (agreements.length > 0) {
+      /**
+      * Notify agreements to be charged
+      */
+      let notifiedAgreements = {
+        success: 0,
+        failed: 0
+      }
+
+      /**
+      * Create file to charge agreements for current day
+      */
+      const shipmentID = await DAO.avtalegiroagreements.addShipment(agreements.length)
+      const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(shipmentID, agreements, claimDate)
+
+      /**
+      * Send file to nets
+      */
+      const filename = 'DIRREM' + today.toFormat("ddLLyy")
+      await nets.sendFile(avtaleGiroClaimsFile, filename)
+
+      result = {
+        notifiedAgreements,
+        file: avtaleGiroClaimsFile.toString()
+      }
+    } else {
+      result = {
+        notifiedAgreements: null,
+        file: null
+      }
+    }
+
+    await DAO.logging.add("AvtaleGiro - Retry", result)
+    await mail.sendOcrBackup(JSON.stringify(result, null, 2))
+    res.json(result)
+  } catch(ex) {
+    next({ex})
+  }
+})
+
 router.post("/vipps", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
   try {
     // Synchronize effektDB with Vipps database before creating daily charges
