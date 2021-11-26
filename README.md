@@ -90,7 +90,7 @@ Depending on your operation system, setting environment variables will be a diff
 
 `DB_USER` and `DB_PASS` are the username and password for our database user. You may enquire about these credentials on our [tech](https://effektteam.slack.com/archives/G011BE3BG3H) slack channel, and we will send them to you privately.
 
-At the Effect Foundation, we have two databases on our SQL instance: `EffektDonasjonsDB` and `EffektDonasjonsDB_Dev`. The former is for our live production data, whilst the latter is for development. Set the environment variable `DB_NAME` to `EffektDonasjonsDB_Dev`.
+At the Effect Foundation, we have two databases on our SQL instance: `EffektDonasjonDB` and `EffektDonasjonDB_Dev`. The former is for our live production data, whilst the latter is for development. Set the environment variable `DB_NAME` to `EffektDonasjonDB_Dev`.
 
 If you wish to test restricted routes without having to authorize, you may also set `AUTH_REQUIRED` to false. More about [authorization](#authorization) is found in a latter section.
 
