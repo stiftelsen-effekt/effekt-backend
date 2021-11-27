@@ -123,20 +123,6 @@ router.post("/:KID/distribution", authMiddleware(authRoles.write_all_donations),
   }
 })
 
-router.post("/:KID/amount", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
-  try {
-      const KID = req.params.KID
-      const amount = req.body.amount
-
-      const response = await DAO.avtalegiroagreements.updateAmount(KID, amount)
-      
-      //await mail.sendAvtaleGiroChange() // Add later
-      res.send(response)
-  } catch (ex) {
-      next({ ex })
-  }
-})
-
 router.post("/:KID/status", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   try {
       const KID = req.params.KID
