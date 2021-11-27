@@ -4,7 +4,7 @@ const DAO = require('../custom_modules/DAO.js')
 const rounding = require("../custom_modules/rounding")
 const donationHelpers = require('../custom_modules/donationHelpers')
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
-const authorizationRoles = require('../enums/authorizationRoles')
+const authRoles = require('../enums/authorizationRoles')
 
 
 router.post("/draft", async (req,res,next) => {
@@ -28,7 +28,7 @@ router.post("/draft", async (req,res,next) => {
     res.json({ status: 200 })
 })
 
-router.post("/agreements", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
+router.post("/agreements", authMiddleware(authRoles.read_all_donations), async(req, res, next) => {
     try {
         var results = await DAO.avtalegiroagreements.getAgreements(req.body.sort, req.body.page, req.body.limit, req.body.filter)
         return res.json({ 
@@ -43,7 +43,7 @@ router.post("/agreements", authMiddleware(authorizationRoles.read_all_donations)
     }
 })
 
-router.get("/agreement/:id", authMiddleware(authorizationRoles.read_all_donations), async(req, res, next) => {
+router.get("/agreement/:id", authMiddleware(authRoles.read_all_donations), async(req, res, next) => {
   try {
       var result = await DAO.avtalegiroagreements.getAgreement(req.params.id)
       result["ID"] = result["ID"].toString()
@@ -72,7 +72,7 @@ router.get("/histogram", async (req,res,next) => {
     }
 })
 
-router.get("/report", authMiddleware(authorizationRoles.read_all_donations), async (req,res,next) => {
+router.get("/report", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
     try {
       let content = await DAO.avtalegiroagreements.getAgreementReport()
   
