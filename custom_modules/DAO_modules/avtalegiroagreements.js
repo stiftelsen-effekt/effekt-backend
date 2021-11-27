@@ -90,6 +90,38 @@ async function updatePaymentDate(KID, paymentDate) {
     }
 }
 
+async function replaceDistribution(replacementKID, originalKID) {
+    try {
+        var con = await pool.getConnection()
+
+        if (replacementKID.length !== 15 || originalKID.length !== 15) {
+            con.release()
+            return false
+        }
+
+        // Replaces original KID with a new replacement KID
+        await con.query(`
+            UPDATE Combining_table
+                SET KID = ?
+                WHERE KID = ?
+        `, [replacementKID, originalKID])
+
+        // Updates donations with the old distributions to use the replacement KID (preserves donation history)
+        await con.query(`
+            UPDATE Donations
+                SET KID_fordeling = ?
+                WHERE KID_fordeling = ?
+        `, [replacementKID, originalKID])
+
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
 async function setActive(KID, active) {
     try {
         var con = await pool.getConnection()
@@ -265,7 +297,8 @@ async function exists(KID) {
             AG.cancelled,
             AG.last_updated,
             AG.notice,
-            Donors.full_name 
+            Donors.full_name,
+            Donors.ID 
         FROM Avtalegiro_agreements as AG
         INNER JOIN Combining_table as CT
             ON AG.KID = CT.KID
@@ -465,6 +498,7 @@ module.exports = {
     updateNotification,
     updatePaymentDate,
     updateAmount,
+    replaceDistribution,
     remove,
     exists, 
     getByKID,
