@@ -111,10 +111,9 @@ router.post("/:KID/distribution", authMiddleware(authRoles.write_all_donations),
       
       // Create new KID for the old replaced distribution
       const replacementKID = await donationHelpers.createKID(15, donorId)
-      await DAO.avtalegiroagreements.replaceDistribution(replacementKID, originalKID) 
 
-      // Add new distribution using the original KID
-      const response = await DAO.distributions.add(split, originalKID, donorId, metaOwnerID)
+      // Replace distribution
+      const response = await DAO.avtalegiroagreements.replaceDistribution(replacementKID, originalKID, split, donorId, metaOwnerID) 
 
       //await mail.sendAvtaleGiroChange() // Add later
       res.send(response)

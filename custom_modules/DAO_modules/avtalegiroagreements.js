@@ -90,7 +90,7 @@ async function updatePaymentDate(KID, paymentDate) {
     }
 }
 
-async function replaceDistribution(replacementKID, originalKID) {
+async function replaceDistribution(replacementKID, originalKID, split, donorId, metaOwnerID) {
     try {
         var con = await pool.getConnection()
 
@@ -106,17 +106,20 @@ async function replaceDistribution(replacementKID, originalKID) {
             WHERE KID = ?
         `, [replacementKID, originalKID])
 
-        // Links the replacement KID to the original AvtaleGiro KID
-        await con.query(`
-            INSERT INTO AvtaleGiro_replaced_distributions(Replacement_KID, Original_AvtaleGiro_KID)
-            VALUES (?, ?)
-        `, [replacementKID, originalKID])
-
         // Updates donations with the old distributions to use the replacement KID (preserves donation history)
         await con.query(`
             UPDATE Donations
             SET KID_fordeling = ?
             WHERE KID_fordeling = ?
+        `, [replacementKID, originalKID])
+
+        // Add new distribution using the original KID
+        await distributions.add(split, originalKID, donorId, metaOwnerID)
+
+        // Links the replacement KID to the original AvtaleGiro KID
+        await con.query(`
+            INSERT INTO AvtaleGiro_replaced_distributions(Replacement_KID, Original_AvtaleGiro_KID)
+            VALUES (?, ?)
         `, [replacementKID, originalKID])
 
         con.release()
