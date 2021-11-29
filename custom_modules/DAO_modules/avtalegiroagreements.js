@@ -102,15 +102,21 @@ async function replaceDistribution(replacementKID, originalKID) {
         // Replaces original KID with a new replacement KID
         await con.query(`
             UPDATE Combining_table
-                SET KID = ?
-                WHERE KID = ?
+            SET KID = ?
+            WHERE KID = ?
+        `, [replacementKID, originalKID])
+
+        // Links the replacement KID to the original AvtaleGiro KID
+        await con.query(`
+            INSERT INTO AvtaleGiro_replaced_distributions(Replacement_KID, Original_AvtaleGiro_KID)
+            VALUES (?, ?)
         `, [replacementKID, originalKID])
 
         // Updates donations with the old distributions to use the replacement KID (preserves donation history)
         await con.query(`
             UPDATE Donations
-                SET KID_fordeling = ?
-                WHERE KID_fordeling = ?
+            SET KID_fordeling = ?
+            WHERE KID_fordeling = ?
         `, [replacementKID, originalKID])
 
         con.release()
