@@ -207,10 +207,10 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
         file: avtaleGiroClaimsFile.toString()
       }
     } else {
-      result = {
-        notifiedAgreements: null,
-        file: null
-      }
+      return res.json({
+        status: 200,
+        content: "No agreements"
+      })
     }
 
     await DAO.logging.add("AvtaleGiro - Retry", result)
