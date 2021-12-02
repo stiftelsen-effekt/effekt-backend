@@ -462,6 +462,30 @@ async function getByPaymentDate(dayInMonth) {
 }
 
 /**
+ * Returns an array of Avtalegiro validation values
+ * This is used to check if avtalegiro payments were recieved
+ * Expected is the expected amount of AvtaleGiro payments
+ * Actual is the amount recieved
+ * Diff is the difference between the two
+ * @returns {Array<{ date: String, expected: number, actual: number, diff: number }>}
+ */
+ async function getValidationTable() {
+    try {
+        var con = await pool.getConnection()
+
+        let [rows] = await con.query(`call EffektDonasjonDB.get_avtalegiro_validation()`)
+
+        con.release()
+        
+        return rows[0]
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
  * Adds a new shipment row to db
  * @param {Number} numClaims The number of claims in that shipment
  * @returns {Number} The shipment nr.
@@ -516,6 +540,7 @@ module.exports = {
     getAgreement,
     getAgreementReport,
     getByPaymentDate,
+    getValidationTable,
     addShipment,
     setup: (dbPool) => { pool = dbPool }
 }

@@ -85,6 +85,19 @@ router.get("/report", authMiddleware(authRoles.read_all_donations), async (req,r
     }
 })
 
+router.get("/validation", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
+  try {
+    let content = await DAO.avtalegiroagreements.getValidationTable()
+
+    res.json({
+      status: 200,
+      content
+    })
+  } catch(ex) {
+    next(ex)
+  }
+})
+
 router.post("/:KID/distribution", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   try {
       if (!req.body) return res.sendStatus(400)
