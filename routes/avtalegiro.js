@@ -72,7 +72,7 @@ router.get("/histogram", async (req,res,next) => {
     }
 })
 
-router.get("/report", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
+router.get("/report", async (req,res,next) => {
     try {
       let content = await DAO.avtalegiroagreements.getAgreementReport()
   

@@ -386,7 +386,33 @@ async function getByKID(KID) {
         (SELECT count(ID) 
             FROM Avtalegiro_agreements 
             WHERE month(created) = month(current_timestamp())
-        ) as startedThisMonth
+            AND active = 0
+        ) as draftedThisMonth,
+        (SELECT round(sum(amount)/100)
+            FROM Avtalegiro_agreements 
+            WHERE month(created) = month(current_timestamp())
+            AND active = 0
+        ) as sumDraftedThisMonth,
+        (SELECT count(ID) 
+            FROM Avtalegiro_agreements 
+            WHERE month(created) = month(current_timestamp())
+            AND active = 1
+        ) as activatedThisMonth,
+        (SELECT round(sum(amount)/100)
+            FROM Avtalegiro_agreements 
+            WHERE month(created) = month(current_timestamp())
+            AND active = 1
+        ) as sumActivatedThisMonth,
+        (SELECT count(ID) 
+            FROM Avtalegiro_agreements 
+            WHERE month(cancelled) = month(current_timestamp())
+            AND active = 0
+        ) as stoppedThisMonth,
+        (SELECT round(sum(amount)/100)
+            FROM Avtalegiro_agreements 
+            WHERE month(cancelled) = month(current_timestamp())
+            AND active = 0
+        ) as sumStoppedThisMonth
     FROM 
         Avtalegiro_agreements
     WHERE

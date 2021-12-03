@@ -385,10 +385,42 @@ async function getRecentOrder() {
         (SELECT count(ID) 
             FROM Vipps_agreements 
             WHERE month(timestamp_created) = month(current_timestamp())
-        ) as startedThisMonth,
+            AND (status='ACTIVE' OR (status='STOPPED' AND cancellation_date IS NOT NULL))
+        ) as activatedThisMonth,
+        (SELECT sum(amount) 
+            FROM Vipps_agreements 
+            WHERE month(timestamp_created) = month(current_timestamp())
+            AND (status='ACTIVE' OR (status='STOPPED' AND cancellation_date IS NOT NULL))
+        ) as sumActivatedThisMonth,
         (SELECT count(ID) 
             FROM Vipps_agreements 
-            WHERE month(cancellation_date) = month(current_timestamp())) as stoppedThisMonth
+            WHERE month(timestamp_created) = month(current_timestamp())
+            AND status='PENDING'
+        ) as pendingThisMonth,
+        (SELECT sum(amount) 
+            FROM Vipps_agreements 
+            WHERE month(timestamp_created) = month(current_timestamp())
+            AND status='PENDING'
+        ) as sumPendingThisMonth,
+        (SELECT count(ID) 
+            FROM Vipps_agreements 
+            WHERE month(cancellation_date) = month(current_timestamp())
+        ) as stoppedThisMonth,
+        (SELECT sum(amount) 
+            FROM Vipps_agreements 
+            WHERE month(cancellation_date) = month(current_timestamp())
+            AND status='STOPPED'
+        ) as sumStoppedThisMonth,
+        (SELECT count(ID) 
+            FROM Vipps_agreements 
+            WHERE month(timestamp_created) = month(current_timestamp())
+            AND status='EXPIRED'
+        ) as expiredThisMonth,
+        (SELECT sum(amount) 
+            FROM Vipps_agreements 
+            WHERE month(timestamp_created) = month(current_timestamp())
+            AND status='EXPIRED'
+        ) as sumExpiredThisMonth
     FROM 
         Vipps_agreements
     WHERE
