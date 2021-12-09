@@ -1,4 +1,4 @@
-# Effect Foundation API
+## Effect Foundation API
 
 The Effect Foundation API is used by all our core application for data storage. The API is connected to a MySQL database, where our donation data is stored. This includes our donations, donors, donation distributions, recurring donation agreements, referral statistics, authentification info, payment methods and so on.
 
@@ -8,29 +8,36 @@ The API is also responsible for handling payment processing.
 
 **Table of contents**
 
-* [API endpoints](#api-endpoints)
-* [Get started developing](#get-started-developing)
-  * [Google cloud setup](#google-cloud-setup)
-  * [Google cloud sql auth proxy](#google-cloud-sql-auth-proxy)
-  * [Configuring the API](#configuring-the-api)
-  * [Installing packages and running the project](#installing-packages-and-running-the-project)
-  * [Testing](#testing)
-* [Build and deployment](#build-and-deployment)
-  * [Environments](#environments)
-  * [Google cloud build](#google-cloud-build)
-* [Authentification](#authentification)
-* [Code structure](#code-structure)
-  * [Routes](#routes)
-  * [Business logic](#business-logic)
-  * [Data Access](#data-access)
-  * [Email](#email)
-  * [Logging](#logging)
-  * [Views](#views)
-  * [Scheduled jobs](#scheduled-jobs)
-* [Payment processing](#payment-processing)
-  * [Bank](#bank)
-  * [Vipps](#vipps)
-  * [PayPal](#paypal)
+- [Effect Foundation API](#effect-foundation-api)
+- [API endpoints](#api-endpoints)
+- [Get started developing](#get-started-developing)
+  - [Google cloud setup](#google-cloud-setup)
+  - [Google cloud sql auth proxy](#google-cloud-sql-auth-proxy)
+  - [Configuring the API](#configuring-the-api)
+  - [Installing packages and running the project](#installing-packages-and-running-the-project)
+  - [Testing](#testing)
+- [Build and deployment](#build-and-deployment)
+  - [Environments](#environments)
+  - [Google cloud build](#google-cloud-build)
+- [Code Structure & Implementation Details](#code-structure--implementation-details)
+  - [Routes](#routes)
+  - [Business logic](#business-logic)
+  - [Authentication & Authorization](#authentication--authorization)
+  - [KIDs](#kids)
+  - [Data Access](#data-access)
+  - [Email](#email)
+  - [Logging](#logging)
+  - [Views](#views)
+  - [Scheduled jobs](#scheduled-jobs)
+  - [Tests](#tests)
+- [Database](#database)
+  - [Tables Overview](#tables-overview)
+  - [Schema and Migrations](#schema-and-migrations)
+- [Payment processing](#payment-processing)
+  - [Bank](#bank)
+  - [Vipps](#vipps)
+  - [PayPal](#paypal)
+  - [Facebook](#facebook)
 
 ---
 
@@ -94,6 +101,11 @@ At the Effect Foundation, we have two databases on our SQL instance: `EffektDona
 
 If you wish to test restricted routes without having to authorize, you may also set `AUTH_REQUIRED` to false. More about [authorization](#authorization) is found in a latter section.
 
+One way to set and pass environment variables to the program when running it on nix is as follows:
+```
+DB_USER='a' DB_PASS='b' DB_NAME='EffektDonasjonDB_Dev' npm start
+```
+
 ### Installing packages and running the project
 
 Finally, we are ready to start the application. Clone this repository to your local machine.
@@ -153,21 +165,64 @@ We have three main branches in the repository, `master`, `stage` and `dev`. Any 
 
 **Dev** is deployed from the `dev` branch. The url for the deployment is https://dev.data.gieffektivt.no. This environment uses the development database, and is unstable. If you wish to test that your code runs in the google cloud environment, you may merge your changes into the dev branch.
 
-|Branch|Url|Database|Environment variables|
-|-|-|-|-|
-|`Master`|https://data.gieffektivt.no|`EffektDonasjonDB`|Production|
-|`Stage`|https://stage.data.gieffektivt.no|`EffektDonasjonDB`|Production|
-|`Dev`|https://dev.data.gieffektivt.no|`EffektDonasjonDB_Dev`|Development|
+| Branch   | Url                               | Database               | Environment variables |
+| -------- | --------------------------------- | ---------------------- | --------------------- |
+| `Master` | https://data.gieffektivt.no       | `EffektDonasjonDB`     | Production            |
+| `Stage`  | https://stage.data.gieffektivt.no | `EffektDonasjonDB`     | Production            |
+| `Dev`    | https://dev.data.gieffektivt.no   | `EffektDonasjonDB_Dev` | Development           |
 
 ### Google cloud build
 
-## Authentification
-
-## Code structure
+## Code Structure & Implementation Details
 
 ### Routes
 
+Routes in `/routes` define which API endpoints exist, and what they do. They're roughly broken into files (and corresponding url sub-paths) by grouped functionality.
+
+Routes are loaded into the app in `server.js`, and that set of endpoints is assigned a url subpath:
+```
+app.use('/donors', donorsRoute)
+```
+By convention, each subpath will have its own file in `/routes` with the same name, for example url `/donors` is implemented in `/routes/donors.js`
+
+At a high level, here's what the subpaths do:
+- `/auth`: authentication - logging in/out, passwords, and tokens
+- `/donors`: CRUD endpoints for donor objects
+- `/donations`: CRUD endpoints for donation objects
+- `/distributions`: CRUD endpoints for donation percent allocations
+- `/organizations`: CRUD endpoints for organization objects (example: Against Malaria Foundation)
+- `/payment`: CRUD endpoints for metadata (example: fees) about payment methods
+- `/referrals`: CRUD endpoints for donor referrals
+- `/paypal`: endpoints for Paypal payments
+- `/vipps`: endpoints for Vipps payments and payment agreements
+- `/avtalegiro`: endpoints for Avtalegiro payments and payment agreements
+- `/facebook`: endpoints for Facebook payments
+- `/scheduled`: endpoints called by cron jobs (usually daily), mostly for processing recurring payments
+- `/logging`: When we process recurring payments, we store some info. These endpoints fetch that info.
+- `/mail`: endpoints for sending certain emails
+- `/reports`: manual import data in bulk, via documents from banks or payment providers
+- `/csr`: ?
+- `/meta`: misc endpoints - today just one for data owners (Effekt and/or EAN)
+- `/debug`: debugging endpoints
+    
 ### Business logic
+- `/handlers` holds request middleware (logging, errors) that triggers before/after requests.
+- `/docs` holds additional documentation, and static image files for use in READMEs and documentation.
+- `/__test__` holds tests.
+- `/custom_modules` holds all the other logic! Core business logic, outbound gateways to remote endpoints, helper functions, and more. Some notable pieces:
+  - `/custom_modules/DAO.js` and `/custom_modules/DAO_modules` holds all the code for interacting with the database (there's a good amount of business logic inside the specific DAO modules).
+  - `/custom_modules/parsers` holds parsers for interpreting files, either manually uploaded, or pulled from FTP on a recurring basis.
+
+### Authentication & Authorization
+
+### KIDs
+KIDs are unique identifiers for each used (donor, distribution percentages) combination. A new donation will reuse an existing KID if the right one already exists, otherwise a new KID will be generated. KIDs are important because they're the main thing we pass to the payment processor, and then they pass back to us along with a payment, so we know which donor that payment was for, and how we should distribute the money.
+
+The code for creating a KID is in `/custom_modules/KID.js`.
+
+The current way of generating it is a 15-digit number. The first 6 digits are donor ID (with leading 0s), then 8 random digits, then 1 checksum digit.
+
+The old way of generating it was an 8-digit number, where the first 7 digits were random, and the last digit was a checksum digit.
 
 ### Data Access
 
@@ -179,6 +234,123 @@ We have three main branches in the repository, `master`, `stage` and `dev`. Any 
 
 ### Scheduled jobs
 
+### Tests
+
+## Database
+
+We use MySQL for our primary database.
+
+### Tables Overview
+
+This section contains a brief overview of some of the most important database tables. First, a pretty picture of how the tables connect!
+
+<img src="docs/table_relationships.png" width="1000" />
+
+**Organizations**
+
+The organizations we support donations to.
+
+Main Columns
+| Name        | Type   | Description | Example                      |
+| ----------- | ------ | ----------- | ---------------------------- |
+| `ID`        | int    |             | 1                            |
+| `full_name` | string |             | "Against Malaria Foundation" |
+| `abbriv`    | string |             | "AMF"                        |
+
+**Donors**
+
+One record for each donor. Personal info (name, ssn), credentials (email, password for users who can log in), and configuration.
+
+Main Columns
+| Name            | Type   | Description | Example             |
+| --------------- | ------ | ----------- | ------------------- |
+| `ID`            | int    |             | 2                   |
+| `full_name`     | string |             | "Malcolm T. Madiba" |
+| `ssn`           | string | Social Security Number            | 0123456789012       |
+| `email`         | string |             | "x@z.org"           |
+| `password_hash` | string |             |                     |
+| `password_salt` | string |             |                     |
+| `newsletter`    | bool   |             | true                |
+
+**Payment**
+
+One record for each payment type / payment processor, plus some metadata
+
+Main Columns
+| Name             | Type    | Description | Example |
+| ---------------- | ------- | ----------- | ------- |
+| `ID`             | int     |             | 3       |
+| `payment_name`   | string  |             | "Vipps" |
+| `flat_fee`       | decimal |             | 2.00    |
+| `percentage_fee` | decimal |             | 1.50    |
+
+**Donations**
+
+One record for each donation.
+
+Main Columns
+| Name                 | Type    | Description                                                               | Example    |
+| -------------------- | ------- | ------------------------------------------------------------------------- | ---------- |
+| `ID`                 | int     |                                                                           | 4          |
+| `Donor_ID`           | int     |                                                                           | 2          |
+| `Payment_ID`         | int     |                                                                           | 3          |
+| `PaymentExternal_ID` | string  | Payment ID in external system (ex: Vipps)                                 | "1351351"  |
+| `sum_confirmed`      | decimal | donation amount (NOK)                                                     | 500.00     |
+| `KID_fordeling`      | string  | Same as KID. Used to join to Combining_table for distribution percentages | "12345678" |
+
+**Distribution**
+
+One record for each (org, %) combination ever used.
+
+Main Columns
+| Name               | Type    | Description | Example |
+| ------------------ | ------- | ----------- | ------- |
+| `ID`               | int     |             | 5       |
+| `OrgID`            | int     |             | 1       |
+| `percentage_share` | decimal |             | 15.00   |
+
+**Combining_table**
+
+Join table to connect each KID to several Distributions. There will be multiple records for each KID with varying Distribution IDs. Percentage shares of the distributions for a given KID should sum to 100%.
+
+Main Columns
+| Name              | Type   | Description | Example    |
+| ----------------- | ------ | ----------- | ---------- |
+| `KID`             | string |             | "12345678" |
+| `Donor_ID`        | int    |             | 1          |
+| `Distribution_ID` | int    |             | 15.00      |
+
+Example for donor 11 doing a one-time donation, and distributing 40% to AMF and 60% to GiveWell, which results in KID 1234:
+
+Donations (1 record)
+| ID   | Donor_ID | KID_fordeling |
+| ---- | -------- | ------------- |
+| 6332 | 11       | "1234"        |
+
+Combining Table (2 records):
+| KID    | Donor_ID | Distribution_ID |
+| ------ | -------- | --------------- |
+| "1234" | 11       | 511             |
+| "1234" | 11       | 512             |
+
+Distributions (2 records)
+| ID  | OrgID | percentage_share |
+| --- | ----- | ---------------- |
+| 511 | 1     | 40.00            |
+| 512 | 2     | 60.00            |
+
+**A few other tables worth mentioning:**
+- `Import_logs`: Auditing data recorded by scheduled document import jobs
+- `Payment_intent`: Recorded when user starts a payment (but we aren't sure yet whether it'll be finalized)
+- `Access_*`, `ChangePass`: for authn/authz
+- `Referral_*`: for donor referrals
+- `Avtalegiro_*`: Data synced from avtalegiro
+- `Vipps_*`: Data synced from Vipps
+
+### Schema and Migrations
+
+Planned to onboard to a DB schema tool!
+
 ## Payment processing
 
 ### Bank
@@ -186,3 +358,5 @@ We have three main branches in the repository, `master`, `stage` and `dev`. Any 
 ### Vipps
 
 ### PayPal
+
+### Facebook
