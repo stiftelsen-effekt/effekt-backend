@@ -421,7 +421,88 @@ async function getByKID(KID) {
     con.release()
 
     if (res.length === 0) return false
-    else return res
+    else return res[0]
+}
+
+/**
+ * Gets all agreements that we have not yet recieved a payment for a given date
+ * @param {Date} date 
+ */
+async function getMissingForDate(date) {
+    try {
+        var con = await pool.getConnection()
+
+        let year = date.getFullYear()
+        let month = date.getMonth()+1
+        let dayOfMonth = date.getDate()
+
+        let [res] = await con.query('call get_avtalegiro_agreement_missing_donations_by_date(?,?,?)', 
+            [year, month, dayOfMonth])
+
+        con.release()
+
+        return res[0]
+    } catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
+ * Gets all agreements we expected a donation for for a given date
+ * @param {Date} date 
+ */
+ async function getExpectedDonationsForDate(date) {
+    try {
+        var con = await pool.getConnection()
+
+        let year = date.getFullYear()
+        let month = date.getMonth()+1
+        let dayOfMonth = date.getDate()
+
+        let [res] = await con.query('call get_avtalegiro_agreement_expected_donations_by_date(?,?,?)', 
+            [year, month, dayOfMonth])
+
+        con.release()
+
+        return res[0]
+    } catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
+ * Gets all donations we have recieved for agreements for a given date
+ * @param {Date} date 
+ */
+ async function getRecievedDonationsForDate(date) {
+    try {
+        var con = await pool.getConnection()
+
+        let year = date.getFullYear()
+        let month = date.getMonth()+1
+        let dayOfMonth = date.getDate()
+
+        let [res] = await con.query('call get_avtalegiro_agreement_recieved_donations_by_date(?,?,?)', 
+            [year, month, dayOfMonth])
+
+        con.release()
+
+        return res[0].map((donation) => ({
+            id: donation.ID,
+            kid: donation.KID_fordeling,
+            paymentMethod: 'AvtaleGiro',
+            email: donation.email,
+            donor: donation.full_name,
+            sum: donation.sum_confirmed,
+            transactionCost: donation.transaction_cost,
+            timestamp: donation.timestamp_confirmed
+        }))
+    } catch (ex) {
+        con.release()
+        throw ex
+    }
 }
 
 /**
@@ -567,6 +648,10 @@ module.exports = {
     getAgreementReport,
     getByPaymentDate,
     getValidationTable,
+    getMissingForDate,
+    getRecievedDonationsForDate,
+    getExpectedDonationsForDate,
+
     addShipment,
     setup: (dbPool) => { pool = dbPool }
 }

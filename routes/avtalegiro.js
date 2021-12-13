@@ -5,7 +5,7 @@ const rounding = require("../custom_modules/rounding")
 const donationHelpers = require('../custom_modules/donationHelpers')
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 const authRoles = require('../enums/authorizationRoles')
-
+const moment = require('moment')
 
 router.post("/draft", async (req,res,next) => {
     if (!req.body) return res.sendStatus(400)
@@ -94,6 +94,75 @@ router.get("/validation", authMiddleware(authRoles.read_all_donations), async (r
       content
     })
   } catch(ex) {
+    next(ex)
+  }
+})
+
+router.get("/missing/", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
+  try {
+    let date = req.query.date
+
+    if (!date)
+      throw new Error("Date query missing")
+
+    if (!moment(date, moment.ISO_8601, true).isValid())
+      throw new Error("Date query must be in ISO 8601 format")
+
+    date = new Date(date)
+
+    const content = await DAO.avtalegiroagreements.getMissingForDate(date)
+
+    res.json({
+      status: 200,
+      content
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.get("/expected/", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
+  try {
+    let date = req.query.date
+
+    if (!date)
+      throw new Error("Date query missing")
+
+    if (!moment(date, moment.ISO_8601, true).isValid())
+      throw new Error("Date query must be in ISO 8601 format")
+
+    date = new Date(date)
+
+    const content = await DAO.avtalegiroagreements.getExpectedDonationsForDate(date)
+
+    res.json({
+      status: 200,
+      content
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.get("/recieved/", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
+  try {
+    let date = req.query.date
+
+    if (!date)
+      throw new Error("Date query missing")
+
+    if (!moment(date, moment.ISO_8601, true).isValid())
+      throw new Error("Date query must be in ISO 8601 format")
+
+    date = new Date(date)
+
+    const content = await DAO.avtalegiroagreements.getRecievedDonationsForDate(date)
+
+    res.json({
+      status: 200,
+      content
+    })
+  } catch (ex) {
     next(ex)
   }
 })
