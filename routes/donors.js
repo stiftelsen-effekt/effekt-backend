@@ -17,7 +17,7 @@ router.post("/", urlEncodeParser, async (req, res, next) => {
       throw error
     }
 
-    await DAO.donors.add(req.body.email, req.body.name)
+    await DAO.donors.add(req.body.email, req.body.name, req.body.ssn)
 
     return res.json({
       status: 200,
