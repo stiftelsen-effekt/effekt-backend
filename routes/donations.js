@@ -18,6 +18,20 @@ const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 const donationHelpers = require('../custom_modules/donationHelpers')
 const rateLimit = require('express-rate-limit')
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Donations
+ *     description: Donations in the database
+ */
+
+/**
+ * @openapi
+ * /donations/register:
+ *   post:
+ *    tags: [Donations]
+ *    description: Registers a pending donation
+ */
 router.post("/register", async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
   let parsedData = req.body
@@ -131,6 +145,13 @@ router.post("/register", async (req,res,next) => {
   })
 })
 
+/**
+ * @openapi
+ * /donations/bank/pending:
+ *   post:
+ *    tags: [Donations]
+ *    description: Registers a pending bank donation (sends an email with a notice to pay)
+ */
 router.post("/bank/pending", urlEncodeParser, async (req,res,next) => {
   let parsedData = JSON.parse(req.body.data)
 
@@ -143,6 +164,13 @@ router.post("/bank/pending", urlEncodeParser, async (req,res,next) => {
   else res.status(500).json({ status: 500, content: "Could not send bank donation pending email" })
 })
 
+/**
+ * @openapi
+ * /donations/confirm:
+ *   post:
+ *    tags: [Donations]
+ *    description: Adds a confirmed donation to the database
+ */
 router.post("/confirm", 
   authMiddleware(authRoles.write_all_donations),
   urlEncodeParser,
@@ -169,6 +197,13 @@ router.post("/confirm",
   }
 })
 
+/**
+ * @openapi
+ * /donations/total:
+ *   get:
+ *    tags: [Donations]
+ *    description: Get aggregated donations in a date range, by organizations
+ */
 router.get("/total", async (req, res, next) => {
   try {
     let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
@@ -184,6 +219,13 @@ router.get("/total", async (req, res, next) => {
   }
 })
 
+/**
+ * @openapi
+ * /donations/total:
+ *   get:
+ *    tags: [Donations]
+ *    description: Get aggregated donations by month for last 12 months
+ */
 router.get("/total/monthly", async (req,res,next) => {
   try {
     let aggregate = await DAO.donations.getAggregateLastYearByMonth()
@@ -197,6 +239,13 @@ router.get("/total/monthly", async (req,res,next) => {
   }
 })
 
+/**
+ * @openapi
+ * /donations/total:
+ *   get:
+ *    tags: [Donations]
+ *    description: Get the median donation
+ */
 router.get("/median", cache("5 minutes"), async (req, res, next) => {
   try {
     let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req)
@@ -247,6 +296,13 @@ router.get("/histogram", async (req,res,next) => {
   }
 })
 
+/**
+ * @openapi
+ * /donations/{id}:
+ *   get:
+ *    tags: [Donations]
+ *    description: Redirects to donation success when query is ok, donation failed if not ok. Used for payment processing.
+ */
 router.get('/status', async (req, res, next) => {
   try {
     if (req.query.status && req.query.status.toUpperCase() === "OK")
@@ -258,6 +314,13 @@ router.get('/status', async (req, res, next) => {
   }
 })
 
+/**
+ * @openapi
+ * /donations/{id}:
+ *   get:
+ *    tags: [Donations]
+ *    description: Get get a donation by id
+ */
 router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
   try {
     var donation = await DAO.donations.getByID(req.params.id)
@@ -271,6 +334,13 @@ router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,
   }
 })
 
+/**
+ * @openapi
+ * /donations/{id}:
+ *   delete:
+ *    tags: [Donations]
+ *    description: Delete a donation by id
+ */
 router.delete("/:id", authMiddleware(authRoles.write_all_donations), async (req,res,next) => {
   try {
     var removed = await DAO.donations.remove(req.params.id)
@@ -334,6 +404,13 @@ router.post("/reciepts", authMiddleware(authRoles.write_all_donations) ,async (r
   }
 })
 
+/**
+ * @openapi
+ * /donations/summary/{donorId}:
+ *   get:
+ *    tags: [Donations]
+ *    description: Fetches the total amount of money donated to each organization by a specific donor
+ */
 router.get("/summary/:donorID", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
   try {
       var summary = await DAO.donations.getSummary(req.params.donorID)
@@ -348,6 +425,13 @@ router.get("/summary/:donorID", authMiddleware(authRoles.read_all_donations), as
   }
 })
 
+/**
+ * @openapi
+ * /donations/history/{donorId}:
+ *   get:
+ *    tags: [Donations]
+ *    description: Fetches donation history for a donor
+ */
 router.get("/history/:donorID", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
   try {
       var history = await DAO.donations.getHistory(req.params.donorID)
@@ -367,7 +451,6 @@ let historyRateLimit = new rateLimit({
     max: 5,
     delayMs: 0 // disable delaying - full speed until the max limit is reached 
 })
-
 router.post("/history/email", historyRateLimit, async (req, res, next) => {
   try {
     let email = req.body.email

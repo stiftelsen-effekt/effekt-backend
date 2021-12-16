@@ -14,6 +14,43 @@ const logging = require('./handlers/loggingHandler.js')
 const http = require('http')
 const hogan = require('hogan-express')
 const bearerToken = require('express-bearer-token')
+const swaggerUi = require('swagger-ui-express')
+const swaggerJsdoc = require('swagger-jsdoc')
+
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Effekt Donation API',
+      version: '1.0.0',
+    },
+    components: {
+      securitySchemes: {
+        oAuth: {
+          type: 'oauth2',
+          scheme: 'bearer',
+          flows: {
+            authorizationCode: {
+              authorizationUrl: '/auth/login/',
+              tokenUrl: '/auth/token',
+              scopes: {
+                read_user_info: 'Read information about current user',
+                read_all_donations: 'Read all donations',
+                write_all_donations: 'Write all donations'
+              }
+            }
+          }
+        }
+      }
+    },
+    security: [{
+      oAuth: ['read_all_donations']
+    }]
+  },
+  apis: ['./routes/*.js'], // files containing annotations as above
+}
+
+const openapiSpecification = swaggerJsdoc(options)
 
 console.log("Top level dependencies loaded")
 
@@ -35,9 +72,14 @@ DAO.connect(() => {
   //Setup request logging
   logging(app)
 
-  app.get("/", (req, res, next) => {
-    res.send("Dr. Livingstone, I presume?")
-  })
+  app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification))
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpecification, false, { 
+    oauth: { 
+      clientId: "b4cb4b0095d0b211ead48d6b1e8c6c7cffa181cb", 
+      clientSecret: "c84ed9f4e1ea441b59dbe8449beacc8bc32a7f38"
+    },
+    oauth2RedirectUrl: 'http://localhost/api-docs/oauth2-redirect.html'
+  }))
 
   //Parse post body
   app.use(express.json());

@@ -9,6 +9,20 @@ const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 const rateLimit = require('express-rate-limit')
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Donors
+ *     description: Donors in the database
+ */
+
+/**
+ * @openapi
+ * /donors/:
+ *   post:
+ *    tags: [Donors]
+ *    description: Add a new user
+ */
 router.post("/", urlEncodeParser, async (req, res, next) => {
   try {
     if (!req.body.name) {
@@ -28,26 +42,29 @@ router.post("/", urlEncodeParser, async (req, res, next) => {
   }
 })
 
-router.get('/search/', auth(roles.read_all_donations), async (req, res, next) => {
-  try {
-    var donors = await DAO.donors.search(req.query.q)
-
-    if (donors) {
-      return res.json({
-        status: 200,
-        content: donors
-      })
-    } else {
-      return res.status(404).json({
-        status: 404,
-        content: "No donors found matching query"
-      })
-    }
-  } catch (ex) {
-    next(ex)
-  }
-})
-
+/**
+ * @openapi
+ * /donors/{id}:
+ *   get:
+ *    tags: [Donors]
+ *    description: Get a donor by id
+ *    security: 
+ *       - oAuth: [read_all_donations]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to retrieve.
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Returns a donor object
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donor with given id not found
+ */
 router.get('/:id', auth(roles.read_all_donations), async (req, res, next) => {
   try {
     var donor = await DAO.donors.getByID(req.params.id)
@@ -70,13 +87,47 @@ router.get('/:id', auth(roles.read_all_donations), async (req, res, next) => {
   }
 })
 
-let newsletterRateLimit = new rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 5,
-  delayMs: 0 // disable delaying - full speed until the max limit is reached 
-})
-router.post("/newsletter", newsletterRateLimit, (req, res) => {
+/**
+ * @openapi
+ * /donors/search:
+ *   post:
+ *    tags: [Donors]
+ *    description: Search for donors in the database
+ *    security: 
+ *       - oAuth: [read_all_donations]
+ *    parameters:
+ *      - in: application/json
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to retrieve.
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Returns a donor object
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donor with given id not found
+ */
+router.get('/search/', auth(roles.read_all_donations), async (req, res, next) => {
+  try {
+    var donors = await DAO.donors.search(req.query.q)
 
+    if (donors) {
+      return res.json({
+        status: 200,
+        content: donors
+      })
+    } else {
+      return res.status(404).json({
+        status: 404,
+        content: "No donors found matching query"
+      })
+    }
+  } catch (ex) {
+    next(ex)
+  }
 })
 
 module.exports = router

@@ -148,12 +148,40 @@ router.post("/login", urlEncodeParser, async(req, res, next) => {
         return
     }
 
-    res.redirect(`${callback}?key=${accessKey.key}&expires=${encodeURIComponent(accessKey.expires.toString())}&state=${req.body.state}`)
+    res.redirect(`${callback}?code=${accessKey.key}&expires=${encodeURIComponent(accessKey.expires.toString())}&state=${req.body.state}`)
 })
 
 router.get("/token", async(req,res,next) => {
     try {
         var key = req.query.key
+        if (!key) {
+            return res.status(401).json({
+                status: 401,
+                content: "Access Key parameter missing"
+            })
+        } 
+
+        var token = await DAO.auth.addAccessTokenByAccessKey(key)
+
+        res.json({
+            status: 200,
+            content: token
+        })
+    } catch(ex) {
+        if (ex.message === "Invalid access key") {
+            res.status(401).json({
+                status: 401,
+                content: "Invalid access key"
+            })
+        } else {
+            next(ex)
+        }
+    }
+})
+
+router.post("/token", urlEncodeParser, async(req,res,next) => {
+    try {
+        var key = req.body.code
         if (!key) {
             return res.status(401).json({
                 status: 401,
