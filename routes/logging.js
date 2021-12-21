@@ -9,8 +9,9 @@ router.post("/", async (req,res, next) => {
   try {
     const limit = parseInt(req.body.limit)
     const offset = parseInt(req.body.page*limit)
+    const filesearch = req.body.filesearch
 
-    const entries = await DAO.logging.getEntries(limit, offset)
+    const entries = await DAO.logging.getEntries(limit, offset, filesearch)
 
     res.json({
       status: 200,

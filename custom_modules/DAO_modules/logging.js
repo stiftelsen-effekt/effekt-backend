@@ -1,3 +1,5 @@
+const sqlString = require('sqlstring')
+
 /**
  * @type {import('mysql2/promise').Pool}
  */
@@ -16,9 +18,10 @@ var pool
  * Gets import logs
  * @param {number} limit How many objects to return
  * @param {number} offset By which offset in db
+ * @param {string} filesearch A string to fuzzy match in the file in the log entry
  * @returns {{ results: Array<ImportLogEntry>, pages: number }}
  */
-async function getEntries(limit = 10, offset = 0) {
+async function getEntries(limit = 10, offset = 0, filesearch = null) {
   /**
    * TODO: Add filtering
    */
@@ -30,6 +33,8 @@ async function getEntries(limit = 10, offset = 0) {
         ID, label, timestamp 
       
       FROM Import_logs 
+
+      ${filesearch !== null ? "WHERE JSON_EXTRACT(result, \"$.file\") like '%" + sqlString.escape(filesearch) + "%'" : ""}
       
       ORDER BY timestamp DESC 
       LIMIT ? 
