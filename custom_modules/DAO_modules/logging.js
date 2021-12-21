@@ -30,11 +30,38 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
 
     let [res] = await con.query(`
       SELECT 
-        ID, label, timestamp 
+        ID, label, timestamp,
+        (CASE 
+          WHEN JSON_CONTAINS_PATH(result, 'one', '$.addedDonations') THEN 
+            CONCAT(
+              "Donations [",
+              " Added: ", JSON_EXTRACT(result, "$.addedDonations.valid"),
+              " Invalid: ", JSON_EXTRACT(result, "$.addedDonations.invalid"),
+              " ] Agreements [",
+              " Activated: ", JSON_EXTRACT(result, "$.updatedAgreements.activated"),
+              " Terminated: ", JSON_EXTRACT(result, "$.updatedAgreements.terminated"),
+              " ]"
+            )
+          WHEN JSON_CONTAINS_PATH(result, 'one', '$.notifiedAgreements') THEN 
+            CONCAT(
+              "Notified [",
+              " Success: ", JSON_EXTRACT(result, "$.notifiedAgreements.success"),
+              " Failed: ", JSON_EXTRACT(result, "$.notifiedAgreements.failed"),
+              " ]"
+            )
+          WHEN JSON_CONTAINS_PATH(result, 'one', '$.createdCharges') THEN 
+            CONCAT(
+              "Agreements [",
+              " Charges: ", JSON_EXTRACT(result, "$.createdCharges"),
+              " Active: ", JSON_EXTRACT(result, "$.activeAgreements"),
+              " ]"
+            )
+          ELSE ''
+        END) as meta
       
       FROM Import_logs 
 
-      ${filesearch !== null ? "WHERE JSON_EXTRACT(result, \"$.file\") like '%" + sqlString.escape(filesearch) + "%'" : ""}
+      ${filesearch !== null && filesearch !== '' ? "WHERE JSON_EXTRACT(result, \"$.file\") LIKE " + sqlString.escape("%" + filesearch + "%") : ""}
       
       ORDER BY timestamp DESC 
       LIMIT ? 
