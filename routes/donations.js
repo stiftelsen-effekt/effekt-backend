@@ -150,7 +150,7 @@ router.post("/confirm",
   try {
     let sum = Number(req.body.sum)
     let timestamp = new Date(req.body.timestamp);
-    let KID = Number(req.body.KID)
+    let KID = req.body.KID
     let methodId = Number(req.body.paymentId)
     let externalRef = req.body.paymentExternalRef
     let metaOwnerID = req.body.metaOwnerID
