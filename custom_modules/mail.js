@@ -268,10 +268,7 @@ async function sendDonationRegistered(KID, sum) {
       }
 
       let organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
-
       var KIDstring = KID.toString()
-      //Add seperators for KID, makes it easier to read
-      KIDstring = KIDstring.substr(0,3) + " " + KIDstring.substr(3,2) + " " + KIDstring.substr(5,3)
   
       await send({
         subject: 'gieffektivt.no - Donasjon klar for innbetaling',
