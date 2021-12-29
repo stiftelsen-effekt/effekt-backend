@@ -296,7 +296,7 @@ async function exists(KID) {
     let con = await pool.getConnection()
 
     const result = await con.query(`
-        SELECT
+        SELECT DISTINCT
             AG.ID,
             AG.active,
             ROUND(AG.amount / 100, 0) as amount,
@@ -330,6 +330,41 @@ async function exists(KID) {
     }))
 
     return avtaleGiro
+}
+
+async function getByDonorId(donorId) {
+    try {
+        var con = await pool.getConnection()
+        let [agreements] = await con.query(`
+            SELECT DISTINCT
+                AG.ID,
+                AG.active,
+                ROUND(AG.amount / 100, 0) as amount,
+                AG.KID,
+                AG.payment_date,
+                AG.created,
+                AG.cancelled,
+                AG.last_updated,
+                AG.notice,
+                Donors.full_name
+            FROM Avtalegiro_agreements as AG
+            
+            INNER JOIN Combining_table as CT
+                ON AG.KID = CT.KID
+            
+            INNER JOIN Donors 
+                ON CT.Donor_ID = Donors.ID
+            
+            WHERE Donors.ID = ?`, [donorId])
+
+        con.release()
+        
+        return agreements;
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
 }
 
 async function getByKID(KID) {
@@ -642,6 +677,7 @@ module.exports = {
     remove,
     exists, 
     getByKID,
+    getByDonorId,
     getAgreementSumHistogram,
     getAgreements,
     getAgreement,

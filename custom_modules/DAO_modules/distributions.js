@@ -112,6 +112,51 @@ async function getAllByDonor(donorID) {
 }
 
 /**
+ * Returns the flat distributions (not the actual split between organizations)
+ * for a given donor id, with number of donations and donation sum.
+ * @param {Number} donorId
+ * @returns {Array<{
+ *  kid: number,
+ *  count: number,
+ *  sum: number,
+ *  full_name: string,
+ *  email: string,
+ * }>}
+ */
+async function getByDonorId(donorId) {
+    try {
+        var con = await pool.getConnection()
+
+        var [distributions] = await con.query(`
+            SELECT
+            Combining.KID,
+            Donations.sum,
+            Donations.count,
+            Donors.full_name,
+            Donors.email
+
+            FROM Combining_table as Combining
+
+            LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
+                ON Donations.KID_fordeling = Combining.KID
+
+            INNER JOIN Donors
+                ON Combining.Donor_ID = Donors.ID
+
+            WHERE Donors.ID = ?
+
+            GROUP BY Combining.KID, Donors.full_name, Donors.email
+        `, [donorId])
+
+        con.release()
+        return distributions
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
  * Checks whether given KID exists in DB
  * @param {number} KID 
  * @returns {boolean}
@@ -129,8 +174,6 @@ async function KIDexists(KID) {
         con.release()
         throw ex
     }
-
-    
 }
 
 /**
@@ -291,6 +334,7 @@ module.exports = {
     getHistoricPaypalSubscriptionKIDS,
     getAll,
     getAllByDonor,
+    getByDonorId,
     add,
     
     setup: (dbPool, DAOObject) => { pool = dbPool, DAO = DAOObject }

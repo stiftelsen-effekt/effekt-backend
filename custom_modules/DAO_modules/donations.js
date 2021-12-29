@@ -10,6 +10,7 @@ var DAO
 /** @typedef Donation
  * @prop {number} id
  * @prop {string} donor Donor full name
+ * @prop {number} donorId
  * @prop {string} email
  * @prop {number} sum 
  * @prop {number} transactionCost
@@ -284,6 +285,7 @@ async function getByID(donationID) {
                 Donation.KID_fordeling,
                 Donation.transaction_cost,
                 Donation.timestamp_confirmed,
+                Donor.ID as donorId,
                 Donor.full_name,
                 Donor.email,
                 Payment.payment_name
@@ -309,11 +311,12 @@ async function getByID(donationID) {
         let donation = {
             id: dbDonation.ID,
             donor: dbDonation.full_name,
+            donorId: dbDonation.donorId,
             email: dbDonation.email,
             sum: dbDonation.sum_confirmed,
             transactionCost: dbDonation.transaction_cost,
             timestamp: dbDonation.timestamp_confirmed,
-            method: dbDonation.payment_name,
+            paymentMethod: dbDonation.payment_name,
             KID: dbDonation.KID_fordeling
         }
 
@@ -328,6 +331,54 @@ async function getByID(donationID) {
         con.release()
         return donation
     } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+async function getByDonorId(donorId) {
+    try {
+        var con = await pool.getConnection()
+        
+        var [donations] = await con.query(`
+            SELECT 
+                Donation.ID,
+                Donation.sum_confirmed, 
+                Donation.KID_fordeling,
+                Donation.transaction_cost,
+                Donation.timestamp_confirmed,
+                Donor.ID as donorId,
+                Donor.full_name,
+                Donor.email,
+                Payment.payment_name
+            
+            FROM Donations as Donation
+
+            INNER JOIN Donors as Donor
+                ON Donation.Donor_ID = Donor.ID
+
+            INNER JOIN Payment
+                ON Donation.Payment_ID = Payment.ID
+            
+            WHERE 
+                Donation.Donor_ID = ?`, [donorId])
+
+        /** @type Array<Donation> */
+        donations = donations.map((dbDonation) => ({
+            id: dbDonation.ID,
+            donor: dbDonation.full_name,
+            donorId: dbDonation.donorId,
+            email: dbDonation.email,
+            sum: dbDonation.sum_confirmed,
+            transactionCost: dbDonation.transaction_cost,
+            timestamp: dbDonation.timestamp_confirmed,
+            paymentMethod: dbDonation.payment_name,
+            KID: dbDonation.KID_fordeling
+        }))
+
+        con.release()
+        return donations
+    } catch (ex) {
         con.release()
         throw ex
     }
@@ -581,6 +632,40 @@ async function getSummaryByYear(donorID) {
     }
 }
 
+async function getYearlyAggregateByDonorId(donorId) {
+    try {
+        var con = await pool.getConnection()
+
+        const [res] = await con.query(`
+            SELECT
+                Organizations.ID as organizationId,
+                Organizations.full_name as organization,
+                Organizations.abbriv,
+                SUM(Donations.sum_confirmed * percentage_share / 100) as value, 
+                year(Donations.timestamp_confirmed) as \`year\`
+
+            FROM Donations
+                INNER JOIN Combining_table 
+                    ON Combining_table.KID = Donations.KID_fordeling
+                INNER JOIN Distribution 
+                    ON Combining_table.Distribution_ID = Distribution.ID
+                INNER JOIN Organizations 
+                    ON Organizations.ID = Distribution.OrgID
+            WHERE 
+                Donations.Donor_ID = ?
+                
+            GROUP BY Organizations.id, \`year\`
+        `, [donorId])
+
+        con.release()
+        
+        return res
+    } catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
 /**
  * Fetches all donations recieved by a specific donor
  * @param {Number} donorID
@@ -775,6 +860,8 @@ module.exports = {
     getSummary,
     getSummaryByYear,
     getHistory,
+    getYearlyAggregateByDonorId,
+    getByDonorId,
     getLatestByKID,
     ExternalPaymentIDExists,
     add,
