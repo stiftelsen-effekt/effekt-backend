@@ -7,7 +7,6 @@ const DAO = require('../custom_modules/DAO.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
-const rateLimit = require('express-rate-limit')
 
 router.post("/", urlEncodeParser, async (req, res, next) => {
   try {
@@ -30,7 +29,7 @@ router.post("/", urlEncodeParser, async (req, res, next) => {
 
 router.get('/search/', auth(roles.read_all_donations), async (req, res, next) => {
   try {
-    var donors = await DAO.donors.search(req.query.q)
+    const donors = await DAO.donors.search(req.query.q)
 
     if (donors) {
       return res.json({
@@ -50,33 +49,87 @@ router.get('/search/', auth(roles.read_all_donations), async (req, res, next) =>
 
 router.get('/:id', auth(roles.read_all_donations), async (req, res, next) => {
   try {
-    var donor = await DAO.donors.getByID(req.params.id)
+    const donor = await DAO.donors.getByID(req.params.id)
 
     if (donor) {
       return res.json({
         status: 200,
         content: donor
       })
-    }
-    else {
+    } else {
       return res.status(404).json({
         status: 404,
         content: "No donor found with ID " + req.params.id
       })
     }
-  }
-  catch (ex) {
+  } catch (ex) {
     next(ex)
   }
 })
 
-let newsletterRateLimit = new rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 5,
-  delayMs: 0 // disable delaying - full speed until the max limit is reached 
-})
-router.post("/newsletter", newsletterRateLimit, (req, res) => {
+router.get('/:id/donations', async (req, res, next) => {
+  try {
+    const donations = await DAO.donations.getByDonorId(req.params.id)
 
+    return res.json({
+      status: 200,
+      content: donations
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.get('/:id/distributions', async (req, res, next) => {
+  try {
+    const distributions = await DAO.distributions.getByDonorId(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: distributions
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.get('/:id/recurring/avtalegiro', async (req, res, next) => {
+  try {
+    const agreements = await DAO.avtalegiroagreements.getByDonorId(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: agreements
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.get('/:id/recurring/vipps', async (req, res, next) => {
+  try {
+    const agreements = await DAO.vipps.getAgreementsByDonorId(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: agreements
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.get('/:id/donations/aggregated', async (req, res, next) => {
+  try {
+    const aggregated = await DAO.donations.getYearlyAggregateByDonorId(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: aggregated
+    })
+  } catch (ex) {
+    next(ex)
+  }
 })
 
 module.exports = router

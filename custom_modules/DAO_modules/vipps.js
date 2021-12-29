@@ -212,6 +212,44 @@ async function getRecentOrder() {
 }
 
 /**
+ * Fetches an agreement by donor id
+ * @property {number} donorId
+ * @return {VippsAgreement} 
+ */
+ async function getAgreementsByDonorId(donorId) {
+    try {
+        var con = await pool.getConnection()
+        const [agreements] = await con.query(`
+            SELECT Vipps_agreements.ID, 
+                status, 
+                donorID,
+                Donors.full_name,
+                KID, 
+                timestamp_created, 
+                monthly_charge_day, 
+                force_charge_date, 
+                paused_until_date, 
+                amount, 
+                agreement_url_code 
+                
+                FROM Vipps_agreements
+
+                INNER JOIN Donors
+                    ON Vipps_agreements.donorID = Donors.ID
+            
+                WHERE 
+                    donorID = ?
+            `, [donorId])
+
+        con.release()
+        return agreements
+    } catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
  * Fetches all charges with sorting and filtering
  * @param {column: string, desc: boolean} sort Sort object
  * @param {string | number | Date} page Used for pagination
@@ -842,6 +880,7 @@ module.exports = {
     getRecentOrder,
     getAgreement,
     getAgreements,
+    getAgreementsByDonorId,
     getCharges,
     getCharge,
     getInitialCharge,
