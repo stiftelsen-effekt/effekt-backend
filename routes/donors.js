@@ -67,7 +67,7 @@ router.get('/:id', auth(roles.read_all_donations), async (req, res, next) => {
   }
 })
 
-router.get('/:id/donations', async (req, res, next) => {
+router.get('/:id/donations', auth(roles.read_all_donations), async (req, res, next) => {
   try {
     const donations = await DAO.donations.getByDonorId(req.params.id)
 
@@ -80,7 +80,7 @@ router.get('/:id/donations', async (req, res, next) => {
   }
 })
 
-router.get('/:id/distributions', async (req, res, next) => {
+router.get('/:id/distributions', auth(roles.read_all_donations), async (req, res, next) => {
   try {
     const distributions = await DAO.distributions.getByDonorId(req.params.id)
 
@@ -93,7 +93,7 @@ router.get('/:id/distributions', async (req, res, next) => {
   }
 })
 
-router.get('/:id/recurring/avtalegiro', async (req, res, next) => {
+router.get('/:id/recurring/avtalegiro', auth(roles.read_all_donations), async (req, res, next) => {
   try {
     const agreements = await DAO.avtalegiroagreements.getByDonorId(req.params.id)
 
@@ -106,7 +106,7 @@ router.get('/:id/recurring/avtalegiro', async (req, res, next) => {
   }
 })
 
-router.get('/:id/recurring/vipps', async (req, res, next) => {
+router.get('/:id/recurring/vipps', auth(roles.read_all_donations), async (req, res, next) => {
   try {
     const agreements = await DAO.vipps.getAgreementsByDonorId(req.params.id)
 
@@ -119,7 +119,7 @@ router.get('/:id/recurring/vipps', async (req, res, next) => {
   }
 })
 
-router.get('/:id/donations/aggregated', async (req, res, next) => {
+router.get('/:id/donations/aggregated', auth(roles.read_all_donations), async (req, res, next) => {
   try {
     const aggregated = await DAO.donations.getYearlyAggregateByDonorId(req.params.id)
 
