@@ -143,7 +143,7 @@ async function sendDonationReciept(donationID, reciever = null) {
             donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: decideUIPaymentMethod(donation.method),
+            paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
             //Adds a message to donations with inactive organizations
             hasReplacedOrgs,
             reusableHTML
@@ -204,7 +204,7 @@ async function sendEffektDonationReciept(donationID, reciever = null) {
             donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: decideUIPaymentMethod(donation.method),
+            paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
             //Adds a message to donations with inactive organizations
             hasReplacedOrgs,
             reusableHTML
