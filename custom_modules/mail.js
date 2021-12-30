@@ -460,7 +460,7 @@ async function sendDonationHistory(donorID) {
       var donationSummary = await DAO.donations.getSummary(donorID)
       var yearlyDonationSummary = await DAO.donations.getSummaryByYear(donorID)
       var donationHistory = await DAO.donations.getHistory(donorID)
-      var donor = await DAO.donors.getByID(donationSummary[donationSummary.length - 1].donorID)
+      var donor = await DAO.donors.getByID(donorID)
       var email = donor.email
       var dates = []
       var templateName;
@@ -515,7 +515,7 @@ async function sendDonationHistory(donorID) {
         subject: "gieffektivt.no - Din donasjonshistorikk",
         templateName: templateName,
         templateData: { 
-            header: "Hei " + donor.full_name + ",",
+            header: "Hei " + donor.name + ",",
             total: total,
             donationSummary: donationSummary,
             yearlyDonationSummary: yearlyDonationSummary,
