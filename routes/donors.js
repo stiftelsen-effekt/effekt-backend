@@ -59,6 +59,18 @@ router.post("/", urlEncodeParser, async (req, res, next) => {
  *    responses:
  *      200:
  *        description: Returns a donor object
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: 
+ *                        $ref: '#/components/schemas/Donor'
+ *                   example:
+ *                      content:
+ *                        $ref: '#/components/schemas/Donor/example'
  *      401:
  *        description: User not authorized to view resource
  *      404:

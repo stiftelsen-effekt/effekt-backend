@@ -1,0 +1,14 @@
+openapi: 3.0.1
+components:
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          description: The http status of the request
+        content:
+          description: Some object depending on the route
+      example:
+        id: 200
+        content: "OK"

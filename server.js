@@ -47,7 +47,7 @@ const options = {
       oAuth: ['read_all_donations']
     }]
   },
-  apis: ['./routes/*.js'], // files containing annotations as above
+  apis: ['./routes/*.js', './specs/**/*.yaml'], // files containing annotations as above
 }
 
 const openapiSpecification = swaggerJsdoc(options)
