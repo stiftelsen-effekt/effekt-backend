@@ -143,7 +143,7 @@ async function sendDonationReciept(donationID, reciever = null) {
             donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: decideUIPaymentMethod(donation.method),
+            paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
             //Adds a message to donations with inactive organizations
             hasReplacedOrgs,
             reusableHTML
@@ -204,7 +204,7 @@ async function sendEffektDonationReciept(donationID, reciever = null) {
             donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
             organizations: organizations,
             donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: decideUIPaymentMethod(donation.method),
+            paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
             //Adds a message to donations with inactive organizations
             hasReplacedOrgs,
             reusableHTML
@@ -268,10 +268,7 @@ async function sendDonationRegistered(KID, sum) {
       }
 
       let organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
-
       var KIDstring = KID.toString()
-      //Add seperators for KID, makes it easier to read
-      KIDstring = KIDstring.substr(0,3) + " " + KIDstring.substr(3,2) + " " + KIDstring.substr(5,3)
   
       await send({
         subject: 'gieffektivt.no - Donasjon klar for innbetaling',
@@ -463,7 +460,7 @@ async function sendDonationHistory(donorID) {
       var donationSummary = await DAO.donations.getSummary(donorID)
       var yearlyDonationSummary = await DAO.donations.getSummaryByYear(donorID)
       var donationHistory = await DAO.donations.getHistory(donorID)
-      var donor = await DAO.donors.getByID(donationSummary[donationSummary.length - 1].donorID)
+      var donor = await DAO.donors.getByID(donorID)
       var email = donor.email
       var dates = []
       var templateName;
@@ -518,7 +515,7 @@ async function sendDonationHistory(donorID) {
         subject: "gieffektivt.no - Din donasjonshistorikk",
         templateName: templateName,
         templateData: { 
-            header: "Hei " + donor.full_name + ",",
+            header: "Hei " + donor.name + ",",
             total: total,
             donationSummary: donationSummary,
             yearlyDonationSummary: yearlyDonationSummary,

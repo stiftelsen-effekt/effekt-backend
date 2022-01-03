@@ -43,9 +43,16 @@ async function getByID(ID) {
 
         con.release()
 
-        if (result.length > 0) return (result[0])
+        if (result.length > 0) return ({
+            id: result[0].ID,
+            name: result[0].full_name,
+            email: result[0].email,
+            registered: result[0].date_registered,
+            ssn: result[0].ssn,
+            newsletter: result[0].newsletter,
+            trash: result[0].trash,
+        })
         else return (null)
-
     }
     catch (ex) {
         con.release()

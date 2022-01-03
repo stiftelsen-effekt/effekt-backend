@@ -7,7 +7,6 @@ const DAO = require('../custom_modules/DAO.js')
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
-const rateLimit = require('express-rate-limit')
 
 /**
  * @openapi
@@ -31,7 +30,7 @@ router.post("/", urlEncodeParser, async (req, res, next) => {
       throw error
     }
 
-    await DAO.donors.add(req.body.email, req.body.name)
+    await DAO.donors.add(req.body.email, req.body.name, req.body.ssn)
 
     return res.json({
       status: 200,
@@ -125,6 +124,71 @@ router.get('/search/', auth(roles.read_all_donations), async (req, res, next) =>
         content: "No donors found matching query"
       })
     }
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.get('/:id/donations', auth(roles.read_all_donations), async (req, res, next) => {
+  try {
+    const donations = await DAO.donations.getByDonorId(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: donations
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.get('/:id/distributions', auth(roles.read_all_donations), async (req, res, next) => {
+  try {
+    const distributions = await DAO.distributions.getByDonorId(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: distributions
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.get('/:id/recurring/avtalegiro', auth(roles.read_all_donations), async (req, res, next) => {
+  try {
+    const agreements = await DAO.avtalegiroagreements.getByDonorId(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: agreements
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.get('/:id/recurring/vipps', auth(roles.read_all_donations), async (req, res, next) => {
+  try {
+    const agreements = await DAO.vipps.getAgreementsByDonorId(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: agreements
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.get('/:id/donations/aggregated', auth(roles.read_all_donations), async (req, res, next) => {
+  try {
+    const aggregated = await DAO.donations.getYearlyAggregateByDonorId(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: aggregated
+    })
   } catch (ex) {
     next(ex)
   }
