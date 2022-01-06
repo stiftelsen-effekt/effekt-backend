@@ -415,7 +415,7 @@ async function getRecentOrder() {
                     SELECT VA.amount, @rownum:=@rownum+1 as 'row_number', @total_rows:=@rownum
                     FROM Vipps_agreements as VA, (SELECT @rownum:=0) r
                         WHERE VA.amount is NOT NULL
-                        -- put some where clause here
+                        AND VA.status = "ACTIVE"
                     ORDER BY VA.amount
                 ) as dd
             WHERE dd.row_number IN ( FLOOR((@total_rows+1)/2), FLOOR((@total_rows+2)/2) )
