@@ -27,6 +27,147 @@ const rateLimit = require('express-rate-limit')
 
 /**
  * @openapi
+ * /donations/{id}:
+ *   get:
+ *    tags: [Donations]
+ *    description: Get get a donation by id
+ *    responses:
+ *      200:
+ *        description: Returns a donation object
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: 
+ *                        $ref: '#/components/schemas/Donation'
+ *                   example:
+ *                      content:
+ *                        $ref: '#/components/schemas/Donation/example'
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donation with given id not found
+ */
+ router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
+  try {
+    var donation = await DAO.donations.getByID(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: donation
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+/**
+ * @openapi
+ * /donations/{id}:
+ *   delete:
+ *    tags: [Donations]
+ *    description: Delete a donation by id
+ *    responses:
+ *      200:
+ *        description: Donation was deleted
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: boolean
+ *                   example:
+ *                      content: true
+ *                        
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donation with given id not found
+ */
+router.delete("/:id", authMiddleware(authRoles.write_all_donations), async (req,res,next) => {
+  try {
+    var removed = await DAO.donations.remove(req.params.id)
+
+    if (removed) {
+      return res.json({
+        status: 200,
+        content: removed
+      })
+    } 
+    else {
+      throw new Error("Could not remove donation")
+    }
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+/**
+ * @openapi
+ * /donations/{id}/reciept:
+ *   post:
+ *    tags: [Donations]
+ *    description: Sends a reciept for the donation to the email associated with the donor
+ *    responses:
+ *      200:
+ *        description: Reciept sent
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: boolean
+ *                   example:
+ *                      content: "Receipt sent for donation id 99"
+ *                        
+ *      401:
+ *        description: User not authorized to access endpoint
+ *      404:
+ *        description: Donation with given id not found
+ *      500:
+ *        description: Failed to send donation reciept. Returns the error code from the request to mailgun (our email service).
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: boolean
+ *                   example:
+ *                      status: 500
+ *                      content: "Receipt failed with error code 401"
+ */
+ router.post("/:id/receipt", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+  if (req.body.email && req.body.email.indexOf("@") > -1) {
+    var mailStatus = await mail.sendDonationReciept(req.params.id, req.body.email)
+  } else {
+    var mailStatus = await mail.sendDonationReciept(req.params.id)
+  }
+
+  if (mailStatus === true) {
+    res.json({
+      status: 200,
+      content: `Receipt sent for donation id ${req.params.id}`
+    }) 
+  }
+  else {
+    res.json({
+      status: 500,
+      content: `Receipt failed with error code ${mailStatus}`
+    })
+  }
+})
+
+/**
+ * @openapi
  * /donations/register:
  *   post:
  *    tags: [Donations]
@@ -72,7 +213,7 @@ router.post("/register", async (req,res,next) => {
     else {
       //Check for existing SSN if provided
       if (typeof donor.ssn !== "undefined" && donor.ssn != null) {
-        dbDonor = await DAO.donors.getByID(donationObject.donorID)
+        var dbDonor = await DAO.donors.getByID(donationObject.donorID)
 
         if (dbDonor.ssn == null) {
           //No existing ssn found, updating donor
@@ -131,7 +272,7 @@ router.post("/register", async (req,res,next) => {
     var hasAnsweredReferral = await DAO.referrals.getDonorAnswered(donationObject.donorID)
   } catch(ex) {
     console.error(`Could not get whether donor answered referral for donorID ${donationObject.donorID}`)
-    var hasAnsweredReferral = false
+    hasAnsweredReferral = false
   }
 
   res.json({
@@ -158,7 +299,7 @@ router.post("/bank/pending", urlEncodeParser, async (req,res,next) => {
   if(config.env === "production")
     var success = await mail.sendDonationRegistered(parsedData.KID, parsedData.sum)
   else
-    var success = true
+    success = true
 
   if (success) res.json({ status: 200, content: "OK" })
   else res.status(500).json({ status: 500, content: "Could not send bank donation pending email" })
@@ -298,7 +439,7 @@ router.get("/histogram", async (req,res,next) => {
 
 /**
  * @openapi
- * /donations/{id}:
+ * /donations/status:
  *   get:
  *    tags: [Donations]
  *    description: Redirects to donation success when query is ok, donation failed if not ok. Used for payment processing.
@@ -311,74 +452,6 @@ router.get('/status', async (req, res, next) => {
       res.redirect('https://gieffektivt.no/donation-failed/')
   } catch (ex) {
     next({ ex })
-  }
-})
-
-/**
- * @openapi
- * /donations/{id}:
- *   get:
- *    tags: [Donations]
- *    description: Get get a donation by id
- */
-router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
-  try {
-    var donation = await DAO.donations.getByID(req.params.id)
-
-    return res.json({
-      status: 200,
-      content: donation
-    })
-  } catch (ex) {
-    next(ex)
-  }
-})
-
-/**
- * @openapi
- * /donations/{id}:
- *   delete:
- *    tags: [Donations]
- *    description: Delete a donation by id
- */
-router.delete("/:id", authMiddleware(authRoles.write_all_donations), async (req,res,next) => {
-  try {
-    var removed = await DAO.donations.remove(req.params.id)
-
-    if (removed) {
-      return res.json({
-        status: 200,
-        content: removed
-      })
-    } 
-    else {
-      throw new Error("Could not remove donation")
-    }
-  } catch (ex) {
-    next(ex)
-  }
-})
-
-router.post("/receipt", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
-  let donationID = req.body.donationID
-
-  if (req.body.email && req.body.email.indexOf("@") > -1) {
-    var mailStatus = await mail.sendDonationReciept(donationID, req.body.email)
-  } else {
-    var mailStatus = await mail.sendDonationReciept(donationID)
-  }
-
-  if (mailStatus === true) {
-    res.json({
-      status: 200,
-      content: `Receipt sent for donation id ${donationID}`
-    }) 
-  }
-  else {
-    res.json({
-      status: 500,
-      content: `Receipt failed with error code ${mailStatus}`
-    })
   }
 })
 
@@ -401,48 +474,6 @@ router.post("/reciepts", authMiddleware(authRoles.write_all_donations) ,async (r
     })
   } catch(ex) {
     next(ex)
-  }
-})
-
-/**
- * @openapi
- * /donations/summary/{donorId}:
- *   get:
- *    tags: [Donations]
- *    description: Fetches the total amount of money donated to each organization by a specific donor
- */
-router.get("/summary/:donorID", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
-  try {
-      var summary = await DAO.donations.getSummary(req.params.donorID)
-
-      res.json({
-          status: 200,
-          content: summary
-      })
-  }
-  catch(ex) {
-      next(ex)
-  }
-})
-
-/**
- * @openapi
- * /donations/history/{donorId}:
- *   get:
- *    tags: [Donations]
- *    description: Fetches donation history for a donor
- */
-router.get("/history/:donorID", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
-  try {
-      var history = await DAO.donations.getHistory(req.params.donorID)
-
-      res.json({
-          status: 200,
-          content: history
-      })
-  }
-  catch(ex) {
-      next(ex)
   }
 })
 

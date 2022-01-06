@@ -9,7 +9,6 @@ module.exports = {
     distributions: require('./DAO_modules/distributions'),
     payment: require('./DAO_modules/payment'),
     vipps: require('./DAO_modules/vipps'),
-    csr: require('./DAO_modules/csr'),
     parsing: require('./DAO_modules/parsing'),
     referrals: require('./DAO_modules/referrals'),
     auth: require('./DAO_modules/auth'),
@@ -64,7 +63,6 @@ module.exports = {
         this.distributions.setup(dbPool, this)
         this.payment.setup(dbPool)
         this.vipps.setup(dbPool)
-        this.csr.setup(dbPool)
         this.parsing.setup(dbPool)
         this.referrals.setup(dbPool)
         this.auth.setup(dbPool)

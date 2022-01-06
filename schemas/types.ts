@@ -1,3 +1,3 @@
 import { components } from "./specs/donor";
 
-type Donor = components["schemas"]["Donor"];
+export type Donor = components["schemas"]["Donor"];

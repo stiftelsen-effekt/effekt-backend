@@ -15,6 +15,8 @@ export interface components {
       email: string;
       /** @description Full name of the donor (first and last name) */
       name: string;
+      /** @description The social security number of the donor */
+      ssn?: number;
       /** @description Set to true if donor wishes to subscribe to newsletter */
       newsletter?: boolean;
       /** @description Set to true if spam / test donor */

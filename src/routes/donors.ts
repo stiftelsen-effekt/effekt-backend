@@ -1,9 +1,9 @@
-const express = require('express')
+import * as express from "express"
 const router = express.Router()
 const auth = require('../custom_modules/authorization/authMiddleware')
 const roles = require('../enums/authorizationRoles')
 
-const DAO = require('../custom_modules/DAO.js')
+import DAO from "../custom_modules/DAO"
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
@@ -26,7 +26,6 @@ router.post("/", urlEncodeParser, async (req, res, next) => {
   try {
     if (!req.body.name) {
       let error = new Error("Missing param email or param name")
-      error.status = 400
       throw error
     }
 
@@ -84,6 +83,63 @@ router.get('/:id', auth(roles.read_all_donations), async (req, res, next) => {
       return res.json({
         status: 200,
         content: donor
+      })
+    }
+    else {
+      return res.status(404).json({
+        status: 404,
+        content: "No donor found with ID " + req.params.id
+      })
+    }
+  }
+  catch (ex) {
+    next(ex)
+  }
+})
+
+/**
+ * @openapi
+ * /donors/{id}:
+ *   delete:
+ *    tags: [Donors]
+ *    description: Get a donor by id
+ *    security: 
+ *       - oAuth: [write_all_donations]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to delete.
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Donor was deleted
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: boolean
+ *                   example:
+ *                      content: true
+ *      401:
+ *        description: User not authorized to access resource
+ *      404:
+ *        description: Donor with given id not found
+ */
+ router.delete('/:id', auth(roles.write_all_donations), async (req, res, next) => {
+  try {
+    var donor = await DAO.donors.getByID(req.params.id)
+
+    if (donor) {
+      await DAO.donors.deleteById(req.params.id)
+
+      return res.json({
+        status: 200,
+        content: true
       })
     }
     else {
@@ -203,6 +259,48 @@ router.get('/:id/donations/aggregated', auth(roles.read_all_donations), async (r
     })
   } catch (ex) {
     next(ex)
+  }
+})
+
+/**
+ * @openapi
+ * /donors/{id}/summary/:
+ *   get:
+ *    tags: [Donors]
+ *    description: Fetches the total amount of money donated to each organization by a specific donor
+ */
+ router.get("/:id/summary/", auth(roles.read_all_donations), async (req, res, next) => {
+  try {
+      var summary = await DAO.donations.getSummary(req.params.id)
+
+      res.json({
+          status: 200,
+          content: summary
+      })
+  }
+  catch(ex) {
+      next(ex)
+  }
+})
+
+/**
+ * @openapi
+ * /donors/{id}/history/:
+ *   get:
+ *    tags: [Donors]
+ *    description: Fetches donation history for a donor
+ */
+router.get("/:id/history/", auth(roles.read_all_donations), async (req, res, next) => {
+  try {
+      var history = await DAO.donations.getHistory(req.params.id)
+
+      res.json({
+          status: 200,
+          content: history
+      })
+  }
+  catch(ex) {
+      next(ex)
   }
 })
 

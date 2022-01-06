@@ -1,14 +1,6 @@
-var pool
+import { Donor } from "../../../schemas/types"
 
-/**
- * @typedef Donor
- * @prop {number} id
- * @prop {string} email
- * @prop {string} name
- * @prop {string} ssn Social security number 
- * @prop {Date} registered
- * @prop {boolean} newsletter
- */
+var pool
 
 //region Get
 /**
@@ -16,7 +8,7 @@ var pool
  * @param {String} email An email
  * @returns {Number} An ID
  */
-async function getIDbyEmail(email) {
+async function getIDbyEmail(email): Promise<number> {
     try {
         var con = await pool.getConnection()
         var [result] = await con.execute(`SELECT ID FROM Donors where email = ?`, [email])
@@ -36,7 +28,7 @@ async function getIDbyEmail(email) {
  * @param {Number} ID The ID in the database for the donor
  * @returns {Donor} A donor object
  */
-async function getByID(ID) {
+async function getByID(ID): Promise<Donor | null> {
     try {
         var con = await pool.getConnection()
         var [result] = await con.execute(`SELECT * FROM Donors where ID = ? LIMIT 1`, [ID])
@@ -65,7 +57,7 @@ async function getByID(ID) {
  * @param {Number} KID
  * @returns {Donor | null} A donor Object
  */
-async function getByKID(KID) {
+async function getByKID(KID): Promise<Donor | null> {
     try {
         var con = await pool.getConnection()
         let [dbDonor] = await con.query(`SELECT    
@@ -125,7 +117,7 @@ async function getByKID(KID) {
  * @param {string} query A query string trying to match agains full name and email
  * @returns {Array<Donor>} An array of donor objects
  */
-async function search(query) {
+async function search(query): Promise<Array<Donor>> {
     try {
         var con = await pool.getConnection()
 
@@ -140,20 +132,15 @@ async function search(query) {
 
         con.release()
 
-        if (result.length > 0) {
-            return (result.map((donor) => {
-                return {
-                    id: donor.ID,
-                    name: donor.full_name,
-                    email: donor.email,
-                    ssn: donor.ssn,
-                    registered: donor.date_registered
-                }
-            }))
-        }
-        else {
-            return null
-        }
+        return (result.map((donor) => {
+            return {
+                id: donor.ID,
+                name: donor.full_name,
+                email: donor.email,
+                ssn: donor.ssn,
+                registered: donor.date_registered
+            }
+        }))
     }
     catch (ex) {
         con.release()
@@ -237,6 +224,22 @@ async function updateNewsletter(donorID, newsletter) {
 //endregion
 
 //region Delete
+/**
+ * Deletes donor from database
+ * @param {number} donorID
+ */
+ async function deleteById(donorID) {
+    try {
+        var con = await pool.getConnection()
+        await con.query(`DELETE FROM Donors WHERE ID = ?`, [donorID])
+        con.release()
+        return
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
 //endregion
 
 module.exports = {
@@ -248,6 +251,7 @@ module.exports = {
     add,
     updateSsn,
     updateNewsletter,
+    deleteById,
 
     setup: (dbPool) => { pool = dbPool }
 }

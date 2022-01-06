@@ -1,3 +1,5 @@
+import { openAPIOptions } from "./openapi-config"
+
 console.log("--------------------------------------------------")
 console.log("| gieffektivt.no donation backend (╯°□°）╯︵ ┻━┻ |")
 console.log("--------------------------------------------------")
@@ -7,7 +9,6 @@ console.log("Config loaded")
 const express = require('express')
 const fileUpload = require('express-fileupload')
 const pretty = require('express-prettify')
-const path = require('path')
 const rateLimit = require('express-rate-limit')
 const honeypot = require('honeypot')
 const logging = require('./handlers/loggingHandler.js')
@@ -17,40 +18,7 @@ const bearerToken = require('express-bearer-token')
 const swaggerUi = require('swagger-ui-express')
 const swaggerJsdoc = require('swagger-jsdoc')
 
-const options = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Effekt Donation API',
-      version: '1.0.0',
-    },
-    components: {
-      securitySchemes: {
-        oAuth: {
-          type: 'oauth2',
-          scheme: 'bearer',
-          flows: {
-            authorizationCode: {
-              authorizationUrl: '/auth/login/',
-              tokenUrl: '/auth/token',
-              scopes: {
-                read_user_info: 'Read information about current user',
-                read_all_donations: 'Read all donations',
-                write_all_donations: 'Write all donations'
-              }
-            }
-          }
-        }
-      }
-    },
-    security: [{
-      oAuth: ['read_all_donations']
-    }]
-  },
-  apis: ['./routes/*.js', './specs/**/*.yaml'], // files containing annotations as above
-}
-
-const openapiSpecification = swaggerJsdoc(options)
+const openapiSpecification = swaggerJsdoc(openAPIOptions)
 
 console.log("Top level dependencies loaded")
 
@@ -66,20 +34,18 @@ DAO.connect(() => {
   //Setup express
   const app = express()
 
-  //Set global application variable root path
-  global.appRoot = path.resolve(__dirname)
-
   //Setup request logging
   logging(app)
 
   app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification))
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpecification, false, { 
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, false, { 
     oauth: { 
       clientId: "b4cb4b0095d0b211ead48d6b1e8c6c7cffa181cb", 
       clientSecret: "c84ed9f4e1ea441b59dbe8449beacc8bc32a7f38"
     },
     oauth2RedirectUrl: 'http://localhost/api-docs/oauth2-redirect.html'
   }))
+  app.get("/", async (req, res, next) => { res.redirect('/api-docs/') })
 
   //Parse post body
   app.use(express.json());
@@ -148,12 +114,10 @@ DAO.connect(() => {
   const paypalRoute = require('./routes/paypal')(websocketsHandler)
   const vippsRoute = require('./routes/vipps')
   const paymentRoute = require('./routes/payment')
-  const csrRoute = require('./routes/csr')
   const referralsRoute = require('./routes/referrals')
   const scheduledRoute = require('./routes/scheduled')
   const authRoute = require('./routes/auth')
   const metaRoute = require('./routes/meta')
-  const debugRoute = require('./routes/debug')
   const facebookRoute = require('./routes/facebook')
   const loggingRoute = require('./routes/logging')
   const mailRoute = require('./routes/mail')
@@ -167,12 +131,10 @@ DAO.connect(() => {
   app.use('/paypal', paypalRoute)
   app.use('/vipps', vippsRoute)
   app.use('/payment', paymentRoute)
-  app.use('/csr', csrRoute)
   app.use('/referrals', referralsRoute)
   app.use('/scheduled', scheduledRoute)
   app.use('/auth', authRoute)
   app.use('/meta', metaRoute)
-  app.use('/debug', debugRoute)
   app.use('/facebook', facebookRoute)
   app.use('/logging', loggingRoute)
   app.use('/mail', mailRoute)

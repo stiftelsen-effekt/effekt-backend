@@ -60,7 +60,7 @@ router.get("/login", async (req, res, next) => {
         return
     }
 
-    res.render(global.appRoot + '/views/auth/dialog', {
+    res.render('/views/auth/dialog', {
         title: "GiEffektivt.no - Logg inn",
         applicationName: application.name,
         permissions: permissions,
@@ -234,13 +234,13 @@ router.get("/password/change/:token", async (req,res, next) => {
     }
 
     if (donor) {
-        res.render(global.appRoot + '/views/auth/changePassword', {
+        res.render('/views/auth/changePassword', {
             title: "GiEffektivt.no - Endre passord",
             firstName: donor.fullName.split(' ')[0]
         })
     }
     else {
-        res.render(global.appRoot + '/views/auth/error', {
+        res.render('/views/auth/error', {
             title: "GiEffektivt.no - Feilmelding",
             errorCode: "INVALID_TOKEN",
             errorMessage: "Det ser ut som linken du har fått tilsendt for å endre passord ikke er gyldig.",
@@ -260,12 +260,12 @@ router.post("/password/change/:token", urlEncodeParser, async (req,res, next) =>
             await DAO.auth.updateDonorPassword(donor.id, req.body.password)
             await DAO.auth.deletePasswordResetToken(req.params.token)
     
-            res.render(global.appRoot + '/views/auth/changedPassword', {
+            res.render('/views/auth/changedPassword', {
                 title: "GiEffektivt.no - Passord oppdatert"
             })
         }
         else {
-            res.render(global.appRoot + '/views/auth/error', {
+            res.render('/views/auth/error', {
                 title: "GiEffektivt.no - Feilmelding",
                 errorCode: "INVALID_LINK",
                 errorMessage: "Det ser ut som linken du har fått tilsendt for å endre passord ikke er gyldig.",
