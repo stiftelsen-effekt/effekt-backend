@@ -28,5 +28,5 @@ export const openAPIOptions = {
       oAuth: ['read_all_donations']
     }]
   },
-  apis: ['src/routes/**/*.js', 'src/routes/**/*.ts', 'specs/**/*.yaml'],
+  apis: ['src/routes/**/*.js', 'src/routes/**/*.ts', 'src/specs/**/*.yaml'],
 }
