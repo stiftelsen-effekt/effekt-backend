@@ -3,6 +3,5 @@ node_modules/
 .idea/
 .vscode/
 out/
-config.js
 env.list
 dist/
