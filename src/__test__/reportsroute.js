@@ -161,5 +161,5 @@ async function runOCR(filename) {
 }
 
 function readReport(type, filename, extension = "CSV") {
-    return fs.readFileSync(`__test__/data/${type}/${filename}.${extension}`)
+    return fs.readFileSync(`src/__test__/data/${type}/${filename}.${extension}`)
 }

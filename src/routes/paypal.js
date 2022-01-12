@@ -10,7 +10,6 @@ const request = require('request-promise-native')
 
 const config = require('../config')
 
-var websocketsHandler
 
 require('request').debug = true
 
@@ -58,18 +57,13 @@ router.post("/ipn", urlEncodeParser, async (req,res, next) => {
         }
 
         if (config.env === 'production') mail.sendDonationReciept(donationID)
-        websocketsHandler.send(wsClientID, "PAYPAL_VERIFIED")
     } 
     else if (req.body.txn_type == "subscr_signup") {
         //Subscribtion IPN, ignore
     }
     else {
-        websocketsHandler.send(wsClientID, "PAYPAL_ERROR")
+        console.error("Paypal error")
     }
 })
 
-module.exports = (wsHandler) => {
-    websocketsHandler = wsHandler
-
-    return router
-}
+module.exports = router

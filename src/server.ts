@@ -103,7 +103,6 @@ DAO.connect(() => {
 
   //Server
   const mainServer = http.createServer(app)
-  const websocketsHandler = require('./handlers/websocketsHandler.js')(mainServer)
 
   //Routes
   const donorsRoute = require('./routes/donors')
@@ -111,7 +110,7 @@ DAO.connect(() => {
   const distributionsRoute = require('./routes/distributions')
   const organizationsRoute = require('./routes/organizations')
   const reportsRoute = require('./routes/reports')
-  const paypalRoute = require('./routes/paypal')(websocketsHandler)
+  const paypalRoute = require('./routes/paypal')
   const vippsRoute = require('./routes/vipps')
   const paymentRoute = require('./routes/payment')
   const referralsRoute = require('./routes/referrals')

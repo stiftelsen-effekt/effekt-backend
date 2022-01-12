@@ -80,5 +80,5 @@ describe("Bank CSV", () => {
 })
 
 function readCSV(type, filename) {
-    return fs.readFileSync(`__test__/data/${type}/${filename}.CSV`)
+    return fs.readFileSync(`src/__test__/data/${type}/${filename}.CSV`)
 }

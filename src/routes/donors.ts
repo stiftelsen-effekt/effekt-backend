@@ -3,7 +3,7 @@ const router = express.Router()
 const auth = require('../custom_modules/authorization/authMiddleware')
 const roles = require('../enums/authorizationRoles')
 
-import DAO from "../custom_modules/DAO"
+const DAO = require("../custom_modules/DAO")
 
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })

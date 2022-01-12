@@ -1,4 +1,4 @@
-import { Donor } from "../../../schemas/types"
+import { Donor } from "../../schemas/types"
 
 var pool
 

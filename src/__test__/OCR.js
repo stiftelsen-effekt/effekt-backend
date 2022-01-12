@@ -7,8 +7,8 @@ const fs = require('fs')
 // Internal
 const OCR = require('../custom_modules/parsers/OCR.js');
 
-const sampleOCRfile = fs.readFileSync('__test__/data/ocr_test.ocr').toString("utf8")
-const noTransactionOCRFile =  fs.readFileSync('__test__/data/ocr_no_valid_records.ocr').toString("utf8")
+const sampleOCRfile = fs.readFileSync('src/__test__/data/ocr_test.ocr').toString("utf8")
+const noTransactionOCRFile =  fs.readFileSync('src/__test__/data/ocr_no_valid_records.ocr').toString("utf8")
 const sampleOCRline =               "NY091330000000022011700000000000000000000000100000000000000000000012345678000000"
 const sampleOCRnextliner =          "NY091331000000800003233427974208710000000061119150623218380000000000000000000000"
 
@@ -30,7 +30,7 @@ describe('OCR', function() {
 
     describe('Parses sample OCR file', () => {
         it('Parses sample file correctly', async () => {
-            let filecontents = fs.readFileSync('./__test__/data/ocr/TBOC2072.DAT').toString("utf8")
+            let filecontents = fs.readFileSync('src/__test__/data/ocr/TBOC2072.DAT').toString("utf8")
             let transactions = OCR.parse(filecontents)
 
             expect(transactions.length).to.be.equal(2)
