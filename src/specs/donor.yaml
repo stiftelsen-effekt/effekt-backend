@@ -30,9 +30,9 @@ components:
           format: date-time
           description: The date and time the donor was registered
       example:
-        id: 1
-        name: Rich Kind
-        email: donor@rich.com
+        id: 237
+        name: Jack Torrance
+        email: jack@overlookhotel.com
         newsletter: true
         trash: false
-        registered: 2018-03-29T23:00:00.000Z
+        registered: 1921-07-04T23:00:00.000Z

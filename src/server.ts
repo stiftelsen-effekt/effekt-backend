@@ -38,13 +38,7 @@ DAO.connect(() => {
   logging(app)
 
   app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification))
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, false, { 
-    oauth: { 
-      clientId: "b4cb4b0095d0b211ead48d6b1e8c6c7cffa181cb", 
-      clientSecret: "c84ed9f4e1ea441b59dbe8449beacc8bc32a7f38"
-    },
-    oauth2RedirectUrl: 'http://localhost/api-docs/oauth2-redirect.html'
-  }))
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification))
   app.get("/", async (req, res, next) => { res.redirect('/api-docs/') })
 
   //Parse post body

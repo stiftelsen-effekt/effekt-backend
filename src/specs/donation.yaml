@@ -37,10 +37,10 @@ components:
           format: date-time
           description: The timestamp of the donation
       example:
-        id: 1
-        donor: Rich Kind
-        donorId: 99
-        email: donor@rich.com
+        id: 217
+        donor: Jack Torance
+        donorId: 237
+        email: jack@overlookhotel.com
         sum: "100.00"
         transactionCost: "2.00"
         method: Bank

@@ -1,0 +1,28 @@
+openapi: 3.0.1
+components:
+  schemas:
+    LogEntry:
+      type: object
+      required:
+        - email
+        - name
+      properties:
+        id:
+          type: integer
+          description: The Auto-generated id of an entry
+        label:
+          type: string
+          description: The type of log entry (e.g. OCR import, Avtlaegiro claims, Vipps recurring donations sync)
+        timestamp:
+          type: string
+          format: date-time
+          description: The date and time the log entry vas added
+        meta:
+          type: string
+          description: An optional short summary for the log entry
+
+      example:
+        id: 237
+        label: OCR
+        timestamp: 2018-03-29T23:00:00.000Z
+        meta: "Donations [ Added: 17 Invalid: 0 ] Agreements [ Activated: 1 Terminated: 0 ]"

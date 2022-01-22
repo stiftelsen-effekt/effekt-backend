@@ -37,6 +37,8 @@ module.exports = {
     }
 
     return data.map((row) => {
+      console.log(row)
+
       /** @type {TaxDeductionRecord} */
       let record = {
         fullname: row[0],
