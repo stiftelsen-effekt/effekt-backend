@@ -542,7 +542,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
   try {
     await send({
       reciever: taxDeductionRecord.email,
-      subject: `gieffektivt.no - Årsoppgave, skattefradrag donasjoner ${year}`,
+      subject: `gieffektivt.no - Årsoppgave ${year}`,
       templateName: "taxDeduction",
       templateData: { 
           header: "Hei " + taxDeductionRecord.firstname + ",",
