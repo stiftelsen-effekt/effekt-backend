@@ -41,7 +41,7 @@ const replacedOrgsInfo =
   '<br/><br/>';
 
 const taxDeductionInfo =
-  'Donasjoner til oss som summerer til kr 500-50 000 i kalenderåret kvalifiserer til skattefradrag. Dersom du har oppgitt fødselsnummer eller organisasjonsnummer registrerer vi dette automatisk på neste års skattemelding. ' + 
+  'Donasjoner til oss som summerer til kr 500-25 000 i kalenderåret kvalifiserer til skattefradrag. Dersom du har oppgitt fødselsnummer eller organisasjonsnummer registrerer vi dette automatisk på neste års skattemelding. ' + 
   'Les mer <a href= "https://gieffektivt.no/skattefradrag" style="color: #fb8f29;">her</a>.' + 
   '<br/><br/>';
 
@@ -269,7 +269,7 @@ async function sendDonationRegistered(KID, sum) {
 
       let organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
       var KIDstring = KID.toString()
-  
+
       await send({
         subject: 'gieffektivt.no - Donasjon klar for innbetaling',
         reciever: donor.email,
@@ -352,7 +352,7 @@ async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
       reciever: email,
       templateName: 'vippsAgreementChange',
       templateData: {
-        header: "Hei, " + donor.full_name,
+        header: "Hei, " + donor.name,
         change,
         newValue,
         organizations,
