@@ -205,7 +205,49 @@ async function getHistogramBySum() {
 }
 
 /**
- * Gets aggregate donations from a spesific time period
+ * Gets all donations by KID
+ * @param {string} KID KID number
+ * @returns {Array<Donation>} Array of Donation objects
+ */
+ async function getAllByKID(KID) {
+    try {
+        var con = await pool.getConnection()
+
+        var [getDonationsByKIDQuery] = await con.query(`
+            SELECT * FROM Donations
+            WHERE KID_fordeling = ?`, 
+        [KID])
+
+        if (getDonationsByKIDQuery.length < 1) {
+            throw new Error("Could not find any donations with KID " + KID)
+        }
+
+        let donations = []
+
+        getDonationsByKIDQuery.forEach(donation => {
+            donations.push({
+                id: donation.ID,
+                donor: donation.full_name,
+                donorId: donation.donorId,
+                email: donation.email,
+                sum: donation.sum_confirmed,
+                transactionCost: donation.transaction_cost,
+                timestamp: donation.timestamp_confirmed,
+                paymentMethod: donation.payment_name,
+                KID: donation.KID_fordeling
+            })
+        })
+
+        con.release()
+        return donations
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
+ * Gets aggregate donations from a specific time period
  * @param {Date} startTime 
  * @param {Date} endTime
  * @returns {Array} Returns an array of organizations names and their aggregate donations
@@ -863,6 +905,7 @@ module.exports = {
     getYearlyAggregateByDonorId,
     getByDonorId,
     getLatestByKID,
+    getAllByKID,
     ExternalPaymentIDExists,
     add,
     registerConfirmedByIDs,
