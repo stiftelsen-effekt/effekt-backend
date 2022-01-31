@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/fellmirr/effekt-backend#readme",
   "dependencies": {
-    "apicache": "^1.5.3",
+    "apicache": "^1.6.3",
     "basic-auth": "^1.1.0",
     "body-parser": "^1.19.0",
     "chai-datetime": "^1.7.0",
@@ -37,7 +37,7 @@
     "fs-extra": "^4.0.3",
     "graceful-fs": "^4.2.4",
     "gulp": "^4.0.2",
-    "gulp-sass": "^4.1.0",
+    "gulp-sass": "^5.1.0",
     "har-schema": "^2.0.0",
     "har-validator": "^5.1.5",
     "he": "^1.2.0",
