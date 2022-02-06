@@ -13,6 +13,10 @@ const checkJwt = auth({
  * @param {String} permission Shortname permission
  * @param {Boolean} [api=true] Indicates whether the request is an api request or a view request
  */
-module.exports = (permission, api = true) => {
-    return [checkJwt, requiredScopes(permission)]
+const auth = (permission, api = true) => {
+  return [checkJwt, requiredScopes(permission)]
+}
+
+module.exports = {
+  auth
 }

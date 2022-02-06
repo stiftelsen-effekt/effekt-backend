@@ -28,7 +28,7 @@ router.post("/draft", async (req,res,next) => {
     res.json({ status: 200 })
 })
 
-router.post("/agreements", authMiddleware(authRoles.read_all_donations), async(req, res, next) => {
+router.post("/agreements", authMiddleware.auth(authRoles.read_all_donations), async(req, res, next) => {
     try {
         var results = await DAO.avtalegiroagreements.getAgreements(req.body.sort, req.body.page, req.body.limit, req.body.filter)
         return res.json({ 
@@ -43,7 +43,7 @@ router.post("/agreements", authMiddleware(authRoles.read_all_donations), async(r
     }
 })
 
-router.get("/agreement/:id", authMiddleware(authRoles.read_all_donations), async(req, res, next) => {
+router.get("/agreement/:id", authMiddleware.auth(authRoles.read_all_donations), async(req, res, next) => {
   try {
       var result = await DAO.avtalegiroagreements.getAgreement(req.params.id)
       result["ID"] = result["ID"].toString()
@@ -85,7 +85,7 @@ router.get("/report", async (req,res,next) => {
     }
 })
 
-router.get("/validation", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
+router.get("/validation", authMiddleware.auth(authRoles.read_all_donations), async (req,res,next) => {
   try {
     let content = await DAO.avtalegiroagreements.getValidationTable()
 
@@ -98,7 +98,7 @@ router.get("/validation", authMiddleware(authRoles.read_all_donations), async (r
   }
 })
 
-router.get("/missing/", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
+router.get("/missing/", authMiddleware.auth(authRoles.read_all_donations), async (req, res, next) => {
   try {
     let date = req.query.date
 
@@ -121,7 +121,7 @@ router.get("/missing/", authMiddleware(authRoles.read_all_donations), async (req
   }
 })
 
-router.get("/expected/", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
+router.get("/expected/", authMiddleware.auth(authRoles.read_all_donations), async (req, res, next) => {
   try {
     let date = req.query.date
 
@@ -144,7 +144,7 @@ router.get("/expected/", authMiddleware(authRoles.read_all_donations), async (re
   }
 })
 
-router.get("/recieved/", authMiddleware(authRoles.read_all_donations), async (req, res, next) => {
+router.get("/recieved/", authMiddleware.auth(authRoles.read_all_donations), async (req, res, next) => {
   try {
     let date = req.query.date
 
@@ -167,7 +167,7 @@ router.get("/recieved/", authMiddleware(authRoles.read_all_donations), async (re
   }
 })
 
-router.post("/:KID/distribution", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+router.post("/:KID/distribution", authMiddleware.auth(authRoles.write_all_donations), async (req, res, next) => {
   try {
       if (!req.body) return res.sendStatus(400)
       const originalKID = req.params.KID
@@ -204,7 +204,7 @@ router.post("/:KID/distribution", authMiddleware(authRoles.write_all_donations),
   }
 })
 
-router.post("/:KID/status", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+router.post("/:KID/status", authMiddleware.auth(authRoles.write_all_donations), async (req, res, next) => {
   try {
       const KID = req.params.KID
       const active = req.body.active
@@ -218,7 +218,7 @@ router.post("/:KID/status", authMiddleware(authRoles.write_all_donations), async
   }
 })
 
-router.post("/:KID/amount", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+router.post("/:KID/amount", authMiddleware.auth(authRoles.write_all_donations), async (req, res, next) => {
   try {
       const KID = req.params.KID
       const amount = req.body.amount
@@ -232,7 +232,7 @@ router.post("/:KID/amount", authMiddleware(authRoles.write_all_donations), async
   }
 })
 
-router.post("/:KID/paymentdate", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+router.post("/:KID/paymentdate", authMiddleware.auth(authRoles.write_all_donations), async (req, res, next) => {
   try {
       const KID = req.params.KID
       const paymentDate = req.body.paymentDate

@@ -6,12 +6,10 @@ const avtalegiro = require('../custom_modules/avtalegiro')
 const mail = require('../custom_modules/mail');
 const nets = require('../custom_modules/nets')
 const express = require('express')
-const bearerToken = require('express-bearer-token')
-const scheduledRoute = require('../routes/scheduled')
 const request = require('supertest');
 const { expect } = require('chai');
 const config = require('../config');
-const auth = require('../custom_modules/DAO_modules/auth');
+const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 
 describe('POST /scheduled/avtalegiro', function() {
   const mockAgreements = [{
@@ -49,10 +47,6 @@ describe('POST /scheduled/avtalegiro', function() {
   let authStub
 
   before(function () {
-    server = express()
-    server.use(bearerToken())
-    server.use('/scheduled', scheduledRoute)
-
     avtalegiroFileStub = sinon
       .stub(avtalegiro, 'generateAvtaleGiroFile')
       .resolves(Buffer.from('', 'utf-8'))
@@ -80,8 +74,12 @@ describe('POST /scheduled/avtalegiro', function() {
       .stub(mail, 'sendOcrBackup')
 
     authStub = sinon
-      .stub(auth, 'getCheckPermissionByToken')
-      .resolves(true)
+      .stub(authMiddleware, 'auth')
+      .returns([])
+
+    const scheduledRoute = require('../routes/scheduled')
+    server = express()
+    server.use('/scheduled', scheduledRoute)
   })
 
   beforeEach(function() {
@@ -93,7 +91,6 @@ describe('POST /scheduled/avtalegiro', function() {
 
     const response = await request(server)
       .post('/scheduled/avtalegiro')
-      .set('Authorization', 'Bearer abc')
       .expect(200)
 
     expect(agreementsStub.calledOnce).to.be.true
@@ -108,7 +105,6 @@ describe('POST /scheduled/avtalegiro', function() {
 
     const response = await request(server)
       .post('/scheduled/avtalegiro/?date=2021-10-04')
-      .set('Authorization', 'Bearer abc')
       .expect(200)
 
     expect(sendNotificationStub.called).to.be.false
@@ -124,7 +120,6 @@ describe('POST /scheduled/avtalegiro', function() {
 
     const response = await request(server)
       .post('/scheduled/avtalegiro/?date=2021-10-04&notify=true')
-      .set('Authorization', 'Bearer abc')
       .expect(200)
 
     config.env = tempEnv
@@ -136,7 +131,6 @@ describe('POST /scheduled/avtalegiro', function() {
   it('Recognizes when claim date is last day of the month', async function() {
     const response = await request(server)
       .post('/scheduled/avtalegiro/?date=2021-10-25&notify=true')
-      .set('Authorization', 'Bearer abc')
       .expect(200)
 
     sinon.assert.calledWithExactly(agreementsStub, 0)

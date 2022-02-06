@@ -10,7 +10,7 @@ const donationHelpers = require("../custom_modules/donationHelpers")
 const distributions = require('../custom_modules/DAO_modules/distributions')
 
 router.post("/", 
-  authMiddleware(authRoles.write_all_donations),
+  authMiddleware.auth(authRoles.write_all_donations),
   async (req, res, next) => {
   try {
     let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }}),
@@ -47,7 +47,7 @@ router.post("/",
 })
 
 router.post("/search",
-    authMiddleware(authRoles.read_all_donations),
+    authMiddleware.auth(authRoles.read_all_donations),
     async (req, res, next) => {
     try {
       let limit = req.body.limit, 
@@ -67,7 +67,7 @@ router.post("/search",
 })
 
 router.get("/:KID", 
-  authMiddleware(authRoles.read_all_donations), 
+  authMiddleware.auth(authRoles.read_all_donations), 
   async (req,res,next) => {
   try {
     if (!req.params.KID) res.status(400).json({ status: 400, content: "No KID provided" })
@@ -102,7 +102,7 @@ router.get("/:KID/unauthorized", async (req, res, next) => {
 })
 
 router.get("/all/:donorID", 
-  authMiddleware(authRoles.read_all_donations), 
+  authMiddleware.auth(authRoles.read_all_donations), 
   async (req,res,next) => {
   try {
     if (!req.params.donorID) res.status(400).json({ status: 400, content: "No KID provided" })
