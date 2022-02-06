@@ -1,7 +1,7 @@
 import * as express from "express"
 
 const router = express.Router()
-const auth = require('../custom_modules/authorization/authMiddleware')
+const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 const roles = require('../enums/authorizationRoles')
 
 const DAO = require('../custom_modules/DAO.js')
@@ -95,7 +95,7 @@ router.post("/", async (req,res, next) => {
   }
 })
 
-router.get("/:id", auth(roles.read_all_donations), async (req,res, next) => {
+router.get("/:id", authMiddleware.auth(roles.read_all_donations), async (req,res, next) => {
   try {
     const id = parseInt(req.params.id)
 
