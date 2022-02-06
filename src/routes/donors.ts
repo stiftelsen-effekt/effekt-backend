@@ -40,6 +40,34 @@ router.post("/", urlEncodeParser, async (req, res, next) => {
   }
 })
 
+router.get('/id/', async (req, res, next) => {
+  try {
+    if (!req.query.email) {
+      res.status(400).json({
+        status: 400,
+        content: "email parameter missing"
+      })
+    }
+
+    const donorID = await DAO.donors.getIDbyEmail(req.query.email)
+
+    if (donorID === null) {
+      res.status(404).json({
+        status: 404,
+        content: "No donor with the given email found"
+      })
+    } else {
+      res.json({
+        status: 200,
+        content: donorID
+      })
+    }
+  }
+  catch (ex) {
+    next(ex)
+  }
+})
+
 /**
  * @openapi
  * /donors/{id}:

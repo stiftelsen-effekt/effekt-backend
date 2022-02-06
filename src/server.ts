@@ -53,7 +53,7 @@ DAO.connect(() => {
   app.use(fileUpload({
     limits: { fileSize: 10 * 1024 * 1024 } //Probably totally overkill, consider reducing
   }))
-  app.enable('trust proxy')
+  app.enable('trust proxy')
 
   //Honeypot
   const pot = new honeypot(config.honeypot_api_key)
@@ -72,9 +72,9 @@ DAO.connect(() => {
 
   //Rate limiting
   app.use(new rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 1000, //limit each IP to 50 requests per minute
-    delayMs: 0 // disable delaying - full speed until the max limit is reached 
+    windowMs: 60 * 1000, // 1 minute
+    max: 1000, //limit each IP to 50 requests per minute
+    delayMs: 0 // disable delaying - full speed until the max limit is reached 
   }))
 
   //Set cross origin as allowed
@@ -143,7 +143,7 @@ DAO.connect(() => {
   mainServer.listen(config.port, () => {
     console.log("Main http server listening on port " + config.port + " 📞")
 
-    console.log("Don’t Panic. 🐬")
+    console.log("Don't Panic. 🐬")
     console.log("---")
   })
 })
