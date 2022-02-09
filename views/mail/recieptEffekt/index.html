@@ -93,7 +93,7 @@
                                                         <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
                                                             <tr>
                                                                 <td style="font-size: 14px; font-weight: 600; padding-right: 10px;">
-                                                                    <% this.organizations[i].name %>
+                                                                    <% this.organizations[i].name == "GiveWells tildelingsfond" ? "GiveWell Maximum Impact Fund" : this.organizations[i].name %>
                                                                 </td>
                                                             </tr>
                                                         </table>
@@ -143,6 +143,13 @@
                             </tr>
                         <tr>
                             <td class="bodycopy">
+                                <% for (var i = 0; i < organizations.length; i++) { %>
+                                    <% if(this.organizations[i].name == "GiveWells tildelingsfond") { %>
+                                        Donasjoner til GiveWell Maximum Impact Fund vil uavkortet bli tildelt The Clear Fund a.k.a. GiveWell, Tax ID 20-8625442 (USA).
+                                        <br />
+                                        <br />
+                                    <% } %>
+                                <% } %>
                                 <% if (hasReplacedOrgs == 1) { %>
                                     <% this.reusableHTML.replacedOrgsInfo %>
                                 <% } %>
