@@ -123,7 +123,7 @@ router.get("/histogram/charges", async (req,res,next) => {
     }
 })
 
-router.get("/agreements/report", authMiddleware.auth(authorizationRoles.read_all_donations), async (req,res,next) => {
+router.get("/agreements/report", authMiddleware.auth(authorizationRoles.read_donations), async (req,res,next) => {
     try {
       let content = await DAO.vipps.getAgreementReport()
   
@@ -136,7 +136,7 @@ router.get("/agreements/report", authMiddleware.auth(authorizationRoles.read_all
     }
 })
 
-router.post("/agreements", authMiddleware.auth(authorizationRoles.read_all_donations), async(req, res, next) => {
+router.post("/agreements", authMiddleware.auth(authorizationRoles.read_donations), async(req, res, next) => {
     try {
         var results = await DAO.vipps.getAgreements(req.body.sort, req.body.page, req.body.limit, req.body.filter)
         return res.json({ 
@@ -151,7 +151,7 @@ router.post("/agreements", authMiddleware.auth(authorizationRoles.read_all_donat
         }
 })
 
-router.post("/charges", authMiddleware.auth(authorizationRoles.read_all_donations), async(req, res, next) => {
+router.post("/charges", authMiddleware.auth(authorizationRoles.read_donations), async(req, res, next) => {
     try {
         var results = await DAO.vipps.getCharges(req.body.sort, req.body.page, req.body.limit, req.body.filter)
         return res.json({ 

@@ -1,5 +1,5 @@
 const auth = require('./auth.js')
-const { auth, requiredScopes } = require('express-oauth2-jwt-bearer')
+const { auth, requiredScopes, claimEquals } = require('express-oauth2-jwt-bearer')
 
 const checkJwt = auth({
   audience: 'https://data.gieffektivt.no',
@@ -17,6 +17,12 @@ const auth = (permission, api = true) => {
   return [checkJwt, requiredScopes(permission)]
 }
 
+const checkDonor = (donorId, req, res, next) => {
+  const handler = claimEquals("https://konduit.no/user-id", donorId)
+  handler(req, res, next)
+}
+
 module.exports = {
-  auth
+  auth,
+  checkDonor
 }

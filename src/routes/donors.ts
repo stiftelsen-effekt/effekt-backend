@@ -1,4 +1,5 @@
 import * as express from "express"
+import { checkDonor } from "../custom_modules/authorization/authMiddleware"
 const router = express.Router()
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 const roles = require('../enums/authorizationRoles')
@@ -104,7 +105,7 @@ router.get('/id/', async (req, res, next) => {
  *    tags: [Donors]
  *    description: Get a donor by id
  *    security: 
- *       - oAuth: [read_all_donations]
+ *       - oAuth: [read_donations]
  *    parameters:
  *      - in: path
  *        name: id
@@ -132,7 +133,7 @@ router.get('/id/', async (req, res, next) => {
  *      404:
  *        description: Donor with given id not found
  */
-router.get('/:id', authMiddleware.auth(roles.read_all_donations), async (req, res, next) => {
+router.get('/:id', authMiddleware.auth(roles.read_donations), async (req, res, next) => {
   try {
     var donor = await DAO.donors.getByID(req.params.id)
 
@@ -161,7 +162,7 @@ router.get('/:id', authMiddleware.auth(roles.read_all_donations), async (req, re
  *    tags: [Donors]
  *    description: Get a donor by id
  *    security: 
- *       - oAuth: [write_all_donations]
+ *       - oAuth: [write_donations]
  *    parameters:
  *      - in: path
  *        name: id
@@ -187,7 +188,7 @@ router.get('/:id', authMiddleware.auth(roles.read_all_donations), async (req, re
  *      404:
  *        description: Donor with given id not found
  */
- router.delete('/:id', authMiddleware.auth(roles.write_all_donations), async (req, res, next) => {
+ router.delete('/:id', authMiddleware.auth(roles.write_donations), async (req, res, next) => {
   try {
     var donor = await DAO.donors.getByID(req.params.id)
 
@@ -218,7 +219,7 @@ router.get('/:id', authMiddleware.auth(roles.read_all_donations), async (req, re
  *    tags: [Donors]
  *    description: Search for donors in the database
  *    security: 
- *       - oAuth: [read_all_donations]
+ *       - oAuth: [read_donations]
  *    parameters:
  *      - in: application/json
  *        name: id
@@ -234,7 +235,7 @@ router.get('/:id', authMiddleware.auth(roles.read_all_donations), async (req, re
  *      404:
  *        description: Donor with given id not found
  */
-router.get('/search/', authMiddleware.auth(roles.read_all_donations), async (req, res, next) => {
+router.get('/search/', authMiddleware.auth(roles.read_donations), async (req, res, next) => {
   try {
     var donors = await DAO.donors.search(req.query.q)
 
@@ -254,7 +255,12 @@ router.get('/search/', authMiddleware.auth(roles.read_all_donations), async (req
   }
 })
 
-router.get('/:id/donations', authMiddleware.auth(roles.read_all_donations), async (req, res, next) => {
+router.get('/:id/donations', 
+  authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next)
+  }, 
+  async (req, res, next) => {
   try {
     const donations = await DAO.donations.getByDonorId(req.params.id)
 
@@ -267,7 +273,9 @@ router.get('/:id/donations', authMiddleware.auth(roles.read_all_donations), asyn
   }
 })
 
-router.get('/:id/distributions', authMiddleware.auth(roles.read_all_donations), async (req, res, next) => {
+router.get('/:id/distributions', 
+  authMiddleware.auth(roles.read_donations), 
+  async (req, res, next) => {
   try {
     const distributions = await DAO.distributions.getByDonorId(req.params.id)
 
@@ -280,7 +288,7 @@ router.get('/:id/distributions', authMiddleware.auth(roles.read_all_donations), 
   }
 })
 
-router.get('/:id/recurring/avtalegiro', authMiddleware.auth(roles.read_all_donations), async (req, res, next) => {
+router.get('/:id/recurring/avtalegiro', authMiddleware.auth(roles.read_donations), async (req, res, next) => {
   try {
     const agreements = await DAO.avtalegiroagreements.getByDonorId(req.params.id)
 
@@ -293,7 +301,7 @@ router.get('/:id/recurring/avtalegiro', authMiddleware.auth(roles.read_all_donat
   }
 })
 
-router.get('/:id/recurring/vipps', authMiddleware.auth(roles.read_all_donations), async (req, res, next) => {
+router.get('/:id/recurring/vipps', authMiddleware.auth(roles.read_donations), async (req, res, next) => {
   try {
     const agreements = await DAO.vipps.getAgreementsByDonorId(req.params.id)
 
@@ -306,7 +314,7 @@ router.get('/:id/recurring/vipps', authMiddleware.auth(roles.read_all_donations)
   }
 })
 
-router.get('/:id/donations/aggregated', authMiddleware.auth(roles.read_all_donations), async (req, res, next) => {
+router.get('/:id/donations/aggregated', authMiddleware.auth(roles.read_donations), async (req, res, next) => {
   try {
     const aggregated = await DAO.donations.getYearlyAggregateByDonorId(req.params.id)
 
@@ -326,7 +334,7 @@ router.get('/:id/donations/aggregated', authMiddleware.auth(roles.read_all_donat
  *    tags: [Donors]
  *    description: Fetches the total amount of money donated to each organization by a specific donor
  */
- router.get("/:id/summary/", authMiddleware.auth(roles.read_all_donations), async (req, res, next) => {
+ router.get("/:id/summary/", authMiddleware.auth(roles.read_donations), async (req, res, next) => {
   try {
       var summary = await DAO.donations.getSummary(req.params.id)
 
@@ -347,7 +355,7 @@ router.get('/:id/donations/aggregated', authMiddleware.auth(roles.read_all_donat
  *    tags: [Donors]
  *    description: Fetches donation history for a donor
  */
-router.get("/:id/history/", authMiddleware.auth(roles.read_all_donations), async (req, res, next) => {
+router.get("/:id/history/", authMiddleware.auth(roles.read_donations), async (req, res, next) => {
   try {
       var history = await DAO.donations.getHistory(req.params.id)
 
