@@ -318,7 +318,7 @@ Main Columns
 | ----------------- | ------ | ----------- | ---------- |
 | `KID`             | string |             | "12345678" |
 | `Donor_ID`        | int    |             | 1          |
-| `Distribution_ID` | int    |             | 15.00      |
+| `Distribution_ID` | int    |             | 511        |
 
 Example for donor 11 doing a one-time donation, and distributing 40% to AMF and 60% to GiveWell, which results in KID 1234:
 
