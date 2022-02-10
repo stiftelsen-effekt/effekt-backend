@@ -214,14 +214,15 @@ async function getHistogramBySum() {
         var con = await pool.getConnection()
 
         var [getDonationsByKIDQuery] = await con.query(`
-            SELECT * FROM Donations
-            WHERE KID_fordeling = ?`, 
+            SELECT *, payment_name FROM Donations as D
+                INNER JOIN Payment as P on D.Payment_ID = P.ID
+                WHERE KID_fordeling = ?`, 
         [KID])
 
         if (getDonationsByKIDQuery.length < 1) {
             throw new Error("Could not find any donations with KID " + KID)
         }
-
+        
         let donations = []
 
         getDonationsByKIDQuery.forEach(donation => {
