@@ -417,15 +417,15 @@ Main Columns
 One record for each donor. Personal info (name, ssn), credentials (email, password for users who can log in), and configuration.
 
 Main Columns
-| Name            | Type   | Description | Example             |
-| --------------- | ------ | ----------- | ------------------- |
-| `ID`            | int    |             | 2                   |
-| `full_name`     | string |             | "Malcolm T. Madiba" |
-| `ssn`           | string | Social Security Number            | 0123456789012       |
-| `email`         | string |             | "x@z.org"           |
-| `password_hash` | string |             |                     |
-| `password_salt` | string |             |                     |
-| `newsletter`    | bool   |             | true                |
+| Name            | Type   | Description            | Example             |
+| --------------- | ------ | ---------------------- | ------------------- |
+| `ID`            | int    |                        | 2                   |
+| `full_name`     | string |                        | "Malcolm T. Madiba" |
+| `ssn`           | string | Social Security Number | 0123456789012       |
+| `email`         | string |                        | "x@z.org"           |
+| `password_hash` | string |                        |                     |
+| `password_salt` | string |                        |                     |
+| `newsletter`    | bool   |                        | true                |
 
 **Payment**
 
