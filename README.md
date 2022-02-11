@@ -13,10 +13,10 @@ The API is also responsible for handling payment processing.
 - [Get started developing](#get-started-developing)
   - [Clone and install packages](#clone-and-install-packages)
   - [Setup MySQL](#setup-mysql)
-    - [**Run MySQL locally (no Docker)**](#run-mysql-locally-no-docker)
-    - [**Run MySQL locally (inside a Docker container)**](#run-mysql-locally-inside-a-docker-container)
-    - [**Set up local Schema**](#set-up-local-schema)
-    - [**Add test data to your local MySQL instance**](#add-test-data-to-your-local-mysql-instance)
+    - [Run MySQL locally (no Docker)](#run-mysql-locally-no-docker)
+    - [Run MySQL locally (inside a Docker container)](#run-mysql-locally-inside-a-docker-container)
+    - [Set up local Schema](#set-up-local-schema)
+    - [Add test data to your local MySQL instance](#add-test-data-to-your-local-mysql-instance)
   - [Google Cloud & Cloud Sql Auth Proxy setup](#google-cloud--cloud-sql-auth-proxy-setup)
     - [Google Cloud access](#google-cloud-access)
     - [Google Cloud Sql Auth Proxy setup](#google-cloud-sql-auth-proxy-setup)
@@ -39,7 +39,7 @@ The API is also responsible for handling payment processing.
 - [Database](#database)
   - [Tables Overview](#tables-overview)
   - [Database Schema Migrations](#database-schema-migrations)
-    - [**Downloading production schema**](#downloading-production-schema)
+    - [Downloading production schema](#downloading-production-schema)
 - [Payment processing](#payment-processing)
   - [Bank](#bank)
   - [Vipps](#vipps)
@@ -91,7 +91,7 @@ Running locally is the easiest option if this is the only use for MySQL on your 
 
 In any of the approaches, we're going to expose MySQL on the default MySQL port of 3306.
 
-#### **Run MySQL locally (no Docker)**
+#### Run MySQL locally (no Docker)
 
 First, install MySQL using one of the below commands (or look for installation instructions online).
 
@@ -121,7 +121,7 @@ mysql -h 127.0.0.1 -uroot -peffekt
 
 On Mac or Linux, you can start MySQL with `mysql.server start` (and stop it with `mysql.server stop` if you want).
 
-#### **Run MySQL locally (inside a Docker container)**
+#### Run MySQL locally (inside a Docker container)
 
 First, follow instructions on the Docker website (or look for an online tutorial) to get Docker installed and running on your machine. 
 
@@ -152,7 +152,7 @@ Some basic Docker commands:
 - `docker start effekt-mysql` to start the container
 - `docker rm effekt-mysql` to remove the container
 
-#### **Set up local Schema**
+#### Set up local Schema
 
 Now we want to set up the database to mirror production. First schema, then with some production-like data to develop against. Whether you're running MySQL natively or inside a Docker container, the steps are the same.
 
@@ -230,7 +230,7 @@ you should see output like:
 
 
 
-#### **Add test data to your local MySQL instance**
+#### Add test data to your local MySQL instance
 
 TODO
 
@@ -562,7 +562,7 @@ DB_USER='<produser>' DB_PASS='<prodpassword>' npx db-migrate up -c 1 -e prod --c
 
 You can instead do `-e dev` to apply migrations against EffektDonasjonDB_Dev.
 
-#### **Downloading production schema**
+#### Downloading production schema
 
 This shouldn't be needed often. Usually we should be able to stick with the existing schema snapshot and set of migration files. But if we get too many migration files, it might be nice to delete them and put in a new schema snapshot as a starting point.
 
