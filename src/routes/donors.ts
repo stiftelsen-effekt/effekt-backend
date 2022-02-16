@@ -417,9 +417,9 @@ router.put(
       if (req.params.id) {
         await DAO.donors.updateProfile(
           req.params.id,
-          "Omar Sheriff",
-          "2022",
-          false
+          req.body.name,
+          req.body.ssn,
+          req.body.newsletter
         );
 
         return res.json({
