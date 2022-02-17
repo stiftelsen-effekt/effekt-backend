@@ -260,7 +260,7 @@ async function updateName(donorID, name) {
  * @param {boolean} newsletter
  * @returns {boolean}
  */
-async function updateProfile(donorID, name, ssn, newsletter) {
+async function update(donorID, name, ssn, newsletter) {
   try {
     var con = await pool.getConnection();
     let res = await con.query(
@@ -305,7 +305,7 @@ module.exports = {
   updateSsn,
   updateNewsletter,
   updateName,
-  updateProfile,
+  update,
   deleteById,
 
   setup: (dbPool) => {

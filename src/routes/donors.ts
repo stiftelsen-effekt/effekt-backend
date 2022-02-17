@@ -415,7 +415,7 @@ router.put(
   async (req, res, next) => {
     try {
       if (req.params.id) {
-        await DAO.donors.updateProfile(
+        await DAO.donors.update(
           req.params.id,
           req.body.name,
           req.body.ssn,
