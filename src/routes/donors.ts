@@ -403,7 +403,43 @@ router.get(
 );
 
 /**
- * Update profile information
+ * @openapi
+ * /donors/{id}:
+ *   put:
+ *    tags: [Donors]
+ *    description: Updates donor by ID
+ *    security:
+ *       - oAuth: [write:profile]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to update.
+ *        schema:
+ *          type: integer
+ *      - in: body
+ *        name: donor
+ *        required: true
+ *        description: The donor to update
+ *        schema:
+ *          $ref: '#/components/schemas/Donor'
+ *    responses:
+ *      200:
+ *        description: Donor was deleted
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: boolean
+ *                   example:
+ *                      content: true
+ *      401:
+ *        description: User not authorized to access resource
+ *      404:
+ *        description: Donor with given id not found
  */
 router.put(
   "/:id",
