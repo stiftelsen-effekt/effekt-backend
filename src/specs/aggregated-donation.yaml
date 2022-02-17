@@ -1,0 +1,27 @@
+openapi: 3.0.1
+components:
+  schemas:
+    AggregatedDonation:
+      type: object
+      properties:
+        organizationId:
+          type: integer
+          description: The organization's ID
+        organization:
+          type: string
+          description: The name of the organization
+        abbriv:
+          type: string
+          description: Abbreviation of the organization's name
+        value:
+          type: string
+          description: The amount that was donated
+        year:
+          type: number
+          description: The year the donation was made
+      example:
+        organizationId: 1
+        organization: "Against Malaria Foundation"
+        abbriv: "AMF"
+        value: "18.000000000000000000"
+        year: 2018
