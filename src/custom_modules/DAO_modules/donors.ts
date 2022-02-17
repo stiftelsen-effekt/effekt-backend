@@ -197,11 +197,11 @@ async function add(email = "", name, ssn = "", newsletter = null) {
  * Updates donor and sets new SSN
  * @param {number} donorID
  * @param {string} ssn Social security number
- * @param con
  * @returns {boolean}
  */
-async function updateSsn(donorID, ssn, con) {
+async function updateSsn(donorID, ssn) {
   try {
+    var con = await pool.getConnection();
     let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [
       ssn,
       donorID,
@@ -217,11 +217,11 @@ async function updateSsn(donorID, ssn, con) {
  * Updates donor and sets new newsletter value
  * @param {number} donorID
  * @param {boolean} newsletter
- * @param con
  * @returns {boolean}
  */
-async function updateNewsletter(donorID, newsletter, con) {
+async function updateNewsletter(donorID, newsletter) {
   try {
+    var con = await pool.getConnection();
     let res = await con.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [
       newsletter,
       donorID,
@@ -237,11 +237,11 @@ async function updateNewsletter(donorID, newsletter, con) {
  * Update donor and sets new name value
  * @param {number} donorID
  * @param {string} name
- * @param con
  * @returns {boolean}
  */
-async function updateName(donorID, name, con) {
+async function updateName(donorID, name) {
   try {
+    var con = await pool.getConnection();
     let res = await con.query(`UPDATE Donors SET full_name = ? where ID = ?`, [
       name,
       donorID,
@@ -263,9 +263,10 @@ async function updateName(donorID, name, con) {
 async function updateProfile(donorID, name, ssn, newsletter) {
   try {
     var con = await pool.getConnection();
-    updateName(donorID, name, con);
-    updateSsn(donorID, ssn, con);
-    updateNewsletter(donorID, newsletter, con);
+    let res = await con.query(
+      `UPDATE Donors SET full_name = ?, ssn = ?, newsletter = ? where ID = ?`,
+      [name, ssn, newsletter, donorID]
+    );
     con.release();
     return true;
   } catch (ex) {
