@@ -132,7 +132,6 @@ router.get("/id/", async (req, res, next) => {
  *      404:
  *        description: Donor with given id not found
  */
-// Den her som gjør at man kan hente i Insomnia
 router.get(
   "/:id",
   authMiddleware.auth(roles.read_donations),
