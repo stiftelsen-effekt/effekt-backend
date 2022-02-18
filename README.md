@@ -93,10 +93,18 @@ In any of the approaches, we're going to expose MySQL on the default MySQL port 
 
 #### Run MySQL locally (no Docker)
 
+First, install MySQL using one of the below commands (or look for installation instructions online).
+
 If you use brew, installing MySQL is as easy as:
 
 ```
 brew install mysql
+```
+
+On Windows, you can install with Chocolatey:
+
+```
+choco install mysql
 ```
 
 The default user is `root`, let's set a password of `effekt`:
@@ -166,11 +174,19 @@ Now let's load in the schema:
 mysql -h 127.0.0.1 -uroot -peffekt EffektDonasjonDB_Local < db/prod_schema.sql
 ```
 
+(on Windows, try this instead:)
+
+```
+cmd /c "mysql -h 127.0.0.1 -uroot -peffekt EffektDonasjonDB_Local < db/prod_schema.sql"
+```
+
 To get your local schema fully up-to-date with the production schema, you'll also need to apply any migrations (commands which change the MySQL schema) that have been created in the [db/migrations](db/migrations) folder. We use the db-migrate tool. To apply all migrations, run:
 
 ```
 npx db-migrate up --config db/database.json --migrations-dir db/migrations
 ```
+
+On Windows - if you get any node-gyp errors about Visual Studio c++ build tools installation, you may need to add a PYTHON env variable (as described in the [node-gyp README](https://github.com/nodejs/node-gyp#on-windows))
 
 If the output ends with `[INFO] Done`, it completed successfully.
 
