@@ -376,7 +376,7 @@ router.get(
   "/:id/donations/aggregated",
   authMiddleware.auth(roles.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt("2349"), req, res, next);
+    checkDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
