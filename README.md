@@ -216,7 +216,7 @@ At a high level, here's what the subpaths do:
 ### Authentication & Authorization
 
 ### KIDs
-KIDs are unique identifiers for each used (donor, distribution percentages) combination. A new donation will reuse an existing KID if the right one already exists, otherwise a new KID will be generated. KIDs are important because they're the main thing we pass to the payment processor, and then they pass back to us along with a payment, so we know which donor that payment was for, and how we should distribute the money.
+KIDs are identifiers for each used (donor, distribution percentages) combination. A new donation will reuse an existing KID if one with a matching distribution already exists, otherwise a new KID will be generated. AvtaleGiro is an exception to this, where we always create a new KID when drafting a new agreement (to support editing the AvtaleGiro distribution directly without interfering with other donations/agreements with the same KID). KIDs are important because they're the main thing we pass to the payment processor, and then they pass back to us along with a payment, so we know which donor that payment was for, and how we should distribute the money.
 
 The code for creating a KID is in `/custom_modules/KID.js`.
 
@@ -318,7 +318,7 @@ Main Columns
 | ----------------- | ------ | ----------- | ---------- |
 | `KID`             | string |             | "12345678" |
 | `Donor_ID`        | int    |             | 1          |
-| `Distribution_ID` | int    |             | 15.00      |
+| `Distribution_ID` | int    |             | 511        |
 
 Example for donor 11 doing a one-time donation, and distributing 40% to AMF and 60% to GiveWell, which results in KID 1234:
 

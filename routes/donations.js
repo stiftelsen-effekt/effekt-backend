@@ -271,7 +271,20 @@ router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,
   }
 })
 
-router.delete("/:id", authMiddleware(authRoles.write_all_donations), async (req,res,next) => {
+router.get("/all/:kid", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
+  try {
+    const donations = await DAO.donations.getAllByKID(req.params.kid)
+
+    return res.json({
+      status: 200,
+      content: donations
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.delete("/all/:kid", authMiddleware(authRoles.write_all_donations), async (req,res,next) => {
   try {
     var removed = await DAO.donations.remove(req.params.id)
 
