@@ -37,6 +37,9 @@ router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,re
       return true
     }
 
+    // Send the OCR file over mail for a backup
+    await mail.sendOcrBackup(JSON.stringify(result, null, 2))
+
     /**
      * Parse incomming transactions and add them to the database
      */
@@ -59,7 +62,6 @@ router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,re
     }
 
     await DAO.logging.add("OCR", result)
-    await mail.sendOcrBackup(JSON.stringify(result, null, 2))
     res.json(result)
   } catch(ex) {
     next({ex})
