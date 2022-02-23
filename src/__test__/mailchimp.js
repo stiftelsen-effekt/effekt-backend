@@ -52,4 +52,9 @@ describe('', () => {
         expect(result).to.be.false()
     })
     */
+
+    after(function() {
+        getDnonorStub.restore();
+    });
 })
+
