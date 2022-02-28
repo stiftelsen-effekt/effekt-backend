@@ -48,7 +48,6 @@ describe("See descriptive statistics of my donations", function () {
   let authStub;
   let checkDonorStub;
   let aggregatedByIdStub;
-  let aggregatedByTime;
 
   before(function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
@@ -91,7 +90,7 @@ describe("See descriptive statistics of my donations", function () {
   });
 
   it("Donor doesn't have donations", async function () {
-    aggregatedByIdStub.resolves([]);
+    aggregatedByIdStub.withArgs("2349").resolves([]);
 
     const response = await request(server)
       .get("/donors/2349/donations/aggregated")
@@ -100,7 +99,7 @@ describe("See descriptive statistics of my donations", function () {
     expect(response.body.content).to.be.empty;
   });
 
-  it("Donor shouldn't exist", async function () {
+  it("Donor ID doesn't exist", async function () {
     authMiddleware.checkDonor.restore();
 
     checkDonorStub.callsFake(function (donorID, res, req, next) {
