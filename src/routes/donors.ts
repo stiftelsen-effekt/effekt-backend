@@ -85,7 +85,7 @@ router.post("/", urlEncodeParser, async (req, res, next) => {
  *                      status: 400
  *                      content: "email is missing in request body"
  */
-router.post("/auht0/register", async (req, res, next) => {
+router.post("/auth0/register", async (req, res, next) => {
   try {
     if (!req.body.email) {
       res.status(400).json({
