@@ -43,17 +43,21 @@ router.post("/", urlEncodeParser, async (req, res, next) => {
 
 /**
  * @openapi
- * /donors/id/:
- *   get:
+ * /donors/auth0/register:
+ *   post:
  *    tags: [Donors]
- *    description: Get a donor id by email
+ *    description: Gets a donor id by email if found, creates a new donor if email is not found
  *    parameters:
- *      - in: query
+ *      - in: body
  *        name: email
  *        required: true
- *        description: The email of the user to get the id for
+ *        description: The email of the donor that is registered
  *        schema:
- *          type: integer
+ *          type: object
+ *          properties:
+ *            email:
+ *              type: string
+ *              example: "jack.torrence@overlookhotel.com"
  *    responses:
  *      200:
  *        description: Returns a donor id
@@ -67,35 +71,43 @@ router.post("/", urlEncodeParser, async (req, res, next) => {
  *                      content: number
  *                   example:
  *                      content: 231
- *      404:
- *        description: Donor with given email not found
+ *      400:
+ *        description: Bad request, missing email in request body
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: number
+ *                   example:
+ *                      status: 400
+ *                      content: "email is missing in request body"
  */
-router.get("/id/", async (req, res, next) => {
+router.post("/auht0/register", async (req, res, next) => {
   try {
-    if (!req.query.email) {
+    if (!req.body.email) {
       res.status(400).json({
         status: 400,
-        content: "email parameter missing",
+        content: "email is missing in request body",
       });
     }
 
-    const donorID = await DAO.donors.getIDbyEmail(req.query.email);
+    let donorID = await DAO.donors.getIDbyEmail(req.body.email);
 
     if (donorID === null) {
-      res.status(404).json({
-        status: 404,
-        content: "No donor with the given email found",
-      });
-    } else {
-      res.json({
-        status: 200,
-        content: donorID,
-      });
+      donorID = await DAO.donors.add(req.body.email, null, null, false)
     }
+
+    res.json({
+      status: 200,
+      content: donorID,
+    });
   } catch (ex) {
     next(ex);
   }
-});
+})
 
 /**
  * @openapi
