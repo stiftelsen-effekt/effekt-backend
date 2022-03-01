@@ -27,7 +27,7 @@ async function getIDbyEmail(email): Promise<number> {
 /**
  * Selects a Donor object from the database with the given ID
  * @param {Number} ID The ID in the database for the donor
- * @returns {Donor} A donor object
+ * @returns {Donor | null} A donor object
  */
 async function getByID(ID): Promise<Donor | null> {
   try {
@@ -263,12 +263,15 @@ async function updateName(donorID, name) {
 async function update(donorID, name, ssn, newsletter) {
   try {
     var con = await pool.getConnection();
-    let res = await con.query(
+    let [res] = await con.query(
       `UPDATE Donors SET full_name = ?, ssn = ?, newsletter = ? where ID = ?`,
       [name, ssn, newsletter, donorID]
     );
     con.release();
-    return true;
+    if(res.affectedRows === 1) {
+      return true;
+    }
+    return false;
   } catch (ex) {
     con.release();
     throw ex;
