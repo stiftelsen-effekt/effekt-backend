@@ -274,8 +274,8 @@ async function update(donorID, name, ssn, newsletter) {
     throw ex;
   }
 }
-
 //endregion
+
 
 //region Delete
 /**

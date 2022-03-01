@@ -30,7 +30,7 @@ module.exports = {
     nets_sftp_key_passphrase: process.env.NETS_SFTP_PRIVATE_KEY_PASSPHRASE,
 
     //Set port for API listening, default to 3000
-    port: process.env.EFFEKT_PORT || process.env.PORT || 3000,
+    port: process.env.EFFEKT_PORT || process.env.PORT || 5050,
 
     //Bank account for recieving donations
     bankAccount: process.env.BANK_ACCOUNT,
