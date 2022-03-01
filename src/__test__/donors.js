@@ -52,5 +52,4 @@ describe('Check if profile information is updated', function() {
     after(function() {
         authMiddleware.auth.restore();
     });
-
 });
