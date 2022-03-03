@@ -739,6 +739,7 @@ async function getHistory(donorID) {
                 Donations.ID as donation_id,
                 Donations.KID_fordeling as kid,
                 Donations.sum_confirmed as sum_donation,
+                Payment.payment_name as method,
                 Distribution.ID as distribution_id,
                 (Donations.sum_confirmed * percentage_share / 100) as sum_distribution
             
@@ -746,6 +747,7 @@ async function getHistory(donorID) {
                 INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
                 INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
                 INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
+                INNER JOIN Payment ON Donations.Payment_ID = Payment.ID
 
             WHERE Donations.Donor_ID = ?
             
@@ -763,6 +765,7 @@ async function getHistory(donorID) {
         history.push({
           donationID: item.donation_id,
           kid: item.kid,
+          method: item.method,
           donationSum: item.sum_donation,
           date: item.timestamp_confirmed,
           distributions: [],
