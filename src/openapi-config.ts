@@ -30,7 +30,6 @@ export const openAPIOptions = {
 
 export const swaggerOptions = {
   swaggerOptions: {
-    oauth2RedirectUrl: "http://localhost:5050/api-docs/oauth2-redirect.html",
     oauth: {
        clientId: "fsYC8FIVfxACIJjSr5ZQtZZ2AHBAApDL",
     },
