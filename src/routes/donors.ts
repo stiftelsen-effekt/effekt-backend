@@ -1,5 +1,4 @@
 import * as express from "express";
-import { initParams } from "request";
 import { checkDonor } from "../custom_modules/authorization/authMiddleware";
 const router = express.Router();
 const authMiddleware = require("../custom_modules/authorization/authMiddleware");
