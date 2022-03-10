@@ -37,8 +37,9 @@ DAO.connect(() => {
   //Setup request logging
   logging(app)
 
-  app.get("/swagger.json", (req, res) => res.json(openapiSpecification))
-  app.use("/", swaggerUi.serve, swaggerUi.setup(openapiSpecification, swaggerOptions))
+  app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification))
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, swaggerOptions))
+  app.get("/", async (req, res, next) => { res.redirect('/api-docs/') })
 
   //Parse post body
   app.use(express.json());
