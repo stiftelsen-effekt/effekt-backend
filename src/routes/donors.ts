@@ -230,7 +230,7 @@ router.delete(
 /**
  * @openapi
  * /donors/search:
- *   post:
+ *   get:
  *    tags: [Donors]
  *    description: Search for donors in the database
  *    security:
@@ -274,6 +274,42 @@ router.get(
   }
 );
 
+
+/**
+ * @openapi
+ * /donors/{id}/donations:
+ *   get:
+ *    tags: [Donors]
+ *    description: Get donations by donor id
+ *    security:
+ *       - oAuth: [read_donations]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to retrieve donations from.
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Returns donations for given donor id
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content:
+ *                         type: array
+ *                         items:
+ *                            $ref: '#/components/schemas/Donation'
+ *                   example:
+ *                      content:
+ *                         - $ref: '#/components/schemas/Donation/example'
+ *      401:
+ *        description: User not authorized to view resource
+ */
 router.get(
   "/:id/donations",
   authMiddleware.auth(roles.read_donations),
@@ -283,11 +319,10 @@ router.get(
   async (req, res, next) => {
     try {
       const donations = await DAO.donations.getByDonorId(req.params.id);
-
-      return res.json({
-        status: 200,
-        content: donations,
-      });
+        return res.json({
+          status: 200,
+          content: donations,
+        });
     } catch (ex) {
       next(ex);
     }
