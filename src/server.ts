@@ -1,4 +1,4 @@
-import { openAPIOptions } from "./openapi-config"
+import { openAPIOptions, swaggerOptions } from "./openapi-config"
 
 console.log("--------------------------------------------------")
 console.log("| gieffektivt.no donation backend (╯°□°）╯︵ ┻━┻ |")
@@ -38,7 +38,7 @@ DAO.connect(() => {
   logging(app)
 
   app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification))
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification))
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, swaggerOptions))
   app.get("/", async (req, res, next) => { res.redirect('/api-docs/') })
 
   //Parse post body
