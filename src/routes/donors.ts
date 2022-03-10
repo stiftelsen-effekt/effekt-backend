@@ -319,10 +319,10 @@ router.get(
   async (req, res, next) => {
     try {
       const donations = await DAO.donations.getByDonorId(req.params.id);
-        return res.json({
-          status: 200,
-          content: donations,
-        });
+      return res.json({
+        status: 200,
+        content: donations,
+      });
     } catch (ex) {
       next(ex);
     }
