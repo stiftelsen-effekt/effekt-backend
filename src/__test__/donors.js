@@ -6,22 +6,76 @@ const authMiddleware = require("../custom_modules/authorization/authMiddleware")
 const DAO = require("../custom_modules/DAO");
 const bodyParser = require("body-parser");
 
+let server;
+let authStub;
+let checkDonorStub;
+let checkDonationStub;
+let donorStub;
+
+const jack = {
+  id: 237,
+  name: "Jack Torrance",
+  ssn: "02016126007",
+  email: "jack@overlookhotel.com",
+  newsletter: true,
+  trash: false,
+  registered: "1921-07-04T23:00:00.000Z",
+};
+
+const donation = {
+  id: 217,
+  donor: "Jack Torance",
+  donorId: 237,
+  email: "jack@overlookhotel.com",
+  sum: "100.00",
+  transactionCost: "2.00",
+  method: "Bank",
+  KID: "00009912345678",
+  registered: "2018-03-29T23:00:00.000Z",
+  $$ref: "#/components/schemas/Donation/example",
+};
+
+describe("Check if donations returns for user ID", function () {
+  before(function () {
+    authStub = sinon.stub(authMiddleware, "auth").returns([]);
+    checkDonorStub = sinon.replace(
+      authMiddleware,
+      "checkDonor",
+      "getByDonorId",
+      function (donorId, res, req, next) {
+        next();
+      }
+    );
+
+    donorStub = sinon.stub(DAO.donors, "getByID");
+    donorStub.withArgs("237").resolves(jack);
+
+    donationStub = sinon.stub(DAO.donation, "getByDonorId");
+    donationStub.withArgs("237").resolves(donation);
+
+    const donorsRoute = require("../routes/donors");
+    server = express();
+    server.use(bodyParser.json());
+    server.use(bodyParser.urlencoded({ extended: true }));
+    server.use("/donors", donorsRoute);
+  });
+
+  beforeEach(function () {
+    sinon.resetHistory();
+  });
+
+  it("Should return 200 OK with the dontions by ID", async function () {
+    const response = await request(server)
+      .get("/donors/237/donations")
+      .expect(200);
+  });
+
+  after(function () {
+    sinon.restore();
+  });
+});
+
 describe("Check if profile information is updated", function () {
-  let server;
-  let authStub;
-  let checkDonorStub;
-  let donorStub;
-
-  const jack = {
-    id: 237,
-    name: "Jack Torrance",
-    ssn: "02016126007",
-    email: "jack@overlookhotel.com",
-    newsletter: true,
-    trash: false,
-    registered: "1921-07-04T23:00:00.000Z",
-  };
-
   before(function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
     checkDonorStub = sinon.replace(
@@ -112,8 +166,6 @@ describe("Check if profile information is updated", function () {
   });
 
   after(function () {
-    authMiddleware.auth.restore();
-    DAO.donors.getByID.restore();
-    DAO.donors.update.restore();
+    sinon.restore();
   });
 });
