@@ -3,11 +3,10 @@ import { checkDonor } from "../custom_modules/authorization/authMiddleware";
 const router = express.Router();
 const authMiddleware = require("../custom_modules/authorization/authMiddleware");
 const roles = require("../enums/authorizationRoles");
-
 const DAO = require("../custom_modules/DAO");
-
 const bodyParser = require("body-parser");
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
+const validator = require('@navikt/fnrvalidator')
 
 /**
  * @openapi
@@ -536,24 +535,67 @@ router.put(
   },
   async (req, res, next) => {
     try {
-      if (req.params.id) {
-        await DAO.donors.update(
-          req.params.id,
-          req.body.name,
-          req.body.ssn,
-          req.body.newsletter
-        );
-
+      const donor = await DAO.donors.getByID(req.params.id);
+      if(!donor) {
+        return res.status(404).json({
+          status: 404,
+          content: "Couldn't find donor by id",
+        });
+      }
+      // Check for name
+      if(req.body.name){
+        if(typeof req.body.name !== 'string') {
+          return res.status(400).json({
+            status: 400,
+            content: "The name must be a string",
+          });
+        } 
+      } else {
+        return res.status(400).json({
+          status: 400,
+          content: "The name cannot be null",
+        });
+      }
+      // Check for SSN, validator from https://github.com/navikt/fnrvalidator
+      if(req.body.ssn){
+        if(validator.fnr((req.body.ssn).toString()).status === 'invalid') {
+          return res.status(400).json({
+            status: 400,
+            content: "The SSN is invalid, it must be 11 numbers in one word",
+          });
+        }
+      } else {
+        return res.status(400).json({
+          status: 400,
+          content: "The SSN cannot be null",
+        });
+      }
+      // Check for newsletter
+      if(req.body.newsletter){
+        if(typeof req.body.newsletter !== 'boolean') {
+          return res.status(400).json({
+            status: 400,
+            content: "The newsletter must be a boolean",
+          });
+        }
+      }
+      const updated = await DAO.donors.update(
+        req.params.id,
+        req.body.name,
+        req.body.ssn,
+        req.body.newsletter
+      );
+      if(updated){
         return res.json({
           status: 200,
           content: true,
         });
-      } else {
-        return res.status(404).json({
-          status: 404,
-          content: "Couldn't update profile information",
-        });
-      }
+     } else{
+        return res.status(500).json({
+          status: 500,
+          content: "Could not update donor"
+        })
+     }
     } catch (ex) {
       next(ex);
     }
