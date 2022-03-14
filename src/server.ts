@@ -17,6 +17,7 @@ const hogan = require('hogan-express')
 const bearerToken = require('express-bearer-token')
 const swaggerUi = require('swagger-ui-express')
 const swaggerJsdoc = require('swagger-jsdoc')
+const querystring = require('querystring')
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions)
 
@@ -39,6 +40,7 @@ DAO.connect(() => {
 
   app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification))
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, swaggerOptions))
+  app.get("/oauth2-redirect.html", (req, res, next) => res.redirect(`/api-docs/oauth2-redirect.html?${querystring.stringify(req.query)}`))
   app.get("/", async (req, res, next) => { res.redirect('/api-docs/') })
 
   //Parse post body
