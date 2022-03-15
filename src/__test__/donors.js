@@ -5,6 +5,7 @@ const { expect } = require("chai");
 const authMiddleware = require("../custom_modules/authorization/authMiddleware");
 const DAO = require("../custom_modules/DAO");
 const bodyParser = require("body-parser");
+const donations = require("../custom_modules/DAO_modules/donations");
 
 let server;
 let authStub;
@@ -41,16 +42,21 @@ describe("Check if donations returns for user ID", function () {
     checkDonorStub = sinon.replace(
       authMiddleware,
       "checkDonor",
-      "getByDonorId",
       function (donorId, res, req, next) {
         next();
       }
     );
 
+    checkDonationStub = sinon.replace(
+      donations,
+      "getByDonorId",
+      () => donation
+    );
+
     donorStub = sinon.stub(DAO.donors, "getByID");
     donorStub.withArgs("237").resolves(jack);
 
-    donationStub = sinon.stub(DAO.donation, "getByDonorId");
+    donationStub = sinon.stub(DAO.donations, "getByDonorId");
     donationStub.withArgs("237").resolves(donation);
 
     const donorsRoute = require("../routes/donors");
