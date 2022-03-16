@@ -115,7 +115,7 @@ router.post("/auth0/register", async (req, res, next) => {
  *    tags: [Donors]
  *    description: Get a donor by id
  *    security:
- *       - oAuth: [read_donations]
+ *       - auth0_jwt: [read:profile]
  *    parameters:
  *      - in: path
  *        name: id
@@ -174,7 +174,7 @@ router.get(
  *    tags: [Donors]
  *    description: Get a donor by id
  *    security:
- *       - oAuth: [write_donations]
+ *       - auth0_jwt: [write:donations]
  *    parameters:
  *      - in: path
  *        name: id
@@ -232,8 +232,6 @@ router.delete(
  *   get:
  *    tags: [Donors]
  *    description: Search for donors in the database
- *    security:
- *       - oAuth: [read_donations]
  *    parameters:
  *      - in: application/json
  *        name: id
@@ -281,7 +279,7 @@ router.get(
  *    tags: [Donors]
  *    description: Get donations by donor id
  *    security:
- *       - oAuth: [read_donations]
+ *       - auth0_jwt: [read:donations]
  *    parameters:
  *      - in: path
  *        name: id
@@ -388,7 +386,7 @@ router.get(
  *    tags: [Donors]
  *    description: Get a donor by id
  *    security:
- *       - oAuth: [read_donations]
+ *       - auth0_jwt: [read:donations]
  *    parameters:
  *      - in: path
  *        name: id
@@ -495,7 +493,7 @@ router.get(
  *    tags: [Donors]
  *    description: Updates donor by ID
  *    security:
- *       - oAuth: [write:profile]
+ *       - auth0_jwt: [write:profile]
  *    parameters:
  *      - in: path
  *        name: id
