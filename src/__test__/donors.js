@@ -5,9 +5,6 @@ const { expect } = require("chai");
 const authMiddleware = require("../custom_modules/authorization/authMiddleware");
 const DAO = require("../custom_modules/DAO");
 const bodyParser = require("body-parser");
-const donations = require("../custom_modules/DAO_modules/donations");
-const avtalegiroagreements = require("../custom_modules/DAO_modules/avtalegiroagreements");
-const vipps = require("../custom_modules/DAO_modules/vipps");
 
 const jack = {
   id: 237,
