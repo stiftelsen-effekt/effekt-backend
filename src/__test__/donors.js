@@ -61,12 +61,6 @@ describe("Check if donations returns for user ID", function () {
       }
     );
 
-    checkDonationStub = sinon.replace(
-      donations,
-      "getByDonorId",
-      () => donationsStub
-    );
-
     donorStub = sinon.stub(DAO.donors, "getByID");
     donorStub.withArgs("237").resolves(jack);
 
@@ -88,6 +82,11 @@ describe("Check if donations returns for user ID", function () {
     const response = await request(server)
       .get("/donors/237/donations")
       .expect(200);
+  });
+
+  it("Should return the donation", async function () {
+    const response = await request(server).get("/donors/237/donations");
+    expect(response.body.content).to.deep.equal(donationsStub);
   });
 
   after(function () {
