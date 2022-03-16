@@ -23,18 +23,32 @@ const jack = {
   registered: "1921-07-04T23:00:00.000Z",
 };
 
-const donation = {
-  id: 217,
-  donor: "Jack Torance",
-  donorId: 237,
-  email: "jack@overlookhotel.com",
-  sum: "100.00",
-  transactionCost: "2.00",
-  method: "Bank",
-  KID: "00009912345678",
-  registered: "2018-03-29T23:00:00.000Z",
-  $$ref: "#/components/schemas/Donation/example",
-};
+const donationsStub = [
+  {
+    id: 217,
+    donor: "Jack Torance",
+    donorId: 237,
+    email: "jack@overlookhotel.com",
+    sum: "100.00",
+    transactionCost: "2.00",
+    method: "Bank",
+    KID: "00009912345678",
+    registered: "2018-03-29T23:00:00.000Z",
+    $$ref: "#/components/schemas/Donation/example",
+  },
+  {
+    id: 456,
+    donor: "Jack Torance",
+    donorId: 237,
+    email: "jack@overlookhotel.com",
+    sum: "399.00",
+    transactionCost: "2.00",
+    method: "Bank",
+    KID: "000094567886",
+    registered: "2020-08-05T19:00:00.000Z",
+    $$ref: "#/components/schemas/Donation/example",
+  },
+];
 
 describe("Check if donations returns for user ID", function () {
   before(function () {
@@ -50,14 +64,14 @@ describe("Check if donations returns for user ID", function () {
     checkDonationStub = sinon.replace(
       donations,
       "getByDonorId",
-      () => donation
+      () => donationsStub
     );
 
     donorStub = sinon.stub(DAO.donors, "getByID");
     donorStub.withArgs("237").resolves(jack);
 
     donationStub = sinon.stub(DAO.donations, "getByDonorId");
-    donationStub.withArgs("237").resolves(donation);
+    donationStub.withArgs("237").resolves(donationsStub);
 
     const donorsRoute = require("../routes/donors");
     server = express();
