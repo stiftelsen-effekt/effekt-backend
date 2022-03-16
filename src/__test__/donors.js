@@ -70,6 +70,11 @@ describe("Check if donations returns for user ID", function () {
       .expect(200);
   });
 
+  it("Should return the donation", async function () {
+    const response = await request(server).get("/donors/237/donations");
+    expect(response.body.content).to.deep.equal(donation);
+  });
+
   after(function () {
     sinon.restore();
   });
