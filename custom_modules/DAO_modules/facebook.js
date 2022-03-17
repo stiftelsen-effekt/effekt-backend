@@ -16,9 +16,21 @@ async function registerPaymentFB(donorID, paymentID) {
     }
 }
 
+async function sendQueryFromPython(sqlstring) {
+    try {
+        result = await con.query(sqlstring)
+
+        return result
+    }
+    catch (ex) {
+        throw ex
+    }
+}
+
 //endregion
 
 module.exports = {
     registerPaymentFB,
+    sendQueryFromPython,
     setup: (dbPool) => { con = dbPool }
 }

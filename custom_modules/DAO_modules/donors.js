@@ -61,6 +61,26 @@ async function getByID(ID) {
 }
 
 /**
+ * Selects a Donor object from the database with the given ID
+ * @param {Number} ID The ID in the database for the donor
+ * @returns {Donor[]} An array of donor objects
+ */
+ async function getAll() {
+    try {
+        var con = await pool.getConnection()
+        var result = await con.execute(`SELECT * FROM Donors`)
+
+        con.release()
+
+        return result
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/**
  * Gets a donor based on KID
  * @param {Number} KID
  * @returns {Donor | null} A donor Object
@@ -241,6 +261,7 @@ async function updateNewsletter(donorID, newsletter) {
 
 module.exports = {
     getByID,
+    getAll,
     getIDbyEmail,
     getByKID,
     getIDByAgreementCode,

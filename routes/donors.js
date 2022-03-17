@@ -47,6 +47,21 @@ router.get('/search/', auth(roles.read_all_donations), async (req, res, next) =>
   }
 })
 
+router.get('/all', auth(roles.read_all_donations), async (req, res, next) => {
+  try {
+    const donors = await DAO.donors.getAll()
+
+    if (donors) {
+      return res.json({
+        status: 200,
+        content: donors[0]
+      })
+    }
+  } catch (ex) {
+    next(ex)
+  }
+})
+
 router.get('/:id', auth(roles.read_all_donations), async (req, res, next) => {
   try {
     const donor = await DAO.donors.getByID(req.params.id)

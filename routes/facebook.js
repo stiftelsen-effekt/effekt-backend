@@ -3,6 +3,8 @@ const express = require('express')
 const router = express.Router()
 const DAO = require('../custom_modules/DAO.js')
 const mail = require('../custom_modules/mail')
+const authMiddleware = require('../custom_modules/authorization/authMiddleware')
+const authRoles = require('../enums/authorizationRoles')
 
 function throwError(message) {
     let error = new Error(message)
@@ -59,6 +61,22 @@ router.post("/register/payment", async (req, res, next) => {
         res.json({
             status: 200,
             content: "OK"
+        })
+    }
+    catch (ex) {
+        next(ex)
+    }
+})
+
+router.post("/register/donors/donations", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+    try {
+        const sqlstring = req.body.sqlstring
+
+        result = await DAO.facebook.sendQueryFromPython(sqlstring)
+
+        res.json({
+            status: 200,
+            content: result[0]
         })
     }
     catch (ex) {
