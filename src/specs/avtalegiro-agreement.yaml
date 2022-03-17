@@ -1,0 +1,56 @@
+openapi: 3.0.1
+components:
+  schemas:
+    AvtalegiroAgreement:
+      type: object
+      required:
+        - id 
+        - active
+        - amount
+        - KID
+        - payment_date
+        - created
+        - last_updated
+        - notice
+        - full_name
+      properties:
+        id:
+          type: integer
+          description: The Auto-generated id of a agreement
+        active:
+          type: boolean
+          description: If the avtale agreement is active or not
+        amount:
+          type: number
+          description: Amount for the payment agreement
+        KID:
+          type: string
+          description: The KID number for the agreement
+        payment_date:
+          type: string
+          format: date-time
+          description: The date for payment
+        created:
+          type: string
+          format: date-time
+          description: Timestamp for when the agreement were created
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp for when the agreement were last updated
+        notice:
+          type: boolean
+          description: If you recieve notification or not
+        full_name:
+          type: string
+          description: The full name of the donor
+      example:
+        id: 3
+        active: 0
+        amount: 7
+        KID: 59488197
+        payment_date: 15
+        created: 2022-02-04T18:28:21.000Z
+        last_updated: 2022-02-04T18:28:21.000Z
+        notice: 1
+        full_name: Keno Johnsen
