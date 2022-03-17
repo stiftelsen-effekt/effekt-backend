@@ -6,6 +6,15 @@ const authMiddleware = require("../custom_modules/authorization/authMiddleware")
 const DAO = require("../custom_modules/DAO");
 const bodyParser = require("body-parser");
 
+const donations = require("../custom_modules/DAO_modules/donations");
+
+let server;
+let authStub;
+let checkDonorStub;
+let checkDonationStub;
+let donorStub;
+
+
 const jack = {
   id: 237,
   name: "Jack Torrance",
@@ -15,6 +24,33 @@ const jack = {
   trash: false,
   registered: "1921-07-04T23:00:00.000Z",
 };
+
+const donationsStub = [
+  {
+    id: 217,
+    donor: "Jack Torance",
+    donorId: 237,
+    email: "jack@overlookhotel.com",
+    sum: "100.00",
+    transactionCost: "2.00",
+    method: "Bank",
+    KID: "00009912345678",
+    registered: "2018-03-29T23:00:00.000Z",
+    $$ref: "#/components/schemas/Donation/example",
+  },
+  {
+    id: 456,
+    donor: "Jack Torance",
+    donorId: 237,
+    email: "jack@overlookhotel.com",
+    sum: "399.00",
+    transactionCost: "2.00",
+    method: "Bank",
+    KID: "000094567886",
+    registered: "2020-08-05T19:00:00.000Z",
+    $$ref: "#/components/schemas/Donation/example",
+  },
+];
 
 const mockAgreements = [
   {
@@ -67,6 +103,50 @@ const mockAgreementsVipps = [
     force_charge_date: "true",
   },
 ];
+
+describe("Check if donations returns for user ID", function () {
+  before(function () {
+    authStub = sinon.stub(authMiddleware, "auth").returns([]);
+    checkDonorStub = sinon.replace(
+      authMiddleware,
+      "checkDonor",
+      function (donorId, res, req, next) {
+        next();
+      }
+    );
+
+    donorStub = sinon.stub(DAO.donors, "getByID");
+    donorStub.withArgs("237").resolves(jack);
+
+    donationStub = sinon.stub(DAO.donations, "getByDonorId");
+    donationStub.withArgs("237").resolves(donationsStub);
+
+    const donorsRoute = require("../routes/donors");
+    server = express();
+    server.use(bodyParser.json());
+    server.use(bodyParser.urlencoded({ extended: true }));
+    server.use("/donors", donorsRoute);
+  });
+
+  beforeEach(function () {
+    sinon.resetHistory();
+  });
+
+  it("Should return 200 OK with the dontions by ID", async function () {
+    const response = await request(server)
+      .get("/donors/237/donations")
+      .expect(200);
+  });
+
+  it("Should return the donations", async function () {
+    const response = await request(server).get("/donors/237/donations");
+    expect(response.body.content).to.deep.equal(donationsStub);
+  });
+
+  after(function () {
+    sinon.restore();
+  });
+});
 
 describe("Check if profile information is updated", function () {
   let server;
@@ -164,9 +244,7 @@ describe("Check if profile information is updated", function () {
   });
 
   after(function () {
-    authMiddleware.auth.restore();
-    DAO.donors.getByID.restore();
-    DAO.donors.update.restore();
+    sinon.restore();
   });
 });
 

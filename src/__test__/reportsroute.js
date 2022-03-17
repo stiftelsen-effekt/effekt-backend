@@ -1,165 +1,189 @@
-const sinon = require('sinon');
-const chai = require('chai');
-const DAO = require('../custom_modules/DAO');
-const expect = (chai.expect);
-const mail = require('../custom_modules/mail')
-const fs = require('fs');
-const config = require('../config')
+const sinon = require("sinon");
+const chai = require("chai");
+const DAO = require("../custom_modules/DAO");
+const expect = chai.expect;
+const mail = require("../custom_modules/mail");
+const fs = require("fs");
+const config = require("../config");
 
-const paypalroute = require('../routes/reports/paypal')
-const vippsRoute = require('../routes/reports/vipps')
-const ocrRoute = require('../routes/reports/ocr')
+const paypalroute = require("../routes/reports/paypal");
+const vippsRoute = require("../routes/reports/vipps");
+const ocrRoute = require("../routes/reports/ocr");
 
-const addStub = sinon
-    .stub(DAO.donations, 'add')
-    //Returns donation ID
-    .resolves(10)
+let addStub;
+let mailStub;
+let historicSub;
+let parsingRulesStub;
 
-const mailStub = sinon
-    .stub(mail, 'sendDonationReciept')
+describe("PayPal report route handles correctly", () => {
+  before(() => {
+    addStub = sinon
+      .stub(DAO.donations, "add")
+      //Returns donation ID
+      .resolves(10);
 
-const historicSub = sinon
-    .stub(DAO.distributions, 'getHistoricPaypalSubscriptionKIDS')
+    mailStub = sinon.stub(mail, "sendDonationReciept");
 
-const parsingRulesStub = sinon
-    .stub(DAO.parsing, 'getVippsParsingRules')
-    .resolves([])
+    historicSub = sinon.stub(
+      DAO.distributions,
+      "getHistoricPaypalSubscriptionKIDS"
+    );
 
-beforeEach(() => {
-    historicSub.reset()
-    addStub.reset()
-    mailStub.reset()
-})
+    parsingRulesStub = sinon
+      .stub(DAO.parsing, "getVippsParsingRules")
+      .resolves([]);
+  });
 
-describe('PayPal report route handles correctly', () => {
-    it('adds donations to DB when historic matching exists', async () => {
-        historicSub.resolves({
-            'I-YE66CY1W4DPU': 23
-        })
+  beforeEach(() => {
+    sinon.resetHistory();
+  });
 
-        await runPaypal('Paypal April 2019')
+  it("adds donations to DB when historic matching exists", async () => {
+    historicSub.resolves({
+      "I-YE66CY1W4DPU": 23,
+    });
 
-        expect(addStub.callCount).to.be.equal(1)
-    })
-    
-    it('does not fail on 0 historic paypal matches', async() => {
-        historicSub.resolves([])
+    await runPaypal("Paypal April 2019");
 
-        await runPaypal('Paypal Special')
+    expect(addStub.callCount).to.be.equal(1);
+  });
 
-        expect(addStub.callCount).to.be.equal(0)
-    })
-})
+  it("does not fail on 0 historic paypal matches", async () => {
+    historicSub.resolves([]);
 
-describe('Vipps route handles report correctly', () => {
-    it('Adds donations to DB', async () => {
-        await runVipps('Vipps April 2019')
-        expect(addStub.callCount).to.be.equal(10)
-    })
+    await runPaypal("Paypal Special");
 
-    it('Attempts to send mail when in production', async () => {
-        config.env = "production";
-        await runVipps('Vipps April 2019');
-        config.env = "development";
+    expect(addStub.callCount).to.be.equal(0);
+  });
 
-        expect(mailStub.callCount).to.be.equal(10);
-    })
+  after(() => {
+    sinon.restore();
+  });
+});
 
-    it('Adds default donations', async () => {
-        parsingRulesStub.resolves([{
-            salesLocation: 'Stiftelsen Effekt',
-            message: 'Vipps',
-            resolveKID: 12345678
-        }])
+describe("Vipps route handles report correctly", () => {
+  before(() => {
+    addStub = sinon
+      .stub(DAO.donations, "add")
+      //Returns donation ID
+      .resolves(10);
 
-        await runVipps('Vipps April 2019')
+    mailStub = sinon.stub(mail, "sendDonationReciept");
 
-        expect(addStub.callCount).to.be.equal(13)
-    })
-})
+    historicStub = sinon.stub(
+      DAO.distributions,
+      "getHistoricPaypalSubscriptionKIDS"
+    );
 
-/*
-describe('OCR route handles correctly', () => {
-    it('Adds donations to DB', async () => {
-        await runOCR('TBOC2072')
+    parsingRulesStub = sinon
+      .stub(DAO.parsing, "getVippsParsingRules")
+      .resolves([]);
+  });
 
-        expect(addStub.callCount).to.be.equal(2)
-    })
+  beforeEach(() => {
+    sinon.resetHistory();
+  });
 
-    it('Sends donation reciept', async () => {
-        config.env = "production"
-        await runOCR('TBOC2072')
-        config.env = "development"
+  it("Adds donations to DB", async () => {
+    await runVipps("Vipps April 2019");
+    expect(addStub.callCount).to.be.equal(10);
+  });
 
-        expect(mailStub.callCount).to.be.equal(2)
-    })
-})
-*/
+  it("Attempts to send mail when in production", async () => {
+    config.env = "production";
+    await runVipps("Vipps April 2019");
+    config.env = "development";
+
+    expect(mailStub.callCount).to.be.equal(10);
+  });
+
+  it("Adds default donations", async () => {
+    parsingRulesStub.resolves([
+      {
+        salesLocation: "Stiftelsen Effekt",
+        message: "Vipps",
+        resolveKID: 12345678,
+      },
+    ]);
+
+    await runVipps("Vipps April 2019");
+
+    expect(addStub.callCount).to.be.equal(13);
+  });
+
+  after(() => {
+    sinon.restore();
+  });
+});
 
 async function runPaypal(filename) {
-    var res = {
-        json: () => {}
-    }
-    const jsonStub = sinon.stub(res, 'json')
+  var res = {
+    json: () => {},
+  };
+  const jsonStub = sinon.stub(res, "json");
 
-    var query = {
-        body: {
-            metaOwnerID: 3
-        },
-        files: {
-            report: {
-                data: readReport('paypal',filename)
-            }
-        }
-    }
+  var query = {
+    body: {
+      metaOwnerID: 3,
+    },
+    files: {
+      report: {
+        data: readReport("paypal", filename),
+      },
+    },
+  };
 
-    await paypalroute(query, res, (ex) => { throw ex })
+  await paypalroute(query, res, (ex) => {
+    throw ex;
+  });
 }
 
 async function runVipps(filename) {
-    let res = {
-        json: () => {}
-    }
+  let res = {
+    json: () => {},
+  };
 
-    const jsonStub = sinon
-        .stub(res, 'json')
+  const jsonStub = sinon.stub(res, "json");
 
-    const query = {
-        body: {
-            metaOwnerID: 3
-        },
-        files: {
-            report: {
-                data: readReport('vipps', filename)
-            }
-        }
-    }
+  const query = {
+    body: {
+      metaOwnerID: 3,
+    },
+    files: {
+      report: {
+        data: readReport("vipps", filename),
+      },
+    },
+  };
 
-    await vippsRoute(query, res, (ex) => { throw ex })
+  await vippsRoute(query, res, (ex) => {
+    throw ex;
+  });
 }
 
 async function runOCR(filename) {
-    let res = {
-        json: () => {}
-    }
+  let res = {
+    json: () => {},
+  };
 
-    const jsonStub = sinon
-        .stub(res, 'json')
+  const jsonStub = sinon.stub(res, "json");
 
-    const query = {
-        body: {
-            metaOwnerID: 3
-        },
-        files: {
-            report: {
-                data: readReport('ocr', filename, 'DAT')
-            }
-        }
-    }
+  const query = {
+    body: {
+      metaOwnerID: 3,
+    },
+    files: {
+      report: {
+        data: readReport("ocr", filename, "DAT"),
+      },
+    },
+  };
 
-    await ocrRoute(query, res, (ex) => { throw ex })
+  await ocrRoute(query, res, (ex) => {
+    throw ex;
+  });
 }
 
 function readReport(type, filename, extension = "CSV") {
-    return fs.readFileSync(`src/__test__/data/${type}/${filename}.${extension}`)
+  return fs.readFileSync(`src/__test__/data/${type}/${filename}.${extension}`);
 }
