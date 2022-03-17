@@ -326,24 +326,6 @@ router.get(
   }
 );
 
-router.get(
-  "/:id/distributions",
-  authMiddleware.auth(roles.read_donations),
-  async (req, res, next) => {
-    try {
-      const distributions = await DAO.distributions.getByDonorId(req.params.id);
-
-      return res.json({
-        status: 200,
-        content: distributions,
-      });
-    } catch (ex) {
-      next(ex);
-    }
-  }
-);
-
-
 /**
  * @openapi
  * /donors/{id}/recurring/avtalegiro:
@@ -504,6 +486,130 @@ router.get(
       return res.json({
         status: 200,
         content: aggregated,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+/**
+ * @openapi
+ * /donors/{id}/distributions:
+ *   get:
+ *    tags: [Donors]
+ *    description: Get the distributions of a donor
+ *    security:
+ *       - auth0_jwt: [read:donations]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to retrieve distributions from.
+ *        schema:
+ *          type: integer
+ *      - in: query
+ *        name: kids
+ *        required: false
+ *        description: A list of KIDs seperated by a comma, to fetch only given distributions
+ *        schema:
+ *          type: string
+ *    responses:
+ *      200:
+ *        description: Returns distributions for a donor
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content:
+ *                         type: array
+ *                         items:
+ *                            $ref: '#/components/schemas/Distribution'
+ *                   example:
+ *                      content:
+ *                         - $ref: '#/components/schemas/Distribution/example'
+ *      401:
+ *        description: User not authorized to view resource
+ */
+router.get(
+  "/:id/distributions/",
+  authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const result = await DAO.distributions.getAllByDonor(req.params.id)
+      let distributions = result.distributions
+
+      if (req.query.kids) {
+        const kidSet = new Set<string>()
+        req.query.kids.split(",").map((kid) => kidSet.add(kid))
+
+        distributions = distributions.filter(dist => kidSet.has(dist.kid))
+      }
+
+      return res.json({
+        status: 200,
+        content: distributions,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+/**
+ * @openapi
+ * /donors/{id}/distributions/aggregated:
+ *   get:
+ *    tags: [Donors]
+ *    description: Get the distributions of a donor with aggregated donations
+ *    security:
+ *       - auth0_jwt: [read:donations]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to retrieve aggregated distributions from
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Returns aggregated distributions for a donor
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content:
+ *                         type: array
+ *                         items:
+ *                            $ref: '#/components/schemas/AggregatedDistribution'
+ *                   example:
+ *                      content:
+ *                         - $ref: '#/components/schemas/AggregatedDistribution/example'
+ *      401:
+ *        description: User not authorized to view resource
+ */
+router.get(
+  "/:id/distributions/aggregated",
+  authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const distributions = await DAO.distributions.getByDonorId(req.params.id);
+
+      return res.json({
+        status: 200,
+        content: distributions,
       });
     } catch (ex) {
       next(ex);

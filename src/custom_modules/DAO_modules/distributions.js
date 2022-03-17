@@ -80,7 +80,7 @@ async function getAllByDonor(donorID) {
     inner join Combining_table on Combining_table.Donor_ID = Donors.ID
     inner join Distribution on Distribution.ID = Combining_table.Distribution_ID
     inner join Organizations on Organizations.ID = Distribution.OrgID
-    where Donors.ID = ` + donorID)
+    where Donors.ID = ?`, [donorID])
 
     var distObj = {
         donorID: res[0].donID,

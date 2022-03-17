@@ -1,0 +1,24 @@
+openapi: 3.0.1
+components:
+  schemas:
+    Distribution:
+      type: object
+      required:
+      properties:
+        KID:
+          type: string
+          description: The KID of the distribution
+        organizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributionOrganization'
+      example:
+        KID: "000013901401"
+        organizations:
+          - id: 5
+            name: "Against Malaria Foundation"
+            share: "25.00"
+          - id: 6
+            name: "GiveWells tildelingsfond"
+            share: "75.00"
+        

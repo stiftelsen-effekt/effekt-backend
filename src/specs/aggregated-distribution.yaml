@@ -1,0 +1,27 @@
+openapi: 3.0.1
+components:
+  schemas:
+    AggregatedDistribution:
+      type: object
+      properties:
+        KID:
+          type: string
+          description: The customer identification number
+        sum:
+          type: string
+          description: The sum of all the donations for the given distribution in decimal form
+        count:
+          type: integer
+          description: The number of donations for the given distribution
+        full_name:
+          type: string
+          description: Full name of the donor (first and last name)
+        email:
+          type: string
+          description: The email of the donor
+      example:
+        KID: "51615227"
+        sum: "250.00"
+        count: 1
+        full_name: "Jack Torance"
+        email: "jack@overlookhotel.com"
