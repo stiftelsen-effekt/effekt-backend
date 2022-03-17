@@ -326,6 +326,41 @@ router.get(
   }
 );
 
+/**
+ * @openapi
+ * /donors/{id}/recurring/avtalegiro:
+ *   get:
+ *    tags: [Donors]
+ *    description: Get avtalegiro agreements by donorId
+ *    security:
+ *       - auth0_jwt: [read:donations]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to retrieve avtalegiro agreements from.
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Returns avtalegiro agreements for given donorId
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content:
+ *                         type: array
+ *                         items:
+ *                            $ref: '#/components/schemas/AvtalegiroAgreement'
+ *                   example:
+ *                      content:
+ *                         - $ref: '#/components/schemas/AvtalegiroAgreement/example'
+ *      401:
+ *        description: User not authorized to view resource
+ */
 router.get(
   "/:id/recurring/avtalegiro",
   authMiddleware.auth(roles.read_donations),
@@ -345,6 +380,43 @@ router.get(
   }
 );
 
+
+
+/**
+ * @openapi
+ * /donors/{id}/recurring/vipps:
+ *   get:
+ *    tags: [Donors]
+ *    description: Get vipps agreements by donorId
+ *    security:
+ *       - auth0_jwt: [read:donations]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to retrieve vipps agreements from.
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Returns vipps agreements for given donoId
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content:
+ *                         type: array
+ *                         items:
+ *                            $ref: '#/components/schemas/VippsAgreement'
+ *                   example:
+ *                      content:
+ *                         - $ref: '#/components/schemas/VippsAgreement/example'
+ *      401:
+ *        description: User not authorized to view resource
+ */
 router.get(
   "/:id/recurring/vipps",
   authMiddleware.auth(roles.read_donations),

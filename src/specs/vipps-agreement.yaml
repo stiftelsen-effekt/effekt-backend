@@ -1,0 +1,64 @@
+openapi: 3.0.1
+components:
+  schemas:
+    VippsAgreement:
+      type: object
+      required:
+        - id
+        - status
+        - donorId
+        - full_name
+        - KID
+        - timestamp_created
+        - monthly_charge_day
+        - force_charge_date
+        - amount
+        - agreement_url_code
+      properties:
+        id:
+          type: integer
+          description: The Auto-generated id of a agreement
+        status:
+          type: boolean
+          description: If the agreement is active or not
+        donorId:
+          type: number
+          description: The id of the donor attached to the agreement
+        full_name:
+          type: string
+          description: Full name of the donor (first and last name)
+        KID:
+          type: string
+          description: The KID number for the agreement
+        timestamp_created:
+          type: string
+          format: date-time
+          description: Timestamp for when the agreement were created
+        monthly_charge_day: 
+          type: number
+          description: Day of the month when charged
+        force_charge_date:
+          type: boolean
+          description: Guarantee that a payment occurs on one specified date if true
+        paused_until_date: 
+          type: string
+          format: date-time
+          description: The date the agreement is paused to
+        amount:
+          type: number
+          description: Amount for the payment agreement
+        agreement_url_code: 
+          type: string
+          description: A 41 character string that identifies the agreement
+      example:
+        id: 178
+        status: 1
+        donorId: 237
+        full_name: Jack Torrance
+        KID: 12347489220
+        timestamp_created: 1921-07-04T23:00:00.000Z
+        monthly_charge_day: 5
+        force_charge_date: 0
+        paused_until_date: 1921-10-04T23:00:00.000Z
+        amount: 200.00
+        agreement_url_code: 1hj3hik52hk4jl728j2gj91l0yjkujjkwokds25oi
