@@ -143,13 +143,6 @@
                             </tr>
                             <tr>
                                 <td class="bodycopy">
-                                    <% for (var i = 0; i < organizations.length; i++) { %>
-                                        <% if(this.organizations[i].name == "GiveWells tildelingsfond") { %>
-                                            Donasjoner til GiveWell Maximum Impact Fund vil uavkortet bli tildelt The Clear Fund a.k.a. GiveWell, Tax ID 20-8625442 (USA).
-                                            <br />
-                                            <br />
-                                        <% } %>
-                                    <% } %>
                                     <% if (hasReplacedOrgs == 1) { %>
                                         <% this.reusableHTML.replacedOrgsInfo %>
                                     <% } %>
@@ -158,6 +151,13 @@
                                         Du står helt fritt til å endre beløpet du donerer.<br/><br/>
                                     <% } %>
                                     <% this.reusableHTML.taxDeductionInfo %>
+                                    <% for (var i = 0; i < organizations.length; i++) { %>
+                                        <% if(this.organizations[i].name == "GiveWells tildelingsfond") { %>
+                                            Donasjoner til GiveWell Maximum Impact Fund blir tildelt GiveWell a.k.a. The Clear Fund for utdeling til deres anbefalte organisasjoner.
+                                            <br />
+                                            <br />
+                                        <% } %>
+                                    <% } %>
                                     <% this.reusableHTML.greeting %>
                                 </td>
                             </tr>
