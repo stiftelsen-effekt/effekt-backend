@@ -10,7 +10,7 @@ const moment = require("moment");
 /**
  * @openapi
  * tags:
- *   - name: Vipps
+ *   - name: Avtalegiro
  *     description: Avtalegiro agreements in the database.
  */
 
