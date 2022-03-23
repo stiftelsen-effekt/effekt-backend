@@ -241,7 +241,7 @@ router.get(
  *    tags: [Avtalegiro]
  *    description: Update distribution by KID
  *    security:
- *       - auth0_jwt: [write:donations]
+ *       - auth0_jwt: [write:agreements]
  *    parameters:
  *      - in: path
  *        name: KID
@@ -249,6 +249,26 @@ router.get(
  *        description: KID of the distribution to update
  *        schema:
  *          type: integer
+ *      - in: body
+ *        name: distribution
+ *        required: true
+ *        description:
+ *        schema:
+ *          type: object
+ *          properties:
+ *            distribution:
+ *              type: object
+ *              properties:
+ *                organizationId:
+ *                  type: number
+ *                abbriv:
+ *                  type:string
+ *                share:
+ *                  type: string
+ *              example:
+ *                 organizationId: 1
+ *                 abbriv: "AMF"
+ *                 share: "100.000000000000"
  *    responses:
  *      400:
  *        description: Invalid distribution
@@ -266,7 +286,7 @@ router.get(
  */
 router.post(
   "/:KID/distribution",
-  authMiddleware.auth(authRoles.write_donations),
+  authMiddleware.auth(authRoles.write_agreements),
   async (req, res, next) => {
     try {
       if (!req.body) return res.sendStatus(400);
@@ -317,7 +337,7 @@ router.post(
 
 router.post(
   "/:KID/status",
-  authMiddleware.auth(authRoles.write_donations),
+  authMiddleware.auth(authRoles.write_agreements),
   async (req, res, next) => {
     try {
       const KID = req.params.KID;
@@ -340,7 +360,7 @@ router.post(
  *    tags: [Avtalegiro]
  *    description: Update amount by KID
  *    security:
- *       - auth0_jwt: [write:donations]
+ *       - auth0_jwt: [write:agreements]
  *    parameters:
  *      - in: path
  *        name: KID
@@ -348,10 +368,20 @@ router.post(
  *        description: KID of the amount to update
  *        schema:
  *          type: integer
+ *      - in: body
+ *        name: amount
+ *        required: true
+ *        description: The amount to pay
+ *        schema:
+ *          type: integer
+ *          properties:
+ *            amount:
+ *              type: integer
+ *              example: 10000
  */
 router.post(
   "/:KID/amount",
-  authMiddleware.auth(authRoles.write_donations),
+  authMiddleware.auth(authRoles.write_agreements),
   async (req, res, next) => {
     try {
       const KID = req.params.KID;
