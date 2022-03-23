@@ -245,12 +245,6 @@ router.post(
  *        description: 41 character string to identify vipps agreement
  *        schema:
  *          type: integer
- *      - in: body
- *        name: vipps agreement
- *        required: true
- *        description: The vipps agreement to cancel
- *        schema:
- *          $ref: '#/components/schemas/VippsAgreement'
  */
 router.put("/agreement/:urlcode/cancel", async (req, res, next) => {
   try {
@@ -275,7 +269,7 @@ router.put("/agreement/:urlcode/cancel", async (req, res, next) => {
  * /vipps/agreement/{urlcode}/price:
  *   put:
  *    tags: [Vipps]
- *    description: Updates prices in a vipps agreement by urlcode
+ *    description: Updates the price in a vipps agreement by urlcode
  *    parameters:
  *      - in: path
  *        name: urlcode
@@ -284,11 +278,17 @@ router.put("/agreement/:urlcode/cancel", async (req, res, next) => {
  *        schema:
  *          type: integer
  *      - in: body
- *        name: vipps agreement
+ *        name: price
  *        required: true
- *        description: The vipps agreement to update price on
+ *        description: The price to update to
  *        schema:
- *          $ref: '#/components/schemas/VippsAgreement'
+ *          type: object
+ *          properties:
+ *            price:
+ *              type: number
+ *          example:
+ *            price: 500
+ *
  */
 router.put("/agreement/:urlcode/price", jsonBody, async (req, res, next) => {
   try {
@@ -386,11 +386,16 @@ router.put(
  *        schema:
  *          type: integer
  *      - in: body
- *        name: vipps agreement
+ *        name: chargeDay
  *        required: true
- *        description: The vipps agreement to change chargeday on
+ *        description: They chargeday to update to
  *        schema:
- *          $ref: '#/components/schemas/VippsAgreement'
+ *          type: number
+ *          properties:
+ *            chargeDay:
+ *              type: number
+ *          example:
+ *            chargeDay: 5
  *    responses:
  *      400:
  *        description: Invalid chargeday
@@ -479,11 +484,25 @@ router.put(
  *        schema:
  *          type: integer
  *      - in: body
- *        name: vipps agreement
+ *        name: distribution
  *        required: true
- *        description: The vipps agreement to change distribution on
+ *        description:
  *        schema:
- *          $ref: '#/components/schemas/VippsAgreement'
+ *          type: object
+ *          properties:
+ *            distribution:
+ *              type: object
+ *              properties:
+ *                organizationId:
+ *                  type: number
+ *                abbriv:
+ *                  type:string
+ *                share:
+ *                  type: string
+ *              example:
+ *                 organizationId: 1
+ *                 abbriv: "AMF"
+ *                 share: "100.000000000000"
  *    responses:
  *      400:
  *        description: Invalid distribution
