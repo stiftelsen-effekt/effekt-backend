@@ -335,6 +335,30 @@ router.post(
   }
 );
 
+/**
+ * @openapi
+ * /avtalegiro/{KID}/status:
+ *   post:
+ *    tags: [Avtalegiro]
+ *    description: Update status by KID
+ *    security:
+ *       - auth0_jwt: [write:agreements]
+ *    parameters:
+ *      - in: path
+ *        name: KID
+ *        required: true
+ *        description: KID of the distribution to update
+ *        schema:
+ *          type: integer
+ *      - in: body
+ *        name: active
+ *        required: true
+ *        description:
+ *        schema:
+ *          type: boolean
+ *          example:
+ *            active: 1
+ */
 router.post(
   "/:KID/status",
   authMiddleware.auth(authRoles.write_agreements),
@@ -371,13 +395,11 @@ router.post(
  *      - in: body
  *        name: amount
  *        required: true
- *        description: The amount to pay
+ *        description: The amount to update to
  *        schema:
- *          type: integer
- *          properties:
- *            amount:
- *              type: integer
- *              example: 10000
+ *          type: number
+ *          example:
+ *            amount: 10000
  */
 router.post(
   "/:KID/amount",
