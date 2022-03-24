@@ -261,13 +261,10 @@ router.get(
  *              properties:
  *                organizationId:
  *                  type: number
- *                abbriv:
- *                  type:string
  *                share:
  *                  type: string
  *              example:
  *                 organizationId: 1
- *                 abbriv: "AMF"
  *                 share: "100.000000000000"
  *    responses:
  *      400:
