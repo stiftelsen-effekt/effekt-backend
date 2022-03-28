@@ -6,7 +6,7 @@ const roles = require("../enums/authorizationRoles");
 const DAO = require("../custom_modules/DAO");
 const bodyParser = require("body-parser");
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
-const validator = require('@navikt/fnrvalidator')
+const validator = require("@navikt/fnrvalidator");
 
 /**
  * @openapi
@@ -96,7 +96,7 @@ router.post("/auth0/register", async (req, res, next) => {
     let donorID = await DAO.donors.getIDbyEmail(req.body.email);
 
     if (donorID === null) {
-      donorID = await DAO.donors.add(req.body.email, null, null, false)
+      donorID = await DAO.donors.add(req.body.email, null, null, false);
     }
 
     res.json({
@@ -106,7 +106,7 @@ router.post("/auth0/register", async (req, res, next) => {
   } catch (ex) {
     next(ex);
   }
-})
+});
 
 /**
  * @openapi
@@ -271,7 +271,6 @@ router.get(
   }
 );
 
-
 /**
  * @openapi
  * /donors/{id}/donations:
@@ -379,8 +378,6 @@ router.get(
     }
   }
 );
-
-
 
 /**
  * @openapi
@@ -542,14 +539,14 @@ router.get(
   },
   async (req, res, next) => {
     try {
-      const result = await DAO.distributions.getAllByDonor(req.params.id)
-      let distributions = result.distributions
+      const result = await DAO.distributions.getAllByDonor(req.params.id);
+      let distributions = result.distributions;
 
       if (req.query.kids) {
-        const kidSet = new Set<string>()
-        req.query.kids.split(",").map((kid) => kidSet.add(kid))
+        const kidSet = new Set<string>();
+        req.query.kids.split(",").map((kid) => kidSet.add(kid));
 
-        distributions = distributions.filter(dist => kidSet.has(dist.kid))
+        distributions = distributions.filter((dist) => kidSet.has(dist.kid));
       }
 
       return res.json({
@@ -713,20 +710,20 @@ router.put(
   async (req, res, next) => {
     try {
       const donor = await DAO.donors.getByID(req.params.id);
-      if(!donor) {
+      if (!donor) {
         return res.status(404).json({
           status: 404,
           content: "Couldn't find donor by id",
         });
       }
       // Check for name
-      if(req.body.name){
-        if(typeof req.body.name !== 'string') {
+      if (req.body.name) {
+        if (typeof req.body.name !== "string") {
           return res.status(400).json({
             status: 400,
             content: "The name must be a string",
           });
-        } 
+        }
       } else {
         return res.status(400).json({
           status: 400,
@@ -734,22 +731,26 @@ router.put(
         });
       }
       // Check for SSN, validator from https://github.com/navikt/fnrvalidator
-      if(req.body.ssn){
-        if(validator.fnr((req.body.ssn).toString()).status === 'invalid') {
+      if (req.body.ssn) {
+        if (req.body.ssn.length == 11) {
+          if (validator.fnr(req.body.ssn.toString()).status === "invalid") {
+            return res.status(400).json({
+              status: 400,
+              content: "The SSN is invalid, it must be 11 numbers in one word",
+            });
+          }
+        } else if (req.body.ssn.length != 9) {
           return res.status(400).json({
             status: 400,
-            content: "The SSN is invalid, it must be 11 numbers in one word",
+            content:
+              "The SSN is invalid, it must be 11 or 9 numbers in one word ",
           });
         }
-      } else {
-        return res.status(400).json({
-          status: 400,
-          content: "The SSN cannot be null",
-        });
       }
+
       // Check for newsletter
-      if(req.body.newsletter){
-        if(typeof req.body.newsletter !== 'boolean') {
+      if (req.body.newsletter) {
+        if (typeof req.body.newsletter !== "boolean") {
           return res.status(400).json({
             status: 400,
             content: "The newsletter must be a boolean",
@@ -762,17 +763,17 @@ router.put(
         req.body.ssn,
         req.body.newsletter
       );
-      if(updated){
+      if (updated) {
         return res.json({
           status: 200,
           content: true,
         });
-     } else{
+      } else {
         return res.status(500).json({
           status: 500,
-          content: "Could not update donor"
-        })
-     }
+          content: "Could not update donor",
+        });
+      }
     } catch (ex) {
       next(ex);
     }
