@@ -488,21 +488,7 @@ router.put(
  *        required: true
  *        description:
  *        schema:
- *          type: object
- *          properties:
- *            distribution:
- *              type: object
- *              properties:
- *                organizationId:
- *                  type: number
- *                abbriv:
- *                  type:string
- *                share:
- *                  type: string
- *              example:
- *                 organizationId: 1
- *                 abbriv: "AMF"
- *                 share: "100.000000000000"
+ *          $ref: '#/components/schemas/DistributionInput'
  *    responses:
  *      400:
  *        description: Invalid distribution
@@ -517,6 +503,8 @@ router.put(
  *                   example:
  *                      status: 400
  *                      content: "Empty distribution array provided"
+ *
+ *
  */
 router.put(
   "/agreement/:urlcode/distribution",

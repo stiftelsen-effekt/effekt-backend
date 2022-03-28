@@ -1,0 +1,17 @@
+openapi: 3.0.1
+components:
+  schemas:
+    DistributionInput:
+      type: object
+      required:
+      properties:
+        organizationId:
+          type: number
+        share:
+          type: string
+      example:
+        distribution:
+          - organizationId: 1
+            share: "25.000000000000"
+          - organizationId: 2
+            share: "75.000000000000"
