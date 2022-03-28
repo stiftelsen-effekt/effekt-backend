@@ -14,7 +14,6 @@ let checkDonorStub;
 let checkDonationStub;
 let donorStub;
 
-
 const jack = {
   id: 237,
   name: "Jack Torrance",
@@ -212,7 +211,7 @@ describe("Check if profile information is updated", function () {
     expect(donorUpdateStub.callCount).to.equal(0);
   });
 
-  it("Should return 400 when SSN is not 11 numbers in length", async function () {
+  it("Should return 400 when SSN is not 0, 9 or 11 numbers in length", async function () {
     donorUpdateStub.resolves(true);
     const response = await request(server).put("/donors/237").send({
       name: "Jack Torrance",
@@ -220,6 +219,26 @@ describe("Check if profile information is updated", function () {
     });
     expect(response.status).to.equal(400);
     expect(donorUpdateStub.callCount).to.equal(0);
+  });
+
+  it("Should return 200 when SSN is 0 numbers in length", async function () {
+    donorUpdateStub.resolves(true);
+    const response = await request(server).put("/donors/237").send({
+      name: "Jack Torrance",
+      ssn: "",
+    });
+    expect(response.status).to.equal(200);
+    expect(donorUpdateStub.callCount).to.equal(1);
+  });
+
+  it("Should return 200 when SSN is 9 numbers in length", async function () {
+    donorUpdateStub.resolves(true);
+    const response = await request(server).put("/donors/237").send({
+      name: "Jack Torrance",
+      ssn: "123456789",
+    });
+    expect(response.status).to.equal(200);
+    expect(donorUpdateStub.callCount).to.equal(1);
   });
 
   it("Should return 400 when SSN is not a number", async function () {
