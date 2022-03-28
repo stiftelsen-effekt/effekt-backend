@@ -86,7 +86,7 @@ async function getAllByDonor(donorID) {
   var con = await pool.getConnection();
 
   var [res] = await con.query(
-    `select Donors.ID as donID, Combining_table.KID as KID, Distribution.ID, Organizations.full_name, Distribution.percentage_share 
+    `select Donors.ID as donID, Combining_table.KID as KID, Distribution.ID, Organizations.ID as orgId, Organizations.full_name, Distribution.percentage_share 
     from Donors
     inner join Combining_table on Combining_table.Donor_ID = Donors.ID
     inner join Distribution on Distribution.ID = Combining_table.Distribution_ID
@@ -116,6 +116,7 @@ async function getAllByDonor(donorID) {
     distObj.distributions.forEach((obj) => {
       if (row.KID == obj.kid) {
         obj.organizations.push({
+          id: row.orgId,
           name: row.full_name,
           share: row.percentage_share,
         });
