@@ -2,6 +2,11 @@ const sinon = require("sinon");
 const chai = require("chai");
 const DAO = require("../custom_modules/DAO");
 const expect = chai.expect;
+const authMiddleware = require("../custom_modules/authorization/authMiddleware");
+const express = require("express");
+const bodyParser = require("body-parser");
+const request = require("supertest");
+const avtalegiroagreements = require("../custom_modules/DAO_modules/avtalegiroagreements");
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 const { DateTime } = require("luxon");
@@ -173,4 +178,66 @@ describe("AvtaleGiro file generation", () => {
   });
 });
 
-describe("AvtaleGiro ", () => {});
+describe("Check that changes to avtalegiro works", () => {
+  const mockAgreement = {
+    ID: 1,
+    KID: "002556289731589",
+    amount: 50000,
+    notice: true,
+    active: true,
+    payment_date: 5,
+    created: "2022-02-04T18:28:21.000Z",
+    last_updated: "2022-02-04T18:28:21.000Z",
+    full_name: "Jack Torrance",
+  };
+
+  const jack = {
+    ID: 237,
+    name: "Jack Torrance",
+    ssn: "02016126007",
+    email: "jack@overlookhotel.com",
+    newsletter: true,
+    trash: false,
+    registered: "1921-07-04T23:00:00.000Z",
+  };
+
+  before(function () {
+    authStub = sinon.stub(authMiddleware, "auth").returns([]);
+    checkDonorStub = sinon.replace(
+      authMiddleware,
+      "checkDonor",
+      function (donorId, res, req, next) {
+        next();
+      }
+    );
+
+    const avtalegiroRoute = require("../routes/avtalegiro");
+    server = express();
+    server.use(bodyParser.json());
+    server.use(bodyParser.urlencoded({ extended: true }));
+    server.use("/avtalegiro", avtalegiroRoute);
+
+    donorStub = sinon.stub(DAO.donors, "getByID");
+    donorStub.withArgs("237").resolves(jack);
+
+    agreementStub = sinon.stub(DAO.avtalegiroagreements, "getAgreement");
+    agreementStub.withArgs(1).resolves(mockAgreement);
+  });
+
+  beforeEach(function () {
+    sinon.resetHistory();
+  });
+
+  it("getAgreement should return a agreement", async () => {
+    console.log(mockAgreement);
+    const response = await request(server)
+      .get("/avtalegiro/agreement/1")
+      .expect(200);
+    console.log(response);
+  });
+
+  after(function () {
+    sinon.restore();
+    // authMiddleware.auth.restore();
+  });
+});
