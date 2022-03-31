@@ -216,10 +216,15 @@ describe("Check that changes to avtalegiro works", () => {
     sinon.resetHistory();
   });
 
-  it("Should return 200 OK with agreement", async function () {
+  it("Should return 200 OK", async function () {
     const response = await request(server)
       .get("/avtalegiro/agreement/1")
       .expect(200);
+  });
+
+  it("Should return agreement with id 1", async function () {
+    const response = await request(server).get("/avtalegiro/agreement/1");
+    expect(response.body.content).to.deep.equal(mockAgreement);
   });
 
   after(function () {
