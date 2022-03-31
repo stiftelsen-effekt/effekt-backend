@@ -1,6 +1,7 @@
 const sinon = require("sinon");
 const chai = require("chai");
 const DAO = require("../custom_modules/DAO");
+const donationHelpers = require("../custom_modules/donationHelpers");
 const expect = chai.expect;
 const authMiddleware = require("../custom_modules/authorization/authMiddleware");
 const express = require("express");
@@ -182,7 +183,7 @@ describe("AvtaleGiro file generation", () => {
   });
 });
 
-describe("Check that changes to avtalegiro works", () => {
+describe("Check that get avtalegiro works", () => {
   const mockAgreement = {
     ID: 1,
     KID: "002556289731589",
@@ -226,6 +227,171 @@ describe("Check that changes to avtalegiro works", () => {
     const response = await request(server).get("/avtalegiro/agreement/1");
     expect(response.body.content).to.deep.equal(mockAgreement);
   });
+
+  after(function () {
+    sinon.restore();
+  });
+});
+
+describe("Check that post distribution works", () => {
+  const mockDistribution = {
+    distribution: [
+      {
+        organizationId: 1,
+        share: "50.000000000000",
+      },
+      {
+        organizationId: 2,
+        share: "50.000000000000",
+      },
+    ],
+  };
+
+  const mockDistributionFalse = {
+    distribution: [
+      {
+        organizationId: 1,
+        share: "30.000000000000",
+      },
+      {
+        organizationId: 2,
+        share: "40.000000000000",
+      },
+    ],
+  };
+
+  const mockDistributionEmpty = {
+    distribution: [],
+  };
+
+  const jack = {
+    id: 237,
+    name: "Jack Torrance",
+    ssn: "02016126007",
+    email: "jack@overlookhotel.com",
+    registered: "1921-07-04T23:00:00.000Z",
+  };
+
+  before(function () {
+    authStub = sinon.stub(authMiddleware, "auth").returns([]);
+    checkDonorStub = sinon.replace(
+      authMiddleware,
+      "checkDonor",
+      function (donorId, res, req, next) {
+        next();
+      }
+    );
+
+    const avtalegiroRoute = require("../routes/avtalegiro");
+    server = express();
+    server.use(bodyParser.json());
+    server.use(bodyParser.urlencoded({ extended: true }));
+    server.use("/avtalegiro", avtalegiroRoute);
+
+    agreementStub = sinon.stub(DAO.donors, "getByKID");
+    agreementStub.withArgs("123456789123456").resolves(jack);
+
+    newKidStub = sinon.stub(donationHelpers, "createKID");
+    newKidStub.withArgs(15, jack.id).resolves("123456789123453");
+
+    kidStub = sinon.stub(DAO.avtalegiroagreements, "replaceDistribution");
+    kidStub
+      .withArgs(
+        "123456789123453",
+        "123456789123456",
+        mockDistribution.distribution,
+        jack.id,
+        3
+      )
+      .resolves(true);
+  });
+
+  beforeEach(function () {
+    sinon.resetHistory();
+  });
+
+  it("Should return 200 OK and true", async function () {
+    const response = await request(server)
+      .post("/avtalegiro/123456789123456/distribution")
+      .send(mockDistribution)
+      .expect(200);
+    expect(response.ok).to.deep.equal(true);
+  });
+
+  it("Should return 400 and false when distribution sum ≠ 100", async function () {
+    const response = await request(server)
+      .post("/avtalegiro/123456789123456/distribution")
+      .send(mockDistributionFalse)
+      .expect(400);
+    expect(response.ok).to.deep.equal(false);
+  });
+
+  it("Should return 400 and false when empty distribution", async function () {
+    const response = await request(server)
+      .post("/avtalegiro/123456789123456/distribution")
+      .send(mockDistributionEmpty)
+      .expect(400);
+    expect(response.ok).to.deep.equal(false);
+  });
+
+  after(function () {
+    sinon.restore();
+  });
+});
+
+describe("Check that post status works", () => {
+  const jack = {
+    id: 237,
+    name: "Jack Torrance",
+    ssn: "02016126007",
+    email: "jack@overlookhotel.com",
+    registered: "1921-07-04T23:00:00.000Z",
+  };
+
+  let empty;
+
+  before(function () {
+    authStub = sinon.stub(authMiddleware, "auth").returns([]);
+
+    const avtalegiroRoute = require("../routes/avtalegiro");
+    server = express();
+    server.use(bodyParser.json());
+    server.use(bodyParser.urlencoded({ extended: true }));
+    server.use("/avtalegiro", avtalegiroRoute);
+
+    activeStub = sinon.stub(DAO.avtalegiroagreements, "setActive");
+  });
+
+  beforeEach(function () {
+    sinon.resetHistory();
+  });
+
+  it("Should return 200 OK and true when active is set to true", async function () {
+    activeStub.withArgs("002556289731589", true).resolves(true);
+    const response = await request(server)
+      .post("/avtalegiro/002556289731589/status")
+      .send({ active: true })
+      .expect(200);
+    expect(response.ok).to.deep.equal(true);
+  });
+
+  it("Should return 200 OK and true when active is set to false", async function () {
+    activeStub.withArgs("002556289731589", false).resolves(true);
+    const response = await request(server)
+      .post("/avtalegiro/002556289731589/status")
+      .send({ active: false })
+      .expect(200);
+    expect(response.ok).to.deep.equal(true);
+  });
+
+  // it("Should return 500 and true when send() is empty", async function () {
+  //   activeStub.withArgs("002556289731589").resolves(false);
+  //   const response = await request(server).post(
+  //     "/avtalegiro/002556289731589/status"
+  //   );
+  //   console.log(response);
+  //   expect(response.status).to.deep.equal(500);
+  // });
 
   after(function () {
     sinon.restore();
