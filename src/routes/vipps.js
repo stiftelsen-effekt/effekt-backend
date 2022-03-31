@@ -486,7 +486,7 @@ router.put(
  *      - in: body
  *        name: distribution
  *        required: true
- *        description:
+ *        description: The distribution
  *        schema:
  *          $ref: '#/components/schemas/DistributionInput'
  *    responses:

@@ -252,20 +252,9 @@ router.get(
  *      - in: body
  *        name: distribution
  *        required: true
- *        description:
+ *        description: The distribution
  *        schema:
- *          type: object
- *          properties:
- *            distribution:
- *              type: object
- *              properties:
- *                organizationId:
- *                  type: number
- *                share:
- *                  type: string
- *              example:
- *                 organizationId: 1
- *                 share: "100.000000000000"
+ *          $ref: '#/components/schemas/DistributionInput'
  *    responses:
  *      400:
  *        description: Invalid distribution
