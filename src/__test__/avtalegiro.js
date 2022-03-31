@@ -183,7 +183,7 @@ describe("AvtaleGiro file generation", () => {
   });
 });
 
-describe("Check that get avtalegiro works", () => {
+describe("Check that /avtalegiro/agreement/{id} works", () => {
   const mockAgreement = {
     ID: 1,
     KID: "002556289731589",
@@ -210,22 +210,37 @@ describe("Check that get avtalegiro works", () => {
     server.use("/avtalegiro", avtalegiroRoute);
 
     agreementStub = sinon.stub(DAO.avtalegiroagreements, "getAgreement");
-    agreementStub.withArgs("1").resolves(mockAgreement);
   });
 
   beforeEach(function () {
     sinon.resetHistory();
   });
 
-  it("Should return 200 OK", async function () {
+  it("Should return 200 OK when agreement returns", async function () {
+    agreementStub.withArgs("1").resolves(mockAgreement);
     const response = await request(server)
       .get("/avtalegiro/agreement/1")
       .expect(200);
   });
 
   it("Should return agreement with id 1", async function () {
+    agreementStub.withArgs("1").resolves(mockAgreement);
     const response = await request(server).get("/avtalegiro/agreement/1");
     expect(response.body.content).to.deep.equal(mockAgreement);
+  });
+
+  it("Should return 404 when no id is passed as an argument", async function () {
+    agreementStub.withArgs("").resolves(null);
+    const response = await request(server)
+      .get("/avtalegiro/agreement/")
+      .expect(404);
+  });
+
+  it("Should return 500 when agreement id does not exist", async function () {
+    agreementStub.withArgs("2").resolves(null);
+    const response = await request(server)
+      .get("/avtalegiro/agreement/2")
+      .expect(500);
   });
 
   after(function () {
@@ -233,7 +248,7 @@ describe("Check that get avtalegiro works", () => {
   });
 });
 
-describe("Check that post distribution works", () => {
+describe("Check that /avtalegiro/{KID}/distribution works", () => {
   const mockDistribution = {
     distribution: [
       {
@@ -321,16 +336,16 @@ describe("Check that post distribution works", () => {
   it("Should return 400 and false when distribution sum ≠ 100", async function () {
     const response = await request(server)
       .post("/avtalegiro/123456789123456/distribution")
-      .send(mockDistributionFalse)
-      .expect(400);
+      .send(mockDistributionFalse);
+    expect(response.status).to.equal(400);
     expect(response.ok).to.deep.equal(false);
   });
 
   it("Should return 400 and false when empty distribution", async function () {
     const response = await request(server)
       .post("/avtalegiro/123456789123456/distribution")
-      .send(mockDistributionEmpty)
-      .expect(400);
+      .send(mockDistributionEmpty);
+    expect(response.status).to.equal(400);
     expect(response.ok).to.deep.equal(false);
   });
 
@@ -339,17 +354,7 @@ describe("Check that post distribution works", () => {
   });
 });
 
-describe("Check that post status works", () => {
-  const jack = {
-    id: 237,
-    name: "Jack Torrance",
-    ssn: "02016126007",
-    email: "jack@overlookhotel.com",
-    registered: "1921-07-04T23:00:00.000Z",
-  };
-
-  let empty;
-
+describe("Check that /avtalegiro/{KID}/status works", () => {
   before(function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
 
@@ -367,31 +372,134 @@ describe("Check that post status works", () => {
   });
 
   it("Should return 200 OK and true when active is set to true", async function () {
-    activeStub.withArgs("002556289731589", true).resolves(true);
+    activeStub.withArgs("002556289731589", 1).resolves(true);
     const response = await request(server)
       .post("/avtalegiro/002556289731589/status")
-      .send({ active: true })
+      .send({
+        active: 1,
+      })
       .expect(200);
     expect(response.ok).to.deep.equal(true);
   });
 
   it("Should return 200 OK and true when active is set to false", async function () {
-    activeStub.withArgs("002556289731589", false).resolves(true);
+    activeStub.withArgs("002556289731589", 0).resolves(true);
     const response = await request(server)
       .post("/avtalegiro/002556289731589/status")
-      .send({ active: false })
+      .send({ active: 0 })
       .expect(200);
     expect(response.ok).to.deep.equal(true);
   });
 
-  // it("Should return 500 and true when send() is empty", async function () {
-  //   activeStub.withArgs("002556289731589").resolves(false);
-  //   const response = await request(server).post(
-  //     "/avtalegiro/002556289731589/status"
-  //   );
-  //   console.log(response);
-  //   expect(response.status).to.deep.equal(500);
-  // });
+  it("Should return 400 and true when wrong data is sent", async function () {
+    activeStub.withArgs("002556289731589").resolves(true);
+    const response = await request(server)
+      .post("/avtalegiro/002556289731589/status")
+      .send({ test: "no" });
+    expect(response.status).to.equal(400);
+  });
+
+  it("Should return 400 and true when no data is sent", async function () {
+    activeStub.withArgs("002556289731589").resolves(true);
+    const response = await request(server)
+      .post("/avtalegiro/002556289731589/status")
+      .send();
+    expect(response.status).to.equal(400);
+  });
+
+  after(function () {
+    sinon.restore();
+  });
+});
+
+describe("Check that /avtalegiro/{KID}/amount works", () => {
+  before(function () {
+    authStub = sinon.stub(authMiddleware, "auth").returns([]);
+
+    const avtalegiroRoute = require("../routes/avtalegiro");
+    server = express();
+    server.use(bodyParser.json());
+    server.use(bodyParser.urlencoded({ extended: true }));
+    server.use("/avtalegiro", avtalegiroRoute);
+
+    amountStub = sinon.stub(DAO.avtalegiroagreements, "updateAmount");
+  });
+
+  beforeEach(function () {
+    sinon.resetHistory();
+  });
+
+  it("Should return 200 OK and true when amount is updated", async function () {
+    amountStub.withArgs("002556289731589", 10000).resolves(true);
+    const response = await request(server)
+      .post("/avtalegiro/002556289731589/amount")
+      .send({ amount: 10000 })
+      .expect(200);
+    expect(response.ok).to.deep.equal(true);
+  });
+
+  it("Should return 400 when invalid amount is sent in", async function () {
+    amountStub.withArgs("002556289731589", -10000).resolves(false);
+    const response = await request(server)
+      .post("/avtalegiro/002556289731589/amount")
+      .send({ amount: -10000 })
+      .expect(400);
+  });
+
+  after(function () {
+    sinon.restore();
+  });
+});
+
+describe("Check that /avtalegiro/{KID}/paymentdate works", () => {
+  before(function () {
+    authStub = sinon.stub(authMiddleware, "auth").returns([]);
+
+    const avtalegiroRoute = require("../routes/avtalegiro");
+    server = express();
+    server.use(bodyParser.json());
+    server.use(bodyParser.urlencoded({ extended: true }));
+    server.use("/avtalegiro", avtalegiroRoute);
+
+    paymentDateStub = sinon.stub(DAO.avtalegiroagreements, "updatePaymentDate");
+  });
+
+  beforeEach(function () {
+    sinon.resetHistory();
+  });
+
+  it("Should return 200 OK and true when payment date is updated", async function () {
+    paymentDateStub.withArgs("002556289731589", 5).resolves(true);
+    const response = await request(server)
+      .post("/avtalegiro/002556289731589/paymentdate")
+      .send({ paymentDate: 5 })
+      .expect(200);
+    expect(response.ok).to.deep.equal(true);
+  });
+
+  it("Should return 400 when paymentdate is not betweeen 1 and 28", async function () {
+    paymentDateStub.withArgs("002556289731589", 0).resolves(true);
+    const response = await request(server)
+      .post("/avtalegiro/002556289731589/paymentdate")
+      .send({ paymentDate: 100 })
+      .expect(400);
+  });
+
+  it("Should return 400 when paymentdate is not defined", async function () {
+    paymentDateStub.withArgs("002556289731589").resolves(true);
+    const response = await request(server)
+      .post("/avtalegiro/002556289731589/paymentdate")
+      .send()
+      .expect(400);
+  });
+
+  it("Should return 400 when paymentdate is not a number", async function () {
+    paymentDateStub.withArgs("002556289731589").resolves(true);
+    const response = await request(server)
+      .post("/avtalegiro/002556289731589/paymentdate")
+      .send({ paymentDate: "test" })
+      .expect(400);
+  });
 
   after(function () {
     sinon.restore();

@@ -352,6 +352,13 @@ router.post(
     try {
       const KID = req.params.KID;
       const active = req.body.active;
+      const acceptedInput = [0, 1];
+
+      if (!acceptedInput.includes(active))
+        res.status(400).json({
+          status: 400,
+          content: "Missing boolean json property active",
+        });
 
       const response = await DAO.avtalegiroagreements.setActive(KID, active);
 
@@ -394,6 +401,12 @@ router.post(
     try {
       const KID = req.params.KID;
       const amount = req.body.amount;
+
+      if (amount <= 0)
+        res.status(400).json({
+          status: 400,
+          content: "Amount must be larger than 0",
+        });
 
       const response = await DAO.avtalegiroagreements.updateAmount(KID, amount);
 
@@ -438,6 +451,18 @@ router.post(
     try {
       const KID = req.params.KID;
       const paymentDate = req.body.paymentDate;
+      if (typeof paymentDate != "number") {
+        res.status(400).json({
+          status: 400,
+          content: "Paymentdate must be a number",
+        });
+      }
+      if (paymentDate <= 0 || paymentDate > 28) {
+        res.status(400).json({
+          status: 400,
+          content: "Paymentdate must be between 1 and 28",
+        });
+      }
 
       const response = await DAO.avtalegiroagreements.updatePaymentDate(
         KID,
