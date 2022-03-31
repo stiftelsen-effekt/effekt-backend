@@ -176,29 +176,20 @@ describe("AvtaleGiro file generation", () => {
     // Filler
     expect(getSubString(12, 76, 5)).to.be.equal("00000");
   });
+
+  after(function () {
+    sinon.restore();
+  });
 });
 
 describe("Check that changes to avtalegiro works", () => {
   const mockAgreement = {
     ID: 1,
     KID: "002556289731589",
+    claimDate: 10,
     amount: 50000,
     notice: true,
     active: true,
-    payment_date: 5,
-    created: "2022-02-04T18:28:21.000Z",
-    last_updated: "2022-02-04T18:28:21.000Z",
-    full_name: "Jack Torrance",
-  };
-
-  const jack = {
-    ID: 237,
-    name: "Jack Torrance",
-    ssn: "02016126007",
-    email: "jack@overlookhotel.com",
-    newsletter: true,
-    trash: false,
-    registered: "1921-07-04T23:00:00.000Z",
   };
 
   before(function () {
@@ -217,27 +208,21 @@ describe("Check that changes to avtalegiro works", () => {
     server.use(bodyParser.urlencoded({ extended: true }));
     server.use("/avtalegiro", avtalegiroRoute);
 
-    donorStub = sinon.stub(DAO.donors, "getByID");
-    donorStub.withArgs("237").resolves(jack);
-
     agreementStub = sinon.stub(DAO.avtalegiroagreements, "getAgreement");
-    agreementStub.withArgs(1).resolves(mockAgreement);
+    agreementStub.withArgs("1").resolves(mockAgreement);
   });
 
   beforeEach(function () {
     sinon.resetHistory();
   });
 
-  it("getAgreement should return a agreement", async () => {
-    console.log(mockAgreement);
+  it("Should return 200 OK with agreement", async function () {
     const response = await request(server)
       .get("/avtalegiro/agreement/1")
       .expect(200);
-    console.log(response);
   });
 
   after(function () {
     sinon.restore();
-    // authMiddleware.auth.restore();
   });
 });
