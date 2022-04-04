@@ -10,49 +10,72 @@ const vipps = require("../custom_modules/vipps");
 const mail = require("../custom_modules/mail");
 
 describe("Check that /vipps/agreement/{urlcode}/cancel works", () => {
+  let getAgreementIdByUrlCodeStub;
+  let updateAgreementStatusStub;
+  let updateAgreementStatusDAOStub;
+  let updateAgreementCancellationDateStub;
+  let sendVippsAgreementChangeStub;
+
   before(function () {
+    authStub = sinon.stub(authMiddleware, "auth").returns([]);
+    checkDonorStub = sinon.replace(
+      authMiddleware,
+      "checkDonor",
+      function (donorId, res, req, next) {
+        next();
+      }
+    );
+
     const vippsRoute = require("../routes/vipps");
     server = express();
     server.use(bodyParser.json());
     server.use(bodyParser.urlencoded({ extended: true }));
     server.use("/vipps", vippsRoute);
-    let getAgreementIdByUrlCodeStub = sinon.stub(
+
+    getAgreementIdByUrlCodeStub = sinon.stub(
       DAO.vipps,
       "getAgreementIdByUrlCode"
     );
     getAgreementIdByUrlCodeStub
       .withArgs("1hj3hik52hk4jl728j2gj91l0yjkujjkwokds25oi")
-      .resolves(1);
-    let updateAgreementStatusStub = sinon.stub(vipps, "updateAgreementStatus");
-    updateAgreementStatusStub.withArgs("1", "STOPPED").resolves(true);
-    let updateAgreementStatusDAOStub = sinon.stub(
+      .resolves("1");
+
+    updateAgreementStatusStub = sinon.stub(vipps, "updateAgreementStatus");
+
+    updateAgreementStatusDAOStub = sinon.stub(
       DAO.vipps,
       "updateAgreementStatus"
     );
     updateAgreementStatusDAOStub.withArgs("1", "STOPPED").resolves(true);
-    let updateAgreementCancellationDateStub = sinon.stub(
+
+    updateAgreementCancellationDateStub = sinon.stub(
       DAO.vipps,
       "updateAgreementCancellationDate"
     );
     updateAgreementCancellationDateStub.withArgs("1").resolves(true);
-    let sendVippsAgreementChangeStub = sinon.stub(
-      mail,
-      "sendVippsAgreementChange"
-    );
+
+    sendVippsAgreementChangeStub = sinon.stub(mail, "sendVippsAgreementChange");
     sendVippsAgreementChangeStub
-      .withArgs("1hj5hik62hk4kl728j2gj91l0yjkujjkwokds25oi")
+      .withArgs("1hj3hik52hk4jl728j2gj91l0yjkujjkwokds25oi")
       .resolves(true);
   });
+
   beforeEach(function () {
     sinon.resetHistory();
   });
 
   it("Should return 200 OK when agreement is canceled", async function () {
-    console.log("HALLO");
-    const response = await request(server).put(
-      "/vipps/agreement/1hj5hik62hk4kl728j2gj91l0yjkujjkwokds25oi/cancel"
-    );
-    console.log(response);
+    updateAgreementStatusStub.withArgs("1", "STOPPED").resolves(true);
+    const response = await request(server)
+      .put("/vipps/agreement/1hj3hik52hk4jl728j2gj91l0yjkujjkwokds25oi/cancel")
+      .expect(200);
+  });
+
+  it("Should return 400 when agreement is not stopped", async function () {
+    updateAgreementStatusStub.withArgs("1", "STOPPED").resolves(false);
+    const response = await request(server)
+      .put("/vipps/agreement/1hj3hik52hk4jl728j2gj91l0yjkujjkwokds25oi/cancel")
+      .expect(400);
   });
 
   after(function () {

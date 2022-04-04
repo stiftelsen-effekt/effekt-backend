@@ -138,5 +138,6 @@ describe('POST /scheduled/avtalegiro', function() {
 
   after(function () {
     sinon.reset()
+    sinon.restore()
   })
 })

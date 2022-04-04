@@ -298,7 +298,7 @@ describe("Check if /:id/recurring/avtalegiro return agreements", function () {
   });
 
   after(function () {
-    authMiddleware.auth.restore();
+    sinon.restore()
   });
 });
 
@@ -332,6 +332,6 @@ describe("Check if /:id/recurring/vipps return agreements", function () {
   });
 
   after(function () {
-    authMiddleware.auth.restore();
+    sinon.restore()
   });
 });

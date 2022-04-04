@@ -114,6 +114,6 @@ describe("See descriptive statistics of my donations", function () {
   });
 
   after(function () {
-    authMiddleware.auth.restore();
+    sinon.restore()
   });
 });

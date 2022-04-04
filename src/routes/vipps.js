@@ -255,6 +255,11 @@ router.put("/agreement/:urlcode/cancel", async (req, res, next) => {
     if (response) {
       await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED");
       await DAO.vipps.updateAgreementCancellationDate(agreementId);
+    } else {
+      res.status(400).json({
+        status: 400,
+        content: "Failed to cancel agreement",
+      });
     }
 
     await mail.sendVippsAgreementChange(agreementCode, "STOPPED");
