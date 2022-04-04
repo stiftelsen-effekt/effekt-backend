@@ -193,6 +193,8 @@ describe("Check that /avtalegiro/agreement/{id} works", () => {
     active: true,
   };
 
+  let agreementStub;
+
   before(function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
     checkDonorStub = sinon.replace(
@@ -287,6 +289,10 @@ describe("Check that /avtalegiro/{KID}/distribution works", () => {
     registered: "1921-07-04T23:00:00.000Z",
   };
 
+  let agreementStub;
+  let newKidStub;
+  let kidStub;
+
   before(function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
     checkDonorStub = sinon.replace(
@@ -355,6 +361,7 @@ describe("Check that /avtalegiro/{KID}/distribution works", () => {
 });
 
 describe("Check that /avtalegiro/{KID}/status works", () => {
+  let activeStub;
   before(function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
 
@@ -413,6 +420,7 @@ describe("Check that /avtalegiro/{KID}/status works", () => {
 });
 
 describe("Check that /avtalegiro/{KID}/amount works", () => {
+  let amountStub;
   before(function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
 
@@ -452,6 +460,7 @@ describe("Check that /avtalegiro/{KID}/amount works", () => {
 });
 
 describe("Check that /avtalegiro/{KID}/paymentdate works", () => {
+  let paymentDateStub;
   before(function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
 

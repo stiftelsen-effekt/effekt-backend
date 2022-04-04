@@ -352,9 +352,8 @@ router.post(
     try {
       const KID = req.params.KID;
       const active = req.body.active;
-      const acceptedInput = [0, 1];
 
-      if (!acceptedInput.includes(active))
+      if (active != 0 && active != 1)
         res.status(400).json({
           status: 400,
           content: "Missing boolean json property active",
