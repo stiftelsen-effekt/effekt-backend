@@ -306,6 +306,11 @@ router.put("/agreement/:urlcode/price", jsonBody, async (req, res, next) => {
     if (response) {
       await DAO.vipps.updateAgreementPrice(agreementId, price / 100);
       await mail.sendVippsAgreementChange(agreementCode, "AMOUNT", price / 100);
+    } else {
+      res.status(400).json({
+        status: 400,
+        content: "Failed to update price on agreement",
+      });
     }
 
     res.send();
@@ -426,9 +431,8 @@ router.put(
       const agreementId = await DAO.vipps.getAgreementIdByUrlCode(
         agreementCode
       );
-
       // 0 means last day of each month
-      if (chargeDay < 0 || chargeDay > 28) {
+      if (chargeDay < 0 || chargeDay > 28 || chargeDay === undefined) {
         let err = new Error("Invalid charge day, must be between 0 and 28");
         err.status = 400;
         return next(err);
