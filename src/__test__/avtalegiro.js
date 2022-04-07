@@ -320,7 +320,10 @@ describe("Check that /avtalegiro/{KID}/distribution works", () => {
       .withArgs(
         "123456789123453",
         "123456789123456",
-        mockDistribution.distribution,
+        [
+          { organizationID: 1, share: "50.000000000000" },
+          { organizationID: 2, share: "50.000000000000" },
+        ],
         jack.id,
         3
       )
