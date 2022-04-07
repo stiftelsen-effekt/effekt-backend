@@ -313,6 +313,13 @@ router.post(
         metaOwnerID
       );
 
+      if (!response) {
+        res.status(400).json({
+          status: 400,
+          content: "Failed to save distribution",
+        });
+      }
+
       //await mail.sendAvtaleGiroChange() // Add later
       res.send(response);
     } catch (ex) {
