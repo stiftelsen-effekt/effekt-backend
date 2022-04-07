@@ -253,8 +253,19 @@ router.put("/agreement/:urlcode/cancel", async (req, res, next) => {
     const response = await vipps.updateAgreementStatus(agreementId, "STOPPED");
 
     if (response) {
-      await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED");
-      await DAO.vipps.updateAgreementCancellationDate(agreementId);
+      let status = await DAO.vipps.updateAgreementStatus(
+        agreementId,
+        "STOPPED"
+      );
+      let updateAgreement = await DAO.vipps.updateAgreementCancellationDate(
+        agreementId
+      );
+      if (!status || !updateAgreement) {
+        res.status(400).json({
+          status: 400,
+          content: "Failed to cancel agreement",
+        });
+      }
     } else {
       res.status(400).json({
         status: 400,
@@ -304,8 +315,17 @@ router.put("/agreement/:urlcode/price", jsonBody, async (req, res, next) => {
 
     // Only update database if Vipps update was successful
     if (response) {
-      await DAO.vipps.updateAgreementPrice(agreementId, price / 100);
+      let updatePrice = await DAO.vipps.updateAgreementPrice(
+        agreementId,
+        price / 100
+      );
       await mail.sendVippsAgreementChange(agreementCode, "AMOUNT", price / 100);
+      if (!updatePrice) {
+        res.status(400).json({
+          status: 400,
+          content: "Failed to update price on agreement",
+        });
+      }
     } else {
       res.status(400).json({
         status: 400,
@@ -442,12 +462,17 @@ router.put(
         agreementId,
         chargeDay
       );
-      if (response)
+      if (response) {
         await mail.sendVippsAgreementChange(
           agreementCode,
           "CHARGEDAY",
           chargeDay
         );
+      } else {
+        let err = new Error("Couldn't change chargeday");
+        err.status = 400;
+        return next(err);
+      }
 
       res.send(response);
     } catch (ex) {
@@ -556,8 +581,15 @@ router.put(
       }
 
       const response = await DAO.vipps.updateAgreementKID(agreementId, KID);
-      if (response)
+
+      if (response) {
         await mail.sendVippsAgreementChange(agreementCode, "SHARES", KID);
+      } else {
+        res.status(400).json({
+          status: 400,
+          content: "Failed to update agreement KID",
+        });
+      }
 
       res.send({ KID });
     } catch (ex) {
