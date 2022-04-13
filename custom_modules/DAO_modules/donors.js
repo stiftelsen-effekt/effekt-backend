@@ -31,17 +31,29 @@ async function getIDbyEmail(email) {
     }
 }
 
-// Attempting to change getID function to not only select by mail. Going to replace getIDbyEmail
+// Returns donor if there exists one matching the email and ssn, otherwise return null
 async function getDonorId(email, ssn) {
-    console.log(3+5)
     try {
         var con = await pool.getConnection()
         var [result] = await con.execute("SELECT ID FROM Donors WHERE email = ? AND ssn = ?", 
         [email, ssn])
 
-        con.release()
+        /*
+        var [results] = await con.execute("SELECT ID FROM Donors WHERE email = ?", [email])
+        for (result in results) {
+            if (result.ssn = ssn) {
+                return result.ID
+            }
+        }*/
+            
+       
         if (result.length > 0) return (result[0].ID)
-        else return null
+        else {
+            [result] = await con.execute("SELECT ID FROM Donors WHERE email = ? AND ssn = ?", [email, ""])
+            con.release()
+            if (result.length > 0) return (result[0].ID)
+            else return null
+        }
 
     }
     catch (ex) {

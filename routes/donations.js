@@ -60,7 +60,7 @@ router.post("/register", async (req,res,next) => {
       if (typeof donor.ssn !== "undefined" && donor.ssn != null) {
         dbDonor = await DAO.donors.getByID(donationObject.donorID)
 
-        if (dbDonor.ssn == null) {
+        if (dbDonor.ssn == null || dbDonor.ssn == "") {
           //No existing ssn found, updating donor
           await DAO.donors.updateSsn(donationObject.donorID, donor.ssn)
         }
