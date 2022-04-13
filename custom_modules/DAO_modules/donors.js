@@ -31,7 +31,23 @@ async function getIDbyEmail(email) {
     }
 }
 
+// Checks if there exists a donor who matches the given email and name
+async function getMatchingNameDonor(email, name) {
+    try {
+        var con = await pool.getConnection() 
+        var result = await con.execute("SELECT ID FROM Donors WHERE email = ? AND full_name = ?", 
+        [email, name])
+        return result
+        
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
 // Returns donor if there exists one matching the email and ssn, otherwise return null
+// Also returns donor if ssn is empty
 async function getDonorId(email, ssn) {
     try {
         var con = await pool.getConnection()
@@ -46,7 +62,6 @@ async function getDonorId(email, ssn) {
             }
         }*/
             
-       
         if (result.length > 0) return (result[0].ID)
         else {
             [result] = await con.execute("SELECT ID FROM Donors WHERE email = ? AND ssn = ?", [email, ""])
@@ -281,6 +296,7 @@ module.exports = {
     add,
     updateSsn,
     updateNewsletter,
+    getMatchingNameDonor,
 
     setup: (dbPool) => { pool = dbPool }
 }

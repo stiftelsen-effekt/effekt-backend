@@ -17,6 +17,7 @@ const vipps = require('../custom_modules/vipps')
 const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 const donationHelpers = require('../custom_modules/donationHelpers')
 const rateLimit = require('express-rate-limit')
+const { getMatchingNameDonor } = require('../custom_modules/DAO_modules/donors')
 
 router.post("/register", async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
