@@ -31,6 +31,25 @@ async function getIDbyEmail(email) {
     }
 }
 
+// Attempting to change getID function to not only select by mail. Going to replace getIDbyEmail
+async function getDonorId(email, ssn) {
+    console.log(3+5)
+    try {
+        var con = await pool.getConnection()
+        var [result] = await con.execute("SELECT ID FROM Donors WHERE email = ? AND ssn = ?", 
+        [email, ssn])
+
+        con.release()
+        if (result.length > 0) return (result[0].ID)
+        else return null
+
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
 /**
  * Selects a Donor object from the database with the given ID
  * @param {Number} ID The ID in the database for the donor
@@ -108,7 +127,7 @@ async function getByKID(KID) {
  * @property {string} agreementUrlCode
  * @return {number} donorID
  */
- async function getIDByAgreementCode(agreementUrlCode) {
+async function getIDByAgreementCode(agreementUrlCode) {
     let con = await pool.getConnection()
     let [res] = await con.query(`
         SELECT donorID FROM Vipps_agreements
@@ -122,7 +141,7 @@ async function getByKID(KID) {
 
 /**
  * Searches for a user with either email or name matching the query
- * @param {string} query A query string trying to match agains full name and email
+ * @param {string} query A query string trying to match against full name and email
  * @returns {Array<Donor>} An array of donor objects
  */
 async function search(query) {
@@ -166,7 +185,7 @@ async function search(query) {
 /**
  * Adds a new Donor to the database
  * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
- * @returns {Number} The ID of the new Donor if successfull
+ * @returns {Number} The ID of the new Donor if successful
  */
 async function add(email = "", name, ssn = "", newsletter = null) {
     try {
@@ -203,6 +222,7 @@ async function add(email = "", name, ssn = "", newsletter = null) {
  * @returns {boolean}
  */
 async function updateSsn(donorID, ssn) {
+    console.log("update ssn")
     try {
         var con = await pool.getConnection()
         let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
@@ -242,6 +262,7 @@ async function updateNewsletter(donorID, newsletter) {
 module.exports = {
     getByID,
     getIDbyEmail,
+    getDonorId,
     getByKID,
     getIDByAgreementCode,
     search,

@@ -7,7 +7,8 @@
     "node": ">=8.0.0"
   },
   "scripts": {
-    "test": "mocha __test__"
+    "test": "mocha __test__",
+    "devStart": "nodemon server.js"
   },
   "repository": {
     "type": "git",
@@ -54,6 +55,7 @@
     "mysql2": "^2.2.5",
     "node-cron": "^3.0.0",
     "node-xlsx": "^0.11.2",
+    "nodemon": "^2.0.15",
     "object-hash": "^2.1.1",
     "performance-now": "^2.1.0",
     "qs": "^6.9.4",

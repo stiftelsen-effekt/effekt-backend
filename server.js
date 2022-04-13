@@ -20,7 +20,7 @@ console.log("Top level dependencies loaded")
 const DAO = require('./custom_modules/DAO.js')
 
 //Connect to the DB
-//If unsucsessfull, quit app
+//If unsuccessful, quit app
 DAO.connect(() => {
   console.log("DAO setup complete")
 
@@ -36,7 +36,9 @@ DAO.connect(() => {
   logging(app)
 
   app.get("/", (req, res, next) => {
+
     res.send("Dr. Livingstone, I presume?")
+    
   })
 
   //Parse post body
