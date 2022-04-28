@@ -1162,11 +1162,19 @@ module.exports = {
 
                     if (charges[j].status === "CHARGED") {
                         const paymentMethod = 8
+                        const dayOfMonth = new Date().getDate()
                         const registeredDate = new Date()
                         const externalPaymentId = `${agreements[i].id}.${charges[j].id}`
                         const metaOwnerId = 3
 
                         const charge = await DAO.vipps.getCharge(agreements[i].id, charges[j].id)
+
+                        // Prevents incorrect registration of donations received the prior month
+                        // E.g. if a donation was charged the 31st of the prior month but incorrectly registered as charged on the 1st of next month
+                        if (dayOfMonth == 1) {
+                            registeredDate = charge.dueDate
+                        }
+
                         const donationExists = await donations.ExternalPaymentIDExists(externalPaymentId, paymentMethod)
 
                         if (!donationExists) {
