@@ -62,7 +62,7 @@
     "rimraf": "^2.7.1",
     "sqlstring": "^2.3.1",
     "ssh2-sftp-client": "^6.0.1",
-    "validator": "^7.2.0",
+    "validator": "^13.7.0",
     "ws": "^5.2.3"
   },
   "devDependencies": {
