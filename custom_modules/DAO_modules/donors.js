@@ -11,25 +11,7 @@ var pool
  */
 
 //region Get
-/**
- * Gets the ID of a Donor based on their email
- * @param {String} email An email
- * @returns {Number} An ID
- */
-async function getIDbyEmail(email) {
-    try {
-        var con = await pool.getConnection()
-        var [result] = await con.execute(`SELECT ID FROM Donors where email = ?`, [email])
 
-        con.release()
-        if (result.length > 0) return (result[0].ID)
-        else return (null)
-    }
-    catch (ex) {
-        con.release()
-        throw (ex)
-    }
-}
 
 // Checks if there exists a donor who matches the given email and name
 async function getMatchingNameDonor(email, name) {
@@ -46,21 +28,45 @@ async function getMatchingNameDonor(email, name) {
     }
 }
 
+
+/**
+ * Gets the ID of a Donor based on their email
+ * @param {String} email An email
+ * @returns {Number} An ID
+ */
+async function getIDbyEmail(email) {
+    console.log("getting donor by email...")
+    try {
+        var con = await pool.getConnection()
+        var [result] = await con.execute(`SELECT ID, ssn FROM Donors where email = ?`, [email])
+        con.release()
+        if (result.length > 0) {
+            console.log("Registering on donor ID:", result[0].ID, "with ssn", result[0].ssn)
+            return (result[0].ID)
+        }
+        else {
+            console.log("No matching email found")
+            return (null)
+        }
+    }
+    catch (ex) {
+        con.release()
+        throw (ex)
+    }
+}
+
 // Returns donor if there exists one matching the email and ssn, otherwise return null
 // Also returns donor if ssn is empty
 async function getDonorId(email, ssn) {
     try {
+
+        if (ssn == "") {
+            return getIDbyEmail(email)
+        }
+
         var con = await pool.getConnection()
         var [result] = await con.execute("SELECT ID FROM Donors WHERE email = ? AND ssn = ?", 
         [email, ssn])
-
-        /*
-        var [results] = await con.execute("SELECT ID FROM Donors WHERE email = ?", [email])
-        for (result in results) {
-            if (result.ssn = ssn) {
-                return result.ID
-            }
-        }*/
             
         if (result.length > 0) return (result[0].ID)
         else {
