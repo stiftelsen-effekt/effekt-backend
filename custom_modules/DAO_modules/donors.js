@@ -28,6 +28,9 @@ async function getMatchingNameDonor(email, name) {
     }
 }
 
+async function findDonorMatchingName(email, name) {
+
+}
 
 /**
  * Gets the ID of a Donor based on their email
@@ -38,9 +41,18 @@ async function getIDbyEmail(email) {
     console.log("getting donor by email...")
     try {
         var con = await pool.getConnection()
-        var [result] = await con.execute(`SELECT ID, ssn FROM Donors where email = ?`, [email])
+        var [result] = await con.execute(`SELECT ID, ssn, full_name FROM Donors where email = ?`, [email])
         con.release()
         if (result.length > 0) {
+            console.log("Registered names on this email:")
+            donorNames = []
+            for(i = 0; i < result.length; i++) {
+                var name = result[i].full_name
+                donorNames.push(name)
+                
+            }
+            console.log(donorNames)
+       
             console.log("Registering on donor ID:", result[0].ID, "with ssn", result[0].ssn)
             return (result[0].ID)
         }
@@ -59,7 +71,6 @@ async function getIDbyEmail(email) {
 // Also returns donor if ssn is empty
 async function getDonorId(email, ssn) {
     try {
-
         if (ssn == "") {
             return getIDbyEmail(email)
         }

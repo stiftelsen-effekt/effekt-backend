@@ -36,6 +36,7 @@
     "express-prettify": "0.0.7",
     "express-rate-limit": "^2.14.2",
     "fs-extra": "^4.0.3",
+    "fuse.js": "^6.6.1",
     "graceful-fs": "^4.2.4",
     "gulp": "^4.0.2",
     "gulp-sass": "^5.1.0",
