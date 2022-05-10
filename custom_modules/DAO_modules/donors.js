@@ -1,3 +1,5 @@
+const Fuse = require("fuse.js")
+
 var pool
 
 /**
@@ -11,7 +13,6 @@ var pool
  */
 
 //region Get
-
 
 // Checks if there exists a donor who matches the given email and name
 async function getMatchingNameDonor(email, name) {
@@ -28,8 +29,17 @@ async function getMatchingNameDonor(email, name) {
     }
 }
 
-async function findDonorMatchingName(email, name) {
+const options = {
+    includeScore: true
+}
 
+// Finds the name which matches the newly registered donor the best
+// score 0 indicates perfect match, score 1 is a complete mismatch
+function fuzzyNameSearch(donorNames) {
+    const fuse = new Fuse(donorNames, options)
+    // Here, we want registered input name inside the fuse.search() 
+    const fuseResults = fuse.search("sondre schirmer mikalsen")
+    console.log("Name search results", fuseResults)
 }
 
 /**
@@ -52,6 +62,7 @@ async function getIDbyEmail(email) {
                 
             }
             console.log(donorNames)
+            fuzzyNameSearch(donorNames)
        
             console.log("Registering on donor ID:", result[0].ID, "with ssn", result[0].ssn)
             return (result[0].ID)
