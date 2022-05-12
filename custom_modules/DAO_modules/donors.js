@@ -35,11 +35,25 @@ const options = {
 
 // Finds the name which matches the newly registered donor the best
 // score 0 indicates perfect match, score 1 is a complete mismatch
+// returns the index of the donor with the best name match score
 function fuzzyNameSearch(donorNames) {
     const fuse = new Fuse(donorNames, options)
     // Here, we want registered input name inside the fuse.search() 
+
     const fuseResults = fuse.search("sondre schirmer mikalsen")
     console.log("Name search results", fuseResults)
+    var bestScore = 1
+    var bestDonor
+    for (i = 0; i < fuseResults.length; i++) {
+        donorScore = fuseResults[i].score
+        if (donorScore < bestScore) {
+            bestScore = donorScore
+            bestDonor = fuseResults[i]
+        } 
+    }
+    console.log("Best donor name match found!", bestDonor, "with score", bestScore)
+
+    return bestDonor.refIndex
 }
 
 /**
@@ -62,9 +76,9 @@ async function getIDbyEmail(email) {
                 
             }
             console.log(donorNames)
-            fuzzyNameSearch(donorNames)
+            donorIndex = fuzzyNameSearch(donorNames)
        
-            console.log("Registering on donor ID:", result[0].ID, "with ssn", result[0].ssn)
+            console.log("Registering on donor ID:", result[donorIndex].ID, "with ssn", result[donorIndex].ssn)
             return (result[0].ID)
         }
         else {

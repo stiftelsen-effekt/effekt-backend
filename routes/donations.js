@@ -49,8 +49,10 @@ router.post("/register", async (req,res,next) => {
       donationObject.standardSplit = true
     }
 
+
     //Check if existing donor
     donationObject.donorID = await DAO.donors.getDonorId(donor.email, donor.ssn)
+
 
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
