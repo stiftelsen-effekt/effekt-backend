@@ -1,26 +1,25 @@
 const config = require('../../config')
-const luxon = require('luxon');
 const { DateTime } = require('luxon');
 
 module.exports = {
-  startRecordTransmission: function(shipmentID) { 
+  startRecordTransmission: function (shipmentID) {
     let customerId = config.nets_customer_id;
 
-    var line = `NY000010${customerId.padStart(8,'0')}${shipmentID.toString().padStart(7,'0')}00008080`
+    var line = `NY000010${customerId.padStart(8, '0')}${shipmentID.toString().padStart(7, '0')}00008080`
     line = line.padEnd(80, '0')
     line += '\n'
     return line;
   },
 
-  startRecordPaymentAssignment: function(currentDate, number) {
-    var line =`NY210020`
+  startRecordPaymentAssignment: function (currentDate, number) {
+    var line = `NY210020`
     line = line.padEnd(17, '0')
 
     if (number > 999)
       throw new Error("Cannot handle more than 999 assignments per file")
 
     // Oppdragsnr.
-    line += currentDate.toFormat("ddLL") + `${number}`.padStart(3,'0')
+    line += currentDate.toFormat("ddLL") + `${number}`.padStart(3, '0')
     // Accountnr.
     line += '15062995960'
     line = line.padEnd(80, '0')
@@ -38,11 +37,11 @@ module.exports = {
    * @param {DateTime} claimDate 
    * @returns {string}
    */
-  firstAndSecondLine: function(agreement, donor, type, transactionNumber, claimDate) {
+  firstAndSecondLine: function (agreement, donor, type, transactionNumber, claimDate) {
     /**
      * First line
      */
-    var firstLine =`NY21${type}30${transactionNumber.toString().padStart(7,'0')}`
+    var firstLine = `NY21${type}30${transactionNumber.toString().padStart(7, '0')}`
     firstLine += claimDate.toFormat("ddLLyy")
     firstLine = firstLine.padEnd(32, '0')
 
@@ -60,9 +59,9 @@ module.exports = {
     /**
      * Second line
      */
-    const shortname = donor.name.toUpperCase().substr(0,10).replace(/\s+/g, '').padStart(10, ' ')
+    const shortname = donor.name.toUpperCase().substr(0, 10).replace(/\s+/g, '').padStart(10, ' ')
 
-    var secondLine =`NY210231${transactionNumber.toString().padStart(7,'0')}${shortname}`
+    var secondLine = `NY210231${transactionNumber.toString().padStart(7, '0')}${shortname}`
 
     secondLine = secondLine.padEnd(75, ' ')
     secondLine = secondLine.padEnd(80, '0')
@@ -82,14 +81,14 @@ module.exports = {
    * @param {DateTime} maxDate Maximum claim date
    * @returns 
    */
-  endRecordPaymentAssignment: function(claims, minDate, maxDate) {
-    var line =`NY210088`
+  endRecordPaymentAssignment: function (claims, minDate, maxDate) {
+    var line = `NY210088`
 
     //Number of transactions
-    line += claims.length.toString().padStart(8,'0')
+    line += claims.length.toString().padStart(8, '0')
 
     //Number of records, including start and end record
-    line += (claims.length*2+2).toString().padStart(8,'0')
+    line += (claims.length * 2 + 2).toString().padStart(8, '0')
 
     //Sum of payment claims
     line += claims.reduce((acc, claim) => acc += claim.amount, 0).toString().padStart(17, '0')
@@ -105,8 +104,8 @@ module.exports = {
     return line
   },
 
-  startRecordDeletionRequest: function() {
-    var line =`NY213620`
+  startRecordDeletionRequest: function () {
+    var line = `NY213620`
     line = line.padEnd(17, '0')
     // Oppdragsnr.
     line += '2'.padStart(7, '0')
@@ -118,14 +117,14 @@ module.exports = {
     return line
   },
 
-  endRecordDeletionRequest: function(dueDate) {
-    var line =`NY213688`
+  endRecordDeletionRequest: function (dueDate) {
+    var line = `NY213688`
 
     //Number of transactions
-    line += '0'.padStart(8,'0')
+    line += '0'.padStart(8, '0')
 
     //Number of records, including start and end record
-    line += '2'.padStart(8,'0')
+    line += '2'.padStart(8, '0')
 
     //Sum of deletion requests amount
     line += '0'.padStart(17, '0')
@@ -143,14 +142,14 @@ module.exports = {
     return line
   },
 
-  endRecordTransmission: function(claims, deletions, minDate) {
-    var line =`NY000089`
+  endRecordTransmission: function (claims, deletions, minDate) {
+    var line = `NY000089`
 
     //Number of transactions
-    line += (claims.length + deletions.length).toString().padStart(8,'0')
+    line += (claims.length + deletions.length).toString().padStart(8, '0')
 
     //Number of records, including start and end record
-    line += (claims.length*4 + deletions.length * 4 + 2).toString().padStart(8,'0')
+    line += (claims.length * 4 + deletions.length * 4 + 2).toString().padStart(8, '0')
 
     //Sum of payment claims
     let claimSum = claims.reduce((acc, claim) => acc += claim.amount, 0)

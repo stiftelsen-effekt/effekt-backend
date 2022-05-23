@@ -12,11 +12,11 @@ const { DateTime } = require('luxon')
  * @returns {Buffer} The file buffer
  */
 async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
-  const today = DateTime.fromJSDate(new Date())
+  const today = DateTime.local({ zone: "Europe/Oslo" })
   let fileContents = ''
 
   fileContents += writer.startRecordTransmission(shipmentID)
-  
+
   /**
    * Claim requests
    */
@@ -39,7 +39,7 @@ async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
     fileContents += writer.endRecordPaymentAssignment(assignmentClaims, dueDate, dueDate)
     claims.push(...assignmentClaims)
   }
-  
+
 
   /**
    * Deletion requests
@@ -85,7 +85,7 @@ async function notifyAgreements(agreements) {
         } else {
           result.failed++
         }
-      } catch(ex) {
+      } catch (ex) {
         result.failed++
       }
     }
@@ -118,7 +118,7 @@ async function updateAgreements(agreements) {
     updated: 0,
     added: 0,
     terminated: 0,
-    failed: []
+    failed: []
   }
 
   for (let i = 0; i < agreements.length; i++) {
@@ -133,7 +133,7 @@ async function updateAgreements(agreements) {
         await DAO.avtalegiroagreements.cancelAgreement(agreement.KID)
         result.terminated++
         continue
-      } 
+      }
 
       const exists = await DAO.avtalegiroagreements.exists(agreement.KID)
       if (!exists) {
@@ -162,7 +162,7 @@ async function updateAgreements(agreements) {
         await DAO.avtalegiroagreements.updateNotification(agreement.KID, agreement.notice)
         result.updated++
       }
-      
+
       /**
        * If the agreement is not active in the database, we activate it.
        * An agreement may either be activated, changed or terminated.

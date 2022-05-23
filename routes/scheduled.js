@@ -16,9 +16,9 @@ const luxon = require('luxon')
 const META_OWNER_ID = 3
 
 /**
- * Triggered every day by a google cloud scheduler webhook at 20:00
+ * Triggered every day by a google cloud scheduler webhook at 20:00 CET
  */
-router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
+router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   try {
     /**
      * Fetch the latest OCR file
@@ -36,7 +36,7 @@ router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,re
       res.send("No file")
       return true
     }
-    
+
 
     /**
      * Parse incomming transactions and add them to the database
@@ -62,13 +62,13 @@ router.post("/ocr", authMiddleware(authRoles.write_all_donations), async (req,re
     await DAO.logging.add("OCR", result)
     await mail.sendOcrBackup(JSON.stringify(result, null, 2))
     res.json(result)
-  } catch(ex) {
-    next({ex})
+  } catch (ex) {
+    next({ ex })
   }
 })
 
 /**
- * Triggered by a google cloud scheduler webhook every day at 10:00
+ * Triggered by a google cloud scheduler webhook every day at 10:00 CET
  */
 router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   let result
@@ -76,16 +76,16 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
     const claimDaysInAdvance = 6
     let today
     if (req.query.date) {
-      today = luxon.DateTime.fromJSDate(new Date(req.query.date))
+      today = luxon.DateTime.fromISO(req.query.date, { zone: "Europe/Oslo" })
     } else {
-      today = luxon.DateTime.fromJSDate(new Date())
+      today = luxon.DateTime.local({ zone: "Europe/Oslo" })
     }
 
     let claimDate = today.plus(luxon.Duration.fromObject({ days: claimDaysInAdvance }))
 
     // Check if dates are last day of month
     const isClaimDateLastDayOfMonth = claimDate.day == today.endOf('month').day
-    
+
     /**
      * Get active agreements 
      */
@@ -132,23 +132,23 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
     await DAO.logging.add("AvtaleGiro", result)
     await mail.sendOcrBackup(JSON.stringify(result, null, 2))
     res.json(result)
-  } catch(ex) {
-    next({ex})
+  } catch (ex) {
+    next({ ex })
   }
 })
 
 /**
- * Triggered by a google cloud scheduler webhook every day at 11:00, 12:00 and 13:00
+ * Triggered by a google cloud scheduler webhook every day at 11:00, 12:00 and 13:00 CET
  */
- router.post("/avtalegiro/retry", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
+router.post("/avtalegiro/retry", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   let result
   try {
     const claimDaysInAdvance = 6
     let today
     if (req.query.date) {
-      today = luxon.DateTime.fromJSDate(new Date(req.query.date))
+      today = luxon.DateTime.fromISO(req.query.date, { zone: "Europe/Oslo" })
     } else {
-      today = luxon.DateTime.fromJSDate(new Date())
+      today = luxon.DateTime.fromObject({ zone: "Europe/Oslo" })
     }
 
     /**
@@ -167,7 +167,7 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
 
     // Check if dates are last day of month
     const isClaimDateLastDayOfMonth = claimDate.day == today.endOf('month').day
-    
+
     /**
      * Get active agreements 
      */
@@ -214,12 +214,15 @@ router.post("/avtalegiro", authMiddleware(authRoles.write_all_donations), async 
     await DAO.logging.add("AvtaleGiro - Retry", result)
     await mail.sendOcrBackup(JSON.stringify(result, null, 2))
     res.json(result)
-  } catch(ex) {
-    next({ex})
+  } catch (ex) {
+    next({ ex })
   }
 })
 
-router.post("/vipps", authMiddleware(authRoles.write_all_donations), async (req,res, next) => {
+/**
+ * Triggered by a google cloud scheduler webhook every day at 04:00 CET
+ */
+router.post("/vipps", authMiddleware(authRoles.write_all_donations), async (req, res, next) => {
   try {
     // Synchronize effektDB with Vipps database before creating daily charges
     await vipps.synchronizeVippsAgreementDatabase()
@@ -229,8 +232,8 @@ router.post("/vipps", authMiddleware(authRoles.write_all_donations), async (req,
     await DAO.logging.add("VippsRecurring", result)
 
     res.json(result)
-  } catch(ex) {
-    next({ex})
+  } catch (ex) {
+    next({ ex })
   }
 })
 
