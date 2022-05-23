@@ -7,6 +7,8 @@ const avtalegiro = require('../custom_modules/avtalegiro');
 const luxon = require('luxon');
 const config = require('../config')
 
+oldNow = luxon.Settings.now
+
 describe('AvtaleGiro file generation', () => {
     let donorStub
     let file
@@ -73,14 +75,17 @@ describe('AvtaleGiro file generation', () => {
         }
 
         dueDate = luxon.DateTime.local(2021, 10, 10, 10, { zone: 'Europe/Oslo' })
+    })
+
+    beforeEach(function () {
         // mock out current time
         mockTime = luxon.DateTime.local(2021, 10, 9, 8, { zone: 'Europe/Oslo' }).toMillis()
         luxon.Settings.now = () => mockTime
     })
 
-    after(function () {
+    afterEach(function () {
         // reset
-        luxon.Settings.now = () => Date.now()
+        luxon.Settings.now = oldNow
     })
 
     it('Has correct overall structure', async () => {

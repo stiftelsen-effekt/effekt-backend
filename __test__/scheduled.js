@@ -119,7 +119,7 @@ describe('POST /scheduled/avtalegiro', function () {
       .resolves(true)
   })
 
-  beforeEach(function () {
+  afterEach(function () {
     luxon.Settings.defaultZone = oldDefaultZone
     luxon.Settings.now = oldNow
 
@@ -134,7 +134,7 @@ describe('POST /scheduled/avtalegiro', function () {
       .set('Authorization', 'Bearer abc')
       .expect(200)
 
-    sinon.assert.calledWithExactly(agreementsStub, 7)
+    sinon.assert.calledWithExactly(agreementsStub, 7)  // 1st + 6 days
     expect(agreementsStub.calledOnce).to.be.true
     expect(sendNotificationStub.called).to.be.false
     expect(sendFileStub.called).to.be.false
@@ -149,27 +149,29 @@ describe('POST /scheduled/avtalegiro', function () {
     // This is 2022-05-12 20:00 in Los Angeles.
     // At the same time instant, it is 2022-05-13 in Oslo.
     // Even when system time in America/Los_Angeles timezone, use Oslo date
-    luxon.Settings.now = () => 1652410800000
+    mockTime = luxon.DateTime.local(2022, 05, 12, 20, { zone: 'America/Los_Angeles' }).toMillis()
+    luxon.Settings.now = () => mockTime
 
     await request(server)
       .post('/scheduled/avtalegiro')
       .set('Authorization', 'Bearer abc')
       .expect(200)
 
-    sinon.assert.calledWithExactly(agreementsStub, 19)
+    sinon.assert.calledWithExactly(agreementsStub, 19)  // 13th + 6 days
 
     luxon.Settings.defaultZone = 'Asia/Tokyo'
     // This is 2022-05-14 04:00 in Tokyo.
     // At the same time instant, it is 2022-05-13 in Oslo.
     // Even when system time in Asia/Tokyo timezone, use Oslo date
-    luxon.Settings.now = () => 1652468400000
+    mockTime = luxon.DateTime.local(2022, 05, 14, 04, { zone: 'Asia/Tokyo' }).toMillis()
+    luxon.Settings.now = () => mockTime
 
     await request(server)
       .post('/scheduled/avtalegiro')
       .set('Authorization', 'Bearer abc')
       .expect(200)
 
-    sinon.assert.calledWithExactly(agreementsStub, 19)
+    sinon.assert.calledWithExactly(agreementsStub, 19)  // 13th + 6 days
   })
 
   it('Generates claim file when provided a date', async function () {
@@ -180,7 +182,7 @@ describe('POST /scheduled/avtalegiro', function () {
       .set('Authorization', 'Bearer abc')
       .expect(200)
 
-    sinon.assert.calledWithExactly(agreementsStub, 10)
+    sinon.assert.calledWithExactly(agreementsStub, 10)  // 4th + 6 days
     expect(sendNotificationStub.called).to.be.false
     expect(sendFileStub.calledOnce).to.be.true
   })
@@ -199,7 +201,7 @@ describe('POST /scheduled/avtalegiro', function () {
 
     config.env = tempEnv
 
-    sinon.assert.calledWithExactly(agreementsStub, 10)
+    sinon.assert.calledWithExactly(agreementsStub, 10)  // 4th + 6 days
     expect(sendNotificationStub.callCount).to.be.equal(2)
     expect(sendFileStub.calledOnce).to.be.true
   })
@@ -213,7 +215,7 @@ describe('POST /scheduled/avtalegiro', function () {
       .set('Authorization', 'Bearer abc')
       .expect(200)
 
-    sinon.assert.calledWith(agreementsStub, 31)
+    sinon.assert.calledWith(agreementsStub, 31)  // 25th + 6 days
     sinon.assert.calledWith(agreementsStub, 0)
     sinon.assert.calledWithExactly(shipmentStub, mockAgreementsOnLastDay.length)
   })
@@ -227,7 +229,7 @@ describe('POST /scheduled/avtalegiro', function () {
       .set('Authorization', 'Bearer abc')
       .expect(200)
 
-    sinon.assert.calledWith(agreementsStub, 28)
+    sinon.assert.calledWith(agreementsStub, 28)   // 22nd + 6 days
     sinon.assert.calledWith(agreementsStub, 0)
     // Should have 2x mock agreements, one x for the last of the month, one x for the 28th
     sinon.assert.calledWithExactly(shipmentStub, mockAgreementsOn28.length + mockAgreementsOnLastDay.length)
