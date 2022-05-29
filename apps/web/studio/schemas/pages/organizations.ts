@@ -4,17 +4,21 @@ export default {
   title: 'Organizations page',
   fields: [
     {
-      name: 'description',
-      title: 'Description',
-      type: 'array',
-      of: [{type: 'block'}]
+      name: 'header',
+      title: 'Header',
+      type: 'pageheader'
     },
     {
       name: 'slug',
       title: 'Slug',
       type: 'slug',
-      readOnly: true,
-      initialValue: '/organizations'
+      readOnly: false,
+      initialValue: 'organizations'
     }
-  ] 
+  ],
+  preview: {
+    select: {
+      title: 'header.title'
+    }
+  }
 }
