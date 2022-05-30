@@ -9,8 +9,7 @@ const rounding = require("../custom_modules/rounding")
 const donationHelpers = require("../custom_modules/donationHelpers")
 const distributions = require('../custom_modules/DAO_modules/distributions')
 
-router.post("/", 
-  authMiddleware(authRoles.write_all_donations),
+router.post("/",
   async (req, res, next) => {
   try {
     let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }}),
@@ -33,7 +32,7 @@ router.post("/",
     let KID = await DAO.distributions.getKIDbySplit(split, donorId)
 
     if (!KID) {
-      KID = await donationHelpers.createKID()
+      KID = await donationHelpers.createKID(15, donorId)
       await DAO.distributions.add(split, KID, donorId, metaOwnerID)
     }
     
@@ -96,6 +95,33 @@ router.get("/:KID/unauthorized", async (req, res, next) => {
       const response = await DAO.distributions.getSplitByKID(req.params.KID)
 
       res.json(response)
+  } catch (ex) {
+      next({ ex })
+  }
+})
+
+router.post("/KID/distribution", async (req, res, next) => {
+  // Get KID by distribution
+  try {
+      let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }})
+      let donorId = req.body.donorId
+
+    if (split.length === 0) {
+      let err = new Error("Empty distribution array provided")
+      err.status = 400
+      return next(err)
+    }
+
+    if (rounding.sumWithPrecision(split.map(split => split.share)) !== "100") {
+      let err = new Error("Distribution does not sum to 100")
+      err.status = 400
+      return next(err)
+    }
+    
+    //Check for existing distribution with that KID
+    let KID = await DAO.distributions.getKIDbySplit(split, donorId)
+
+    res.json(KID)
   } catch (ex) {
       next({ ex })
   }
