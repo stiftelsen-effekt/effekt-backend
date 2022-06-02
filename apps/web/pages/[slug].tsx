@@ -1,5 +1,4 @@
 import Head from "next/head";
-import { useRouter } from "next/router";
 import React from "react";
 import { getClient } from "../lib/sanity.server";
 import { groq } from "next-sanity";
@@ -7,12 +6,15 @@ import { LayoutPage } from "../types";
 import { Layout } from "../components/main/layout";
 import { Navbar } from "../components/main/navbar";
 import { PageHeader } from "../components/elements/pageheader";
-import { SectionContainer } from "../components/sectionContainer";
-import { PortableText } from "../lib/sanity";
+import { SectionContainer, SectionContainerProps } from "../components/sectionContainer";
+import { VideoEmbed } from "../components/elements/videoembed";
+import { PointListPointProps } from "../components/elements/pointlistpoint";
+import { PointList } from "../components/elements/pointlist";
+import { Links } from "../components/elements/links";
+import { ContactInfo } from "../components/elements/contact-info";
+import { Paragraph } from "../components/elements/paragraph";
 
 const GenericPage: LayoutPage<{ data: any, preview: boolean }>  = ({ data, preview }) => {
-  const router = useRouter()
-
   const header = data.page[0].header
   const content = data.page[0].content
 
@@ -28,9 +30,45 @@ const GenericPage: LayoutPage<{ data: any, preview: boolean }>  = ({ data, previ
 
       <PageHeader title={header.title} inngress={header.inngress} links={header.links} />
 
-      <SectionContainer>
-        <PortableText blocks={content || []} />
-      </SectionContainer>
+      {
+        content.map((section: SectionContainerProps & { _key: string, blocks: any }) => <SectionContainer 
+          key={section._key}
+          heading={section.heading} 
+          inverted={section.inverted} 
+          nodivider={section.nodivider}>
+          {
+            section.blocks.map((block: any) => {
+              switch (block._type) {
+                case "paragraph":
+                  return <Paragraph key={block._key} title={block.title} blocks={block.blocks} />
+                case "videoembed":
+                  return <VideoEmbed key={block._key} id={block.url} />
+                case "pointlist":
+                  return <PointList key={block._key} points={block.points.map((point: PointListPointProps, i: number) => ({
+                    number: block.numbered ? i+1 : null,
+                    heading: point.heading,
+                    paragraph: point.paragraph
+                  }))}></PointList>
+                case "links":
+                  return <div key={block._key} style={{ width: '100%', maxWidth: '660px' }}>
+                    <h2>Les mer:</h2>
+                    <Links links={block.links}></Links>
+                  </div>
+                case "contactinfo":
+                  return <ContactInfo
+                    key={block._key || block._id}
+                    title={block.title} 
+                    description={block.description} 
+                    phone={block.phone}
+                    email={block.email}
+                    />
+                default:
+                  return null
+              }
+            })
+          }
+        </SectionContainer>)
+      }
     </>
   )
 }
@@ -89,7 +127,13 @@ const fetchGenericPage = groq`
   },
   "page": *[_type == "generic_page"  && slug.current == $slug] {
     header,
-    content
+    content[] {
+      ...,
+      blocks[] {
+        _type == 'reference' => @->,
+        _type != 'reference' => @,
+      }
+    }
   },
 }
 `
