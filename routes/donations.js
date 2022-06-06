@@ -143,8 +143,7 @@ router.post("/bank/pending", urlEncodeParser, async (req,res,next) => {
   else res.status(500).json({ status: 500, content: "Could not send bank donation pending email" })
 })
 
-router.post("/confirm", 
-  authMiddleware(authRoles.write_all_donations),
+router.post("/confirm",
   urlEncodeParser,
   async (req, res, next) => {
   try {
@@ -271,6 +270,19 @@ router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,
   }
 })
 
+router.get("/externalID/:externalID/:methodID", async (req,res,next) => {
+  try {
+    let donation = await DAO.donations.GetByExternalPaymentID(req.params.externalID, req.params.methodID)
+
+    return res.json({
+      status: 200,
+      content: donation
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
 router.get("/all/:kid", authMiddleware(authRoles.read_all_donations), async (req,res,next) => {
   try {
     const donations = await DAO.donations.getAllByKID(req.params.kid)
@@ -279,6 +291,23 @@ router.get("/all/:kid", authMiddleware(authRoles.read_all_donations), async (req
       status: 200,
       content: donations
     })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.put("/transaction_cost/:donationID", async (req,res,next) => {
+  try {
+    let result = await DAO.donations.updateTransactionCost(req.body.transactionCost, req.params.donationID)
+
+    if (result) {
+      return res.json({
+        status: 200
+      })
+    } 
+    else {
+      throw new Error(`Could not update transaction cost for donation ID ${req.params.donationID}`)
+    }
   } catch (ex) {
     next(ex)
   }
