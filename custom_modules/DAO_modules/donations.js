@@ -312,9 +312,23 @@ async function ExternalPaymentIDExists(externalPaymentID, paymentID) {
     else return false
 }
 
+async function GetByExternalPaymentID(externalPaymentID, paymentID) {
+    try {
+        var con = await pool.getConnection()
+        var [res] = await con.query("SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ?", [externalPaymentID, paymentID])
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+
+    con.release()
+    if (res.length > 0) return res[0]
+    else return false
+}
+
 /**
  * Gets donation by ID
- * @param {numer} donationID 
+ * @param {number} donationID 
  * @returns {Donation} A donation object
  */
 async function getByID(donationID) {
@@ -848,6 +862,25 @@ async function registerConfirmedByIDs(IDs) {
         throw ex
     }
 }
+
+async function updateTransactionCost(transactionCost, donationID) {
+    try {
+        var con = await pool.getConnection()
+        
+        await con.execute(`
+            UPDATE Donations
+            SET transaction_cost = ?
+            WHERE ID = ?`, [transactionCost, donationID])
+
+        con.release()
+        return true
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
 //endregion
 
 //region Delete
@@ -907,7 +940,9 @@ module.exports = {
     getByDonorId,
     getLatestByKID,
     getAllByKID,
+    GetByExternalPaymentID,
     ExternalPaymentIDExists,
+    updateTransactionCost,
     add,
     registerConfirmedByIDs,
     getHistogramBySum,

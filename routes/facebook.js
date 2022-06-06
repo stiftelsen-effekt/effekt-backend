@@ -10,6 +10,20 @@ function throwError(message) {
     throw error
 }
 
+router.get("/payments/all", async (req, res, next) => {
+    try {
+        content = await DAO.facebook.getAllFacebookDonations()
+
+        res.json({
+            status: 200,
+            content
+        })
+    }
+    catch (ex) {
+        next(ex)
+    }
+})
+
 router.post("/register/payment", async (req, res, next) => {
     try {
 
