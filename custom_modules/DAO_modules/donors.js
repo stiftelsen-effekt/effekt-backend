@@ -14,44 +14,31 @@ var pool
 
 //region Get
 
-// Checks if there exists a donor who matches the given email and name
-async function getMatchingNameDonor(email, name) {
-    try {
-        var con = await pool.getConnection() 
-        var result = await con.execute("SELECT ID FROM Donors WHERE email = ? AND full_name = ?", 
-        [email, name])
-        return result
-        
-    }
-    catch (ex) {
-        con.release()
-        throw ex
-    }
+/**
+ * 
+ * @param {Donor} donor 
+ * @returns donor name from the input field
+ */
+ async function getDonorInputName() {
+    console.log("Input donor name:")
 }
 
+
 const options = {
-    includeScore: true
+    includeScore: true,
+    threshold: 1.0
 }
 
 // Finds the name which matches the newly registered donor the best
 // score 0 indicates perfect match, score 1 is a complete mismatch
 // returns the index of the donor with the best name match score
-function fuzzyNameSearch(donorNames) {
+function fuzzyNameSearch(donorNames, inputname) {
     const fuse = new Fuse(donorNames, options)
-    // Here, we want registered input name inside the fuse.search() 
+    const fuseResults = fuse.search(inputname)
 
-    const fuseResults = fuse.search("sondre schirmer mikalsen")
-    console.log("Name search results", fuseResults)
-    var bestScore = 1
-    var bestDonor
-    for (i = 0; i < fuseResults.length; i++) {
-        donorScore = fuseResults[i].score
-        if (donorScore < bestScore) {
-            bestScore = donorScore
-            bestDonor = fuseResults[i]
-        } 
-    }
-    console.log("Best donor name match found!", bestDonor, "with score", bestScore)
+    console.log("Name search results, name compared to", inputname, fuseResults)
+    var bestDonor = fuseResults[0]
+    console.log("Best donor name match found!", bestDonor, "with score", bestDonor.score)
 
     return bestDonor.refIndex
 }
@@ -61,7 +48,7 @@ function fuzzyNameSearch(donorNames) {
  * @param {String} email An email
  * @returns {Number} An ID
  */
-async function getIDbyEmail(email) {
+async function getIDbyEmail(email, inputname) {
     console.log("getting donor by email...")
     try {
         var con = await pool.getConnection()
@@ -75,11 +62,11 @@ async function getIDbyEmail(email) {
                 donorNames.push(name)
                 
             }
-            console.log(donorNames)
-            donorIndex = fuzzyNameSearch(donorNames)
+            console.log("Donor names:", donorNames)
+            donorIndex = fuzzyNameSearch(donorNames, inputname)
        
             console.log("Registering on donor ID:", result[donorIndex].ID, "with ssn", result[donorIndex].ssn)
-            return (result[0].ID)
+            return (result[donorIndex].ID)
         }
         else {
             console.log("No matching email found")
@@ -94,10 +81,10 @@ async function getIDbyEmail(email) {
 
 // Returns donor if there exists one matching the email and ssn, otherwise return null
 // Also returns donor if ssn is empty
-async function getDonorId(email, ssn) {
+async function getDonorId(email, ssn, inputname) {
     try {
         if (ssn == "") {
-            return getIDbyEmail(email)
+            return getIDbyEmail(email, inputname)
         }
 
         var con = await pool.getConnection()
@@ -338,7 +325,6 @@ module.exports = {
     add,
     updateSsn,
     updateNewsletter,
-    getMatchingNameDonor,
 
     setup: (dbPool) => { pool = dbPool }
 }

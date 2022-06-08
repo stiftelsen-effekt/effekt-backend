@@ -17,7 +17,8 @@ const vipps = require('../custom_modules/vipps')
 const dateRangeHelper = require('../custom_modules/dateRangeHelper')
 const donationHelpers = require('../custom_modules/donationHelpers')
 const rateLimit = require('express-rate-limit')
-const { getMatchingNameDonor } = require('../custom_modules/DAO_modules/donors')
+const { response } = require('express')
+
 
 router.post("/register", async (req,res,next) => {
   if (!req.body) return res.sendStatus(400)
@@ -50,9 +51,9 @@ router.post("/register", async (req,res,next) => {
     }
 
 
+    
     //Check if existing donor
-    donationObject.donorID = await DAO.donors.getDonorId(donor.email, donor.ssn)
-
+    donationObject.donorID = await DAO.donors.getDonorId(donor.email, donor.ssn, donor.name)
 
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
