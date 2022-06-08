@@ -1,0 +1,1 @@
+ALTER TABLE Donations DROP COLUMN doggo;

@@ -1161,12 +1161,20 @@ module.exports = {
                     await DAO.vipps.updateChargeStatus(charges[j].status, agreements[i].id, charges[j].id)
 
                     if (charges[j].status === "CHARGED") {
+                        const charge = await DAO.vipps.getCharge(agreements[i].id, charges[j].id)
                         const paymentMethod = 8
-                        const registeredDate = new Date()
+                        const dayOfMonth = new Date().getDate()
+                        const thisMonth = new Date().getMonth()
+                        const registeredDate = charge.dueDate
                         const externalPaymentId = `${agreements[i].id}.${charges[j].id}`
                         const metaOwnerId = 3
 
-                        const charge = await DAO.vipps.getCharge(agreements[i].id, charges[j].id)
+                        // If a charge has failed on the last day of a month, set registeredDate to current day
+                        // This prevents charges being incorrectly registered as paid in the previous month
+                        if (dayOfMonth >= 2 && new Date(charge.dueDate).getMonth() < thisMonth) {
+                            registeredDate = new Date()
+                        }
+
                         const donationExists = await donations.ExternalPaymentIDExists(externalPaymentId, paymentMethod)
 
                         if (!donationExists) {

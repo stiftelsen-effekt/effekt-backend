@@ -14,24 +14,19 @@ var pool
 
 //region Get
 
-/**
- * 
- * @param {Donor} donor 
- * @returns donor name from the input field
- */
- async function getDonorInputName() {
-    console.log("Input donor name:")
-}
-
-
 const options = {
     includeScore: true,
     threshold: 1.0
 }
 
-// Finds the name which matches the newly registered donor the best
-// score 0 indicates perfect match, score 1 is a complete mismatch
-// returns the index of the donor with the best name match score
+/**
+ * Compares the input name to all donor names in the database with matching email
+ * score 0 indicates perfect match, score 1 is a complete mismatch
+
+ * @param {*} donorNames A list of the donor names in database with given email
+ * @param {*} inputname The name in the input field in the donation widget
+ * @returns * returns the index of the donor with the best name match score
+ */
 function fuzzyNameSearch(donorNames, inputname) {
     const fuse = new Fuse(donorNames, options)
     const fuseResults = fuse.search(inputname)
@@ -46,10 +41,9 @@ function fuzzyNameSearch(donorNames, inputname) {
 /**
  * Gets the ID of a Donor based on their email
  * @param {String} email An email
- * @returns {Number} An ID
+ * @returns {Number} An ID of the donor if a match is found in the database
  */
 async function getIDbyEmail(email, inputname) {
-    console.log("getting donor by email...")
     try {
         var con = await pool.getConnection()
         var [result] = await con.execute(`SELECT ID, ssn, full_name FROM Donors where email = ?`, [email])
@@ -79,8 +73,13 @@ async function getIDbyEmail(email, inputname) {
     }
 }
 
-// Returns donor if there exists one matching the email and ssn, otherwise return null
-// Also returns donor if ssn is empty
+/**
+ * 
+ * @param {*} email donor email
+ * @param {*} ssn donor ssn
+ * @param {*} inputname donor name
+ * @returns id of the matching donor if one is found
+ */
 async function getDonorId(email, ssn, inputname) {
     try {
         if (ssn == "") {
