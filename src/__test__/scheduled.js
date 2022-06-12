@@ -61,7 +61,10 @@ describe('POST /scheduled/avtalegiro', function() {
 
     agreementsStub = sinon
       .stub(DAO.avtalegiroagreements, 'getByPaymentDate')
-      .resolves(mockAgreements)
+    
+    agreementsStub.withArgs(10).resolves(mockAgreements)
+    agreementsStub.withArgs(28).resolves(mockAgreements)
+    agreementsStub.withArgs(31).resolves([])
 
     loggingStub = sinon
       .stub(DAO.logging, 'add')
@@ -134,6 +137,19 @@ describe('POST /scheduled/avtalegiro', function() {
       .expect(200)
 
     sinon.assert.calledWithExactly(agreementsStub, 0)
+    sinon.assert.calledWithExactly(shipmentStub, mockAgreements.length)
+  })
+
+  it('Includes the 28th when the 28th is last day of month', async function() {
+    const respnse = await request(server)
+      .post('/scheduled/avtalegiro/?date=2022-02-22&notify=true')
+      .set('Authorization', 'Bearer abc')
+      .expect(200)
+
+    sinon.assert.calledWithExactly(agreementsStub, 0)
+    sinon.assert.calledWithExactly(agreementsStub, 28)
+    // Should have 2x mock agreements, one x for the last of the month, one x for the 28th
+    sinon.assert.calledWithExactly(shipmentStub, mockAgreements.length*2)
   })
 
   after(function () {

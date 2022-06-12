@@ -88,12 +88,9 @@ router.post("/avtalegiro", authMiddleware.auth(authRoles.write_donations), async
     /**
      * Get active agreements 
      */
-    let agreements = []
+    let agreements = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day)
     if (isClaimDateLastDayOfMonth) {
-      agreements = await DAO.avtalegiroagreements.getByPaymentDate(0)
-    }
-    else {
-      agreements = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day)
+      agreements = [...agreements, ...await DAO.avtalegiroagreements.getByPaymentDate(0)]
     }
 
     if (agreements.length > 0) {
