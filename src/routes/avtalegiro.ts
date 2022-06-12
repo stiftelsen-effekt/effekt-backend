@@ -1,4 +1,6 @@
-const express = require("express");
+import * as express from 'express';
+import { checkAvtaleGiroAgreement } from "../custom_modules/authorization/authMiddleware";
+
 const router = express.Router();
 const DAO = require("../custom_modules/DAO.js");
 const rounding = require("../custom_modules/rounding");
@@ -93,10 +95,7 @@ router.post(
  */
 router.get(
   "/agreement/:id",
-  authMiddleware.auth(authRoles.read_donations),
-  (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
-  },
+  authMiddleware.auth(authRoles.admin),
   async (req, res, next) => {
     try {
       var result = await DAO.avtalegiroagreements.getAgreement(req.params.id);
@@ -288,7 +287,7 @@ router.post(
   "/:KID/distribution",
   authMiddleware.auth(authRoles.write_agreements),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -306,7 +305,7 @@ router.post(
 
       if (split.length === 0) {
         let err = new Error("Empty distribution array provided");
-        err.status = 400;
+        (err as any).status = 400;
         return next(err);
       }
 
@@ -314,7 +313,7 @@ router.post(
         rounding.sumWithPrecision(split.map((split) => split.share)) !== "100"
       ) {
         let err = new Error("Distribution does not sum to 100");
-        err.status = 400;
+        (err as any).status = 400;
         return next(err);
       }
 
@@ -366,7 +365,7 @@ router.post(
   "/:KID/status",
   authMiddleware.auth(authRoles.write_agreements),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -411,7 +410,7 @@ router.post(
   "/:KID/amount",
   authMiddleware.auth(authRoles.write_agreements),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -458,7 +457,7 @@ router.post(
   "/:KID/paymentdate",
   authMiddleware.auth(authRoles.write_agreements),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {

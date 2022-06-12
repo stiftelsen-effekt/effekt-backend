@@ -1,6 +1,7 @@
+import * as express from "express";
+
 const config = require('../config')
 
-const express = require('express')
 const router = express.Router()
 const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: true })

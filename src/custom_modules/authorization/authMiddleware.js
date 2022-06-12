@@ -1,5 +1,6 @@
 const auth = require('./auth.js')
-const { auth, requiredScopes, claimEquals } = require('express-oauth2-jwt-bearer')
+const { auth, requiredScopes, claimEquals } = require('express-oauth2-jwt-bearer');
+const DAO = require('../DAO.js');
 
 const checkJwt = auth({
   audience: 'https://data.gieffektivt.no',
@@ -22,7 +23,15 @@ const checkDonor = (donorId, req, res, next) => {
   handler(req, res, next)
 }
 
+const checkAvtaleGiroAgreement = (KID, req, res, next) => {
+  DAO.donors.getByKID(KID).then(donor => {
+    const handler = claimEquals("https://konduit.no/user-id", donor.id)
+    handler(req, res, next)
+  })
+}
+
 module.exports = {
   auth,
-  checkDonor
+  checkDonor,
+  checkAvtaleGiroAgreement
 }

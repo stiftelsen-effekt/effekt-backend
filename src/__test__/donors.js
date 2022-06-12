@@ -270,6 +270,13 @@ describe("Check if profile information is updated", function () {
 describe("Check if /:id/recurring/avtalegiro return agreements", function () {
   before(function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
+    checkDonorStub = sinon.replace(
+      authMiddleware,
+      "checkDonor",
+      function (donorId, res, req, next) {
+        next();
+      }
+    );
 
     agreementStub = sinon.stub(DAO.avtalegiroagreements, "getByDonorId");
     agreementStub.resolves(mockAgreements);
@@ -298,13 +305,20 @@ describe("Check if /:id/recurring/avtalegiro return agreements", function () {
   });
 
   after(function () {
-    authMiddleware.auth.restore();
+    sinon.restore();
   });
 });
 
 describe("Check if /:id/recurring/vipps return agreements", function () {
   before(function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
+    checkDonorStub = sinon.replace(
+      authMiddleware,
+      "checkDonor",
+      function (donorId, res, req, next) {
+        next();
+      }
+    );
 
     agreementStub = sinon.stub(DAO.vipps, "getAgreementsByDonorId");
     agreementStub.resolves(mockAgreementsVipps);
@@ -332,6 +346,6 @@ describe("Check if /:id/recurring/vipps return agreements", function () {
   });
 
   after(function () {
-    authMiddleware.auth.restore();
+    sinon.restore();
   });
 });
