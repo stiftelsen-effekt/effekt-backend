@@ -36,7 +36,7 @@ router.post("/draft", async (req, res, next) => {
 
 router.post(
   "/agreements",
-  authMiddleware.auth(authRoles.read_donations),
+  authMiddleware.auth(authRoles.admin),
   async (req, res, next) => {
     try {
       var results = await DAO.avtalegiroagreements.getAgreements(
@@ -94,6 +94,9 @@ router.post(
 router.get(
   "/agreement/:id",
   authMiddleware.auth(authRoles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       var result = await DAO.avtalegiroagreements.getAgreement(req.params.id);
@@ -139,7 +142,7 @@ router.get("/report", async (req, res, next) => {
 
 router.get(
   "/validation",
-  authMiddleware.auth(authRoles.read_donations),
+  authMiddleware.auth(authRoles.admin),
   async (req, res, next) => {
     try {
       let content = await DAO.avtalegiroagreements.getValidationTable();
@@ -156,7 +159,7 @@ router.get(
 
 router.get(
   "/missing/",
-  authMiddleware.auth(authRoles.read_donations),
+  authMiddleware.auth(authRoles.admin),
   async (req, res, next) => {
     try {
       let date = req.query.date;
@@ -182,7 +185,7 @@ router.get(
 
 router.get(
   "/expected/",
-  authMiddleware.auth(authRoles.read_donations),
+  authMiddleware.auth(authRoles.admin),
   async (req, res, next) => {
     try {
       let date = req.query.date;
@@ -209,7 +212,7 @@ router.get(
 
 router.get(
   "/recieved/",
-  authMiddleware.auth(authRoles.read_donations),
+  authMiddleware.auth(authRoles.admin),
   async (req, res, next) => {
     try {
       let date = req.query.date;
@@ -284,6 +287,9 @@ router.get(
 router.post(
   "/:KID/distribution",
   authMiddleware.auth(authRoles.write_agreements),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       if (!req.body) return res.sendStatus(400);
@@ -359,6 +365,9 @@ router.post(
 router.post(
   "/:KID/status",
   authMiddleware.auth(authRoles.write_agreements),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       const KID = req.params.KID;
@@ -401,6 +410,9 @@ router.post(
 router.post(
   "/:KID/amount",
   authMiddleware.auth(authRoles.write_agreements),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       const KID = req.params.KID;
@@ -445,6 +457,9 @@ router.post(
 router.post(
   "/:KID/paymentdate",
   authMiddleware.auth(authRoles.write_agreements),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       const KID = req.params.KID;

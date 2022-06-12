@@ -146,6 +146,9 @@ router.post("/auth0/register", async (req, res, next) => {
 router.get(
   "/:id",
   authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       var donor = await DAO.donors.getByID(req.params.id);
@@ -203,6 +206,9 @@ router.get(
 router.delete(
   "/:id",
   authMiddleware.auth(roles.write_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       var donor = await DAO.donors.getByID(req.params.id);
@@ -249,7 +255,7 @@ router.delete(
  */
 router.get(
   "/search/",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(roles.admin),
   async (req, res, next) => {
     try {
       var donors = await DAO.donors.search(req.query.q);
@@ -363,6 +369,9 @@ router.get(
 router.get(
   "/:id/recurring/avtalegiro",
   authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       const agreements = await DAO.avtalegiroagreements.getByDonorId(
@@ -417,6 +426,9 @@ router.get(
 router.get(
   "/:id/recurring/vipps",
   authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       const agreements = await DAO.vipps.getAgreementsByDonorId(req.params.id);
@@ -624,6 +636,9 @@ router.get(
 router.get(
   "/:id/summary/",
   authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       var summary = await DAO.donations.getSummary(req.params.id);
@@ -648,6 +663,9 @@ router.get(
 router.get(
   "/:id/history/",
   authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       var history = await DAO.donations.getHistory(req.params.id);

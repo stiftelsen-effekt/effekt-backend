@@ -95,7 +95,7 @@ router.post("/", async (req,res, next) => {
   }
 })
 
-router.get("/:id", authMiddleware.auth(roles.read_donations), async (req,res, next) => {
+router.get("/:id", authMiddleware.auth(roles.admin), async (req,res, next) => {
   try {
     const id = parseInt(req.params.id)
 

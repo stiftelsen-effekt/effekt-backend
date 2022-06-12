@@ -169,7 +169,7 @@ router.get("/histogram/charges", async (req, res, next) => {
 
 router.get(
   "/agreements/report",
-  authMiddleware.auth(authorizationRoles.read_donations),
+  authMiddleware.auth(authorizationRoles.admin),
   async (req, res, next) => {
     try {
       let content = await DAO.vipps.getAgreementReport();
@@ -186,7 +186,7 @@ router.get(
 
 router.post(
   "/agreements",
-  authMiddleware.auth(authorizationRoles.read_donations),
+  authMiddleware.auth(authorizationRoles.admin),
   async (req, res, next) => {
     try {
       var results = await DAO.vipps.getAgreements(
@@ -210,7 +210,7 @@ router.post(
 
 router.post(
   "/charges",
-  authMiddleware.auth(authorizationRoles.read_donations),
+  authMiddleware.auth(authorizationRoles.admin),
   async (req, res, next) => {
     try {
       var results = await DAO.vipps.getCharges(

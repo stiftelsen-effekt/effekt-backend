@@ -8,5 +8,6 @@ module.exports = {
     read_agreements: "read:agreements",
     write_agreements: "write:agreements",
     read_vipps_api: "read:vipps_api",
-    write_vipps_api: "write:vipps_api"
+    write_vipps_api: "write:vipps_api",
+    admin: "admin"
 }

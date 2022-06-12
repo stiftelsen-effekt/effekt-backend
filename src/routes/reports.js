@@ -8,24 +8,24 @@ const bodyParser = require('body-parser')
 const urlEncodeParser = bodyParser.urlencoded({ extended: false })
 
 router.post('/ocr',
-            authMiddleware.auth(authRoles.write_donations),
+            authMiddleware.auth(authRoles.admin),
             require('./reports/ocr'))
 router.post('/bank',
-            authMiddleware.auth(authRoles.write_donations),
+            authMiddleware.auth(authRoles.admin),
             require('./reports/bank'))
 router.post("/vipps",
-            authMiddleware.auth(authRoles.write_donations),
+            authMiddleware.auth(authRoles.admin),
             require('./reports/vipps'))
 router.post("/paypal",
-            authMiddleware.auth(authRoles.write_donations),
+            authMiddleware.auth(authRoles.admin),
             require('./reports/paypal'))
 router.post('/range',
             urlEncodeParser,
-            authMiddleware.auth(authRoles.read_donations),
+            authMiddleware.auth(authRoles.admin),
             require('./reports/range'))
 router.post('/taxdeductions',
             urlEncodeParser,
-            authMiddleware.auth(authRoles.write_donations),
+            authMiddleware.auth(authRoles.admin),
             require('./reports/tax'))
 
 module.exports = router
