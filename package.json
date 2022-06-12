@@ -10,7 +10,8 @@
     "test-coverage": "nyc --reporter=text mocha --require ts-node/register src/__test__",
     "build": "tsc",
     "start": "node ./dist/server.js",
-    "dev": "nodemon src/server.ts"
+    "dev": "nodemon src/server.ts",
+    "debug": "nodemon --exec 'node --inspect=0.0.0.0:9229 --require ts-node/register src/server.ts'"
   },
   "repository": {
     "type": "git",

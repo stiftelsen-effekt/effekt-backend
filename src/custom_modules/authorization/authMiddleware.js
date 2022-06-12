@@ -27,7 +27,9 @@ const checkAvtaleGiroAgreement = (KID, req, res, next) => {
   DAO.donors.getByKID(KID).then(donor => {
     const handler = claimEquals("https://konduit.no/user-id", donor.id)
     handler(req, res, next)
-  })
+  }).catch(err => {{
+    next(new Error("Failed to verify ownershop of agreement"))
+  }});
 }
 
 module.exports = {
