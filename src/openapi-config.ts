@@ -16,7 +16,9 @@ export const openAPIOptions = {
               "scopes": {
                 "read:donations": "read donations",
                 "read:profile": "read profile info",
-                "write:profile": "mutate profile"
+                "write:profile": "mutate profile",
+                "read:agreements": "read recurruing agreements",
+                "write:agreements": "mutate recurruing agreements",
               }
             }
           }
