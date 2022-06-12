@@ -347,6 +347,7 @@ async function getByDonorId(donorId) {
                 Donation.KID_fordeling,
                 Donation.transaction_cost,
                 Donation.timestamp_confirmed,
+                Donation.Meta_owner_ID,
                 Donor.ID as donorId,
                 Donor.full_name,
                 Donor.email,
@@ -373,7 +374,8 @@ async function getByDonorId(donorId) {
             transactionCost: dbDonation.transaction_cost,
             timestamp: dbDonation.timestamp_confirmed,
             paymentMethod: dbDonation.payment_name,
-            KID: dbDonation.KID_fordeling
+            KID: dbDonation.KID_fordeling,
+            metaOwnerId: dbDonation.Meta_owner_ID
         }))
 
         con.release()
