@@ -1,4 +1,5 @@
 const Fuse = require("fuse.js")
+const { createCharge } = require("../vipps")
 
 var pool
 
@@ -236,6 +237,7 @@ async function search(query) {
 }
 //endregion
 
+
 //region Add
 /**
  * Adds a new Donor to the database
@@ -267,7 +269,27 @@ async function add(email = "", name, ssn = "", newsletter = null) {
         throw ex
     }
 }
+
+async function addTaxUnit(email, name, ssn) {
+    try {
+        var con = await pool.getConnection()
+        var res = await con.execute(`INSERT INTO TaxUnit(
+            email,
+            ssn, 
+            full_name
+        )  VALUES (?,?,?)`, [email, ssn, name]
+        )
+        con.release()
+        return (res[0].insertId)
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
+}
 //endregion
+
+
 
 //region Modify
 /**
@@ -309,6 +331,9 @@ async function updateNewsletter(donorID, newsletter) {
     }
 }
 
+
+
+
 //endregion
 
 //region Delete
@@ -322,6 +347,7 @@ module.exports = {
     getIDByAgreementCode,
     search,
     add,
+    addTaxUnit,
     updateSsn,
     updateNewsletter,
 

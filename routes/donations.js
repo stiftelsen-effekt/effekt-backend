@@ -50,8 +50,9 @@ router.post("/register", async (req,res,next) => {
       donationObject.standardSplit = true
     }
 
-
     
+    await DAO.donors.addTaxUnit(donor.email, donor.name, donor.ssn)
+
     //Check if existing donor
     donationObject.donorID = await DAO.donors.getDonorId(donor.email, donor.ssn, donor.name)
 
