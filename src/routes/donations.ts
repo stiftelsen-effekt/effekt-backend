@@ -21,6 +21,24 @@ const rateLimit = require('express-rate-limit')
 
 /**
  * @openapi
+ * /donations/status:
+ *   get:
+ *    tags: [Donations]
+ *    description: Redirects to donation success when query is ok, donation failed if not ok. Used for payment processing.
+ */
+ router.get('/status', async (req, res, next) => {
+  try {
+    if (req.query.status && req.query.status.toUpperCase() === "OK")
+      res.redirect('https://gieffektivt.no/donation-recived/')
+    else
+      res.redirect('https://gieffektivt.no/donation-failed/')
+  } catch (ex) {
+    next({ ex })
+  }
+})
+
+/**
+ * @openapi
  * tags:
  *   - name: Donations
  *     description: Donations in the database
@@ -435,24 +453,6 @@ router.get("/histogram", async (req,res,next) => {
     })
   } catch(ex) {
     next(ex)
-  }
-})
-
-/**
- * @openapi
- * /donations/status:
- *   get:
- *    tags: [Donations]
- *    description: Redirects to donation success when query is ok, donation failed if not ok. Used for payment processing.
- */
-router.get('/status', async (req, res, next) => {
-  try {
-    if (req.query.status && req.query.status.toUpperCase() === "OK")
-      res.redirect('https://gieffektivt.no/donation-recived/')
-    else
-      res.redirect('https://gieffektivt.no/donation-failed/')
-  } catch (ex) {
-    next({ ex })
   }
 })
 
