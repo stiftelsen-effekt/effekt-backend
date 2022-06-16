@@ -76,38 +76,9 @@ async function getIDbyEmail(email, inputname) {
 
 /**
  * 
- * @param {*} email donor email
- * @param {*} ssn donor ssn
- * @param {*} inputname donor name
- * @returns id of the matching donor if one is found
+ * @param {*} email donor email from the input field
+ * @returns the ID of the record in the Donors table with a matching email, if one exists. 
  */
-/*
-async function getDonorId(email, ssn, inputname) {
-    try {
-        if (ssn == "") {
-            return getIDbyEmail(email, inputname)
-        }
-
-        var con = await pool.getConnection()
-        var [result] = await con.execute("SELECT ID FROM Donors WHERE email = ? AND ssn = ?", 
-        [email, ssn])
-            
-        if (result.length > 0) return (result[0].ID)
-        else {
-            [result] = await con.execute("SELECT ID FROM Donors WHERE email = ? AND ssn = ?", [email, ""])
-            con.release()
-            if (result.length > 0) return (result[0].ID)
-            else return null
-        }
-
-    }
-    catch (ex) {
-        con.release()
-        throw ex
-    }
-}
-*/
-
 async function getDonorId(email) {
     try {
         var con = await pool.getConnection()
@@ -124,6 +95,13 @@ async function getDonorId(email) {
 }
 
 
+/**
+ * 
+ * @param {*} email email from inputfield
+ * @param {*} ssn ssn from inputfield
+ * @param {*} inputname name from inputfield
+ * @returns the id of the record in the TaxUnit table that best matches the user input
+ */
 async function getTaxUnit(email, ssn, inputname) {
     try {
         if (ssn == "") {
@@ -178,7 +156,12 @@ async function getByID(ID) {
     }
 }
 
-async function getTaxUnitById(id, ssn) {
+/**
+ * 
+ * @param {*} id the id of the TaxUnit record
+ * @returns a TaxUnit object
+ */
+async function getTaxUnitById(id) {
     try {
         var con = await pool.getConnection()
         var [result] = await con.execute(`SELECT * FROM TaxUnit where ID = ? LIMIT 1`, [id])
@@ -304,11 +287,10 @@ async function search(query) {
 
 //region Add
 /**
- * Adds a new Donor to the database
- * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
- * @returns {Number} The ID of the new Donor if successful
+ * 
+ * @param {*} email the email from the donor input field
+ * @returns 
  */
-
 async function add(email) {
     try {
         var con = await pool.getConnection()
@@ -322,35 +304,13 @@ async function add(email) {
     }
 }
 
-/*
-async function add(email = "", name, ssn = "", newsletter = null) {
-    try {
-        var con = await pool.getConnection()
-
-        var res = await con.execute(`INSERT INTO Donors (
-            email,
-            full_name, 
-            ssn,
-            newsletter
-        ) VALUES (?,?,?,?)`,
-            [
-                email,
-                name,
-                ssn,
-                newsletter
-            ])
-
-        con.release()
-        return (res[0].insertId)
-    }
-    catch (ex) {
-        con.release()
-        throw ex
-    }
-}*/
-
-
-
+/**
+ * 
+ * @param {*} email from input field
+ * @param {*} name from input field
+ * @param {*} ssn from input field
+ * @returns 
+ */
 async function addTaxUnit(email, name, ssn) {
     try {
         var con = await pool.getConnection()
@@ -410,8 +370,6 @@ async function updateNewsletter(donorID, newsletter) {
         throw ex
     }
 }
-
-
 
 
 //endregion

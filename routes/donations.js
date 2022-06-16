@@ -72,7 +72,7 @@ router.post("/register", async (req,res,next) => {
       console.log("donor exists")
       // donor does exist
       if (typeof donor.ssn !== "undefined" && donor.ssn != null) {
-        dbDonor = await DAO.donors.getTaxUnitById(donationObject.donorID, donor.ssn)
+        dbDonor = await DAO.donors.getTaxUnitById(donationObject.donorID)
 
         if (dbDonor.ssn == null || dbDonor.ssn == "") {
           //No existing ssn found, updating donor
