@@ -51,11 +51,42 @@ router.post("/register", async (req,res,next) => {
     }
 
     
-    await DAO.donors.addTaxUnit(donor.email, donor.name, donor.ssn)
+    
 
+    // Checks if email exists in the database
+    donationObject.donorID = await DAO.donors.getDonorId(donor.email)
+    if (donationObject.donorID == null) {
+      await DAO.donors.add(donor.email)
+    }
+
+    // Checks if email and ssn combination record exists in the TaxUnit table
+    // Returns id of matching TaxUnit. If no matches, checks if there is a TaxUnit with an empty ssn 
+    // and returns its ID.
+    // If no TaxUnit is found, a new one is created.
+    donationObject.donorID = await DAO.donors.getTaxUnit(donor.email, donor.ssn, donor.name)
+    console.log("Donor id",donationObject.donorID)
+    if (donationObject.donorID == null) {
+      donationObject.donorID = await DAO.donors.addTaxUnit(donor.email, donor.name, donor.ssn)
+    }
+    else {
+      console.log("donor exists")
+      // donor does exist
+      if (typeof donor.ssn !== "undefined" && donor.ssn != null) {
+        dbDonor = await DAO.donors.getTaxUnitById(donationObject.donorID, donor.ssn)
+
+        if (dbDonor.ssn == null || dbDonor.ssn == "") {
+          //No existing ssn found, updating donor
+          await DAO.donors.updateSsn(donationObject.donorID, donor.ssn)
+        }
+      }
+    }
+    
+
+    /*
     //Check if existing donor
     donationObject.donorID = await DAO.donors.getDonorId(donor.email, donor.ssn, donor.name)
 
+    
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
       donationObject.donorID = await DAO.donors.add(donor.email, donor.name, donor.ssn, donor.newsletter)
@@ -70,6 +101,7 @@ router.post("/register", async (req,res,next) => {
           await DAO.donors.updateSsn(donationObject.donorID, donor.ssn)
         }
       }
+    
 
       //Check if registered for newsletter
       if (typeof donor.newsletter !== "undefined" && donor.newsletter != null) {
@@ -93,7 +125,7 @@ router.post("/register", async (req,res,next) => {
       donationObject.KID = await DAO.distributions.getKIDbySplit(donationObject.split, donationObject.donorID)
 
       //Split does not exist create new KID and split
-      if (donationObject.KID == null) {
+      if (donationObject.KID == null && donationObject.donorID != null) {
         donationObject.KID = await donationHelpers.createKID()
         await DAO.distributions.add(donationObject.split, donationObject.KID, donationObject.donorID)
       }

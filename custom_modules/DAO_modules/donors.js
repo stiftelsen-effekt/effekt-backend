@@ -47,7 +47,7 @@ function fuzzyNameSearch(donorNames, inputname) {
 async function getIDbyEmail(email, inputname) {
     try {
         var con = await pool.getConnection()
-        var [result] = await con.execute(`SELECT ID, ssn, full_name FROM Donors where email = ?`, [email])
+        var [result] = await con.execute(`SELECT ID, ssn, full_name FROM TaxUnit where email = ?`, [email])
         con.release()
         if (result.length > 0) {
             console.log("Registered names on this email:")
@@ -81,6 +81,7 @@ async function getIDbyEmail(email, inputname) {
  * @param {*} inputname donor name
  * @returns id of the matching donor if one is found
  */
+/*
 async function getDonorId(email, ssn, inputname) {
     try {
         if (ssn == "") {
@@ -105,6 +106,48 @@ async function getDonorId(email, ssn, inputname) {
         throw ex
     }
 }
+*/
+
+async function getDonorId(email) {
+    try {
+        var con = await pool.getConnection()
+        var [result] = await con.execute("SELECT ID FROM Donors WHERE email = ?", 
+        [email])
+        con.release()
+        if (result.length > 0) return (result[0].ID)
+        else return null
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
+
+async function getTaxUnit(email, ssn, inputname) {
+    try {
+        if (ssn == "") {
+            return getIDbyEmail(email, inputname)
+        }
+        var con = await pool.getConnection()
+        var [result] = await con.execute("SELECT id FROM TaxUnit WHERE email = ? AND ssn = ?", 
+        [email, ssn])
+        if (result.length > 0) return (result[0].id)
+
+        else {
+            [result] = await con.execute("SELECT id FROM TaxUnit WHERE email = ? AND ssn = ?", [email, ""])
+            con.release()
+            if (result.length > 0) return (result[0].id)
+            else return null
+        }
+
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
 
 /**
  * Selects a Donor object from the database with the given ID
@@ -128,6 +171,27 @@ async function getByID(ID) {
             trash: result[0].trash,
         })
         else return (null)
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
+async function getTaxUnitById(id, ssn) {
+    try {
+        var con = await pool.getConnection()
+        var [result] = await con.execute(`SELECT * FROM TaxUnit where ID = ? LIMIT 1`, [id])
+        con.release()
+
+        if (result.length > 0) return ({
+            id: result[0].ID,
+            name: result[0].full_name,
+            email: result[0].email,
+            registered: result[0].date_registered,
+            ssn: result[0].ssn
+        })
+        else return null
     }
     catch (ex) {
         con.release()
@@ -244,6 +308,21 @@ async function search(query) {
  * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
  * @returns {Number} The ID of the new Donor if successful
  */
+
+async function add(email) {
+    try {
+        var con = await pool.getConnection()
+        var res = await con.execute(`INSERT INTO Donors (email) VALUES (?)`, [email])
+        con.release()
+        return (res[0].insertId)
+    }
+    catch (ex) {
+        con.release()
+        throw ex
+    }
+}
+
+/*
 async function add(email = "", name, ssn = "", newsletter = null) {
     try {
         var con = await pool.getConnection()
@@ -268,17 +347,18 @@ async function add(email = "", name, ssn = "", newsletter = null) {
         con.release()
         throw ex
     }
-}
+}*/
+
+
 
 async function addTaxUnit(email, name, ssn) {
     try {
         var con = await pool.getConnection()
-        var res = await con.execute(`INSERT INTO TaxUnit(
+        var res = await con.execute(`INSERT INTO TaxUnit (
             email,
             ssn, 
             full_name
-        )  VALUES (?,?,?)`, [email, ssn, name]
-        )
+        )  VALUES (?,?,?)`, [email, ssn, name])
         con.release()
         return (res[0].insertId)
     }
@@ -302,7 +382,7 @@ async function updateSsn(donorID, ssn) {
     console.log("update ssn")
     try {
         var con = await pool.getConnection()
-        let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [ssn, donorID])
+        let res = await con.query(`UPDATE TaxUnit SET ssn = ? where ID = ?`, [ssn, donorID])
         con.release()
         return true
     }
@@ -350,6 +430,9 @@ module.exports = {
     addTaxUnit,
     updateSsn,
     updateNewsletter,
+
+    getTaxUnit,
+    getTaxUnitById,
 
     setup: (dbPool) => { pool = dbPool }
 }

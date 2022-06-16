@@ -415,6 +415,20 @@ DELIMITER ;
 --
 -- Table structure for table `Donors`
 --
+DROP TABLE IF EXISTS `TaxUnit`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `TaxUnit` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Unik ID',
+  `email` tinytext NOT NULL COMMENT 'epost registrert i donasjonsskjema,\\ntrigger generering av ny donor hvis den ikke eksisterer fra før',
+  `ssn` varchar(11) DEFAULT NULL,
+  `full_name` tinytext NOT NULL,
+  `date_registered` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'The date the donor first registrered',
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `KID_UNIQUE` (`ID`),
+  FULLTEXT KEY `search` (`email`,`full_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
 
 DROP TABLE IF EXISTS `Donors`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
