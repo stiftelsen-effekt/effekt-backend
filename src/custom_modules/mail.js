@@ -135,7 +135,7 @@ async function sendDonationReciept(donationID, reciever = null) {
     try {
       await send({
         reciever: (reciever ? reciever : donation.email),
-        subject: "gieffektivt.no - Din donasjon er mottatt",
+        subject: "Gi Effektivt - Din donasjon er mottatt",
         templateName: "reciept",
         templateData: {
             header: "Hei " + donation.donor + ",",
@@ -196,7 +196,7 @@ async function sendEffektDonationReciept(donationID, reciever = null) {
     try {
         await send({
         reciever: (reciever ? reciever : donation.email),
-        subject: "gieffektivt.no - Din donasjon er mottatt",
+        subject: "Gi Effektivt - Din donasjon er mottatt",
         templateName: "recieptEffekt",
         templateData: {
             header: "Hei " + donation.donor + ",",
@@ -271,7 +271,7 @@ async function sendDonationRegistered(KID, sum) {
       var KIDstring = KID.toString()
   
       await send({
-        subject: 'gieffektivt.no - Donasjon klar for innbetaling',
+        subject: 'Gi Effektivt - Donasjon klar for innbetaling',
         reciever: donor.email,
         templateName: 'registered',
         templateData: {
@@ -302,7 +302,7 @@ async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
   try {
 
     await send({
-      subject: 'gieffektivt.no - Facebook-donasjoner registrert for skattefradrag',
+      subject: 'Gi Effektivt - Facebook-donasjoner registrert for skattefradrag',
       reciever: email,
       templateName: 'facebookTaxConfirmation',
       templateData: {
@@ -512,7 +512,7 @@ async function sendDonationHistory(donorID) {
     try {
       await send({
         reciever: email,
-        subject: "gieffektivt.no - Din donasjonshistorikk",
+        subject: "Gi Effektivt - Din donasjonshistorikk",
         templateName: templateName,
         templateData: { 
             header: "Hei " + donor.name + ",",
