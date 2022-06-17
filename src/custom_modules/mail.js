@@ -37,7 +37,7 @@ const replacedOrgsInfo =
   'som opplyst på våre nettsider, i nyhetsbrev, på epost og gjennom sosiale medier.' +
   '<br/>' +
   'Andelene som var oppført til disse organisasjonene blir i stedet gitt til vår standardfordeling som nå er <a href="https://www.givewell.org/maximum-impact-fund" style="color: #000000;">GiveWell Maximum Impact Fund</a>. ' +
-  'Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/gi" style="color: #000000;">www.gieffektivt.no/gi</a> og fylle ut donasjonsskjema på nytt med ønsket fordeling. Ta kontakt om du har noen spørsmål.' + 
+  'Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/" style="color: #000000;">www.gieffektivt.no/</a> og fylle ut donasjonsskjema på nytt med ønsket fordeling. Ta kontakt om du har noen spørsmål.' + 
   '<br/><br/>';
 
 const taxDeductionInfo =
@@ -47,11 +47,11 @@ const taxDeductionInfo =
 
 const greeting = 
   'Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss ved å sende en mail til ' +
-  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #000000;">donasjon@gieffektivt.no</a>' + 
+  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #000000;">donasjon@gieffektivt.no</a>.' + 
   '<br/><br/>' +
   'Håper du får en fantastisk dag!<br/><br/>' +
   '<b>Vennlig hilsen</b><br/>' +
-  'oss i <a href= "https://gieffektivt.no" style="color: #000000;">gieffektivt.no</a>' +
+  'oss i Gi Effektivt' +
   '<br/><br/>';
 
 const footer = 
