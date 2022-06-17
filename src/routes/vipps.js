@@ -797,10 +797,10 @@ router.get("/redirect/:orderId", async (req, res, next) => {
       let order = await DAO.vipps.getOrder(orderId);
 
       if (order && order.donationID != null) {
-        res.redirect("https://konduit.no/donasjon-mottatt");
+        res.redirect("https://gieffektivt.no/donasjon-mottatt");
         return true;
       } else if (retries >= 20) {
-        res.redirect("https://konduit.no/donasjon-feilet");
+        res.redirect("https://gieffektivt.no/donasjon-feilet");
         return false;
       } else {
         setTimeout(async () => {

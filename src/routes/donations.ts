@@ -29,9 +29,9 @@ const rateLimit = require('express-rate-limit')
  router.get('/status', async (req, res, next) => {
   try {
     if (req.query.status && req.query.status.toUpperCase() === "OK")
-      res.redirect('https://konduit.no/donasjon-mottatt')
+      res.redirect('https://gieffektivt.no/donasjon-mottatt')
     else
-      res.redirect('https://konduit.no/donasjon-feilet')
+      res.redirect('https://gieffektivt.no/donasjon-feilet')
   } catch (ex) {
     next({ ex })
   }
