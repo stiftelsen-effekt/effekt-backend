@@ -10,6 +10,7 @@ const donationHelpers = require("../custom_modules/donationHelpers")
 const distributions = require('../custom_modules/DAO_modules/distributions')
 
 router.post("/",
+  authMiddleware(authRoles.write_all_donations),
   async (req, res, next) => {
   try {
     let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }}),
@@ -90,7 +91,9 @@ router.get("/:KID",
   }
 })
 
-router.get("/:KID/unauthorized", async (req, res, next) => {
+router.get("/:KID/unauthorized",
+  authMiddleware(authRoles.read_all_donations), 
+  async (req, res, next) => {
   try {
       const response = await DAO.distributions.getSplitByKID(req.params.KID)
 
@@ -100,7 +103,9 @@ router.get("/:KID/unauthorized", async (req, res, next) => {
   }
 })
 
-router.post("/KID/distribution", async (req, res, next) => {
+router.post("/KID/distribution",
+  authMiddleware(authRoles.read_all_donations),
+  async (req, res, next) => {
   // Get KID by distribution
   try {
       let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }})

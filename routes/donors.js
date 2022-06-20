@@ -132,7 +132,9 @@ router.get('/:id/donations/aggregated', auth(roles.read_all_donations), async (r
   }
 })
 
-router.post('/id/email/name', async (req, res, next) => {
+router.post('/id/email/name',
+  auth(roles.read_all_donations),
+  async (req, res, next) => {
   try {
     let donorID
 

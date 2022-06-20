@@ -144,6 +144,7 @@ router.post("/bank/pending", urlEncodeParser, async (req,res,next) => {
 })
 
 router.post("/confirm",
+  authMiddleware(authRoles.write_all_donations),
   urlEncodeParser,
   async (req, res, next) => {
   try {
@@ -270,7 +271,9 @@ router.get("/:id", authMiddleware(authRoles.read_all_donations), async (req,res,
   }
 })
 
-router.get("/externalID/:externalID/:methodID", async (req,res,next) => {
+router.get("/externalID/:externalID/:methodID",
+  authMiddleware(authRoles.read_all_donations),
+  async (req,res,next) => {
   try {
     let donation = await DAO.donations.GetByExternalPaymentID(req.params.externalID, req.params.methodID)
 
@@ -296,7 +299,9 @@ router.get("/all/:kid", authMiddleware(authRoles.read_all_donations), async (req
   }
 })
 
-router.put("/transaction_cost/:donationID", async (req,res,next) => {
+router.put("/transaction_cost/:donationID",
+  authMiddleware(authRoles.write_all_donations),
+  async (req,res,next) => {
   try {
     let result = await DAO.donations.updateTransactionCost(req.body.transactionCost, req.params.donationID)
 
