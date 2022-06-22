@@ -10,7 +10,7 @@ const donationHelpers = require("../custom_modules/donationHelpers")
 const distributions = require('../custom_modules/DAO_modules/distributions')
 
 router.post("/", 
-  authMiddleware.auth(authRoles.admin),
+  authMiddleware.isAdmin,
   async (req, res, next) => {
   try {
     let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }}),
@@ -47,7 +47,7 @@ router.post("/",
 })
 
 router.post("/search",
-    authMiddleware.auth(authRoles.admin),
+    authMiddleware.isAdmin,
     (req, res, next) => {
       checkDonor(parseInt(req.params.id), req, res, next);
     },
@@ -70,7 +70,7 @@ router.post("/search",
 })
 
 router.get("/:KID", 
-  authMiddleware.auth(authRoles.admin),
+  authMiddleware.isAdmin,
   async (req,res,next) => {
   try {
     if (!req.params.KID) res.status(400).json({ status: 400, content: "No KID provided" })

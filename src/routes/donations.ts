@@ -70,7 +70,7 @@ const rateLimit = require('express-rate-limit')
  *      404:
  *        description: Donation with given id not found
  */
- router.get("/:id", authMiddleware.auth(authRoles.admin), async (req,res,next) => {
+ router.get("/:id", authMiddleware.isAdmin, async (req,res,next) => {
   try {
     var donation = await DAO.donations.getByID(req.params.id)
 
@@ -108,7 +108,7 @@ const rateLimit = require('express-rate-limit')
  *      404:
  *        description: Donation with given id not found
  */
-router.delete("/:id", authMiddleware.auth(authRoles.admin), async (req,res,next) => {
+router.delete("/:id", authMiddleware.isAdmin, async (req,res,next) => {
   try {
     var removed = await DAO.donations.remove(req.params.id)
 
@@ -164,7 +164,7 @@ router.delete("/:id", authMiddleware.auth(authRoles.admin), async (req,res,next)
  *                      status: 500
  *                      content: "Receipt failed with error code 401"
  */
- router.post("/:id/receipt", authMiddleware.auth(authRoles.admin), async (req, res, next) => {
+ router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res, next) => {
   if (req.body.email && req.body.email.indexOf("@") > -1) {
     var mailStatus = await mail.sendDonationReciept(req.params.id, req.body.email)
   } else {
@@ -332,7 +332,7 @@ router.post("/bank/pending", urlEncodeParser, async (req,res,next) => {
  *    description: Adds a confirmed donation to the database
  */
 router.post("/confirm", 
-  authMiddleware.auth(authRoles.admin),
+  authMiddleware.isAdmin,
   urlEncodeParser,
   async (req, res, next) => {
   try {
@@ -428,7 +428,7 @@ router.get("/median", cache("5 minutes"), async (req, res, next) => {
   }
 })
 
-router.post("/", authMiddleware.auth(authRoles.admin), async(req, res, next) => {
+router.post("/", authMiddleware.isAdmin, async(req, res, next) => {
   try {
     var results = await DAO.donations.getAll(req.body.sort, req.body.page, req.body.limit, req.body.filter)
     return res.json({ 
@@ -456,7 +456,7 @@ router.get("/histogram", async (req,res,next) => {
   }
 })
 
-router.post("/reciepts", authMiddleware.auth(authRoles.admin) ,async (req,res,next) => {
+router.post("/reciepts", authMiddleware.isAdmin ,async (req,res,next) => {
   let donationIDs = req.body.donationIDs
 
   try {

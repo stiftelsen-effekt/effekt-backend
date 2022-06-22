@@ -38,7 +38,7 @@ router.post("/draft", async (req, res, next) => {
 
 router.post(
   "/agreements",
-  authMiddleware.auth(authRoles.admin),
+  authMiddleware.isAdmin,
   async (req, res, next) => {
     try {
       var results = await DAO.avtalegiroagreements.getAgreements(
@@ -95,7 +95,7 @@ router.post(
  */
 router.get(
   "/agreement/:id",
-  authMiddleware.auth(authRoles.admin),
+  authMiddleware.isAdmin,
   async (req, res, next) => {
     try {
       var result = await DAO.avtalegiroagreements.getAgreement(req.params.id);
@@ -141,7 +141,7 @@ router.get("/report", async (req, res, next) => {
 
 router.get(
   "/validation",
-  authMiddleware.auth(authRoles.admin),
+  authMiddleware.isAdmin,
   async (req, res, next) => {
     try {
       let content = await DAO.avtalegiroagreements.getValidationTable();
@@ -158,7 +158,7 @@ router.get(
 
 router.get(
   "/missing/",
-  authMiddleware.auth(authRoles.admin),
+  authMiddleware.isAdmin,
   async (req, res, next) => {
     try {
       let date = req.query.date;
@@ -184,7 +184,7 @@ router.get(
 
 router.get(
   "/expected/",
-  authMiddleware.auth(authRoles.admin),
+  authMiddleware.isAdmin,
   async (req, res, next) => {
     try {
       let date = req.query.date;
@@ -211,7 +211,7 @@ router.get(
 
 router.get(
   "/recieved/",
-  authMiddleware.auth(authRoles.admin),
+  authMiddleware.isAdmin,
   async (req, res, next) => {
     try {
       let date = req.query.date;

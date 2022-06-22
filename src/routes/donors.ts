@@ -110,6 +110,51 @@ router.post("/auth0/register", async (req, res, next) => {
 
 /**
  * @openapi
+ * /donors/search:
+ *   get:
+ *    tags: [Donors]
+ *    description: Search for donors in the database
+ *    security:
+ *       - auth0_jwt: [admin]
+ *    parameters:
+ *      - in: query
+ *        name: q
+ *        required: true
+ *        description: A search string which fuzzy matches on name and email
+ *        schema:
+ *          type: string
+ *    responses:
+ *      200:
+ *        description: Returns a list of donors
+ *      401:
+ *        description: User not authorized to view resource
+ */
+ router.get(
+  "/search/",
+  authMiddleware.isAdmin,
+  async (req, res, next) => {
+    try {
+      var donors = await DAO.donors.search(req.query.q);
+
+      if (donors) {
+        return res.json({
+          status: 200,
+          content: donors,
+        });
+      } else {
+        return res.status(404).json({
+          status: 404,
+          content: "No donors found matching query",
+        });
+      }
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+/**
+ * @openapi
  * /donors/{id}:
  *   get:
  *    tags: [Donors]
@@ -224,51 +269,6 @@ router.delete(
         return res.status(404).json({
           status: 404,
           content: "No donor found with ID " + req.params.id,
-        });
-      }
-    } catch (ex) {
-      next(ex);
-    }
-  }
-);
-
-/**
- * @openapi
- * /donors/search:
- *   get:
- *    tags: [Donors]
- *    description: Search for donors in the database
- *    parameters:
- *      - in: application/json
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to retrieve.
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Returns a donor object
- *      401:
- *        description: User not authorized to view resource
- *      404:
- *        description: Donor with given id not found
- */
-router.get(
-  "/search/",
-  authMiddleware.auth(roles.admin),
-  async (req, res, next) => {
-    try {
-      var donors = await DAO.donors.search(req.query.q);
-
-      if (donors) {
-        return res.json({
-          status: 200,
-          content: donors,
-        });
-      } else {
-        return res.status(404).json({
-          status: 404,
-          content: "No donors found matching query",
         });
       }
     } catch (ex) {

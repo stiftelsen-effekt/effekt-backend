@@ -12,7 +12,7 @@ function throwError(message) {
     throw error
 }
 
-router.post("/donation/registered", authMiddleware.auth(authRoles.admin), async (req, res, next) => {
+router.post("/donation/registered", authMiddleware.isAdmin, async (req, res, next) => {
     try {
         const KID = req.body.KID
         const sum = req.body.sum
@@ -29,7 +29,7 @@ router.post("/donation/registered", authMiddleware.auth(authRoles.admin), async 
     }
 })
 
-router.post("/donation/receipt/effekt", authMiddleware.auth(authRoles.admin), async (req, res, next) => {
+router.post("/donation/receipt/effekt", authMiddleware.isAdmin, async (req, res, next) => {
     try {
         const donationID = req.body.donationID
         const recipient = req.body.recipient
@@ -46,7 +46,7 @@ router.post("/donation/receipt/effekt", authMiddleware.auth(authRoles.admin), as
     }
 })
 
-router.post("/avtalegiro/notice", authMiddleware.auth(authRoles.admin), async (req, res, next) => {
+router.post("/avtalegiro/notice", authMiddleware.isAdmin, async (req, res, next) => {
     try {
         const KID = req.body.KID
         const agreement = await DAO.avtalegiroagreements.getByKID(KID)
@@ -63,7 +63,7 @@ router.post("/avtalegiro/notice", authMiddleware.auth(authRoles.admin), async (r
     }
 })
 
-router.post("/facebook/tax/confirmation", authMiddleware.auth(authRoles.admin), async (req, res, next) => {
+router.post("/facebook/tax/confirmation", authMiddleware.isAdmin, async (req, res, next) => {
     try {
         const recipient = req.body.recipient
         const name = req.body.name

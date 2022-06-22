@@ -1,6 +1,7 @@
 const auth = require('./auth.js')
-const { auth, requiredScopes, claimEquals } = require('express-oauth2-jwt-bearer');
+const { auth, requiredScopes, claimEquals, claimIncludes } = require('express-oauth2-jwt-bearer');
 const DAO = require('../DAO.js');
+const authorizationRoles = require('../../enums/authorizationRoles.js');
 
 const checkJwt = auth({
   audience: 'https://data.gieffektivt.no',
@@ -32,8 +33,11 @@ const checkAvtaleGiroAgreement = (KID, req, res, next) => {
   }});
 }
 
+const isAdmin = [checkJwt, claimIncludes('permissions', authorizationRoles.admin)]
+
 module.exports = {
   auth,
   checkDonor,
-  checkAvtaleGiroAgreement
+  checkAvtaleGiroAgreement,
+  isAdmin
 }

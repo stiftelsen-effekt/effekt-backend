@@ -18,7 +18,7 @@ const META_OWNER_ID = 3
 /**
  * Triggered every day by a google cloud scheduler webhook at 20:00
  */
-router.post("/ocr", authMiddleware.auth(authRoles.admin), async (req,res, next) => {
+router.post("/ocr", authMiddleware.isAdmin, async (req,res, next) => {
   try {
     /**
      * Fetch the latest OCR file
@@ -69,7 +69,7 @@ router.post("/ocr", authMiddleware.auth(authRoles.admin), async (req,res, next) 
 /**
  * Triggered by a google cloud scheduler webhook every day at 10:00
  */
-router.post("/avtalegiro", authMiddleware.auth(authRoles.admin), async (req, res, next) => {
+router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
   let result
   try {
     const claimDaysInAdvance = 6
@@ -139,7 +139,7 @@ router.post("/avtalegiro", authMiddleware.auth(authRoles.admin), async (req, res
 /**
  * Triggered by a google cloud scheduler webhook every day at 11:00, 12:00 and 13:00
  */
- router.post("/avtalegiro/retry", authMiddleware.auth(authRoles.admin), async (req, res, next) => {
+ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) => {
   let result
   try {
     const claimDaysInAdvance = 6
@@ -218,7 +218,7 @@ router.post("/avtalegiro", authMiddleware.auth(authRoles.admin), async (req, res
   }
 })
 
-router.post("/vipps", authMiddleware.auth(authRoles.admin), async (req,res, next) => {
+router.post("/vipps", authMiddleware.isAdmin, async (req,res, next) => {
   try {
     // Synchronize effektDB with Vipps database before creating daily charges
     await vipps.synchronizeVippsAgreementDatabase()
