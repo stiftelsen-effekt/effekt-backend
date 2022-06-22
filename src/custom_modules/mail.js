@@ -352,7 +352,7 @@ async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
       reciever: email,
       templateName: 'vippsAgreementChange',
       templateData: {
-        header: "Hei, " + donor.full_name,
+        header: "Hei, " + donor.name,
         change,
         newValue,
         organizations,

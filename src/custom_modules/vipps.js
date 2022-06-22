@@ -1165,9 +1165,9 @@ module.exports = {
                         const paymentMethod = 8
                         const dayOfMonth = new Date().getDate()
                         const thisMonth = new Date().getMonth()
-                        const registeredDate = charge.dueDate
                         const externalPaymentId = `${agreements[i].id}.${charges[j].id}`
                         const metaOwnerId = 3
+                        let registeredDate = charge.dueDate
 
                         // If a charge has failed on the last day of a month, set registeredDate to current day
                         // This prevents charges being incorrectly registered as paid in the previous month
