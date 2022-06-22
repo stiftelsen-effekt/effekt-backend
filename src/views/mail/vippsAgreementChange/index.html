@@ -106,7 +106,7 @@
                                     <% } %>
                                     <br/><br/>
                                     
-                                    <% if(this.change !== "STOPPED") { %>
+                                    <% if(false && "beholder koden i tilfelle den skal brukes senere") { %>
                                         <h3>Betalingsavtale</h3>
                                         <table class="donation-summary" border="0" cellspacing="0" cellpadding="0">
                                         <tbody>
@@ -190,49 +190,53 @@
                                                 </td>
                                         </tbody>
                                         </table>
-                                        
-                                        <h3>Fordeling</h3>
-                                        <% for (var i = 0; i < this.organizations.length; i++) { %>
-                                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                                <tr>
-                                                    <td>
-                                                        <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                            <tr>
-                                                                <td class="boldTableRow">
-                                                                    <% this.organizations[i].name %>
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                        <!--[if (gte mso 9)|(IE)]>
-                                                        <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                                            <tr>
-                                                                <td>
-                                                        <![endif]-->
-                                                        <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                            <tr>
-                                                                <td class="tableRow">
-                                                                    <% this.organizations[i].percentage%> %
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                        <!--[if (gte mso 9)|(IE)]>
-                                                        <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
-                                                            <tr>
-                                                                <td>
-                                                        <![endif]-->
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        <% } %>
                                     <% } %>
+
+                                    <% if (this.change == "SHARES") { %>
+                                        <h3>Fordeling</h3>
+                                            <% for (var i = 0; i < this.organizations.length; i++) { %>
+                                                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                    <tr>
+                                                        <td>
+                                                            <table width="275" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                <tr>
+                                                                    <td class="boldTableRow">
+                                                                        <% this.organizations[i].name %>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                            <!--[if (gte mso 9)|(IE)]>
+                                                            <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                                                <tr>
+                                                                    <td>
+                                                            <![endif]-->
+                                                            <table width="150" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                <tr>
+                                                                    <td class="tableRow">
+                                                                        <% this.organizations[i].percentage%> %
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                            <!--[if (gte mso 9)|(IE)]>
+                                                            <table width="380" align="left" cellpadding="0" cellspacing="0" border="0">
+                                                                <tr>
+                                                                    <td>
+                                                            <![endif]-->
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            <% } %>
+                                        <% } %>
                                     <br/><br/>
 
+                                    Du kan se alle dine betalingsavtaler ved å logge inn på <a href= "https://gieffektivt.no" style="color: #000000;">gieffektivt.no</a>.
+                                    <br/><br/>
                                     Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss
                                     ved å sende en mail til 
                                     <a href= "mailto:donasjon@gieffektivt.no" style="color: #000000;">donasjon@gieffektivt.no</a><br/><br/>
                                     Håper du får en fantastisk dag!<br/><br/><br/>
                                     <b>Vennlig hilsen</b><br/>
-                                    oss i <a href= "https://gieffektivt.no" style="color: #000000;">gieffektivt.no</a><br/><br/>
+                                    oss i <a href= "https://gieffektivt.no" style="color: #000000;">Gi Effektivt</a><br/><br/>
                                 </td>
                             </tr>
                         </table>
