@@ -39,154 +39,6 @@ const rateLimit = require('express-rate-limit')
 
 /**
  * @openapi
- * tags:
- *   - name: Donations
- *     description: Donations in the database
- */
-
-/**
- * @openapi
- * /donations/{id}:
- *   get:
- *    tags: [Donations]
- *    description: Get get a donation by id
- *    responses:
- *      200:
- *        description: Returns a donation object
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: 
- *                        $ref: '#/components/schemas/Donation'
- *                   example:
- *                      content:
- *                        $ref: '#/components/schemas/Donation/example'
- *      401:
- *        description: User not authorized to view resource
- *      404:
- *        description: Donation with given id not found
- */
- router.get("/:id", authMiddleware.isAdmin, async (req,res,next) => {
-  try {
-    var donation = await DAO.donations.getByID(req.params.id)
-
-    return res.json({
-      status: 200,
-      content: donation
-    })
-  } catch (ex) {
-    next(ex)
-  }
-})
-
-/**
- * @openapi
- * /donations/{id}:
- *   delete:
- *    tags: [Donations]
- *    description: Delete a donation by id
- *    responses:
- *      200:
- *        description: Donation was deleted
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: boolean
- *                   example:
- *                      content: true
- *                        
- *      401:
- *        description: User not authorized to view resource
- *      404:
- *        description: Donation with given id not found
- */
-router.delete("/:id", authMiddleware.isAdmin, async (req,res,next) => {
-  try {
-    var removed = await DAO.donations.remove(req.params.id)
-
-    if (removed) {
-      return res.json({
-        status: 200,
-        content: removed
-      })
-    } 
-    else {
-      throw new Error("Could not remove donation")
-    }
-  } catch (ex) {
-    next(ex)
-  }
-})
-
-/**
- * @openapi
- * /donations/{id}/reciept:
- *   post:
- *    tags: [Donations]
- *    description: Sends a reciept for the donation to the email associated with the donor
- *    responses:
- *      200:
- *        description: Reciept sent
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: boolean
- *                   example:
- *                      content: "Receipt sent for donation id 99"
- *                        
- *      401:
- *        description: User not authorized to access endpoint
- *      404:
- *        description: Donation with given id not found
- *      500:
- *        description: Failed to send donation reciept. Returns the error code from the request to mailgun (our email service).
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: boolean
- *                   example:
- *                      status: 500
- *                      content: "Receipt failed with error code 401"
- */
- router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res, next) => {
-  if (req.body.email && req.body.email.indexOf("@") > -1) {
-    var mailStatus = await mail.sendDonationReciept(req.params.id, req.body.email)
-  } else {
-    var mailStatus = await mail.sendDonationReciept(req.params.id)
-  }
-
-  if (mailStatus === true) {
-    res.json({
-      status: 200,
-      content: `Receipt sent for donation id ${req.params.id}`
-    }) 
-  }
-  else {
-    res.json({
-      status: 500,
-      content: `Receipt failed with error code ${mailStatus}`
-    })
-  }
-})
-
-/**
- * @openapi
  * /donations/register:
  *   post:
  *    tags: [Donations]
@@ -505,6 +357,154 @@ router.post("/history/email", historyRateLimit, async (req, res, next) => {
   }
   catch(ex) {
       next(ex)
+  }
+})
+
+/**
+ * @openapi
+ * tags:
+ *   - name: Donations
+ *     description: Donations in the database
+ */
+
+/**
+ * @openapi
+ * /donations/{id}:
+ *   get:
+ *    tags: [Donations]
+ *    description: Get get a donation by id
+ *    responses:
+ *      200:
+ *        description: Returns a donation object
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: 
+ *                        $ref: '#/components/schemas/Donation'
+ *                   example:
+ *                      content:
+ *                        $ref: '#/components/schemas/Donation/example'
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donation with given id not found
+ */
+ router.get("/:id", authMiddleware.isAdmin, async (req,res,next) => {
+  try {
+    var donation = await DAO.donations.getByID(req.params.id)
+
+    return res.json({
+      status: 200,
+      content: donation
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+/**
+ * @openapi
+ * /donations/{id}:
+ *   delete:
+ *    tags: [Donations]
+ *    description: Delete a donation by id
+ *    responses:
+ *      200:
+ *        description: Donation was deleted
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: boolean
+ *                   example:
+ *                      content: true
+ *                        
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donation with given id not found
+ */
+router.delete("/:id", authMiddleware.isAdmin, async (req,res,next) => {
+  try {
+    var removed = await DAO.donations.remove(req.params.id)
+
+    if (removed) {
+      return res.json({
+        status: 200,
+        content: removed
+      })
+    } 
+    else {
+      throw new Error("Could not remove donation")
+    }
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+/**
+ * @openapi
+ * /donations/{id}/reciept:
+ *   post:
+ *    tags: [Donations]
+ *    description: Sends a reciept for the donation to the email associated with the donor
+ *    responses:
+ *      200:
+ *        description: Reciept sent
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: boolean
+ *                   example:
+ *                      content: "Receipt sent for donation id 99"
+ *                        
+ *      401:
+ *        description: User not authorized to access endpoint
+ *      404:
+ *        description: Donation with given id not found
+ *      500:
+ *        description: Failed to send donation reciept. Returns the error code from the request to mailgun (our email service).
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: boolean
+ *                   example:
+ *                      status: 500
+ *                      content: "Receipt failed with error code 401"
+ */
+ router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res, next) => {
+  if (req.body.email && req.body.email.indexOf("@") > -1) {
+    var mailStatus = await mail.sendDonationReciept(req.params.id, req.body.email)
+  } else {
+    var mailStatus = await mail.sendDonationReciept(req.params.id)
+  }
+
+  if (mailStatus === true) {
+    res.json({
+      status: 200,
+      content: `Receipt sent for donation id ${req.params.id}`
+    }) 
+  }
+  else {
+    res.json({
+      status: 500,
+      content: `Receipt failed with error code ${mailStatus}`
+    })
   }
 })
 
