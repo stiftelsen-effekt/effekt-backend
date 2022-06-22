@@ -47,6 +47,8 @@ describe('POST /scheduled/avtalegiro', function() {
   let authStub
 
   before(function () {
+    authStub = sinon.replace(authMiddleware, "isAdmin", [])
+
     avtalegiroFileStub = sinon
       .stub(avtalegiro, 'generateAvtaleGiroFile')
       .resolves(Buffer.from('', 'utf-8'))
@@ -62,6 +64,7 @@ describe('POST /scheduled/avtalegiro', function() {
     agreementsStub = sinon
       .stub(DAO.avtalegiroagreements, 'getByPaymentDate')
     
+    agreementsStub.withArgs(9).resolves([])
     agreementsStub.withArgs(10).resolves(mockAgreements)
     agreementsStub.withArgs(28).resolves(mockAgreements)
     agreementsStub.withArgs(31).resolves([])
@@ -76,10 +79,6 @@ describe('POST /scheduled/avtalegiro', function() {
     sendMailBackupStub = sinon
       .stub(mail, 'sendOcrBackup')
 
-    authStub = sinon
-      .stub(authMiddleware, 'auth')
-      .returns([])
-
     const scheduledRoute = require('../routes/scheduled')
     server = express()
     server.use('/scheduled', scheduledRoute)
@@ -93,7 +92,7 @@ describe('POST /scheduled/avtalegiro', function() {
     agreementsStub.resolves([])
 
     const response = await request(server)
-      .post('/scheduled/avtalegiro')
+      .post('/scheduled/avtalegiro?date=2021-10-03')
       .expect(200)
 
     expect(agreementsStub.calledOnce).to.be.true
@@ -153,6 +152,6 @@ describe('POST /scheduled/avtalegiro', function() {
   })
 
   after(function () {
-    sinon.reset()
+    sinon.restore()
   })
 })
