@@ -36,20 +36,44 @@ router.get("/aggregate", async (req,res, next) => {
 router.post("/", async(req,res,next) => {
     try {
         let parsedData = req.body
+        const donorID = parsedData.donorID
+        
         if (!parsedData.referralID)
             throw new Error("Missing parameter referralID")
 
-        if (!parsedData.donorID)
+        if (!donorID)
             throw new Error("Missing parameter donorID")
+
+        if (!parsedData.websiteSession)
+          throw new Error("Missing parameter websiteSession")
 
         if (parsedData.comment === undefined)
             parsedData.comment = null
 
-        let status = await DAO.referrals.addRecord(parsedData.referralID, parsedData.donorID, parsedData.comment)
-    
+        const isAnonymous = (donorID == 1464)
+        const donorAnswered = await DAO.referrals.getDonorAnswered(donorID)
+        const websiteSessionReferralExists = await DAO.referrals.getWebsiteSessionReferral(parsedData.websiteSession)
+
+        if ((isAnonymous && !websiteSessionReferralExists) || (!isAnonymous && !donorAnswered)) {
+          await DAO.referrals.addRecord(
+            parsedData.referralID, 
+            parsedData.donorID, 
+            parsedData.comment, 
+            parsedData.websiteSession
+          )
+        }
+
+        if ((!isAnonymous && donorAnswered) || (isAnonymous && websiteSessionReferralExists)) {
+          await DAO.referrals.updateRecord(
+            parsedData.referralID, 
+            donorID, 
+            parsedData.comment,
+            parsedData.websiteSession
+          )
+        }
+        
         res.json({
-            status: 200,
-            content: status
+            status: 200
         })
       }
       catch(ex) {

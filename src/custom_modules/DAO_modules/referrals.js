@@ -65,6 +65,21 @@ async function getDonorAnswered(donorID) {
     else return false
 }
 
+/**
+ * Checks if the donor has answered referral question before in the same website session
+ * @param {number} donorID 
+ */
+ async function getWebsiteSessionReferral(websiteSession) {
+    let [answersCount] = await con.query(`
+        SELECT count(UserID) as count
+        FROM Referral_records
+        WHERE website_session = ?
+    `, [websiteSession])
+
+    if (answersCount[0].count > 0) return true
+    else return false
+}
+
 //endregion
 
 //region Add
@@ -74,14 +89,36 @@ async function getDonorAnswered(donorID) {
  * @param {number} donorID
  * @param {string} otherComment
  */
-async function addRecord(referralTypeID, donorID, otherComment) {
-    let [query] = await con.query(`INSERT INTO Referral_records (ReferralID, UserID, other_comment) VALUES (?,?,?)`, [referralTypeID, donorID, otherComment])
-
+async function addRecord(referralTypeID, donorID, otherComment, websiteSession) {
+    let [query] = await con.query(`
+        INSERT INTO Referral_records
+        (ReferralID, UserID, other_comment, website_session)
+        VALUES (?,?,?,?)`, [referralTypeID, donorID, otherComment, websiteSession]
+    )
     return true
 }
 //endregion
 
 //region Modify
+/**
+ * Update a referral record (allows donors to correct a missclick in the widget)
+ * @param {number} referralTypeID
+ * @param {number} donorID
+ * @param {string} otherComment
+ */
+ async function updateRecord(referralTypeID, donorID, otherComment, websiteSession) {
+    if (websiteSession == "") return false
+
+    let [query] = await con.query(`
+        UPDATE Referral_records
+        SET ReferralID = ?, other_comment = ?, website_session = ?
+        WHERE (UserID = ? and UserID != 1464)
+        OR (UserID = 1464 and website_session = ?)`,
+        [referralTypeID, otherComment, websiteSession, donorID, websiteSession]
+    )
+
+    return query
+}
 
 //endregion
 
@@ -94,7 +131,9 @@ module.exports = {
     getTypes,
     getAggregate,
     getDonorAnswered,
+    getWebsiteSessionReferral,
     addRecord,
+    updateRecord,
 
     setup: (dbPool) => { con = dbPool }
 }
