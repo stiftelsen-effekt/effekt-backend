@@ -1,0 +1,15 @@
+openapi: 3.0.1
+components:
+  schemas:
+    Pagination:
+      type: object
+      properties:
+        pages:
+          type: integer
+          description: The number of pages for the given limit. E.g. if the client has a limit of 20 results, and there are 2000 items in the database, there would be 100 pages.
+        rows:
+          type: array
+          description: An array of objects depending on the route / resource
+      example:
+        pages: 100
+        

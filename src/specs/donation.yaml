@@ -1,0 +1,48 @@
+openapi: 3.0.1
+components:
+  schemas:
+    Donation:
+      type: object
+      required:
+        - KID
+        - sum
+        - method
+      properties:
+        id:
+          type: integer
+          description: The Auto-generated id of a donation
+        donor:
+          type: string
+          description: Full name of the donor (first and last name)
+        donorId:
+          type: integer
+          description: The id of the donor
+        email:
+          type: string
+          description: The email of the donor
+        sum:
+          type: string
+          description: The donation sum in decimal format
+        transactionCost:
+          type: string
+          description: The transaction cost of the donation in decimal format
+        method:
+          type: string
+          description: The payment method of the donation
+        KID:
+          type: string
+          description: The customer identification for the donation. Uniquely identifies the donor and the donation distribution.
+        registered:
+          type: string
+          format: date-time
+          description: The timestamp of the donation
+      example:
+        id: 217
+        donor: Jack Torance
+        donorId: 237
+        email: jack@overlookhotel.com
+        sum: "100.00"
+        transactionCost: "2.00"
+        method: Bank
+        KID: "00009912345678"
+        registered: 2018-03-29T23:00:00.000Z
