@@ -1,4 +1,5 @@
 var con
+import paymentMethodIDs from "./../../enums/paymentMethods"
 
 //region Get
 
@@ -7,7 +8,7 @@ async function getAllFacebookDonations(donorID, paymentID) {
         let [results] = await con.query(`
             SELECT PaymentExternal_ID, sum_confirmed, timestamp_confirmed
             FROM Donations
-            WHERE Payment_ID = 9`
+            WHERE Payment_ID = ${paymentMethodIDs.facebook}`
         )
 
         return results

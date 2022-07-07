@@ -1,13 +1,11 @@
 const express = require('express')
 const router = express.Router()
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
-const authRoles = require('../enums/authorizationRoles')
 
 const DAO = require('../custom_modules/DAO.js')
 
 const rounding = require("../custom_modules/rounding")
 const donationHelpers = require("../custom_modules/donationHelpers")
-const distributions = require('../custom_modules/DAO_modules/distributions')
 
 router.post("/", 
   authMiddleware.isAdmin,
@@ -95,7 +93,7 @@ router.get("/:KID",
 })
 
 router.get("/:KID/unauthorized",
-  authMiddleware(authRoles.read_all_donations), 
+  authMiddleware.isAdmin, 
   async (req, res, next) => {
   try {
       const response = await DAO.distributions.getSplitByKID(req.params.KID)
@@ -107,7 +105,7 @@ router.get("/:KID/unauthorized",
 })
 
 router.post("/KID/distribution",
-  authMiddleware(authRoles.read_all_donations),
+  authMiddleware.isAdmin,
   async (req, res, next) => {
   // Get KID by distribution
   try {
@@ -136,7 +134,7 @@ router.post("/KID/distribution",
 })
 
 router.get("/all/:donorID", 
-  authMiddleware.auth(authRoles.read_donations), 
+  authMiddleware.isAdmin,
   (req, res, next) => {
     checkDonor(parseInt(req.params.donorID), req, res, next);
   },

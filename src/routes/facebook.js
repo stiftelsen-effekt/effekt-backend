@@ -3,7 +3,7 @@ const express = require('express')
 const router = express.Router()
 const DAO = require('../custom_modules/DAO.js')
 const mail = require('../custom_modules/mail')
-const auth = require('../custom_modules/authorization/authMiddleware')
+const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 const roles = require('../enums/authorizationRoles')
 
 function throwError(message) {
@@ -13,7 +13,7 @@ function throwError(message) {
 }
 
 router.get("/payments/all",
-    auth(roles.read_all_donations),
+    authMiddleware.isAdmin,
     async (req, res, next) => {
     try {
         content = await DAO.facebook.getAllFacebookDonations()
@@ -28,7 +28,9 @@ router.get("/payments/all",
     }
 })
 
-router.post("/register/payment", async (req, res, next) => {
+router.post("/register/payment", 
+    authMiddleware.isAdmin,
+    async (req, res, next) => {
     try {
 
         const paymentID = req.body.paymentID

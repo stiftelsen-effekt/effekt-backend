@@ -255,7 +255,7 @@ async function getAggregateLastYearByMonth() {
     }
 }
 
-async function ExternalPaymentIDExists(externalPaymentID, paymentID) {
+async function externalPaymentIDExists(externalPaymentID, paymentID) {
     try {
         var con = await pool.getConnection()
         var [res] = await con.query("SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ? LIMIT 1", [externalPaymentID, paymentID])
@@ -269,7 +269,7 @@ async function ExternalPaymentIDExists(externalPaymentID, paymentID) {
     else return false
 }
 
-async function GetByExternalPaymentID(externalPaymentID, paymentID) {
+async function getByExternalPaymentID(externalPaymentID, paymentID) {
     try {
         var con = await pool.getConnection()
         var [res] = await con.query("SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ?", [externalPaymentID, paymentID])
@@ -898,8 +898,8 @@ module.exports = {
     getYearlyAggregateByDonorId,
     getByDonorId,
     getLatestByKID,
-    GetByExternalPaymentID,
-    ExternalPaymentIDExists,
+    getByExternalPaymentID,
+    externalPaymentIDExists,
     updateTransactionCost,
     add,
     registerConfirmedByIDs,

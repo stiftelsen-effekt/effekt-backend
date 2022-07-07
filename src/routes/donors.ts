@@ -799,7 +799,7 @@ router.put(
 );
 
 router.post('/id/email/name',
-  authMiddleware.auth(roles.read_all_donations),
+  authMiddleware.isAdmin,
   async (req, res, next) => {
   try {
     let donorID

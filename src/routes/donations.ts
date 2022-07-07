@@ -9,7 +9,6 @@ const apicache = require('apicache')
 const cache = apicache.middleware
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 
-const authRoles = require('../enums/authorizationRoles')
 const methods = require('../enums/methods')
 
 const DAO = require('../custom_modules/DAO.js')
@@ -308,7 +307,7 @@ router.get("/histogram", async (req,res,next) => {
   }
 })
 
-router.post("/reciepts", authMiddleware.isAdmin ,async (req,res,next) => {
+router.post("/reciepts", authMiddleware.isAdmin, async (req,res,next) => {
   let donationIDs = req.body.donationIDs
 
   try {
@@ -331,7 +330,7 @@ router.post("/reciepts", authMiddleware.isAdmin ,async (req,res,next) => {
 })
 
 router.get("/externalID/:externalID/:methodID",
-  authMiddleware(authRoles.read_all_donations),
+  authMiddleware.isAdmin,
   async (req,res,next) => {
   try {
     let donation = await DAO.donations.GetByExternalPaymentID(req.params.externalID, req.params.methodID)
@@ -422,7 +421,7 @@ router.post("/history/email", historyRateLimit, async (req, res, next) => {
 })
 
 router.put("/transaction_cost/:donationID",
-  authMiddleware(authRoles.write_all_donations),
+  authMiddleware.isAdmin,
   async (req,res,next) => {
   try {
     let result = await DAO.donations.updateTransactionCost(req.body.transactionCost, req.params.donationID)
