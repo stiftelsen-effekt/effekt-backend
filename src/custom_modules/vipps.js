@@ -1195,8 +1195,7 @@ module.exports = {
                     if (charges[j].status === "REFUNDED") {
                         // TODO: Update donation sum to 0
                     }
-                }
-                
+                }                
             }
 
             console.log("Synchronized all Vipps agreements and charges")
