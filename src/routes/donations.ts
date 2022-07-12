@@ -9,7 +9,6 @@ const apicache = require('apicache')
 const cache = apicache.middleware
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 
-const authRoles = require('../enums/authorizationRoles')
 const methods = require('../enums/methods')
 
 const DAO = require('../custom_modules/DAO.js')
@@ -308,7 +307,7 @@ router.get("/histogram", async (req,res,next) => {
   }
 })
 
-router.post("/reciepts", authMiddleware.isAdmin ,async (req,res,next) => {
+router.post("/reciepts", authMiddleware.isAdmin, async (req,res,next) => {
   let donationIDs = req.body.donationIDs
 
   try {
@@ -326,6 +325,21 @@ router.post("/reciepts", authMiddleware.isAdmin ,async (req,res,next) => {
       content: "OK"
     })
   } catch(ex) {
+    next(ex)
+  }
+})
+
+router.get("/externalID/:externalID/:methodID",
+  authMiddleware.isAdmin,
+  async (req,res,next) => {
+  try {
+    let donation = await DAO.donations.GetByExternalPaymentID(req.params.externalID, req.params.methodID)
+
+    return res.json({
+      status: 200,
+      content: donation
+    })
+  } catch (ex) {
     next(ex)
   }
 })
@@ -401,6 +415,25 @@ router.post("/history/email", historyRateLimit, async (req, res, next) => {
       status: 200,
       content: donation
     })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
+router.put("/transaction_cost/:donationID",
+  authMiddleware.isAdmin,
+  async (req,res,next) => {
+  try {
+    let result = await DAO.donations.updateTransactionCost(req.body.transactionCost, req.params.donationID)
+
+    if (result) {
+      return res.json({
+        status: 200
+      })
+    } 
+    else {
+      throw new Error(`Could not update transaction cost for donation ID ${req.params.donationID}`)
+    }
   } catch (ex) {
     next(ex)
   }

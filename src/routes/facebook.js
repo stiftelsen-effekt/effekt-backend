@@ -3,6 +3,8 @@ const express = require('express')
 const router = express.Router()
 const DAO = require('../custom_modules/DAO.js')
 const mail = require('../custom_modules/mail')
+const authMiddleware = require('../custom_modules/authorization/authMiddleware')
+const roles = require('../enums/authorizationRoles')
 
 function throwError(message) {
     let error = new Error(message)
@@ -10,7 +12,25 @@ function throwError(message) {
     throw error
 }
 
-router.post("/register/payment", async (req, res, next) => {
+router.get("/payments/all",
+    authMiddleware.isAdmin,
+    async (req, res, next) => {
+    try {
+        content = await DAO.facebook.getAllFacebookDonations()
+
+        res.json({
+            status: 200,
+            content
+        })
+    }
+    catch (ex) {
+        next(ex)
+    }
+})
+
+router.post("/register/payment", 
+    authMiddleware.isAdmin,
+    async (req, res, next) => {
     try {
 
         const paymentID = req.body.paymentID

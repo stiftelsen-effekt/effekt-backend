@@ -1,13 +1,11 @@
 const express = require('express')
 const router = express.Router()
 const authMiddleware = require('../custom_modules/authorization/authMiddleware')
-const authRoles = require('../enums/authorizationRoles')
 
 const DAO = require('../custom_modules/DAO.js')
 
 const rounding = require("../custom_modules/rounding")
 const donationHelpers = require("../custom_modules/donationHelpers")
-const distributions = require('../custom_modules/DAO_modules/distributions')
 
 router.post("/", 
   authMiddleware.isAdmin,
@@ -33,7 +31,7 @@ router.post("/",
     let KID = await DAO.distributions.getKIDbySplit(split, donorId)
 
     if (!KID) {
-      KID = await donationHelpers.createKID()
+      KID = await donationHelpers.createKID(15, donorId)
       await DAO.distributions.add(split, KID, donorId, metaOwnerID)
     }
     
@@ -94,7 +92,9 @@ router.get("/:KID",
   }
 })
 
-router.get("/:KID/unauthorized", async (req, res, next) => {
+router.get("/:KID/unauthorized",
+  authMiddleware.isAdmin, 
+  async (req, res, next) => {
   try {
       const response = await DAO.distributions.getSplitByKID(req.params.KID)
 
@@ -104,8 +104,37 @@ router.get("/:KID/unauthorized", async (req, res, next) => {
   }
 })
 
+router.post("/KID/distribution",
+  authMiddleware.isAdmin,
+  async (req, res, next) => {
+  // Get KID by distribution
+  try {
+      let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }})
+      let donorId = req.body.donorId
+
+    if (split.length === 0) {
+      let err = new Error("Empty distribution array provided")
+      err.status = 400
+      return next(err)
+    }
+
+    if (rounding.sumWithPrecision(split.map(split => split.share)) !== "100") {
+      let err = new Error("Distribution does not sum to 100")
+      err.status = 400
+      return next(err)
+    }
+    
+    //Check for existing distribution with that KID
+    let KID = await DAO.distributions.getKIDbySplit(split, donorId)
+
+    res.json(KID)
+  } catch (ex) {
+      next({ ex })
+  }
+})
+
 router.get("/all/:donorID", 
-  authMiddleware.auth(authRoles.read_donations), 
+  authMiddleware.isAdmin,
   (req, res, next) => {
     checkDonor(parseInt(req.params.donorID), req, res, next);
   },

@@ -798,4 +798,28 @@ router.put(
   }
 );
 
+router.post('/id/email/name',
+  authMiddleware.isAdmin,
+  async (req, res, next) => {
+  try {
+    let donorID
+
+    if (req.body.email) {
+      donorID = await DAO.donors.getIDbyEmail(req.body.email)
+    }
+
+    if (donorID == null) {
+      donorID = await DAO.donors.getIDByMatchedNameFB(req.body.name)
+    }
+    // If no email matches, get donorID by name instead
+
+    return res.json({
+      status: 200,
+      content: donorID
+    })
+  } catch (ex) {
+    next(ex)
+  }
+})
+
 module.exports = router;

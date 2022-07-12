@@ -101,6 +101,41 @@ async function getByKID(KID): Promise<Donor | null> {
 }
 
 /**
+ * Gets the ID of a Donor based on their facebook name
+ * If multiple donors with same name exists, return the one with the most recent confirmed donation
+ * @param {String} name Donor name from Facebook
+ * @returns {Number} Donor ID
+ */
+ async function getIDByMatchedNameFB(name) {
+  try {
+      var con = await pool.getConnection()
+      var [result] = await con.execute(`
+          SELECT DR.ID, DR.full_name, DR.email, max(DN.timestamp_confirmed) as most_recent_donation FROM Donors as DR
+          inner join Donations as DN on DR.ID = DN.Donor_ID
+          where DR.full_name = ?
+          group by DR.ID
+          order by most_recent_donation DESC 
+          `, [name])
+      
+      // Query above does not find donors that have not donated before
+      if(result.length == 0) {
+          [result] = await con.execute(`
+              SELECT ID FROM Donors
+              where full_name = ?
+          `, [name])
+      }
+
+      con.release()
+      if (result.length > 0) return (result[0].ID)
+      else return (null)
+  }
+  catch (ex) {
+      con.release()
+      throw (ex)
+  }
+}
+
+/**
  * Gets donorID by agreement_url_code in Vipps_agreements
  * @property {string} agreementUrlCode
  * @return {number} donorID
@@ -302,6 +337,7 @@ module.exports = {
   getByID,
   getIDbyEmail,
   getByKID,
+  getIDByMatchedNameFB,
   getIDByAgreementCode,
   search,
   add,

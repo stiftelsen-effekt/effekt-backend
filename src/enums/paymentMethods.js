@@ -6,4 +6,5 @@ module.exports = {
     vipps: 6,
     avtalegiro: 7,
     vipps_recurring: 8,
+    facebook: 9,
 }
