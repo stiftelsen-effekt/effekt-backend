@@ -12,82 +12,99 @@ const config = require('../config');
 const authMiddleware = require('../custom_modules/authorization/authMiddleware');
 
 describe('POST /scheduled/vipps', function() {
-  const mockAgreementsVipps = [{
-    ID: "agr_2FDUs6w",
-    KID: '002556289731589',
-    chargeDay: 10,
-    amount: 50000,
-    status: "ACTIVE"
-  }, {
-    ID: "agr_2fh9Huw",
-    KID: '000638723319577',
-    chargeDay: 0,
-    amount: 340000,
-    status: "ACTIVE"
-  }, {
-    ID: "agr_2NfNnTf",
-    chargeDay: 1,
-    amount: 5000000,
-    status: "STOPPED"
-  }]
+  const mockAgreementsVipps = [
+    {
+      id: "agr_1",
+      chargeDay: 10,
+      amount: 50000,
+      status: "ACTIVE"
+    }, {
+      id: "agr_2",
+      chargeDay: 0,
+      amount: 340000,
+      status: "ACTIVE"
+    }, {
+      id: "agr_3",
+      chargeDay: 5,
+      amount: 5000000,
+      status: "STOPPED"
+    }
+  ]
 
-  const mockAgreementsDB = [{
-    ID: "agr_2fh9Huw",
-    donorID: 973,
-    KID: '000638723319577',
-    chargeDay: 0,
-    amount: 3400,
-    status: "ACTIVE"
-  }, {
-    ID: "agr_2NfNnTf",
-    donorID: 973,
-    KID: '000675978627833',
-    chargeDay: 1,
-    amount: 50000,
-    status: "STOPPED"
-  }]
+  const mockAgreementsDB = [
+    {
+      ID: "agr_1",
+      KID: '002556289731589',
+      chargeDay: 10,
+      amount: 50000,
+      status: "ACTIVE"
+    }, {
+      ID: "agr_2",
+      donorID: 973,
+      KID: '000638723319577',
+      chargeDay: 0,
+      amount: 3400,
+      status: "ACTIVE"
+    }, {
+      ID: "agr_3",
+      donorID: 973,
+      KID: '000675978627833',
+      chargeDay: 1,
+      amount: 50000,
+      status: "STOPPED"
+    }
+  ]
 
   const mockChargesVipps = [
     {
-      id: "chr-2cXEgFt",
+      id: "chr-1",
       amount: "5000",
       due: "2022-07-13",
       status: "CHARGED",
-      type: "INITIAL"
+      type: "RECURRING"
     },
     {
-      id: "chr-",
+      id: "chr-2",
       amount: "5000",
       due: "2022-07-13",
       status: "PENDING",
       type: "RECURRING"
     },
     {
-      id: "chr-",
+      id: "chr-3",
       amount: "5000",
       due: "2022-07-13",
       status: "CHARGED",
-      type: "RECURRING"
-    },
-    {
-      id: "chr-2cXEgFt",
-      amount: "5000",
-      due: "2022-07-13",
-      status: "RESERVED",
       type: "RECURRING"
     }
   ]
 
   const mockChargesDB = [
     {
-      chargeID: "chr-2cXEgFt",
-      agreementID: "agr_G2NBhQh",
+      chargeID: "chr-1",
+      agreementID: "agr_1",
       KID: "46677414",
       amountNOK: "50",
       due: "2022-07-13",
       status: "CHARGED",
       type: "INITIAL"
-    }
+    },
+    {
+      chargeID: "chr-2",
+      agreementID: "agr_2",
+      amount: "5000",
+      due: "2022-07-13",
+      status: "PENDING",
+      type: "RECURRING"
+    },
+    {
+      chargeID: "chr-3",
+      agreementID: "agr_3",
+      amount: "5000",
+      due: "2022-07-13",
+      status: "CHARGED",
+      type: "RECURRING"
+    },
   ]
   
   let server
@@ -101,6 +118,7 @@ describe('POST /scheduled/vipps', function() {
   let updateAgreementStatusStub
   let addChargeStub
   let getChargeStub
+  let updateChargeStatusStub
   let externalPaymentIDExistsStub
   let hasChargedThisMonthStub
   let createChargeStub
@@ -136,6 +154,9 @@ describe('POST /scheduled/vipps', function() {
     getChargeStub = sinon
       .stub(DAO.vipps, 'getCharge')
 
+    updateChargeStatusStub = sinon
+      .stub(DAO.vipps, 'updateChargeStatus')
+
     externalPaymentIDExistsStub = sinon
       .stub(DAO.donations, 'ExternalPaymentIDExists')
 
@@ -144,6 +165,9 @@ describe('POST /scheduled/vipps', function() {
 
     createChargeStub = sinon
       .stub(vipps, 'createCharge')
+    
+    addDonationStub = sinon
+      .stub(DAO.donations, 'add')
 
     loggingStub = sinon
       .stub(DAO.logging, 'add')
@@ -163,24 +187,86 @@ describe('POST /scheduled/vipps', function() {
     getAgreementsStub.withArgs("STOPPED").resolves([])
     getAgreementsStub.withArgs("EXPIRED").resolves([])
 
+    getChargesStub.withArgs().resolves([])
+
     const response = await request(server)
       .post('/scheduled/vipps')
       .expect(200)
 
-    expect(true).to.be.true
+    expect(addAgreementStub.called).to.be.false
+    expect(addChargeStub.called).to.be.false
+    expect(updateAgreementPriceStub.called).to.be.false
+    expect(updateAgreementStatusStub.called).to.be.false
+    expect(getAgreementStub.called).to.be.false
+    expect(getChargesStub.called).to.be.false
+    expect(getChargeStub.called).to.be.false
+    expect(createChargeStub.called).to.be.false
+    expect(loggingStub.calledOnce).to.be.true
+    expect(externalPaymentIDExistsStub.called).to.be.false
+    expect(addDonationStub.called).to.be.false
   })
 
   it('Synchronize agreements and charges', async function() {
-      getAgreementsStub.withArgs("ACTIVE").resolves(mockAgreements)
-      getAgreementsStub.withArgs("PENDING").resolves([])
-      getAgreementsStub.withArgs("STOPPED").resolves([])
-      getAgreementsStub.withArgs("EXPIRED").resolves([])
+    getAgreementsStub.withArgs("ACTIVE").resolves(mockAgreementsVipps)
+    getAgreementsStub.withArgs("PENDING").resolves([])
+    getAgreementsStub.withArgs("STOPPED").resolves([])
+    getAgreementsStub.withArgs("EXPIRED").resolves([])
 
-      const response = await request(server)
-      .post('/scheduled/vipps')
-      .expect(200)
+    getChargesStub.withArgs("agr_1").resolves([mockChargesVipps[0]])
+    getChargesStub.withArgs("agr_2").resolves([mockChargesVipps[1]])
+    getChargesStub.withArgs("agr_3").resolves([mockChargesVipps[2]])
 
-    expect(true).to.be.true
+    getAgreementStub.withArgs("agr_1").resolves([mockAgreementsDB[0]])
+    getAgreementStub.withArgs("agr_2").resolves([mockAgreementsDB[1]])
+    getAgreementStub.withArgs("agr_3").resolves([mockAgreementsDB[2]])
+
+    getChargeStub.withArgs("agr_1", "chr-1").resolves([mockChargesDB[0]])
+    getChargeStub.withArgs("agr_2", "chr-2").resolves([mockChargesDB[1]])
+    getChargeStub.withArgs("agr_3", "chr-3").resolves([mockChargesDB[2]])
+
+    externalPaymentIDExistsStub.withArgs("agr_1.chr-1").resolves(true)
+    externalPaymentIDExistsStub.withArgs("agr_3.chr-3").resolves(false)
+
+    const response = await request(server)
+    .post('/scheduled/vipps')
+    .expect(200)
+
+    expect(addAgreementStub.callCount).to.be.equal(3)
+    expect(addChargeStub.callCount).to.be.equal(3)
+    expect(updateAgreementPriceStub.callCount).to.be.equal(3)
+    expect(updateAgreementStatusStub.callCount).to.be.equal(3)
+    expect(getAgreementStub.callCount).to.be.equal(3)
+    expect(getChargesStub.callCount).to.be.equal(3)
+    expect(getChargeStub.callCount).to.be.equal(2) // Only 2 of the charges has status "CHARGED"
+    // expect(createChargeStub.callCount).to.be.equal(2)
+    expect(loggingStub.calledOnce).to.be.true
+    expect(externalPaymentIDExistsStub.callCount).to.be.equal(2)
+    expect(addDonationStub.calledOnce).to.be.true
+  })
+
+  it('Create future due charges', async function() {
+    getAgreementsStub.withArgs("ACTIVE").resolves([])
+    getAgreementsStub.withArgs("PENDING").resolves([])
+    getAgreementsStub.withArgs("STOPPED").resolves([])
+    getAgreementsStub.withArgs("EXPIRED").resolves([])
+
+    getActiveAgreementStub.withArgs().resolves(mockAgreementsDB)
+
+    const response = await request(server)
+    .post('/scheduled/vipps')
+    .expect(200)
+
+    expect(addAgreementStub.callCount).to.be.equal(3)
+    expect(addChargeStub.callCount).to.be.equal(3)
+    expect(updateAgreementPriceStub.callCount).to.be.equal(3)
+    expect(updateAgreementStatusStub.callCount).to.be.equal(3)
+    expect(getAgreementStub.callCount).to.be.equal(3)
+    expect(getChargesStub.callCount).to.be.equal(3)
+    expect(getChargeStub.callCount).to.be.equal(2) // Only 2 of the charges has status "CHARGED"
+    // expect(createChargeStub.callCount).to.be.equal(2)
+    expect(loggingStub.calledOnce).to.be.true
+    expect(externalPaymentIDExistsStub.callCount).to.be.equal(2)
+    expect(addDonationStub.calledOnce).to.be.true
   })
 
   after(function () {
