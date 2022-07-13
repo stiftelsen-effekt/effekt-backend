@@ -238,6 +238,7 @@ describe('POST /scheduled/vipps', function() {
     expect(addChargeStub.callCount).to.be.equal(3)
     expect(updateAgreementPriceStub.callCount).to.be.equal(3)
     expect(updateAgreementStatusStub.callCount).to.be.equal(3)
+    expect(updateChargeStatusStub.callCount).to.be.equal(3)
     expect(getAgreementStub.callCount).to.be.equal(3)
     expect(getChargesStub.callCount).to.be.equal(3)
     expect(getChargeStub.callCount).to.be.equal(2) // Only 2 of the charges has status "CHARGED"
