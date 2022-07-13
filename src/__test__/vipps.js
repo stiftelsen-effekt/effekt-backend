@@ -12,20 +12,20 @@ const config = require('../config');
 const authMiddleware = require('../custom_modules/authorization/authMiddleware');
 
 describe('POST /scheduled/vipps', function() {
+  const daysInAdvance = 3
+  const timeNow = new Date().getTime()
+  const dueDate = new Date(timeNow + (1000 * 60 * 60 * 24 * daysInAdvance))
   const mockAgreementsVipps = [
     {
       id: "agr_1",
-      chargeDay: 10,
       amount: 50000,
       status: "ACTIVE"
     }, {
       id: "agr_2",
-      chargeDay: 0,
       amount: 340000,
       status: "ACTIVE"
     }, {
       id: "agr_3",
-      chargeDay: 5,
       amount: 5000000,
       status: "STOPPED"
     }
@@ -35,21 +35,21 @@ describe('POST /scheduled/vipps', function() {
     {
       ID: "agr_1",
       KID: '002556289731589',
-      chargeDay: 10,
+      monthly_charge_day: dueDate.getDate(),
       amount: 50000,
       status: "ACTIVE"
     }, {
       ID: "agr_2",
       donorID: 973,
       KID: '000638723319577',
-      chargeDay: 0,
+      monthly_charge_day: dueDate.getDate(),
       amount: 3400,
       status: "ACTIVE"
     }, {
       ID: "agr_3",
       donorID: 973,
       KID: '000675978627833',
-      chargeDay: 1,
+      monthly_charge_day: dueDate.getDate(),
       amount: 50000,
       status: "STOPPED"
     }
@@ -133,6 +133,9 @@ describe('POST /scheduled/vipps', function() {
     getChargesStub = sinon
       .stub(vipps, 'getCharges')
 
+    getVippsAgreementStub = sinon
+      .stub(vipps, 'getAgreement')
+    
     getAgreementStub = sinon
       .stub(DAO.vipps, 'getAgreement')
 
@@ -238,7 +241,6 @@ describe('POST /scheduled/vipps', function() {
     expect(getAgreementStub.callCount).to.be.equal(3)
     expect(getChargesStub.callCount).to.be.equal(3)
     expect(getChargeStub.callCount).to.be.equal(2) // Only 2 of the charges has status "CHARGED"
-    // expect(createChargeStub.callCount).to.be.equal(2)
     expect(loggingStub.calledOnce).to.be.true
     expect(externalPaymentIDExistsStub.callCount).to.be.equal(2)
     expect(addDonationStub.calledOnce).to.be.true
@@ -250,23 +252,23 @@ describe('POST /scheduled/vipps', function() {
     getAgreementsStub.withArgs("STOPPED").resolves([])
     getAgreementsStub.withArgs("EXPIRED").resolves([])
 
-    getActiveAgreementStub.withArgs().resolves(mockAgreementsDB)
+    getActiveAgreementStub.withArgs().resolves([mockAgreementsDB[0], mockAgreementsDB[1]])
+
+    getVippsAgreementStub.withArgs("agr_1").resolves(mockAgreementsVipps[0])
+    getVippsAgreementStub.withArgs("agr_2").resolves(mockAgreementsVipps[1])
+    
+    hasChargedThisMonthStub.withArgs("agr_1").resolves(false)
+    hasChargedThisMonthStub.withArgs("agr_2").resolves(true)
 
     const response = await request(server)
     .post('/scheduled/vipps')
     .expect(200)
 
-    expect(addAgreementStub.callCount).to.be.equal(3)
-    expect(addChargeStub.callCount).to.be.equal(3)
-    expect(updateAgreementPriceStub.callCount).to.be.equal(3)
-    expect(updateAgreementStatusStub.callCount).to.be.equal(3)
-    expect(getAgreementStub.callCount).to.be.equal(3)
-    expect(getChargesStub.callCount).to.be.equal(3)
-    expect(getChargeStub.callCount).to.be.equal(2) // Only 2 of the charges has status "CHARGED"
-    // expect(createChargeStub.callCount).to.be.equal(2)
+    expect(getActiveAgreementStub.calledOnce).to.be.true
+    expect(getVippsAgreementStub.callCount).to.be.equal(2)
+    expect(hasChargedThisMonthStub.callCount).to.be.equal(2)
+    expect(createChargeStub.callCount).to.be.equal(1) // One of the agreements have already been charged this month
     expect(loggingStub.calledOnce).to.be.true
-    expect(externalPaymentIDExistsStub.callCount).to.be.equal(2)
-    expect(addDonationStub.calledOnce).to.be.true
   })
 
   after(function () {
