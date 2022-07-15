@@ -781,7 +781,7 @@ async function add(KID, paymentMethodID, sum, registeredDate = null, externalPay
             stored ones in the database, to ensure that we are not creating
             a duplicate donation. */
         if (externalPaymentID != null) {
-            if (await ExternalPaymentIDExists(externalPaymentID,paymentMethodID)) {
+            if (await externalPaymentIDExists(externalPaymentID,paymentMethodID)) {
                 throw new Error("EXISTING_DONATION | Already a donation with ExternalPaymentID " + externalPaymentID + " and PaymentID " + paymentMethodID)
             }
         }

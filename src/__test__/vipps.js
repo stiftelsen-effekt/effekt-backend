@@ -161,7 +161,7 @@ describe('POST /scheduled/vipps', function() {
       .stub(DAO.vipps, 'updateChargeStatus')
 
     externalPaymentIDExistsStub = sinon
-      .stub(DAO.donations, 'ExternalPaymentIDExists')
+      .stub(DAO.donations, 'externalPaymentIDExists')
 
     hasChargedThisMonthStub = sinon
       .stub(vipps, 'hasChargedThisMonth')

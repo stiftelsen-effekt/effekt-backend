@@ -1176,7 +1176,7 @@ module.exports = {
                             registeredDate = new Date()
                         }
 
-                        const donationExists = await donations.ExternalPaymentIDExists(externalPaymentId, paymentMethod)
+                        const donationExists = await donations.externalPaymentIDExists(externalPaymentId, paymentMethod)
 
                         if (!donationExists) {
                             // Add completed charges to Donations table (externalPaymentId is a unique column and prevents duplicate insertions)
