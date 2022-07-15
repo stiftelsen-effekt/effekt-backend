@@ -48,9 +48,6 @@ router.post("/",
 
 router.post("/search",
     authMiddleware.isAdmin,
-    (req, res, next) => {
-      checkDonor(parseInt(req.params.id), req, res, next);
-    },
     async (req, res, next) => {
     try {
       let limit = req.body.limit, 
