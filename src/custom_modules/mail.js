@@ -704,7 +704,7 @@ async function sendOcrBackup(fileContents) {
  */
 async function send(options) {
     //const templateRoot = './dist/views/mail/' + options.templateName
-    const templateRoot = './src/views/mail/' + options.templateName
+    const templateRoot = './dist/views/mail/' + options.templateName
 
     var templateRawHTML = await fs.readFile(templateRoot + "/index.html", 'utf8')
     var templateHTML = template(templateRawHTML, options.templateData)
