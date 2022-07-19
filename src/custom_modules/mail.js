@@ -563,6 +563,50 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
   }
 }
 
+/** 
+ * @param {string} KID
+ * @param {"STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
+ * @param {string} newValue New value of what was changed (if applicable)
+*/
+async function sendAvtaleGiroChange(KID, change, newValue = "") {
+  try {
+    const agreement = await DAO.avtalegiroagreements.getByKID(KID)
+    const donor = await DAO.donors.getByKID(KID)
+    const email = donor.email
+
+    const split = await DAO.distributions.getSplitByKID(KID)
+    const organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
+
+    let changeDesc = "endret"
+    if (change === "CANCELLED") changeDesc = "avsluttet"
+    const subject = `Gi Effektivt - Din AvtaleGiro har blitt ${changeDesc}`
+
+    if (change === "AMOUNT") newValue = formatCurrency(newValue)
+    
+    await send({
+      subject,
+      reciever: email,
+      templateName: 'avtaleGiroChange',
+      templateData: {
+        header: "Hei, " + donor.name,
+        change,
+        newValue,
+        organizations,
+        agreement,
+        sum: formatCurrency(agreement.amount),
+        reusableHTML
+      }
+    })
+
+    return true
+  }
+  catch(ex) {
+      console.error("Failed to send AvtaleGiro change email")
+      console.error(ex)
+      return ex.statusCode
+  }
+}
+
 /**
  * Sends donors with avtalegiro agreement a notification of an upcomming claim
  * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement 
@@ -659,7 +703,8 @@ async function sendOcrBackup(fileContents) {
  * @returns {boolean | number} True if success, status code else
  */
 async function send(options) {
-    const templateRoot = './dist/views/mail/' + options.templateName
+    //const templateRoot = './dist/views/mail/' + options.templateName
+    const templateRoot = './src/views/mail/' + options.templateName
 
     var templateRawHTML = await fs.readFile(templateRoot + "/index.html", 'utf8')
     var templateHTML = template(templateRawHTML, options.templateData)
@@ -715,6 +760,7 @@ module.exports = {
   sendVippsErrorWarning,
   sendFacebookTaxConfirmation,
   sendTaxDeductions,
+  sendAvtaleGiroChange,
   sendAvtalegiroNotification,
   sendOcrBackup
 }
