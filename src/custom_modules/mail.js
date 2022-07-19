@@ -703,7 +703,6 @@ async function sendOcrBackup(fileContents) {
  * @returns {boolean | number} True if success, status code else
  */
 async function send(options) {
-    //const templateRoot = './dist/views/mail/' + options.templateName
     const templateRoot = './dist/views/mail/' + options.templateName
 
     var templateRawHTML = await fs.readFile(templateRoot + "/index.html", 'utf8')
