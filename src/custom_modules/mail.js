@@ -342,7 +342,7 @@ async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
     if (change === "CANCELLED") changeDesc = "avsluttet"
     if (change === "PAUSED") changeDesc = "satt på pause"
     if (change === "UNPAUSED") changeDesc = "gjenstartet"
-    const subject = `gieffektivt.no - Din betalingsavtale via Vipps har blitt ${changeDesc}`
+    const subject = `Gi Effektivt - Din betalingsavtale via Vipps har blitt ${changeDesc}`
 
     if (change === "PAUSED") newValue = formatDate(newValue)
     if (change === "AMOUNT") newValue = formatCurrency(newValue)
@@ -542,7 +542,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
   try {
     await send({
       reciever: taxDeductionRecord.email,
-      subject: `gieffektivt.no - Årsoppgave, skattefradrag donasjoner ${year}`,
+      subject: `Gi Effektivt - Årsoppgave, skattefradrag donasjoner ${year}`,
       templateName: "taxDeduction",
       templateData: { 
           header: "Hei " + taxDeductionRecord.firstname + ",",
@@ -641,7 +641,7 @@ async function sendAvtaleGiroChange(KID, change, newValue = "") {
   try {
     await send({
       reciever: donor.email,
-      subject: `gieffektivt.no - Varsel trekk AvtaleGiro`,
+      subject: `Gi Effektivt - Varsel trekk AvtaleGiro`,
       templateName: "avtalegironotice",
       templateData: { 
           header: "Hei " + donor.name + ",",
@@ -665,7 +665,7 @@ async function sendAvtaleGiroChange(KID, change, newValue = "") {
  */
 async function sendOcrBackup(fileContents) {
   var data = {
-    from: 'gieffektivt.no <donasjon@gieffektivt.no>',
+    from: 'Gi Effektivt <donasjon@gieffektivt.no>',
     to: 'hakon.harnes@effektivaltruisme.no',
     bcc: "donasjon@gieffektivt.no",
     subject: 'OCR backup',
@@ -709,7 +709,7 @@ async function send(options) {
     var templateHTML = template(templateRawHTML, options.templateData)
 
     var data = {
-        from: 'gieffektivt.no <donasjon@gieffektivt.no>',
+        from: 'Gi Effektivt <donasjon@gieffektivt.no>',
         to: options.reciever,
         bcc: "donasjon@gieffektivt.no",
         subject: options.subject,
