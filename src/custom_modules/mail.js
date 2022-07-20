@@ -565,7 +565,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
 
 /** 
  * @param {string} KID
- * @param {"STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
+ * @param {"CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
 */
 async function sendAvtaleGiroChange(KID, change, newValue = "") {
