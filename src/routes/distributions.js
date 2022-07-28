@@ -90,7 +90,6 @@ router.get("/:KID",
 })
 
 router.get("/:KID/unauthorized",
-  authMiddleware.isAdmin, 
   async (req, res, next) => {
   try {
       const response = await DAO.distributions.getSplitByKID(req.params.KID)
