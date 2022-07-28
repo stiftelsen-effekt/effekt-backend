@@ -342,7 +342,7 @@ async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
     if (change === "CANCELLED") changeDesc = "avsluttet"
     if (change === "PAUSED") changeDesc = "satt på pause"
     if (change === "UNPAUSED") changeDesc = "gjenstartet"
-    const subject = `gieffektivt.no - Din betalingsavtale via Vipps har blitt ${changeDesc}`
+    const subject = `Gi Effektivt - Din betalingsavtale via Vipps har blitt ${changeDesc}`
 
     if (change === "PAUSED") newValue = formatDate(newValue)
     if (change === "AMOUNT") newValue = formatCurrency(newValue)
@@ -542,7 +542,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
   try {
     await send({
       reciever: taxDeductionRecord.email,
-      subject: `gieffektivt.no - Årsoppgave, skattefradrag donasjoner ${year}`,
+      subject: `Gi Effektivt - Årsoppgave, skattefradrag donasjoner ${year}`,
       templateName: "taxDeduction",
       templateData: { 
           header: "Hei " + taxDeductionRecord.firstname + ",",
@@ -560,6 +560,50 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
     console.error("Failed to tax deduction mail")
     console.error(ex)
     return ex.statusCode
+  }
+}
+
+/** 
+ * @param {string} KID
+ * @param {"CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
+ * @param {string} newValue New value of what was changed (if applicable)
+*/
+async function sendAvtaleGiroChange(KID, change, newValue = "") {
+  try {
+    const agreement = await DAO.avtalegiroagreements.getByKID(KID)
+    const donor = await DAO.donors.getByKID(KID)
+    const email = donor.email
+
+    const split = await DAO.distributions.getSplitByKID(KID)
+    const organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
+
+    let changeDesc = "endret"
+    if (change === "CANCELLED") changeDesc = "avsluttet"
+    const subject = `Gi Effektivt - Din AvtaleGiro har blitt ${changeDesc}`
+
+    if (change === "AMOUNT") newValue = formatCurrency(newValue)
+    
+    await send({
+      subject,
+      reciever: email,
+      templateName: 'avtaleGiroChange',
+      templateData: {
+        header: "Hei, " + donor.name,
+        change,
+        newValue,
+        organizations,
+        agreement,
+        sum: formatCurrency(agreement.amount),
+        reusableHTML
+      }
+    })
+
+    return true
+  }
+  catch(ex) {
+      console.error("Failed to send AvtaleGiro change email")
+      console.error(ex)
+      return ex.statusCode
   }
 }
 
@@ -597,7 +641,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
   try {
     await send({
       reciever: donor.email,
-      subject: `gieffektivt.no - Varsel trekk AvtaleGiro`,
+      subject: `Gi Effektivt - Varsel trekk AvtaleGiro`,
       templateName: "avtalegironotice",
       templateData: { 
           header: "Hei " + donor.name + ",",
@@ -621,7 +665,7 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
  */
 async function sendOcrBackup(fileContents) {
   var data = {
-    from: 'gieffektivt.no <donasjon@gieffektivt.no>',
+    from: 'Gi Effektivt <donasjon@gieffektivt.no>',
     to: 'hakon.harnes@effektivaltruisme.no',
     bcc: "donasjon@gieffektivt.no",
     subject: 'OCR backup',
@@ -665,7 +709,7 @@ async function send(options) {
     var templateHTML = template(templateRawHTML, options.templateData)
 
     var data = {
-        from: 'gieffektivt.no <donasjon@gieffektivt.no>',
+        from: 'Gi Effektivt <donasjon@gieffektivt.no>',
         to: options.reciever,
         bcc: "donasjon@gieffektivt.no",
         subject: options.subject,
@@ -715,6 +759,7 @@ module.exports = {
   sendVippsErrorWarning,
   sendFacebookTaxConfirmation,
   sendTaxDeductions,
+  sendAvtaleGiroChange,
   sendAvtalegiroNotification,
   sendOcrBackup
 }

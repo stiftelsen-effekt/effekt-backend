@@ -7,6 +7,7 @@ const rounding = require("../custom_modules/rounding");
 const donationHelpers = require("../custom_modules/donationHelpers");
 const authMiddleware = require("../custom_modules/authorization/authMiddleware");
 const authRoles = require("../enums/authorizationRoles");
+const mail = require("../custom_modules/mail");
 const moment = require("moment");
 
 /**
@@ -329,7 +330,7 @@ router.post(
         metaOwnerID
       );
 
-      //await mail.sendAvtaleGiroChange() // Add later
+      await mail.sendAvtaleGiroChange(originalKID, "SHARES", split)
       res.send(response);
     } catch (ex) {
       next({ ex });
@@ -374,7 +375,7 @@ router.post(
 
       const response = await DAO.avtalegiroagreements.setActive(KID, active);
 
-      //await mail.sendAvtaleGiroChange() // Add later
+      if (active === 0) await mail.sendAvtaleGiroChange(KID, "CANCELLED")
       res.send(response);
     } catch (ex) {
       next({ ex });
@@ -419,7 +420,7 @@ router.post(
 
       const response = await DAO.avtalegiroagreements.updateAmount(KID, amount);
 
-      //await mail.sendAvtaleGiroChange() // Add later
+      await mail.sendAvtaleGiroChange(KID, "AMOUNT", amount)
       res.send(response);
     } catch (ex) {
       next({ ex });
@@ -469,7 +470,7 @@ router.post(
         paymentDate
       );
 
-      //await mail.sendAvtaleGiroChange() // Add later
+      await mail.sendAvtaleGiroChange(KID, "CHARGEDAY", paymentDate)
       res.send(response);
     } catch (ex) {
       next({ ex });

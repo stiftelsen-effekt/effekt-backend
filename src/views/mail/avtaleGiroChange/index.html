@@ -72,13 +72,13 @@
                             <tr>
                                 <td class="h3">
                                     <% if (this.change == "CANCELLED") { %>
-                                        Betalingsavtalen din har blitt avsluttet.
+                                        Din AvtaleGiro har blitt avsluttet.
                                     <% } else if (this.change == "PAUSED") { %>
-                                        Din betalingsavtale via Vipps har blitt satt på pause
+                                        Din AvtaleGiro har blitt satt på pause
                                     <% } else if (this.change == "UNPAUSED") { %>
-                                        Din betalingsavtale via Vipps har blitt gjenstartet
+                                        Din AvtaleGiro har blitt gjenstartet
                                     <% } else { %>
-                                        Din betalingsavtale via Vipps har blitt endret
+                                        Din AvtaleGiro har blitt endret
                                     <% } %>
                                 </td>
                             </tr>
@@ -87,24 +87,20 @@
                             <tr>
                                 <td class="bodycopy">
                                     <% if (this.change == "AMOUNT") { %>
-                                        Den månedlige summen til betalingsavtalen din har blitt endret til <% this.newValue %> kr.
-                                    <% } %>
-                                    <% if (this.change == "PAUSED") { %>
-                                        Avtalen din er satt på pause og gjenstarter automatisk <% this.newValue %>.
+                                        Den månedlige trekksummen til din AvtaleGiro har blitt endret til <% this.newValue %> kr.
                                     <% } %>
                                     <% if (this.change == "STOPPED") { %>
-                                        Den månedlige betalingsavtalen din via Vipps har blitt avsluttet.
+                                        Din AvtaleGiro har nå blitt avsluttet.
                                     <% } %>
                                     <% if (this.change == "CHARGEDAY" && this.newValue != 0) { %>
-                                        Trekkdagen til betalingsavtalen din har blitt endret til den <% this.newValue %>. hver måned.
+                                        Trekkdagen til din AvtaleGiro har blitt endret til den <% this.newValue %>. hver måned.
                                     <% } %>
                                     <% if (this.change == "CHARGEDAY" && this.newValue == 0) { %>
-                                        Trekkdagen til betalingsavtalen din har blitt endret til den siste dagen hver måned.
+                                        Trekkdagen til din AvtaleGiro har blitt endret til den siste dagen hver måned.
                                     <% } %>
                                     <% if (this.change == "SHARES") { %>
-                                        Fordelingen din har blitt endret, se ny fordeling under.
+                                        Fordelingen til din AvtaleGiro har blitt endret, se ny fordeling under.
                                     <% } %>
-                                    <br/><br/>
                                     
                                     <% if(false && "beholder koden i tilfelle den skal brukes senere") { %>
                                         <h3>Betalingsavtale</h3>
