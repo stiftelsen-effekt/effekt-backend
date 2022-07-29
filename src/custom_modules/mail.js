@@ -41,7 +41,7 @@ const replacedOrgsInfo =
   '<br/><br/>';
 
 const taxDeductionInfo =
-  'Donasjoner til oss som summerer til kr 500-50 000 i kalenderåret kvalifiserer til skattefradrag. Dersom du har oppgitt fødselsnummer eller organisasjonsnummer registrerer vi dette automatisk på neste års skattemelding. ' + 
+  'Donasjoner til oss som summerer til kr 500-25 000 i kalenderåret kvalifiserer til skattefradrag. Dersom du har oppgitt fødselsnummer eller organisasjonsnummer registrerer vi dette automatisk på neste års skattemelding. ' + 
   'Les mer <a href= "https://gieffektivt.no/skattefradrag" style="color: #000000;">her</a>.' + 
   '<br/><br/>';
 
