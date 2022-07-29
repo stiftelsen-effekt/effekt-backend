@@ -13,7 +13,7 @@ const { donations } = require('./DAO')
 const POLLING_START_DELAY = 5000
 const POLLING_INTERVAL = 2000
 
-const VIPPS_TEXT = "Donasjon til gieffektivt.no"
+const VIPPS_TEXT = "Donasjon til Gi Effektivt."
 
 /**
  * @typedef TransactionLogItem
@@ -546,7 +546,7 @@ module.exports = {
             "merchantAgreementUrl": `${config.minside_url}/${agreementUrlCode}`,
             "price": realAmount,
             "productDescription": agreementUrlCode,
-            "productName": "Månedlig donasjon til gieffektivt.no"
+            "productName": "Månedlig donasjon til Gi Effektivt."
         }
 
         if (initialCharge) {
@@ -808,7 +808,7 @@ module.exports = {
         const data = {
             amount: amountKroner * 100,
             currency: "NOK",
-            description: "Fast donasjon til gieffektivt.no",
+            description: "Fast donasjon til Gi Effektivt.",
             due: formattedDueDate,
             retryDays: 5
         }
