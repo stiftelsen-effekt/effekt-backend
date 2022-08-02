@@ -554,6 +554,22 @@ router.get(
       const result = await DAO.distributions.getAllByDonor(req.params.id);
       let distributions = result.distributions;
 
+      distributions.forEach(dist => {
+        dist.count = 0
+        dist.sum = 0
+        dist.KID = dist.kid
+      });
+
+      const donations = await DAO.donations.getByDonorId(req.params.id);
+      distributions.forEach(dist => {
+        donations.forEach(donation => {
+          if(dist.kid == donation.KID) {
+            dist.count += 1
+            dist.sum += parseInt(donation.sum)
+          }
+        });
+      });
+
       if (req.query.kids) {
         const kidSet = new Set<string>();
         req.query.kids.split(",").map((kid) => kidSet.add(kid));
