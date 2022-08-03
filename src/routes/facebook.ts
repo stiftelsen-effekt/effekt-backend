@@ -83,7 +83,7 @@ router.post(
 
 router.post(
   "/register/campaign",
-  // authMiddleware.isAdmin, TODO: uncomment
+  authMiddleware.isAdmin,
   async (req, res, next) => {
     try {
       const campaignShares = req.body.shares;
@@ -110,7 +110,7 @@ router.post(
 
 router.post(
   "/register/donations",
-  // authMiddleware.isAdmin, TODO: uncomment
+  authMiddleware.isAdmin,
   async (req, res, next) => {
     let metaOwner = parseInt(req.body.metaOwnerID);
 
