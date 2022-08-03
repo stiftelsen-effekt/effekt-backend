@@ -147,8 +147,6 @@ router.post(
       };
 
       try {
-        console.log("Processing donation with ID:", externalRef);
-
         let donorID: string;
         // Fetch newly created donor
         if (email != "") {
