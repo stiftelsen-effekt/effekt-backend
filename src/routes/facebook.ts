@@ -233,7 +233,7 @@ router.post(
 
         let KID = await DAO.distributions.getKIDbySplit(distribution, donorID);
         if (!KID) {
-          KID = await donationHelpers.createKID(15, parseInt(donorID));
+          KID = await donationHelpers.createKID(15, donorID);
           await DAO.distributions.add(distribution, KID, donorID, metaOwner);
         }
         donationInfo.KID = KID;
