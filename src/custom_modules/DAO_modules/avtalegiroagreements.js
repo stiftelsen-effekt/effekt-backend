@@ -413,7 +413,7 @@ async function getByKID(KID) {
                     SELECT AG.amount, @rownum:=@rownum+1 as 'row_number', @total_rows:=@rownum
                     FROM Avtalegiro_agreements as AG, (SELECT @rownum:=0) r
                         WHERE AG.amount is NOT NULL
-                        -- put some where clause here
+                        AND AG.active = 1
                     ORDER BY AG.amount
                 ) as subquery
             WHERE subquery.row_number IN ( FLOOR((@total_rows+1)/2), FLOOR((@total_rows+2)/2) )
@@ -421,31 +421,37 @@ async function getByKID(KID) {
         (SELECT count(ID) 
             FROM Avtalegiro_agreements 
             WHERE month(created) = month(current_timestamp())
+            AND year(created) = year(current_timestamp())
             AND active = 0
         ) as draftedThisMonth,
         (SELECT round(sum(amount)/100)
             FROM Avtalegiro_agreements 
             WHERE month(created) = month(current_timestamp())
+            AND year(created) = year(current_timestamp())
             AND active = 0
         ) as sumDraftedThisMonth,
         (SELECT count(ID) 
             FROM Avtalegiro_agreements 
             WHERE month(created) = month(current_timestamp())
+            AND year(created) = year(current_timestamp())
             AND active = 1
         ) as activatedThisMonth,
         (SELECT round(sum(amount)/100)
             FROM Avtalegiro_agreements 
             WHERE month(created) = month(current_timestamp())
+            AND year(created) = year(current_timestamp())
             AND active = 1
         ) as sumActivatedThisMonth,
         (SELECT count(ID) 
             FROM Avtalegiro_agreements 
             WHERE month(cancelled) = month(current_timestamp())
+            AND year(cancelled) = year(current_timestamp())
             AND active = 0
         ) as stoppedThisMonth,
         (SELECT round(sum(amount)/100)
             FROM Avtalegiro_agreements 
             WHERE month(cancelled) = month(current_timestamp())
+            AND year(cancelled) = year(current_timestamp())
             AND active = 0
         ) as sumStoppedThisMonth
     FROM 
