@@ -98,11 +98,16 @@ module.exports = {
         if ((transaction["Sender currency"] = "NOK")) {
           // Round with the two first digits and set the rest to 0
           sumNOK = roundToSignificantFigures(sumNOK, 2);
+          const sumNOKOneSignFig = roundToSignificantFigures(sumNOK, 1);
 
           if (String(sumNOK).length > 1) {
-            if (String(sumNOK)[1] == "9" && String(sumNOK)[0] == "1") {
-              // Set the second digit to 0 if it is 9 or 1
-              sumNOK = roundToSignificantFigures(sumNOK, 1);
+            if (
+              String(sumNOK)[1] == "9" ||
+              String(sumNOK)[0] == "1" ||
+              sumNOK / sumNOKOneSignFig - 1 <= 0.03
+            ) {
+              // Round with only the first digit if the second is 1 or 9, or if the percentage diff is less than treshold
+              sumNOK = sumNOKOneSignFig;
             }
           }
         }
