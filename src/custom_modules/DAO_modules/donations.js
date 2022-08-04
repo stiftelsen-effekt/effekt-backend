@@ -116,6 +116,45 @@ async function getAll(sort, page, limit = 10, filter = null) {
     }
 }
 
+/**
+ * Gets all donations by KID
+ * @param {string} KID KID number
+ * @returns {Array<Donation>} Array of Donation objects
+ */
+ async function getAllByKID(KID) {
+    try {
+        var con = await pool.getConnection()
+
+        var [getDonationsByKIDQuery] = await con.query(`
+            SELECT *, D.ID, payment_name FROM Donations as D
+                INNER JOIN Payment as P on D.Payment_ID = P.ID
+                WHERE KID_fordeling = ?`, 
+        [KID])
+
+        let donations = []
+
+        getDonationsByKIDQuery.forEach(donation => {
+            donations.push({
+                id: donation.ID,
+                donor: donation.full_name,
+                donorId: donation.donorId,
+                email: donation.email,
+                sum: donation.sum_confirmed,
+                transactionCost: donation.transaction_cost,
+                timestamp: donation.timestamp_confirmed,
+                paymentMethod: donation.payment_name,
+                KID: donation.KID_fordeling
+            })
+        })
+
+        con.release()
+        return donations
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
 
 
 /**
@@ -887,6 +926,7 @@ const mapToJS = (obj) => obj.map((donation) => {
 module.exports = {
     getAll,
     getByID,
+    getAllByKID,
     getAggregateByTime,
     getAggregateLastYearByMonth,
     getFromRange,
