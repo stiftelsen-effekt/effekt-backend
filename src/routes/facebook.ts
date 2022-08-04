@@ -14,7 +14,7 @@ function throwError(message) {
   throw error;
 }
 
-router.get("/payments/all", async (req, res, next) => {
+router.get("/payments/all", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const content = await DAO.facebook.getAllFacebookDonations();
 
