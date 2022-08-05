@@ -5,11 +5,11 @@ const authorizationRoles = require('../../enums/authorizationRoles.js');
 
 const checkJwt = auth({
   audience: 'https://data.gieffektivt.no',
-  issuerBaseURL: 'https://konduit.eu.auth0.com/',
+  issuerBaseURL: 'https://gieffektivt.eu.auth0.com/',
 });
 
-const roleClaim = "https://konduit.no/roles"
-const useridClaim = "https://konduit.no/user-id"
+const roleClaim = "https://gieffektivt.no/roles"
+const useridClaim = "https://gieffektivt.no/user-id"
 
 /**
  * Express middleware, checks if token passed in request grants permission 
