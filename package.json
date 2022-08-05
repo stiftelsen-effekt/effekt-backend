@@ -58,7 +58,7 @@
     "mustache": "^2.3.2",
     "mysql2": "^2.2.5",
     "node-cron": "^3.0.0",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.7",
     "node-xlsx": "^0.17.2",
     "object-hash": "^2.1.1",
     "performance-now": "^2.1.0",
