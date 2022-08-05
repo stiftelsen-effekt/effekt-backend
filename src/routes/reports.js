@@ -16,6 +16,9 @@ router.post('/bank',
 router.post("/vipps",
             authMiddleware.isAdmin,
             require('./reports/vipps'))
+router.post("/facebook",
+            authMiddleware.isAdmin,
+            require('./reports/facebook'))
 router.post("/paypal",
             authMiddleware.isAdmin,
             require('./reports/paypal'))

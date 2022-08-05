@@ -58,6 +58,7 @@
     "mustache": "^2.3.2",
     "mysql2": "^2.2.5",
     "node-cron": "^3.0.0",
+    "node-fetch": "^2.6.1",
     "node-xlsx": "^0.17.2",
     "object-hash": "^2.1.1",
     "performance-now": "^2.1.0",
@@ -74,6 +75,7 @@
   },
   "devDependencies": {
     "@types/chai": "^4.2.14",
+    "@types/node": "^16.0.0",
     "@types/request-promise-native": "^1.0.17",
     "@types/sinon": "^7.5.2",
     "chai": "^4.2.0",
