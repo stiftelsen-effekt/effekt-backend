@@ -11,8 +11,8 @@ export const openAPIOptions = {
           type: "oauth2",
           "flows": {
             "authorizationCode": {
-              "authorizationUrl": "https://konduit.eu.auth0.com/authorize?audience=https://data.gieffektivt.no",
-              "tokenUrl": "https://konduit.eu.auth0.com/oauth/token",
+              "authorizationUrl": "https://gieffektivt.eu.auth0.com/authorize?audience=https://data.gieffektivt.no",
+              "tokenUrl": "https://gieffektivt.eu.auth0.com/oauth/token",
               "scopes": {
                 "read:donations": "read donations",
                 "read:profile": "read profile info",
@@ -33,7 +33,7 @@ export const openAPIOptions = {
 export const swaggerOptions = {
   swaggerOptions: {
     oauth: {
-       clientId: "fsYC8FIVfxACIJjSr5ZQtZZ2AHBAApDL",
+       clientId: "RDDsHyDQ4ZJhmjghalj6Ib1e1sD035jN",
     },
  },
 }
