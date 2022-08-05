@@ -1,5 +1,5 @@
 const DAO = require("../../custom_modules/DAO.js");
-const facebookParser = require("../../custom_modules/parsers/facebook.ts");
+const facebookParser = require("../../custom_modules/parsers/facebook");
 import { Blob } from "buffer";
 
 module.exports = async (req, res, next) => {
