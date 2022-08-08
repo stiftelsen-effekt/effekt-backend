@@ -129,29 +129,25 @@ router.post("/auth0/register", async (req, res, next) => {
  *      401:
  *        description: User not authorized to view resource
  */
- router.get(
-  "/search/",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      var donors = await DAO.donors.search(req.query.q);
+router.get("/search/", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    var donors = await DAO.donors.search(req.query.q);
 
-      if (donors) {
-        return res.json({
-          status: 200,
-          content: donors,
-        });
-      } else {
-        return res.status(404).json({
-          status: 404,
-          content: "No donors found matching query",
-        });
-      }
-    } catch (ex) {
-      next(ex);
+    if (donors) {
+      return res.json({
+        status: 200,
+        content: donors,
+      });
+    } else {
+      return res.status(404).json({
+        status: 404,
+        content: "No donors found matching query",
+      });
     }
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 /**
  * @openapi
@@ -798,28 +794,30 @@ router.put(
   }
 );
 
-router.post('/id/email/name',
+router.post(
+  "/id/email/name",
   authMiddleware.isAdmin,
   async (req, res, next) => {
-  try {
-    let donorID
+    try {
+      let donorID;
 
-    if (req.body.email) {
-      donorID = await DAO.donors.getIDbyEmail(req.body.email)
+      if (req.body.email) {
+        donorID = await DAO.donors.getIDbyEmail(req.body.email);
+      }
+
+      if (donorID == null) {
+        donorID = await DAO.donors.getIDByMatchedNameFB(req.body.name);
+      }
+      // If no email matches, get donorID by name instead
+
+      return res.json({
+        status: 200,
+        content: donorID,
+      });
+    } catch (ex) {
+      next(ex);
     }
-
-    if (donorID == null) {
-      donorID = await DAO.donors.getIDByMatchedNameFB(req.body.name)
-    }
-    // If no email matches, get donorID by name instead
-
-    return res.json({
-      status: 200,
-      content: donorID
-    })
-  } catch (ex) {
-    next(ex)
   }
-})
+);
 
 module.exports = router;

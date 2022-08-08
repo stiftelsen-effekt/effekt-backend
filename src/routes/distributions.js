@@ -15,6 +15,12 @@ router.post("/",
       donorId = req.body.donor.id,
       metaOwnerID = req.body.metaOwnerID
 
+    let standardSplit = false
+    if (!split) {
+      split = await donationHelpers.getStandardSplit();
+      let standardSplit = true
+    }
+
     if (split.length === 0) {
       let err = new Error("Empty distribution array provided")
       err.status = 400
@@ -32,7 +38,7 @@ router.post("/",
 
     if (!KID) {
       KID = await donationHelpers.createKID(15, donorId)
-      await DAO.distributions.add(split, KID, donorId, metaOwnerID)
+      await DAO.distributions.add(split, KID, donorId, standardSplit, metaOwnerID)
     }
     
     res.json({

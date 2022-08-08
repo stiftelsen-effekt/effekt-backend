@@ -524,10 +524,10 @@ router.put(
       });
       const metaOwnerID = 3;
 
-      if (split.length === 0) {
-        let err = new Error("Empty distribution array provided");
-        err.status = 400;
-        return next(err);
+      let standardSplit = false
+      if (!split) {
+        split = await donationHelpers.getStandardSplit();
+        let standardSplit = true
       }
 
       if (
@@ -543,7 +543,7 @@ router.put(
 
       if (!KID) {
         KID = await donationHelpers.createKID();
-        await DAO.distributions.add(split, KID, donorId, metaOwnerID);
+        await DAO.distributions.add(split, KID, donorId, standardSplit, metaOwnerID);
       }
 
       const response = await DAO.vipps.updateAgreementKID(agreementId, KID);
