@@ -121,7 +121,8 @@ router.post("/register", async (req, res, next) => {
       await DAO.distributions.add(
         donationObject.split,
         donationObject.KID,
-        donationObject.donorID
+        donationObject.donorID,
+        donationObject.standardSplit
       );
     } else {
       //Try to get existing KID
@@ -136,7 +137,8 @@ router.post("/register", async (req, res, next) => {
         await DAO.distributions.add(
           donationObject.split,
           donationObject.KID,
-          donationObject.donorID
+          donationObject.donorID,
+          donationObject.standardSplit
         );
       }
     }

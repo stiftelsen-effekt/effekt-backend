@@ -90,7 +90,7 @@ async function updatePaymentDate(KID, paymentDate) {
     }
 }
 
-async function replaceDistribution(replacementKID, originalKID, split, donorId, metaOwnerID) {
+async function replaceDistribution(replacementKID, originalKID, split, donorId, standardSplit, metaOwnerID) {
     try {
         var con = await pool.getConnection()
 
@@ -114,7 +114,7 @@ async function replaceDistribution(replacementKID, originalKID, split, donorId, 
         `, [replacementKID, originalKID])
 
         // Add new distribution using the original KID
-        await distributions.add(split, originalKID, donorId, metaOwnerID)
+        await distributions.add(split, originalKID, donorId, standardSplit, metaOwnerID)
 
         // Links the replacement KID to the original AvtaleGiro KID
         await con.query(`

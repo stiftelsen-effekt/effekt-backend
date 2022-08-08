@@ -335,8 +335,13 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
  * @param {number} donorID
  * @param {number} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
  */
-async function add(split, KID, donorID, metaOwnerID = null) {
+async function add(split, KID, donorID, standardSplit, metaOwnerID = null) {
   try {
+    if (standardSplit) {
+      standardSplit = 1
+    } else {
+      standardSplit = 0
+    }
     var transaction = await pool.startTransaction();
 
     if (metaOwnerID == null) {
@@ -354,13 +359,13 @@ async function add(split, KID, donorID, metaOwnerID = null) {
     let first_inserted_id = res[0].insertId;
     var combining_table_values = Array.apply(null, Array(split.length)).map(
       (item, i) => {
-        return [donorID, first_inserted_id + i, KID, metaOwnerID];
+        return [donorID, first_inserted_id + i, KID, standardSplit, metaOwnerID];
       }
     );
 
     //Update combining table
     var res = await transaction.query(
-      "INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID, Meta_owner_ID) VALUES ?",
+      "INSERT INTO Combining_table (Donor_ID, Distribution_ID, KID, Standard_split, Meta_owner_ID) VALUES ?",
       [combining_table_values]
     );
 
