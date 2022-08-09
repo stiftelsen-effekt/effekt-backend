@@ -159,7 +159,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
 
 /**
  * Gets a histogram of all donations by donation sum
- * Creates buckets with 100 NOK spacing
+ * Creates buckets with 5 000 NOK spacing
  * Skips empty buckets
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
@@ -168,7 +168,7 @@ async function getHistogramBySum() {
         var con = await pool.getConnection()
         let [results] = await con.query(`
             SELECT 
-                floor(sum_confirmed/500)*500 	AS bucket, 
+                floor(sum_confirmed/5000)*5000 	AS bucket, 
                 count(*) 						AS items,
                 ROUND(100*LN(COUNT(*)))         AS bar
             FROM Donations
