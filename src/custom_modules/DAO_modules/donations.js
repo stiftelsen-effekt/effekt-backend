@@ -279,7 +279,7 @@ async function getAggregateLastYearByMonth() {
                 
                     FROM EffektDonasjonDB.Donations
                 
-                WHERE timestamp_confirmed > DATE_SUB(LAST_DAY(now()), interval 1 YEAR)
+                WHERE timestamp_confirmed >= DATE_ADD(DATE_SUB(LAST_DAY(now()), interval 1 YEAR), interval 1 DAY)
                 
                 GROUP BY \`month\`, \`year\`
                 
