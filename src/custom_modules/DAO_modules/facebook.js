@@ -49,7 +49,7 @@ async function getFacebookReports() {
 async function getFacebookCampaignOrgShares(ID) {
     try {
         let [results] = await con.query(`
-            SELECT FB_campaign_ID, Org_ID, Share
+            SELECT FB_campaign_ID, Org_ID, Share, Standard_split
             FROM FB_campaign_org_shares
             WHERE FB_campaign_ID = ?
             `, [ID]
@@ -123,11 +123,11 @@ async function registerFacebookReport(report) {
     }
 }
 
-async function registerFacebookCampaignOrgShare(FB_campaign_ID, Org_ID, Share) {
+async function registerFacebookCampaignOrgShare(FB_campaign_ID, Org_ID, Share, Standard_split) {
     try {
         await con.query(`
-            INSERT INTO FB_campaign_org_shares (FB_campaign_ID, Org_ID, Share)
-            VALUES (?, ?, ?)`, [FB_campaign_ID, Org_ID, Share]
+            INSERT INTO FB_campaign_org_shares (FB_campaign_ID, Org_ID, Share, Standard_split)
+            VALUES (?, ?, ?, ?)`, [FB_campaign_ID, Org_ID, Share, Standard_split]
         )
 
         return true

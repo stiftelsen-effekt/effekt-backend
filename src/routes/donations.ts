@@ -128,7 +128,8 @@ router.post("/register", async (req, res, next) => {
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit(
         donationObject.split,
-        donationObject.donorID
+        donationObject.donorID,
+        donationObject.standardSplit
       );
 
       //Split does not exist create new KID and split

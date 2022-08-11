@@ -282,10 +282,10 @@ router.post(
       });
       const metaOwnerID = 3;
 
-      let standardSplit = false;
+      let standardSplit = 0;
       if (!split) {
         split = await donationHelpers.getStandardSplit();
-        let standardSplit = true;
+        standardSplit = 1;
       }
 
       if (

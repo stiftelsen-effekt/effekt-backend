@@ -86,14 +86,23 @@ router.post(
   authMiddleware.isAdmin,
   async (req, res, next) => {
     try {
-      const campaignShares = req.body.shares;
+      let campaignShares = req.body.shares;
+
+      let standardSplit;
+      if (!campaignShares) {
+        campaignShares = await donationHelpers.getStandardSplit();
+        standardSplit = 1;
+      } else standardSplit = 0;
+
       for (let i = 0; i < campaignShares.length; i++) {
         const campaignShare = campaignShares[i];
+
         if (campaignShare.share > 0) {
           await DAO.facebook.registerFacebookCampaignOrgShare(
             req.body.id,
             campaignShare.organizationId,
-            campaignShare.share
+            campaignShare.share,
+            standardSplit
           );
         }
       }
@@ -171,6 +180,8 @@ router.post(
           }
         });
 
+        const standardSplit = campaignOrgShares[0].Standard_split;
+
         let distribution: { [name: string]: number | string }[] = [];
         let distSum: number = 0;
 
@@ -231,14 +242,18 @@ router.post(
           );
         }
 
-        let KID = await DAO.distributions.getKIDbySplit(distribution, donorID);
+        let KID = await DAO.distributions.getKIDbySplit(
+          distribution,
+          donorID,
+          standardSplit
+        );
         if (!KID) {
           KID = await donationHelpers.createKID(15, donorID);
           await DAO.distributions.add(
             distribution,
             KID,
             donorID,
-            false,
+            standardSplit,
             metaOwner
           );
         }
