@@ -15,10 +15,10 @@ router.post("/",
       donorId = req.body.donor.id,
       metaOwnerID = req.body.metaOwnerID
 
-    let standardSplit = false
+    let standardSplit = 0
     if (!split) {
       split = await donationHelpers.getStandardSplit();
-      let standardSplit = true
+      standardSplit = 1
     }
 
     if (split.length === 0) {
@@ -34,7 +34,7 @@ router.post("/",
     }
     
     //Check for existing distribution with that KID
-    let KID = await DAO.distributions.getKIDbySplit(split, donorId)
+    let KID = await DAO.distributions.getKIDbySplit(split, donorId, standardSplit)
 
     if (!KID) {
       KID = await donationHelpers.createKID(15, donorId)
@@ -51,23 +51,23 @@ router.post("/",
 })
 
 router.post("/search",
-    authMiddleware.isAdmin,
-    async (req, res, next) => {
-    try {
-      let limit = req.body.limit, 
-          page = req.body.page, 
-          filter = req.body.filter,
-          sort = req.body.sort
+  authMiddleware.isAdmin,
+  async (req, res, next) => {
+  try {
+    let limit = req.body.limit, 
+        page = req.body.page, 
+        filter = req.body.filter,
+        sort = req.body.sort
 
-      let distributions = await DAO.distributions.getAll(page, limit, sort, filter)
+    let distributions = await DAO.distributions.getAll(page, limit, sort, filter)
 
-      res.json({
-        status: 200,
-        content: distributions
-      })
-    } catch(ex) {
-        next(ex)
-    }
+    res.json({
+      status: 200,
+      content: distributions
+    })
+  } catch(ex) {
+      next(ex)
+  }
 })
 
 router.get("/:KID", 
@@ -98,11 +98,11 @@ router.get("/:KID",
 router.get("/:KID/unauthorized",
   async (req, res, next) => {
   try {
-      const response = await DAO.distributions.getSplitByKID(req.params.KID)
+    const response = await DAO.distributions.getSplitByKID(req.params.KID)
 
-      res.json(response)
+    res.json(response)
   } catch (ex) {
-      next({ ex })
+    next({ ex })
   }
 })
 
@@ -111,13 +111,13 @@ router.post("/KID/distribution",
   async (req, res, next) => {
   // Get KID by distribution
   try {
-      let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }})
-      let donorId = req.body.donorId
+    let split = req.body.distribution.map(distribution => {return { organizationID: distribution.organizationId, share: distribution.share }})
+    let donorId = req.body.donorId
 
-    if (split.length === 0) {
-      let err = new Error("Empty distribution array provided")
-      err.status = 400
-      return next(err)
+    let standardSplit = 0
+    if (!split) {
+      split = await donationHelpers.getStandardSplit();
+      standardSplit = 1
     }
 
     if (rounding.sumWithPrecision(split.map(split => split.share)) !== "100") {
@@ -127,7 +127,7 @@ router.post("/KID/distribution",
     }
     
     //Check for existing distribution with that KID
-    let KID = await DAO.distributions.getKIDbySplit(split, donorId)
+    let KID = await DAO.distributions.getKIDbySplit(split, donorId, standardSplit)
 
     res.json(KID)
   } catch (ex) {

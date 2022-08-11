@@ -206,7 +206,7 @@ async function KIDexists(KID) {
  * @param {number} minKidLength Specify a minimum length of KID to match against
  * @returns {number | null} KID or null if no KID found
  */
-async function getKIDbySplit(split, donorID, minKidLength = 0) {
+async function getKIDbySplit(split, donorID, standardSplit, minKidLength = 0) {
   try {
     var con = await pool.getConnection();
 
@@ -227,7 +227,8 @@ async function getKIDbySplit(split, donorID, minKidLength = 0) {
         split[i].organizationID
       )} AND percentage_share = ${sqlString.escape(
         split[i].share
-      )} AND C.Donor_ID = ${sqlString.escape(donorID)})`;
+      )} AND C.Donor_ID = ${sqlString.escape(donorID)}
+      AND C.Standard_split = ${sqlString.escape(standardSplit)})`;
       if (i < split.length - 1) query += ` OR `;
     }
 

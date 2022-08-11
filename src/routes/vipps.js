@@ -524,10 +524,10 @@ router.put(
       });
       const metaOwnerID = 3;
 
-      let standardSplit = false
+      let standardSplit = 0
       if (!split) {
         split = await donationHelpers.getStandardSplit();
-        let standardSplit = true
+        standardSplit = 1
       }
 
       if (
@@ -539,7 +539,7 @@ router.put(
       }
 
       //Check for existing distribution with that KID
-      let KID = await DAO.distributions.getKIDbySplit(split, donorId);
+      let KID = await DAO.distributions.getKIDbySplit(split, donorId, standardSplit);
 
       if (!KID) {
         KID = await donationHelpers.createKID();
