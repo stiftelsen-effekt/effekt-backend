@@ -87,8 +87,8 @@ router.post(
   async (req, res, next) => {
     try {
       let campaignShares = req.body.shares;
-      let standardSplit;
 
+      let standardSplit;
       if (!campaignShares) {
         campaignShares = await donationHelpers.getStandardSplit();
         standardSplit = 1;
@@ -96,7 +96,6 @@ router.post(
 
       for (let i = 0; i < campaignShares.length; i++) {
         const campaignShare = campaignShares[i];
-        let standardSplit;
 
         if (campaignShare.share > 0) {
           await DAO.facebook.registerFacebookCampaignOrgShare(
