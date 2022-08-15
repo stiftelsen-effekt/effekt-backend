@@ -1,11 +1,11 @@
 import paymentMethods from "../enums/paymentMethods";
+import { DAO } from "../custom_modules/DAO";
 
 const e = require("express");
 const express = require("express");
 const router = express.Router();
-const DAO = require("../custom_modules/DAO.js");
-const mail = require("../custom_modules/mail");
-const authMiddleware = require("../custom_modules/authorization/authMiddleware");
+import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+import { sendFacebookTaxConfirmation } from "../custom_modules/mail";
 const donationHelpers = require("../custom_modules/donationHelpers");
 
 function throwError(message) {
@@ -51,25 +51,32 @@ router.post(
       }
 
       const ID = await DAO.donors.getIDbyEmail(email);
+      let taxUnitID: number;
 
       // If donor does not exist, create new donor
       if (!ID) {
-        const donorID = await DAO.donors.add(email, full_name, ssn, newsletter);
+        const donorID = await DAO.donors.add(email, full_name, newsletter);
 
-        await DAO.facebook.registerPaymentFB(donorID, paymentID);
+        await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
       }
       // If donor already exists, update ssn if empty
       else if (ID) {
         const donorID = ID;
         const donor = await DAO.donors.getByID(ID);
 
-        if (!donor.ssn) await DAO.donors.updateSsn(donorID, ssn);
+        const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(donor.id, ssn);
+        if (existingTaxUnit) {
+          taxUnitID = existingTaxUnit.id;
+        } else {
+          taxUnitID = await DAO.tax.addTaxUnit(donor.id, ssn, full_name);
+        }
+
         await DAO.donors.updateNewsletter(donorID, newsletter);
 
-        await DAO.facebook.registerPaymentFB(donorID, paymentID);
+        await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
       }
 
-      await mail.sendFacebookTaxConfirmation(email, full_name, paymentID);
+      await sendFacebookTaxConfirmation(email, full_name, paymentID);
 
       res.json({
         status: 200,
@@ -131,8 +138,8 @@ router.post(
       const donation = donations[i];
       const externalRef = donation["Payment ID"];
       const campaignID = donation["Campaign ID"];
-      let email = donation.Email;
-      const fullName = donation.FullName;
+      let email: string = donation.Email;
+      const fullName: string = donation.FullName;
 
       const donationInfo = {
         amount: donation.sumNOK,
@@ -147,7 +154,7 @@ router.post(
       };
 
       try {
-        let donorID: string;
+        let donorID: number;
         // Fetch newly created donor
         if (email != "") {
           donorID = await DAO.donors.getIDbyEmail(email);
@@ -231,7 +238,30 @@ router.post(
           );
         }
 
-        let KID = await DAO.distributions.getKIDbySplit(distribution, donorID);
+        // Check if donation is registered for tax deduction
+        const registeredDonation =
+          await DAO.facebook.getRegisteredFacebookDonation(externalRef);
+
+        let taxUnitID: number;
+        if (registeredDonation) {
+          taxUnitID = registeredDonation.taxUnitID;
+        } else {
+          const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(
+            donorID,
+            null
+          );
+          if (existingTaxUnit) {
+            taxUnitID = existingTaxUnit.id;
+          } else {
+            taxUnitID = await DAO.tax.addTaxUnit(donorID, null, fullName);
+          }
+        }
+
+        let KID = await DAO.distributions.getKIDbySplit(
+          distribution,
+          donorID,
+          taxUnitID
+        );
         if (!KID) {
           KID = await donationHelpers.createKID(15, donorID);
           await DAO.distributions.add(distribution, KID, donorID, metaOwner);

@@ -2,7 +2,7 @@ const sinon = require("sinon");
 const request = require("supertest");
 const express = require("express");
 const { expect } = require("chai");
-const authMiddleware = require("../custom_modules/authorization/authMiddleware");
+import * as authMiddleware from '../custom_modules/authorization/authMiddleware'
 const DAO = require("../custom_modules/DAO");
 const bodyParser = require("body-parser");
 

@@ -1,6 +1,7 @@
+import { DAO } from '../custom_modules/DAO'
+
 const sinon = require('sinon');
 const chai = require('chai');
-const DAO = require('../custom_modules/DAO');
 const expect = (chai.expect);
 
 const avtalegiro = require('../custom_modules/avtalegiro');

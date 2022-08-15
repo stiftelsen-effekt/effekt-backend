@@ -7,16 +7,23 @@ export interface paths {}
 
 export interface components {
   schemas: {
-    /** @example [object Object] */
+    /**
+     * @example {
+     *   "id": 237,
+     *   "name": "Jack Torrance",
+     *   "email": "jack@overlookhotel.com",
+     *   "newsletter": true,
+     *   "trash": false,
+     *   "registered": "1921-07-04T23:00:00.000Z"
+     * }
+     */
     Donor: {
       /** @description The Auto-generated id of a donor */
-      id?: number;
+      id: number;
       /** @description Donors email (unique identifier) */
       email: string;
       /** @description Full name of the donor (first and last name) */
       name: string;
-      /** @description The social security number of the donor */
-      ssn?: number;
       /** @description Set to true if donor wishes to subscribe to newsletter */
       newsletter?: boolean;
       /** @description Set to true if spam / test donor */

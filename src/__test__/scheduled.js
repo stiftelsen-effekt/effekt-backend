@@ -1,6 +1,8 @@
+import { DAO } from '../custom_modules/DAO'
+import * as authMiddleware from '../custom_modules/authMiddleware'
+
 const sinon = require('sinon');
 const chai = require('chai');
-const DAO = require('../custom_modules/DAO');
 
 const avtalegiro = require('../custom_modules/avtalegiro')
 const mail = require('../custom_modules/mail');
@@ -9,7 +11,6 @@ const express = require('express')
 const request = require('supertest');
 const { expect } = require('chai');
 const config = require('../config');
-const authMiddleware = require('../custom_modules/authorization/authMiddleware')
 
 describe('POST /scheduled/avtalegiro', function() {
   const mockAgreements = [{

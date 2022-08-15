@@ -1,0 +1,28 @@
+openapi: 3.0.1
+components:
+  schemas:
+    TaxUnit:
+      type: object
+      required:
+        - id
+        - donorId
+        - name
+      properties:
+        id:
+          type: integer
+          description: The Auto-generated id for a tax unit
+        donorId:
+          type: integer
+          description: The id of the donor assicoated with the tax unit
+        name:
+          type: string
+          description: Full name of the tax unit (either a personal name or a business entity)
+        ssn:
+          type: string
+          description: The social security number of the tax unit
+      example:
+        id: 984
+        donorId: 237
+        name: Overlook Hotel Logistics Ltd.
+        ssn: 919809140
+        registered: 1921-07-04T23:00:00.000Z

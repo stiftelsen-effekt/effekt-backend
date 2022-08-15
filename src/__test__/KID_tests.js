@@ -4,7 +4,7 @@ const chai = require('chai');
 const expect = (chai.expect);
 
 // Internal
-const KID = require('../custom_modules/KID.js');
+const KID = require('../custom_modules/KID');
 
 // http://www.paypalobjects.com/en_US/vhelp/paypalmanager_help/credit_card_numbers.htm
 // Luhn algorithm/MOD10 is used to validate credit card numbers also, so testing the function(s) against some credit card numbers seems like a good idea.
