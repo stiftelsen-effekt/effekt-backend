@@ -1,10 +1,10 @@
-const config = require('../config.js')
-const DAO = require('./DAO.js')
-const moment = require('moment')
-const template = require('./template.js')
+const config = require("../config.js");
+const DAO = require("./DAO.js");
+const moment = require("moment");
+const template = require("./template.js");
 
-const request = require('request-promise-native')
-const fs = require('fs-extra')
+const request = require("request-promise-native");
+const fs = require("fs-extra");
 
 /**
  * @typedef VippsAgreement
@@ -18,12 +18,26 @@ const fs = require('fs-extra')
 // Formatting functions
 
 function formatDateText(date) {
-  const months = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
+  const months = [
+    "januar",
+    "februar",
+    "mars",
+    "april",
+    "mai",
+    "juni",
+    "juli",
+    "august",
+    "september",
+    "oktober",
+    "november",
+    "desember",
+  ];
   return `${date.getDate()}. ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 function formatCurrency(currencyString) {
-  return Number.parseFloat(currencyString).toFixed(2)
+  return Number.parseFloat(currencyString)
+    .toFixed(2)
     .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
     .replace(",", " ")
     .replace(".", ",");
@@ -31,334 +45,364 @@ function formatCurrency(currencyString) {
 
 // Reusable HTML elements
 const sciChanges = `<strong>MERK:</strong> Vi anbefaler ikke lenger donasjoner til SCI Foundation gjeldende fra 18.08.22 og vil slutte å tildele penger til dem 31. oktober 2022. Les mer om denne endringen på <a href="https://gieffektivt.no/articles/nye-evalueringskriterier-for-topplista" style="color: #000000;">våre nettsider</a>.<br/><br/>
-Donasjoner øremerket SCI Foundation blir fra og med 1. november 2022 i stedet følge <a href="https://gieffektivt.no/smart-fordeling" style="color: #000000;">Smart fordeling</a>. Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/profile" style="color: #000000;">Min Side</a> og oppdatere fordeling på din faste donasjon, eller fylle ut donasjonsskjemaet for en ny donasjon. Ta kontakt om du har noen spørsmål.<br/><br/>`
+Donasjoner øremerket SCI Foundation blir fra og med 1. november 2022 i stedet følge <a href="https://gieffektivt.no/smart-fordeling" style="color: #000000;">Smart fordeling</a>. Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/profile" style="color: #000000;">Min Side</a> og oppdatere fordeling på din faste donasjon, eller fylle ut donasjonsskjemaet for en ny donasjon. Ta kontakt om du har noen spørsmål.<br/><br/>`;
 
 const replacedOrgsInfo =
-  'MERK: Din fordeling ble endret av oss for donasjoner gitt fra og med 01.01.2021. ' + 
-  'Fra denne datoen støtter vi ikke lenger donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children ' +
-  'som opplyst på våre nettsider, i nyhetsbrev, på epost og gjennom sosiale medier.' +
-  '<br/>' +
+  "MERK: Din fordeling ble endret av oss for donasjoner gitt fra og med 01.01.2021. " +
+  "Fra denne datoen støtter vi ikke lenger donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children " +
+  "som opplyst på våre nettsider, i nyhetsbrev, på epost og gjennom sosiale medier." +
+  "<br/>" +
   'Andelene som var oppført til disse organisasjonene blir i stedet gitt til vår standardfordeling som nå er <a href="https://www.givewell.org/maximum-impact-fund" style="color: #000000;">GiveWell Maximum Impact Fund</a>. ' +
-  'Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/" style="color: #000000;">www.gieffektivt.no/</a> og fylle ut donasjonsskjema på nytt med ønsket fordeling. Ta kontakt om du har noen spørsmål.' + 
-  '<br/><br/>';
+  'Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/" style="color: #000000;">www.gieffektivt.no/</a> og fylle ut donasjonsskjema på nytt med ønsket fordeling. Ta kontakt om du har noen spørsmål.' +
+  "<br/><br/>";
 
 const taxDeductionInfo =
-  'Donasjoner til oss som summerer til kr 500-25 000 i kalenderåret kvalifiserer til skattefradrag. Dersom du har oppgitt fødselsnummer eller organisasjonsnummer registrerer vi dette automatisk på neste års skattemelding. ' + 
-  'Les mer <a href= "https://gieffektivt.no/skattefradrag" style="color: #000000;">her</a>.' + 
-  '<br/><br/>';
+  "Donasjoner til oss som summerer til kr 500-25 000 i kalenderåret kvalifiserer til skattefradrag. Dersom du har oppgitt fødselsnummer eller organisasjonsnummer registrerer vi dette automatisk på neste års skattemelding. " +
+  'Les mer <a href= "https://gieffektivt.no/skattefradrag" style="color: #000000;">her</a>.' +
+  "<br/><br/>";
 
-const greeting = 
-  'Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss ved å sende en mail til ' +
-  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #000000;">donasjon@gieffektivt.no</a>.' + 
-  '<br/><br/>' +
-  'Håper du får en fantastisk dag!<br/><br/>' +
-  '<b>Vennlig hilsen</b><br/>' +
-  'oss i Gi Effektivt' +
-  '<br/><br/>';
+const greeting =
+  "Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss ved å sende en mail til " +
+  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #000000;">donasjon@gieffektivt.no</a>.' +
+  "<br/><br/>" +
+  "Håper du får en fantastisk dag!<br/><br/>" +
+  "<b>Vennlig hilsen</b><br/>" +
+  "oss i Gi Effektivt" +
+  "<br/><br/>";
 
-const footer = 
-    '<table class="footer" bgcolor="#000" width="100%" border="0" cellspacing="0" cellpadding="0">' +
-        '<tr>' +
-            '<td align="center" class="footercopy">' +
-                '<table width="194" align="left" border="0" cellpadding="0" cellspacing="0">' +
-                    '<tr>' +
-                        '<td style="color: #ffffff; font-family: Arial, sans-serif; font-size: 14px;">' +
-                            'Stiftelsen Effekt' +
-                            '<br />' +
-                            '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">donasjon@gieffektivt.no</a><br/>' +
-                            '<span>Orgnr. 916 625 308</span><br/><br/>' +
-                            'Effektiv Altruisme Norge' +
-                            '<br />' +
-                            '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">post@effektivaltruisme.no</a><br/>' +
-                            '<span>Orgnr. 919 809 140</span><br/><br/>' +
-                        '</td>' +
-                    '</tr>' +
-                '</table>' +
-                '<!--[if (gte mso 9)|(IE)]>' +
-                '<table width="380" align="left" cellpadding="0" cellspacing="0" border="0">' +
-                    '<tr>' +
-                        '<td>' +
-                '<![endif]-->' +
-                '<table width="75" align="right" border="0" cellpadding="0" cellspacing="0">' +
-                    '<tr>' +
-                        '<td>' +
-                            '<a href="https://gieffektivt.no/">' +
-                                '<img src="cid:gieffektivt.png" alt="gieffektivt" width="75" height="75" style="display: block;" border="0" />' +
-                            '</a>' +
-                        '</td>' +
-                    '</tr>' +
-                '</table>' +
-                '<!--[if (gte mso 9)|(IE)]>' +
-                '<table width="380" align="left" cellpadding="0" cellspacing="0" border="0">' +
-                    '<tr>' +
-                        '<td>' +
-                '<![endif]-->' +
-            '</td>' +
-        '</tr>' +
-    '</table>';
+const footer =
+  '<table class="footer" bgcolor="#000" width="100%" border="0" cellspacing="0" cellpadding="0">' +
+  "<tr>" +
+  '<td align="center" class="footercopy">' +
+  '<table width="194" align="left" border="0" cellpadding="0" cellspacing="0">' +
+  "<tr>" +
+  '<td style="color: #ffffff; font-family: Arial, sans-serif; font-size: 14px;">' +
+  "Stiftelsen Effekt" +
+  "<br />" +
+  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">donasjon@gieffektivt.no</a><br/>' +
+  "<span>Orgnr. 916 625 308</span><br/><br/>" +
+  "Effektiv Altruisme Norge" +
+  "<br />" +
+  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">post@effektivaltruisme.no</a><br/>' +
+  "<span>Orgnr. 919 809 140</span><br/><br/>" +
+  "</td>" +
+  "</tr>" +
+  "</table>" +
+  "<!--[if (gte mso 9)|(IE)]>" +
+  '<table width="380" align="left" cellpadding="0" cellspacing="0" border="0">' +
+  "<tr>" +
+  "<td>" +
+  "<![endif]-->" +
+  '<table width="75" align="right" border="0" cellpadding="0" cellspacing="0">' +
+  "<tr>" +
+  "<td>" +
+  '<a href="https://gieffektivt.no/">' +
+  '<img src="cid:gieffektivt.png" alt="gieffektivt" width="75" height="75" style="display: block;" border="0" />' +
+  "</a>" +
+  "</td>" +
+  "</tr>" +
+  "</table>" +
+  "<!--[if (gte mso 9)|(IE)]>" +
+  '<table width="380" align="left" cellpadding="0" cellspacing="0" border="0">' +
+  "<tr>" +
+  "<td>" +
+  "<![endif]-->" +
+  "</td>" +
+  "</tr>" +
+  "</table>";
 
-const reusableHTML = {sciChanges, replacedOrgsInfo, greeting, taxDeductionInfo, footer};
+const reusableHTML = {
+  sciChanges,
+  replacedOrgsInfo,
+  greeting,
+  taxDeductionInfo,
+  footer,
+};
 
 /**
  * Sends a donation reciept
  * @param {number} donationID
  * @param {string} reciever Reciever email
-*/
+ */
 async function sendDonationReciept(donationID, reciever = null) {
-    try {
-      var donation = await DAO.donations.getByID(donationID)
-      if (!donation.email)  {
-        console.error("No email provided for donation ID " + donationID)
-        return false
-      }
-    } catch(ex) {
-      console.error("Failed to send mail donation reciept, could not get donation by ID")
-      console.error(ex)
-      return false
+  try {
+    var donation = await DAO.donations.getByID(donationID);
+    if (!donation.email) {
+      console.error("No email provided for donation ID " + donationID);
+      return false;
     }
+  } catch (ex) {
+    console.error(
+      "Failed to send mail donation reciept, could not get donation by ID"
+    );
+    console.error(ex);
+    return false;
+  }
 
-    try {
-      var split = await DAO.distributions.getSplitByKID(donation.KID)
-    } catch (ex) {
-      console.error("Failed to send mail donation reciept, could not get donation split by KID")
-      console.error(ex)
-      return false
-    }
+  try {
+    var split = await DAO.distributions.getSplitByKID(donation.KID);
+  } catch (ex) {
+    console.error(
+      "Failed to send mail donation reciept, could not get donation split by KID"
+    );
+    console.error(ex);
+    return false;
+  }
 
-    const hasSciInDistribution = split.some(org => org.ID === 2)
+  const hasSciInDistribution = split.some((org) => org.ID === 2);
 
-    try {
-      var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID)
-    } catch(ex) {
-      console.log(ex)
-      return false
-    }
+  try {
+    var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
+  } catch (ex) {
+    console.log(ex);
+    return false;
+  }
 
-    let organizations = formatOrganizationsFromSplit(split, donation.sum)
+  let organizations = formatOrganizationsFromSplit(split, donation.sum);
 
-    try {
-      await send({
-        reciever: (reciever ? reciever : donation.email),
-        subject: "Gi Effektivt - Din donasjon er mottatt",
-        templateName: "reciept",
-        templateData: {
-            header: "Hei " + donation.donor + ",",
-            //Add thousand seperator regex at end of amount
-            donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-            organizations: organizations,
-            donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
-            //Adds a message to donations with inactive organizations
-            hasReplacedOrgs,
-            hasSciInDistribution,
-            reusableHTML
-        }
-      })
+  try {
+    await send({
+      reciever: reciever ? reciever : donation.email,
+      subject: "Gi Effektivt - Din donasjon er mottatt",
+      templateName: "reciept",
+      templateData: {
+        header: "Hei " + donation.donor + ",",
+        //Add thousand seperator regex at end of amount
+        donationSum: donation.sum
+          .toString()
+          .replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+        organizations: organizations,
+        donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
+        paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
+        //Adds a message to donations with inactive organizations
+        hasReplacedOrgs,
+        hasSciInDistribution,
+        reusableHTML,
+      },
+    });
 
-      return true
-    } catch(ex) {
-      console.error("Failed to send donation reciept")
-      console.error(ex)
-      return ex.statusCode
-    }
+    return true;
+  } catch (ex) {
+    console.error("Failed to send donation reciept");
+    console.error(ex);
+    return ex.statusCode;
+  }
 }
 
 /**
  * Sends a donation reciept with notice of old system
  * @param {number} donationID
  * @param {string} reciever Reciever email
-*/
+ */
 async function sendEffektDonationReciept(donationID, reciever = null) {
-    try {
-        var donation = await DAO.donations.getByID(donationID)
-        if (!donation.email)  {
-          console.error("No email provided for donation ID " + donationID)
-          return false
-        }
-    } catch(ex) {
-        console.error("Failed to send mail donation reciept, could not get donation by ID")
-        console.error(ex)
-        return false
+  try {
+    var donation = await DAO.donations.getByID(donationID);
+    if (!donation.email) {
+      console.error("No email provided for donation ID " + donationID);
+      return false;
     }
-
-    try {
-        var split = await DAO.distributions.getSplitByKID(donation.KID)
-    } catch (ex) {
-        console.error("Failed to send mail donation reciept, could not get donation split by KID")
-        console.error(ex)
-        return false
-    }
-
-    const hasSciInDistribution = split.some(org => org.ID === 2)
-
-    try {
-      var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID)
-    } catch(ex) {
-      console.log(ex)
-      return false
-    }
-
-    let organizations = formatOrganizationsFromSplit(split, donation.sum)
-
-    try {
-        await send({
-        reciever: (reciever ? reciever : donation.email),
-        subject: "Gi Effektivt - Din donasjon er mottatt",
-        templateName: "recieptEffekt",
-        templateData: {
-            header: "Hei " + donation.donor + ",",
-            //Add thousand seperator regex at end of amount
-            donationSum: donation.sum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-            organizations: organizations,
-            donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-            paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
-            //Adds a message to donations with inactive organizations
-            hasReplacedOrgs,
-            hasSciInDistribution,
-            reusableHTML
-        }
-        })
-
-        return true
-    } catch(ex) {
-        console.error("Failed to send donation reciept")
-        console.error(ex)
-        return ex.statusCode
-    }   
-}
-
-function decideUIPaymentMethod(donationMethod){
-  if(donationMethod.toUpperCase() == 'BANK U/KID') {
-    donationMethod = 'Bank'
+  } catch (ex) {
+    console.error(
+      "Failed to send mail donation reciept, could not get donation by ID"
+    );
+    console.error(ex);
+    return false;
   }
 
-  return donationMethod
+  try {
+    var split = await DAO.distributions.getSplitByKID(donation.KID);
+  } catch (ex) {
+    console.error(
+      "Failed to send mail donation reciept, could not get donation split by KID"
+    );
+    console.error(ex);
+    return false;
+  }
+
+  const hasSciInDistribution = split.some((org) => org.ID === 2);
+
+  try {
+    var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
+  } catch (ex) {
+    console.log(ex);
+    return false;
+  }
+
+  let organizations = formatOrganizationsFromSplit(split, donation.sum);
+
+  try {
+    await send({
+      reciever: reciever ? reciever : donation.email,
+      subject: "Gi Effektivt - Din donasjon er mottatt",
+      templateName: "recieptEffekt",
+      templateData: {
+        header: "Hei " + donation.donor + ",",
+        //Add thousand seperator regex at end of amount
+        donationSum: donation.sum
+          .toString()
+          .replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+        organizations: organizations,
+        donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
+        paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
+        //Adds a message to donations with inactive organizations
+        hasReplacedOrgs,
+        hasSciInDistribution,
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send donation reciept");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+function decideUIPaymentMethod(donationMethod) {
+  if (donationMethod.toUpperCase() == "BANK U/KID") {
+    donationMethod = "Bank";
+  }
+
+  return donationMethod;
 }
 
 function formatOrganizationsFromSplit(split, sum) {
-  return split.map(function(org) {
-    var amount = sum * parseFloat(org.percentage_share) * 0.01
-    var roundedAmount = (amount > 1 ? Math.round(amount) : 1)
+  return split.map(function (org) {
+    var amount = sum * parseFloat(org.percentage_share) * 0.01;
+    var roundedAmount = amount > 1 ? Math.round(amount) : 1;
 
     return {
       name: org.full_name,
       //Add thousand seperator regex at end of amount
-      amount: (roundedAmount != amount ? "~ " : "") + roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-      percentage: parseFloat(org.percentage_share)
-    }
-  })
+      amount:
+        (roundedAmount != amount ? "~ " : "") +
+        roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+      percentage: parseFloat(org.percentage_share),
+    };
+  });
 }
 
-/** 
- * @param {string} KID 
-*/
+/**
+ * @param {string} KID
+ */
 async function sendDonationRegistered(KID, sum) {
-    try {
-      try {
-        var donor = await DAO.donors.getByKID(KID)
-      } catch(ex) {
-        console.error("Failed to send mail donation reciept, could not get donor by KID")
-        console.error(ex)
-        return false
-      }
-
-      if (!donor) {
-        console.error(`Failed to send mail donation reciept, no donors attached to KID ${KID}`)
-        return false
-      }
-
-      try {
-        var split = await DAO.distributions.getSplitByKID(KID)
-      } catch(ex) {
-        console.error("Failed to send mail donation reciept, could not get donation split by KID")
-        console.error(ex)
-        return false
-      }
-
-      let organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
-      var KIDstring = KID.toString()
-  
-      await send({
-        subject: 'Gi Effektivt - Donasjon klar for innbetaling',
-        reciever: donor.email,
-        templateName: 'registered',
-        templateData: {
-          header: "Hei, " + (donor.name.length > 0 ? donor.name : ""),
-          name: donor.name,
-          //Add thousand seperator regex at end of amount
-          kid: KIDstring,
-          accountNumber: config.bankAccount,
-          organizations: organizations,
-          sum: formatCurrency(sum),
-          reusableHTML
-        }
-      })
-
-      return true
-    }
-    catch(ex) {
-        console.error("Failed to send mail donation registered")
-        console.error(ex)
-        return ex.statusCode
-    }
-}
-
-/** 
- * @param {string} email 
-*/
-async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
   try {
+    try {
+      var donor = await DAO.donors.getByKID(KID);
+    } catch (ex) {
+      console.error(
+        "Failed to send mail donation reciept, could not get donor by KID"
+      );
+      console.error(ex);
+      return false;
+    }
+
+    if (!donor) {
+      console.error(
+        `Failed to send mail donation reciept, no donors attached to KID ${KID}`
+      );
+      return false;
+    }
+
+    try {
+      var split = await DAO.distributions.getSplitByKID(KID);
+    } catch (ex) {
+      console.error(
+        "Failed to send mail donation reciept, could not get donation split by KID"
+      );
+      console.error(ex);
+      return false;
+    }
+
+    let organizations = split.map((split) => ({
+      name: split.full_name,
+      percentage: parseFloat(split.percentage_share),
+    }));
+    var KIDstring = KID.toString();
 
     await send({
-      subject: 'Gi Effektivt - Facebook-donasjoner registrert for skattefradrag',
+      subject: "Gi Effektivt - Donasjon klar for innbetaling",
+      reciever: donor.email,
+      templateName: "registered",
+      templateData: {
+        header: "Hei, " + (donor.name.length > 0 ? donor.name : ""),
+        name: donor.name,
+        //Add thousand seperator regex at end of amount
+        kid: KIDstring,
+        accountNumber: config.bankAccount,
+        organizations: organizations,
+        sum: formatCurrency(sum),
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send mail donation registered");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+/**
+ * @param {string} email
+ */
+async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
+  try {
+    await send({
+      subject:
+        "Gi Effektivt - Facebook-donasjoner registrert for skattefradrag",
       reciever: email,
-      templateName: 'facebookTaxConfirmation',
+      templateName: "facebookTaxConfirmation",
       templateData: {
         header: "Hei, " + fullName,
         paymentID,
-        reusableHTML
-      }
-    })
+        reusableHTML,
+      },
+    });
 
-    return true
-  }
-  catch(ex) {
-      console.error("Failed to send facebook tax confirmation email")
-      console.error(ex)
-      return ex.statusCode
+    return true;
+  } catch (ex) {
+    console.error("Failed to send facebook tax confirmation email");
+    console.error(ex);
+    return ex.statusCode;
   }
 }
 
-/** 
+/**
  * @param {string} agreementCode
  * @param {"PAUSED" | "UNPAUSED" | "STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
-*/
+ */
 async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
   try {
-    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode)
-    const agreement = await DAO.vipps.getAgreement(agreementId)
-    const donor = await DAO.donors.getByID(agreement.donorID)
-    const email = donor.email
+    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    const agreement = await DAO.vipps.getAgreement(agreementId);
+    const donor = await DAO.donors.getByID(agreement.donorID);
+    const email = donor.email;
 
-    const split = await DAO.distributions.getSplitByKID(agreement.KID)
-    const organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
+    const split = await DAO.distributions.getSplitByKID(agreement.KID);
+    const organizations = split.map((split) => ({
+      name: split.full_name,
+      percentage: parseFloat(split.percentage_share),
+    }));
 
-    if (agreement.status !== "ACTIVE") return false
+    if (agreement.status !== "ACTIVE") return false;
 
-    let changeDesc = "endret"
-    if (change === "CANCELLED") changeDesc = "avsluttet"
-    if (change === "PAUSED") changeDesc = "satt på pause"
-    if (change === "UNPAUSED") changeDesc = "gjenstartet"
-    const subject = `Gi Effektivt - Din betalingsavtale via Vipps har blitt ${changeDesc}`
+    let changeDesc = "endret";
+    if (change === "CANCELLED") changeDesc = "avsluttet";
+    if (change === "PAUSED") changeDesc = "satt på pause";
+    if (change === "UNPAUSED") changeDesc = "gjenstartet";
+    const subject = `Gi Effektivt - Din betalingsavtale via Vipps har blitt ${changeDesc}`;
 
-    if (change === "PAUSED") newValue = formatDate(newValue)
-    if (change === "AMOUNT") newValue = formatCurrency(newValue)
-    
+    if (change === "PAUSED") newValue = formatDate(newValue);
+    if (change === "AMOUNT") newValue = formatCurrency(newValue);
+
     await send({
       subject,
       reciever: email,
-      templateName: 'vippsAgreementChange',
+      templateName: "vippsAgreementChange",
       templateData: {
         header: "Hei, " + donor.name,
         change,
@@ -366,78 +410,87 @@ async function sendVippsAgreementChange(agreementCode, change, newValue = "") {
         organizations,
         agreement,
         sum: formatCurrency(agreement.amount),
-        reusableHTML
-      }
-    })
+        reusableHTML,
+      },
+    });
 
-    return true
-  }
-  catch(ex) {
-      console.error("Failed to send vipps agreement change email")
-      console.error(ex)
-      return ex.statusCode
+    return true;
+  } catch (ex) {
+    console.error("Failed to send vipps agreement change email");
+    console.error(ex);
+    return ex.statusCode;
   }
 }
 
-/** 
+/**
  * @param {"DRAFT" | "CHARGE"} errorType What type of error
  * @param {string} errorMessage Long error message (exception)
  * @param {string} inputData The input data while the error happened
-*/
+ */
 async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
   try {
-    const timestamp = formatTimestamp(new Date())
+    const timestamp = formatTimestamp(new Date());
 
-    let errorDesc = ""
-    if (errorType === "DRAFT") errorDesc = "Oppretting av Vipps betalingsavtale feilet"
-    if (errorType === "CHARGE") errorDesc = "Trekk av Vipps betalingsavtale feilet"
-    const subject = `Varsling om systemfeil - ${errorDesc}`
-    
-    const recipients = ["philip.andersen@effektivaltruisme.no", "hakon.harnes@effektivaltruisme.no"]
+    let errorDesc = "";
+    if (errorType === "DRAFT")
+      errorDesc = "Oppretting av Vipps betalingsavtale feilet";
+    if (errorType === "CHARGE")
+      errorDesc = "Trekk av Vipps betalingsavtale feilet";
+    const subject = `Varsling om systemfeil - ${errorDesc}`;
+
+    const recipients = [
+      "philip.andersen@effektivaltruisme.no",
+      "hakon.harnes@effektivaltruisme.no",
+    ];
 
     for (let i = 0; i < recipients.length; i++) {
-
       await send({
         subject,
         reciever: recipients[i],
-        templateName: 'vippsErrorWarning',
+        templateName: "vippsErrorWarning",
         templateData: {
           header: errorDesc,
           timestamp,
           errorMessage,
           inputData,
-          reusableHTML
-        }
-      })
+          reusableHTML,
+        },
+      });
     }
 
-    return true
-  }
-  catch(ex) {
-      console.error("Failed to send Vipps agreement error email")
-      console.error(ex)
-      return ex.statusCode
+    return true;
+  } catch (ex) {
+    console.error("Failed to send Vipps agreement error email");
+    console.error(ex);
+    return ex.statusCode;
   }
 }
 
-/** 
+/**
  * @param {string} senderUrl The url from where the message was sent
  * @param {string | undefined} senderEmail The email adress of the sender, used for replying
  * @param {string} donorMessage Written message from donor explaining the problem
  * @param {VippsAgreement} agreement Vipps agreement data
-*/
-async function sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agreement) {
+ */
+async function sendVippsProblemReport(
+  senderUrl,
+  senderEmail,
+  donorMessage,
+  agreement
+) {
   try {
-    const timestamp = formatTimestamp(new Date())
+    const timestamp = formatTimestamp(new Date());
 
-    const recipients = ["philip.andersen@effektivaltruisme.no", "hakon.harnes@effektivaltruisme.no"]
+    const recipients = [
+      "philip.andersen@effektivaltruisme.no",
+      "hakon.harnes@effektivaltruisme.no",
+    ];
 
     for (let i = 0; i < recipients.length; i++) {
-    
       await send({
         subject: "En donor har rapportert et problem med Vipps",
         reciever: recipients[i],
-        templateName: 'vippsProblemReport',
+        templateName: "vippsProblemReport",
         templateData: {
           header: "Problem med Vipps betalingsavtale",
           timestamp,
@@ -445,105 +498,104 @@ async function sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agre
           senderEmail,
           donorMessage,
           agreement,
-          reusableHTML
-        }
-      })
+          reusableHTML,
+        },
+      });
     }
 
-    return true
-  }
-  catch(ex) {
-      console.error("Failed to send Vipps agreement error email")
-      console.error(ex)
-      return ex.statusCode
+    return true;
+  } catch (ex) {
+    console.error("Failed to send Vipps agreement error email");
+    console.error(ex);
+    return ex.statusCode;
   }
 }
 
-/** 
- * @param {number} donorID 
-*/
+/**
+ * @param {number} donorID
+ */
 async function sendDonationHistory(donorID) {
-  let total = 0
-    try {
-      var donationSummary = await DAO.donations.getSummary(donorID)
-      var yearlyDonationSummary = await DAO.donations.getSummaryByYear(donorID)
-      var donationHistory = await DAO.donations.getHistory(donorID)
-      var donor = await DAO.donors.getByID(donorID)
-      var email = donor.email
-      var dates = []
-      var templateName;
+  let total = 0;
+  try {
+    var donationSummary = await DAO.donations.getSummary(donorID);
+    var yearlyDonationSummary = await DAO.donations.getSummaryByYear(donorID);
+    var donationHistory = await DAO.donations.getHistory(donorID);
+    var donor = await DAO.donors.getByID(donorID);
+    var email = donor.email;
+    var dates = [];
+    var templateName;
 
-      if (!email)  {
-        console.error("No email provided for donor ID " + donorID)
-        return false
-      } 
-
-      if(donationHistory.length == 0) {
-        templateName = "noDonationHistory"
-      }
-      else { 
-        templateName = "donationHistory"
-        for (let i = 0; i < donationHistory.length; i++) {
-          dates.push(formatDateText(donationHistory[i].date))  
-        }
-
-        for (let i = 0; i < donationSummary.length - 1; i++) {
-          total += donationSummary[i].sum;
-        }
-      }
-
-      // Formatting all currencies
-
-      yearlyDonationSummary.forEach((obj) => {
-        obj.yearSum = formatCurrency(obj.yearSum);
-      })
-
-      donationSummary.forEach((obj) => {
-        obj.sum = formatCurrency(obj.sum);
-      })
-
-      donationHistory.forEach((obj) => {
-        obj.donationSum = formatCurrency(obj.donationSum)
-        obj.distributions.forEach((distribution) => {
-          distribution.sum = formatCurrency(distribution.sum);
-        })
-      })
-
-      total = formatCurrency(total);
-      
-    } catch(ex) {
-      console.error("Failed to send donation history, could not get donation by ID")
-      console.error(ex)
-      return false
+    if (!email) {
+      console.error("No email provided for donor ID " + donorID);
+      return false;
     }
 
-    try {
-      await send({
-        reciever: email,
-        subject: "Gi Effektivt - Din donasjonshistorikk",
-        templateName: templateName,
-        templateData: { 
-            header: "Hei " + donor.name + ",",
-            total: total,
-            donationSummary: donationSummary,
-            yearlyDonationSummary: yearlyDonationSummary,
-            donationHistory: donationHistory,
-            dates: dates,
-            reusableHTML
-        }
-      })
+    if (donationHistory.length == 0) {
+      templateName = "noDonationHistory";
+    } else {
+      templateName = "donationHistory";
+      for (let i = 0; i < donationHistory.length; i++) {
+        dates.push(formatDateText(donationHistory[i].date));
+      }
 
-      return true
-    } catch(ex) {
-      console.error("Failed to send donation history")
-      console.error(ex)
-      return ex.statusCode
+      for (let i = 0; i < donationSummary.length - 1; i++) {
+        total += donationSummary[i].sum;
+      }
     }
+
+    // Formatting all currencies
+
+    yearlyDonationSummary.forEach((obj) => {
+      obj.yearSum = formatCurrency(obj.yearSum);
+    });
+
+    donationSummary.forEach((obj) => {
+      obj.sum = formatCurrency(obj.sum);
+    });
+
+    donationHistory.forEach((obj) => {
+      obj.donationSum = formatCurrency(obj.donationSum);
+      obj.distributions.forEach((distribution) => {
+        distribution.sum = formatCurrency(distribution.sum);
+      });
+    });
+
+    total = formatCurrency(total);
+  } catch (ex) {
+    console.error(
+      "Failed to send donation history, could not get donation by ID"
+    );
+    console.error(ex);
+    return false;
+  }
+
+  try {
+    await send({
+      reciever: email,
+      subject: "Gi Effektivt - Din donasjonshistorikk",
+      templateName: templateName,
+      templateData: {
+        header: "Hei " + donor.name + ",",
+        total: total,
+        donationSummary: donationSummary,
+        yearlyDonationSummary: yearlyDonationSummary,
+        donationHistory: donationHistory,
+        dates: dates,
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send donation history");
+    console.error(ex);
+    return ex.statusCode;
+  }
 }
 
 /**
  * Sends donors confirmation of their tax deductible donation for a given year
- * @param {TaxDeductionRecord} taxDeductionRecord 
+ * @param {TaxDeductionRecord} taxDeductionRecord
  * @param {number} year The year the tax deductions are counted for
  */
 async function sendTaxDeductions(taxDeductionRecord, year) {
@@ -552,49 +604,54 @@ async function sendTaxDeductions(taxDeductionRecord, year) {
       reciever: taxDeductionRecord.email,
       subject: `Gi Effektivt - Årsoppgave, skattefradrag donasjoner ${year}`,
       templateName: "taxDeduction",
-      templateData: { 
-          header: "Hei " + taxDeductionRecord.firstname + ",",
-          donationSum: taxDeductionRecord.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-          fullname: taxDeductionRecord.fullname,
-          ssn: taxDeductionRecord.ssn,
-          year: year.toString(),
-          nextYear: (year+1).toString(),
-          reusableHTML
-      }
-    })
+      templateData: {
+        header: "Hei " + taxDeductionRecord.firstname + ",",
+        donationSum: taxDeductionRecord.amount
+          .toString()
+          .replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+        fullname: taxDeductionRecord.fullname,
+        ssn: taxDeductionRecord.ssn,
+        year: year.toString(),
+        nextYear: (year + 1).toString(),
+        reusableHTML,
+      },
+    });
 
-    return true
-  } catch(ex) {
-    console.error("Failed to tax deduction mail")
-    console.error(ex)
-    return ex.statusCode
+    return true;
+  } catch (ex) {
+    console.error("Failed to tax deduction mail");
+    console.error(ex);
+    return ex.statusCode;
   }
 }
 
-/** 
+/**
  * @param {string} KID
  * @param {"CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
-*/
+ */
 async function sendAvtaleGiroChange(KID, change, newValue = "") {
   try {
-    const agreement = await DAO.avtalegiroagreements.getByKID(KID)
-    const donor = await DAO.donors.getByKID(KID)
-    const email = donor.email
+    const agreement = await DAO.avtalegiroagreements.getByKID(KID);
+    const donor = await DAO.donors.getByKID(KID);
+    const email = donor.email;
 
-    const split = await DAO.distributions.getSplitByKID(KID)
-    const organizations = split.map(split => ({ name: split.full_name, percentage: parseFloat(split.percentage_share) }))
+    const split = await DAO.distributions.getSplitByKID(KID);
+    const organizations = split.map((split) => ({
+      name: split.full_name,
+      percentage: parseFloat(split.percentage_share),
+    }));
 
-    let changeDesc = "endret"
-    if (change === "CANCELLED") changeDesc = "avsluttet"
-    const subject = `Gi Effektivt - Din AvtaleGiro har blitt ${changeDesc}`
+    let changeDesc = "endret";
+    if (change === "CANCELLED") changeDesc = "avsluttet";
+    const subject = `Gi Effektivt - Din AvtaleGiro har blitt ${changeDesc}`;
 
-    if (change === "AMOUNT") newValue = formatCurrency(newValue)
-    
+    if (change === "AMOUNT") newValue = formatCurrency(newValue);
+
     await send({
       subject,
       reciever: email,
-      templateName: 'avtaleGiroChange',
+      templateName: "avtaleGiroChange",
       templateData: {
         header: "Hei, " + donor.name,
         change,
@@ -602,98 +659,130 @@ async function sendAvtaleGiroChange(KID, change, newValue = "") {
         organizations,
         agreement,
         sum: formatCurrency(agreement.amount),
-        reusableHTML
-      }
-    })
+        reusableHTML,
+      },
+    });
 
-    return true
-  }
-  catch(ex) {
-      console.error("Failed to send AvtaleGiro change email")
-      console.error(ex)
-      return ex.statusCode
+    return true;
+  } catch (ex) {
+    console.error("Failed to send AvtaleGiro change email");
+    console.error(ex);
+    return ex.statusCode;
   }
 }
 
 /**
  * Sends donors with avtalegiro agreement a notification of an upcomming claim
- * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement 
+ * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement
  * @returns {true | number} True if successfull, or an error code if failed
  */
- async function sendAvtalegiroNotification(agreement) {
-  let donor, split, organizations
-  
+async function sendAvtalegiroNotification(agreement) {
+  let donor, split, organizations;
+
   try {
-    donor = await DAO.donors.getByKID(agreement.KID)
-  } catch(ex) {
-    console.error(`Failed to send mail AvtaleGiro claim notification, could not get donor form KID ${agreement.KID}`)
-    console.error(ex)
-    return false
-  }
-  
-  try {
-    split = await DAO.distributions.getSplitByKID(agreement.KID)
+    donor = await DAO.donors.getByKID(agreement.KID);
   } catch (ex) {
-    console.error(`Failed to send mail AvtaleGiro claim notification, could not get donation split by KID ${agreement.KID}`)
-    console.error(ex)
-    return false
+    console.error(
+      `Failed to send mail AvtaleGiro claim notification, could not get donor form KID ${agreement.KID}`
+    );
+    console.error(ex);
+    return false;
+  }
+
+  try {
+    split = await DAO.distributions.getSplitByKID(agreement.KID);
+  } catch (ex) {
+    console.error(
+      `Failed to send mail AvtaleGiro claim notification, could not get donation split by KID ${agreement.KID}`
+    );
+    console.error(ex);
+    return false;
   }
 
   // Agreement amount is stored in øre
-  organizations = formatOrganizationsFromSplit(split, (agreement.amount/100))
+  organizations = formatOrganizationsFromSplit(split, agreement.amount / 100);
 
-  organizations.forEach(org => {
-    org.amount
-  })
-  
+  organizations.forEach((org) => {
+    org.amount;
+  });
+
   try {
     await send({
       reciever: donor.email,
       subject: `Gi Effektivt - Varsel trekk AvtaleGiro`,
       templateName: "avtalegironotice",
-      templateData: { 
-          header: "Hei " + donor.name + ",",
-          agreementSum: formatCurrency(agreement.amount / 100),
-          organizations: organizations,
-          reusableHTML
-      }
-    })
+      templateData: {
+        header: "Hei " + donor.name + ",",
+        agreementSum: formatCurrency(agreement.amount / 100),
+        organizations: organizations,
+        reusableHTML,
+      },
+    });
 
-    return true
-  } catch(ex) {
-    console.error("Failed to send AvtaleGiro claim notification")
-    console.error(ex)
-    return ex.statusCode
+    return true;
+  } catch (ex) {
+    console.error("Failed to send AvtaleGiro claim notification");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+/**
+ * Sends an email to notify donor of a change in our recommended organizations
+ *
+ * @param {string} email
+ */
+async function sendSciChanges(email) {
+  try {
+    const donorId = await DAO.donors.getIDbyEmail(email);
+    const donor = await DAO.donors.getByID(donorId);
+
+    await send({
+      subject:
+        "Gi Effektivt anbefaler ikke lenger SCI Foundation. Les hvordan dette påvirker dine donasjoner",
+      reciever: email,
+      templateName: "sciChanges",
+      templateData: {
+        header: "Kjære " + donor.name,
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send sci change email");
+    console.error(ex);
+    return ex.statusCode;
   }
 }
 
 /**
  * Sends OCR file for backup
- * @param {Buffer} fileContents 
+ * @param {Buffer} fileContents
  */
 async function sendOcrBackup(fileContents) {
   var data = {
-    from: 'Gi Effektivt <donasjon@gieffektivt.no>',
-    to: 'hakon.harnes@effektivaltruisme.no',
+    from: "Gi Effektivt <donasjon@gieffektivt.no>",
+    to: "hakon.harnes@effektivaltruisme.no",
     bcc: "donasjon@gieffektivt.no",
-    subject: 'OCR backup',
+    subject: "OCR backup",
     text: fileContents.toString(),
-    inline: []
-  }
+    inline: [],
+  };
 
   let result = await request.post({
-    url: 'https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages',
+    url: "https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages",
     auth: {
-        user: 'api',
-        password: config.mailgun_api_key
+      user: "api",
+      password: config.mailgun_api_key,
     },
     formData: data,
-    resolveWithFullResponse: true
-  })
-  if(result.statusCode === 200) {
-    return true
+    resolveWithFullResponse: true,
+  });
+  if (result.statusCode === 200) {
+    return true;
   } else {
-    return false
+    return false;
   }
 }
 
@@ -703,58 +792,62 @@ async function sendOcrBackup(fileContents) {
  * @prop {string} subject
  * @prop {string} templateName Name of html template, found in views folder
  * @prop {object} templateData Object with template data on the form {key: value, key2: value2 ...}
-*/
+ */
 
 /**
- * Sends a mail to 
- * @param {MailOptions} options 
+ * Sends a mail to
+ * @param {MailOptions} options
  * @returns {boolean | number} True if success, status code else
  */
 async function send(options) {
-    const templateRoot = `./${process.env.NODEMON ? 'src' : 'dist'}/views/mail/${options.templateName}`
+  const templateRoot = `./${process.env.NODEMON ? "src" : "dist"}/views/mail/${
+    options.templateName
+  }`;
 
-    var templateRawHTML = await fs.readFile(templateRoot + "/index.html", 'utf8')
-    var templateHTML = template(templateRawHTML, options.templateData)
+  var templateRawHTML = await fs.readFile(templateRoot + "/index.html", "utf8");
+  var templateHTML = template(templateRawHTML, options.templateData);
 
-    var data = {
-        from: 'Gi Effektivt <donasjon@gieffektivt.no>',
-        to: options.reciever,
-        bcc: "donasjon@gieffektivt.no",
-        subject: options.subject,
-        text: 'Your mail client does not support HTML email',
-        html: templateHTML,
-        inline: []
-    }
+  var data = {
+    from: "Gi Effektivt <donasjon@gieffektivt.no>",
+    to: options.reciever,
+    bcc: "donasjon@gieffektivt.no",
+    subject: options.subject,
+    text: "Your mail client does not support HTML email",
+    html: templateHTML,
+    inline: [],
+  };
 
-    var filesInDir = await fs.readdir(templateRoot + "/images/")
-    for (var i = 0; i < filesInDir.length; i++) {
-        data.inline.push(fs.createReadStream(templateRoot + "/images/" + filesInDir[i]))
-    }
+  var filesInDir = await fs.readdir(templateRoot + "/images/");
+  for (var i = 0; i < filesInDir.length; i++) {
+    data.inline.push(
+      fs.createReadStream(templateRoot + "/images/" + filesInDir[i])
+    );
+  }
 
-    //Exceptions bubble up
-    let result = await request.post({
-        url: 'https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages',
-        auth: {
-            user: 'api',
-            password: config.mailgun_api_key
-        },
-        formData: data,
-        resolveWithFullResponse: true
-    })
-    if(result.statusCode === 200) {
-      return true
-    } else {
-      return false
-    }
+  //Exceptions bubble up
+  let result = await request.post({
+    url: "https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages",
+    auth: {
+      user: "api",
+      password: config.mailgun_api_key,
+    },
+    formData: data,
+    resolveWithFullResponse: true,
+  });
+  if (result.statusCode === 200) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 function formatDate(date) {
-  return moment(date).format("DD.MM.YYYY")
+  return moment(date).format("DD.MM.YYYY");
 }
 
 function formatTimestamp(date) {
-  const timestamp = moment(date).format("HH:mm - DD.MM.YYYY")
-  return timestamp
+  const timestamp = moment(date).format("HH:mm - DD.MM.YYYY");
+  return timestamp;
 }
 
 module.exports = {
@@ -769,5 +862,6 @@ module.exports = {
   sendTaxDeductions,
   sendAvtaleGiroChange,
   sendAvtalegiroNotification,
-  sendOcrBackup
-}
+  sendSciChanges,
+  sendOcrBackup,
+};
