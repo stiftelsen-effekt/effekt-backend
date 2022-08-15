@@ -655,6 +655,45 @@ async function addShipment(numClaims) {
     }
 }
 
+/**
+ * Gets all AG donations by KID
+ * @param {string} KID KID number
+ * @returns {Array<Donation>} Array of Donation objects
+ */
+ async function getDonationsByKID(KID) {
+    try {
+        var con = await pool.getConnection()
+
+        var [getDonationsByKIDQuery] = await con.query(`
+            SELECT *, D.ID, payment_name FROM Donations as D
+                INNER JOIN Payment as P on D.Payment_ID = P.ID
+                WHERE KID_fordeling = ? AND Payment_ID = 7`, 
+        [KID])
+
+        let donations = []
+
+        getDonationsByKIDQuery.forEach(donation => {
+            donations.push({
+                id: donation.ID,
+                donor: donation.full_name,
+                donorId: donation.donorId,
+                email: donation.email,
+                sum: donation.sum_confirmed,
+                transactionCost: donation.transaction_cost,
+                timestamp: donation.timestamp_confirmed,
+                paymentMethod: donation.payment_name,
+                KID: donation.KID_fordeling
+            })
+        })
+
+        con.release()
+        return donations
+    } catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
 const jsDBmapping = [
     ["id", "ID"],
     ["full_name", "full_name"],
@@ -670,6 +709,7 @@ const jsDBmapping = [
     ["kidFordeling", "KID_fordeling"],
     ["cancelled", "cancelled"]
 ]
+
 
 module.exports = {
     add,
@@ -693,6 +733,7 @@ module.exports = {
     getMissingForDate,
     getRecievedDonationsForDate,
     getExpectedDonationsForDate,
+    getDonationsByKID,
 
     addShipment,
     setup: (dbPool) => { pool = dbPool }
