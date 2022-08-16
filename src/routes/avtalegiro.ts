@@ -1,4 +1,4 @@
-import * as express from 'express';
+import * as express from "express";
 import { checkAvtaleGiroAgreement } from "../custom_modules/authorization/authMiddleware";
 
 const router = express.Router();
@@ -37,29 +37,25 @@ router.post("/draft", async (req, res, next) => {
   res.json({ status: 200 });
 });
 
-router.post(
-  "/agreements",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      var results = await DAO.avtalegiroagreements.getAgreements(
-        req.body.sort,
-        req.body.page,
-        req.body.limit,
-        req.body.filter
-      );
-      return res.json({
-        status: 200,
-        content: {
-          pages: results.pages,
-          rows: results.rows,
-        },
-      });
-    } catch (ex) {
-      next(ex);
-    }
+router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    var results = await DAO.avtalegiroagreements.getAgreements(
+      req.body.sort,
+      req.body.page,
+      req.body.limit,
+      req.body.filter
+    );
+    return res.json({
+      status: 200,
+      content: {
+        pages: results.pages,
+        rows: results.rows,
+      },
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 /**
  * @openapi
@@ -94,25 +90,21 @@ router.post(
  *      401:
  *        description: User not authorized to view resource
  */
-router.get(
-  "/agreement/:id",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      var result = await DAO.avtalegiroagreements.getAgreement(req.params.id);
-      result["ID"] = result["ID"].toString();
+router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    var result = await DAO.avtalegiroagreements.getAgreement(req.params.id);
+    result["ID"] = result["ID"].toString();
 
-      return res.json({
-        status: 200,
-        content: {
-          ...result,
-        },
-      });
-    } catch (ex) {
-      next(ex);
-    }
+    return res.json({
+      status: 200,
+      content: {
+        ...result,
+      },
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 router.get("/histogram", async (req, res, next) => {
   try {
@@ -140,102 +132,88 @@ router.get("/report", async (req, res, next) => {
   }
 });
 
-router.get(
-  "/validation",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      let content = await DAO.avtalegiroagreements.getValidationTable();
+router.get("/validation", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    let content = await DAO.avtalegiroagreements.getValidationTable();
 
-      res.json({
-        status: 200,
-        content,
-      });
-    } catch (ex) {
-      next(ex);
-    }
+    res.json({
+      status: 200,
+      content,
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
-router.get(
-  "/missing/",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      let date = req.query.date;
+router.get("/missing/", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    let date = req.query.date;
 
-      if (!date) throw new Error("Date query missing");
+    if (!date) throw new Error("Date query missing");
 
-      if (!moment(date, moment.ISO_8601, true).isValid())
-        throw new Error("Date query must be in ISO 8601 format");
+    if (!moment(date, moment.ISO_8601, true).isValid())
+      throw new Error("Date query must be in ISO 8601 format");
 
-      date = new Date(date);
+    date = new Date(date);
 
-      const content = await DAO.avtalegiroagreements.getMissingForDate(date);
+    const content = await DAO.avtalegiroagreements.getMissingForDate(date);
 
-      res.json({
-        status: 200,
-        content,
-      });
-    } catch (ex) {
-      next(ex);
-    }
+    res.json({
+      status: 200,
+      content,
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
-router.get(
-  "/expected/",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      let date = req.query.date;
+router.get("/expected/", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    let date = req.query.date;
 
-      if (!date) throw new Error("Date query missing");
+    if (!date) throw new Error("Date query missing");
 
-      if (!moment(date, moment.ISO_8601, true).isValid())
-        throw new Error("Date query must be in ISO 8601 format");
+    if (!moment(date, moment.ISO_8601, true).isValid())
+      throw new Error("Date query must be in ISO 8601 format");
 
-      date = new Date(date);
+    date = new Date(date);
 
-      const content =
-        await DAO.avtalegiroagreements.getExpectedDonationsForDate(date);
+    const content = await DAO.avtalegiroagreements.getExpectedDonationsForDate(
+      date
+    );
 
-      res.json({
-        status: 200,
-        content,
-      });
-    } catch (ex) {
-      next(ex);
-    }
+    res.json({
+      status: 200,
+      content,
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
-router.get(
-  "/recieved/",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      let date = req.query.date;
+router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    let date = req.query.date;
 
-      if (!date) throw new Error("Date query missing");
+    if (!date) throw new Error("Date query missing");
 
-      if (!moment(date, moment.ISO_8601, true).isValid())
-        throw new Error("Date query must be in ISO 8601 format");
+    if (!moment(date, moment.ISO_8601, true).isValid())
+      throw new Error("Date query must be in ISO 8601 format");
 
-      date = new Date(date);
+    date = new Date(date);
 
-      const content =
-        await DAO.avtalegiroagreements.getRecievedDonationsForDate(date);
+    const content = await DAO.avtalegiroagreements.getRecievedDonationsForDate(
+      date
+    );
 
-      res.json({
-        status: 200,
-        content,
-      });
-    } catch (ex) {
-      next(ex);
-    }
+    res.json({
+      status: 200,
+      content,
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 /**
  * @openapi
@@ -330,7 +308,7 @@ router.post(
         metaOwnerID
       );
 
-      await mail.sendAvtaleGiroChange(originalKID, "SHARES", split)
+      await mail.sendAvtaleGiroChange(originalKID, "SHARES", split);
       res.send(response);
     } catch (ex) {
       next({ ex });
@@ -375,7 +353,7 @@ router.post(
 
       const response = await DAO.avtalegiroagreements.setActive(KID, active);
 
-      if (active === 0) await mail.sendAvtaleGiroChange(KID, "CANCELLED")
+      if (active === 0) await mail.sendAvtaleGiroChange(KID, "CANCELLED");
       res.send(response);
     } catch (ex) {
       next({ ex });
@@ -420,7 +398,7 @@ router.post(
 
       const response = await DAO.avtalegiroagreements.updateAmount(KID, amount);
 
-      await mail.sendAvtaleGiroChange(KID, "AMOUNT", amount)
+      await mail.sendAvtaleGiroChange(KID, "AMOUNT", amount);
       res.send(response);
     } catch (ex) {
       next({ ex });
@@ -470,10 +448,28 @@ router.post(
         paymentDate
       );
 
-      await mail.sendAvtaleGiroChange(KID, "CHARGEDAY", paymentDate)
+      await mail.sendAvtaleGiroChange(KID, "CHARGEDAY", paymentDate);
       res.send(response);
     } catch (ex) {
       next({ ex });
+    }
+  }
+);
+
+router.get(
+  "/donations/:kid",
+  authMiddleware.isAdmin,
+  async (req, res, next) => {
+    try {
+      const donations = await DAO.avtalegiroagreements.getDonationsByKID(
+        req.params.kid
+      );
+      return res.json({
+        status: 200,
+        content: donations,
+      });
+    } catch (ex) {
+      next(ex);
     }
   }
 );
