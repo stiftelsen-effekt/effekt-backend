@@ -217,6 +217,68 @@ router.get(
 
 /**
  * @openapi
+ * /donors/{id}/referrals:
+ *   get:
+ *    tags: [Donors]
+ *    description: Get answers from referral question for donor by id
+ *    security:
+ *       - auth0_jwt: [read:profile]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to retrieve.
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Returns a donor object
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content:
+ *                        $ref: '#/components/schemas/ReferralAnswer'
+ *                   example:
+ *                      content:
+ *                        $ref: '#/components/schemas/ReferralAnswer/example'
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donor with given id not found
+ */
+router.get(
+  "/:id/referrals",
+  authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      var answers = await DAO.referrals.getDonorAnswers(req.params.id);
+
+      if (answers) {
+        return res.json({
+          status: 200,
+          content: answers,
+        });
+      } else {
+        return res.status(404).json({
+          status: 404,
+          content: "No donor found with ID " + req.params.id,
+        });
+      }
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+/**
+ * @openapi
  * /donors/{id}:
  *   delete:
  *    tags: [Donors]
