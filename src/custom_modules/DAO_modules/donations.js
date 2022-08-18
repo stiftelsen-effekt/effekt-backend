@@ -67,6 +67,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
                 if (filter.paymentMethodIDs) where.push(` Payment_ID IN (${filter.paymentMethodIDs.map((ID) => sqlString.escape(ID)).join(',')}) `)
 
                 if (filter.donor) where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)} OR Donors.email LIKE ${sqlString.escape(`%${filter.donor}%`)}) `)
+                if (filter.id) where.push(` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `)
             }
 
             const [donations] = await con.query(`SELECT 
