@@ -1,0 +1,42 @@
+openapi: 3.0.1
+components:
+  schemas:
+    ReferralAnswer:
+      type: object
+      required:
+        - id
+        - typeId
+        - donorId
+        - answer
+        - active
+      properties:
+        id:
+          type: number
+          description: The auto-generated id of a referral answer
+        typeId:
+          type: number
+          description: The auto-generated id of a referral type
+        donorId:
+          type: number
+          description: The auto-generated id of the Donor
+        answer:
+          type: string
+          description: The referral answer
+        timestamp:
+          type: string
+          format: date-time
+          description: When the referral answer was registered
+        session:
+          type: string
+          description: The web session
+        active:
+          type: boolean
+          description: Whether or not this referral type is currently enabled
+      example:
+        id: 1234
+        typeId: 10
+        donorId: 3
+        answer: Moralfilosofisk tankeeksperiment
+        timestamp: "2021-12-28T10:13:24.000Z"
+        session: "1657788222552"
+        active: boolean;

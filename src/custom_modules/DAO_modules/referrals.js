@@ -65,6 +65,28 @@ async function getDonorAnswered(donorID) {
     else return false
 }
 
+/**
+ * Gets all referrals for a user
+ * @param {number} donorID
+ */
+async function getDonorAnswers(donorID) {
+    let [answers] = await con.query(`
+        SELECT
+          r.id AS id, t.id AS typeId, r.UserId AS donorId, r.Registered AS timestamp, r.website_session AS session, t.is_active AS active,
+          CASE r.ReferralID
+            WHEN 10 THEN r.other_comment
+            ELSE t.name END
+              AS answer
+          FROM Referral_records r
+            JOIN Referral_types t
+              ON r.ReferralID = t.ID
+          WHERE r.UserId = ?
+          ORDER BY id;
+    `, [donorID])
+
+    return answers;
+}
+
 //endregion
 
 //region Add
@@ -94,6 +116,7 @@ module.exports = {
     getTypes,
     getAggregate,
     getDonorAnswered,
+    getDonorAnswers,
     addRecord,
 
     setup: (dbPool) => { con = dbPool }

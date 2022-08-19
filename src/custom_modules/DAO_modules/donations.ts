@@ -93,6 +93,11 @@ async function getAll(sort, page, limit = 10, filter = null) {
               `%${filter.donor}%`
             )} OR Donors.email LIKE ${sqlString.escape(`%${filter.donor}%`)}) `
           );
+
+        if (filter.id)
+          where.push(
+            ` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `
+          );
       }
 
       const [donations] = await con.query(

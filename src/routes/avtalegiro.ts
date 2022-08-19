@@ -456,4 +456,22 @@ router.post(
   }
 );
 
+router.get(
+  "/donations/:kid",
+  authMiddleware.isAdmin,
+  async (req, res, next) => {
+    try {
+      const donations = await DAO.avtalegiroagreements.getDonationsByKID(
+        req.params.kid
+      );
+      return res.json({
+        status: 200,
+        content: donations,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
 module.exports = router;

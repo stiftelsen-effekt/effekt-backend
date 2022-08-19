@@ -34,9 +34,8 @@ router.post(
     try {
       const paymentID = req.body.paymentID;
       const email = req.body.email;
-      const full_name = req.body.full_name;
+      const full_name = req.body.name;
       const ssn = req.body.ssn;
-      const newsletter = req.body.newsletter;
 
       if (!paymentID) {
         throwError("Missing param paymentID");
@@ -46,17 +45,15 @@ router.post(
         throwError("Missing param full_name");
       } else if (!ssn) {
         throwError("Missing param ssn");
-      } else if (!newsletter) {
-        throwError("Missing param newsletter");
       }
 
       const ID = await DAO.donors.getIDbyEmail(email);
-      let taxUnitID: number;
+      let taxUnitID: number | undefined = undefined;
 
       // If donor does not exist, create new donor
       if (!ID) {
-        const donorID = await DAO.donors.add(email, full_name, newsletter);
-
+        const donorID = await DAO.donors.add(email, full_name, ssn, newsletter);
+        taxUnitID = await DAO.tax.addTaxUnit(donorID, ssn, full_name);
         await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
       }
       // If donor already exists, update ssn if empty
@@ -70,8 +67,6 @@ router.post(
         } else {
           taxUnitID = await DAO.tax.addTaxUnit(donor.id, ssn, full_name);
         }
-
-        await DAO.donors.updateNewsletter(donorID, newsletter);
 
         await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
       }
