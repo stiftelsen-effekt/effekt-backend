@@ -880,6 +880,23 @@ async function updateTransactionCost(transactionCost, donationID) {
     }
 }
 
+async function updateAmount(amount, donationID) {
+    try {
+        var con = await pool.getConnection()
+
+        await con.execute(`
+            UPDATE Donations
+            SET sum_confirmed = ?
+            WHERE ID = ?`, [amount, donationID])
+
+        con.release()
+        return getByID(donationID)
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
+}
 //endregion
 
 //region Delete
@@ -942,6 +959,7 @@ module.exports = {
     getByExternalPaymentID,
     externalPaymentIDExists,
     updateTransactionCost,
+    updateAmount,
     add,
     registerConfirmedByIDs,
     getHistogramBySum,

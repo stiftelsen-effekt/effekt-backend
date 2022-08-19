@@ -519,6 +519,60 @@ router.put(
 
 /**
  * @openapi
+ * /donations/{id}/amount:
+ *   put:
+ *    tags: [Donations]
+ *    description: Update donation sum by ID
+ *    parameters:
+ *      - in: path
+ *        name: ID
+ *        required: true
+ *        description: ID of the donation to update
+ *        schema:
+ *          type: integer
+ *      - in: body
+ *        name: amount
+ *        required: true
+ *        description: The new donation sum
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Donation sum updated
+ *      401:
+ *        description: User not authorized to access endpoint
+ *      404:
+ *        description: Donation with given id not found
+ */
+
+router.put(
+  "/:donationID/amount",
+  authMiddleware.isAdmin,
+  async (req, res, next) => {
+    try {
+      let updatedDonation = await DAO.donations.updateAmount(
+        req.body.amount,
+        req.params.donationID
+      );
+
+      if (updatedDonation) {
+        return res.json({
+          status: 200,
+          content: updatedDonation
+        });
+      } else {
+        throw new Error(
+          `Could not update amount for donation ID ${req.params.donationID}`
+        );
+      }
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+/**
+ * @openapi
  * /donations/{id}:
  *   delete:
  *    tags: [Donations]
