@@ -4,6 +4,14 @@ import { donations } from "./DAO_modules/donations";
 import { distributions } from "./DAO_modules/distributions";
 import { vipps } from "./DAO_modules/vipps";
 import { facebook } from "./DAO_modules/facebook";
+import { payment } from "./DAO_modules/payment";
+import { parsing } from "./DAO_modules/parsing";
+import { referrals } from "./DAO_modules/referrals";
+import { meta } from "./DAO_modules/meta";
+import { initialpaymentmethod } from "./DAO_modules/initialpaymentmethod";
+import { avtalegiroagreements } from "./DAO_modules/avtalegiroagreements";
+import { logging } from "./DAO_modules/logging";
+import { organizations } from "./DAO_modules/organizations";
 
 const config = require("../config");
 const mysql = require("mysql2/promise");
@@ -11,19 +19,19 @@ const mysql = require("mysql2/promise");
 export const DAO = {
   //Submodules
   donors: donors,
-  organizations: require("./DAO_modules/organizations"),
+  organizations: organizations,
   donations: donations,
   distributions: distributions,
-  payment: require("./DAO_modules/payment"),
+  payment: payment,
   vipps: vipps,
-  parsing: require("./DAO_modules/parsing"),
-  referrals: require("./DAO_modules/referrals"),
-  meta: require("./DAO_modules/meta"),
-  initialpaymentmethod: require("./DAO_modules/initialpaymentmethod"),
-  avtalegiroagreements: require("./DAO_modules/avtalegiroagreements"),
+  parsing: parsing,
+  referrals: referrals,
+  meta: meta,
+  initialpaymentmethod: initialpaymentmethod,
+  avtalegiroagreements: avtalegiroagreements,
   facebook: facebook,
   tax: tax,
-  logging: require("./DAO_modules/logging"),
+  logging: logging,
 
   /**
    * Sets up a connection to the database, uses config.js file for parameters

@@ -1,9 +1,9 @@
-var con
+var con;
 
 //region Get
 
 /**
- * @typedef DataOwner 
+ * @typedef DataOwner
  * @prop {Number} id
  * @prop {String} name
  * @prop {Boolean} default
@@ -14,13 +14,12 @@ var con
  * @returns {Array<DataOwner>} An array of DataOwner objects
  */
 async function getDataOwners() {
-    var [res] = await con.query(`SELECT * FROM Data_owner`)
-    return res.map((owner) => ({ 
-            id: owner.ID,
-            name: owner.owner,
-            default: (owner.default == 1 ? true : false)
-        })
-    )
+  var [res] = await con.query(`SELECT * FROM Data_owner`);
+  return res.map((owner) => ({
+    id: owner.ID,
+    name: owner.owner,
+    default: owner.default == 1 ? true : false,
+  }));
 }
 
 /**
@@ -28,8 +27,8 @@ async function getDataOwners() {
  * @returns {Number} The default owner ID
  */
 async function getDefaultOwnerID() {
-    var [res] = await con.query('SELECT ID FROM Data_owner WHERE `default` = 1')
-    return res[0].ID
+  var [res] = await con.query("SELECT ID FROM Data_owner WHERE `default` = 1");
+  return res[0].ID;
 }
 
 //endregion
@@ -45,9 +44,11 @@ async function getDefaultOwnerID() {
 //region Delete
 //endregion
 
-module.exports = {
-    getDataOwners,
-    getDefaultOwnerID,
+export const meta = {
+  getDataOwners,
+  getDefaultOwnerID,
 
-    setup: (dbPool) => { con = dbPool }
-}
+  setup: (dbPool) => {
+    con = dbPool;
+  },
+};

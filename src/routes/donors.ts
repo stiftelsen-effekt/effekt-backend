@@ -1,9 +1,9 @@
 import * as express from "express";
 import { checkDonor } from "../custom_modules/authorization/authMiddleware";
+import { DAO } from "../custom_modules/DAO";
 const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 const roles = require("../enums/authorizationRoles");
-const DAO = require("../custom_modules/DAO");
 const bodyParser = require("body-parser");
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
 const validator = require("@navikt/fnrvalidator");
@@ -96,7 +96,7 @@ router.post("/auth0/register", async (req, res, next) => {
     let donorID = await DAO.donors.getIDbyEmail(req.body.email);
 
     if (donorID === null) {
-      donorID = await DAO.donors.add(req.body.email, null, null, false);
+      donorID = await DAO.donors.add(req.body.email, null, false);
     }
 
     res.json({
@@ -808,20 +808,11 @@ router.put(
       }
       // Check for SSN, validator from https://github.com/navikt/fnrvalidator
       if (req.body.ssn) {
-        if (req.body.ssn.length == 11) {
-          if (validator.fnr(req.body.ssn.toString()).status === "invalid") {
-            return res.status(400).json({
-              status: 400,
-              content: "The SSN is invalid, it must be 11 numbers in one word",
-            });
-          }
-        } else if (req.body.ssn.length != 9) {
-          return res.status(400).json({
-            status: 400,
-            content:
-              "The SSN is invalid, it must be 11 or 9 numbers in one word ",
-          });
-        }
+        return res.status(400).json({
+          status: 400,
+          content:
+            "SSN is no longer directly tied to donor, use endpoints related to tax units",
+        });
       }
 
       // Check for newsletter
@@ -836,7 +827,6 @@ router.put(
       const updated = await DAO.donors.update(
         req.params.id,
         req.body.name,
-        req.body.ssn,
         req.body.newsletter
       );
       if (updated) {

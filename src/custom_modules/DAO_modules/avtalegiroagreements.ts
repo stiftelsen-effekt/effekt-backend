@@ -768,7 +768,7 @@ const jsDBmapping = [
   ["cancelled", "cancelled"],
 ];
 
-module.exports = {
+export const avtalegiroagreements = {
   add,
   setActive,
   isActive,

@@ -1,4 +1,4 @@
-var con
+var con;
 
 //region Get
 
@@ -10,8 +10,8 @@ var con
 
 /**
  * @typedef ReferralTypeAggregateAugmentation
- * @property {number} count 
- * 
+ * @property {number} count
+ *
  * @typedef {ReferralType & ReferralTypeAggregateAugmentation} ReferralTypeAggregate
  */
 
@@ -20,16 +20,16 @@ var con
  * @returns {Array<ReferralType>} An array of payment method objects
  */
 async function getTypes() {
-    let [types] = await con.query(`
+  let [types] = await con.query(`
         SELECT * FROM Referral_types 
             WHERE is_active = 1
-            ORDER BY ordering`)
+            ORDER BY ordering`);
 
-    return types.map((type) => ({
-        id: type.ID, 
-        name: type.name, 
-        ordering: type.ordering
-    }))
+  return types.map((type) => ({
+    id: type.ID,
+    name: type.name,
+    ordering: type.ordering,
+  }));
 }
 
 /**
@@ -37,32 +37,35 @@ async function getTypes() {
  * @returns {Array<ReferralTypeAggregate>}
  */
 async function getAggregate() {
-    let [aggregates] = await con.query(`
+  let [aggregates] = await con.query(`
         SELECT Referral_types.ID, Referral_types.name, count(ReferralID) as count
             FROM Referral_records
             
             INNER JOIN Referral_types
                 ON Referral_records.ReferralID = Referral_types.ID
             
-            GROUP BY Referral_records.ReferralID`)
+            GROUP BY Referral_records.ReferralID`);
 
-    return aggregates
+  return aggregates;
 }
 
 /**
  * Checks if the donor has answered referral question before
- * @param {number} donorID 
+ * @param {number} donorID
  */
 async function getDonorAnswered(donorID) {
-    let [answersCount] = await con.query(`
+  let [answersCount] = await con.query(
+    `
         SELECT count(UserID) as count
             FROM Referral_records
             
             WHERE UserID = ?
-    `, [donorID])
+    `,
+    [donorID]
+  );
 
-    if (answersCount[0].count > 0) return true
-    else return false
+  if (answersCount[0].count > 0) return true;
+  else return false;
 }
 
 /**
@@ -70,7 +73,8 @@ async function getDonorAnswered(donorID) {
  * @param {number} donorID
  */
 async function getDonorAnswers(donorID) {
-    let [answers] = await con.query(`
+  let [answers] = await con.query(
+    `
         SELECT
           r.id AS id, t.id AS typeId, r.UserId AS donorId, r.Registered AS timestamp, r.website_session AS session, t.is_active AS active,
           CASE r.ReferralID
@@ -82,9 +86,11 @@ async function getDonorAnswers(donorID) {
               ON r.ReferralID = t.ID
           WHERE r.UserId = ?
           ORDER BY id;
-    `, [donorID])
+    `,
+    [donorID]
+  );
 
-    return answers;
+  return answers;
 }
 
 //endregion
@@ -97,9 +103,12 @@ async function getDonorAnswers(donorID) {
  * @param {string} otherComment
  */
 async function addRecord(referralTypeID, donorID, otherComment) {
-    let [query] = await con.query(`INSERT INTO Referral_records (ReferralID, UserID, other_comment) VALUES (?,?,?)`, [referralTypeID, donorID, otherComment])
+  let [query] = await con.query(
+    `INSERT INTO Referral_records (ReferralID, UserID, other_comment) VALUES (?,?,?)`,
+    [referralTypeID, donorID, otherComment]
+  );
 
-    return true
+  return true;
 }
 //endregion
 
@@ -111,13 +120,14 @@ async function addRecord(referralTypeID, donorID, otherComment) {
 //endregion
 
 //Helpers
+export const referrals = {
+  getTypes,
+  getAggregate,
+  getDonorAnswered,
+  getDonorAnswers,
+  addRecord,
 
-module.exports = {
-    getTypes,
-    getAggregate,
-    getDonorAnswered,
-    getDonorAnswers,
-    addRecord,
-
-    setup: (dbPool) => { con = dbPool }
-}
+  setup: (dbPool) => {
+    con = dbPool;
+  },
+};
