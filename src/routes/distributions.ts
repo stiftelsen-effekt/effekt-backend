@@ -16,6 +16,14 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
       });
     }
 
+    if (!req.body.standardSplit) {
+      return res.status(400).json({
+        status: 400,
+        content: "Missing param standard split",
+      });
+    }
+    const standardSplit = req.body.standardSplit;
+
     let split = req.body.distribution.map((distribution) => {
         return {
           organizationID: distribution.organizationId,
@@ -41,11 +49,23 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
     }
 
     //Check for existing distribution with that KID
-    let KID = await DAO.distributions.getKIDbySplit(split, donorId, taxUnitId);
+    let KID = await DAO.distributions.getKIDbySplit(
+      split,
+      donorId,
+      taxUnitId,
+      standardSplit
+    );
 
     if (!KID) {
       KID = await donationHelpers.createKID(15, donorId);
-      await DAO.distributions.add(split, KID, donorId, metaOwnerID);
+      await DAO.distributions.add(
+        split,
+        KID,
+        donorId,
+        taxUnitId,
+        standardSplit,
+        metaOwnerID
+      );
     }
 
     res.json({

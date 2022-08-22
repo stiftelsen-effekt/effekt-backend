@@ -33,6 +33,29 @@ async function getById(id: number): Promise<TaxUnit | null> {
 }
 
 /**
+ * Gets a tax unit KID
+ * @param {number} id The id of the tax unit
+ * @returns {TaxUnit | null} A tax unit if found
+ */
+async function getByKID(KID: string): Promise<TaxUnit | null> {
+  try {
+    var con = await pool.getConnection();
+    const [result] = await con.execute<RowDataPacket[]>(
+      `SELECT Tax_unit_ID FROM EffektDonasjonDB_Tax.Combining_table WHERE KID = ?
+        GROUP BY Tax_unit_ID;`,
+      [KID]
+    );
+
+    con.release();
+    if (result.length > 0) return result[0].Tax_unit_ID;
+    else return null;
+  } catch (ex) {
+    con.release();
+    throw ex;
+  }
+}
+
+/**
  * Gets a tax unit by donor id and ssn
  * @param {number} donorId The id of a donor
  * @param {string} ssn A social security number
@@ -100,6 +123,7 @@ async function addTaxUnit(
 //endregion
 export const tax = {
   getById,
+  getByKID,
   getByDonorIdAndSsn,
   addTaxUnit,
 

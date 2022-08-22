@@ -1,4 +1,4 @@
-import { distributions } from "./distributions";
+import { DAO } from "../DAO";
 
 const sqlString = require("sqlstring");
 var pool;
@@ -167,8 +167,17 @@ async function replaceDistribution(
       [replacementKID, originalKID]
     );
 
+    const taxUnitId = await DAO.tax.getByKID(originalKID);
+
     // Add new distribution using the original KID
-    await distributions.add(split, originalKID, donorId, metaOwnerID);
+    await DAO.distributions.add(
+      split,
+      originalKID,
+      donorId,
+      taxUnitId,
+      false,
+      metaOwnerID
+    );
 
     // Links the replacement KID to the original AvtaleGiro KID
     await con.query(
@@ -407,7 +416,7 @@ async function getAgreement(id) {
 
   const avtaleGiro = result[0][0];
 
-  let split = await distributions.getSplitByKID(avtaleGiro.KID);
+  let split = await DAO.distributions.getSplitByKID(avtaleGiro.KID);
 
   avtaleGiro.distribution = split.map((split) => ({
     abbriv: split.abbriv,

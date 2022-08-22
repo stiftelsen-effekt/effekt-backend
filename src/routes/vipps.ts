@@ -545,7 +545,7 @@ router.put(
 
       // !===== Tax unit is missing here =====!
       //Check for existing distribution with that KID
-      let KID = await DAO.distributions.getKIDbySplit(split, donorId, 0);
+      let KID = await DAO.distributions.getKIDbySplit(split, donorId, 0, false);
 
       if (!KID) {
         KID = await donationHelpers.createKID();

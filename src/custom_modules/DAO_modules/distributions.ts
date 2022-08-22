@@ -205,9 +205,16 @@ async function KIDexists(KID) {
  * @param {number} donorID
  * @param {number} taxUnitId The ID of the associated tax unit for a distribution
  * @param {number} minKidLength Specify a minimum length of KID to match against
+ * @param {boolean} standardSplit
  * @returns {number | null} KID or null if no KID found
  */
-async function getKIDbySplit(split, donorID, taxUnitId, minKidLength = 0) {
+async function getKIDbySplit(
+  split,
+  donorID: number,
+  taxUnitId: number,
+  standardSplit: boolean,
+  minKidLength = 0
+) {
   try {
     var con = await pool.getConnection();
 
@@ -221,6 +228,10 @@ async function getKIDbySplit(split, donorID, taxUnitId, minKidLength = 0) {
                 ON C.Distribution_ID = D.ID
         
         WHERE
+
+        Standard_split = ${standardSplit ? 1 : 0}
+
+        AND
         `;
 
     for (let i = 0; i < split.length; i++) {
@@ -328,6 +339,29 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
     throw ex;
   }
 }
+
+/**
+ * Checks whether a given distribution has standard split
+ * @param {number} KID
+ * @returns {boolean}
+ */
+async function isStandardDistribution(KID) {
+  try {
+    var con = await pool.getConnection();
+
+    var [res] = await con.query(
+      "SELECT KID, Standard_split FROM EffektDonasjonDB_Tax.Combining_table WHERE KID = ? GROUP BY KID, Standard_split;",
+      [KID]
+    );
+
+    con.release();
+    if (res.length > 0 && res[0]["Standard_split"] === 1) return true;
+    else return false;
+  } catch (ex) {
+    con.release();
+    throw ex;
+  }
+}
 //endregion
 
 //region add
@@ -337,9 +371,17 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
  * @param {number} KID
  * @param {number} donorID
  * @param {number | null} taxUnitId The id of the tax unit to associate the distribution with. Can be null if no tax unit is associated.
+ * @param {boolean} standardSplit
  * @param {number | null} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
  */
-async function add(split, KID, donorID, taxUnitId = null, metaOwnerID = null) {
+async function add(
+  split,
+  KID,
+  donorID,
+  taxUnitId = null,
+  standardSplit = false,
+  metaOwnerID = null
+) {
   try {
     var transaction = await pool.startTransaction();
 
@@ -385,6 +427,7 @@ export const distributions = {
   getAll,
   getAllByDonor,
   getByDonorId,
+  isStandardDistribution,
   add,
 
   setup: (dbPool, DAOObject) => {
