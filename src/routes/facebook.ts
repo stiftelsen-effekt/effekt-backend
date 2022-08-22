@@ -52,7 +52,7 @@ router.post(
 
       // If donor does not exist, create new donor
       if (!ID) {
-        const donorID = await DAO.donors.add(email, full_name, ssn);
+        const donorID = await DAO.donors.add(email, full_name);
         taxUnitID = await DAO.tax.addTaxUnit(donorID, ssn, full_name);
         await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
       }

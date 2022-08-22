@@ -43,11 +43,7 @@ router.post(
         });
       }
 
-      const donorId = await DAO.donors.add(
-        req.body.email,
-        req.body.name,
-        req.body.ssn
-      );
+      const donorId = await DAO.donors.add(req.body.email, req.body.name);
 
       /**
        * If we are provided a social security number, we should add a tax unit to the donor
