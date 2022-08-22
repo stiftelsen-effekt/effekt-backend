@@ -27,7 +27,7 @@ export interface components {
     Distribution: {
       /** @description The KID of the distribution */
       KID?: string;
-      organizations?: components["schemas"]["DistributionOrganization"][];
+      organizations?: any;
     };
   };
 }
