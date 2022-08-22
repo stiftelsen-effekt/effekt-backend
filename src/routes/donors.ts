@@ -1,12 +1,13 @@
 import * as express from "express";
 import { checkDonor } from "../custom_modules/authorization/authMiddleware";
+import { DAO } from "../custom_modules/DAO";
+import { fnr } from "@navikt/fnrvalidator";
+import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+
 const router = express.Router();
-const authMiddleware = require("../custom_modules/authorization/authMiddleware");
 const roles = require("../enums/authorizationRoles");
-const DAO = require("../custom_modules/DAO");
 const bodyParser = require("body-parser");
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
-const validator = require("@navikt/fnrvalidator");
 
 /**
  * @openapi
@@ -22,23 +23,69 @@ const validator = require("@navikt/fnrvalidator");
  *    tags: [Donors]
  *    description: Add a new user
  */
-router.post("/", urlEncodeParser, async (req, res, next) => {
-  try {
-    if (!req.body.name) {
-      let error = new Error("Missing param email or param name");
-      throw error;
+router.post(
+  "/",
+  authMiddleware.isAdmin,
+  urlEncodeParser,
+  async (req, res, next) => {
+    try {
+      if (!req.body.name || !req.body.email) {
+        let error = new Error("Missing param email or param name");
+        throw error;
+      }
+
+      const existing = await DAO.donors.getIDbyEmail(req.body.email);
+
+      if (existing !== null) {
+        return res.status(409).json({
+          status: 409,
+          content: "Email already exists",
+        });
+      }
+
+      const donorId = await DAO.donors.add(
+        req.body.email,
+        req.body.name,
+        req.body.ssn
+      );
+
+      /**
+       * If we are provided a social security number, we should add a tax unit to the donor
+       */
+      if (req.body.ssn) {
+        if (req.body.ssn.length === 11) {
+          // Birth number is 11 digits
+          const validation = fnr(req.body.ssn);
+          if (validation.status !== "valid") {
+            return res.status(400).json({
+              status: 400,
+              content:
+                "Invalid ssn (failed fnr validation) " +
+                validation.reasons.join(", "),
+            });
+          }
+        } else if (req.body.ssn.length === 9) {
+          // Organization number is 9 digits
+          // No validatino performed
+        } else {
+          return res.status(400).json({
+            status: 400,
+            content: "Invalid ssn (length is not 9 or 11)",
+          });
+        }
+
+        await DAO.tax.addTaxUnit(donorId, req.body.ssn, req.body.name);
+      }
+
+      return res.json({
+        status: 200,
+        content: "OK",
+      });
+    } catch (ex) {
+      next(ex);
     }
-
-    await DAO.donors.add(req.body.email, req.body.name, req.body.ssn);
-
-    return res.json({
-      status: 200,
-      content: "OK",
-    });
-  } catch (ex) {
-    next(ex);
   }
-});
+);
 
 /**
  * @openapi
@@ -96,7 +143,7 @@ router.post("/auth0/register", async (req, res, next) => {
     let donorID = await DAO.donors.getIDbyEmail(req.body.email);
 
     if (donorID === null) {
-      donorID = await DAO.donors.add(req.body.email, null, null, false);
+      donorID = await DAO.donors.add(req.body.email, null, false);
     }
 
     res.json({
@@ -129,29 +176,25 @@ router.post("/auth0/register", async (req, res, next) => {
  *      401:
  *        description: User not authorized to view resource
  */
- router.get(
-  "/search/",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      var donors = await DAO.donors.search(req.query.q);
+router.get("/search/", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    var donors = await DAO.donors.search(req.query.q);
 
-      if (donors) {
-        return res.json({
-          status: 200,
-          content: donors,
-        });
-      } else {
-        return res.status(404).json({
-          status: 404,
-          content: "No donors found matching query",
-        });
-      }
-    } catch (ex) {
-      next(ex);
+    if (donors) {
+      return res.json({
+        status: 200,
+        content: donors,
+      });
+    } else {
+      return res.status(404).json({
+        status: 404,
+        content: "No donors found matching query",
+      });
     }
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 /**
  * @openapi
@@ -812,20 +855,11 @@ router.put(
       }
       // Check for SSN, validator from https://github.com/navikt/fnrvalidator
       if (req.body.ssn) {
-        if (req.body.ssn.length == 11) {
-          if (validator.fnr(req.body.ssn.toString()).status === "invalid") {
-            return res.status(400).json({
-              status: 400,
-              content: "The SSN is invalid, it must be 11 numbers in one word",
-            });
-          }
-        } else if (req.body.ssn.length != 9) {
-          return res.status(400).json({
-            status: 400,
-            content:
-              "The SSN is invalid, it must be 11 or 9 numbers in one word ",
-          });
-        }
+        return res.status(400).json({
+          status: 400,
+          content:
+            "SSN is no longer directly tied to donor, use endpoints related to tax units",
+        });
       }
 
       // Check for newsletter
@@ -840,7 +874,6 @@ router.put(
       const updated = await DAO.donors.update(
         req.params.id,
         req.body.name,
-        req.body.ssn,
         req.body.newsletter
       );
       if (updated) {
@@ -860,28 +893,30 @@ router.put(
   }
 );
 
-router.post('/id/email/name',
+router.post(
+  "/id/email/name",
   authMiddleware.isAdmin,
   async (req, res, next) => {
-  try {
-    let donorID
+    try {
+      let donorID;
 
-    if (req.body.email) {
-      donorID = await DAO.donors.getIDbyEmail(req.body.email)
+      if (req.body.email) {
+        donorID = await DAO.donors.getIDbyEmail(req.body.email);
+      }
+
+      if (donorID == null) {
+        donorID = await DAO.donors.getIDByMatchedNameFB(req.body.name);
+      }
+      // If no email matches, get donorID by name instead
+
+      return res.json({
+        status: 200,
+        content: donorID,
+      });
+    } catch (ex) {
+      next(ex);
     }
-
-    if (donorID == null) {
-      donorID = await DAO.donors.getIDByMatchedNameFB(req.body.name)
-    }
-    // If no email matches, get donorID by name instead
-
-    return res.json({
-      status: 200,
-      content: donorID
-    })
-  } catch (ex) {
-    next(ex)
   }
-})
+);
 
 module.exports = router;

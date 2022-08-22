@@ -1,13 +1,13 @@
 import * as express from "express";
 import { checkAvtaleGiroAgreement } from "../custom_modules/authorization/authMiddleware";
+import { DAO } from "../custom_modules/DAO";
+import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+import { sendAvtaleGiroChange } from "../custom_modules/mail";
 
 const router = express.Router();
-const DAO = require("../custom_modules/DAO.js");
 const rounding = require("../custom_modules/rounding");
 const donationHelpers = require("../custom_modules/donationHelpers");
-const authMiddleware = require("../custom_modules/authorization/authMiddleware");
 const authRoles = require("../enums/authorizationRoles");
-const mail = require("../custom_modules/mail");
 const moment = require("moment");
 
 /**
@@ -45,13 +45,20 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
       req.body.limit,
       req.body.filter
     );
-    return res.json({
-      status: 200,
-      content: {
-        pages: results.pages,
-        rows: results.rows,
-      },
-    });
+    if (results) {
+      return res.json({
+        status: 200,
+        content: {
+          pages: results.pages,
+          rows: results.rows,
+        },
+      });
+    } else {
+      return res.status(500).json({
+        status: 500,
+        content: "Error getting agreements",
+      });
+    }
   } catch (ex) {
     next(ex);
   }
@@ -308,7 +315,7 @@ router.post(
         metaOwnerID
       );
 
-      await mail.sendAvtaleGiroChange(originalKID, "SHARES", split);
+      await sendAvtaleGiroChange(originalKID, "SHARES", split);
       res.send(response);
     } catch (ex) {
       next({ ex });
@@ -353,7 +360,7 @@ router.post(
 
       const response = await DAO.avtalegiroagreements.setActive(KID, active);
 
-      if (active === 0) await mail.sendAvtaleGiroChange(KID, "CANCELLED");
+      if (active === 0) await sendAvtaleGiroChange(KID, "CANCELLED");
       res.send(response);
     } catch (ex) {
       next({ ex });
@@ -398,7 +405,7 @@ router.post(
 
       const response = await DAO.avtalegiroagreements.updateAmount(KID, amount);
 
-      await mail.sendAvtaleGiroChange(KID, "AMOUNT", amount);
+      await sendAvtaleGiroChange(KID, "AMOUNT", amount);
       res.send(response);
     } catch (ex) {
       next({ ex });
@@ -448,7 +455,7 @@ router.post(
         paymentDate
       );
 
-      await mail.sendAvtaleGiroChange(KID, "CHARGEDAY", paymentDate);
+      await sendAvtaleGiroChange(KID, "CHARGEDAY", paymentDate);
       res.send(response);
     } catch (ex) {
       next({ ex });

@@ -1,4 +1,6 @@
 import * as express from "express";
+import { DAO } from "../custom_modules/DAO";
+import { donationHelpers } from "../custom_modules/donationHelpers";
 
 const config = require("../config");
 
@@ -7,15 +9,17 @@ const bodyParser = require("body-parser");
 const urlEncodeParser = bodyParser.urlencoded({ extended: true });
 const apicache = require("apicache");
 const cache = apicache.middleware;
-const authMiddleware = require("../custom_modules/authorization/authMiddleware");
+import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+import {
+  sendDonationHistory,
+  sendDonationReciept,
+  sendDonationRegistered,
+} from "../custom_modules/mail";
 
 const methods = require("../enums/methods");
 
-const DAO = require("../custom_modules/DAO.js");
-const mail = require("../custom_modules/mail");
 const vipps = require("../custom_modules/vipps");
 const dateRangeHelper = require("../custom_modules/dateRangeHelper");
-const donationHelpers = require("../custom_modules/donationHelpers");
 const rateLimit = require("express-rate-limit");
 
 /**
@@ -52,10 +56,20 @@ router.post("/register", async (req, res, next) => {
   let recurring = parsedData.recurring;
 
   try {
-    var donationObject = {
+    var donationObject: {
+      KID: string;
+      method: string;
+      donorID: number | null;
+      taxUnitId: number;
+      amount: string;
+      split: any[];
+      recurring: boolean;
+      standardSplit?: boolean;
+    } = {
       KID: null, //Set later in code
       method: parsedData.method,
       donorID: null, //Set later in code
+      taxUnitId: null, //Set later in code
       amount: parsedData.amount,
       standardSplit: undefined,
       split: [],
@@ -81,24 +95,40 @@ router.post("/register", async (req, res, next) => {
       donationObject.donorID = await DAO.donors.add(
         donor.email,
         donor.name,
-        donor.ssn,
+        // !!--!! ================================================= SSN removed
         donor.newsletter
       );
+      donationObject.taxUnitId = await DAO.tax.addTaxUnit(
+        donationObject.donorID,
+        donor.ssn,
+        donor.name
+      );
     } else {
-      //Check for existing SSN if provided
+      // !!--!! =================================================
+      //Check for existing tax unit if SSN provided
       if (typeof donor.ssn !== "undefined" && donor.ssn != null) {
-        var dbDonor = await DAO.donors.getByID(donationObject.donorID);
+        const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(
+          donationObject.donorID,
+          donor.ssn
+        );
 
-        if (dbDonor.ssn == null) {
-          //No existing ssn found, updating donor
-          await DAO.donors.updateSsn(donationObject.donorID, donor.ssn);
+        if (existingTaxUnit) {
+          donationObject.taxUnitId = existingTaxUnit.id;
+        } else {
+          donationObject.taxUnitId = await DAO.tax.addTaxUnit(
+            donationObject.donorID,
+            donor.ssn,
+            donor.name
+          );
         }
       }
+      // !!--!! =================================================
+      // NO SSN PROVIDED, WHAT THEN?
 
       //Check if registered for newsletter
       if (typeof donor.newsletter !== "undefined" && donor.newsletter != null) {
-        dbDonor = await DAO.donors.getByID(donationObject.donorID);
-        if (dbDonor.newsletter == null || dbDonor.newsletter == 0) {
+        let dbDonor = await DAO.donors.getByID(donationObject.donorID);
+        if (!dbDonor.newsletter) {
           //Not registered for newsletter, updating donor
           await DAO.donors.updateNewsletter(
             donationObject.donorID,
@@ -118,25 +148,35 @@ router.post("/register", async (req, res, next) => {
         15,
         donationObject.donorID
       );
+      // !!--!! ================================================= TAX UNIT
       await DAO.distributions.add(
         donationObject.split,
         donationObject.KID,
-        donationObject.donorID
+        donationObject.donorID,
+        donationObject.taxUnitId,
+        donationObject.standardSplit
       );
     } else {
       //Try to get existing KID
+      // !!--!! ================================================= TAX UNIT
       donationObject.KID = await DAO.distributions.getKIDbySplit(
         donationObject.split,
-        donationObject.donorID
+        donationObject.donorID,
+        donationObject.taxUnitId,
+        donationObject.standardSplit
       );
 
       //Split does not exist create new KID and split
       if (donationObject.KID == null) {
         donationObject.KID = await donationHelpers.createKID();
+
+        // !!--!! ================================================= TAX UNIT
         await DAO.distributions.add(
           donationObject.split,
           donationObject.KID,
-          donationObject.donorID
+          donationObject.donorID,
+          donationObject.taxUnitId,
+          donationObject.standardSplit
         );
       }
     }
@@ -197,10 +237,7 @@ router.post("/bank/pending", urlEncodeParser, async (req, res, next) => {
   let parsedData = JSON.parse(req.body.data);
 
   if (config.env === "production")
-    var success = await mail.sendDonationRegistered(
-      parsedData.KID,
-      parsedData.sum
-    );
+    var success = await sendDonationRegistered(parsedData.KID, parsedData.sum);
   else success = true;
 
   if (success) res.json({ status: 200, content: "OK" });
@@ -241,7 +278,7 @@ router.post(
       );
 
       if (config.env === "production" && req.body.reciept === true)
-        await mail.sendDonationReciept(donationID);
+        await sendDonationReciept(donationID);
 
       res.json({
         status: 200,
@@ -370,7 +407,7 @@ router.post("/reciepts", authMiddleware.isAdmin, async (req, res, next) => {
     for (let i = 0; i < donationIDs.length; i++) {
       let donationID = donationIDs[i];
 
-      var mailStatus = await mail.sendDonationReciept(donationID);
+      var mailStatus = await sendDonationReciept(donationID);
 
       if (mailStatus == false)
         console.error(`Failed to send donation for donationID ${donationID}`);
@@ -390,7 +427,7 @@ router.get(
   authMiddleware.isAdmin,
   async (req, res, next) => {
     try {
-      let donation = await DAO.donations.GetByExternalPaymentID(
+      let donation = await DAO.donations.getByExternalPaymentID(
         req.params.externalID,
         req.params.methodID
       );
@@ -416,7 +453,7 @@ router.post("/history/email", historyRateLimit, async (req, res, next) => {
     let id = await DAO.donors.getIDbyEmail(email);
 
     if (id != null) {
-      var mailsent = await mail.sendDonationHistory(id);
+      var mailsent = await sendDonationHistory(id);
       if (mailsent) {
         res.json({
           status: 200,
@@ -599,12 +636,9 @@ router.delete("/:id", authMiddleware.isAdmin, async (req, res, next) => {
  */
 router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res, next) => {
   if (req.body.email && req.body.email.indexOf("@") > -1) {
-    var mailStatus = await mail.sendDonationReciept(
-      req.params.id,
-      req.body.email
-    );
+    var mailStatus = await sendDonationReciept(req.params.id, req.body.email);
   } else {
-    var mailStatus = await mail.sendDonationReciept(req.params.id);
+    var mailStatus = await sendDonationReciept(req.params.id);
   }
 
   if (mailStatus === true) {

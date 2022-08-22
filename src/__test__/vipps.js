@@ -1,14 +1,11 @@
+import { DAO } from '../custom_modules/DAO'
+
 const sinon = require('sinon');
-const chai = require('chai');
-const DAO = require('../custom_modules/DAO');
 
 const vipps = require('../custom_modules/vipps')
-const mail = require('../custom_modules/mail');
-const nets = require('../custom_modules/nets')
 const express = require('express')
 const request = require('supertest');
 const { expect } = require('chai');
-const config = require('../config');
 const authMiddleware = require('../custom_modules/authorization/authMiddleware');
 
 describe('POST /scheduled/vipps', function() {

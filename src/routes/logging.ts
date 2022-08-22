@@ -1,10 +1,9 @@
-import * as express from "express"
+import * as express from "express";
+import { DAO } from "../custom_modules/DAO";
 
-const router = express.Router()
-const authMiddleware = require('../custom_modules/authorization/authMiddleware')
-const roles = require('../enums/authorizationRoles')
-
-const DAO = require('../custom_modules/DAO.js')
+const router = express.Router();
+import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+const roles = require("../enums/authorizationRoles");
 
 /**
  * @openapi
@@ -21,9 +20,9 @@ const DAO = require('../custom_modules/DAO.js')
  *    description: Get a paginated overview of log entries
  *    parameters:
  *      - in: body
- *        schema: 
+ *        schema:
  *          type: object
- *          properties: 
+ *          properties:
  *            limit:
  *              required: true
  *              description: The number of results to return
@@ -64,51 +63,49 @@ const DAO = require('../custom_modules/DAO.js')
  *                        allOf:
  *                         - $ref: '#/components/schemas/Pagination/example'
  *                         - properties:
- *                             rows: 
+ *                             rows:
  *                               type: array
  *                               items:
  *                                 $ref: '#/components/schemas/LogEntry/example'
- *                                 
+ *
  *      401:
  *        description: User not authorized to access resource
  *      500:
  *        description: Internal server error
  */
-router.post("/", async (req,res, next) => {
+router.post("/", async (req, res, next) => {
   try {
-    const limit = parseInt(req.body.limit)
-    const offset = parseInt(req.body.page)*limit
-    const filesearch = req.body.filesearch
+    const limit = parseInt(req.body.limit);
+    const offset = parseInt(req.body.page) * limit;
+    const filesearch = req.body.filesearch;
 
-    const entries = await DAO.logging.getEntries(limit, offset, filesearch)
+    const entries = await DAO.logging.getEntries(limit, offset, filesearch);
 
     res.json({
       status: 200,
       content: {
         rows: entries.results,
-        pages: entries.pages
-      }
-    })
+        pages: entries.pages,
+      },
+    });
+  } catch (ex) {
+    next(ex);
   }
-  catch(ex) {
-    next(ex)
-  }
-})
+});
 
-router.get("/:id", authMiddleware.isAdmin, async (req,res, next) => {
+router.get("/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id)
+    const id = parseInt(req.params.id);
 
-    const entry = await DAO.logging.get(id)
+    const entry = await DAO.logging.get(id);
 
     res.json({
       status: 200,
-      content: entry
-    })
+      content: entry,
+    });
+  } catch (ex) {
+    next(ex);
   }
-  catch(ex) {
-    next(ex)
-  }
-})
+});
 
-module.exports = router
+module.exports = router;

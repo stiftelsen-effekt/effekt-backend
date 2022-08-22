@@ -1,4 +1,4 @@
-const KID = require('./../KID.js')
+const KID = require('./../KID')
 
 module.exports = {
   /**

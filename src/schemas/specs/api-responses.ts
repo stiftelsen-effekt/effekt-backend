@@ -7,7 +7,12 @@ export interface paths {}
 
 export interface components {
   schemas: {
-    /** @example [object Object] */
+    /**
+     * @example {
+     *   "status": 200,
+     *   "content": "OK"
+     * }
+     */
     ApiResponse: {
       /** @description The http status of the request */
       status?: number;

@@ -1,3 +1,5 @@
-import { components } from "./specs/donor";
+import { components as donorComponents } from "./specs/donor";
+import { components as taxComponents } from "./specs/taxunit";
 
-export type Donor = components["schemas"]["Donor"];
+export type Donor = donorComponents["schemas"]["Donor"];
+export type TaxUnit = taxComponents["schemas"]["TaxUnit"];

@@ -8,7 +8,7 @@ var pool;
  * @param {String} email An email
  * @returns {Number} An ID
  */
-async function getIDbyEmail(email): Promise<number> {
+async function getIDbyEmail(email): Promise<number | null> {
   try {
     var con = await pool.getConnection();
     var [result] = await con.execute(`SELECT ID FROM Donors where email = ?`, [
@@ -45,8 +45,7 @@ async function getByID(ID): Promise<Donor | null> {
         name: result[0].full_name,
         email: result[0].email,
         registered: result[0].date_registered,
-        ssn: result[0].ssn,
-        newsletter: result[0].newsletter,
+        newsletter: result[0].newsletter === 1,
         trash: result[0].trash,
       };
     else return null;
@@ -69,7 +68,6 @@ async function getByKID(KID): Promise<Donor | null> {
             ID,
             email, 
             full_name,
-            ssn,
             date_registered
             
             FROM Donors 
@@ -88,7 +86,6 @@ async function getByKID(KID): Promise<Donor | null> {
         id: dbDonor[0].ID,
         email: dbDonor[0].email,
         name: dbDonor[0].full_name,
-        ssn: dbDonor[0].ssn,
         registered: dbDonor[0].date_registered,
       };
     } else {
@@ -106,32 +103,37 @@ async function getByKID(KID): Promise<Donor | null> {
  * @param {String} name Donor name from Facebook
  * @returns {Number} Donor ID
  */
- async function getIDByMatchedNameFB(name) {
+async function getIDByMatchedNameFB(name) {
   try {
-      var con = await pool.getConnection()
-      var [result] = await con.execute(`
+    var con = await pool.getConnection();
+    var [result] = await con.execute(
+      `
           SELECT DR.ID, DR.full_name, DR.email, max(DN.timestamp_confirmed) as most_recent_donation FROM Donors as DR
           inner join Donations as DN on DR.ID = DN.Donor_ID
           where DR.full_name = ?
           group by DR.ID
           order by most_recent_donation DESC 
-          `, [name])
-      
-      // Query above does not find donors that have not donated before
-      if(result.length == 0) {
-          [result] = await con.execute(`
+          `,
+      [name]
+    );
+
+    // Query above does not find donors that have not donated before
+    if (result.length == 0) {
+      [result] = await con.execute(
+        `
               SELECT ID FROM Donors
               where full_name = ?
-          `, [name])
-      }
+          `,
+        [name]
+      );
+    }
 
-      con.release()
-      if (result.length > 0) return (result[0].ID)
-      else return (null)
-  }
-  catch (ex) {
-      con.release()
-      throw (ex)
+    con.release();
+    if (result.length > 0) return result[0].ID;
+    else return null;
+  } catch (ex) {
+    con.release();
+    throw ex;
   }
 }
 
@@ -187,7 +189,6 @@ async function search(query): Promise<Array<Donor>> {
         id: donor.ID,
         name: donor.full_name,
         email: donor.email,
-        ssn: donor.ssn,
         registered: donor.date_registered,
       };
     });
@@ -204,7 +205,7 @@ async function search(query): Promise<Array<Donor>> {
  * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
  * @returns {Number} The ID of the new Donor if successfull
  */
-async function add(email = "", name, ssn = "", newsletter = null) {
+async function add(email = "", name, newsletter = null) {
   try {
     var con = await pool.getConnection();
 
@@ -212,10 +213,9 @@ async function add(email = "", name, ssn = "", newsletter = null) {
       `INSERT INTO Donors (
             email,
             full_name, 
-            ssn,
             newsletter
-        ) VALUES (?,?,?,?)`,
-      [email, name, ssn, newsletter]
+        ) VALUES (?,?,?)`,
+      [email, name, newsletter == true]
     );
 
     con.release();
@@ -228,25 +228,6 @@ async function add(email = "", name, ssn = "", newsletter = null) {
 //endregion
 
 //region Modify
-/**
- * Updates donor and sets new SSN
- * @param {number} donorID
- * @param {string} ssn Social security number
- * @returns {boolean}
- */
-async function updateSsn(donorID, ssn) {
-  try {
-    var con = await pool.getConnection();
-    let res = await con.query(`UPDATE Donors SET ssn = ? where ID = ?`, [
-      ssn,
-      donorID,
-    ]);
-    return true;
-  } catch (ex) {
-    con.release();
-    throw ex;
-  }
-}
 
 /**
  * Updates donor and sets new newsletter value
@@ -291,19 +272,18 @@ async function updateName(donorID, name) {
  * Updates donor information
  * @param {number} donorID
  * @param {string} name
- * @param {string} ssn Social security number
  * @param {boolean} newsletter
  * @returns {boolean}
  */
-async function update(donorID, name, ssn, newsletter) {
+async function update(donorID, name, newsletter) {
   try {
     var con = await pool.getConnection();
     let [res] = await con.query(
-      `UPDATE Donors SET full_name = ?, ssn = ?, newsletter = ? where ID = ?`,
-      [name, ssn, newsletter, donorID]
+      `UPDATE Donors SET full_name = ?, newsletter = ? where ID = ?`,
+      [name, newsletter, donorID]
     );
     con.release();
-    if(res.affectedRows === 1) {
+    if (res.affectedRows === 1) {
       return true;
     }
     return false;
@@ -313,7 +293,6 @@ async function update(donorID, name, ssn, newsletter) {
   }
 }
 //endregion
-
 
 //region Delete
 /**
@@ -333,7 +312,7 @@ async function deleteById(donorID) {
 }
 //endregion
 
-module.exports = {
+export const donors = {
   getByID,
   getIDbyEmail,
   getByKID,
@@ -341,7 +320,6 @@ module.exports = {
   getIDByAgreementCode,
   search,
   add,
-  updateSsn,
   updateNewsletter,
   updateName,
   update,

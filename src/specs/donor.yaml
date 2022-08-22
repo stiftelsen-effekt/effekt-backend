@@ -4,6 +4,7 @@ components:
     Donor:
       type: object
       required:
+        - id
         - email
         - name
       properties:
@@ -16,9 +17,6 @@ components:
         name:
           type: string
           description: Full name of the donor (first and last name)
-        ssn:
-          type: number
-          description: The social security number of the donor
         newsletter:
           type: boolean
           description: Set to true if donor wishes to subscribe to newsletter

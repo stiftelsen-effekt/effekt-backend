@@ -1,4 +1,5 @@
-const DAO = require("../../custom_modules/DAO.js");
+import { DAO } from "../../custom_modules/DAO";
+
 const facebookParser = require("../../custom_modules/parsers/facebook");
 import { Blob } from "buffer";
 
