@@ -1,12 +1,13 @@
 import * as express from "express";
 import { checkDonor } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
-const router = express.Router();
+import { fnr } from "@navikt/fnrvalidator";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+
+const router = express.Router();
 const roles = require("../enums/authorizationRoles");
 const bodyParser = require("body-parser");
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
-const validator = require("@navikt/fnrvalidator");
 
 /**
  * @openapi
@@ -22,23 +23,69 @@ const validator = require("@navikt/fnrvalidator");
  *    tags: [Donors]
  *    description: Add a new user
  */
-router.post("/", urlEncodeParser, async (req, res, next) => {
-  try {
-    if (!req.body.name) {
-      let error = new Error("Missing param email or param name");
-      throw error;
+router.post(
+  "/",
+  authMiddleware.isAdmin,
+  urlEncodeParser,
+  async (req, res, next) => {
+    try {
+      if (!req.body.name || !req.body.email) {
+        let error = new Error("Missing param email or param name");
+        throw error;
+      }
+
+      const existing = await DAO.donors.getIDbyEmail(req.body.email);
+
+      if (existing !== null) {
+        return res.status(409).json({
+          status: 409,
+          content: "Email already exists",
+        });
+      }
+
+      const donorId = await DAO.donors.add(
+        req.body.email,
+        req.body.name,
+        req.body.ssn
+      );
+
+      /**
+       * If we are provided a social security number, we should add a tax unit to the donor
+       */
+      if (req.body.ssn) {
+        if (req.body.ssn.length === 11) {
+          // Birth number is 11 digits
+          const validation = fnr(req.body.ssn);
+          if (validation.status !== "valid") {
+            return res.status(400).json({
+              status: 400,
+              content:
+                "Invalid ssn (failed fnr validation) " +
+                validation.reasons.join(", "),
+            });
+          }
+        } else if (req.body.ssn.length === 9) {
+          // Organization number is 9 digits
+          // No validatino performed
+        } else {
+          return res.status(400).json({
+            status: 400,
+            content: "Invalid ssn (length is not 9 or 11)",
+          });
+        }
+
+        await DAO.tax.addTaxUnit(donorId, req.body.ssn, req.body.name);
+      }
+
+      return res.json({
+        status: 200,
+        content: "OK",
+      });
+    } catch (ex) {
+      next(ex);
     }
-
-    await DAO.donors.add(req.body.email, req.body.name, req.body.ssn);
-
-    return res.json({
-      status: 200,
-      content: "OK",
-    });
-  } catch (ex) {
-    next(ex);
   }
-});
+);
 
 /**
  * @openapi

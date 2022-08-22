@@ -8,7 +8,7 @@ var pool;
  * @param {String} email An email
  * @returns {Number} An ID
  */
-async function getIDbyEmail(email): Promise<number> {
+async function getIDbyEmail(email): Promise<number | null> {
   try {
     var con = await pool.getConnection();
     var [result] = await con.execute(`SELECT ID FROM Donors where email = ?`, [
@@ -214,8 +214,8 @@ async function add(email = "", name, newsletter = null) {
             email,
             full_name, 
             newsletter
-        ) VALUES (?,?,?,?)`,
-      [email, name, newsletter]
+        ) VALUES (?,?,?)`,
+      [email, name, newsletter == true]
     );
 
     con.release();
