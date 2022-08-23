@@ -106,7 +106,11 @@ router.post("/register", async (req, res, next) => {
     } else {
       // !!--!! =================================================
       //Check for existing tax unit if SSN provided
-      if (typeof donor.ssn !== "undefined" && donor.ssn != null) {
+      if (
+        typeof donor.ssn !== "undefined" &&
+        donor.ssn != null &&
+        donor.ssn !== ""
+      ) {
         const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(
           donationObject.donorID,
           donor.ssn
