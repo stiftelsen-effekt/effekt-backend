@@ -229,7 +229,9 @@ async function getKIDbySplit(
         
         WHERE
 
-        Standard_split = ${standardSplit ? 1 : 0}
+        (Standard_split = ${
+          standardSplit ? "1)" : "0 OR Standard_split IS NULL)"
+        }
 
         AND
         `;
@@ -241,7 +243,7 @@ async function getKIDbySplit(
         split[i].share
       )} AND C.Donor_ID = ${sqlString.escape(
         donorID
-      )}) AND C.Tax_unit_ID = ${sqlString.escape(taxUnitId)})`;
+      )} AND C.Tax_unit_ID = ${sqlString.escape(taxUnitId)})`;
       if (i < split.length - 1) query += ` OR `;
     }
 
@@ -251,6 +253,8 @@ async function getKIDbySplit(
             KID_count = ${split.length}
             AND
             LENGTH(KID) >= ${sqlString.escape(minKidLength)}`;
+
+    console.log(query);
 
     var [res] = await con.execute(query);
 
@@ -400,13 +404,20 @@ async function add(
     let first_inserted_id = res[0].insertId;
     var combining_table_values = Array.apply(null, Array(split.length)).map(
       (item, i) => {
-        return [donorID, taxUnitId, first_inserted_id + i, KID, metaOwnerID];
+        return [
+          donorID,
+          taxUnitId,
+          standardSplit,
+          first_inserted_id + i,
+          KID,
+          metaOwnerID,
+        ];
       }
     );
 
     //Update combining table
     var res = await transaction.query(
-      "INSERT INTO Combining_table (Donor_ID, Tax_unit_ID, Distribution_ID, KID, Meta_owner_ID) VALUES ?",
+      "INSERT INTO Combining_table (Donor_ID, Tax_unit_ID, Standard_split, Distribution_ID, KID, Meta_owner_ID) VALUES ?",
       [combining_table_values]
     );
 
