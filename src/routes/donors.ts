@@ -849,14 +849,6 @@ router.put(
           content: "The name cannot be null",
         });
       }
-      // Check for SSN, validator from https://github.com/navikt/fnrvalidator
-      if (req.body.ssn) {
-        return res.status(400).json({
-          status: 400,
-          content:
-            "SSN is no longer directly tied to donor, use endpoints related to tax units",
-        });
-      }
 
       // Check for newsletter
       if (req.body.newsletter) {
