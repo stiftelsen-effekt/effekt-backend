@@ -1,15 +1,15 @@
-const express = require("express");
-const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendOcrBackup } from "../custom_modules/mail";
+import { DAO } from "../custom_modules/DAO";
 
+const express = require("express");
+const router = express.Router();
 const nets = require("../custom_modules/nets");
 const ocrParser = require("../custom_modules/parsers/OCR");
 const ocr = require("../custom_modules/ocr");
 const vipps = require("../custom_modules/vipps");
 const avtalegiroParser = require("../custom_modules/parsers/avtalegiro");
 const avtalegiro = require("../custom_modules/avtalegiro");
-const DAO = require("../custom_modules/DAO");
 const luxon = require("luxon");
 
 const META_OWNER_ID = 3;
