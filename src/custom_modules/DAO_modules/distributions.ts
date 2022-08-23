@@ -241,9 +241,11 @@ async function getKIDbySplit(
         split[i].organizationID
       )} AND percentage_share = ${sqlString.escape(
         split[i].share
-      )} AND C.Donor_ID = ${sqlString.escape(
-        donorID
-      )} AND C.Tax_unit_ID = ${sqlString.escape(taxUnitId)})`;
+      )} AND C.Donor_ID = ${sqlString.escape(donorID)} AND ${
+        taxUnitId
+          ? "C.Tax_unit_ID = " + sqlString.escape(taxUnitId)
+          : "C.Tax_unit_ID IS NULL"
+      })`;
       if (i < split.length - 1) query += ` OR `;
     }
 
