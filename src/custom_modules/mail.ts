@@ -45,6 +45,8 @@ function formatCurrency(currencyString) {
 }
 
 // Reusable HTML elements
+const sciChanges = `<strong>MERK:</strong> Vi anbefaler ikke lenger donasjoner til SCI Foundation gjeldende fra 18.08.22 og vil slutte å tildele penger til dem 31. oktober 2022. Les mer om denne endringen på <a href="https://gieffektivt.no/articles/nye-evalueringskriterier-for-topplista" style="color: #000000;">våre nettsider</a>.<br/><br/>
+Donasjoner øremerket SCI Foundation blir fra og med 1. november 2022 i stedet følge <a href="https://gieffektivt.no/smart-fordeling" style="color: #000000;">Smart fordeling</a>. Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/profile" style="color: #000000;">Min Side</a> og oppdatere fordeling på din faste donasjon, eller fylle ut donasjonsskjemaet for en ny donasjon. Ta kontakt om du har noen spørsmål.<br/><br/>`;
 
 const replacedOrgsInfo =
   "MERK: Din fordeling ble endret av oss for donasjoner gitt fra og med 01.01.2021. " +
@@ -110,7 +112,13 @@ const footer =
   "</tr>" +
   "</table>";
 
-const reusableHTML = { replacedOrgsInfo, greeting, taxDeductionInfo, footer };
+const reusableHTML = {
+  sciChanges,
+  replacedOrgsInfo,
+  greeting,
+  taxDeductionInfo,
+  footer,
+};
 
 /**
  * Sends a donation reciept
@@ -142,6 +150,8 @@ export async function sendDonationReciept(donationID, reciever = null) {
     return false;
   }
 
+  const hasSciInDistribution = split.some((org) => org.ID === 2);
+
   try {
     var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
   } catch (ex) {
@@ -167,6 +177,7 @@ export async function sendDonationReciept(donationID, reciever = null) {
         paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
         //Adds a message to donations with inactive organizations
         hasReplacedOrgs,
+        hasSciInDistribution,
         reusableHTML,
       },
     });
@@ -209,6 +220,8 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
     return false;
   }
 
+  const hasSciInDistribution = split.some((org) => org.ID === 2);
+
   try {
     var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
   } catch (ex) {
@@ -234,6 +247,7 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
         paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
         //Adds a message to donations with inactive organizations
         hasReplacedOrgs,
+        hasSciInDistribution,
         reusableHTML,
       },
     });
