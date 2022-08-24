@@ -136,13 +136,14 @@ module.exports = {
 
         tokenResponse = JSON.parse(tokenResponse);
 
-        let tokenId = await DAO.vipps.addToken(token);
         token = {
-          ID: tokenId,
+          ID: undefined,
           expires: new Date(parseInt(tokenResponse.expires_on) * 1000),
           type: tokenResponse.token_type,
           token: tokenResponse.access_token,
         };
+        let tokenId = await DAO.vipps.addToken(token);
+        token.ID = tokenId;
       }
 
       return token;
