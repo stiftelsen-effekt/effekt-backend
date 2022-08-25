@@ -17,6 +17,8 @@ var DAO;
  * @prop {number} transactionCost
  * @prop {Date} timestamp Timestamp of when the donation was recieved
  * @prop {string} method The name of the payment method used for the donation
+ * @prop {string} paymentExternalRef The reference in the external payment handlers' systems
+ * @prop {string} metaOwnerID Who owns the data (EA Norge, Effekt, or joint ownership)
  * @prop {string} KID
  */
 
@@ -382,6 +384,8 @@ async function getByID(donationID) {
                 Donation.KID_fordeling,
                 Donation.transaction_cost,
                 Donation.timestamp_confirmed,
+                Donation.Meta_owner_ID,
+                Donation.PaymentExternal_ID,
                 Donor.ID as donorId,
                 Donor.full_name,
                 Donor.email,
@@ -414,6 +418,8 @@ async function getByID(donationID) {
       sum: dbDonation.sum_confirmed,
       transactionCost: dbDonation.transaction_cost,
       timestamp: dbDonation.timestamp_confirmed,
+      paymentExternalRef: dbDonation.PaymentExternal_ID,
+      metaOwnerID: dbDonation.Meta_owner_ID,
       paymentMethod: dbDonation.payment_name,
       KID: dbDonation.KID_fordeling,
     };
