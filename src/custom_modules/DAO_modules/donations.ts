@@ -1,4 +1,6 @@
 import { distributions } from "./distributions";
+import { payment } from "./payment";
+import { donors } from "./donors";
 
 const sqlString = require("sqlstring");
 
@@ -989,6 +991,48 @@ async function updateTransactionCost(transactionCost, donationID) {
   }
 }
 
+async function updateByID(newDonation, donationID) {
+  try {
+    var con = await pool.getConnection()
+    if (newDonation.id != donationID) throw new Error("Inconsistent information, exiting")
+
+    var newTransactionCost = await payment.computeTransactionCost(parseInt(newDonation.sum),
+                                                                  parseInt(newDonation.paymentId))
+
+    const associatedDonor = await donors.getByKID(newDonation.KID);
+    if (!associatedDonor || associatedDonor.id != newDonation.donorId)
+      throw new Error("KID "+ newDonation.KID+ " does not exist for donor "+ newDonation.donorId)
+
+    await con.execute(`
+      UPDATE Donations
+      SET Payment_ID = ?,
+      PaymentExternal_ID = ?,
+      sum_confirmed = ?,
+      timestamp_confirmed = ?,
+      transaction_cost = ?,
+      KID_fordeling = ?,
+      Meta_owner_ID = ?
+      WHERE ID = ?`,
+      [
+        newDonation.paymentId.toString(),
+        newDonation.paymentExternalRef,
+        newDonation.sum.toString(),
+        newDonation.timestamp.slice(0, 19).replace("T", " "),
+        newTransactionCost,
+        newDonation.KID,
+        newDonation.metaOwnerID.toString(),
+        donationID.toString(),
+      ]);
+
+        con.release()
+        return getByID(donationID)
+    }
+    catch(ex) {
+        con.release()
+        throw ex
+    }
+}
+
 //endregion
 
 //region Delete
@@ -1053,6 +1097,7 @@ export const donations = {
   getByExternalPaymentID,
   externalPaymentIDExists,
   updateTransactionCost,
+  updateByID,
   add,
   registerConfirmedByIDs,
   getHistogramBySum,
