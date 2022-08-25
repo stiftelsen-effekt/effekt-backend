@@ -1,6 +1,6 @@
 import { sendAvtalegiroNotification } from "./mail";
+import { DAO } from "./DAO";
 
-const DAO = require("./DAO");
 const writer = require("./avtalegiro/filewriterutil");
 const config = require("../config");
 const { DateTime } = require("luxon");
