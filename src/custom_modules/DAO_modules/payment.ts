@@ -42,6 +42,24 @@ async function getPaymentMethodsByIDs(paymentMethodIDs) {
   }
 }
 
+/**
+ * computes the transaction cost for a donation with given sum and paymentID
+ * @param paymentId The payment method used
+ * @param sum The donation amount
+ * @returns {number} The transaction cost
+ * */
+async function computeTransactionCost(sum, paymentId) {
+  try {
+    const paymentInfos = await getPaymentMethodsByIDs([paymentId]);
+    const paymentInfo = paymentInfos[0]
+
+    return Number(paymentInfo.flatFee) + Number(paymentInfo.percentageFee)/100 * sum;
+
+  } catch (ex) {
+    throw ex
+  }
+}
+
 //endregion
 
 //region Add
@@ -73,6 +91,7 @@ function mapDBpaymentToObject(dbPaymentObject) {
 export const payment = {
   getMethods,
   getPaymentMethodsByIDs,
+  computeTransactionCost,
 
   setup: (dbPool) => {
     con = dbPool;
