@@ -1,11 +1,10 @@
 import { DAO } from "./custom_modules/DAO";
 import { openAPIOptions, swaggerOptions } from "./openapi-config";
+import * as config from "./config";
 
 console.log("--------------------------------------------------");
 console.log("| gieffektivt.no donation backend (╯°□°）╯︵ ┻━┻ |");
 console.log("--------------------------------------------------");
-const config = require("./config.js");
-console.log("Config loaded");
 
 const express = require("express");
 const fileUpload = require("express-fileupload");
@@ -98,7 +97,20 @@ DAO.connect(() => {
 
   //Set cross origin as allowed
   app.use(function (req, res, next) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    if (config.env === "production") {
+      const remoteOrigin = req.get("Origin");
+      if (
+        config.allowedProductionOrigins.some(
+          (allowedOrigin) => allowedOrigin === remoteOrigin
+        )
+      ) {
+        res.setHeader("Access-Control-Allow-Origin", remoteOrigin);
+        res.setHeader("Vary", "Origin");
+      }
+    } else {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+    }
+
     res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
     res.setHeader(
       "Access-Control-Allow-Headers",
