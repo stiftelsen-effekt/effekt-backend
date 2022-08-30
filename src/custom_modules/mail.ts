@@ -1,5 +1,4 @@
 import { DAO } from "./DAO";
-import { donations } from "./DAO_modules/donations";
 
 const config = require("../config.js");
 const moment = require("moment");
