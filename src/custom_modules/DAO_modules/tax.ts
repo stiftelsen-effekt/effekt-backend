@@ -33,6 +33,51 @@ async function getById(id: number): Promise<TaxUnit | null> {
 }
 
 /**
+ * Gets all tax units associated with donor
+ * @param {number} donorId The if of the donor
+ * @returns {TaxUnit | null} A tax unit if found
+ */
+async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
+  try {
+    var con = await pool.getConnection();
+    console.log("Got connection");
+    const [result] = await con.execute<RowDataPacket[]>(
+      `SELECT T.ID, T.Donor_ID, T.full_name, T.registered, T.ssn,
+        (SELECT COUNT(D.ID) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
+        as num_donations,
+        (SELECT SUM(D.sum_confirmed) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
+        as sum_donations
+          
+          FROM EffektDonasjonDB.Tax_unit as T
+        
+          WHERE T.Donor_ID = ?
+          
+          GROUP BY T.ID, T.full_name, T.registered`,
+      [donorId]
+    );
+
+    con.release();
+    return result.map((res) => ({
+      id: res.ID,
+      donorId: res.Donor_ID,
+      name: res.full_name,
+      ssn: res.ssn,
+      numDonations: res.num_donations,
+      sumDonations: res.sum_donations,
+      registered: res.registered,
+    }));
+  } catch (ex) {
+    if (ex.code === "PROTOCOL_CONNECTION_LOST") {
+      console.log(con, ex);
+      await delay(2000);
+      return await getByDonorId(donorId);
+    }
+    con.release();
+    throw ex;
+  }
+}
+
+/**
  * Gets a tax unit KID
  * @param {number} id The id of the tax unit
  * @returns {TaxUnit | null} A tax unit if found
@@ -123,6 +168,7 @@ async function addTaxUnit(
 //endregion
 export const tax = {
   getById,
+  getByDonorId,
   getByKID,
   getByDonorIdAndSsn,
   addTaxUnit,
@@ -131,3 +177,9 @@ export const tax = {
     pool = dbPool;
   },
 };
+
+function delay(milliseconds) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
+}
