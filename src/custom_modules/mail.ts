@@ -1,4 +1,5 @@
 import { DAO } from "./DAO";
+import { donations } from "./DAO_modules/donations";
 
 const config = require("../config.js");
 const moment = require("moment");
@@ -167,7 +168,12 @@ export async function sendDonationReciept(donationID, reciever = null) {
       subject: "Gi Effektivt - Din donasjon er mottatt",
       templateName: "reciept",
       templateData: {
-        header: "Hei " + donation.donor + ",",
+        header:
+          "Hei" +
+          (donation.donor && donation.donor.length > 0
+            ? " " + donation.donor
+            : "") +
+          ",",
         //Add thousand seperator regex at end of amount
         donationSum: donation.sum
           .toString()
@@ -237,7 +243,12 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
       subject: "Gi Effektivt - Din donasjon er mottatt",
       templateName: "recieptEffekt",
       templateData: {
-        header: "Hei " + donation.donor + ",",
+        header:
+          "Hei" +
+          (donation.donor && donation.donor.length > 0
+            ? " " + donation.donor
+            : "") +
+          ",",
         //Add thousand seperator regex at end of amount
         donationSum: donation.sum
           .toString()
@@ -327,7 +338,10 @@ export async function sendDonationRegistered(KID, sum) {
       reciever: donor.email,
       templateName: "registered",
       templateData: {
-        header: "Hei, " + (donor.name.length > 0 ? donor.name : ""),
+        header:
+          "Hei" +
+          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
+          ",",
         name: donor.name,
         //Add thousand seperator regex at end of amount
         kid: KIDstring,
@@ -409,7 +423,10 @@ export async function sendVippsAgreementChange(
       reciever: email,
       templateName: "vippsAgreementChange",
       templateData: {
-        header: "Hei, " + donor.name,
+        header:
+          "Hei" +
+          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
+          ",",
         change,
         newValue,
         organizations,
@@ -584,7 +601,10 @@ export async function sendDonationHistory(donorID) {
       subject: "Gi Effektivt - Din donasjonshistorikk",
       templateName: templateName,
       templateData: {
-        header: "Hei " + donor.name + ",",
+        header:
+          "Hei" +
+          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
+          ",",
         total: total,
         donationSummary: donationSummary,
         yearlyDonationSummary: yearlyDonationSummary,
@@ -662,7 +682,10 @@ export async function sendAvtaleGiroChange(KID, change, newValue = "") {
       reciever: email,
       templateName: "avtaleGiroChange",
       templateData: {
-        header: "Hei, " + donor.name,
+        header:
+          "Hei" +
+          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
+          ",",
         change,
         newValue,
         organizations,
@@ -721,7 +744,10 @@ export async function sendAvtalegiroNotification(agreement) {
       subject: `Gi Effektivt - Varsel trekk AvtaleGiro`,
       templateName: "avtalegironotice",
       templateData: {
-        header: "Hei " + donor.name + ",",
+        header:
+          "Hei" +
+          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
+          ",",
         agreementSum: formatCurrency(agreement.amount / 100),
         organizations: organizations,
         reusableHTML,
