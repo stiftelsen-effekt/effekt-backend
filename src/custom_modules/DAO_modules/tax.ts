@@ -1,7 +1,6 @@
 import { OkPacket, Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { TaxUnit } from "../../schemas/types";
-
-var pool: Pool;
+import { DAO } from "../DAO";
 
 //region Get
 /**
@@ -11,13 +10,11 @@ var pool: Pool;
  */
 async function getById(id: number): Promise<TaxUnit | null> {
   try {
-    var con = await pool.getConnection();
-    const [result] = await con.execute<RowDataPacket[]>(
+    const [result] = await DAO.execute<RowDataPacket[]>(
       `SELECT * FROM Tax_unit where ID = ?`,
       [id]
     );
 
-    con.release();
     if (result.length > 0)
       return {
         id: result[0].ID,
@@ -27,7 +24,42 @@ async function getById(id: number): Promise<TaxUnit | null> {
       };
     else return null;
   } catch (ex) {
-    con.release();
+    throw ex;
+  }
+}
+
+/**
+ * Gets all tax units associated with donor
+ * @param {number} donorId The if of the donor
+ * @returns {TaxUnit | null} A tax unit if found
+ */
+async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
+  try {
+    const [result] = await DAO.execute<RowDataPacket[]>(
+      `SELECT T.ID, T.Donor_ID, T.full_name, T.registered, T.ssn,
+        (SELECT COUNT(D.ID) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
+        as num_donations,
+        (SELECT SUM(D.sum_confirmed) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
+        as sum_donations
+          
+          FROM EffektDonasjonDB.Tax_unit as T
+        
+          WHERE T.Donor_ID = ?
+          
+          GROUP BY T.ID, T.full_name, T.registered`,
+      [donorId]
+    );
+
+    return result.map((res) => ({
+      id: res.ID,
+      donorId: res.Donor_ID,
+      name: res.full_name,
+      ssn: res.ssn,
+      numDonations: res.num_donations,
+      sumDonations: res.sum_donations,
+      registered: res.registered,
+    }));
+  } catch (ex) {
     throw ex;
   }
 }
@@ -39,18 +71,15 @@ async function getById(id: number): Promise<TaxUnit | null> {
  */
 async function getByKID(KID: string): Promise<TaxUnit | null> {
   try {
-    var con = await pool.getConnection();
-    const [result] = await con.execute<RowDataPacket[]>(
+    const [result] = await DAO.execute<RowDataPacket[]>(
       `SELECT Tax_unit_ID FROM EffektDonasjonDB_Tax.Combining_table WHERE KID = ?
         GROUP BY Tax_unit_ID;`,
       [KID]
     );
 
-    con.release();
     if (result.length > 0) return result[0].Tax_unit_ID;
     else return null;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -66,13 +95,11 @@ async function getByDonorIdAndSsn(
   ssn: string
 ): Promise<TaxUnit | null> {
   try {
-    var con = await pool.getConnection();
-    const [result] = await con.execute<RowDataPacket[]>(
+    const [result] = await DAO.execute<RowDataPacket[]>(
       `SELECT * FROM Tax_unit where Donor_ID = ? AND ssn = ?`,
       [donorId, ssn]
     );
 
-    con.release();
     if (result.length > 0) {
       const mapped: TaxUnit = {
         id: result[0].ID as number,
@@ -83,7 +110,6 @@ async function getByDonorIdAndSsn(
       return mapped;
     } else return null;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -103,16 +129,32 @@ async function addTaxUnit(
   name: string
 ): Promise<number> {
   try {
-    var con = await pool.getConnection();
-    const [result] = await con.execute<ResultSetHeader | OkPacket>(
+    const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
       `INSERT INTO Tax_unit SET Donor_ID = ?, ssn = ?, full_name = ?`,
       [donorId, ssn, name]
     );
 
-    con.release();
     return result.insertId;
   } catch (ex) {
-    con.release();
+    throw ex;
+  }
+}
+
+/**
+ *  Updates a tax unit
+ * @param {number} id The id of the tax unit
+ * @param {TaxUnit} taxUnit The new tax unit
+ * @returns {number} The number of rows affected
+ */
+async function updateTaxUnit(id: number, taxUnit: TaxUnit): Promise<number> {
+  try {
+    const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
+      `UPDATE Tax_unit SET full_name = ?, ssn = ? WHERE ID = ?`,
+      [taxUnit.name, taxUnit.ssn, id]
+    );
+
+    return result.affectedRows;
+  } catch (ex) {
     throw ex;
   }
 }
@@ -123,11 +165,9 @@ async function addTaxUnit(
 //endregion
 export const tax = {
   getById,
+  getByDonorId,
   getByKID,
   getByDonorIdAndSsn,
   addTaxUnit,
-
-  setup: (dbPool: Pool) => {
-    pool = dbPool;
-  },
+  updateTaxUnit,
 };

@@ -1,4 +1,4 @@
-var con;
+import { DAO } from "../DAO";
 import paymentMethodIDs from "../../enums/paymentMethods";
 
 export type RegisteredFacebookDonation = {
@@ -11,7 +11,7 @@ export type RegisteredFacebookDonation = {
 
 async function getAllFacebookDonations() {
   try {
-    let [results] = await con.query(`
+    let [results] = await DAO.query(`
             SELECT PaymentExternal_ID, sum_confirmed, timestamp_confirmed
             FROM Donations
             WHERE Payment_ID = ${paymentMethodIDs.facebook}`);
@@ -24,7 +24,7 @@ async function getAllFacebookDonations() {
 
 async function getAllFacebookCampaignIDs() {
   try {
-    let [results] = await con.query(`
+    let [results] = await DAO.query(`
             SELECT ID
             FROM FB_campaigns`);
 
@@ -36,7 +36,7 @@ async function getAllFacebookCampaignIDs() {
 
 async function getFacebookReports() {
   try {
-    let [results] = await con.query(`
+    let [results] = await DAO.query(`
             SELECT FB_report
             FROM FB_donation_reports`);
 
@@ -48,7 +48,7 @@ async function getFacebookReports() {
 
 async function getFacebookCampaignOrgShares(ID) {
   try {
-    let [results] = await con.query(
+    let [results] = await DAO.query(
       `
             SELECT FB_campaign_ID, Org_ID, Share
             FROM FB_campaign_org_shares
@@ -72,7 +72,7 @@ async function getRegisteredFacebookDonation(
   paymentID: string
 ): Promise<RegisteredFacebookDonation | null> {
   try {
-    let [results] = await con.query(
+    let [results] = await DAO.query(
       `
               SELECT donorID, paymentID, taxUnitID
               FROM FB_payment_ID
@@ -97,7 +97,7 @@ async function getRegisteredFacebookDonation(
 
 async function isCampaignRegistered(ID) {
   try {
-    let [results] = await con.query(
+    let [results] = await DAO.query(
       `
             SELECT FB_campaign_ID
             FROM FB_campaign_org_shares
@@ -128,7 +128,7 @@ async function registerPaymentFB(
   taxUnitID: number
 ) {
   try {
-    await con.query(
+    await DAO.query(
       `
             INSERT INTO FB_payment_ID (donorID, paymentID, taxUnitID)
             VALUES (?, ?, ?)`,
@@ -150,7 +150,7 @@ async function registerFacebookCampaign(
   Fundraiser_type
 ) {
   try {
-    await con.query(
+    await DAO.query(
       `
             INSERT INTO FB_campaigns (ID, Fundraiser_title, Source_name, Permalink, Campaign_owner_name, Fundraiser_type)
             VALUES (?, ?, ?, ?, ?, ?)`,
@@ -172,7 +172,7 @@ async function registerFacebookCampaign(
 
 async function registerFacebookReport(report) {
   try {
-    await con.query(
+    await DAO.query(
       `
             INSERT INTO FB_donation_reports (FB_report)
             VALUES (?)`,
@@ -187,7 +187,7 @@ async function registerFacebookReport(report) {
 
 async function registerFacebookCampaignOrgShare(FB_campaign_ID, Org_ID, Share) {
   try {
-    await con.query(
+    await DAO.query(
       `
             INSERT INTO FB_campaign_org_shares (FB_campaign_ID, Org_ID, Share)
             VALUES (?, ?, ?)`,
@@ -204,7 +204,7 @@ async function registerFacebookCampaignOrgShare(FB_campaign_ID, Org_ID, Share) {
 
 async function removeAllFacebookReports() {
   try {
-    await con.query(`
+    await DAO.query(`
             DELETE FROM FB_donation_reports`);
 
     return true;
@@ -227,7 +227,4 @@ export const facebook = {
   removeAllFacebookReports,
   registerFacebookReport,
   isCampaignRegistered,
-  setup: (dbPool) => {
-    con = dbPool;
-  },
 };

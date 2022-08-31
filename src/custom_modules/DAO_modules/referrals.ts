@@ -1,4 +1,4 @@
-var con;
+import { DAO } from "../DAO";
 
 //region Get
 
@@ -20,7 +20,7 @@ var con;
  * @returns {Array<ReferralType>} An array of payment method objects
  */
 async function getTypes() {
-  let [types] = await con.query(`
+  let [types] = await DAO.query(`
         SELECT * FROM Referral_types 
             WHERE is_active = 1
             ORDER BY ordering`);
@@ -37,7 +37,7 @@ async function getTypes() {
  * @returns {Array<ReferralTypeAggregate>}
  */
 async function getAggregate() {
-  let [aggregates] = await con.query(`
+  let [aggregates] = await DAO.query(`
         SELECT Referral_types.ID, Referral_types.name, count(ReferralID) as count
             FROM Referral_records
             
@@ -54,7 +54,7 @@ async function getAggregate() {
  * @param {number} donorID
  */
 async function getDonorAnswered(donorID) {
-  let [answersCount] = await con.query(
+  let [answersCount] = await DAO.query(
     `
         SELECT count(UserID) as count
             FROM Referral_records
@@ -73,7 +73,7 @@ async function getDonorAnswered(donorID) {
  * @param {number} donorID
  */
 async function getDonorAnswers(donorID) {
-  let [answers] = await con.query(
+  let [answers] = await DAO.query(
     `
         SELECT
           r.id AS id, t.id AS typeId, r.UserId AS donorId, r.Registered AS timestamp, r.website_session AS session, t.is_active AS active,
@@ -103,7 +103,7 @@ async function getDonorAnswers(donorID) {
  * @param {string} otherComment
  */
 async function addRecord(referralTypeID, donorID, otherComment) {
-  let [query] = await con.query(
+  let [query] = await DAO.query(
     `INSERT INTO Referral_records (ReferralID, UserID, other_comment) VALUES (?,?,?)`,
     [referralTypeID, donorID, otherComment]
   );
@@ -126,8 +126,4 @@ export const referrals = {
   getDonorAnswered,
   getDonorAnswers,
   addRecord,
-
-  setup: (dbPool) => {
-    con = dbPool;
-  },
 };

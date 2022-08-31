@@ -1,4 +1,4 @@
-var pool;
+import { DAO } from "../DAO";
 
 //region Get
 //endregion
@@ -12,19 +12,15 @@ var pool;
 
 async function addPaymentIntent(KID, paymentMethod) {
   try {
-    var con = await pool.getConnection();
-
-    var res = await con.execute(
+    var res = await DAO.execute(
       `INSERT INTO Payment_intent (
             Payment_method,
             KID_fordeling) VALUES (?,?)`,
       [paymentMethod, KID]
     );
 
-    con.release();
     return res.insertId;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -38,8 +34,4 @@ async function addPaymentIntent(KID, paymentMethod) {
 
 export const initialpaymentmethod = {
   addPaymentIntent,
-
-  setup: (dbPool) => {
-    pool = dbPool;
-  },
 };

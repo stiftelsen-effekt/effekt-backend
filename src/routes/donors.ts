@@ -318,6 +318,68 @@ router.get(
 
 /**
  * @openapi
+ * /donors/{id}/taxunits:
+ *   get:
+ *    tags: [Donors]
+ *    description: Get all tax units associated with donor
+ *    security:
+ *       - auth0_jwt: [read:profile]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to retrieve.
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Returns an array of tax units
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content:
+ *                        $ref: '#/components/schemas/TaxUnit'
+ *                   example:
+ *                      content:
+ *                        $ref: '#/components/schemas/TaxUnit/example'
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donor with given id not found
+ */
+router.get(
+  "/:id/taxunits",
+  authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      var taxUnits = await DAO.tax.getByDonorId(req.params.id);
+
+      if (taxUnits) {
+        return res.json({
+          status: 200,
+          content: taxUnits,
+        });
+      } else {
+        return res.status(404).json({
+          status: 404,
+          content: "No donor found with ID " + req.params.id,
+        });
+      }
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+/**
+ * @openapi
  * /donors/{id}:
  *   delete:
  *    tags: [Donors]

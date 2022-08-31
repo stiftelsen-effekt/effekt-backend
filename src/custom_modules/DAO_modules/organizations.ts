@@ -1,4 +1,4 @@
-var pool;
+import { DAO } from "../DAO";
 
 //region Get
 
@@ -9,18 +9,15 @@ var pool;
  */
 async function getByIDs(IDs) {
   try {
-    var con = await pool.getConnection();
-    var [organizations] = await con.execute(
+    var [organizations] = await DAO.execute(
       "SELECT * FROM Organizations WHERE ID in (" +
         "?,".repeat(IDs.length).slice(0, -1) +
         ")",
       IDs
     );
 
-    con.release();
     return organizations;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -32,17 +29,14 @@ async function getByIDs(IDs) {
  */
 async function getByID(ID) {
   try {
-    var con = await pool.getConnection();
-    var [organization] = await con.execute(
+    var [organization] = await DAO.execute(
       "SELECT * FROM Organizations WHERE ID = ? LIMIT 1",
       [ID]
     );
 
-    con.release();
     if (organization.length > 0) return organization[0];
     else return null;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -55,16 +49,13 @@ async function getByID(ID) {
  */
 async function getActive() {
   try {
-    var con = await pool.getConnection();
-    var [organizations] = await con.execute(`
+    var [organizations] = await DAO.execute(`
             SELECT * FROM Organizations 
                 WHERE is_active = 1
                 ORDER BY ordering ASC`);
 
-    con.release();
     return organizations.map(mapOrganization);
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -75,26 +66,20 @@ async function getActive() {
  */
 async function getAll() {
   try {
-    var con = await pool.getConnection();
-    var [organizations] = await con.execute(`SELECT * FROM Organizations`);
+    var [organizations] = await DAO.execute(`SELECT * FROM Organizations`);
 
-    con.release();
     return organizations.map(mapOrganization);
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function getStandardSplit() {
   try {
-    var con = await pool.getConnection();
-    var [standardSplit] = await con.execute(
+    var [standardSplit] = await DAO.execute(
       `SELECT * FROM Organizations WHERE std_percentage_share > 0 AND is_active = 1`
     );
-    con.release();
   } catch (ex) {
-    con.release();
     throw ex;
   }
 
@@ -146,8 +131,4 @@ export const organizations = {
   getActive,
   getAll,
   getStandardSplit,
-
-  setup: (dbPool) => {
-    pool = dbPool;
-  },
 };

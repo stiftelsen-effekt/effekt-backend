@@ -1,6 +1,5 @@
 import { Donor } from "../../schemas/types";
-
-var pool;
+import { DAO } from "../DAO";
 
 //region Get
 /**
@@ -10,16 +9,13 @@ var pool;
  */
 async function getIDbyEmail(email): Promise<number | null> {
   try {
-    var con = await pool.getConnection();
-    var [result] = await con.execute(`SELECT ID FROM Donors where email = ?`, [
+    var [result] = await DAO.execute(`SELECT ID FROM Donors where email = ?`, [
       email,
     ]);
 
-    con.release();
     if (result.length > 0) return result[0].ID;
     else return null;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -31,13 +27,10 @@ async function getIDbyEmail(email): Promise<number | null> {
  */
 async function getByID(ID): Promise<Donor | null> {
   try {
-    var con = await pool.getConnection();
-    var [result] = await con.execute(
+    var [result] = await DAO.execute(
       `SELECT * FROM Donors where ID = ? LIMIT 1`,
       [ID]
     );
-
-    con.release();
 
     if (result.length > 0)
       return {
@@ -50,7 +43,6 @@ async function getByID(ID): Promise<Donor | null> {
       };
     else return null;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -62,8 +54,7 @@ async function getByID(ID): Promise<Donor | null> {
  */
 async function getByKID(KID): Promise<Donor | null> {
   try {
-    var con = await pool.getConnection();
-    let [dbDonor] = await con.query(
+    let [dbDonor] = await DAO.query(
       `SELECT    
             ID,
             email, 
@@ -80,7 +71,6 @@ async function getByKID(KID): Promise<Donor | null> {
       [KID]
     );
 
-    con.release();
     if (dbDonor.length > 0) {
       return {
         id: dbDonor[0].ID,
@@ -92,7 +82,6 @@ async function getByKID(KID): Promise<Donor | null> {
       return null;
     }
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -105,8 +94,7 @@ async function getByKID(KID): Promise<Donor | null> {
  */
 async function getIDByMatchedNameFB(name) {
   try {
-    var con = await pool.getConnection();
-    var [result] = await con.execute(
+    var [result] = await DAO.execute(
       `
           SELECT DR.ID, DR.full_name, DR.email, max(DN.timestamp_confirmed) as most_recent_donation FROM Donors as DR
           inner join Donations as DN on DR.ID = DN.Donor_ID
@@ -119,7 +107,7 @@ async function getIDByMatchedNameFB(name) {
 
     // Query above does not find donors that have not donated before
     if (result.length == 0) {
-      [result] = await con.execute(
+      [result] = await DAO.execute(
         `
               SELECT ID FROM Donors
               where full_name = ?
@@ -128,11 +116,9 @@ async function getIDByMatchedNameFB(name) {
       );
     }
 
-    con.release();
     if (result.length > 0) return result[0].ID;
     else return null;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -143,15 +129,13 @@ async function getIDByMatchedNameFB(name) {
  * @return {number} donorID
  */
 async function getIDByAgreementCode(agreementUrlCode) {
-  let con = await pool.getConnection();
-  let [res] = await con.query(
+  let [res] = await DAO.query(
     `
         SELECT donorID FROM Vipps_agreements
         where agreement_url_code = ?
         `,
     [agreementUrlCode]
   );
-  con.release();
 
   if (res.length === 0) return false;
   else return res[0].donorID;
@@ -164,14 +148,12 @@ async function getIDByAgreementCode(agreementUrlCode) {
  */
 async function search(query): Promise<Array<Donor>> {
   try {
-    var con = await pool.getConnection();
-
     if (query === "" || query.length < 3)
-      var [result] = await con.execute(`SELECT * FROM Donors LIMIT 100`, [
+      var [result] = await DAO.execute(`SELECT * FROM Donors LIMIT 100`, [
         query,
       ]);
     else
-      var [result] = await con.execute(
+      var [result] = await DAO.execute(
         `SELECT * FROM Donors 
             WHERE 
                 MATCH (full_name, email) AGAINST (?)
@@ -182,8 +164,6 @@ async function search(query): Promise<Array<Donor>> {
         [query, `%${query}%`, `%${query}%`]
       );
 
-    con.release();
-
     return result.map((donor) => {
       return {
         id: donor.ID,
@@ -193,7 +173,6 @@ async function search(query): Promise<Array<Donor>> {
       };
     });
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -207,9 +186,7 @@ async function search(query): Promise<Array<Donor>> {
  */
 async function add(email = "", name, newsletter = null) {
   try {
-    var con = await pool.getConnection();
-
-    var res = await con.execute(
+    var res = await DAO.execute(
       `INSERT INTO Donors (
             email,
             full_name, 
@@ -218,10 +195,8 @@ async function add(email = "", name, newsletter = null) {
       [email, name, newsletter == true]
     );
 
-    con.release();
     return res[0].insertId;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -237,14 +212,12 @@ async function add(email = "", name, newsletter = null) {
  */
 async function updateNewsletter(donorID, newsletter) {
   try {
-    var con = await pool.getConnection();
-    let res = await con.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [
+    let res = await DAO.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [
       newsletter,
       donorID,
     ]);
     return true;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -257,8 +230,7 @@ async function updateNewsletter(donorID, newsletter) {
  */
 async function updateName(donorID, name) {
   try {
-    var con = await pool.getConnection();
-    let res = await con.query(`UPDATE Donors SET full_name = ? where ID = ?`, [
+    let res = await DAO.query(`UPDATE Donors SET full_name = ? where ID = ?`, [
       name,
       donorID,
     ]);
@@ -277,18 +249,16 @@ async function updateName(donorID, name) {
  */
 async function update(donorID, name, newsletter) {
   try {
-    var con = await pool.getConnection();
-    let [res] = await con.query(
+    let [res] = await DAO.query(
       `UPDATE Donors SET full_name = ?, newsletter = ? where ID = ?`,
       [name, newsletter, donorID]
     );
-    con.release();
+
     if (res.affectedRows === 1) {
       return true;
     }
     return false;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -301,12 +271,10 @@ async function update(donorID, name, newsletter) {
  */
 async function deleteById(donorID) {
   try {
-    var con = await pool.getConnection();
-    await con.query(`DELETE FROM Donors WHERE ID = ?`, [donorID]);
-    con.release();
+    await DAO.query(`DELETE FROM Donors WHERE ID = ?`, [donorID]);
+
     return;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -324,8 +292,4 @@ export const donors = {
   updateName,
   update,
   deleteById,
-
-  setup: (dbPool) => {
-    pool = dbPool;
-  },
 };

@@ -1,12 +1,9 @@
-const sqlString = require("sqlstring");
+import { DAO } from "../DAO";
 
-var pool;
-var DAO;
+const sqlString = require("sqlstring");
 
 //region GET
 async function getAll(page = 0, limit = 10, sort, filter = null) {
-  var con = await pool.getConnection();
-
   let where = [];
   if (filter) {
     if (filter.KID)
@@ -47,9 +44,9 @@ async function getAll(page = 0, limit = 10, sort, filter = null) {
     limit * page
   )}`;
 
-  const [rows] = await con.query(queryString);
+  const [rows] = await DAO.query(queryString);
 
-  const [counter] = await con.query(`
+  const [counter] = await DAO.query(`
         SELECT COUNT(*) as count 
             FROM Combining_table as Combining
 
@@ -63,7 +60,6 @@ async function getAll(page = 0, limit = 10, sort, filter = null) {
 
   const pages = Math.ceil(counter[0].count / limit);
 
-  con.release();
   return {
     rows,
     pages,
@@ -83,9 +79,7 @@ async function getAll(page = 0, limit = 10, sort, filter = null) {
  *      }]}]}}
  */
 async function getAllByDonor(donorID) {
-  var con = await pool.getConnection();
-
-  var [res] = await con.query(
+  var [res] = await DAO.query(
     `select Donors.ID as donID, Combining_table.KID as KID, Distribution.ID, Organizations.ID as orgId, Organizations.full_name, Distribution.percentage_share 
     from Donors
     inner join Combining_table on Combining_table.Donor_ID = Donors.ID
@@ -124,7 +118,6 @@ async function getAllByDonor(donorID) {
     });
   });
 
-  con.release();
   return distObj;
 }
 
@@ -142,9 +135,7 @@ async function getAllByDonor(donorID) {
  */
 async function getByDonorId(donorId) {
   try {
-    var con = await pool.getConnection();
-
-    var [distributions] = await con.query(
+    var [distributions] = await DAO.query(
       `
             SELECT
             Combining.KID,
@@ -168,10 +159,8 @@ async function getByDonorId(donorId) {
       [donorId]
     );
 
-    con.release();
     return distributions;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -183,18 +172,14 @@ async function getByDonorId(donorId) {
  */
 async function KIDexists(KID) {
   try {
-    var con = await pool.getConnection();
-
-    var [res] = await con.query(
+    var [res] = await DAO.query(
       "SELECT * FROM Combining_table WHERE KID = ? LIMIT 1",
       [KID]
     );
 
-    con.release();
     if (res.length > 0) return true;
     else return false;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -216,8 +201,6 @@ async function getKIDbySplit(
   minKidLength = 0
 ) {
   try {
-    var con = await pool.getConnection();
-
     let query = `
         SELECT 
             KID, 
@@ -258,13 +241,11 @@ async function getKIDbySplit(
 
     console.log(query);
 
-    var [res] = await con.execute(query);
+    var [res] = await DAO.execute(query);
 
-    con.release();
     if (res.length > 0) return res[0].KID;
     else return null;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -281,9 +262,7 @@ async function getKIDbySplit(
  */
 async function getSplitByKID(KID) {
   try {
-    var con = await pool.getConnection();
-
-    let [result] = await con.query(
+    let [result] = await DAO.query(
       `
             SELECT 
                 Organizations.ID,
@@ -302,12 +281,10 @@ async function getSplitByKID(KID) {
       [KID]
     );
 
-    con.release();
     if (result.length == 0)
       return new Error("NOT FOUND | No distribution with the KID " + KID);
     return result;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -319,9 +296,7 @@ async function getSplitByKID(KID) {
  */
 async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
   try {
-    var con = await pool.getConnection();
-
-    let [res] = await con.query(
+    let [res] = await DAO.query(
       `SELECT 
             ReferenceTransactionNumber,
             KID 
@@ -338,10 +313,8 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
       return acc;
     }, {});
 
-    con.release();
     return mapping;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -353,18 +326,14 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
  */
 async function isStandardDistribution(KID) {
   try {
-    var con = await pool.getConnection();
-
-    var [res] = await con.query(
+    var [res] = await DAO.query(
       "SELECT KID, Standard_split FROM EffektDonasjonDB_Tax.Combining_table WHERE KID = ? GROUP BY KID, Standard_split;",
       [KID]
     );
 
-    con.release();
     if (res.length > 0 && res[0]["Standard_split"] === 1) return true;
     else return false;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -389,7 +358,7 @@ async function add(
   metaOwnerID = null
 ) {
   try {
-    var transaction = await pool.startTransaction();
+    var transaction = await DAO.startTransaction();
 
     if (metaOwnerID == null) {
       metaOwnerID = await DAO.meta.getDefaultOwnerID();
@@ -423,10 +392,10 @@ async function add(
       [combining_table_values]
     );
 
-    pool.commitTransaction(transaction);
+    DAO.commitTransaction(transaction);
     return true;
   } catch (ex) {
-    pool.rollbackTransaction(transaction);
+    DAO.rollbackTransaction(transaction);
     throw ex;
   }
 }
@@ -442,8 +411,4 @@ export const distributions = {
   getByDonorId,
   isStandardDistribution,
   add,
-
-  setup: (dbPool, DAOObject) => {
-    (pool = dbPool), (DAO = DAOObject);
-  },
 };
