@@ -1,5 +1,4 @@
-var con;
-
+import { DAO } from "../DAO";
 //region Get
 
 /**
@@ -14,7 +13,7 @@ var con;
  * @returns {Array<DataOwner>} An array of DataOwner objects
  */
 async function getDataOwners() {
-  var [res] = await con.query(`SELECT * FROM Data_owner`);
+  var [res] = await DAO.query(`SELECT * FROM Data_owner`);
   return res.map((owner) => ({
     id: owner.ID,
     name: owner.owner,
@@ -27,7 +26,7 @@ async function getDataOwners() {
  * @returns {Number} The default owner ID
  */
 async function getDefaultOwnerID() {
-  var [res] = await con.query("SELECT ID FROM Data_owner WHERE `default` = 1");
+  var [res] = await DAO.query("SELECT ID FROM Data_owner WHERE `default` = 1");
   return res[0].ID;
 }
 
@@ -47,8 +46,4 @@ async function getDefaultOwnerID() {
 export const meta = {
   getDataOwners,
   getDefaultOwnerID,
-
-  setup: (dbPool) => {
-    con = dbPool;
-  },
 };

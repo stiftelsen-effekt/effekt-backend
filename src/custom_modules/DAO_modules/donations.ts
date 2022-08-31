@@ -1,12 +1,7 @@
 import { distributions } from "./distributions";
+import { DAO } from "../DAO";
 
 const sqlString = require("sqlstring");
-
-/**
- * @type {import('mysql2/promise').Pool}
- */
-var pool;
-var DAO;
 
 /** @typedef Donation
  * @prop {number} id
@@ -47,8 +42,6 @@ var DAO;
  */
 async function getAll(sort, page, limit = 10, filter = null) {
   try {
-    var con = await pool.getConnection();
-
     if (sort) {
       const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
 
@@ -100,7 +93,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
           );
       }
 
-      const [donations] = await con.query(
+      const [donations] = await DAO.query(
         `SELECT 
                     Donations.ID,
                     Donors.full_name,
@@ -124,7 +117,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
         [limit, page * limit]
       );
 
-      const [counter] = await con.query(`
+      const [counter] = await DAO.query(`
                 SELECT COUNT(*) as count FROM Donations
 
                 INNER JOIN Donors
@@ -135,7 +128,6 @@ async function getAll(sort, page, limit = 10, filter = null) {
 
       const pages = Math.ceil(counter[0].count / limit);
 
-      con.release();
       return {
         rows: mapToJS(donations),
         pages,
@@ -144,7 +136,6 @@ async function getAll(sort, page, limit = 10, filter = null) {
       throw new Error("No sort provided");
     }
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -156,9 +147,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
  */
 async function getAllByKID(KID) {
   try {
-    var con = await pool.getConnection();
-
-    var [getDonationsByKIDQuery] = await con.query(
+    var [getDonationsByKIDQuery] = await DAO.query(
       `
             SELECT *, D.ID, payment_name FROM Donations as D
                 INNER JOIN Payment as P on D.Payment_ID = P.ID
@@ -182,10 +171,8 @@ async function getAllByKID(KID) {
       });
     });
 
-    con.release();
     return donations;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -198,8 +185,7 @@ async function getAllByKID(KID) {
  */
 async function getHistogramBySum() {
   try {
-    var con = await pool.getConnection();
-    let [results] = await con.query(`
+    let [results] = await DAO.query(`
             SELECT 
                 floor(sum_confirmed/5000)*5000 	AS bucket, 
                 count(*) 						AS items,
@@ -209,10 +195,8 @@ async function getHistogramBySum() {
             ORDER BY 1;
         `);
 
-    con.release();
     return results;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -224,8 +208,7 @@ async function getHistogramBySum() {
  */
 async function getLatestByKID(KID) {
   try {
-    var con = await pool.getConnection();
-    let [results] = await con.query(
+    let [results] = await DAO.query(
       `
             SELECT 
                 Donation.ID,
@@ -253,7 +236,6 @@ async function getLatestByKID(KID) {
         `,
       [KID]
     );
-    con.release();
 
     if (results.length == 0) return null;
 
@@ -273,7 +255,6 @@ async function getLatestByKID(KID) {
 
     return donation;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -286,16 +267,13 @@ async function getLatestByKID(KID) {
  */
 async function getAggregateByTime(startTime, endTime) {
   try {
-    var con = await pool.getConnection();
-    var [getAggregateQuery] = await con.query(
+    var [getAggregateQuery] = await DAO.query(
       "CALL `get_aggregate_donations_by_period`(?, ?)",
       [startTime, endTime]
     );
 
-    con.release();
     return getAggregateQuery[0];
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -307,8 +285,7 @@ async function getAggregateByTime(startTime, endTime) {
  */
 async function getAggregateLastYearByMonth() {
   try {
-    var con = await pool.getConnection();
-    var [getAggregateQuery] = await con.query(`
+    var [getAggregateQuery] = await DAO.query(`
             SELECT 
                 extract(YEAR from timestamp_confirmed) as \`year\`,
                 extract(MONTH from timestamp_confirmed) as \`month\`, 
@@ -323,44 +300,36 @@ async function getAggregateLastYearByMonth() {
                 ORDER BY \`year\`, \`month\`;
         `);
 
-    con.release();
     return getAggregateQuery;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function externalPaymentIDExists(externalPaymentID, paymentID) {
   try {
-    var con = await pool.getConnection();
-    var [res] = await con.query(
+    var [res] = await DAO.query(
       "SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ? LIMIT 1",
       [externalPaymentID, paymentID]
     );
   } catch (ex) {
-    con.release();
     throw ex;
   }
 
-  con.release();
   if (res.length > 0) return true;
   else return false;
 }
 
 async function getByExternalPaymentID(externalPaymentID, paymentID) {
   try {
-    var con = await pool.getConnection();
-    var [res] = await con.query(
+    var [res] = await DAO.query(
       "SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ?",
       [externalPaymentID, paymentID]
     );
   } catch (ex) {
-    con.release();
     throw ex;
   }
 
-  con.release();
   if (res.length > 0) return res[0];
   else return false;
 }
@@ -372,9 +341,7 @@ async function getByExternalPaymentID(externalPaymentID, paymentID) {
  */
 async function getByID(donationID) {
   try {
-    var con = await pool.getConnection();
-
-    var [getDonationFromIDquery] = await con.query(
+    var [getDonationFromIDquery] = await DAO.query(
       `
             SELECT 
                 Donation.ID,
@@ -426,19 +393,15 @@ async function getByID(donationID) {
       share: split.percentage_share,
     }));
 
-    con.release();
     return donation;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function getByDonorId(donorId) {
   try {
-    var con = await pool.getConnection();
-
-    var [donations] = await con.query(
+    var [donations] = await DAO.query(
       `
             SELECT 
                 Donation.ID,
@@ -479,10 +442,8 @@ async function getByDonorId(donorId) {
       metaOwnerId: dbDonation.Meta_owner_ID,
     }));
 
-    con.release();
     return donations;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -494,10 +455,8 @@ async function getByDonorId(donorId) {
  */
 async function getHasReplacedOrgs(donationID) {
   try {
-    var con = await pool.getConnection();
-
     if (donationID) {
-      let [result] = await con.query(
+      let [result] = await DAO.query(
         `
                 select Replaced_old_organizations from Donations as D
                 inner join Combining_table as CT on CT.KID = D.KID_fordeling
@@ -507,11 +466,9 @@ async function getHasReplacedOrgs(donationID) {
         [donationID]
       );
 
-      con.release();
       return result[0]?.Replaced_old_organizations || 0;
     }
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -524,12 +481,10 @@ async function getHasReplacedOrgs(donationID) {
  */
 async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
   try {
-    var con = await pool.getConnection();
-
     if (!fromDate) fromDate = new Date(2000, 0, 1);
     if (!toDate) toDate = new Date();
 
-    let [getFromRangeQuery] = await con.query(
+    let [getFromRangeQuery] = await DAO.query(
       `
                 SELECT 
                     Donations.ID as Donation_ID,
@@ -606,10 +561,8 @@ async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
       (a, b) => a.time - b.time
     );
 
-    con.release();
     return returnDonations;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -622,12 +575,10 @@ async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
  */
 async function getMedianFromRange(fromDate, toDate) {
   try {
-    var con = await pool.getConnection();
-
     if (!fromDate) fromDate = new Date(2000, 0, 1);
     if (!toDate) toDate = new Date();
 
-    let [donations] = await con.query(
+    let [donations] = await DAO.query(
       `
             SELECT 
                 Donations.sum_confirmed
@@ -646,7 +597,6 @@ async function getMedianFromRange(fromDate, toDate) {
     );
 
     if (donations.length === 0) {
-      con.release();
       return null;
     }
 
@@ -655,10 +605,8 @@ async function getMedianFromRange(fromDate, toDate) {
     // men tenker det går greit
     const medianIndex = Math.floor(donations.length / 2);
 
-    con.release();
     return parseFloat(donations[medianIndex].sum_confirmed);
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -670,9 +618,7 @@ async function getMedianFromRange(fromDate, toDate) {
  */
 async function getSummary(donorID) {
   try {
-    var con = await pool.getConnection();
-
-    var [res] = await con.query(
+    var [res] = await DAO.query(
       `SELECT
             Organizations.full_name, 
             (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, 
@@ -716,10 +662,8 @@ async function getSummary(donorID) {
 
     summary.push({ donorID: donorID });
 
-    con.release();
     return summary;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -731,9 +675,7 @@ async function getSummary(donorID) {
  */
 async function getSummaryByYear(donorID) {
   try {
-    var con = await pool.getConnection();
-
-    var [res] = await con.query(
+    var [res] = await DAO.query(
       `
             SELECT SUM(sum_confirmed) AS yearSum, YEAR(timestamp_confirmed) as year
             FROM Donations 
@@ -743,19 +685,15 @@ async function getSummaryByYear(donorID) {
       [donorID]
     );
 
-    con.release();
     return res;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function getYearlyAggregateByDonorId(donorId) {
   try {
-    var con = await pool.getConnection();
-
-    const [res] = await con.query(
+    const [res] = await DAO.query(
       `
             SELECT
                 Organizations.ID as organizationId,
@@ -779,11 +717,8 @@ async function getYearlyAggregateByDonorId(donorId) {
       [donorId]
     );
 
-    con.release();
-
     return res;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -795,8 +730,7 @@ async function getYearlyAggregateByDonorId(donorId) {
  */
 async function getHistory(donorID) {
   try {
-    var con = await pool.getConnection();
-    var [res] = await con.query(
+    var [res] = await DAO.query(
       `
             SELECT
                 Organizations.full_name,
@@ -846,10 +780,8 @@ async function getHistory(donorID) {
       });
     });
 
-    con.release();
     return history;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -878,8 +810,7 @@ async function add(
   metaOwnerID = null
 ) {
   try {
-    var con = await pool.getConnection();
-    var [donorIDQuery] = await con.query(
+    var [donorIDQuery] = await DAO.query(
       "SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1",
       [KID]
     );
@@ -918,7 +849,7 @@ async function add(
 
     var donorID = donorIDQuery[0].Donor_ID;
 
-    var [addDonationQuery] = await con.query(
+    var [addDonationQuery] = await DAO.query(
       "INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling, Meta_owner_ID) VALUES (?,?,?,?,?,?,?)",
       [
         donorID,
@@ -931,10 +862,8 @@ async function add(
       ]
     );
 
-    con.release();
     return addDonationQuery.insertId;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -943,9 +872,7 @@ async function add(
 //region Modify
 async function registerConfirmedByIDs(IDs) {
   try {
-    var con = await pool.getConnection();
-
-    var [donations] = await con.execute(
+    var [donations] = await DAO.execute(
       `UPDATE EffektDonasjonDB.Donations 
             SET date_confirmed = NOW()
             WHERE 
@@ -955,19 +882,15 @@ async function registerConfirmedByIDs(IDs) {
       IDs
     );
 
-    con.release();
     return true;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function updateTransactionCost(transactionCost, donationID) {
   try {
-    var con = await pool.getConnection();
-
-    await con.execute(
+    await DAO.execute(
       `
             UPDATE Donations
             SET transaction_cost = ?
@@ -975,10 +898,8 @@ async function updateTransactionCost(transactionCost, donationID) {
       [transactionCost, donationID]
     );
 
-    con.release();
     return true;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -993,16 +914,13 @@ async function updateTransactionCost(transactionCost, donationID) {
  */
 async function remove(donationId) {
   try {
-    var con = await pool.getConnection();
-    var result = await con.query(`DELETE FROM Donations WHERE ID = ?`, [
+    var result = await DAO.query(`DELETE FROM Donations WHERE ID = ?`, [
       donationId,
     ]);
 
-    con.release();
     if (result[0].affectedRows > 0) return true;
     else return false;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -1051,8 +969,4 @@ export const donations = {
   registerConfirmedByIDs,
   getHistogramBySum,
   remove,
-
-  setup: (dbPool, DAOObject) => {
-    (pool = dbPool), (DAO = DAOObject);
-  },
 };

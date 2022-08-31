@@ -151,6 +151,7 @@ DAO.connect(() => {
   const loggingRoute = require("./routes/logging");
   const mailRoute = require("./routes/mail");
   const avtaleGiroRoute = require("./routes/avtalegiro");
+  const taxRoute = require("./routes/tax");
 
   app.use("/donors", donorsRoute);
   app.use("/donations", donationsRoute);
@@ -167,6 +168,7 @@ DAO.connect(() => {
   app.use("/logging", loggingRoute);
   app.use("/mail", mailRoute);
   app.use("/avtalegiro", avtaleGiroRoute);
+  app.use("/tax", taxRoute);
 
   app.use("/static", express.static(__dirname + "/static"));
   app.use("/style", express.static(__dirname + "/views/style"));

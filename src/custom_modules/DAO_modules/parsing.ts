@@ -1,4 +1,4 @@
-var con;
+import { DAO } from "../DAO";
 
 /**
  * Gets the parsing rules for vipps for a given period
@@ -8,7 +8,7 @@ var con;
  */
 async function getVippsParsingRules(periodStart, periodEnd) {
   try {
-    var [res] = await con.query(
+    var [res] = await DAO.query(
       "SELECT * FROM Vipps_matching_rules WHERE PeriodFrom <= ? and PeriodTo >= ? ORDER BY precedence DESC",
       [periodStart, periodEnd]
     );
@@ -27,8 +27,4 @@ async function getVippsParsingRules(periodStart, periodEnd) {
 
 export const parsing = {
   getVippsParsingRules,
-
-  setup: (dbPool) => {
-    con = dbPool;
-  },
 };

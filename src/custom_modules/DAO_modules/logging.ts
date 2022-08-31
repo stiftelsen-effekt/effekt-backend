@@ -1,9 +1,5 @@
+import { DAO } from "../DAO";
 const sqlString = require("sqlstring");
-
-/**
- * @type {import('mysql2/promise').Pool}
- */
-var pool;
 
 /**
  * @typedef ImportLogEntry
@@ -26,9 +22,7 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
    * TODO: Add filtering
    */
   try {
-    var con = await pool.getConnection();
-
-    let [res] = await con.query(
+    let [res] = await DAO.query(
       `
       SELECT 
         ID, label, timestamp,
@@ -75,19 +69,17 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
       [limit, offset]
     );
 
-    let [counter] = await con.query(`
+    let [counter] = await DAO.query(`
       SELECT COUNT(*) as count FROM Import_logs 
     `);
 
     const pages = Math.ceil(counter[0].count / limit);
 
-    con.release();
     return {
       results: res,
       pages,
     };
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -99,9 +91,7 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
  */
 async function get(id) {
   try {
-    var con = await pool.getConnection();
-
-    let [res] = await con.query(
+    let [res] = await DAO.query(
       `
       SELECT *
       
@@ -111,12 +101,9 @@ async function get(id) {
       [id]
     );
 
-    con.release();
-
     if (res.length > 0) return res[0];
     else return null;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -130,9 +117,7 @@ async function get(id) {
  */
 async function add(label, result) {
   try {
-    var con = await pool.getConnection();
-
-    var res = await con.execute(
+    var res = await DAO.execute(
       `INSERT INTO Import_logs
           (label, result) 
           VALUES 
@@ -140,10 +125,8 @@ async function add(label, result) {
       [label, JSON.stringify(result)]
     );
 
-    con.release();
     return res.insertId;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -165,8 +148,4 @@ export const logging = {
   add,
   get,
   getEntries,
-
-  setup: (dbPool) => {
-    pool = dbPool;
-  },
 };

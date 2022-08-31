@@ -1,4 +1,4 @@
-var con;
+import { DAO } from "../DAO";
 
 //region Get
 /**
@@ -7,7 +7,7 @@ var con;
  */
 async function getMethods() {
   try {
-    var [res] = await con.query(`SELECT * FROM Payment`);
+    var [res] = await DAO.query(`SELECT * FROM Payment`);
 
     if (res.length > 0) {
       return mapDBpaymentToObject(res);
@@ -26,7 +26,7 @@ async function getMethods() {
  */
 async function getPaymentMethodsByIDs(paymentMethodIDs) {
   try {
-    var [res] = await con.query(
+    var [res] = await DAO.query(
       `SELECT * FROM Payment 
                                         WHERE ID IN (?)`,
       [paymentMethodIDs]
@@ -73,8 +73,4 @@ function mapDBpaymentToObject(dbPaymentObject) {
 export const payment = {
   getMethods,
   getPaymentMethodsByIDs,
-
-  setup: (dbPool) => {
-    con = dbPool;
-  },
 };

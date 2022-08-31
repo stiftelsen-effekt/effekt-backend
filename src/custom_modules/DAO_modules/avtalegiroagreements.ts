@@ -1,7 +1,6 @@
 import { DAO } from "../DAO";
 
 const sqlString = require("sqlstring");
-var pool;
 
 //region Get
 /**
@@ -11,9 +10,7 @@ var pool;
  */
 async function getDonationsByKID(KID) {
   try {
-    var con = await pool.getConnection();
-
-    var [getDonationsByKIDQuery] = await con.query(
+    var [getDonationsByKIDQuery] = await DAO.query(
       `
           SELECT *, D.ID, payment_name FROM Donations as D
               INNER JOIN Payment as P on D.Payment_ID = P.ID
@@ -37,10 +34,8 @@ async function getDonationsByKID(KID) {
       });
     });
 
-    con.release();
     return donations;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -56,9 +51,7 @@ async function getDonationsByKID(KID) {
  */
 async function add(KID, amount, paymentDate, notice) {
   try {
-    var con = await pool.getConnection();
-
-    var res = await con.execute(
+    var res = await DAO.execute(
       `INSERT INTO Avtalegiro_agreements (
             KID,
             amount,
@@ -68,66 +61,51 @@ async function add(KID, amount, paymentDate, notice) {
       [KID, amount, paymentDate, notice]
     );
 
-    con.release();
     return res.insertId;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function updateNotification(KID, notice) {
   try {
-    var con = await pool.getConnection();
-
-    let res = await con.query(
+    let res = await DAO.query(
       `UPDATE Avtalegiro_agreements SET notice = ? where KID = ?`,
       [notice, KID]
     );
 
-    con.release();
     return true;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function updateAmount(KID, amount) {
   try {
-    var con = await pool.getConnection();
-
-    await con.query(
+    await DAO.query(
       `UPDATE Avtalegiro_agreements SET amount = ? where KID = ?`,
       [amount, KID]
     );
 
-    con.release();
     return true;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function updatePaymentDate(KID, paymentDate) {
   try {
-    var con = await pool.getConnection();
-
     if (paymentDate >= 0 && paymentDate <= 28) {
-      await con.query(
+      await DAO.query(
         `UPDATE Avtalegiro_agreements SET payment_date = ? where KID = ?`,
         [paymentDate, KID]
       );
     } else {
-      con.release();
       return false;
     }
 
-    con.release();
     return true;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -140,15 +118,12 @@ async function replaceDistribution(
   metaOwnerID
 ) {
   try {
-    var con = await pool.getConnection();
-
     if (replacementKID.length !== 15 || originalKID.length !== 15) {
-      con.release();
       return false;
     }
 
     // Replaces original KID with a new replacement KID
-    await con.query(
+    await DAO.query(
       `
             UPDATE Combining_table
             SET KID = ?
@@ -158,7 +133,7 @@ async function replaceDistribution(
     );
 
     // Updates donations with the old distributions to use the replacement KID (preserves donation history)
-    await con.query(
+    await DAO.query(
       `
             UPDATE Donations
             SET KID_fordeling = ?
@@ -180,7 +155,7 @@ async function replaceDistribution(
     );
 
     // Links the replacement KID to the original AvtaleGiro KID
-    await con.query(
+    await DAO.query(
       `
             INSERT INTO AvtaleGiro_replaced_distributions(Replacement_KID, Original_AvtaleGiro_KID)
             VALUES (?, ?)
@@ -188,46 +163,35 @@ async function replaceDistribution(
       [replacementKID, originalKID]
     );
 
-    con.release();
     return true;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function setActive(KID, active) {
   try {
-    var con = await pool.getConnection();
-
-    let res = await con.query(
+    let res = await DAO.query(
       `UPDATE Avtalegiro_agreements SET active = ? where KID = ?`,
       [active, KID]
     );
 
-    con.release();
     return true;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function isActive(KID) {
   try {
-    var con = await pool.getConnection();
-
-    let [res] = await con.query(
+    let [res] = await DAO.query(
       `SELECT active FROM Avtalegiro_agreements active where KID = ?`,
       [KID]
     );
 
-    con.release();
-
     if (res[0].active == 1) return true;
     else return false;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -239,14 +203,12 @@ async function isActive(KID) {
  * @return {boolean} Success
  */
 async function cancelAgreement(KID) {
-  let con = await pool.getConnection();
-
   const today = new Date();
   //YYYY-MM-DD format
   const mysqlDate = today.toISOString().slice(0, 19).replace("T", " ");
 
   try {
-    con.query(
+    DAO.query(
       `
             UPDATE Avtalegiro_agreements
             SET cancelled = ?, active = 0
@@ -254,45 +216,37 @@ async function cancelAgreement(KID) {
         `,
       [mysqlDate, KID]
     );
-    con.release();
+
     return true;
   } catch (ex) {
-    con.release();
     return false;
   }
 }
 
 async function remove(KID) {
   try {
-    var con = await pool.getConnection();
-    var result = await con.query(
+    var result = await DAO.query(
       `DELETE FROM Avtalegiro_agreements WHERE KID = ?`,
       [KID]
     );
 
-    con.release();
     if (result[0].affectedRows > 0) return true;
     else return false;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function exists(KID) {
   try {
-    var con = await pool.getConnection();
-
-    var [res] = await con.query(
+    var [res] = await DAO.query(
       "SELECT * FROM Avtalegiro_agreements WHERE KID = ?",
       [KID]
     );
 
-    con.release();
     if (res.length > 0) return true;
     else return false;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -306,8 +260,6 @@ async function exists(KID) {
  * @return {[AvtaleGiro]} Array of AvtaleGiro agreements
  */
 async function getAgreements(sort, page, limit, filter) {
-  let con = await pool.getConnection();
-
   const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
   const sortDirection = sort.desc ? "DESC" : "ASC";
   const offset = page * limit;
@@ -337,7 +289,7 @@ async function getAgreements(sort, page, limit, filter) {
       );
   }
 
-  const [agreements] = await con.query(
+  const [agreements] = await DAO.query(
     `
         SELECT DISTINCT
             AG.ID,
@@ -364,11 +316,9 @@ async function getAgreements(sort, page, limit, filter) {
     [limit, offset]
   );
 
-  const [counter] = await con.query(`
+  const [counter] = await DAO.query(`
         SELECT COUNT(*) as count FROM Avtalegiro_agreements
     `);
-
-  con.release();
 
   if (agreements.length === 0) return false;
   else
@@ -384,9 +334,7 @@ async function getAgreements(sort, page, limit, filter) {
  * @return {AvtaleGiro} AvtaleGiro agreement
  */
 async function getAgreement(id) {
-  let con = await pool.getConnection();
-
-  const result = await con.query(
+  const result = await DAO.query(
     `
         SELECT DISTINCT
             AG.ID,
@@ -410,8 +358,6 @@ async function getAgreement(id) {
     [id]
   );
 
-  con.release();
-
   if (result.length === 0) return false;
 
   const avtaleGiro = result[0][0];
@@ -428,8 +374,7 @@ async function getAgreement(id) {
 
 async function getByDonorId(donorId) {
   try {
-    var con = await pool.getConnection();
-    let [agreements] = await con.query(
+    let [agreements] = await DAO.query(
       `
             SELECT DISTINCT
                 AG.ID,
@@ -454,19 +399,15 @@ async function getByDonorId(donorId) {
       [donorId]
     );
 
-    con.release();
-
     return agreements;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
 
 async function getByKID(KID) {
   try {
-    var con = await pool.getConnection();
-    let [agreement] = await con.query(
+    let [agreement] = await DAO.query(
       `
             SELECT 
                 payment_date,
@@ -477,7 +418,6 @@ async function getByKID(KID) {
       [KID]
     );
 
-    con.release();
     if (agreement.length > 0) {
       return {
         payment_date: agreement[0].payment_date,
@@ -488,7 +428,6 @@ async function getByKID(KID) {
       return null;
     }
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -498,8 +437,7 @@ async function getByKID(KID) {
  * @return {Object}
  */
 async function getAgreementReport() {
-  let con = await pool.getConnection();
-  let [res] = await con.query(`
+  let [res] = await DAO.query(`
     SELECT 
         count(ID) as activeAgreementCount,
         round(avg(amount)/100, 0) as averageAgreementSum,
@@ -556,7 +494,6 @@ async function getAgreementReport() {
     WHERE
         active = 1
         `);
-  con.release();
 
   if (res.length === 0) return false;
   else return res[0];
@@ -568,22 +505,17 @@ async function getAgreementReport() {
  */
 async function getMissingForDate(date) {
   try {
-    var con = await pool.getConnection();
-
     let year = date.getFullYear();
     let month = date.getMonth() + 1;
     let dayOfMonth = date.getDate();
 
-    let [res] = await con.query(
+    let [res] = await DAO.query(
       "call get_avtalegiro_agreement_missing_donations_by_date(?,?,?)",
       [year, month, dayOfMonth]
     );
 
-    con.release();
-
     return res[0];
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -594,22 +526,17 @@ async function getMissingForDate(date) {
  */
 async function getExpectedDonationsForDate(date) {
   try {
-    var con = await pool.getConnection();
-
     let year = date.getFullYear();
     let month = date.getMonth() + 1;
     let dayOfMonth = date.getDate();
 
-    let [res] = await con.query(
+    let [res] = await DAO.query(
       "call get_avtalegiro_agreement_expected_donations_by_date(?,?,?)",
       [year, month, dayOfMonth]
     );
 
-    con.release();
-
     return res[0];
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -620,18 +547,14 @@ async function getExpectedDonationsForDate(date) {
  */
 async function getRecievedDonationsForDate(date) {
   try {
-    var con = await pool.getConnection();
-
     let year = date.getFullYear();
     let month = date.getMonth() + 1;
     let dayOfMonth = date.getDate();
 
-    let [res] = await con.query(
+    let [res] = await DAO.query(
       "call get_avtalegiro_agreement_recieved_donations_by_date(?,?,?)",
       [year, month, dayOfMonth]
     );
-
-    con.release();
 
     return res[0].map((donation) => ({
       id: donation.ID,
@@ -644,7 +567,6 @@ async function getRecievedDonationsForDate(date) {
       timestamp: donation.timestamp_confirmed,
     }));
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -657,8 +579,7 @@ async function getRecievedDonationsForDate(date) {
  */
 async function getAgreementSumHistogram() {
   try {
-    var con = await pool.getConnection();
-    let [results] = await con.query(`
+    let [results] = await DAO.query(`
             SELECT 
                 floor(amount/500)*500/100 	AS bucket, 
                 count(*) 						AS items,
@@ -668,10 +589,8 @@ async function getAgreementSumHistogram() {
             ORDER BY 1;
         `);
 
-    con.release();
     return results;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -683,9 +602,7 @@ async function getAgreementSumHistogram() {
  */
 async function getByPaymentDate(dayInMonth) {
   try {
-    var con = await pool.getConnection();
-
-    let [agreements] = await con.query(
+    let [agreements] = await DAO.query(
       `SELECT    
             payment_date,
             amount, 
@@ -698,8 +615,6 @@ async function getByPaymentDate(dayInMonth) {
       [dayInMonth]
     );
 
-    con.release();
-
     return agreements.map((agreement) => ({
       payment_date: agreement.payment_date,
       notice: agreement.notice,
@@ -707,7 +622,6 @@ async function getByPaymentDate(dayInMonth) {
       KID: agreement.KID,
     }));
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -722,17 +636,12 @@ async function getByPaymentDate(dayInMonth) {
  */
 async function getValidationTable() {
   try {
-    var con = await pool.getConnection();
-
-    let [rows] = await con.query(
+    let [rows] = await DAO.query(
       `call EffektDonasjonDB.get_avtalegiro_validation()`
     );
 
-    con.release();
-
     return rows[0];
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -744,8 +653,7 @@ async function getValidationTable() {
  */
 async function addShipment(numClaims) {
   try {
-    var con = await pool.getConnection();
-    let [result] = await con.query(
+    let [result] = await DAO.query(
       `INSERT INTO
             Avtalegiro_shipment
             
@@ -753,10 +661,8 @@ async function addShipment(numClaims) {
       [numClaims]
     );
 
-    con.release();
     return result.insertId;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -802,7 +708,4 @@ export const avtalegiroagreements = {
   getDonationsByKID,
 
   addShipment,
-  setup: (dbPool) => {
-    pool = dbPool;
-  },
 };

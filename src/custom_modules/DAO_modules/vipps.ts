@@ -1,6 +1,5 @@
 import { distributions } from "./distributions";
-
-var pool;
+import { DAO } from "../DAO";
 const sqlString = require("sqlstring");
 
 // Valid states for Vipps recurring charges
@@ -76,12 +75,10 @@ const chargeStatuses = [
  * @returns {VippsToken | boolean} The most recent vipps token, false if expiration is within 10 minutes
  */
 async function getLatestToken() {
-  let con = await pool.getConnection();
-  let [res] = await con.query(`
+  let [res] = await DAO.query(`
         SELECT * FROM Vipps_tokens
             ORDER BY expires DESC
             LIMIT 1`);
-  con.release();
 
   if (res.length === 0) return false;
   if (res[0].expires - Date.now() < 10 * 60 * 1000) return false;
@@ -100,8 +97,7 @@ async function getLatestToken() {
  * @return {VippsOrder | false}
  */
 async function getOrder(orderID) {
-  let con = await pool.getConnection();
-  let [res] = await con.query(
+  let [res] = await DAO.query(
     `
         SELECT * FROM Vipps_orders
             WHERE
@@ -109,7 +105,6 @@ async function getOrder(orderID) {
             LIMIT 1`,
     [orderID]
   );
-  con.release();
 
   if (res.length === 0) return false;
   else return res[0];
@@ -120,13 +115,11 @@ async function getOrder(orderID) {
  * @return {VippsOrder | false}
  */
 async function getRecentOrder() {
-  let con = await pool.getConnection();
-  let [res] = await con.query(`
+  let [res] = await DAO.query(`
         SELECT * FROM Vipps_orders
             ORDER BY 
                 registered DESC
             LIMIT 1`);
-  con.release();
 
   if (res.length === 0) return false;
   else return res[0];
@@ -138,8 +131,7 @@ async function getRecentOrder() {
  * @return {VippsAgreement}
  */
 async function getAgreement(agreementID) {
-  let con = await pool.getConnection();
-  let [res] = await con.query(
+  let [res] = await DAO.query(
     `
         SELECT ID, status, donorID, KID, timestamp_created, monthly_charge_day, force_charge_date, paused_until_date, amount, agreement_url_code FROM 
             Vipps_agreements
@@ -162,8 +154,6 @@ async function getAgreement(agreementID) {
     share: split.percentage_share,
   }));
 
-  con.release();
-
   if (res.length === 0) return false;
   else return agreement;
 }
@@ -177,8 +167,6 @@ async function getAgreement(agreementID) {
  * @return {[Agreement]} Array of agreements
  */
 async function getAgreements(sort, page, limit, filter) {
-  let con = await pool.getConnection();
-
   const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
   const sortDirection = sort.desc ? "DESC" : "ASC";
   const offset = page * limit;
@@ -208,7 +196,7 @@ async function getAgreements(sort, page, limit, filter) {
       );
   }
 
-  const [agreements] = await con.query(
+  const [agreements] = await DAO.query(
     `
         SELECT
             VA.ID,
@@ -231,11 +219,9 @@ async function getAgreements(sort, page, limit, filter) {
     [limit, offset]
   );
 
-  const [counter] = await con.query(`
+  const [counter] = await DAO.query(`
         SELECT COUNT(*) as count FROM Vipps_agreements
     `);
-
-  con.release();
 
   if (agreements.length === 0) return false;
   else
@@ -252,8 +238,7 @@ async function getAgreements(sort, page, limit, filter) {
  */
 async function getAgreementsByDonorId(donorId) {
   try {
-    var con = await pool.getConnection();
-    const [agreements] = await con.query(
+    const [agreements] = await DAO.query(
       `
             SELECT Vipps_agreements.ID, 
                 status, 
@@ -278,10 +263,8 @@ async function getAgreementsByDonorId(donorId) {
       [donorId]
     );
 
-    con.release();
     return agreements;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -295,8 +278,6 @@ async function getAgreementsByDonorId(donorId) {
  * @return {[Agreement]} Array of agreements
  */
 async function getCharges(sort, page, limit, filter) {
-  let con = await pool.getConnection();
-
   const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
   const sortDirection = sort.desc ? "DESC" : "ASC";
   const offset = page * limit;
@@ -344,7 +325,7 @@ async function getCharges(sort, page, limit, filter) {
       );
   }
 
-  const [charges] = await con.query(
+  const [charges] = await DAO.query(
     `
         SELECT
             VC.chargeID,
@@ -370,11 +351,9 @@ async function getCharges(sort, page, limit, filter) {
     [limit, offset]
   );
 
-  const [counter] = await con.query(`
+  const [counter] = await DAO.query(`
         SELECT COUNT(*) as count FROM Vipps_agreement_charges
     `);
-
-  con.release();
 
   if (charges.length === 0) return false;
   else
@@ -390,8 +369,7 @@ async function getCharges(sort, page, limit, filter) {
  * @return {string} agreementId
  */
 async function getAgreementIdByUrlCode(agreementUrlCode) {
-  let con = await pool.getConnection();
-  let [res] = await con.query(
+  let [res] = await DAO.query(
     `
         SELECT ID FROM 
             Vipps_agreements
@@ -400,7 +378,6 @@ async function getAgreementIdByUrlCode(agreementUrlCode) {
         `,
     [agreementUrlCode]
   );
-  con.release();
 
   if (res.length === 0) return false;
   else return res[0].ID;
@@ -413,8 +390,7 @@ async function getAgreementIdByUrlCode(agreementUrlCode) {
  * @return {AgreementCharge}
  */
 async function getCharge(agreementId, chargeId) {
-  let con = await pool.getConnection();
-  let [res] = await con.query(
+  let [res] = await DAO.query(
     `
         SELECT * FROM 
             Vipps_agreement_charges
@@ -423,7 +399,6 @@ async function getCharge(agreementId, chargeId) {
         `,
     [agreementId, chargeId]
   );
-  con.release();
 
   if (res.length === 0) return false;
   else return res[0];
@@ -434,8 +409,7 @@ async function getCharge(agreementId, chargeId) {
  * @param {string} agreementID
  */
 async function getInitialCharge(agreementID) {
-  let con = await pool.getConnection();
-  let [res] = await con.query(
+  let [res] = await DAO.query(
     `
         SELECT * FROM 
             Vipps_agreement_charges
@@ -444,7 +418,6 @@ async function getInitialCharge(agreementID) {
         `,
     [agreementID]
   );
-  con.release();
 
   if (res.length === 0) return false;
   else return res[0];
@@ -456,14 +429,12 @@ async function getInitialCharge(agreementID) {
  * @return {[VippsAgreement]}
  */
 async function getActiveAgreements() {
-  let con = await pool.getConnection();
-  let [res] = await con.query(`
+  let [res] = await DAO.query(`
         SELECT * FROM 
             Vipps_agreements 
         WHERE 
             status = "ACTIVE"
         `);
-  con.release();
 
   if (res.length === 0) return false;
   else return res;
@@ -474,8 +445,7 @@ async function getActiveAgreements() {
  * @return {Object}
  */
 async function getAgreementReport() {
-  let con = await pool.getConnection();
-  let [res] = await con.query(`
+  let [res] = await DAO.query(`
     SELECT 
         count(ID) as activeAgreementCount,
         round(avg(amount), 0) as averageAgreementSum,
@@ -544,7 +514,6 @@ async function getAgreementReport() {
         status = "ACTIVE" and
     (paused_until_date < (SELECT current_timestamp()) or paused_until_date IS NULL)
         `);
-  con.release();
 
   if (res.length === 0) return false;
   else return res;
@@ -558,8 +527,7 @@ async function getAgreementReport() {
  */
 async function getAgreementSumHistogram() {
   try {
-    var con = await pool.getConnection();
-    let [results] = await con.query(`
+    let [results] = await DAO.query(`
             SELECT 
                 floor(amount/500)*500 	AS bucket, 
                 count(*) 						AS items,
@@ -569,10 +537,8 @@ async function getAgreementSumHistogram() {
             ORDER BY 1;
         `);
 
-    con.release();
     return results;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -585,8 +551,7 @@ async function getAgreementSumHistogram() {
  */
 async function getChargeSumHistogram() {
   try {
-    var con = await pool.getConnection();
-    let [results] = await con.query(`
+    let [results] = await DAO.query(`
             SELECT 
                 floor(amountNOK/500)*500 	AS bucket, 
                 count(*) 						AS items,
@@ -596,10 +561,8 @@ async function getChargeSumHistogram() {
             ORDER BY 1;
         `);
 
-    con.release();
     return results;
   } catch (ex) {
-    con.release();
     throw ex;
   }
 }
@@ -614,8 +577,7 @@ async function getChargeSumHistogram() {
  * @return {number} token ID in database
  */
 async function addToken(token) {
-  let con = await pool.getConnection();
-  let [result] = await con.query(
+  let [result] = await DAO.query(
     `
         INSERT INTO Vipps_tokens
             (expires, type, token)
@@ -624,7 +586,6 @@ async function addToken(token) {
     `,
     [token.expires, token.type, token.token]
   );
-  con.release();
 
   return result.insertId;
 }
@@ -635,8 +596,7 @@ async function addToken(token) {
  * @return {number} ID of inserted order
  */
 async function addOrder(order) {
-  let con = await pool.getConnection();
-  let [result] = await con.query(
+  let [result] = await DAO.query(
     `
             INSERT INTO Vipps_orders
                     (orderID, donorID, KID, token)
@@ -645,7 +605,6 @@ async function addOrder(order) {
         `,
     [order.orderID, order.donorID, order.KID, order.token]
   );
-  con.release();
 
   return result.insertId;
 }
@@ -668,14 +627,12 @@ async function addAgreement(
   agreementUrlCode,
   status = "PENDING"
 ) {
-  let con = await pool.getConnection();
-
   if (monthlyChargeDay < 0 || monthlyChargeDay > 28) {
     return false;
   }
 
   try {
-    con.query(
+    DAO.query(
       `
             INSERT IGNORE INTO Vipps_agreements
                 (ID, donorID, KID, amount, monthly_charge_day, agreement_url_code, status)
@@ -691,10 +648,9 @@ async function addAgreement(
         status,
       ]
     );
-    con.release();
+
     return true;
   } catch (ex) {
-    con.release();
     return false;
   }
 }
@@ -719,9 +675,8 @@ async function addCharge(
   status,
   type
 ) {
-  let con = await pool.getConnection();
   try {
-    con.query(
+    DAO.query(
       `
             INSERT IGNORE INTO Vipps_agreement_charges
                 (chargeID, agreementId, amountNOK, KID, dueDate, status, type)
@@ -730,10 +685,8 @@ async function addCharge(
       [chargeID, agreementID, amountNOK, KID, dueDate, status, type]
     );
 
-    con.release();
     return true;
   } catch (ex) {
-    con.release();
     console.error("Error inserting charge");
     return false;
   }
@@ -752,7 +705,7 @@ async function updateOrderTransactionStatusHistory(
   orderId,
   transactionHistory
 ) {
-  let transaction = await pool.startTransaction();
+  let transaction = await DAO.startTransaction();
   try {
     await transaction.query(
       `DELETE FROM Vipps_order_transaction_statuses WHERE orderID = ?`,
@@ -778,11 +731,11 @@ async function updateOrderTransactionStatusHistory(
       [mappedInsertValues]
     );
 
-    await pool.commitTransaction(transaction);
+    await DAO.commitTransaction(transaction);
 
     return true;
   } catch (ex) {
-    await pool.rollbackTransaction(transaction);
+    await DAO.rollbackTransaction(transaction);
     console.error(
       `Failed to update order transaction history for orderId ${orderId}`,
       ex
@@ -798,8 +751,7 @@ async function updateOrderTransactionStatusHistory(
  * @return {boolean} Success or failure
  */
 async function updateVippsOrderDonation(orderID, donationID) {
-  let con = await pool.getConnection();
-  let [result] = await con.query(
+  let [result] = await DAO.query(
     `
             UPDATE Vipps_orders
                 SET donationID = ?
@@ -807,7 +759,6 @@ async function updateVippsOrderDonation(orderID, donationID) {
         `,
     [donationID, orderID]
   );
-  con.release();
 
   return result.affectedRows != 0 ? true : false;
 }
@@ -819,16 +770,14 @@ async function updateVippsOrderDonation(orderID, donationID) {
  * @return {boolean} Success
  */
 async function updateAgreementPrice(agreementId, price) {
-  let con = await pool.getConnection();
   try {
-    con.query(`UPDATE Vipps_agreements SET amount = ? WHERE ID = ?`, [
+    DAO.query(`UPDATE Vipps_agreements SET amount = ? WHERE ID = ?`, [
       price,
       agreementId,
     ]);
-    con.release();
+
     return true;
   } catch (ex) {
-    con.release();
     return false;
   }
 }
@@ -840,16 +789,14 @@ async function updateAgreementPrice(agreementId, price) {
  * @return {boolean} Success
  */
 async function updateAgreementStatus(agreementID, status) {
-  let con = await pool.getConnection();
   try {
-    con.query(`UPDATE Vipps_agreements SET status = ? WHERE ID = ?`, [
+    DAO.query(`UPDATE Vipps_agreements SET status = ? WHERE ID = ?`, [
       status,
       agreementID,
     ]);
-    con.release();
+
     return true;
   } catch (ex) {
-    con.release();
     return false;
   }
 }
@@ -861,21 +808,18 @@ async function updateAgreementStatus(agreementID, status) {
  * @return {boolean} Success
  */
 async function updateAgreementCancellationDate(agreementID) {
-  let con = await pool.getConnection();
-
   const today = new Date();
   //YYYY-MM-DD format
   const mysqlDate = today.toISOString().split("T")[0];
 
   try {
-    con.query(
+    DAO.query(
       `UPDATE Vipps_agreements SET cancellation_date = ? WHERE ID = ?`,
       [mysqlDate, agreementID]
     );
-    con.release();
+
     return true;
   } catch (ex) {
-    con.release();
     return false;
   }
 }
@@ -887,16 +831,14 @@ async function updateAgreementCancellationDate(agreementID) {
  * @return {boolean} Success
  */
 async function updateAgreementChargeDay(agreementId, chargeDay) {
-  let con = await pool.getConnection();
   try {
-    con.query(
+    DAO.query(
       `UPDATE Vipps_agreements SET monthly_charge_day = ? WHERE ID = ?`,
       [chargeDay, agreementId]
     );
-    con.release();
+
     return true;
   } catch (ex) {
-    con.release();
     return false;
   }
 }
@@ -908,16 +850,14 @@ async function updateAgreementChargeDay(agreementId, chargeDay) {
  * @return {boolean} Success
  */
 async function updateAgreementKID(agreementId, KID) {
-  let con = await pool.getConnection();
   try {
-    con.query(`UPDATE Vipps_agreements SET KID = ? WHERE ID = ?`, [
+    DAO.query(`UPDATE Vipps_agreements SET KID = ? WHERE ID = ?`, [
       KID,
       agreementId,
     ]);
-    con.release();
+
     return true;
   } catch (ex) {
-    con.release();
     return false;
   }
 }
@@ -929,16 +869,14 @@ async function updateAgreementKID(agreementId, KID) {
  * @return {boolean} Success
  */
 async function updateAgreementPauseDate(agreementId, pausedUntilDate) {
-  let con = await pool.getConnection();
   try {
-    con.query(
+    DAO.query(
       `UPDATE Vipps_agreements SET paused_until_date = ? WHERE ID = ?`,
       [pausedUntilDate, agreementId]
     );
-    con.release();
+
     return true;
   } catch (ex) {
-    con.release();
     return false;
   }
 }
@@ -950,16 +888,14 @@ async function updateAgreementPauseDate(agreementId, pausedUntilDate) {
  * @return {boolean} Success
  */
 async function updateAgreementForcedCharge(agreementId, forceChargeDate) {
-  let con = await pool.getConnection();
   try {
-    con.query(
+    DAO.query(
       `UPDATE Vipps_agreements SET force_charge_date = ? WHERE ID = ?`,
       [forceChargeDate, agreementId]
     );
-    con.release();
+
     return true;
   } catch (ex) {
-    con.release();
     return false;
   }
 }
@@ -971,15 +907,13 @@ async function updateAgreementForcedCharge(agreementId, forceChargeDate) {
  * @param {"PENDING" | "DUE" | "CHARGED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | "RESERVED" | "CANCELLED" | "PROCESSING"} newStatus The new status of the charge
  */
 async function updateChargeStatus(newStatus, agreementID, chargeID) {
-  let con = await pool.getConnection();
-
   if (!chargeStatuses.includes(newStatus)) {
     console.error(newStatus + " is not a valid charge state");
     return false;
   }
 
   try {
-    con.query(
+    DAO.query(
       `
             UPDATE Vipps_agreement_charges
             SET status = ?
@@ -989,10 +923,8 @@ async function updateChargeStatus(newStatus, agreementID, chargeID) {
       [newStatus, agreementID, chargeID]
     );
 
-    con.release();
     return true;
   } catch (ex) {
-    con.release();
     console.error("Error setting charge status to CANCELLED");
     return false;
   }
@@ -1048,8 +980,4 @@ export const vipps = {
   updateAgreementForcedCharge,
   updateChargeStatus,
   updateAgreementCancellationDate,
-
-  setup: (dbPool) => {
-    pool = dbPool;
-  },
 };
