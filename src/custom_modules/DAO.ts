@@ -51,8 +51,6 @@ export const DAO = {
         socketPath: `${dbSocketPath}/${process.env.CLOUD_SQL_CONNECTION_NAME}`,
         waitForConnections: true,
         enableKeepAlive: true,
-        connectionLimit: 1,
-        debug: true,
       });
     } else {
       // Running locally
@@ -63,8 +61,6 @@ export const DAO = {
         host: "127.0.0.1",
         waitForConnections: true,
         enableKeepAlive: true,
-        connectionLimit: 1,
-        //debug: true,
       });
     }
 
