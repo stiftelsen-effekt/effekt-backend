@@ -520,6 +520,22 @@ router.put(
       const agreementId = await DAO.vipps.getAgreementIdByUrlCode(
         agreementCode
       );
+
+      if (!agreementId) {
+        return res.status(404).json({
+          status: 404,
+          content: "Agreement not found",
+        });
+      }
+
+      const existingAgreement = await DAO.vipps.getAgreement(agreementId);
+      if (!existingAgreement) {
+        return res.status(404).json({
+          status: 404,
+          content: "Agreement not found",
+        });
+      }
+
       const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
       const split = req.body.distribution.map((distribution) => {
         return {
@@ -543,13 +559,30 @@ router.put(
         return next(err);
       }
 
-      // !===== Tax unit is missing here =====!
+      const existingTaxUnit = await DAO.tax.getByKID(existingAgreement.KID);
+      let taxUnitId: number | undefined;
+      if (existingTaxUnit) {
+        taxUnitId = existingTaxUnit.id;
+      }
+
       //Check for existing distribution with that KID
-      let KID = await DAO.distributions.getKIDbySplit(split, donorId, 0, false);
+      let KID = await DAO.distributions.getKIDbySplit(
+        split,
+        donorId,
+        false,
+        taxUnitId
+      );
 
       if (!KID) {
         KID = await donationHelpers.createKID();
-        await DAO.distributions.add(split, KID, donorId, metaOwnerID);
+        await DAO.distributions.add(
+          split,
+          KID,
+          donorId,
+          taxUnitId,
+          false,
+          metaOwnerID
+        );
       }
 
       const response = await DAO.vipps.updateAgreementKID(agreementId, KID);

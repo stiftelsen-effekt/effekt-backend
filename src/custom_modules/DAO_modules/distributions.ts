@@ -188,16 +188,16 @@ async function KIDexists(KID) {
  * Takes in a distribution array and a Donor ID, and returns the KID if the specified distribution exists for the given donor.
  * @param {array<object>} split
  * @param {number} donorID
- * @param {number} taxUnitId The ID of the associated tax unit for a distribution
- * @param {number} minKidLength Specify a minimum length of KID to match against
  * @param {boolean} standardSplit
+ * @param {number} taxUnitId The ID of the associated tax unit for a distribution. Can be undefined if the distribution is not associated with a tax unit.
+ * @param {number} minKidLength Specify a minimum length of KID to match against
  * @returns {number | null} KID or null if no KID found
  */
 async function getKIDbySplit(
   split,
   donorID: number,
-  taxUnitId: number,
   standardSplit: boolean,
+  taxUnitId?: number,
   minKidLength = 0
 ) {
   try {

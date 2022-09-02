@@ -247,11 +247,14 @@ async function updateName(donorID, name) {
  * @param {boolean} newsletter
  * @returns {boolean}
  */
-async function update(donorID, name, newsletter) {
+async function update(donorID, name, newsletter, trash?: boolean) {
   try {
+    let isTrash = trash;
+    if (typeof trash === "undefined") isTrash = (await getByID(donorID)).trash;
+
     let [res] = await DAO.query(
-      `UPDATE Donors SET full_name = ?, newsletter = ? where ID = ?`,
-      [name, newsletter, donorID]
+      `UPDATE Donors SET full_name = ?, newsletter = ?, trash = ? where ID = ?`,
+      [name, newsletter, isTrash, donorID]
     );
 
     if (res.affectedRows === 1) {

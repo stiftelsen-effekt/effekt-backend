@@ -886,6 +886,9 @@ module.exports = {
       const charge = await this.getCharge(agreementId, chargeId);
       const agreement = await DAO.vipps.getAgreement(agreementId);
 
+      if (!agreement)
+        throw new Error("Agreement not found in database: " + agreementId);
+
       if (response)
         await DAO.vipps.addCharge(
           chargeId,
@@ -1234,6 +1237,11 @@ module.exports = {
         );
 
         const agreement = await DAO.vipps.getAgreement(agreements[i].id);
+        if (!agreement)
+          throw new Error(
+            `Agreement ${agreements[i].id} not found in database`
+          );
+
         const charges = await this.getCharges(agreements[i].id);
 
         for (let j = 0; j < charges.length; j++) {

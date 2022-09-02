@@ -36,18 +36,17 @@ const chargeStatuses = [
  * @property {Date} registered
  */
 
-/**
- * @typedef VippsAgreement
- * @property {string} ID
- * @property {number} donorID
- * @property {string} KID
- * @property {number} sum
- * @property {string} status
- * @property {number} monthly_charge_day
- * @property {string} agreement_url_code
- * @property {string} paused_until_date
- * @property {string} force_charge_date
- */
+export type VippsAgreement = {
+  ID: string;
+  donorID: number;
+  KID: string;
+  amount: number;
+  status: string;
+  monthly_charge_day: number;
+  agreement_url_code: string;
+  paused_until_date: string;
+  force_charge_date: string;
+};
 
 /**
  * @typedef AgreementCharge
@@ -128,9 +127,9 @@ async function getRecentOrder() {
 /**
  * Fetches an agreement by agreementId
  * @property {string} agreementID
- * @return {VippsAgreement}
+ * @return {VippsAgreement | false}
  */
-async function getAgreement(agreementID) {
+async function getAgreement(agreementID): Promise<VippsAgreement | false> {
   let [res] = await DAO.query(
     `
         SELECT ID, status, donorID, KID, timestamp_created, monthly_charge_day, force_charge_date, paused_until_date, amount, agreement_url_code FROM 
@@ -164,7 +163,7 @@ async function getAgreement(agreementID) {
  * @param {string | number | Date} page Used for pagination
  * @param {number=10} limit Agreement count limit per page, defaults to 10
  * @param {object} filter Filtering object
- * @return {[Agreement]} Array of agreements
+ * @return {Agreement[]} Array of agreements
  */
 async function getAgreements(sort, page, limit, filter) {
   const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
@@ -236,7 +235,7 @@ async function getAgreements(sort, page, limit, filter) {
  * @property {number} donorId
  * @return {VippsAgreement}
  */
-async function getAgreementsByDonorId(donorId) {
+async function getAgreementsByDonorId(donorId): Promise<VippsAgreement[]> {
   try {
     const [agreements] = await DAO.query(
       `
@@ -275,7 +274,7 @@ async function getAgreementsByDonorId(donorId) {
  * @param {string | number | Date} page Used for pagination
  * @param {number=10} limit Agreement count limit per page, defaults to 10
  * @param {object} filter Filtering object
- * @return {[Agreement]} Array of agreements
+ * @return {Agreement[]} Array of agreements
  */
 async function getCharges(sort, page, limit, filter) {
   const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
@@ -366,9 +365,11 @@ async function getCharges(sort, page, limit, filter) {
 /**
  * Fetches an agreement ID by agreementUrlCode
  * @property {string} agreementUrlCode The code used in the Vipps merchantAgreementUrl
- * @return {string} agreementId
+ * @return {number | false} agreementId
  */
-async function getAgreementIdByUrlCode(agreementUrlCode) {
+async function getAgreementIdByUrlCode(
+  agreementUrlCode
+): Promise<number | false> {
   let [res] = await DAO.query(
     `
         SELECT ID FROM 

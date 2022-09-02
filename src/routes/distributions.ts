@@ -1,44 +1,53 @@
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+import { donationHelpers } from "../custom_modules/donationHelpers";
 
 const express = require("express");
 const router = express.Router();
 
 const rounding = require("../custom_modules/rounding");
-const donationHelpers = require("../custom_modules/donationHelpers");
 
 router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    if (!req.body.taxUnitId) {
-      return res.status(400).json({
-        status: 400,
-        content: "Missing param taxUnitId",
-      });
-    }
-
-    if (!req.body.standardSplit) {
+    if (
+      req.body.standardSplit === null ||
+      typeof req.body.standardSplit === "undefined"
+    ) {
       return res.status(400).json({
         status: 400,
         content: "Missing param standard split",
       });
     }
-    const standardSplit = req.body.standardSplit;
-
-    let split = req.body.distribution.map((distribution) => {
-        return {
-          organizationID: distribution.organizationId,
-          share: distribution.share,
-        };
-      }),
-      donorId = req.body.donor.id,
-      metaOwnerID = req.body.metaOwnerID,
-      taxUnitId = req.body.taxUnitId;
-
-    if (split.length === 0) {
-      let err = new Error("Empty distribution array provided");
-      (err as any).status = 400;
-      return next(err);
+    if (!req.body.donor || !req.body.donor.id) {
+      return res.status(400).json({
+        status: 400,
+        content: "Missing param donor ID",
+      });
     }
+    if (!req.body.distribution) {
+      return res.status(400).json({
+        status: 400,
+        content: "Missing param distribution",
+      });
+    }
+
+    const split = req.body.distribution.map((distribution) => {
+      return {
+        organizationID: distribution.organizationId,
+        share: distribution.share,
+      };
+    });
+    if (split.length === 0) {
+      return res.status(400).json({
+        status: 400,
+        content: "Distribution must contain at least one organization",
+      });
+    }
+
+    const standardSplit = req.body.standardSplit;
+    const donorId = req.body.donor.id;
+    const metaOwnerID = req.body.metaOwnerID;
+    const taxUnitId = req.body.taxUnitId;
 
     if (
       rounding.sumWithPrecision(split.map((split) => split.share)) !== "100"
@@ -52,8 +61,8 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
     let KID = await DAO.distributions.getKIDbySplit(
       split,
       donorId,
-      taxUnitId,
-      standardSplit
+      standardSplit,
+      taxUnitId
     );
 
     if (!KID) {

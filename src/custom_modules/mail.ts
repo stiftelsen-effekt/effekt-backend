@@ -397,6 +397,9 @@ export async function sendVippsAgreementChange(
   try {
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
     const agreement = await DAO.vipps.getAgreement(agreementId);
+    if (!agreement)
+      throw new Error(`Agreement with id ${agreementId} not found`);
+
     const donor = await DAO.donors.getByID(agreement.donorID);
     const email = donor.email;
 
