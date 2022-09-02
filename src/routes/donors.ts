@@ -924,7 +924,8 @@ router.put(
       const updated = await DAO.donors.update(
         req.params.id,
         req.body.name,
-        req.body.newsletter
+        req.body.newsletter,
+        req.body.trash
       );
       if (updated) {
         return res.json({

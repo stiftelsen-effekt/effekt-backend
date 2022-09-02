@@ -255,8 +255,8 @@ router.post(
         let KID = await DAO.distributions.getKIDbySplit(
           distribution,
           donorID,
-          taxUnitID,
-          false
+          false,
+          taxUnitID
         );
         if (!KID) {
           KID = await donationHelpers.createKID(15, donorID);

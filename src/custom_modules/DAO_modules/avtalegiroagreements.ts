@@ -111,16 +111,19 @@ async function updatePaymentDate(KID, paymentDate) {
 }
 
 async function replaceDistribution(
-  replacementKID,
-  originalKID,
+  replacementKID: string,
+  originalKID: string,
   split,
   donorId,
-  metaOwnerID
+  metaOwnerID,
+  standardDistribution: boolean = false
 ) {
   try {
     if (replacementKID.length !== 15 || originalKID.length !== 15) {
       return false;
     }
+
+    const taxUnit = await DAO.tax.getByKID(originalKID);
 
     // Replaces original KID with a new replacement KID
     await DAO.query(
@@ -142,15 +145,13 @@ async function replaceDistribution(
       [replacementKID, originalKID]
     );
 
-    const taxUnitId = await DAO.tax.getByKID(originalKID);
-
     // Add new distribution using the original KID
     await DAO.distributions.add(
       split,
       originalKID,
       donorId,
-      taxUnitId,
-      false,
+      taxUnit.id,
+      standardDistribution,
       metaOwnerID
     );
 
