@@ -103,9 +103,10 @@ DAO.connect(() => {
         config.allowedProductionOrigins.some(
           (allowedOrigin) => allowedOrigin === remoteOrigin
         ) ||
-        remoteOrigin.match(
-          /https:\/\/main-site-(.*)-effective-altruism-norway.vercel.app/
-        )[0]
+        (remoteOrigin &&
+          remoteOrigin.match(
+            /https:\/\/main-site-(.*)-effective-altruism-norway.vercel.app/
+          )[0])
       ) {
         res.setHeader("Access-Control-Allow-Origin", remoteOrigin);
         res.setHeader("Vary", "Origin");
