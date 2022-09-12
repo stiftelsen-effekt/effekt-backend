@@ -31,7 +31,7 @@ const rateLimit = require("express-rate-limit");
  */
 router.get("/status", async (req, res, next) => {
   try {
-    if (req.query.status && req.query.status.toUpperCase() === "OK")
+    if (req.query.status && (req.query.status as string).toUpperCase() === "OK")
       res.redirect("https://gieffektivt.no/donasjon-mottatt");
     else res.redirect("https://gieffektivt.no/donasjon-feilet");
   } catch (ex) {

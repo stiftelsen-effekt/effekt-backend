@@ -1,15 +1,13 @@
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-
-const sinon = require("sinon");
-const chai = require("chai");
+import sinon from "sinon";
+import express from "express";
+import { expect } from "chai";
+import request from "supertest";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 const mail = require("../custom_modules/mail");
 const nets = require("../custom_modules/nets");
-const express = require("express");
-const request = require("supertest");
-const { expect } = require("chai");
 const config = require("../config");
 
 describe("POST /scheduled/avtalegiro", function () {
