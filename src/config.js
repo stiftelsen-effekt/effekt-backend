@@ -7,7 +7,7 @@ module.exports = {
   minside_url: process.env.MIN_SIDE_URL,
 
   //Insert db connection values
-  db_host: process.env.DB_HOST,
+  db_host: process.env.DB_HOST || "database",
   db_username: process.env.DB_USER,
   db_password: process.env.DB_PASS,
   db_name: process.env.DB_NAME,

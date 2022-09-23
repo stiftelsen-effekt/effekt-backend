@@ -1,0 +1,44 @@
+version: "3.9"
+services:
+  database:
+    build: "./db"
+    ports:
+      - "3306:3306"
+    restart: always
+    environment:
+      MYSQL_DATABASE: "EffektDonasjonDB_Local"
+      MYSQL_ROOT_PASSWORD: "effekt"
+      MYSQL_USER: "api"
+      MYSQL_PASSWORD: "effekt"
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: mysql $${MYSQL_DATABASE} -h localhost --user=$$MYSQL_USER --password=$$MYSQL_PASSWORD --silent --execute "SELECT * FROM $${MYSQL_DATABASE}.Seeded" 2>/dev/null | grep -w Completed
+      interval: 1s
+      timeout: 1s
+      retries: 120
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    environment:
+      ADMINER_DESIGN: "dracula"
+    depends_on:
+      database:
+        condition: service_healthy
+  api:
+    build: .
+    ports:
+      - "5050:5050"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PORT: 5050
+      DB_HOST: database
+      DB_NAME: "EffektDonasjonDB_Local"
+      DB_USER: "api"
+      DB_PASS: "effekt"
+    links:
+      - database

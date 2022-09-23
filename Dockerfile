@@ -20,4 +20,4 @@ EXPOSE 8080
 
 
 #Setup default command to run server
-CMD [ "npm", "start" ]
+CMD [ "npm", "run", "dev" ]

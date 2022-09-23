@@ -58,7 +58,7 @@ export const DAO = {
         user: config.db_username,
         password: config.db_password,
         database: config.db_name,
-        host: "127.0.0.1",
+        host: "database",
         waitForConnections: true,
         enableKeepAlive: true,
       });
