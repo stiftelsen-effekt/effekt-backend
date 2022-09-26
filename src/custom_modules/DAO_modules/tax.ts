@@ -42,7 +42,7 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
         (SELECT SUM(D.sum_confirmed) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
         as sum_donations
           
-          FROM EffektDonasjonDB.Tax_unit as T
+          FROM Tax_unit as T
         
           WHERE T.Donor_ID = ?
           
