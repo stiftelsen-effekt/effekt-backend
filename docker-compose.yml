@@ -5,6 +5,7 @@ services:
     ports:
       - "3306:3306"
     restart: always
+    command: --log-bin-trust-function-creators=1
     environment:
       MYSQL_DATABASE: "EffektDonasjonDB_Local"
       MYSQL_ROOT_PASSWORD: "effekt"
