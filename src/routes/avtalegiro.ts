@@ -405,7 +405,9 @@ router.post(
 
       const response = await DAO.avtalegiroagreements.updateAmount(KID, amount);
 
-      await sendAvtaleGiroChange(KID, "AMOUNT", amount);
+      let newAmountInNok = parseFloat(amount) / 100;
+
+      await sendAvtaleGiroChange(KID, "AMOUNT", newAmountInNok.toString());
       res.send(response);
     } catch (ex) {
       next({ ex });
