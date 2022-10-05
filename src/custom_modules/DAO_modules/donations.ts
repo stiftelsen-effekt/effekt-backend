@@ -291,7 +291,7 @@ async function getAggregateLastYearByMonth() {
                 extract(MONTH from timestamp_confirmed) as \`month\`, 
                 sum(sum_confirmed) as \`sum\`
                 
-                    FROM EffektDonasjonDB.Donations
+                    FROM Donations
                 
                 WHERE timestamp_confirmed >= DATE_ADD(DATE_SUB(LAST_DAY(now()), interval 1 YEAR), interval 1 DAY)
                 
@@ -873,7 +873,7 @@ async function add(
 async function registerConfirmedByIDs(IDs) {
   try {
     var [donations] = await DAO.execute(
-      `UPDATE EffektDonasjonDB.Donations 
+      `UPDATE Donations 
             SET date_confirmed = NOW()
             WHERE 
             ID IN (` +
