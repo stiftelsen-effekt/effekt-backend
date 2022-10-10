@@ -156,12 +156,10 @@ async function search(query): Promise<Array<Donor>> {
       var [result] = await DAO.execute(
         `SELECT * FROM Donors 
             WHERE 
-                MATCH (full_name, email) AGAINST (?)
-                OR full_name LIKE ?
-                OR email LIKE ?
+                MATCH (full_name, email) AGAINST (? IN BOOLEAN MODE)
                 
             LIMIT 100`,
-        [query, `%${query}%`, `%${query}%`]
+        [query]
       );
 
     return result.map((donor) => {
