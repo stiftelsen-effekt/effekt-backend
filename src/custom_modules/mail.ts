@@ -280,7 +280,7 @@ function decideUIPaymentMethod(donationMethod) {
 
 function formatOrganizationsFromSplit(split, sum) {
   return split.map(function (org) {
-    var amount = sum * parseFloat(org.percentage_share) * 0.01;
+    var amount = sum * parseFloat(org.share) * 0.01;
     var roundedAmount = amount > 1 ? Math.round(amount) : 1;
 
     return {
@@ -328,7 +328,7 @@ export async function sendDonationRegistered(KID, sum) {
 
     let organizations = split.map((split) => ({
       name: split.full_name,
-      percentage: parseFloat(split.percentage_share),
+      percentage: parseFloat(split.share),
     }));
     var KIDstring = KID.toString();
 
@@ -406,7 +406,7 @@ export async function sendVippsAgreementChange(
     const split = await DAO.distributions.getSplitByKID(agreement.KID);
     const organizations = split.map((split) => ({
       name: split.full_name,
-      percentage: parseFloat(split.percentage_share),
+      percentage: parseFloat(split.share),
     }));
 
     if (agreement.status !== "ACTIVE") return false;
@@ -670,7 +670,7 @@ export async function sendAvtaleGiroChange(KID, change, newValue = "") {
     const split = await DAO.distributions.getSplitByKID(KID);
     const organizations = split.map((split) => ({
       name: split.full_name,
-      percentage: parseFloat(split.percentage_share),
+      percentage: parseFloat(split.share),
     }));
 
     let changeDesc = "endret";

@@ -113,13 +113,20 @@ router.get("/:KID", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     if (!req.params.KID)
       res.status(400).json({ status: 400, content: "No KID provided" });
-    let distribution = await DAO.distributions.getSplitByKID(req.params.KID);
-    let donor = await DAO.donors.getByKID(req.params.KID);
+    const shares = await DAO.distributions.getSplitByKID(req.params.KID);
+    const taxUnit = await DAO.tax.getByKID(req.params.KID);
+    const standardDistribution = await DAO.distributions.isStandardDistribution(
+      req.params.KID
+    );
+    const donor = await DAO.donors.getByKID(req.params.KID);
     return res.json({
       status: 200,
       content: {
+        KID: req.params.KID,
         donor,
-        distribution,
+        taxUnit,
+        standardDistribution,
+        shares,
       },
     });
   } catch (ex) {
@@ -131,16 +138,6 @@ router.get("/:KID", authMiddleware.isAdmin, async (req, res, next) => {
     else {
       next(ex);
     }
-  }
-});
-
-router.get("/:KID/unauthorized", async (req, res, next) => {
-  try {
-    const response = await DAO.distributions.getSplitByKID(req.params.KID);
-
-    res.json(response);
-  } catch (ex) {
-    next({ ex });
   }
 });
 

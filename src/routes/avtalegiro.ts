@@ -3,6 +3,7 @@ import { checkAvtaleGiroAgreement } from "../custom_modules/authorization/authMi
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendAvtaleGiroChange } from "../custom_modules/mail";
+import { Donor } from "../schemas/types";
 
 const router = express.Router();
 const rounding = require("../custom_modules/rounding");
@@ -99,13 +100,27 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
  */
 router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    var result = await DAO.avtalegiroagreements.getAgreement(req.params.id);
-    result["ID"] = result["ID"].toString();
+    const agreement = await DAO.avtalegiroagreements.getAgreement(
+      req.params.id
+    );
+
+    const shares = await DAO.distributions.getSplitByKID(agreement.KID);
+    const taxUnit = await DAO.tax.getByKID(agreement.KID);
+    const standardDistribution = await DAO.distributions.isStandardDistribution(
+      agreement.KID
+    );
+    const donor = await DAO.donors.getByKID(agreement.KID);
 
     return res.json({
       status: 200,
       content: {
-        ...result,
+        ...agreement,
+        distribution: {
+          donor,
+          taxUnit,
+          standardDistribution,
+          shares,
+        },
       },
     });
   } catch (ex) {
@@ -278,13 +293,17 @@ router.post(
   async (req, res, next) => {
     try {
       if (!req.body) return res.sendStatus(400);
-      const originalKID = req.params.KID;
+      const originalKID: string = req.params.KID;
       const parsedData = req.body;
-      const distribution = parsedData.distribution;
-      const donor = await DAO.donors.getByKID(originalKID);
-      const donorId = donor.id;
+      const shares = parsedData.distribution.shares;
+      const standardDistribution: boolean =
+        parsedData.distribution.standardDistribution;
+      const taxUnitId: number | null =
+        parsedData.distribution.taxUnit.id || null;
+      const donor: Donor = await DAO.donors.getByKID(originalKID);
+      const donorId: number = donor.id;
 
-      const split = distribution.map((org) => {
+      const split = shares.map((org) => {
         return { organizationID: org.organizationId, share: org.share };
       });
       const metaOwnerID = 3;
@@ -312,7 +331,9 @@ router.post(
         originalKID,
         split,
         donorId,
-        metaOwnerID
+        metaOwnerID,
+        taxUnitId,
+        standardDistribution
       );
 
       await sendAvtaleGiroChange(originalKID, "SHARES", split);

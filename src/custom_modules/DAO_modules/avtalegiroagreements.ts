@@ -116,6 +116,7 @@ async function replaceDistribution(
   split,
   donorId,
   metaOwnerID,
+  taxUnitId: number | null = null,
   standardDistribution: boolean = false
 ) {
   try {
@@ -123,7 +124,7 @@ async function replaceDistribution(
       return false;
     }
 
-    const taxUnit = await DAO.tax.getByKID(originalKID);
+    const originalTaxUnit = await DAO.tax.getByKID(originalKID);
 
     // Replaces original KID with a new replacement KID
     await DAO.query(
@@ -145,12 +146,15 @@ async function replaceDistribution(
       [replacementKID, originalKID]
     );
 
+    const replacementTaxUnitId: number =
+      taxUnitId !== null ? taxUnitId : originalTaxUnit.id;
+
     // Add new distribution using the original KID
     await DAO.distributions.add(
       split,
       originalKID,
       donorId,
-      taxUnit.id,
+      replacementTaxUnitId,
       standardDistribution,
       metaOwnerID
     );
@@ -335,7 +339,7 @@ async function getAgreements(sort, page, limit, filter) {
  * @return {AvtaleGiro} AvtaleGiro agreement
  */
 async function getAgreement(id) {
-  const result = await DAO.query(
+  const [result] = await DAO.query(
     `
         SELECT DISTINCT
             AG.ID,
@@ -361,14 +365,7 @@ async function getAgreement(id) {
 
   if (result.length === 0) return false;
 
-  const avtaleGiro = result[0][0];
-
-  let split = await DAO.distributions.getSplitByKID(avtaleGiro.KID);
-
-  avtaleGiro.distribution = split.map((split) => ({
-    abbriv: split.abbriv,
-    share: split.percentage_share,
-  }));
+  const avtaleGiro = result[0];
 
   return avtaleGiro;
 }

@@ -71,14 +71,28 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
  */
 async function getByKID(KID: string): Promise<TaxUnit | null> {
   try {
-    const [result] = await DAO.execute<RowDataPacket[]>(
+    const [idResult] = await DAO.execute<RowDataPacket[]>(
       `SELECT Tax_unit_ID FROM Combining_table WHERE KID = ?
         GROUP BY Tax_unit_ID;`,
       [KID]
     );
 
-    if (result.length > 0) return result[0].Tax_unit_ID;
-    else return null;
+    if (idResult.length > 0 && idResult[0].Tax_unit_ID) {
+      const [result] = await DAO.execute<RowDataPacket[]>(
+        `SELECT * FROM Tax_unit where ID = ?`,
+        [idResult[0].Tax_unit_ID]
+      );
+
+      if (result.length > 0) {
+        const mapped: TaxUnit = {
+          id: result[0].ID as number,
+          donorId: result[0].Donor_ID as number,
+          name: result[0].full_name as string,
+          ssn: result[0].ssn as string,
+        };
+        return mapped;
+      } else return null;
+    } else return null;
   } catch (ex) {
     throw ex;
   }

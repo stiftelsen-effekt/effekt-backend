@@ -390,7 +390,7 @@ async function getByID(donationID) {
 
     donation["distribution"] = split.map((split) => ({
       abbriv: split.abbriv,
-      share: split.percentage_share,
+      share: split.share,
     }));
 
     return donation;

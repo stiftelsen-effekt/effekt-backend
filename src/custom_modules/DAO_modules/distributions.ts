@@ -1,3 +1,4 @@
+import Decimal from "decimal.js";
 import { DAO } from "../DAO";
 
 const sqlString = require("sqlstring");
@@ -257,10 +258,12 @@ async function getKIDbySplit(
  *  ID: number,
  *  full_name: string,
  *  abbriv: string,
- *  percentage_share: Decimal
+ *  share: string
  * }]}
  */
-async function getSplitByKID(KID) {
+async function getSplitByKID(
+  KID
+): Promise<{ ID: number; full_name: string; abbriv: string; share: string }[]> {
   try {
     let [result] = await DAO.query(
       `
@@ -268,7 +271,7 @@ async function getSplitByKID(KID) {
                 Organizations.ID,
                 Organizations.full_name,
                 Organizations.abbriv, 
-                Distribution.percentage_share
+                Distribution.percentage_share as share
             
             FROM Combining_table as Combining
                 INNER JOIN Distribution as Distribution
@@ -282,7 +285,7 @@ async function getSplitByKID(KID) {
     );
 
     if (result.length == 0)
-      return new Error("NOT FOUND | No distribution with the KID " + KID);
+      throw new Error("NOT FOUND | No distribution with the KID " + KID);
     return result;
   } catch (ex) {
     throw ex;
