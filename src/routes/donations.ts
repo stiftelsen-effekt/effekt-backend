@@ -127,12 +127,10 @@ router.post("/register", async (req, res, next) => {
         }
       }
       // !!--!! =================================================
-      // No SSN provided, check that name is registered and update name if no name set
-      else {
-        const dbDonor = await DAO.donors.getByID(donationObject.donorID);
-        if (dbDonor.name === "" || dbDonor.name === null) {
-          await DAO.donors.updateName(donationObject.donorID, donor.name);
-        }
+      // Check that name is registered and update name if no name set
+      const dbDonor = await DAO.donors.getByID(donationObject.donorID);
+      if (dbDonor.name === "" || dbDonor.name === null) {
+        await DAO.donors.updateName(donationObject.donorID, donor.name);
       }
 
       //Check if registered for newsletter

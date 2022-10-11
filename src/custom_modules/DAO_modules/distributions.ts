@@ -327,7 +327,7 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
 async function isStandardDistribution(KID) {
   try {
     var [res] = await DAO.query(
-      "SELECT KID, Standard_split FROM EffektDonasjonDB_Tax.Combining_table WHERE KID = ? GROUP BY KID, Standard_split;",
+      "SELECT KID, Standard_split FROM Combining_table WHERE KID = ? GROUP BY KID, Standard_split;",
       [KID]
     );
 

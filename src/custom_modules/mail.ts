@@ -692,7 +692,7 @@ export async function sendAvtaleGiroChange(KID, change, newValue = "") {
         newValue,
         organizations,
         agreement,
-        sum: formatCurrency(agreement.amount),
+        sum: formatCurrency(agreement.amount / 100),
         reusableHTML,
       },
     });

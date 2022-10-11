@@ -42,7 +42,7 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
         (SELECT SUM(D.sum_confirmed) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
         as sum_donations
           
-          FROM EffektDonasjonDB.Tax_unit as T
+          FROM Tax_unit as T
         
           WHERE T.Donor_ID = ?
           
@@ -72,7 +72,7 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
 async function getByKID(KID: string): Promise<TaxUnit | null> {
   try {
     const [result] = await DAO.execute<RowDataPacket[]>(
-      `SELECT Tax_unit_ID FROM EffektDonasjonDB_Tax.Combining_table WHERE KID = ?
+      `SELECT Tax_unit_ID FROM Combining_table WHERE KID = ?
         GROUP BY Tax_unit_ID;`,
       [KID]
     );

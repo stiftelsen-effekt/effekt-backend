@@ -90,28 +90,29 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
       return next(err);
     }
 
-    // Synchronize EffektDB with Vipps database
-    const responseVipps = await vipps.getAgreement(agreementId);
-    await DAO.vipps.updateAgreementStatus(agreementId, responseVipps.status);
-    await DAO.vipps.updateAgreementPrice(
-      agreementId,
-      responseVipps.price / 100
-    );
-    const responseDAO = await DAO.vipps.getAgreement(agreementId);
+    const agreement = await DAO.vipps.getAgreement(agreementId);
 
-    const monthAlreadyCharged = await vipps.hasChargedThisMonth(agreementId);
-    const pendingDueCharge = await vipps.getPendingDueCharge(agreementId);
-    const mostRecentCharge = await vipps.getLastCharge(agreementId);
-    const response = {
-      ...responseVipps,
-      ...responseDAO,
-      monthAlreadyCharged,
-      pendingDueCharge,
-      mostRecentCharge,
-    };
+    if (!agreement) {
+      let err = new Error("Can't find agreement");
+      (err as any).status = 404;
+      return next(err);
+    }
 
-    //TODO: Check for false
-    res.json(response);
+    const donor = await DAO.donors.getByID(agreement.donorID);
+
+    if (!donor) {
+      let err = new Error("Can't find donor");
+      (err as any).status = 404;
+      return next(err);
+    }
+
+    res
+      .status(304)
+      .redirect(
+        `https://gieffektivt.no/vippsagreement?email=${encodeURIComponent(
+          donor.email
+        )}`
+      );
   } catch (ex) {
     next({ ex });
   }
