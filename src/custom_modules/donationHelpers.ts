@@ -20,7 +20,7 @@ export const donationHelpers = {
       for (var j = 0; j < filteredOrganizations.length; j++) {
         if (filteredOrganizations[j].id == orgs[i].ID) {
           donationSplits.push({
-            organizationID: orgs[i].ID,
+            ID: orgs[i].ID,
             share: filteredOrganizations[j].split,
             name: orgs[i].full_name,
           });

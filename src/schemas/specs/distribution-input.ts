@@ -11,18 +11,18 @@ export interface components {
      * @example {
      *   "distribution": [
      *     {
-     *       "organizationId": 1,
+     *       "ID": 1,
      *       "share": "25.000000000000"
      *     },
      *     {
-     *       "organizationId": 2,
+     *       "ID": 2,
      *       "share": "75.000000000000"
      *     }
      *   ]
      * }
      */
     DistributionInput: {
-      organizationId?: number;
+      ID?: number;
       share?: string;
     };
   };

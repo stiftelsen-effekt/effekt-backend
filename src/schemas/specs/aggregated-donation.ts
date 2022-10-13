@@ -9,7 +9,7 @@ export interface components {
   schemas: {
     /**
      * @example {
-     *   "organizationId": 1,
+     *   "ID": 1,
      *   "organization": "Against Malaria Foundation",
      *   "abbriv": "AMF",
      *   "value": "18.000000000000000000",
@@ -18,7 +18,7 @@ export interface components {
      */
     AggregatedDonation: {
       /** @description The organization's ID */
-      organizationId?: number;
+      ID?: number;
       /** @description The name of the organization */
       organization?: string;
       /** @description Abbreviation of the organization's name */

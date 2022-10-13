@@ -222,7 +222,7 @@ async function getKIDbySplit(
 
     for (let i = 0; i < split.length; i++) {
       query += `(OrgID = ${sqlString.escape(
-        split[i].organizationID
+        split[i].ID
       )} AND percentage_share = ${sqlString.escape(
         split[i].share
       )} AND C.Donor_ID = ${sqlString.escape(donorID)} AND ${
@@ -368,7 +368,7 @@ async function add(
     }
 
     let distribution_table_values = split.map((item) => {
-      return [item.organizationID, item.share];
+      return [item.ID, item.share];
     });
     var res = await transaction.query(
       "INSERT INTO Distribution (OrgID, percentage_share) VALUES ?",

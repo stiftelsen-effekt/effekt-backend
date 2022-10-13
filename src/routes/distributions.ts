@@ -33,7 +33,7 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
 
     const split = req.body.distribution.map((distribution) => {
       return {
-        organizationID: distribution.organizationId,
+        ID: distribution.ID,
         share: distribution.share,
       };
     });

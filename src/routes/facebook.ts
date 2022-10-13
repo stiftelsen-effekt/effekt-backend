@@ -94,7 +94,7 @@ router.post(
         if (campaignShare.share > 0) {
           await DAO.facebook.registerFacebookCampaignOrgShare(
             req.body.id,
-            campaignShare.organizationId,
+            campaignShare.ID,
             campaignShare.share
           );
         }
@@ -182,7 +182,7 @@ router.post(
 
           if (splitNok > 0) {
             distribution.push({
-              organizationID: orgShare.Org_ID,
+              ID: orgShare.Org_ID,
               share: String(Math.round(orgShare.Share * 100) / 100),
             });
             distSum += splitNok;

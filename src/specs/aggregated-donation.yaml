@@ -4,7 +4,7 @@ components:
     AggregatedDonation:
       type: object
       properties:
-        organizationId:
+        ID:
           type: integer
           description: The organization's ID
         organization:
@@ -20,7 +20,7 @@ components:
           type: number
           description: The year the donation was made
       example:
-        organizationId: 1
+        ID: 1
         organization: "Against Malaria Foundation"
         abbriv: "AMF"
         value: "18.000000000000000000"

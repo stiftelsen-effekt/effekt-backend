@@ -3,11 +3,11 @@ import { checkAvtaleGiroAgreement } from "../custom_modules/authorization/authMi
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendAvtaleGiroChange } from "../custom_modules/mail";
+import { donationHelpers } from "../custom_modules/donationHelpers";
 import { Donor } from "../schemas/types";
 
 const router = express.Router();
 const rounding = require("../custom_modules/rounding");
-const donationHelpers = require("../custom_modules/donationHelpers");
 const authRoles = require("../enums/authorizationRoles");
 const moment = require("moment");
 
@@ -116,6 +116,7 @@ router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
       content: {
         ...agreement,
         distribution: {
+          KID: agreement.KID,
           donor,
           taxUnit,
           standardDistribution,
@@ -262,12 +263,12 @@ router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
  *            distribution:
  *              type: object
  *              properties:
- *                organizationId:
+ *                ID:
  *                  type: number
  *                share:
  *                  type: string
  *              example:
- *                 organizationId: 1
+ *                 ID: 1
  *                 share: "100.000000000000"
  *    responses:
  *      400:
@@ -301,10 +302,14 @@ router.post(
       const taxUnitId: number | null =
         parsedData.distribution.taxUnit.id || null;
       const donor: Donor = await DAO.donors.getByKID(originalKID);
+
+      if (!donor) {
+        throw new Error(`Donor with KID: ${originalKID} not found.`);
+      }
       const donorId: number = donor.id;
 
       const split = shares.map((org) => {
-        return { organizationID: org.organizationId, share: org.share };
+        return { ID: org.ID, share: org.share };
       });
       const metaOwnerID = 3;
 
