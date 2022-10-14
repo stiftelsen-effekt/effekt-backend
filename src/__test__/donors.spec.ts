@@ -1,23 +1,22 @@
-const sinon = require("sinon");
-const request = require("supertest");
-const express = require("express");
-const { expect } = require("chai");
-import * as authMiddleware from '../custom_modules/authorization/authMiddleware'
-const DAO = require("../custom_modules/DAO");
-const bodyParser = require("body-parser");
-
-const donations = require("../custom_modules/DAO_modules/donations");
+import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+import { DAO } from "../custom_modules/DAO";
+import sinon from "sinon";
+import express from "express";
+import { expect } from "chai";
+import * as bodyParser from "body-parser";
+import request from "supertest";
 
 let server;
 let authStub;
 let checkDonorStub;
 let checkDonationStub;
+let donorUpdateStub;
+let agreementStub;
 let donorStub;
 
 const jack = {
   id: 237,
   name: "Jack Torrance",
-  ssn: "02016126007",
   email: "jack@overlookhotel.com",
   newsletter: true,
   trash: false,
@@ -117,7 +116,7 @@ describe("Check if donations returns for user ID", function () {
     donorStub = sinon.stub(DAO.donors, "getByID");
     donorStub.withArgs("237").resolves(jack);
 
-    donationStub = sinon.stub(DAO.donations, "getByDonorId");
+    var donationStub = sinon.stub(DAO.donations, "getByDonorId");
     donationStub.withArgs("237").resolves(donationsStub);
 
     const donorsRoute = require("../routes/donors");
@@ -211,51 +210,19 @@ describe("Check if profile information is updated", function () {
     expect(donorUpdateStub.callCount).to.equal(0);
   });
 
-  it("Should return 400 when SSN is not 0, 9 or 11 numbers in length", async function () {
+  it("Should return 200 when updating name", async function () {
     donorUpdateStub.resolves(true);
     const response = await request(server).put("/donors/237").send({
       name: "Jack Torrance",
-      ssn: "123",
-    });
-    expect(response.status).to.equal(400);
-    expect(donorUpdateStub.callCount).to.equal(0);
-  });
-
-  it("Should return 200 when SSN is 0 numbers in length", async function () {
-    donorUpdateStub.resolves(true);
-    const response = await request(server).put("/donors/237").send({
-      name: "Jack Torrance",
-      ssn: "",
     });
     expect(response.status).to.equal(200);
     expect(donorUpdateStub.callCount).to.equal(1);
-  });
-
-  it("Should return 200 when SSN is 9 numbers in length", async function () {
-    donorUpdateStub.resolves(true);
-    const response = await request(server).put("/donors/237").send({
-      name: "Jack Torrance",
-      ssn: "123456789",
-    });
-    expect(response.status).to.equal(200);
-    expect(donorUpdateStub.callCount).to.equal(1);
-  });
-
-  it("Should return 400 when SSN is not a number", async function () {
-    donorUpdateStub.resolves(true);
-    const response = await request(server).put("/donors/237").send({
-      name: "Jack Torrance",
-      ssn: "Not a number",
-    });
-    expect(response.status).to.equal(400);
-    expect(donorUpdateStub.callCount).to.equal(0);
   });
 
   it("Should return 400 when newsletter is not a boolean", async function () {
     donorUpdateStub.resolves(true);
     const response = await request(server).put("/donors/237").send({
       name: "Jack Torrance",
-      ssn: "02016126007",
       newsletter: "Yes",
     });
     expect(response.status).to.equal(400);
