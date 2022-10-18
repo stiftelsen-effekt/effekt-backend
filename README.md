@@ -76,6 +76,8 @@ We can verify that the api is indeed operational by testing it in our browser. N
 
 <img src="docs/browser_root_route.png" width="500" />
 
+When making changes to the files under `/src`, the API will automatically restart unless it has crashed. If the application is stuck in a crashed state, simply restart (`ctrl` + `c` and then `docker compose up` in most terminals).
+
 ### Running commands in container
 
 In general, if you want to run commands in the docker container, you may use the following format
