@@ -1,4 +1,9 @@
-FROM node:14-alpine
+FROM node:16-alpine
+
+#Install db-mate
+RUN apk --no-cache add curl
+RUN curl -fsSL -o /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64
+RUN chmod +x /usr/local/bin/dbmate
 
 #Setup folders
 RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
