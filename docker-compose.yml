@@ -31,7 +31,9 @@ services:
       DB_NAME: "EffektDonasjonDB_Local"
       DB_USER: "api"
       DB_PASS: "effekt"
+      DATABASE_URL: "mysql://api:effekt@database:3306/EffektDonasjonDB_Local"
+      DBMATE_MIGRATIONS_DIR: "/home/node/app/db/migrations"
     volumes:
-      - ./src:/home/node/app/src
+      - ./:/home/node/app/
     links:
       - database
