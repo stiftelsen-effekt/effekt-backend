@@ -118,7 +118,7 @@ export const DAO = {
 
   //Convenience functions for transactions
   //Use the returned transaction object for queries in the transaction
-  startTransaction: async function () {
+  startTransaction: async function (): Promise<mysql.PoolConnection> {
     try {
       let transaction = await this.dbPool.getConnection();
       await transaction.query("START TRANSACTION");

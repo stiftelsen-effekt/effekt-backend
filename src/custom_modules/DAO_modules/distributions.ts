@@ -375,7 +375,7 @@ async function add(
       [distribution_table_values]
     );
 
-    let first_inserted_id = res[0].insertId;
+    let first_inserted_id = (res[0] as any).insertId;
     var combining_table_values = Array.apply(null, Array(split.length)).map(
       (item, i) => {
         return [
