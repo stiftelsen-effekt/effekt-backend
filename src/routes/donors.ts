@@ -580,6 +580,114 @@ router.delete(
 
 /**
  * @openapi
+ * /donors/{id}/taxunits/{taxunitid}:
+ *   put:
+ *    tags: [Tax]
+ *    description: Updates a tax unit
+ *    security:
+ *       - auth0_jwt: [write:profile]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to update.
+ *        schema:
+ *          type: integer
+ *      - in: body
+ *        name: taxUnit
+ *        required: true
+ *        description: The tax unit to update
+ *        schema:
+ *          $ref: '#/components/schemas/TaxUnit'
+ *    responses:
+ *      200:
+ *        description: Tax unit was updated
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: string
+ *                   example:
+ *                      content: OK
+ *      401:
+ *        description: User not authorized to access resource
+ *      404:
+ *        description: Tax unit with given id not found
+ */
+router.put("/:id/taxunits/:taxunitid", async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const taxUnitId = parseInt(req.params.taxunitid);
+    const taxUnit = req.body.taxUnit;
+    const ssn = taxUnit.ssn;
+
+    if (!id || !taxUnitId || !taxUnit) {
+      res.status(400).json({
+        status: 400,
+        content: "Missing parameters id or taxUnitid or taxUnit in json body",
+      });
+      return;
+    }
+
+    if (!taxUnit.name || !taxUnit.ssn) {
+      res.status(400).json({
+        status: 400,
+        content: "Missing parameters name or ssn on tax unit",
+      });
+      return;
+    }
+
+    if (ssn.length === 11) {
+      // Birth number is 11 digits
+      const validation = fnr(ssn);
+      if (validation.status !== "valid") {
+        return res.status(400).json({
+          status: 400,
+          content:
+            "Invalid ssn (failed fnr validation) " +
+            validation.reasons.join(", "),
+        });
+      }
+    } else if (ssn.length === 9) {
+      // Organization number is 9 digits
+      // No validatino performed
+    } else {
+      return res.status(400).json({
+        status: 400,
+        content: "Invalid ssn (length is not 9 or 11)",
+      });
+    }
+
+    const donor = await DAO.donors.getByID(req.params.id);
+    if (!donor) {
+      return res.status(404).json({
+        status: 404,
+        content: "No donor found with ID " + req.params.id,
+      });
+    }
+
+    const changed = await DAO.tax.updateTaxUnit(taxUnitId, taxUnit);
+    if (changed) {
+      res.json({
+        status: 200,
+        content: taxUnit,
+      });
+    } else {
+      res.json({
+        status: 500,
+        content: "Could not update tax unit",
+      });
+    }
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+/**
+ * @openapi
  * /donors/{id}:
  *   delete:
  *    tags: [Donors]
