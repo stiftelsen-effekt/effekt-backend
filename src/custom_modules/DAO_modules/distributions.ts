@@ -102,7 +102,7 @@ async function getAllByDonor(donorID) {
       map.set(item.KID, true);
       distObj.distributions.push({
         kid: item.KID,
-        organizations: [],
+        shares: [],
       });
     }
   }
@@ -110,7 +110,7 @@ async function getAllByDonor(donorID) {
   res.forEach((row) => {
     distObj.distributions.forEach((obj) => {
       if (row.KID == obj.kid) {
-        obj.organizations.push({
+        obj.shares.push({
           id: row.orgId,
           name: row.full_name,
           share: row.percentage_share,
@@ -222,7 +222,7 @@ async function getKIDbySplit(
 
     for (let i = 0; i < split.length; i++) {
       query += `(OrgID = ${sqlString.escape(
-        split[i].ID
+        split[i].id
       )} AND percentage_share = ${sqlString.escape(
         split[i].share
       )} AND C.Donor_ID = ${sqlString.escape(donorID)} AND ${
@@ -255,7 +255,7 @@ async function getKIDbySplit(
  * Gets organizaitons and distribution share from a KID
  * @param {number} KID
  * @returns {[{
- *  ID: number,
+ *  id: number,
  *  full_name: string,
  *  abbriv: string,
  *  share: string
@@ -263,12 +263,12 @@ async function getKIDbySplit(
  */
 async function getSplitByKID(
   KID
-): Promise<{ ID: number; full_name: string; abbriv: string; share: string }[]> {
+): Promise<{ id: number; full_name: string; abbriv: string; share: string }[]> {
   try {
     let [result] = await DAO.query(
       `
             SELECT 
-                Organizations.ID,
+                Organizations.ID as id,
                 Organizations.full_name,
                 Organizations.abbriv, 
                 Distribution.percentage_share as share
@@ -368,7 +368,7 @@ async function add(
     }
 
     let distribution_table_values = split.map((item) => {
-      return [item.ID, item.share];
+      return [item.id, item.share];
     });
     var res = await transaction.query(
       "INSERT INTO Distribution (OrgID, percentage_share) VALUES ?",

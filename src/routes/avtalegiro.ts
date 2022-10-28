@@ -309,7 +309,7 @@ router.post(
       const donorId: number = donor.id;
 
       const split = shares.map((org) => {
-        return { ID: org.ID, share: org.share };
+        return { id: org.id, share: org.share };
       });
       const metaOwnerID = 3;
 

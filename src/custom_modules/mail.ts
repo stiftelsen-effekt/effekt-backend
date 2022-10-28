@@ -150,7 +150,7 @@ export async function sendDonationReciept(donationID, reciever = null) {
     return false;
   }
 
-  const hasSciInDistribution = split.some((org) => org.ID === 2);
+  const hasSciInDistribution = split.some((org) => org.id === 2);
 
   try {
     var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
@@ -225,7 +225,7 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
     return false;
   }
 
-  const hasSciInDistribution = split.some((org) => org.ID === 2);
+  const hasSciInDistribution = split.some((org) => org.id === 2);
 
   try {
     var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);

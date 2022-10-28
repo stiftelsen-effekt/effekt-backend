@@ -1032,6 +1032,15 @@ router.get(
         distributions = distributions.filter((dist) => kidSet.has(dist.kid));
       }
 
+      for (let i = 0; i < distributions.length; i++) {
+        const dist = distributions[i];
+        const taxUnit = await DAO.tax.getByKID(dist.kid);
+        const standardDistribution =
+          await DAO.distributions.isStandardDistribution(dist.kid);
+        distributions[i].taxUnit = taxUnit;
+        distributions[i].standardDistribution = standardDistribution;
+      }
+
       return res.json({
         status: 200,
         content: distributions,

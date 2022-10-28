@@ -326,9 +326,9 @@ async function deleteById(
               if (cur === "s" || cur === "c") return acc;
 
               const [orgId, percentage] = cur.split("|");
-              acc.push({ ID: orgId, share: percentage });
+              acc.push({ id: orgId, share: percentage });
               return acc;
-            }, [] as { ID: string; share: string }[]);
+            }, [] as { id: string; share: string }[]);
           const KID = await donationHelpers.createKID(15, donorId);
 
           const res = await DAO.distributions.add(
