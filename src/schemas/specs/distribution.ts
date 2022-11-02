@@ -10,7 +10,7 @@ export interface components {
     /**
      * @example {
      *   "KID": "000013901401",
-     *   "organizations": [
+     *   "shares": [
      *     {
      *       "id": 5,
      *       "name": "Against Malaria Foundation",
@@ -27,7 +27,22 @@ export interface components {
     Distribution: {
       /** @description The KID of the distribution */
       KID?: string;
-      organizations?: components["schemas"]["DistributionOrganization"][];
+      shares?: components["schemas"]["DistributionShare"][];
+    };
+    /**
+     * @example {
+     *   "id": 5,
+     *   "name": "Against Malaria Foundation",
+     *   "share": "25.00"
+     * }
+     */
+    DistributionShare: {
+      /** @description The organization id */
+      id?: number;
+      /** @description The organization name */
+      name?: string;
+      /** @description The percentage share for the given organizations in decimal form */
+      share?: string;
     };
   };
 }
