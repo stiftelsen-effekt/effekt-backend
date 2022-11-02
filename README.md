@@ -123,7 +123,7 @@ On Mac or Linux, you can start MySQL with `mysql.server start` (and stop it with
 
 #### Run MySQL locally (inside a Docker container)
 
-First, follow instructions on the Docker website (or look for an online tutorial) to get Docker installed and running on your machine. 
+First, follow instructions on the Docker website (or look for an online tutorial) to get Docker installed and running on your machine.
 
 If you're on Mac, it should be as easy as:
 
@@ -228,8 +228,6 @@ you should see output like:
 ...
 ```
 
-
-
 #### Add test data to your local MySQL instance
 
 TODO
@@ -266,15 +264,15 @@ The proxy is now listening for connections on port 3306 (the standard mysql port
 
 ### Configuring and running the API
 
-Before we can run the API, we need to specify some environment variables. You can see all of the variables in [config.js](./config.js). Many of the variables declared here are not needed for most development. 
+Before we can run the API, we need to specify some environment variables. You can see all of the variables in [config.js](./config.js). Many of the variables declared here are not needed for most development.
 
 To get started, we **need** these to be set to run the api:
 
-* `DB_USER` (name of database user)
-* `DB_PASS` (password of database user)
-* `DB_NAME` (name of MySQL instance)
+- `DB_USER` (name of database user)
+- `DB_PASS` (password of database user)
+- `DB_NAME` (name of MySQL instance)
 
-The other configuration variables are only needed to run specific parts of the code, such as payment processing or mail processing. 
+The other configuration variables are only needed to run specific parts of the code, such as payment processing or mail processing.
 
 Let's run the service, using our locally-running MySQL instance (either native or in Docker):
 
@@ -304,7 +302,7 @@ We use mocha for our unit tests. To run the test suite, use the command
 npm test
 ```
 
-which will yield something like this 
+which will yield something like this
 
 <img src="docs/tests_terminal.png" width="500" />
 
@@ -335,12 +333,15 @@ We have three main branches in the repository, `master`, `stage` and `dev`. Any 
 Routes in `/routes` define which API endpoints exist, and what they do. They're roughly broken into files (and corresponding url sub-paths) by grouped functionality.
 
 Routes are loaded into the app in [server.js](server.js), and that set of endpoints is assigned a url subpath:
+
 ```
 app.use('/donors', donorsRoute)
 ```
+
 By convention, each subpath will have its own file in `/routes` with the same name, for example url `/donors` is implemented in [/routes/donors.js](routes/donors.js)
 
 At a high level, here's what the subpaths do:
+
 - `/auth`: authentication - logging in/out, passwords, and tokens
 - `/donors`: CRUD endpoints for donor objects
 - `/donations`: CRUD endpoints for donation objects
@@ -359,8 +360,9 @@ At a high level, here's what the subpaths do:
 - `/csr`: ?
 - `/meta`: misc endpoints - today just one for data owners (Effekt and/or EAN)
 - `/debug`: debugging endpoints
-    
+
 ### Business logic
+
 - `/handlers` holds request middleware (logging, errors) that triggers before/after requests.
 - `/docs` holds additional documentation, and static image files for use in READMEs and documentation.
 - `/__test__` holds tests.
@@ -371,6 +373,7 @@ At a high level, here's what the subpaths do:
 ### Authentication & Authorization
 
 ### KIDs
+
 KIDs are unique identifiers for each used (donor, distribution percentages) combination. A new donation will reuse an existing KID if the right one already exists, otherwise a new KID will be generated. KIDs are important because they're the main thing we pass to the payment processor, and then they pass back to us along with a payment, so we know which donor that payment was for, and how we should distribute the money.
 
 The code for creating a KID is in [/custom_modules/KID.js](custom_modules/KID.js).
@@ -406,95 +409,96 @@ This section contains a brief overview of some of the most important database ta
 The organizations we support donations to.
 
 Main Columns
-| Name        | Type   | Description | Example                      |
+| Name | Type | Description | Example |
 | ----------- | ------ | ----------- | ---------------------------- |
-| `ID`        | int    |             | 1                            |
-| `full_name` | string |             | "Against Malaria Foundation" |
-| `abbriv`    | string |             | "AMF"                        |
+| `ID` | int | | 1 |
+| `full_name` | string | | "Against Malaria Foundation" |
+| `abbriv` | string | | "AMF" |
 
 **Donors**
 
 One record for each donor. Personal info (name, ssn), credentials (email, password for users who can log in), and configuration.
 
 Main Columns
-| Name            | Type   | Description            | Example             |
+| Name | Type | Description | Example |
 | --------------- | ------ | ---------------------- | ------------------- |
-| `ID`            | int    |                        | 2                   |
-| `full_name`     | string |                        | "Malcolm T. Madiba" |
-| `ssn`           | string | Social Security Number | 0123456789012       |
-| `email`         | string |                        | "x@z.org"           |
-| `password_hash` | string |                        |                     |
-| `password_salt` | string |                        |                     |
-| `newsletter`    | bool   |                        | true                |
+| `ID` | int | | 2 |
+| `full_name` | string | | "Malcolm T. Madiba" |
+| `ssn` | string | Social Security Number | 0123456789012 |
+| `email` | string | | "x@z.org" |
+| `password_hash` | string | | |
+| `password_salt` | string | | |
+| `newsletter` | bool | | true |
 
 **Payment**
 
 One record for each payment type / payment processor, plus some metadata
 
 Main Columns
-| Name             | Type    | Description | Example |
+| Name | Type | Description | Example |
 | ---------------- | ------- | ----------- | ------- |
-| `ID`             | int     |             | 3       |
-| `payment_name`   | string  |             | "Vipps" |
-| `flat_fee`       | decimal |             | 2.00    |
-| `percentage_fee` | decimal |             | 1.50    |
+| `ID` | int | | 3 |
+| `payment_name` | string | | "Vipps" |
+| `flat_fee` | decimal | | 2.00 |
+| `percentage_fee` | decimal | | 1.50 |
 
 **Donations**
 
 One record for each donation.
 
 Main Columns
-| Name                 | Type    | Description                                                               | Example    |
+| Name | Type | Description | Example |
 | -------------------- | ------- | ------------------------------------------------------------------------- | ---------- |
-| `ID`                 | int     |                                                                           | 4          |
-| `Donor_ID`           | int     |                                                                           | 2          |
-| `Payment_ID`         | int     |                                                                           | 3          |
-| `PaymentExternal_ID` | string  | Payment ID in external system (ex: Vipps)                                 | "1351351"  |
-| `sum_confirmed`      | decimal | donation amount (NOK)                                                     | 500.00     |
-| `KID_fordeling`      | string  | Same as KID. Used to join to Combining_table for distribution percentages | "12345678" |
+| `ID` | int | | 4 |
+| `Donor_ID` | int | | 2 |
+| `Payment_ID` | int | | 3 |
+| `PaymentExternal_ID` | string | Payment ID in external system (ex: Vipps) | "1351351" |
+| `sum_confirmed` | decimal | donation amount (NOK) | 500.00 |
+| `KID_fordeling` | string | Same as KID. Used to join to Combining_table for distribution percentages | "12345678" |
 
 **Distribution**
 
 One record for each (org, %) combination ever used.
 
 Main Columns
-| Name               | Type    | Description | Example |
+| Name | Type | Description | Example |
 | ------------------ | ------- | ----------- | ------- |
-| `ID`               | int     |             | 5       |
-| `OrgID`            | int     |             | 1       |
-| `percentage_share` | decimal |             | 15.00   |
+| `ID` | int | | 5 |
+| `OrgID` | int | | 1 |
+| `percentage_share` | decimal | | 15.00 |
 
 **Combining_table**
 
 Join table to connect each KID to several Distributions. There will be multiple records for each KID with varying Distribution IDs. Percentage shares of the distributions for a given KID should sum to 100%.
 
 Main Columns
-| Name              | Type   | Description | Example    |
+| Name | Type | Description | Example |
 | ----------------- | ------ | ----------- | ---------- |
-| `KID`             | string |             | "12345678" |
-| `Donor_ID`        | int    |             | 1          |
-| `Distribution_ID` | int    |             | 15.00      |
+| `KID` | string | | "12345678" |
+| `Donor_ID` | int | | 1 |
+| `Distribution_ID` | int | | 15.00 |
 
 Example for donor 11 doing a one-time donation, and distributing 40% to AMF and 60% to GiveWell, which results in KID 1234:
 
 Donations (1 record)
-| ID   | Donor_ID | KID_fordeling |
+| ID | Donor_ID | KID_fordeling |
 | ---- | -------- | ------------- |
-| 6332 | 11       | "1234"        |
+| 6332 | 11 | "1234" |
 
 Combining Table (2 records):
-| KID    | Donor_ID | Distribution_ID |
+| KID | Donor_ID | Distribution_ID |
 | ------ | -------- | --------------- |
-| "1234" | 11       | 511             |
-| "1234" | 11       | 512             |
+| "1234" | 11 | 511 |
+| "1234" | 11 | 512 |
 
 Distributions (2 records)
-| ID  | OrgID | percentage_share |
+| ID | OrgID | percentage_share |
 | --- | ----- | ---------------- |
-| 511 | 1     | 40.00            |
-| 512 | 2     | 60.00            |
+| 511 | 1 | 40.00 |
+| 512 | 2 | 60.00 |
 
 **A few other tables worth mentioning:**
+
 - `Import_logs`: Auditing data recorded by scheduled document import jobs
 - `Payment_intent`: Recorded when user starts a payment (but we aren't sure yet whether it'll be finalized)
 - `Access_*`, `ChangePass`: for authn/authz
@@ -507,7 +511,6 @@ Distributions (2 records)
 We use the db-migrate tool ([github](https://github.com/db-migrate/node-db-migrate)) ([docs](https://db-migrate.readthedocs.io/en/latest/)) to create and apply our database migrations.
 
 Configuration for db-migrate is stored in [db/database.json](db/database.json), and the migration scripts are stored in [db/migrations](db/migrations).
-
 
 With a locally running database, use
 
@@ -541,6 +544,7 @@ You shouldn't need to touch the node script at all. You do need to manually craf
 - add index (downgrade): `DROP INDEX idx_donor_id ON Donations;`
 
 The process for updating production schema should be as follows. Usually you have a desired schema migration, and a corresponding code change that reads/writes the new fields:
+
 1. Stash your code changes for later
 2. Create your migration files
 3. Run unit & manual tests first (don't apply the migration yet)
