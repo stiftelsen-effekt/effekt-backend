@@ -235,7 +235,10 @@ router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
  */
 router.get("/:KID/redirect", async (req, res, next) => {
   try {
-    if (req.query.status && req.query.status.toUpperCase() === "OK") {
+    if (
+      req.query.status &&
+      (req.query.status as string).toUpperCase() === "OK"
+    ) {
       const agreement = await DAO.avtalegiroagreements.getByKID(req.params.KID);
       await sendAvtalegiroRegistered(agreement);
 

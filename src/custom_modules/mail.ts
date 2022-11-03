@@ -811,9 +811,9 @@ export async function sendAvtalegiroRegistered(agreement) {
           ",",
         agreementSum: formatCurrency(agreement.amount / 100),
         agreementDate:
-          agreement.date == 0
+          agreement.payment_date == 0
             ? "siste dagen i hver måned"
-            : `${agreement.date}. hver måned`,
+            : `${agreement.payment_date}. hver måned`,
         organizations: organizations,
         reusableHTML,
       },

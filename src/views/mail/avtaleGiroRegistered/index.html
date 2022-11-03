@@ -189,9 +189,7 @@
                     <td class="bodycopy">
                       <span style="vertical-align: middle"
                         >Tusen takk for du bidrar! Dette er en bekreftelse på at
-                        vi du har opprettet en AvtaleGiro på <%
-                        this.agreementSum %> kr hos oss med trekk den <%
-                        this.agreementDate %>.</span
+                        vi du har opprettet en AvtaleGiro på <% this.agreementSum %> kr hos oss med trekk den <% this.agreementDate %>.</span
                       >
                       <br /><br />
                     </td>
@@ -265,8 +263,7 @@
                                 >
                                   <tr>
                                     <td class="tableRow">
-                                      <% this.organizations[i].amount %> kr (<%
-                                      this.organizations[i].percentage %>%)
+                                      <% this.organizations[i].amount %> kr (<% this.organizations[i].percentage %>%)
                                     </td>
                                   </tr>
                                 </table>
@@ -334,22 +331,21 @@
                           </table>
                         </td>
                       </tr>
-                      <tr>
-                        <td class="bodycopy">
-                          <span style="vertical-align: middle"
-                            >Vi dekker transaksjonskostnadene slik at 100% av
-                            din donasjon blir videreført etter ditt ønske.</span
-                          >
-                          <br /><br />
-                        </td>
-                      </tr>
                     </table>
                   </tr>
                   <tr>
-                    <td class="bodycopy innerpadding">
+                    <td class="bodycopy">
+                      <span style="vertical-align: middle"
+                        >Vi dekker transaksjonskostnadene slik at 100% av
+                        din donasjon blir videreført etter ditt ønske.</span
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="bodycopy">
                       <br />
-                      <% this.reusableHTML.taxDeductionInfo %> <%
-                      this.reusableHTML.greeting %>
+                      <% this.reusableHTML.taxDeductionInfo %> 
+                      <% this.reusableHTML.greeting %>
                     </td>
                   </tr>
                 </table>
