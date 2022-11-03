@@ -76,7 +76,7 @@
   },
   "devDependencies": {
     "@types/chai": "^4.2.14",
-    "@types/node": "^16.0.0",
+    "@types/node": "^16.18.3",
     "@types/request-promise-native": "^1.0.17",
     "@types/sinon": "^7.5.2",
     "chai": "^4.2.0",

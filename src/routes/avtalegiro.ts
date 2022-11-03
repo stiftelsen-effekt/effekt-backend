@@ -2,7 +2,11 @@ import * as express from "express";
 import { checkAvtaleGiroAgreement } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { sendAvtaleGiroChange } from "../custom_modules/mail";
+import {
+  sendAvtaleGiroChange,
+  sendAvtalegiroRegistered,
+} from "../custom_modules/mail";
+import { mailchimp_api_key } from "../config";
 
 const router = express.Router();
 const rounding = require("../custom_modules/rounding");
@@ -219,6 +223,26 @@ router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
     });
   } catch (ex) {
     next(ex);
+  }
+});
+
+/**
+ * @openapi
+ * /donations/status:
+ *   get:
+ *    tags: [Donations]
+ *    description: Redirects to donation success when query is ok, donation failed if not ok. Used for payment processing.
+ */
+router.get("/:KID/redirect", async (req, res, next) => {
+  try {
+    if (req.query.status && req.query.status.toUpperCase() === "OK") {
+      const agreement = await DAO.avtalegiroagreements.getByKID(req.params.KID);
+      await sendAvtalegiroRegistered(agreement);
+
+      res.redirect("https://gieffektivt.no/opprettet");
+    } else res.redirect("https://gieffektivt.no/avtale-feilet");
+  } catch (ex) {
+    next({ ex });
   }
 });
 

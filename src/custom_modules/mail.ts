@@ -765,6 +765,69 @@ export async function sendAvtalegiroNotification(agreement) {
 }
 
 /**
+ * Sends donors with who just registered an AvtaleGiro an email confirming it
+ * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement
+ * @returns {true | number} True if successfull, or an error code if failed
+ */
+export async function sendAvtalegiroRegistered(agreement) {
+  let donor, split, organizations;
+
+  try {
+    donor = await DAO.donors.getByKID(agreement.KID);
+  } catch (ex) {
+    console.error(
+      `Failed to send mail AvtaleGiro registered, could not get donor form KID ${agreement.KID}`
+    );
+    console.error(ex);
+    return false;
+  }
+
+  try {
+    split = await DAO.distributions.getSplitByKID(agreement.KID);
+  } catch (ex) {
+    console.error(
+      `Failed to send mail AvtaleGiro registered, could not get donation split by KID ${agreement.KID}`
+    );
+    console.error(ex);
+    return false;
+  }
+
+  // Agreement amount is stored in øre
+  organizations = formatOrganizationsFromSplit(split, agreement.amount / 100);
+
+  organizations.forEach((org) => {
+    org.amount;
+  });
+
+  try {
+    await send({
+      reciever: donor.email,
+      subject: `Gi Effektivt - AvtaleGiro opprettet`,
+      templateName: "avtaleGiroRegistered",
+      templateData: {
+        header:
+          "Hei" +
+          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
+          ",",
+        agreementSum: formatCurrency(agreement.amount / 100),
+        agreementDate:
+          agreement.date == 0
+            ? "siste dagen i hver måned"
+            : `${agreement.date}. hver måned`,
+        organizations: organizations,
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send AvtaleGiro registered");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+/**
  * Sends OCR file for backup
  * @param {Buffer} fileContents
  */
