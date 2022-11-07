@@ -128,13 +128,57 @@ async function getByKID(KID: string): Promise<TaxUnit | null> {
         [idResult[0].Tax_unit_ID]
       );
 
+      const donor = await DAO.donors.getByKID(KID);
+
+      // Get sum of donations for tax unit grouped by year
+      const [aggregateYearlyDonations] = await DAO.execute<RowDataPacket[]>(
+        `SELECT T.ID, YEAR(D.timestamp_confirmed) as year, SUM(D.sum_confirmed) as sum_donations
+              FROM Tax_unit as T
+              INNER JOIN Combining_table as C ON C.Tax_unit_ID = T.ID
+              INNER JOIN Donations as D ON D.KID_fordeling = C.KID
+              WHERE T.Donor_ID = ?
+              GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
+        [donor.id]
+      );
+
+      const taxDeductionRules = {
+        "2016": (sum: number) => {
+          return 0;
+        },
+        "2017": (sum: number) => {
+          return 0;
+        },
+        "2018": (sum: number) => {
+          return 0;
+        },
+        "2019": (sum: number) => {
+          return sum > 500 ? Math.min(sum, 50000) * 0.22 : 0;
+        },
+        "2020": (sum: number) => {
+          return sum > 500 ? Math.min(sum, 50000) * 0.22 : 0;
+        },
+        "2021": (sum: number) => {
+          return sum > 500 ? Math.min(sum, 50000) * 0.22 : 0;
+        },
+        "2022": (sum: number) => {
+          return sum > 500 ? Math.min(sum, 25000) * 0.22 : 0;
+        },
+      };
+
       if (result.length > 0) {
-        const mapped: TaxUnit = {
+        const mapped: any = {
           id: result[0].ID as number,
           donorId: result[0].Donor_ID as number,
           name: result[0].full_name as string,
           ssn: result[0].ssn as string,
           archived: result[0].archived as string,
+          taxDeductions: aggregateYearlyDonations
+            .filter((ag) => ag.ID === result[0].ID)
+            .map((ag) => ({
+              year: ag.year,
+              sumDonations: ag.sum_donations,
+              taxDeduction: taxDeductionRules[ag.year](ag.sum_donations),
+            })),
         };
         return mapped;
       } else return null;
