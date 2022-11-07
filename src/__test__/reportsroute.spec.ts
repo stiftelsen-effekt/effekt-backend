@@ -1,9 +1,9 @@
-const sinon = require("sinon");
-const chai = require("chai");
-const DAO = require("../custom_modules/DAO");
-const expect = chai.expect;
-const mail = require("../custom_modules/mail");
-const fs = require("fs");
+import { DAO } from "../custom_modules/DAO";
+import sinon from "sinon";
+import { expect } from "chai";
+import * as fs from "fs";
+import * as mail from "../custom_modules/mail";
+
 const config = require("../config");
 
 const paypalroute = require("../routes/reports/paypal");
@@ -12,7 +12,7 @@ const ocrRoute = require("../routes/reports/ocr");
 
 let addStub;
 let mailStub;
-let historicSub;
+let historicStub;
 let parsingRulesStub;
 
 describe("PayPal report route handles correctly", () => {
@@ -24,7 +24,7 @@ describe("PayPal report route handles correctly", () => {
 
     mailStub = sinon.stub(mail, "sendDonationReciept");
 
-    historicSub = sinon.stub(
+    historicStub = sinon.stub(
       DAO.distributions,
       "getHistoricPaypalSubscriptionKIDS"
     );
@@ -39,7 +39,7 @@ describe("PayPal report route handles correctly", () => {
   });
 
   it("adds donations to DB when historic matching exists", async () => {
-    historicSub.resolves({
+    historicStub.resolves({
       "I-YE66CY1W4DPU": 23,
     });
 
@@ -49,7 +49,7 @@ describe("PayPal report route handles correctly", () => {
   });
 
   it("does not fail on 0 historic paypal matches", async () => {
-    historicSub.resolves([]);
+    historicStub.resolves([]);
 
     await runPaypal("Paypal Special");
 

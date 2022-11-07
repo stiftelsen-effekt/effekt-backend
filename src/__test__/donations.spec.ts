@@ -1,9 +1,10 @@
-const sinon = require("sinon");
-const DAO = require("../custom_modules/DAO");
-const request = require("supertest");
-const express = require("express");
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-const { expect } = require("chai");
+import { DAO } from "../custom_modules/DAO";
+import sinon from "sinon";
+import express from "express";
+import { expect } from "chai";
+import request from "supertest";
+import { InvalidTokenError } from "express-oauth2-jwt-bearer";
 
 describe("See descriptive statistics of my donations", function () {
   const mockDonations = [
@@ -100,7 +101,7 @@ describe("See descriptive statistics of my donations", function () {
   });
 
   it("Donor ID doesn't exist", async function () {
-    authMiddleware.checkDonor.restore();
+    checkDonorStub.restore();
 
     checkDonorStub.callsFake(function (donorID, res, req, next) {
       throw new InvalidTokenError(
@@ -114,6 +115,6 @@ describe("See descriptive statistics of my donations", function () {
   });
 
   after(function () {
-    authMiddleware.auth.restore();
+    authStub.restore();
   });
 });

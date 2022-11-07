@@ -14,6 +14,11 @@ module.exports = {
     return line;
   },
 
+  /**
+   * @param {DateTime} currentDate
+   * @param {number} number
+   * @returns {string}
+   */
   startRecordPaymentAssignment: function (currentDate, number) {
     var line = `NY210020`;
     line = line.padEnd(17, "0");
@@ -22,7 +27,7 @@ module.exports = {
       throw new Error("Cannot handle more than 999 assignments per file");
 
     // Oppdragsnr.
-    line += currentDate.toFormat("ddLL") + `${number}`.padStart(3, "0");
+    line += currentDate.toFormat("ddLLyy") + `0`;
     // Accountnr.
     line += "15062995960";
     line = line.padEnd(80, "0");

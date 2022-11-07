@@ -1297,10 +1297,6 @@ module.exports = {
                 externalPaymentId,
                 metaOwnerId
               );
-              if (result)
-                console.log(
-                  `Added donation for charge ${charges[j].id} from agreement ${agreements[i].id}`
-                );
             }
           }
 
@@ -1309,8 +1305,6 @@ module.exports = {
           }
         }
       }
-
-      console.log("Synchronized all Vipps agreements and charges");
 
       return true;
     } catch (ex) {
