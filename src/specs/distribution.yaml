@@ -8,17 +8,33 @@ components:
         KID:
           type: string
           description: The KID of the distribution
-        organizations:
+        shares:
           type: array
           items:
-            $ref: '#/components/schemas/DistributionOrganization'
+            $ref: "#/components/schemas/DistributionShare"
       example:
         KID: "000013901401"
-        organizations:
+        shares:
           - id: 5
             name: "Against Malaria Foundation"
             share: "25.00"
           - id: 6
             name: "GiveWells tildelingsfond"
             share: "75.00"
-        
+    DistributionShare:
+      type: object
+      required:
+      properties:
+        id:
+          type: integer
+          description: The organization id
+        name:
+          type: string
+          description: The organization name
+        share:
+          type: string
+          description: The percentage share for the given organizations in decimal form
+      example:
+        id: 5
+        name: "Against Malaria Foundation"
+        share: "25.00"

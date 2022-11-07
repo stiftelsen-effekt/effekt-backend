@@ -1,3 +1,4 @@
+import Decimal from "decimal.js";
 import { DAO } from "../DAO";
 
 const sqlString = require("sqlstring");
@@ -101,7 +102,7 @@ async function getAllByDonor(donorID) {
       map.set(item.KID, true);
       distObj.distributions.push({
         kid: item.KID,
-        organizations: [],
+        shares: [],
       });
     }
   }
@@ -109,7 +110,7 @@ async function getAllByDonor(donorID) {
   res.forEach((row) => {
     distObj.distributions.forEach((obj) => {
       if (row.KID == obj.kid) {
-        obj.organizations.push({
+        obj.shares.push({
           id: row.orgId,
           name: row.full_name,
           share: row.percentage_share,
@@ -221,7 +222,7 @@ async function getKIDbySplit(
 
     for (let i = 0; i < split.length; i++) {
       query += `(OrgID = ${sqlString.escape(
-        split[i].organizationID
+        split[i].id
       )} AND percentage_share = ${sqlString.escape(
         split[i].share
       )} AND C.Donor_ID = ${sqlString.escape(donorID)} AND ${
@@ -254,21 +255,23 @@ async function getKIDbySplit(
  * Gets organizaitons and distribution share from a KID
  * @param {number} KID
  * @returns {[{
- *  ID: number,
+ *  id: number,
  *  full_name: string,
  *  abbriv: string,
- *  percentage_share: Decimal
+ *  share: string
  * }]}
  */
-async function getSplitByKID(KID) {
+async function getSplitByKID(
+  KID
+): Promise<{ id: number; full_name: string; abbriv: string; share: string }[]> {
   try {
     let [result] = await DAO.query(
       `
             SELECT 
-                Organizations.ID,
+                Organizations.ID as id,
                 Organizations.full_name,
                 Organizations.abbriv, 
-                Distribution.percentage_share
+                Distribution.percentage_share as share
             
             FROM Combining_table as Combining
                 INNER JOIN Distribution as Distribution
@@ -282,7 +285,7 @@ async function getSplitByKID(KID) {
     );
 
     if (result.length == 0)
-      return new Error("NOT FOUND | No distribution with the KID " + KID);
+      throw new Error("NOT FOUND | No distribution with the KID " + KID);
     return result;
   } catch (ex) {
     throw ex;
@@ -365,14 +368,14 @@ async function add(
     }
 
     let distribution_table_values = split.map((item) => {
-      return [item.organizationID, item.share];
+      return [item.id, item.share];
     });
     var res = await transaction.query(
       "INSERT INTO Distribution (OrgID, percentage_share) VALUES ?",
       [distribution_table_values]
     );
 
-    let first_inserted_id = res[0].insertId;
+    let first_inserted_id = (res[0] as any).insertId;
     var combining_table_values = Array.apply(null, Array(split.length)).map(
       (item, i) => {
         return [

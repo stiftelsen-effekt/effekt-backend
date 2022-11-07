@@ -9,35 +9,35 @@ import { InvalidTokenError } from "express-oauth2-jwt-bearer";
 describe("See descriptive statistics of my donations", function () {
   const mockDonations = [
     {
-      organizationId: 1,
+      ID: 1,
       organization: "Against Malaria Foundation",
       abbriv: "AMF",
       value: "18.000000000000000000",
       year: 2022,
     },
     {
-      organizationId: 2,
+      ID: 2,
       organization: "Røde Kors",
       abbriv: "RK",
       value: "100.000000000000000000",
       year: 2018,
     },
     {
-      organizationId: 45,
+      ID: 45,
       organization: "Realfagbygget",
       abbriv: "A4",
       value: "250.000000000000000000",
       year: 2022,
     },
     {
-      organizationId: 11,
+      ID: 11,
       organization: "SOS Barnebyer",
       abbriv: "SOS",
       value: "250.000000000000000000",
       year: 2022,
     },
     {
-      organizationId: 60,
+      ID: 60,
       organization: "Barnekreftforeningen",
       abbriv: "BKF",
       value: "390.000000000000000000",
@@ -82,7 +82,7 @@ describe("See descriptive statistics of my donations", function () {
     let donations = response.body.content;
     expect(donations).to.have.length(5);
     for (var i = 0; i < donations.length; i++) {
-      expect(donations[i].organizationId).to.be.a("number");
+      expect(donations[i].ID).to.be.a("number");
       expect(donations[i].organization).to.be.a("string");
       expect(donations[i].abbriv).to.be.a("string");
       expect(donations[i].value).to.be.a("string");

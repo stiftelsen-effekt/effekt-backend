@@ -52,5 +52,6 @@ module.exports = {
   allowedProductionOrigins: [
     "https://gieffektivt.no",
     "https://admin.gieffektivt.no",
+    "http://localhost:3000",
   ],
 };

@@ -390,7 +390,7 @@ async function getByID(donationID) {
 
     donation["distribution"] = split.map((split) => ({
       abbriv: split.abbriv,
-      share: split.percentage_share,
+      share: split.share,
     }));
 
     return donation;
@@ -696,7 +696,7 @@ async function getYearlyAggregateByDonorId(donorId) {
     const [res] = await DAO.query(
       `
             SELECT
-                Organizations.ID as organizationId,
+                Organizations.ID as ID,
                 Organizations.full_name as organization,
                 Organizations.abbriv,
                 SUM(Donations.sum_confirmed * percentage_share / 100) as value, 

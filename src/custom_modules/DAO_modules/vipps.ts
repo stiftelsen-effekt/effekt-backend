@@ -150,7 +150,7 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
 
   agreement.distribution = split.map((split) => ({
     abbriv: split.abbriv,
-    share: split.percentage_share,
+    share: split.share,
   }));
 
   if (res.length === 0) return false;

@@ -353,7 +353,7 @@ router.get(
  */
 router.get(
   "/:id/taxunits",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(roles.read_profile),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -380,12 +380,320 @@ router.get(
 
 /**
  * @openapi
+ * /donors/{id}/taxunits:
+ *   post:
+ *    tags: [Donors]
+ *    description: Create a new tax unit for the given donor
+ *    security:
+ *       - auth0_jwt: [write:profile]
+ *    parameters:
+ *      - in: body
+ *        name: name
+ *        required: true
+ *        description: The name of the tax unit
+ *        schema:
+ *          type: string
+ *      - in: body
+ *        name: ssn
+ *        required: true
+ *        description: The social security number of the tax unit (organization number or personal number)
+ *    responses:
+ *      200:
+ *        description: Returns an array of tax units
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content:
+ *                        $ref: '#/components/schemas/TaxUnit'
+ *                   example:
+ *                      content:
+ *                        $ref: '#/components/schemas/TaxUnit/example'
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donor with given id not found
+ */
+router.post(
+  "/:id/taxunits",
+  authMiddleware.auth(roles.write_profile),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const { name, ssn } = req.body;
+
+      if (!name || !ssn) {
+        return res.status(400).json({
+          status: 400,
+          content: "Missing required fields",
+        });
+      }
+
+      if (ssn.length === 11) {
+        // Birth number is 11 digits
+        const validation = fnr(req.body.ssn);
+        if (validation.status !== "valid") {
+          return res.status(400).json({
+            status: 400,
+            content:
+              "Invalid ssn (failed fnr validation) " +
+              validation.reasons.join(", "),
+          });
+        }
+      } else if (ssn.length === 9) {
+        // Organization number is 9 digits
+        // No validatino performed
+      } else {
+        return res.status(400).json({
+          status: 400,
+          content: "Invalid ssn (length is not 9 or 11)",
+        });
+      }
+
+      const donor = await DAO.donors.getByID(req.params.id);
+      if (!donor) {
+        return res.status(404).json({
+          status: 404,
+          content: "No donor found with ID " + req.params.id,
+        });
+      }
+
+      var taxUnitId = await DAO.tax.addTaxUnit(donor.id, ssn, name);
+      const taxUnit = await DAO.tax.getById(taxUnitId);
+
+      if (taxUnit) {
+        return res.json({
+          status: 200,
+          content: taxUnit,
+        });
+      } else {
+        return res.status(500).json({
+          status: 500,
+          content: "Failed to create tax unit",
+        });
+      }
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+// Route for deleting tax unit from donor by donor id and tax unit id
+/**
+ * @openapi
+ * /donors/{id}/taxunits/{taxunitid}:
+ *   delete:
+ *    tags: [Donors]
+ *    description: Delete a tax unit from a donor
+ *    security:
+ *      - auth0_jwt: [write:profile]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the donor to retrieve.
+ *        schema:
+ *          type: integer
+ *      - in: path
+ *        name: taxunitid
+ *        required: true
+ *        description: Numeric ID of the tax unit to delete.
+ *        schema:
+ *          type: integer
+ *      - in: body
+ *        name: transferId
+ *        required: false
+ *        description: Numeric ID of the tax unit to transfer donations to the given tax unit for current year to
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Returns a status message for wether the unit was deleted
+ *        content:
+ *          application/json:
+ *            schema:
+ *              allOf:
+ *                - $ref: '#/components/schemas/ApiResponse'
+ *                - type: object
+ *                  properties:
+ *                    content:
+ *                      type: boolean
+ *                  example:
+ *                    content: true
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donor with given id not found, or tax unit with given id not found
+ *      500:
+ *        description: Failed to delete tax unit
+ */
+router.delete(
+  "/:id/taxunits/:taxunitid",
+  authMiddleware.auth(roles.write_profile),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const donor = await DAO.donors.getByID(req.params.id);
+      if (!donor) {
+        return res.status(404).json({
+          status: 404,
+          content: "No donor found with ID " + req.params.id,
+        });
+      }
+
+      const taxUnit = await DAO.tax.getById(req.params.taxunitid);
+      if (!taxUnit) {
+        return res.status(404).json({
+          status: 404,
+          content: "No tax unit found with ID " + req.params.taxunitid,
+        });
+      }
+
+      const deleted = await DAO.tax.deleteById(
+        taxUnit.id,
+        donor.id,
+        req.body.transferId
+      );
+      if (deleted) {
+        return res.json({
+          status: 200,
+          content: true,
+        });
+      } else {
+        return res.status(500).json({
+          status: 500,
+          content: "Failed to delete tax unit",
+        });
+      }
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+/**
+ * @openapi
+ * /donors/{id}/taxunits/{taxunitid}:
+ *   put:
+ *    tags: [Tax]
+ *    description: Updates a tax unit
+ *    security:
+ *       - auth0_jwt: [write:profile]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to update.
+ *        schema:
+ *          type: integer
+ *      - in: body
+ *        name: taxUnit
+ *        required: true
+ *        description: The tax unit to update
+ *        schema:
+ *          $ref: '#/components/schemas/TaxUnit'
+ *    responses:
+ *      200:
+ *        description: Tax unit was updated
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: string
+ *                   example:
+ *                      content: OK
+ *      401:
+ *        description: User not authorized to access resource
+ *      404:
+ *        description: Tax unit with given id not found
+ */
+router.put("/:id/taxunits/:taxunitid", async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const taxUnitId = parseInt(req.params.taxunitid);
+    const taxUnit = req.body.taxUnit;
+    const ssn = taxUnit.ssn;
+
+    if (!id || !taxUnitId || !taxUnit) {
+      res.status(400).json({
+        status: 400,
+        content: "Missing parameters id or taxUnitid or taxUnit in json body",
+      });
+      return;
+    }
+
+    if (!taxUnit.name || !taxUnit.ssn) {
+      res.status(400).json({
+        status: 400,
+        content: "Missing parameters name or ssn on tax unit",
+      });
+      return;
+    }
+
+    if (ssn.length === 11) {
+      // Birth number is 11 digits
+      const validation = fnr(ssn);
+      if (validation.status !== "valid") {
+        return res.status(400).json({
+          status: 400,
+          content:
+            "Invalid ssn (failed fnr validation) " +
+            validation.reasons.join(", "),
+        });
+      }
+    } else if (ssn.length === 9) {
+      // Organization number is 9 digits
+      // No validatino performed
+    } else {
+      return res.status(400).json({
+        status: 400,
+        content: "Invalid ssn (length is not 9 or 11)",
+      });
+    }
+
+    const donor = await DAO.donors.getByID(req.params.id);
+    if (!donor) {
+      return res.status(404).json({
+        status: 404,
+        content: "No donor found with ID " + req.params.id,
+      });
+    }
+
+    const changed = await DAO.tax.updateTaxUnit(taxUnitId, taxUnit);
+    if (changed) {
+      res.json({
+        status: 200,
+        content: taxUnit,
+      });
+    } else {
+      res.json({
+        status: 500,
+        content: "Could not update tax unit",
+      });
+    }
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+/**
+ * @openapi
  * /donors/{id}:
  *   delete:
  *    tags: [Donors]
  *    description: Get a donor by id
  *    security:
- *       - auth0_jwt: [write:donations]
+ *      - auth0_jwt: [write:donations]
  *    parameters:
  *      - in: path
  *        name: id
@@ -722,6 +1030,15 @@ router.get(
         req.query.kids.split(",").map((kid) => kidSet.add(kid));
 
         distributions = distributions.filter((dist) => kidSet.has(dist.kid));
+      }
+
+      for (let i = 0; i < distributions.length; i++) {
+        const dist = distributions[i];
+        const taxUnit = await DAO.tax.getByKID(dist.kid);
+        const standardDistribution =
+          await DAO.distributions.isStandardDistribution(dist.kid);
+        distributions[i].taxUnit = taxUnit;
+        distributions[i].standardDistribution = standardDistribution;
       }
 
       return res.json({

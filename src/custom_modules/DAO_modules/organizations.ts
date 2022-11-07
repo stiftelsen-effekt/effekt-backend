@@ -91,7 +91,7 @@ async function getStandardSplit() {
 
   return standardSplit.map((org) => {
     return {
-      organizationID: org.ID,
+      id: org.ID,
       name: org.full_name,
       share: org.std_percentage_share,
     };

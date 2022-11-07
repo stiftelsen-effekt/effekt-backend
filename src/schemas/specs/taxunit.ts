@@ -13,7 +13,7 @@ export interface components {
      *   "donorId": 237,
      *   "name": "Overlook Hotel Logistics Ltd.",
      *   "ssn": 919809140,
-     *   "registered": "1921-07-04T23:00:00.000Z"
+     *   "archived": "1921-07-04T23:00:00.000Z"
      * }
      */
     TaxUnit: {
@@ -25,6 +25,11 @@ export interface components {
       name: string;
       /** @description The social security number of the tax unit */
       ssn?: string;
+      /**
+       * Format: date-time
+       * @description Indicates the date the unit was archived. Null if the unit is not archived
+       */
+      archived?: string;
     };
   };
 }
