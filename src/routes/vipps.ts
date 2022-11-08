@@ -4,6 +4,7 @@ import {
   sendVippsProblemReport,
 } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
+import { donationHelpers } from "../custom_modules/donationHelpers";
 
 const express = require("express");
 const router = express.Router();
@@ -12,7 +13,6 @@ const jsonBody = bodyParser.json();
 const dns = require("dns").promises;
 const config = require("../config");
 const rounding = require("../custom_modules/rounding");
-const donationHelpers = require("../custom_modules/donationHelpers");
 const vipps = require("../custom_modules/vipps");
 const authorizationRoles = require("../enums/authorizationRoles");
 
