@@ -368,7 +368,7 @@ async function add(
     }
 
     let distribution_table_values = split.map((item) => {
-      return [item.id, item.share];
+      return [item.ID, item.share];
     });
     var res = await transaction.query(
       "INSERT INTO Distribution (OrgID, percentage_share) VALUES ?",
