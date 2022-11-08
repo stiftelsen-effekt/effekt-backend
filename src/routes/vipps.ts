@@ -538,9 +538,9 @@ router.put(
       }
 
       const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
-      const split = req.body.distribution.map((distribution) => {
+      const split = req.body.distribution.shares.map((distribution) => {
         return {
-          ID: distribution.ID,
+          id: distribution.id,
           share: distribution.share,
         };
       });
