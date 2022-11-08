@@ -289,7 +289,7 @@ function formatOrganizationsFromSplit(split, sum) {
       amount:
         (roundedAmount != amount ? "~ " : "") +
         roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-      percentage: parseFloat(org.percentage_share),
+      percentage: parseFloat(org.share),
     };
   });
 }
