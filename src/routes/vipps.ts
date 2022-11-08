@@ -538,7 +538,7 @@ router.put(
       }
 
       const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
-      const standardDistribution = req.body.distribution;
+      const standardDistribution = req.body.distribution.standardDistribution;
       let taxUnitId: number | undefined = req.body.distribution.taxUnit.id;
       const split = req.body.distribution.shares.map((distribution) => {
         return {
