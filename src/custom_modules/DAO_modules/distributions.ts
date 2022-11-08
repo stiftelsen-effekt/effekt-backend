@@ -395,10 +395,10 @@ async function add(
       [combining_table_values]
     );
 
-    DAO.commitTransaction(transaction);
+    await DAO.commitTransaction(transaction);
     return true;
   } catch (ex) {
-    DAO.rollbackTransaction(transaction);
+    await DAO.rollbackTransaction(transaction);
     throw ex;
   }
 }
