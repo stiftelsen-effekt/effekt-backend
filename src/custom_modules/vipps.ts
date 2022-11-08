@@ -591,7 +591,7 @@ module.exports = {
       interval: "MONTH",
       intervalCount: 1,
       isApp: false,
-      merchantRedirectUrl: `${config.minside_url}/${agreementUrlCode}_landing`,
+      merchantRedirectUrl: `https://gieffektivt.no/opprettet`,
       merchantAgreementUrl: `${config.minside_url}/${agreementUrlCode}`,
       price: realAmount,
       productDescription: agreementUrlCode,
