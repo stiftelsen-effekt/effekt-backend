@@ -538,6 +538,8 @@ router.put(
       }
 
       const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
+      const standardDistribution = req.body.distribution;
+      let taxUnitId: number | undefined = req.body.distribution.taxUnit.id;
       const split = req.body.distribution.shares.map((distribution) => {
         return {
           id: distribution.id,
@@ -560,17 +562,18 @@ router.put(
         return next(err);
       }
 
-      const existingTaxUnit = await DAO.tax.getByKID(existingAgreement.KID);
-      let taxUnitId: number | undefined;
-      if (existingTaxUnit) {
-        taxUnitId = existingTaxUnit.id;
+      if (!taxUnitId) {
+        const existingTaxUnit = await DAO.tax.getByKID(existingAgreement.KID);
+        if (existingTaxUnit) {
+          taxUnitId = existingTaxUnit.id;
+        }
       }
 
       //Check for existing distribution with that KID
       let KID = await DAO.distributions.getKIDbySplit(
         split,
         donorId,
-        false,
+        standardDistribution,
         taxUnitId
       );
 
@@ -581,7 +584,7 @@ router.put(
           KID,
           donorId,
           taxUnitId,
-          false,
+          standardDistribution,
           metaOwnerID
         );
       }
