@@ -1,0 +1,35 @@
+openapi: 3.0.1
+components:
+  schemas:
+    Fundraiser:
+      type: object
+      required:
+        - id
+        - permalink
+      properties:
+        id:
+          type: integer
+          description: The Auto-generated id for a fundraiser, from facebook
+        permalink:
+          type: string
+          description: The permalink for the fundraiser, from facebook
+        title:
+          type: string
+          description: The title of the fundraiser
+        description:
+          type: string
+          description: A description used for the fundraiser
+        goal:
+          type: number
+          description: The goal amount of the fundraiser in NOK
+        end:
+          type: string
+          format: date-time
+          description: The end time of the fundraiser in question
+      example:
+        id: 1688420612476723
+        permalink: https://www.facebook.com/1688420612476723
+        title: New boiler for the hotel
+        description: We need to raise money to buy a new boiler for the hotel
+        goal: 100000
+        end: 1921-07-04T23:00:00.000Z
