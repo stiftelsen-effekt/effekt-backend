@@ -315,20 +315,4 @@ router.post(
   }
 );
 
-// Route to get token
-router.get("/token", async (req, res, next) => {
-  try {
-    const token = await fetchToken();
-
-    res.json({
-      status: 200,
-      content: {
-        token,
-      },
-    });
-  } catch (ex) {
-    next(ex);
-  }
-});
-
 module.exports = router;
