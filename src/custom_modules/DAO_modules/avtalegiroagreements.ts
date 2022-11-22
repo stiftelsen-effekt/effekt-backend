@@ -283,6 +283,12 @@ async function getAgreements(sort, page, limit, filter) {
       if (filter.paymentDate.to !== undefined)
         where.push(`AG.payment_date <= ${sqlString.escape(filter.paymentDate.to)} `);
     }
+    if (filter.created) {
+      if (filter.created.from)
+        where.push(`AG.created >= ${sqlString.escape(filter.created.from)} `);
+      if (filter.created.to)
+        where.push(`AG.created <= ${sqlString.escape(filter.created.to)} `);
+    }
 
     if (filter.KID)
       where.push(
