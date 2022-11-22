@@ -6,6 +6,7 @@ const express = require("express");
 const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendFacebookTaxConfirmation } from "../custom_modules/mail";
+import { fetchToken } from "../custom_modules/facebook";
 const donationHelpers = require("../custom_modules/donationHelpers");
 
 function throwError(message) {

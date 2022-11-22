@@ -32,6 +32,9 @@ module.exports = {
     : process.env.NETS_SFTP_PRIVATE_KEY,
   nets_sftp_key_passphrase: process.env.NETS_SFTP_PRIVATE_KEY_PASSPHRASE,
 
+  facebook_sync_app_id: process.env.FACBEOOK_SYNC_APP_ID,
+  facebook_sync_app_secret: process.env.FACEBOOK_SYNC_APP_SECRET,
+
   //Set port for API listening, default to 5050
   port: process.env.EFFEKT_PORT || process.env.PORT || 5050,
   //Set host for API listening, default to localhost

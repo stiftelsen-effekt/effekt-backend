@@ -15,27 +15,30 @@ export interface components {
   schemas: {
     /**
      * @example {
-     *   "id": 984,
-     *   "donorId": 237,
-     *   "name": "Overlook Hotel Logistics Ltd.",
-     *   "ssn": 919809140,
-     *   "archived": "1921-07-04T23:00:00.000Z"
+     *   "id": 1688420612476723,
+     *   "permalink": "https://www.facebook.com/1688420612476723",
+     *   "title": "New boiler for the hotel",
+     *   "description": "We need to raise money to buy a new boiler for the hotel",
+     *   "goal": 100000,
+     *   "end": "1921-07-04T23:00:00.000Z"
      * }
      */
-    TaxUnit: {
-      /** @description The Auto-generated id for a tax unit */
+    Fundraiser: {
+      /** @description The Auto-generated id for a fundraiser, from facebook */
       id: number;
-      /** @description The id of the donor assicoated with the tax unit */
-      donorId: number;
-      /** @description Full name of the tax unit (either a personal name or a business entity) */
-      name: string;
-      /** @description The social security number of the tax unit */
-      ssn?: string;
+      /** @description The permalink for the fundraiser, from facebook */
+      permalink: string;
+      /** @description The title of the fundraiser */
+      title?: string;
+      /** @description A description used for the fundraiser */
+      description?: string;
+      /** @description The goal amount of the fundraiser in NOK */
+      goal?: number;
       /**
        * Format: date-time 
-       * @description Indicates the date the unit was archived. Null if the unit is not archived
+       * @description The end time of the fundraiser in question
        */
-      archived?: string;
+      end?: string;
     };
   };
   responses: never;
