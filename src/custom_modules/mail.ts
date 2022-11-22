@@ -36,12 +36,8 @@ function formatDateText(date) {
   return `${date.getDate()}. ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
-function formatCurrency(currencyString) {
-  return Number.parseFloat(currencyString)
-    .toFixed(2)
-    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
-    .replace(",", " ")
-    .replace(".", ",");
+export function formatCurrency(currencyString) {
+  return new Intl.NumberFormat('no-NO', {  maximumFractionDigits: 2 }).format(currencyString)
 }
 
 // Reusable HTML elements
@@ -177,10 +173,7 @@ export async function sendDonationReciept(donationID, reciever = null) {
             ? " " + donation.donor
             : "") +
           ",",
-        //Add thousand seperator regex at end of amount
-        donationSum: donation.sum
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+        donationSum: formatCurrency(donation.sum),
         organizations: organizations,
         donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
         paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
@@ -252,10 +245,7 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
             ? " " + donation.donor
             : "") +
           ",",
-        //Add thousand seperator regex at end of amount
-        donationSum: donation.sum
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+        donationSum: formatCurrency(donation.sum),
         organizations: organizations,
         donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
         paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
@@ -289,10 +279,9 @@ function formatOrganizationsFromSplit(split, sum) {
 
     return {
       name: org.full_name,
-      //Add thousand seperator regex at end of amount
       amount:
         (roundedAmount != amount ? "~ " : "") +
-        roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+        formatCurrency(roundedAmount),
       percentage: parseFloat(org.share),
     };
   });
@@ -641,9 +630,7 @@ export async function sendTaxDeductions(taxDeductionRecord, year) {
       templateName: "taxDeduction",
       templateData: {
         header: "Hei " + taxDeductionRecord.firstname + ",",
-        donationSum: taxDeductionRecord.amount
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+        donationSum: formatCurrency(taxDeductionRecord.amount),
         fullname: taxDeductionRecord.fullname,
         ssn: taxDeductionRecord.ssn,
         year: year.toString(),
