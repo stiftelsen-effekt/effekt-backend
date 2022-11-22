@@ -91,42 +91,60 @@ async function getAll(sort, page, limit = 10, filter = null) {
           where.push(
             ` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `
           );
+
+        if (filter.organizationIDs) {
+          where.push(
+            ` OrgId IN (${filter.organizationIDs
+              .map(sqlString.escape)
+              .join(",")}) `
+          );
+        }
       }
 
+      // Only apply this join when filtering by organizationIDs.
+      const organizationJoin = filter?.organizationIDs ? `
+        INNER JOIN Combining_table
+          ON Donations.KID_fordeling = Combining_table.KID
+        INNER JOIN Distribution
+          ON Combining_table.Distribution_ID = Distribution.ID` : "";
+
+      const columns = `
+        Donations.ID,
+        Donors.full_name,
+        Payment.payment_name,
+        Donations.sum_confirmed,
+        Donations.transaction_cost,
+        Donations.KID_fordeling,
+        Donations.timestamp_confirmed
+      `;
+
+      const query = `
+        SELECT 
+          count(*) OVER() AS full_count,
+          ${columns}
+        FROM Donations
+        INNER JOIN Donors
+            ON Donations.Donor_ID = Donors.ID
+        INNER JOIN Payment
+            ON Donations.Payment_ID = Payment.ID  
+        ${organizationJoin}
+        
+        WHERE 
+            ${where.length !== 0 ? where.join(" AND ") : "1"}
+        GROUP BY 
+            ${columns}
+        ORDER BY ${sortColumn}
+        ${sort.desc ? "DESC" : ""} 
+        LIMIT ? OFFSET ?`;
+
       const [donations] = await DAO.query(
-        `SELECT 
-                    Donations.ID,
-                    Donors.full_name,
-                    Payment.payment_name,
-                    Donations.sum_confirmed,
-                    Donations.transaction_cost,
-                    Donations.KID_fordeling,
-                    Donations.timestamp_confirmed
-                FROM Donations
-                INNER JOIN Donors
-                    ON Donations.Donor_ID = Donors.ID
-                INNER JOIN Payment
-                    ON Donations.Payment_ID = Payment.ID
-
-                WHERE 
-                    ${where.length !== 0 ? where.join(" AND ") : "1"}
-
-                ORDER BY ${sortColumn}
-                ${sort.desc ? "DESC" : ""} 
-                LIMIT ? OFFSET ?`,
+        query,
         [limit, page * limit]
       );
 
-      const [counter] = await DAO.query(`
-                SELECT COUNT(*) as count FROM Donations
+      const counter = donations.length > 0 ? donations[0]["full_count"] : 0;
 
-                INNER JOIN Donors
-                    ON Donations.Donor_ID = Donors.ID
-                
-                WHERE 
-                    ${where.length !== 0 ? where.join(" AND ") : " 1"}`);
-
-      const pages = Math.ceil(counter[0].count / limit);
+      const pages = Math.ceil(counter / limit);
 
       return {
         rows: mapToJS(donations),
