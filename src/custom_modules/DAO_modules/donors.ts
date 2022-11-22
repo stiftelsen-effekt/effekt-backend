@@ -154,10 +154,11 @@ async function search(query): Promise<Array<Donor>> {
       ]);
     else
       var [result] = await DAO.execute(
-        `SELECT * FROM Donors 
-            WHERE 
+        `SELECT Donors.*, SUM(Donations.sum_confirmed) AS total_donations
+            FROM Donors JOIN Donations ON Donors.ID = Donations.Donor_ID
+            WHERE
                 MATCH (full_name, email) AGAINST (? IN BOOLEAN MODE)
-                
+            GROUP BY Donors.ID
             LIMIT 100`,
         [query]
       );
@@ -168,6 +169,7 @@ async function search(query): Promise<Array<Donor>> {
         name: donor.full_name,
         email: donor.email,
         registered: donor.date_registered,
+        total_donations: Number(donor.total_donations),
       };
     });
   } catch (ex) {

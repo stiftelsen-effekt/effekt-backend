@@ -35,8 +35,10 @@ module.exports = {
   facebook_sync_app_id: process.env.FACBEOOK_SYNC_APP_ID,
   facebook_sync_app_secret: process.env.FACEBOOK_SYNC_APP_SECRET,
 
-  //Set port for API listening, default to 3000
+  //Set port for API listening, default to 5050
   port: process.env.EFFEKT_PORT || process.env.PORT || 5050,
+  //Set host for API listening, default to localhost
+  host: process.env.EFFEKT_HOST || process.env.HOST || "localhost",
 
   //Bank account for recieving donations
   bankAccount: process.env.BANK_ACCOUNT,
