@@ -72,6 +72,10 @@ const greeting =
   "<br/><br/>";
 
 const footer =
+  '<hr color="000" width="100%">' +
+  "<br />" +
+  "<b>Vi vil aldri be deg om personlige opplysninger slik som personnummer, kontonummer, kort-informasjon eller passord på e-post.</b>" +
+  "<br/><br/>" +
   '<table class="footer" bgcolor="#000" width="100%" border="0" cellspacing="0" cellpadding="0">' +
   "<tr>" +
   '<td align="center" class="footercopy">' +
