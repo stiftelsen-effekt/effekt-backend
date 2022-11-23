@@ -1032,13 +1032,20 @@ router.get(
         distributions = distributions.filter((dist) => kidSet.has(dist.kid));
       }
 
+      const requests = [];
       for (let i = 0; i < distributions.length; i++) {
         const dist = distributions[i];
-        const taxUnit = await DAO.tax.getByKID(dist.kid);
-        const standardDistribution =
-          await DAO.distributions.isStandardDistribution(dist.kid);
-        distributions[i].taxUnit = taxUnit;
-        distributions[i].standardDistribution = standardDistribution;
+        requests.push(
+          getDistributionTaxUnitAndStandardDistribution(i, dist.kid)
+        );
+      }
+
+      const results = await Promise.all(requests);
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        distributions[result.index].taxUnit = result.taxUnit;
+        distributions[result.index].standardDistribution =
+          result.standardDistribution;
       }
 
       return res.json({
@@ -1050,6 +1057,18 @@ router.get(
     }
   }
 );
+
+async function getDistributionTaxUnitAndStandardDistribution(index, kid) {
+  const taxUnit = await DAO.tax.getByKID(kid);
+  const standardDistribution = await DAO.distributions.isStandardDistribution(
+    kid
+  );
+  return {
+    index: index,
+    taxUnit: taxUnit,
+    standardDistribution: standardDistribution,
+  };
+}
 
 /**
  * @openapi
