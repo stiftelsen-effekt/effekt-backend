@@ -28,61 +28,57 @@ router.get("/payments/all", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-router.post(
-  "/register/payment",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      const paymentID = req.body.paymentID;
-      const email = req.body.email;
-      const full_name = req.body.name;
-      const ssn = req.body.ssn;
+router.post("/register/payment", async (req, res, next) => {
+  try {
+    const paymentID = req.body.paymentID;
+    const email = req.body.email;
+    const full_name = req.body.name;
+    const ssn = req.body.ssn;
 
-      if (!paymentID) {
-        throwError("Missing param paymentID");
-      } else if (!email) {
-        throwError("Missing param email");
-      } else if (!full_name) {
-        throwError("Missing param full_name");
-      } else if (!ssn) {
-        throwError("Missing param ssn");
-      }
-
-      const ID = await DAO.donors.getIDbyEmail(email);
-      let taxUnitID: number | undefined = undefined;
-
-      // If donor does not exist, create new donor
-      if (!ID) {
-        const donorID = await DAO.donors.add(email, full_name);
-        taxUnitID = await DAO.tax.addTaxUnit(donorID, ssn, full_name);
-        await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
-      }
-      // If donor already exists, update ssn if empty
-      else if (ID) {
-        const donorID = ID;
-        const donor = await DAO.donors.getByID(ID);
-
-        const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(donor.id, ssn);
-        if (existingTaxUnit) {
-          taxUnitID = existingTaxUnit.id;
-        } else {
-          taxUnitID = await DAO.tax.addTaxUnit(donor.id, ssn, full_name);
-        }
-
-        await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
-      }
-
-      await sendFacebookTaxConfirmation(email, full_name, paymentID);
-
-      res.json({
-        status: 200,
-        content: "OK",
-      });
-    } catch (ex) {
-      next(ex);
+    if (!paymentID) {
+      throwError("Missing param paymentID");
+    } else if (!email) {
+      throwError("Missing param email");
+    } else if (!full_name) {
+      throwError("Missing param full_name");
+    } else if (!ssn) {
+      throwError("Missing param ssn");
     }
+
+    const ID = await DAO.donors.getIDbyEmail(email);
+    let taxUnitID: number | undefined = undefined;
+
+    // If donor does not exist, create new donor
+    if (!ID) {
+      const donorID = await DAO.donors.add(email, full_name);
+      taxUnitID = await DAO.tax.addTaxUnit(donorID, ssn, full_name);
+      await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
+    }
+    // If donor already exists, update ssn if empty
+    else if (ID) {
+      const donorID = ID;
+      const donor = await DAO.donors.getByID(ID);
+
+      const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(donor.id, ssn);
+      if (existingTaxUnit) {
+        taxUnitID = existingTaxUnit.id;
+      } else {
+        taxUnitID = await DAO.tax.addTaxUnit(donor.id, ssn, full_name);
+      }
+
+      await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
+    }
+
+    await sendFacebookTaxConfirmation(email, full_name, paymentID);
+
+    res.json({
+      status: 200,
+      content: "OK",
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 router.post(
   "/register/campaign",
