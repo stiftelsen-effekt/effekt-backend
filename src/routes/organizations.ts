@@ -21,7 +21,7 @@ router.get("/active", urlEncodeParser, async (req, res, next) => {
 
 router.get("/all", async (req, res, next) => {
   try {
-    let organizations = await DAO.organizations.getAll();
+    const organizations = await DAO.organizations.getAll();
 
     res.json({
       status: 200,
