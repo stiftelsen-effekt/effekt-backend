@@ -19,6 +19,19 @@ router.get("/active", urlEncodeParser, async (req, res, next) => {
   }
 });
 
+router.get("/all", async (req, res, next) => {
+  try {
+    let organizations = await DAO.organizations.getAll();
+
+    res.json({
+      status: 200,
+      content: organizations,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 router.get("/:id", async (req, res, next) => {
   try {
     const org = await DAO.organizations.getByID(req.params.id);
