@@ -272,13 +272,15 @@ module.exports = {
           await DAO.vipps.updateVippsOrderDonation(orderId, donationID);
           await sendDonationReciept(donationID);
         } catch (ex) {
+          //Donation already registered, no additional actions required
           if (ex.message.indexOf("EXISTING_DONATION") === -1) {
             console.info(
               `Vipps donation for orderid ${orderId} already exists`,
               ex
             );
+          } else {
+            throw ex;
           }
-          //Donation already registered, no additional actions required
         }
       }
 
@@ -438,13 +440,15 @@ module.exports = {
         await sendDonationReciept(donationID);
         return true;
       } catch (ex) {
+        //Donation already registered, no additional actions required
         if (ex.message.indexOf("EXISTING_DONATION") === -1) {
           console.info(
             `Vipps donation for orderid ${orderId} already exists`,
             ex
           );
+        } else {
+          throw ex;
         }
-        //Donation already registered, no additional actions required
       }
     } else {
       //Handle?
