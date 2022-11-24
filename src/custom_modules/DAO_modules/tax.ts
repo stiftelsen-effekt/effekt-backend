@@ -10,24 +10,20 @@ import { donationHelpers } from "../donationHelpers";
  * @returns {TaxUnit | null} A tax unit if found
  */
 async function getById(id: number): Promise<TaxUnit | null> {
-  try {
-    const [result] = await DAO.execute<RowDataPacket[]>(
-      `SELECT * FROM Tax_unit where ID = ?`,
-      [id]
-    );
+  const [result] = await DAO.execute<RowDataPacket[]>(
+    `SELECT * FROM Tax_unit where ID = ?`,
+    [id]
+  );
 
-    if (result.length > 0)
-      return {
-        id: result[0].ID,
-        donorId: result[0].Donor_ID,
-        name: result[0].full_name,
-        ssn: result[0].ssn,
-        archived: result[0].archived,
-      };
-    else return null;
-  } catch (ex) {
-    throw ex;
-  }
+  if (result.length > 0)
+    return {
+      id: result[0].ID,
+      donorId: result[0].Donor_ID,
+      name: result[0].full_name,
+      ssn: result[0].ssn,
+      archived: result[0].archived,
+    };
+  else return null;
 }
 
 /**
@@ -36,9 +32,8 @@ async function getById(id: number): Promise<TaxUnit | null> {
  * @returns {TaxUnit | null} A tax unit if found
  */
 async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
-  try {
-    const [result] = await DAO.execute<RowDataPacket[]>(
-      `SELECT T.ID, T.Donor_ID, T.full_name, T.registered, T.ssn, T.archived,
+  const [result] = await DAO.execute<RowDataPacket[]>(
+    `SELECT T.ID, T.Donor_ID, T.full_name, T.registered, T.ssn, T.archived,
         (SELECT COUNT(D.ID) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
         as num_donations,
         (SELECT SUM(D.sum_confirmed) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
@@ -49,18 +44,92 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
           WHERE T.Donor_ID = ?
           
           GROUP BY T.ID, T.full_name, T.registered`,
-      [donorId]
-    );
+    [donorId]
+  );
 
-    // Get sum of donations for tax unit grouped by year
-    const [aggregateYearlyDonations] = await DAO.execute<RowDataPacket[]>(
-      `SELECT T.ID, YEAR(D.timestamp_confirmed) as year, SUM(D.sum_confirmed) as sum_donations
+  // Get sum of donations for tax unit grouped by year
+  const [aggregateYearlyDonations] = await DAO.execute<RowDataPacket[]>(
+    `SELECT T.ID, YEAR(D.timestamp_confirmed) as year, SUM(D.sum_confirmed) as sum_donations
           FROM Tax_unit as T
           INNER JOIN Combining_table as C ON C.Tax_unit_ID = T.ID
           INNER JOIN Donations as D ON D.KID_fordeling = C.KID
           WHERE T.Donor_ID = ?
           GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
-      [donorId]
+    [donorId]
+  );
+
+  const taxDeductionRules = {
+    "2016": (sum: number) => {
+      return 0;
+    },
+    "2017": (sum: number) => {
+      return 0;
+    },
+    "2018": (sum: number) => {
+      return 0;
+    },
+    "2019": (sum: number) => {
+      return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
+    },
+    "2020": (sum: number) => {
+      return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
+    },
+    "2021": (sum: number) => {
+      return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
+    },
+    "2022": (sum: number) => {
+      return sum >= 500 ? Math.min(sum, 25000) * 0.22 : 0;
+    },
+  };
+
+  return result.map((res) => ({
+    id: res.ID,
+    donorId: res.Donor_ID,
+    name: res.full_name,
+    ssn: res.ssn,
+    numDonations: res.num_donations,
+    sumDonations: res.sum_donations,
+    registered: res.registered,
+    archived: res.archived,
+    taxDeductions: aggregateYearlyDonations
+      .filter((ag) => ag.ID === res.ID)
+      .map((ag) => ({
+        year: ag.year,
+        sumDonations: ag.sum_donations,
+        taxDeduction: taxDeductionRules[ag.year](ag.sum_donations),
+      })),
+  }));
+}
+
+/**
+ * Gets a tax unit KID
+ * @param {number} id The id of the tax unit
+ * @returns {TaxUnit | null} A tax unit if found
+ */
+async function getByKID(KID: string): Promise<TaxUnit | null> {
+  const [idResult] = await DAO.execute<RowDataPacket[]>(
+    `SELECT Tax_unit_ID FROM Combining_table WHERE KID = ?
+        GROUP BY Tax_unit_ID;`,
+    [KID]
+  );
+
+  if (idResult.length > 0 && idResult[0].Tax_unit_ID) {
+    const [result] = await DAO.execute<RowDataPacket[]>(
+      `SELECT * FROM Tax_unit where ID = ?`,
+      [idResult[0].Tax_unit_ID]
+    );
+
+    const donor = await DAO.donors.getByKID(KID);
+
+    // Get sum of donations for tax unit grouped by year
+    const [aggregateYearlyDonations] = await DAO.execute<RowDataPacket[]>(
+      `SELECT T.ID, YEAR(D.timestamp_confirmed) as year, SUM(D.sum_confirmed) as sum_donations
+              FROM Tax_unit as T
+              INNER JOIN Combining_table as C ON C.Tax_unit_ID = T.ID
+              INNER JOIN Donations as D ON D.KID_fordeling = C.KID
+              WHERE T.Donor_ID = ?
+              GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
+      [donor.id]
     );
 
     const taxDeductionRules = {
@@ -87,105 +156,24 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
       },
     };
 
-    return result.map((res) => ({
-      id: res.ID,
-      donorId: res.Donor_ID,
-      name: res.full_name,
-      ssn: res.ssn,
-      numDonations: res.num_donations,
-      sumDonations: res.sum_donations,
-      registered: res.registered,
-      archived: res.archived,
-      taxDeductions: aggregateYearlyDonations
-        .filter((ag) => ag.ID === res.ID)
-        .map((ag) => ({
-          year: ag.year,
-          sumDonations: ag.sum_donations,
-          taxDeduction: taxDeductionRules[ag.year](ag.sum_donations),
-        })),
-    }));
-  } catch (ex) {
-    throw ex;
-  }
-}
-
-/**
- * Gets a tax unit KID
- * @param {number} id The id of the tax unit
- * @returns {TaxUnit | null} A tax unit if found
- */
-async function getByKID(KID: string): Promise<TaxUnit | null> {
-  try {
-    const [idResult] = await DAO.execute<RowDataPacket[]>(
-      `SELECT Tax_unit_ID FROM Combining_table WHERE KID = ?
-        GROUP BY Tax_unit_ID;`,
-      [KID]
-    );
-
-    if (idResult.length > 0 && idResult[0].Tax_unit_ID) {
-      const [result] = await DAO.execute<RowDataPacket[]>(
-        `SELECT * FROM Tax_unit where ID = ?`,
-        [idResult[0].Tax_unit_ID]
-      );
-
-      const donor = await DAO.donors.getByKID(KID);
-
-      // Get sum of donations for tax unit grouped by year
-      const [aggregateYearlyDonations] = await DAO.execute<RowDataPacket[]>(
-        `SELECT T.ID, YEAR(D.timestamp_confirmed) as year, SUM(D.sum_confirmed) as sum_donations
-              FROM Tax_unit as T
-              INNER JOIN Combining_table as C ON C.Tax_unit_ID = T.ID
-              INNER JOIN Donations as D ON D.KID_fordeling = C.KID
-              WHERE T.Donor_ID = ?
-              GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
-        [donor.id]
-      );
-
-      const taxDeductionRules = {
-        "2016": (sum: number) => {
-          return 0;
-        },
-        "2017": (sum: number) => {
-          return 0;
-        },
-        "2018": (sum: number) => {
-          return 0;
-        },
-        "2019": (sum: number) => {
-          return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
-        },
-        "2020": (sum: number) => {
-          return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
-        },
-        "2021": (sum: number) => {
-          return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
-        },
-        "2022": (sum: number) => {
-          return sum >= 500 ? Math.min(sum, 25000) * 0.22 : 0;
-        },
+    if (result.length > 0) {
+      const mapped: any = {
+        id: result[0].ID as number,
+        donorId: result[0].Donor_ID as number,
+        name: result[0].full_name as string,
+        ssn: result[0].ssn as string,
+        archived: result[0].archived as string,
+        taxDeductions: aggregateYearlyDonations
+          .filter((ag) => ag.ID === result[0].ID)
+          .map((ag) => ({
+            year: ag.year,
+            sumDonations: ag.sum_donations,
+            taxDeduction: taxDeductionRules[ag.year](ag.sum_donations),
+          })),
       };
-
-      if (result.length > 0) {
-        const mapped: any = {
-          id: result[0].ID as number,
-          donorId: result[0].Donor_ID as number,
-          name: result[0].full_name as string,
-          ssn: result[0].ssn as string,
-          archived: result[0].archived as string,
-          taxDeductions: aggregateYearlyDonations
-            .filter((ag) => ag.ID === result[0].ID)
-            .map((ag) => ({
-              year: ag.year,
-              sumDonations: ag.sum_donations,
-              taxDeduction: taxDeductionRules[ag.year](ag.sum_donations),
-            })),
-        };
-        return mapped;
-      } else return null;
+      return mapped;
     } else return null;
-  } catch (ex) {
-    throw ex;
-  }
+  } else return null;
 }
 
 /**
@@ -198,25 +186,21 @@ async function getByDonorIdAndSsn(
   donorId: number,
   ssn: string
 ): Promise<TaxUnit | null> {
-  try {
-    const [result] = await DAO.execute<RowDataPacket[]>(
-      `SELECT * FROM Tax_unit where Donor_ID = ? AND ssn = ?`,
-      [donorId, ssn]
-    );
+  const [result] = await DAO.execute<RowDataPacket[]>(
+    `SELECT * FROM Tax_unit where Donor_ID = ? AND ssn = ?`,
+    [donorId, ssn]
+  );
 
-    if (result.length > 0) {
-      const mapped: TaxUnit = {
-        id: result[0].ID as number,
-        donorId: result[0].Donor_ID as number,
-        name: result[0].full_name as string,
-        ssn: result[0].ssn as string,
-        archived: result[0].archived as string,
-      };
-      return mapped;
-    } else return null;
-  } catch (ex) {
-    throw ex;
-  }
+  if (result.length > 0) {
+    const mapped: TaxUnit = {
+      id: result[0].ID as number,
+      donorId: result[0].Donor_ID as number,
+      name: result[0].full_name as string,
+      ssn: result[0].ssn as string,
+      archived: result[0].archived as string,
+    };
+    return mapped;
+  } else return null;
 }
 //endregion
 
@@ -233,16 +217,12 @@ async function addTaxUnit(
   ssn: string | null,
   name: string
 ): Promise<number> {
-  try {
-    const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
-      `INSERT INTO Tax_unit SET Donor_ID = ?, ssn = ?, full_name = ?`,
-      [donorId, ssn, name]
-    );
+  const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
+    `INSERT INTO Tax_unit SET Donor_ID = ?, ssn = ?, full_name = ?`,
+    [donorId, ssn, name]
+  );
 
-    return result.insertId;
-  } catch (ex) {
-    throw ex;
-  }
+  return result.insertId;
 }
 
 /**
@@ -252,16 +232,12 @@ async function addTaxUnit(
  * @returns {number} The number of rows affected
  */
 async function updateTaxUnit(id: number, taxUnit: TaxUnit): Promise<number> {
-  try {
-    const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
-      `UPDATE Tax_unit SET full_name = ?, ssn = ? WHERE ID = ?`,
-      [taxUnit.name, taxUnit.ssn, id]
-    );
+  const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
+    `UPDATE Tax_unit SET full_name = ?, ssn = ? WHERE ID = ?`,
+    [taxUnit.name, taxUnit.ssn, id]
+  );
 
-    return result.affectedRows;
-  } catch (ex) {
-    throw ex;
-  }
+  return result.affectedRows;
 }
 //endregion
 

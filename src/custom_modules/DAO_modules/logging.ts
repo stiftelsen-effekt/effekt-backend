@@ -21,9 +21,8 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
   /**
    * TODO: Add filtering
    */
-  try {
-    let [res] = await DAO.query(
-      `
+  let [res] = await DAO.query(
+    `
       SELECT 
         ID, label, timestamp,
         (CASE 
@@ -56,32 +55,28 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
       
       FROM Import_logs 
 
-      ${
-        filesearch !== null && filesearch !== ""
-          ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' +
-            sqlString.escape("%" + filesearch + "%")
-          : ""
-      }
+      ${filesearch !== null && filesearch !== ""
+      ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' +
+      sqlString.escape("%" + filesearch + "%")
+      : ""
+    }
       
       ORDER BY timestamp DESC 
       LIMIT ? 
       OFFSET ?`,
-      [limit, offset]
-    );
+    [limit, offset]
+  );
 
-    let [counter] = await DAO.query(`
+  let [counter] = await DAO.query(`
       SELECT COUNT(*) as count FROM Import_logs 
     `);
 
-    const pages = Math.ceil(counter[0].count / limit);
+  const pages = Math.ceil(counter[0].count / limit);
 
-    return {
-      results: res,
-      pages,
-    };
-  } catch (ex) {
-    throw ex;
-  }
+  return {
+    results: res,
+    pages,
+  };
 }
 
 /**
@@ -90,22 +85,18 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
  * @returns {ImportLogEntry}
  */
 async function get(id) {
-  try {
-    let [res] = await DAO.query(
-      `
+  let [res] = await DAO.query(
+    `
       SELECT *
       
       FROM Import_logs
       
       WHERE ID = ?`,
-      [id]
-    );
+    [id]
+  );
 
-    if (res.length > 0) return res[0];
-    else return null;
-  } catch (ex) {
-    throw ex;
-  }
+  if (res.length > 0) return res[0];
+  else return null;
 }
 //endregion
 
@@ -116,19 +107,15 @@ async function get(id) {
  * @param {object} result Results stored as JSON in DB
  */
 async function add(label, result) {
-  try {
-    var res = await DAO.execute(
-      `INSERT INTO Import_logs
+  var res = await DAO.execute(
+    `INSERT INTO Import_logs
           (label, result) 
           VALUES 
           (?,?)`,
-      [label, JSON.stringify(result)]
-    );
+    [label, JSON.stringify(result)]
+  );
 
-    return res.insertId;
-  } catch (ex) {
-    throw ex;
-  }
+  return res.insertId;
 }
 //endregion
 
