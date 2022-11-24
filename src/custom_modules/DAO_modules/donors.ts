@@ -143,7 +143,7 @@ async function getIDByAgreementCode(agreementUrlCode) {
 
 /**
  * Searches for a user with either email or name matching the query
- * @param {string} query A query string trying to match agains full name and email
+ * @param {string} query A query string trying to match agains full name, email and ID
  * @returns {Array<Donor>} An array of donor objects
  */
 async function search(query): Promise<Array<Donor>> {
@@ -157,10 +157,10 @@ async function search(query): Promise<Array<Donor>> {
         `SELECT Donors.*, SUM(Donations.sum_confirmed) AS total_donations
             FROM Donors JOIN Donations ON Donors.ID = Donations.Donor_ID
             WHERE
-                MATCH (full_name, email) AGAINST (? IN BOOLEAN MODE)
+                (MATCH (full_name, email) AGAINST (? IN BOOLEAN MODE)) OR Donors.ID = ?
             GROUP BY Donors.ID
             LIMIT 100`,
-        [query]
+        [query, query]
       );
 
     return result.map((donor) => {
