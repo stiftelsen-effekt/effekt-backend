@@ -1,4 +1,4 @@
-const moment = require('moment')
+const { DateTime } = require("luxon");
 const parse = require('csv-parse/lib/sync')
 
 /**
@@ -53,7 +53,7 @@ function getTransactions(data) {
     return data.reduce((acc, row) => {
         if(row[fieldMapping.type] == "Abonnementsbetaling") {
             acc.push({
-                date: moment(row[fieldMapping.date] + " " + row[fieldMapping.time], "DD.MM.YYYY hh:mm:ss"),
+                date: DateTime.fromFormat(row[fieldMapping.date] + " " + row[fieldMapping.time] + " " + row[fieldMapping.timeZone], "DD.MM.YYYY hh:mm:ss z"),
                 transactionID: row[fieldMapping.transactionID],
                 referenceTransactionID: row[fieldMapping.referenceTransactionID],
                 amount: Number(row[fieldMapping.grossAmount].replace(/[,]/, ".").replace(/\s/g, '')),

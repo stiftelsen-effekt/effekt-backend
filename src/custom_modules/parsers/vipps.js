@@ -62,7 +62,7 @@ module.exports = {
 function buildTransactionFromArray(inputArray) {
   if (inputArray[fieldMapping.TransactionType] !== "Salg") return false
   let transaction = {
-    date: moment(inputArray[fieldMapping.SalesDate], "DD.MM.YYYY"),
+    date: moment.utc(inputArray[fieldMapping.SalesDate], "DD.MM.YYYY"),
     location: inputArray[fieldMapping.SalesLocation],
     transactionID: inputArray[fieldMapping.TransactionID],
     amount: Number(inputArray[fieldMapping.GrossAmount].replace(/,/g, '.').replace(/\s/g, '')),

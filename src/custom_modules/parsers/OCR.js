@@ -2,6 +2,7 @@ const serviceCodeEnum = require('../../enums/serviceCode')
 const transactionCodeEnum = require('../../enums/transactionCode')
 const recordTypeEnum = require('../../enums/recordType')
 const paymentMethodsEnum = require('../../enums/paymentMethods')
+const { utcDate } = require('../utcDate')
 
 module.exports = {
   /**
@@ -50,9 +51,9 @@ module.exports = {
       let year = currLine.substr(19,2);
       let month = currLine.substr(17,2);
       let day = currLine.substr(15,2);
-      const date = new Date(
+      const date = utcDate(
         parseInt("20" + year),
-        parseInt(month)-1,
+        parseInt(month),
         parseInt(day)
       );
   
