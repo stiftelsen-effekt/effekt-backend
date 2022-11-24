@@ -42,27 +42,18 @@ export const DAO = {
   connect: async function (cb) {
     const dbSocketPath = process.env.DB_SOCKET_PATH || "/cloudsql";
 
-    if (process.env.K_SERVICE != null) {
-      // Running in google cloud
-      this.dbPool = await mysql.createPool({
+    var args = {
         user: config.db_username,
         password: config.db_password,
         database: config.db_name,
-        socketPath: `${dbSocketPath}/${process.env.CLOUD_SQL_CONNECTION_NAME}`,
         waitForConnections: true,
-        enableKeepAlive: true,
-      });
-    } else {
-      // Running locally
-      this.dbPool = await mysql.createPool({
-        user: config.db_username,
-        password: config.db_password,
-        database: config.db_name,
-        host: "127.0.0.1",
-        waitForConnections: true,
-        enableKeepAlive: true,
-      });
-    }
+        enableKeepAlive: true as true, // Workaround for type checking quirk
+    };
+    if (process.env.K_SERVICE != null)
+      args["socketPath"] = `${dbSocketPath}/${process.env.CLOUD_SQL_CONNECTION_NAME}`;
+    else
+      args["host"] = "127.0.0.1";
+    this.dbPool = mysql.createPool(args);
 
     //Check whether connection was successfull
     //Weirdly, this is the proposed way to do it
