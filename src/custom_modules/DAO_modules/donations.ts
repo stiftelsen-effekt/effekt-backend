@@ -154,6 +154,37 @@ async function getAll(sort, page, limit = 10, filter = null) {
   }
 }
 
+async function getTransactionCostsReport() {
+    let [res] = await DAO.query(`
+    SELECT count(ID) as donationsCount,
+      (SELECT round(sum(transaction_cost)) FROM Donations
+        WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE)
+        AND MONTH(timestamp_confirmed) = MONTH(CURRENT_DATE) - 1) as costPrevMonth,
+      (SELECT round(sum(transaction_cost)) FROM Donations
+        WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE) - 1
+        AND MONTH(timestamp_confirmed) = MONTH(CURRENT_DATE) - 1) as costPrevMonthPrevYear,
+      (SELECT round(sum(transaction_cost)) FROM Donations
+        WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE)
+        AND MONTH(timestamp_confirmed) = MONTH(CURRENT_DATE)) as costCurrentMonthToDate,
+      (SELECT round(sum(transaction_cost)) FROM Donations
+            WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE) - 1
+            AND MONTH(timestamp_confirmed) = MONTH(CURRENT_DATE)
+            AND DAYOFMONTH(timestamp_confirmed) <= DAYOFMONTH(CURRENT_DATE)) as costCurrentMonthToDatePrevYear,
+      (SELECT round(sum(transaction_cost)) FROM Donations
+            WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE)) as costYTD,
+      (SELECT round(sum(transaction_cost)) FROM Donations 
+            WHERE 
+              DATE(timestamp_confirmed) BETWEEN DATE(CONCAT(YEAR(CURRENT_TIMESTAMP) - 1, '-01-01')) 
+            AND 
+              DATE(CONCAT(YEAR(CURRENT_TIMESTAMP) - 1, '-', MONTH(CURRENT_TIMESTAMP), '-', DAY(CURRENT_TIMESTAMP)))) as costYTDPrevYear
+    FROM
+      Donations
+    `);
+
+    if (res.length === 0) return false;
+    else return res[0];
+}
+
 /**
  * Gets all donations by KID
  * @param {string} KID KID number
@@ -892,6 +923,7 @@ export const donations = {
   getSummary,
   getSummaryByYear,
   getHistory,
+  getTransactionCostsReport,
   getYearlyAggregateByDonorId,
   getByDonorId,
   getLatestByKID,
