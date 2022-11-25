@@ -408,6 +408,18 @@ router.get("/histogram", async (req, res, next) => {
   }
 });
 
+router.get("/transaction_costs_report",  authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const donations = await DAO.donations.getTransactionCostsReport();
+    return res.json({
+      status: 200,
+      content: donations,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 router.post("/reciepts", authMiddleware.isAdmin, async (req, res, next) => {
   let donationIDs = req.body.donationIDs;
 
