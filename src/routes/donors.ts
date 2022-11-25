@@ -172,9 +172,9 @@ router.post("/auth0/register", async (req, res, next) => {
  *      401:
  *        description: User not authorized to view resource
  */
-router.get("/search/", authMiddleware.isAdmin, async (req, res, next) => {
+router.post("/search/", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    var donors = await DAO.donors.search(req.query.q);
+    var donors = await DAO.donors.search(req.body);
 
     if (donors) {
       return res.json({
