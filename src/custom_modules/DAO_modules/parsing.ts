@@ -7,22 +7,18 @@ import { DAO } from "../DAO";
  * @returns {Array} Returns an array with matching rules
  */
 async function getVippsParsingRules(periodStart, periodEnd) {
-  try {
-    var [res] = await DAO.query(
-      "SELECT * FROM Vipps_matching_rules WHERE PeriodFrom <= ? and PeriodTo >= ? ORDER BY precedence DESC",
-      [periodStart, periodEnd]
-    );
+  var [res] = await DAO.query(
+    "SELECT * FROM Vipps_matching_rules WHERE PeriodFrom <= ? and PeriodTo >= ? ORDER BY precedence DESC",
+    [periodStart, periodEnd]
+  );
 
-    return res.map((res) => {
-      return {
-        salesLocation: res.SalesLocation,
-        message: res.Message,
-        resolveKID: res.ResolveKID,
-      };
-    });
-  } catch (ex) {
-    throw ex;
-  }
+  return res.map((res) => {
+    return {
+      salesLocation: res.SalesLocation,
+      message: res.Message,
+      resolveKID: res.ResolveKID,
+    };
+  });
 }
 
 export const parsing = {

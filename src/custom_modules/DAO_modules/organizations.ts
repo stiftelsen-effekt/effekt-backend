@@ -8,18 +8,14 @@ import { DAO } from "../DAO";
  * @returns {Array<Organization>}
  */
 async function getByIDs(IDs) {
-  try {
-    var [organizations] = await DAO.execute(
-      "SELECT * FROM Organizations WHERE ID in (" +
-        "?,".repeat(IDs.length).slice(0, -1) +
-        ")",
-      IDs
-    );
+  var [organizations] = await DAO.execute(
+    "SELECT * FROM Organizations WHERE ID in (" +
+    "?,".repeat(IDs.length).slice(0, -1) +
+    ")",
+    IDs
+  );
 
-    return organizations;
-  } catch (ex) {
-    throw ex;
-  }
+  return organizations;
 }
 
 /**
@@ -28,17 +24,13 @@ async function getByIDs(IDs) {
  * @returns {Organization}
  */
 async function getByID(ID) {
-  try {
-    var [organization] = await DAO.execute(
-      "SELECT * FROM Organizations WHERE ID = ? LIMIT 1",
-      [ID]
-    );
+  var [organization] = await DAO.execute(
+    "SELECT * FROM Organizations WHERE ID = ? LIMIT 1",
+    [ID]
+  );
 
-    if (organization.length > 0) return organization[0];
-    else return null;
-  } catch (ex) {
-    throw ex;
-  }
+  if (organization.length > 0) return organization[0];
+  else return null;
 }
 
 /**
@@ -48,16 +40,12 @@ async function getByID(ID) {
  * @returns {Array<Organization>}
  */
 async function getActive() {
-  try {
-    var [organizations] = await DAO.execute(`
+  var [organizations] = await DAO.execute(`
             SELECT * FROM Organizations 
                 WHERE is_active = 1
                 ORDER BY ordering ASC`);
 
-    return organizations.map(mapOrganization);
-  } catch (ex) {
-    throw ex;
-  }
+  return organizations.map(mapOrganization);
 }
 
 /**
@@ -65,23 +53,15 @@ async function getActive() {
  * @returns {Array<Organization>} All organizations in DB
  */
 async function getAll() {
-  try {
-    var [organizations] = await DAO.execute(`SELECT * FROM Organizations`);
+  var [organizations] = await DAO.execute(`SELECT * FROM Organizations`);
 
-    return organizations.map(mapOrganization);
-  } catch (ex) {
-    throw ex;
-  }
+  return organizations.map(mapOrganization);
 }
 
 async function getStandardSplit() {
-  try {
-    var [standardSplit] = await DAO.execute(
-      `SELECT * FROM Organizations WHERE std_percentage_share > 0 AND is_active = 1`
-    );
-  } catch (ex) {
-    throw ex;
-  }
+  var [standardSplit] = await DAO.execute(
+    `SELECT * FROM Organizations WHERE std_percentage_share > 0 AND is_active = 1`
+  );
 
   if (
     standardSplit.reduce((acc, org) => (acc += org.std_percentage_share), 0) !=

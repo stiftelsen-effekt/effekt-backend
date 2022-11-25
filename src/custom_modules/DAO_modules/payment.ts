@@ -6,16 +6,12 @@ import { DAO } from "../DAO";
  * @returns {Array} An array of payment method objects
  */
 async function getMethods() {
-  try {
-    var [res] = await DAO.query(`SELECT * FROM Payment`);
+  var [res] = await DAO.query(`SELECT * FROM Payment`);
 
-    if (res.length > 0) {
-      return mapDBpaymentToObject(res);
-    } else {
-      return null;
-    }
-  } catch (ex) {
-    throw ex;
+  if (res.length > 0) {
+    return mapDBpaymentToObject(res);
+  } else {
+    return null;
   }
 }
 
@@ -25,20 +21,16 @@ async function getMethods() {
  * @returns {Array} An array of payment method objects
  */
 async function getPaymentMethodsByIDs(paymentMethodIDs) {
-  try {
-    var [res] = await DAO.query(
-      `SELECT * FROM Payment 
+  var [res] = await DAO.query(
+    `SELECT * FROM Payment 
                                         WHERE ID IN (?)`,
-      [paymentMethodIDs]
-    );
+    [paymentMethodIDs]
+  );
 
-    if (res.length > 0) {
-      return mapDBpaymentToObject(res);
-    } else {
-      return null;
-    }
-  } catch (ex) {
-    throw ex;
+  if (res.length > 0) {
+    return mapDBpaymentToObject(res);
+  } else {
+    return null;
   }
 }
 

@@ -41,74 +41,73 @@ const sqlString = require("sqlstring");
  * @returns {[Array<IDonation & donorName: string>, nextcursor]} An array of donations pluss the donorname
  */
 async function getAll(sort, page, limit = 10, filter = null) {
-  try {
-    if (sort) {
-      const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
+  if (sort) {
+    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
 
-      let where = [];
-      if (filter) {
-        if (filter.sum) {
-          if (filter.sum.from)
-            where.push(
-              `sum_confirmed >= ${sqlString.escape(filter.sum.from)} `
-            );
-          if (filter.sum.to)
-            where.push(`sum_confirmed <= ${sqlString.escape(filter.sum.to)} `);
-        }
-
-        if (filter.date) {
-          if (filter.date.from)
-            where.push(
-              `timestamp_confirmed >= ${sqlString.escape(filter.date.from)} `
-            );
-          if (filter.date.to)
-            where.push(
-              `timestamp_confirmed <= ${sqlString.escape(filter.date.to)} `
-            );
-        }
-
-        if (filter.KID)
+    let where = [];
+    if (filter) {
+      if (filter.sum) {
+        if (filter.sum.from)
           where.push(
-            ` CAST(KID_fordeling as CHAR) LIKE ${sqlString.escape(
-              `%${filter.KID}%`
-            )} `
+            `sum_confirmed >= ${sqlString.escape(filter.sum.from)} `
           );
-        if (filter.paymentMethodIDs)
-          where.push(
-            ` Payment_ID IN (${filter.paymentMethodIDs
-              .map((ID) => sqlString.escape(ID))
-              .join(",")}) `
-          );
-
-        if (filter.donor)
-          where.push(
-            ` (Donors.full_name LIKE ${sqlString.escape(
-              `%${filter.donor}%`
-            )} OR Donors.email LIKE ${sqlString.escape(`%${filter.donor}%`)}) `
-          );
-
-        if (filter.id)
-          where.push(
-            ` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `
-          );
-
-        if (filter.organizationIDs) {
-          where.push(
-            ` OrgId IN (${filter.organizationIDs
-              .map(sqlString.escape)
-              .join(",")}) `
-          );
-        }
+        if (filter.sum.to)
+          where.push(`sum_confirmed <= ${sqlString.escape(filter.sum.to)} `);
       }
 
-      // Only apply this join when filtering by organizationIDs.
-      const organizationJoin = filter?.organizationIDs ? `
+      if (filter.date) {
+        if (filter.date.from)
+          where.push(
+            `timestamp_confirmed >= ${sqlString.escape(filter.date.from)} `
+          );
+        if (filter.date.to)
+          where.push(
+            `timestamp_confirmed <= ${sqlString.escape(filter.date.to)} `
+          );
+      }
+
+      if (filter.KID)
+        where.push(
+          ` CAST(KID_fordeling as CHAR) LIKE ${sqlString.escape(
+            `%${filter.KID}%`
+          )} `
+        );
+      if (filter.paymentMethodIDs)
+        where.push(
+          ` Payment_ID IN (${filter.paymentMethodIDs
+            .map((ID) => sqlString.escape(ID))
+            .join(",")}) `
+        );
+
+      if (filter.donor)
+        where.push(
+          ` (Donors.full_name LIKE ${sqlString.escape(
+            `%${filter.donor}%`
+          )} OR Donors.email LIKE ${sqlString.escape(`%${filter.donor}%`)}) `
+        );
+
+      if (filter.id)
+        where.push(
+          ` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `
+        );
+
+      if (filter.organizationIDs) {
+        where.push(
+          ` OrgId IN (${filter.organizationIDs
+            .map(sqlString.escape)
+            .join(",")}) `
+        );
+      }
+    }
+
+    // Only apply this join when filtering by organizationIDs.
+    const organizationJoin = filter?.organizationIDs ? `
         INNER JOIN Combining_table
           ON Donations.KID_fordeling = Combining_table.KID
         INNER JOIN Distribution
           ON Combining_table.Distribution_ID = Distribution.ID` : "";
 
-      const columns = `
+    const columns = `
         Donations.ID,
         Donors.full_name,
         Payment.payment_name,
@@ -118,7 +117,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
         Donations.timestamp_confirmed
       `;
 
-      const query = `
+    const query = `
         SELECT 
           count(*) OVER() AS full_count,
           ${columns}
@@ -137,24 +136,21 @@ async function getAll(sort, page, limit = 10, filter = null) {
         ${sort.desc ? "DESC" : ""} 
         LIMIT ? OFFSET ?`;
 
-      const [donations] = await DAO.query(
-        query,
-        [limit, page * limit]
-      );
+    const [donations] = await DAO.query(
+      query,
+      [limit, page * limit]
+    );
 
-      const counter = donations.length > 0 ? donations[0]["full_count"] : 0;
+    const counter = donations.length > 0 ? donations[0]["full_count"] : 0;
 
-      const pages = Math.ceil(counter / limit);
+    const pages = Math.ceil(counter / limit);
 
-      return {
-        rows: mapToJS(donations),
-        pages,
-      };
-    } else {
-      throw new Error("No sort provided");
-    }
-  } catch (ex) {
-    throw ex;
+    return {
+      rows: mapToJS(donations),
+      pages,
+    };
+  } else {
+    throw new Error("No sort provided");
   }
 }
 
@@ -164,35 +160,31 @@ async function getAll(sort, page, limit = 10, filter = null) {
  * @returns {Array<Donation>} Array of Donation objects
  */
 async function getAllByKID(KID) {
-  try {
-    var [getDonationsByKIDQuery] = await DAO.query(
-      `
+  var [getDonationsByKIDQuery] = await DAO.query(
+    `
             SELECT *, D.ID, payment_name FROM Donations as D
                 INNER JOIN Payment as P on D.Payment_ID = P.ID
                 WHERE KID_fordeling = ?`,
-      [KID]
-    );
+    [KID]
+  );
 
-    let donations = [];
+  let donations = [];
 
-    getDonationsByKIDQuery.forEach((donation) => {
-      donations.push({
-        id: donation.ID,
-        donor: donation.full_name,
-        donorId: donation.donorId,
-        email: donation.email,
-        sum: donation.sum_confirmed,
-        transactionCost: donation.transaction_cost,
-        timestamp: donation.timestamp_confirmed,
-        paymentMethod: donation.payment_name,
-        KID: donation.KID_fordeling,
-      });
+  getDonationsByKIDQuery.forEach((donation) => {
+    donations.push({
+      id: donation.ID,
+      donor: donation.full_name,
+      donorId: donation.donorId,
+      email: donation.email,
+      sum: donation.sum_confirmed,
+      transactionCost: donation.transaction_cost,
+      timestamp: donation.timestamp_confirmed,
+      paymentMethod: donation.payment_name,
+      KID: donation.KID_fordeling,
     });
+  });
 
-    return donations;
-  } catch (ex) {
-    throw ex;
-  }
+  return donations;
 }
 
 /**
@@ -202,8 +194,7 @@ async function getAllByKID(KID) {
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
 async function getHistogramBySum() {
-  try {
-    let [results] = await DAO.query(`
+  let [results] = await DAO.query(`
             SELECT 
                 floor(sum_confirmed/5000)*5000 	AS bucket, 
                 count(*) 						AS items,
@@ -213,10 +204,7 @@ async function getHistogramBySum() {
             ORDER BY 1;
         `);
 
-    return results;
-  } catch (ex) {
-    throw ex;
-  }
+  return results;
 }
 
 /**
@@ -225,9 +213,8 @@ async function getHistogramBySum() {
  * @returns {Donation | null} Donation of found, null if not
  */
 async function getLatestByKID(KID) {
-  try {
-    let [results] = await DAO.query(
-      `
+  let [results] = await DAO.query(
+    `
             SELECT 
                 Donation.ID,
                 Donation.sum_confirmed, 
@@ -252,29 +239,26 @@ async function getLatestByKID(KID) {
 
             LIMIT 1
         `,
-      [KID]
-    );
+    [KID]
+  );
 
-    if (results.length == 0) return null;
+  if (results.length == 0) return null;
 
-    const dbDonation = results[0];
+  const dbDonation = results[0];
 
-    /** @type Donation */
-    let donation = {
-      id: dbDonation.ID,
-      donor: dbDonation.full_name,
-      email: dbDonation.email,
-      sum: dbDonation.sum_confirmed,
-      transactionCost: dbDonation.transaction_cost,
-      timestamp: dbDonation.timestamp_confirmed,
-      method: dbDonation.payment_name,
-      KID: dbDonation.KID_fordeling,
-    };
+  /** @type Donation */
+  let donation = {
+    id: dbDonation.ID,
+    donor: dbDonation.full_name,
+    email: dbDonation.email,
+    sum: dbDonation.sum_confirmed,
+    transactionCost: dbDonation.transaction_cost,
+    timestamp: dbDonation.timestamp_confirmed,
+    method: dbDonation.payment_name,
+    KID: dbDonation.KID_fordeling,
+  };
 
-    return donation;
-  } catch (ex) {
-    throw ex;
-  }
+  return donation;
 }
 
 /**
@@ -284,16 +268,12 @@ async function getLatestByKID(KID) {
  * @returns {Array} Returns an array of organizations names and their aggregate donations
  */
 async function getAggregateByTime(startTime, endTime) {
-  try {
-    var [getAggregateQuery] = await DAO.query(
-      "CALL `get_aggregate_donations_by_period`(?, ?)",
-      [startTime, endTime]
-    );
+  var [getAggregateQuery] = await DAO.query(
+    "CALL `get_aggregate_donations_by_period`(?, ?)",
+    [startTime, endTime]
+  );
 
-    return getAggregateQuery[0];
-  } catch (ex) {
-    throw ex;
-  }
+  return getAggregateQuery[0];
 }
 
 /**
@@ -302,8 +282,7 @@ async function getAggregateByTime(startTime, endTime) {
  * @returns {Array<{year: number, month: number, sum: number}>}
  */
 async function getAggregateLastYearByMonth() {
-  try {
-    var [getAggregateQuery] = await DAO.query(`
+  var [getAggregateQuery] = await DAO.query(`
             SELECT 
                 extract(YEAR from timestamp_confirmed) as \`year\`,
                 extract(MONTH from timestamp_confirmed) as \`month\`, 
@@ -318,35 +297,24 @@ async function getAggregateLastYearByMonth() {
                 ORDER BY \`year\`, \`month\`;
         `);
 
-    return getAggregateQuery;
-  } catch (ex) {
-    throw ex;
-  }
+  return getAggregateQuery;
 }
 
 async function externalPaymentIDExists(externalPaymentID, paymentID) {
-  try {
-    var [res] = await DAO.query(
-      "SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ? LIMIT 1",
-      [externalPaymentID, paymentID]
-    );
-  } catch (ex) {
-    throw ex;
-  }
+  var [res] = await DAO.query(
+    "SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ? LIMIT 1",
+    [externalPaymentID, paymentID]
+  );
 
   if (res.length > 0) return true;
   else return false;
 }
 
 async function getByExternalPaymentID(externalPaymentID, paymentID) {
-  try {
-    var [res] = await DAO.query(
-      "SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ?",
-      [externalPaymentID, paymentID]
-    );
-  } catch (ex) {
-    throw ex;
-  }
+  var [res] = await DAO.query(
+    "SELECT * FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ?",
+    [externalPaymentID, paymentID]
+  );
 
   if (res.length > 0) return res[0];
   else return false;
@@ -358,9 +326,8 @@ async function getByExternalPaymentID(externalPaymentID, paymentID) {
  * @returns {Donation} A donation object
  */
 async function getByID(donationID) {
-  try {
-    var [getDonationFromIDquery] = await DAO.query(
-      `
+  var [getDonationFromIDquery] = await DAO.query(
+    `
             SELECT 
                 Donation.ID,
                 Donation.sum_confirmed, 
@@ -381,46 +348,42 @@ async function getByID(donationID) {
             
             WHERE 
                 Donation.ID = ?`,
-      [donationID]
-    );
+    [donationID]
+  );
 
-    if (getDonationFromIDquery.length != 1) {
-      throw new Error("Could not find donation with ID " + donationID);
-    }
-
-    let dbDonation = getDonationFromIDquery[0];
-
-    /** @type Donation */
-    let donation = {
-      id: dbDonation.ID,
-      donor: dbDonation.full_name,
-      donorId: dbDonation.donorId,
-      email: dbDonation.email,
-      sum: dbDonation.sum_confirmed,
-      transactionCost: dbDonation.transaction_cost,
-      timestamp: dbDonation.timestamp_confirmed,
-      paymentMethod: dbDonation.payment_name,
-      KID: dbDonation.KID_fordeling,
-    };
-
-    //TODO: Standardize split object form
-    let split = await distributions.getSplitByKID(donation.KID);
-
-    donation["distribution"] = split.map((split) => ({
-      abbriv: split.abbriv,
-      share: split.share,
-    }));
-
-    return donation;
-  } catch (ex) {
-    throw ex;
+  if (getDonationFromIDquery.length != 1) {
+    throw new Error("Could not find donation with ID " + donationID);
   }
+
+  let dbDonation = getDonationFromIDquery[0];
+
+  /** @type Donation */
+  let donation = {
+    id: dbDonation.ID,
+    donor: dbDonation.full_name,
+    donorId: dbDonation.donorId,
+    email: dbDonation.email,
+    sum: dbDonation.sum_confirmed,
+    transactionCost: dbDonation.transaction_cost,
+    timestamp: dbDonation.timestamp_confirmed,
+    paymentMethod: dbDonation.payment_name,
+    KID: dbDonation.KID_fordeling,
+  };
+
+  //TODO: Standardize split object form
+  let split = await distributions.getSplitByKID(donation.KID);
+
+  donation["distribution"] = split.map((split) => ({
+    abbriv: split.abbriv,
+    share: split.share,
+  }));
+
+  return donation;
 }
 
 async function getByDonorId(donorId) {
-  try {
-    var [donations] = await DAO.query(
-      `
+  var [donations] = await DAO.query(
+    `
             SELECT 
                 Donation.ID,
                 Donation.sum_confirmed, 
@@ -443,27 +406,24 @@ async function getByDonorId(donorId) {
             
             WHERE 
                 Donation.Donor_ID = ?`,
-      [donorId]
-    );
+    [donorId]
+  );
 
-    /** @type Array<Donation> */
-    donations = donations.map((dbDonation) => ({
-      id: dbDonation.ID,
-      donor: dbDonation.full_name,
-      donorId: dbDonation.donorId,
-      email: dbDonation.email,
-      sum: dbDonation.sum_confirmed,
-      transactionCost: dbDonation.transaction_cost,
-      timestamp: dbDonation.timestamp_confirmed,
-      paymentMethod: dbDonation.payment_name,
-      KID: dbDonation.KID_fordeling,
-      metaOwnerId: dbDonation.Meta_owner_ID,
-    }));
+  /** @type Array<Donation> */
+  donations = donations.map((dbDonation) => ({
+    id: dbDonation.ID,
+    donor: dbDonation.full_name,
+    donorId: dbDonation.donorId,
+    email: dbDonation.email,
+    sum: dbDonation.sum_confirmed,
+    transactionCost: dbDonation.transaction_cost,
+    timestamp: dbDonation.timestamp_confirmed,
+    paymentMethod: dbDonation.payment_name,
+    KID: dbDonation.KID_fordeling,
+    metaOwnerId: dbDonation.Meta_owner_ID,
+  }));
 
-    return donations;
-  } catch (ex) {
-    throw ex;
-  }
+  return donations;
 }
 
 /**
@@ -472,22 +432,18 @@ async function getByDonorId(donorId) {
  * @returns {number} zero or one
  */
 async function getHasReplacedOrgs(donationID) {
-  try {
-    if (donationID) {
-      let [result] = await DAO.query(
-        `
+  if (donationID) {
+    let [result] = await DAO.query(
+      `
                 select Replaced_old_organizations from Donations as D
                 inner join Combining_table as CT on CT.KID = D.KID_fordeling
                 where Replaced_old_organizations = 1
                 and iD = ?
             `,
-        [donationID]
-      );
+      [donationID]
+    );
 
-      return result[0]?.Replaced_old_organizations || 0;
-    }
-  } catch (ex) {
-    throw ex;
+    return result[0]?.Replaced_old_organizations || 0;
   }
 }
 
@@ -498,12 +454,11 @@ async function getHasReplacedOrgs(donationID) {
  * @param {Array<Integer>} [paymentMethodIDs=null] Provide optional PaymentMethodID to filter to a payment method
  */
 async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
-  try {
-    if (!fromDate) fromDate = new Date(2000, 0, 1);
-    if (!toDate) toDate = new Date();
+  if (!fromDate) fromDate = new Date(2000, 0, 1);
+  if (!toDate) toDate = new Date();
 
-    let [getFromRangeQuery] = await DAO.query(
-      `
+  let [getFromRangeQuery] = await DAO.query(
+    `
                 SELECT 
                     Donations.ID as Donation_ID,
                     Donations.timestamp_confirmed,  
@@ -533,56 +488,52 @@ async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
                     Donations.timestamp_confirmed >= Date(?)  
                     AND 
                     Donations.timestamp_confirmed < Date(Date_add(Date(?), interval 1 day))
-                ${
-                  paymentMethodIDs != null
-                    ? `
+                ${paymentMethodIDs != null
+      ? `
                     AND
                     Donations.Payment_ID IN (?)
                 `
-                    : ""
-                }
+      : ""
+    }
                 `,
-      [fromDate, toDate, paymentMethodIDs]
-    );
+    [fromDate, toDate, paymentMethodIDs]
+  );
 
-    let donations = new Map();
-    getFromRangeQuery.forEach((row) => {
-      if (!donations.get(row.Donation_ID))
-        donations.set(row.Donation_ID, {
-          ID: null,
-          time: null,
-          name: null,
-          donorID: null,
-          sum: null,
-          paymentMethod: null,
-          transactionCost: null,
-          split: [],
-        });
-
-      donations.get(row.Donation_ID).ID = row.Donation_ID;
-      donations.get(row.Donation_ID).time = row.timestamp_confirmed;
-      donations.get(row.Donation_ID).name = row.donor_name;
-      donations.get(row.Donation_ID).donorID = row.Donor_ID;
-      donations.get(row.Donation_ID).sum = row.sum_confirmed;
-      donations.get(row.Donation_ID).paymentMethod = row.payment_name;
-      donations.get(row.Donation_ID).transactionCost = row.transaction_cost;
-
-      donations.get(row.Donation_ID).split.push({
-        id: row.Org_ID,
-        name: row.org_name,
-        percentage: row.percentage_share,
-        amount: row.actual_share,
+  let donations = new Map();
+  getFromRangeQuery.forEach((row) => {
+    if (!donations.get(row.Donation_ID))
+      donations.set(row.Donation_ID, {
+        ID: null,
+        time: null,
+        name: null,
+        donorID: null,
+        sum: null,
+        paymentMethod: null,
+        transactionCost: null,
+        split: [],
       });
+
+    donations.get(row.Donation_ID).ID = row.Donation_ID;
+    donations.get(row.Donation_ID).time = row.timestamp_confirmed;
+    donations.get(row.Donation_ID).name = row.donor_name;
+    donations.get(row.Donation_ID).donorID = row.Donor_ID;
+    donations.get(row.Donation_ID).sum = row.sum_confirmed;
+    donations.get(row.Donation_ID).paymentMethod = row.payment_name;
+    donations.get(row.Donation_ID).transactionCost = row.transaction_cost;
+
+    donations.get(row.Donation_ID).split.push({
+      id: row.Org_ID,
+      name: row.org_name,
+      percentage: row.percentage_share,
+      amount: row.actual_share,
     });
+  });
 
-    let returnDonations = [...donations.values()].sort(
-      (a, b) => a.time - b.time
-    );
+  let returnDonations = [...donations.values()].sort(
+    (a, b) => a.time - b.time
+  );
 
-    return returnDonations;
-  } catch (ex) {
-    throw ex;
-  }
+  return returnDonations;
 }
 
 /**
@@ -592,12 +543,11 @@ async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
  * @returns {Number|null} The median donation sum if donations exist in range, null else
  */
 async function getMedianFromRange(fromDate, toDate) {
-  try {
-    if (!fromDate) fromDate = new Date(2000, 0, 1);
-    if (!toDate) toDate = new Date();
+  if (!fromDate) fromDate = new Date(2000, 0, 1);
+  if (!toDate) toDate = new Date();
 
-    let [donations] = await DAO.query(
-      `
+  let [donations] = await DAO.query(
+    `
             SELECT 
                 Donations.sum_confirmed
             
@@ -611,22 +561,19 @@ async function getMedianFromRange(fromDate, toDate) {
             ORDER BY
                 Donations.sum_confirmed
             `,
-      [fromDate, toDate]
-    );
+    [fromDate, toDate]
+  );
 
-    if (donations.length === 0) {
-      return null;
-    }
-
-    // Ikke helt presist siden ved partall antall donasjoner vil denne funksjonen
-    // returnere det største av de to midterste elementene (om de er ulike),
-    // men tenker det går greit
-    const medianIndex = Math.floor(donations.length / 2);
-
-    return parseFloat(donations[medianIndex].sum_confirmed);
-  } catch (ex) {
-    throw ex;
+  if (donations.length === 0) {
+    return null;
   }
+
+  // Ikke helt presist siden ved partall antall donasjoner vil denne funksjonen
+  // returnere det største av de to midterste elementene (om de er ulike),
+  // men tenker det går greit
+  const medianIndex = Math.floor(donations.length / 2);
+
+  return parseFloat(donations[medianIndex].sum_confirmed);
 }
 
 /**
@@ -635,9 +582,8 @@ async function getMedianFromRange(fromDate, toDate) {
  * @returns {Array<DonationSummary>} Array of DonationSummary objects
  */
 async function getSummary(donorID) {
-  try {
-    var [res] = await DAO.query(
-      `SELECT
+  var [res] = await DAO.query(
+    `SELECT
             Organizations.full_name, 
             (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, 
             transaction_cost, 
@@ -656,34 +602,31 @@ async function getSummary(donorID) {
         ORDER BY timestamp_confirmed DESC
          
         LIMIT 10000`,
-      [donorID]
-    );
+    [donorID]
+  );
 
-    const summary = [];
-    const map = new Map();
-    for (const item of res) {
-      if (!map.has(item.full_name)) {
-        map.set(item.full_name, true);
-        summary.push({
-          organization: item.full_name,
-          sum: 0,
-        });
-      }
-    }
-    res.forEach((row) => {
-      summary.forEach((obj) => {
-        if (row.full_name == obj.organization) {
-          obj.sum += parseFloat(row.sum_distribution);
-        }
+  const summary = [];
+  const map = new Map();
+  for (const item of res) {
+    if (!map.has(item.full_name)) {
+      map.set(item.full_name, true);
+      summary.push({
+        organization: item.full_name,
+        sum: 0,
       });
-    });
-
-    summary.push({ donorID: donorID });
-
-    return summary;
-  } catch (ex) {
-    throw ex;
+    }
   }
+  res.forEach((row) => {
+    summary.forEach((obj) => {
+      if (row.full_name == obj.organization) {
+        obj.sum += parseFloat(row.sum_distribution);
+      }
+    });
+  });
+
+  summary.push({ donorID: donorID });
+
+  return summary;
 }
 
 /**
@@ -692,27 +635,22 @@ async function getSummary(donorID) {
  * @returns {Array<YearlyDonationSummary>} Array of YearlyDonationSummary objects
  */
 async function getSummaryByYear(donorID) {
-  try {
-    var [res] = await DAO.query(
-      `
+  var [res] = await DAO.query(
+    `
             SELECT SUM(sum_confirmed) AS yearSum, YEAR(timestamp_confirmed) as year
             FROM Donations 
             WHERE Donor_ID = ? 
             GROUP BY year
             ORDER BY year DESC`,
-      [donorID]
-    );
+    [donorID]
+  );
 
-    return res;
-  } catch (ex) {
-    throw ex;
-  }
+  return res;
 }
 
 async function getYearlyAggregateByDonorId(donorId) {
-  try {
-    const [res] = await DAO.query(
-      `
+  const [res] = await DAO.query(
+    `
             SELECT
                 Organizations.ID as ID,
                 Organizations.full_name as organization,
@@ -732,13 +670,10 @@ async function getYearlyAggregateByDonorId(donorId) {
                 
             GROUP BY Organizations.id, \`year\`
         `,
-      [donorId]
-    );
+    [donorId]
+  );
 
-    return res;
-  } catch (ex) {
-    throw ex;
-  }
+  return res;
 }
 
 /**
@@ -747,9 +682,8 @@ async function getYearlyAggregateByDonorId(donorId) {
  * @returns {Array<DonationDistributions>}
  */
 async function getHistory(donorID) {
-  try {
-    var [res] = await DAO.query(
-      `
+  var [res] = await DAO.query(
+    `
             SELECT
                 Organizations.full_name,
                 Organizations.abbriv,
@@ -769,39 +703,36 @@ async function getHistory(donorID) {
             ORDER BY timestamp_confirmed DESC
             
             LIMIT 10000`,
-      [donorID]
-    );
+    [donorID]
+  );
 
-    const history = [];
-    const map = new Map();
-    for (const item of res) {
-      if (!map.has(item.donation_id)) {
-        map.set(item.donation_id, true);
-        history.push({
-          donationID: item.donation_id,
-          donationSum: item.sum_donation,
-          date: item.timestamp_confirmed,
-          distributions: [],
+  const history = [];
+  const map = new Map();
+  for (const item of res) {
+    if (!map.has(item.donation_id)) {
+      map.set(item.donation_id, true);
+      history.push({
+        donationID: item.donation_id,
+        donationSum: item.sum_donation,
+        date: item.timestamp_confirmed,
+        distributions: [],
+      });
+    }
+  }
+
+  res.forEach((row) => {
+    history.forEach((obj) => {
+      if (obj.donationID == row.donation_id) {
+        obj.distributions.push({
+          organization: row.full_name,
+          abbriv: row.abbriv,
+          sum: row.sum_distribution,
         });
       }
-    }
-
-    res.forEach((row) => {
-      history.forEach((obj) => {
-        if (obj.donationID == row.donation_id) {
-          obj.distributions.push({
-            organization: row.full_name,
-            abbriv: row.abbriv,
-            sum: row.sum_distribution,
-          });
-        }
-      });
     });
+  });
 
-    return history;
-  } catch (ex) {
-    throw ex;
-  }
+  return history;
 }
 
 //endregion
@@ -827,99 +758,87 @@ async function add(
   externalPaymentID = null,
   metaOwnerID = null
 ) {
-  try {
-    var [donorIDQuery] = await DAO.query(
-      "SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1",
-      [KID]
-    );
+  var [donorIDQuery] = await DAO.query(
+    "SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1",
+    [KID]
+  );
 
-    if (donorIDQuery.length != 1) {
-      throw new Error("NO_KID | KID " + KID + " does not exist");
-    }
-
-    /** The meta owner ID is the ID of the organization / group that
-     *  are the owners of the data in the DB. If now ID is provided,
-     *  fetch the default from the DB.
-     */
-
-    if (metaOwnerID == null) {
-      metaOwnerID = await DAO.meta.getDefaultOwnerID();
-    }
-
-    /*  External transaction ID can be passed to prevent duplicates.
-            For example if you upload the same vipps report multiple
-            times, we must check the vipps transaction ID against the
-            stored ones in the database, to ensure that we are not creating
-            a duplicate donation. */
-    if (externalPaymentID != null) {
-      if (await externalPaymentIDExists(externalPaymentID, paymentMethodID)) {
-        throw new Error(
-          "EXISTING_DONATION | Already a donation with ExternalPaymentID " +
-            externalPaymentID +
-            " and PaymentID " +
-            paymentMethodID
-        );
-      }
-    }
-
-    if (typeof registeredDate === "string")
-      registeredDate = new Date(registeredDate);
-
-    var donorID = donorIDQuery[0].Donor_ID;
-
-    var [addDonationQuery] = await DAO.query(
-      "INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling, Meta_owner_ID) VALUES (?,?,?,?,?,?,?)",
-      [
-        donorID,
-        paymentMethodID,
-        externalPaymentID,
-        sum,
-        registeredDate,
-        KID,
-        metaOwnerID,
-      ]
-    );
-
-    return addDonationQuery.insertId;
-  } catch (ex) {
-    throw ex;
+  if (donorIDQuery.length != 1) {
+    throw new Error("NO_KID | KID " + KID + " does not exist");
   }
+
+  /** The meta owner ID is the ID of the organization / group that
+   *  are the owners of the data in the DB. If now ID is provided,
+   *  fetch the default from the DB.
+   */
+
+  if (metaOwnerID == null) {
+    metaOwnerID = await DAO.meta.getDefaultOwnerID();
+  }
+
+  /*  External transaction ID can be passed to prevent duplicates.
+          For example if you upload the same vipps report multiple
+          times, we must check the vipps transaction ID against the
+          stored ones in the database, to ensure that we are not creating
+          a duplicate donation. */
+  if (externalPaymentID != null) {
+    if (await externalPaymentIDExists(externalPaymentID, paymentMethodID)) {
+      throw new Error(
+        "EXISTING_DONATION | Already a donation with ExternalPaymentID " +
+        externalPaymentID +
+        " and PaymentID " +
+        paymentMethodID
+      );
+    }
+  }
+
+  if (typeof registeredDate === "string")
+    registeredDate = new Date(registeredDate);
+
+  var donorID = donorIDQuery[0].Donor_ID;
+
+  var [addDonationQuery] = await DAO.query(
+    "INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling, Meta_owner_ID) VALUES (?,?,?,?,?,?,?)",
+    [
+      donorID,
+      paymentMethodID,
+      externalPaymentID,
+      sum,
+      registeredDate,
+      KID,
+      metaOwnerID,
+    ]
+  );
+
+  return addDonationQuery.insertId;
 }
 //endregion
 
 //region Modify
 async function registerConfirmedByIDs(IDs) {
-  try {
-    var [donations] = await DAO.execute(
-      `UPDATE Donations 
+  var [donations] = await DAO.execute(
+    `UPDATE Donations 
             SET date_confirmed = NOW()
             WHERE 
             ID IN (` +
-        "?,".repeat(IDs.length).slice(0, -1) +
-        `)`,
-      IDs
-    );
+    "?,".repeat(IDs.length).slice(0, -1) +
+    `)`,
+    IDs
+  );
 
-    return true;
-  } catch (ex) {
-    throw ex;
-  }
+  return true;
 }
 
 async function updateTransactionCost(transactionCost, donationID) {
-  try {
-    await DAO.execute(
-      `
+  await DAO.execute(
+    `
             UPDATE Donations
             SET transaction_cost = ?
             WHERE ID = ?`,
-      [transactionCost, donationID]
-    );
+    [transactionCost, donationID]
+  );
 
-    return true;
-  } catch (ex) {
-    throw ex;
-  }
+  return true;
 }
 
 //endregion
@@ -931,16 +850,12 @@ async function updateTransactionCost(transactionCost, donationID) {
  * @returns {boolean} Returns true if a donation was deleted, false else
  */
 async function remove(donationId) {
-  try {
-    var result = await DAO.query(`DELETE FROM Donations WHERE ID = ?`, [
-      donationId,
-    ]);
+  var result = await DAO.query(`DELETE FROM Donations WHERE ID = ?`, [
+    donationId,
+  ]);
 
-    if (result[0].affectedRows > 0) return true;
-    else return false;
-  } catch (ex) {
-    throw ex;
-  }
+  if (result[0].affectedRows > 0) return true;
+  else return false;
 }
 //endregion
 

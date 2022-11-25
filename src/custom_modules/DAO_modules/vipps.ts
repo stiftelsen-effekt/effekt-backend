@@ -236,9 +236,8 @@ async function getAgreements(sort, page, limit, filter) {
  * @return {VippsAgreement}
  */
 async function getAgreementsByDonorId(donorId): Promise<VippsAgreement[]> {
-  try {
-    const [agreements] = await DAO.query(
-      `
+  const [agreements] = await DAO.query(
+    `
             SELECT Vipps_agreements.ID, 
                 status, 
                 donorID,
@@ -259,13 +258,10 @@ async function getAgreementsByDonorId(donorId): Promise<VippsAgreement[]> {
                 WHERE 
                     donorID = ?
             `,
-      [donorId]
-    );
+    [donorId]
+  );
 
-    return agreements;
-  } catch (ex) {
-    throw ex;
-  }
+  return agreements;
 }
 
 /**
@@ -527,8 +523,7 @@ async function getAgreementReport() {
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
 async function getAgreementSumHistogram() {
-  try {
-    let [results] = await DAO.query(`
+  let [results] = await DAO.query(`
             SELECT 
                 floor(amount/500)*500 	AS bucket, 
                 count(*) 						AS items,
@@ -538,10 +533,7 @@ async function getAgreementSumHistogram() {
             ORDER BY 1;
         `);
 
-    return results;
-  } catch (ex) {
-    throw ex;
-  }
+  return results;
 }
 
 /**
@@ -551,8 +543,7 @@ async function getAgreementSumHistogram() {
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
 async function getChargeSumHistogram() {
-  try {
-    let [results] = await DAO.query(`
+  let [results] = await DAO.query(`
             SELECT 
                 floor(amountNOK/500)*500 	AS bucket, 
                 count(*) 						AS items,
@@ -562,10 +553,7 @@ async function getChargeSumHistogram() {
             ORDER BY 1;
         `);
 
-    return results;
-  } catch (ex) {
-    throw ex;
-  }
+  return results;
 }
 
 //endregion
