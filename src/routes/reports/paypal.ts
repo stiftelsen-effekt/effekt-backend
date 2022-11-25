@@ -51,7 +51,7 @@ module.exports = async (req, res, next) => {
           transaction.KID,
           PAYPAL_ID,
           transaction.amount,
-          transaction.date.toDate(),
+          transaction.date.toJSDate(),
           transaction.transactionID,
           metaOwnerID
         );

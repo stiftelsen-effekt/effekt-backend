@@ -59,7 +59,7 @@ module.exports = {
      */
     parseRow: function(row) {
         return {
-            date: moment(row[fieldMapping.date], "DD.MM.YYYY"),
+            date: moment.utc(row[fieldMapping.date], "DD.MM.YYYY"),
             message: row[fieldMapping.message].replace(/(\r\n|\r|\n)/g, ""),
             amount: Number(row[fieldMapping.sum].replace(/\./g, "").replace(/\,/g, ".")),
             KID: parseUtil.extractKID(row[fieldMapping.KID]),
