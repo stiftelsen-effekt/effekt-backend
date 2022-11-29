@@ -127,24 +127,60 @@ async function getIDByAgreementCode(agreementUrlCode) {
 
 /**
  * Searches for a user with either email or name matching the query
- * @param {string} query A query string trying to match agains full name, email and ID
- * @returns {Array<Donor>} An array of donor objects
+ * @param {object} filter                All query arguments
+ * @param {string} filter.query          A query string trying to match agains full name, email and ID
+ * @param {object} filter.registered     Object describing date range for user registered
+ * @param {string} filter.registered.from Timestamp after which the user was registered
+ * @param {string} filter.registered.to   Timestamp before which the user was registered
+ * @param {object} filter.totalDonations Object describing value range for total donations
+ * @param {number} filter.totalDonations.from Minimum total donation amount
+ * @param {number} filter.totalDonations.to   Maximim total donation amount
+ * @returns {Array<Donor>} An array of matching donor objects
  */
-async function search(query): Promise<Array<Donor>> {
-  if (query === "" || query.length < 3)
-    var [result] = await DAO.execute(`SELECT * FROM Donors LIMIT 100`, [
-      query,
-    ]);
-  else
-    var [result] = await DAO.execute(
-      `SELECT Donors.*, SUM(Donations.sum_confirmed) AS total_donations
-            FROM Donors JOIN Donations ON Donors.ID = Donations.Donor_ID
-            WHERE
-                (MATCH (full_name, email) AGAINST (? IN BOOLEAN MODE)) OR Donors.ID = ?
-            GROUP BY Donors.ID
-            LIMIT 100`,
-      [query, query]
-    );
+async function search(filter): Promise<Array<Donor>> {
+  var wheres = [];
+  var havings = [];
+  var params = [];
+  if (filter.query !== undefined && filter.query.length >= 1) {
+    params.push(filter.query);
+    if (filter.query.match('^[0-9]+$'))
+      wheres.push('Donors.ID = ?');
+    else
+      wheres.push('MATCH (full_name, email) AGAINST (? IN BOOLEAN MODE)');
+  }
+  if (filter.registered !== undefined) {
+    if (filter.registered.from) {
+      params.push(filter.registered.from);
+      wheres.push('date_registered >= ?');
+    }
+    if (filter.registered.to) {
+      params.push(filter.registered.to);
+      wheres.push('date_registered <= ?');
+    }
+  }
+  if (filter.totalDonations !== undefined) {
+    if (filter.totalDonations.from) {
+      params.push(filter.totalDonations.from);
+      havings.push('total_donations >= ?');
+    }
+    if (filter.totalDonations.to) {
+      params.push(filter.totalDonations.to);
+      havings.push('total_donations <= ?');
+    }
+  }
+  var queryString = `
+      SELECT Donors.*, SUM(Donations.sum_confirmed) AS total_donations
+          FROM Donors JOIN Donations ON Donors.ID = Donations.Donor_ID`;
+  if (wheres.length)
+    queryString += ` WHERE\n` + wheres.join(' AND ');
+  queryString += `
+    GROUP BY Donors.ID`;
+  if (havings.length)
+    queryString += ` HAVING\n` + havings.join(' AND ');
+  if (params.length == 0 || (params.length == 1 && filter.query == ""))
+    queryString += `
+      LIMIT 100`;
+  var [result] = await DAO.execute(queryString, params);
 
   return result.map((donor) => {
     return {
