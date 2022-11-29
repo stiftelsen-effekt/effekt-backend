@@ -69,16 +69,16 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
       return 0;
     },
     "2019": (sum: number) => {
-      return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
+      return sum >= 500 ? Math.min(sum, 50000) : 0;
     },
     "2020": (sum: number) => {
-      return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
+      return sum >= 500 ? Math.min(sum, 50000) : 0;
     },
     "2021": (sum: number) => {
-      return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
+      return sum >= 500 ? Math.min(sum, 50000) : 0;
     },
     "2022": (sum: number) => {
-      return sum >= 500 ? Math.min(sum, 25000) * 0.22 : 0;
+      return sum >= 500 ? Math.min(sum, 25000) : 0;
     },
   };
 
@@ -143,16 +143,16 @@ async function getByKID(KID: string): Promise<TaxUnit | null> {
         return 0;
       },
       "2019": (sum: number) => {
-        return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
+        return sum >= 500 ? Math.min(sum, 50000) : 0;
       },
       "2020": (sum: number) => {
-        return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
+        return sum >= 500 ? Math.min(sum, 50000) : 0;
       },
       "2021": (sum: number) => {
-        return sum >= 500 ? Math.min(sum, 50000) * 0.22 : 0;
+        return sum >= 500 ? Math.min(sum, 50000) : 0;
       },
       "2022": (sum: number) => {
-        return sum >= 500 ? Math.min(sum, 25000) * 0.22 : 0;
+        return sum >= 500 ? Math.min(sum, 25000) : 0;
       },
     };
 
