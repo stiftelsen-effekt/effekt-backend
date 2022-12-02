@@ -142,11 +142,9 @@ async function search(filter): Promise<Array<Donor>> {
   var havings = [];
   var params = [];
   if (filter.query !== undefined && filter.query.length >= 1) {
-    params.push(filter.query);
-    if (filter.query.match('^[0-9]+$'))
-      wheres.push('Donors.ID = ?');
-    else
-      wheres.push('MATCH (full_name, email) AGAINST (? IN BOOLEAN MODE)');
+    // Number of params must equal number of question marks in the query (in the correct order)
+    params.push(filter.query, filter.query, filter.query);
+    wheres.push("(INSTR(full_name, ?) > 0) OR (INSTR(email, ?) > 0) OR (INSTR(Donors.ID, ?) > 0)");
   }
   if (filter.registered !== undefined) {
     if (filter.registered.from) {
