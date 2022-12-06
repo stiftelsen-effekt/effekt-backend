@@ -229,8 +229,6 @@ async function getKIDbySplit(
             AND
             LENGTH(KID) >= ${sqlString.escape(minKidLength)}`;
 
-  console.log(query);
-
   var [res] = await DAO.execute(query);
 
   if (res.length > 0) return res[0].KID;

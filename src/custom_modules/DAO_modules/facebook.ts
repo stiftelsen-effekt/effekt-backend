@@ -149,12 +149,12 @@ async function registerFacebookReport(report) {
   return true;
 }
 
-async function registerFacebookCampaignOrgShare(FB_campaign_ID, Org_ID, Share) {
+async function registerFacebookCampaignOrgShare(campaignID, orgID, share, standardSplit) {
   await DAO.query(
     `
-            INSERT INTO FB_campaign_org_shares (FB_campaign_ID, Org_ID, Share)
-            VALUES (?, ?, ?)`,
-    [FB_campaign_ID, Org_ID, Share]
+            INSERT INTO FB_campaign_org_shares (FB_campaign_ID, Org_ID, Share, Standard_split)
+            VALUES (?, ?, ?, ?)`,
+    [campaignID, orgID, share, standardSplit]
   );
 
   return true;
