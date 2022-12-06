@@ -48,7 +48,6 @@ export const DAO = {
         database: config.db_name,
         waitForConnections: true,
         enableKeepAlive: true as true, // Workaround for type checking quirk
-        port: 3307,
         timezone: '+00:00',
     };
     if (process.env.K_SERVICE != null)
