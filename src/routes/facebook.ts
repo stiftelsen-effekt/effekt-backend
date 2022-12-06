@@ -7,7 +7,7 @@ const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendFacebookTaxConfirmation } from "../custom_modules/mail";
 import { fetchToken } from "../custom_modules/facebook";
-const donationHelpers = require("../custom_modules/donationHelpers");
+import { donationHelpers } from "../custom_modules/donationHelpers";
 
 function throwError(message) {
   let error = new Error(message);
@@ -92,7 +92,8 @@ router.post(
           await DAO.facebook.registerFacebookCampaignOrgShare(
             req.body.id,
             campaignShare.ID,
-            campaignShare.share
+            campaignShare.share,
+            req.body.standardSplit
           );
         }
       }
@@ -179,12 +180,13 @@ router.post(
 
           if (splitNok > 0) {
             distribution.push({
-              ID: orgShare.Org_ID,
+              id: orgShare.Org_ID,
               share: String(Math.round(orgShare.Share * 100) / 100),
             });
             distSum += splitNok;
           }
         }
+
         // Check if distribution sum is correct
         if (Math.round(distSum) != Math.round(donation.sumNOK)) {
           invalid++;
@@ -231,21 +233,18 @@ router.post(
         }
 
         // Check if donation is registered for tax deduction
-        const registeredDonation =
-          await DAO.facebook.getRegisteredFacebookDonation(externalRef);
+        const registeredDonation = await DAO.facebook.getRegisteredFacebookDonation(externalRef);
 
         let taxUnitID: number;
         if (registeredDonation) {
           taxUnitID = registeredDonation.taxUnitID;
         } else {
-          const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(
-            donorID,
-            null
-          );
-          if (existingTaxUnit) {
-            taxUnitID = existingTaxUnit.id;
-          } else {
-            taxUnitID = await DAO.tax.addTaxUnit(donorID, null, fullName);
+          const existingTaxUnits = await DAO.tax.getByDonorId(donorID);
+          if (existingTaxUnits.length > 0) {
+            existingTaxUnits.forEach(taxUnit => {
+              // Find an ssn for the associated donor (only use org numbers if specifically registered above)
+              if (taxUnit.ssn.length == 11) taxUnitID = taxUnit.id;
+            })
           }
         }
 
@@ -253,7 +252,7 @@ router.post(
           distribution,
           donorID,
           false,
-          taxUnitID
+          taxUnitID ? taxUnitID : undefined
         );
         if (!KID) {
           KID = await donationHelpers.createKID(15, donorID);
@@ -261,7 +260,7 @@ router.post(
             distribution,
             KID,
             donorID,
-            taxUnitID,
+            taxUnitID ? taxUnitID : null,
             false,
             metaOwner
           );
