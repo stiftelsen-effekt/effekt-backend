@@ -178,6 +178,19 @@ async function getAgreements(sort, page, limit, filter) {
       if (filter.amount.to)
         where.push(`amount <= ${sqlString.escape(filter.amount.to)} `);
     }
+    if (filter.created) {
+      if (filter.created.from)
+        where.push(`VA.timestamp_created >= ${sqlString.escape(filter.created.from)} `);
+      if (filter.created.to)
+        where.push(`VA.timestamp_created <= ${sqlString.escape(filter.created.to)} `);
+    }
+    if (filter.chargeDay) {
+      if (filter.chargeDay.from !== undefined)
+        where.push(`VA.monthly_charge_day >= ${sqlString.escape(filter.chargeDay.from)} `);
+      if (filter.chargeDay.to !== undefined)
+        where.push(`VA.monthly_charge_day <= ${sqlString.escape(filter.chargeDay.to)} `);
+    }
+
 
     if (filter.KID)
       where.push(
