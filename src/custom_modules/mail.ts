@@ -37,7 +37,9 @@ function formatDateText(date) {
 }
 
 export function formatCurrency(currencyString) {
-  return new Intl.NumberFormat('no-NO', {  maximumFractionDigits: 2 }).format(currencyString)
+  return new Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 }).format(
+    currencyString
+  );
 }
 
 // Reusable HTML elements
@@ -70,7 +72,7 @@ const greeting =
 const footer =
   '<hr color="000" width="100%">' +
   "<br />" +
-  "<b>Vi vil aldri be deg om personlige opplysninger slik som personnummer, kontonummer, kort-informasjon eller passord på e-post.</b>" +
+  '<div style="padding: 0 30px 0 30px;">Vi vil aldri be deg om personlige opplysninger slik som personnummer, kontonummer, kort-informasjon eller passord på e-post.</div>' +
   "<br/><br/>" +
   '<table class="footer" bgcolor="#000" width="100%" border="0" cellspacing="0" cellpadding="0">' +
   "<tr>" +
@@ -280,8 +282,7 @@ function formatOrganizationsFromSplit(split, sum) {
     return {
       name: org.full_name,
       amount:
-        (roundedAmount != amount ? "~ " : "") +
-        formatCurrency(roundedAmount),
+        (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount),
       percentage: parseFloat(org.share),
     };
   });
