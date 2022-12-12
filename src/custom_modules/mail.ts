@@ -69,6 +69,12 @@ const greeting =
   "oss i Gi Effektivt" +
   "<br/><br/>";
 
+const feedback =
+  "<span> Hvordan synes du det gikk å donere i dag? </span><br />" +
+  "<span>Svar på denne undersøkelsen på 4 minutter for å </span>" +
+  '<a href="https://forms.gle/P3MwoP7hn9sAQ65VA" style="color: #000000">gi din tilbakemelding </a>' +
+  "<br /><br />";
+
 const footer =
   '<hr color="000" width="100%">' +
   "<br />" +
@@ -119,6 +125,7 @@ const reusableHTML = {
   replacedOrgsInfo,
   greeting,
   taxDeductionInfo,
+  feedback,
   footer,
 };
 
