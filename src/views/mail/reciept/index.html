@@ -18,7 +18,7 @@
         max-width: 600px;
       }
       .innerpadding {
-        padding: 30px 30px 30px 30px;
+        padding: 30px 60px 30px 60px;
       }
       .borderbottom {
         border-bottom: 1px solid #f2eeed;
@@ -186,7 +186,7 @@
                     <td class="h2"><% this.header %></td>
                   </tr>
                   <tr>
-                    <td class="h2">Tusen takk for ditt bidrag!</td>
+                    <td class="h2">Takk for ditt bidrag.</td>
                   </tr>
                   <tr>
                     <td class="bodycopy">
@@ -241,7 +241,8 @@
                                 >
                                   <tr>
                                     <td class="tableRow">
-                                      <% this.organizations[i].amount %> kr (<% this.organizations[i].percentage %>%)
+                                      <% this.organizations[i].amount %> kr (<%
+                                      this.organizations[i].percentage %>%)
                                     </td>
                                   </tr>
                                 </table>
@@ -307,36 +308,27 @@
                               </td>
                             </tr>
                           </table>
+                          <br />
+                          <br />
+                          Administrer dine donasjoner og skattefradrag på
+                          <a
+                            href="https://gieffektivt.no/profile"
+                            style="color: #000000"
+                            >Min Side</a
+                          >
                         </td>
                       </tr>
                     </table>
                   </tr>
                   <tr>
                     <td class="bodycopy innerpadding">
-                      <% if (hasSciInDistribution) { %> 
-                        <% this.reusableHTML.sciChanges %> 
-                      <% } %> 
-                      <% if (hasReplacedOrgs == 1) { %> 
-                        <% this.reusableHTML.replacedOrgsInfo %> 
-                      <% } %> 
-                      <% if (this.paymentMethod.toUpperCase() != 'VIPPS') { %> 
-                        Hvis du ønsker å donere med samme fordeling senere kan du bruke
-                      samme KID-nummer igjen. Du står helt fritt til å endre
-                      beløpet du donerer.<br /><br />
-                      <% } %> 
-                      
-                      <% this.reusableHTML.taxDeductionInfo %> 
-                      <% for (var i = 0; i < organizations.length; i++) { %> 
-                        <% if(this.organizations[i].name == "GiveWells tildelingsfond") { %> 
-                          Donasjoner til GiveWell Maximum
-                          Impact Fund blir tildelt GiveWell a.k.a. The Clear Fund
-                          for utdeling til deres anbefalte organisasjoner.
-                          <br />
-                          <br />
-                        <% } %> 
-                      <% } %> 
-                      
-                      <% this.reusableHTML.feedback %>
+                      <% if (hasSciInDistribution) { %> <%
+                      this.reusableHTML.sciChanges %> <% } %> <% if
+                      (hasReplacedOrgs == 1) { %> <%
+                      this.reusableHTML.replacedOrgsInfo %> <% } %>
+                      <br />
+                      <br />
+                      <% } %> <% } %> <% this.reusableHTML.feedback %>
                       <br /><br />
                       <% this.reusableHTML.greeting %>
                     </td>
