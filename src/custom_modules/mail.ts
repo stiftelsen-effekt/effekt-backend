@@ -86,7 +86,7 @@ const footer =
   '<table width="194" align="left" border="0" cellpadding="0" cellspacing="0">' +
   "<tr>" +
   '<td style="color: #ffffff; font-family: Arial, sans-serif; font-size: 14px;">' +
-  "Stiftelsen Effekt" +
+  "Stiftelsen Gi Effektivt" +
   "<br />" +
   '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">donasjon@gieffektivt.no</a><br/>' +
   "<span>Orgnr. 916 625 308</span><br/><br/>" +
