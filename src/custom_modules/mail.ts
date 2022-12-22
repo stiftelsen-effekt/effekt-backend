@@ -43,16 +43,20 @@ export function formatCurrency(currencyString) {
 }
 
 // Reusable HTML elements
-const sciChanges = `<strong>MERK:</strong> Vi anbefaler ikke lenger donasjoner til SCI Foundation gjeldende fra 18.08.22 og vil slutte å tildele penger til dem 31. oktober 2022. Les mer om denne endringen på <a href="https://gieffektivt.no/articles/nye-evalueringskriterier-for-topplista" style="color: #000000;">våre nettsider</a>.<br/><br/>
-Donasjoner øremerket SCI Foundation blir fra og med 1. november 2022 i stedet følge <a href="https://gieffektivt.no/smart-fordeling" style="color: #000000;">Smart fordeling</a>. Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/profile" style="color: #000000;">Min Side</a> og oppdatere fordeling på din faste donasjon, eller fylle ut donasjonsskjemaet for en ny donasjon. Ta kontakt om du har noen spørsmål.<br/><br/>`;
+const sciChanges =
+  "<strong>MERK:</strong> Din fordeling ble endret av oss 18.08.2022." +
+  'Fra denne datoen støtter vi ikke lenger donasjoner til SCI Foundation. Les mer om denne endringen på <a href="https://gieffektivt.no/articles/nye-evalueringskriterier-for-topplista" style="color: #000000;">våre nettsider</a>.' +
+  "<br/><br/>" +
+  'Påvirkede donasjoner følger nå i stedet <a href="https://gieffektivt.no/smart-fordeling" style="color: #000000;">Smart fordeling</a>. ' +
+  'Om du vil endre dette kan du gå inn på <a href="https://gieffektivt.no/profile" style="color: #000000;">Min Side</a> og oppdatere fordeling på din faste donasjon, eller fylle ut donasjonsskjemaet for en ny donasjon. Ta kontakt om du har spørsmål.' +
+  "<br/><br/>";
 
 const replacedOrgsInfo =
-  "MERK: Din fordeling ble endret av oss for donasjoner gitt fra og med 01.01.2021. " +
-  "Fra denne datoen støtter vi ikke lenger donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children " +
-  "som opplyst på våre nettsider, i nyhetsbrev, på epost og gjennom sosiale medier." +
+  "MERK: Din fordeling ble endret av oss 01.01.2021." +
+  "Fra denne datoen støtter vi ikke lenger donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children." +
   "<br/>" +
-  'Andelene som var oppført til disse organisasjonene blir i stedet gitt til vår standardfordeling som nå er <a href="https://www.givewell.org/maximum-impact-fund" style="color: #000000;">GiveWell Maximum Impact Fund</a>. ' +
-  'Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/" style="color: #000000;">www.gieffektivt.no/</a> og fylle ut donasjonsskjema på nytt med ønsket fordeling. Ta kontakt om du har noen spørsmål.' +
+  'Påvirkede donasjoner følger nå i stedet <a href="https://gieffektivt.no/smart-fordeling" style="color: #000000;">Smart fodeling</a>. ' +
+  'Om du vil endre dette kan du gå inn på <a href="https://gieffektivt.no/profile" style="color: #000000;">Min Side</a> og oppdatere fordeling på din faste donasjon, eller fylle ut donasjonsskjemaet for en ny donasjon. Ta kontakt om du har spørsmål.' +
   "<br/><br/>";
 
 const taxDeductionInfo =
@@ -61,18 +65,13 @@ const taxDeductionInfo =
   "<br/><br/>";
 
 const greeting =
-  "Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss ved å sende en mail til " +
-  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #000000;">donasjon@gieffektivt.no</a>.' +
-  "<br/><br/>" +
-  "Håper du får en fantastisk dag!<br/><br/>" +
-  "<b>Vennlig hilsen</b><br/>" +
-  "oss i Gi Effektivt" +
-  "<br/><br/>";
+  "<b>Vennlig hilsen</b><br/>" + "oss i Gi Effektivt" + "<br/><br/>";
 
 const feedback =
   "<span> Hvordan synes du det gikk å donere i dag? </span><br />" +
-  "<span>Svar på denne undersøkelsen på 4 minutter for å </span>" +
-  '<a href="https://forms.gle/P3MwoP7hn9sAQ65VA" style="color: #000000">gi din tilbakemelding</a>.' +
+  "<span>Gi oss tilbakemelding ved å svare på </span>" +
+  '<a href="https://forms.gle/P3MwoP7hn9sAQ65VA" style="color: #000000">denne undersøkelsen</a>.' +
+  "<span> (4 min)</span>" +
   "<br /><br />";
 
 const footer =
