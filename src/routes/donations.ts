@@ -244,7 +244,7 @@ router.post("/register", async (req, res, next) => {
 router.post("/bank/pending", urlEncodeParser, async (req, res, next) => {
   let parsedData = JSON.parse(req.body.data);
 
-  if (config.env === "production")
+  if (config.env === "production" || true)
     var success = await sendDonationRegistered(parsedData.KID, parsedData.sum);
   else success = true;
 
@@ -408,17 +408,21 @@ router.get("/histogram", async (req, res, next) => {
   }
 });
 
-router.get("/transaction_costs_report",  authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    const donations = await DAO.donations.getTransactionCostsReport();
-    return res.json({
-      status: 200,
-      content: donations,
-    });
-  } catch (ex) {
-    next(ex);
+router.get(
+  "/transaction_costs_report",
+  authMiddleware.isAdmin,
+  async (req, res, next) => {
+    try {
+      const donations = await DAO.donations.getTransactionCostsReport();
+      return res.json({
+        status: 200,
+        content: donations,
+      });
+    } catch (ex) {
+      next(ex);
+    }
   }
-});
+);
 
 router.post("/reciepts", authMiddleware.isAdmin, async (req, res, next) => {
   let donationIDs = req.body.donationIDs;

@@ -163,40 +163,36 @@ async function search(filter): Promise<Array<Donor>> {
   var params = [];
   if (filter.query !== undefined && filter.query.length >= 1) {
     params.push(filter.query);
-    if (filter.query.match('^[0-9]+$'))
-      wheres.push('Donors.ID = ?');
-    else
-      wheres.push('MATCH (full_name, email) AGAINST (? IN BOOLEAN MODE)');
+    if (filter.query.match("^[0-9]+$")) wheres.push("Donors.ID = ?");
+    else wheres.push("MATCH (full_name, email) AGAINST (? IN BOOLEAN MODE)");
   }
   if (filter.registered !== undefined) {
     if (filter.registered.from) {
       params.push(filter.registered.from);
-      wheres.push('date_registered >= ?');
+      wheres.push("date_registered >= ?");
     }
     if (filter.registered.to) {
       params.push(filter.registered.to);
-      wheres.push('date_registered <= ?');
+      wheres.push("date_registered <= ?");
     }
   }
   if (filter.totalDonations !== undefined) {
     if (filter.totalDonations.from) {
       params.push(filter.totalDonations.from);
-      havings.push('total_donations >= ?');
+      havings.push("total_donations >= ?");
     }
     if (filter.totalDonations.to) {
       params.push(filter.totalDonations.to);
-      havings.push('total_donations <= ?');
+      havings.push("total_donations <= ?");
     }
   }
   var queryString = `
       SELECT Donors.*, SUM(Donations.sum_confirmed) AS total_donations
-          FROM Donors JOIN Donations ON Donors.ID = Donations.Donor_ID`;
-  if (wheres.length)
-    queryString += ` WHERE\n` + wheres.join(' AND ');
+          FROM Donors LEFT JOIN Donations ON Donors.ID = Donations.Donor_ID`;
+  if (wheres.length) queryString += ` WHERE\n` + wheres.join(" AND ");
   queryString += `
     GROUP BY Donors.ID`;
-  if (havings.length)
-    queryString += ` HAVING\n` + havings.join(' AND ');
+  if (havings.length) queryString += ` HAVING\n` + havings.join(" AND ");
   if (params.length == 0 || (params.length == 1 && filter.query == ""))
     queryString += `
       LIMIT 100`;
