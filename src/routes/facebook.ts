@@ -45,19 +45,18 @@ router.post("/register/payment", async (req, res, next) => {
       throwError("Missing param ssn");
     }
 
-    const ID = await DAO.donors.getIDbyEmail(email);
+    let donorID = await DAO.donors.getIDbyEmail(email);
     let taxUnitID: number | undefined = undefined;
 
     // If donor does not exist, create new donor
-    if (!ID) {
-      const donorID = await DAO.donors.add(email, full_name);
+    if (!donorID) {
+      donorID = await DAO.donors.add(email, full_name);
       taxUnitID = await DAO.tax.addTaxUnit(donorID, ssn, full_name);
       await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
     }
-    // If donor already exists, update ssn if empty
-    else if (ID) {
-      const donorID = ID;
-      const donor = await DAO.donors.getByID(ID);
+    // If donor already exists, use existing tax unit or create a new one if missing
+    else if (donorID) {
+      const donor = await DAO.donors.getByID(donorID);
 
       const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(donor.id, ssn);
       if (existingTaxUnit) {
@@ -67,6 +66,15 @@ router.post("/register/payment", async (req, res, next) => {
       }
 
       await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
+    }
+
+    // Check if there exists a dummy donor profile with registered Facebook donations
+    // This donor should have a dummy email donasjon+[FB-name]@gieffektivt.no where [FB-name] is the same as the real donor
+    const dummyDonor = await DAO.donors.getByFacebookPayment(paymentID)
+    const donations = await DAO.donations.getByDonorId(dummyDonor.ID)
+
+    if (donations && donations.length > 0) {
+      await DAO.donations.transferDonationsFromDummy(donorID, dummyDonor.ID, taxUnitID)
     }
 
     await sendFacebookTaxConfirmation(email, full_name, paymentID);
@@ -148,20 +156,24 @@ router.post(
 
       try {
         let donorID: number;
-        // Fetch newly created donor
-        if (email != "") {
-          donorID = await DAO.donors.getIDbyEmail(email);
+        
+        // Check if Facebook donation has an email of a donor that exists in our database
+        if (email !== "") donorID = await DAO.donors.getIDbyEmail(email);
+
+        // Check if there exists exactly one (non-dummy) donor in our database with the same name as the Facebook donor
+        if (!donorID) {
+          let donors = await DAO.donors.getIDByMatchedNameFB(fullName);
+          if (donors && donors.length === 1) donorID = donors[0].ID
         }
-        if (donorID == null) {
-          donorID = await DAO.donors.getIDByMatchedNameFB(fullName);
-        }
-        if (donorID == null) {
-          email =
-            "donasjon" +
-            String(fullName).toLowerCase().replace(" ", "_") +
-            "@gieffektivt.no";
-          donorID = await DAO.donors.add(email, fullName);
-        }
+
+        // Creates dummy email
+        email = "donasjon+" + String(fullName).toLowerCase().replace(" ", "_") + "@gieffektivt.no";
+
+        // Check if dummy donor has already been created
+        if (!donorID) donorID = await DAO.donors.getIDbyEmail(email);
+
+        // Create new dummy donor if it doesn't already exist
+        if (!donorID) donorID = await DAO.donors.add(email, fullName);
 
         const campaignOrgShares =
           await DAO.facebook.getFacebookCampaignOrgShares(campaignID);
@@ -238,11 +250,11 @@ router.post(
         let taxUnitID: number;
         if (registeredDonation) {
           taxUnitID = registeredDonation.taxUnitID;
+        // If no tax unit is specifically registered, use the donor ssn if registered
         } else {
           const existingTaxUnits = await DAO.tax.getByDonorId(donorID);
           if (existingTaxUnits.length > 0) {
             existingTaxUnits.forEach(taxUnit => {
-              // Find an ssn for the associated donor (only use org numbers if specifically registered above)
               if (taxUnit.ssn.length == 11) taxUnitID = taxUnit.id;
             })
           }
