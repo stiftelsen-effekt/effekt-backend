@@ -190,10 +190,7 @@
                   </tr>
                   <tr>
                     <td class="bodycopy">
-                      <span style="vertical-align: middle"
-                        >Vi mottok din donasjon <% this.donationDate %> gjennom
-                        <% this.paymentMethod %></span
-                      >
+                      <span style="vertical-align: middle">Vi mottok din donasjon <% this.donationDate %> gjennom <% this.paymentMethod %></span>
                       <br /><br />
                     </td>
                   </tr>
@@ -241,8 +238,7 @@
                                 >
                                   <tr>
                                     <td class="tableRow">
-                                      <% this.organizations[i].amount %> kr (<%
-                                      this.organizations[i].percentage %>%)
+                                      <% this.organizations[i].amount %> kr (<% this.organizations[i].percentage %>%)
                                     </td>
                                   </tr>
                                 </table>
@@ -309,29 +305,24 @@
                             </tr>
                           </table>
                           <br />
-                          <br />
                           Administrer dine donasjoner og skattefradrag på
                           <a
                             href="https://gieffektivt.no/profile"
                             style="color: #000000"
                             >Min Side</a
                           >
+                          <br /> <br />
+                          <% if (hasSciInDistribution) { %> 
+                            <% this.reusableHTML.sciChanges %> 
+                          <% } %> 
+                          <% if (hasReplacedOrgs == 1) { %> 
+                            <% this.reusableHTML.replacedOrgsInfo %>
+                          <% } %>
+                          <% this.reusableHTML.feedback %>
+                          <% this.reusableHTML.greeting %>
                         </td>
                       </tr>
                     </table>
-                  </tr>
-                  <tr>
-                    <td class="bodycopy innerpadding">
-                      <% if (hasSciInDistribution) { %> <%
-                      this.reusableHTML.sciChanges %> <% } %> <% if
-                      (hasReplacedOrgs == 1) { %> <%
-                      this.reusableHTML.replacedOrgsInfo %> <% } %>
-                      <br />
-                      <br />
-                      <% } %> <% } %> <% this.reusableHTML.feedback %>
-                      <br /><br />
-                      <% this.reusableHTML.greeting %>
-                    </td>
                   </tr>
                 </table>
                 <!--[if (gte mso 9)|(IE)]>
