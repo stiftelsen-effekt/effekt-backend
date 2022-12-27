@@ -1,6 +1,5 @@
 import { sendTaxDeductions } from "../../custom_modules/mail";
-
-const taxDeductionParser = require("../../custom_modules/parsers/tax.js");
+import { parseReport } from "../../custom_modules/parsers/tax";
 
 module.exports = async (req, res, next) => {
   try {
@@ -11,7 +10,7 @@ module.exports = async (req, res, next) => {
 
     if (year < 2016 || year > 3000) return res.sendStatus(400);
 
-    let records = taxDeductionParser.parseReport(req.files.report.data);
+    let records = parseReport(req.files.report.data);
 
     let success = 0;
     let failed = 0;

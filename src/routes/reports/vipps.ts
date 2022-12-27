@@ -1,7 +1,7 @@
 import { DAO } from "../../custom_modules/DAO";
 import { sendDonationReciept } from "../../custom_modules/mail";
+import { parseReport } from "../../custom_modules/parsers/vipps";
 
-const vippsParser = require("../../custom_modules/parsers/vipps.js");
 const config = require("../../config");
 const payment = require("../../enums/paymentMethods");
 
@@ -12,7 +12,7 @@ module.exports = async (req, res, next) => {
   let parsedReport;
   let parsingRules;
   try {
-    parsedReport = vippsParser.parseReport(req.files.report.data);
+    parsedReport = parseReport(req.files.report.data);
     parsingRules = await DAO.parsing.getVippsParsingRules(
       parsedReport.minDate,
       parsedReport.maxDate
