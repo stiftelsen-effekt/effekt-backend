@@ -22,6 +22,7 @@ module.exports = {
 
       let firstDate = data[0][chargeDateIndex];
       let lastDate = firstDate;
+      let payoutCurrencies = [];
 
       data.forEach((donation) => {
         firstDate =
@@ -32,6 +33,9 @@ module.exports = {
           lastDate > donation[chargeDateIndex]
             ? lastDate
             : donation[chargeDateIndex];
+        const payoutCurrencyIndex = columns.indexOf("Payout currency");
+        const payoutCurrency = donation[payoutCurrencyIndex];
+        if (!payoutCurrencies.includes(payoutCurrency)) payoutCurrencies.push(payoutCurrency);
       });
 
       lastDate = incrementISODate(lastDate);
@@ -42,28 +46,35 @@ module.exports = {
         endPeriod: lastDate,
       });
       const query = params.toString();
-      const exchangeRateURL = `https://data.norges-bank.no/api/data/EXR/B.EUR.NOK.SP?format=sdmx-json&locale=no${query}`;
-      const exchangeRatesData = await fetch(exchangeRateURL).then((res) =>
-        res.json()
-      );
 
-      const exchangeDates =
-        exchangeRatesData.data.structure.dimensions.observation[0].values;
-      const exchangeRates =
-        exchangeRatesData.data.dataSets[0].series["0:0:0:0"].observations;
+      const allExchangeRates = {};
 
-      // Create dict { date: (exchange rate EUR to NOK) }
-      let exchangeDateRateDict: { [date: string]: number } = {};
-      for (let i = 0; i < exchangeDates.length; i++) {
-        exchangeDateRateDict[exchangeDates[String(i)].name] = parseFloat(
-          exchangeRates[i][0]
+      for (let i = 0; i < payoutCurrencies.length; i++) {
+        const exchangeRateURL = `https://data.norges-bank.no/api/data/EXR/B.${payoutCurrencies[i]}.NOK.SP?format=sdmx-json&locale=no${query}`;
+        const exchangeRatesData = await fetch(exchangeRateURL).then((res) =>
+          res.json()
         );
+
+        const exchangeDates =
+          exchangeRatesData.data.structure.dimensions.observation[0].values;
+        const exchangeRates =
+          exchangeRatesData.data.dataSets[0].series["0:0:0:0"].observations;
+
+        // Create dict { date: (exchange rate EUR to NOK) }
+        let exchangeDateRateDict: { [date: string]: number } = {};
+        for (let i = 0; i < exchangeDates.length; i++) {
+          exchangeDateRateDict[exchangeDates[String(i)].name] = parseFloat(
+            exchangeRates[i][0]
+          );
+        }
+        allExchangeRates[payoutCurrencies[i]] = exchangeDateRateDict
       }
 
       let transactions = data.reduce((acc, dataRow) => {
         let firstName = dataRow[columns.indexOf("First name")];
         let surname = dataRow[columns.indexOf("Last name")];
         let email = dataRow[columns.indexOf("Email address")];
+        let currency = dataRow[columns.indexOf("Payout currency")];
 
         if (typeof email !== "string") email = "";
         if (typeof firstName !== "string") firstName = "";
@@ -87,7 +98,7 @@ module.exports = {
 
         let exchangeRate: number = undefined;
         for (let i = 0; i < 10; i++) {
-          exchangeRate = exchangeDateRateDict[exchangeDate];
+          exchangeRate = allExchangeRates[currency][exchangeDate];
           exchangeDate = incrementISODate(exchangeDate, -1);
           if (exchangeRate !== undefined) break;
         }
