@@ -1,6 +1,7 @@
 import { DAO } from "../../custom_modules/DAO";
 import { sendDonationReciept } from "../../custom_modules/mail";
-const paypal = require("../../custom_modules/parsers/paypal.js");
+import { parseReport } from "../../custom_modules/parsers/paypal";
+
 const config = require("../../config");
 
 const PAYPAL_ID = 3;
@@ -10,7 +11,7 @@ module.exports = async (req, res, next) => {
   let metaOwnerID = parseInt(req.body.metaOwnerID);
 
   try {
-    var transactions = paypal.parse(req.files.report.data);
+    var transactions = parseReport(req.files.report.data);
   } catch (ex) {
     console.error(ex);
     next(new Error("Error in parsing report"));

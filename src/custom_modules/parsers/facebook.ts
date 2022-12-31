@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
+import { parse } from "csv-parse/sync";
+
 const parseUtil = require("./util");
-const parse = require("csv-parse/lib/sync");
 
 module.exports = {
   /**
