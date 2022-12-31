@@ -35,7 +35,8 @@ module.exports = {
             : donation[chargeDateIndex];
         const payoutCurrencyIndex = columns.indexOf("Payout currency");
         const payoutCurrency = donation[payoutCurrencyIndex];
-        if (!payoutCurrencies.includes(payoutCurrency)) payoutCurrencies.push(payoutCurrency);
+        if (!payoutCurrencies.includes(payoutCurrency))
+          payoutCurrencies.push(payoutCurrency);
       });
 
       lastDate = incrementISODate(lastDate);
@@ -67,7 +68,7 @@ module.exports = {
             exchangeRates[i][0]
           );
         }
-        allExchangeRates[payoutCurrencies[i]] = exchangeDateRateDict
+        allExchangeRates[payoutCurrencies[i]] = exchangeDateRateDict;
       }
 
       let transactions = data.reduce((acc, dataRow) => {
@@ -106,17 +107,8 @@ module.exports = {
           parseFloat(transaction["Net payout amount"].replace(",", "")) *
           exchangeRate;
 
-        if ((transaction["Sender currency"] = "NOK")) {
-          const sumNOKOneSignFig = roundToSignificantFigures(sumNOK, 1);
-
-          if (String(sumNOK).length > 1) {
-            if (sumNOK / sumNOKOneSignFig - 1 <= 0.03) {
-              // Round with only the first digit if the percentage diff is less than treshold
-              sumNOK = sumNOKOneSignFig;
-            } else {
-              sumNOK = roundToSignificantFigures(sumNOK, 2);
-            }
-          }
+        if (transaction["Sender currency"] == "NOK") {
+          sumNOK = roundSum(sumNOK);
         }
         transaction["sumNOK"] = sumNOK;
 
@@ -149,6 +141,20 @@ function incrementISODate(date: string, NumOfDays = 1) {
   nextDay.setDate(dateValue);
   return nextDay.toISOString().slice(0, 10);
 }
+
+export const roundSum = (sumNOK: number) => {
+  let significant = 1;
+
+  let rounded = roundToSignificantFigures(sumNOK, significant);
+  while (
+    significant == 1 ||
+    (sumNOK / rounded - 1 > 0.03 && String(sumNOK).length > significant)
+  ) {
+    significant += 1;
+    rounded = roundToSignificantFigures(sumNOK, significant);
+  }
+  return rounded;
+};
 
 function roundToSignificantFigures(number: number, signFig: number) {
   let sumLog = number.toFixed().length - 1;
