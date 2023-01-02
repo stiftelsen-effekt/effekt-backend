@@ -872,6 +872,30 @@ async function updateTransactionCost(transactionCost, donationID) {
   return true;
 }
 
+async function transferDonationsFromDummy(targetDonorID, dummyDonorID, newTaxUnit) {
+
+  await DAO.execute(
+    `
+      UPDATE Donations
+      SET Donor_ID = ?
+      WHERE Donor_ID = ?
+      AND Payment_ID = 9
+    `,
+    [targetDonorID, dummyDonorID]
+  );
+
+  await DAO.execute(
+    `
+      UPDATE Combining_table
+      SET Donor_ID = ?, Tax_unit_ID = ?
+      WHERE Donor_ID = ?
+    `,
+    [targetDonorID, newTaxUnit, dummyDonorID]
+  );
+
+  return true;
+}
+
 //endregion
 
 //region Delete
@@ -933,5 +957,6 @@ export const donations = {
   add,
   registerConfirmedByIDs,
   getHistogramBySum,
+  transferDonationsFromDummy,
   remove,
 };
