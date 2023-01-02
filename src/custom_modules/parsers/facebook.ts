@@ -103,13 +103,30 @@ export const parseReport = async (report) => {
         exchangeDate = incrementISODate(exchangeDate, -1);
         if (exchangeRate !== undefined) break;
       }
+
+      if (exchangeRate === undefined) {
+        console.error(
+          `No exchange rate found for ${currency} on ${transaction["Charge date"]}`
+        );
+        throw new Error(`No exchange rate found for ${currency}`);
+      }
+
       let sumNOK =
         parseFloat(transaction["Net payout amount"].replace(",", "")) *
         exchangeRate;
 
+      console.log(
+        `Payout amount ${transaction["Net payout amount"]} times exchange rate ${exchangeRate} = ${sumNOK}`
+      );
       if (transaction["Sender currency"] == "NOK") {
         sumNOK = roundSum(sumNOK);
+      } else {
+        sumNOK = Math.round(sumNOK);
       }
+      // Prints the rounded sum in green in the console using unix color codes
+      console.log(
+        `Rounded sumNOK: \x1b[32m${sumNOK}\x1b[0m (${transaction["Sender currency"]})`
+      );
       transaction["sumNOK"] = sumNOK;
 
       acc.push(transaction);
@@ -151,7 +168,6 @@ export const roundSum = (sumNOK: number): number => {
   ) {
     significant += 1;
     rounded = roundToSignificantFigures(sumNOK, significant);
-    console.log(significant, rounded, sumNOK);
   }
   return rounded;
 };

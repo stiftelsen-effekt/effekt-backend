@@ -139,6 +139,8 @@ router.post(
       return false;
     }
 
+    console.log("Processing facebook donations...");
+
     for (let i = 0; i < donations.length; i++) {
       const donation = donations[i];
       const externalRef = donation["Payment ID"];
@@ -158,7 +160,20 @@ router.post(
         FBCampaignName: donation["Fundraiser title"],
       };
 
+      console.log(`=========================`);
+      console.log(
+        `Looking at donation ${i + 1}/${
+          donations.length
+        } with full name ${fullName} and email ${email} and externalRef ${externalRef}`
+      );
+
       try {
+        /**
+         *    =========================
+         *    Attempt at matching donor to donation
+         *    =========================
+         */
+
         let donorID: number;
 
         // Check if donation is registered for tax deduction
@@ -166,15 +181,24 @@ router.post(
           await DAO.facebook.getRegisteredFacebookDonation(externalRef);
         if (registeredDonation) {
           donorID = registeredDonation.donorID;
+          console.log(`Found registered donation with donorID ${donorID}`);
         }
 
         // Check if Facebook donation has an email of a donor that exists in our database
-        if (email !== "") donorID = await DAO.donors.getIDbyEmail(email);
+        if (!donorID && email !== "") {
+          donorID = await DAO.donors.getIDbyEmail(email);
+          console.log(`Found donorID ${donorID} by email ${email}`);
+        }
 
         // Check if there exists exactly one (non-dummy) donor in our database with the same name as the Facebook donor
         if (!donorID) {
           let donors = await DAO.donors.getIDByMatchedNameFB(fullName);
-          if (donors && donors.length === 1) donorID = donors[0].ID;
+          if (donors && donors.length === 1) {
+            donorID = donors[0].ID;
+            console.log(
+              `Found donorID ${donorID} by exact match on full name ${fullName}`
+            );
+          }
         }
 
         // Creates dummy email
@@ -184,10 +208,26 @@ router.post(
           "@gieffektivt.no";
 
         // Check if dummy donor has already been created
-        if (!donorID) donorID = await DAO.donors.getIDbyEmail(email);
+        if (!donorID) {
+          donorID = await DAO.donors.getIDbyEmail(email);
+          if (donorID) {
+            console.log(`Found donorID ${donorID} by dummy email ${email}`);
+          }
+        }
 
         // Create new dummy donor if it doesn't already exist
-        if (!donorID) donorID = await DAO.donors.add(email, fullName);
+        if (!donorID) {
+          donorID = await DAO.donors.add(email, fullName);
+          console.log(
+            `Created new donor with donorID ${donorID} and email ${email}`
+          );
+        }
+
+        /***
+         *    ===================
+         *    Distribution
+         *    ===================
+         */
 
         const campaignOrgShares =
           await DAO.facebook.getFacebookCampaignOrgShares(campaignID);
@@ -258,26 +298,45 @@ router.post(
           );
         }
 
+        /**
+         *    =========================
+         *    Attempt to connect tax unit to donation
+         *    =========================
+         */
+
         let taxUnitID: number;
         if (registeredDonation) {
           taxUnitID = registeredDonation.taxUnitID;
+          console.log(`Found registered donation with taxUnitID ${taxUnitID}`);
         } else {
           // If no tax unit is specifically registered, check if any other has been registered
           let registered =
             await DAO.facebook.getRegistededFacebookDonationByDonorID(donorID);
           if (registered.length == 1) {
             taxUnitID = registered[0].taxUnitID;
+            console.log(
+              `Found registered donation with taxUnitID ${taxUnitID} for donor ${donorID} by looking at all registered for donor`
+            );
           } else {
             // If no fb to tax unit mapping exists check if donor has only one tax unit
             let taxUnits = await DAO.tax.getByDonorId(donorID);
             if (taxUnits.length == 1) {
               taxUnitID = taxUnits[0].id;
+              console.log(
+                `Found tax unit with taxUnitID ${taxUnitID} for donor ${donorID} by looking at all tax units for donor, and found only one`
+              );
             }
           }
         }
         if (!taxUnitID) {
           console.log(`No tax unit found for donor ${donorID}`);
         }
+
+        /**
+         *    =========================
+         *    Adding the donation to the database
+         *    =========================
+         */
 
         let KID = await DAO.distributions.getKIDbySplit(
           distribution,
@@ -322,6 +381,7 @@ router.post(
 
         valid++;
       } catch (ex) {
+        console.log(`Failed to add donation ${externalRef}: ${ex.message}`);
         invalid++;
         invalidTransactions.push({
           transaction: donationInfo,
