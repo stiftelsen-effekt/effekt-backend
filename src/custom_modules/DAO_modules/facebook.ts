@@ -75,6 +75,27 @@ async function getRegisteredFacebookDonation(
   }
 }
 
+/**
+ * Returns a list of all registered facebook donations by a donor, and groups them by donor id and tax unit
+ * @param donorID
+ * @returns {Array<{ donorID: number, taxUnitID: number }>}
+ */
+async function getRegistededFacebookDonationByDonorID(
+  donorID
+): Promise<Array<{ donorID: number; taxUnitID: number }>> {
+  let [results] = await DAO.query(
+    `
+            SELECT donorID, taxUnitID
+            FROM FB_payment_ID
+            WHERE donorID = ?
+            GROUP BY donorID, taxUnitID
+            `,
+    [donorID]
+  );
+
+  return results;
+}
+
 async function isCampaignRegistered(ID) {
   let [results] = await DAO.query(
     `
@@ -149,7 +170,12 @@ async function registerFacebookReport(report) {
   return true;
 }
 
-async function registerFacebookCampaignOrgShare(campaignID, orgID, share, standardSplit) {
+async function registerFacebookCampaignOrgShare(
+  campaignID,
+  orgID,
+  share,
+  standardSplit
+) {
   await DAO.query(
     `
             INSERT INTO FB_campaign_org_shares (FB_campaign_ID, Org_ID, Share, Standard_split)
@@ -179,6 +205,7 @@ export const facebook = {
   getFacebookReports,
   getFacebookCampaignOrgShares,
   getRegisteredFacebookDonation,
+  getRegistededFacebookDonationByDonorID,
   registerFacebookCampaignOrgShare,
   removeAllFacebookReports,
   registerFacebookReport,

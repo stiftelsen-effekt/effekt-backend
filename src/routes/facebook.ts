@@ -70,11 +70,15 @@ router.post("/register/payment", async (req, res, next) => {
 
     // Check if there exists a dummy donor profile with registered Facebook donations
     // This donor should have a dummy email donasjon+[FB-name]@gieffektivt.no where [FB-name] is the same as the real donor
-    const dummyDonor = await DAO.donors.getByFacebookPayment(paymentID)
-    const donations = await DAO.donations.getByDonorId(dummyDonor.ID)
+    const dummyDonor = await DAO.donors.getByFacebookPayment(paymentID);
+    const donations = await DAO.donations.getByDonorId(dummyDonor.ID);
 
     if (donations && donations.length > 0) {
-      await DAO.donations.transferDonationsFromDummy(donorID, dummyDonor.ID, taxUnitID)
+      await DAO.donations.transferDonationsFromDummy(
+        donorID,
+        dummyDonor.ID,
+        taxUnitID
+      );
     }
 
     await sendFacebookTaxConfirmation(email, full_name, paymentID);
@@ -156,18 +160,28 @@ router.post(
 
       try {
         let donorID: number;
-        
+
+        // Check if donation is registered for tax deduction
+        const registeredDonation =
+          await DAO.facebook.getRegisteredFacebookDonation(externalRef);
+        if (registeredDonation) {
+          donorID = registeredDonation.donorID;
+        }
+
         // Check if Facebook donation has an email of a donor that exists in our database
         if (email !== "") donorID = await DAO.donors.getIDbyEmail(email);
 
         // Check if there exists exactly one (non-dummy) donor in our database with the same name as the Facebook donor
         if (!donorID) {
           let donors = await DAO.donors.getIDByMatchedNameFB(fullName);
-          if (donors && donors.length === 1) donorID = donors[0].ID
+          if (donors && donors.length === 1) donorID = donors[0].ID;
         }
 
         // Creates dummy email
-        email = "donasjon+" + String(fullName).toLowerCase().replace(" ", "_") + "@gieffektivt.no";
+        email =
+          "donasjon+" +
+          String(fullName).toLowerCase().replace(" ", "_") +
+          "@gieffektivt.no";
 
         // Check if dummy donor has already been created
         if (!donorID) donorID = await DAO.donors.getIDbyEmail(email);
@@ -244,20 +258,25 @@ router.post(
           );
         }
 
-        // Check if donation is registered for tax deduction
-        const registeredDonation = await DAO.facebook.getRegisteredFacebookDonation(externalRef);
-
         let taxUnitID: number;
         if (registeredDonation) {
           taxUnitID = registeredDonation.taxUnitID;
-        // If no tax unit is specifically registered, use the donor ssn if registered
         } else {
-          const existingTaxUnits = await DAO.tax.getByDonorId(donorID);
-          if (existingTaxUnits.length > 0) {
-            existingTaxUnits.forEach(taxUnit => {
-              if (taxUnit.ssn.length == 11) taxUnitID = taxUnit.id;
-            })
+          // If no tax unit is specifically registered, check if any other has been registered
+          let registered =
+            await DAO.facebook.getRegistededFacebookDonationByDonorID(donorID);
+          if (registered.length == 1) {
+            taxUnitID = registered[0].taxUnitID;
+          } else {
+            // If no fb to tax unit mapping exists check if donor has only one tax unit
+            let taxUnits = await DAO.tax.getByDonorId(donorID);
+            if (taxUnits.length == 1) {
+              taxUnitID = taxUnits[0].id;
+            }
           }
+        }
+        if (!taxUnitID) {
+          console.log(`No tax unit found for donor ${donorID}`);
         }
 
         let KID = await DAO.distributions.getKIDbySplit(
