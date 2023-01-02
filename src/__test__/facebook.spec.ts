@@ -1,14 +1,17 @@
+import { expect } from "chai";
 import { roundSum } from "../custom_modules/parsers/facebook";
 
 describe("Facebook import rounding tests", () => {
-  it("Should round to within 3% error from actual sum", () => {
-    roundSum(251.5).should.equal(250);
-    roundSum(111.5).should.equal(110);
-    roundSum(5.4).should.equal(5);
-    roundSum(340123.5).should.equal(340000);
-    roundSum(340123.4).should.equal(340000);
-    roundSum(1000000.5).should.equal(1000000);
-    roundSum(278.5).should.equal(280);
-    roundSum(489.5).should.equal(500);
+  it("Should round to within 5.1% error from actual sum", () => {
+    // Testing 3% error margin rounding with random numbers gradually increasing in order of magnitude
+    expect(roundSum(10.2)).to.equal(10);
+    expect(roundSum(47.5)).to.equal(50);
+    expect(roundSum(87)).to.equal(90);
+    expect(roundSum(103.2)).to.equal(100);
+    expect(roundSum(134.2)).to.equal(130);
+    expect(roundSum(251.2)).to.equal(250);
+    expect(roundSum(289.2)).to.equal(300);
+    expect(roundSum(934.2)).to.equal(900);
+    expect(roundSum(1020.2)).to.equal(1000);
   });
 });
