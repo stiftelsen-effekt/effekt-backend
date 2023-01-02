@@ -81,16 +81,16 @@ async function getByKID(KID): Promise<Donor | null> {
  */
 async function getByFacebookPayment(paymentID) {
   var [result] = await DAO.execute(
-      `
+    `
         SELECT Donors.ID, email, full_name FROM Donors
         INNER JOIN Donations on Donations.Donor_ID = Donors.ID
         where Donations.PaymentExternal_ID = ?
-        and email like "donasjon%"
+        and email like "donasjon%@gieffektivt.no"
       `,
     [paymentID]
   );
 
-  return result[0]
+  return result[0];
 }
 
 /**
@@ -105,7 +105,7 @@ async function getIDByMatchedNameFB(name) {
           SELECT DR.ID, DR.full_name, DR.email, max(DN.timestamp_confirmed) as most_recent_donation FROM Donors as DR
           inner join Donations as DN on DR.ID = DN.Donor_ID
           where DR.full_name = ?
-          and DR.email not like "donasjon%"
+          and DR.email not like "donasjon%@gieffektivt.no"
           group by DR.ID
           order by most_recent_donation DESC
           `,
