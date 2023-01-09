@@ -1,6 +1,6 @@
 import { DAO } from "../../custom_modules/DAO";
 
-const facebookParser = require("../../custom_modules/parsers/facebook");
+import { parseReport } from "../../custom_modules/parsers/facebook";
 import { Blob } from "buffer";
 
 module.exports = async (req, res, next) => {
@@ -9,7 +9,7 @@ module.exports = async (req, res, next) => {
   let donations;
   try {
     await DAO.facebook.removeAllFacebookReports();
-    donations = await facebookParser.parseReport(req.files.report.data);
+    donations = await parseReport(req.files.report.data);
     const blobDonations = new Blob([JSON.stringify(donations)], {
       type: "application/json",
     });

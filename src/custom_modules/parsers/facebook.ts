@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import { parse } from "csv-parse/sync";
+import { DAO } from "../DAO";
 
 const parseUtil = require("./util");
 
@@ -71,7 +72,10 @@ export const parseReport = async (report) => {
       allExchangeRates[payoutCurrencies[i]] = exchangeDateRateDict;
     }
 
-    let transactions = data.reduce((acc, dataRow) => {
+    let transactions = [];
+    let updateStatements = [];
+    for (let i = 0; i < data.length; i++) {
+      const dataRow = data[i];
       let firstName = dataRow[columns.indexOf("First name")];
       let surname = dataRow[columns.indexOf("Last name")];
       let email = dataRow[columns.indexOf("Email address")];
@@ -129,10 +133,30 @@ export const parseReport = async (report) => {
       );
       transaction["sumNOK"] = sumNOK;
 
-      acc.push(transaction);
-      return acc;
-    }, []);
+      const registeredDonation = await DAO.donations.getByExternalPaymentID(
+        transaction["Payment ID"],
+        9
+      );
+      if (registeredDonation) {
+        if (sumNOK != registeredDonation.sum_confirmed) {
+          // Print the difference in red in the console using unix color codes
+          console.log(
+            `Registered: ${
+              registeredDonation.sum_confirmed
+            } New: ${sumNOK} \x1b[31m${
+              sumNOK - registeredDonation.sum_confirmed
+            }\x1b[0m for donation with ID ${registeredDonation.ID}`
+          );
+          updateStatements.push(
+            `UPDATE Donations SET sum_confirmed = ${sumNOK} WHERE ID = ${registeredDonation.ID};`
+          );
+        }
+      }
 
+      transactions.push(transaction);
+    }
+
+    console.log(updateStatements.join("\n"));
     return transactions;
   } catch (ex) {
     console.error("Parsing facebook failed.");
