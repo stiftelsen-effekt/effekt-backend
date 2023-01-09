@@ -80,6 +80,9 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
     "2022": (sum: number) => {
       return sum >= 500 ? Math.min(sum, 25000) : 0;
     },
+    "2023": (sum: number) => {
+      return sum >= 500 ? Math.min(sum, 25000) : 0;
+    },
   };
 
   return result.map((res) => ({
@@ -152,6 +155,9 @@ async function getByKID(KID: string): Promise<TaxUnit | null> {
         return sum >= 500 ? Math.min(sum, 50000) : 0;
       },
       "2022": (sum: number) => {
+        return sum >= 500 ? Math.min(sum, 25000) : 0;
+      },
+      "2023": (sum: number) => {
         return sum >= 500 ? Math.min(sum, 25000) : 0;
       },
     };
