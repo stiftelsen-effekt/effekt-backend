@@ -540,14 +540,17 @@ router.put(
       const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
       const standardDistribution = req.body.distribution.standardDistribution;
       let taxUnitId: number | undefined = req.body.distribution.taxUnit.id;
-      const split = req.body.distribution.shares
-        .map((distribution) => {
-          return {
-            id: distribution.id,
-            share: distribution.share,
-          };
-        })
-        .filter((org) => parseFloat(org.share) !== 0);
+
+      const shares = req.body.distribution.shares;
+
+      const split = standardDistribution
+        ? await DAO.organizations.getStandardSplit()
+        : shares
+            .map((org) => {
+              return { id: org.id, share: org.share };
+            })
+            .filter((org) => parseFloat(org.share) !== 0);
+
       const metaOwnerID = 3;
 
       if (split.length === 0) {

@@ -308,11 +308,13 @@ router.post(
       }
       const donorId: number = donor.id;
 
-      const split = shares
-        .map((org) => {
-          return { id: org.id, share: org.share };
-        })
-        .filter((org) => parseFloat(org.share) !== 0);
+      const split = standardDistribution
+        ? await DAO.organizations.getStandardSplit()
+        : shares
+            .map((org) => {
+              return { id: org.id, share: org.share };
+            })
+            .filter((org) => parseFloat(org.share) !== 0);
       const metaOwnerID = 3;
 
       if (split.length === 0) {
