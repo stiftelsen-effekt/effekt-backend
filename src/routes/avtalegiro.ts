@@ -312,7 +312,7 @@ router.post(
         .map((org) => {
           return { id: org.id, share: org.share };
         })
-        .filter((org) => org.share !== "0");
+        .filter((org) => parseFloat(org.share) !== 0);
       const metaOwnerID = 3;
 
       if (split.length === 0) {
