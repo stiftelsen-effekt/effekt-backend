@@ -103,7 +103,7 @@ router.post(
         if (campaignShare.share > 0) {
           await DAO.facebook.registerFacebookCampaignOrgShare(
             req.body.id,
-            campaignShare.ID,
+            campaignShare.id,
             campaignShare.share,
             req.body.standardSplit
           );
