@@ -308,9 +308,11 @@ router.post(
       }
       const donorId: number = donor.id;
 
-      const split = shares.map((org) => {
-        return { id: org.id, share: org.share };
-      });
+      const split = shares
+        .map((org) => {
+          return { id: org.id, share: org.share };
+        })
+        .filter((org) => org.share !== "0");
       const metaOwnerID = 3;
 
       if (split.length === 0) {
