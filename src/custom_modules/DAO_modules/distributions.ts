@@ -181,7 +181,7 @@ async function KIDexists(KID) {
  * Takes in a distribution array and a Donor ID, and returns the KID if the specified distribution exists for the given donor.
  * @param {array<object>} split
  * @param {number} donorID
- * @param {boolean} standardSplit
+ * @param {boolean} standardDistribution
  * @param {number} taxUnitId The ID of the associated tax unit for a distribution. Can be undefined if the distribution is not associated with a tax unit.
  * @param {number} minKidLength Specify a minimum length of KID to match against
  * @returns {number | null} KID or null if no KID found
@@ -189,7 +189,7 @@ async function KIDexists(KID) {
 async function getKIDbySplit(
   split,
   donorID: number,
-  standardSplit: boolean,
+  standardDistribution: boolean,
   taxUnitId?: number,
   minKidLength = 0
 ) {
@@ -204,8 +204,9 @@ async function getKIDbySplit(
         
         WHERE
 
-        (Standard_split = ${standardSplit ? "1)" : "0 OR Standard_split IS NULL)"
-    }
+        (Standard_split = ${
+          standardDistribution ? "1)" : "0 OR Standard_split IS NULL)"
+        }
 
         AND
         `;
@@ -215,10 +216,11 @@ async function getKIDbySplit(
       split[i].id
     )} AND percentage_share = ${sqlString.escape(
       split[i].share
-    )} AND C.Donor_ID = ${sqlString.escape(donorID)} AND ${taxUnitId
+    )} AND C.Donor_ID = ${sqlString.escape(donorID)} AND ${
+      taxUnitId
         ? "C.Tax_unit_ID = " + sqlString.escape(taxUnitId)
         : "C.Tax_unit_ID IS NULL"
-      })`;
+    })`;
     if (i < split.length - 1) query += ` OR `;
   }
 
@@ -321,7 +323,7 @@ async function isStandardDistribution(KID) {
  * @param {number} KID
  * @param {number} donorID
  * @param {number | null} taxUnitId The id of the tax unit to associate the distribution with. Can be null if no tax unit is associated.
- * @param {boolean} standardSplit
+ * @param {boolean} standardDistribution
  * @param {number | null} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
  */
 async function add(
@@ -329,7 +331,7 @@ async function add(
   KID,
   donorID,
   taxUnitId = null,
-  standardSplit = false,
+  standardDistribution = false,
   metaOwnerID = null
 ) {
   try {
@@ -353,7 +355,7 @@ async function add(
         return [
           donorID,
           taxUnitId,
-          standardSplit,
+          standardDistribution,
           first_inserted_id + i,
           KID,
           metaOwnerID,
