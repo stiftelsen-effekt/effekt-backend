@@ -1179,6 +1179,27 @@ router.get(
   }
 );
 
+// A route for getting all the donations to EA funds for a given donor ID
+router.get(
+  "/:id/funds/donations/",
+  authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      var donations = await DAO.donations.getEAFundsDonations(req.params.id);
+
+      res.json({
+        status: 200,
+        content: donations,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
 /**
  * @openapi
  * /donors/{id}:

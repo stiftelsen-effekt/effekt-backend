@@ -48,9 +48,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
     if (filter) {
       if (filter.sum) {
         if (filter.sum.from)
-          where.push(
-            `sum_confirmed >= ${sqlString.escape(filter.sum.from)} `
-          );
+          where.push(`sum_confirmed >= ${sqlString.escape(filter.sum.from)} `);
         if (filter.sum.to)
           where.push(`sum_confirmed <= ${sqlString.escape(filter.sum.to)} `);
       }
@@ -87,9 +85,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
         );
 
       if (filter.id)
-        where.push(
-          ` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `
-        );
+        where.push(` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `);
 
       if (filter.organizationIDs) {
         where.push(
@@ -101,11 +97,13 @@ async function getAll(sort, page, limit = 10, filter = null) {
     }
 
     // Only apply this join when filtering by organizationIDs.
-    const organizationJoin = filter?.organizationIDs ? `
+    const organizationJoin = filter?.organizationIDs
+      ? `
         INNER JOIN Combining_table
           ON Donations.KID_fordeling = Combining_table.KID
         INNER JOIN Distribution
-          ON Combining_table.Distribution_ID = Distribution.ID` : "";
+          ON Combining_table.Distribution_ID = Distribution.ID`
+      : "";
 
     const columns = `
         Donations.ID,
@@ -136,10 +134,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
         ${sort.desc ? "DESC" : ""} 
         LIMIT ? OFFSET ?`;
 
-    const [donations] = await DAO.query(
-      query,
-      [limit, page * limit]
-    );
+    const [donations] = await DAO.query(query, [limit, page * limit]);
 
     const counter = donations.length > 0 ? donations[0]["full_count"] : 0;
 
@@ -155,7 +150,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
 }
 
 async function getTransactionCostsReport() {
-    let [res] = await DAO.query(`
+  let [res] = await DAO.query(`
     SELECT count(ID) as donationsCount,
       (SELECT round(sum(transaction_cost)) FROM Donations
         WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE)
@@ -181,8 +176,8 @@ async function getTransactionCostsReport() {
       Donations
     `);
 
-    if (res.length === 0) return false;
-    else return res[0];
+  if (res.length === 0) return false;
+  else return res[0];
 }
 
 /**
@@ -519,13 +514,14 @@ async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
                     Donations.timestamp_confirmed >= Date(?)  
                     AND 
                     Donations.timestamp_confirmed < Date(Date_add(Date(?), interval 1 day))
-                ${paymentMethodIDs != null
-      ? `
+                ${
+                  paymentMethodIDs != null
+                    ? `
                     AND
                     Donations.Payment_ID IN (?)
                 `
-      : ""
-    }
+                    : ""
+                }
                 `,
     [fromDate, toDate, paymentMethodIDs]
   );
@@ -560,9 +556,7 @@ async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
     });
   });
 
-  let returnDonations = [...donations.values()].sort(
-    (a, b) => a.time - b.time
-  );
+  let returnDonations = [...donations.values()].sort((a, b) => a.time - b.time);
 
   return returnDonations;
 }
@@ -766,6 +760,28 @@ async function getHistory(donorID) {
   return history;
 }
 
+/**
+ * Fetches all donations recieved by a specific donor to EA funds
+ */
+async function getEAFundsDonations(donorId: number) {
+  const [res] = await DAO.query(
+    `
+  SELECT * FROM EffektDonasjonDB.Funds_donations WHERE DonorID = ?
+  `,
+    [donorId]
+  );
+
+  return res.map((row) => {
+    return {
+      id: row.ID,
+      donorId: row.DonorID,
+      sum: row.Sum,
+      timestamp: row.Timestamp,
+      paymentExternalId: row.PaymentExternalID,
+    };
+  });
+}
+
 //endregion
 
 //region Add
@@ -816,9 +832,9 @@ async function add(
     if (await externalPaymentIDExists(externalPaymentID, paymentMethodID)) {
       throw new Error(
         "EXISTING_DONATION | Already a donation with ExternalPaymentID " +
-        externalPaymentID +
-        " and PaymentID " +
-        paymentMethodID
+          externalPaymentID +
+          " and PaymentID " +
+          paymentMethodID
       );
     }
   }
@@ -852,8 +868,8 @@ async function registerConfirmedByIDs(IDs) {
             SET date_confirmed = NOW()
             WHERE 
             ID IN (` +
-    "?,".repeat(IDs.length).slice(0, -1) +
-    `)`,
+      "?,".repeat(IDs.length).slice(0, -1) +
+      `)`,
     IDs
   );
 
@@ -872,8 +888,11 @@ async function updateTransactionCost(transactionCost, donationID) {
   return true;
 }
 
-async function transferDonationsFromDummy(targetDonorID, dummyDonorID, newTaxUnit) {
-
+async function transferDonationsFromDummy(
+  targetDonorID,
+  dummyDonorID,
+  newTaxUnit
+) {
   await DAO.execute(
     `
       UPDATE Donations
@@ -952,6 +971,7 @@ export const donations = {
   getByDonorId,
   getLatestByKID,
   getByExternalPaymentID,
+  getEAFundsDonations,
   externalPaymentIDExists,
   updateTransactionCost,
   add,
