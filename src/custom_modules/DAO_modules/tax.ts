@@ -85,23 +85,27 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
     },
   };
 
-  return result.map((res) => ({
-    id: res.ID,
-    donorId: res.Donor_ID,
-    name: res.full_name,
-    ssn: res.ssn,
-    numDonations: res.num_donations,
-    sumDonations: res.sum_donations,
-    registered: res.registered,
-    archived: res.archived,
-    taxDeductions: aggregateYearlyDonations
-      .filter((ag) => ag.ID === res.ID)
-      .map((ag) => ({
-        year: ag.year,
-        sumDonations: ag.sum_donations,
-        taxDeduction: taxDeductionRules[ag.year](ag.sum_donations),
-      })),
-  }));
+  const units: Array<TaxUnit> = (result as Array<any>).map(
+    (res): TaxUnit => ({
+      id: res.ID,
+      donorId: res.Donor_ID,
+      name: res.full_name,
+      ssn: res.ssn,
+      numDonations: res.num_donations,
+      sumDonations: res.sum_donations,
+      registered: res.registered,
+      archived: res.archived,
+      taxDeductions: aggregateYearlyDonations
+        .filter((ag) => ag.ID === res.ID)
+        .map((ag) => ({
+          year: ag.year,
+          sumDonations: ag.sum_donations,
+          taxDeduction: taxDeductionRules[ag.year](ag.sum_donations),
+        })),
+    })
+  );
+
+  return units;
 }
 
 /**

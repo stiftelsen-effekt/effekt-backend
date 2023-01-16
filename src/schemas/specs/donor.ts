@@ -3,13 +3,7 @@
  * Do not make direct changes to the file.
  */
 
-
-/** Type helpers */
-type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
-type XOR<T, U> = (T | U) extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
-type OneOf<T extends any[]> = T extends [infer Only] ? Only : T extends [infer A, infer B, ...infer Rest] ? OneOf<[XOR<A, B>, ...Rest]> : never;
-
-export type paths = Record<string, never>;
+export interface paths {}
 
 export interface components {
   schemas: {
@@ -35,19 +29,14 @@ export interface components {
       /** @description Set to true if spam / test donor */
       trash?: boolean;
       /**
-       * Format: date-time 
+       * Format: date-time
        * @description The date and time the donor was registered
        */
       registered?: string;
     };
   };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
 }
 
-export type external = Record<string, never>;
+export interface operations {}
 
-export type operations = Record<string, never>;
+export interface external {}

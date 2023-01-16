@@ -3,6 +3,7 @@ import { checkDonor } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import { fnr } from "@navikt/fnrvalidator";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+import { TaxReport, TaxYearlyReportUnit } from "../schemas/types";
 
 const router = express.Router();
 const roles = require("../enums/authorizationRoles");
@@ -372,6 +373,135 @@ router.get(
           content: "No donor found with ID " + req.params.id,
         });
       }
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+// A route to get yearly tax reports
+/**
+ * @openapi
+ * /donors/{id}/taxreports:
+ *  get:
+ *   tags: [Donors]
+ *   description: Get all tax reports associated with donor
+ *   security:
+ *     - auth0_jwt: [read:donations]
+ *   parameters:
+ *    - in: path
+ *      name: id
+ *      required: true
+ *      description: Numeric ID of the user to retrieve.
+ *      schema:
+ *        type: integer
+ *   responses:
+ *    200:
+ *      description: Returns an array of tax reports
+ *      content:
+ *        application/json:
+ *          schema:
+ *            allOf:
+ *              - $ref: '#/components/schemas/ApiResponse'
+ *              - type: object
+ *                properties:
+ *                  content:
+ *                    $ref: '#/components/schemas/TaxReport'
+ *                example:
+ *                  content:
+ *                    $ref: '#/components/schemas/TaxReport/example'
+ *    401:
+ *      description: User not authorized to view resource
+ *    404:
+ *      description: Donor with given id not found
+ */
+router.get(
+  "/:id/taxreports",
+  //authMiddleware.auth(roles.read_donations),
+  //(req, res, next) => {
+  //  checkDonor(parseInt(req.params.id), req, res, next);
+  //},
+  async (req, res, next) => {
+    try {
+      if (isNaN(parseInt(req.params.id))) {
+        return res.status(400).json({
+          status: 400,
+          content: "Invalid donor ID",
+        });
+      }
+
+      let taxUnits = await DAO.tax.getByDonorId(parseInt(req.params.id));
+      taxUnits = taxUnits.filter((tu) => tu.archived === null);
+
+      let eaFundsDonations = await DAO.donations.getEAFundsDonations(
+        parseInt(req.params.id)
+      );
+
+      const yearlyreportunits = taxUnits
+        .map((tu): TaxYearlyReportUnit[] => {
+          let reportUnits: Array<TaxYearlyReportUnit> = [];
+
+          const ge = {
+            id: tu.id,
+            name: tu.name,
+            ssn: tu.ssn,
+            sumDonations: tu.taxDeductions.find((td) => td.year === 2022)
+              .sumDonations,
+            taxDeduction: tu.taxDeductions.find((td) => td.year === 2022)
+              .taxDeduction,
+            channel: "Gi Effektivt",
+          };
+
+          const matchingFundsDonations = eaFundsDonations.filter(
+            (d) =>
+              d.taxUnitId === tu.id &&
+              new Date(d.timestamp).getFullYear() === 2022
+          );
+          if (matchingFundsDonations.length > 0) {
+            const sum = matchingFundsDonations
+              .map((d) => d.sum)
+              .reduce((a, b) => a + b);
+            const taxDeduction = Math.min(25000, sum);
+
+            reportUnits.push({
+              ...ge,
+              sumDonations: sum,
+              taxDeduction: taxDeduction,
+              channel: "EAN Giverportal",
+            });
+          }
+
+          reportUnits.push(ge);
+          return reportUnits;
+        })
+        .flat();
+
+      const reports: Array<TaxReport> = [
+        {
+          year: 2022,
+          units: yearlyreportunits,
+          sumTaxDeductions: yearlyreportunits
+            .map((u) => u.taxDeduction)
+            .reduce((a, b) => a + b),
+          sumTaxDeductionsByChannel: yearlyreportunits.reduce((acc, cur) => {
+            let channelSums = acc.find((a) => a.channel === cur.channel);
+            if (channelSums) {
+              channelSums.sumTaxDeductions += cur.taxDeduction;
+            } else {
+              acc.push({
+                channel: cur.channel,
+                sumTaxDeductions: cur.taxDeduction,
+              });
+            }
+            return acc;
+          }, []),
+        },
+      ];
+
+      return res.json({
+        status: 200,
+        content: reports,
+      });
     } catch (ex) {
       next(ex);
     }

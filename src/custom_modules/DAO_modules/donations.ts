@@ -763,7 +763,16 @@ async function getHistory(donorID) {
 /**
  * Fetches all donations recieved by a specific donor to EA funds
  */
-async function getEAFundsDonations(donorId: number) {
+async function getEAFundsDonations(donorId: number): Promise<
+  Array<{
+    id: number;
+    donorId: number;
+    taxUnitId: number;
+    sum: number;
+    timestamp: string;
+    paymentExternalId: string;
+  }>
+> {
   const [res] = await DAO.query(
     `
   SELECT * FROM EffektDonasjonDB.Funds_donations WHERE DonorID = ?
@@ -775,6 +784,7 @@ async function getEAFundsDonations(donorId: number) {
     return {
       id: row.ID,
       donorId: row.DonorID,
+      taxUnitId: row.TaxUnitID,
       sum: row.Sum,
       timestamp: row.Timestamp,
       paymentExternalId: row.PaymentExternalID,

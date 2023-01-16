@@ -1,0 +1,70 @@
+openapi: 3.0.1
+components:
+  schemas:
+    TaxReport:
+      type: object
+      properties:
+        year:
+          type: integer
+          description: The year the report is for
+        units:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxYearlyReportUnit"
+          description: The tax units for the year
+        sumTaxDeductionsByChannel:
+          type: array
+          items:
+            type: object
+            properties:
+              channel:
+                type: string
+                description: The channel (or entity the donations where given to) for the tax unit for the year and channel
+              sumTaxDeductions:
+                type: number
+                description: The sum of all donations for the tax unit for the year and channel
+          description: The sum of all tax deductions for the year and channel
+        sumTaxDeductions:
+          type: number
+          description: The sum of all tax deductions for the year
+      example:
+        year: 2019
+        units:
+          - id: 984
+            name: Overlook Hotel Logistics Ltd.
+            ssn: 919809140
+            sumDonations: 100000
+            taxDeduction: 25000
+            channel: "Gi Effektivt"
+        sumTaxDeductionsByChannel:
+          - channel: "Gi Effektivt"
+            sumTaxDeductions: 25000
+        sumTaxDeductions: 25000
+    TaxYearlyReportUnit:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The Auto-generated id for a tax unit
+        name:
+          type: string
+          description: Full name of the tax unit (either a personal name or a business entity)
+        ssn:
+          type: string
+          description: Either a personal number or the number for the business entity
+        sumDonations:
+          type: number
+          description: The sum of all donations for the tax unit for the year and channel
+        taxDeduction:
+          type: number
+          description: The tax deduction for the tax unit for the year and channel
+        channel:
+          type: string
+          description: The channel (or entity the donations where given to) for the tax unit for the year and channel
+      example:
+        id: 984
+        name: Overlook Hotel Logistics Ltd.
+        ssn: 919809140
+        sumDonations: 100000
+        taxDeduction: 25000
+        channel: "Gi Effektivt"

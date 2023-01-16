@@ -3,13 +3,7 @@
  * Do not make direct changes to the file.
  */
 
-
-/** Type helpers */
-type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
-type XOR<T, U> = (T | U) extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
-type OneOf<T extends any[]> = T extends [infer Only] ? Only : T extends [infer A, infer B, ...infer Rest] ? OneOf<[XOR<A, B>, ...Rest]> : never;
-
-export type paths = Record<string, never>;
+export interface paths {}
 
 export interface components {
   schemas: {
@@ -19,7 +13,32 @@ export interface components {
      *   "donorId": 237,
      *   "name": "Overlook Hotel Logistics Ltd.",
      *   "ssn": 919809140,
-     *   "archived": "1921-07-04T23:00:00.000Z"
+     *   "registered": "2019-01-01T00:00:00.000Z",
+     *   "archived": "1921-07-04T23:00:00.000Z",
+     *   "sumDonations": 400000,
+     *   "numDonations": 4,
+     *   "taxDeductions": [
+     *     {
+     *       "year": 2019,
+     *       "sumDonations": 100000,
+     *       "taxDeduction": 25000
+     *     },
+     *     {
+     *       "year": 2018,
+     *       "sumDonations": 100000,
+     *       "taxDeduction": 25000
+     *     },
+     *     {
+     *       "year": 2017,
+     *       "sumDonations": 100000,
+     *       "taxDeduction": 25000
+     *     },
+     *     {
+     *       "year": 2016,
+     *       "sumDonations": 100000,
+     *       "taxDeduction": 25000
+     *     }
+     *   ]
      * }
      */
     TaxUnit: {
@@ -32,19 +51,32 @@ export interface components {
       /** @description The social security number of the tax unit */
       ssn?: string;
       /**
-       * Format: date-time 
+       * Format: date-time
+       * @description Indicates the date the unit was registered
+       */
+      registered?: string;
+      /**
+       * Format: date-time
        * @description Indicates the date the unit was archived. Null if the unit is not archived
        */
       archived?: string;
+      /** @description The sum of all donations for the tax unit for the year */
+      sumDonations?: number;
+      /** @description The number of donations for the tax unit for the year */
+      numDonations?: number;
+      /** @description The tax deductions for the tax unit */
+      taxDeductions?: {
+        /** @description The year the tax deduction is for */
+        year?: number;
+        /** @description The sum of all donations for the tax unit for the year */
+        sumDonations?: number;
+        /** @description The tax deduction for the tax unit for the year */
+        taxDeduction?: number;
+      }[];
     };
   };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
 }
 
-export type external = Record<string, never>;
+export interface operations {}
 
-export type operations = Record<string, never>;
+export interface external {}
