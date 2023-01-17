@@ -71,14 +71,16 @@ router.post("/register/payment", async (req, res, next) => {
     // Check if there exists a dummy donor profile with registered Facebook donations
     // This donor should have a dummy email donasjon+[FB-name]@gieffektivt.no where [FB-name] is the same as the real donor
     const dummyDonor = await DAO.donors.getByFacebookPayment(paymentID);
-    const donations = await DAO.donations.getByDonorId(dummyDonor.ID);
+    if (dummyDonor) {
+      const donations = await DAO.donations.getByDonorId(dummyDonor.ID);
 
-    if (donations && donations.length > 0) {
-      await DAO.donations.transferDonationsFromDummy(
-        donorID,
-        dummyDonor.ID,
-        taxUnitID
-      );
+      if (donations && donations.length > 0) {
+        await DAO.donations.transferDonationsFromDummy(
+          donorID,
+          dummyDonor.ID,
+          taxUnitID
+        );
+      }
     }
 
     await sendFacebookTaxConfirmation(email, full_name, paymentID);
