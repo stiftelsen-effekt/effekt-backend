@@ -52,7 +52,7 @@ const sciChanges =
   "<br/><br/>";
 
 const replacedOrgsInfo =
-  "<strong>MERK<strong>: Din fordeling har blitt endret av oss." +
+  "<strong>MERK</strong>: Din fordeling har blitt endret av oss." +
   "<br/>" +
   "<br/>" +
   "Fra <strong>01.01.2021</strong> støtter vi ikke lenger donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children." +
