@@ -466,7 +466,16 @@ router.post(
       var taxUnitId = await DAO.tax.addTaxUnit(donor.id, ssn, name);
       const taxUnit = await DAO.tax.getById(taxUnitId);
 
+      // If successfully created tax unit
       if (taxUnit) {
+        const taxUnits = await DAO.tax.getByDonorId(donor.id);
+
+        // if this is the first tax unit created for the donor (also counts archived tax units)
+        if (taxUnits.length === 1) {
+          // Update the donor's KID numbers missing a tax unit
+          await DAO.tax.updateKIDsMissingTaxUnit(taxUnitId, donor.id)
+        }
+
         return res.json({
           status: 200,
           content: taxUnit,

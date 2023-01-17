@@ -128,6 +128,29 @@ async function getIDByMatchedNameFB(name) {
 }
 
 /**
+ * Gets all donor ID's with only one tax unit
+ * @return {Array<{number, number}>} Array of all donor ID and tax unit pairs
+ */
+async function getIDsWithOneTaxUnit() {
+  let [res] = await DAO.query(
+    `
+    select Donor_ID, ID from Tax_unit where
+    Donor_ID in 
+      (select DonorID from (
+      SELECT TU.Donor_ID as DonorID, count(TU.ID) as TaxUnitCount, count(DN.ID) as DonationsCount FROM Tax_unit as TU
+      inner join Donors as D on D.ID = TU.Donor_ID
+      inner join Donations as DN on DN.Donor_ID = D.ID
+      group by TU.Donor_ID) as Data
+    where TaxUnitCount = 1 and DonationsCount > 0)
+    `
+  );
+
+  if (res.length === 0) return false;
+  else return res
+}
+
+
+/**
  * Gets donorID by agreement_url_code in Vipps_agreements
  * @property {string} agreementUrlCode
  * @return {number} donorID
@@ -301,6 +324,7 @@ export const donors = {
   getByKID,
   getByFacebookPayment,
   getIDByMatchedNameFB,
+  getIDsWithOneTaxUnit,
   getIDByAgreementCode,
   search,
   add,

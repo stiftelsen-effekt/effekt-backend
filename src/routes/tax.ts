@@ -1,4 +1,5 @@
 import { DAO } from "../custom_modules/DAO";
+import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 
 const express = require("express");
 const router = express.Router();
@@ -80,5 +81,23 @@ router.put("/:id", async (req, res, next) => {
     next(ex);
   }
 });
+
+router.put(
+  "/donations/assign",
+  authMiddleware.isAdmin,
+  async (req, res, next) => {
+    try {
+      const singleTaxUnits = await DAO.donors.getIDsWithOneTaxUnit()
+
+      for (let i = 0; i < singleTaxUnits.length; i++) {
+        await DAO.tax.updateKIDsMissingTaxUnit(singleTaxUnits[i]["ID"], singleTaxUnits[i]["Donor_ID"])
+      }
+
+      return res.json({status: 200});
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
 
 module.exports = router;
