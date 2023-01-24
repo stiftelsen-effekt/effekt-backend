@@ -34,6 +34,13 @@ export interface components {
       year?: number;
       /** @description The tax units for the year */
       units?: components["schemas"]["TaxYearlyReportUnit"][];
+      /** @description The sum of all donations for the year not connected to a tax unit */
+      sumDonationsWithoutTaxUnitByChannel?: {
+        /** @description The channel (or entity the donations where given to) for the year */
+        channel?: string;
+        /** @description The sum of all donations for the year not connected to a tax unit for a given channel */
+        sumDonationsWithoutTaxUnit?: number;
+      }[];
       /** @description The sum of all tax deductions for the year and channel */
       sumTaxDeductionsByChannel?: {
         /** @description The channel (or entity the donations where given to) for the tax unit for the year and channel */

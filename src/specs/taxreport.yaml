@@ -12,6 +12,18 @@ components:
           items:
             $ref: "#/components/schemas/TaxYearlyReportUnit"
           description: The tax units for the year
+        sumDonationsWithoutTaxUnitByChannel:
+          type: array
+          items:
+            type: object
+            properties:
+              channel:
+                type: string
+                description: The channel (or entity the donations where given to) for the year
+              sumDonationsWithoutTaxUnit:
+                type: number
+                description: The sum of all donations for the year not connected to a tax unit for a given channel
+          description: The sum of all donations for the year not connected to a tax unit
         sumTaxDeductionsByChannel:
           type: array
           items:

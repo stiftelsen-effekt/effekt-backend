@@ -1,5 +1,6 @@
 import { distributions } from "./distributions";
 import { DAO } from "../DAO";
+import { Donation } from "../../schemas/types";
 
 const sqlString = require("sqlstring");
 
@@ -407,31 +408,40 @@ async function getByID(donationID) {
   return donation;
 }
 
-async function getByDonorId(donorId) {
+/**
+ * Gets all donations by donor ID
+ * @param donorId
+ * @returns {Array<Donation>} An array of donation objects
+ */
+async function getByDonorId(donorId: number): Promise<Array<Donation>> {
   var [donations] = await DAO.query(
     `
-            SELECT 
-                Donation.ID,
-                Donation.sum_confirmed, 
-                Donation.KID_fordeling,
-                Donation.transaction_cost,
-                Donation.timestamp_confirmed,
-                Donation.Meta_owner_ID,
-                Donor.ID as donorId,
-                Donor.full_name,
-                Donor.email,
-                Payment.payment_name
-            
-            FROM Donations as Donation
+    SELECT 
+      Donation.ID,
+      Donation.sum_confirmed, 
+      Donation.KID_fordeling,
+      Donation.transaction_cost,
+      Donation.timestamp_confirmed,
+      Donation.Meta_owner_ID,
+      Donor.ID as donorId,
+      Donor.full_name,
+      Donor.email,
+      Payment.payment_name,
+      Combining.Tax_unit_ID
 
-            INNER JOIN Donors as Donor
-                ON Donation.Donor_ID = Donor.ID
+    FROM Donations as Donation
 
-            INNER JOIN Payment
-                ON Donation.Payment_ID = Payment.ID
-            
-            WHERE 
-                Donation.Donor_ID = ?`,
+    INNER JOIN Donors as Donor
+        ON Donation.Donor_ID = Donor.ID
+
+    INNER JOIN Payment
+        ON Donation.Payment_ID = Payment.ID
+        
+    INNER JOIN (SELECT KID, Tax_unit_ID FROM Combining_table GROUP BY KID, Tax_unit_ID) Combining
+    ON KID = KID_fordeling
+
+    WHERE 
+        Donation.Donor_ID = ?`,
     [donorId]
   );
 
@@ -446,6 +456,7 @@ async function getByDonorId(donorId) {
     timestamp: dbDonation.timestamp_confirmed,
     paymentMethod: dbDonation.payment_name,
     KID: dbDonation.KID_fordeling,
+    taxUnitId: dbDonation.Tax_unit_ID,
     metaOwnerId: dbDonation.Meta_owner_ID,
   }));
 
@@ -785,7 +796,7 @@ async function getEAFundsDonations(donorId: number): Promise<
       id: row.ID,
       donorId: row.DonorID,
       taxUnitId: row.TaxUnitID,
-      sum: row.Sum,
+      sum: parseFloat(row.Sum),
       timestamp: row.Timestamp,
       paymentExternalId: row.PaymentExternalID,
     };

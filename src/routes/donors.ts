@@ -433,9 +433,16 @@ router.get(
       let taxUnits = await DAO.tax.getByDonorId(parseInt(req.params.id));
       taxUnits = taxUnits.filter((tu) => tu.archived === null);
 
+      let donations = await DAO.donations.getByDonorId(parseInt(req.params.id));
       let eaFundsDonations = await DAO.donations.getEAFundsDonations(
         parseInt(req.params.id)
       );
+
+      /**
+       * TODO: This is hard coded to only include 2022 for now, but should be
+       * changed to include all years in the future.
+       */
+      const year = 2022;
 
       const yearlyreportunits = taxUnits
         .map((tu): TaxYearlyReportUnit[] => {
@@ -445,9 +452,9 @@ router.get(
             id: tu.id,
             name: tu.name,
             ssn: tu.ssn,
-            sumDonations: tu.taxDeductions.find((td) => td.year === 2022)
+            sumDonations: tu.taxDeductions.find((td) => td.year === year)
               .sumDonations,
-            taxDeduction: tu.taxDeductions.find((td) => td.year === 2022)
+            taxDeduction: tu.taxDeductions.find((td) => td.year === year)
               .taxDeduction,
             channel: "Gi Effektivt",
           };
@@ -455,7 +462,7 @@ router.get(
           const matchingFundsDonations = eaFundsDonations.filter(
             (d) =>
               d.taxUnitId === tu.id &&
-              new Date(d.timestamp).getFullYear() === 2022
+              new Date(d.timestamp).getFullYear() === year
           );
           if (matchingFundsDonations.length > 0) {
             const sum = matchingFundsDonations
@@ -478,11 +485,35 @@ router.get(
 
       const reports: Array<TaxReport> = [
         {
-          year: 2022,
+          year: year,
           units: yearlyreportunits,
           sumTaxDeductions: yearlyreportunits
             .map((u) => u.taxDeduction)
             .reduce((a, b) => a + b),
+          sumDonationsWithoutTaxUnitByChannel: [
+            {
+              channel: "EAN Giverportal",
+              sumDonationsWithoutTaxUnit: eaFundsDonations
+                .filter((donation) => {
+                  return (
+                    donation.taxUnitId === null &&
+                    new Date(donation.timestamp).getFullYear() === year
+                  );
+                })
+                .reduce((a, b) => a + b.sum, 0),
+            },
+            {
+              channel: "Gi Effektivt",
+              sumDonationsWithoutTaxUnit: donations
+                .filter((donation) => {
+                  return (
+                    donation.taxUnitId === null &&
+                    new Date(donation.registered).getFullYear() === year
+                  );
+                })
+                .reduce((a, b) => a + parseFloat(b.sum), 0),
+            },
+          ],
           sumTaxDeductionsByChannel: yearlyreportunits.reduce((acc, cur) => {
             let channelSums = acc.find((a) => a.channel === cur.channel);
             if (channelSums) {

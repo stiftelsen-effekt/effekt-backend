@@ -37,6 +37,8 @@ export interface components {
       method: string;
       /** @description The customer identification for the donation. Uniquely identifies the donor and the donation distribution. */
       KID: string;
+      /** @description The id of the tax unit the donation is connected to */
+      taxUnitId?: number;
       /**
        * Format: date-time
        * @description The timestamp of the donation
