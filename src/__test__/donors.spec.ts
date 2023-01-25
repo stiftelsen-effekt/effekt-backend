@@ -117,7 +117,7 @@ describe("Check if donations returns for user ID", function () {
     donorStub.withArgs("237").resolves(jack);
 
     var donationStub = sinon.stub(DAO.donations, "getByDonorId");
-    donationStub.withArgs(237).resolves(donationsStub);
+    donationStub.withArgs("237").resolves(donationsStub);
 
     const donorsRoute = require("../routes/donors");
     server = express();

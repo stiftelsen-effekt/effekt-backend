@@ -413,7 +413,7 @@ async function getByID(donationID) {
  * @param donorId
  * @returns {Array<Donation>} An array of donation objects
  */
-async function getByDonorId(donorId: number): Promise<Array<Donation>> {
+async function getByDonorId(donorId): Promise<Array<Donation>> {
   var [donations] = await DAO.query(
     `
     SELECT 
