@@ -417,10 +417,10 @@ router.get(
  */
 router.get(
   "/:id/taxreports",
-  //authMiddleware.auth(roles.read_donations),
-  //(req, res, next) => {
-  //  checkDonor(parseInt(req.params.id), req, res, next);
-  //},
+  authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
   async (req, res, next) => {
     try {
       if (isNaN(parseInt(req.params.id))) {
