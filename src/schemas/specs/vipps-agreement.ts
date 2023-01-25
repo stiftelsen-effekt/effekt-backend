@@ -3,13 +3,7 @@
  * Do not make direct changes to the file.
  */
 
-
-/** Type helpers */
-type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
-type XOR<T, U> = (T | U) extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
-type OneOf<T extends any[]> = T extends [infer Only] ? Only : T extends [infer A, infer B, ...infer Rest] ? OneOf<[XOR<A, B>, ...Rest]> : never;
-
-export type paths = Record<string, never>;
+export interface paths {}
 
 export interface components {
   schemas: {
@@ -40,7 +34,7 @@ export interface components {
       /** @description The KID number for the agreement */
       KID: string;
       /**
-       * Format: date-time 
+       * Format: date-time
        * @description Timestamp for when the agreement were created
        */
       timestamp_created: string;
@@ -49,7 +43,7 @@ export interface components {
       /** @description Guarantee that a payment occurs on one specified date if true */
       force_charge_date: boolean;
       /**
-       * Format: date-time 
+       * Format: date-time
        * @description The date the agreement is paused to
        */
       paused_until_date?: string;
@@ -59,13 +53,8 @@ export interface components {
       agreement_url_code: string;
     };
   };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
 }
 
-export type external = Record<string, never>;
+export interface operations {}
 
-export type operations = Record<string, never>;
+export interface external {}

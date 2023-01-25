@@ -3,13 +3,7 @@
  * Do not make direct changes to the file.
  */
 
-
-/** Type helpers */
-type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
-type XOR<T, U> = (T | U) extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
-type OneOf<T extends any[]> = T extends [infer Only] ? Only : T extends [infer A, infer B, ...infer Rest] ? OneOf<[XOR<A, B>, ...Rest]> : never;
-
-export type paths = Record<string, never>;
+export interface paths {}
 
 export interface components {
   schemas: {
@@ -36,17 +30,17 @@ export interface components {
       /** @description The KID number for the agreement */
       KID: string;
       /**
-       * Format: date-time 
+       * Format: date-time
        * @description The date for payment
        */
       payment_date: string;
       /**
-       * Format: date-time 
+       * Format: date-time
        * @description Timestamp for when the agreement were created
        */
       created: string;
       /**
-       * Format: date-time 
+       * Format: date-time
        * @description Timestamp for when the agreement were last updated
        */
       last_updated: string;
@@ -56,13 +50,8 @@ export interface components {
       full_name: string;
     };
   };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
 }
 
-export type external = Record<string, never>;
+export interface operations {}
 
-export type operations = Record<string, never>;
+export interface external {}

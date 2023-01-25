@@ -32,6 +32,9 @@ components:
         KID:
           type: string
           description: The customer identification for the donation. Uniquely identifies the donor and the donation distribution.
+        taxUnitId:
+          type: integer
+          description: The id of the tax unit the donation is connected to
         registered:
           type: string
           format: date-time
