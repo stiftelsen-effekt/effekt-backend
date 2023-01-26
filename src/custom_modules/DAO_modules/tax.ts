@@ -51,11 +51,11 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
   const [aggregateYearlyDonations] = await DAO.execute<RowDataPacket[]>(
     `SELECT T.ID, YEAR(D.timestamp_confirmed) as year, SUM(D.sum_confirmed) as sum_donations
           FROM Tax_unit as T
-          INNER JOIN Combining_table as C ON C.Tax_unit_ID = T.ID
+          INNER JOIN (SELECT KID, Tax_unit_ID FROM Combining_table GROUP BY KID, Tax_unit_ID) C ON C.Tax_unit_ID = T.ID
           INNER JOIN Donations as D ON D.KID_fordeling = C.KID
-          WHERE T.Donor_ID = ?
+          WHERE T.Donor_ID = ? AND D.Donor_ID = ?
           GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
-    [donorId]
+    [donorId, donorId]
   );
 
   const taxDeductionRules = {
@@ -132,7 +132,7 @@ async function getByKID(KID: string): Promise<TaxUnit | null> {
     const [aggregateYearlyDonations] = await DAO.execute<RowDataPacket[]>(
       `SELECT T.ID, YEAR(D.timestamp_confirmed) as year, SUM(D.sum_confirmed) as sum_donations
               FROM Tax_unit as T
-              INNER JOIN Combining_table as C ON C.Tax_unit_ID = T.ID
+              INNER JOIN (SELECT KID, Tax_unit_ID FROM Combining_table GROUP BY KID, Tax_unit_ID) as C ON C.Tax_unit_ID = T.ID
               INNER JOIN Donations as D ON D.KID_fordeling = C.KID
               WHERE T.Donor_ID = ?
               GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
@@ -256,7 +256,10 @@ async function updateTaxUnit(id: number, taxUnit: TaxUnit): Promise<number> {
  * @param {TaxUnit} donorID The donor ID
  * @returns {number} The number of rows affected
  */
-async function updateKIDsMissingTaxUnit(taxUnitID: number, donorID: number): Promise<boolean> {
+async function updateKIDsMissingTaxUnit(
+  taxUnitID: number,
+  donorID: number
+): Promise<boolean> {
   const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
     `
       UPDATE Combining_table
@@ -267,7 +270,7 @@ async function updateKIDsMissingTaxUnit(taxUnitID: number, donorID: number): Pro
     [taxUnitID, donorID]
   );
 
-  return true
+  return true;
 }
 //endregion
 
