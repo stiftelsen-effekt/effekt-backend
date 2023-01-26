@@ -26,7 +26,7 @@ components:
         transactionCost:
           type: string
           description: The transaction cost of the donation in decimal format
-        method:
+        paymentMethod:
           type: string
           description: The payment method of the donation
         KID:
@@ -35,7 +35,7 @@ components:
         taxUnitId:
           type: integer
           description: The id of the tax unit the donation is connected to
-        registered:
+        timestamp:
           type: string
           format: date-time
           description: The timestamp of the donation

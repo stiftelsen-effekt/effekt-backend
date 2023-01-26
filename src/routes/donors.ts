@@ -448,14 +448,14 @@ router.get(
         .map((tu): TaxYearlyReportUnit[] => {
           let reportUnits: Array<TaxYearlyReportUnit> = [];
 
+          const matchingYear = tu.taxDeductions.find((td) => td.year === year);
+
           const ge = {
             id: tu.id,
             name: tu.name,
             ssn: tu.ssn,
-            sumDonations: tu.taxDeductions.find((td) => td.year === year)
-              .sumDonations,
-            taxDeduction: tu.taxDeductions.find((td) => td.year === year)
-              .taxDeduction,
+            sumDonations: matchingYear ? matchingYear.sumDonations : 0,
+            taxDeduction: matchingYear ? matchingYear.taxDeduction : 0,
             channel: "Gi Effektivt",
           };
 
@@ -483,6 +483,13 @@ router.get(
         })
         .flat();
 
+      const cryptoDonationsInYear = donations.filter((d) => {
+        return (
+          new Date(d.timestamp).getFullYear() === year &&
+          d.paymentMethod === "Crypto"
+        );
+      });
+
       const reports: Array<TaxReport> = [
         {
           year: year,
@@ -508,7 +515,7 @@ router.get(
                 .filter((donation) => {
                   return (
                     donation.taxUnitId === null &&
-                    new Date(donation.registered).getFullYear() === year
+                    new Date(donation.timestamp).getFullYear() === year
                   );
                 })
                 .reduce((a, b) => a + parseFloat(b.sum), 0),
@@ -526,6 +533,17 @@ router.get(
             }
             return acc;
           }, []),
+          sumNonDeductibleDonationsByType:
+            cryptoDonationsInYear.length > 0
+              ? [
+                  {
+                    type: "Crypto",
+                    sumNonDeductibleDonations: cryptoDonationsInYear
+                      .map((d) => parseFloat(d.sum))
+                      .reduce((a, b) => a + b),
+                  },
+                ]
+              : [],
         },
       ];
 
@@ -634,7 +652,7 @@ router.post(
         // if this is the first tax unit created for the donor (also counts archived tax units)
         if (taxUnits.length === 1) {
           // Update the donor's KID numbers missing a tax unit
-          await DAO.tax.updateKIDsMissingTaxUnit(taxUnitId, donor.id)
+          await DAO.tax.updateKIDsMissingTaxUnit(taxUnitId, donor.id);
         }
 
         return res.json({

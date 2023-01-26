@@ -53,9 +53,9 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
           FROM Tax_unit as T
           INNER JOIN (SELECT KID, Tax_unit_ID FROM Combining_table GROUP BY KID, Tax_unit_ID) C ON C.Tax_unit_ID = T.ID
           INNER JOIN Donations as D ON D.KID_fordeling = C.KID
-          WHERE T.Donor_ID = ? AND D.Donor_ID = ?
+          WHERE T.Donor_ID = ? AND D.Payment_ID <> 10
           GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
-    [donorId, donorId]
+    [donorId]
   );
 
   const taxDeductionRules = {
@@ -134,7 +134,7 @@ async function getByKID(KID: string): Promise<TaxUnit | null> {
               FROM Tax_unit as T
               INNER JOIN (SELECT KID, Tax_unit_ID FROM Combining_table GROUP BY KID, Tax_unit_ID) as C ON C.Tax_unit_ID = T.ID
               INNER JOIN Donations as D ON D.KID_fordeling = C.KID
-              WHERE T.Donor_ID = ?
+              WHERE T.Donor_ID = ? AND D.Payment_ID <> 10
               GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
       [donor.id]
     );

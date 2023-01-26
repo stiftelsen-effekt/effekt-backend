@@ -48,6 +48,13 @@ export interface components {
         /** @description The sum of all donations for the tax unit for the year and channel */
         sumTaxDeductions?: number;
       }[];
+      /** @description The sum of all non deductible donations for the year and type */
+      sumNonDeductibleDonationsByType?: {
+        /** @description The type of non deductible donation */
+        type?: string;
+        /** @description The sum of all non deductible donations for the year and type */
+        sumNonDeductibleDonations?: number;
+      }[];
       /** @description The sum of all tax deductions for the year */
       sumTaxDeductions?: number;
     };

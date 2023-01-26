@@ -36,6 +36,18 @@ components:
                 type: number
                 description: The sum of all donations for the tax unit for the year and channel
           description: The sum of all tax deductions for the year and channel
+        sumNonDeductibleDonationsByType:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                description: The type of non deductible donation
+              sumNonDeductibleDonations:
+                type: number
+                description: The sum of all non deductible donations for the year and type
+          description: The sum of all non deductible donations for the year and type
         sumTaxDeductions:
           type: number
           description: The sum of all tax deductions for the year
