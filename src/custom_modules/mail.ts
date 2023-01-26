@@ -773,7 +773,7 @@ export async function sendOcrBackup(fileContents) {
   var data = {
     from: "Gi Effektivt <donasjon@gieffektivt.no>",
     to: "hakon.harnes@effektivaltruisme.no",
-    bcc: "donasjon@gieffektivt.no",
+    bcc: "kopi@gieffektivt.no",
     subject: "OCR backup",
     text: fileContents.toString(),
     inline: [],
@@ -819,7 +819,7 @@ async function send(options) {
   var data = {
     from: "Gi Effektivt <donasjon@gieffektivt.no>",
     to: options.reciever,
-    bcc: "donasjon@gieffektivt.no",
+    bcc: "kopi@gieffektivt.no",
     subject: options.subject,
     text: "Your mail client does not support HTML email",
     html: templateHTML,
