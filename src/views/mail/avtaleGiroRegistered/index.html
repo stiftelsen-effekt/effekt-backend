@@ -1,0 +1,365 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>A Simple Responsive HTML Email</title>
+    <style type="text/css">
+      body {
+        margin: 0;
+        padding: 0;
+        min-width: 100% !important;
+      }
+      img {
+        height: auto;
+        min-width: 100%;
+      }
+      .content {
+        width: 100%;
+        max-width: 600px;
+      }
+      .innerpadding {
+        padding: 30px 30px 30px 30px;
+      }
+      .borderbottom {
+        border-bottom: 1px solid #000;
+      }
+      .subhead {
+        font-size: 15px;
+        color: #ffffff;
+        font-family: sans-serif;
+        letter-spacing: 10px;
+      }
+      .h1,
+      .h2,
+      .h3,
+      .h4,
+      .bodycopy,
+      .boldTableRow,
+      .tableRow {
+        color: #153643;
+        font-family: sans-serif;
+      }
+      .h1 {
+        font-size: 33px;
+        line-height: 38px;
+        font-weight: bold;
+      }
+      .h2 {
+        padding: 0 0 15px 0;
+        font-size: 24px;
+        line-height: 28px;
+        font-weight: bold;
+      }
+      .h3 {
+        padding: 0 0 15px 0;
+        font-size: 18px;
+        line-height: 26px;
+        font-weight: bold;
+      }
+      .h4 {
+        padding: 0 0 15px 0;
+        font-size: 16px;
+        line-height: 19px;
+        font-weight: bold;
+      }
+      .boldTableRow {
+        padding: 0 0 0 0;
+        font-size: 16px;
+        line-height: 22px;
+        font-weight: bold;
+      }
+      .tableRow {
+        padding: 0 0 10px 0;
+        font-size: 16px;
+        line-height: 22px;
+      }
+      .bodycopy {
+        font-size: 16px;
+        line-height: 22px;
+      }
+      .footer {
+        padding: 20px 30px 15px 30px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .footercopy {
+        font-family: sans-serif;
+        font-size: 16px;
+        color: #ffffff;
+      }
+      .footercopy a {
+        color: #ffffff;
+        text-decoration: underline;
+      }
+      .emailHeaderImage {
+        height: auto !important;
+        max-width: 600px !important;
+        width: 100% !important;
+      }
+      @media only screen and (max-width: 550px),
+        screen and (max-device-width: 550px) {
+        body[yahoo] .hide {
+          display: none !important;
+        }
+        body[yahoo] .buttonwrapper {
+          background-color: transparent !important;
+        }
+        body[yahoo] .button {
+          padding: 0px !important;
+        }
+        body[yahoo] .unsubscribe {
+          display: block;
+          margin-top: 20px;
+          padding: 10px 50px;
+          background: #8e8989;
+          border-radius: 5px;
+          text-decoration: none !important;
+          font-weight: bold;
+        }
+      }
+    </style>
+  </head>
+
+  <body yahoo bgcolor="#fafafa">
+    <table
+      width="100%"
+      bgcolor="#fafafa"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+    >
+      <tr>
+        <td>
+          <table
+            class="content"
+            bgcolor="#ffffff"
+            align="center"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+          >
+            <tr>
+              <td bgcolor="#000" class="header">
+                <table
+                  align="left"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="max-width: 640px; padding: 0 0 0 0"
+                >
+                  <tr>
+                    <td height="auto" style="padding: 0 0 0 0">
+                      <img
+                        class="emailHeaderImage"
+                        src="cid:epost_banner.jpg"
+                        border="0"
+                        alt="Gi Effektivt"
+                      />
+                    </td>
+                  </tr>
+                </table>
+                <!--[if (gte mso 9)|(IE)]>
+                  <table
+                    width="100%"
+                    style="max-width: 640px"
+                    align="center"
+                    cellpadding="0"
+                    cellspacing="0"
+                    border="0"
+                  >
+                    <tr>
+                      <td>
+                        <img
+                          src="images/epostmal_header_image.png"
+                          width="100%"
+                        />
+                      </td>
+                    </tr>
+                  </table>
+                <![endif]-->
+              </td>
+            </tr>
+            <tr>
+              <td class="innerpadding bodycopy">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td class="h2"><% this.header %></td>
+                  </tr>
+                  <tr>
+                    <td class="bodycopy">
+                      <span style="vertical-align: middle"
+                        >Tusen takk for du bidrar! Dette er en bekreftelse på at
+                        vi du har opprettet en AvtaleGiro på <% this.agreementSum %> kr hos oss med trekk den <% this.agreementDate %>.</span
+                      >
+                      <br /><br />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="bodycopy">
+                      <span style="vertical-align: middle"
+                        >Dersom du ønsker å endre eller avslutte avtalen kan du
+                        gjøre dette på
+                        <a
+                          href="https://gieffektivt.no/profile/"
+                          style="color: black"
+                          >Min Side</a
+                        >.</span
+                      >
+                      <br /><br />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="bodycopy">
+                      <span style="vertical-align: middle"
+                        ><strong
+                          >NB: Du trenger ikke betale. Beløpet vil bli
+                          automatisk trukket fra din konto ved forfall.</strong
+                        ></span
+                      >
+                      <br /><br />
+                    </td>
+                  </tr>
+                  <tr>
+                    <table border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td class="bodycopy">
+                          Vi har registrert følgende fordeling av din donasjon:
+                          <br />
+                          <br />
+                          <% for (var i = 0; i < organizations.length; i++) { %>
+                          <table
+                            width="100%"
+                            border="0"
+                            cellspacing="0"
+                            cellpadding="0"
+                          >
+                            <tr>
+                              <td>
+                                <table
+                                  width="275"
+                                  align="left"
+                                  border="0"
+                                  cellpadding="0"
+                                  cellspacing="0"
+                                >
+                                  <tr>
+                                    <td
+                                      style="
+                                        font-size: 14px;
+                                        font-weight: 600;
+                                        padding-right: 10px;
+                                      "
+                                    >
+                                      <% this.organizations[i].name %>
+                                    </td>
+                                  </tr>
+                                </table>
+                                <table
+                                  width="150"
+                                  align="left"
+                                  border="0"
+                                  cellpadding="0"
+                                  cellspacing="0"
+                                >
+                                  <tr>
+                                    <td class="tableRow">
+                                      <% this.organizations[i].amount %> kr (<% this.organizations[i].percentage %>%)
+                                    </td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                          </table>
+                          <% } %>
+
+                          <table
+                            width="100%"
+                            border="0"
+                            cellspacing="0"
+                            cellpadding="0"
+                          >
+                            <tr>
+                              <td>
+                                <table
+                                  width="275"
+                                  align="left"
+                                  border="0"
+                                  cellpadding="0"
+                                  cellspacing="0"
+                                >
+                                  <tr>
+                                    <td
+                                      style="
+                                        font-size: 14px;
+                                        font-weight: 600;
+                                        padding-right: 10px;
+                                      "
+                                    >
+                                      <strong>Totalt</strong>
+                                    </td>
+                                  </tr>
+                                </table>
+                                <table
+                                  width="150"
+                                  align="left"
+                                  border="0"
+                                  cellpadding="0"
+                                  cellspacing="0"
+                                >
+                                  <tr>
+                                    <td class="tableRow">
+                                      <% this.agreementSum %> kr
+                                    </td>
+                                  </tr>
+                                </table>
+
+                                <table
+                                  width="380"
+                                  align="left"
+                                  cellpadding="0"
+                                  cellspacing="0"
+                                  border="0"
+                                >
+                                  <tr>
+                                    <td>
+                                      <!--[endif]-->
+                                    </td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </tr>
+                  <tr>
+                    <td class="bodycopy">
+                      <span style="vertical-align: middle"
+                        >Vi dekker transaksjonskostnadene slik at 100% av
+                        din donasjon blir videreført etter ditt ønske.</span
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="bodycopy">
+                      <br />
+                      <% this.reusableHTML.taxDeductionInfo %> 
+                      <% this.reusableHTML.greeting %>
+                    </td>
+                  </tr>
+                </table>
+                <!--[if (gte mso 9)|(IE)]>
+                    </td>
+                    </tr>
+                    </table>
+                    <![endif]-->
+              </td>
+            </tr>
+            <% this.reusableHTML.footer %>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
