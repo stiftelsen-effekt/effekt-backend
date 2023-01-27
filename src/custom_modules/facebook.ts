@@ -36,7 +36,7 @@ export const postExternalDonation = async (
           .update(donation.donorId.toString())
           .digest("hex"),
         // Unix timestamp from ISO data using luxon
-        donation_time: luxon.DateTime.fromISO(donation.registered).toSeconds(),
+        donation_time: luxon.DateTime.fromISO(donation.timestamp).toSeconds(),
       }),
     }
   );
