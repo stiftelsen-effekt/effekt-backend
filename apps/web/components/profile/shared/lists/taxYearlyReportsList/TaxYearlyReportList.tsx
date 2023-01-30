@@ -11,6 +11,8 @@ import DonationsDistributionTable from "../../../donations/DonationsDistribution
 import { GenericList } from "../GenericList";
 import { ListRow } from "../GenericListRow";
 import style from "./TaxYearlyReportList.module.scss";
+import { TaxYearlyReportListBody } from "./TaxYearlyReportListBody";
+import { TaxYearlyReportListSupplemental } from "./TaxYearlyReportListSupplemental";
 
 export const TaxYearlyReportList: React.FC<{
   report: TaxYearlyReport;
@@ -61,40 +63,11 @@ export const TaxYearlyReportList: React.FC<{
   }));
 
   const rows: ListRow<TaxYearlyReportUnits | TaxYearlyReportMissingTaxUnitDonations>[] = [
-    ...rowsMissingTaxUnits,
     ...rowsUnits,
+    ...rowsMissingTaxUnits,
   ];
 
   const emptyPlaceholder = <div>EMPTY PLACEHOLDER</div>;
-
-  const supplementalInformation = (
-    <>
-      <div className={style.printLink} onClick={() => window.print()}>
-        <FileText size={"1rem"} />
-        <span>Skriv ut</span>
-      </div>
-      <div className={style.impactWrapper}>
-        <DonationsDistributionTable
-          donations={donations}
-          distributionMap={distribtionMap}
-        ></DonationsDistributionTable>
-      </div>
-      <div className={style.summation}>
-        <h3>{thousandize(report.sumTaxDeductions)} kr</h3>
-        <span>Totalt sum donert i 2022 som er skattefradragsgodkjent</span>
-      </div>
-      <div className={style.taxMessageInfo}>
-        <span>
-          Beløpet vil være registrert i skattemeldingen når du får den (Gave og arv → Gave til
-          frivillige organisasjoner).
-        </span>
-      </div>
-      <div className={style.orgInfo}>
-        <strong>Effektiv Altruisme Norge</strong>
-        <span> Org.nr 919 809 140</span>
-      </div>
-    </>
-  );
 
   return (
     <GenericList
@@ -103,43 +76,16 @@ export const TaxYearlyReportList: React.FC<{
       rows={rows}
       emptyPlaceholder={emptyPlaceholder}
       expandable={false}
-      supplementalInformation={supplementalInformation}
+      supplementalInformation={
+        <TaxYearlyReportListSupplemental
+          report={report}
+          donations={donations}
+          distribtionMap={distribtionMap}
+        />
+      }
       proportions={[30, 60]}
     >
-      <>
-        <table className={style.summaryTable}>
-          <tbody>
-            {report.sumTaxDeductionsByChannel.map((channel) => (
-              <tr key={channel.channel}>
-                <td>{channel.channel}</td>
-                <td>{thousandize(channel.sumTaxDeductions)} kr</td>
-              </tr>
-            ))}
-            <tr>
-              <td>Totalt</td>
-              <td>{thousandize(report.sumTaxDeductions)} kr</td>
-            </tr>
-          </tbody>
-        </table>
-
-        {report.sumNonDeductibleDonationsByType.length > 0 && (
-          <table className={style.nonDeductibleDonationsTable}>
-            <thead>
-              <tr>
-                <th colSpan={2}>Donasjoner som ikke er fradragsgodkjente</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.sumNonDeductibleDonationsByType.map((nondeductible) => (
-                <tr key={nondeductible.type}>
-                  <td>{nondeductible.type}</td>
-                  <td>{thousandize(nondeductible.sumNonDeductibleDonations)} kr</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </>
+      <TaxYearlyReportListBody report={report} />
     </GenericList>
   );
 };
