@@ -444,44 +444,49 @@ router.get(
        */
       const year = 2022;
 
-      const yearlyreportunits = taxUnits
-        .map((tu): TaxYearlyReportUnit[] => {
-          let reportUnits: Array<TaxYearlyReportUnit> = [];
-
-          const matchingYear = tu.taxDeductions.find((td) => td.year === year);
-
-          const ge = {
-            id: tu.id,
-            name: tu.name,
-            ssn: tu.ssn,
-            sumDonations: matchingYear ? matchingYear.sumDonations : 0,
-            taxDeduction: matchingYear ? matchingYear.taxDeduction : 0,
-            channel: "Gi Effektivt",
-          };
-
-          const matchingFundsDonations = eaFundsDonations.filter(
+      const yearlyreportunits = taxUnits.map((tu): TaxYearlyReportUnit => {
+        const fundsSumForUnit = eaFundsDonations
+          .filter(
             (d) =>
-              d.taxUnitId === tu.id &&
-              new Date(d.timestamp).getFullYear() === year
-          );
-          if (matchingFundsDonations.length > 0) {
-            const sum = matchingFundsDonations
-              .map((d) => d.sum)
-              .reduce((a, b) => a + b);
-            const taxDeduction = Math.min(25000, sum);
+              new Date(d.timestamp).getFullYear() === year &&
+              d.taxUnitId === tu.id
+          )
+          .reduce((acc, item) => acc + parseFloat(item.sum), 0);
 
-            reportUnits.push({
-              ...ge,
-              sumDonations: sum,
-              taxDeduction: taxDeduction,
-              channel: "EAN Giverportal",
-            });
-          }
+        const geSumForYear = tu.taxDeductions.find((d) => d.year === year)
+          .sumDonations
+          ? parseFloat(
+              tu.taxDeductions.find((d) => d.year === year).sumDonations
+            )
+          : 0;
 
-          reportUnits.push(ge);
-          return reportUnits;
-        })
-        .flat();
+        const completeSum = geSumForYear + fundsSumForUnit;
+
+        let reportUnit: TaxYearlyReportUnit = {
+          id: tu.id,
+          name: tu.name,
+          ssn: tu.ssn,
+          sumDonations: completeSum,
+          taxDeduction: Math.min(completeSum, 25000),
+          channels: [],
+        };
+
+        if (parseFloat(tu.sumDonations) > 0) {
+          reportUnit.channels.push({
+            channel: "Gi Effektivt",
+            sumDonations: geSumForYear,
+          });
+        }
+
+        if (fundsSumForUnit > 0) {
+          reportUnit.channels.push({
+            channel: "EAN Giverportal",
+            sumDonations: fundsSumForUnit,
+          });
+        }
+
+        return reportUnit;
+      });
 
       const cryptoDonationsInYear = donations.filter((d) => {
         return (
@@ -490,49 +495,47 @@ router.get(
         );
       });
 
+      const sumGeDonationsWithoutTaxUnit = donations
+        .filter((d) => {
+          return (
+            new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null
+          );
+        })
+        .reduce((acc, item) => acc + parseFloat(item.sum), 0);
+
+      const sumEanDOnationsWithoutTaxUnit = eaFundsDonations
+        .filter((d) => {
+          return (
+            new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null
+          );
+        })
+        .reduce((acc, item) => acc + parseFloat(item.sum), 0);
+
       const reports: Array<TaxReport> = [
         {
           year: year,
           units: yearlyreportunits,
+          sumDonations: yearlyreportunits.reduce(
+            (a, b) => a + b.sumDonations,
+            0
+          ),
           sumTaxDeductions: yearlyreportunits
             .map((u) => u.taxDeduction)
             .reduce((a, b) => a + b),
-          sumDonationsWithoutTaxUnitByChannel: [
-            {
-              channel: "EAN Giverportal",
-              sumDonationsWithoutTaxUnit: eaFundsDonations
-                .filter((donation) => {
-                  return (
-                    donation.taxUnitId === null &&
-                    new Date(donation.timestamp).getFullYear() === year
-                  );
-                })
-                .reduce((a, b) => a + b.sum, 0),
-            },
-            {
-              channel: "Gi Effektivt",
-              sumDonationsWithoutTaxUnit: donations
-                .filter((donation) => {
-                  return (
-                    donation.taxUnitId === null &&
-                    new Date(donation.timestamp).getFullYear() === year
-                  );
-                })
-                .reduce((a, b) => a + parseFloat(b.sum), 0),
-            },
-          ],
-          sumTaxDeductionsByChannel: yearlyreportunits.reduce((acc, cur) => {
-            let channelSums = acc.find((a) => a.channel === cur.channel);
-            if (channelSums) {
-              channelSums.sumTaxDeductions += cur.taxDeduction;
-            } else {
-              acc.push({
-                channel: cur.channel,
-                sumTaxDeductions: cur.taxDeduction,
-              });
-            }
-            return acc;
-          }, []),
+          sumDonationsWithoutTaxUnit: {
+            sumDonations:
+              sumGeDonationsWithoutTaxUnit + sumEanDOnationsWithoutTaxUnit,
+            channels: [
+              {
+                channel: "Gi Effektivt",
+                sumDonations: sumGeDonationsWithoutTaxUnit,
+              },
+              {
+                channel: "EAN Giverportal",
+                sumDonations: sumEanDOnationsWithoutTaxUnit,
+              },
+            ],
+          },
           sumNonDeductibleDonationsByType:
             cryptoDonationsInYear.length > 0
               ? [

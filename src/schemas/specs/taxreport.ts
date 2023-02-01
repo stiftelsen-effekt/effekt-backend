@@ -17,13 +17,29 @@ export interface components {
      *       "ssn": 919809140,
      *       "sumDonations": 100000,
      *       "taxDeduction": 25000,
-     *       "channel": "Gi Effektivt"
+     *       "channels": [
+     *         {
+     *           "channel": "Gi Effektivt",
+     *           "sumDonations": 100000
+     *         }
+     *       ]
      *     }
      *   ],
-     *   "sumTaxDeductionsByChannel": [
+     *   "sumDonationsWithoutTaxUnit": [
      *     {
-     *       "channel": "Gi Effektivt",
-     *       "sumTaxDeductions": 25000
+     *       "sumDonations": 100000,
+     *       "channels": [
+     *         {
+     *           "channel": "Gi Effektivt",
+     *           "sumDonations": 100000
+     *         }
+     *       ]
+     *     }
+     *   ],
+     *   "sumNonDeductibleDonationsByType": [
+     *     {
+     *       "type": "Crypto",
+     *       "sumNonDeductibleDonations": 100000
      *     }
      *   ],
      *   "sumTaxDeductions": 25000
@@ -31,32 +47,32 @@ export interface components {
      */
     TaxReport: {
       /** @description The year the report is for */
-      year?: number;
+      year: number;
       /** @description The tax units for the year */
-      units?: components["schemas"]["TaxYearlyReportUnit"][];
+      units: components["schemas"]["TaxYearlyReportUnit"][];
       /** @description The sum of all donations for the year not connected to a tax unit */
-      sumDonationsWithoutTaxUnitByChannel?: {
-        /** @description The channel (or entity the donations where given to) for the year */
-        channel?: string;
-        /** @description The sum of all donations for the year not connected to a tax unit for a given channel */
-        sumDonationsWithoutTaxUnit?: number;
-      }[];
-      /** @description The sum of all tax deductions for the year and channel */
-      sumTaxDeductionsByChannel?: {
-        /** @description The channel (or entity the donations where given to) for the tax unit for the year and channel */
-        channel?: string;
-        /** @description The sum of all donations for the tax unit for the year and channel */
-        sumTaxDeductions?: number;
-      }[];
+      sumDonationsWithoutTaxUnit: {
+        /** @description The sum of all donations for the year not connected to a tax unit */
+        sumDonations: number;
+        /** @description The channels for the year */
+        channels: {
+          /** @description The channel (or entity the donations where given to) for the year and channel */
+          channel: string;
+          /** @description The sum of all donations for the year and channel */
+          sumDonations: number;
+        }[];
+      };
       /** @description The sum of all non deductible donations for the year and type */
-      sumNonDeductibleDonationsByType?: {
+      sumNonDeductibleDonationsByType: {
         /** @description The type of non deductible donation */
-        type?: string;
+        type: string;
         /** @description The sum of all non deductible donations for the year and type */
-        sumNonDeductibleDonations?: number;
+        sumNonDeductibleDonations: number;
       }[];
       /** @description The sum of all tax deductions for the year */
-      sumTaxDeductions?: number;
+      sumTaxDeductions: number;
+      /** @description The sum of all donations for the year */
+      sumDonations: number;
     };
     /**
      * @example {
@@ -70,17 +86,22 @@ export interface components {
      */
     TaxYearlyReportUnit: {
       /** @description The Auto-generated id for a tax unit */
-      id?: number;
+      id: number;
       /** @description Full name of the tax unit (either a personal name or a business entity) */
-      name?: string;
+      name: string;
       /** @description Either a personal number or the number for the business entity */
-      ssn?: string;
+      ssn: string;
       /** @description The sum of all donations for the tax unit for the year and channel */
-      sumDonations?: number;
+      sumDonations: number;
       /** @description The tax deduction for the tax unit for the year and channel */
-      taxDeduction?: number;
-      /** @description The channel (or entity the donations where given to) for the tax unit for the year and channel */
-      channel?: string;
+      taxDeduction: number;
+      /** @description The channels for the tax unit for the year */
+      channels: {
+        /** @description The channel (or entity the donations where given to) for the tax unit for the year and channel */
+        channel: string;
+        /** @description The sum of all donations for the tax unit for the year and channel */
+        sumDonations: number;
+      }[];
     };
   };
 }

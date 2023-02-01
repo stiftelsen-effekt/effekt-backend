@@ -118,7 +118,7 @@ DAO.connect(() => {
     res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
+      "Content-Type, Authorization, baggage, sentry-trace"
     );
     res.setHeader(
       "Access-Control-Allow-Methods",
@@ -182,7 +182,13 @@ DAO.connect(() => {
   app.use(errorHandler);
 
   mainServer.listen(config.port, config.host, () => {
-    console.log("Main http server listening on http://" + config.host + ":" + config.port + " 📞");
+    console.log(
+      "Main http server listening on http://" +
+        config.host +
+        ":" +
+        config.port +
+        " 📞"
+    );
 
     console.log("Don't Panic. 🐬");
     console.log("---");

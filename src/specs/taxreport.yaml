@@ -3,6 +3,13 @@ components:
   schemas:
     TaxReport:
       type: object
+      required:
+        - year
+        - units
+        - sumDonationsWithoutTaxUnit
+        - sumNonDeductibleDonationsByType
+        - sumTaxDeductions
+        - sumDonations
       properties:
         year:
           type: integer
@@ -12,34 +19,38 @@ components:
           items:
             $ref: "#/components/schemas/TaxYearlyReportUnit"
           description: The tax units for the year
-        sumDonationsWithoutTaxUnitByChannel:
-          type: array
-          items:
-            type: object
-            properties:
-              channel:
-                type: string
-                description: The channel (or entity the donations where given to) for the year
-              sumDonationsWithoutTaxUnit:
-                type: number
-                description: The sum of all donations for the year not connected to a tax unit for a given channel
+        sumDonationsWithoutTaxUnit:
+          type: object
+          required:
+            - sumDonations
+            - channels
+          properties:
+            sumDonations:
+              type: number
+              description: The sum of all donations for the year not connected to a tax unit
+            channels:
+              type: array
+              items:
+                type: object
+                required:
+                  - channel
+                  - sumDonations
+                properties:
+                  channel:
+                    type: string
+                    description: The channel (or entity the donations where given to) for the year and channel
+                  sumDonations:
+                    type: number
+                    description: The sum of all donations for the year and channel
+              description: The channels for the year
           description: The sum of all donations for the year not connected to a tax unit
-        sumTaxDeductionsByChannel:
-          type: array
-          items:
-            type: object
-            properties:
-              channel:
-                type: string
-                description: The channel (or entity the donations where given to) for the tax unit for the year and channel
-              sumTaxDeductions:
-                type: number
-                description: The sum of all donations for the tax unit for the year and channel
-          description: The sum of all tax deductions for the year and channel
         sumNonDeductibleDonationsByType:
           type: array
           items:
             type: object
+            required:
+              - type
+              - sumNonDeductibleDonations
             properties:
               type:
                 type: string
@@ -51,6 +62,9 @@ components:
         sumTaxDeductions:
           type: number
           description: The sum of all tax deductions for the year
+        sumDonations:
+          type: number
+          description: The sum of all donations for the year
       example:
         year: 2019
         units:
@@ -59,13 +73,27 @@ components:
             ssn: 919809140
             sumDonations: 100000
             taxDeduction: 25000
-            channel: "Gi Effektivt"
-        sumTaxDeductionsByChannel:
-          - channel: "Gi Effektivt"
-            sumTaxDeductions: 25000
+            channels:
+              - channel: "Gi Effektivt"
+                sumDonations: 100000
+        sumDonationsWithoutTaxUnit:
+          - sumDonations: 100000
+            channels:
+              - channel: "Gi Effektivt"
+                sumDonations: 100000
+        sumNonDeductibleDonationsByType:
+          - type: "Crypto"
+            sumNonDeductibleDonations: 100000
         sumTaxDeductions: 25000
     TaxYearlyReportUnit:
       type: object
+      required:
+        - id
+        - name
+        - ssn
+        - sumDonations
+        - taxDeduction
+        - channels
       properties:
         id:
           type: integer
@@ -82,9 +110,21 @@ components:
         taxDeduction:
           type: number
           description: The tax deduction for the tax unit for the year and channel
-        channel:
-          type: string
-          description: The channel (or entity the donations where given to) for the tax unit for the year and channel
+        channels:
+          type: array
+          items:
+            type: object
+            required:
+              - channel
+              - sumDonations
+            properties:
+              channel:
+                type: string
+                description: The channel (or entity the donations where given to) for the tax unit for the year and channel
+              sumDonations:
+                type: number
+                description: The sum of all donations for the tax unit for the year and channel
+          description: The channels for the tax unit for the year
       example:
         id: 984
         name: Overlook Hotel Logistics Ltd.
