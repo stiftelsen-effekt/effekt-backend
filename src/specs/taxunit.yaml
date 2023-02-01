@@ -29,7 +29,7 @@ components:
           format: date-time
           description: Indicates the date the unit was archived. Null if the unit is not archived
         sumDonations:
-          type: number
+          type: string
           description: The sum of all donations for the tax unit for the year
         numDonations:
           type: integer
@@ -43,7 +43,7 @@ components:
                 type: integer
                 description: The year the tax deduction is for
               sumDonations:
-                type: number
+                type: string
                 description: The sum of all donations for the tax unit for the year
               taxDeduction:
                 type: number

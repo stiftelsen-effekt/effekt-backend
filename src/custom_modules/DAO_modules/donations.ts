@@ -779,7 +779,7 @@ async function getEAFundsDonations(donorId: number): Promise<
     id: number;
     donorId: number;
     taxUnitId: number;
-    sum: number;
+    sum: string;
     timestamp: string;
     paymentExternalId: string;
   }>

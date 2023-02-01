@@ -61,7 +61,7 @@ export interface components {
        */
       archived?: string;
       /** @description The sum of all donations for the tax unit for the year */
-      sumDonations?: number;
+      sumDonations?: string;
       /** @description The number of donations for the tax unit for the year */
       numDonations?: number;
       /** @description The tax deductions for the tax unit */
@@ -69,7 +69,7 @@ export interface components {
         /** @description The year the tax deduction is for */
         year?: number;
         /** @description The sum of all donations for the tax unit for the year */
-        sumDonations?: number;
+        sumDonations?: string;
         /** @description The tax deduction for the tax unit for the year */
         taxDeduction?: number;
       }[];
