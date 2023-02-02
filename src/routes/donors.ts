@@ -521,7 +521,7 @@ router.get(
           ),
           sumTaxDeductions: yearlyreportunits
             .map((u) => u.taxDeduction)
-            .reduce((a, b) => a + b),
+            .reduce((a, b) => a + b, 0),
           sumDonationsWithoutTaxUnit: {
             sumDonations:
               sumGeDonationsWithoutTaxUnit + sumEanDOnationsWithoutTaxUnit,
@@ -543,7 +543,7 @@ router.get(
                     type: "Crypto",
                     sumNonDeductibleDonations: cryptoDonationsInYear
                       .map((d) => parseFloat(d.sum))
-                      .reduce((a, b) => a + b),
+                      .reduce((a, b) => a + b, 0),
                   },
                 ]
               : [],
