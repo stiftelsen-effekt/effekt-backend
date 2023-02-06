@@ -454,9 +454,9 @@ router.get(
           .reduce((acc, item) => acc + parseFloat(item.sum), 0);
 
         const geSumForYear = tu.taxDeductions.find((d) => d.year === year)
-          .sumDonations
+          ?.sumDonations
           ? parseFloat(
-              tu.taxDeductions.find((d) => d.year === year).sumDonations
+              tu.taxDeductions.find((d) => d.year === year)?.sumDonations ?? "0"
             )
           : 0;
 
