@@ -212,6 +212,63 @@ async function getByDonorIdAndSsn(
     return mapped;
   } else return null;
 }
+
+export type EmailTaxUnitReport = {
+  email: string;
+  name: string;
+  units: [{ name: string; sum: number }];
+};
+async function getReportsWithUserOnProfilePage(): Promise<
+  EmailTaxUnitReport[]
+> {
+  const [result] = await DAO.execute<RowDataPacket[]>(`
+    SELECT TaxUnitName, \`SUM(sum_confirmed)\` as DonationsSum, DonorUserEmail, DonorUserName FROM v_Tax_deductions
+      WHERE (SELECT COUNT(*) FROM Auth0_users WHERE Email = DonorUserEmail) = 1
+  `);
+
+  const mapped: EmailTaxUnitReport[] = [];
+  for (const row of result) {
+    const existing = mapped.find((m) => m.email === row.DonorUserEmail);
+
+    if (existing) {
+      existing.units.push({ name: row.TaxUnitName, sum: row.DonationsSum });
+    } else {
+      mapped.push({
+        email: row.DonorUserEmail,
+        name: row.DonorUserName,
+        units: [{ name: row.TaxUnitName, sum: Math.round(row.DonationsSum) }],
+      });
+    }
+  }
+
+  return mapped;
+}
+
+async function getReportsWithoutUserOnProfilePage(): Promise<
+  EmailTaxUnitReport[]
+> {
+  const [result] = await DAO.execute<RowDataPacket[]>(`
+    SELECT TaxUnitName, \`SUM(sum_confirmed)\` as DonationsSum, DonorUserEmail, DonorUserName FROM v_Tax_deductions
+        WHERE (SELECT COUNT(*) FROM Auth0_users WHERE Email = DonorUserEmail) = 0
+  `);
+
+  const mapped: EmailTaxUnitReport[] = [];
+  for (const row of result) {
+    const existing = mapped.find((m) => m.email === row.DonorUserEmail);
+
+    if (existing) {
+      existing.units.push({ name: row.TaxUnitName, sum: row.DonationsSum });
+    } else {
+      mapped.push({
+        email: row.DonorUserEmail,
+        name: row.DonorUserName,
+        units: [{ name: row.TaxUnitName, sum: Math.round(row.DonationsSum) }],
+      });
+    }
+  }
+
+  return mapped;
+}
 //endregion
 
 //region Modify
@@ -436,6 +493,8 @@ export const tax = {
   getByDonorId,
   getByKID,
   getByDonorIdAndSsn,
+  getReportsWithUserOnProfilePage,
+  getReportsWithoutUserOnProfilePage,
   updateKIDsMissingTaxUnit,
   addTaxUnit,
   updateTaxUnit,

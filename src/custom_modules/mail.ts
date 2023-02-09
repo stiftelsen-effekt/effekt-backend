@@ -1,4 +1,5 @@
 import { DAO } from "./DAO";
+import { EmailTaxUnitReport } from "./DAO_modules/tax";
 
 const config = require("../config.js");
 const moment = require("moment");
@@ -823,6 +824,76 @@ export async function sendAvtalegiroRegistered(agreement) {
     return true;
   } catch (ex) {
     console.error("Failed to send AvtaleGiro registered");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+export async function sendTaxYearlyReportNoticeWithUser(
+  report: EmailTaxUnitReport
+) {
+  const formattedUnits = report.units.map((u) => {
+    return {
+      ...u,
+      sum: formatCurrency(u.sum),
+    };
+  });
+
+  try {
+    await send({
+      reciever: report.email,
+      subject: `Gi Effektivt - Årsoppgave for 2022`,
+      templateName: "taxDeductionUser",
+      templateData: {
+        header:
+          "Hei" +
+          (report.name && report.name.length > 0 ? " " + report.name : "") +
+          ",",
+        year: 2022,
+        units: formattedUnits,
+        donorEmail: report.email,
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send tax yearly report notice");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+export async function sendTaxYearlyReportNoticeNoUser(
+  report: EmailTaxUnitReport
+) {
+  const formattedUnits = report.units.map((u) => {
+    return {
+      ...u,
+      sum: formatCurrency(u.sum),
+    };
+  });
+
+  try {
+    await send({
+      reciever: report.email,
+      subject: `Gi Effektivt - Årsoppgave for 2022`,
+      templateName: "taxDeductionNoUser",
+      templateData: {
+        header:
+          "Hei" +
+          (report.name && report.name.length > 0 ? " " + report.name : "") +
+          ",",
+        year: 2022,
+        units: formattedUnits,
+        donorEmail: report.email,
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send tax yearly report notice");
     console.error(ex);
     return ex.statusCode;
   }

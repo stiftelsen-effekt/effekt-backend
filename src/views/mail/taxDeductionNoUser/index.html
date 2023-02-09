@@ -70,102 +70,89 @@
                                 </td>
                             </tr>
                             <tr>
+                                <td>
                                 <table border="0" cellspacing="0" cellpadding="0">
                                     <tr>
                                         <td class="bodycopy">
                                             Takk for dine donasjoner i <% this.year %>! Følgende beløp er nå registrert for skattefradrag: 
                                             <br><br/>
                                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                <% for (var i = 0; i < this.units.length; i++) { %>
                                                 <tr>
                                                     <td>
-                                                        <table width="120" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                        <table align="left" border="0" cellpadding="0" cellspacing="0">
                                                             <tr>
-                                                                <td style="font-size: 14px; font-weight: 600;">
-                                                                    <strong>Totalt</strong>
+                                                                <td style="font-size: 14px; font-weight: 600; padding-right: 10px;">
+                                                                    <strong><% this.units[i].name %></strong>
                                                                 </td>
                                                             </tr>
                                                         </table>
-                                                        <table width="200" align="left" border="0" cellpadding="0" cellspacing="0">
+                                                        <table align="left" border="0" cellpadding="0" cellspacing="0">
                                                             <tr>
                                                                 <td class="tableRow">
-                                                                    <% this.donationSum %> kr
+                                                                    <% this.units[i].sum %> kr
                                                                 </td>
                                                             </tr>
                                                         </table>
                                                     </td>
                                                 </tr>
-                                                <tr>
-                                                    <td>
-                                                        <table width="120" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                            <tr>
-                                                                <td style="font-size: 14px; font-weight: 600;">
-                                                                    <strong>Fullt navn</strong>
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                        <table width="200" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                            <tr>
-                                                                <td class="tableRow">
-                                                                    <% this.fullname %>
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <table width="120" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                            <tr>
-                                                                <td style="font-size: 14px; font-weight: 600;">
-                                                                    <strong>Fødsels-/Organisasjonsnummer</strong>
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                        <table width="200" align="left" border="0" cellpadding="0" cellspacing="0">
-                                                            <tr>
-                                                                <td class="tableRow">
-                                                                    <% this.ssn %>
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                    </td>
-                                                </tr>
+                                                <% } %>
                                             </table>
                                         </td>
                                     </tr>
                                 </table>
+                                <br>
+                                </td>
                             </tr>
-                        <tr>
-                            <td class="innerpadding bodycopy">
-                                Beløpet er registrert hos Skatteetaten og skattefradraget (22% av alle dine registrerte donasjoner opp til maksimalt beløp, som for 2022 er 25 000 kroner) vil automatisk dukke opp på din skattemelding (post 3.3.7). Vi håper dette gjør at du får lyst til å donere enda mer gjennom oss i år. 
-                                Du kan lese mer om <a href= "https://www.gieffektivt.no/skattefradrag" style="color: #000000;">skattefradrag på våre nettsider</a>.<br/><br/>
-                                
-                                Vi håper du vil fortsette å støtte våre anbefalte formål også i år.
-                                Du finner mer informasjon på vår nettside 
-                                <a href= "www.gieffektivt.no" style="color: #000000;"" width="100%">www.gieffektivt.no</a>.<br/><br />
+                            <tr>
+                                <td style="border-top: 1px solid #000; padding-top: 20px;">
+                                    <table border="0" cellspacing="0" cellpadding="0">
+                                        <tr>
+                                            <td class="bodycopy">
+                                                Du kan logge inn på <a href="https://gieffektivt.no/min-side" style="color: #000000">Min side</a> for å se årsoppgaven din. Vi har ingen bruker registrert på denne eposten på Min side. Det betyr at du er nødt til å opprette en bruker for å se årsoppgaven din.
+                                                <ol>
+                                                    <li>Registrer en ny bruker for eposten donasjonene er knyttet til: <br><% this.donorEmail %><br> Bruk <a href="https://gieffektivt.no/min-side?screen_hint=signup&prompt=login" style="color: #000000;">denne lenken</a> eller naviger til <a href="https://gieffektivt.no/" style="color: #000000;">https://gieffektivt.no/</a> og klikk på Min side i menyen.</li>
+                                                    <li>Verifiser eposten din etter registrering. <br/>Det kan ta noen minutter før eposten kommer i inboksen din. <br/>Sjekk gjerne spam mappen om det tar lang tid.</li>
+                                                    <li>Logg inn på Min side med eposten og passordet du nettopp opprettet.</li>
+                                                    <li>Klikk på "skatt" i menyen.</li>
+                                                    <li>Klikk på "årsoppgaver" i undermenyen.</li>
+                                                </ol>
+                                                Har du spørsmål eller trenger hjelp, kan du kontakte oss på <a href="mailto:donasjon@gieffektivt.no" style="color: #000000;">donasjon@gieffektivt.no</a>.<br><br>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="bodycopy">
+                                    Beløpet er registrert hos Skatteetaten og skattefradraget (22% av alle dine registrerte donasjoner opp til maksimalt beløp, som for 2022 er 25 000 kroner) vil automatisk dukke opp på din skattemelding (Gave og arv → Gave til frivillige organisasjoner). Vi håper dette gjør at du får lyst til å donere enda mer gjennom oss i år. 
+                                    Du kan lese mer om <a href= "https://gieffektivt.no//skattefradrag" style="color: #000000;">skattefradrag på våre nettsider</a>.<br/><br/>
+                                    
+                                    Vi håper du vil fortsette å støtte våre anbefalte formål også i år.
+                                    Du finner mer informasjon på vår nettside 
+                                    <a href= "https://gieffektivt.no" style="color: #000000;"" width="100%">gieffektivt.no</a>.<br/><br />
 
-                                <% this.reusableHTML.greeting %>
-                            </td>
+                                    <% this.reusableHTML.greeting %>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="bodycopy">
+                                    PS. Vil du sette opp månedlige donasjoner? Det tar kun 1-2 min å sette opp en Avtalegiro med månedlig trekk og valgfritt beløp, til din ønskede fordeling. Det er den aller beste måten for deg og for oss å støtte effektiv bistand!<br />
+                                    <a href= "https://gieffektivt.no/" style="color: #000000;"" width="100%">Kom i gang her</a>!
+                                </td>
+                            </tr>
+                        </table>
+                        <!--[if (gte mso 9)|(IE)]>
+                        </td>
                         </tr>
-                        <tr>
-                            <td class="innerpadding bodycopy">
-                                PS. Vil du sette opp månedlige donasjoner? Det tar kun 1-2 min å sette opp en Avtalegiro med månedlig trekk og valgfritt beløp, til din ønskede fordeling. Det er den aller beste måten for deg og for oss å støtte effektiv bistand!<br />
-                                <a href= "www.gieffektivt.no/gi" style="color: #000000;"" width="100%">Kom i gang her</a>!
-                            </td>
-                        </tr>
-                    </table>
-                    <!--[if (gte mso 9)|(IE)]>
+                        </table>
+                        <![endif]-->
                     </td>
-                    </tr>
-                    </table>
-                    <![endif]-->
-                </td>
-            </tr>
-            <% this.reusableHTML.footer %>
-        </table>
-    </td>
-</tr>
+                </tr>
+                <% this.reusableHTML.footer %>
+            </table>
+        </td>
+    </tr>
 </table>
-
-    </body>
+</body>
 </html>
