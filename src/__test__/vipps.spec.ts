@@ -120,7 +120,7 @@ describe("POST /scheduled/vipps", function () {
   let getChargeStub;
   let updateChargeStatusStub;
   let externalPaymentIDExistsStub;
-  let hasChargedThisMonthStub;
+  let hasChargedDueMonthStub;
   let createChargeStub;
   let loggingStub;
   let getVippsAgreementStub;
@@ -157,7 +157,7 @@ describe("POST /scheduled/vipps", function () {
       "externalPaymentIDExists"
     );
 
-    hasChargedThisMonthStub = sinon.stub(vipps, "hasChargedThisMonth");
+    hasChargedDueMonthStub = sinon.stub(vipps, "hasChargedDueMonth");
 
     createChargeStub = sinon.stub(vipps, "createCharge");
 
@@ -246,14 +246,14 @@ describe("POST /scheduled/vipps", function () {
     getVippsAgreementStub.withArgs("agr_1").resolves(mockAgreementsVipps[0]);
     getVippsAgreementStub.withArgs("agr_2").resolves(mockAgreementsVipps[1]);
 
-    hasChargedThisMonthStub.withArgs("agr_1").resolves(false);
-    hasChargedThisMonthStub.withArgs("agr_2").resolves(true);
+    hasChargedDueMonthStub.withArgs("agr_1").resolves(false);
+    hasChargedDueMonthStub.withArgs("agr_2").resolves(true);
 
     const response = await request(server).post("/scheduled/vipps").expect(200);
 
     expect(getActiveAgreementStub.calledOnce).to.be.true;
     expect(getVippsAgreementStub.callCount).to.be.equal(2);
-    expect(hasChargedThisMonthStub.callCount).to.be.equal(2);
+    expect(hasChargedDueMonthStub.callCount).to.be.equal(2);
     expect(createChargeStub.callCount).to.be.equal(1); // One of the agreements have already been charged this month
     expect(loggingStub.calledOnce).to.be.true;
   });

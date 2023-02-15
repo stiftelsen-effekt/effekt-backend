@@ -11,18 +11,14 @@ import { DAO } from "../DAO";
  */
 
 async function addPaymentIntent(KID, paymentMethod) {
-  try {
-    var res = await DAO.execute(
-      `INSERT INTO Payment_intent (
+  var res = await DAO.execute(
+    `INSERT INTO Payment_intent (
             Payment_method,
             KID_fordeling) VALUES (?,?)`,
-      [paymentMethod, KID]
-    );
+    [paymentMethod, KID]
+  );
 
-    return res.insertId;
-  } catch (ex) {
-    throw ex;
-  }
+  return res.insertId;
 }
 //endregion
 

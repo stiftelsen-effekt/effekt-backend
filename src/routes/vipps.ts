@@ -4,6 +4,7 @@ import {
   sendVippsProblemReport,
 } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
+import { donationHelpers } from "../custom_modules/donationHelpers";
 
 const express = require("express");
 const router = express.Router();
@@ -12,7 +13,6 @@ const jsonBody = bodyParser.json();
 const dns = require("dns").promises;
 const config = require("../config");
 const rounding = require("../custom_modules/rounding");
-const donationHelpers = require("../custom_modules/donationHelpers");
 const vipps = require("../custom_modules/vipps");
 const authorizationRoles = require("../enums/authorizationRoles");
 
@@ -538,12 +538,19 @@ router.put(
       }
 
       const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
-      const split = req.body.distribution.map((distribution) => {
-        return {
-          organizationID: distribution.organizationId,
-          share: distribution.share,
-        };
-      });
+      const standardDistribution = req.body.distribution.standardDistribution;
+      let taxUnitId: number | undefined = req.body.distribution.taxUnit.id;
+
+      const shares = req.body.distribution.shares;
+
+      const split = standardDistribution
+        ? await DAO.organizations.getStandardSplit()
+        : shares
+            .map((org) => {
+              return { id: org.id, share: org.share };
+            })
+            .filter((org) => parseFloat(org.share) !== 0);
+
       const metaOwnerID = 3;
 
       if (split.length === 0) {
@@ -560,17 +567,18 @@ router.put(
         return next(err);
       }
 
-      const existingTaxUnit = await DAO.tax.getByKID(existingAgreement.KID);
-      let taxUnitId: number | undefined;
-      if (existingTaxUnit) {
-        taxUnitId = existingTaxUnit.id;
+      if (!taxUnitId) {
+        const existingTaxUnit = await DAO.tax.getByKID(existingAgreement.KID);
+        if (existingTaxUnit) {
+          taxUnitId = existingTaxUnit.id;
+        }
       }
 
       //Check for existing distribution with that KID
       let KID = await DAO.distributions.getKIDbySplit(
         split,
         donorId,
-        false,
+        standardDistribution,
         taxUnitId
       );
 
@@ -581,7 +589,7 @@ router.put(
           KID,
           donorId,
           taxUnitId,
-          false,
+          standardDistribution,
           metaOwnerID
         );
       }

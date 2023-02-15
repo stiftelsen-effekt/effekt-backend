@@ -1,4 +1,5 @@
 import { DAO } from "./DAO";
+import { EmailTaxUnitReport } from "./DAO_modules/tax";
 
 const config = require("../config.js");
 const moment = require("moment");
@@ -36,25 +37,30 @@ function formatDateText(date) {
   return `${date.getDate()}. ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
-function formatCurrency(currencyString) {
-  return Number.parseFloat(currencyString)
-    .toFixed(2)
-    .replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
-    .replace(",", " ")
-    .replace(".", ",");
+export function formatCurrency(currencyString) {
+  return new Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 }).format(
+    currencyString
+  );
 }
 
 // Reusable HTML elements
-const sciChanges = `<strong>MERK:</strong> Vi anbefaler ikke lenger donasjoner til SCI Foundation gjeldende fra 18.08.22 og vil slutte å tildele penger til dem 31. oktober 2022. Les mer om denne endringen på <a href="https://gieffektivt.no/articles/nye-evalueringskriterier-for-topplista" style="color: #000000;">våre nettsider</a>.<br/><br/>
-Donasjoner øremerket SCI Foundation blir fra og med 1. november 2022 i stedet følge <a href="https://gieffektivt.no/smart-fordeling" style="color: #000000;">Smart fordeling</a>. Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/profile" style="color: #000000;">Min Side</a> og oppdatere fordeling på din faste donasjon, eller fylle ut donasjonsskjemaet for en ny donasjon. Ta kontakt om du har noen spørsmål.<br/><br/>`;
+const sciChanges =
+  "<strong>MERK:</strong> Din fordeling ble endret av oss 18.08.2022." +
+  'Fra denne datoen støtter vi ikke lenger donasjoner til SCI Foundation. Les mer om denne endringen på <a href="https://gieffektivt.no/articles/nye-evalueringskriterier-for-topplista" style="color: #000000;">våre nettsider</a>.' +
+  "<br/><br/>" +
+  'Påvirkede donasjoner følger nå i stedet <a href="https://gieffektivt.no/smart-fordeling" style="color: #000000;">Smart fordeling</a>. ' +
+  'Om du vil endre dette kan du gå inn på <a href="https://gieffektivt.no/profile" style="color: #000000;">Min Side</a> og oppdatere fordeling på din faste donasjon, eller fylle ut donasjonsskjemaet for en ny donasjon. Ta kontakt om du har spørsmål.' +
+  "<br/><br/>";
 
 const replacedOrgsInfo =
-  "MERK: Din fordeling ble endret av oss for donasjoner gitt fra og med 01.01.2021. " +
-  "Fra denne datoen støtter vi ikke lenger donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children " +
-  "som opplyst på våre nettsider, i nyhetsbrev, på epost og gjennom sosiale medier." +
+  "<strong>MERK</strong>: Din fordeling har blitt endret av oss." +
   "<br/>" +
-  'Andelene som var oppført til disse organisasjonene blir i stedet gitt til vår standardfordeling som nå er <a href="https://www.givewell.org/maximum-impact-fund" style="color: #000000;">GiveWell Maximum Impact Fund</a>. ' +
-  'Om du ønsker en annen fordeling kan du gå inn på <a href="https://gieffektivt.no/" style="color: #000000;">www.gieffektivt.no/</a> og fylle ut donasjonsskjema på nytt med ønsket fordeling. Ta kontakt om du har noen spørsmål.' +
+  "<br/>" +
+  "Fra <strong>01.01.2021</strong> støtter vi ikke lenger donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children." +
+  "<br/>" +
+  'Fra <strong>18.08.2022</strong> støtter vi ikke lenger donasjoner til SCI Foundation. Les mer om denne endringen på <a href="https://gieffektivt.no/articles/nye-evalueringskriterier-for-topplista" style="color: #000000;">våre nettsider</a>.<br/> ' +
+  'Påvirkede donasjoner følger nå i stedet <a href="https://gieffektivt.no/smart-fordeling" style="color: #000000;">Smart fordeling</a>. ' +
+  'Om du vil endre dette kan du gå inn på <a href="https://gieffektivt.no/profile" style="color: #000000;">Min Side</a> og oppdatere fordeling på din faste donasjon, eller fylle ut donasjonsskjemaet for en ny donasjon. Ta kontakt om du har spørsmål.' +
   "<br/><br/>";
 
 const taxDeductionInfo =
@@ -63,22 +69,27 @@ const taxDeductionInfo =
   "<br/><br/>";
 
 const greeting =
-  "Hvis du har noen spørsmål eller tilbakemeldinger kan du alltid ta kontakt med oss ved å sende en mail til " +
-  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #000000;">donasjon@gieffektivt.no</a>.' +
-  "<br/><br/>" +
-  "Håper du får en fantastisk dag!<br/><br/>" +
-  "<b>Vennlig hilsen</b><br/>" +
-  "oss i Gi Effektivt" +
-  "<br/><br/>";
+  "<b>Vennlig hilsen</b><br/>" + "oss i Gi Effektivt" + "<br/><br/>";
+
+const feedback =
+  "<span> Hvordan synes du det gikk å donere i dag? </span><br />" +
+  "<span>Gi oss tilbakemelding ved å svare på </span>" +
+  '<a href="https://forms.gle/P3MwoP7hn9sAQ65VA" style="color: #000000">denne undersøkelsen</a>.' +
+  "<span> (4 min)</span>" +
+  "<br /><br />";
 
 const footer =
+  '<hr color="000" width="100%">' +
+  "<br />" +
+  '<div style="padding: 0 30px 0 30px;">Vi vil aldri be deg om personlige opplysninger slik som personnummer, kontonummer, kort-informasjon eller passord på e-post.</div>' +
+  "<br/><br/>" +
   '<table class="footer" bgcolor="#000" width="100%" border="0" cellspacing="0" cellpadding="0">' +
   "<tr>" +
   '<td align="center" class="footercopy">' +
   '<table width="194" align="left" border="0" cellpadding="0" cellspacing="0">' +
   "<tr>" +
   '<td style="color: #ffffff; font-family: Arial, sans-serif; font-size: 14px;">' +
-  "Stiftelsen Effekt" +
+  "Stiftelsen Gi Effektivt" +
   "<br />" +
   '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">donasjon@gieffektivt.no</a><br/>' +
   "<span>Orgnr. 916 625 308</span><br/><br/>" +
@@ -117,6 +128,7 @@ const reusableHTML = {
   replacedOrgsInfo,
   greeting,
   taxDeductionInfo,
+  feedback,
   footer,
 };
 
@@ -150,7 +162,7 @@ export async function sendDonationReciept(donationID, reciever = null) {
     return false;
   }
 
-  const hasSciInDistribution = split.some((org) => org.ID === 2);
+  const hasSciInDistribution = split.some((org) => org.id === 2);
 
   try {
     var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
@@ -173,10 +185,7 @@ export async function sendDonationReciept(donationID, reciever = null) {
             ? " " + donation.donor
             : "") +
           ",",
-        //Add thousand seperator regex at end of amount
-        donationSum: donation.sum
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+        donationSum: formatCurrency(donation.sum),
         organizations: organizations,
         donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
         paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
@@ -225,7 +234,7 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
     return false;
   }
 
-  const hasSciInDistribution = split.some((org) => org.ID === 2);
+  const hasSciInDistribution = split.some((org) => org.id === 2);
 
   try {
     var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
@@ -248,10 +257,7 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
             ? " " + donation.donor
             : "") +
           ",",
-        //Add thousand seperator regex at end of amount
-        donationSum: donation.sum
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+        donationSum: formatCurrency(donation.sum),
         organizations: organizations,
         donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
         paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
@@ -280,16 +286,14 @@ function decideUIPaymentMethod(donationMethod) {
 
 function formatOrganizationsFromSplit(split, sum) {
   return split.map(function (org) {
-    var amount = sum * parseFloat(org.percentage_share) * 0.01;
+    var amount = sum * parseFloat(org.share) * 0.01;
     var roundedAmount = amount > 1 ? Math.round(amount) : 1;
 
     return {
       name: org.full_name,
-      //Add thousand seperator regex at end of amount
       amount:
-        (roundedAmount != amount ? "~ " : "") +
-        roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
-      percentage: parseFloat(org.percentage_share),
+        (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount),
+      percentage: parseFloat(org.share),
     };
   });
 }
@@ -328,7 +332,7 @@ export async function sendDonationRegistered(KID, sum) {
 
     let organizations = split.map((split) => ({
       name: split.full_name,
-      percentage: parseFloat(split.percentage_share),
+      percentage: parseFloat(split.share),
     }));
     var KIDstring = KID.toString();
 
@@ -406,7 +410,7 @@ export async function sendVippsAgreementChange(
     const split = await DAO.distributions.getSplitByKID(agreement.KID);
     const organizations = split.map((split) => ({
       name: split.full_name,
-      percentage: parseFloat(split.percentage_share),
+      percentage: parseFloat(split.share),
     }));
 
     if (agreement.status !== "ACTIVE") return false;
@@ -637,9 +641,7 @@ export async function sendTaxDeductions(taxDeductionRecord, year) {
       templateName: "taxDeduction",
       templateData: {
         header: "Hei " + taxDeductionRecord.firstname + ",",
-        donationSum: taxDeductionRecord.amount
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, "&#8201;"),
+        donationSum: formatCurrency(taxDeductionRecord.amount),
         fullname: taxDeductionRecord.fullname,
         ssn: taxDeductionRecord.ssn,
         year: year.toString(),
@@ -670,7 +672,7 @@ export async function sendAvtaleGiroChange(KID, change, newValue = "") {
     const split = await DAO.distributions.getSplitByKID(KID);
     const organizations = split.map((split) => ({
       name: split.full_name,
-      percentage: parseFloat(split.percentage_share),
+      percentage: parseFloat(split.share),
     }));
 
     let changeDesc = "endret";
@@ -765,6 +767,139 @@ export async function sendAvtalegiroNotification(agreement) {
 }
 
 /**
+ * Sends donors with who just registered an AvtaleGiro an email confirming it
+ * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement
+ * @returns {true | number} True if successfull, or an error code if failed
+ */
+export async function sendAvtalegiroRegistered(agreement) {
+  let donor, split, organizations;
+
+  try {
+    donor = await DAO.donors.getByKID(agreement.KID);
+  } catch (ex) {
+    console.error(
+      `Failed to send mail AvtaleGiro registered, could not get donor form KID ${agreement.KID}`
+    );
+    console.error(ex);
+    return false;
+  }
+
+  try {
+    split = await DAO.distributions.getSplitByKID(agreement.KID);
+  } catch (ex) {
+    console.error(
+      `Failed to send mail AvtaleGiro registered, could not get donation split by KID ${agreement.KID}`
+    );
+    console.error(ex);
+    return false;
+  }
+
+  // Agreement amount is stored in øre
+  organizations = formatOrganizationsFromSplit(split, agreement.amount / 100);
+
+  organizations.forEach((org) => {
+    org.amount;
+  });
+
+  try {
+    await send({
+      reciever: donor.email,
+      subject: `Gi Effektivt - AvtaleGiro opprettet`,
+      templateName: "avtaleGiroRegistered",
+      templateData: {
+        header:
+          "Hei" +
+          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
+          ",",
+        agreementSum: formatCurrency(agreement.amount / 100),
+        agreementDate:
+          agreement.payment_date == 0
+            ? "siste dagen i hver måned"
+            : `${agreement.payment_date}. hver måned`,
+        organizations: organizations,
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send AvtaleGiro registered");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+export async function sendTaxYearlyReportNoticeWithUser(
+  report: EmailTaxUnitReport
+) {
+  const formattedUnits = report.units.map((u) => {
+    return {
+      ...u,
+      sum: formatCurrency(u.sum),
+    };
+  });
+
+  try {
+    await send({
+      reciever: report.email,
+      subject: `Gi Effektivt - Årsoppgave for 2022`,
+      templateName: "taxDeductionUser",
+      templateData: {
+        header:
+          "Hei" +
+          (report.name && report.name.length > 0 ? " " + report.name : "") +
+          ",",
+        year: 2022,
+        units: formattedUnits,
+        donorEmail: report.email,
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send tax yearly report notice");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+export async function sendTaxYearlyReportNoticeNoUser(
+  report: EmailTaxUnitReport
+) {
+  const formattedUnits = report.units.map((u) => {
+    return {
+      ...u,
+      sum: formatCurrency(u.sum),
+    };
+  });
+
+  try {
+    await send({
+      reciever: report.email,
+      subject: `Gi Effektivt - Årsoppgave for 2022`,
+      templateName: "taxDeductionNoUser",
+      templateData: {
+        header:
+          "Hei" +
+          (report.name && report.name.length > 0 ? " " + report.name : "") +
+          ",",
+        year: 2022,
+        units: formattedUnits,
+        donorEmail: report.email,
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send tax yearly report notice");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+/**
  * Sends OCR file for backup
  * @param {Buffer} fileContents
  */
@@ -772,7 +907,7 @@ export async function sendOcrBackup(fileContents) {
   var data = {
     from: "Gi Effektivt <donasjon@gieffektivt.no>",
     to: "hakon.harnes@effektivaltruisme.no",
-    bcc: "donasjon@gieffektivt.no",
+    bcc: "kopi@gieffektivt.no",
     subject: "OCR backup",
     text: fileContents.toString(),
     inline: [],
@@ -818,7 +953,7 @@ async function send(options) {
   var data = {
     from: "Gi Effektivt <donasjon@gieffektivt.no>",
     to: options.reciever,
-    bcc: "donasjon@gieffektivt.no",
+    bcc: "kopi@gieffektivt.no",
     subject: options.subject,
     text: "Your mail client does not support HTML email",
     html: templateHTML,

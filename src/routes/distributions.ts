@@ -10,12 +10,12 @@ const rounding = require("../custom_modules/rounding");
 router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     if (
-      req.body.standardSplit === null ||
-      typeof req.body.standardSplit === "undefined"
+      req.body.standardDistribution === null ||
+      typeof req.body.standardDistribution === "undefined"
     ) {
       return res.status(400).json({
         status: 400,
-        content: "Missing param standard split",
+        content: "Missing param standard distribution",
       });
     }
     if (!req.body.donor || !req.body.donor.id) {
@@ -24,33 +24,28 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
         content: "Missing param donor ID",
       });
     }
-    if (!req.body.distribution) {
+    if (!req.body.shares) {
       return res.status(400).json({
         status: 400,
         content: "Missing param distribution",
       });
     }
 
-    const split = req.body.distribution.map((distribution) => {
-      return {
-        organizationID: distribution.organizationId,
-        share: distribution.share,
-      };
-    });
-    if (split.length === 0) {
+    const standardDistribution = req.body.standardDistribution;
+    const donorId = req.body.donor.id;
+    const metaOwnerID = req.body.metaOwnerID;
+    const taxUnitId = req.body.taxUnit ? req.body.taxUnit.id : null;
+    const shares = req.body.shares;
+
+    if (shares.length === 0) {
       return res.status(400).json({
         status: 400,
         content: "Distribution must contain at least one organization",
       });
     }
 
-    const standardSplit = req.body.standardSplit;
-    const donorId = req.body.donor.id;
-    const metaOwnerID = req.body.metaOwnerID;
-    const taxUnitId = req.body.taxUnitId;
-
     if (
-      rounding.sumWithPrecision(split.map((split) => split.share)) !== "100"
+      rounding.sumWithPrecision(shares.map((share) => share.share)) !== "100"
     ) {
       let err = new Error("Distribution does not sum to 100");
       (err as any).status = 400;
@@ -58,28 +53,34 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
     }
 
     //Check for existing distribution with that KID
+    let foundMatchingDistribution = false;
     let KID = await DAO.distributions.getKIDbySplit(
-      split,
+      shares,
       donorId,
-      standardSplit,
+      standardDistribution,
       taxUnitId
     );
 
     if (!KID) {
       KID = await donationHelpers.createKID(15, donorId);
       await DAO.distributions.add(
-        split,
+        shares,
         KID,
         donorId,
         taxUnitId,
-        standardSplit,
+        standardDistribution,
         metaOwnerID
       );
+    } else {
+      foundMatchingDistribution = true;
     }
 
     res.json({
       status: 200,
-      content: KID,
+      content: {
+        KID,
+        newDistribution: !foundMatchingDistribution,
+      },
     });
   } catch (ex) {
     next(ex);
@@ -113,13 +114,20 @@ router.get("/:KID", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     if (!req.params.KID)
       res.status(400).json({ status: 400, content: "No KID provided" });
-    let distribution = await DAO.distributions.getSplitByKID(req.params.KID);
-    let donor = await DAO.donors.getByKID(req.params.KID);
+    const shares = await DAO.distributions.getSplitByKID(req.params.KID);
+    const taxUnit = await DAO.tax.getByKID(req.params.KID);
+    const standardDistribution = await DAO.distributions.isStandardDistribution(
+      req.params.KID
+    );
+    const donor = await DAO.donors.getByKID(req.params.KID);
     return res.json({
       status: 200,
       content: {
+        KID: req.params.KID,
         donor,
-        distribution,
+        taxUnit,
+        standardDistribution,
+        shares,
       },
     });
   } catch (ex) {
@@ -131,16 +139,6 @@ router.get("/:KID", authMiddleware.isAdmin, async (req, res, next) => {
     else {
       next(ex);
     }
-  }
-});
-
-router.get("/:KID/unauthorized", async (req, res, next) => {
-  try {
-    const response = await DAO.distributions.getSplitByKID(req.params.KID);
-
-    res.json(response);
-  } catch (ex) {
-    next({ ex });
   }
 });
 

@@ -9,35 +9,31 @@ const sqlString = require("sqlstring");
  * @returns {Array<Donation>} Array of Donation objects
  */
 async function getDonationsByKID(KID) {
-  try {
-    var [getDonationsByKIDQuery] = await DAO.query(
-      `
+  var [getDonationsByKIDQuery] = await DAO.query(
+    `
           SELECT *, D.ID, payment_name FROM Donations as D
               INNER JOIN Payment as P on D.Payment_ID = P.ID
               WHERE KID_fordeling = ? AND Payment_ID = 7`,
-      [KID]
-    );
+    [KID]
+  );
 
-    let donations = [];
+  let donations = [];
 
-    getDonationsByKIDQuery.forEach((donation) => {
-      donations.push({
-        id: donation.ID,
-        donor: donation.full_name,
-        donorId: donation.donorId,
-        email: donation.email,
-        sum: donation.sum_confirmed,
-        transactionCost: donation.transaction_cost,
-        timestamp: donation.timestamp_confirmed,
-        paymentMethod: donation.payment_name,
-        KID: donation.KID_fordeling,
-      });
+  getDonationsByKIDQuery.forEach((donation) => {
+    donations.push({
+      id: donation.ID,
+      donor: donation.full_name,
+      donorId: donation.donorId,
+      email: donation.email,
+      sum: donation.sum_confirmed,
+      transactionCost: donation.transaction_cost,
+      timestamp: donation.timestamp_confirmed,
+      paymentMethod: donation.payment_name,
+      KID: donation.KID_fordeling,
     });
+  });
 
-    return donations;
-  } catch (ex) {
-    throw ex;
-  }
+  return donations;
 }
 //endregion
 
@@ -50,64 +46,48 @@ async function getDonationsByKID(KID) {
  * @param {boolean} notice
  */
 async function add(KID, amount, paymentDate, notice) {
-  try {
-    var res = await DAO.execute(
-      `INSERT INTO Avtalegiro_agreements (
+  var res = await DAO.execute(
+    `INSERT INTO Avtalegiro_agreements (
             KID,
             amount,
             payment_date, 
             notice
             ) VALUES (?,?,?,?)`,
-      [KID, amount, paymentDate, notice]
-    );
+    [KID, amount, paymentDate, notice]
+  );
 
-    return res.insertId;
-  } catch (ex) {
-    throw ex;
-  }
+  return res.insertId;
 }
 
 async function updateNotification(KID, notice) {
-  try {
-    let res = await DAO.query(
-      `UPDATE Avtalegiro_agreements SET notice = ? where KID = ?`,
-      [notice, KID]
-    );
+  let res = await DAO.query(
+    `UPDATE Avtalegiro_agreements SET notice = ? where KID = ?`,
+    [notice, KID]
+  );
 
-    return true;
-  } catch (ex) {
-    throw ex;
-  }
+  return true;
 }
 
 async function updateAmount(KID, amount) {
-  try {
-    await DAO.query(
-      `UPDATE Avtalegiro_agreements SET amount = ? where KID = ?`,
-      [amount, KID]
-    );
+  await DAO.query(`UPDATE Avtalegiro_agreements SET amount = ? where KID = ?`, [
+    amount,
+    KID,
+  ]);
 
-    return true;
-  } catch (ex) {
-    throw ex;
-  }
+  return true;
 }
 
 async function updatePaymentDate(KID, paymentDate) {
-  try {
-    if (paymentDate >= 0 && paymentDate <= 28) {
-      await DAO.query(
-        `UPDATE Avtalegiro_agreements SET payment_date = ? where KID = ?`,
-        [paymentDate, KID]
-      );
-    } else {
-      return false;
-    }
-
-    return true;
-  } catch (ex) {
-    throw ex;
+  if (paymentDate >= 0 && paymentDate <= 28) {
+    await DAO.query(
+      `UPDATE Avtalegiro_agreements SET payment_date = ? where KID = ?`,
+      [paymentDate, KID]
+    );
+  } else {
+    return false;
   }
+
+  return true;
 }
 
 async function replaceDistribution(
@@ -116,85 +96,77 @@ async function replaceDistribution(
   split,
   donorId,
   metaOwnerID,
+  taxUnitId: number | null = null,
   standardDistribution: boolean = false
 ) {
-  try {
-    if (replacementKID.length !== 15 || originalKID.length !== 15) {
-      return false;
-    }
+  if (replacementKID.length !== 15 || originalKID.length !== 15) {
+    return false;
+  }
 
-    const taxUnit = await DAO.tax.getByKID(originalKID);
+  const originalTaxUnit = await DAO.tax.getByKID(originalKID);
 
-    // Replaces original KID with a new replacement KID
-    await DAO.query(
-      `
+  // Replaces original KID with a new replacement KID
+  await DAO.query(
+    `
             UPDATE Combining_table
             SET KID = ?
             WHERE KID = ?
         `,
-      [replacementKID, originalKID]
-    );
+    [replacementKID, originalKID]
+  );
 
-    // Updates donations with the old distributions to use the replacement KID (preserves donation history)
-    await DAO.query(
-      `
+  // Updates donations with the old distributions to use the replacement KID (preserves donation history)
+  await DAO.query(
+    `
             UPDATE Donations
             SET KID_fordeling = ?
             WHERE KID_fordeling = ?
         `,
-      [replacementKID, originalKID]
-    );
+    [replacementKID, originalKID]
+  );
 
-    // Add new distribution using the original KID
-    await DAO.distributions.add(
-      split,
-      originalKID,
-      donorId,
-      taxUnit.id,
-      standardDistribution,
-      metaOwnerID
-    );
+  const replacementTaxUnitId: number =
+    taxUnitId !== null ? taxUnitId : originalTaxUnit.id;
 
-    // Links the replacement KID to the original AvtaleGiro KID
-    await DAO.query(
-      `
+  // Add new distribution using the original KID
+  await DAO.distributions.add(
+    split,
+    originalKID,
+    donorId,
+    replacementTaxUnitId,
+    standardDistribution,
+    metaOwnerID
+  );
+
+  // Links the replacement KID to the original AvtaleGiro KID
+  await DAO.query(
+    `
             INSERT INTO AvtaleGiro_replaced_distributions(Replacement_KID, Original_AvtaleGiro_KID)
             VALUES (?, ?)
         `,
-      [replacementKID, originalKID]
-    );
+    [replacementKID, originalKID]
+  );
 
-    return true;
-  } catch (ex) {
-    throw ex;
-  }
+  return true;
 }
 
 async function setActive(KID, active) {
-  try {
-    let res = await DAO.query(
-      `UPDATE Avtalegiro_agreements SET active = ? where KID = ?`,
-      [active, KID]
-    );
+  let res = await DAO.query(
+    `UPDATE Avtalegiro_agreements SET active = ? where KID = ?`,
+    [active, KID]
+  );
 
-    return true;
-  } catch (ex) {
-    throw ex;
-  }
+  return true;
 }
 
 async function isActive(KID) {
-  try {
-    let [res] = await DAO.query(
-      `SELECT active FROM Avtalegiro_agreements active where KID = ?`,
-      [KID]
-    );
+  let [res] = await DAO.query(
+    `SELECT active FROM Avtalegiro_agreements active where KID = ?`,
+    [KID]
+  );
 
-    if (res[0].active == 1) return true;
-    else return false;
-  } catch (ex) {
-    throw ex;
-  }
+  if (res[0].active == 1) return true;
+  else return false;
 }
 
 /**
@@ -208,48 +180,36 @@ async function cancelAgreement(KID) {
   //YYYY-MM-DD format
   const mysqlDate = today.toISOString().slice(0, 19).replace("T", " ");
 
-  try {
-    DAO.query(
-      `
+  DAO.query(
+    `
             UPDATE Avtalegiro_agreements
             SET cancelled = ?, active = 0
             WHERE KID = ?
         `,
-      [mysqlDate, KID]
-    );
+    [mysqlDate, KID]
+  );
 
-    return true;
-  } catch (ex) {
-    return false;
-  }
+  return true;
 }
 
 async function remove(KID) {
-  try {
-    var result = await DAO.query(
-      `DELETE FROM Avtalegiro_agreements WHERE KID = ?`,
-      [KID]
-    );
+  var result = await DAO.query(
+    `DELETE FROM Avtalegiro_agreements WHERE KID = ?`,
+    [KID]
+  );
 
-    if (result[0].affectedRows > 0) return true;
-    else return false;
-  } catch (ex) {
-    throw ex;
-  }
+  if (result[0].affectedRows > 0) return true;
+  else return false;
 }
 
 async function exists(KID) {
-  try {
-    var [res] = await DAO.query(
-      "SELECT * FROM Avtalegiro_agreements WHERE KID = ?",
-      [KID]
-    );
+  var [res] = await DAO.query(
+    "SELECT * FROM Avtalegiro_agreements WHERE KID = ?",
+    [KID]
+  );
 
-    if (res.length > 0) return true;
-    else return false;
-  } catch (ex) {
-    throw ex;
-  }
+  if (res.length > 0) return true;
+  else return false;
 }
 
 /**
@@ -272,6 +232,22 @@ async function getAgreements(sort, page, limit, filter) {
         where.push(`amount >= ${sqlString.escape(filter.amount.from * 100)} `);
       if (filter.amount.to)
         where.push(`amount <= ${sqlString.escape(filter.amount.to * 100)} `);
+    }
+    if (filter.paymentDate) {
+      if (filter.paymentDate.from !== undefined)
+        where.push(
+          `AG.payment_date >= ${sqlString.escape(filter.paymentDate.from)} `
+        );
+      if (filter.paymentDate.to !== undefined)
+        where.push(
+          `AG.payment_date <= ${sqlString.escape(filter.paymentDate.to)} `
+        );
+    }
+    if (filter.created) {
+      if (filter.created.from)
+        where.push(`AG.created >= ${sqlString.escape(filter.created.from)} `);
+      if (filter.created.to)
+        where.push(`AG.created <= ${sqlString.escape(filter.created.to)} `);
     }
 
     if (filter.KID)
@@ -335,7 +311,7 @@ async function getAgreements(sort, page, limit, filter) {
  * @return {AvtaleGiro} AvtaleGiro agreement
  */
 async function getAgreement(id) {
-  const result = await DAO.query(
+  const [result] = await DAO.query(
     `
         SELECT DISTINCT
             AG.ID,
@@ -361,22 +337,14 @@ async function getAgreement(id) {
 
   if (result.length === 0) return false;
 
-  const avtaleGiro = result[0][0];
-
-  let split = await DAO.distributions.getSplitByKID(avtaleGiro.KID);
-
-  avtaleGiro.distribution = split.map((split) => ({
-    abbriv: split.abbriv,
-    share: split.percentage_share,
-  }));
+  const avtaleGiro = result[0];
 
   return avtaleGiro;
 }
 
 async function getByDonorId(donorId) {
-  try {
-    let [agreements] = await DAO.query(
-      `
+  let [agreements] = await DAO.query(
+    `
             SELECT DISTINCT
                 AG.ID,
                 AG.active,
@@ -397,39 +365,32 @@ async function getByDonorId(donorId) {
                 ON CT.Donor_ID = Donors.ID
             
             WHERE Donors.ID = ?`,
-      [donorId]
-    );
+    [donorId]
+  );
 
-    return agreements;
-  } catch (ex) {
-    throw ex;
-  }
+  return agreements;
 }
 
 async function getByKID(KID) {
-  try {
-    let [agreement] = await DAO.query(
-      `
+  let [agreement] = await DAO.query(
+    `
             SELECT 
                 payment_date,
                 amount, 
                 KID
             FROM Avtalegiro_agreements 
             WHERE KID = ?`,
-      [KID]
-    );
+    [KID]
+  );
 
-    if (agreement.length > 0) {
-      return {
-        payment_date: agreement[0].payment_date,
-        amount: agreement[0].amount,
-        KID: agreement[0].KID,
-      };
-    } else {
-      return null;
-    }
-  } catch (ex) {
-    throw ex;
+  if (agreement.length > 0) {
+    return {
+      payment_date: agreement[0].payment_date,
+      amount: agreement[0].amount,
+      KID: agreement[0].KID,
+    };
+  } else {
+    return null;
   }
 }
 
@@ -505,20 +466,16 @@ async function getAgreementReport() {
  * @param {Date} date
  */
 async function getMissingForDate(date) {
-  try {
-    let year = date.getFullYear();
-    let month = date.getMonth() + 1;
-    let dayOfMonth = date.getDate();
+  let year = date.getFullYear();
+  let month = date.getMonth() + 1;
+  let dayOfMonth = date.getDate();
 
-    let [res] = await DAO.query(
-      "call get_avtalegiro_agreement_missing_donations_by_date(?,?,?)",
-      [year, month, dayOfMonth]
-    );
+  let [res] = await DAO.query(
+    "call get_avtalegiro_agreement_missing_donations_by_date(?,?,?)",
+    [year, month, dayOfMonth]
+  );
 
-    return res[0];
-  } catch (ex) {
-    throw ex;
-  }
+  return res[0];
 }
 
 /**
@@ -526,20 +483,16 @@ async function getMissingForDate(date) {
  * @param {Date} date
  */
 async function getExpectedDonationsForDate(date) {
-  try {
-    let year = date.getFullYear();
-    let month = date.getMonth() + 1;
-    let dayOfMonth = date.getDate();
+  let year = date.getFullYear();
+  let month = date.getMonth() + 1;
+  let dayOfMonth = date.getDate();
 
-    let [res] = await DAO.query(
-      "call get_avtalegiro_agreement_expected_donations_by_date(?,?,?)",
-      [year, month, dayOfMonth]
-    );
+  let [res] = await DAO.query(
+    "call get_avtalegiro_agreement_expected_donations_by_date(?,?,?)",
+    [year, month, dayOfMonth]
+  );
 
-    return res[0];
-  } catch (ex) {
-    throw ex;
-  }
+  return res[0];
 }
 
 /**
@@ -547,29 +500,25 @@ async function getExpectedDonationsForDate(date) {
  * @param {Date} date
  */
 async function getRecievedDonationsForDate(date) {
-  try {
-    let year = date.getFullYear();
-    let month = date.getMonth() + 1;
-    let dayOfMonth = date.getDate();
+  let year = date.getFullYear();
+  let month = date.getMonth() + 1;
+  let dayOfMonth = date.getDate();
 
-    let [res] = await DAO.query(
-      "call get_avtalegiro_agreement_recieved_donations_by_date(?,?,?)",
-      [year, month, dayOfMonth]
-    );
+  let [res] = await DAO.query(
+    "call get_avtalegiro_agreement_recieved_donations_by_date(?,?,?)",
+    [year, month, dayOfMonth]
+  );
 
-    return res[0].map((donation) => ({
-      id: donation.ID,
-      kid: donation.KID_fordeling,
-      paymentMethod: "AvtaleGiro",
-      email: donation.email,
-      donor: donation.full_name,
-      sum: donation.sum_confirmed,
-      transactionCost: donation.transaction_cost,
-      timestamp: donation.timestamp_confirmed,
-    }));
-  } catch (ex) {
-    throw ex;
-  }
+  return res[0].map((donation) => ({
+    id: donation.ID,
+    kid: donation.KID_fordeling,
+    paymentMethod: "AvtaleGiro",
+    email: donation.email,
+    donor: donation.full_name,
+    sum: donation.sum_confirmed,
+    transactionCost: donation.transaction_cost,
+    timestamp: donation.timestamp_confirmed,
+  }));
 }
 
 /**
@@ -579,8 +528,7 @@ async function getRecievedDonationsForDate(date) {
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
 async function getAgreementSumHistogram() {
-  try {
-    let [results] = await DAO.query(`
+  let [results] = await DAO.query(`
             SELECT 
                 floor(amount/500)*500/100 	AS bucket, 
                 count(*) 						AS items,
@@ -590,10 +538,7 @@ async function getAgreementSumHistogram() {
             ORDER BY 1;
         `);
 
-    return results;
-  } catch (ex) {
-    throw ex;
-  }
+  return results;
 }
 
 /**
@@ -602,9 +547,8 @@ async function getAgreementSumHistogram() {
  * @returns {Array<AvtalegiroAgreement>}
  */
 async function getByPaymentDate(dayInMonth) {
-  try {
-    let [agreements] = await DAO.query(
-      `SELECT    
+  let [agreements] = await DAO.query(
+    `SELECT    
             payment_date,
             amount, 
             notice,
@@ -613,18 +557,15 @@ async function getByPaymentDate(dayInMonth) {
             FROM Avtalegiro_agreements 
 
             WHERE payment_date = ? AND active = 1`,
-      [dayInMonth]
-    );
+    [dayInMonth]
+  );
 
-    return agreements.map((agreement) => ({
-      payment_date: agreement.payment_date,
-      notice: agreement.notice,
-      amount: agreement.amount,
-      KID: agreement.KID,
-    }));
-  } catch (ex) {
-    throw ex;
-  }
+  return agreements.map((agreement) => ({
+    payment_date: agreement.payment_date,
+    notice: agreement.notice,
+    amount: agreement.amount,
+    KID: agreement.KID,
+  }));
 }
 
 /**
@@ -636,13 +577,9 @@ async function getByPaymentDate(dayInMonth) {
  * @returns {Array<{ date: String, expected: number, actual: number, diff: number }>}
  */
 async function getValidationTable() {
-  try {
-    let [rows] = await DAO.query(`call get_avtalegiro_validation()`);
+  let [rows] = await DAO.query(`call get_avtalegiro_validation()`);
 
-    return rows[0];
-  } catch (ex) {
-    throw ex;
-  }
+  return rows[0];
 }
 
 /**
@@ -651,19 +588,15 @@ async function getValidationTable() {
  * @returns {Number} The shipment nr.
  */
 async function addShipment(numClaims) {
-  try {
-    let [result] = await DAO.query(
-      `INSERT INTO
+  let [result] = await DAO.query(
+    `INSERT INTO
             Avtalegiro_shipment
             
             (num_claims) VALUES (?)`,
-      [numClaims]
-    );
+    [numClaims]
+  );
 
-    return result.insertId;
-  } catch (ex) {
-    throw ex;
-  }
+  return result.insertId;
 }
 
 const jsDBmapping = [

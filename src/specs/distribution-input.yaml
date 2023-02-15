@@ -5,13 +5,13 @@ components:
       type: object
       required:
       properties:
-        organizationId:
+        ID:
           type: number
         share:
           type: string
       example:
         distribution:
-          - organizationId: 1
+          - ID: 1
             share: "25.000000000000"
-          - organizationId: 2
+          - ID: 2
             share: "75.000000000000"

@@ -34,14 +34,18 @@ export interface components {
       /** @description The transaction cost of the donation in decimal format */
       transactionCost?: string;
       /** @description The payment method of the donation */
-      method: string;
+      paymentMethod?: string;
       /** @description The customer identification for the donation. Uniquely identifies the donor and the donation distribution. */
       KID: string;
+      /** @description The id of the tax unit the donation is connected to */
+      taxUnitId?: number;
       /**
        * Format: date-time
        * @description The timestamp of the donation
        */
-      registered?: string;
+      timestamp?: string;
+    } & {
+      method: unknown;
     };
   };
 }

@@ -150,7 +150,7 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
 
   agreement.distribution = split.map((split) => ({
     abbriv: split.abbriv,
-    share: split.percentage_share,
+    share: split.share,
   }));
 
   if (res.length === 0) return false;
@@ -177,6 +177,26 @@ async function getAgreements(sort, page, limit, filter) {
         where.push(`amount >= ${sqlString.escape(filter.amount.from)} `);
       if (filter.amount.to)
         where.push(`amount <= ${sqlString.escape(filter.amount.to)} `);
+    }
+    if (filter.created) {
+      if (filter.created.from)
+        where.push(
+          `VA.timestamp_created >= ${sqlString.escape(filter.created.from)} `
+        );
+      if (filter.created.to)
+        where.push(
+          `VA.timestamp_created <= ${sqlString.escape(filter.created.to)} `
+        );
+    }
+    if (filter.chargeDay) {
+      if (filter.chargeDay.from !== undefined)
+        where.push(
+          `VA.monthly_charge_day >= ${sqlString.escape(filter.chargeDay.from)} `
+        );
+      if (filter.chargeDay.to !== undefined)
+        where.push(
+          `VA.monthly_charge_day <= ${sqlString.escape(filter.chargeDay.to)} `
+        );
     }
 
     if (filter.KID)
@@ -236,9 +256,8 @@ async function getAgreements(sort, page, limit, filter) {
  * @return {VippsAgreement}
  */
 async function getAgreementsByDonorId(donorId): Promise<VippsAgreement[]> {
-  try {
-    const [agreements] = await DAO.query(
-      `
+  const [agreements] = await DAO.query(
+    `
             SELECT Vipps_agreements.ID, 
                 status, 
                 donorID,
@@ -259,13 +278,10 @@ async function getAgreementsByDonorId(donorId): Promise<VippsAgreement[]> {
                 WHERE 
                     donorID = ?
             `,
-      [donorId]
-    );
+    [donorId]
+  );
 
-    return agreements;
-  } catch (ex) {
-    throw ex;
-  }
+  return agreements;
 }
 
 /**
@@ -513,7 +529,7 @@ async function getAgreementReport() {
         Vipps_agreements
     WHERE
         status = "ACTIVE" and
-    (paused_until_date < (SELECT current_timestamp()) or paused_until_date IS NULL)
+    (paused_until_date < (SELECT current_timestamp()) or paused_until_date IS NULL) and amount >= 50
         `);
 
   if (res.length === 0) return false;
@@ -527,8 +543,7 @@ async function getAgreementReport() {
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
 async function getAgreementSumHistogram() {
-  try {
-    let [results] = await DAO.query(`
+  let [results] = await DAO.query(`
             SELECT 
                 floor(amount/500)*500 	AS bucket, 
                 count(*) 						AS items,
@@ -538,10 +553,7 @@ async function getAgreementSumHistogram() {
             ORDER BY 1;
         `);
 
-    return results;
-  } catch (ex) {
-    throw ex;
-  }
+  return results;
 }
 
 /**
@@ -551,8 +563,7 @@ async function getAgreementSumHistogram() {
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
 async function getChargeSumHistogram() {
-  try {
-    let [results] = await DAO.query(`
+  let [results] = await DAO.query(`
             SELECT 
                 floor(amountNOK/500)*500 	AS bucket, 
                 count(*) 						AS items,
@@ -562,10 +573,7 @@ async function getChargeSumHistogram() {
             ORDER BY 1;
         `);
 
-    return results;
-  } catch (ex) {
-    throw ex;
-  }
+  return results;
 }
 
 //endregion

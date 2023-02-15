@@ -107,7 +107,7 @@ module.exports = {
       let donationTime = moment(donation.time);
       let donationRow = [
         donation.ID,
-        { v: donationTime.utc(true).toDate(), t: "d" },
+        { v: donationTime.utc(true).toDate(), t: "d" }, // XXX this utc stuff, and moments, might not be needed
         donation.name,
         donation.paymentMethod,
         donation.sum,

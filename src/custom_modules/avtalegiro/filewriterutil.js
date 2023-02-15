@@ -15,19 +15,22 @@ module.exports = {
   },
 
   /**
-   * @param {DateTime} currentDate
    * @param {number} number
+   * @param {number} shipmentID
    * @returns {string}
    */
-  startRecordPaymentAssignment: function (currentDate, number) {
+  startRecordPaymentAssignment: function (number, shipmentID) {
     var line = `NY210020`;
     line = line.padEnd(17, "0");
 
-    if (number > 999)
-      throw new Error("Cannot handle more than 999 assignments per file");
+    if (number > 9999)
+      throw new Error("Cannot handle more than 9999 assignments per file");
 
     // Oppdragsnr.
-    line += currentDate.toFormat("ddLLyy") + `0`;
+    onrstart = shipmentID % 366;
+    line += `${onrstart.toString().padStart(3, "0")}${number
+      .toString()
+      .padStart(4, "0")}`;
     // Accountnr.
     line += "15062995960";
     line = line.padEnd(80, "0");

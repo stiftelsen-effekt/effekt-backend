@@ -3,6 +3,7 @@ import { checkDonor } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import { fnr } from "@navikt/fnrvalidator";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+import { TaxReport, TaxYearlyReportUnit } from "../schemas/types";
 
 const router = express.Router();
 const roles = require("../enums/authorizationRoles");
@@ -172,9 +173,9 @@ router.post("/auth0/register", async (req, res, next) => {
  *      401:
  *        description: User not authorized to view resource
  */
-router.get("/search/", authMiddleware.isAdmin, async (req, res, next) => {
+router.post("/search/", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    var donors = await DAO.donors.search(req.query.q);
+    var donors = await DAO.donors.search(req.body);
 
     if (donors) {
       return res.json({
@@ -353,7 +354,7 @@ router.get(
  */
 router.get(
   "/:id/taxunits",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(roles.read_profile),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -378,6 +379,504 @@ router.get(
   }
 );
 
+// A route to get yearly tax reports
+/**
+ * @openapi
+ * /donors/{id}/taxreports:
+ *  get:
+ *   tags: [Donors]
+ *   description: Get all tax reports associated with donor
+ *   security:
+ *     - auth0_jwt: [read:donations]
+ *   parameters:
+ *    - in: path
+ *      name: id
+ *      required: true
+ *      description: Numeric ID of the user to retrieve.
+ *      schema:
+ *        type: integer
+ *   responses:
+ *    200:
+ *      description: Returns an array of tax reports
+ *      content:
+ *        application/json:
+ *          schema:
+ *            allOf:
+ *              - $ref: '#/components/schemas/ApiResponse'
+ *              - type: object
+ *                properties:
+ *                  content:
+ *                    $ref: '#/components/schemas/TaxReport'
+ *                example:
+ *                  content:
+ *                    $ref: '#/components/schemas/TaxReport/example'
+ *    401:
+ *      description: User not authorized to view resource
+ *    404:
+ *      description: Donor with given id not found
+ */
+router.get(
+  "/:id/taxreports",
+  authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      if (isNaN(parseInt(req.params.id))) {
+        return res.status(400).json({
+          status: 400,
+          content: "Invalid donor ID",
+        });
+      }
+
+      let taxUnits = await DAO.tax.getByDonorId(parseInt(req.params.id));
+      taxUnits = taxUnits.filter((tu) => tu.archived === null);
+
+      let donations = await DAO.donations.getByDonorId(parseInt(req.params.id));
+      let eaFundsDonations = await DAO.donations.getEAFundsDonations(
+        parseInt(req.params.id)
+      );
+
+      /**
+       * TODO: This is hard coded to only include 2022 for now, but should be
+       * changed to include all years in the future.
+       */
+      const year = 2022;
+
+      const yearlyreportunits = taxUnits.map((tu): TaxYearlyReportUnit => {
+        const fundsSumForUnit = eaFundsDonations
+          .filter(
+            (d) =>
+              new Date(d.timestamp).getFullYear() === year &&
+              d.taxUnitId === tu.id
+          )
+          .reduce((acc, item) => acc + parseFloat(item.sum), 0);
+
+        const geSumForYear = tu.taxDeductions.find((d) => d.year === year)
+          ?.sumDonations
+          ? parseFloat(
+              tu.taxDeductions.find((d) => d.year === year)?.sumDonations ?? "0"
+            )
+          : 0;
+
+        const completeSum = geSumForYear + fundsSumForUnit;
+
+        let reportUnit: TaxYearlyReportUnit = {
+          id: tu.id,
+          name: tu.name,
+          ssn: tu.ssn,
+          sumDonations: completeSum,
+          taxDeduction: Math.min(completeSum, 25000),
+          channels: [],
+        };
+
+        if (parseFloat(tu.sumDonations) > 0) {
+          reportUnit.channels.push({
+            channel: "Gi Effektivt",
+            sumDonations: geSumForYear,
+          });
+        }
+
+        if (fundsSumForUnit > 0) {
+          reportUnit.channels.push({
+            channel: "EAN Giverportal",
+            sumDonations: fundsSumForUnit,
+          });
+        }
+
+        return reportUnit;
+      });
+
+      const cryptoDonationsInYear = donations.filter((d) => {
+        return (
+          new Date(d.timestamp).getFullYear() === year &&
+          d.paymentMethod === "Crypto"
+        );
+      });
+
+      const sumGeDonationsWithoutTaxUnit = donations
+        .filter((d) => {
+          return (
+            new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null
+          );
+        })
+        .reduce((acc, item) => acc + parseFloat(item.sum), 0);
+
+      const sumEanDOnationsWithoutTaxUnit = eaFundsDonations
+        .filter((d) => {
+          return (
+            new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null
+          );
+        })
+        .reduce((acc, item) => acc + parseFloat(item.sum), 0);
+
+      const reports: Array<TaxReport> = [
+        {
+          year: year,
+          units: yearlyreportunits,
+          sumDonations: yearlyreportunits.reduce(
+            (a, b) => a + b.sumDonations,
+            0
+          ),
+          sumTaxDeductions: yearlyreportunits
+            .map((u) => u.taxDeduction)
+            .reduce((a, b) => a + b, 0),
+          sumDonationsWithoutTaxUnit: {
+            sumDonations:
+              sumGeDonationsWithoutTaxUnit + sumEanDOnationsWithoutTaxUnit,
+            channels: [
+              {
+                channel: "Gi Effektivt",
+                sumDonations: sumGeDonationsWithoutTaxUnit,
+              },
+              {
+                channel: "EAN Giverportal",
+                sumDonations: sumEanDOnationsWithoutTaxUnit,
+              },
+            ],
+          },
+          sumNonDeductibleDonationsByType:
+            cryptoDonationsInYear.length > 0
+              ? [
+                  {
+                    type: "Crypto",
+                    sumNonDeductibleDonations: cryptoDonationsInYear
+                      .map((d) => parseFloat(d.sum))
+                      .reduce((a, b) => a + b, 0),
+                  },
+                ]
+              : [],
+        },
+      ];
+
+      return res.json({
+        status: 200,
+        content: reports,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+/**
+ * @openapi
+ * /donors/{id}/taxunits:
+ *   post:
+ *    tags: [Donors]
+ *    description: Create a new tax unit for the given donor
+ *    security:
+ *       - auth0_jwt: [write:profile]
+ *    parameters:
+ *      - in: body
+ *        name: name
+ *        required: true
+ *        description: The name of the tax unit
+ *        schema:
+ *          type: string
+ *      - in: body
+ *        name: ssn
+ *        required: true
+ *        description: The social security number of the tax unit (organization number or personal number)
+ *    responses:
+ *      200:
+ *        description: Returns an array of tax units
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content:
+ *                        $ref: '#/components/schemas/TaxUnit'
+ *                   example:
+ *                      content:
+ *                        $ref: '#/components/schemas/TaxUnit/example'
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donor with given id not found
+ */
+router.post(
+  "/:id/taxunits",
+  authMiddleware.auth(roles.write_profile),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const { name, ssn } = req.body;
+
+      if (!name || !ssn) {
+        return res.status(400).json({
+          status: 400,
+          content: "Missing required fields",
+        });
+      }
+
+      if (ssn.length === 11) {
+        // Birth number is 11 digits
+        const validation = fnr(req.body.ssn);
+        if (validation.status !== "valid") {
+          return res.status(400).json({
+            status: 400,
+            content:
+              "Invalid ssn (failed fnr validation) " +
+              validation.reasons.join(", "),
+          });
+        }
+      } else if (ssn.length === 9) {
+        // Organization number is 9 digits
+        // No validatino performed
+      } else {
+        return res.status(400).json({
+          status: 400,
+          content: "Invalid ssn (length is not 9 or 11)",
+        });
+      }
+
+      const donor = await DAO.donors.getByID(req.params.id);
+      if (!donor) {
+        return res.status(404).json({
+          status: 404,
+          content: "No donor found with ID " + req.params.id,
+        });
+      }
+
+      var taxUnitId = await DAO.tax.addTaxUnit(donor.id, ssn, name);
+      const taxUnit = await DAO.tax.getById(taxUnitId);
+
+      // If successfully created tax unit
+      if (taxUnit) {
+        const taxUnits = await DAO.tax.getByDonorId(donor.id);
+
+        // if this is the first tax unit created for the donor (also counts archived tax units)
+        if (taxUnits.length === 1) {
+          // Update the donor's KID numbers missing a tax unit
+          await DAO.tax.updateKIDsMissingTaxUnit(taxUnitId, donor.id);
+        }
+
+        return res.json({
+          status: 200,
+          content: taxUnit,
+        });
+      } else {
+        return res.status(500).json({
+          status: 500,
+          content: "Failed to create tax unit",
+        });
+      }
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+// Route for deleting tax unit from donor by donor id and tax unit id
+/**
+ * @openapi
+ * /donors/{id}/taxunits/{taxunitid}:
+ *   delete:
+ *    tags: [Donors]
+ *    description: Delete a tax unit from a donor
+ *    security:
+ *      - auth0_jwt: [write:profile]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the donor to retrieve.
+ *        schema:
+ *          type: integer
+ *      - in: path
+ *        name: taxunitid
+ *        required: true
+ *        description: Numeric ID of the tax unit to delete.
+ *        schema:
+ *          type: integer
+ *      - in: body
+ *        name: transferId
+ *        required: false
+ *        description: Numeric ID of the tax unit to transfer donations to the given tax unit for current year to
+ *        schema:
+ *          type: integer
+ *    responses:
+ *      200:
+ *        description: Returns a status message for wether the unit was deleted
+ *        content:
+ *          application/json:
+ *            schema:
+ *              allOf:
+ *                - $ref: '#/components/schemas/ApiResponse'
+ *                - type: object
+ *                  properties:
+ *                    content:
+ *                      type: boolean
+ *                  example:
+ *                    content: true
+ *      401:
+ *        description: User not authorized to view resource
+ *      404:
+ *        description: Donor with given id not found, or tax unit with given id not found
+ *      500:
+ *        description: Failed to delete tax unit
+ */
+router.delete(
+  "/:id/taxunits/:taxunitid",
+  authMiddleware.auth(roles.write_profile),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const donor = await DAO.donors.getByID(req.params.id);
+      if (!donor) {
+        return res.status(404).json({
+          status: 404,
+          content: "No donor found with ID " + req.params.id,
+        });
+      }
+
+      const taxUnit = await DAO.tax.getById(req.params.taxunitid);
+      if (!taxUnit) {
+        return res.status(404).json({
+          status: 404,
+          content: "No tax unit found with ID " + req.params.taxunitid,
+        });
+      }
+
+      const deleted = await DAO.tax.deleteById(
+        taxUnit.id,
+        donor.id,
+        req.body.transferId
+      );
+      if (deleted) {
+        return res.json({
+          status: 200,
+          content: true,
+        });
+      } else {
+        return res.status(500).json({
+          status: 500,
+          content: "Failed to delete tax unit",
+        });
+      }
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+/**
+ * @openapi
+ * /donors/{id}/taxunits/{taxunitid}:
+ *   put:
+ *    tags: [Tax]
+ *    description: Updates a tax unit
+ *    security:
+ *       - auth0_jwt: [write:profile]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: Numeric ID of the user to update.
+ *        schema:
+ *          type: integer
+ *      - in: body
+ *        name: taxUnit
+ *        required: true
+ *        description: The tax unit to update
+ *        schema:
+ *          $ref: '#/components/schemas/TaxUnit'
+ *    responses:
+ *      200:
+ *        description: Tax unit was updated
+ *        content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                      content: string
+ *                   example:
+ *                      content: OK
+ *      401:
+ *        description: User not authorized to access resource
+ *      404:
+ *        description: Tax unit with given id not found
+ */
+router.put("/:id/taxunits/:taxunitid", async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const taxUnitId = parseInt(req.params.taxunitid);
+    const taxUnit = req.body.taxUnit;
+    const ssn = taxUnit.ssn;
+
+    if (!id || !taxUnitId || !taxUnit) {
+      res.status(400).json({
+        status: 400,
+        content: "Missing parameters id or taxUnitid or taxUnit in json body",
+      });
+      return;
+    }
+
+    if (!taxUnit.name || !taxUnit.ssn) {
+      res.status(400).json({
+        status: 400,
+        content: "Missing parameters name or ssn on tax unit",
+      });
+      return;
+    }
+
+    if (ssn.length === 11) {
+      // Birth number is 11 digits
+      const validation = fnr(ssn);
+      if (validation.status !== "valid") {
+        return res.status(400).json({
+          status: 400,
+          content:
+            "Invalid ssn (failed fnr validation) " +
+            validation.reasons.join(", "),
+        });
+      }
+    } else if (ssn.length === 9) {
+      // Organization number is 9 digits
+      // No validatino performed
+    } else {
+      return res.status(400).json({
+        status: 400,
+        content: "Invalid ssn (length is not 9 or 11)",
+      });
+    }
+
+    const donor = await DAO.donors.getByID(req.params.id);
+    if (!donor) {
+      return res.status(404).json({
+        status: 404,
+        content: "No donor found with ID " + req.params.id,
+      });
+    }
+
+    const changed = await DAO.tax.updateTaxUnit(taxUnitId, taxUnit);
+    if (changed) {
+      res.json({
+        status: 200,
+        content: taxUnit,
+      });
+    } else {
+      res.json({
+        status: 500,
+        content: "Could not update tax unit",
+      });
+    }
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 /**
  * @openapi
  * /donors/{id}:
@@ -385,7 +884,7 @@ router.get(
  *    tags: [Donors]
  *    description: Get a donor by id
  *    security:
- *       - auth0_jwt: [write:donations]
+ *      - auth0_jwt: [write:donations]
  *    parameters:
  *      - in: path
  *        name: id
@@ -724,6 +1223,22 @@ router.get(
         distributions = distributions.filter((dist) => kidSet.has(dist.kid));
       }
 
+      const requests = [];
+      for (let i = 0; i < distributions.length; i++) {
+        const dist = distributions[i];
+        requests.push(
+          getDistributionTaxUnitAndStandardDistribution(i, dist.kid)
+        );
+      }
+
+      const results = await Promise.all(requests);
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        distributions[result.index].taxUnit = result.taxUnit;
+        distributions[result.index].standardDistribution =
+          result.standardDistribution;
+      }
+
       return res.json({
         status: 200,
         content: distributions,
@@ -733,6 +1248,18 @@ router.get(
     }
   }
 );
+
+async function getDistributionTaxUnitAndStandardDistribution(index, kid) {
+  const taxUnit = await DAO.tax.getByKID(kid);
+  const standardDistribution = await DAO.distributions.isStandardDistribution(
+    kid
+  );
+  return {
+    index: index,
+    taxUnit: taxUnit,
+    standardDistribution: standardDistribution,
+  };
+}
 
 /**
  * @openapi
@@ -836,6 +1363,27 @@ router.get(
       res.json({
         status: 200,
         content: history,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  }
+);
+
+// A route for getting all the donations to EA funds for a given donor ID
+router.get(
+  "/:id/funds/donations/",
+  authMiddleware.auth(roles.read_donations),
+  (req, res, next) => {
+    checkDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      var donations = await DAO.donations.getEAFundsDonations(req.params.id);
+
+      res.json({
+        status: 200,
+        content: donations,
       });
     } catch (ex) {
       next(ex);

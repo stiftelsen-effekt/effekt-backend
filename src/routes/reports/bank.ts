@@ -3,8 +3,8 @@ import {
   sendEffektDonationReciept,
   sendDonationReciept,
 } from "../../custom_modules/mail";
+import { parseReport } from "../../custom_modules/parsers/bank";
 
-const bankParser = require("../../custom_modules/parsers/bank.js");
 const config = require("../../config");
 
 const BANK_NO_KID_ID = 5;
@@ -15,7 +15,7 @@ module.exports = async (req, res, next) => {
   var data = req.files.report.data.toString("UTF-8");
 
   try {
-    var transactions = bankParser.parseReport(data);
+    var transactions = parseReport(data);
   } catch (ex) {
     return next(ex);
   }

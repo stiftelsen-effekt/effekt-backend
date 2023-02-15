@@ -2,11 +2,15 @@ import * as express from "express";
 import { checkAvtaleGiroAgreement } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { sendAvtaleGiroChange } from "../custom_modules/mail";
+import {
+  sendAvtaleGiroChange,
+  sendAvtalegiroRegistered,
+} from "../custom_modules/mail";
+import { donationHelpers } from "../custom_modules/donationHelpers";
+import { Donor } from "../schemas/types";
 
 const router = express.Router();
 const rounding = require("../custom_modules/rounding");
-const donationHelpers = require("../custom_modules/donationHelpers");
 const authRoles = require("../enums/authorizationRoles");
 const moment = require("moment");
 
@@ -99,13 +103,28 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
  */
 router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    var result = await DAO.avtalegiroagreements.getAgreement(req.params.id);
-    result["ID"] = result["ID"].toString();
+    const agreement = await DAO.avtalegiroagreements.getAgreement(
+      req.params.id
+    );
+
+    const shares = await DAO.distributions.getSplitByKID(agreement.KID);
+    const taxUnit = await DAO.tax.getByKID(agreement.KID);
+    const standardDistribution = await DAO.distributions.isStandardDistribution(
+      agreement.KID
+    );
+    const donor = await DAO.donors.getByKID(agreement.KID);
 
     return res.json({
       status: 200,
       content: {
-        ...result,
+        ...agreement,
+        distribution: {
+          KID: agreement.KID,
+          donor,
+          taxUnit,
+          standardDistribution,
+          shares,
+        },
       },
     });
   } catch (ex) {
@@ -224,6 +243,29 @@ router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
 
 /**
  * @openapi
+ * /donations/status:
+ *   get:
+ *    tags: [Donations]
+ *    description: Redirects to donation success when query is ok, donation failed if not ok. Used for payment processing.
+ */
+router.get("/:KID/redirect", async (req, res, next) => {
+  try {
+    if (
+      req.query.status &&
+      (req.query.status as string).toUpperCase() === "OK"
+    ) {
+      const agreement = await DAO.avtalegiroagreements.getByKID(req.params.KID);
+      await sendAvtalegiroRegistered(agreement);
+
+      res.redirect("https://gieffektivt.no/opprettet");
+    } else res.redirect("https://gieffektivt.no/avtale-feilet");
+  } catch (ex) {
+    next({ ex });
+  }
+});
+
+/**
+ * @openapi
  * /avtalegiro/{KID}/distribution:
  *   post:
  *    tags: [Avtalegiro]
@@ -247,12 +289,12 @@ router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
  *            distribution:
  *              type: object
  *              properties:
- *                organizationId:
+ *                ID:
  *                  type: number
  *                share:
  *                  type: string
  *              example:
- *                 organizationId: 1
+ *                 ID: 1
  *                 share: "100.000000000000"
  *    responses:
  *      400:
@@ -278,15 +320,27 @@ router.post(
   async (req, res, next) => {
     try {
       if (!req.body) return res.sendStatus(400);
-      const originalKID = req.params.KID;
+      const originalKID: string = req.params.KID;
       const parsedData = req.body;
-      const distribution = parsedData.distribution;
-      const donor = await DAO.donors.getByKID(originalKID);
-      const donorId = donor.id;
+      const shares = parsedData.distribution.shares;
+      const standardDistribution: boolean =
+        parsedData.distribution.standardDistribution;
+      const taxUnitId: number | null =
+        parsedData.distribution.taxUnit.id || null;
+      const donor: Donor = await DAO.donors.getByKID(originalKID);
 
-      const split = distribution.map((org) => {
-        return { organizationID: org.organizationId, share: org.share };
-      });
+      if (!donor) {
+        throw new Error(`Donor with KID: ${originalKID} not found.`);
+      }
+      const donorId: number = donor.id;
+
+      const split = standardDistribution
+        ? await DAO.organizations.getStandardSplit()
+        : shares
+            .map((org) => {
+              return { id: org.id, share: org.share };
+            })
+            .filter((org) => parseFloat(org.share) !== 0);
       const metaOwnerID = 3;
 
       if (split.length === 0) {
@@ -312,7 +366,9 @@ router.post(
         originalKID,
         split,
         donorId,
-        metaOwnerID
+        metaOwnerID,
+        taxUnitId,
+        standardDistribution
       );
 
       await sendAvtaleGiroChange(originalKID, "SHARES", split);

@@ -1,0 +1,152 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Mail from Gi Effektivt </title>
+    <style type="text/css">
+        body {margin: 0; padding: 0; min-width: 100%!important;}
+        img {height: auto; min-width: 100%;}
+        .content {width: 100%; max-width: 600px;}
+        .innerpadding {padding: 30px 30px 30px 30px;}
+        .borderbottom {border-bottom: 1px solid #f2eeed;}
+        .subhead {font-size: 15px; color: #ffffff; font-family: sans-serif; letter-spacing: 10px;}
+        .h1, .h2, .h3, .h4, .bodycopy, .boldTableRow, .tableRow {color: #153643; font-family: sans-serif;}
+        .h1 {font-size: 33px; line-height: 38px; font-weight: bold;}
+        .h2 {padding: 0 0 15px 0; font-size: 24px; line-height: 28px; font-weight: bold;}
+        .h3 {padding: 0 0 15px 0; font-size: 18px; line-height: 26px; font-weight: bold;}
+        .h4 {padding: 0 0 15px 0; font-size: 16px; line-height: 19px; font-weight: bold;}
+        .boldTableRow {padding: 0 0 0 0; font-size: 16px; line-height: 22px; font-weight: bold}
+        .tableRow {padding: 0 0 10px 0; font-size: 16px; line-height: 22px;}
+        .bodycopy {font-size: 16px; line-height: 22px;}
+        .footer { padding: 20px 30px 15px 30px; max-width: 600px; margin: 0 auto; }
+        .footercopy {font-family: sans-serif; font-size: 16px; color: #ffffff;}
+        .footercopy a {color: #ffffff; text-decoration: underline;}
+        .emailHeaderImage {
+            height:auto !important;
+            max-width:600px !important;
+            width: 100% !important;
+        }
+        @media only screen and (max-width: 550px), screen and (max-device-width: 550px) {
+            body[yahoo] .hide {display: none!important;}
+            body[yahoo] .buttonwrapper {background-color: transparent!important;}
+            body[yahoo] .button {padding: 0px!important;}
+            body[yahoo] .unsubscribe {display: block; margin-top: 20px; padding: 10px 50px; background: #8e8989; border-radius: 5px; text-decoration: none!important; font-weight: bold;}
+        }
+    </style>
+</head>
+
+<body yahoo bgcolor="#fafafa">
+<table width="100%" bgcolor="#fafafa" border="0" cellpadding="0" cellspacing="0">
+    <tr>
+        <td>
+            <table class="content" bgcolor="#ffffff" align="center" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td bgcolor="#000" class="header">
+                        <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:640px; padding: 0 0 0 0;">
+                            <tr>
+                                <td height="auto" style="padding: 0 0 0 0;">
+                                    <img class="emailHeaderImage" src="cid:epost_banner.jpg" border="0" alt="gieffektivt.no" />
+                                </td>
+                            </tr>
+                        </table>
+                        <!--[if (gte mso 9)|(IE)]>
+                        <table width="100%" style="max-width:640px;" align="center" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td>
+                                    <img src="images/epostmal_header_image.png" width="100%" />
+                                </td>
+                            </tr>
+                        </table>
+                        <![endif]-->
+                    </td>
+                </tr>
+                <tr>
+                    <td class="innerpadding borderbottom">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td class="h2">
+                                    <% this.header %>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                <table border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td class="bodycopy">
+                                            Takk for dine donasjoner i <% this.year %>! Følgende beløp er nå registrert for skattefradrag: 
+                                            <br><br/>
+                                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                <% for (var i = 0; i < this.units.length; i++) { %>
+                                                <tr>
+                                                    <td>
+                                                        <table align="left" border="0" cellpadding="0" cellspacing="0">
+                                                            <tr>
+                                                                <td style="font-size: 14px; font-weight: 600; padding-right: 10px;">
+                                                                    <strong><% this.units[i].name %></strong>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                        <table align="left" border="0" cellpadding="0" cellspacing="0">
+                                                            <tr>
+                                                                <td class="tableRow">
+                                                                    <% this.units[i].sum %> kr
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                                <% } %>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="border-top: 1px solid #000; padding-top: 20px;">
+                                    <table border="0" cellspacing="0" cellpadding="0">
+                                        <tr>
+                                            <td class="bodycopy">
+                                                Du kan logge inn på <a href="https://gieffektivt.no/min-side" style="color: #000000">Min side</a> for å se årsoppgaven din. Du har allerede en bruker på Min side.
+                                                Logg inn med e-postadressen du har registrert hos oss (<% this.donorEmail %>), og ditt passord. Hvis du ikke husker passordet ditt, kan du få det tilsendt på nytt ved å trykke på "glemt passord".<br><br>
+                                                Har du spørsmål eller trenger hjelp, kan du kontakte oss på <a href="mailto:donasjon@gieffektivt.no" style="color: #000000;">donasjon@gieffektivt.no</a>.<br><br>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="bodycopy">
+                                    Beløpet er registrert hos Skatteetaten og skattefradraget (22% av alle dine registrerte donasjoner opp til maksimalt beløp, som for 2022 er 25 000 kroner) vil automatisk dukke opp på din skattemelding (Gave og arv → Gave til frivillige organisasjoner). Vi håper dette gjør at du får lyst til å donere enda mer gjennom oss i år. 
+                                    Du kan lese mer om <a href= "https://gieffektivt.no//skattefradrag" style="color: #000000;">skattefradrag på våre nettsider</a>.<br/><br/>
+                                    
+                                    Vi håper du vil fortsette å støtte våre anbefalte formål også i år.
+                                    Du finner mer informasjon på vår nettside 
+                                    <a href= "https://gieffektivt.no" style="color: #000000;"" width="100%">gieffektivt.no</a>.<br/><br />
+
+                                    <% this.reusableHTML.greeting %>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="bodycopy">
+                                    PS. Vil du sette opp månedlige donasjoner? Det tar kun 1-2 min å sette opp en Avtalegiro med månedlig trekk og valgfritt beløp, til din ønskede fordeling. Det er den aller beste måten for deg og for oss å støtte effektiv bistand!<br />
+                                    <a href= "https://gieffektivt.no/" style="color: #000000;"" width="100%">Kom i gang her</a>!
+                                </td>
+                            </tr>
+                        </table>
+                        <!--[if (gte mso 9)|(IE)]>
+                        </td>
+                        </tr>
+                        </table>
+                        <![endif]-->
+                    </td>
+                </tr>
+                <% this.reusableHTML.footer %>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

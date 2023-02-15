@@ -20,9 +20,54 @@ components:
         ssn:
           type: string
           description: The social security number of the tax unit
+        registered:
+          type: string
+          format: date-time
+          description: Indicates the date the unit was registered
+        archived:
+          type: string
+          format: date-time
+          description: Indicates the date the unit was archived. Null if the unit is not archived
+        sumDonations:
+          type: string
+          description: The sum of all donations for the tax unit for the year
+        numDonations:
+          type: integer
+          description: The number of donations for the tax unit for the year
+        taxDeductions:
+          type: array
+          items:
+            type: object
+            properties:
+              year:
+                type: integer
+                description: The year the tax deduction is for
+              sumDonations:
+                type: string
+                description: The sum of all donations for the tax unit for the year
+              taxDeduction:
+                type: number
+                description: The tax deduction for the tax unit for the year
+          description: The tax deductions for the tax unit
       example:
         id: 984
         donorId: 237
         name: Overlook Hotel Logistics Ltd.
         ssn: 919809140
-        registered: 1921-07-04T23:00:00.000Z
+        registered: 2019-01-01T00:00:00.000Z
+        archived: 1921-07-04T23:00:00.000Z
+        sumDonations: 400000
+        numDonations: 4
+        taxDeductions:
+          - year: 2019
+            sumDonations: 100000
+            taxDeduction: 25000
+          - year: 2018
+            sumDonations: 100000
+            taxDeduction: 25000
+          - year: 2017
+            sumDonations: 100000
+            taxDeduction: 25000
+          - year: 2016
+            sumDonations: 100000
+            taxDeduction: 25000

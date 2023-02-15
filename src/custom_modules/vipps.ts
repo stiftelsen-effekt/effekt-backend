@@ -272,13 +272,15 @@ module.exports = {
           await DAO.vipps.updateVippsOrderDonation(orderId, donationID);
           await sendDonationReciept(donationID);
         } catch (ex) {
+          //Donation already registered, no additional actions required
           if (ex.message.indexOf("EXISTING_DONATION") === -1) {
             console.info(
               `Vipps donation for orderid ${orderId} already exists`,
               ex
             );
+          } else {
+            throw ex;
           }
-          //Donation already registered, no additional actions required
         }
       }
 
@@ -438,13 +440,15 @@ module.exports = {
         await sendDonationReciept(donationID);
         return true;
       } catch (ex) {
+        //Donation already registered, no additional actions required
         if (ex.message.indexOf("EXISTING_DONATION") === -1) {
           console.info(
             `Vipps donation for orderid ${orderId} already exists`,
             ex
           );
+        } else {
+          throw ex;
         }
-        //Donation already registered, no additional actions required
       }
     } else {
       //Handle?
@@ -591,7 +595,7 @@ module.exports = {
       interval: "MONTH",
       intervalCount: 1,
       isApp: false,
-      merchantRedirectUrl: `${config.minside_url}/${agreementUrlCode}_landing`,
+      merchantRedirectUrl: `https://gieffektivt.no/opprettet`,
       merchantAgreementUrl: `${config.minside_url}/${agreementUrlCode}`,
       price: realAmount,
       productDescription: agreementUrlCode,
@@ -1015,11 +1019,13 @@ module.exports = {
   },
 
   /**
-   * Checks if an agreement has been charged this month
+   * Checks if an agreement already has been charged in the month of a new charge
+   * Used to prevent double charging
    * @param {string} agreementId The agreement id
-   * @returns {boolean} True if charged this month
+   * @param {Date} newCHargeDueDate The date of the new charge
+   * @returns {boolean} True if charged the month of the new charge
    */
-  async hasChargedThisMonth(agreementId) {
+  async hasChargedDueMonth(agreementId: string, newChargeDueDate: Date) {
     const charges = await this.getCharges(agreementId);
     let hasCharged = false;
 
@@ -1027,10 +1033,10 @@ module.exports = {
       if (charges)
         charges.forEach((charge) => {
           const chargeDate = new Date(charge.due);
-          const today = new Date();
+
           if (
-            today.getFullYear() === chargeDate.getFullYear() &&
-            today.getMonth() === chargeDate.getMonth() &&
+            newChargeDueDate.getFullYear() === chargeDate.getFullYear() &&
+            newChargeDueDate.getMonth() === chargeDate.getMonth() &&
             charge.status === "CHARGED"
           ) {
             hasCharged = true;
@@ -1352,8 +1358,9 @@ module.exports = {
             ) {
               // Check if agreement is also active in Vipps database
               const vippsAgreement = await this.getAgreement(agreement.ID);
-              const monthAlreadyCharged = await this.hasChargedThisMonth(
-                agreement.ID
+              const monthAlreadyCharged = await this.hasChargedDueMonth(
+                agreement.ID,
+                dueDate
               );
               if (vippsAgreement.status === "ACTIVE" && !monthAlreadyCharged) {
                 const formattedDueDate = moment(dueDate).format("YYYY-MM-DD");

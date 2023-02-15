@@ -13,7 +13,32 @@ export interface components {
      *   "donorId": 237,
      *   "name": "Overlook Hotel Logistics Ltd.",
      *   "ssn": 919809140,
-     *   "registered": "1921-07-04T23:00:00.000Z"
+     *   "registered": "2019-01-01T00:00:00.000Z",
+     *   "archived": "1921-07-04T23:00:00.000Z",
+     *   "sumDonations": 400000,
+     *   "numDonations": 4,
+     *   "taxDeductions": [
+     *     {
+     *       "year": 2019,
+     *       "sumDonations": 100000,
+     *       "taxDeduction": 25000
+     *     },
+     *     {
+     *       "year": 2018,
+     *       "sumDonations": 100000,
+     *       "taxDeduction": 25000
+     *     },
+     *     {
+     *       "year": 2017,
+     *       "sumDonations": 100000,
+     *       "taxDeduction": 25000
+     *     },
+     *     {
+     *       "year": 2016,
+     *       "sumDonations": 100000,
+     *       "taxDeduction": 25000
+     *     }
+     *   ]
      * }
      */
     TaxUnit: {
@@ -25,6 +50,29 @@ export interface components {
       name: string;
       /** @description The social security number of the tax unit */
       ssn?: string;
+      /**
+       * Format: date-time
+       * @description Indicates the date the unit was registered
+       */
+      registered?: string;
+      /**
+       * Format: date-time
+       * @description Indicates the date the unit was archived. Null if the unit is not archived
+       */
+      archived?: string;
+      /** @description The sum of all donations for the tax unit for the year */
+      sumDonations?: string;
+      /** @description The number of donations for the tax unit for the year */
+      numDonations?: number;
+      /** @description The tax deductions for the tax unit */
+      taxDeductions?: {
+        /** @description The year the tax deduction is for */
+        year?: number;
+        /** @description The sum of all donations for the tax unit for the year */
+        sumDonations?: string;
+        /** @description The tax deduction for the tax unit for the year */
+        taxDeduction?: number;
+      }[];
     };
   };
 }
