@@ -54,7 +54,7 @@ export const DAO = {
       args[
         "socketPath"
       ] = `${dbSocketPath}/${process.env.CLOUD_SQL_CONNECTION_NAME}`;
-    else args["host"] = "127.0.0.1";
+    else args["host"] = "database";
     this.dbPool = mysql.createPool(args);
 
     //Check whether connection was successfull

@@ -27,6 +27,7 @@ services:
         condition: service_healthy
     environment:
       PORT: 5050
+      HOST: 0.0.0.0
       DB_HOST: database
       DB_NAME: "EffektDonasjonDB_Local"
       DB_USER: "api"

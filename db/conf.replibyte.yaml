@@ -1,0 +1,5 @@
+source:
+  connection_uri: mysql://root:167ZF3oENdPtrNVXpFm0JTXi@127.0.0.1:3306/EffektDonasjonDB
+datastore:
+  local_disk:
+    dir: ./data/replibyte
