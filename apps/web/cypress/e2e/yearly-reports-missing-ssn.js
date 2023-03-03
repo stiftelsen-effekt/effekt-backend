@@ -178,12 +178,4 @@ describe("Tax reports page missing ssn", () => {
       .last()
       .should("contain", "4 000 kr");
   });
-
-  /*
-  it("should show crypto and stiftelsen effekt donations in separate table"),
-
-  it("should display custom message if no data"), 
-  
-  
-  */
 });
