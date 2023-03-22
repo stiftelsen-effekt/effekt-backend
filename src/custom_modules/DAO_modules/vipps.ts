@@ -1,5 +1,7 @@
 import { distributions } from "./distributions";
 import { DAO } from "../DAO";
+import { Donation } from "../../schemas/types";
+import paymentMethods from "../../enums/paymentMethods";
 const sqlString = require("sqlstring");
 
 // Valid states for Vipps recurring charges
@@ -576,6 +578,38 @@ async function getChargeSumHistogram() {
   return results;
 }
 
+async function getDonationsByUrlCode(urlcode: string):Promise<Donation[]>{
+  let [results] = await DAO.query(`
+            SELECT * FROM Vipps_agreement_charges as CH
+
+            LEFT JOIN Donations ON
+              CH.KID = Donations.KID_fordeling
+              AND CH.amountNOK = Donations.sum_confirmed
+              AND YEAR(CH.dueDate) = YEAR(Donations.timestamp_confirmed)
+              AND MONTH(CH.dueDATE) = MONTH(Donations.timestamp_confirmed)
+              AND CH.amountNOK = Donations.sum_confirmed
+            
+            WHERE CH.agreementID = ? AND CH.\`status\` = 'CHARGED'
+
+            ORDER BY (Donations.timestamp_confirmed) DESC
+        `,[urlcode]);
+
+  return results.map((row) => (
+    {
+      id: row.ID,
+      donor: "",
+      donorId: row.Donor_ID,
+      email: "",
+      sum: row.sum_confirmed,
+      transactionCost: row.transaction_cost,
+      paymentMethod: paymentMethods.vipps_recurring,
+      KID: row.KID_fordeling,
+      taxUnitId: null,
+      timestamp: row.timestamp_confirmed,
+    } ));
+
+}
+
 //endregion
 
 //region Add
@@ -975,6 +1009,7 @@ export const vipps = {
   getChargeSumHistogram,
   getActiveAgreements,
   getAgreementReport,
+  getDonationsByUrlCode,
   addToken,
   addOrder,
   addAgreement,

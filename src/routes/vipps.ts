@@ -247,6 +247,18 @@ router.post(
   }
 );
 
+router.get("/agreement/:urlcode/donations", async (req, res, next) => {
+  try {
+    const donations = await DAO.vipps.getDonationsByUrlCode('agr_4tswtyB') 
+    return res.json({
+      status: 200,
+      content: donations,
+    });   
+  } catch (ex) {
+    next({ ex });
+  }
+});
+
 /**
  * @openapi
  * /vipps/agreement/{urlcode}/cancel:
