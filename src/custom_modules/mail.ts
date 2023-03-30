@@ -914,7 +914,7 @@ export async function sendOcrBackup(fileContents) {
   };
 
   let result = await request.post({
-    url: "https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages",
+    url: "https://api.mailgun.net/v3/mg.gieffektivt.no/messages",
     auth: {
       user: "api",
       password: config.mailgun_api_key,
@@ -969,7 +969,7 @@ async function send(options) {
 
   //Exceptions bubble up
   let result = await request.post({
-    url: "https://api.mailgun.net/v3/mg.stiftelseneffekt.no/messages",
+    url: "https://api.mailgun.net/v3/mg.gieffektivt.no/messages",
     auth: {
       user: "api",
       password: config.mailgun_api_key,
