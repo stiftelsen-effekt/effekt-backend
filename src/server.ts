@@ -1,3 +1,6 @@
+import * as dotenv from "dotenv";
+dotenv.config();
+
 import { DAO } from "./custom_modules/DAO";
 import { openAPIOptions, swaggerOptions } from "./openapi-config";
 import * as config from "./config";

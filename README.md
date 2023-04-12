@@ -266,8 +266,9 @@ The proxy is now listening for connections on port 3306 (the standard mysql port
 
 Before we can run the API, we need to specify some environment variables. You can see all of the variables in [config.js](./config.js). Many of the variables declared here are not needed for most development.
 
-To get started, we **need** these to be set to run the api:
+To get started, make a copy of `.env.example` and name it `.env`. The values in this file will automatically be picked up by the node.js application and the file will not be added to source control so it is okay to have secret values in there.
 
+Open the .env file and update the variables with your own values:
 - `DB_USER` (name of database user)
 - `DB_PASS` (password of database user)
 - `DB_NAME` (name of MySQL instance)
@@ -277,10 +278,8 @@ The other configuration variables are only needed to run specific parts of the c
 Let's run the service, using our locally-running MySQL instance (either native or in Docker):
 
 ```
-DB_NAME='EffektDonasjonDB_Local' DB_USER='root' DB_PASS='effekt' npm start
+npm start
 ```
-
-(Depending on your operation system, setting environment variables may be a different process. Check out the procedure for [windows](docs/win_environment_variables.md) and [macos / linux](nix_environment_variables.md) respectively).
 
 If all goes well, you should be seeing something like this in your terminal
 
