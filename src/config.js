@@ -1,5 +1,12 @@
 const fs = require("fs");
 
+const getAllowedProductionOrigins = () => {
+  const allowedProductionOriginsEnv =
+    process.env.ALLOWED_PRODUCTION_ORIGINS || "";
+  // returns [ '' ] if unset
+  return allowedProductionOriginsEnv.split(",");
+};
+
 module.exports = {
   //Environment
   env: process.env.NODE_ENV || "development",
@@ -54,9 +61,5 @@ module.exports = {
   debugReturnExceptions: true,
 
   //Prod allowed origins
-  allowedProductionOrigins: [
-    "https://gieffektivt.no",
-    "https://admin.gieffektivt.no",
-    "http://localhost:3000",
-  ],
+  allowedProductionOrigins: getAllowedProductionOrigins(),
 };
