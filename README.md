@@ -285,9 +285,7 @@ If all goes well, you should be seeing something like this in your terminal
 
 <img src="docs/api_terminal.png" width="500" />
 
-We can verify that the api is indeed operational by testing it in our browser. Navigation go http://localhost:3000 should yield a welcoming message.
-
-<img src="docs/browser_root_route.png" width="500" />
+We can verify that the api is indeed operational by testing it in our browser. Navigation go http://localhost:5050 should redirect you to http://localhost:5050/api-docs/ shownig the API documentation
 
 If you need to connect the service to our production MySQL instance, first complete the Google Cloud SQL Auth Proxy setup above, then please enquire about these credentials on our [tech](https://effektteam.slack.com/archives/G011BE3BG3H) slack channel, and we will send them to you privately. We have two databases: `EffektDonasjonDB` and `EffektDonasjonDB_Dev`. The former is for our live production data, whilst the latter is for development.
 
