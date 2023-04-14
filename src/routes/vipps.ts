@@ -249,7 +249,7 @@ router.post(
 
 router.get("/agreement/:urlcode/donations", async (req, res, next) => {
   try {
-    const donations = await DAO.vipps.getDonationsByUrlCode('agr_4tswtyB') 
+    const donations = await DAO.vipps.getDonationsByUrlCode(req.params.urlcode) 
     return res.json({
       status: 200,
       content: donations,
