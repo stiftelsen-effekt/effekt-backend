@@ -100,6 +100,7 @@ router.post("/auth0", async (req, res, next) => {
     const email = req.body.data.details.body.email;
     await sendPasswordResetNoUserEmail(email);
   }
+  res.send("OK");
 });
 
 router.get("/:id", authMiddleware.isAdmin, async (req, res, next) => {
