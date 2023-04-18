@@ -900,6 +900,30 @@ export async function sendTaxYearlyReportNoticeNoUser(
 }
 
 /**
+ * When a user requests a password reset, they might never have registered in the first place
+ * This function sends an email to the user, informing them that they have not registered
+ * @param email 
+ */
+export async function sendPasswordResetNoUserEmail(email: string) {
+  try {
+    await send({
+      reciever: email,
+      subject: `Gi Effektivt - Glemt passord`,
+      templateName: "passwordResetNoUser",
+      templateData: {
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send password reset no user email");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+/**
  * Sends OCR file for backup
  * @param {Buffer} fileContents
  */
@@ -928,6 +952,8 @@ export async function sendOcrBackup(fileContents) {
     return false;
   }
 }
+
+
 
 /**
  * @typedef MailOptions

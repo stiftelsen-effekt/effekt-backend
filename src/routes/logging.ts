@@ -3,6 +3,7 @@ import { DAO } from "../custom_modules/DAO";
 
 const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+import { sendPasswordResetNoUserEmail } from "../custom_modules/mail";
 const roles = require("../enums/authorizationRoles");
 
 /**
@@ -90,6 +91,23 @@ router.post("/", async (req, res, next) => {
     });
   } catch (ex) {
     next(ex);
+  }
+});
+
+/**
+ * @openapi
+ * /logging/auth0:
+ *   post:
+ *     tags: [Logging]
+ *     description: Log an auth0 error. Used to send an email to the user if the user does not exist in the database. See https://auth0.com/docs/customize/log-streams/
+**/
+router.post("/auth0", async (req, res, next) => {
+  console.log(req.body)
+
+  // Send an email to the user with the error message if the error is a user does not exist error (fcpr)
+  if (req.body.data.type === "fcpr") {
+    const email = req.body.data.details.body.email;
+    await sendPasswordResetNoUserEmail(email);
   }
 });
 
