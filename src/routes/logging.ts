@@ -95,8 +95,6 @@ router.post("/", async (req, res, next) => {
 });
 
 router.post("/auth0", async (req, res, next) => {
-  console.log(req.body)
-
   // Send an email to the user with the error message if the error is a user does not exist error (fcpr)
   if (req.body.data.type === "fcpr") {
     const email = req.body.data.details.body.email;
