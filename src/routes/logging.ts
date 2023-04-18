@@ -94,13 +94,6 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-/**
- * @openapi
- * /logging/auth0:
- *   post:
- *     tags: [Logging]
- *     description: Log an auth0 error. Used to send an email to the user if the user does not exist in the database. See https://auth0.com/docs/customize/log-streams/
-**/
 router.post("/auth0", async (req, res, next) => {
   console.log(req.body)
 
