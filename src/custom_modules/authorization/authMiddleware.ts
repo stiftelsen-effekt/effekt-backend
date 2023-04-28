@@ -9,9 +9,14 @@ import {
 
 const authorizationRoles = require("../../enums/authorizationRoles.js");
 
+// const checkJwt = auth0({
+//   audience: "https://data.gieffektivt.no",
+//   issuerBaseURL: "https://gieffektivt.eu.auth0.com/",
+// });
+
 const checkJwt = auth0({
-  audience: "https://data.gieffektivt.no",
-  issuerBaseURL: "https://gieffektivt.eu.auth0.com/",
+  audience: "geeffektivt.se",
+  issuerBaseURL: "https://geeffektivt.eu.auth0.com/",
 });
 
 const roleClaim = "https://gieffektivt.no/roles";
