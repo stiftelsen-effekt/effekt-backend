@@ -10,5 +10,27 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'gcr.io/$PROJECT_ID/effektapi-dev:latest']
 - name: 'gcr.io/cloud-builders/gcloud'
-  args: ['run', 'deploy', 'effektapi-dev', '--image', 'gcr.io/$PROJECT_ID/effektapi-dev:latest', '--region', 'europe-north1', '--platform', 'managed', '--allow-unauthenticated']
+  args:
+    - 'run'
+    - 'deploy'
+    - 'effektapi-dev'
+    - '--image'
+    - 'gcr.io/$PROJECT_ID/effektapi-dev:latest'
+    - '--region'
+    - 'europe-north1'
+    - '--platform'
+    - 'managed'
+    - '--allow-unauthenticated'
+- name: "gcr.io/cloud-builders/gcloud"
+  args:
+    - "run"
+    - "deploy"
+    - "geeffektivt-dev"
+    - "--image"
+    - "gcr.io/$PROJECT_ID/effektapi:latest"
+    - "--region"
+    - "europe-north1"
+    - "--platform"
+    - "managed"
+    - "--allow-unauthenticated"
 images: ['gcr.io/$PROJECT_ID/effektapi-dev:latest']
