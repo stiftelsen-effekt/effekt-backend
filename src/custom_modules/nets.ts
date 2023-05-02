@@ -53,7 +53,7 @@ async function getLatestOCRFile() {
 
 /**
  * Fetches the latest Avtalegiro reciept file as a buffer
- * @param {String} dateString A date string on the format yyLLdd e.g. 210131
+ * @param {String} dateString A date string on the format yyLLdd.yyLLdd e.g. 210131.210205. First date is the date of the shipment, second is the due dates for the claims in the shipment
  * @returns {Boolean} True or false
  */
 async function checkIfAcceptedReciept(dateString) {

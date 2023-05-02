@@ -1,9 +1,10 @@
 import { sendAvtalegiroNotification } from "./mail";
 import { DAO } from "./DAO";
+import { DateTime } from "luxon";
 
 const writer = require("./avtalegiro/filewriterutil");
 const config = require("../config");
-const { DateTime } = require("luxon");
+const workdays = require("norwegian-workdays")
 
 /**
  * Generates a claims file to claim payments for AvtaleGiro agreements
@@ -12,7 +13,7 @@ const { DateTime } = require("luxon");
  * @param {DateTime} dueDate Due date
  * @returns {Buffer} The file buffer
  */
-async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
+export async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
   const today = DateTime.fromJSDate(new Date());
   let fileContents = "";
 
@@ -86,7 +87,7 @@ async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
  * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} agreements Agreements to notify
  * @returns {NotifyAgreementsResult}
  */
-async function notifyAgreements(agreements) {
+export async function notifyAgreements(agreements) {
   let result = {
     success: 0,
     failed: 0,
@@ -125,7 +126,7 @@ async function notifyAgreements(agreements) {
  * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} agreements Agreements parced from the file from nets
  * @returns {UpdateAgreementsResult}
  */
-async function updateAgreements(agreements) {
+export async function updateAgreements(agreements) {
   /** @type {UpdateAgreementsResult} */
   let result = {
     activated: 0,
@@ -205,8 +206,78 @@ async function updateAgreements(agreements) {
   return result;
 }
 
-module.exports = {
-  generateAvtaleGiroFile,
-  notifyAgreements,
-  updateAgreements,
-};
+/**
+ * A function that returns a list of due dates for payment claims
+ * We are required to send claims four banking days in advance of the due date
+ * Holidays and weekends are not counted as banking days
+ * Takes in a date to calculate the due date from
+ * @returns 
+ */
+export function getDueDates(date: DateTime) {
+  // Start iterating backwards 30 days from the date given
+  // Keep going until 4 days after the date given
+  // Add all the dates that have 4 banking days in between
+  // Return the list of dates
+
+  // We only send claims on banking days
+  // Thus, we start by checking if the date given is a banking day
+  if (!workdays.isWorkingDay(date.toJSDate())) {
+    return [];
+  }
+
+  let dueDates: DateTime[] = [];
+  let iterationDate = date.plus({ days: 30 });
+  while (iterationDate >= date.plus({ days: 4 })) {
+    let bankingDays = 0;
+    let innerIterationDate = iterationDate.minus({ days: 1 });
+    while (innerIterationDate >= date) {
+      if (workdays.isWorkingDay(innerIterationDate.toJSDate())) {
+        bankingDays++;
+      }
+      innerIterationDate = innerIterationDate.minus({ days: 1 });
+    }
+
+    if (bankingDays === 4) {
+      dueDates.push(iterationDate);
+    }
+
+    iterationDate = iterationDate.minus({ days: 1 });
+  }
+
+  // Debug table to visualize the due dates
+  // printDueDatesTable(date, dueDates);
+
+  return dueDates;
+}
+
+/**
+ * Debugging helper for due date calculation
+ * @param date 
+ * @param dueDates 
+ */
+function printDueDatesTable(date: DateTime, dueDates: DateTime[]) {
+  console.log('')
+  console.log('')
+
+  let tableWidth = dueDates[0].diff(date, "days").days + 1
+
+  console.log('-'.repeat(tableWidth*8))
+
+  // Bold text
+  console.log(`Due dates for claims on \x1b[1m${date.toFormat('dd.MM.yyyy')}\x1b[0m`)
+  console.log('')
+
+
+  // Letter for the day, e.g. Mon for Monday
+
+  console.log(Array.from({length: tableWidth}, (_, i) => date.plus({day: i}).toFormat('ccc')).join('\t'))
+  console.log(Array.from({length: tableWidth}, (_, i) => date.plus({day: i}).day).join('\t'))
+  // Green square is a banking day, yellow is not
+  console.log(Array.from({length: tableWidth}, (_, i) => workdays.isWorkingDay(date.plus({day: i}).toJSDate()) ? '🟢' : '🟡').join('\t'))
+  // Checkmark if the date is a due date
+  console.log(Array.from({length: tableWidth}, (_, i) => dueDates.map(d => d.toISO()).includes(date.plus({day: i}).toISO()) ? '✅' : '').join('\t'))
+  console.log('-'.repeat(tableWidth*8))
+
+  console.log('')
+  console.log('')
+}

@@ -65,11 +65,11 @@ describe("POST /scheduled/avtalegiro", function () {
       .resolves(42);
 
     agreementsStub = sinon.stub(DAO.avtalegiroagreements, "getByPaymentDate");
-
-    agreementsStub.withArgs(9).resolves([]);
-    agreementsStub.withArgs(10).resolves(mockAgreements);
-    agreementsStub.withArgs(28).resolves(mockAgreements);
+    agreementsStub.withArgs(29).resolves([]);
+    agreementsStub.withArgs(30).resolves([]);
     agreementsStub.withArgs(31).resolves([]);
+
+
 
     loggingStub = sinon.stub(DAO.logging, "add").resolves(true);
 
@@ -90,7 +90,7 @@ describe("POST /scheduled/avtalegiro", function () {
     agreementsStub.resolves([]);
 
     const response = await request(server)
-      .post("/scheduled/avtalegiro?date=2021-10-03")
+      .post("/scheduled/avtalegiro?date=2021-10-04")
       .expect(200);
 
     expect(agreementsStub.calledOnce).to.be.true;
@@ -111,6 +111,22 @@ describe("POST /scheduled/avtalegiro", function () {
     expect(sendFileStub.calledOnce).to.be.true;
   });
 
+  /**
+   * We are required to deliver files four banking days before the claim date.
+   * This means that if the claim date is a saturday or sunday, we need to deliver
+   * the file on the tuesday before. Same goes for the following monday.
+   */
+  it("Generates multiple claims files when provided a tuesday", async function () {
+    agreementsStub.resolves(mockAgreements);
+    
+    const response = await request(server)
+      .post("/scheduled/avtalegiro/?date=2021-10-05")
+      .expect(200);
+
+    expect(sendNotificationStub.called).to.be.false;
+    expect(sendFileStub.callCount).to.be.eq(3);
+  });
+
   it("Notifies claimants when they have asked for it", async function () {
     agreementsStub.resolves(mockAgreements);
 
@@ -129,8 +145,10 @@ describe("POST /scheduled/avtalegiro", function () {
   });
 
   it("Recognizes when claim date is last day of the month", async function () {
+    agreementsStub.withArgs(0).resolves(mockAgreements);
+
     const response = await request(server)
-      .post("/scheduled/avtalegiro/?date=2021-10-25&notify=true")
+      .post("/scheduled/avtalegiro/?date=2022-09-26&notify=true")
       .expect(200);
 
     sinon.assert.calledWithExactly(agreementsStub, 0);

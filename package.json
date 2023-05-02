@@ -26,6 +26,7 @@
   "homepage": "https://github.com/fellmirr/effekt-backend#readme",
   "dependencies": {
     "@navikt/fnrvalidator": "^1.2.0",
+    "@types/luxon": "^3.3.0",
     "apicache": "^1.5.3",
     "basic-auth": "^1.1.0",
     "body-parser": "^1.19.0",
@@ -60,6 +61,7 @@
     "node-cron": "^3.0.0",
     "node-fetch": "^2.6.1",
     "node-xlsx": "^0.17.2",
+    "norwegian-workdays": "^1.0.1",
     "object-hash": "^2.1.1",
     "performance-now": "^2.1.0",
     "qs": "^6.9.4",
