@@ -8,6 +8,7 @@
   "scripts": {
     "test": "mocha --require ts-node/register   ",
     "test-coverage": "nyc --reporter=text mocha --require ts-node/register src/__test__",
+    "typecheck": "tsc --noEmit",
     "build": "copyfiles -u 1 src/views/**/* src/views/**/**/* src/views/**/**/**/* dist/ && tsc",
     "start": "node ./dist/server.js",
     "dev": "export NODEMON=true && nodemon src/server.ts",
