@@ -60,6 +60,12 @@ module.exports = {
   //Debugging
   debugReturnExceptions: true,
 
+  // Auth0
+  authAudience: process.env.AUTH_AUDIENCE,
+  authIssuerBaseURL: process.env.AUTH_BASE_URL,
+  authRoleClaim: process.env.AUTH_ROLE_CLAIM,
+  authUserIdClaim: process.env.AUTH_USER_ID_CLAIM,
+
   //Prod allowed origins
   allowedProductionOrigins: getAllowedProductionOrigins(),
 };
