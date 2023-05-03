@@ -80,16 +80,8 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
 
 router.get("/agreement/minside/:urlcode", async (req, res, next) => {
   try {
-    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(
-      req.params.urlcode
-    );
-
-    if (!agreementId) {
-      let err = new Error("Can't find agreement");
-      (err as any).status = 404;
-      return next(err);
-    }
-
+    const agreementUrlCode = req.params.urlcode
+    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementUrlCode);
     const agreement = await DAO.vipps.getAgreement(agreementId);
 
     if (!agreement) {
@@ -106,13 +98,43 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
       return next(err);
     }
 
+    const baseUrl = config.env === "development" ? "http://localhost:3000" : "https://gieffektivt.no"
+    let redirectUrl = `${baseUrl}/vippsagreement?email=${encodeURIComponent(donor.email)}`
+
+    if (donor.email === "anon@gieffektivt.no") {
+      redirectUrl = `${baseUrl}/min-side/vipps-anonym?agreementCode=${agreementUrlCode}`
+    }
+
     res
       .status(304)
-      .redirect(
-        `https://gieffektivt.no/vippsagreement?email=${encodeURIComponent(
-          donor.email
-        )}`
-      );
+      .redirect(redirectUrl);
+  } catch (ex) {
+    next({ ex });
+  }
+});
+
+router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
+  try {
+    const agreementUrlCode = req.params.urlcode
+    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementUrlCode);
+    const agreement = await DAO.vipps.getAgreement(agreementId);
+    if (!agreement) {
+      let err = new Error("Can't find agreement");
+      (err as any).status = 404;
+      return next(err);
+    }
+
+    const KID = agreement["KID"];
+    const shares = await DAO.distributions.getSplitByKID(KID);
+    const standardDistribution = await DAO.distributions.isStandardDistribution(KID);
+    
+    const distribution = {
+      kid: KID,
+      standardDistribution,
+      shares,
+    };
+
+    res.status(200).json({agreement, distribution});
   } catch (ex) {
     next({ ex });
   }
