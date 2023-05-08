@@ -1,8 +1,7 @@
 const fs = require("fs");
 
 const getAllowedProductionOrigins = () => {
-  const allowedProductionOriginsEnv =
-    process.env.ALLOWED_PRODUCTION_ORIGINS || "";
+  const allowedProductionOriginsEnv = process.env.ALLOWED_PRODUCTION_ORIGINS || "";
   // returns [ '' ] if unset
   return allowedProductionOriginsEnv.split(",");
 };
@@ -28,8 +27,7 @@ module.exports = {
   vipps_client_secret: process.env.VIPPS_CLIENT_SECRET,
   vipps_ocp_apim_subscription_key: process.env.VIPPS_OCP_APIM_SUBSCRIPTION_KEY,
   vipps_merchant_serial_number: process.env.VIPPS_MERCHANT_SERIAL_NUMBER,
-  vipps_api_url:
-    process.env.NODE_ENV === "production" ? "api.vipps.no" : "apitest.vipps.no",
+  vipps_api_url: process.env.NODE_ENV === "production" ? "api.vipps.no" : "apitest.vipps.no",
 
   nets_sftp_server: process.env.NETS_SFTP_SERVER,
   nets_sftp_user: process.env.NETS_SFTP_USER,

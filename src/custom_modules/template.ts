@@ -30,8 +30,7 @@ module.exports = function (html, options) {
   var add = function (line, js) {
     js
       ? (code += line.match(reExp) ? line + "\n" : "r.push(" + line + ");\n")
-      : (code +=
-          line != "" ? 'r.push("' + line.replace(/"/g, '\\"') + '");\n' : "");
+      : (code += line != "" ? 'r.push("' + line.replace(/"/g, '\\"') + '");\n' : "");
     return add;
   };
   while ((match = re.exec(html))) {

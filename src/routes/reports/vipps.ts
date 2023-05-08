@@ -15,7 +15,7 @@ module.exports = async (req, res, next) => {
     parsedReport = parseReport(req.files.report.data);
     parsingRules = await DAO.parsing.getVippsParsingRules(
       parsedReport.minDate,
-      parsedReport.maxDate
+      parsedReport.maxDate,
     );
   } catch (ex) {
     next(ex);
@@ -29,10 +29,7 @@ module.exports = async (req, res, next) => {
   for (let i = 0; i < transactions.length; i++) {
     let transaction = transactions[i];
     transaction.paymentID = payment.vipps_KID;
-    let matchingRuleKID = checkForMatchingParsingRule(
-      transaction,
-      parsingRules
-    );
+    let matchingRuleKID = checkForMatchingParsingRule(transaction, parsingRules);
 
     if (transaction.KID != null) {
       /**
@@ -46,13 +43,11 @@ module.exports = async (req, res, next) => {
           transaction.amount,
           transaction.date.toDate(),
           transaction.transactionID,
-          metaOwnerID
+          metaOwnerID,
         );
         valid++;
       } catch (ex) {
-        console.error(
-          "Failed to update DB for vipps donation with KID: " + transaction.KID
-        );
+        console.error("Failed to update DB for vipps donation with KID: " + transaction.KID);
         console.error(ex);
 
         if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
@@ -85,13 +80,13 @@ module.exports = async (req, res, next) => {
           transaction.amount,
           transaction.date.toDate(),
           transaction.transactionID,
-          metaOwnerID
+          metaOwnerID,
         );
         valid++;
       } catch (ex) {
         console.error(
           "Failed to update DB for vipps donation that matched against a parsing rule with KID: " +
-            transaction.KID
+            transaction.KID,
         );
         console.error(ex);
 
@@ -129,9 +124,7 @@ function checkForMatchingParsingRule(transaction, rules) {
     let rule = rules[i];
     if (
       rule.salesLocation == transaction.location &&
-      (rule.message == transaction.message ||
-        rule.message == null ||
-        transaction.message == "")
+      (rule.message == transaction.message || rule.message == null || transaction.message == "")
     )
       return rule.resolveKID;
   }

@@ -36,12 +36,9 @@ router.post("/", async (req, res, next) => {
     let parsedData = req.body;
     if (typeof parsedData.referralID === "undefined")
       throw new Error("Missing parameter referralID");
-    if (typeof parsedData.donorID === "undefined")
-      throw new Error("Missing parameter donorID");
-    if (typeof parsedData.active === "undefined")
-      throw new Error("Missing parameter active");
-    if (typeof parsedData.session === "undefined")
-      throw new Error("Missing parameter session");
+    if (typeof parsedData.donorID === "undefined") throw new Error("Missing parameter donorID");
+    if (typeof parsedData.active === "undefined") throw new Error("Missing parameter active");
+    if (typeof parsedData.session === "undefined") throw new Error("Missing parameter session");
 
     if (typeof parsedData.comment === "undefined") parsedData.comment = null;
 
@@ -51,7 +48,7 @@ router.post("/", async (req, res, next) => {
       const otherRecordExists = await DAO.referrals.checkRecordExist(
         parsedData.referralID,
         parsedData.donorID,
-        parsedData.session
+        parsedData.session,
       );
 
       if (otherRecordExists) {
@@ -64,16 +61,14 @@ router.post("/", async (req, res, next) => {
             parsedData.referralID,
             parsedData.donorID,
             parsedData.session,
-            parsedData.comment
+            parsedData.comment,
           );
           if (updated) {
             res.json({
               status: 200,
             });
           } else {
-            throw new Error(
-              "Failed to update existing referral record with new comment."
-            );
+            throw new Error("Failed to update existing referral record with new comment.");
           }
         }
       } else {
@@ -81,7 +76,7 @@ router.post("/", async (req, res, next) => {
           parsedData.referralID,
           parsedData.donorID,
           parsedData.session,
-          parsedData.comment
+          parsedData.comment,
         );
 
         if (!status) throw new Error("Failed to add record");
@@ -94,7 +89,7 @@ router.post("/", async (req, res, next) => {
       let status = await DAO.referrals.deleteRecord(
         parsedData.referralID,
         parsedData.donorID,
-        parsedData.session
+        parsedData.session,
       );
       if (!status) throw new Error("Failure to delete record");
       res.json({

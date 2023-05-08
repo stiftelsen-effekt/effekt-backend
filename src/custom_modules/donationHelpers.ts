@@ -4,9 +4,7 @@ import { KID } from "./KID";
 export const donationHelpers = {
   createDonationSplitArray: async (passedOrganizations) => {
     //Filter passed organizations for 0 shares
-    var filteredOrganizations = passedOrganizations.filter(
-      (org) => org.split > 0
-    );
+    var filteredOrganizations = passedOrganizations.filter((org) => org.split > 0);
 
     var organizationIDs = filteredOrganizations.map((org) => org.id);
     var orgs = await DAO.organizations.getByIDs(organizationIDs);
@@ -53,8 +51,7 @@ export const donationHelpers = {
     //Create new valid KID
     let newKID = KID.generate(length, donorId);
     //If KID already exists, try new kid, call this function recursively
-    if (await DAO.distributions.KIDexists(newKID))
-      newKID = await donationHelpers.createKID();
+    if (await DAO.distributions.KIDexists(newKID)) newKID = await donationHelpers.createKID();
 
     return newKID;
   },

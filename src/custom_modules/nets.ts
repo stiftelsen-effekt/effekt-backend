@@ -65,7 +65,7 @@ async function checkIfAcceptedReciept(dateString) {
   if (files.length == 0) return false;
 
   const filteredFiles = files.filter(
-    (file) => file.name.match(`KV\.GODKJENT.*D${dateString}`) !== null
+    (file) => file.name.match(`KV\.GODKJENT.*D${dateString}`) !== null,
   );
 
   if (filteredFiles.length == 0) return false;

@@ -38,9 +38,7 @@ function formatDateText(date) {
 }
 
 export function formatCurrency(currencyString) {
-  return new Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 }).format(
-    currencyString
-  );
+  return new Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 }).format(currencyString);
 }
 
 // Reusable HTML elements
@@ -68,8 +66,7 @@ const taxDeductionInfo =
   'Les mer <a href= "https://gieffektivt.no/skattefradrag" style="color: #000000;">her</a>.' +
   "<br/><br/>";
 
-const greeting =
-  "<b>Vennlig hilsen</b><br/>" + "oss i Gi Effektivt" + "<br/><br/>";
+const greeting = "<b>Vennlig hilsen</b><br/>" + "oss i Gi Effektivt" + "<br/><br/>";
 
 const feedback =
   "<span> Hvordan synes du det gikk å donere i dag? </span><br />" +
@@ -145,9 +142,7 @@ export async function sendDonationReciept(donationID, reciever = null) {
       return false;
     }
   } catch (ex) {
-    console.error(
-      "Failed to send mail donation reciept, could not get donation by ID"
-    );
+    console.error("Failed to send mail donation reciept, could not get donation by ID");
     console.error(ex);
     return false;
   }
@@ -155,9 +150,7 @@ export async function sendDonationReciept(donationID, reciever = null) {
   try {
     var split = await DAO.distributions.getSplitByKID(donation.KID);
   } catch (ex) {
-    console.error(
-      "Failed to send mail donation reciept, could not get donation split by KID"
-    );
+    console.error("Failed to send mail donation reciept, could not get donation split by KID");
     console.error(ex);
     return false;
   }
@@ -180,11 +173,7 @@ export async function sendDonationReciept(donationID, reciever = null) {
       templateName: "reciept",
       templateData: {
         header:
-          "Hei" +
-          (donation.donor && donation.donor.length > 0
-            ? " " + donation.donor
-            : "") +
-          ",",
+          "Hei" + (donation.donor && donation.donor.length > 0 ? " " + donation.donor : "") + ",",
         donationSum: formatCurrency(donation.sum),
         organizations: organizations,
         donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
@@ -217,9 +206,7 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
       return false;
     }
   } catch (ex) {
-    console.error(
-      "Failed to send mail donation reciept, could not get donation by ID"
-    );
+    console.error("Failed to send mail donation reciept, could not get donation by ID");
     console.error(ex);
     return false;
   }
@@ -227,9 +214,7 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
   try {
     var split = await DAO.distributions.getSplitByKID(donation.KID);
   } catch (ex) {
-    console.error(
-      "Failed to send mail donation reciept, could not get donation split by KID"
-    );
+    console.error("Failed to send mail donation reciept, could not get donation split by KID");
     console.error(ex);
     return false;
   }
@@ -252,11 +237,7 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
       templateName: "recieptEffekt",
       templateData: {
         header:
-          "Hei" +
-          (donation.donor && donation.donor.length > 0
-            ? " " + donation.donor
-            : "") +
-          ",",
+          "Hei" + (donation.donor && donation.donor.length > 0 ? " " + donation.donor : "") + ",",
         donationSum: formatCurrency(donation.sum),
         organizations: organizations,
         donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
@@ -291,8 +272,7 @@ function formatOrganizationsFromSplit(split, sum) {
 
     return {
       name: org.full_name,
-      amount:
-        (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount),
+      amount: (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount),
       percentage: parseFloat(org.share),
     };
   });
@@ -306,26 +286,20 @@ export async function sendDonationRegistered(KID, sum) {
     try {
       var donor = await DAO.donors.getByKID(KID);
     } catch (ex) {
-      console.error(
-        "Failed to send mail donation reciept, could not get donor by KID"
-      );
+      console.error("Failed to send mail donation reciept, could not get donor by KID");
       console.error(ex);
       return false;
     }
 
     if (!donor) {
-      console.error(
-        `Failed to send mail donation reciept, no donors attached to KID ${KID}`
-      );
+      console.error(`Failed to send mail donation reciept, no donors attached to KID ${KID}`);
       return false;
     }
 
     try {
       var split = await DAO.distributions.getSplitByKID(KID);
     } catch (ex) {
-      console.error(
-        "Failed to send mail donation reciept, could not get donation split by KID"
-      );
+      console.error("Failed to send mail donation reciept, could not get donation split by KID");
       console.error(ex);
       return false;
     }
@@ -341,10 +315,7 @@ export async function sendDonationRegistered(KID, sum) {
       reciever: donor.email,
       templateName: "registered",
       templateData: {
-        header:
-          "Hei" +
-          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
-          ",",
+        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
         name: donor.name,
         //Add thousand seperator regex at end of amount
         kid: KIDstring,
@@ -369,8 +340,7 @@ export async function sendDonationRegistered(KID, sum) {
 export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
   try {
     await send({
-      subject:
-        "Gi Effektivt - Facebook-donasjoner registrert for skattefradrag",
+      subject: "Gi Effektivt - Facebook-donasjoner registrert for skattefradrag",
       reciever: email,
       templateName: "facebookTaxConfirmation",
       templateData: {
@@ -393,16 +363,11 @@ export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
  * @param {"PAUSED" | "UNPAUSED" | "STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
  */
-export async function sendVippsAgreementChange(
-  agreementCode,
-  change,
-  newValue = null
-) {
+export async function sendVippsAgreementChange(agreementCode, change, newValue = null) {
   try {
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
     const agreement = await DAO.vipps.getAgreement(agreementId);
-    if (!agreement)
-      throw new Error(`Agreement with id ${agreementId} not found`);
+    if (!agreement) throw new Error(`Agreement with id ${agreementId} not found`);
 
     const donor = await DAO.donors.getByID(agreement.donorID);
     const email = donor.email;
@@ -429,10 +394,7 @@ export async function sendVippsAgreementChange(
       reciever: email,
       templateName: "vippsAgreementChange",
       templateData: {
-        header:
-          "Hei" +
-          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
-          ",",
+        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
         change,
         newValue,
         organizations,
@@ -455,19 +417,13 @@ export async function sendVippsAgreementChange(
  * @param {string} errorMessage Long error message (exception)
  * @param {string} inputData The input data while the error happened
  */
-export async function sendVippsErrorWarning(
-  errorType,
-  errorMessage,
-  inputData
-) {
+export async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
   try {
     const timestamp = formatTimestamp(new Date());
 
     let errorDesc = "";
-    if (errorType === "DRAFT")
-      errorDesc = "Oppretting av Vipps betalingsavtale feilet";
-    if (errorType === "CHARGE")
-      errorDesc = "Trekk av Vipps betalingsavtale feilet";
+    if (errorType === "DRAFT") errorDesc = "Oppretting av Vipps betalingsavtale feilet";
+    if (errorType === "CHARGE") errorDesc = "Trekk av Vipps betalingsavtale feilet";
     const subject = `Varsling om systemfeil - ${errorDesc}`;
 
     const recipients = [
@@ -504,12 +460,7 @@ export async function sendVippsErrorWarning(
  * @param {string} donorMessage Written message from donor explaining the problem
  * @param {VippsAgreement} agreement Vipps agreement data
  */
-export async function sendVippsProblemReport(
-  senderUrl,
-  senderEmail,
-  donorMessage,
-  agreement
-) {
+export async function sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agreement) {
   try {
     const timestamp = formatTimestamp(new Date());
 
@@ -594,9 +545,7 @@ export async function sendDonationHistory(donorID) {
 
     total = formatCurrency(total);
   } catch (ex) {
-    console.error(
-      "Failed to send donation history, could not get donation by ID"
-    );
+    console.error("Failed to send donation history, could not get donation by ID");
     console.error(ex);
     return false;
   }
@@ -607,10 +556,7 @@ export async function sendDonationHistory(donorID) {
       subject: "Gi Effektivt - Din donasjonshistorikk",
       templateName: templateName,
       templateData: {
-        header:
-          "Hei" +
-          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
-          ",",
+        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
         total: total,
         donationSummary: donationSummary,
         yearlyDonationSummary: yearlyDonationSummary,
@@ -686,10 +632,7 @@ export async function sendAvtaleGiroChange(KID, change, newValue = "") {
       reciever: email,
       templateName: "avtaleGiroChange",
       templateData: {
-        header:
-          "Hei" +
-          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
-          ",",
+        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
         change,
         newValue,
         organizations,
@@ -719,7 +662,7 @@ export async function sendAvtalegiroNotification(agreement) {
     donor = await DAO.donors.getByKID(agreement.KID);
   } catch (ex) {
     console.error(
-      `Failed to send mail AvtaleGiro claim notification, could not get donor form KID ${agreement.KID}`
+      `Failed to send mail AvtaleGiro claim notification, could not get donor form KID ${agreement.KID}`,
     );
     console.error(ex);
     return false;
@@ -729,7 +672,7 @@ export async function sendAvtalegiroNotification(agreement) {
     split = await DAO.distributions.getSplitByKID(agreement.KID);
   } catch (ex) {
     console.error(
-      `Failed to send mail AvtaleGiro claim notification, could not get donation split by KID ${agreement.KID}`
+      `Failed to send mail AvtaleGiro claim notification, could not get donation split by KID ${agreement.KID}`,
     );
     console.error(ex);
     return false;
@@ -748,10 +691,7 @@ export async function sendAvtalegiroNotification(agreement) {
       subject: `Gi Effektivt - Varsel trekk AvtaleGiro`,
       templateName: "avtalegironotice",
       templateData: {
-        header:
-          "Hei" +
-          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
-          ",",
+        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
         agreementSum: formatCurrency(agreement.amount / 100),
         organizations: organizations,
         reusableHTML,
@@ -778,7 +718,7 @@ export async function sendAvtalegiroRegistered(agreement) {
     donor = await DAO.donors.getByKID(agreement.KID);
   } catch (ex) {
     console.error(
-      `Failed to send mail AvtaleGiro registered, could not get donor form KID ${agreement.KID}`
+      `Failed to send mail AvtaleGiro registered, could not get donor form KID ${agreement.KID}`,
     );
     console.error(ex);
     return false;
@@ -788,7 +728,7 @@ export async function sendAvtalegiroRegistered(agreement) {
     split = await DAO.distributions.getSplitByKID(agreement.KID);
   } catch (ex) {
     console.error(
-      `Failed to send mail AvtaleGiro registered, could not get donation split by KID ${agreement.KID}`
+      `Failed to send mail AvtaleGiro registered, could not get donation split by KID ${agreement.KID}`,
     );
     console.error(ex);
     return false;
@@ -807,10 +747,7 @@ export async function sendAvtalegiroRegistered(agreement) {
       subject: `Gi Effektivt - AvtaleGiro opprettet`,
       templateName: "avtaleGiroRegistered",
       templateData: {
-        header:
-          "Hei" +
-          (donor.name && donor.name.length > 0 ? " " + donor.name : "") +
-          ",",
+        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
         agreementSum: formatCurrency(agreement.amount / 100),
         agreementDate:
           agreement.payment_date == 0
@@ -829,9 +766,7 @@ export async function sendAvtalegiroRegistered(agreement) {
   }
 }
 
-export async function sendTaxYearlyReportNoticeWithUser(
-  report: EmailTaxUnitReport
-) {
+export async function sendTaxYearlyReportNoticeWithUser(report: EmailTaxUnitReport) {
   const formattedUnits = report.units.map((u) => {
     return {
       ...u,
@@ -845,10 +780,7 @@ export async function sendTaxYearlyReportNoticeWithUser(
       subject: `Gi Effektivt - Årsoppgave for 2022`,
       templateName: "taxDeductionUser",
       templateData: {
-        header:
-          "Hei" +
-          (report.name && report.name.length > 0 ? " " + report.name : "") +
-          ",",
+        header: "Hei" + (report.name && report.name.length > 0 ? " " + report.name : "") + ",",
         year: 2022,
         units: formattedUnits,
         donorEmail: report.email,
@@ -864,9 +796,7 @@ export async function sendTaxYearlyReportNoticeWithUser(
   }
 }
 
-export async function sendTaxYearlyReportNoticeNoUser(
-  report: EmailTaxUnitReport
-) {
+export async function sendTaxYearlyReportNoticeNoUser(report: EmailTaxUnitReport) {
   const formattedUnits = report.units.map((u) => {
     return {
       ...u,
@@ -880,10 +810,7 @@ export async function sendTaxYearlyReportNoticeNoUser(
       subject: `Gi Effektivt - Årsoppgave for 2022`,
       templateName: "taxDeductionNoUser",
       templateData: {
-        header:
-          "Hei" +
-          (report.name && report.name.length > 0 ? " " + report.name : "") +
-          ",",
+        header: "Hei" + (report.name && report.name.length > 0 ? " " + report.name : "") + ",",
         year: 2022,
         units: formattedUnits,
         donorEmail: report.email,
@@ -902,7 +829,7 @@ export async function sendTaxYearlyReportNoticeNoUser(
 /**
  * When a user requests a password reset, they might never have registered in the first place
  * This function sends an email to the user, informing them that they have not registered
- * @param email 
+ * @param email
  */
 export async function sendPasswordResetNoUserEmail(email: string) {
   try {
@@ -953,8 +880,6 @@ export async function sendOcrBackup(fileContents) {
   }
 }
 
-
-
 /**
  * @typedef MailOptions
  * @prop {string} reciever
@@ -988,9 +913,7 @@ async function send(options) {
 
   var filesInDir = await fs.readdir(templateRoot + "/images/");
   for (var i = 0; i < filesInDir.length; i++) {
-    data.inline.push(
-      fs.createReadStream(templateRoot + "/images/" + filesInDir[i])
-    );
+    data.inline.push(fs.createReadStream(templateRoot + "/images/" + filesInDir[i]));
   }
 
   //Exceptions bubble up

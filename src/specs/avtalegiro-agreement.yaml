@@ -4,7 +4,7 @@ components:
     AvtalegiroAgreement:
       type: object
       required:
-        - id 
+        - id
         - active
         - amount
         - KID

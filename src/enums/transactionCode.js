@@ -1,5 +1,5 @@
 module.exports = {
-    btg: 13,
-    avtalegiro: 15,
-    avtalegiroInfo: 94
-}
+  btg: 13,
+  avtalegiro: 15,
+  avtalegiroInfo: 94,
+};

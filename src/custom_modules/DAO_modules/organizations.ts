@@ -9,10 +9,8 @@ import { DAO } from "../DAO";
  */
 async function getByIDs(IDs) {
   var [organizations] = await DAO.execute(
-    "SELECT * FROM Organizations WHERE ID in (" +
-      "?,".repeat(IDs.length).slice(0, -1) +
-      ")",
-    IDs
+    "SELECT * FROM Organizations WHERE ID in (" + "?,".repeat(IDs.length).slice(0, -1) + ")",
+    IDs,
   );
 
   return organizations;
@@ -24,10 +22,7 @@ async function getByIDs(IDs) {
  * @returns {Organization}
  */
 async function getByID(ID) {
-  var [organization] = await DAO.execute(
-    "SELECT * FROM Organizations WHERE ID = ? LIMIT 1",
-    [ID]
-  );
+  var [organization] = await DAO.execute("SELECT * FROM Organizations WHERE ID = ? LIMIT 1", [ID]);
 
   if (organization.length > 0) return organization[0];
   else return null;
@@ -58,17 +53,12 @@ async function getAll() {
   return organizations.map(mapOrganization);
 }
 
-async function getStandardSplit(): Promise<
-  { id: number; name: string; share: string }[]
-> {
+async function getStandardSplit(): Promise<{ id: number; name: string; share: string }[]> {
   var [standardSplit] = await DAO.execute(
-    `SELECT * FROM Organizations WHERE std_percentage_share > 0 AND is_active = 1`
+    `SELECT * FROM Organizations WHERE std_percentage_share > 0 AND is_active = 1`,
   );
 
-  if (
-    standardSplit.reduce((acc, org) => (acc += org.std_percentage_share), 0) !=
-    100
-  ) {
+  if (standardSplit.reduce((acc, org) => (acc += org.std_percentage_share), 0) != 100) {
     throw new Error("Standard split does not sum to 100 percent");
   }
 

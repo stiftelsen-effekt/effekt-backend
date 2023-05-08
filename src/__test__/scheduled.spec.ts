@@ -56,20 +56,14 @@ describe("POST /scheduled/avtalegiro", function () {
       .stub(avtalegiro, "generateAvtaleGiroFile")
       .resolves(Buffer.from("", "utf-8"));
 
-    sendNotificationStub = sinon
-      .stub(mail, "sendAvtalegiroNotification")
-      .resolves(true);
+    sendNotificationStub = sinon.stub(mail, "sendAvtalegiroNotification").resolves(true);
 
-    shipmentStub = sinon
-      .stub(DAO.avtalegiroagreements, "addShipment")
-      .resolves(42);
+    shipmentStub = sinon.stub(DAO.avtalegiroagreements, "addShipment").resolves(42);
 
     agreementsStub = sinon.stub(DAO.avtalegiroagreements, "getByPaymentDate");
     agreementsStub.withArgs(29).resolves([]);
     agreementsStub.withArgs(30).resolves([]);
     agreementsStub.withArgs(31).resolves([]);
-
-
 
     loggingStub = sinon.stub(DAO.logging, "add").resolves(true);
 
@@ -118,7 +112,7 @@ describe("POST /scheduled/avtalegiro", function () {
    */
   it("Generates multiple claims files when provided a tuesday", async function () {
     agreementsStub.resolves(mockAgreements);
-    
+
     const response = await request(server)
       .post("/scheduled/avtalegiro/?date=2021-10-05")
       .expect(200);
