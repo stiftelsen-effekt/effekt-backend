@@ -10,11 +10,7 @@ module.exports = {
    * @param {Array<PaymentMethod>} paymentMethods An array of paymentmethods in the donation-list
    * @returns {Buffer} The output excel file, as a buffer
    */
-  createExcelFromIndividualDonations: function (
-    donations,
-    organizations,
-    paymentMethods
-  ) {
+  createExcelFromIndividualDonations: function (donations, organizations, paymentMethods) {
     let organizationMapping = new Map();
     const dataStartRow = 4 + paymentMethods.length;
 
@@ -36,9 +32,7 @@ module.exports = {
     let sumationNetRange = `${COLUMN_MAPPING[6] + dataStartRow}:${
       COLUMN_MAPPING[6] + (donations.length + dataStartRow)
     }`;
-    let checkSumRange = `${COLUMN_MAPPING[7]}2:${
-      COLUMN_MAPPING[7 + (organizations.length - 1)]
-    }2`;
+    let checkSumRange = `${COLUMN_MAPPING[7]}2:${COLUMN_MAPPING[7 + (organizations.length - 1)]}2`;
 
     //Generate headers for data
     let headerRow = [
@@ -61,15 +55,9 @@ module.exports = {
         formula(`COUNTIF(D${dataStartRow}:D1000,"${method.name}")`),
         "",
         `Sum ${method.name}`,
-        formula(
-          `SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationGrossRange})`
-        ),
-        formula(
-          `SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationFeesRange})`
-        ),
-        formula(
-          `SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationNetRange})`
-        ),
+        formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationGrossRange})`),
+        formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationFeesRange})`),
+        formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationNetRange})`),
       ]);
     });
 
@@ -89,9 +77,7 @@ module.exports = {
       //Add sumation for each organization filtered on each payment method
       paymentMethods.forEach((method, i) => {
         let organizationSumMethodColumns = [
-          formula(
-            `SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationRange})`
-          ),
+          formula(`SUMIF(${sumifcomparisonrange}, "${method.name}", ${sumationRange})`),
         ];
         methodSumationRows[i].push(...organizationSumMethodColumns);
       });

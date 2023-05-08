@@ -52,7 +52,7 @@ module.exports = async (req, res, next) => {
         campaign.Source_name,
         campaign.Permalink,
         campaign.Campaign_owner_name,
-        campaign.Fundraiser_type
+        campaign.Fundraiser_type,
       );
     }
   }

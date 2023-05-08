@@ -18,10 +18,7 @@ describe("round", function () {
       [10, 20],
       [99.99998, 0.00001],
       [2, 2, 2, 2, 1, 90],
-      [
-        6.6000000000000005, 6.6000000000000005, 6.6000000000000005, 80, 0.2, 0,
-        0,
-      ],
+      [6.6000000000000005, 6.6000000000000005, 6.6000000000000005, 80, 0.2, 0, 0],
     ];
 
     it("should be a function", function () {
@@ -41,9 +38,7 @@ describe("round", function () {
 
     it("should not return 100 when supplied with array that does not total 100", function () {
       for (let i = 0; i < negativeTestCases.length; i++) {
-        expect(
-          round.sumWithPrecision(negativeTestCases[i]).toString()
-        ).to.not.equal("100");
+        expect(round.sumWithPrecision(negativeTestCases[i]).toString()).to.not.equal("100");
       }
     });
   });
@@ -63,71 +58,49 @@ describe("round", function () {
     });
 
     it("should return an array", function () {
-      expect(
-        round.toPercent(testCases[0], round.sumWithPrecision(testCases[0]), 0)
-      ).to.be.an("array");
+      expect(round.toPercent(testCases[0], round.sumWithPrecision(testCases[0]), 0)).to.be.an(
+        "array",
+      );
     });
 
     it("should return an array of equal length as input", function () {
-      expect(
-        round.toPercent(testCases[0], round.sumWithPrecision(testCases[0]), 0)
-      ).to.be.length(testCases[0].length);
+      expect(round.toPercent(testCases[0], round.sumWithPrecision(testCases[0]), 0)).to.be.length(
+        testCases[0].length,
+      );
     });
 
     it("should sum to total", function () {
-      expect(
-        round.sumWithPrecision(round.toPercent([10, 0, 90], 200)).toString()
-      ).to.equal("50");
+      expect(round.sumWithPrecision(round.toPercent([10, 0, 90], 200)).toString()).to.equal("50");
     });
 
     it("should sum to 100", function () {
       for (let i = 0; i < testCases.length; i++) {
         expect(
           round.sumWithPrecision(
-            round.toPercent(
-              testCases[i],
-              round.sumWithPrecision(testCases[i]),
-              0
-            )
-          )
+            round.toPercent(testCases[i], round.sumWithPrecision(testCases[i]), 0),
+          ),
         ).to.equal("100");
         expect(
           round.sumWithPrecision(
-            round.toPercent(
-              testCases[i],
-              round.sumWithPrecision(testCases[i]),
-              1
-            )
-          )
+            round.toPercent(testCases[i], round.sumWithPrecision(testCases[i]), 1),
+          ),
         ).to.equal("100");
         expect(
           round.sumWithPrecision(
-            round.toPercent(
-              testCases[i],
-              round.sumWithPrecision(testCases[i]),
-              2
-            )
-          )
+            round.toPercent(testCases[i], round.sumWithPrecision(testCases[i]), 2),
+          ),
         ).to.equal("100");
         expect(
           round.sumWithPrecision(
-            round.toPercent(
-              testCases[i],
-              round.sumWithPrecision(testCases[i]),
-              3
-            )
-          )
+            round.toPercent(testCases[i], round.sumWithPrecision(testCases[i]), 3),
+          ),
         ).to.equal("100");
       }
     });
 
     it("should return array with correct amount of decimal places when precision argument passed", function () {
       for (let i = 0; i < testCases.length; i++) {
-        let test = round.toPercent(
-          testCases[i],
-          round.sumWithPrecision(testCases[i]),
-          2
-        );
+        let test = round.toPercent(testCases[i], round.sumWithPrecision(testCases[i]), 2);
 
         for (let j = 0; j < test.length; j++) {
           let split = test[j].toString().split(".");
@@ -156,25 +129,21 @@ describe("round", function () {
     });
 
     it("should return an array", function () {
-      expect(
-        round.toAbsolute(testCases[0].total, testCases[0].spread)
-      ).to.be.an("array");
+      expect(round.toAbsolute(testCases[0].total, testCases[0].spread)).to.be.an("array");
     });
 
     it("should return an array of equal length as input", function () {
       for (let i = 0; i < testCases.length; i++) {
-        expect(
-          round.toAbsolute(testCases[i].total, testCases[i].spread).length
-        ).to.equal(testCases[i].spread.length);
+        expect(round.toAbsolute(testCases[i].total, testCases[i].spread).length).to.equal(
+          testCases[i].spread.length,
+        );
       }
     });
 
     it("should sum to total", function () {
       for (let i = 0; i < testCases.length; i++) {
         expect(
-          round.sumWithPrecision(
-            round.toAbsolute(testCases[i].total, testCases[i].spread)
-          )
+          round.sumWithPrecision(round.toAbsolute(testCases[i].total, testCases[i].spread)),
         ).to.equal(testCases[i].total.toString());
       }
     });

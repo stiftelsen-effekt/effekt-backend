@@ -23,14 +23,11 @@ module.exports = {
     var line = `NY210020`;
     line = line.padEnd(17, "0");
 
-    if (number > 9999)
-      throw new Error("Cannot handle more than 9999 assignments per file");
+    if (number > 9999) throw new Error("Cannot handle more than 9999 assignments per file");
 
     // Oppdragsnr.
     onrstart = shipmentID % 366;
-    line += `${onrstart.toString().padStart(3, "0")}${number
-      .toString()
-      .padStart(4, "0")}`;
+    line += `${onrstart.toString().padStart(3, "0")}${number.toString().padStart(4, "0")}`;
     // Accountnr.
     line += "15062995960";
     line = line.padEnd(80, "0");
@@ -48,19 +45,11 @@ module.exports = {
    * @param {DateTime} claimDate
    * @returns {string}
    */
-  firstAndSecondLine: function (
-    agreement,
-    donor,
-    type,
-    transactionNumber,
-    claimDate
-  ) {
+  firstAndSecondLine: function (agreement, donor, type, transactionNumber, claimDate) {
     /**
      * First line
      */
-    var firstLine = `NY21${type}30${transactionNumber
-      .toString()
-      .padStart(7, "0")}`;
+    var firstLine = `NY21${type}30${transactionNumber.toString().padStart(7, "0")}`;
     firstLine += claimDate.toFormat("ddLLyy");
     firstLine = firstLine.padEnd(32, "0");
 
@@ -79,14 +68,10 @@ module.exports = {
      * Second line
      */
     const shortname = (
-      donor.name
-        ? donor.name.toUpperCase().substr(0, 10).replace(/\s+/g, "")
-        : ""
+      donor.name ? donor.name.toUpperCase().substr(0, 10).replace(/\s+/g, "") : ""
     ).padStart(10, " ");
 
-    var secondLine = `NY210231${transactionNumber
-      .toString()
-      .padStart(7, "0")}${shortname}`;
+    var secondLine = `NY210231${transactionNumber.toString().padStart(7, "0")}${shortname}`;
 
     secondLine = secondLine.padEnd(75, " ");
     secondLine = secondLine.padEnd(80, "0");
@@ -177,16 +162,11 @@ module.exports = {
     line += (claims.length + deletions.length).toString().padStart(8, "0");
 
     //Number of records, including start and end record
-    line += (claims.length * 4 + deletions.length * 4 + 2)
-      .toString()
-      .padStart(8, "0");
+    line += (claims.length * 4 + deletions.length * 4 + 2).toString().padStart(8, "0");
 
     //Sum of payment claims
     let claimSum = claims.reduce((acc, claim) => (acc += claim.amount), 0);
-    let deletionsSum = deletions.reduce(
-      (acc, deletion) => (acc += deletion.amount),
-      0
-    );
+    let deletionsSum = deletions.reduce((acc, deletion) => (acc += deletion.amount), 0);
     line += (claimSum + deletionsSum).toString().padStart(17, "0");
 
     //Min day

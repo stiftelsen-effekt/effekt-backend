@@ -6,12 +6,7 @@ import {
   JWTPayload,
   claimIncludes,
 } from "express-oauth2-jwt-bearer";
-import {
-  authAudience,
-  authRoleClaim,
-  authIssuerBaseURL,
-  authUserIdClaim,
-} from "../../config";
+import { authAudience, authRoleClaim, authIssuerBaseURL, authUserIdClaim } from "../../config";
 
 const authorizationRoles = require("../../enums/authorizationRoles.js");
 
@@ -41,16 +36,13 @@ const userIsAdmin = (claims: JWTPayload) => {
   return roleClaims.includes("admin");
 };
 
-const userIsTheDonor = (claims: JWTPayload, donorId: number) =>
-  claims[userIdClaim] === donorId;
+const userIsTheDonor = (claims: JWTPayload, donorId: number) => claims[userIdClaim] === donorId;
 
 const userIsAllowedToManageDonor = (claims: JWTPayload, donorId: number) =>
   userIsAdmin(claims) || userIsTheDonor(claims, donorId);
 
 export const checkDonor = (donorId: number, req, res, next) => {
-  const handler = claimCheck((claims) =>
-    userIsAllowedToManageDonor(claims, donorId)
-  );
+  const handler = claimCheck((claims) => userIsAllowedToManageDonor(claims, donorId));
   handler(req, res, next);
 };
 
@@ -58,9 +50,7 @@ export const checkAvtaleGiroAgreement = (KID, req, res, next) => {
   DAO.donors
     .getByKID(KID)
     .then((donor) => {
-      const handler = claimCheck((claims) =>
-        userIsAllowedToManageDonor(claims, donor.id)
-      );
+      const handler = claimCheck((claims) => userIsAllowedToManageDonor(claims, donor.id));
       handler(req, res, next);
     })
     .catch((err) => {
@@ -70,7 +60,4 @@ export const checkAvtaleGiroAgreement = (KID, req, res, next) => {
     });
 };
 
-export const isAdmin = [
-  checkJwt,
-  claimIncludes("permissions", authorizationRoles.admin),
-];
+export const isAdmin = [checkJwt, claimIncludes("permissions", authorizationRoles.admin)];

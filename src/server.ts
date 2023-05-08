@@ -39,18 +39,10 @@ DAO.connect(() => {
   //Setup request logging
   logging(app);
 
-  app.get("/api-docs/swagger.json", (req, res) =>
-    res.json(openapiSpecification)
-  );
-  app.use(
-    "/api-docs",
-    swaggerUi.serve,
-    swaggerUi.setup(openapiSpecification, swaggerOptions)
-  );
+  app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification));
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, swaggerOptions));
   app.get("/oauth2-redirect.html", (req, res, next) =>
-    res.redirect(
-      `/api-docs/oauth2-redirect.html?${querystring.stringify(req.query)}`
-    )
+    res.redirect(`/api-docs/oauth2-redirect.html?${querystring.stringify(req.query)}`),
   );
   app.get("/", async (req, res, next) => {
     res.redirect("/api-docs/");
@@ -63,14 +55,14 @@ DAO.connect(() => {
   app.use(
     pretty({
       query: "pretty",
-    })
+    }),
   );
 
   //File upload
   app.use(
     fileUpload({
       limits: { fileSize: 10 * 1024 * 1024 }, //Probably totally overkill, consider reducing
-    })
+    }),
   );
   app.enable("trust proxy");
 
@@ -95,7 +87,7 @@ DAO.connect(() => {
       windowMs: 60 * 1000, // 1 minute
       max: 1000, //limit each IP to 50 requests per minute
       delayMs: 0, // disable delaying - full speed until the max limit is reached
-    })
+    }),
   );
 
   //Set cross origin as allowed
@@ -103,13 +95,9 @@ DAO.connect(() => {
     if (config.env === "production") {
       const remoteOrigin = req.get("Origin");
       if (
-        config.allowedProductionOrigins.some(
-          (allowedOrigin) => allowedOrigin === remoteOrigin
-        ) ||
+        config.allowedProductionOrigins.some((allowedOrigin) => allowedOrigin === remoteOrigin) ||
         (remoteOrigin &&
-          remoteOrigin.match(
-            /https:\/\/main-site-(.*)-effective-altruism-norway.vercel.app/
-          )[0])
+          remoteOrigin.match(/https:\/\/main-site-(.*)-effective-altruism-norway.vercel.app/)[0])
       ) {
         res.setHeader("Access-Control-Allow-Origin", remoteOrigin);
         res.setHeader("Vary", "Origin");
@@ -121,12 +109,9 @@ DAO.connect(() => {
     res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, baggage, sentry-trace"
+      "Content-Type, Authorization, baggage, sentry-trace",
     );
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,PUT,POST,DELETE,PATCH,OPTIONS"
-    );
+    res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH,OPTIONS");
     next();
   });
 
@@ -185,13 +170,7 @@ DAO.connect(() => {
   app.use(errorHandler);
 
   mainServer.listen(config.port, config.host, () => {
-    console.log(
-      "Main http server listening on http://" +
-        config.host +
-        ":" +
-        config.port +
-        " 📞"
-    );
+    console.log("Main http server listening on http://" + config.host + ":" + config.port + " 📞");
 
     console.log("Don't Panic. 🐬");
     console.log("---");

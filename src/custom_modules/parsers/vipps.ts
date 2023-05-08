@@ -74,13 +74,8 @@ const buildTransactionFromArray = (inputArray) => {
     date: moment.utc(inputArray[fieldMapping.SalesDate], "DD.MM.YYYY"),
     location: inputArray[fieldMapping.SalesLocation],
     transactionID: inputArray[fieldMapping.TransactionID],
-    amount: Number(
-      inputArray[fieldMapping.GrossAmount].replace(/,/g, ".").replace(/\s/g, "")
-    ),
-    name:
-      inputArray[fieldMapping.FirstName] +
-      " " +
-      inputArray[fieldMapping.LastName],
+    amount: Number(inputArray[fieldMapping.GrossAmount].replace(/,/g, ".").replace(/\s/g, "")),
+    name: inputArray[fieldMapping.FirstName] + " " + inputArray[fieldMapping.LastName],
     message: inputArray[fieldMapping.Message],
     KID: parseUtil.extractKID(inputArray[fieldMapping.Message]),
   };

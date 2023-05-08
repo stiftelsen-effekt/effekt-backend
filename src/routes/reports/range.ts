@@ -10,9 +10,7 @@ module.exports = async (req, res, next) => {
 
     if (req.body.paymentMethodIDs) {
       try {
-        var paymentMethodIDs = req.body.paymentMethodIDs
-          .split("|")
-          .map((n) => parseInt(n));
+        var paymentMethodIDs = req.body.paymentMethodIDs.split("|").map((n) => parseInt(n));
       } catch (ex) {
         res.json({
           status: 400,
@@ -21,20 +19,15 @@ module.exports = async (req, res, next) => {
         });
       }
 
-      var paymentMethods = await DAO.payment.getPaymentMethodsByIDs(
-        paymentMethodIDs
-      );
+      var paymentMethods = await DAO.payment.getPaymentMethodsByIDs(paymentMethodIDs);
       var donationsFromRange = await DAO.donations.getFromRange(
         dates.fromDate,
         dates.toDate,
-        paymentMethodIDs
+        paymentMethodIDs,
       );
     } else {
       var paymentMethods = await DAO.payment.getMethods();
-      var donationsFromRange = await DAO.donations.getFromRange(
-        dates.fromDate,
-        dates.toDate
-      );
+      var donationsFromRange = await DAO.donations.getFromRange(dates.fromDate, dates.toDate);
     }
 
     if (req.body.filetype === "json") {
@@ -47,7 +40,7 @@ module.exports = async (req, res, next) => {
       let excelFile = reporting.createExcelFromIndividualDonations(
         donationsFromRange,
         organizations,
-        paymentMethods
+        paymentMethods,
       );
 
       res.writeHead(200, {
@@ -64,8 +57,7 @@ module.exports = async (req, res, next) => {
     } else {
       res.status(400).json({
         code: 400,
-        content:
-          "Please provide a query parameter 'filetype' with either excel or json as value",
+        content: "Please provide a query parameter 'filetype' with either excel or json as value",
       });
     }
   } catch (ex) {

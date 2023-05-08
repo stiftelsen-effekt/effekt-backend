@@ -1,8 +1,5 @@
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import {
-  sendVippsAgreementChange,
-  sendVippsProblemReport,
-} from "../custom_modules/mail";
+import { sendVippsAgreementChange, sendVippsProblemReport } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 
@@ -58,16 +55,10 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
   const KID = body.KID;
   const amount = body.amount;
   const initialCharge = body.initialCharge;
-  const monthlyChargeDay =
-    body.monthlyChargeDay > 28 ? 28 : body.monthlyChargeDay;
+  const monthlyChargeDay = body.monthlyChargeDay > 28 ? 28 : body.monthlyChargeDay;
 
   try {
-    const content = await vipps.draftAgreement(
-      KID,
-      amount,
-      initialCharge,
-      monthlyChargeDay
-    );
+    const content = await vipps.draftAgreement(KID, amount, initialCharge, monthlyChargeDay);
 
     res.json({
       status: 200,
@@ -80,9 +71,7 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
 
 router.get("/agreement/minside/:urlcode", async (req, res, next) => {
   try {
-    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(
-      req.params.urlcode
-    );
+    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(req.params.urlcode);
 
     if (!agreementId) {
       let err = new Error("Can't find agreement");
@@ -108,11 +97,7 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
 
     res
       .status(304)
-      .redirect(
-        `https://gieffektivt.no/vippsagreement?email=${encodeURIComponent(
-          donor.email
-        )}`
-      );
+      .redirect(`https://gieffektivt.no/vippsagreement?email=${encodeURIComponent(donor.email)}`);
   } catch (ex) {
     next({ ex });
   }
@@ -128,10 +113,7 @@ router.get(
       // Synchronize EffektDB with Vipps database
       const responseVipps = await vipps.getAgreement(agreementId);
       await DAO.vipps.updateAgreementStatus(agreementId, responseVipps.status);
-      await DAO.vipps.updateAgreementPrice(
-        agreementId,
-        responseVipps.price / 100
-      );
+      await DAO.vipps.updateAgreementPrice(agreementId, responseVipps.price / 100);
       const responseDAO = await DAO.vipps.getAgreement(agreementId);
 
       const response = { ...responseVipps, ...responseDAO };
@@ -141,7 +123,7 @@ router.get(
     } catch (ex) {
       next({ ex });
     }
-  }
+  },
 );
 
 router.get("/histogram/agreements", async (req, res, next) => {
@@ -184,7 +166,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 router.post(
@@ -196,7 +178,7 @@ router.post(
         req.body.sort,
         req.body.page,
         req.body.limit,
-        req.body.filter
+        req.body.filter,
       );
       if (results !== false) {
         return res.json({
@@ -214,38 +196,34 @@ router.post(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
-router.post(
-  "/charges",
-  authMiddleware.auth(authorizationRoles.admin),
-  async (req, res, next) => {
-    try {
-      var results = await DAO.vipps.getCharges(
-        req.body.sort,
-        req.body.page,
-        req.body.limit,
-        req.body.filter
-      );
-      if (results !== false) {
-        return res.json({
-          status: 200,
-          content: {
-            pages: results.pages,
-            rows: results.rows,
-          },
-        });
-      } else {
-        let err = new Error("Could not fetch charges");
-        (err as any).status = 500;
-        return next(err);
-      }
-    } catch (ex) {
-      next(ex);
+router.post("/charges", authMiddleware.auth(authorizationRoles.admin), async (req, res, next) => {
+  try {
+    var results = await DAO.vipps.getCharges(
+      req.body.sort,
+      req.body.page,
+      req.body.limit,
+      req.body.filter,
+    );
+    if (results !== false) {
+      return res.json({
+        status: 200,
+        content: {
+          pages: results.pages,
+          rows: results.rows,
+        },
+      });
+    } else {
+      let err = new Error("Could not fetch charges");
+      (err as any).status = 500;
+      return next(err);
     }
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 /**
  * @openapi
@@ -345,13 +323,9 @@ router.put("/agreement/:urlcode/pause", jsonBody, async (req, res, next) => {
       }
     }
 
-    const response = await DAO.vipps.updateAgreementPauseDate(
-      agreementId,
-      exactPauseEnd
-    );
+    const response = await DAO.vipps.updateAgreementPauseDate(agreementId, exactPauseEnd);
 
-    if (response)
-      await sendVippsAgreementChange(agreementCode, "PAUSED", pausedUntilDate);
+    if (response) await sendVippsAgreementChange(agreementCode, "PAUSED", pausedUntilDate);
 
     res.send(response);
   } catch (ex) {
@@ -359,28 +333,19 @@ router.put("/agreement/:urlcode/pause", jsonBody, async (req, res, next) => {
   }
 });
 
-router.put(
-  "/agreement/:urlcode/pause/end",
-  jsonBody,
-  async (req, res, next) => {
-    try {
-      const agreementCode = req.params.urlcode;
-      const agreementId = await DAO.vipps.getAgreementIdByUrlCode(
-        agreementCode
-      );
-      const response = await DAO.vipps.updateAgreementPauseDate(
-        agreementId,
-        null
-      );
+router.put("/agreement/:urlcode/pause/end", jsonBody, async (req, res, next) => {
+  try {
+    const agreementCode = req.params.urlcode;
+    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    const response = await DAO.vipps.updateAgreementPauseDate(agreementId, null);
 
-      if (response) await sendVippsAgreementChange(agreementCode, "UNPAUSED");
+    if (response) await sendVippsAgreementChange(agreementCode, "UNPAUSED");
 
-      res.send(response);
-    } catch (ex) {
-      next({ ex });
-    }
+    res.send(response);
+  } catch (ex) {
+    next({ ex });
   }
-);
+});
 
 /**
  * @openapi
@@ -421,60 +386,41 @@ router.put(
  *                      status: 400
  *                      content: "Invalid charge day, must be between 0 and 28"
  */
-router.put(
-  "/agreement/:urlcode/chargeday",
-  jsonBody,
-  async (req, res, next) => {
-    try {
-      const agreementCode = req.params.urlcode;
-      const chargeDay = req.body.chargeDay;
-      const agreementId = await DAO.vipps.getAgreementIdByUrlCode(
-        agreementCode
-      );
+router.put("/agreement/:urlcode/chargeday", jsonBody, async (req, res, next) => {
+  try {
+    const agreementCode = req.params.urlcode;
+    const chargeDay = req.body.chargeDay;
+    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
 
-      // 0 means last day of each month
-      if (chargeDay < 0 || chargeDay > 28) {
-        let err = new Error("Invalid charge day, must be between 0 and 28");
-        (err as any).status = 400;
-        return next(err);
-      }
-
-      const response = await DAO.vipps.updateAgreementChargeDay(
-        agreementId,
-        chargeDay
-      );
-      if (response)
-        await sendVippsAgreementChange(agreementCode, "CHARGEDAY", chargeDay);
-
-      res.send(response);
-    } catch (ex) {
-      next({ ex });
+    // 0 means last day of each month
+    if (chargeDay < 0 || chargeDay > 28) {
+      let err = new Error("Invalid charge day, must be between 0 and 28");
+      (err as any).status = 400;
+      return next(err);
     }
+
+    const response = await DAO.vipps.updateAgreementChargeDay(agreementId, chargeDay);
+    if (response) await sendVippsAgreementChange(agreementCode, "CHARGEDAY", chargeDay);
+
+    res.send(response);
+  } catch (ex) {
+    next({ ex });
   }
-);
+});
 
-router.put(
-  "/agreement/:urlcode/forcedcharge",
-  jsonBody,
-  async (req, res, next) => {
-    try {
-      const agreementCode = req.params.urlcode;
-      const forcedChargeDate = req.body.forcedChargeDate;
-      const agreementId = await DAO.vipps.getAgreementIdByUrlCode(
-        agreementCode
-      );
+router.put("/agreement/:urlcode/forcedcharge", jsonBody, async (req, res, next) => {
+  try {
+    const agreementCode = req.params.urlcode;
+    const forcedChargeDate = req.body.forcedChargeDate;
+    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
 
-      const response = await DAO.vipps.updateAgreementForcedCharge(
-        agreementId,
-        forcedChargeDate
-      );
+    const response = await DAO.vipps.updateAgreementForcedCharge(agreementId, forcedChargeDate);
 
-      res.send(response);
-    } catch (ex) {
-      next({ ex });
-    }
+    res.send(response);
+  } catch (ex) {
+    next({ ex });
   }
-);
+});
 
 /**
  * @openapi
@@ -512,98 +458,89 @@ router.put(
  *
  *
  */
-router.put(
-  "/agreement/:urlcode/distribution",
-  jsonBody,
-  async (req, res, next) => {
-    try {
-      const agreementCode = req.params.urlcode;
-      const agreementId = await DAO.vipps.getAgreementIdByUrlCode(
-        agreementCode
-      );
+router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) => {
+  try {
+    const agreementCode = req.params.urlcode;
+    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
 
-      if (!agreementId) {
-        return res.status(404).json({
-          status: 404,
-          content: "Agreement not found",
-        });
-      }
-
-      const existingAgreement = await DAO.vipps.getAgreement(agreementId);
-      if (!existingAgreement) {
-        return res.status(404).json({
-          status: 404,
-          content: "Agreement not found",
-        });
-      }
-
-      const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
-      const standardDistribution = req.body.distribution.standardDistribution;
-      let taxUnitId: number | undefined = req.body.distribution.taxUnit.id;
-
-      const shares = req.body.distribution.shares;
-
-      const split = standardDistribution
-        ? await DAO.organizations.getStandardSplit()
-        : shares
-            .map((org) => {
-              return { id: org.id, share: org.share };
-            })
-            .filter((org) => parseFloat(org.share) !== 0);
-
-      const metaOwnerID = 3;
-
-      if (split.length === 0) {
-        let err = new Error("Empty distribution array provided");
-        (err as any).status = 400;
-        return next(err);
-      }
-
-      if (
-        rounding.sumWithPrecision(split.map((split) => split.share)) !== "100"
-      ) {
-        let err = new Error("Distribution does not sum to 100");
-        (err as any).status = 400;
-        return next(err);
-      }
-
-      if (!taxUnitId) {
-        const existingTaxUnit = await DAO.tax.getByKID(existingAgreement.KID);
-        if (existingTaxUnit) {
-          taxUnitId = existingTaxUnit.id;
-        }
-      }
-
-      //Check for existing distribution with that KID
-      let KID = await DAO.distributions.getKIDbySplit(
-        split,
-        donorId,
-        standardDistribution,
-        taxUnitId
-      );
-
-      if (!KID) {
-        KID = await donationHelpers.createKID();
-        await DAO.distributions.add(
-          split,
-          KID,
-          donorId,
-          taxUnitId,
-          standardDistribution,
-          metaOwnerID
-        );
-      }
-
-      const response = await DAO.vipps.updateAgreementKID(agreementId, KID);
-      if (response)
-        await sendVippsAgreementChange(agreementCode, "SHARES", KID);
-
-      res.send({ KID });
-    } catch (ex) {
-      next({ ex });
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
     }
+
+    const existingAgreement = await DAO.vipps.getAgreement(agreementId);
+    if (!existingAgreement) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
+
+    const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
+    const standardDistribution = req.body.distribution.standardDistribution;
+    let taxUnitId: number | undefined = req.body.distribution.taxUnit.id;
+
+    const shares = req.body.distribution.shares;
+
+    const split = standardDistribution
+      ? await DAO.organizations.getStandardSplit()
+      : shares
+          .map((org) => {
+            return { id: org.id, share: org.share };
+          })
+          .filter((org) => parseFloat(org.share) !== 0);
+
+    const metaOwnerID = 3;
+
+    if (split.length === 0) {
+      let err = new Error("Empty distribution array provided");
+      (err as any).status = 400;
+      return next(err);
+    }
+
+    if (rounding.sumWithPrecision(split.map((split) => split.share)) !== "100") {
+      let err = new Error("Distribution does not sum to 100");
+      (err as any).status = 400;
+      return next(err);
+    }
+
+    if (!taxUnitId) {
+      const existingTaxUnit = await DAO.tax.getByKID(existingAgreement.KID);
+      if (existingTaxUnit) {
+        taxUnitId = existingTaxUnit.id;
+      }
+    }
+
+    //Check for existing distribution with that KID
+    let KID = await DAO.distributions.getKIDbySplit(
+      split,
+      donorId,
+      standardDistribution,
+      taxUnitId,
+    );
+
+    if (!KID) {
+      KID = await donationHelpers.createKID();
+      await DAO.distributions.add(
+        split,
+        KID,
+        donorId,
+        taxUnitId,
+        standardDistribution,
+        metaOwnerID,
+      );
+    }
+
+    const response = await DAO.vipps.updateAgreementKID(agreementId, KID);
+    if (response) await sendVippsAgreementChange(agreementCode, "SHARES", KID);
+
+    res.send({ KID });
+  } catch (ex) {
+    next({ ex });
   }
-);
+});
 
 router.post(
   "/agreement/charge/create",
@@ -620,7 +557,7 @@ router.post(
     } catch (ex) {
       next({ ex });
     }
-  }
+  },
 );
 
 router.get(
@@ -642,7 +579,7 @@ router.get(
     } catch (ex) {
       next({ ex });
     }
-  }
+  },
 );
 
 router.get(
@@ -660,7 +597,7 @@ router.get(
     } catch (ex) {
       next({ ex });
     }
-  }
+  },
 );
 
 router.get(
@@ -677,33 +614,27 @@ router.get(
     } catch (ex) {
       next({ ex });
     }
-  }
+  },
 );
 
-router.post(
-  "/agreement/:urlcode/charges/cancel",
-  jsonBody,
-  async (req, res, next) => {
-    try {
-      const agreementCode = req.params.urlcode;
-      const agreementId = await DAO.vipps.getAgreementIdByUrlCode(
-        agreementCode
-      );
-      const charges = await vipps.getCharges(agreementId);
+router.post("/agreement/:urlcode/charges/cancel", jsonBody, async (req, res, next) => {
+  try {
+    const agreementCode = req.params.urlcode;
+    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    const charges = await vipps.getCharges(agreementId);
 
-      // Cancel all pending or due charges
-      for (let i = 0; i < charges.length; i++) {
-        if (charges[i].status === "PENDING" || charges[i].status === "DUE") {
-          await vipps.cancelCharge(agreementId, charges[i].id);
-        }
+    // Cancel all pending or due charges
+    for (let i = 0; i < charges.length; i++) {
+      if (charges[i].status === "PENDING" || charges[i].status === "DUE") {
+        await vipps.cancelCharge(agreementId, charges[i].id);
       }
-
-      res.send(true);
-    } catch (ex) {
-      next({ ex });
     }
+
+    res.send(true);
+  } catch (ex) {
+    next({ ex });
   }
-);
+});
 
 router.post(
   "/agreement/:agreementId/charge/:chargeId/refund",
@@ -715,14 +646,13 @@ router.post(
       const chargeId = req.params.chargeId;
 
       const response = await vipps.refundCharge(agreementId, chargeId);
-      if (response)
-        await DAO.vipps.updateChargeStatus("REFUNDED", agreementId, chargeId);
+      if (response) await DAO.vipps.updateChargeStatus("REFUNDED", agreementId, chargeId);
 
       res.json(response);
     } catch (ex) {
       next({ ex });
     }
-  }
+  },
 );
 
 router.post(
@@ -735,14 +665,13 @@ router.post(
       const chargeId = req.params.chargeId;
 
       const response = await vipps.cancelCharge(agreementId, chargeId);
-      if (response)
-        await DAO.vipps.updateChargeStatus("CANCELLED", agreementId, chargeId);
+      if (response) await DAO.vipps.updateChargeStatus("CANCELLED", agreementId, chargeId);
 
       res.json(response);
     } catch (ex) {
       next({ ex });
     }
-  }
+  },
 );
 
 router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
@@ -751,11 +680,7 @@ router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
     const change = req.body.change;
     const newValue = req.body.newValue;
 
-    const response = await sendVippsAgreementChange(
-      agreementCode,
-      change,
-      newValue
-    );
+    const response = await sendVippsAgreementChange(agreementCode, change, newValue);
 
     res.json(response);
   } catch (ex) {
@@ -770,12 +695,7 @@ router.post("/agreement/report/problem", jsonBody, async (req, res, next) => {
     const donorMessage = req.body.donorMessage;
     const agreement = req.body.agreement;
 
-    const response = await sendVippsProblemReport(
-      senderUrl,
-      donorEmail,
-      donorMessage,
-      agreement
-    );
+    const response = await sendVippsProblemReport(senderUrl, donorEmail, donorMessage, agreement);
 
     res.json(response);
   } catch (ex) {
@@ -877,10 +797,7 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
 
     console.log(order);
 
-    let approved = await vipps.approveOrder(
-      order.orderID,
-      req.params.linkToken
-    );
+    let approved = await vipps.approveOrder(order.orderID, req.params.linkToken);
 
     console.log("Approved", approved);
 
@@ -927,7 +844,7 @@ router.post(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 router.put(
@@ -945,14 +862,13 @@ router.put(
       } else {
         return res.status(409).json({
           status: 409,
-          content:
-            "Could not cancel the order. This might be because the order has been captured.",
+          content: "Could not cancel the order. This might be because the order has been captured.",
         });
       }
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -970,10 +886,7 @@ async function whitelisted(ip) {
 
   let whitelistedHosts;
   if (config.env === "production") {
-    whitelistedHosts = [
-      ...vippsCallbackProdServers,
-      ...vippsCallbackDisasterServers,
-    ];
+    whitelistedHosts = [...vippsCallbackProdServers, ...vippsCallbackDisasterServers];
   } else {
     whitelistedHosts = vippsCallbackDevServers;
   }

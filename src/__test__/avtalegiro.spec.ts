@@ -72,7 +72,7 @@ describe("AvtaleGiro file generation", () => {
     file = await avtalegiro.generateAvtaleGiroFile(
       42,
       mockAgreements,
-      DateTime.fromJSDate(new Date("2021-10-10 10:00"))
+      DateTime.fromJSDate(new Date("2021-10-10 10:00")),
     );
 
     expect(getLines().length).to.be.equal(14);
@@ -105,7 +105,7 @@ describe("AvtaleGiro file generation", () => {
     file = await avtalegiro.generateAvtaleGiroFile(
       42,
       mockAgreements,
-      DateTime.fromJSDate(new Date("2021-10-10 10:00"))
+      DateTime.fromJSDate(new Date("2021-10-10 10:00")),
     );
 
     // Assignment 1
@@ -171,16 +171,16 @@ describe("AvtaleGiro file generation", () => {
 });
 
 describe("AvtaleGiro claim due date calculation", () => {
-  it("Calculates correct due dates for a normal week",  () => {
+  it("Calculates correct due dates for a normal week", () => {
     // Monday 8th of May 2023
     const date = DateTime.fromJSDate(new Date("2023-05-08 10:00"));
     const dueDates = avtalegiro.getDueDates(date);
 
     expect(dueDates.length).to.be.equal(1);
     expect(dueDates[0].toISODate()).to.be.equal("2023-05-12");
-  })
+  });
 
-  it("Calculates correct due dates for a week with a holiday",  () => {
+  it("Calculates correct due dates for a week with a holiday", () => {
     // Monday 1st of May 2023
     const date = DateTime.fromJSDate(new Date("2023-05-01 10:00"));
     const dueDates = avtalegiro.getDueDates(date);
@@ -188,7 +188,7 @@ describe("AvtaleGiro claim due date calculation", () => {
     expect(dueDates.length).to.be.equal(0);
   });
 
-  it("Calculates correct due dates for a week with a holiday and a weekend",  () => {
+  it("Calculates correct due dates for a week with a holiday and a weekend", () => {
     // Friday 28th of April 2023
     const date = DateTime.fromJSDate(new Date("2023-04-28 10:00"));
     const dueDates = avtalegiro.getDueDates(date);
@@ -212,7 +212,7 @@ describe("AvtaleGiro claim due date calculation", () => {
     // Expect the due dates to be unique in the list
     expect(dueDates).to.be.deep.equal([...new Set(dueDates)]);
     // Expect all the dates from 05.05.2023 to 30.05.2023 to be in the list
-    expect(dueDates.map(d => d.toFormat('dd.MM.yyyy'))).to.be.deep.equal([
+    expect(dueDates.map((d) => d.toFormat("dd.MM.yyyy"))).to.be.deep.equal([
       "05.05.2023",
       "06.05.2023",
       "07.05.2023",
@@ -238,7 +238,7 @@ describe("AvtaleGiro claim due date calculation", () => {
       "27.05.2023",
       "28.05.2023",
       "29.05.2023",
-      "30.05.2023"
+      "30.05.2023",
     ]);
   });
 
@@ -257,7 +257,7 @@ describe("AvtaleGiro claim due date calculation", () => {
     // Expect the due dates to be unique in the list
     expect(dueDates).to.be.deep.equal([...new Set(dueDates)]);
     // Expect all the dates from 15.12.2023 to 15.01.2024 to be in the list
-    expect(dueDates.map(d => d.toFormat('dd.MM.yyyy'))).to.be.deep.equal([
+    expect(dueDates.map((d) => d.toFormat("dd.MM.yyyy"))).to.be.deep.equal([
       "15.12.2023",
       "16.12.2023",
       "17.12.2023",
@@ -290,7 +290,7 @@ describe("AvtaleGiro claim due date calculation", () => {
       "13.01.2024",
       "14.01.2024",
       "15.01.2024",
-      "16.01.2024"
+      "16.01.2024",
     ]);
   });
 });

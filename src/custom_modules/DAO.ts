@@ -43,17 +43,16 @@ export const DAO = {
     const dbSocketPath = process.env.DB_SOCKET_PATH || "/cloudsql";
 
     var args = {
-        user: config.db_username,
-        password: config.db_password,
-        database: config.db_name,
-        waitForConnections: true,
-        enableKeepAlive: true as true, // Workaround for type checking quirk
-        timezone: '+00:00',
+      user: config.db_username,
+      password: config.db_password,
+      database: config.db_name,
+      waitForConnections: true,
+      enableKeepAlive: true as true, // Workaround for type checking quirk
+      timezone: "+00:00",
     };
     if (process.env.K_SERVICE != null)
       args["socketPath"] = `${dbSocketPath}/${process.env.CLOUD_SQL_CONNECTION_NAME}`;
-    else
-      args["host"] = "127.0.0.1";
+    else args["host"] = "127.0.0.1";
     this.dbPool = mysql.createPool(args);
 
     //Check whether connection was successfull
@@ -62,9 +61,7 @@ export const DAO = {
       await this.dbPool.query("SELECT 1 + 1 AS Solution");
       console.log("Connected to database | Using database " + config.db_name);
     } catch (ex) {
-      console.error(
-        "Connection to database failed! | Using database " + config.db_name
-      );
+      console.error("Connection to database failed! | Using database " + config.db_name);
       console.log(ex);
       process.exit();
     }
@@ -97,7 +94,7 @@ export const DAO = {
           "Retrying query `" +
             query.substr(0, Math.min(query.length, 120)) +
             (query.length > 120 ? "...`" : "`"),
-          retries
+          retries,
         );
         await wait(2 ** retries * 1000);
         return await this.execute(query, params, retries + 1);

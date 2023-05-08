@@ -35,17 +35,13 @@ module.exports = {
       results.push(result);
     }
 
-    const addedIDs = results.filter(
-      (result) => typeof result !== "object" && result > 0
-    );
+    const addedIDs = results.filter((result) => typeof result !== "object" && result > 0);
 
     await this.sendReciepts(addedIDs);
 
     const valid = addedIDs.length;
     const ignored = results.filter((result) => result === -1).length;
-    const invalidTransactions = results.filter(
-      (result) => typeof result === "object"
-    );
+    const invalidTransactions = results.filter((result) => typeof result === "object");
 
     return {
       valid,
@@ -73,7 +69,7 @@ module.exports = {
         transaction.amount,
         transaction.date,
         transaction.transactionID,
-        metaOwnerID
+        metaOwnerID,
       );
       return donationID;
     } catch (ex) {
@@ -84,9 +80,7 @@ module.exports = {
           transaction,
         };
       } else {
-        console.log(
-          `Attempted to add existing donation with KID ${transaction.KID}`
-        );
+        console.log(`Attempted to add existing donation with KID ${transaction.KID}`);
         return -1;
       }
     }
@@ -113,9 +107,7 @@ module.exports = {
         try {
           await sendDonationReciept(donationIDs[i]);
         } catch (ex) {
-          console.error(
-            `Failed to send donation reciept for donation ${donationIDs[i]}`
-          );
+          console.error(`Failed to send donation reciept for donation ${donationIDs[i]}`);
         }
       }
     }

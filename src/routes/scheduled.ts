@@ -44,18 +44,13 @@ router.post("/ocr", authMiddleware.isAdmin, async (req, res, next) => {
 
     // Results are added in paralell to the database
     // Alongside sending donation reciepts
-    const addedDonations = await ocr.addDonations(
-      parsedTransactions,
-      META_OWNER_ID
-    );
+    const addedDonations = await ocr.addDonations(parsedTransactions, META_OWNER_ID);
 
     /**
      * Parse avtalegiro agreement updates from file and update database
      */
     const parsedAgreements = avtalegiroParser.parse(latestOcrFile.toString());
-    const updatedAgreements = await avtalegiro.updateAgreements(
-      parsedAgreements
-    );
+    const updatedAgreements = await avtalegiro.updateAgreements(parsedAgreements);
 
     const result = {
       addedDonations,
@@ -92,14 +87,9 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
       /**
        * Get active agreements
        */
-      let agreements = await DAO.avtalegiroagreements.getByPaymentDate(
-        claimDate.day
-      );
+      let agreements = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day);
       if (isClaimDateLastDayOfMonth) {
-        agreements = [
-          ...agreements,
-          ...(await DAO.avtalegiroagreements.getByPaymentDate(0)),
-        ];
+        agreements = [...agreements, ...(await DAO.avtalegiroagreements.getByPaymentDate(0))];
       }
 
       if (agreements.length > 0) {
@@ -112,26 +102,30 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
         };
         if (req.query.notify) {
           notifiedAgreements = await avtalegiro.notifyAgreements(
-            agreements.filter((agreement) => agreement.notice == true)
+            agreements.filter((agreement) => agreement.notice == true),
           );
         }
 
         /**
          * Create file to charge agreements for current day
          */
-        const shipmentID = await DAO.avtalegiroagreements.addShipment(
-          agreements.length
-        );
+        const shipmentID = await DAO.avtalegiroagreements.addShipment(agreements.length);
         const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(
           shipmentID,
           agreements,
-          claimDate
+          claimDate,
         );
 
         /**
          * Send file to nets
          */
-        const filename = "DIRREM" + today.toFormat("ddLLyy") + "." + claimDate.toFormat("ddLLyy") + "." + shipmentID;
+        const filename =
+          "DIRREM" +
+          today.toFormat("ddLLyy") +
+          "." +
+          claimDate.toFormat("ddLLyy") +
+          "." +
+          shipmentID;
         await nets.sendFile(avtaleGiroClaimsFile, filename);
 
         result = {
@@ -157,98 +151,95 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
 /**
  * Triggered by a google cloud scheduler webhook every day at 11:00, 12:00 and 13:00
  */
-router.post(
-  "/avtalegiro/retry",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    let result;
-    try {
-      let today;
-      if (req.query.date) {
-        today = luxon.DateTime.fromJSDate(new Date(req.query.date));
-      } else {
-        today = luxon.DateTime.fromJSDate(new Date());
-      }
-
-      const claimDates = getDueDates(today);
-      for (let claimDate of claimDates) {
-        /**
-         * Check if we have recieved an "accepted" reciept from MasterCard (Nets)
-         * If not, we should retry and send file again
-         */
-        let accepted = await nets.checkIfAcceptedReciept(
-          today.toFormat("yyLLdd") + "." + claimDate.toFormat("ddLLyy") 
-        );
-        if (accepted) {
-          return res.json({
-            status: 200,
-            content: "Reciept present",
-          });
-        }
-
-        // Check if dates are last day of month
-        const isClaimDateLastDayOfMonth =
-          claimDate.day == today.endOf("month").day;
-
-        /**
-         * Get active agreements
-         */
-        let agreements = [];
-        if (isClaimDateLastDayOfMonth) {
-          agreements = await DAO.avtalegiroagreements.getByPaymentDate(0);
-        } else {
-          agreements = await DAO.avtalegiroagreements.getByPaymentDate(
-            claimDate.day
-          );
-        }
-
-        if (agreements.length > 0) {
-          /**
-           * Notify agreements to be charged
-           */
-          let notifiedAgreements = {
-            success: 0,
-            failed: 0,
-          };
-
-          /**
-           * Create file to charge agreements for current day
-           */
-          const shipmentID = await DAO.avtalegiroagreements.addShipment(
-            agreements.length
-          );
-          const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(
-            shipmentID,
-            agreements,
-            claimDate
-          );
-
-          /**
-           * Send file to nets
-           */
-          const filename = "DIRREM" + today.toFormat("ddLLyy") + "." + claimDate.toFormat("ddLLyy") + "." + shipmentID;
-          await nets.sendFile(avtaleGiroClaimsFile, filename);
-
-          result = {
-            notifiedAgreements,
-            file: avtaleGiroClaimsFile.toString(),
-          };
-        } else {
-          return res.json({
-            status: 200,
-            content: "No agreements",
-          });
-        }
-
-        await DAO.logging.add("AvtaleGiro - Retry", result);
-        await sendOcrBackup(JSON.stringify(result, null, 2));
-      }
-      res.send("OK");
-    } catch (ex) {
-      next({ ex });
+router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) => {
+  let result;
+  try {
+    let today;
+    if (req.query.date) {
+      today = luxon.DateTime.fromJSDate(new Date(req.query.date));
+    } else {
+      today = luxon.DateTime.fromJSDate(new Date());
     }
+
+    const claimDates = getDueDates(today);
+    for (let claimDate of claimDates) {
+      /**
+       * Check if we have recieved an "accepted" reciept from MasterCard (Nets)
+       * If not, we should retry and send file again
+       */
+      let accepted = await nets.checkIfAcceptedReciept(
+        today.toFormat("yyLLdd") + "." + claimDate.toFormat("ddLLyy"),
+      );
+      if (accepted) {
+        return res.json({
+          status: 200,
+          content: "Reciept present",
+        });
+      }
+
+      // Check if dates are last day of month
+      const isClaimDateLastDayOfMonth = claimDate.day == today.endOf("month").day;
+
+      /**
+       * Get active agreements
+       */
+      let agreements = [];
+      if (isClaimDateLastDayOfMonth) {
+        agreements = await DAO.avtalegiroagreements.getByPaymentDate(0);
+      } else {
+        agreements = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day);
+      }
+
+      if (agreements.length > 0) {
+        /**
+         * Notify agreements to be charged
+         */
+        let notifiedAgreements = {
+          success: 0,
+          failed: 0,
+        };
+
+        /**
+         * Create file to charge agreements for current day
+         */
+        const shipmentID = await DAO.avtalegiroagreements.addShipment(agreements.length);
+        const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(
+          shipmentID,
+          agreements,
+          claimDate,
+        );
+
+        /**
+         * Send file to nets
+         */
+        const filename =
+          "DIRREM" +
+          today.toFormat("ddLLyy") +
+          "." +
+          claimDate.toFormat("ddLLyy") +
+          "." +
+          shipmentID;
+        await nets.sendFile(avtaleGiroClaimsFile, filename);
+
+        result = {
+          notifiedAgreements,
+          file: avtaleGiroClaimsFile.toString(),
+        };
+      } else {
+        return res.json({
+          status: 200,
+          content: "No agreements",
+        });
+      }
+
+      await DAO.logging.add("AvtaleGiro - Retry", result);
+      await sendOcrBackup(JSON.stringify(result, null, 2));
+    }
+    res.send("OK");
+  } catch (ex) {
+    next({ ex });
   }
-);
+});
 
 router.post("/vipps", authMiddleware.isAdmin, async (req, res, next) => {
   try {

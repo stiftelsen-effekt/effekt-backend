@@ -34,20 +34,20 @@ components:
           type: string
           format: date-time
           description: Timestamp for when the agreement were created
-        monthly_charge_day: 
+        monthly_charge_day:
           type: number
           description: Day of the month when charged
         force_charge_date:
           type: boolean
           description: Guarantee that a payment occurs on one specified date if true
-        paused_until_date: 
+        paused_until_date:
           type: string
           format: date-time
           description: The date the agreement is paused to
         amount:
           type: number
           description: Amount for the payment agreement
-        agreement_url_code: 
+        agreement_url_code:
           type: string
           description: A 41 character string that identifies the agreement
       example:

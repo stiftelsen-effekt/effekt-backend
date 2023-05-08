@@ -4,7 +4,7 @@ import { DateTime } from "luxon";
 
 const writer = require("./avtalegiro/filewriterutil");
 const config = require("../config");
-const workdays = require("norwegian-workdays")
+const workdays = require("norwegian-workdays");
 
 /**
  * Generates a claims file to claim payments for AvtaleGiro agreements
@@ -31,28 +31,14 @@ export async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
      * Right now, we only send one transaction
      * We are able to send claims up to 12 months ahead of time
      */
-    for (
-      let transactionNumber = 1;
-      transactionNumber <= 1;
-      transactionNumber++
-    ) {
+    for (let transactionNumber = 1; transactionNumber <= 1; transactionNumber++) {
       const claim = agreements[i];
       const donor = await DAO.donors.getByKID(claim.KID);
-      fileContents += writer.firstAndSecondLine(
-        claim,
-        donor,
-        "02",
-        transactionNumber,
-        dueDate
-      );
+      fileContents += writer.firstAndSecondLine(claim, donor, "02", transactionNumber, dueDate);
       assignmentClaims.push(claim);
     }
 
-    fileContents += writer.endRecordPaymentAssignment(
-      assignmentClaims,
-      dueDate,
-      dueDate
-    );
+    fileContents += writer.endRecordPaymentAssignment(assignmentClaims, dueDate, dueDate);
     claims.push(...assignmentClaims);
   }
 
@@ -159,13 +145,11 @@ export async function updateAgreements(agreements) {
          * specified. It so, we create a new agreement with tha same limit
          * and todays date as claim date.
          */
-        const latestDonation = await DAO.donations.getLatestByKID(
-          agreement.KID
-        );
+        const latestDonation = await DAO.donations.getLatestByKID(agreement.KID);
 
         if (latestDonation == null) {
           console.error(
-            `AvtaleGiro found in file from nets, but no coresponding agreement exists in DB, and no donatinos have been made with the KID previously (${agreement.KID})`
+            `AvtaleGiro found in file from nets, but no coresponding agreement exists in DB, and no donatinos have been made with the KID previously (${agreement.KID})`,
           );
           result.failed.push(agreement);
           continue;
@@ -174,7 +158,7 @@ export async function updateAgreements(agreements) {
             agreement.KID,
             latestDonation.sum,
             new Date(),
-            agreement.notice
+            agreement.notice,
           );
           result.added++;
         }
@@ -183,10 +167,7 @@ export async function updateAgreements(agreements) {
          * The agreement does exist, and we update the agreement in the DB to
          * reflect the chosen notification setting (yes/no).
          */
-        await DAO.avtalegiroagreements.updateNotification(
-          agreement.KID,
-          agreement.notice
-        );
+        await DAO.avtalegiroagreements.updateNotification(agreement.KID, agreement.notice);
         result.updated++;
       }
 
@@ -211,7 +192,7 @@ export async function updateAgreements(agreements) {
  * We are required to send claims four banking days in advance of the due date
  * Holidays and weekends are not counted as banking days
  * Takes in a date to calculate the due date from
- * @returns 
+ * @returns
  */
 export function getDueDates(date: DateTime) {
   // Start iterating backwards 30 days from the date given
@@ -252,32 +233,41 @@ export function getDueDates(date: DateTime) {
 
 /**
  * Debugging helper for due date calculation
- * @param date 
- * @param dueDates 
+ * @param date
+ * @param dueDates
  */
 function printDueDatesTable(date: DateTime, dueDates: DateTime[]) {
-  console.log('')
-  console.log('')
+  console.log("");
+  console.log("");
 
-  let tableWidth = dueDates[0].diff(date, "days").days + 1
+  let tableWidth = dueDates[0].diff(date, "days").days + 1;
 
-  console.log('-'.repeat(tableWidth*8))
+  console.log("-".repeat(tableWidth * 8));
 
   // Bold text
-  console.log(`Due dates for claims on \x1b[1m${date.toFormat('dd.MM.yyyy')}\x1b[0m`)
-  console.log('')
-
+  console.log(`Due dates for claims on \x1b[1m${date.toFormat("dd.MM.yyyy")}\x1b[0m`);
+  console.log("");
 
   // Letter for the day, e.g. Mon for Monday
 
-  console.log(Array.from({length: tableWidth}, (_, i) => date.plus({day: i}).toFormat('ccc')).join('\t'))
-  console.log(Array.from({length: tableWidth}, (_, i) => date.plus({day: i}).day).join('\t'))
+  console.log(
+    Array.from({ length: tableWidth }, (_, i) => date.plus({ day: i }).toFormat("ccc")).join("\t"),
+  );
+  console.log(Array.from({ length: tableWidth }, (_, i) => date.plus({ day: i }).day).join("\t"));
   // Green square is a banking day, yellow is not
-  console.log(Array.from({length: tableWidth}, (_, i) => workdays.isWorkingDay(date.plus({day: i}).toJSDate()) ? '🟢' : '🟡').join('\t'))
+  console.log(
+    Array.from({ length: tableWidth }, (_, i) =>
+      workdays.isWorkingDay(date.plus({ day: i }).toJSDate()) ? "🟢" : "🟡",
+    ).join("\t"),
+  );
   // Checkmark if the date is a due date
-  console.log(Array.from({length: tableWidth}, (_, i) => dueDates.map(d => d.toISO()).includes(date.plus({day: i}).toISO()) ? '✅' : '').join('\t'))
-  console.log('-'.repeat(tableWidth*8))
+  console.log(
+    Array.from({ length: tableWidth }, (_, i) =>
+      dueDates.map((d) => d.toISO()).includes(date.plus({ day: i }).toISO()) ? "✅" : "",
+    ).join("\t"),
+  );
+  console.log("-".repeat(tableWidth * 8));
 
-  console.log('')
-  console.log('')
+  console.log("");
+  console.log("");
 }

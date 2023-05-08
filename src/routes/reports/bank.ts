@@ -1,8 +1,5 @@
 import { DAO } from "../../custom_modules/DAO";
-import {
-  sendEffektDonationReciept,
-  sendDonationReciept,
-} from "../../custom_modules/mail";
+import { sendEffektDonationReciept, sendDonationReciept } from "../../custom_modules/mail";
 import { parseReport } from "../../custom_modules/parsers/bank";
 
 const config = require("../../config");
@@ -39,7 +36,7 @@ module.exports = async (req, res, next) => {
           transaction.amount,
           transaction.date.toDate(),
           transaction.transactionID,
-          metaOwnerID
+          metaOwnerID,
         );
         valid++;
       } catch (ex) {
@@ -48,8 +45,7 @@ module.exports = async (req, res, next) => {
           invalid++;
         } else {
           console.error(
-            "Failed to update DB for bank_custom donation with KID: " +
-              transaction.KID
+            "Failed to update DB for bank_custom donation with KID: " + transaction.KID,
           );
           console.error(ex);
 

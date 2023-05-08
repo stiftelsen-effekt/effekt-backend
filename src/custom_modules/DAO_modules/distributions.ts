@@ -7,15 +7,12 @@ const sqlString = require("sqlstring");
 async function getAll(page = 0, limit = 10, sort, filter = null) {
   let where = [];
   if (filter) {
-    if (filter.KID)
-      where.push(
-        ` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `
-      );
+    if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
     if (filter.donor)
       where.push(
-        ` (full_name LIKE ${sqlString.escape(
-          `%${filter.donor}%`
-        )} or email LIKE ${sqlString.escape(`%${filter.donor}%`)}) `
+        ` (full_name LIKE ${sqlString.escape(`%${filter.donor}%`)} or email LIKE ${sqlString.escape(
+          `%${filter.donor}%`,
+        )}) `,
       );
   }
 
@@ -41,9 +38,7 @@ async function getAll(page = 0, limit = 10, sort, filter = null) {
 
             ORDER BY ${sort.id} ${sort.desc ? " DESC" : ""}
 
-            LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(
-    limit * page
-  )}`;
+            LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit * page)}`;
 
   const [rows] = await DAO.query(queryString);
 
@@ -87,7 +82,7 @@ async function getAllByDonor(donorID) {
     inner join Distribution on Distribution.ID = Combining_table.Distribution_ID
     inner join Organizations on Organizations.ID = Distribution.OrgID
     where Donors.ID = ?`,
-    [donorID]
+    [donorID],
   );
 
   var distObj = {
@@ -156,7 +151,7 @@ async function getByDonorId(donorId) {
 
             GROUP BY Combining.KID, Donors.full_name, Donors.email
         `,
-    [donorId]
+    [donorId],
   );
 
   return distributions;
@@ -168,10 +163,7 @@ async function getByDonorId(donorId) {
  * @returns {boolean}
  */
 async function KIDexists(KID) {
-  var [res] = await DAO.query(
-    "SELECT * FROM Combining_table WHERE KID = ? LIMIT 1",
-    [KID]
-  );
+  var [res] = await DAO.query("SELECT * FROM Combining_table WHERE KID = ? LIMIT 1", [KID]);
 
   if (res.length > 0) return true;
   else return false;
@@ -191,7 +183,7 @@ async function getKIDbySplit(
   donorID: number,
   standardDistribution: boolean,
   taxUnitId?: number,
-  minKidLength = 0
+  minKidLength = 0,
 ) {
   let query = `
         SELECT 
@@ -204,22 +196,16 @@ async function getKIDbySplit(
         
         WHERE
 
-        (Standard_split = ${
-          standardDistribution ? "1)" : "0 OR Standard_split IS NULL)"
-        }
+        (Standard_split = ${standardDistribution ? "1)" : "0 OR Standard_split IS NULL)"}
 
         AND
         `;
 
   for (let i = 0; i < split.length; i++) {
-    query += `(OrgID = ${sqlString.escape(
-      split[i].id
-    )} AND percentage_share = ${sqlString.escape(
-      split[i].share
+    query += `(OrgID = ${sqlString.escape(split[i].id)} AND percentage_share = ${sqlString.escape(
+      split[i].share,
     )} AND C.Donor_ID = ${sqlString.escape(donorID)} AND ${
-      taxUnitId
-        ? "C.Tax_unit_ID = " + sqlString.escape(taxUnitId)
-        : "C.Tax_unit_ID IS NULL"
+      taxUnitId ? "C.Tax_unit_ID = " + sqlString.escape(taxUnitId) : "C.Tax_unit_ID IS NULL"
     })`;
     if (i < split.length - 1) query += ` OR `;
   }
@@ -248,7 +234,7 @@ async function getKIDbySplit(
  * }]}
  */
 async function getSplitByKID(
-  KID
+  KID,
 ): Promise<{ id: number; full_name: string; abbriv: string; share: string }[]> {
   let [result] = await DAO.query(
     `
@@ -266,11 +252,10 @@ async function getSplitByKID(
             
             WHERE 
                 KID = ?`,
-    [KID]
+    [KID],
   );
 
-  if (result.length == 0)
-    throw new Error("NOT FOUND | No distribution with the KID " + KID);
+  if (result.length == 0) throw new Error("NOT FOUND | No distribution with the KID " + KID);
   return result;
 }
 
@@ -289,7 +274,7 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
 
             WHERE 
                 ReferenceTransactionNumber IN (?);`,
-    [referenceIDs]
+    [referenceIDs],
   );
 
   let mapping = res.reduce((acc, row) => {
@@ -308,7 +293,7 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
 async function isStandardDistribution(KID) {
   var [res] = await DAO.query(
     "SELECT KID, Standard_split FROM Combining_table WHERE KID = ? GROUP BY KID, Standard_split;",
-    [KID]
+    [KID],
   );
 
   if (res.length > 0 && res[0]["Standard_split"] === 1) return true;
@@ -332,7 +317,7 @@ async function add(
   donorID,
   taxUnitId = null,
   standardDistribution = false,
-  metaOwnerID = null
+  metaOwnerID = null,
 ) {
   try {
     var transaction = await DAO.startTransaction();
@@ -346,27 +331,18 @@ async function add(
     });
     var res = await transaction.query(
       "INSERT INTO Distribution (OrgID, percentage_share) VALUES ?",
-      [distribution_table_values]
+      [distribution_table_values],
     );
 
     let first_inserted_id = (res[0] as any).insertId;
-    var combining_table_values = Array.apply(null, Array(split.length)).map(
-      (item, i) => {
-        return [
-          donorID,
-          taxUnitId,
-          standardDistribution,
-          first_inserted_id + i,
-          KID,
-          metaOwnerID,
-        ];
-      }
-    );
+    var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {
+      return [donorID, taxUnitId, standardDistribution, first_inserted_id + i, KID, metaOwnerID];
+    });
 
     //Update combining table
     var res = await transaction.query(
       "INSERT INTO Combining_table (Donor_ID, Tax_unit_ID, Standard_split, Distribution_ID, KID, Meta_owner_ID) VALUES ?",
-      [combining_table_values]
+      [combining_table_values],
     );
 
     await DAO.commitTransaction(transaction);
