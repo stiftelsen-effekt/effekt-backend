@@ -27,7 +27,7 @@ const userIdClaim = authUserIdClaim;
  * @param {Boolean} [api=true] Indicates whether the request is an api request or a view request
  */
 export const auth = (permission, api = true) => {
-  return [checkJwt, requiredScopes(permission)];
+  return [checkJwt, claimIncludes("permissions", permission)];
 };
 
 const userIsAdmin = (claims: JWTPayload) => {
