@@ -1,11 +1,5 @@
 import { DAO } from "../DAO";
-import {
-  auth as auth0,
-  requiredScopes,
-  claimCheck,
-  JWTPayload,
-  claimIncludes,
-} from "express-oauth2-jwt-bearer";
+import { auth as auth0, claimCheck, JWTPayload, claimIncludes } from "express-oauth2-jwt-bearer";
 import { authAudience, authRoleClaim, authIssuerBaseURL, authUserIdClaim } from "../../config";
 
 const authorizationRoles = require("../../enums/authorizationRoles.js");
