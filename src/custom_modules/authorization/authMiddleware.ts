@@ -1,8 +1,7 @@
 import { DAO } from "../DAO";
 import { auth as auth0, claimCheck, JWTPayload, claimIncludes } from "express-oauth2-jwt-bearer";
 import { authAudience, authRoleClaim, authIssuerBaseURL, authUserIdClaim } from "../../config";
-
-const authorizationRoles = require("../../enums/authorizationRoles.js");
+import authorizationPermissions from "../../enums/authorizationPermissions";
 
 // Defaulting to "default" to enable tests to run
 const checkJwt = auth0({
@@ -53,4 +52,4 @@ export const checkAvtaleGiroAgreement = (KID, req, res, next) => {
     });
 };
 
-export const isAdmin = [checkJwt, claimIncludes("permissions", authorizationRoles.admin)];
+export const isAdmin = [checkJwt, claimIncludes("permissions", authorizationPermissions.admin)];

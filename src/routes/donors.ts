@@ -4,9 +4,10 @@ import { DAO } from "../custom_modules/DAO";
 import { fnr } from "@navikt/fnrvalidator";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { TaxReport, TaxYearlyReportUnit } from "../schemas/types";
+import permissions from "../enums/authorizationPermissions";
 
 const router = express.Router();
-const roles = require("../enums/authorizationRoles");
+
 const bodyParser = require("body-parser");
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
 
@@ -223,7 +224,7 @@ router.post("/search/", authMiddleware.isAdmin, async (req, res, next) => {
  */
 router.get(
   "/:id",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -285,7 +286,7 @@ router.get(
  */
 router.get(
   "/:id/referrals",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -347,7 +348,7 @@ router.get(
  */
 router.get(
   "/:id/taxunits",
-  authMiddleware.auth(roles.read_profile),
+  authMiddleware.auth(permissions.read_profile),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -410,7 +411,7 @@ router.get(
  */
 router.get(
   "/:id/taxreports",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -572,7 +573,7 @@ router.get(
  */
 router.post(
   "/:id/taxunits",
-  authMiddleware.auth(roles.write_profile),
+  authMiddleware.auth(permissions.write_profile),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -694,7 +695,7 @@ router.post(
  */
 router.delete(
   "/:id/taxunits/:taxunitid",
-  authMiddleware.auth(roles.write_profile),
+  authMiddleware.auth(permissions.write_profile),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -875,7 +876,7 @@ router.put("/:id/taxunits/:taxunitid", async (req, res, next) => {
  */
 router.delete(
   "/:id",
-  authMiddleware.auth(roles.write_donations),
+  authMiddleware.auth(permissions.write_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -939,7 +940,7 @@ router.delete(
  */
 router.get(
   "/:id/donations",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -993,7 +994,7 @@ router.get(
  */
 router.get(
   "/:id/recurring/avtalegiro",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -1048,7 +1049,7 @@ router.get(
  */
 router.get(
   "/:id/recurring/vipps",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -1105,7 +1106,7 @@ router.get(
  */
 router.get(
   "/:id/donations/aggregated",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -1166,7 +1167,7 @@ router.get(
  */
 router.get(
   "/:id/distributions/",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -1252,7 +1253,7 @@ async function getDistributionTaxUnitAndStandardDistribution(index, kid) {
  */
 router.get(
   "/:id/distributions/aggregated",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -1279,7 +1280,7 @@ router.get(
  */
 router.get(
   "/:id/summary/",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -1306,7 +1307,7 @@ router.get(
  */
 router.get(
   "/:id/history/",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -1327,7 +1328,7 @@ router.get(
 // A route for getting all the donations to EA funds for a given donor ID
 router.get(
   "/:id/funds/donations/",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
@@ -1386,7 +1387,7 @@ router.get(
  */
 router.put(
   "/:id",
-  authMiddleware.auth(roles.write_profile),
+  authMiddleware.auth(permissions.write_profile),
   (req, res, next) => {
     checkDonor(parseInt(req.params.id), req, res, next);
   },
