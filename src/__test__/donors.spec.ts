@@ -107,7 +107,7 @@ describe("Check if donations returns for user ID", function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
     checkDonorStub = sinon.replace(
       authMiddleware,
-      "checkDonor",
+      "checkAdminOrTheDonor",
       function (donorId, res, req, next) {
         next();
       },
@@ -154,7 +154,7 @@ describe("Check if profile information is updated", function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
     checkDonorStub = sinon.replace(
       authMiddleware,
-      "checkDonor",
+      "checkAdminOrTheDonor",
       function (donorId, res, req, next) {
         next();
       },
@@ -237,7 +237,7 @@ describe("Check if /:id/recurring/avtalegiro return agreements", function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
     checkDonorStub = sinon.replace(
       authMiddleware,
-      "checkDonor",
+      "checkAdminOrTheDonor",
       function (donorId, res, req, next) {
         next();
       },
@@ -275,7 +275,7 @@ describe("Check if /:id/recurring/vipps return agreements", function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
     checkDonorStub = sinon.replace(
       authMiddleware,
-      "checkDonor",
+      "checkAdminOrTheDonor",
       function (donorId, res, req, next) {
         next();
       },

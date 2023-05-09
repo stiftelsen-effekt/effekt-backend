@@ -136,7 +136,7 @@ router.get(
   "/all/:donorID",
   authMiddleware.isAdmin,
   (req, res, next) => {
-    authMiddleware.checkDonor(parseInt(req.params.donorID), req, res, next);
+    authMiddleware.checkAdminOrTheDonor(parseInt(req.params.donorID), req, res, next);
   },
   async (req, res, next) => {
     try {

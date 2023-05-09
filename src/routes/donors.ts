@@ -1,5 +1,5 @@
 import * as express from "express";
-import { checkDonor } from "../custom_modules/authorization/authMiddleware";
+import { checkAdminOrTheDonor } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import { fnr } from "@navikt/fnrvalidator";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
@@ -226,7 +226,7 @@ router.get(
   "/:id",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -288,7 +288,7 @@ router.get(
   "/:id/referrals",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -350,7 +350,7 @@ router.get(
   "/:id/taxunits",
   authMiddleware.auth(permissions.read_profile),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -413,7 +413,7 @@ router.get(
   "/:id/taxreports",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -575,7 +575,7 @@ router.post(
   "/:id/taxunits",
   authMiddleware.auth(permissions.write_profile),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -697,7 +697,7 @@ router.delete(
   "/:id/taxunits/:taxunitid",
   authMiddleware.auth(permissions.write_profile),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -878,7 +878,7 @@ router.delete(
   "/:id",
   authMiddleware.auth(permissions.write_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -942,7 +942,7 @@ router.get(
   "/:id/donations",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -996,7 +996,7 @@ router.get(
   "/:id/recurring/avtalegiro",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1051,7 +1051,7 @@ router.get(
   "/:id/recurring/vipps",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1108,7 +1108,7 @@ router.get(
   "/:id/donations/aggregated",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1169,7 +1169,7 @@ router.get(
   "/:id/distributions/",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1255,7 +1255,7 @@ router.get(
   "/:id/distributions/aggregated",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1282,7 +1282,7 @@ router.get(
   "/:id/summary/",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1309,7 +1309,7 @@ router.get(
   "/:id/history/",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1330,7 +1330,7 @@ router.get(
   "/:id/funds/donations/",
   authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1389,7 +1389,7 @@ router.put(
   "/:id",
   authMiddleware.auth(permissions.write_profile),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
