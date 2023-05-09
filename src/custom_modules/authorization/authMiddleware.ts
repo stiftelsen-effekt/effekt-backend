@@ -18,9 +18,8 @@ const userIdClaim = authUserIdClaim;
  * If api is true, stops the request on fail and sends 401 unathorized
  * If api is false, sets req.authorized to true on success and false on fail, then calls next
  * @param {String} permission Shortname permission
- * @param {Boolean} [api=true] Indicates whether the request is an api request or a view request
  */
-export const auth = (permission, api = true) => {
+export const auth = (permission: any) => {
   return [checkJwt, claimIncludes("permissions", permission)];
 };
 
