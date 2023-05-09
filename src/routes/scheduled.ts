@@ -162,19 +162,24 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
     }
 
     const claimDates = getDueDates(today);
+    const shipmentIDs = await DAO.avtalegiroagreements.getShipmentIDs(today);
     for (let claimDate of claimDates) {
       /**
        * Check if we have recieved an "accepted" reciept from MasterCard (Nets)
        * If not, we should retry and send file again
        */
-      let accepted = await nets.checkIfAcceptedReciept(
-        today.toFormat("yyLLdd") + "." + claimDate.toFormat("ddLLyy"),
-      );
-      if (accepted) {
-        return res.json({
-          status: 200,
-          content: "Reciept present",
-        });
+      
+      // Get first shipment ID from array for each claim date
+      const shipmentID = shipmentIDs.shift();
+
+      // If shipment ID is undefined, we're missing a shipment for the claim date
+      // Something might have gone wrong, so we should retry
+      // Else we should check if we have recieved an accepted reciept
+      if (typeof shipmentID !== "undefined") {
+        let accepted = await nets.checkIfAcceptedReciept(shipmentID);
+        if (accepted) {
+          continue;
+        }
       }
 
       // Check if dates are last day of month

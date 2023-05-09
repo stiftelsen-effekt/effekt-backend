@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import { DAO } from "../DAO";
 
 const sqlString = require("sqlstring");
@@ -561,6 +562,20 @@ async function getValidationTable() {
 }
 
 /**
+ * Gets all shipments for a given date
+ * @param today The date to get shipments for
+ * @returns A list of shipments IDs
+ */
+async function getShipmentIDs(today: DateTime): Promise<number[]> {
+  let [rows] = await DAO.query(
+    `SELECT ID FROM Avtalegiro_shipment WHERE day(\`generated\`) = ? AND month(\`generated\`) = ? AND year(\`generated\`) = ?`,
+    [today.day, today.month, today.year],
+  );
+
+  return rows.map((row) => row.ID);
+}
+
+/**
  * Adds a new shipment row to db
  * @param {Number} numClaims The number of claims in that shipment
  * @returns {Number} The shipment nr.
@@ -616,6 +631,7 @@ export const avtalegiroagreements = {
   getRecievedDonationsForDate,
   getExpectedDonationsForDate,
   getDonationsByKID,
+  getShipmentIDs,
 
   addShipment,
 };
