@@ -1,5 +1,3 @@
-import { DAO } from "./DAO";
-
 export const KID = {
   /**
    * Generates a new KID
