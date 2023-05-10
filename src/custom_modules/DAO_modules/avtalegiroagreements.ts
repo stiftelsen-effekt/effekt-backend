@@ -556,7 +556,7 @@ async function getByPaymentDate(dayInMonth) {
  * @returns {Array<{ date: String, expected: number, actual: number, diff: number }>}
  */
 async function getValidationTable() {
-  let [rows] = await DAO.query(`call EffektDonasjonDB.get_avtalegiro_validation()`);
+  let [rows] = await DAO.query(`call get_avtalegiro_validation()`);
 
   return rows[0];
 }
