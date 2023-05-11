@@ -239,24 +239,15 @@ module.exports = {
     //If we've been polling for more than eleven minutes, stop polling for updates
     if (polls * POLLING_INTERVAL + POLLING_START_DELAY > 1000 * 60 * 10) {
       //Update transaction log history with all information we have
-      await this.updateOrderTransactionLogHistory(
-        orderId,
-        orderDetails.transactionLogHistory
-      );
+      await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory);
       return true;
     }
 
-    let captureLogItem = this.findTransactionLogItem(
-      orderDetails.transactionLogHistory,
-      "CAPTURE"
-    );
-    let reserveLogItem = this.findTransactionLogItem(
-      orderDetails.transactionLogHistory,
-      "RESERVE"
-    );
+    let captureLogItem = this.findTransactionLogItem(orderDetails.transactionLogHistory, "CAPTURE");
+    let reserveLogItem = this.findTransactionLogItem(orderDetails.transactionLogHistory, "RESERVE");
     if (
       orderDetails.transactionLogHistory.some((logItem) =>
-        this.transactionLogItemFinalIsFinalState(logItem)
+        this.transactionLogItemFinalIsFinalState(logItem),
       )
     ) {
       if (captureLogItem !== null) {
@@ -268,27 +259,21 @@ module.exports = {
             paymentMethods.vipps,
             captureLogItem.amount / 100,
             captureLogItem.timeStamp,
-            captureLogItem.transactionId
+            captureLogItem.transactionId,
           );
           await DAO.vipps.updateVippsOrderDonation(orderId, donationID);
           await sendDonationReciept(donationID);
         } catch (ex) {
           //Donation already registered, no additional actions required
           if (ex.message.indexOf("EXISTING_DONATION") === -1) {
-            console.info(
-              `Vipps donation for orderid ${orderId} already exists`,
-              ex
-            );
+            console.info(`Vipps donation for orderid ${orderId} already exists`, ex);
           } else {
             throw ex;
           }
         }
       }
 
-      await this.updateOrderTransactionLogHistory(
-        orderId,
-        orderDetails.transactionLogHistory
-      );
+      await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory);
 
       //We are in a final state, cancel further polling
       return true;
@@ -308,8 +293,7 @@ module.exports = {
    */
   findTransactionLogItem(transactionLogHistory, operation) {
     let items = transactionLogHistory.filter(
-      (logItem) =>
-        logItem.operation === operation && logItem.operationSuccess === true
+      (logItem) => logItem.operation === operation && logItem.operationSuccess === true,
     );
     if (items.length > 0) return items[0];
     else return null;
@@ -321,10 +305,7 @@ module.exports = {
    * @returns
    */
   transactionLogItemFinalIsFinalState(transactionLogItem) {
-    if (
-      transactionLogItem.operation === "CAPTURE" &&
-      transactionLogItem.operationSuccess === true
-    )
+    if (transactionLogItem.operation === "CAPTURE" && transactionLogItem.operationSuccess === true)
       return true;
     else if (
       transactionLogItem.operation === "CANCEL" &&
@@ -356,10 +337,7 @@ module.exports = {
    * @param {Array<TransactionLogItem>} transactionLogHistory
    */
   async updateOrderTransactionLogHistory(orderId, transactionLogHistory) {
-    await DAO.vipps.updateOrderTransactionStatusHistory(
-      orderId,
-      transactionLogHistory
-    );
+    await DAO.vipps.updateOrderTransactionStatusHistory(orderId, transactionLogHistory);
   },
 
   /**
@@ -380,12 +358,10 @@ module.exports = {
     //convert string timestamp to JS Date in transaction log history
     orderDetails = {
       ...orderDetails,
-      transactionLogHistory: orderDetails.transactionLogHistory.map(
-        (logItem) => ({
-          ...logItem,
-          timeStamp: new Date(logItem.timeStamp),
-        })
-      ),
+      transactionLogHistory: orderDetails.transactionLogHistory.map((logItem) => ({
+        ...logItem,
+        timeStamp: new Date(logItem.timeStamp),
+      })),
     };
 
     return orderDetails;
@@ -435,7 +411,7 @@ module.exports = {
           paymentMethods.vipps,
           captureRequest.transactionInfo.amount / 100,
           captureRequest.transactionInfo.timeStamp,
-          captureRequest.transactionInfo.transactionId
+          captureRequest.transactionInfo.transactionId,
         );
         await DAO.vipps.updateVippsOrderDonation(orderId, donationID);
         await sendDonationReciept(donationID);
@@ -443,10 +419,7 @@ module.exports = {
       } catch (ex) {
         //Donation already registered, no additional actions required
         if (ex.message.indexOf("EXISTING_DONATION") === -1) {
-          console.info(
-            `Vipps donation for orderid ${orderId} already exists`,
-            ex
-          );
+          console.info(`Vipps donation for orderid ${orderId} already exists`, ex);
         } else {
           throw ex;
         }
@@ -469,9 +442,7 @@ module.exports = {
       let order = await DAO.vipps.getOrder(orderId);
 
       if (order.donationID == null) {
-        console.error(
-          `Could not refund order with id ${orderId}, order has not been captured`
-        );
+        console.error(`Could not refund order with id ${orderId}, order has not been captured`);
         return false;
       }
 
@@ -495,10 +466,7 @@ module.exports = {
 
       await DAO.donations.remove(order.donationID);
       let orderDetails = await this.getOrderDetails(orderId);
-      await this.updateOrderTransactionLogHistory(
-        orderId,
-        orderDetails.transactionLogHistory
-      );
+      await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory);
 
       return true;
     } catch (ex) {
@@ -532,10 +500,7 @@ module.exports = {
       });
 
       let orderDetails = await this.getOrderDetails(orderId);
-      await this.updateOrderTransactionLogHistory(
-        orderId,
-        orderDetails.transactionLogHistory
-      );
+      await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory);
 
       return true;
     } catch (ex) {
@@ -633,7 +598,7 @@ module.exports = {
         KID,
         amount,
         monthlyChargeDay,
-        agreementUrlCode
+        agreementUrlCode,
       );
 
       // If adding to effekt database failed, cancel agreement
@@ -641,17 +606,12 @@ module.exports = {
         await this.updateAgreementStatus(response.agreementId, "STOPPED");
         await DAO.vipps.updateAgreementStatus(response.agreementId, "STOPPED");
 
-        console.error(
-          "Failed adding agreement to database, draft agreement cancelled"
-        );
+        console.error("Failed adding agreement to database, draft agreement cancelled");
         return false;
       }
 
       if (response.chargeId) {
-        const reservedCharge = await this.getCharge(
-          response.agreementId,
-          response.chargeId
-        );
+        const reservedCharge = await this.getCharge(response.agreementId, response.chargeId);
 
         if (reservedCharge)
           await DAO.vipps.addCharge(
@@ -661,7 +621,7 @@ module.exports = {
             KID,
             reservedCharge.due,
             reservedCharge.status,
-            reservedCharge.type
+            reservedCharge.type,
           );
       }
 
@@ -842,9 +802,7 @@ module.exports = {
    */
   async createCharge(agreementId, amountKroner, daysInAdvance = 3) {
     if (daysInAdvance <= 2) {
-      console.error(
-        "Today must be more than 2 days in advance of the due date"
-      );
+      console.error("Today must be more than 2 days in advance of the due date");
       return false;
     }
 
@@ -891,8 +849,7 @@ module.exports = {
       const charge = await this.getCharge(agreementId, chargeId);
       const agreement = await DAO.vipps.getAgreement(agreementId);
 
-      if (!agreement)
-        throw new Error("Agreement not found in database: " + agreementId);
+      if (!agreement) throw new Error("Agreement not found in database: " + agreementId);
 
       if (response)
         await DAO.vipps.addCharge(
@@ -902,7 +859,7 @@ module.exports = {
           agreement.KID,
           formattedDueDate,
           charge.status,
-          "RECURRING"
+          "RECURRING",
         );
 
       return chargeId;
@@ -951,15 +908,13 @@ module.exports = {
       const charges = await this.getCharges(agreementId);
 
       if (charges) {
-        const chargedCharges = charges.filter(
-          (charge) => charge.status === "CHARGED"
-        );
+        const chargedCharges = charges.filter((charge) => charge.status === "CHARGED");
         chargedCharges.sort((a, b) =>
           new Date(a.due).getTime() < new Date(b.due).getTime()
             ? 1
             : new Date(b.due).getTime() < new Date(a.due).getTime()
             ? -1
-            : 0
+            : 0,
         );
         return chargedCharges[0];
       }
@@ -1003,13 +958,10 @@ module.exports = {
 
     try {
       charges.forEach((charge) => {
-        if (charge.status === "DUE" || charge.status === "PENDING")
-          dueCharges.push(charge);
+        if (charge.status === "DUE" || charge.status === "PENDING") dueCharges.push(charge);
       });
       if (dueCharges.length > 0) {
-        const sortedByDue = dueCharges.sort((a, b) =>
-          a.due > b.due ? 1 : b.due > a.due ? -1 : 0
-        );
+        const sortedByDue = dueCharges.sort((a, b) => (a.due > b.due ? 1 : b.due > a.due ? -1 : 0));
         return sortedByDue[0];
       }
       return false;
@@ -1135,9 +1087,7 @@ module.exports = {
   async checkAgreement(agreementId, polls) {
     // If we've been polling for more than eleven minutes, stop polling for updates
     if (polls * POLLING_INTERVAL + POLLING_START_DELAY > 1000 * 60 * 10) {
-      console.log(
-        "Stopped polling checkAgreement for agreementId " + agreementId
-      );
+      console.log("Stopped polling checkAgreement for agreementId " + agreementId);
       return true;
     }
 
@@ -1152,28 +1102,18 @@ module.exports = {
 
       // Keep polling until initial charge has been captured
       if (initialChargeID) {
-        const isCaptured = await this.captureInitalCharge(
-          agreementId,
-          initialChargeID
-        );
+        const isCaptured = await this.captureInitalCharge(agreementId, initialChargeID);
 
         // Update database and stop polling only if capture was successful
         if (isCaptured) {
-          await DAO.vipps.updateChargeStatus(
-            "CHARGED",
-            agreementId,
-            initialChargeID
-          );
+          await DAO.vipps.updateChargeStatus("CHARGED", agreementId, initialChargeID);
           return true;
         }
       }
     }
 
     // Stop polling agreement if it has another status than pending or active
-    if (
-      vippsAgreement.status !== "PENDING" &&
-      vippsAgreement.status !== "ACTIVE"
-    ) {
+    if (vippsAgreement.status !== "PENDING" && vippsAgreement.status !== "ACTIVE") {
       await DAO.vipps.updateAgreementStatus(agreementId, vippsAgreement.status);
       return true;
     }
@@ -1231,23 +1171,14 @@ module.exports = {
           agreements[i].price / 100,
           chargeDay,
           agreements[i].productDescription,
-          agreements[i].status
+          agreements[i].status,
         );
 
-        await DAO.vipps.updateAgreementPrice(
-          agreements[i].id,
-          agreements[i].price / 100
-        );
-        await DAO.vipps.updateAgreementStatus(
-          agreements[i].id,
-          agreements[i].status
-        );
+        await DAO.vipps.updateAgreementPrice(agreements[i].id, agreements[i].price / 100);
+        await DAO.vipps.updateAgreementStatus(agreements[i].id, agreements[i].status);
 
         const agreement = await DAO.vipps.getAgreement(agreements[i].id);
-        if (!agreement)
-          throw new Error(
-            `Agreement ${agreements[i].id} not found in database`
-          );
+        if (!agreement) throw new Error(`Agreement ${agreements[i].id} not found in database`);
 
         const charges = await this.getCharges(agreements[i].id);
 
@@ -1260,19 +1191,12 @@ module.exports = {
             agreement.KID,
             charges[j].due,
             charges[j].status,
-            charges[j].type
+            charges[j].type,
           );
-          await DAO.vipps.updateChargeStatus(
-            charges[j].status,
-            agreements[i].id,
-            charges[j].id
-          );
+          await DAO.vipps.updateChargeStatus(charges[j].status, agreements[i].id, charges[j].id);
 
           if (charges[j].status === "CHARGED") {
-            const charge = await DAO.vipps.getCharge(
-              agreements[i].id,
-              charges[j].id
-            );
+            const charge = await DAO.vipps.getCharge(agreements[i].id, charges[j].id);
             const paymentMethod = 8;
             const dayOfMonth = new Date().getDate();
             const thisMonth = new Date().getMonth();
@@ -1282,16 +1206,13 @@ module.exports = {
 
             // If a charge has failed on the last day of a month, set registeredDate to current day
             // This prevents charges being incorrectly registered as paid in the previous month
-            if (
-              dayOfMonth >= 2 &&
-              new Date(charge.dueDate).getMonth() < thisMonth
-            ) {
+            if (dayOfMonth >= 2 && new Date(charge.dueDate).getMonth() < thisMonth) {
               registeredDate = new Date();
             }
 
             const donationExists = await DAO.donations.externalPaymentIDExists(
               externalPaymentId,
-              paymentMethod
+              paymentMethod,
             );
 
             if (!donationExists) {
@@ -1302,7 +1223,7 @@ module.exports = {
                 charges[j].amount / 100,
                 registeredDate,
                 externalPaymentId,
-                metaOwnerId
+                metaOwnerId,
               );
             }
           }
@@ -1329,9 +1250,7 @@ module.exports = {
       const timeNow = new Date().getTime();
       const dueDate = new Date(timeNow + 1000 * 60 * 60 * 24 * daysInAdvance);
       const dueDayIsLastDayOfMonth =
-        new Date(
-          timeNow + 1000 * 60 * 60 * 24 * (daysInAdvance + 1)
-        ).getDate() === 1;
+        new Date(timeNow + 1000 * 60 * 60 * 24 * (daysInAdvance + 1)).getDate() === 1;
       const activeAgreements = await DAO.vipps.getActiveAgreements();
 
       // Find agreements with due dates that are 3 days from now
@@ -1348,35 +1267,25 @@ module.exports = {
           if (
             chargeDay === dueDate.getDate() ||
             (chargeDay === 0 && dueDayIsLastDayOfMonth) || // chargeDay at 0 means should charge on last day of month
-            dueDate.setHours(0, 0, 0, 0) ===
-              forceChargeDate.setHours(0, 0, 0, 0)
+            dueDate.setHours(0, 0, 0, 0) === forceChargeDate.setHours(0, 0, 0, 0)
           ) {
             // Check if agreement is not paused
             // Invalid pause ending date is treated as not paused
-            if (
-              new Date(pauseEnd) < new Date() ||
-              isNaN(Date.parse(pauseEnd))
-            ) {
+            if (new Date(pauseEnd) < new Date() || isNaN(Date.parse(pauseEnd))) {
               // Check if agreement is also active in Vipps database
               const vippsAgreement = await this.getAgreement(agreement.ID);
-              const monthAlreadyCharged = await this.hasChargedDueMonth(
-                agreement.ID,
-                dueDate
-              );
+              const monthAlreadyCharged = await this.hasChargedDueMonth(agreement.ID, dueDate);
               if (vippsAgreement.status === "ACTIVE" && !monthAlreadyCharged) {
                 const formattedDueDate = moment(dueDate).format("YYYY-MM-DD");
                 console.log(
-                  "Creating charge due " +
-                    formattedDueDate +
-                    " for agreement " +
-                    vippsAgreement.id
+                  "Creating charge due " + formattedDueDate + " for agreement " + vippsAgreement.id,
                 );
                 chargeCount += 1;
 
                 await this.createCharge(
                   vippsAgreement.id,
                   vippsAgreement.price / 100,
-                  daysInAdvance
+                  daysInAdvance,
                 );
               }
             }

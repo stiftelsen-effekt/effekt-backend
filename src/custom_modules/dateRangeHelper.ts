@@ -9,7 +9,7 @@ module.exports = {
     //Check if no parameters
     if (!req.query || !req.body)
       throw new Error(
-        "No query or body parameters, please include fromDate and toDate parameters in ISO_8601 format."
+        "No query or body parameters, please include fromDate and toDate parameters in ISO_8601 format.",
       );
 
     var fromDate = req.query.fromDate || req.body.fromDate;

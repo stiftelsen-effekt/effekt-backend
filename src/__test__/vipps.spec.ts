@@ -152,10 +152,7 @@ describe("POST /scheduled/vipps", function () {
 
     updateChargeStatusStub = sinon.stub(DAO.vipps, "updateChargeStatus");
 
-    externalPaymentIDExistsStub = sinon.stub(
-      DAO.donations,
-      "externalPaymentIDExists"
-    );
+    externalPaymentIDExistsStub = sinon.stub(DAO.donations, "externalPaymentIDExists");
 
     hasChargedDueMonthStub = sinon.stub(vipps, "hasChargedDueMonth");
 
@@ -239,9 +236,7 @@ describe("POST /scheduled/vipps", function () {
     getAgreementsStub.withArgs("STOPPED").resolves([]);
     getAgreementsStub.withArgs("EXPIRED").resolves([]);
 
-    getActiveAgreementStub
-      .withArgs()
-      .resolves([mockAgreementsDB[0], mockAgreementsDB[1]]);
+    getActiveAgreementStub.withArgs().resolves([mockAgreementsDB[0], mockAgreementsDB[1]]);
 
     getVippsAgreementStub.withArgs("agr_1").resolves(mockAgreementsVipps[0]);
     getVippsAgreementStub.withArgs("agr_2").resolves(mockAgreementsVipps[1]);

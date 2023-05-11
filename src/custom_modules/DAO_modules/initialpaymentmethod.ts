@@ -15,7 +15,7 @@ async function addPaymentIntent(KID, paymentMethod) {
     `INSERT INTO Payment_intent (
             Payment_method,
             KID_fordeling) VALUES (?,?)`,
-    [paymentMethod, KID]
+    [paymentMethod, KID],
   );
 
   return res.insertId;

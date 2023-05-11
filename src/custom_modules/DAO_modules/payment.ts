@@ -24,7 +24,7 @@ async function getPaymentMethodsByIDs(paymentMethodIDs) {
   var [res] = await DAO.query(
     `SELECT * FROM Payment 
                                         WHERE ID IN (?)`,
-    [paymentMethodIDs]
+    [paymentMethodIDs],
   );
 
   if (res.length > 0) {

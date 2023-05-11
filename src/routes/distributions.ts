@@ -44,9 +44,7 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
       });
     }
 
-    if (
-      rounding.sumWithPrecision(shares.map((share) => share.share)) !== "100"
-    ) {
+    if (rounding.sumWithPrecision(shares.map((share) => share.share)) !== "100") {
       let err = new Error("Distribution does not sum to 100");
       (err as any).status = 400;
       return next(err);
@@ -58,7 +56,7 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
       shares,
       donorId,
       standardDistribution,
-      taxUnitId
+      taxUnitId,
     );
 
     if (!KID) {
@@ -69,7 +67,7 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
         donorId,
         taxUnitId,
         standardDistribution,
-        metaOwnerID
+        metaOwnerID,
       );
     } else {
       foundMatchingDistribution = true;
@@ -94,12 +92,7 @@ router.post("/search", authMiddleware.isAdmin, async (req, res, next) => {
       filter = req.body.filter,
       sort = req.body.sort;
 
-    let distributions = await DAO.distributions.getAll(
-      page,
-      limit,
-      sort,
-      filter
-    );
+    let distributions = await DAO.distributions.getAll(page, limit, sort, filter);
 
     res.json({
       status: 200,
@@ -112,13 +105,10 @@ router.post("/search", authMiddleware.isAdmin, async (req, res, next) => {
 
 router.get("/:KID", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    if (!req.params.KID)
-      res.status(400).json({ status: 400, content: "No KID provided" });
+    if (!req.params.KID) res.status(400).json({ status: 400, content: "No KID provided" });
     const shares = await DAO.distributions.getSplitByKID(req.params.KID);
     const taxUnit = await DAO.tax.getByKID(req.params.KID);
-    const standardDistribution = await DAO.distributions.isStandardDistribution(
-      req.params.KID
-    );
+    const standardDistribution = await DAO.distributions.isStandardDistribution(req.params.KID);
     const donor = await DAO.donors.getByKID(req.params.KID);
     return res.json({
       status: 200,
@@ -150,11 +140,8 @@ router.get(
   },
   async (req, res, next) => {
     try {
-      if (!req.params.donorID)
-        res.status(400).json({ status: 400, content: "No KID provided" });
-      let distributions = await DAO.distributions.getAllByDonor(
-        req.params.donorID
-      );
+      if (!req.params.donorID) res.status(400).json({ status: 400, content: "No KID provided" });
+      let distributions = await DAO.distributions.getAllByDonor(req.params.donorID);
       return res.json({
         status: 200,
         content: distributions,
@@ -169,7 +156,7 @@ router.get(
         next(ex);
       }
     }
-  }
+  },
 );
 
 module.exports = router;

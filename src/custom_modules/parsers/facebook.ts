@@ -25,18 +25,11 @@ export const parseReport = async (report) => {
     let payoutCurrencies = [];
 
     data.forEach((donation) => {
-      firstDate =
-        firstDate < donation[chargeDateIndex]
-          ? firstDate
-          : donation[chargeDateIndex];
-      lastDate =
-        lastDate > donation[chargeDateIndex]
-          ? lastDate
-          : donation[chargeDateIndex];
+      firstDate = firstDate < donation[chargeDateIndex] ? firstDate : donation[chargeDateIndex];
+      lastDate = lastDate > donation[chargeDateIndex] ? lastDate : donation[chargeDateIndex];
       const payoutCurrencyIndex = columns.indexOf("Payout currency");
       const payoutCurrency = donation[payoutCurrencyIndex];
-      if (!payoutCurrencies.includes(payoutCurrency))
-        payoutCurrencies.push(payoutCurrency);
+      if (!payoutCurrencies.includes(payoutCurrency)) payoutCurrencies.push(payoutCurrency);
     });
 
     lastDate = incrementISODate(lastDate);
@@ -52,21 +45,15 @@ export const parseReport = async (report) => {
 
     for (let i = 0; i < payoutCurrencies.length; i++) {
       const exchangeRateURL = `https://data.norges-bank.no/api/data/EXR/B.${payoutCurrencies[i]}.NOK.SP?format=sdmx-json&locale=no${query}`;
-      const exchangeRatesData = await fetch(exchangeRateURL).then((res) =>
-        res.json()
-      );
+      const exchangeRatesData = await fetch(exchangeRateURL).then((res) => res.json());
 
-      const exchangeDates =
-        exchangeRatesData.data.structure.dimensions.observation[0].values;
-      const exchangeRates =
-        exchangeRatesData.data.dataSets[0].series["0:0:0:0"].observations;
+      const exchangeDates = exchangeRatesData.data.structure.dimensions.observation[0].values;
+      const exchangeRates = exchangeRatesData.data.dataSets[0].series["0:0:0:0"].observations;
 
       // Create dict { date: (exchange rate EUR to NOK) }
       let exchangeDateRateDict: { [date: string]: number } = {};
       for (let i = 0; i < exchangeDates.length; i++) {
-        exchangeDateRateDict[exchangeDates[String(i)].name] = parseFloat(
-          exchangeRates[i][0]
-        );
+        exchangeDateRateDict[exchangeDates[String(i)].name] = parseFloat(exchangeRates[i][0]);
       }
       allExchangeRates[payoutCurrencies[i]] = exchangeDateRateDict;
     }
@@ -105,18 +92,14 @@ export const parseReport = async (report) => {
       }
 
       if (exchangeRate === undefined) {
-        console.error(
-          `No exchange rate found for ${currency} on ${transaction["Charge date"]}`
-        );
+        console.error(`No exchange rate found for ${currency} on ${transaction["Charge date"]}`);
         throw new Error(`No exchange rate found for ${currency}`);
       }
 
-      let sumNOK =
-        parseFloat(transaction["Net payout amount"].replace(",", "")) *
-        exchangeRate;
+      let sumNOK = parseFloat(transaction["Net payout amount"].replace(",", "")) * exchangeRate;
 
       console.log(
-        `Payout amount ${transaction["Net payout amount"]} times exchange rate ${exchangeRate} = ${sumNOK}`
+        `Payout amount ${transaction["Net payout amount"]} times exchange rate ${exchangeRate} = ${sumNOK}`,
       );
       if (transaction["Sender currency"] == "NOK") {
         sumNOK = roundSum(sumNOK);
@@ -124,9 +107,7 @@ export const parseReport = async (report) => {
         sumNOK = Math.round(sumNOK);
       }
       // Prints the rounded sum in green in the console using unix color codes
-      console.log(
-        `Rounded sumNOK: \x1b[32m${sumNOK}\x1b[0m (${transaction["Sender currency"]})`
-      );
+      console.log(`Rounded sumNOK: \x1b[32m${sumNOK}\x1b[0m (${transaction["Sender currency"]})`);
       transaction["sumNOK"] = sumNOK;
 
       acc.push(transaction);

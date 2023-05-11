@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import { DAO } from "../DAO";
 
 const sqlString = require("sqlstring");
@@ -14,7 +15,7 @@ async function getDonationsByKID(KID) {
           SELECT *, D.ID, payment_name FROM Donations as D
               INNER JOIN Payment as P on D.Payment_ID = P.ID
               WHERE KID_fordeling = ? AND Payment_ID = 7`,
-    [KID]
+    [KID],
   );
 
   let donations = [];
@@ -53,36 +54,33 @@ async function add(KID, amount, paymentDate, notice) {
             payment_date, 
             notice
             ) VALUES (?,?,?,?)`,
-    [KID, amount, paymentDate, notice]
+    [KID, amount, paymentDate, notice],
   );
 
   return res.insertId;
 }
 
 async function updateNotification(KID, notice) {
-  let res = await DAO.query(
-    `UPDATE Avtalegiro_agreements SET notice = ? where KID = ?`,
-    [notice, KID]
-  );
+  let res = await DAO.query(`UPDATE Avtalegiro_agreements SET notice = ? where KID = ?`, [
+    notice,
+    KID,
+  ]);
 
   return true;
 }
 
 async function updateAmount(KID, amount) {
-  await DAO.query(
-    `UPDATE Avtalegiro_agreements SET amount = ? where KID = ?`,
-    [amount, KID]
-  );
+  await DAO.query(`UPDATE Avtalegiro_agreements SET amount = ? where KID = ?`, [amount, KID]);
 
   return true;
 }
 
 async function updatePaymentDate(KID, paymentDate) {
   if (paymentDate >= 0 && paymentDate <= 28) {
-    await DAO.query(
-      `UPDATE Avtalegiro_agreements SET payment_date = ? where KID = ?`,
-      [paymentDate, KID]
-    );
+    await DAO.query(`UPDATE Avtalegiro_agreements SET payment_date = ? where KID = ?`, [
+      paymentDate,
+      KID,
+    ]);
   } else {
     return false;
   }
@@ -97,7 +95,7 @@ async function replaceDistribution(
   donorId,
   metaOwnerID,
   taxUnitId: number | null = null,
-  standardDistribution: boolean = false
+  standardDistribution: boolean = false,
 ) {
   if (replacementKID.length !== 15 || originalKID.length !== 15) {
     return false;
@@ -112,7 +110,7 @@ async function replaceDistribution(
             SET KID = ?
             WHERE KID = ?
         `,
-    [replacementKID, originalKID]
+    [replacementKID, originalKID],
   );
 
   // Updates donations with the old distributions to use the replacement KID (preserves donation history)
@@ -122,11 +120,10 @@ async function replaceDistribution(
             SET KID_fordeling = ?
             WHERE KID_fordeling = ?
         `,
-    [replacementKID, originalKID]
+    [replacementKID, originalKID],
   );
 
-  const replacementTaxUnitId: number =
-    taxUnitId !== null ? taxUnitId : originalTaxUnit.id;
+  const replacementTaxUnitId: number = taxUnitId !== null ? taxUnitId : originalTaxUnit.id;
 
   // Add new distribution using the original KID
   await DAO.distributions.add(
@@ -135,7 +132,7 @@ async function replaceDistribution(
     donorId,
     replacementTaxUnitId,
     standardDistribution,
-    metaOwnerID
+    metaOwnerID,
   );
 
   // Links the replacement KID to the original AvtaleGiro KID
@@ -144,26 +141,25 @@ async function replaceDistribution(
             INSERT INTO AvtaleGiro_replaced_distributions(Replacement_KID, Original_AvtaleGiro_KID)
             VALUES (?, ?)
         `,
-    [replacementKID, originalKID]
+    [replacementKID, originalKID],
   );
 
   return true;
 }
 
 async function setActive(KID, active) {
-  let res = await DAO.query(
-    `UPDATE Avtalegiro_agreements SET active = ? where KID = ?`,
-    [active, KID]
-  );
+  let res = await DAO.query(`UPDATE Avtalegiro_agreements SET active = ? where KID = ?`, [
+    active,
+    KID,
+  ]);
 
   return true;
 }
 
 async function isActive(KID) {
-  let [res] = await DAO.query(
-    `SELECT active FROM Avtalegiro_agreements active where KID = ?`,
-    [KID]
-  );
+  let [res] = await DAO.query(`SELECT active FROM Avtalegiro_agreements active where KID = ?`, [
+    KID,
+  ]);
 
   if (res[0].active == 1) return true;
   else return false;
@@ -186,27 +182,21 @@ async function cancelAgreement(KID) {
             SET cancelled = ?, active = 0
             WHERE KID = ?
         `,
-    [mysqlDate, KID]
+    [mysqlDate, KID],
   );
 
   return true;
 }
 
 async function remove(KID) {
-  var result = await DAO.query(
-    `DELETE FROM Avtalegiro_agreements WHERE KID = ?`,
-    [KID]
-  );
+  var result = await DAO.query(`DELETE FROM Avtalegiro_agreements WHERE KID = ?`, [KID]);
 
   if (result[0].affectedRows > 0) return true;
   else return false;
 }
 
 async function exists(KID) {
-  var [res] = await DAO.query(
-    "SELECT * FROM Avtalegiro_agreements WHERE KID = ?",
-    [KID]
-  );
+  var [res] = await DAO.query("SELECT * FROM Avtalegiro_agreements WHERE KID = ?", [KID]);
 
   if (res.length > 0) return true;
   else return false;
@@ -230,8 +220,7 @@ async function getAgreements(sort, page, limit, filter) {
     if (filter.amount) {
       if (filter.amount.from)
         where.push(`amount >= ${sqlString.escape(filter.amount.from * 100)} `);
-      if (filter.amount.to)
-        where.push(`amount <= ${sqlString.escape(filter.amount.to * 100)} `);
+      if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to * 100)} `);
     }
     if (filter.paymentDate) {
       if (filter.paymentDate.from !== undefined)
@@ -242,24 +231,15 @@ async function getAgreements(sort, page, limit, filter) {
     if (filter.created) {
       if (filter.created.from)
         where.push(`AG.created >= ${sqlString.escape(filter.created.from)} `);
-      if (filter.created.to)
-        where.push(`AG.created <= ${sqlString.escape(filter.created.to)} `);
+      if (filter.created.to) where.push(`AG.created <= ${sqlString.escape(filter.created.to)} `);
     }
 
     if (filter.KID)
-      where.push(
-        ` CAST(CT.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `
-      );
+      where.push(` CAST(CT.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
     if (filter.donor)
-      where.push(
-        ` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `
-      );
+      where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
     if (filter.statuses.length > 0)
-      where.push(
-        ` AG.active IN (${filter.statuses
-          .map((ID) => sqlString.escape(ID))
-          .join(",")}) `
-      );
+      where.push(` AG.active IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `);
   }
 
   const [agreements] = await DAO.query(
@@ -286,7 +266,7 @@ async function getAgreements(sort, page, limit, filter) {
         ORDER BY ${sortColumn} ${sortDirection}
         LIMIT ? OFFSET ?
         `,
-    [limit, offset]
+    [limit, offset],
   );
 
   const [counter] = await DAO.query(`
@@ -328,7 +308,7 @@ async function getAgreement(id) {
             ON CT.Donor_ID = Donors.ID
         WHERE AG.ID = ?
         `,
-    [id]
+    [id],
   );
 
   if (result.length === 0) return false;
@@ -361,7 +341,7 @@ async function getByDonorId(donorId) {
                 ON CT.Donor_ID = Donors.ID
             
             WHERE Donors.ID = ?`,
-    [donorId]
+    [donorId],
   );
 
   return agreements;
@@ -376,7 +356,7 @@ async function getByKID(KID) {
                 KID
             FROM Avtalegiro_agreements 
             WHERE KID = ?`,
-    [KID]
+    [KID],
   );
 
   if (agreement.length > 0) {
@@ -466,10 +446,11 @@ async function getMissingForDate(date) {
   let month = date.getMonth() + 1;
   let dayOfMonth = date.getDate();
 
-  let [res] = await DAO.query(
-    "call get_avtalegiro_agreement_missing_donations_by_date(?,?,?)",
-    [year, month, dayOfMonth]
-  );
+  let [res] = await DAO.query("call get_avtalegiro_agreement_missing_donations_by_date(?,?,?)", [
+    year,
+    month,
+    dayOfMonth,
+  ]);
 
   return res[0];
 }
@@ -483,10 +464,11 @@ async function getExpectedDonationsForDate(date) {
   let month = date.getMonth() + 1;
   let dayOfMonth = date.getDate();
 
-  let [res] = await DAO.query(
-    "call get_avtalegiro_agreement_expected_donations_by_date(?,?,?)",
-    [year, month, dayOfMonth]
-  );
+  let [res] = await DAO.query("call get_avtalegiro_agreement_expected_donations_by_date(?,?,?)", [
+    year,
+    month,
+    dayOfMonth,
+  ]);
 
   return res[0];
 }
@@ -500,10 +482,11 @@ async function getRecievedDonationsForDate(date) {
   let month = date.getMonth() + 1;
   let dayOfMonth = date.getDate();
 
-  let [res] = await DAO.query(
-    "call get_avtalegiro_agreement_recieved_donations_by_date(?,?,?)",
-    [year, month, dayOfMonth]
-  );
+  let [res] = await DAO.query("call get_avtalegiro_agreement_recieved_donations_by_date(?,?,?)", [
+    year,
+    month,
+    dayOfMonth,
+  ]);
 
   return res[0].map((donation) => ({
     id: donation.ID,
@@ -553,7 +536,7 @@ async function getByPaymentDate(dayInMonth) {
             FROM Avtalegiro_agreements 
 
             WHERE payment_date = ? AND active = 1`,
-    [dayInMonth]
+    [dayInMonth],
   );
 
   return agreements.map((agreement) => ({
@@ -573,11 +556,23 @@ async function getByPaymentDate(dayInMonth) {
  * @returns {Array<{ date: String, expected: number, actual: number, diff: number }>}
  */
 async function getValidationTable() {
-  let [rows] = await DAO.query(
-    `call EffektDonasjonDB.get_avtalegiro_validation()`
-  );
+  let [rows] = await DAO.query(`call EffektDonasjonDB.get_avtalegiro_validation()`);
 
   return rows[0];
+}
+
+/**
+ * Gets all shipments for a given date
+ * @param today The date to get shipments for
+ * @returns A list of shipments IDs
+ */
+async function getShipmentIDs(today: DateTime): Promise<number[]> {
+  let [rows] = await DAO.query(
+    `SELECT ID FROM Avtalegiro_shipment WHERE day(\`generated\`) = ? AND month(\`generated\`) = ? AND year(\`generated\`) = ?`,
+    [today.day, today.month, today.year],
+  );
+
+  return rows.map((row) => row.ID);
 }
 
 /**
@@ -591,7 +586,7 @@ async function addShipment(numClaims) {
             Avtalegiro_shipment
             
             (num_claims) VALUES (?)`,
-    [numClaims]
+    [numClaims],
   );
 
   return result.insertId;
@@ -636,6 +631,7 @@ export const avtalegiroagreements = {
   getRecievedDonationsForDate,
   getExpectedDonationsForDate,
   getDonationsByKID,
+  getShipmentIDs,
 
   addShipment,
 };

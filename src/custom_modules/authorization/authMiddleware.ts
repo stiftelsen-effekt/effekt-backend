@@ -6,21 +6,18 @@ import {
   JWTPayload,
   claimIncludes,
 } from "express-oauth2-jwt-bearer";
+import { authAudience, authRoleClaim, authIssuerBaseURL, authUserIdClaim } from "../../config";
 
 const authorizationRoles = require("../../enums/authorizationRoles.js");
 
+// Defaulting to "default" to enable tests to run
 const checkJwt = auth0({
-  audience: "https://data.gieffektivt.no",
-  issuerBaseURL: "https://gieffektivt.eu.auth0.com/",
+  audience: authAudience || "default",
+  issuerBaseURL: authIssuerBaseURL || "default",
 });
 
-const roleClaim = "https://gieffektivt.no/roles";
-const useridClaim = "https://gieffektivt.no/user-id";
-
-interface ExtendedJWTPayload extends JWTPayload {
-  [roleClaim]: string[];
-  [useridClaim]: number;
-}
+const roleClaim = authRoleClaim;
+const userIdClaim = authUserIdClaim;
 
 /**
  * Express middleware, checks if token passed in request grants permission
@@ -30,15 +27,22 @@ interface ExtendedJWTPayload extends JWTPayload {
  * @param {Boolean} [api=true] Indicates whether the request is an api request or a view request
  */
 export const auth = (permission, api = true) => {
-  return [checkJwt, requiredScopes(permission)];
+  return [checkJwt, claimIncludes("permissions", permission)];
 };
 
-export const checkDonor = (donorId, req, res, next) => {
-  const handler = claimCheck(
-    (claims) =>
-      (claims as ExtendedJWTPayload)[roleClaim].includes("admin") ||
-      claims[useridClaim] === donorId
-  );
+const userIsAdmin = (claims: JWTPayload) => {
+  const roleClaims = claims[roleClaim];
+  if (!Array.isArray(roleClaims)) return false;
+  return roleClaims.includes("admin");
+};
+
+const userIsTheDonor = (claims: JWTPayload, donorId: number) => claims[userIdClaim] === donorId;
+
+const userIsAllowedToManageDonor = (claims: JWTPayload, donorId: number) =>
+  userIsAdmin(claims) || userIsTheDonor(claims, donorId);
+
+export const checkDonor = (donorId: number, req, res, next) => {
+  const handler = claimCheck((claims) => userIsAllowedToManageDonor(claims, donorId));
   handler(req, res, next);
 };
 
@@ -46,11 +50,7 @@ export const checkAvtaleGiroAgreement = (KID, req, res, next) => {
   DAO.donors
     .getByKID(KID)
     .then((donor) => {
-      const handler = claimCheck(
-        (claims) =>
-          (claims as ExtendedJWTPayload)[roleClaim].includes("admin") ||
-          (claims as ExtendedJWTPayload)[useridClaim] === donor.id
-      );
+      const handler = claimCheck((claims) => userIsAllowedToManageDonor(claims, donor.id));
       handler(req, res, next);
     })
     .catch((err) => {
@@ -60,7 +60,4 @@ export const checkAvtaleGiroAgreement = (KID, req, res, next) => {
     });
 };
 
-export const isAdmin = [
-  checkJwt,
-  claimIncludes("permissions", authorizationRoles.admin),
-];
+export const isAdmin = [checkJwt, claimIncludes("permissions", authorizationRoles.admin)];

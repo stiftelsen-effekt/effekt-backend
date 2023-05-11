@@ -269,6 +269,7 @@ Before we can run the API, we need to specify some environment variables. You ca
 To get started, make a copy of `.env.example` and name it `.env`. The values in this file will automatically be picked up by the node.js application and the file will not be added to source control so it is okay to have secret values in there.
 
 Open the .env file and update the variables with your own values:
+
 - `DB_USER` (name of database user)
 - `DB_PASS` (password of database user)
 - `DB_NAME` (name of MySQL instance)

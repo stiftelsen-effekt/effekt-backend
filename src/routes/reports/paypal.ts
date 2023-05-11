@@ -19,11 +19,10 @@ module.exports = async (req, res, next) => {
   }
 
   try {
-    let referenceIDs = transactions.map(
-      (transaction) => transaction.referenceTransactionID
+    let referenceIDs = transactions.map((transaction) => transaction.referenceTransactionID);
+    var referenceTransactionID_To_KID = await DAO.distributions.getHistoricPaypalSubscriptionKIDS(
+      referenceIDs,
     );
-    var referenceTransactionID_To_KID =
-      await DAO.distributions.getHistoricPaypalSubscriptionKIDS(referenceIDs);
   } catch (ex) {
     next(ex);
     return false;
@@ -31,12 +30,9 @@ module.exports = async (req, res, next) => {
 
   //Add KID to transactions, drop those that are not found in DB
   transactions = transactions.reduce((acc, transaction) => {
-    if (
-      referenceTransactionID_To_KID[transaction.referenceTransactionID] != null
-    ) {
+    if (referenceTransactionID_To_KID[transaction.referenceTransactionID] != null) {
       let newTransaction = transaction;
-      newTransaction.KID =
-        referenceTransactionID_To_KID[transaction.referenceTransactionID];
+      newTransaction.KID = referenceTransactionID_To_KID[transaction.referenceTransactionID];
       acc.push(newTransaction);
     }
     return acc;
@@ -54,7 +50,7 @@ module.exports = async (req, res, next) => {
           transaction.amount,
           transaction.date.toJSDate(),
           transaction.transactionID,
-          metaOwnerID
+          metaOwnerID,
         );
         valid++;
         if (config.env === "production") await sendDonationReciept(donationID);

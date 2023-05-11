@@ -1,14 +1,26 @@
 steps:
-- name: 'gcr.io/cloud-builders/npm'
-  args: ['install']
-- name: 'gcr.io/cloud-builders/npm'
-  args: ['run', 'test']
-- name: 'gcr.io/cloud-builders/npm'
-  args: ['run', 'build']
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/effektapi-stage:latest', '.']
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/effektapi-stage:latest']
-- name: 'gcr.io/cloud-builders/gcloud'
-  args: ['run', 'deploy', 'effektapi-stage', '--image', 'gcr.io/$PROJECT_ID/effektapi-stage:latest', '--region', 'europe-north1', '--platform', 'managed', '--allow-unauthenticated']
-images: ['gcr.io/$PROJECT_ID/effektapi-stage:latest']
+  - name: "gcr.io/cloud-builders/npm"
+    args: ["install"]
+  - name: "gcr.io/cloud-builders/npm"
+    args: ["run", "test"]
+  - name: "gcr.io/cloud-builders/npm"
+    args: ["run", "build"]
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["build", "-t", "gcr.io/$PROJECT_ID/effektapi-stage:latest", "."]
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/effektapi-stage:latest"]
+  - name: "gcr.io/cloud-builders/gcloud"
+    args:
+      [
+        "run",
+        "deploy",
+        "effektapi-stage",
+        "--image",
+        "gcr.io/$PROJECT_ID/effektapi-stage:latest",
+        "--region",
+        "europe-north1",
+        "--platform",
+        "managed",
+        "--allow-unauthenticated",
+      ]
+images: ["gcr.io/$PROJECT_ID/effektapi-stage:latest"]

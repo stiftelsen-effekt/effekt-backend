@@ -3,9 +3,7 @@ import * as fs from "fs";
 
 const OCR = require("../custom_modules/parsers/OCR");
 
-const sampleOCRfile = fs
-  .readFileSync("src/__test__/data/ocr_test.ocr")
-  .toString("utf8");
+const sampleOCRfile = fs.readFileSync("src/__test__/data/ocr_test.ocr").toString("utf8");
 const noTransactionOCRFile = fs
   .readFileSync("src/__test__/data/ocr_no_valid_records.ocr")
   .toString("utf8");
@@ -32,9 +30,7 @@ describe("OCR", function () {
 
   describe("Parses sample OCR file", () => {
     it("Parses sample file correctly", async () => {
-      let filecontents = fs
-        .readFileSync("src/__test__/data/ocr/TBOC2072.DAT")
-        .toString("utf8");
+      let filecontents = fs.readFileSync("src/__test__/data/ocr/TBOC2072.DAT").toString("utf8");
       let transactions = OCR.parse(filecontents);
 
       expect(transactions.length).to.be.equal(2);

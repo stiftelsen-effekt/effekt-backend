@@ -1,6 +1,7 @@
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendOcrBackup } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
+import { getDueDates } from "../custom_modules/avtalegiro";
 
 const express = require("express");
 const router = express.Router();
@@ -43,18 +44,13 @@ router.post("/ocr", authMiddleware.isAdmin, async (req, res, next) => {
 
     // Results are added in paralell to the database
     // Alongside sending donation reciepts
-    const addedDonations = await ocr.addDonations(
-      parsedTransactions,
-      META_OWNER_ID
-    );
+    const addedDonations = await ocr.addDonations(parsedTransactions, META_OWNER_ID);
 
     /**
      * Parse avtalegiro agreement updates from file and update database
      */
     const parsedAgreements = avtalegiroParser.parse(latestOcrFile.toString());
-    const updatedAgreements = await avtalegiro.updateAgreements(
-      parsedAgreements
-    );
+    const updatedAgreements = await avtalegiro.updateAgreements(parsedAgreements);
 
     const result = {
       addedDonations,
@@ -76,7 +72,6 @@ router.post("/ocr", authMiddleware.isAdmin, async (req, res, next) => {
 router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
   let result;
   try {
-    const claimDaysInAdvance = 6;
     let today;
     if (req.query.date) {
       today = luxon.DateTime.fromJSDate(new Date(req.query.date));
@@ -84,72 +79,70 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
       today = luxon.DateTime.fromJSDate(new Date());
     }
 
-    let claimDate = today.plus(
-      luxon.Duration.fromObject({ days: claimDaysInAdvance })
-    );
+    const claimDates = getDueDates(today);
+    for (let claimDate of claimDates) {
+      // Check if dates are last day of month
+      const isClaimDateLastDayOfMonth = claimDate.day == today.endOf("month").day;
 
-    // Check if dates are last day of month
-    const isClaimDateLastDayOfMonth = claimDate.day == today.endOf("month").day;
-
-    /**
-     * Get active agreements
-     */
-    let agreements = await DAO.avtalegiroagreements.getByPaymentDate(
-      claimDate.day
-    );
-    if (isClaimDateLastDayOfMonth) {
-      agreements = [
-        ...agreements,
-        ...(await DAO.avtalegiroagreements.getByPaymentDate(0)),
-      ];
-    }
-
-    if (agreements.length > 0) {
       /**
-       * Notify agreements to be charged
+       * Get active agreements
        */
-      let notifiedAgreements = {
-        success: 0,
-        failed: 0,
-      };
-      if (req.query.notify) {
-        notifiedAgreements = await avtalegiro.notifyAgreements(
-          agreements.filter((agreement) => agreement.notice == true)
-        );
+      let agreements = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day);
+      if (isClaimDateLastDayOfMonth) {
+        agreements = [...agreements, ...(await DAO.avtalegiroagreements.getByPaymentDate(0))];
       }
 
-      /**
-       * Create file to charge agreements for current day
-       */
-      const shipmentID = await DAO.avtalegiroagreements.addShipment(
-        agreements.length
-      );
-      const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(
-        shipmentID,
-        agreements,
-        claimDate
-      );
+      if (agreements.length > 0) {
+        /**
+         * Notify agreements to be charged
+         */
+        let notifiedAgreements = {
+          success: 0,
+          failed: 0,
+        };
+        if (req.query.notify) {
+          notifiedAgreements = await avtalegiro.notifyAgreements(
+            agreements.filter((agreement) => agreement.notice == true),
+          );
+        }
 
-      /**
-       * Send file to nets
-       */
-      const filename = "DIRREM" + today.toFormat("ddLLyy");
-      await nets.sendFile(avtaleGiroClaimsFile, filename);
+        /**
+         * Create file to charge agreements for current day
+         */
+        const shipmentID = await DAO.avtalegiroagreements.addShipment(agreements.length);
+        const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(
+          shipmentID,
+          agreements,
+          claimDate,
+        );
 
-      result = {
-        notifiedAgreements,
-        file: avtaleGiroClaimsFile.toString(),
-      };
-    } else {
-      result = {
-        notifiedAgreements: null,
-        file: null,
-      };
+        /**
+         * Send file to nets
+         */
+        const filename =
+          "DIRREM" +
+          today.toFormat("ddLLyy") +
+          "." +
+          claimDate.toFormat("ddLLyy") +
+          "." +
+          shipmentID;
+        await nets.sendFile(avtaleGiroClaimsFile, filename);
+
+        result = {
+          notifiedAgreements,
+          file: avtaleGiroClaimsFile.toString(),
+        };
+      } else {
+        result = {
+          notifiedAgreements: null,
+          file: null,
+        };
+      }
+
+      await DAO.logging.add("AvtaleGiro", result);
+      await sendOcrBackup(JSON.stringify(result, null, 2));
     }
-
-    await DAO.logging.add("AvtaleGiro", result);
-    await sendOcrBackup(JSON.stringify(result, null, 2));
-    res.json(result);
+    res.send("OK");
   } catch (ex) {
     next({ ex });
   }
@@ -158,41 +151,39 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
 /**
  * Triggered by a google cloud scheduler webhook every day at 11:00, 12:00 and 13:00
  */
-router.post(
-  "/avtalegiro/retry",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    let result;
-    try {
-      const claimDaysInAdvance = 6;
-      let today;
-      if (req.query.date) {
-        today = luxon.DateTime.fromJSDate(new Date(req.query.date));
-      } else {
-        today = luxon.DateTime.fromJSDate(new Date());
-      }
+router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) => {
+  let result;
+  try {
+    let today;
+    if (req.query.date) {
+      today = luxon.DateTime.fromJSDate(new Date(req.query.date));
+    } else {
+      today = luxon.DateTime.fromJSDate(new Date());
+    }
 
+    const claimDates = getDueDates(today);
+    const shipmentIDs = await DAO.avtalegiroagreements.getShipmentIDs(today);
+    for (let claimDate of claimDates) {
       /**
        * Check if we have recieved an "accepted" reciept from MasterCard (Nets)
        * If not, we should retry and send file again
        */
-      let accepted = await nets.checkIfAcceptedReciept(
-        today.toFormat("yyLLdd")
-      );
-      if (accepted) {
-        return res.json({
-          status: 200,
-          content: "Reciept present",
-        });
+      
+      // Get first shipment ID from array for each claim date
+      const shipmentID = shipmentIDs.shift();
+
+      // If shipment ID is undefined, we're missing a shipment for the claim date
+      // Something might have gone wrong, so we should retry
+      // Else we should check if we have recieved an accepted reciept
+      if (typeof shipmentID !== "undefined") {
+        let accepted = await nets.checkIfAcceptedReciept(shipmentID);
+        if (accepted) {
+          continue;
+        }
       }
 
-      let claimDate = today.plus(
-        luxon.Duration.fromObject({ days: claimDaysInAdvance })
-      );
-
       // Check if dates are last day of month
-      const isClaimDateLastDayOfMonth =
-        claimDate.day == today.endOf("month").day;
+      const isClaimDateLastDayOfMonth = claimDate.day == today.endOf("month").day;
 
       /**
        * Get active agreements
@@ -201,9 +192,7 @@ router.post(
       if (isClaimDateLastDayOfMonth) {
         agreements = await DAO.avtalegiroagreements.getByPaymentDate(0);
       } else {
-        agreements = await DAO.avtalegiroagreements.getByPaymentDate(
-          claimDate.day
-        );
+        agreements = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day);
       }
 
       if (agreements.length > 0) {
@@ -218,19 +207,23 @@ router.post(
         /**
          * Create file to charge agreements for current day
          */
-        const shipmentID = await DAO.avtalegiroagreements.addShipment(
-          agreements.length
-        );
+        const shipmentID = await DAO.avtalegiroagreements.addShipment(agreements.length);
         const avtaleGiroClaimsFile = await avtalegiro.generateAvtaleGiroFile(
           shipmentID,
           agreements,
-          claimDate
+          claimDate,
         );
 
         /**
          * Send file to nets
          */
-        const filename = "DIRREM" + today.toFormat("ddLLyy");
+        const filename =
+          "DIRREM" +
+          today.toFormat("ddLLyy") +
+          "." +
+          claimDate.toFormat("ddLLyy") +
+          "." +
+          shipmentID;
         await nets.sendFile(avtaleGiroClaimsFile, filename);
 
         result = {
@@ -246,12 +239,12 @@ router.post(
 
       await DAO.logging.add("AvtaleGiro - Retry", result);
       await sendOcrBackup(JSON.stringify(result, null, 2));
-      res.json(result);
-    } catch (ex) {
-      next({ ex });
     }
+    res.send("OK");
+  } catch (ex) {
+    next({ ex });
   }
-);
+});
 
 router.post("/vipps", authMiddleware.isAdmin, async (req, res, next) => {
   try {

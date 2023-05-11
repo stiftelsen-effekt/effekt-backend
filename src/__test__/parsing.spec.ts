@@ -30,20 +30,14 @@ describe("Paypal CSV", () => {
   });
 
   it('Parses paypal CSV with semicolon seperation and without "', () => {
-    const sample = readCSV(
-      reportType.paypal,
-      "Paypal April 2019 - Semicolon Stripped"
-    );
+    const sample = readCSV(reportType.paypal, "Paypal April 2019 - Semicolon Stripped");
 
     let transactions = paypalParseReport(sample);
     expect(transactions).to.be.length(9);
   });
 
   it('Parses paypal CSV with semicolon seperation and without " with . comma seperator', () => {
-    const sample = readCSV(
-      reportType.paypal,
-      "Paypal April 2019 - Semicolon Stripped Dot"
-    );
+    const sample = readCSV(reportType.paypal, "Paypal April 2019 - Semicolon Stripped Dot");
 
     let transactions = paypalParseReport(sample);
     expect(transactions).to.be.length(9);
@@ -79,9 +73,7 @@ describe("Bank CSV", () => {
     let transactions = bankParseReport(readCSV("bank", "sampleReport"));
 
     expect(transactions[0].KID).to.be.equal(57967549);
-    expect(
-      transactions[6].date.isSame(moment.utc("02.01.2019", "DD.MM.YYYY"))
-    ).to.be.equal(true);
+    expect(transactions[6].date.isSame(moment.utc("02.01.2019", "DD.MM.YYYY"))).to.be.equal(true);
     expect(transactions[2].amount).to.be.equal(250.15);
     expect(transactions[4].transactionID).to.be.equal("1264");
   });

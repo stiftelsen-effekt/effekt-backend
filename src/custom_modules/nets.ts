@@ -53,10 +53,10 @@ async function getLatestOCRFile() {
 
 /**
  * Fetches the latest Avtalegiro reciept file as a buffer
- * @param {String} dateString A date string on the format yyLLdd e.g. 210131
+ * @param {number} shipmentID A shipment ID to check for accepted reciepts
  * @returns {Boolean} True or false
  */
-async function checkIfAcceptedReciept(dateString) {
+async function checkIfAcceptedReciept(shipmentID: number) {
   const connection = await getConnection();
 
   const files = await connection.list("/Inbound");
@@ -64,8 +64,10 @@ async function checkIfAcceptedReciept(dateString) {
 
   if (files.length == 0) return false;
 
+  let paddedShipmentID = shipmentID.toString().padStart(7, "0");
+
   const filteredFiles = files.filter(
-    (file) => file.name.match(`KV\.GODKJENT.*D${dateString}`) !== null
+    (file) => file.name.match(`KV\.GODKJENT\.F${paddedShipmentID}`) !== null,
   );
 
   if (filteredFiles.length == 0) return false;

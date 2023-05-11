@@ -78,9 +78,7 @@ router.post("/register", async (req, res, next) => {
 
     //Create a donation split object
     if (donationOrganizations) {
-      donationObject.split = await donationHelpers.createDonationSplitArray(
-        donationOrganizations
-      );
+      donationObject.split = await donationHelpers.createDonationSplitArray(donationOrganizations);
       donationObject.standardSplit = false;
     } else {
       donationObject.split = await donationHelpers.getStandardSplit();
@@ -96,25 +94,18 @@ router.post("/register", async (req, res, next) => {
         donor.email,
         donor.name,
         // !!--!! ================================================= SSN removed
-        donor.newsletter
+        donor.newsletter,
       );
       donationObject.taxUnitId = await DAO.tax.addTaxUnit(
         donationObject.donorID,
         donor.ssn,
-        donor.name
+        donor.name,
       );
     } else {
       // !!--!! =================================================
       //Check for existing tax unit if SSN provided
-      if (
-        typeof donor.ssn !== "undefined" &&
-        donor.ssn != null &&
-        donor.ssn !== ""
-      ) {
-        const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(
-          donationObject.donorID,
-          donor.ssn
-        );
+      if (typeof donor.ssn !== "undefined" && donor.ssn != null && donor.ssn !== "") {
+        const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(donationObject.donorID, donor.ssn);
 
         if (existingTaxUnit) {
           donationObject.taxUnitId = existingTaxUnit.id;
@@ -122,7 +113,7 @@ router.post("/register", async (req, res, next) => {
           donationObject.taxUnitId = await DAO.tax.addTaxUnit(
             donationObject.donorID,
             donor.ssn,
-            donor.name
+            donor.name,
           );
         }
       }
@@ -138,31 +129,22 @@ router.post("/register", async (req, res, next) => {
         let dbDonor = await DAO.donors.getByID(donationObject.donorID);
         if (!dbDonor.newsletter) {
           //Not registered for newsletter, updating donor
-          await DAO.donors.updateNewsletter(
-            donationObject.donorID,
-            donor.newsletter
-          );
+          await DAO.donors.updateNewsletter(donationObject.donorID, donor.newsletter);
         }
       }
     }
 
     /** Use new KID for avtalegiro */
-    if (
-      donationObject.method == methods.BANK &&
-      donationObject.recurring == true
-    ) {
+    if (donationObject.method == methods.BANK && donationObject.recurring == true) {
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
-      donationObject.KID = await donationHelpers.createKID(
-        15,
-        donationObject.donorID
-      );
+      donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID);
       // !!--!! ================================================= TAX UNIT
       await DAO.distributions.add(
         donationObject.split,
         donationObject.KID,
         donationObject.donorID,
         donationObject.taxUnitId,
-        donationObject.standardSplit
+        donationObject.standardSplit,
       );
     } else {
       //Try to get existing KID
@@ -171,7 +153,7 @@ router.post("/register", async (req, res, next) => {
         donationObject.split,
         donationObject.donorID,
         donationObject.standardSplit,
-        donationObject.taxUnitId
+        donationObject.taxUnitId,
       );
 
       //Split does not exist create new KID and split
@@ -184,16 +166,13 @@ router.post("/register", async (req, res, next) => {
           donationObject.KID,
           donationObject.donorID,
           donationObject.taxUnitId,
-          donationObject.standardSplit
+          donationObject.standardSplit,
         );
       }
     }
 
     if (donationObject.method == methods.VIPPS && recurring == 0) {
-      const res = await vipps.initiateOrder(
-        donationObject.KID,
-        donationObject.amount
-      );
+      const res = await vipps.initiateOrder(donationObject.KID, donationObject.amount);
       paymentProviderUrl = res.externalPaymentUrl;
 
       //Start polling for updates (move this to inside initiateOrder?)
@@ -201,10 +180,7 @@ router.post("/register", async (req, res, next) => {
     }
 
     try {
-      await DAO.initialpaymentmethod.addPaymentIntent(
-        donationObject.KID,
-        donationObject.method
-      );
+      await DAO.initialpaymentmethod.addPaymentIntent(donationObject.KID, donationObject.method);
     } catch (error) {
       console.error(error);
     }
@@ -213,12 +189,10 @@ router.post("/register", async (req, res, next) => {
   }
 
   try {
-    var hasAnsweredReferral = await DAO.referrals.getDonorAnswered(
-      donationObject.donorID
-    );
+    var hasAnsweredReferral = await DAO.referrals.getDonorAnswered(donationObject.donorID);
   } catch (ex) {
     console.error(
-      `Could not get whether donor answered referral for donorID ${donationObject.donorID}`
+      `Could not get whether donor answered referral for donorID ${donationObject.donorID}`,
     );
     hasAnsweredReferral = false;
   }
@@ -263,40 +237,35 @@ router.post("/bank/pending", urlEncodeParser, async (req, res, next) => {
  *    tags: [Donations]
  *    description: Adds a confirmed donation to the database
  */
-router.post(
-  "/confirm",
-  authMiddleware.isAdmin,
-  urlEncodeParser,
-  async (req, res, next) => {
-    try {
-      let sum = Number(req.body.sum);
-      let timestamp = new Date(req.body.timestamp);
-      let KID = req.body.KID;
-      let methodId = Number(req.body.paymentId);
-      let externalRef = req.body.paymentExternalRef;
-      let metaOwnerID = req.body.metaOwnerID;
+router.post("/confirm", authMiddleware.isAdmin, urlEncodeParser, async (req, res, next) => {
+  try {
+    let sum = Number(req.body.sum);
+    let timestamp = new Date(req.body.timestamp);
+    let KID = req.body.KID;
+    let methodId = Number(req.body.paymentId);
+    let externalRef = req.body.paymentExternalRef;
+    let metaOwnerID = req.body.metaOwnerID;
 
-      let donationID = await DAO.donations.add(
-        KID,
-        methodId,
-        sum,
-        timestamp,
-        externalRef,
-        metaOwnerID
-      );
+    let donationID = await DAO.donations.add(
+      KID,
+      methodId,
+      sum,
+      timestamp,
+      externalRef,
+      metaOwnerID,
+    );
 
-      if (config.env === "production" && req.body.reciept === true)
-        await sendDonationReciept(donationID);
+    if (config.env === "production" && req.body.reciept === true)
+      await sendDonationReciept(donationID);
 
-      res.json({
-        status: 200,
-        content: "OK",
-      });
-    } catch (ex) {
-      next(ex);
-    }
+    res.json({
+      status: 200,
+      content: "OK",
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 /**
  * @openapi
@@ -309,10 +278,7 @@ router.get("/total", async (req, res, next) => {
   try {
     let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req);
 
-    let aggregate = await DAO.donations.getAggregateByTime(
-      dates.fromDate,
-      dates.toDate
-    );
+    let aggregate = await DAO.donations.getAggregateByTime(dates.fromDate, dates.toDate);
 
     res.json({
       status: 200,
@@ -354,10 +320,7 @@ router.get("/median", cache("5 minutes"), async (req, res, next) => {
   try {
     let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req);
 
-    let median = await DAO.donations.getMedianFromRange(
-      dates.fromDate,
-      dates.toDate
-    );
+    let median = await DAO.donations.getMedianFromRange(dates.fromDate, dates.toDate);
 
     if (median == null) {
       return res.json({
@@ -381,7 +344,7 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
       req.body.sort,
       req.body.page,
       req.body.limit,
-      req.body.filter
+      req.body.filter,
     );
     return res.json({
       status: 200,
@@ -408,21 +371,17 @@ router.get("/histogram", async (req, res, next) => {
   }
 });
 
-router.get(
-  "/transaction_costs_report",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      const donations = await DAO.donations.getTransactionCostsReport();
-      return res.json({
-        status: 200,
-        content: donations,
-      });
-    } catch (ex) {
-      next(ex);
-    }
+router.get("/transaction_costs_report", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const donations = await DAO.donations.getTransactionCostsReport();
+    return res.json({
+      status: 200,
+      content: donations,
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 router.post("/reciepts", authMiddleware.isAdmin, async (req, res, next) => {
   let donationIDs = req.body.donationIDs;
@@ -446,25 +405,21 @@ router.post("/reciepts", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-router.get(
-  "/externalID/:externalID/:methodID",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      let donation = await DAO.donations.getByExternalPaymentID(
-        req.params.externalID,
-        req.params.methodID
-      );
+router.get("/externalID/:externalID/:methodID", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    let donation = await DAO.donations.getByExternalPaymentID(
+      req.params.externalID,
+      req.params.methodID,
+    );
 
-      return res.json({
-        status: 200,
-        content: donation,
-      });
-    } catch (ex) {
-      next(ex);
-    }
+    return res.json({
+      status: 200,
+      content: donation,
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 let historyRateLimit = new rateLimit({
   windowMs: 60 * 1000 * 60, // 1 hour
@@ -553,30 +508,24 @@ router.get("/all/:kid", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-router.put(
-  "/transaction_cost/:donationID",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      let result = await DAO.donations.updateTransactionCost(
-        req.body.transactionCost,
-        req.params.donationID
-      );
+router.put("/transaction_cost/:donationID", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    let result = await DAO.donations.updateTransactionCost(
+      req.body.transactionCost,
+      req.params.donationID,
+    );
 
-      if (result) {
-        return res.json({
-          status: 200,
-        });
-      } else {
-        throw new Error(
-          `Could not update transaction cost for donation ID ${req.params.donationID}`
-        );
-      }
-    } catch (ex) {
-      next(ex);
+    if (result) {
+      return res.json({
+        status: 200,
+      });
+    } else {
+      throw new Error(`Could not update transaction cost for donation ID ${req.params.donationID}`);
     }
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 /**
  * @openapi
