@@ -163,7 +163,11 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
     }
 
     const claimDates = getDueDates(today);
+
+    console.log(claimDates.map((claimDate) => claimDate.toISO()));
+
     const shipmentIDs = await DAO.avtalegiroagreements.getShipmentIDs(today);
+    console.log(shipmentIDs);
 
     // Remove elements from shipment ID's up to claimDate length is left
     shipmentIDs.splice(0, shipmentIDs.length - claimDates.length);
