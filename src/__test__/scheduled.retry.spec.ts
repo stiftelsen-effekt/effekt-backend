@@ -108,6 +108,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
   it("Should not retry if no claim dates for date", async () => {
     dueDateStub.returns([]);
+    getShipmentIdsStub.resolves([]);
 
     await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-10").expect(200);
 
