@@ -2,10 +2,11 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { sendOcrBackup } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
 import { getDueDates } from "../custom_modules/avtalegiro";
+import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_modules/nets";
+import { DateTime } from "luxon";
 
 const express = require("express");
 const router = express.Router();
-const nets = require("../custom_modules/nets");
 const ocrParser = require("../custom_modules/parsers/OCR");
 const ocr = require("../custom_modules/ocr");
 const vipps = require("../custom_modules/vipps");
@@ -27,7 +28,7 @@ router.post("/ocr", authMiddleware.isAdmin, async (req, res, next) => {
      * It also contains information about created, updated and deleted avtalegiro
      * agreements.
      */
-    const latestOcrFile = await nets.getLatestOCRFile();
+    const latestOcrFile = await getLatestOCRFile();
 
     if (latestOcrFile === null) {
       //No files found in SFTP folder
@@ -126,7 +127,7 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
           claimDate.toFormat("ddLLyy") +
           "." +
           shipmentID;
-        await nets.sendFile(avtaleGiroClaimsFile, filename);
+        await sendFile(avtaleGiroClaimsFile, filename);
 
         result = {
           notifiedAgreements,
@@ -154,7 +155,7 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
 router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) => {
   let result;
   try {
-    let today;
+    let today: DateTime;
     if (req.query.date) {
       today = luxon.DateTime.fromJSDate(new Date(req.query.date));
     } else {
@@ -163,20 +164,26 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
 
     const claimDates = getDueDates(today);
     const shipmentIDs = await DAO.avtalegiroagreements.getShipmentIDs(today);
+
+    // Remove elements from shipment ID's up to claimDate length is left
+    shipmentIDs.splice(0, shipmentIDs.length - claimDates.length);
+    console.log(shipmentIDs);
     for (let claimDate of claimDates) {
       /**
        * Check if we have recieved an "accepted" reciept from MasterCard (Nets)
        * If not, we should retry and send file again
        */
-      
+
       // Get first shipment ID from array for each claim date
       const shipmentID = shipmentIDs.shift();
+      console.log(shipmentID, shipmentIDs);
 
       // If shipment ID is undefined, we're missing a shipment for the claim date
       // Something might have gone wrong, so we should retry
       // Else we should check if we have recieved an accepted reciept
       if (typeof shipmentID !== "undefined") {
-        let accepted = await nets.checkIfAcceptedReciept(shipmentID);
+        let accepted = await checkIfAcceptedReciept(shipmentID);
+        console.log(`Accepted reciept for shipment ${shipmentID}: ${accepted}`);
         if (accepted) {
           continue;
         }
@@ -224,7 +231,7 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
           claimDate.toFormat("ddLLyy") +
           "." +
           shipmentID;
-        await nets.sendFile(avtaleGiroClaimsFile, filename);
+        await sendFile(avtaleGiroClaimsFile, filename);
 
         result = {
           notifiedAgreements,
@@ -242,6 +249,7 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
     }
     res.send("OK");
   } catch (ex) {
+    console.error(ex);
     next({ ex });
   }
 });

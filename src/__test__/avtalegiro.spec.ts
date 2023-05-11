@@ -293,4 +293,8 @@ describe("AvtaleGiro claim due date calculation", () => {
       "16.01.2024",
     ]);
   });
+
+  after(() => {
+    sinon.restore();
+  });
 });

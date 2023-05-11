@@ -3,11 +3,11 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import sinon from "sinon";
 import express from "express";
 import { expect } from "chai";
+import * as nets from "../custom_modules/nets";
 import request from "supertest";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 const mail = require("../custom_modules/mail");
-const nets = require("../custom_modules/nets");
 const config = require("../config");
 
 describe("POST /scheduled/avtalegiro", function () {
