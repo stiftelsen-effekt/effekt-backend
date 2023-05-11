@@ -102,7 +102,7 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
     let redirectUrl = `${baseUrl}/vippsagreement?email=${encodeURIComponent(donor.email)}`
 
     if (donor.email === "anon@gieffektivt.no") {
-      redirectUrl = `${baseUrl}/min-side/vipps-anonym?agreementCode=${agreementUrlCode}`
+      redirectUrl = `${baseUrl}/min-side/vipps-anonym?agreement-code=${agreementUrlCode}`
     }
 
     res
@@ -125,8 +125,20 @@ router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
     }
 
     const KID = agreement["KID"];
-    const shares = await DAO.distributions.getSplitByKID(KID);
     const standardDistribution = await DAO.distributions.isStandardDistribution(KID);
+    const activeOrganizations = await DAO.organizations.getActive();
+    let shares = await DAO.distributions.getSplitByKID(KID);
+
+    // Fill missing organizations with 0 shares
+    shares = activeOrganizations.map((organization) => {
+      const share = shares.find((share) => share.id === organization.id);
+      return {
+        abbriv: organization.abbriv,
+        name: organization.name,
+        id: organization.id,
+        share: share ? share.share : 0,
+      };
+    });
     
     const distribution = {
       kid: KID,
@@ -134,7 +146,7 @@ router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
       shares,
     };
 
-    res.status(200).json({agreement, distribution});
+    res.status(200).json({content: {agreement, distribution}});
   } catch (ex) {
     next({ ex });
   }
@@ -561,7 +573,7 @@ router.put(
 
       const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
       const standardDistribution = req.body.distribution.standardDistribution;
-      let taxUnitId: number | undefined = req.body.distribution.taxUnit.id;
+      let taxUnitId: number | undefined = req.body.distribution.taxUnit?.id;
 
       const shares = req.body.distribution.shares;
 
