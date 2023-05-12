@@ -169,7 +169,7 @@ DAO.connect(() => {
   //Error handling
   app.use(errorHandler);
 
-  mainServer.listen(config.port, parseInt(config.host), () => {
+  mainServer.listen(parseInt(config.port), config.host, () => {
     console.log("Main http server listening on http://" + config.host + ":" + config.port + " 📞");
 
     console.log("Don't Panic. 🐬");
