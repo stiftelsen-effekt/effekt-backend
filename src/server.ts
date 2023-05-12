@@ -20,9 +20,7 @@ import pretty from "express-prettify";
 import rateLimit from "express-rate-limit";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
-
-// Converting to import statement reveals type error
-import querystring from "querystring";
+import qs from "qs";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -44,7 +42,7 @@ DAO.connect(() => {
   app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification));
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, swaggerOptions));
   app.get("/oauth2-redirect.html", (req, res, next) =>
-    res.redirect(`/api-docs/oauth2-redirect.html?${querystring.stringify(req.query)}`),
+    res.redirect(`/api-docs/oauth2-redirect.html?${qs.stringify(req.query)}`),
   );
   app.get("/", async (req, res, next) => {
     res.redirect("/api-docs/");
