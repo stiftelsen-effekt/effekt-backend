@@ -1,9 +1,9 @@
 import { isAdmin } from "../custom_modules/authorization/authMiddleware";
 
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const bodyParser = require("body-parser");
+import bodyParser from "body-parser";
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
 
 router.post("/ocr", isAdmin, require("./reports/ocr"));

@@ -2,11 +2,11 @@ import { DAO } from "./DAO";
 import { EmailTaxUnitReport } from "./DAO_modules/tax";
 
 const config = require("../config.js");
-const moment = require("moment");
+import moment from "moment";
 const template = require("./template");
 
-const request = require("request-promise-native");
-const fs = require("fs-extra");
+import request from "request-promise-native";
+import fs from "fs-extra";
 
 /**
  * @typedef VippsAgreement

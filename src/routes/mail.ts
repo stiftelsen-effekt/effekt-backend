@@ -8,7 +8,7 @@ import {
   sendTaxYearlyReportNoticeWithUser,
 } from "../custom_modules/mail";
 
-const express = require("express");
+import express from "express";
 const router = express.Router();
 const mail = require("../custom_modules/mail");
 const authMiddleware = require("../custom_modules/authorization/authMiddleware");

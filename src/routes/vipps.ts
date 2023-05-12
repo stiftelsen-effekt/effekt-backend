@@ -4,9 +4,9 @@ import { DAO } from "../custom_modules/DAO";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import permissions from "../enums/authorizationPermissions";
 
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const bodyParser = require("body-parser");
+import bodyParser from "body-parser";
 const jsonBody = bodyParser.json();
 const dns = require("dns").promises;
 const config = require("../config");

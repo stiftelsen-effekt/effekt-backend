@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import { DAO } from "../DAO";
 
-const sqlString = require("sqlstring");
+import sqlString from "sqlstring";
 
 //region GET
 async function getAll(page = 0, limit = 10, sort, filter = null) {

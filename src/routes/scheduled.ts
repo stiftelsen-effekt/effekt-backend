@@ -5,14 +5,14 @@ import { getDueDates } from "../custom_modules/avtalegiro";
 import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_modules/nets";
 import { DateTime } from "luxon";
 
-const express = require("express");
+import express from "express";
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
 const ocr = require("../custom_modules/ocr");
 const vipps = require("../custom_modules/vipps");
 const avtalegiroParser = require("../custom_modules/parsers/avtalegiro");
 const avtalegiro = require("../custom_modules/avtalegiro");
-const luxon = require("luxon");
+import luxon from "luxon";
 
 const META_OWNER_ID = 3;
 

@@ -1,5 +1,5 @@
 import { DAO } from "../DAO";
-const sqlString = require("sqlstring");
+import sqlString from "sqlstring";
 
 /**
  * @typedef ImportLogEntry

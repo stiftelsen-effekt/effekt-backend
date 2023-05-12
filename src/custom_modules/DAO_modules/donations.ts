@@ -2,7 +2,7 @@ import { distributions } from "./distributions";
 import { DAO } from "../DAO";
 import { Donation } from "../../schemas/types";
 
-const sqlString = require("sqlstring");
+import sqlString from "sqlstring";
 
 /** @typedef Donation
  * @prop {number} id

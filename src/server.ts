@@ -9,18 +9,20 @@ console.log("--------------------------------------------------");
 console.log("| gieffektivt.no donation backend (╯°□°）╯︵ ┻━┻ |");
 console.log("--------------------------------------------------");
 
-const express = require("express");
-const fileUpload = require("express-fileupload");
-const pretty = require("express-prettify");
-const rateLimit = require("express-rate-limit");
-const honeypot = require("honeypot");
-const logging = require("./handlers/loggingHandler.js");
-const http = require("http");
-const hogan = require("hogan-express");
-const bearerToken = require("express-bearer-token");
-const swaggerUi = require("swagger-ui-express");
-const swaggerJsdoc = require("swagger-jsdoc");
-const querystring = require("querystring");
+import bearerToken from "express-bearer-token";
+import express from "express";
+import fileUpload from "express-fileupload";
+import hogan from "hogan-express";
+import honeypot from "honeypot";
+import http from "http";
+import logging from "./handlers/loggingHandler.js";
+import pretty from "express-prettify";
+import rateLimit from "express-rate-limit";
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
+
+// Converting to import statement reveals type error
+import querystring from "querystring";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -169,7 +171,7 @@ DAO.connect(() => {
   //Error handling
   app.use(errorHandler);
 
-  mainServer.listen(config.port, config.host, () => {
+  mainServer.listen(config.port, parseInt(config.host), () => {
     console.log("Main http server listening on http://" + config.host + ":" + config.port + " 📞");
 
     console.log("Don't Panic. 🐬");
