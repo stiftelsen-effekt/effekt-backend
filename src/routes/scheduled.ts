@@ -6,13 +6,13 @@ import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_mo
 import { DateTime } from "luxon";
 
 import express from "express";
+
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
 const ocr = require("../custom_modules/ocr");
 const vipps = require("../custom_modules/vipps");
 const avtalegiroParser = require("../custom_modules/parsers/avtalegiro");
 const avtalegiro = require("../custom_modules/avtalegiro");
-import luxon from "luxon";
 
 const META_OWNER_ID = 3;
 
@@ -75,9 +75,9 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     let today;
     if (req.query.date) {
-      today = luxon.DateTime.fromJSDate(new Date(req.query.date));
+      today = DateTime.fromJSDate(new Date(req.query.date));
     } else {
-      today = luxon.DateTime.fromJSDate(new Date());
+      today = DateTime.fromJSDate(new Date());
     }
 
     const claimDates = getDueDates(today);
@@ -157,9 +157,9 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
   try {
     let today: DateTime;
     if (req.query.date) {
-      today = luxon.DateTime.fromJSDate(new Date(req.query.date));
+      today = DateTime.fromJSDate(new Date(req.query.date));
     } else {
-      today = luxon.DateTime.fromJSDate(new Date());
+      today = DateTime.fromJSDate(new Date());
     }
 
     const claimDates = getDueDates(today);
