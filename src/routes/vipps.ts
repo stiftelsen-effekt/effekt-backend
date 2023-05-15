@@ -2,6 +2,7 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { sendVippsAgreementChange, sendVippsProblemReport } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
 import { donationHelpers } from "../custom_modules/donationHelpers";
+import permissions from "../enums/authorizationPermissions";
 
 const express = require("express");
 const router = express.Router();
@@ -11,7 +12,6 @@ const dns = require("dns").promises;
 const config = require("../config");
 const rounding = require("../custom_modules/rounding");
 const vipps = require("../custom_modules/vipps");
-const authorizationRoles = require("../enums/authorizationRoles");
 
 const vippsCallbackProdServers = [
   "callback-1.vipps.no",
@@ -105,7 +105,7 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
 
 router.get(
   "/agreement/:id",
-  authMiddleware.auth(authorizationRoles.read_vipps_api),
+  authMiddleware.auth(permissions.read_vipps_api),
   async (req, res, next) => {
     try {
       const agreementId = req.params.id;
@@ -152,54 +152,46 @@ router.get("/histogram/charges", async (req, res, next) => {
   }
 });
 
-router.get(
-  "/agreements/report",
-  authMiddleware.auth(authorizationRoles.admin),
-  async (req, res, next) => {
-    try {
-      let content = await DAO.vipps.getAgreementReport();
+router.get("/agreements/report", authMiddleware.auth(permissions.admin), async (req, res, next) => {
+  try {
+    let content = await DAO.vipps.getAgreementReport();
 
-      res.json({
+    res.json({
+      status: 200,
+      content,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+router.post("/agreements", authMiddleware.auth(permissions.admin), async (req, res, next) => {
+  try {
+    var results = await DAO.vipps.getAgreements(
+      req.body.sort,
+      req.body.page,
+      req.body.limit,
+      req.body.filter,
+    );
+    if (results !== false) {
+      return res.json({
         status: 200,
-        content,
+        content: {
+          pages: results.pages,
+          rows: results.rows,
+        },
       });
-    } catch (ex) {
-      next(ex);
+    } else {
+      let err = new Error("Could not fetch agreements");
+      (err as any).status = 500;
+      return next(err);
     }
-  },
-);
+  } catch (ex) {
+    next(ex);
+  }
+});
 
-router.post(
-  "/agreements",
-  authMiddleware.auth(authorizationRoles.admin),
-  async (req, res, next) => {
-    try {
-      var results = await DAO.vipps.getAgreements(
-        req.body.sort,
-        req.body.page,
-        req.body.limit,
-        req.body.filter,
-      );
-      if (results !== false) {
-        return res.json({
-          status: 200,
-          content: {
-            pages: results.pages,
-            rows: results.rows,
-          },
-        });
-      } else {
-        let err = new Error("Could not fetch agreements");
-        (err as any).status = 500;
-        return next(err);
-      }
-    } catch (ex) {
-      next(ex);
-    }
-  },
-);
-
-router.post("/charges", authMiddleware.auth(authorizationRoles.admin), async (req, res, next) => {
+router.post("/charges", authMiddleware.auth(permissions.admin), async (req, res, next) => {
   try {
     var results = await DAO.vipps.getCharges(
       req.body.sort,
@@ -544,7 +536,7 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
 
 router.post(
   "/agreement/charge/create",
-  authMiddleware.auth(authorizationRoles.write_vipps_api),
+  authMiddleware.auth(permissions.write_vipps_api),
   jsonBody,
   async (req, res, next) => {
     try {
@@ -562,7 +554,7 @@ router.post(
 
 router.get(
   "/agreements/all",
-  authMiddleware.auth(authorizationRoles.read_vipps_api),
+  authMiddleware.auth(permissions.read_vipps_api),
   async (req, res, next) => {
     try {
       let agreements = [];
@@ -584,7 +576,7 @@ router.get(
 
 router.get(
   "/agreement/:agreementId/charge/:chargeId",
-  authMiddleware.auth(authorizationRoles.read_vipps_api),
+  authMiddleware.auth(permissions.read_vipps_api),
   jsonBody,
   async (req, res, next) => {
     try {
@@ -602,7 +594,7 @@ router.get(
 
 router.get(
   "/agreement/:agreementId/charges",
-  authMiddleware.auth(authorizationRoles.read_vipps_api),
+  authMiddleware.auth(permissions.read_vipps_api),
   jsonBody,
   async (req, res, next) => {
     try {
@@ -638,7 +630,7 @@ router.post("/agreement/:urlcode/charges/cancel", jsonBody, async (req, res, nex
 
 router.post(
   "/agreement/:agreementId/charge/:chargeId/refund",
-  authMiddleware.auth(authorizationRoles.write_vipps_api),
+  authMiddleware.auth(permissions.write_vipps_api),
   jsonBody,
   async (req, res, next) => {
     try {
@@ -657,7 +649,7 @@ router.post(
 
 router.post(
   "/agreement/:agreementId/charge/:chargeId/cancel",
-  authMiddleware.auth(authorizationRoles.write_vipps_api),
+  authMiddleware.auth(permissions.write_vipps_api),
   jsonBody,
   async (req, res, next) => {
     try {
@@ -824,7 +816,7 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
 
 router.post(
   "/refund/:orderId",
-  authMiddleware.auth(authorizationRoles.write_vipps_api),
+  authMiddleware.auth(permissions.write_vipps_api),
   async (req, res, next) => {
     try {
       let refunded = await vipps.refundOrder(req.params.orderId);
@@ -849,7 +841,7 @@ router.post(
 
 router.put(
   "/cancel/:orderId",
-  authMiddleware.auth(authorizationRoles.write_vipps_api),
+  authMiddleware.auth(permissions.write_vipps_api),
   async (req, res, next) => {
     try {
       let cancelled = await vipps.cancelOrder(req.params.orderId);

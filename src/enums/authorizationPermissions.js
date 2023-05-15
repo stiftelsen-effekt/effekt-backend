@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   read_donations: "read:donations",
   write_donations: "write:donations",
   read_profile: "read:profile",

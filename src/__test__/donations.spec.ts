@@ -54,7 +54,7 @@ describe("See descriptive statistics of my donations", function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
 
     checkDonorStub = sinon
-      .stub(authMiddleware, "checkDonor")
+      .stub(authMiddleware, "checkAdminOrTheDonor")
       .callsFake(function (donorID, res, req, next) {
         next();
       });

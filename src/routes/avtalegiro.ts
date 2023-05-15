@@ -5,10 +5,10 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { sendAvtaleGiroChange, sendAvtalegiroRegistered } from "../custom_modules/mail";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import { Donor } from "../schemas/types";
+import permissions from "../enums/authorizationPermissions";
 
 const router = express.Router();
 const rounding = require("../custom_modules/rounding");
-const authRoles = require("../enums/authorizationRoles");
 const moment = require("moment");
 
 /**
@@ -299,7 +299,7 @@ router.get("/:KID/redirect", async (req, res, next) => {
  */
 router.post(
   "/:KID/distribution",
-  authMiddleware.auth(authRoles.write_agreements),
+  authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
     checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },
@@ -387,7 +387,7 @@ router.post(
  */
 router.post(
   "/:KID/status",
-  authMiddleware.auth(authRoles.write_agreements),
+  authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
     checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },
@@ -432,7 +432,7 @@ router.post(
  */
 router.post(
   "/:KID/amount",
-  authMiddleware.auth(authRoles.write_agreements),
+  authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
     checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },
@@ -481,7 +481,7 @@ router.post(
  */
 router.post(
   "/:KID/paymentdate",
-  authMiddleware.auth(authRoles.write_agreements),
+  authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
     checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },

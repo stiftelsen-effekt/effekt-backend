@@ -1,14 +1,7 @@
 import { DAO } from "../DAO";
-import {
-  auth as auth0,
-  requiredScopes,
-  claimCheck,
-  JWTPayload,
-  claimIncludes,
-} from "express-oauth2-jwt-bearer";
-import { authAudience, authRoleClaim, authIssuerBaseURL, authUserIdClaim } from "../../config";
-
-const authorizationRoles = require("../../enums/authorizationRoles.js");
+import { auth as auth0, claimCheck, JWTPayload, claimIncludes } from "express-oauth2-jwt-bearer";
+import { authAudience, authIssuerBaseURL, authUserIdClaim } from "../../config";
+import authorizationPermissions from "../../enums/authorizationPermissions";
 
 // Defaulting to "default" to enable tests to run
 const checkJwt = auth0({
@@ -16,7 +9,6 @@ const checkJwt = auth0({
   issuerBaseURL: authIssuerBaseURL || "default",
 });
 
-const roleClaim = authRoleClaim;
 const userIdClaim = authUserIdClaim;
 
 /**
@@ -24,25 +16,27 @@ const userIdClaim = authUserIdClaim;
  * If api is true, stops the request on fail and sends 401 unathorized
  * If api is false, sets req.authorized to true on success and false on fail, then calls next
  * @param {String} permission Shortname permission
- * @param {Boolean} [api=true] Indicates whether the request is an api request or a view request
  */
-export const auth = (permission, api = true) => {
+export const auth = (permission: any) => {
   return [checkJwt, claimIncludes("permissions", permission)];
 };
 
-const userIsAdmin = (claims: JWTPayload) => {
-  const roleClaims = claims[roleClaim];
-  if (!Array.isArray(roleClaims)) return false;
-  return roleClaims.includes("admin");
+export const isAdmin = auth(authorizationPermissions.admin);
+
+const userIsAdmin = (jwtPayload: JWTPayload) => {
+  const permissionJwtPayload = jwtPayload.permissions;
+  if (!Array.isArray(permissionJwtPayload)) return false;
+  return permissionJwtPayload.includes("admin");
 };
 
-const userIsTheDonor = (claims: JWTPayload, donorId: number) => claims[userIdClaim] === donorId;
+const userIsTheDonor = (jwtPayload: JWTPayload, donorId: number) =>
+  jwtPayload[userIdClaim] === donorId;
 
-const userIsAllowedToManageDonor = (claims: JWTPayload, donorId: number) =>
-  userIsAdmin(claims) || userIsTheDonor(claims, donorId);
+const userIsAllowedToManageDonor = (jwtPayload: JWTPayload, donorId: number) =>
+  userIsAdmin(jwtPayload) || userIsTheDonor(jwtPayload, donorId);
 
-export const checkDonor = (donorId: number, req, res, next) => {
-  const handler = claimCheck((claims) => userIsAllowedToManageDonor(claims, donorId));
+export const checkAdminOrTheDonor = (donorId: number, req, res, next) => {
+  const handler = claimCheck((jwtPayload) => userIsAllowedToManageDonor(jwtPayload, donorId));
   handler(req, res, next);
 };
 
@@ -50,7 +44,7 @@ export const checkAvtaleGiroAgreement = (KID, req, res, next) => {
   DAO.donors
     .getByKID(KID)
     .then((donor) => {
-      const handler = claimCheck((claims) => userIsAllowedToManageDonor(claims, donor.id));
+      const handler = claimCheck((jwtPayload) => userIsAllowedToManageDonor(jwtPayload, donor.id));
       handler(req, res, next);
     })
     .catch((err) => {
@@ -59,5 +53,3 @@ export const checkAvtaleGiroAgreement = (KID, req, res, next) => {
       }
     });
 };
-
-export const isAdmin = [checkJwt, claimIncludes("permissions", authorizationRoles.admin)];

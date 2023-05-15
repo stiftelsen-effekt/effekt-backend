@@ -4,7 +4,6 @@ import { DAO } from "../custom_modules/DAO";
 const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendPasswordResetNoUserEmail } from "../custom_modules/mail";
-const roles = require("../enums/authorizationRoles");
 
 /**
  * @openapi
