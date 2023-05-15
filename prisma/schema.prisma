@@ -1,0 +1,392 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DB_URL")
+}
+
+model Auth0_users {
+  Id             String  @id @db.VarChar(64)
+  Given_Name     String? @map("Given Name") @db.Text
+  Family_Name    String? @map("Family Name") @db.Text
+  Nickname       String? @db.Text
+  Name           String? @db.Text
+  Email          String? @db.VarChar(64)
+  Email_Verified String? @map("Email Verified") @db.Text
+  Picture        String? @db.Text
+  Connection     String? @db.Text
+  Created_At     String? @map("Created At") @db.Text
+  Updated_At     String? @map("Updated At") @db.Text
+  donorid        Int?
+
+  @@index([donorid], map: "index2")
+  @@index([Email], map: "index3")
+}
+
+model AvtaleGiro_replaced_distributions {
+  Original_AvtaleGiro_KID String          @db.VarChar(15)
+  Replacement_KID         String          @id @db.VarChar(15)
+  Timestamp               DateTime?       @default(now()) @db.DateTime(0)
+  Combining_table         Combining_table @relation(fields: [Replacement_KID], references: [KID], onDelete: Cascade, map: "FK_replacement_KID_to_Combining_table")
+}
+
+model Avtalegiro_agreements {
+  ID           Int       @id @default(autoincrement())
+  KID          String    @db.VarChar(15)
+  amount       Int
+  payment_date Int
+  notice       Boolean
+  active       Boolean   @default(false)
+  last_updated DateTime? @default(now()) @db.DateTime(0)
+  created      DateTime? @default(now()) @db.DateTime(0)
+  cancelled    DateTime? @db.Date
+}
+
+model Avtalegiro_conversion_reminders {
+  ID               Int       @id @default(autoincrement())
+  KID              String    @unique(map: "KID_UNIQUE") @db.VarChar(45)
+  NumReminders     Int       @default(0)
+  LastReminderSent DateTime? @db.DateTime(0)
+}
+
+model Avtalegiro_shipment {
+  ID         Int       @id @default(autoincrement())
+  num_claims Int?
+  generated  DateTime? @default(now()) @db.DateTime(0)
+}
+
+model Combining_table {
+  Donor_ID                          Int
+  Distribution_ID                   Int
+  Tax_unit_ID                       Int?
+  KID                               String                             @db.VarChar(16)
+  timestamp_created                 DateTime?                          @default(now()) @db.DateTime(0)
+  Meta_owner_ID                     Int                                @default(3)
+  Replaced_old_organizations        Int?                               @db.TinyInt
+  Standard_split                    Boolean?
+  AvtaleGiro_replaced_distributions AvtaleGiro_replaced_distributions?
+  Distribution                      Distribution                       @relation(fields: [Distribution_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Distribution")
+  Donors                            Donors                             @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Donor")
+  Tax_unit                          Tax_unit?                          @relation(fields: [Tax_unit_ID], references: [ID], map: "fk_Combining_to_TaxUnit")
+
+  @@id([Donor_ID, Distribution_ID, KID])
+  @@index([KID], map: "KID")
+  @@index([KID, Tax_unit_ID], map: "KIDTaxUnit")
+  @@index([Distribution_ID], map: "fk_Combining_to_Distribution_idx")
+  @@index([Donor_ID], map: "fk_Combining_to_Donor_idx")
+  @@index([Tax_unit_ID], map: "fk_Combining_to_TaxUnit_idx")
+  @@index([Tax_unit_ID, Donor_ID], map: "taxUnitDonorId")
+}
+
+model Data_owner {
+  ID      Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
+  owner   String  @unique(map: "owner_UNIQUE") @db.VarChar(128)
+  default Boolean @default(false)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Distribution {
+  ID               Int               @id @unique(map: "ID_UNIQUE") @default(autoincrement())
+  OrgID            Int
+  percentage_share Decimal           @db.Decimal(15, 12)
+  Combining_table  Combining_table[]
+  Organizations    Organizations     @relation(fields: [OrgID], references: [ID], onDelete: Cascade, map: "fk_Distribution_to_Organizations")
+
+  @@index([OrgID], map: "fk_Distribution_to_Organizations_idx")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Donations {
+  ID                  Int       @id @unique(map: "ID_UNIQUE") @default(autoincrement())
+  Donor_ID            Int
+  Payment_ID          Int
+  PaymentExternal_ID  String?   @unique(map: "PaymentExternal_ID_UNIQUE") @db.VarChar(32)
+  sum_confirmed       Decimal   @db.Decimal(16, 2)
+  timestamp_confirmed DateTime  @default(now()) @db.Timestamp(0)
+  transaction_cost    Decimal?  @db.Decimal(16, 2)
+  KID_fordeling       String    @db.VarChar(16)
+  inserted            DateTime? @default(now()) @db.Timestamp(0)
+  last_updated        DateTime? @default(now()) @db.Timestamp(0)
+  Meta_owner_ID       Int       @default(3)
+  Donors              Donors    @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Donors_ID")
+  Payment             Payment   @relation(fields: [Payment_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Payment")
+
+  @@index([KID_fordeling, timestamp_confirmed], map: "KidAndTimestamp")
+  @@index([timestamp_confirmed], map: "Timestamp")
+  @@index([Donor_ID], map: "fk_Donations_Donors_KID_idx")
+  @@index([Payment_ID], map: "fk_Donations_to_Donors_idx")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Donors {
+  ID               Int                @id @unique(map: "KID_UNIQUE") @default(autoincrement())
+  email            String             @unique(map: "email_UNIQUE", length: 63) @db.TinyText
+  full_name        String?            @db.TinyText
+  date_registered  DateTime           @default(now()) @db.Timestamp(0)
+  password_hash    String?            @db.VarChar(64)
+  password_salt    String?            @db.VarChar(32)
+  Meta_owner_ID    Int                @default(3)
+  newsletter       Boolean?
+  trash            Int?               @db.TinyInt
+  ssn              String?            @db.VarChar(45)
+  Combining_table  Combining_table[]
+  Donations        Donations[]
+  FB_payment_ID    FB_payment_ID[]
+  Funds_donations  Funds_donations[]
+  Tax_unit         Tax_unit[]
+  Vipps_agreements Vipps_agreements[]
+
+  @@index([full_name(length: 64)], map: "full_name")
+  @@index([email, full_name], map: "search")
+}
+
+model FB_campaign_org_shares {
+  ID             Int      @id @default(autoincrement())
+  FB_campaign_ID String   @db.VarChar(20)
+  Org_ID         Int
+  Share          Decimal  @db.Decimal(15, 12)
+  Standard_split Boolean?
+
+  @@index([Org_ID], map: "fk_FB_campaign_org_shares_1_idx")
+  @@index([FB_campaign_ID], map: "fk_FB_campaign_org_shares_2_idx")
+}
+
+model FB_campaigns {
+  ID                  String @id @db.VarChar(20)
+  Fundraiser_title    String @db.VarChar(150)
+  Source_name         String @db.VarChar(45)
+  Permalink           String @db.VarChar(100)
+  Campaign_owner_name String @db.VarChar(45)
+  Fundraiser_type     String @db.VarChar(45)
+}
+
+model FB_donation_reports {
+  ID        Int   @id @default(autoincrement())
+  FB_report Bytes
+}
+
+model FB_payment_ID {
+  ID        Int      @id @default(autoincrement())
+  donorID   Int
+  paymentID String   @db.VarChar(45)
+  inserted  DateTime @default(now()) @db.Timestamp(0)
+  taxUnitID Int
+  Donors    Donors   @relation(fields: [donorID], references: [ID], onDelete: Cascade, map: "donorID")
+  Tax_unit  Tax_unit @relation(fields: [taxUnitID], references: [ID], onDelete: Cascade, map: "fk_fbpayment_to_taxunit")
+
+  @@index([donorID], map: "donorID_idx")
+  @@index([taxUnitID], map: "fk_fbpayment_to_taxunit_idx")
+}
+
+model Funds_donations {
+  ID                Int       @id @default(autoincrement())
+  DonorID           Int?
+  TaxUnitID         Int?
+  Sum               Decimal   @db.Decimal(15, 2)
+  Timestamp         DateTime  @db.DateTime(0)
+  PaymentExternalID String    @db.VarChar(45)
+  Donors            Donors?   @relation(fields: [DonorID], references: [ID], onDelete: Cascade, map: "FK_Funds_donorid")
+  Tax_unit          Tax_unit? @relation(fields: [TaxUnitID], references: [ID], map: "FK_Funds_taxunit")
+
+  @@index([DonorID], map: "FK_Funds_donorid_idx")
+  @@index([TaxUnitID], map: "FK_Funds_taxunit_idx")
+}
+
+model Import_logs {
+  ID        Int       @id @default(autoincrement())
+  label     String?   @db.VarChar(45)
+  result    Json?
+  timestamp DateTime? @default(now()) @db.DateTime(0)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Organizations {
+  ID                   Int            @id @unique(map: "ID_UNIQUE") @default(autoincrement())
+  full_name            String         @unique(map: "full_name_UNIQUE") @db.VarChar(45)
+  abbriv               String         @unique(map: "abbriv_UNIQUE") @db.VarChar(10)
+  short_desc           String?        @db.VarChar(255)
+  long_desc            String         @db.VarChar(45)
+  info_url             String?        @db.VarChar(156)
+  std_percentage_share Int?           @default(0) @db.TinyInt
+  is_active            Int?           @db.TinyInt
+  ordering             Int?           @db.TinyInt
+  Distribution         Distribution[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Payment {
+  ID             Int         @id @default(autoincrement())
+  payment_name   String      @unique(map: "payment_name_UNIQUE") @db.VarChar(45)
+  abbriv         String      @unique(map: "abbriv_UNIQUE") @db.VarChar(45)
+  short_desc     String?     @db.VarChar(45)
+  flat_fee       Decimal?    @db.Decimal(5, 2)
+  percentage_fee Decimal?    @db.Decimal(5, 2)
+  lastUpdated    DateTime    @default(now()) @db.Timestamp(0)
+  Donations      Donations[]
+}
+
+model Payment_intent {
+  Id             Int       @id @unique(map: "Id_UNIQUE") @default(autoincrement())
+  Payment_method String?   @db.VarChar(45)
+  KID_fordeling  String?   @db.VarChar(20)
+  timetamp       DateTime? @default(now()) @db.DateTime(0)
+
+  @@index([KID_fordeling], map: "KID_fordeling_idx")
+}
+
+model Paypal_historic_distributions {
+  ID                         Int    @id @default(autoincrement())
+  Donor_ID                   Int    @unique(map: "Donor_ID_UNIQUE")
+  KID                        Int    @unique(map: "KID_UNIQUE")
+  ReferenceTransactionNumber String @unique(map: "ReferenceTransactionNumber_UNIQUE") @db.VarChar(32)
+}
+
+model Referral_records {
+  ID              Int            @id @default(autoincrement())
+  ReferralID      Int
+  UserID          Int
+  Registered      DateTime?      @default(now()) @db.DateTime(0)
+  other_comment   String?        @db.VarChar(1000)
+  website_session String?        @db.VarChar(45)
+  Referral_types  Referral_types @relation(fields: [ReferralID], references: [ID], onDelete: NoAction, map: "referral_type")
+
+  @@index([ReferralID], map: "referral_type_idx")
+}
+
+model Referral_types {
+  ID               Int                @id @default(autoincrement())
+  name             String             @db.VarChar(256)
+  is_active        Boolean            @default(true)
+  ordering         Int?
+  Referral_records Referral_records[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Seeded {
+  Status    String    @db.VarChar(255)
+  Timestamp DateTime? @default(now()) @db.DateTime(0)
+
+  @@ignore
+}
+
+model Tax_unit {
+  ID              Int               @id @default(autoincrement())
+  Donor_ID        Int
+  ssn             String            @db.VarChar(11)
+  full_name       String            @db.VarChar(128)
+  registered      DateTime?         @default(now()) @db.DateTime(0)
+  archived        DateTime?         @db.DateTime(0)
+  Combining_table Combining_table[]
+  FB_payment_ID   FB_payment_ID[]
+  Funds_donations Funds_donations[]
+  Donors          Donors            @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "FK_tax_unit_donor_id")
+
+  @@index([Donor_ID], map: "FK_tax_unit_donor_id_idx")
+}
+
+model Vipps_agreement_charges {
+  chargeID          String           @unique(map: "chargeID_UNIQUE") @db.VarChar(11)
+  agreementID       String           @db.VarChar(20)
+  amountNOK         Int              @db.UnsignedInt
+  KID               String           @db.VarChar(15)
+  dueDate           String           @db.VarChar(100)
+  timestamp_created DateTime?        @default(now()) @db.Timestamp(0)
+  status            String           @db.VarChar(30)
+  type              String?          @db.VarChar(20)
+  Vipps_agreements  Vipps_agreements @relation(fields: [agreementID], references: [ID], onDelete: Cascade, map: "FK_agreementID_ID")
+
+  @@id([chargeID, agreementID])
+  @@index([agreementID], map: "FK_ID_agreementID_idx")
+}
+
+model Vipps_agreements {
+  ID                      String                    @id @db.VarChar(20)
+  donorID                 Int
+  KID                     String                    @db.VarChar(15)
+  amount                  Int
+  status                  String?                   @db.VarChar(30)
+  monthly_charge_day      Int
+  paused_until_date       String?                   @db.VarChar(255)
+  agreement_url_code      String                    @db.VarChar(100)
+  timestamp_created       DateTime?                 @default(now()) @db.Timestamp(0)
+  force_charge_date       String?                   @db.VarChar(100)
+  cancellation_date       DateTime?                 @db.Date
+  Vipps_agreement_charges Vipps_agreement_charges[]
+  Donors                  Donors                    @relation(fields: [donorID], references: [ID], onDelete: Cascade, map: "FK_donorID")
+
+  @@index([KID], map: "KID_idx")
+  @@index([donorID], map: "donorID_idx")
+}
+
+model Vipps_matching_rules {
+  ID            Int      @id @default(autoincrement())
+  SalesLocation String?  @db.VarChar(45)
+  Message       String?  @db.VarChar(45)
+  PeriodFrom    DateTime @db.Date
+  PeriodTo      DateTime @db.Date
+  ResolveKID    String   @db.VarChar(32)
+  precedence    Int?
+}
+
+model Vipps_order_transaction_statuses {
+  ID            Int      @id @default(autoincrement())
+  orderID       String   @db.VarChar(256)
+  transactionID String?  @db.VarChar(45)
+  amount        Int
+  operation     String   @db.VarChar(45)
+  timestamp     DateTime @db.DateTime(0)
+  success       String   @db.VarChar(45)
+}
+
+model Vipps_orders {
+  ID         Int       @id @default(autoincrement())
+  orderID    String    @db.VarChar(256)
+  donorID    Int
+  donationID Int?
+  KID        String    @db.VarChar(15)
+  token      String?   @db.VarChar(256)
+  registered DateTime? @default(now()) @db.DateTime(0)
+
+  @@index([donationID, orderID], map: "DonationID")
+  @@index([donorID], map: "Donor_ID_idx")
+  @@index([ID, orderID], map: "ID_order_id")
+}
+
+model Vipps_tokens {
+  ID      Int      @id @default(autoincrement())
+  expires DateTime @db.DateTime(0)
+  type    String   @db.VarChar(45)
+  token   String   @db.Text
+}
+
+model schema_migrations {
+  version String @id @db.VarChar(255)
+}
+
+model Combining_temp {
+  Donor_ID                   Int
+  Distribution_ID            Int
+  Tax_unit_ID                Int?
+  KID                        String    @db.VarChar(15)
+  timestamp_created          DateTime? @default(now()) @db.DateTime(0)
+  Meta_owner_ID              Int       @default(3)
+  Replaced_old_organizations Int?      @db.TinyInt
+  Standard_split             Boolean?
+
+  @@id([Donor_ID, Distribution_ID, KID])
+  @@index([KID], map: "KID")
+  @@index([Distribution_ID], map: "fk_Combining_to_Distribution_idx")
+  @@index([Donor_ID], map: "fk_Combining_to_Donor_idx")
+  @@index([Tax_unit_ID], map: "fk_Combining_to_TaxUnit_idx")
+  @@index([Tax_unit_ID, Donor_ID], map: "taxUnitDonorId")
+}
+
+model Conversion_rates {
+  ID            Int    @id @default(autoincrement())
+  Month         Int
+  Year          Int
+  PaymentMethod String @db.VarChar(45)
+  Rate          Float
+}
