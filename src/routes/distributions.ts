@@ -2,7 +2,7 @@ import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
 const rounding = require("../custom_modules/rounding");

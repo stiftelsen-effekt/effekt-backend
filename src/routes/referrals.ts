@@ -1,8 +1,8 @@
 import { DAO } from "../custom_modules/DAO";
 
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const bodyParser = require("body-parser");
+import bodyParser from "body-parser";
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
 
 router.get("/types", async (req, res, next) => {

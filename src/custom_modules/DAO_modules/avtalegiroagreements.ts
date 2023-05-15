@@ -1,7 +1,7 @@
 import { DateTime } from "luxon";
 import { DAO } from "../DAO";
 
-const sqlString = require("sqlstring");
+import sqlString from "sqlstring";
 
 //region Get
 /**

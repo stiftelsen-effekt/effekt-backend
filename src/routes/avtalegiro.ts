@@ -6,10 +6,10 @@ import { sendAvtaleGiroChange, sendAvtalegiroRegistered } from "../custom_module
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import { Donor } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
+import moment from "moment";
 
 const router = express.Router();
 const rounding = require("../custom_modules/rounding");
-const moment = require("moment");
 
 /**
  * @openapi

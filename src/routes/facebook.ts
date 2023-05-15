@@ -1,8 +1,8 @@
 import paymentMethods from "../enums/paymentMethods";
 import { DAO } from "../custom_modules/DAO";
 
-const e = require("express");
-const express = require("express");
+import e from "express";
+import express from "express";
 const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendFacebookTaxConfirmation } from "../custom_modules/mail";

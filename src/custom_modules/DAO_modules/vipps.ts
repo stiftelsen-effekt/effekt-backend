@@ -1,6 +1,6 @@
 import { distributions } from "./distributions";
 import { DAO } from "../DAO";
-const sqlString = require("sqlstring");
+import sqlString from "sqlstring";
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = [

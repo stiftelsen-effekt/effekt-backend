@@ -5,10 +5,10 @@ import { fnr } from "@navikt/fnrvalidator";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { TaxReport, TaxYearlyReportUnit } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
+import bodyParser from "body-parser";
 
 const router = express.Router();
 
-const bodyParser = require("body-parser");
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
 
 /**

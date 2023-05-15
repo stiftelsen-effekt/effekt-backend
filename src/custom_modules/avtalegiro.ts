@@ -4,7 +4,7 @@ import { DateTime } from "luxon";
 
 const writer = require("./avtalegiro/filewriterutil");
 const config = require("../config");
-const workdays = require("norwegian-workdays");
+import workdays from "norwegian-workdays";
 
 /**
  * Generates a claims file to claim payments for AvtaleGiro agreements

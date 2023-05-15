@@ -5,9 +5,9 @@ import { donationHelpers } from "../custom_modules/donationHelpers";
 const config = require("../config");
 
 const router = express.Router();
-const bodyParser = require("body-parser");
+import bodyParser from "body-parser";
 const urlEncodeParser = bodyParser.urlencoded({ extended: true });
-const apicache = require("apicache");
+import apicache from "apicache";
 const cache = apicache.middleware;
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import {
@@ -20,7 +20,7 @@ const methods = require("../enums/methods");
 
 const vipps = require("../custom_modules/vipps");
 const dateRangeHelper = require("../custom_modules/dateRangeHelper");
-const rateLimit = require("express-rate-limit");
+import rateLimit from "express-rate-limit";
 
 /**
  * @openapi

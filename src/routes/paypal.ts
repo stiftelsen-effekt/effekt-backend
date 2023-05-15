@@ -1,12 +1,12 @@
 import { DAO } from "../custom_modules/DAO";
 import { sendDonationReciept } from "../custom_modules/mail";
 
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const bodyParser = require("body-parser");
+import bodyParser from "body-parser";
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
-const request = require("request-promise-native");
+import request from "request-promise-native";
 
 const config = require("../config");
 

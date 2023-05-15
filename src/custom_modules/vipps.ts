@@ -2,12 +2,12 @@ import { DAO } from "./DAO";
 import { sendDonationReciept, sendVippsErrorWarning } from "./mail";
 
 const config = require("./../config");
-const crypto = require("crypto");
+import crypto from "crypto";
 const paymentMethods = require("../enums/paymentMethods");
-const request = require("request-promise-native");
+import request from "request-promise-native";
 const mail = require("../custom_modules/mail");
-const moment = require("moment");
-const hash = require("object-hash");
+import moment from "moment";
+import hash from "object-hash";
 
 //Timings selected based on the vipps guidelines
 //https://www.vipps.no/developers-documentation/ecom/documentation/#polling-guidelines

@@ -1,7 +1,7 @@
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
 // A route that updates a tax unit name and ssn
@@ -65,7 +65,7 @@ router.put("/:id", async (req, res, next) => {
       return;
     }
 
-    const changed = await DAO.tax.updateTaxUnit(id, taxUnit);
+    const changed = await DAO.tax.updateTaxUnit(parseInt(id), taxUnit);
     if (changed) {
       res.json({
         status: 200,
