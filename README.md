@@ -50,7 +50,7 @@ The API is also responsible for handling payment processing.
 
 ## API endpoints
 
-Our API endpoints are described in the swagger documentation available [here (production)](https://data.gieffektivt.no/docs/) or [here (development)](https://dev.data.gieffektivt.no/docs/)).
+Our API endpoints are described in the swagger documentation available [here (production)](https://data.gieffektivt.no/api-docs/) or [here (development)](https://dev.data.gieffektivt.no/api-docs/)).
 
 We are currently working on improving this documentation.
 
