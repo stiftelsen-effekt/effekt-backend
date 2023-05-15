@@ -15,7 +15,8 @@
     "debug": "export NODEMON=true && nodemon --exec 'node --inspect=0.0.0.0:9229 --require ts-node/register src/server.ts'",
     "generate-types-from-schema": "cd src && npx openapi-typescript \"specs/**/*.yaml\" --output schemas/",
     "format": "prettier --write \"./**/*{js,ts,jsx,tsx,json,md,css,scss,yml,yaml}\"",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "postinstall": "prisma generate"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
   "homepage": "https://github.com/fellmirr/effekt-backend#readme",
   "dependencies": {
     "@navikt/fnrvalidator": "^1.2.0",
+    "@prisma/client": "^4.14.0",
     "@types/luxon": "^3.3.0",
     "apicache": "^1.5.3",
     "basic-auth": "^1.1.0",
