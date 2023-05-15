@@ -1,13 +1,13 @@
--- MySQL dump 10.13  Distrib 8.0.28, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.29, for macos12 (x86_64)
 --
 -- Host: 127.0.0.1    Database: EffektDonasjonDB
 -- ------------------------------------------------------
--- Server version	8.0.18-google
+-- Server version	8.0.28-google
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8mb4 */;
+/*!50503 SET NAMES utf8 */;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
@@ -16,175 +16,9 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `Access_applications`
---
-
-DROP TABLE IF EXISTS `Access_applications`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `Access_applications` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(45) DEFAULT NULL,
-  `clientID` varchar(64) DEFAULT NULL,
-  `clientSecret` varchar(64) DEFAULT NULL,
-  PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `Access_applications_callbacks`
---
-
-DROP TABLE IF EXISTS `Access_applications_callbacks`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `Access_applications_callbacks` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `ApplicationID` int(11) NOT NULL,
-  `callback` varchar(348) DEFAULT NULL,
-  PRIMARY KEY (`ID`),
-  UNIQUE KEY `ID_UNIQUE` (`ID`),
-  KEY `ApplicationValidCallbacks_idx` (`ApplicationID`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `Access_applications_permissions`
---
-
-DROP TABLE IF EXISTS `Access_applications_permissions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `Access_applications_permissions` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `Application_ID` int(11) DEFAULT NULL,
-  `Permission_ID` int(11) DEFAULT NULL,
-  PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `Access_keys`
---
-
-DROP TABLE IF EXISTS `Access_keys`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `Access_keys` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `Application_ID` int(11) NOT NULL,
-  `Donor_ID` int(11) NOT NULL,
-  `key` varchar(64) NOT NULL,
-  `expires` datetime DEFAULT NULL,
-  PRIMARY KEY (`ID`),
-  KEY `AccessKeyApplication_idx` (`Application_ID`),
-  KEY `AccessKeyDonor_idx` (`Donor_ID`),
-  CONSTRAINT `AccessKeyApplication` FOREIGN KEY (`Application_ID`) REFERENCES `Access_applications` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `AccessKeyDonor` FOREIGN KEY (`Donor_ID`) REFERENCES `Donors` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=285 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `Access_keys_BEFORE_INSERT` BEFORE INSERT ON `Access_keys` FOR EACH ROW SET new.expires = TIMESTAMPADD(DAY, 30, Now()) */;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-
---
--- Table structure for table `Access_keys_permissions`
---
-
-DROP TABLE IF EXISTS `Access_keys_permissions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `Access_keys_permissions` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `Key_ID` int(11) DEFAULT NULL,
-  `Permission_ID` int(11) DEFAULT NULL,
-  PRIMARY KEY (`ID`),
-  KEY `AccessKeyPermissionsKey_idx` (`Key_ID`),
-  KEY `AccessKeyPermissionsPermission_idx` (`Permission_ID`),
-  CONSTRAINT `AccessKeyPermissionsKey` FOREIGN KEY (`Key_ID`) REFERENCES `Access_keys` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `AccessKeyPermissionsPermission` FOREIGN KEY (`Permission_ID`) REFERENCES `Access_permissions` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=1105 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `Access_permissions`
---
-
-DROP TABLE IF EXISTS `Access_permissions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `Access_permissions` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `shortname` varchar(45) DEFAULT NULL,
-  `description` varchar(100) DEFAULT NULL,
-  `restricted` tinyint(1) DEFAULT '1',
-  PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `Access_restricted_permissions`
---
-
-DROP TABLE IF EXISTS `Access_restricted_permissions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `Access_restricted_permissions` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `Donor_ID` int(11) DEFAULT NULL,
-  `Permission_ID` int(11) DEFAULT NULL,
-  PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `Access_tokens`
---
-
-DROP TABLE IF EXISTS `Access_tokens`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `Access_tokens` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `token` varchar(64) NOT NULL,
-  `Key_ID` int(11) NOT NULL,
-  `expires` datetime DEFAULT NULL,
-  PRIMARY KEY (`ID`),
-  KEY `AccessTokenKey_idx` (`Key_ID`),
-  CONSTRAINT `AccessTokenKey` FOREIGN KEY (`Key_ID`) REFERENCES `Access_keys` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3974 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `Access_tokens_BEFORE_INSERT` BEFORE INSERT ON `Access_tokens` FOR EACH ROW SET new.expires = TIMESTAMPADD(MINUTE, 20, Now()) */;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-
---
 -- Table structure for table `AvtaleGiro_replaced_distributions`
 --
+
 
 DROP TABLE IF EXISTS `AvtaleGiro_replaced_distributions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -195,8 +29,10 @@ CREATE TABLE `AvtaleGiro_replaced_distributions` (
   `Timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`Replacement_KID`),
   CONSTRAINT `FK_replacement_KID_to_Combining_table` FOREIGN KEY (`Replacement_KID`) REFERENCES `Combining_table` (`KID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+SET GLOBAL log_bin_trust_function_creators = 1;
 
 --
 -- Table structure for table `Avtalegiro_agreements`
@@ -206,17 +42,17 @@ DROP TABLE IF EXISTS `Avtalegiro_agreements`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Avtalegiro_agreements` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `ID` int NOT NULL AUTO_INCREMENT,
   `KID` varchar(15) NOT NULL,
-  `amount` int(11) NOT NULL,
-  `payment_date` int(10) NOT NULL,
+  `amount` int NOT NULL,
+  `payment_date` int NOT NULL,
   `notice` tinyint(1) NOT NULL,
   `active` tinyint(1) NOT NULL DEFAULT '0',
   `last_updated` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created` datetime DEFAULT CURRENT_TIMESTAMP,
   `cancelled` date DEFAULT NULL,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=435 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=498 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -227,13 +63,13 @@ DROP TABLE IF EXISTS `Avtalegiro_conversion_reminders`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Avtalegiro_conversion_reminders` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `ID` int NOT NULL AUTO_INCREMENT,
   `KID` varchar(45) NOT NULL,
-  `NumReminders` int(11) NOT NULL DEFAULT '0',
+  `NumReminders` int NOT NULL DEFAULT '0',
   `LastReminderSent` datetime DEFAULT NULL,
   PRIMARY KEY (`ID`),
   UNIQUE KEY `KID_UNIQUE` (`KID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -244,28 +80,11 @@ DROP TABLE IF EXISTS `Avtalegiro_shipment`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Avtalegiro_shipment` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `num_claims` int(11) DEFAULT NULL,
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `num_claims` int DEFAULT NULL,
   `generated` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=263 DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `ChangePass`
---
-
-DROP TABLE IF EXISTS `ChangePass`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ChangePass` (
-  `userID` int(11) NOT NULL,
-  `token` varchar(40) DEFAULT NULL,
-  `expires` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`userID`),
-  UNIQUE KEY `userID_UNIQUE` (`userID`),
-  UNIQUE KEY `key_UNIQUE` (`token`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=405 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -276,19 +95,24 @@ DROP TABLE IF EXISTS `Combining_table`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Combining_table` (
-  `Donor_ID` int(10) NOT NULL,
-  `Distribution_ID` int(11) NOT NULL,
+  `Donor_ID` int NOT NULL,
+  `Distribution_ID` int NOT NULL,
+  `Tax_unit_ID` int DEFAULT NULL,
   `KID` varchar(15) NOT NULL,
   `timestamp_created` datetime DEFAULT CURRENT_TIMESTAMP,
-  `Meta_owner_ID` int(11) NOT NULL DEFAULT '3',
-  `Replaced_old_organizations` tinyint(4) DEFAULT NULL,
+  `Meta_owner_ID` int NOT NULL DEFAULT '3',
+  `Replaced_old_organizations` tinyint DEFAULT NULL,
+  `Standard_split` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`Donor_ID`,`Distribution_ID`,`KID`),
   KEY `fk_Combining_to_Donor_idx` (`Donor_ID`),
   KEY `fk_Combining_to_Distribution_idx` (`Distribution_ID`),
   KEY `KID` (`KID`),
+  KEY `fk_Combining_to_TaxUnit_idx` (`Tax_unit_ID`),
+  KEY `taxUnitDonorId` (`Tax_unit_ID`,`Donor_ID`),
   CONSTRAINT `fk_Combining_to_Distribution` FOREIGN KEY (`Distribution_ID`) REFERENCES `Distribution` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_Combining_to_Donor` FOREIGN KEY (`Donor_ID`) REFERENCES `Donors` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  CONSTRAINT `fk_Combining_to_Donor` FOREIGN KEY (`Donor_ID`) REFERENCES `Donors` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_Combining_to_TaxUnit` FOREIGN KEY (`Tax_unit_ID`) REFERENCES `Tax_unit` (`ID`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -299,13 +123,13 @@ DROP TABLE IF EXISTS `Conversion_rates`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Conversion_rates` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `Month` int(11) NOT NULL,
-  `Year` int(11) NOT NULL,
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `Month` int NOT NULL,
+  `Year` int NOT NULL,
   `PaymentMethod` varchar(45) NOT NULL,
   `Rate` double NOT NULL,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -316,13 +140,13 @@ DROP TABLE IF EXISTS `Data_owner`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Data_owner` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `ID` int NOT NULL AUTO_INCREMENT,
   `owner` varchar(128) NOT NULL,
   `default` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`ID`),
   UNIQUE KEY `owner_UNIQUE` (`owner`),
   UNIQUE KEY `ID_UNIQUE` (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -333,14 +157,14 @@ DROP TABLE IF EXISTS `Distribution`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Distribution` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `OrgID` int(11) NOT NULL,
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `OrgID` int NOT NULL,
   `percentage_share` decimal(15,12) NOT NULL COMMENT 'For donations registrered with this KID, the percentage share of the donation given to this organization.',
   PRIMARY KEY (`ID`),
   UNIQUE KEY `ID_UNIQUE` (`ID`),
   KEY `fk_Distribution_to_Organizations_idx` (`OrgID`),
   CONSTRAINT `fk_Distribution_to_Organizations` FOREIGN KEY (`OrgID`) REFERENCES `Organizations` (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=24712 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=35450 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -351,16 +175,17 @@ DROP TABLE IF EXISTS `Donations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Donations` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Unik donasjonsID',
-  `Donor_ID` int(11) NOT NULL COMMENT 'Foreign key til donor_id',
-  `Payment_ID` int(11) NOT NULL COMMENT 'Foreign key til Payment_ID',
+  `ID` int NOT NULL AUTO_INCREMENT COMMENT 'Unik donasjonsID',
+  `Donor_ID` int NOT NULL COMMENT 'Foreign key til donor_id',
+  `Payment_ID` int NOT NULL COMMENT 'Foreign key til Payment_ID',
   `PaymentExternal_ID` varchar(32) DEFAULT NULL,
   `sum_confirmed` decimal(16,2) NOT NULL COMMENT 'Donert sum bekreftet fra betalingstjeneste',
   `timestamp_confirmed` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp/dato når donasjon er bekreftet fra betalingstjeneste',
   `transaction_cost` decimal(16,2) unsigned DEFAULT NULL COMMENT 'beregnet transaction cost basert på Payment_ID (oppslag på kostnad) og sum confirmed',
   `KID_fordeling` varchar(15) NOT NULL COMMENT 'registrert KID fra betalingstjeneste,\\noppslag i donations_distribution for Donor_ID',
   `inserted` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `Meta_owner_ID` int(11) NOT NULL DEFAULT '3',
+  `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `Meta_owner_ID` int NOT NULL DEFAULT '3',
   PRIMARY KEY (`ID`),
   UNIQUE KEY `ID_UNIQUE` (`ID`),
   UNIQUE KEY `PaymentExternal_ID_UNIQUE` (`PaymentExternal_ID`),
@@ -370,7 +195,7 @@ CREATE TABLE `Donations` (
   KEY `KidAndTimestamp` (`KID_fordeling`,`timestamp_confirmed`),
   CONSTRAINT `fk_Donations_to_Donors_ID` FOREIGN KEY (`Donor_ID`) REFERENCES `Donors` (`ID`),
   CONSTRAINT `fk_Donations_to_Payment` FOREIGN KEY (`Payment_ID`) REFERENCES `Payment` (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=22126 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=37789 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -411,6 +236,23 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `Donations_BEFORE_UPDATE` BEFORE UPDATE ON `Donations` FOR EACH ROW BEGIN
+	SET NEW.last_updated = now();
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
 -- Table structure for table `Donors`
@@ -420,20 +262,71 @@ DROP TABLE IF EXISTS `Donors`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Donors` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Unik kundeID',
+  `ID` int NOT NULL AUTO_INCREMENT COMMENT 'Unik kundeID',
   `email` tinytext NOT NULL COMMENT 'epost registrert i donasjonsskjema,\\ntrigger generering av ny donor hvis den ikke eksisterer fra før',
-  `full_name` tinytext NOT NULL,
+  `full_name` tinytext,
   `date_registered` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'The date the donor first registrered',
   `password_hash` varchar(64) DEFAULT NULL,
   `password_salt` varchar(32) DEFAULT NULL,
-  `ssn` varchar(11) DEFAULT NULL,
-  `Meta_owner_ID` int(11) NOT NULL DEFAULT '3',
+  `Meta_owner_ID` int NOT NULL DEFAULT '3',
   `newsletter` tinyint(1) DEFAULT NULL,
-  `trash` tinyint(4) DEFAULT NULL,
+  `trash` tinyint DEFAULT NULL,
+  `ssn` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`ID`),
   UNIQUE KEY `KID_UNIQUE` (`ID`),
   FULLTEXT KEY `search` (`email`,`full_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=8641 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=14717 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `FB_campaign_org_shares`
+--
+
+DROP TABLE IF EXISTS `FB_campaign_org_shares`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `FB_campaign_org_shares` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `FB_campaign_ID` varchar(20) NOT NULL,
+  `Org_ID` int NOT NULL,
+  `Share` decimal(15,12) NOT NULL,
+  `Standard_split` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  KEY `fk_FB_campaign_org_shares_1_idx` (`Org_ID`),
+  KEY `fk_FB_campaign_org_shares_2_idx` (`FB_campaign_ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `FB_campaigns`
+--
+
+DROP TABLE IF EXISTS `FB_campaigns`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `FB_campaigns` (
+  `ID` varchar(20) NOT NULL,
+  `Fundraiser_title` varchar(150) NOT NULL,
+  `Source_name` varchar(45) NOT NULL,
+  `Permalink` varchar(100) NOT NULL,
+  `Campaign_owner_name` varchar(45) NOT NULL,
+  `Fundraiser_type` varchar(45) NOT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `FB_donation_reports`
+--
+
+DROP TABLE IF EXISTS `FB_donation_reports`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `FB_donation_reports` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `FB_report` longblob NOT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -444,14 +337,17 @@ DROP TABLE IF EXISTS `FB_payment_ID`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `FB_payment_ID` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `donorID` int(11) NOT NULL,
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `donorID` int NOT NULL,
   `paymentID` varchar(45) NOT NULL,
   `inserted` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `taxUnitID` int NOT NULL,
   PRIMARY KEY (`ID`),
   KEY `donorID_idx` (`donorID`),
-  CONSTRAINT `donorID` FOREIGN KEY (`donorID`) REFERENCES `Donors` (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=369 DEFAULT CHARSET=utf8;
+  KEY `fk_fbpayment_to_taxunit_idx` (`taxUnitID`),
+  CONSTRAINT `donorID` FOREIGN KEY (`donorID`) REFERENCES `Donors` (`ID`),
+  CONSTRAINT `fk_fbpayment_to_taxunit` FOREIGN KEY (`taxUnitID`) REFERENCES `Tax_unit` (`ID`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=378 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -462,12 +358,12 @@ DROP TABLE IF EXISTS `Import_logs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Import_logs` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `ID` int NOT NULL AUTO_INCREMENT,
   `label` varchar(45) DEFAULT NULL,
   `result` json DEFAULT NULL,
   `timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=1051 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1449 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -478,20 +374,20 @@ DROP TABLE IF EXISTS `Organizations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Organizations` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `ID` int NOT NULL AUTO_INCREMENT,
   `full_name` varchar(45) NOT NULL,
   `abbriv` varchar(10) NOT NULL,
   `short_desc` varchar(255) DEFAULT NULL,
   `long_desc` varchar(45) NOT NULL,
   `info_url` varchar(156) DEFAULT NULL,
-  `std_percentage_share` tinyint(4) DEFAULT '0' COMMENT 'The percentage share of the standard distribution, determined by Effekt. Updated about twice a year',
-  `is_active` tinyint(4) DEFAULT NULL,
-  `ordering` tinyint(4) DEFAULT NULL,
+  `std_percentage_share` tinyint DEFAULT '0' COMMENT 'The percentage share of the standard distribution, determined by Effekt. Updated about twice a year',
+  `is_active` tinyint DEFAULT NULL,
+  `ordering` tinyint DEFAULT NULL,
   PRIMARY KEY (`ID`),
   UNIQUE KEY `ID_UNIQUE` (`ID`),
   UNIQUE KEY `full_name_UNIQUE` (`full_name`),
   UNIQUE KEY `abbriv_UNIQUE` (`abbriv`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -502,7 +398,7 @@ DROP TABLE IF EXISTS `Payment`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Payment` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `ID` int NOT NULL AUTO_INCREMENT,
   `payment_name` varchar(45) NOT NULL,
   `abbriv` varchar(45) NOT NULL,
   `short_desc` varchar(45) DEFAULT NULL,
@@ -512,7 +408,7 @@ CREATE TABLE `Payment` (
   PRIMARY KEY (`ID`),
   UNIQUE KEY `payment_name_UNIQUE` (`payment_name`),
   UNIQUE KEY `abbriv_UNIQUE` (`abbriv`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -523,14 +419,14 @@ DROP TABLE IF EXISTS `Payment_intent`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Payment_intent` (
-  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `Id` int NOT NULL AUTO_INCREMENT,
   `Payment_method` varchar(45) DEFAULT NULL,
   `KID_fordeling` varchar(20) DEFAULT NULL,
   `timetamp` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`Id`),
   UNIQUE KEY `Id_UNIQUE` (`Id`),
   KEY `KID_fordeling_idx` (`KID_fordeling`)
-) ENGINE=InnoDB AUTO_INCREMENT=3469 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=4208 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -541,15 +437,15 @@ DROP TABLE IF EXISTS `Paypal_historic_distributions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Paypal_historic_distributions` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `Donor_ID` int(11) NOT NULL,
-  `KID` int(11) NOT NULL,
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `Donor_ID` int NOT NULL,
+  `KID` int NOT NULL,
   `ReferenceTransactionNumber` varchar(32) NOT NULL,
   PRIMARY KEY (`ID`),
   UNIQUE KEY `Donor_ID_UNIQUE` (`Donor_ID`),
   UNIQUE KEY `KID_UNIQUE` (`KID`),
   UNIQUE KEY `ReferenceTransactionNumber_UNIQUE` (`ReferenceTransactionNumber`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -576,15 +472,16 @@ DROP TABLE IF EXISTS `Referral_records`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Referral_records` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `ReferralID` int(11) NOT NULL,
-  `UserID` int(11) NOT NULL,
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `ReferralID` int NOT NULL,
+  `UserID` int NOT NULL,
   `Registered` datetime DEFAULT CURRENT_TIMESTAMP,
   `other_comment` varchar(1000) DEFAULT NULL,
+  `website_session` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`ID`),
   KEY `referral_type_idx` (`ReferralID`),
   CONSTRAINT `referral_type` FOREIGN KEY (`ReferralID`) REFERENCES `Referral_types` (`ID`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2605 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=2929 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -595,12 +492,31 @@ DROP TABLE IF EXISTS `Referral_types`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Referral_types` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `ID` int NOT NULL AUTO_INCREMENT,
   `name` varchar(256) NOT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
-  `ordering` int(11) DEFAULT NULL,
+  `ordering` int DEFAULT NULL,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `Tax_unit`
+--
+
+DROP TABLE IF EXISTS `Tax_unit`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Tax_unit` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `Donor_ID` int NOT NULL,
+  `ssn` varchar(11) NOT NULL,
+  `full_name` varchar(128) NOT NULL,
+  `registered` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`ID`),
+  KEY `FK_tax_unit_donor_id_idx` (`Donor_ID`),
+  CONSTRAINT `FK_tax_unit_donor_id` FOREIGN KEY (`Donor_ID`) REFERENCES `Donors` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=8216 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -613,7 +529,7 @@ DROP TABLE IF EXISTS `Vipps_agreement_charges`;
 CREATE TABLE `Vipps_agreement_charges` (
   `chargeID` varchar(11) NOT NULL,
   `agreementID` varchar(20) NOT NULL,
-  `amountNOK` int(20) unsigned NOT NULL,
+  `amountNOK` int unsigned NOT NULL,
   `KID` varchar(15) NOT NULL,
   `dueDate` varchar(100) NOT NULL,
   `timestamp_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -635,11 +551,11 @@ DROP TABLE IF EXISTS `Vipps_agreements`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Vipps_agreements` (
   `ID` varchar(20) NOT NULL,
-  `donorID` int(11) NOT NULL,
+  `donorID` int NOT NULL,
   `KID` varchar(15) NOT NULL,
-  `amount` int(20) NOT NULL,
+  `amount` int NOT NULL,
   `status` varchar(30) DEFAULT NULL,
-  `monthly_charge_day` int(2) NOT NULL,
+  `monthly_charge_day` int NOT NULL,
   `paused_until_date` varchar(255) DEFAULT NULL,
   `agreement_url_code` varchar(100) NOT NULL,
   `timestamp_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -660,15 +576,15 @@ DROP TABLE IF EXISTS `Vipps_matching_rules`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Vipps_matching_rules` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `ID` int NOT NULL AUTO_INCREMENT,
   `SalesLocation` varchar(45) DEFAULT NULL,
   `Message` varchar(45) DEFAULT NULL,
   `PeriodFrom` date NOT NULL,
   `PeriodTo` date NOT NULL,
-  `ResolveKID` int(11) NOT NULL,
-  `precedence` int(11) DEFAULT NULL,
+  `ResolveKID` int NOT NULL,
+  `precedence` int DEFAULT NULL,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -679,15 +595,15 @@ DROP TABLE IF EXISTS `Vipps_order_transaction_statuses`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Vipps_order_transaction_statuses` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `ID` int NOT NULL AUTO_INCREMENT,
   `orderID` varchar(256) NOT NULL,
   `transactionID` varchar(45) DEFAULT NULL,
-  `amount` int(11) NOT NULL,
+  `amount` int NOT NULL,
   `operation` varchar(45) NOT NULL,
   `timestamp` datetime NOT NULL,
   `success` varchar(45) NOT NULL,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=1617 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=1617 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -698,10 +614,10 @@ DROP TABLE IF EXISTS `Vipps_orders`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Vipps_orders` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `ID` int NOT NULL AUTO_INCREMENT,
   `orderID` varchar(256) NOT NULL,
-  `donorID` int(11) NOT NULL,
-  `donationID` int(11) DEFAULT NULL,
+  `donorID` int NOT NULL,
+  `donationID` int DEFAULT NULL,
   `KID` varchar(15) NOT NULL,
   `token` varchar(256) DEFAULT NULL,
   `registered` datetime DEFAULT CURRENT_TIMESTAMP,
@@ -709,7 +625,7 @@ CREATE TABLE `Vipps_orders` (
   KEY `ID_order_id` (`ID`,`orderID`),
   KEY `Donor_ID_idx` (`donorID`),
   KEY `DonationID` (`donationID`,`orderID`)
-) ENGINE=InnoDB AUTO_INCREMENT=1205 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=1430 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -720,13 +636,47 @@ DROP TABLE IF EXISTS `Vipps_tokens`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Vipps_tokens` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `ID` int NOT NULL AUTO_INCREMENT,
   `expires` datetime NOT NULL,
   `type` varchar(45) NOT NULL,
   `token` text NOT NULL,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=476 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=604 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Temporary view structure for view `v_Donors_anon`
+--
+
+DROP TABLE IF EXISTS `v_Donors_anon`;
+/*!50001 DROP VIEW IF EXISTS `v_Donors_anon`*/;
+SET @saved_cs_client     = @@character_set_client;
+/*!50503 SET character_set_client = utf8mb4 */;
+/*!50001 CREATE VIEW `v_Donors_anon` AS SELECT 
+ 1 AS `ID`,
+ 1 AS `date_registered`,
+ 1 AS `has_password`,
+ 1 AS `Meta_owner_ID`,
+ 1 AS `newsletter`*/;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Temporary view structure for view `v_Tax_unit_anon`
+--
+
+DROP TABLE IF EXISTS `v_Tax_unit_anon`;
+/*!50001 DROP VIEW IF EXISTS `v_Tax_unit_anon`*/;
+SET @saved_cs_client     = @@character_set_client;
+/*!50503 SET character_set_client = utf8mb4 */;
+/*!50001 CREATE VIEW `v_Tax_unit_anon` AS SELECT 
+ 1 AS `ID`,
+ 1 AS `Donor_ID`,
+ 1 AS `gender`,
+ 1 AS `birthdate`,
+ 1 AS `age`,
+ 1 AS `is_business`,
+ 1 AS `registered`*/;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping events for database 'EffektDonasjonDB'
@@ -1414,6 +1364,42 @@ DELIMITER ;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
+-- Final view structure for view `v_Donors_anon`
+--
+
+/*!50001 DROP VIEW IF EXISTS `v_Donors_anon`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_0900_ai_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`%` SQL SECURITY DEFINER */
+/*!50001 VIEW `v_Donors_anon` AS select `d`.`ID` AS `ID`,`d`.`date_registered` AS `date_registered`,(`d`.`password_hash` is not null) AS `has_password`,`d`.`Meta_owner_ID` AS `Meta_owner_ID`,`d`.`newsletter` AS `newsletter` from `Donors` `d` where (`d`.`trash` is null) */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
+-- Final view structure for view `v_Tax_unit_anon`
+--
+
+/*!50001 DROP VIEW IF EXISTS `v_Tax_unit_anon`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_0900_ai_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`%` SQL SECURITY DEFINER */
+/*!50001 VIEW `v_Tax_unit_anon` AS with `people` as (select `t`.`ID` AS `ID`,if(((cast(substr(`t`.`ssn`,9,1) as unsigned) % 2) = 0),'F','M') AS `gender`,if((str_to_date(substr(`t`.`ssn`,1,6),'%d%c%y') <= curdate()),str_to_date(substr(`t`.`ssn`,1,6),'%d%c%y'),(str_to_date(substr(`t`.`ssn`,1,6),'%d%c%y') - interval 100 year)) AS `birthdate` from `Tax_unit` `t` where (char_length(`t`.`ssn`) = 11)) select `t`.`ID` AS `ID`,`t`.`Donor_ID` AS `Donor_ID`,`p`.`gender` AS `gender`,`p`.`birthdate` AS `birthdate`,if((char_length(`t`.`ssn`) = 11),timestampdiff(YEAR,`p`.`birthdate`,curdate()),NULL) AS `age`,if((char_length(`t`.`ssn`) = 9),true,false) AS `is_business`,`t`.`registered` AS `registered` from ((`Tax_unit` `t` left join `people` `p` on((`p`.`ID` = `t`.`ID`))) join `Donors` `d` on((`d`.`ID` = `t`.`Donor_ID`))) where (`d`.`trash` is null) */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1424,4 +1410,10 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-05-06  6:13:12
+-- Dump completed on 2022-09-13 15:41:31
+
+CREATE TABLE `Seeded` (
+  `Status` varchar(255) NOT NULL,
+  `Timestamp` datetime DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB AUTO_INCREMENT=1617 DEFAULT CHARSET=utf8mb3;
+INSERT INTO `Seeded` VALUES ('Completed', CURRENT_TIMESTAMP);
