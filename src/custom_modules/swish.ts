@@ -1,4 +1,6 @@
+import { Agent } from "https";
 import uuid from "uuid/v4";
+import config from "../config";
 import { KID } from "./KID";
 
 interface SwishPaymentBase {
@@ -42,37 +44,37 @@ export enum SwishPaymentStatuses {
  * @param  {PaymentRequestType} data
  * @returns Promise
  */
-export function paymentRequest(id: string, data: SwishPaymentRequest): Promise<string> {
-  const url = `${opts.endpoint}/paymentrequests/${id}`;
-  const options = {
-    agent: new Agent({
-      ...this.opts.cert,
-      minVersion: "TLSv1.2",
-      maxVersion: "TLSv1.2",
-    }),
-    method: "PUT",
-    body: JSON.stringify(data),
-    headers: { "Content-Type": "application/json" },
-  };
+export async function initiateOrder(id: string, data: SwishPaymentRequest) {
+  try {
+    const url = `${config.swish_url}/paymentrequests/${id}`;
 
-  console.info(`Starting payment initation - id: ${id}`);
-  console.debug(JSON.stringify(data));
+    const options = {
+      agent: new Agent({
+        cert: config.swish_cert,
+        key: config.swish_cert_key,
+        passphrase: "swish",
+        minVersion: "TLSv1.2",
+        maxVersion: "TLSv1.2",
+      }),
+      method: "PUT",
+      body: JSON.stringify(data),
+      headers: { "Content-Type": "application/json" },
+    };
 
-  return fetch(url, options).then(handleResponse).catch(handleError);
-}
+    console.info(`Starting payment initation - id: ${id}`);
+    console.debug(JSON.stringify(data));
+    const res = await fetch(url, options); // .then(handleResponse).catch(handleError);
 
-async function handleResponse(res: any) {
-  if (res.status === 201) {
-    return "OK";
+    if (res.status === 201) {
+      return "OK";
+    }
+    console.error(`Received non-201 response from Swish - status: ${res.status}`);
+    console.error(`Message: ${JSON.stringify(res)}`);
+    return "ERROR";
+  } catch (err) {
+    console.error("Error while initiating payment request to Swish: ", err);
+    return "ERROR";
   }
-  console.error(`Received non-201 response from Swish - status: ${res.status}`);
-  console.error(`Message: ${JSON.stringify(res)}`);
-  return "ERROR";
-}
-
-function handleError(err: Error) {
-  console.error("Error while initiating payment request to Swish: ", err);
-  return "ERROR";
 }
 
 /**
@@ -81,7 +83,7 @@ function handleError(err: Error) {
  * Required format: 467XXXXXXXX
  * @param phone
  */
-export function formatPhoneNumberForSwish(phone: string): string {
+export function formatPhoneNumberForSwish(phone: string) {
   if (phone.startsWith("4607")) {
     return "467" + phone.substring(4);
   }
@@ -89,12 +91,12 @@ export function formatPhoneNumberForSwish(phone: string): string {
 }
 
 // Swish expects exactly this format
-export function generatePaymentId(): string {
+export function generatePaymentId() {
   const regex = /-/g;
   return uuid().replace(regex, "").toUpperCase();
 }
 
-export function generatePaymentReference(): string {
+export function generatePaymentReference() {
   const regex = /-/g;
   const random = KID.getRandomNumbers(5);
   const date = new Date().toISOString().substring(2, 10).replace(regex, "");

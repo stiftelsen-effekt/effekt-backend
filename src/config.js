@@ -29,6 +29,17 @@ module.exports = {
   vipps_merchant_serial_number: process.env.VIPPS_MERCHANT_SERIAL_NUMBER,
   vipps_api_url: process.env.NODE_ENV === "production" ? "api.vipps.no" : "apitest.vipps.no",
 
+  swish_cert: process.env.SWISH_CERT,
+  swish_cert_key: process.env.SWISH_CERT_KEY,
+  swish_url: process.env.SWISH_URL,
+  swish_payee_alias: process.env.SWISH_PAYEE_ALIAS,
+  swish_whitelist: [
+    "213.132.115.94", // Swish prod (to be deprecated after July 31)
+    "35.228.51.224/28", // Swish prod
+    "34.140.166.128/28", // Swish prod
+    "89.46.83.171", // Swish test simulation server
+  ],
+
   nets_sftp_server: process.env.NETS_SFTP_SERVER,
   nets_sftp_user: process.env.NETS_SFTP_USER,
   nets_private_key_location: process.env.NETS_SFTP_PRIVATE_KEY_LOCATION,

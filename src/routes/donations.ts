@@ -1,6 +1,12 @@
 import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
+import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { donationHelpers } from "../custom_modules/donationHelpers";
+import {
+  sendDonationHistory,
+  sendDonationReciept,
+  sendDonationRegistered,
+} from "../custom_modules/mail";
 
 const config = require("../config");
 
@@ -9,12 +15,6 @@ import bodyParser from "body-parser";
 const urlEncodeParser = bodyParser.urlencoded({ extended: true });
 import apicache from "apicache";
 const cache = apicache.middleware;
-import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import {
-  sendDonationHistory,
-  sendDonationReciept,
-  sendDonationRegistered,
-} from "../custom_modules/mail";
 
 const methods = require("../enums/methods");
 
@@ -171,12 +171,20 @@ router.post("/register", async (req, res, next) => {
       }
     }
 
-    if (donationObject.method == methods.VIPPS && recurring == 0) {
-      const res = await vipps.initiateOrder(donationObject.KID, donationObject.amount);
-      paymentProviderUrl = res.externalPaymentUrl;
+    switch (donationObject.method) {
+      case methods.VIPPS: {
+        if (recurring == 0) {
+          const res = await vipps.initiateOrder(donationObject.KID, donationObject.amount);
+          paymentProviderUrl = res.externalPaymentUrl;
 
-      //Start polling for updates (move this to inside initiateOrder?)
-      await vipps.pollOrder(res.orderId);
+          //Start polling for updates (move this to inside initiateOrder?)
+          await vipps.pollOrder(res.orderId);
+        }
+        break;
+      }
+      case methods.SWISH: {
+        break;
+      }
     }
 
     try {
