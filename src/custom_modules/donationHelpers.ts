@@ -51,7 +51,8 @@ export const donationHelpers = {
     //Create new valid KID
     let newKID = KID.generate(length, donorId);
     //If KID already exists, try new kid, call this function recursively
-    if (await DAO.distributions.KIDexists(newKID)) newKID = await donationHelpers.createKID();
+    if (await DAO.distributions.KIDexists(newKID))
+      newKID = await donationHelpers.createKID(length, donorId);
 
     return newKID;
   },
