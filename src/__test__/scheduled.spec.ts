@@ -65,7 +65,7 @@ describe("POST /scheduled/avtalegiro", function () {
     agreementsStub.withArgs(30).resolves([]);
     agreementsStub.withArgs(31).resolves([]);
 
-    loggingStub = sinon.stub(DAO.logging, "add").resolves(true);
+    loggingStub = sinon.stub(DAO.logging, "add").resolves();
 
     sendFileStub = sinon.stub(nets, "sendFile");
 
