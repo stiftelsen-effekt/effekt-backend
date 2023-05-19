@@ -62,7 +62,7 @@ router.post("/register", async (req, res, next) => {
       donorID: number | null;
       taxUnitId: number;
       amount: string;
-      split: any[];
+      split: Awaited<ReturnType<typeof donationHelpers.getStandardSplit>>;
       recurring: boolean;
       standardSplit?: boolean;
     } = {
