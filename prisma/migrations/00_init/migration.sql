@@ -15,7 +15,7 @@ CREATE TABLE `Auth0_users` (
   INDEX `index2`(`donorid`),
   INDEX `index3`(`Email`),
   PRIMARY KEY (`Id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `AvtaleGiro_replaced_distributions` (
@@ -23,7 +23,7 @@ CREATE TABLE `AvtaleGiro_replaced_distributions` (
   `Replacement_KID` VARCHAR(15) NOT NULL,
   `Timestamp` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
   PRIMARY KEY (`Replacement_KID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Avtalegiro_agreements` (
@@ -37,7 +37,7 @@ CREATE TABLE `Avtalegiro_agreements` (
   `created` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
   `cancelled` DATE NULL,
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Avtalegiro_conversion_reminders` (
@@ -47,7 +47,7 @@ CREATE TABLE `Avtalegiro_conversion_reminders` (
   `LastReminderSent` DATETIME(0) NULL,
   UNIQUE INDEX `KID_UNIQUE`(`KID`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Avtalegiro_shipment` (
@@ -55,7 +55,7 @@ CREATE TABLE `Avtalegiro_shipment` (
   `num_claims` INTEGER NULL,
   `generated` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Combining_table` (
@@ -74,7 +74,7 @@ CREATE TABLE `Combining_table` (
   INDEX `fk_Combining_to_TaxUnit_idx`(`Tax_unit_ID`),
   INDEX `taxUnitDonorId`(`Tax_unit_ID`, `Donor_ID`),
   PRIMARY KEY (`Donor_ID`, `Distribution_ID`, `KID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Data_owner` (
@@ -84,7 +84,7 @@ CREATE TABLE `Data_owner` (
   UNIQUE INDEX `ID_UNIQUE`(`ID`),
   UNIQUE INDEX `owner_UNIQUE`(`owner`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Distribution` (
@@ -94,7 +94,7 @@ CREATE TABLE `Distribution` (
   UNIQUE INDEX `ID_UNIQUE`(`ID`),
   INDEX `fk_Distribution_to_Organizations_idx`(`OrgID`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Donations` (
@@ -116,7 +116,7 @@ CREATE TABLE `Donations` (
   INDEX `fk_Donations_Donors_KID_idx`(`Donor_ID`),
   INDEX `fk_Donations_to_Donors_idx`(`Payment_ID`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Donors` (
@@ -135,7 +135,7 @@ CREATE TABLE `Donors` (
   INDEX `full_name`(`full_name`(64)),
   INDEX `search`(`email`(63), `full_name`(64)),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `FB_campaign_org_shares` (
@@ -147,7 +147,7 @@ CREATE TABLE `FB_campaign_org_shares` (
   INDEX `fk_FB_campaign_org_shares_1_idx`(`Org_ID`),
   INDEX `fk_FB_campaign_org_shares_2_idx`(`FB_campaign_ID`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `FB_campaigns` (
@@ -158,14 +158,14 @@ CREATE TABLE `FB_campaigns` (
   `Campaign_owner_name` VARCHAR(45) NOT NULL,
   `Fundraiser_type` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `FB_donation_reports` (
   `ID` INTEGER NOT NULL AUTO_INCREMENT,
   `FB_report` LONGBLOB NOT NULL,
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `FB_payment_ID` (
@@ -177,7 +177,7 @@ CREATE TABLE `FB_payment_ID` (
   INDEX `donorID_idx`(`donorID`),
   INDEX `fk_fbpayment_to_taxunit_idx`(`taxUnitID`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Funds_donations` (
@@ -190,7 +190,7 @@ CREATE TABLE `Funds_donations` (
   INDEX `FK_Funds_donorid_idx`(`DonorID`),
   INDEX `FK_Funds_taxunit_idx`(`TaxUnitID`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Import_logs` (
@@ -199,7 +199,7 @@ CREATE TABLE `Import_logs` (
   `result` JSON NULL,
   `timestamp` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Organizations` (
@@ -216,7 +216,7 @@ CREATE TABLE `Organizations` (
   UNIQUE INDEX `full_name_UNIQUE`(`full_name`),
   UNIQUE INDEX `abbriv_UNIQUE`(`abbriv`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Payment` (
@@ -230,7 +230,7 @@ CREATE TABLE `Payment` (
   UNIQUE INDEX `payment_name_UNIQUE`(`payment_name`),
   UNIQUE INDEX `abbriv_UNIQUE`(`abbriv`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Payment_intent` (
@@ -241,7 +241,7 @@ CREATE TABLE `Payment_intent` (
   UNIQUE INDEX `Id_UNIQUE`(`Id`),
   INDEX `KID_fordeling_idx`(`KID_fordeling`),
   PRIMARY KEY (`Id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Paypal_historic_distributions` (
@@ -253,7 +253,7 @@ CREATE TABLE `Paypal_historic_distributions` (
   UNIQUE INDEX `KID_UNIQUE`(`KID`),
   UNIQUE INDEX `ReferenceTransactionNumber_UNIQUE`(`ReferenceTransactionNumber`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Referral_records` (
@@ -265,7 +265,7 @@ CREATE TABLE `Referral_records` (
   `website_session` VARCHAR(45) NULL,
   INDEX `referral_type_idx`(`ReferralID`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Referral_types` (
@@ -274,13 +274,13 @@ CREATE TABLE `Referral_types` (
   `is_active` BOOLEAN NOT NULL DEFAULT true,
   `ordering` INTEGER NULL,
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Seeded` (
   `Status` VARCHAR(255) NOT NULL,
   `Timestamp` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Tax_unit` (
@@ -292,7 +292,7 @@ CREATE TABLE `Tax_unit` (
   `archived` DATETIME(0) NULL,
   INDEX `FK_tax_unit_donor_id_idx`(`Donor_ID`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Vipps_agreement_charges` (
@@ -307,7 +307,7 @@ CREATE TABLE `Vipps_agreement_charges` (
   UNIQUE INDEX `chargeID_UNIQUE`(`chargeID`),
   INDEX `FK_ID_agreementID_idx`(`agreementID`),
   PRIMARY KEY (`chargeID`, `agreementID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Vipps_agreements` (
@@ -325,7 +325,7 @@ CREATE TABLE `Vipps_agreements` (
   INDEX `KID_idx`(`KID`),
   INDEX `donorID_idx`(`donorID`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Vipps_matching_rules` (
@@ -337,7 +337,7 @@ CREATE TABLE `Vipps_matching_rules` (
   `ResolveKID` VARCHAR(32) NOT NULL,
   `precedence` INTEGER NULL,
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Vipps_order_transaction_statuses` (
@@ -349,7 +349,7 @@ CREATE TABLE `Vipps_order_transaction_statuses` (
   `timestamp` DATETIME(0) NOT NULL,
   `success` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Vipps_orders` (
@@ -364,7 +364,7 @@ CREATE TABLE `Vipps_orders` (
   INDEX `Donor_ID_idx`(`donorID`),
   INDEX `ID_order_id`(`ID`, `orderID`),
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Vipps_tokens` (
@@ -373,13 +373,13 @@ CREATE TABLE `Vipps_tokens` (
   `type` VARCHAR(45) NOT NULL,
   `token` TEXT NOT NULL,
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `schema_migrations` (
   `version` VARCHAR(255) NOT NULL,
   PRIMARY KEY (`version`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Combining_temp` (
@@ -397,7 +397,7 @@ CREATE TABLE `Combining_temp` (
   INDEX `fk_Combining_to_TaxUnit_idx`(`Tax_unit_ID`),
   INDEX `taxUnitDonorId`(`Tax_unit_ID`, `Donor_ID`),
   PRIMARY KEY (`Donor_ID`, `Distribution_ID`, `KID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- CreateTable
 CREATE TABLE `Conversion_rates` (
@@ -407,7 +407,7 @@ CREATE TABLE `Conversion_rates` (
   `PaymentMethod` VARCHAR(45) NOT NULL,
   `Rate` DOUBLE NOT NULL,
   PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 -- AddForeignKey
 ALTER TABLE
