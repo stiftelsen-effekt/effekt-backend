@@ -1,1 +1,0 @@
-ALTER TABLE Donations ADD COLUMN doggo VARCHAR(20);

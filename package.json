@@ -94,8 +94,6 @@
     "chai": "^4.2.0",
     "chai-datetime": "^1.7.0",
     "copyfiles": "^2.4.1",
-    "db-migrate": "^0.11.13",
-    "db-migrate-mysql": "^2.2.0",
     "expect": "^1.20.2",
     "husky": "^8.0.3",
     "lint-staged": "^13.2.2",
