@@ -86,27 +86,25 @@ model Data_owner {
   default Boolean @default(false)
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Distribution {
   ID               Int               @id @unique(map: "ID_UNIQUE") @default(autoincrement())
   OrgID            Int
-  percentage_share Decimal           @db.Decimal(15, 12)
+  percentage_share Decimal           @db.Decimal(15, 12) /// For donations registrered with this KID, the percentage share of the donation given to this organization.
   Combining_table  Combining_table[]
   Organizations    Organizations     @relation(fields: [OrgID], references: [ID], onDelete: Cascade, map: "fk_Distribution_to_Organizations")
 
   @@index([OrgID], map: "fk_Distribution_to_Organizations_idx")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Donations {
-  ID                  Int       @id @unique(map: "ID_UNIQUE") @default(autoincrement())
-  Donor_ID            Int
-  Payment_ID          Int
+  ID                  Int       @id @unique(map: "ID_UNIQUE") @default(autoincrement()) /// Unik donasjonsID
+  Donor_ID            Int /// Foreign key til donor_id
+  Payment_ID          Int /// Foreign key til Payment_ID
   PaymentExternal_ID  String?   @unique(map: "PaymentExternal_ID_UNIQUE") @db.VarChar(32)
-  sum_confirmed       Decimal   @db.Decimal(16, 2)
-  timestamp_confirmed DateTime  @default(now()) @db.Timestamp(0)
-  transaction_cost    Decimal?  @db.Decimal(16, 2)
-  KID_fordeling       String    @db.VarChar(16)
+  sum_confirmed       Decimal   @db.Decimal(16, 2) /// Donert sum bekreftet fra betalingstjeneste
+  timestamp_confirmed DateTime  @default(now()) @db.Timestamp(0) /// Timestamp/dato når donasjon er bekreftet fra betalingstjeneste
+  transaction_cost    Decimal?  @db.Decimal(16, 2) /// beregnet transaction cost basert på Payment_ID (oppslag på kostnad) og sum confirmed
+  KID_fordeling       String    @db.VarChar(16) /// registrert KID fra betalingstjeneste,\\noppslag i donations_distribution for Donor_ID
   inserted            DateTime? @default(now()) @db.Timestamp(0)
   last_updated        DateTime? @default(now()) @db.Timestamp(0)
   Meta_owner_ID       Int       @default(3)
@@ -119,12 +117,11 @@ model Donations {
   @@index([Payment_ID], map: "fk_Donations_to_Donors_idx")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Donors {
-  ID               Int                @id @unique(map: "KID_UNIQUE") @default(autoincrement())
-  email            String             @unique(map: "email_UNIQUE", length: 63) @db.TinyText
+  ID               Int                @id @unique(map: "KID_UNIQUE") @default(autoincrement()) /// Unik kundeID
+  email            String             @unique(map: "email_UNIQUE", length: 63) @db.TinyText /// epost registrert i donasjonsskjema,\ntrigger generering av ny donor hvis den ikke eksisterer fra før
   full_name        String?            @db.TinyText
-  date_registered  DateTime           @default(now()) @db.Timestamp(0)
+  date_registered  DateTime           @default(now()) @db.Timestamp(0) /// The date the donor first registrered
   password_hash    String?            @db.VarChar(64)
   password_salt    String?            @db.VarChar(32)
   Meta_owner_ID    Int                @default(3)
@@ -201,7 +198,6 @@ model Import_logs {
   timestamp DateTime? @default(now()) @db.DateTime(0)
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Organizations {
   ID                   Int            @id @unique(map: "ID_UNIQUE") @default(autoincrement())
   full_name            String         @unique(map: "full_name_UNIQUE") @db.VarChar(45)
@@ -209,21 +205,20 @@ model Organizations {
   short_desc           String?        @db.VarChar(255)
   long_desc            String         @db.VarChar(45)
   info_url             String?        @db.VarChar(156)
-  std_percentage_share Int?           @default(0) @db.TinyInt
+  std_percentage_share Int?           @default(0) @db.TinyInt /// The percentage share of the standard distribution, determined by Effekt. Updated about twice a year
   is_active            Int?           @db.TinyInt
   ordering             Int?           @db.TinyInt
   Distribution         Distribution[]
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Payment {
   ID             Int         @id @default(autoincrement())
   payment_name   String      @unique(map: "payment_name_UNIQUE") @db.VarChar(45)
   abbriv         String      @unique(map: "abbriv_UNIQUE") @db.VarChar(45)
   short_desc     String?     @db.VarChar(45)
-  flat_fee       Decimal?    @db.Decimal(5, 2)
-  percentage_fee Decimal?    @db.Decimal(5, 2)
-  lastUpdated    DateTime    @default(now()) @db.Timestamp(0)
+  flat_fee       Decimal?    @db.Decimal(5, 2) /// Part of the transaction fee that is a constant number
+  percentage_fee Decimal?    @db.Decimal(5, 2) /// Part of the transaction fee that is a share of the transaction sum
+  lastUpdated    DateTime    @default(now()) @db.Timestamp(0) /// New ID and Payment_name increment with updated fee information
   Donations      Donations[]
 }
 
