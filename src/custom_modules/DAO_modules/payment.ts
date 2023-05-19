@@ -1,4 +1,5 @@
-import { DAO } from "../DAO";
+import { Payment } from "@prisma/client";
+import { DAO, PrismaType } from "../DAO";
 
 //region Get
 /**
@@ -6,7 +7,7 @@ import { DAO } from "../DAO";
  * @returns {Array} An array of payment method objects
  */
 async function getMethods() {
-  var [res] = await DAO.query(`SELECT * FROM Payment`);
+  var [res] = await DAO.query<Payment[]>(`SELECT * FROM Payment`);
 
   if (res.length > 0) {
     return mapDBpaymentToObject(res);
@@ -21,7 +22,7 @@ async function getMethods() {
  * @returns {Array} An array of payment method objects
  */
 async function getPaymentMethodsByIDs(paymentMethodIDs) {
-  var [res] = await DAO.query(
+  var [res] = await DAO.query<Payment[]>(
     `SELECT * FROM Payment 
                                         WHERE ID IN (?)`,
     [paymentMethodIDs],
@@ -48,7 +49,7 @@ async function getPaymentMethodsByIDs(paymentMethodIDs) {
 //endregion
 
 //Helpers
-function mapDBpaymentToObject(dbPaymentObject) {
+function mapDBpaymentToObject(dbPaymentObject: PrismaType<Payment>[]) {
   return dbPaymentObject.map((method) => {
     return {
       id: method.ID,
