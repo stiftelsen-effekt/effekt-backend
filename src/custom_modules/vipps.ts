@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { DAO } from "./DAO";
 import { sendDonationReciept, sendVippsErrorWarning } from "./mail";
 
@@ -552,8 +553,8 @@ module.exports = {
     if (monthlyChargeDay > 28) monthlyChargeDay = 28;
 
     // Real price is set in øre
-    const realAmount = amount * 100;
-    const agreementUrlCode = hash(new Date() + Math.random().toString());
+    const realAmount = amount * 100
+    const agreementUrlCode = createHash("md5")
 
     const data = {
       currency: "NOK",
