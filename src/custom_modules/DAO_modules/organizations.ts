@@ -1,5 +1,5 @@
 import { Organizations } from "@prisma/client";
-import { DAO, PrismaType } from "../DAO";
+import { DAO, RawPrismaType } from "../DAO";
 
 //region Get
 
@@ -91,7 +91,7 @@ async function getStandardSplit() {
  * @param {Object} org A line from a database query representing an organization
  * @returns {Object} A mapping with JS like syntax instead of the db fields, camel case instead of underscore and so on
  */
-function mapOrganization(org: PrismaType<Organizations>) {
+function mapOrganization(org: RawPrismaType<Organizations>) {
   return {
     id: org.ID,
     name: org.full_name,

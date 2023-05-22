@@ -1,5 +1,5 @@
 import { Payment } from "@prisma/client";
-import { DAO, PrismaType } from "../DAO";
+import { DAO, RawPrismaType } from "../DAO";
 
 //region Get
 /**
@@ -49,7 +49,7 @@ async function getPaymentMethodsByIDs(paymentMethodIDs) {
 //endregion
 
 //Helpers
-function mapDBpaymentToObject(dbPaymentObject: PrismaType<Payment>[]) {
+function mapDBpaymentToObject(dbPaymentObject: RawPrismaType<Payment>[]) {
   return dbPaymentObject.map((method) => {
     return {
       id: method.ID,

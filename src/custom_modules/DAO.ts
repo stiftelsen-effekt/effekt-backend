@@ -17,7 +17,10 @@ import { Prisma } from "@prisma/client";
 
 const config = require("../config");
 
-export type PrismaType<T extends Record<string, any>> = {
+/**
+ * Generated prisma types assume certain transformations applied by prisma client
+ */
+export type RawPrismaType<T extends Record<string, any>> = {
   [K in keyof T]: T[K] extends boolean
     ? 0 | 1
     : T[K] extends Date
@@ -27,8 +30,8 @@ export type PrismaType<T extends Record<string, any>> = {
     : T[K];
 };
 
-export type PrismaTypes<T extends Array<Record<string, any>>> = {
-  [K in keyof T]: PrismaType<T[K]>;
+export type RawPrismaTypes<T extends Array<Record<string, any>>> = {
+  [K in keyof T]: RawPrismaType<T[K]>;
 };
 
 export const DAO = {
@@ -91,9 +94,9 @@ export const DAO = {
   ): Promise<
     [
       T extends Array<Record<string, any>>
-        ? PrismaTypes<T>
+        ? RawPrismaTypes<T>
         : T extends Record<string, any>
-        ? PrismaType<T>
+        ? RawPrismaType<T>
         : T,
       any,
     ]
@@ -119,9 +122,9 @@ export const DAO = {
   ): Promise<
     [
       T extends Array<Record<string, any>>
-        ? PrismaTypes<T>
+        ? RawPrismaTypes<T>
         : T extends Record<string, any>
-        ? PrismaType<T>
+        ? RawPrismaType<T>
         : T,
       any,
     ]
