@@ -71,7 +71,7 @@ router.post("/agreement/draft", jsonBody, async (req, res, next) => {
 
 router.get("/agreement/minside/:urlcode", async (req, res, next) => {
   try {
-    const agreementUrlCode = req.params.urlcode
+    const agreementUrlCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementUrlCode);
     const agreement = await DAO.vipps.getAgreement(agreementId);
 
@@ -89,16 +89,15 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
       return next(err);
     }
 
-    const baseUrl = config.env === "development" ? "http://localhost:3000" : "https://gieffektivt.no"
-    let redirectUrl = `${baseUrl}/vippsagreement?email=${encodeURIComponent(donor.email)}`
+    const baseUrl =
+      config.env === "development" ? "http://localhost:3000" : "https://gieffektivt.no";
+    let redirectUrl = `${baseUrl}/vippsagreement?email=${encodeURIComponent(donor.email)}`;
 
     if (donor.email === "anon@gieffektivt.no") {
-      redirectUrl = `${baseUrl}/min-side/vipps-anonym?agreement-code=${agreementUrlCode}`
+      redirectUrl = `${baseUrl}/min-side/vipps-anonym?agreement-code=${agreementUrlCode}`;
     }
 
-    res
-      .status(304)
-      .redirect(redirectUrl);
+    res.status(304).redirect(redirectUrl);
   } catch (ex) {
     next({ ex });
   }
@@ -106,7 +105,7 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
 
 router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
   try {
-    const agreementUrlCode = req.params.urlcode
+    const agreementUrlCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementUrlCode);
     const agreement = await DAO.vipps.getAgreement(agreementId);
     if (!agreement) {
@@ -130,14 +129,14 @@ router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
         share: share ? share.share : 0,
       };
     });
-    
+
     const distribution = {
       kid: KID,
       standardDistribution,
       shares,
     };
 
-    res.status(200).json({content: {agreement, distribution}});
+    res.status(200).json({ content: { agreement, distribution } });
   } catch (ex) {
     next({ ex });
   }

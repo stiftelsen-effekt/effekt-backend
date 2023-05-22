@@ -553,8 +553,8 @@ module.exports = {
     if (monthlyChargeDay > 28) monthlyChargeDay = 28;
 
     // Real price is set in øre
-    const realAmount = amount * 100
-    const agreementUrlCode = createHash("md5")
+    const realAmount = amount * 100;
+    const agreementUrlCode = createHash("md5");
 
     const data = {
       currency: "NOK",

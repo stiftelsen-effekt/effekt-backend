@@ -58,10 +58,12 @@ We are currently working on improving this documentation.
 
 To run the API locally, follow these setup steps:
 
-1. Clone and install packages
-2. Setup MySQL
+1. Clone repository
+2. Bring your environment
+3. Install packages
+4. Setup MySQL
 
-### Clone and install packages
+### Clone repository
 
 Clone this repository to your local machine:
 
@@ -70,6 +72,20 @@ git clone https://github.com/stiftelsen-effekt/effekt-backend.git
 ```
 
 > **Note** To clone the repository, you must have access and be part of the [Stiftelsen Effekt github organization](https://github.com/stiftelsen-effekt). You must also be logged in on git on your local machine. If you do not have access to clone the repository, enquire on our [tech](https://effektteam.slack.com/archives/G011BE3BG3H) channel.
+
+### Bring your environment
+
+To get started, make a copy of `.env.example` and name it `.env`. The values in this file will automatically be picked up by the node.js application and the file will not be added to source control so it is okay to have secret values in there.
+
+Open the .env file and update the variables with your own values:
+
+- `DB_USER` (name of database user)
+- `DB_PASS` (password of database user)
+- `DB_NAME` (name of MySQL instance)
+
+The other configuration variables are only needed to run specific parts of the code, such as payment processing or mail processing.
+
+### Install packages
 
 The api uses [node.js](https://nodejs.org/en/) and npm is the package manager. Go to the root folder of the cloned repository, and install the requisite packages with the command:
 
@@ -162,33 +178,11 @@ First, create a new "database" named `EffektDonasjonDB_Local`:
 mysql -h 127.0.0.1 -uroot -peffekt -e 'create database EffektDonasjonDB_Local'
 ```
 
-A snapshot of the production schema is stored in [db/prod_schema.sql](db/prod_schema.sql). Feel free to take a look - it's just sql commands for creating tables, adding indexes, etc. First one more setup step to work around an error message:
+The schema is defined by prisma in [prisma/schema.prisma](prisma/schema.prisma). Prisma is a tool that generates a database schema from this file, and also generates a node.js client for interacting with the database. To begin with, you should run the existing migrations to setup your local database:
 
 ```
-mysql -h 127.0.0.1 -uroot -peffekt -e 'SET GLOBAL log_bin_trust_function_creators = 1'
+npx prisma migrate reset
 ```
-
-Now let's load in the schema:
-
-```
-mysql -h 127.0.0.1 -uroot -peffekt EffektDonasjonDB_Local < db/prod_schema.sql
-```
-
-(on Windows, try this instead:)
-
-```
-cmd /c "mysql -h 127.0.0.1 -uroot -peffekt EffektDonasjonDB_Local < db/prod_schema.sql"
-```
-
-To get your local schema fully up-to-date with the production schema, you'll also need to apply any migrations (commands which change the MySQL schema) that have been created in the [db/migrations](db/migrations) folder. We use the db-migrate tool. To apply all migrations, run:
-
-```
-npx db-migrate up --config db/database.json --migrations-dir db/migrations
-```
-
-On Windows - if you get any node-gyp errors about Visual Studio c++ build tools installation, you may need to add a PYTHON env variable (as described in the [node-gyp README](https://github.com/nodejs/node-gyp#on-windows))
-
-If the output ends with `[INFO] Done`, it completed successfully.
 
 Now, let's double check the schema is correct! Try:
 
@@ -202,10 +196,10 @@ you should see output like:
 +-----------------------------------+
 | Tables_in_EffektDonasjonDB_Local  |
 +-----------------------------------+
-| Access_applications               |
-| Access_applications_callbacks     |
-| Access_applications_permissions   |
-| Access_keys                       |
+| _prisma_migrations                |
+| Auth0_users                       |
+| Avtalegiro_agreements             |
+| Avtalegiro_conversion_reminders   |
 ...
 ```
 
@@ -262,19 +256,7 @@ If all has gone well, you should be seeing this in your terminal of choice.
 
 The proxy is now listening for connections on port 3306 (the standard mysql port), and forwards any communication to the internal google cloud network through a secure tunnel.
 
-### Configuring and running the API
-
-Before we can run the API, we need to specify some environment variables. You can see all of the variables in [config.js](./config.js). Many of the variables declared here are not needed for most development.
-
-To get started, make a copy of `.env.example` and name it `.env`. The values in this file will automatically be picked up by the node.js application and the file will not be added to source control so it is okay to have secret values in there.
-
-Open the .env file and update the variables with your own values:
-
-- `DB_USER` (name of database user)
-- `DB_PASS` (password of database user)
-- `DB_NAME` (name of MySQL instance)
-
-The other configuration variables are only needed to run specific parts of the code, such as payment processing or mail processing.
+### Running the API
 
 Let's run the service, using our locally-running MySQL instance (either native or in Docker):
 
@@ -506,73 +488,27 @@ Distributions (2 records)
 
 ### Database Schema Migrations
 
-We use the db-migrate tool ([github](https://github.com/db-migrate/node-db-migrate)) ([docs](https://db-migrate.readthedocs.io/en/latest/)) to create and apply our database migrations.
-
-Configuration for db-migrate is stored in [db/database.json](db/database.json), and the migration scripts are stored in [db/migrations](db/migrations).
-
-With a locally running database, use
+We're using prisma to manage database schema migrations. The schema is defined in [/prisma/schema.prisma](prisma/schema.prisma). To apply the schema locally, run
 
 ```
-npx db-migrate up --config db/database.json --migrations-dir db/migrations
+npx prisma db push
 ```
 
-to apply all migrations. You may see a warning like `Ignoring invalid configuration option passed to Connection: driver. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection` when running the tool, this can be ignored.
-
-Use
+This is useful while developing locally. Once you're ready to make a migration file, run
 
 ```
-npx db-migrate down --config db/database.json --migrations-dir db/migrations
+npx prisma migrate dev --name <migration-name>
 ```
 
-to unapply the latest migration. You will likely need to apply migrations somewhat frequently (whenever you git pull and there are new migration files).
+This will create a new migration file in [/prisma/migrations](prisma/migrations).
 
-db-migrate keeps track of which migrations have been applied in a "migrations" table inside your MySQL database. Each migration that's run gets its own entry.
+Currently these migrations are not automatically run in our CI/CD pipeline, so it has to be done manually:
 
-Create a new set of 3 migration files (node script, upgrade sql file, downgrade sql file) using:
+1. Run the [cloud sql auth proxy locally](#google-cloud--cloud-sql-auth-proxy-setup)
+2. Update your environment variables to point to the production database.
+3. Run `npx prisma migrate deploy` to apply the migration to the production database.
 
-```
-npx db-migrate create name-of-my-migration --sql-file --config db/database.json --migrations-dir db/migrations
-```
-
-You shouldn't need to touch the node script at all. You do need to manually craft the upgrade and downgrade SQL files. The upgrade file can be any SQL statement(s), the downgrade file should be a "revert" that brings the database back to the prior state. Some example file contents:
-
-- add column (upgrade): `ALTER TABLE Donations ADD COLUMN doggo VARCHAR(20);`
-- add column (downgrade): `ALTER TABLE Donations DROP COLUMN doggo;`
-- add index (upgrade): `CREATE INDEX idx_donor_id ON Donations (Donor_ID);`
-- add index (downgrade): `DROP INDEX idx_donor_id ON Donations;`
-
-The process for updating production schema should be as follows. Usually you have a desired schema migration, and a corresponding code change that reads/writes the new fields:
-
-1. Stash your code changes for later
-2. Create your migration files
-3. Run unit & manual tests first (don't apply the migration yet)
-4. Apply the migration locally
-5. Run unit & manual tests to ensure the service still runs properly with the DB schema change
-6. Unapply then re-apply the migration to ensure migration down works properly.
-7. Test it with your code change
-8. Get code review (code + corresponding migration together is fine) and merge your change to main branch
-9. (You or someone with access) apply the migration to production DB
-10. Deploy the code relying on that migration to production DB
-
-For maximum safety, to prevent cases where your code is accidentally deployed but the migration hasn't been run, you can also feel free to create two separate changesets, first the DB migration, and then your code using the new schema (and wait until the migration has been applied to the production DB before merging your code to main).
-
-To actually apply a migration to production, ensure Cloud Sql Auth Proxy is running, then use the following command:
-
-```
-DB_USER='<produser>' DB_PASS='<prodpassword>' npx db-migrate up -c 1 -e prod --config db/database.json --migrations-dir db/migrations
-```
-
-You can instead do `-e dev` to apply migrations against EffektDonasjonDB_Dev.
-
-#### Downloading production schema
-
-This shouldn't be needed often. Usually we should be able to stick with the existing schema snapshot and set of migration files. But if we get too many migration files, it might be nice to delete them and put in a new schema snapshot as a starting point.
-
-Set up Cloud Sql Auth Proxy, then run:
-
-```
-mysqldump -h 127.0.0.1 -u'<produser>' -p'<prodpassword>' --no-data --triggers --routines --events --set-gtid-purged=OFF EffektDonasjonDB > db/prod_schema.sql
-```
+It is generally advised to use the [expand and contract pattern](https://www.prisma.io/dataguide/types/relational/expand-and-contract-pattern) when making changes to the database schema. This means that you first add the new column, then migrate the code to use the new column, then remove the old column. This ensures that the code is always compatible with the database schema.
 
 ## Payment processing
 

@@ -15,7 +15,8 @@
     "debug": "export NODEMON=true && nodemon --exec 'node --inspect=0.0.0.0:9229 --require ts-node/register src/server.ts'",
     "generate-types-from-schema": "cd src && npx openapi-typescript \"specs/**/*.yaml\" --output schemas/",
     "format": "prettier --write \"./**/*{js,ts,jsx,tsx,json,md,css,scss,yml,yaml}\"",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "postinstall": "prisma generate"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
   "homepage": "https://github.com/fellmirr/effekt-backend#readme",
   "dependencies": {
     "@navikt/fnrvalidator": "^1.2.0",
+    "@prisma/client": "^4.14.0",
     "@types/luxon": "^3.3.0",
     "apicache": "^1.5.3",
     "basic-auth": "^1.1.0",
@@ -93,8 +95,6 @@
     "chai-datetime": "^1.7.0",
     "copyfiles": "^2.4.1",
     "cross-env": "^7.0.3",
-    "db-migrate": "^0.11.13",
-    "db-migrate-mysql": "^2.2.0",
     "expect": "^1.20.2",
     "husky": "^8.0.3",
     "lint-staged": "^13.2.2",
@@ -103,6 +103,7 @@
     "nodemon": "^2.0.15",
     "nyc": "^15.1.0",
     "prettier": "^2.8.8",
+    "prisma": "^4.14.0",
     "run-func": "^1.0.5",
     "sinon": "^15.0.4",
     "supertest": "^6.1.6",
@@ -111,6 +112,7 @@
     "webpack-cli": "^4.9.1"
   },
   "lint-staged": {
-    "*.{js,ts,jsx,tsx,json,md,css,scss,yml,yaml}": "prettier --write"
+    "*.{js,ts,jsx,tsx,json,md,css,scss,yml,yaml}": "prettier --write",
+    "schema.prisma": "prisma format"
   }
 }
