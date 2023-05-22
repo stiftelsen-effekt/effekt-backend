@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { DAO } from "./DAO";
 import { sendDonationReciept, sendVippsErrorWarning } from "./mail";
 
@@ -553,7 +554,7 @@ module.exports = {
 
     // Real price is set in øre
     const realAmount = amount * 100;
-    const agreementUrlCode = hash(new Date() + Math.random().toString());
+    const agreementUrlCode = createHash("md5");
 
     const data = {
       currency: "NOK",
