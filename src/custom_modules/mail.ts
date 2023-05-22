@@ -306,7 +306,7 @@ export async function sendDonationRegistered(KID, sum) {
 
     let organizations = split.map((split) => ({
       name: split.full_name,
-      percentage: parseFloat(split.share),
+      percentage: typeof split.share === "string" ? parseFloat(split.share) : split.share,
     }));
     var KIDstring = KID.toString();
 
@@ -375,7 +375,7 @@ export async function sendVippsAgreementChange(agreementCode, change, newValue =
     const split = await DAO.distributions.getSplitByKID(agreement.KID);
     const organizations = split.map((split) => ({
       name: split.full_name,
-      percentage: parseFloat(split.share),
+      percentage: typeof split.share === "string" ? parseFloat(split.share) : split.share,
     }));
 
     if (agreement.status !== "ACTIVE") return false;
@@ -618,7 +618,7 @@ export async function sendAvtaleGiroChange(KID, change, newValue = "") {
     const split = await DAO.distributions.getSplitByKID(KID);
     const organizations = split.map((split) => ({
       name: split.full_name,
-      percentage: parseFloat(split.share),
+      percentage: typeof split.share === "string" ? parseFloat(split.share) : split.share,
     }));
 
     let changeDesc = "endret";

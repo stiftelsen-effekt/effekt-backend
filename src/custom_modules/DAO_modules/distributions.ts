@@ -2,6 +2,7 @@ import Decimal from "decimal.js";
 import { DAO } from "../DAO";
 
 import sqlString from "sqlstring";
+import { Distribution, Organizations } from "@prisma/client";
 
 //region GET
 async function getAll(page = 0, limit = 10, sort, filter = null) {
@@ -233,10 +234,13 @@ async function getKIDbySplit(
  *  share: string
  * }]}
  */
-async function getSplitByKID(
-  KID,
-): Promise<{ id: number; full_name: string; abbriv: string; share: string }[]> {
-  let [result] = await DAO.query(
+async function getSplitByKID(KID) {
+  let [result] = await DAO.query<
+    (Pick<Organizations, "full_name" | "abbriv"> & {
+      id: Organizations["ID"];
+      share: Distribution["percentage_share"];
+    })[]
+  >(
     `
             SELECT 
                 Organizations.ID as id,

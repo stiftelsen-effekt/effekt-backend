@@ -20,19 +20,21 @@ const config = require("../config");
 /**
  * Generated prisma types assume certain transformations applied by prisma client
  */
-export type RawPrismaType<T extends Record<string, any>> = {
-  [K in keyof T]: T[K] extends boolean
-    ? 0 | 1
-    : T[K] extends Date
-    ? string
-    : T[K] extends Prisma.Decimal
-    ? number
-    : T[K];
-};
-
-export type RawPrismaTypes<T extends Array<Record<string, any>>> = {
-  [K in keyof T]: RawPrismaType<T[K]>;
-};
+export type SqlResult<T> = T extends Array<infer U>
+  ? {
+      [K in keyof T]: SqlResult<U>;
+    }
+  : T extends Record<string, any>
+  ? {
+      [K in keyof T]: T[K] extends boolean
+        ? 0 | 1
+        : T[K] extends Date
+        ? string
+        : T[K] extends Prisma.Decimal
+        ? number
+        : T[K];
+    }
+  : T;
 
 export const DAO = {
   //Submodules
@@ -91,16 +93,7 @@ export const DAO = {
     query,
     params = undefined,
     retries = 0,
-  ): Promise<
-    [
-      T extends Array<Record<string, any>>
-        ? RawPrismaTypes<T>
-        : T extends Record<string, any>
-        ? RawPrismaType<T>
-        : T,
-      any,
-    ]
-  > {
+  ): Promise<[SqlResult<T>, mysql.FieldPacket[]]> {
     try {
       return await (this as typeof DAO).dbPool.query<any>(query, params);
     } catch (ex) {
@@ -119,16 +112,7 @@ export const DAO = {
     query: string,
     params = undefined,
     retries = 0,
-  ): Promise<
-    [
-      T extends Array<Record<string, any>>
-        ? RawPrismaTypes<T>
-        : T extends Record<string, any>
-        ? RawPrismaType<T>
-        : T,
-      any,
-    ]
-  > {
+  ): Promise<[SqlResult<T>, mysql.FieldPacket[]]> {
     try {
       return await DAO.dbPool.execute<any>(query, params);
     } catch (ex) {

@@ -119,21 +119,19 @@ router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
     const activeOrganizations = await DAO.organizations.getActive();
     let shares = await DAO.distributions.getSplitByKID(KID);
 
-    // Fill missing organizations with 0 shares
-    shares = activeOrganizations.map((organization) => {
-      const share = shares.find((share) => share.id === organization.id);
-      return {
-        abbriv: organization.abbriv,
-        name: organization.name,
-        id: organization.id,
-        share: share ? share.share : 0,
-      };
-    });
-
     const distribution = {
       kid: KID,
       standardDistribution,
-      shares,
+      // Fill missing organizations with 0 shares
+      shares: activeOrganizations.map((organization) => {
+        const share = shares.find((share) => share.id === organization.id);
+        return {
+          abbriv: organization.abbriv,
+          name: organization.name,
+          id: organization.id,
+          share: share ? share.share : 0,
+        };
+      }),
     };
 
     res.status(200).json({ content: { agreement, distribution } });
