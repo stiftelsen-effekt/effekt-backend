@@ -14,8 +14,7 @@ import { logging } from "./DAO_modules/logging";
 import { organizations } from "./DAO_modules/organizations";
 import * as mysql from "mysql2/promise";
 import { Prisma } from "@prisma/client";
-
-const config = require("../config");
+import config from "../config";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -60,9 +59,7 @@ export const DAO = {
    * @param {function} cb Callback for when DAO has been sucessfully set up
    */
   connect: async function (cb) {
-    const dbSocketPath = process.env.DB_SOCKET_PATH || "/cloudsql";
-
-    var args = {
+    const args = {
       user: config.db_username,
       password: config.db_password,
       database: config.db_name,
@@ -70,9 +67,16 @@ export const DAO = {
       enableKeepAlive: true as true, // Workaround for type checking quirk
       timezone: "+00:00",
     };
-    if (process.env.K_SERVICE != null)
-      args["socketPath"] = `${dbSocketPath}/${process.env.CLOUD_SQL_CONNECTION_NAME}`;
-    else args["host"] = "127.0.0.1";
+
+    // Using Unix sockets to connect to cloud SQL is the default way
+    // https://cloud.google.com/sql/docs/mysql/connect-run#connect-unix-socket
+    // K_SERVICE is used to detect if running on GCP Cloud Run
+    if (process.env.K_SERVICE != null) {
+      args["socketPath"] = `/cloudsql/${process.env.CLOUD_SQL_CONNECTION_NAME}`;
+    } else {
+      args["host"] = config.db_host; // localhost is default in undefined
+    }
+
     this.dbPool = mysql.createPool(args);
 
     //Check whether connection was successfull
