@@ -47,7 +47,7 @@ async function getDonationsByKID(KID) {
  * @param {boolean} notice
  */
 async function add(KID, amount, paymentDate, notice) {
-  var res = await DAO.execute(
+  await DAO.execute(
     `INSERT INTO Avtalegiro_agreements (
             KID,
             amount,
@@ -56,8 +56,6 @@ async function add(KID, amount, paymentDate, notice) {
             ) VALUES (?,?,?,?)`,
     [KID, amount, paymentDate, notice],
   );
-
-  return res.insertId;
 }
 
 async function updateNotification(KID, notice) {

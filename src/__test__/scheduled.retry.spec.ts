@@ -91,7 +91,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
     dueDateStub = sinon.stub(avtalegiro, "getDueDates");
 
-    loggingStub = sinon.stub(DAO.logging, "add").resolves(true);
+    loggingStub = sinon.stub(DAO.logging, "add").resolves();
 
     sendFileStub = sinon.stub(nets, "sendFile");
 

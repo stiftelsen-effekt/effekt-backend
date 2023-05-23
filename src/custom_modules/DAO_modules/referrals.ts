@@ -1,3 +1,4 @@
+import { Donors, Referral_records, Referral_types } from "@prisma/client";
 import { DAO } from "../DAO";
 
 //region Get
@@ -20,7 +21,7 @@ import { DAO } from "../DAO";
  * @returns {Array<ReferralType>} An array of payment method objects
  */
 async function getTypes() {
-  let [types] = await DAO.query(`
+  let [types] = await DAO.query<Referral_types[]>(`
         SELECT * FROM Referral_types 
             WHERE is_active = 1
             ORDER BY ordering`);
@@ -37,7 +38,7 @@ async function getTypes() {
  * @returns {Array<ReferralTypeAggregate>}
  */
 async function getAggregate() {
-  let [aggregates] = await DAO.query(`
+  let [aggregates] = await DAO.query<(Pick<Referral_types, "ID" | "name"> & { count: number })[]>(`
         SELECT Referral_types.ID, Referral_types.name, count(ReferralID) as count
             FROM Referral_records
             
@@ -53,8 +54,8 @@ async function getAggregate() {
  * Checks if the donor has answered referral question before
  * @param {number} donorID
  */
-async function getDonorAnswered(donorID) {
-  let [answersCount] = await DAO.query(
+async function getDonorAnswered(donorID: Donors["ID"]) {
+  let [answersCount] = await DAO.query<{ count: number }[]>(
     `
         SELECT count(UserID) as count
             FROM Referral_records
@@ -72,7 +73,7 @@ async function getDonorAnswered(donorID) {
  * Gets all referrals for a user
  * @param {number} donorID
  */
-async function getDonorAnswers(donorID) {
+async function getDonorAnswers(donorID: Donors["ID"]) {
   let [answers] = await DAO.query(
     `
         SELECT

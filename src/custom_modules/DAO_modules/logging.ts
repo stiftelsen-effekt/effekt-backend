@@ -107,15 +107,13 @@ async function get(id) {
  * @param {object} result Results stored as JSON in DB
  */
 async function add(label, result) {
-  var res = await DAO.execute(
+  await DAO.execute(
     `INSERT INTO Import_logs
           (label, result) 
           VALUES 
           (?,?)`,
     [label, JSON.stringify(result)],
   );
-
-  return res.insertId;
 }
 //endregion
 

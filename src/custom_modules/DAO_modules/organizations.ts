@@ -1,4 +1,5 @@
-import { DAO } from "../DAO";
+import { Organizations } from "@prisma/client";
+import { DAO, SqlResult } from "../DAO";
 
 //region Get
 
@@ -8,7 +9,7 @@ import { DAO } from "../DAO";
  * @returns {Array<Organization>}
  */
 async function getByIDs(IDs) {
-  var [organizations] = await DAO.execute(
+  var [organizations] = await DAO.execute<Organizations[]>(
     "SELECT * FROM Organizations WHERE ID in (" + "?,".repeat(IDs.length).slice(0, -1) + ")",
     IDs,
   );
@@ -22,7 +23,10 @@ async function getByIDs(IDs) {
  * @returns {Organization}
  */
 async function getByID(ID) {
-  var [organization] = await DAO.execute("SELECT * FROM Organizations WHERE ID = ? LIMIT 1", [ID]);
+  var [organization] = await DAO.execute<Organizations[]>(
+    "SELECT * FROM Organizations WHERE ID = ? LIMIT 1",
+    [ID],
+  );
 
   if (organization.length > 0) return organization[0];
   else return null;
@@ -35,7 +39,7 @@ async function getByID(ID) {
  * @returns {Array<Organization>}
  */
 async function getActive() {
-  var [organizations] = await DAO.execute(`
+  var [organizations] = await DAO.execute<Organizations[]>(`
             SELECT * FROM Organizations 
                 WHERE is_active = 1
                 ORDER BY ordering ASC`);
@@ -48,13 +52,13 @@ async function getActive() {
  * @returns {Array<Organization>} All organizations in DB
  */
 async function getAll() {
-  var [organizations] = await DAO.execute(`SELECT * FROM Organizations`);
+  var [organizations] = await DAO.execute<Organizations[]>(`SELECT * FROM Organizations`);
 
   return organizations.map(mapOrganization);
 }
 
-async function getStandardSplit(): Promise<{ id: number; name: string; share: string }[]> {
-  var [standardSplit] = await DAO.execute(
+async function getStandardSplit() {
+  var [standardSplit] = await DAO.execute<Organizations[]>(
     `SELECT * FROM Organizations WHERE std_percentage_share > 0 AND is_active = 1`,
   );
 
@@ -87,7 +91,7 @@ async function getStandardSplit(): Promise<{ id: number; name: string; share: st
  * @param {Object} org A line from a database query representing an organization
  * @returns {Object} A mapping with JS like syntax instead of the db fields, camel case instead of underscore and so on
  */
-function mapOrganization(org) {
+function mapOrganization(org: SqlResult<Organizations>) {
   return {
     id: org.ID,
     name: org.full_name,

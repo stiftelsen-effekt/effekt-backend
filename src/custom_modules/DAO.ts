@@ -13,8 +13,28 @@ import { avtalegiroagreements } from "./DAO_modules/avtalegiroagreements";
 import { logging } from "./DAO_modules/logging";
 import { organizations } from "./DAO_modules/organizations";
 import * as mysql from "mysql2/promise";
+import { Prisma } from "@prisma/client";
 
 const config = require("../config");
+
+/**
+ * Generated prisma types assume certain transformations applied by prisma client
+ */
+export type SqlResult<T> = T extends Array<infer U>
+  ? {
+      [K in keyof T]: SqlResult<U>;
+    }
+  : T extends Record<string, any>
+  ? {
+      [K in keyof T]: T[K] extends boolean
+        ? 0 | 1
+        : T[K] extends Date
+        ? string
+        : T[K] extends Prisma.Decimal
+        ? string /* decimal is a string: https://github.com/sidorares/node-mysql2/issues/1561 */
+        : T[K];
+    }
+  : T;
 
 export const DAO = {
   //Submodules
@@ -33,7 +53,7 @@ export const DAO = {
   tax: tax,
   logging: logging,
 
-  dbPool: undefined,
+  dbPool: undefined as mysql.Pool | undefined,
 
   /**
    * Sets up a connection to the database, uses config.js file for parameters
@@ -69,14 +89,18 @@ export const DAO = {
     cb();
   },
 
-  query: async function <T>(query, params = undefined, retries = 0) {
+  query: async function <T = any>(
+    query,
+    params = undefined,
+    retries = 0,
+  ): Promise<[SqlResult<T>, mysql.FieldPacket[]]> {
     try {
-      return await this.dbPool.query(query, params);
+      return await (this as typeof DAO).dbPool.query<any>(query, params);
     } catch (ex) {
       if (retries < 7 && ex.code === "PROTOCOL_CONNECTION_LOST") {
         console.log("Retrying query");
         await wait(2 ** retries * 100);
-        return await this.query(query, params, retries + 1);
+        return await (this as typeof DAO).query<T>(query, params, retries + 1);
       } else {
         console.error(ex);
         throw new Error(ex);
@@ -84,9 +108,13 @@ export const DAO = {
     }
   },
 
-  execute: async function <T>(query, params = undefined, retries = 0) {
+  execute: async function <T = any>(
+    query: string,
+    params = undefined,
+    retries = 0,
+  ): Promise<[SqlResult<T>, mysql.FieldPacket[]]> {
     try {
-      return await DAO.dbPool.execute(query, params);
+      return await DAO.dbPool.execute<any>(query, params);
     } catch (ex) {
       if (retries < 7 && ex.code === "PROTOCOL_CONNECTION_LOST") {
         console.error(ex);
@@ -97,7 +125,7 @@ export const DAO = {
           retries,
         );
         await wait(2 ** retries * 1000);
-        return await this.execute(query, params, retries + 1);
+        return await (this as typeof DAO).execute<T>(query, params, retries + 1);
       } else {
         console.error(ex);
         throw new Error(ex);
