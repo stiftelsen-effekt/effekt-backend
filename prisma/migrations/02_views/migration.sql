@@ -1,4 +1,4 @@
-CREATE ALGORITHM = UNDEFINED DEFINER = `root` @`%` SQL SECURITY DEFINER VIEW `Recurring_no_kid_bank_donors` AS
+CREATE ALGORITHM = UNDEFINED SQL SECURITY DEFINER VIEW `Recurring_no_kid_bank_donors` AS
 select
   `Donors`.`ID` AS `DonorID`,
   `Donations`.`KID_fordeling` AS `KID`,
@@ -42,7 +42,7 @@ having
 order by
   `NumDonations` desc;
 
-CREATE ALGORITHM = UNDEFINED DEFINER = `root` @`%` SQL SECURITY DEFINER VIEW `v_Donors_anon` AS with `several_names` as (
+CREATE ALGORITHM = UNDEFINED SQL SECURITY DEFINER VIEW `v_Donors_anon` AS with `several_names` as (
   select
     `d`.`full_name` AS `full_name`,
     `d`.`ID` AS `ID`,
@@ -171,7 +171,7 @@ from
     left join `only_business_tu` `ob` on((`ob`.`Donor_ID` = `cm`.`ID`))
   );
 
-CREATE ALGORITHM = UNDEFINED DEFINER = `root` @`%` SQL SECURITY DEFINER VIEW `v_Duplicate_full_names` AS
+CREATE ALGORITHM = UNDEFINED SQL SECURITY DEFINER VIEW `v_Duplicate_full_names` AS
 select
   count(`D`.`full_name`) AS `COUNT(full_name)`,
   `D`.`full_name` AS `fname`,
@@ -269,7 +269,7 @@ group by
 having
   (count(`D`.`full_name`) > 1);
 
-CREATE ALGORITHM = UNDEFINED DEFINER = `root` @`%` SQL SECURITY DEFINER VIEW `v_Duplicate_orgs_in_distributions` AS
+CREATE ALGORITHM = UNDEFINED SQL SECURITY DEFINER VIEW `v_Duplicate_orgs_in_distributions` AS
 select
   `C`.`KID` AS `KID`,
   `D`.`OrgID` AS `OrgID`,
@@ -286,7 +286,7 @@ group by
 having
   (count(`D`.`OrgID`) > 1);
 
-CREATE ALGORITHM = UNDEFINED DEFINER = `root` @`%` SQL SECURITY DEFINER VIEW `v_Tax_deductions` AS
+CREATE ALGORITHM = UNDEFINED SQL SECURITY DEFINER VIEW `v_Tax_deductions` AS
 select
   sum(`Donations`.`sum_confirmed`) AS `SUM(sum_confirmed)`,
   `TX`.`ID` AS `TaxUnitID`,
@@ -337,7 +337,7 @@ order by
 limit
   10000;
 
-CREATE ALGORITHM = UNDEFINED DEFINER = `root` @`%` SQL SECURITY DEFINER VIEW `v_Tax_unit_anon` AS with `people` as (
+CREATE ALGORITHM = UNDEFINED SQL SECURITY DEFINER VIEW `v_Tax_unit_anon` AS with `people` as (
   select
     `t`.`ID` AS `ID`,
     if(

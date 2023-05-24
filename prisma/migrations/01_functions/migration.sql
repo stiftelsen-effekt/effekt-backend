@@ -1,6 +1,3 @@
-SET
-  GLOBAL log_bin_trust_function_creators = 1;
-
 -- -------------------------------------------------------------
 -- TablePlus 5.3.6(496)
 --
@@ -33,7 +30,7 @@ SET
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */
 ;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `add_donation`(
+CREATE PROCEDURE `add_donation`(
   sum_input INT,
   KID_input INT,
   payment_ID_input INT
@@ -63,7 +60,7 @@ VALUES
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `archive_org_distributions`(IN inOrgId INT) BEGIN DECLARE finished INTEGER DEFAULT 0;
+CREATE PROCEDURE `archive_org_distributions`(IN inOrgId INT) BEGIN DECLARE finished INTEGER DEFAULT 0;
 
 DECLARE KIDnr varchar(15) DEFAULT "";
 
@@ -195,7 +192,7 @@ CLOSE curKIDS;
 
 END;
 
-CREATE DEFINER = `%` @`%` FUNCTION `check_all_donations_sumto_100`() RETURNS tinyint(1) BEGIN if (
+CREATE FUNCTION `check_all_donations_sumto_100`() RETURNS tinyint(1) BEGIN if (
   COUNT(get_sum_of_donation_KIDs_not_totaling_100() > 0)
 ) then return 0;
 
@@ -205,7 +202,7 @@ end if;
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `consolidate_tax_units`(IN donorId INT) BEGIN DECLARE finished INTEGER DEFAULT 0;
+CREATE PROCEDURE `consolidate_tax_units`(IN donorId INT) BEGIN DECLARE finished INTEGER DEFAULT 0;
 
 DECLARE currentSsn varchar(11) DEFAULT "";
 
@@ -282,7 +279,7 @@ CLOSE curSsns;
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `get_aggregate_donations_by_period`(start_date date, end_date date) BEGIN # Må kjøres en eller annen plass i koden, initielt
+CREATE PROCEDURE `get_aggregate_donations_by_period`(start_date date, end_date date) BEGIN # Må kjøres en eller annen plass i koden, initielt
 #SET sql_mode = "STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION";
 SELECT
   Organizations.ID as id,
@@ -303,7 +300,7 @@ GROUP BY
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `get_avtalegiro_agreement_expected_donations_by_date`(
+CREATE PROCEDURE `get_avtalegiro_agreement_expected_donations_by_date`(
   IN exp_year INT,
   IN exp_month INT,
   IN exp_date INT
@@ -328,7 +325,7 @@ WHERE
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `get_avtalegiro_agreement_missing_donations_by_date`(
+CREATE PROCEDURE `get_avtalegiro_agreement_missing_donations_by_date`(
   IN exp_year INT,
   IN exp_month INT,
   IN exp_date INT
@@ -387,7 +384,7 @@ WHERE
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `get_avtalegiro_agreement_recieved_donations_by_date`(
+CREATE PROCEDURE `get_avtalegiro_agreement_recieved_donations_by_date`(
   IN exp_year INT,
   IN exp_month INT,
   IN exp_date INT
@@ -441,7 +438,7 @@ WHERE
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `get_avtalegiro_missing_since`(
+CREATE PROCEDURE `get_avtalegiro_missing_since`(
   IN exp_year INT,
   IN exp_month INT,
   IN exp_date INT
@@ -501,7 +498,7 @@ WHERE
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `get_avtalegiro_validation`() BEGIN
+CREATE PROCEDURE `get_avtalegiro_validation`() BEGIN
 SELECT
   payment_date as `date`,
   ROUND(SUM(amount) / 100) as expected,
@@ -619,7 +616,7 @@ ORDER BY
 
 END;
 
-CREATE DEFINER = `root` @`%` FUNCTION `get_conversion_rate`(
+CREATE FUNCTION `get_conversion_rate`(
   treshold TIME,
   `from` DATE,
   `to` DATE,
@@ -730,7 +727,7 @@ RETURN hit /(miss + hit);
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `get_KID`() BEGIN
+CREATE PROCEDURE `get_KID`() BEGIN
 SELECT
   *
 FROM
@@ -739,7 +736,7 @@ FROM
 
 END;
 
-CREATE DEFINER = `%` @`%` FUNCTION `get_overall_conversion_rate`(treshold TIME, `from` DATE, `to` DATE) RETURNS float BEGIN -- For calculation the rates
+CREATE FUNCTION `get_overall_conversion_rate`(treshold TIME, `from` DATE, `to` DATE) RETURNS float BEGIN -- For calculation the rates
 DECLARE hit DOUBLE DEFAULT 0;
 
 DECLARE miss DOUBLE DEFAULT 0;
@@ -844,7 +841,7 @@ RETURN hit /(miss + hit);
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `get_recurring_no_kid_bank_donors`() BEGIN
+CREATE PROCEDURE `get_recurring_no_kid_bank_donors`() BEGIN
 SELECT
   Donors.ID,
   Donations.KID_fordeling,
@@ -867,7 +864,7 @@ ORDER BY
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `get_sum_of_donation_KIDs_not_totaling_100`() BEGIN
+CREATE PROCEDURE `get_sum_of_donation_KIDs_not_totaling_100`() BEGIN
 SELECT
   KID,
   SUM(percentage_share) as summed
@@ -881,7 +878,7 @@ HAVING
 
 END;
 
-CREATE DEFINER = `%` @`%` FUNCTION `intent_id`(treshold TIMESTAMP) RETURNS float BEGIN -- For calculation the rates
+CREATE FUNCTION `intent_id`(treshold TIMESTAMP) RETURNS float BEGIN -- For calculation the rates
 DECLARE hit DOUBLE DEFAULT 0;
 
 DECLARE miss DOUBLE DEFAULT 0;
@@ -975,7 +972,7 @@ RETURN hit /(miss + hit);
 
 END;
 
-CREATE DEFINER = `root` @`%` PROCEDURE `merge_donors`(IN sourceDonorId INT, IN destinationDonorId INT) BEGIN DECLARE finished INTEGER DEFAULT 0;
+CREATE PROCEDURE `merge_donors`(IN sourceDonorId INT, IN destinationDonorId INT) BEGIN DECLARE finished INTEGER DEFAULT 0;
 
 DECLARE currentSsn varchar(11) DEFAULT "";
 
