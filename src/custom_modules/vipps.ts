@@ -201,7 +201,7 @@ module.exports = {
     };
 
     let initiateRequest = await request.post({
-      uri: `https://${config.vipps_api_url}/ecomm/v2/payments`,
+      uri: `https://${config.vipps_api_url}/ecomm/v3/payments`,
       headers: this.getVippsHeaders(token),
       json: data,
     });
@@ -349,7 +349,7 @@ module.exports = {
     let token = await this.fetchToken();
 
     let orderDetails = await request.get({
-      uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/details`,
+      uri: `https://${config.vipps_api_url}/ecomm/v3/payments/${orderId}/details`,
       headers: this.getVippsHeaders(token),
     });
 
@@ -388,7 +388,7 @@ module.exports = {
 
     try {
       var captureRequest = await request.post({
-        uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/capture`,
+        uri: `https://${config.vipps_api_url}/ecomm/v3/payments/${orderId}/capture`,
         headers: this.getVippsHeaders(token),
         json: data,
       });
@@ -459,7 +459,7 @@ module.exports = {
       };
 
       var refundRequest = await request.post({
-        uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/refund`,
+        uri: `https://${config.vipps_api_url}/ecomm/v3/payments/${orderId}/refund`,
         headers: this.getVippsHeaders(token),
         json: data,
       });
@@ -494,7 +494,7 @@ module.exports = {
       };
 
       var cancelRequest = await request.put({
-        uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/cancel`,
+        uri: `https://${config.vipps_api_url}/ecomm/v3/payments/${orderId}/cancel`,
         headers: this.getVippsHeaders(token),
         json: data,
       });
@@ -528,7 +528,7 @@ module.exports = {
 
     try {
       let approveRequest = await request.post({
-        uri: `https://${config.vipps_api_url}/ecomm/v2/integration-test/payments/${orderId}/approve`,
+        uri: `https://${config.vipps_api_url}/ecomm/v3/integration-test/payments/${orderId}/approve`,
         headers: this.getVippsHeaders(token),
         json: data,
       });
@@ -557,13 +557,18 @@ module.exports = {
     const agreementUrlCode = createHash("md5");
 
     const data = {
-      currency: "NOK",
-      interval: "MONTH",
-      intervalCount: 1,
+      pricing: {
+        type: "LEGACY",
+        amount: realAmount,
+        currency: "NOK",
+      },
+      interval: {
+        unit: "MONTH",
+        count: 1,
+      },
       isApp: false,
       merchantRedirectUrl: `https://gieffektivt.no/opprettet`,
       merchantAgreementUrl: `${config.minside_url}/${agreementUrlCode}`,
-      price: realAmount,
       productDescription: agreementUrlCode,
       productName: "Månedlig donasjon til Gi Effektivt.",
     };
@@ -580,7 +585,7 @@ module.exports = {
     try {
       /** @type {DraftRespone} */
       let response = await request.post({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements`,
         headers: this.getVippsHeaders(token),
         json: data,
       });
@@ -653,7 +658,7 @@ module.exports = {
 
     try {
       let agreementRequest = await request.get({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${id}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${id}`,
         headers: this.getVippsHeaders(token),
       });
 
@@ -678,7 +683,7 @@ module.exports = {
 
     try {
       let agreementRequest = await request.get({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements?status=${status}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements?status=${status}`,
         headers: this.getVippsHeaders(token),
       });
 
@@ -716,7 +721,7 @@ module.exports = {
 
     try {
       await request.patch({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}`,
         headers: this.getVippsHeaders(token),
         body: JSON.stringify(body),
       });
@@ -754,7 +759,7 @@ module.exports = {
 
     try {
       await request.patch({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}`,
         headers: this.getVippsHeaders(token),
         body: JSON.stringify(body),
       });
@@ -782,7 +787,7 @@ module.exports = {
 
     try {
       await request.post({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}/capture`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}/capture`,
         headers,
       });
 
@@ -840,7 +845,7 @@ module.exports = {
       }
 
       const response = await request.post({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges`,
         headers: headers,
         body: JSON.stringify(data),
       });
@@ -887,7 +892,7 @@ module.exports = {
 
     try {
       const response = await request.get({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}`,
         headers: this.getVippsHeaders(token),
       });
 
@@ -936,7 +941,7 @@ module.exports = {
 
     try {
       const response = await request.get({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges`,
         headers: this.getVippsHeaders(token),
       });
 
@@ -1014,7 +1019,7 @@ module.exports = {
 
     try {
       await request.delete({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}`,
         headers: this.getVippsHeaders(token),
       });
 
@@ -1054,7 +1059,7 @@ module.exports = {
 
     try {
       const response = await request.post({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}/refund`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}/refund`,
         headers,
         body: JSON.stringify(body),
       });
