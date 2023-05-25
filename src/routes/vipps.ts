@@ -509,7 +509,7 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
 
     const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
     const standardDistribution = req.body.distribution.standardDistribution;
-    let taxUnitId: number | undefined = req.body.distribution.taxUnit.id;
+    let taxUnitId: number | undefined = req.body.distribution.taxUnit?.id;
 
     const shares = req.body.distribution.shares;
 
