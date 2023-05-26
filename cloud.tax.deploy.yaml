@@ -4,7 +4,7 @@ steps:
   - name: "gcr.io/cloud-builders/npm"
     args: ["run", "test"]
   - name: "gcr.io/cloud-builders/npm"
-    args: ["run", "build"]
+    args: ["run", "typecheck"]
   - name: "gcr.io/cloud-builders/docker"
     args: ["build", "-t", "gcr.io/$PROJECT_ID/effektapi-tax:latest", "."]
   - name: "gcr.io/cloud-builders/docker"
