@@ -14,7 +14,8 @@
     "dev": "export NODEMON=true && nodemon src/server.ts",
     "debug": "export NODEMON=true && nodemon --exec 'node --inspect=0.0.0.0:9229 --require ts-node/register src/server.ts'",
     "generate-types-from-schema": "cd src && npx openapi-typescript \"specs/**/*.yaml\" --output schemas/",
-    "format": "prettier --write \"./**/*{js,ts,jsx,tsx,json,md,css,scss,yml,yaml}\"",
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
     "prepare": "husky install",
     "postinstall": "prisma generate"
   },
@@ -112,7 +113,7 @@
     "webpack-cli": "^4.9.1"
   },
   "lint-staged": {
-    "*.{js,ts,jsx,tsx,json,md,css,scss,yml,yaml}": "prettier --write",
+    "*": "prettier --write",
     "schema.prisma": "prisma format"
   }
 }

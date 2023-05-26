@@ -1,7 +1,13 @@
 steps:
   - name: "gcr.io/cloud-builders/npm"
+    id: install
     args: ["install"]
   - name: "gcr.io/cloud-builders/npm"
+    waitFor: ["install"]
     args: ["run", "test"]
   - name: "gcr.io/cloud-builders/npm"
+    waitFor: ["install"]
     args: ["run", "typecheck"]
+  - name: "gcr.io/cloud-builders/npm"
+    waitFor: ["install"]
+    args: ["run", "format:check"]
