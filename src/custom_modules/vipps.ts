@@ -201,7 +201,7 @@ module.exports = {
     };
 
     let initiateRequest = await request.post({
-      uri: `https://${config.vipps_api_url}/ecomm/v3/payments`,
+      uri: `https://${config.vipps_api_url}/ecomm/v2/payments`,
       headers: this.getVippsHeaders(token),
       json: data,
     });
@@ -349,7 +349,7 @@ module.exports = {
     let token = await this.fetchToken();
 
     let orderDetails = await request.get({
-      uri: `https://${config.vipps_api_url}/ecomm/v3/payments/${orderId}/details`,
+      uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/details`,
       headers: this.getVippsHeaders(token),
     });
 
@@ -388,7 +388,7 @@ module.exports = {
 
     try {
       var captureRequest = await request.post({
-        uri: `https://${config.vipps_api_url}/ecomm/v3/payments/${orderId}/capture`,
+        uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/capture`,
         headers: this.getVippsHeaders(token),
         json: data,
       });
@@ -459,7 +459,7 @@ module.exports = {
       };
 
       var refundRequest = await request.post({
-        uri: `https://${config.vipps_api_url}/ecomm/v3/payments/${orderId}/refund`,
+        uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/refund`,
         headers: this.getVippsHeaders(token),
         json: data,
       });
@@ -494,7 +494,7 @@ module.exports = {
       };
 
       var cancelRequest = await request.put({
-        uri: `https://${config.vipps_api_url}/ecomm/v3/payments/${orderId}/cancel`,
+        uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/cancel`,
         headers: this.getVippsHeaders(token),
         json: data,
       });
@@ -528,7 +528,7 @@ module.exports = {
 
     try {
       let approveRequest = await request.post({
-        uri: `https://${config.vipps_api_url}/ecomm/v3/integration-test/payments/${orderId}/approve`,
+        uri: `https://${config.vipps_api_url}/ecomm/v2/integration-test/payments/${orderId}/approve`,
         headers: this.getVippsHeaders(token),
         json: data,
       });
