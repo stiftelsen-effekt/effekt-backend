@@ -502,13 +502,29 @@ npx prisma migrate dev --name <migration-name>
 
 This will create a new migration file in [/prisma/migrations](prisma/migrations).
 
-Currently these migrations are not automatically run in our CI/CD pipeline, so it has to be done manually:
-
-1. Run the [cloud sql auth proxy locally](#google-cloud--cloud-sql-auth-proxy-setup)
-2. Update your environment variables to point to the production database.
-3. Run `npx prisma migrate deploy` to apply the migration to the production database.
+The migrations are run automatically in our CI/CD pipeline as part of the deployment flow.
 
 It is generally advised to use the [expand and contract pattern](https://www.prisma.io/dataguide/types/relational/expand-and-contract-pattern) when making changes to the database schema. This means that you first add the new column, then migrate the code to use the new column, then remove the old column. This ensures that the code is always compatible with the database schema.
+
+#### Migration job
+
+The migrations are run in Cloud Run Job, similarly to what is described [here](https://cloud.google.com/blog/topics/developers-practitioners/running-database-migrations-cloud-run-jobs) (except not using Procfile)
+
+The CI/CD pipeline is only executing the jobs. The jobs have to be created manually for each environment. These are the steps to create a job for a specific environment:
+
+1. Create a secret for the DB url if one doesn't already exist for that environment
+1. Replace the placeholder values and run the `gcloud` command
+
+```sh
+gcloud run jobs create <SERVICE_NAME>-db-migrate \
+  --image gcr.io/<PROJECT_ID>/<IMAGE_NAME>:latest \
+  --set-secrets DB_URL=<SERVICE_NAME>-db-url:latest \
+  --set-cloudsql-instances <PROJECT_ID>:europe-north1:<CLOUD_SQL_NAME> \
+  --region europe-north1 \
+  --max-retries 0 \
+  --command "./node_modules/.bin/prisma" \
+  --args "migrate,deploy"
+```
 
 ## Payment processing
 
