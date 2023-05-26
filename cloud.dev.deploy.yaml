@@ -27,8 +27,20 @@ steps:
       - "--allow-unauthenticated"
 
   - name: "gcr.io/cloud-builders/gcloud"
-    id: "deploy-sweden"
+    id: "migrate-db-sweden"
     waitFor: ["build"]
+    args:
+      - "run"
+      - "jobs"
+      - "execute"
+      - "geeffektivt-dev-db-migrate"
+      - "--region"
+      - "europe-north1"
+      - "--wait"
+
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "deploy-sweden"
+    waitFor: ["migrate-db-sweden"]
     args:
       - "run"
       - "deploy"
