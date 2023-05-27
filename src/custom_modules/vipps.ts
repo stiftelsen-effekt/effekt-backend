@@ -779,16 +779,10 @@ module.exports = {
     const token = await this.fetchToken();
     if (token === false) return false;
 
-    // Required by Vipps, prevents duplicate requests
-    const idempotencyKey = hash(agreementId + chargeId);
-
-    let headers = this.getVippsHeaders(token);
-    headers["Idempotency-Key"] = idempotencyKey;
-
     try {
       await request.post({
         uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}/capture`,
-        headers,
+        headers: this.getVippsHeaders(token),
       });
 
       return true;
@@ -821,13 +815,6 @@ module.exports = {
     const token = await this.fetchToken();
     if (token === false) return false;
 
-    // idempotencyKey required by Vipps, prevents charging twice in a day
-    const idempotencyKey = `${new Date().setHours(0, 0, 0, 0)}-${agreementId}`;
-
-    let headers = this.getVippsHeaders(token);
-    headers["Idempotency-Key"] = idempotencyKey;
-    headers["agreementId"] = agreementId;
-
     /** @type {ChargePayload} */
     const data = {
       amount: amountKroner * 100,
@@ -836,6 +823,8 @@ module.exports = {
       due: formattedDueDate,
       retryDays: 5,
     };
+
+    const headers = this.getVippsHeaders(token);
 
     try {
       const vippsAgreement = await this.getAgreement(agreementId);
@@ -846,7 +835,7 @@ module.exports = {
 
       const response = await request.post({
         uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges`,
-        headers: headers,
+        headers,
         body: JSON.stringify(data),
       });
 
@@ -1040,13 +1029,6 @@ module.exports = {
     const token = await this.fetchToken();
     if (token === false) return false;
 
-    // Idempotency-Key to prevent duplicate refund requests
-    // Required by Vipps
-    const idempotencyKey = `${agreementId}-${chargeId}`;
-
-    let headers = this.getVippsHeaders(token);
-    headers["Idempotency-Key"] = idempotencyKey;
-
     const charge = await this.getCharge(agreementId, chargeId);
 
     // Charge must be paid to be refunded
@@ -1060,7 +1042,7 @@ module.exports = {
     try {
       const response = await request.post({
         uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}/refund`,
-        headers,
+        headers: this.getVippsHeaders(token),
         body: JSON.stringify(body),
       });
 
@@ -1141,6 +1123,7 @@ module.exports = {
       merchant_serial_number: config.vipps_merchant_serial_number,
       "Ocp-Apim-Subscription-Key": config.vipps_ocp_apim_subscription_key,
       Authorization: `${token.type} ${token.token}`,
+      "Idempotency-Key": crypto.randomBytes(16).toString("hex"),
     };
   },
 
