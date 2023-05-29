@@ -3,11 +3,11 @@ steps:
     args: ["build", "-t", "gcr.io/$PROJECT_ID/effektapi-dev:latest", "."]
   - name: "gcr.io/cloud-builders/docker"
     args: ["push", "gcr.io/$PROJECT_ID/effektapi-dev:latest"]
-    id: "build"
+    id: "push-build"
 
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-norway"
-    waitFor: ["build"]
+    waitFor: ["push-build"]
     args:
       - "run"
       - "jobs"
@@ -34,7 +34,7 @@ steps:
 
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-sweden"
-    waitFor: ["build"]
+    waitFor: ["push-build"]
     args:
       - "run"
       - "jobs"
