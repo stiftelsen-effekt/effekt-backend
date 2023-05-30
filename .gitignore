@@ -7,3 +7,4 @@ env.list
 dist/
 .nyc_output/
 .env
+.env.local
