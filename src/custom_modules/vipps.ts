@@ -779,10 +779,18 @@ module.exports = {
     const token = await this.fetchToken();
     if (token === false) return false;
 
+    const charge = await this.getCharge(agreementId, chargeId);
+
+    const body = {
+      amount: charge.amount,
+      description: charge.description,
+    };
+
     try {
       await request.post({
         uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}/capture`,
         headers: this.getVippsHeaders(token),
+        body: JSON.stringify(body),
       });
 
       return true;
