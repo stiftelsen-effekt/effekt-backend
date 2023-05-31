@@ -265,7 +265,7 @@ router.post("/vipps", authMiddleware.isAdmin, async (req, res, next) => {
 
     // Creates charges for all Vipps recurring agreements that are due three days ahead
     const result = await vipps.createFutureDueCharges();
-    await DAO.logging.add("VippsRecurring", result);
+    if (result) await DAO.logging.add("VippsRecurring", result);
 
     res.json(result);
   } catch (ex) {

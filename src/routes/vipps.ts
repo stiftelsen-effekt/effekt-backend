@@ -150,7 +150,7 @@ router.get(
       // Synchronize EffektDB with Vipps database
       const responseVipps = await vipps.getAgreement(agreementId);
       await DAO.vipps.updateAgreementStatus(agreementId, responseVipps.status);
-      await DAO.vipps.updateAgreementPrice(agreementId, responseVipps.price / 100);
+      await DAO.vipps.updateAgreementPrice(agreementId, responseVipps.pricing.amount / 100);
       const responseDAO = await DAO.vipps.getAgreement(agreementId);
 
       const response = { ...responseVipps, ...responseDAO };

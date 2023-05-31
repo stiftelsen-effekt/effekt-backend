@@ -140,8 +140,9 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
     [agreementID],
   );
 
-  if (res.length != 1) {
-    throw new Error("Could not find agreement with ID " + agreementID);
+  if (res.length < 1) {
+    console.error("Could not find agreement with ID " + agreementID);
+    return false;
   }
 
   let agreement = res[0];
@@ -153,8 +154,7 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
     share: split.share,
   }));
 
-  if (res.length === 0) return false;
-  else return agreement;
+  return agreement;
 }
 
 /**
