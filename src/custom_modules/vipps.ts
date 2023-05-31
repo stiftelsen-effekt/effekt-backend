@@ -107,6 +107,7 @@ const VIPPS_TEXT = "Donasjon til Gi Effektivt.";
  * @property {string} due ISO-8601 date string for due date
  * @property {number} retryDays For how many days vipps shall attempt to retry charge
  * @property {string} orderId The ID of the order
+ * @property {string} transactionType The transaction type (either DIRECT_CAPTURE or RESERVE_CAPTURE)
  */
 
 /**
@@ -830,6 +831,7 @@ module.exports = {
       description: "Fast donasjon til Gi Effektivt.",
       due: formattedDueDate,
       retryDays: 5,
+      transactionType: "RESERVE_CAPTURE",
     };
 
     const headers = this.getVippsHeaders(token);
