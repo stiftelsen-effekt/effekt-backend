@@ -14,17 +14,23 @@ describe("POST /scheduled/vipps", function () {
   const mockAgreementsVipps = [
     {
       id: "agr_1",
-      amount: 50000,
+      pricing: {
+        amount: 50000,
+      },
       status: "ACTIVE",
     },
     {
       id: "agr_2",
-      amount: 340000,
+      pricing: {
+        amount: 340000,
+      },
       status: "ACTIVE",
     },
     {
       id: "agr_3",
-      amount: 5000000,
+      pricing: {
+        amount: 5000000,
+      },
       status: "STOPPED",
     },
   ];

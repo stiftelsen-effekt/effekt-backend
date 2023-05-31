@@ -1158,23 +1158,27 @@ module.exports = {
         const anonDonorId = 1464;
         const standardKID = 87397824;
         const chargeDay = 1;
+        const chargeAmount = agreements[i].pricing.amount;
 
         // Adds agreement if it does not exist in effektDB (with default values)
         await DAO.vipps.addAgreement(
           agreements[i].id,
           anonDonorId,
           standardKID,
-          agreements[i].price / 100,
+          chargeAmount / 100,
           chargeDay,
           agreements[i].productDescription,
           agreements[i].status,
         );
 
-        await DAO.vipps.updateAgreementPrice(agreements[i].id, agreements[i].price / 100);
+        await DAO.vipps.updateAgreementPrice(agreements[i].id, chargeAmount / 100);
         await DAO.vipps.updateAgreementStatus(agreements[i].id, agreements[i].status);
 
         const agreement = await DAO.vipps.getAgreement(agreements[i].id);
-        if (!agreement) throw new Error(`Agreement ${agreements[i].id} not found in database`);
+        if (!agreement) {
+          console.error(`Agreement ${agreements[i].id} not found in database`);
+          continue;
+        }
 
         const charges = await this.getCharges(agreements[i].id);
 
@@ -1249,6 +1253,13 @@ module.exports = {
         new Date(timeNow + 1000 * 60 * 60 * 24 * (daysInAdvance + 1)).getDate() === 1;
       const activeAgreements = await DAO.vipps.getActiveAgreements();
 
+      if (!activeAgreements || activeAgreements.length === 0) {
+        return {
+          activeAgreements: 0,
+          createdCharges: 0,
+        };
+      }
+
       // Find agreements with due dates that are 3 days from now
       if (activeAgreements) {
         let chargeCount = 0;
@@ -1280,7 +1291,7 @@ module.exports = {
 
                 await this.createCharge(
                   vippsAgreement.id,
-                  vippsAgreement.price / 100,
+                  vippsAgreement.pricing.amount / 100,
                   daysInAdvance,
                 );
               }
