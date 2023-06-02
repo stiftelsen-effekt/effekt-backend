@@ -16,7 +16,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     {
       id: 1,
       KID: "002556289731589",
-      claimDate: 10,
+      paymentDate: 10,
       amount: 50000,
       notice: true,
       active: true,
@@ -24,7 +24,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     {
       id: 2,
       KID: "000638723319577",
-      claimDate: 10,
+      paymentDate: 10,
       amount: 340000,
       notice: false,
       active: true,
@@ -32,7 +32,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     {
       id: 3,
       KID: "000675978627833",
-      claimDate: 10,
+      paymentDate: 10,
       amount: 5000000,
       notice: true,
       active: true,

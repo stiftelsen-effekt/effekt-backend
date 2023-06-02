@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import { DAO } from "../custom_modules/DAO";
 import {
   sendDonationRegistered,
@@ -45,12 +46,21 @@ router.post("/donation/receipt/effekt", authMiddleware.isAdmin, async (req, res,
   }
 });
 
-router.post("/avtalegiro/notice", authMiddleware.isAdmin, async (req, res, next) => {
+router.post("/avtalegiro/notice", async (req, res, next) => {
   try {
     const KID = req.body.KID;
     const agreement = await DAO.avtalegiroagreements.getByKID(KID);
 
-    await sendAvtalegiroNotification(agreement);
+    let claimDate: DateTime = null;
+    const now = DateTime.local();
+
+    if (agreement.paymentDate > now.day) {
+      claimDate = DateTime.local(now.year, now.month, agreement.paymentDate);
+    } else {
+      claimDate = DateTime.local(now.year, now.month, agreement.paymentDate).plus({ month: 1 });
+    }
+
+    await sendAvtalegiroNotification(agreement, claimDate);
 
     res.json({
       status: 200,

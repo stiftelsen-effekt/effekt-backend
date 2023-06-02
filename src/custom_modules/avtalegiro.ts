@@ -5,6 +5,7 @@ import { DateTime } from "luxon";
 const writer = require("./avtalegiro/filewriterutil");
 const config = require("../config");
 import workdays from "norwegian-workdays";
+import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 
 /**
  * Generates a claims file to claim payments for AvtaleGiro agreements
@@ -73,7 +74,7 @@ export async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
  * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} agreements Agreements to notify
  * @returns {NotifyAgreementsResult}
  */
-export async function notifyAgreements(agreements) {
+export async function notifyAgreements(agreements: AvtaleGiroAgreement[], claimDate: DateTime) {
   let result = {
     success: 0,
     failed: 0,
@@ -81,7 +82,7 @@ export async function notifyAgreements(agreements) {
   if (config.env === "production") {
     for (let i = 0; i < agreements.length; i++) {
       try {
-        if ((await sendAvtalegiroNotification(agreements[i])) === true) {
+        if ((await sendAvtalegiroNotification(agreements[i], claimDate)) === true) {
           result.success++;
         } else {
           result.failed++;
