@@ -3,10 +3,12 @@ import { EmailTaxUnitReport } from "./DAO_modules/tax";
 
 const config = require("../config.js");
 import moment from "moment";
+import { DateTime } from "luxon";
 const template = require("./template");
 
 import request from "request-promise-native";
 import fs from "fs-extra";
+import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 
 /**
  * @typedef VippsAgreement
@@ -609,7 +611,11 @@ export async function sendTaxDeductions(taxDeductionRecord, year) {
  * @param {"CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
  */
-export async function sendAvtaleGiroChange(KID, change, newValue = "") {
+export async function sendAvtaleGiroChange(
+  KID: string,
+  change: "CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES",
+  newValue: string | number = "",
+) {
   try {
     const agreement = await DAO.avtalegiroagreements.getByKID(KID);
     const donor = await DAO.donors.getByKID(KID);
@@ -655,7 +661,10 @@ export async function sendAvtaleGiroChange(KID, change, newValue = "") {
  * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement
  * @returns {true | number} True if successfull, or an error code if failed
  */
-export async function sendAvtalegiroNotification(agreement) {
+export async function sendAvtalegiroNotification(
+  agreement: AvtaleGiroAgreement,
+  claimDate: DateTime,
+) {
   let donor, split, organizations;
 
   try {
@@ -694,6 +703,7 @@ export async function sendAvtalegiroNotification(agreement) {
         header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
         agreementSum: formatCurrency(agreement.amount / 100),
         organizations: organizations,
+        claimDate: claimDate.toFormat("dd.MM.yyyy"),
         reusableHTML,
       },
     });
@@ -711,7 +721,7 @@ export async function sendAvtalegiroNotification(agreement) {
  * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement
  * @returns {true | number} True if successfull, or an error code if failed
  */
-export async function sendAvtalegiroRegistered(agreement) {
+export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
   let donor, split, organizations;
 
   try {
@@ -750,9 +760,9 @@ export async function sendAvtalegiroRegistered(agreement) {
         header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
         agreementSum: formatCurrency(agreement.amount / 100),
         agreementDate:
-          agreement.payment_date == 0
+          agreement.paymentDate == 0
             ? "siste dagen i hver måned"
-            : `${agreement.payment_date}. hver måned`,
+            : `${agreement.paymentDate}. hver måned`,
         organizations: organizations,
         reusableHTML,
       },

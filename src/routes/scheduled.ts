@@ -6,6 +6,7 @@ import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_mo
 import { DateTime } from "luxon";
 
 import express from "express";
+import { AvtaleGiroAgreement } from "../custom_modules/DAO_modules/avtalegiroagreements";
 
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
@@ -199,11 +200,9 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
       /**
        * Get active agreements
        */
-      let agreements = [];
+      let agreements = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day);
       if (isClaimDateLastDayOfMonth) {
-        agreements = await DAO.avtalegiroagreements.getByPaymentDate(0);
-      } else {
-        agreements = await DAO.avtalegiroagreements.getByPaymentDate(claimDate.day);
+        agreements = [...agreements, ...(await DAO.avtalegiroagreements.getByPaymentDate(0))];
       }
 
       if (agreements.length > 0) {

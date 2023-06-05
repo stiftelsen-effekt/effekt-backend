@@ -3,6 +3,14 @@ import { DAO } from "../DAO";
 
 import sqlString from "sqlstring";
 
+export type AvtaleGiroAgreement = {
+  id: number;
+  KID: string;
+  amount: number;
+  paymentDate: number;
+  notice: boolean;
+};
+
 //region Get
 /**
  * Gets all AG donations by KID
@@ -345,13 +353,15 @@ async function getByDonorId(donorId) {
   return agreements;
 }
 
-async function getByKID(KID) {
+async function getByKID(KID: string): Promise<AvtaleGiroAgreement> {
   let [agreement] = await DAO.query(
     `
             SELECT 
+                ID,
                 payment_date,
                 amount, 
-                KID
+                KID,
+                notice
             FROM Avtalegiro_agreements 
             WHERE KID = ?`,
     [KID],
@@ -359,9 +369,11 @@ async function getByKID(KID) {
 
   if (agreement.length > 0) {
     return {
-      payment_date: agreement[0].payment_date,
+      id: agreement[0].ID,
+      paymentDate: agreement[0].payment_date,
       amount: agreement[0].amount,
       KID: agreement[0].KID,
+      notice: agreement[0].notice,
     };
   } else {
     return null;
@@ -523,9 +535,10 @@ async function getAgreementSumHistogram() {
  * @param {Date} date
  * @returns {Array<AvtalegiroAgreement>}
  */
-async function getByPaymentDate(dayInMonth) {
+async function getByPaymentDate(dayInMonth): Promise<Array<AvtaleGiroAgreement>> {
   let [agreements] = await DAO.query(
-    `SELECT    
+    `SELECT
+            ID,
             payment_date,
             amount, 
             notice,
@@ -537,12 +550,15 @@ async function getByPaymentDate(dayInMonth) {
     [dayInMonth],
   );
 
-  return agreements.map((agreement) => ({
-    payment_date: agreement.payment_date,
-    notice: agreement.notice,
-    amount: agreement.amount,
-    KID: agreement.KID,
-  }));
+  return (agreements as any[]).map(
+    (agreement): AvtaleGiroAgreement => ({
+      id: agreement.ID,
+      paymentDate: agreement.payment_date,
+      notice: agreement.notice,
+      amount: agreement.amount,
+      KID: agreement.KID,
+    }),
+  );
 }
 
 /**
