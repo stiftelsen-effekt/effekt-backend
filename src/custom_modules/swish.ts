@@ -7,6 +7,14 @@ import { DAO } from "./DAO";
 import { KID } from "./KID";
 import { sendDonationReciept } from "./mail";
 
+const swishAgent = new Agent({
+  cert: config.swish_cert,
+  key: config.swish_cert_key,
+  passphrase: "swish",
+  minVersion: "TLSv1.2",
+  maxVersion: "TLSv1.2",
+});
+
 /**
  * https://developer.swish.nu/api/payment-request/v2#payment-request-object
  */
@@ -17,6 +25,7 @@ interface SwishPaymentRequest {
   payerAlias: string;
   payeeAlias: string;
   payeePaymentReference?: string;
+  status?: "PAID" | "DECLINED" | "ERROR" | "CANCELLED"; // missing in api docs, but should be there according to examples
 }
 
 /**
@@ -43,24 +52,34 @@ async function createPaymentRequest(data: {
   };
 
   const options = {
-    agent: new Agent({
-      cert: config.swish_cert,
-      key: config.swish_cert_key,
-      passphrase: "swish",
-      minVersion: "TLSv1.2",
-      maxVersion: "TLSv1.2",
-    }),
+    agent: swishAgent,
     method: "PUT",
     body: JSON.stringify(swishRequestData),
     headers: { "Content-Type": "application/json" },
   };
 
-  const url = `${config.swish_url}/paymentrequests/${data.instructionUUID}`;
+  const url = new URL(`/api/v2/paymentrequests/${data.instructionUUID}`, config.swish_url);
 
   console.info(`Starting payment initation - id: ${data.instructionUUID}`);
   console.debug(JSON.stringify(data));
-  const res = await fetch(url, options);
+  const res = await fetch(url.toString(), options);
   return { success: res.status === 201, status: res.status };
+}
+
+/**
+ * https://developer.swish.nu/api/payment-request/v2#retrieve-payment-request
+ */
+async function retrievePaymentRequest(instructionUUID: string): Promise<SwishPaymentRequest> {
+  const options = {
+    agent: swishAgent,
+    method: "GET",
+  };
+
+  const url = new URL(`/api/v1/paymentrequests/${instructionUUID}`, config.swish_url);
+
+  console.info(`Retrieving payment request - id: ${instructionUUID}`);
+  const res = await fetch(url.toString(), options);
+  return res.json();
 }
 
 /**
@@ -99,7 +118,8 @@ export async function initiateOrder(KID: string, data: Pick<SwishPaymentRequest,
  */
 export async function handleOrderStatusUpdate(
   instructionUUID: string,
-  data: Pick<SwishOrder, "status"> & {
+  data: {
+    status: SwishOrderStatus;
     amount: number;
   },
 ) {
@@ -162,4 +182,20 @@ function generatePaymentReference() {
   const random = KID.getRandomNumbers(5);
   const date = new Date().toISOString().substring(2, 10).replace(regex, "");
   return date + random;
+}
+
+export async function getSwishOrder(ID: SwishOrder["ID"]) {
+  const order = await DAO.swish.getOrder(ID);
+  const swishRequest = await retrievePaymentRequest(order.instructionUUID);
+  if (swishRequest.status !== order.status) {
+    await handleOrderStatusUpdate(order.instructionUUID, {
+      status: swishRequest.status,
+      amount: swishRequest.amount,
+    });
+    return await DAO.swish.getOrder(ID);
+  }
+  return {
+    ID: order.ID,
+    status: order.status,
+  };
 }

@@ -16,6 +16,17 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
   next();
 };
 
+router.get("/orders/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await swish.getSwishOrder(parseInt(id));
+    res.json(order);
+  } catch (err) {
+    console.error("Error while fetching payment request: ", err);
+    res.sendStatus(500);
+  }
+});
+
 interface SwishCallbackRequestBody {
   id: string;
   amount: number;

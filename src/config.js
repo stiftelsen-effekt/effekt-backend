@@ -32,7 +32,7 @@ module.exports = {
   swish_cert: process.env.SWISH_CERT,
   swish_cert_key: process.env.SWISH_CERT_KEY,
   swish_payee_alias: process.env.SWISH_PAYEE_ALIAS,
-  swish_url: "https://mss.cpc.getswish.net/swish-cpcapi/api/v2",
+  swish_url: "https://mss.cpc.getswish.net/swish-cpcapi/",
   swish_whitelist: [
     "213.132.115.94", // Swish prod (to be deprecated after July 31)
     "35.228.51.224/28", // Swish prod

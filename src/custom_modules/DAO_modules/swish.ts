@@ -7,14 +7,23 @@ import { DAO } from "../DAO";
  * @return {number} ID of inserted order
  */
 export const swish = {
+  getOrder: async function (ID: SwishOrder["ID"]) {
+    const [order] = await DAO.query<SwishOrder[]>(
+      `
+        SELECT * FROM Swish_orders WHERE ID = ?
+      `,
+      [ID],
+    );
+    return order?.[0];
+  },
   getOrderByInstructionUUID: async function (instructionUUID: string) {
-    const [donation] = await DAO.query<SwishOrder[]>(
+    const [order] = await DAO.query<SwishOrder[]>(
       `
         SELECT * FROM Swish_orders WHERE instructionUUID = ?
       `,
       [instructionUUID],
     );
-    return donation?.[0];
+    return order?.[0];
   },
   addOrder: async function (
     order: Pick<SwishOrder, "KID" | "donorID" | "reference" | "instructionUUID">,
