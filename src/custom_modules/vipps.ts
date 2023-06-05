@@ -9,6 +9,7 @@ import request from "request-promise-native";
 const mail = require("../custom_modules/mail");
 import moment from "moment";
 import hash from "object-hash";
+import { pollLoop } from "./pollLoop";
 
 //Timings selected based on the vipps guidelines
 //https://www.vipps.no/developers-documentation/ecom/documentation/#polling-guidelines
@@ -220,9 +221,8 @@ module.exports = {
    * @param {string} orderId
    */
   async pollOrder(orderId) {
-    setTimeout(() => {
-      this.pollLoop(orderId, this.checkOrderDetails);
-    }, POLLING_START_DELAY);
+    await new Promise((resolve) => setTimeout(resolve, POLLING_START_DELAY));
+    await pollLoop((polls) => this.checkOrderDetails(orderId, polls), POLLING_INTERVAL);
   },
 
   /**
@@ -233,7 +233,7 @@ module.exports = {
    * @param {number} polls How many times have we polled the detail endpoint
    * @returns {boolean} True if we should cancel the polling, false otherwise
    */
-  async checkOrderDetails(orderId, polls) {
+  async checkOrderDetails(orderId: string, polls: number): Promise<boolean> {
     console.log(`Polling ${orderId}, ${polls}th poll`);
     let orderDetails = await this.getOrderDetails(orderId);
 
@@ -1309,19 +1309,5 @@ module.exports = {
     } catch (ex) {
       console.error(ex);
     }
-  },
-
-  /**
-   *
-   * @param {string} id Resource ID
-   * @param {function} fn Function that does the polling
-   * @param {number} count The count of how many times we've polled
-   */
-  async pollLoop(id, fn, count = 1) {
-    let shouldCancel = await fn(id, count);
-    if (!shouldCancel)
-      setTimeout(() => {
-        this.pollLoop(id, fn, count + 1);
-      }, POLLING_INTERVAL);
   },
 };
