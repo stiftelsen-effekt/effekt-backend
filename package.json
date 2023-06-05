@@ -113,7 +113,7 @@
     "webpack-cli": "^4.9.1"
   },
   "lint-staged": {
-    "*.{js,ts,jsx,tsx,json,md,css,scss,yml,yaml}": "prettier --write",
+    "*": "prettier --write --ignore-unknown",
     "schema.prisma": "prisma format"
   }
 }
