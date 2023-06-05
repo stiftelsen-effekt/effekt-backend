@@ -7,4 +7,5 @@ module.exports = {
   avtalegiro: 7,
   vipps_recurring: 8,
   facebook: 9,
+  swish: 10,
 };

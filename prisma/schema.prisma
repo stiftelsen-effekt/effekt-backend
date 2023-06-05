@@ -128,6 +128,7 @@ model Donors {
   newsletter       Boolean?
   trash            Int?               @db.TinyInt
   ssn              String?            @db.VarChar(45)
+  phone            String?            @db.VarChar(45)
   Combining_table  Combining_table[]
   Donations        Donations[]
   FB_payment_ID    FB_payment_ID[]
@@ -264,6 +265,26 @@ model Seeded {
   Timestamp DateTime? @default(now()) @db.DateTime(0)
 
   @@ignore
+}
+
+enum SwishOrderStatus {
+  PAID
+  DECLINED
+  ERROR
+  CANCELLED
+}
+
+model SwishOrder {
+  ID              Int               @id @default(autoincrement())
+  KID             String            @db.VarChar(15)
+  instructionUUID String            @db.VarChar(36) /// Swish uses this to identify the order
+  donorID         Int
+  donationID      Int?
+  status          SwishOrderStatus? /// External status from swish
+  reference       String            @db.VarChar(32)
+  registered      DateTime          @default(now()) @db.DateTime(0)
+
+  @@index([donorID], map: "Donor_ID_idx")
 }
 
 model Tax_unit {

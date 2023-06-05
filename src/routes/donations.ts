@@ -7,6 +7,7 @@ import {
   sendDonationReciept,
   sendDonationRegistered,
 } from "../custom_modules/mail";
+import * as swish from "../custom_modules/swish";
 
 const config = require("../config");
 
@@ -48,7 +49,19 @@ router.get("/status", async (req, res, next) => {
  */
 router.post("/register", async (req, res, next) => {
   if (!req.body) return res.sendStatus(400);
-  let parsedData = req.body;
+  let parsedData = req.body as {
+    organizations: any;
+    donor: {
+      email: string;
+      name: string;
+      newsletter: boolean;
+      ssn?: string;
+      phone?: string;
+    };
+    method: string;
+    recurring: boolean;
+    amount: string | number;
+  };
 
   let donationOrganizations = parsedData.organizations;
   let donor = parsedData.donor;
@@ -56,24 +69,21 @@ router.post("/register", async (req, res, next) => {
   let recurring = parsedData.recurring;
 
   try {
-    var donationObject: {
+    var donationObject: Pick<typeof parsedData, "amount" | "method" | "recurring"> & {
       KID: string;
-      method: string;
       donorID: number | null;
       taxUnitId: number;
-      amount: string;
       split: Awaited<ReturnType<typeof donationHelpers.getStandardSplit>>;
-      recurring: boolean;
       standardSplit?: boolean;
     } = {
-      KID: null, //Set later in code
+      amount: parsedData.amount,
       method: parsedData.method,
+      recurring: parsedData.recurring,
+      KID: null, //Set later in code
       donorID: null, //Set later in code
       taxUnitId: null, //Set later in code
-      amount: parsedData.amount,
       standardSplit: undefined,
       split: [],
-      recurring: parsedData.recurring,
     };
 
     //Create a donation split object
@@ -173,7 +183,7 @@ router.post("/register", async (req, res, next) => {
 
     switch (donationObject.method) {
       case methods.VIPPS: {
-        if (recurring == 0) {
+        if (recurring == false) {
           const res = await vipps.initiateOrder(donationObject.KID, donationObject.amount);
           paymentProviderUrl = res.externalPaymentUrl;
 
@@ -183,6 +193,14 @@ router.post("/register", async (req, res, next) => {
         break;
       }
       case methods.SWISH: {
+        if (recurring == false) {
+          await swish.initiateOrder(donationObject.KID, {
+            amount:
+              typeof donationObject.amount === "string"
+                ? parseInt(donationObject.amount)
+                : donationObject.amount,
+          });
+        }
         break;
       }
     }

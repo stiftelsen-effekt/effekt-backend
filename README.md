@@ -530,8 +530,10 @@ gcloud run jobs create <SERVICE_NAME>-db-migrate \
 
 ### Bank
 
-### Vipps
+### Vipps 🇳🇴
 
 ### PayPal
 
 ### Facebook
+
+### Swish 🇸🇪

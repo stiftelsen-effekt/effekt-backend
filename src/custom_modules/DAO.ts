@@ -3,6 +3,7 @@ import { donors } from "./DAO_modules/donors";
 import { donations } from "./DAO_modules/donations";
 import { distributions } from "./DAO_modules/distributions";
 import { vipps } from "./DAO_modules/vipps";
+import { swish } from "./DAO_modules/swish";
 import { facebook } from "./DAO_modules/facebook";
 import { payment } from "./DAO_modules/payment";
 import { parsing } from "./DAO_modules/parsing";
@@ -51,6 +52,7 @@ export const DAO = {
   facebook: facebook,
   tax: tax,
   logging: logging,
+  swish: swish,
 
   dbPool: undefined as mysql.Pool | undefined,
 
