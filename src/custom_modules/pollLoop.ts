@@ -1,6 +1,5 @@
 /**
  *
- * @param {string} id Resource ID
  * @param {function} fn Function that does the polling. Returns true if polling should stop.
  * @param {number} interval Interval between polls
  * @param {number} count The count of how many times we've polled
