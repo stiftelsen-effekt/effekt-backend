@@ -20,6 +20,7 @@ router.get("/orders/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const order = await swish.getSwishOrder(parseInt(id));
+    if (!order) return res.sendStatus(404);
     res.json(order);
   } catch (err) {
     console.error("Error while fetching payment request: ", err);
@@ -58,4 +59,4 @@ router.post("/callback", jsonBody, swishWhitelistMiddleware, async (req, res) =>
   }
 });
 
-module.exports = router;
+export default router;

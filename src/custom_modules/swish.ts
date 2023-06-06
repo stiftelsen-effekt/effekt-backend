@@ -128,12 +128,12 @@ export async function handleOrderStatusUpdate(
     return;
   }
 
-  if (order.status !== data.status) {
+  if (order.status === data.status) {
     console.info(`Status unchanged, skipping update. Status: ${data.status}`);
     return;
   }
 
-  await DAO.swish.updateOrderStatus(order.ID, order.status);
+  await DAO.swish.updateOrderStatus(order.ID, data.status);
 
   switch (data.status) {
     case SwishOrderStatus.PAID: {
@@ -171,6 +171,7 @@ function generatePaymentReference() {
 
 export async function getSwishOrder(ID: SwishOrder["ID"]) {
   const order = await DAO.swish.getOrder(ID);
+  if (!order) return null;
   const swishRequest = await retrievePaymentRequest(order.instructionUUID);
   if (swishRequest.status !== order.status) {
     await handleOrderStatusUpdate(order.instructionUUID, {
