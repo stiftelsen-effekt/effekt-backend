@@ -11,24 +11,26 @@ The API is also responsible for handling payment processing.
 - [Effect Foundation API](#effect-foundation-api)
 - [API endpoints](#api-endpoints)
 - [Get started developing](#get-started-developing)
-  - [Clone and install packages](#clone-and-install-packages)
+  - [Clone repository](#clone-repository)
+  - [Bring your environment](#bring-your-environment)
+  - [Install packages](#install-packages)
   - [Setup MySQL](#setup-mysql)
     - [Run MySQL locally (no Docker)](#run-mysql-locally-no-docker)
     - [Run MySQL locally (inside a Docker container)](#run-mysql-locally-inside-a-docker-container)
     - [Set up local Schema](#set-up-local-schema)
     - [Add test data to your local MySQL instance](#add-test-data-to-your-local-mysql-instance)
-  - [Google Cloud & Cloud Sql Auth Proxy setup](#google-cloud--cloud-sql-auth-proxy-setup)
+  - [Google Cloud \& Cloud Sql Auth Proxy setup](#google-cloud--cloud-sql-auth-proxy-setup)
     - [Google Cloud access](#google-cloud-access)
     - [Google Cloud Sql Auth Proxy setup](#google-cloud-sql-auth-proxy-setup)
-  - [Configuring and running the API](#configuring-and-running-the-api)
+  - [Running the API](#running-the-api)
   - [Testing](#testing)
 - [Build and deployment](#build-and-deployment)
   - [Environments](#environments)
   - [Google cloud build](#google-cloud-build)
-- [Code Structure & Implementation Details](#code-structure--implementation-details)
+- [Code Structure \& Implementation Details](#code-structure--implementation-details)
   - [Routes](#routes)
   - [Business logic](#business-logic)
-  - [Authentication & Authorization](#authentication--authorization)
+  - [Authentication \& Authorization](#authentication--authorization)
   - [KIDs](#kids)
   - [Data Access](#data-access)
   - [Email](#email)
@@ -39,7 +41,7 @@ The API is also responsible for handling payment processing.
 - [Database](#database)
   - [Tables Overview](#tables-overview)
   - [Database Schema Migrations](#database-schema-migrations)
-    - [Downloading production schema](#downloading-production-schema)
+    - [Migration job](#migration-job)
 - [Payment processing](#payment-processing)
   - [Bank](#bank)
   - [Vipps](#vipps)
@@ -97,9 +99,9 @@ npm install
 
 There are three options for setting up MySQL for your local API service to connect to:
 
-1. Run MySQL locally (no Docker)
-2. Run MySQL locally (inside a Docker container)
-3. Connect to the production database
+1. [Run MySQL locally (no Docker)](#run-mysql-locally-no-docker)
+2. [Run MySQL locally (inside a Docker container)](#run-mysql-locally-inside-a-docker-container)
+3. [Connect to the production database](#connect-to-production-database-google-cloud--cloud-sql-auth-proxy-setup)
 
 Strongly prefer running locally (either with or without a Docker container), rather than connecting to the production database. It's easier to set up, and way safer - no chance of leaking personal info of our users, and no chance of writing invalid data to the production database.
 
@@ -107,35 +109,55 @@ Running locally is the easiest option if this is the only use for MySQL on your 
 
 In any of the approaches, we're going to expose MySQL on the default MySQL port of 3306.
 
+**Quick setup example**: If you got Docker Compose installed the entire setup of MySQL can be done with
+
+```sh
+docker compose up -d # Sets up MySQL and the database: EffektDonasjonDB_Local
+```
+
+then:
+
+```sh
+npx prisma migrate reset # Migrates schemas and tables to the database and seeds testdata
+```
+
+Read on if you are unfamiliar with these commands.
+
 #### Run MySQL locally (no Docker)
 
 First, install MySQL using one of the below commands (or look for installation instructions online).
 
 If you use brew, installing MySQL is as easy as:
 
-```
+```sh
 brew install mysql
 ```
 
 On Windows, you can install with Chocolatey:
 
-```
+```sh
 choco install mysql
 ```
 
 The default user is `root`, let's set a password of `effekt`:
 
-```
+```sh
 mysql -h 127.0.0.1 -uroot -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'effekt'; flush privileges;"
 ```
 
 Now we can log in to the MySQL command prompt with:
 
-```
+```sh
 mysql -h 127.0.0.1 -uroot -peffekt
 ```
 
 On Mac or Linux, you can start MySQL with `mysql.server start` (and stop it with `mysql.server stop` if you want).
+
+As the last step, create the local database named `EffektDonasjonDB_Local` with:
+
+```sh
+mysql -h 127.0.0.1 -uroot -peffekt -e 'create database EffektDonasjonDB_Local'
+```
 
 #### Run MySQL locally (inside a Docker container)
 
@@ -143,30 +165,48 @@ First, follow instructions on the Docker website (or look for an online tutorial
 
 If you're on Mac, it should be as easy as:
 
-```
+```sh
 brew cask install docker
 ```
 
 Then run:
 
-```
-docker run --name effekt-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=effekt -d mysql:latest
+```sh
+docker run -d \
+--name effekt-mysql \
+-p 3306:3306 -e \
+MYSQL_ROOT_PASSWORD=effekt \
+MYSQL_DATABASE=EffektDonasjonDB_Local \
+-v effekt-mysql_volume:/var/lib/mysql \
+mysql:latest
 ```
 
-This creates and runs a new Docker container named `effekt-mysql`, and runs MySQL inside the container. The default user is `root` with password `effekt`. It also sets up port forwarding, so your local port 3306 gets forwarded to port 3306 inside your Docker container (where MySQL is running).
+Or if you want to use docker compose (installed with Docker Desktop) run this command from the project root directory:
+
+```sh
+docker compose up -d
+```
+
+This creates and runs a new Docker container named `effekt-mysql`, runs MySQL inside the container and creates the database `EffektDonasjonDB_Local`. The default user is `root` with password `effekt`. It also sets up port forwarding, so your local port 3306 gets forwarded to port 3306 inside your Docker container (where MySQL is running).
+
+The `-v  effekt-mysql_volume:/var/lib/mysql` command attachs a named volume for persistent storage of your database (even if you remove the container). You can safely remove this you want to reset everything when removing the container.
 
 Now we can log in to the MySQL command prompt with:
 
-```
-mysql -h 127.0.0.1 -uroot -peffekt
+```sh
+docker exec -it effekt-mysql mysql -h 127.0.0.1 -peffekt
 ```
 
-Some basic Docker commands:
+_Some basic Docker commands:_
 
 - `docker ps` to list all currently-running containers
 - `docker stop effekt-mysql` to stop the container
 - `docker start effekt-mysql` to start the container
 - `docker rm effekt-mysql` to remove the container
+- `docker logs effekt-mysql` to view the logs
+- `docker exec -it effekt-mysql /bin/bash` to enter the container shell
+- `docker volume ls` to list volumes used by docker
+- `docker volume rm effekt-mysql-volume` to remove the named volume
 
 #### Set up local Schema
 
