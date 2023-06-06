@@ -1,5 +1,5 @@
 import { DAO } from "./DAO";
-import { sendDonationReciept } from "./mail";
+import { sendDonationReceipt } from "./mail";
 const config = require("../config");
 
 module.exports = {
@@ -94,7 +94,7 @@ module.exports = {
     //Send mail in paralell
     if (config.env === "production") {
       /** 
-      const tasks = donationIDs.map(id => sendDonationReciept(id))
+      const tasks = donationIDs.map(id => sendDonationReceipt(id))
       const results = await Promise.allSettled(tasks)
       const failed = results.filter(result => result.status === 'rejected')
 
@@ -105,7 +105,7 @@ module.exports = {
       */
       for (let i = 0; i < donationIDs.length; i++) {
         try {
-          await sendDonationReciept(donationIDs[i]);
+          await sendDonationReceipt(donationIDs[i]);
         } catch (ex) {
           console.error(`Failed to send donation reciept for donation ${donationIDs[i]}`);
         }

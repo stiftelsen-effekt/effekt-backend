@@ -5,7 +5,7 @@ import config from "../config";
 import paymentMethods from "../enums/paymentMethods";
 import { DAO } from "./DAO";
 import { KID } from "./KID";
-import { sendDonationReciept } from "./mail";
+import { sendDonationReceipt } from "./mail";
 
 const swishAgent = new Agent({
   cert: config.swish_cert,
@@ -147,7 +147,7 @@ export async function handleOrderStatusUpdate(
         order.reference,
       );
       await DAO.swish.updateOrderDonationId(order.ID, donationID);
-      await sendDonationReciept(donationID);
+      await sendDonationReceipt(donationID);
     }
     default: {
       // TODO: Send error mail (https://github.com/stiftelsen-effekt/effekt-backend/issues/552)

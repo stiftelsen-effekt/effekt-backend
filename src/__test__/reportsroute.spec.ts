@@ -22,7 +22,7 @@ describe("PayPal report route handles correctly", () => {
       //Returns donation ID
       .resolves(10);
 
-    mailStub = sinon.stub(mail, "sendDonationReciept");
+    mailStub = sinon.stub(mail, "sendDonationReceipt");
 
     historicStub = sinon.stub(DAO.distributions, "getHistoricPaypalSubscriptionKIDS");
 
@@ -63,7 +63,7 @@ describe("Vipps route handles report correctly", () => {
       //Returns donation ID
       .resolves(10);
 
-    mailStub = sinon.stub(mail, "sendDonationReciept");
+    mailStub = sinon.stub(mail, "sendDonationReceipt");
 
     historicStub = sinon.stub(DAO.distributions, "getHistoricPaypalSubscriptionKIDS");
 

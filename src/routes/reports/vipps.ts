@@ -1,5 +1,5 @@
 import { DAO } from "../../custom_modules/DAO";
-import { sendDonationReciept } from "../../custom_modules/mail";
+import { sendDonationReceipt } from "../../custom_modules/mail";
 import { parseReport } from "../../custom_modules/parsers/vipps";
 
 const config = require("../../config");
@@ -62,7 +62,7 @@ module.exports = async (req, res, next) => {
       }
 
       try {
-        if (config.env === "production") sendDonationReciept(donationID);
+        if (config.env === "production") sendDonationReceipt(donationID);
       } catch (ex) {
         console.error("Failed to send donation reciept");
         console.error(ex);

@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { DAO } from "./DAO";
-import { sendDonationReciept, sendVippsErrorWarning } from "./mail";
+import { sendDonationReceipt, sendVippsErrorWarning } from "./mail";
 
 const config = require("./../config");
 import crypto from "crypto";
@@ -263,7 +263,7 @@ module.exports = {
             captureLogItem.transactionId,
           );
           await DAO.vipps.updateVippsOrderDonation(orderId, donationID);
-          await sendDonationReciept(donationID);
+          await sendDonationReceipt(donationID);
         } catch (ex) {
           //Donation already registered, no additional actions required
           if (ex.message.indexOf("EXISTING_DONATION") === -1) {
@@ -415,7 +415,7 @@ module.exports = {
           captureRequest.transactionInfo.transactionId,
         );
         await DAO.vipps.updateVippsOrderDonation(orderId, donationID);
-        await sendDonationReciept(donationID);
+        await sendDonationReceipt(donationID);
         return true;
       } catch (ex) {
         //Donation already registered, no additional actions required

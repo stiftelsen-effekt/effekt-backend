@@ -4,7 +4,7 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import {
   sendDonationHistory,
-  sendDonationReciept,
+  sendDonationReceipt,
   sendDonationRegistered,
 } from "../custom_modules/mail";
 import * as swish from "../custom_modules/swish";
@@ -282,7 +282,7 @@ router.post("/confirm", authMiddleware.isAdmin, urlEncodeParser, async (req, res
     );
 
     if (config.env === "production" && req.body.reciept === true)
-      await sendDonationReciept(donationID);
+      await sendDonationReceipt(donationID);
 
     res.json({
       status: 200,
@@ -416,7 +416,7 @@ router.post("/reciepts", authMiddleware.isAdmin, async (req, res, next) => {
     for (let i = 0; i < donationIDs.length; i++) {
       let donationID = donationIDs[i];
 
-      var mailStatus = await sendDonationReciept(donationID);
+      var mailStatus = await sendDonationReceipt(donationID);
 
       if (mailStatus == false)
         console.error(`Failed to send donation for donationID ${donationID}`);
@@ -635,9 +635,9 @@ router.delete("/:id", authMiddleware.isAdmin, async (req, res, next) => {
  */
 router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res, next) => {
   if (req.body.email && req.body.email.indexOf("@") > -1) {
-    var mailStatus = await sendDonationReciept(req.params.id, req.body.email);
+    var mailStatus = await sendDonationReceipt(req.params.id, req.body.email);
   } else {
-    var mailStatus = await sendDonationReciept(req.params.id);
+    var mailStatus = await sendDonationReceipt(req.params.id);
   }
 
   if (mailStatus === true) {
