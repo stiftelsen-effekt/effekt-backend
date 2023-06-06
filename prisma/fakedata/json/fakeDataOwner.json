@@ -1,0 +1,5 @@
+[
+  { "ID": 1, "owner": "Effekt", "default": false },
+  { "ID": 2, "owner": "EA Norge", "default": false },
+  { "ID": 3, "owner": "EAN + Effekt", "default": true }
+]

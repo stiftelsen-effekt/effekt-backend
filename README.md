@@ -12,14 +12,15 @@ The API is also responsible for handling payment processing.
 - [API endpoints](#api-endpoints)
 - [Get started developing](#get-started-developing)
   - [Clone repository](#clone-repository)
-  - [Bring your environment](#bring-your-environment)
+  - [Bring up your environment](#bring-up-your-environment)
   - [Install packages](#install-packages)
   - [Setup MySQL](#setup-mysql)
     - [Run MySQL locally (no Docker)](#run-mysql-locally-no-docker)
     - [Run MySQL locally (inside a Docker container)](#run-mysql-locally-inside-a-docker-container)
     - [Set up local Schema](#set-up-local-schema)
+    - [View the Database with GUI](#view-the-database-with-gui)
     - [Add test data to your local MySQL instance](#add-test-data-to-your-local-mysql-instance)
-  - [Google Cloud \& Cloud Sql Auth Proxy setup](#google-cloud--cloud-sql-auth-proxy-setup)
+  - [Connect to Production Database: Google Cloud \& Cloud Sql Auth Proxy setup](#connect-to-production-database-google-cloud--cloud-sql-auth-proxy-setup)
     - [Google Cloud access](#google-cloud-access)
     - [Google Cloud Sql Auth Proxy setup](#google-cloud-sql-auth-proxy-setup)
   - [Running the API](#running-the-api)
@@ -60,24 +61,28 @@ We are currently working on improving this documentation.
 
 To run the API locally, follow these setup steps:
 
-1. Clone repository
-2. Bring your environment
-3. Install packages
-4. Setup MySQL
+1. [Clone Repository](#clone-repository)
+2. [Bring your environment](#bring-your-environment)
+3. [Install packages](#install-packages)
+4. [Setup MySQL](#setup-mysql)
 
 ### Clone repository
 
 Clone this repository to your local machine:
 
-```
+```sh
 git clone https://github.com/stiftelsen-effekt/effekt-backend.git
 ```
 
 > **Note** To clone the repository, you must have access and be part of the [Stiftelsen Effekt github organization](https://github.com/stiftelsen-effekt). You must also be logged in on git on your local machine. If you do not have access to clone the repository, enquire on our [tech](https://effektteam.slack.com/archives/G011BE3BG3H) channel.
 
-### Bring your environment
+### Bring up your environment
 
 To get started, make a copy of `.env.example` and name it `.env`. The values in this file will automatically be picked up by the node.js application and the file will not be added to source control so it is okay to have secret values in there.
+
+```sh
+cp .env.example .env
+```
 
 Open the .env file and update the variables with your own values:
 
@@ -91,7 +96,7 @@ The other configuration variables are only needed to run specific parts of the c
 
 The api uses [node.js](https://nodejs.org/en/) and npm is the package manager. Go to the root folder of the cloned repository, and install the requisite packages with the command:
 
-```
+```sh
 npm install
 ```
 
@@ -212,27 +217,29 @@ _Some basic Docker commands:_
 
 Now we want to set up the database to mirror production. First schema, then with some production-like data to develop against. Whether you're running MySQL natively or inside a Docker container, the steps are the same.
 
-First, create a new "database" named `EffektDonasjonDB_Local`:
+Ensure you have created a database named `EffektDonasjonDB_Local`. You can check with:
 
-```
-mysql -h 127.0.0.1 -uroot -peffekt -e 'create database EffektDonasjonDB_Local'
+```sh
+mysql -h 127.0.0.1 -uroot -peffekt EffektDonasjonDB_Local -e 'SHOW DATABASES;'
 ```
 
 The schema is defined by prisma in [prisma/schema.prisma](prisma/schema.prisma). Prisma is a tool that generates a database schema from this file, and also generates a node.js client for interacting with the database. To begin with, you should run the existing migrations to setup your local database:
 
-```
+```sh
 npx prisma migrate reset
 ```
 
-Now, let's double check the schema is correct! Try:
+Use the `--skip-seed` flag, if you want the database to be empty (no testdata will be added).
 
-```
+Now, let's double check that the schema is correct! Try:
+
+```sh
 mysql -h 127.0.0.1 -uroot -peffekt EffektDonasjonDB_Local -e 'show tables'
 ```
 
 you should see output like:
 
-```
+```sql
 +-----------------------------------+
 | Tables_in_EffektDonasjonDB_Local  |
 +-----------------------------------+
@@ -245,13 +252,13 @@ you should see output like:
 
 and when you run:
 
-```
+```sh
 mysql -h 127.0.0.1 -uroot -peffekt EffektDonasjonDB_Local -e 'describe Donations'
 ```
 
 you should see output like:
 
-```
+```sql
 +---------------------+------------------------+------+-----+-------------------+-------------------+
 | Field               | Type                   | Null | Key | Default           | Extra             |
 +---------------------+------------------------+------+-----+-------------------+-------------------+
@@ -262,11 +269,31 @@ you should see output like:
 ...
 ```
 
+#### View the Database with GUI
+
+You can also view the database with `Prisma Studio`, a GUI of the database via. the browser (the default address is <http://localhost:5555>):
+
+```sh
+npx prisma studio
+```
+
+ALternativly download and connect with a visual database tool like `MySQL Workbench`.
+
 #### Add test data to your local MySQL instance
 
-TODO
+Test data is automatically seeded with the `npx prisma migrate reset` command (unless `--skip-seed` flag was passed), and is genereated from [seed.ts](/prisma/seed.ts)
 
-### Google Cloud & Cloud Sql Auth Proxy setup
+You can add testdata inside [seed.ts](/prisma/seed.ts) to suit your needs, and manually seed the database with:
+
+```sh
+npx prisma db seed
+```
+
+You can also manually add testdata with a graphical tool like [`Prisma Studio` etc.](#view-the-database-with-gui)
+
+Or, of course, also use `mysql` queries like `INSERT` etc. to manipulate the database.
+
+### Connect to Production Database: Google Cloud & Cloud Sql Auth Proxy setup
 
 Most developers hopefully do not need to access the production MySQL instance for day-to-day development.
 
@@ -282,8 +309,8 @@ First, follow setup instructions at https://cloud.google.com/sql/docs/mysql/conn
 
 The instance name of our database is `hidden-display-243419:europe-north1:effekt-db`. Thus, the command to setup the proxy is:
 
-```
-./cloud_sql_proxy -instances=hidden-display-243419:europe-north1:effekt-db=tcp:3306
+```sh
+./cloud_sql_proxy hidden-display-243419:europe-north1:effekt-db
 ```
 
 if cloud_sql_proxy is located in the same folder in your terminal. We recommend you store the binary somewhere on your computer, and add it to your path.
@@ -300,7 +327,7 @@ The proxy is now listening for connections on port 3306 (the standard mysql port
 
 Let's run the service, using our locally-running MySQL instance (either native or in Docker):
 
-```
+```sh
 npm start
 ```
 
@@ -318,7 +345,7 @@ If you wish to test restricted routes without having to authorize, you may also 
 
 We use mocha for our unit tests. To run the test suite, use the command
 
-```
+```sh
 npm test
 ```
 
@@ -530,13 +557,13 @@ Distributions (2 records)
 
 We're using prisma to manage database schema migrations. The schema is defined in [/prisma/schema.prisma](prisma/schema.prisma). To apply the schema locally, run
 
-```
+```sh
 npx prisma db push
 ```
 
 This is useful while developing locally. Once you're ready to make a migration file, run
 
-```
+```sh
 npx prisma migrate dev --name <migration-name>
 ```
 

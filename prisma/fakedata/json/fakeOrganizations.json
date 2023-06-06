@@ -1,0 +1,178 @@
+[
+  {
+    "ID": 1,
+    "full_name": "Against Malaria Foundation",
+    "abbriv": "AMF",
+    "short_desc": "Against Malaria Foundation driver preventivt arbeid gjennom distribusjon av impregnerte malarianett. Studier viser at for 8kr beskyttes én person i minst ett år.",
+    "long_desc": "Mygnetting til folket",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 1,
+    "ordering": 2
+  },
+  {
+    "ID": 2,
+    "full_name": "SCI Foundation",
+    "abbriv": "SCI",
+    "short_desc": "SCI Foundation bekjemper neglisjerte tropesykdommer som blant annet sneglefeber ved bruk av kostnadseffektive medisiner i Jemen og Afrika sør for Sahara.",
+    "long_desc": "Sci til folket",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 0,
+    "ordering": 5
+  },
+  {
+    "ID": 3,
+    "full_name": "The End Fund",
+    "abbriv": "End",
+    "short_desc": "end ",
+    "long_desc": "End",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 0,
+    "ordering": 0
+  },
+  {
+    "ID": 4,
+    "full_name": "Malaria Consortium",
+    "abbriv": "MC",
+    "short_desc": "Malaria Consortium utfører seasonal malaria chemoprevention (SMC) som forhindrer smitte  i Afrika, studier viser at denne metoden er svært kostnadseffektiv.",
+    "long_desc": "mc",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 1,
+    "ordering": 4
+  },
+  {
+    "ID": 5,
+    "full_name": "Deworm the World",
+    "abbriv": "DtW",
+    "short_desc": "DtW",
+    "long_desc": "DtW",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 0,
+    "ordering": 0
+  },
+  {
+    "ID": 6,
+    "full_name": "Sightsavers",
+    "abbriv": "Sight",
+    "short_desc": "Sight",
+    "long_desc": "Sight",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 0,
+    "ordering": 0
+  },
+  {
+    "ID": 7,
+    "full_name": "GiveDirectly",
+    "abbriv": "GD",
+    "short_desc": "GiveDirectly utfører kontantoverføringer til ekstremt fattige i Kenya og Uganda, slik at mottakerne kan selv velge hvor de vil investere pengene sine.",
+    "long_desc": "GD",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 1,
+    "ordering": 6
+  },
+  {
+    "ID": 8,
+    "full_name": "Project Healthy Children",
+    "abbriv": "PHC",
+    "short_desc": "PhC",
+    "long_desc": "PhC",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 0,
+    "ordering": 0
+  },
+  {
+    "ID": 9,
+    "full_name": "No Lean Season",
+    "abbriv": "NLS",
+    "short_desc": "NLS",
+    "long_desc": "NLS",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 0,
+    "ordering": 0
+  },
+  {
+    "ID": 10,
+    "full_name": "Helen Keller International",
+    "abbriv": "HKI",
+    "short_desc": "Helen Keller International forebygger mangelsykdommer ved bruk av vitamin A-tilskudd, som er årsaken til halvparten av dødsfall blant barn under 5 år.",
+    "long_desc": "HKI",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 1,
+    "ordering": 3
+  },
+  {
+    "ID": 11,
+    "full_name": "Drift av Gi Effektivt",
+    "abbriv": "Drift",
+    "short_desc": "Penger donert til oss brukes til videre drift og utvikling av våre tjenester. ",
+    "long_desc": "gieffektivt.no",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 1,
+    "ordering": 10
+  },
+  {
+    "ID": 12,
+    "full_name": "GiveWell Top Charities Fund",
+    "abbriv": "TCF",
+    "short_desc": "GiveWell gjør en kontinuerlig vurdering av saksområder for å finne de mest trengende sakene, pengene utdeles så kvartalsvis til de mest effektive organisasjonene.",
+    "long_desc": "GiveWell",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 100,
+    "is_active": 1,
+    "ordering": 1
+  },
+  {
+    "ID": 13,
+    "full_name": "GiveDirectly Borgerlønn",
+    "abbriv": "UBI",
+    "short_desc": "GiveDirectly utfører kontantoverføringer til ekstremt fattige, og driver dessuten et forsøksprosjekt med borgerlønn i Kenya (UBI). Velg dette alternativet om du vil støtte det prosjektet spesifikt.",
+    "long_desc": "GiveDirectly Borgerlønn",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 1,
+    "ordering": 7
+  },
+  {
+    "ID": 14,
+    "full_name": "New Incentives",
+    "abbriv": "NI",
+    "short_desc": "Når omsorgspersoner tar med et spedbarn til en klinikk for den første vaksinen, får de tilbud om å motta direkte kontantoverføringer hvis de fortsetter å komme tilbake i tråd med vaksinasjonsplanen.\n",
+    "long_desc": "NI",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 1,
+    "ordering": 8
+  },
+  {
+    "ID": 15,
+    "full_name": "GiveWell All Grants Fund",
+    "abbriv": "AGF",
+    "short_desc": "AGF",
+    "long_desc": "AGF",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 1,
+    "ordering": 99
+  },
+  {
+    "ID": 16,
+    "full_name": "GiveDirectly Zakat-fond",
+    "abbriv": "GDZF",
+    "short_desc": "GIveWell Zakat-fond",
+    "long_desc": "GIveWell Zakat-fond",
+    "info_url": "https://gieffektivt.no/organisasjoner",
+    "std_percentage_share": 0,
+    "is_active": 0,
+    "ordering": 9
+  }
+]
