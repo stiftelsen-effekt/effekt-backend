@@ -108,12 +108,12 @@ router.post("/register", async (req, res, next) => {
 
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
-      donationObject.donorID = await DAO.donors.add(
-        donor.email,
-        donor.name,
-        // !!--!! ================================================= SSN removed
-        donor.newsletter,
-      );
+      donationObject.donorID = await DAO.donors.add({
+        email: donor.email,
+        full_name: donor.name,
+        newsletter: donor.newsletter,
+        phone: donor.phone,
+      });
       donationObject.taxUnitId = await DAO.tax.addTaxUnit(
         donationObject.donorID,
         donor.ssn,
@@ -149,6 +149,10 @@ router.post("/register", async (req, res, next) => {
           //Not registered for newsletter, updating donor
           await DAO.donors.updateNewsletter(donationObject.donorID, donor.newsletter);
         }
+      }
+
+      if (!dbDonor.phone && donor.phone) {
+        await DAO.donors.updatePhone(donationObject.donorID, donor.phone);
       }
     }
 

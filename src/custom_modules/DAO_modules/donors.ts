@@ -232,17 +232,19 @@ async function search(filter): Promise<Array<Donor>> {
 //region Add
 /**
  * Adds a new Donor to the database
- * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
  * @returns {Number} The ID of the new Donor if successfull
  */
-async function add(email = "", name, newsletter = null): Promise<Donors["ID"]> {
+async function add(
+  data: Pick<Partial<Donors>, "email" | "full_name" | "newsletter" | "phone">,
+): Promise<Donors["ID"]> {
   var res = await DAO.execute(
     `INSERT INTO Donors (
-            email,
-            full_name, 
-            newsletter
-        ) VALUES (?,?,?)`,
-    [email, name, newsletter == true],
+        email,
+        full_name, 
+        newsletter,
+        phone
+    ) VALUES (?,?,?,?)`,
+    [data.email, data.full_name, data.newsletter, data.phone],
   );
 
   return res[0].insertId;
@@ -270,6 +272,11 @@ async function updateNewsletter(donorID, newsletter) {
  */
 async function updateName(donorID, name) {
   let res = await DAO.query(`UPDATE Donors SET full_name = ? where ID = ?`, [name, donorID]);
+  return true;
+}
+
+async function updatePhone(donorID: Donors["ID"], phone: Donors["phone"]) {
+  await DAO.query(`UPDATE Donors SET phone = ? where ID = ?`, [phone, donorID]);
   return true;
 }
 
@@ -320,6 +327,7 @@ export const donors = {
   add,
   updateNewsletter,
   updateName,
+  updatePhone,
   update,
   deleteById,
 };

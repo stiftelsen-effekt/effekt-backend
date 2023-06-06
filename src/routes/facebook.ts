@@ -50,7 +50,7 @@ router.post("/register/payment", async (req, res, next) => {
 
     // If donor does not exist, create new donor
     if (!donorID) {
-      donorID = await DAO.donors.add(email, full_name);
+      donorID = await DAO.donors.add({ email, full_name });
       taxUnitID = await DAO.tax.addTaxUnit(donorID, ssn, full_name);
       await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
     }
@@ -202,7 +202,7 @@ router.post("/register/donations", authMiddleware.isAdmin, async (req, res, next
 
       // Create new dummy donor if it doesn't already exist
       if (!donorID) {
-        donorID = await DAO.donors.add(email, fullName);
+        donorID = await DAO.donors.add({ email, full_name: fullName });
         console.log(`Created new donor with donorID ${donorID} and email ${email}`);
       }
 
