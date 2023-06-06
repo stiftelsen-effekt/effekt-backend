@@ -6,13 +6,10 @@ import { expect } from "chai";
 import * as bodyParser from "body-parser";
 import request from "supertest";
 
-let server;
-let authStub;
-let checkDonorStub;
-let checkDonationStub;
-let donorUpdateStub;
-let agreementStub;
-let donorStub;
+let authStub: sinon.SinonStub;
+let donorUpdateStub: sinon.SinonStub;
+let agreementStub: sinon.SinonStub;
+let donorStub: sinon.SinonStub;
 
 const jack = {
   id: 237,
@@ -102,209 +99,166 @@ const mockAgreementsVipps = [
   },
 ];
 
-describe("Check if donations returns for user ID", function () {
-  before(function () {
-    authStub = sinon.stub(authMiddleware, "auth").returns([]);
-    checkDonorStub = sinon.replace(
-      authMiddleware,
-      "checkAdminOrTheDonor",
-      function (donorId, res, req, next) {
-        next();
-      },
-    );
+describe("donors", () => {
+  describe("routes", () => {
+    let server: express.Express;
 
-    donorStub = sinon.stub(DAO.donors, "getByID");
-    donorStub.withArgs("237").resolves(jack);
-
-    var donationStub = sinon.stub(DAO.donations, "getByDonorId");
-    donationStub.withArgs("237").resolves(donationsStub);
-
-    const donorsRoute = require("../routes/donors");
-    server = express();
-    server.use(bodyParser.json());
-    server.use(bodyParser.urlencoded({ extended: true }));
-    server.use("/donors", donorsRoute);
-  });
-
-  beforeEach(function () {
-    sinon.resetHistory();
-  });
-
-  it("Should return 200 OK with the dontions by ID", async function () {
-    const response = await request(server).get("/donors/237/donations").expect(200);
-  });
-
-  it("Should return the donations", async function () {
-    const response = await request(server).get("/donors/237/donations");
-    expect(response.body.content).to.deep.equal(donationsStub);
-  });
-
-  after(function () {
-    sinon.restore();
-  });
-});
-
-describe("Check if profile information is updated", function () {
-  let server;
-  let authStub;
-  let checkDonorStub;
-  let donorStub;
-
-  before(function () {
-    authStub = sinon.stub(authMiddleware, "auth").returns([]);
-    checkDonorStub = sinon.replace(
-      authMiddleware,
-      "checkAdminOrTheDonor",
-      function (donorId, res, req, next) {
-        next();
-      },
-    );
-
-    donorStub = sinon.stub(DAO.donors, "getByID");
-
-    donorStub.withArgs("237").resolves(jack);
-
-    donorUpdateStub = sinon.stub(DAO.donors, "update");
-
-    const donorsRoute = require("../routes/donors");
-    server = express();
-    server.use(bodyParser.json());
-    server.use(bodyParser.urlencoded({ extended: true }));
-    server.use("/donors", donorsRoute);
-  });
-
-  beforeEach(function () {
-    sinon.resetHistory();
-  });
-
-  it("Should return 200 OK with the donor by ID", async function () {
-    const response = await request(server).get("/donors/237").expect(200);
-  });
-
-  it("Should return a donor that matches the provided id", async function () {
-    const response = await request(server).get("/donors/237");
-    expect(response.body.content).to.deep.equal(jack);
-  });
-
-  it("Should return 404 when donor is not found", async function () {
-    donorStub.withArgs("123").resolves(null);
-    const response = await request(server).put("/donors/123");
-    expect(response.status).to.equal(404);
-  });
-
-  it("Should update donor", async function () {
-    donorUpdateStub.resolves(true);
-    const response = await request(server).put("/donors/237").send(jack);
-    expect(response.status).to.equal(200);
-    expect(donorUpdateStub.callCount).to.equal(1);
-  });
-
-  it("Should return 400 when name is not a string", async function () {
-    donorUpdateStub.resolves(true);
-    const response = await request(server).put("/donors/237").send({
-      name: 1010,
+    beforeEach(() => {
+      const donorsRoute = require("../routes/donors");
+      server = express();
+      server.use(bodyParser.json());
+      server.use(bodyParser.urlencoded({ extended: true }));
+      server.use("/donors", donorsRoute);
     });
-    expect(response.status).to.equal(400);
-    expect(donorUpdateStub.callCount).to.equal(0);
-  });
 
-  it("Should return 200 when updating name", async function () {
-    donorUpdateStub.resolves(true);
-    const response = await request(server).put("/donors/237").send({
-      name: "Jack Torrance",
+    describe("GET /donors/:id/donations", function () {
+      beforeEach(function () {
+        authStub = sinon.stub(authMiddleware, "auth").returns([]);
+        sinon.replace(authMiddleware, "checkAdminOrTheDonor", function (donorId, res, req, next) {
+          next();
+        });
+
+        donorStub = sinon.stub(DAO.donors, "getByID");
+        donorStub.withArgs("237").resolves(jack);
+
+        var donationStub = sinon.stub(DAO.donations, "getByDonorId");
+        donationStub.withArgs("237").resolves(donationsStub);
+      });
+
+      it("Should return 200 OK with the dontions by ID", async function () {
+        const response = await request(server).get("/donors/237/donations").expect(200);
+      });
+
+      it("Should return the donations", async function () {
+        const response = await request(server).get("/donors/237/donations");
+        expect(response.body.content).to.deep.equal(donationsStub);
+      });
     });
-    expect(response.status).to.equal(200);
-    expect(donorUpdateStub.callCount).to.equal(1);
-  });
 
-  it("Should return 400 when newsletter is not a boolean", async function () {
-    donorUpdateStub.resolves(true);
-    const response = await request(server).put("/donors/237").send({
-      name: "Jack Torrance",
-      newsletter: "Yes",
+    describe("GET /donors/:id", function () {
+      beforeEach(function () {
+        authStub = sinon.stub(authMiddleware, "auth").returns([]);
+        sinon.replace(authMiddleware, "checkAdminOrTheDonor", function (donorId, res, req, next) {
+          next();
+        });
+
+        donorStub = sinon.stub(DAO.donors, "getByID");
+
+        donorStub.withArgs("237").resolves(jack);
+
+        donorUpdateStub = sinon.stub(DAO.donors, "update");
+      });
+
+      it("Should return 200 OK with the donor by ID", async function () {
+        const response = await request(server).get("/donors/237").expect(200);
+      });
+
+      it("Should return a donor that matches the provided id", async function () {
+        const response = await request(server).get("/donors/237");
+        expect(response.body.content).to.deep.equal(jack);
+      });
     });
-    expect(response.status).to.equal(400);
-    expect(donorUpdateStub.callCount).to.equal(0);
+
+    describe("PUT /donors/:id", () => {
+      beforeEach(function () {
+        authStub = sinon.stub(authMiddleware, "auth").returns([]);
+        sinon.replace(authMiddleware, "checkAdminOrTheDonor", function (donorId, res, req, next) {
+          next();
+        });
+
+        donorStub = sinon.stub(DAO.donors, "getByID");
+
+        donorStub.withArgs("237").resolves(jack);
+
+        donorUpdateStub = sinon.stub(DAO.donors, "update");
+      });
+
+      it("Should return 404 when donor is not found", async function () {
+        donorStub.withArgs("123").resolves(null);
+        const response = await request(server).put("/donors/123");
+        expect(response.status).to.equal(404);
+      });
+
+      it("Should update donor", async function () {
+        donorUpdateStub.resolves(true);
+        const response = await request(server).put("/donors/237").send(jack);
+        expect(response.status).to.equal(200);
+        expect(donorUpdateStub.callCount).to.equal(1);
+      });
+
+      it("Should return 400 when name is not a string", async function () {
+        donorUpdateStub.resolves(true);
+        const response = await request(server).put("/donors/237").send({
+          name: 1010,
+        });
+        expect(response.status).to.equal(400);
+        expect(donorUpdateStub.callCount).to.equal(0);
+      });
+
+      it("Should return 200 when updating name", async function () {
+        donorUpdateStub.resolves(true);
+        const response = await request(server).put("/donors/237").send({
+          name: "Jack Torrance",
+        });
+        expect(response.status).to.equal(200);
+        expect(donorUpdateStub.callCount).to.equal(1);
+      });
+
+      it("Should return 400 when newsletter is not a boolean", async function () {
+        donorUpdateStub.resolves(true);
+        const response = await request(server).put("/donors/237").send({
+          name: "Jack Torrance",
+          newsletter: "Yes",
+        });
+        expect(response.status).to.equal(400);
+        expect(donorUpdateStub.callCount).to.equal(0);
+      });
+    });
+
+    describe("GET /donors/:id/recurring/avtalegiro", function () {
+      beforeEach(function () {
+        authStub = sinon.stub(authMiddleware, "auth").returns([]);
+        sinon.replace(authMiddleware, "checkAdminOrTheDonor", function (donorId, res, req, next) {
+          next();
+        });
+
+        agreementStub = sinon.stub(DAO.avtalegiroagreements, "getByDonorId");
+        agreementStub.resolves(mockAgreements);
+      });
+
+      it("Should return 200 OK", async function () {
+        const response = await request(server).get("/donors/237/recurring/avtalegiro").expect(200);
+      });
+
+      it("Should return the agreements", async function () {
+        const response = await request(server).get("/donors/237/recurring/avtalegiro");
+        expect(response.body.content).to.deep.equal(mockAgreements);
+      });
+    });
+
+    describe("GET /donors/:id/recurring/vipps", function () {
+      beforeEach(function () {
+        authStub = sinon.stub(authMiddleware, "auth").returns([]);
+        sinon.replace(authMiddleware, "checkAdminOrTheDonor", function (donorId, res, req, next) {
+          next();
+        });
+
+        agreementStub = sinon.stub(DAO.vipps, "getAgreementsByDonorId");
+        agreementStub.resolves(mockAgreementsVipps);
+      });
+
+      it("Should return 200 OK", async function () {
+        const response = await request(server).get("/donors/237/recurring/vipps").expect(200);
+      });
+
+      it("Should return the agreements", async function () {
+        const response = await request(server).get("/donors/237/recurring/vipps");
+        expect(response.body.content).to.deep.equal(mockAgreementsVipps);
+      });
+    });
   });
 
-  after(function () {
-    sinon.restore();
-  });
-});
-
-describe("Check if /:id/recurring/avtalegiro return agreements", function () {
-  before(function () {
-    authStub = sinon.stub(authMiddleware, "auth").returns([]);
-    checkDonorStub = sinon.replace(
-      authMiddleware,
-      "checkAdminOrTheDonor",
-      function (donorId, res, req, next) {
-        next();
-      },
-    );
-
-    agreementStub = sinon.stub(DAO.avtalegiroagreements, "getByDonorId");
-    agreementStub.resolves(mockAgreements);
-
-    const donorsRoute = require("../routes/donors");
-    server = express();
-    server.use(bodyParser.json());
-    server.use(bodyParser.urlencoded({ extended: true }));
-    server.use("/donors", donorsRoute);
-  });
-
-  beforeEach(function () {
-    sinon.resetHistory();
-  });
-  it("Should return 200 OK", async function () {
-    const response = await request(server).get("/donors/237/recurring/avtalegiro").expect(200);
-  });
-
-  it("Should return the agreements", async function () {
-    const response = await request(server).get("/donors/237/recurring/avtalegiro");
-    expect(response.body.content).to.deep.equal(mockAgreements);
-  });
-
-  after(function () {
-    sinon.restore();
-  });
-});
-
-describe("Check if /:id/recurring/vipps return agreements", function () {
-  before(function () {
-    authStub = sinon.stub(authMiddleware, "auth").returns([]);
-    checkDonorStub = sinon.replace(
-      authMiddleware,
-      "checkAdminOrTheDonor",
-      function (donorId, res, req, next) {
-        next();
-      },
-    );
-
-    agreementStub = sinon.stub(DAO.vipps, "getAgreementsByDonorId");
-    agreementStub.resolves(mockAgreementsVipps);
-
-    const donorsRoute = require("../routes/donors");
-    server = express();
-    server.use(bodyParser.json());
-    server.use(bodyParser.urlencoded({ extended: true }));
-    server.use("/donors", donorsRoute);
-  });
-
-  beforeEach(function () {
-    sinon.resetHistory();
-  });
-
-  it("Should return 200 OK", async function () {
-    const response = await request(server).get("/donors/237/recurring/vipps").expect(200);
-  });
-
-  it("Should return the agreements", async function () {
-    const response = await request(server).get("/donors/237/recurring/vipps");
-    expect(response.body.content).to.deep.equal(mockAgreementsVipps);
-  });
-
-  after(function () {
+  afterEach(function () {
     sinon.restore();
   });
 });
