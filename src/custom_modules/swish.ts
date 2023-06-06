@@ -40,14 +40,12 @@ async function createPaymentRequest(data: {
   phone: string;
   reference: string;
 }) {
-  const formattedPhone = formatPhoneNumberForSwish(data.phone);
-
   const swishRequestData: SwishPaymentRequest = {
     callbackUrl: `${config.api_url}/swish/callback`,
     amount: data.amount,
     currency: "SEK", // only SEK is supported
     payeeAlias: config.swish_payee_alias,
-    payerAlias: formattedPhone,
+    payerAlias: data.phone,
     payeePaymentReference: data.reference,
   };
 
@@ -153,19 +151,6 @@ export async function handleOrderStatusUpdate(
       // TODO: Send error mail (https://github.com/stiftelsen-effekt/effekt-backend/issues/552)
     }
   }
-}
-
-/**
- * Some phone numbers from frontend input could contain a leading 0 after the country code
- * which will cause the Swish payment to fail
- * Required format: 467XXXXXXXX
- * @param phone
- */
-function formatPhoneNumberForSwish(phone: string) {
-  if (phone.startsWith("4607")) {
-    return "467" + phone.substring(4);
-  }
-  return phone;
 }
 
 /**

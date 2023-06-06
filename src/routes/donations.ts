@@ -63,6 +63,14 @@ router.post("/register", async (req, res, next) => {
     amount: string | number;
   };
 
+  if (parsedData.method === methods.swish) {
+    if (!parsedData.donor.phone) return res.status(400).send("Missing phone number");
+    if (!parsedData.donor.phone.startsWith("467"))
+      return res.status(400).send("Invalid phone number format");
+    if (parsedData.recurring)
+      return res.status(400).send("Recurring donations not supported with Swish");
+  }
+
   let donationOrganizations = parsedData.organizations;
   let donor = parsedData.donor;
   let paymentProviderUrl = "";
