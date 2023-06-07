@@ -129,13 +129,13 @@ DAO.connect(() => {
 
   //Routes
   const donorsRoute = require("./routes/donors");
-  const donationsRoute = require("./routes/donations");
+  const donationsRoute = require("./routes/donations").default;
   const distributionsRoute = require("./routes/distributions");
   const organizationsRoute = require("./routes/organizations");
   const reportsRoute = require("./routes/reports");
   const paypalRoute = require("./routes/paypal");
   const vippsRoute = require("./routes/vipps");
-  const swishRoute = require("./routes/swish");
+  const swishRoute = require("./routes/swish").default;
   const paymentRoute = require("./routes/payment");
   const referralsRoute = require("./routes/referrals");
   const scheduledRoute = require("./routes/scheduled");
