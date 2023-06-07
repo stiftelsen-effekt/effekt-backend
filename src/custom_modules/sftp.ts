@@ -1,6 +1,5 @@
+import * as config from "./../config";
 import SftpClient from "ssh2-sftp-client";
-
-const config = require("../config.js");
 
 export async function getConnection() {
   const sftp = new SftpClient();
