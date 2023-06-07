@@ -8,20 +8,19 @@ import {
   sendDonationRegistered,
 } from "../custom_modules/mail";
 import * as swish from "../custom_modules/swish";
+import rateLimit from "express-rate-limit";
+import methods from "../enums/methods";
+import bodyParser from "body-parser";
+import apicache from "apicache";
 
 const config = require("../config");
 
 const router = express.Router();
-import bodyParser from "body-parser";
 const urlEncodeParser = bodyParser.urlencoded({ extended: true });
-import apicache from "apicache";
 const cache = apicache.middleware;
-
-const methods = require("../enums/methods");
 
 const vipps = require("../custom_modules/vipps");
 const dateRangeHelper = require("../custom_modules/dateRangeHelper");
-import rateLimit from "express-rate-limit";
 
 /**
  * @openapi
@@ -48,7 +47,6 @@ router.get("/status", async (req, res, next) => {
  *    description: Registers a pending donation
  */
 router.post("/register", async (req, res, next) => {
-  if (!req.body) return res.sendStatus(400);
   let parsedData = req.body as {
     organizations: any;
     donor: {
@@ -58,12 +56,14 @@ router.post("/register", async (req, res, next) => {
       ssn?: string;
       phone?: string;
     };
-    method: string;
+    method: number;
     recurring: boolean;
     amount: string | number;
   };
 
-  if (parsedData.method === methods.swish) {
+  if (!parsedData || Object.entries(parsedData).length === 0) return res.sendStatus(400);
+
+  if (parsedData.method === methods.SWISH) {
     if (!parsedData.donor.phone) return res.status(400).send("Missing phone number");
     if (!parsedData.donor.phone.startsWith("467"))
       return res.status(400).send("Invalid phone number format");
@@ -665,4 +665,4 @@ router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-module.exports = router;
+export default router;

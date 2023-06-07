@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   VIPPS: 6,
   BANK: 2,
   PAYPAL: 3,

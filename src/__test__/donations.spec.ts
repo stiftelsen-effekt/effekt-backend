@@ -1,3 +1,206 @@
+import bodyParser from "body-parser";
+import { expect } from "chai";
+import express from "express";
+import sinon from "sinon";
+import request from "supertest";
+import { DAO } from "../custom_modules/DAO";
+import { donationHelpers } from "../custom_modules/donationHelpers";
+import * as swish from "../custom_modules/swish";
+import methods from "../enums/methods";
+import donationsRouter from "../routes/donations";
+
 describe("donations", () => {
-  describe("routes", () => {});
+  describe("routes", () => {
+    let server: express.Express;
+
+    beforeEach(() => {
+      server = express();
+      server.use(bodyParser.json());
+      server.use(bodyParser.urlencoded({ extended: true }));
+      server.use("/donations", donationsRouter);
+    });
+
+    describe("POST /donations/register", () => {
+      let donorsGetIDByEmailStub: sinon.SinonStub;
+      let donorsGetByIDStub: sinon.SinonStub;
+      let donorsAddStub: sinon.SinonStub;
+      let addTaxUnitStub: sinon.SinonStub;
+      let taxGetByDonorIdAndSsnStub: sinon.SinonStub;
+      let createDonationSplitArrayStub: sinon.SinonStub;
+      let getStandardSplitStub: sinon.SinonStub;
+      let createKIDStub: sinon.SinonStub;
+      let distributionsGetKIDBySplitStub: sinon.SinonStub;
+      let distributionsAddStub: sinon.SinonStub;
+      let addPaymentIntentStub: sinon.SinonStub;
+      let referralsGetDonorAnsweredStub: sinon.SinonStub;
+
+      function withDonor(
+        donor: Partial<Awaited<ReturnType<typeof DAO.donors.getByID>>> | null,
+      ): void {
+        donorsGetIDByEmailStub.resolves(donor ? donor.id : null);
+        donorsGetByIDStub.resolves(donor);
+      }
+
+      function withDonationSplit(
+        donationSplitArray: Awaited<ReturnType<typeof donationHelpers.createDonationSplitArray>>,
+      ): void {
+        createDonationSplitArrayStub.returns(donationSplitArray);
+      }
+
+      function withDonationStandardSplit(
+        donationStandardSplit: Awaited<ReturnType<typeof donationHelpers.getStandardSplit>>,
+      ): void {
+        getStandardSplitStub.returns(donationStandardSplit);
+      }
+
+      function withCreatedKID(KID: string) {
+        createKIDStub.resolves(KID);
+      }
+
+      function withDistributionsKID(KID?: string) {
+        distributionsGetKIDBySplitStub.resolves(KID);
+      }
+
+      function withReferralAnswered(answered: boolean) {
+        referralsGetDonorAnsweredStub.resolves(answered);
+      }
+
+      function withTaxUnit(
+        taxUnit: Partial<Awaited<ReturnType<typeof DAO.tax.getByDonorIdAndSsn>>> | null,
+      ) {
+        taxGetByDonorIdAndSsnStub.resolves(taxUnit);
+      }
+
+      beforeEach(() => {
+        donorsGetIDByEmailStub = sinon.stub(DAO.donors, "getIDbyEmail");
+        donorsGetByIDStub = sinon.stub(DAO.donors, "getByID");
+        donorsAddStub = sinon.stub(DAO.donors, "add");
+        addTaxUnitStub = sinon.stub(DAO.tax, "addTaxUnit");
+        createDonationSplitArrayStub = sinon.stub(donationHelpers, "createDonationSplitArray");
+        getStandardSplitStub = sinon.stub(donationHelpers, "getStandardSplit");
+        createKIDStub = sinon.stub(donationHelpers, "createKID");
+        distributionsGetKIDBySplitStub = sinon.stub(DAO.distributions, "getKIDbySplit");
+        distributionsAddStub = sinon.stub(DAO.distributions, "add");
+        addPaymentIntentStub = sinon.stub(DAO.initialpaymentmethod, "addPaymentIntent");
+        referralsGetDonorAnsweredStub = sinon.stub(DAO.referrals, "getDonorAnswered");
+        taxGetByDonorIdAndSsnStub = sinon.stub(DAO.tax, "getByDonorIdAndSsn");
+
+        withDonor(null);
+        withDonationSplit([]);
+        withDonationStandardSplit([]);
+        withDistributionsKID();
+        withReferralAnswered(false);
+      });
+
+      it("should add a new donor if donor does not exist", async () => {
+        const body = {
+          donor: {
+            email: "test@example.com",
+            name: "Test Testsson",
+            phone: "46701234567",
+            newsletter: true,
+          },
+        };
+        await request(server).post("/donations/register").send(body).expect(200);
+
+        expect(donorsAddStub.calledOnce).to.be.true;
+        expect(donorsAddStub.firstCall.args[0]).to.deep.equal({
+          email: body.donor.email,
+          full_name: body.donor.name,
+          phone: body.donor.phone,
+          newsletter: body.donor.newsletter,
+        });
+      });
+
+      it("should add tax unit to added donor", async () => {
+        const donorId = 123;
+        donorsAddStub.resolves(donorId);
+
+        const body = {
+          donor: {
+            name: "Test Testsson",
+            ssn: "1234567890",
+          },
+        };
+        await request(server).post("/donations/register").send(body).expect(200);
+
+        expect(addTaxUnitStub.calledOnce).to.be.true;
+        expect(addTaxUnitStub.firstCall.args[0]).to.equal(donorId);
+        expect(addTaxUnitStub.firstCall.args[1]).to.equal(body.donor.ssn);
+        expect(addTaxUnitStub.firstCall.args[2]).to.equal(body.donor.name);
+      });
+
+      it("should not add tax unit if donor already has one", async () => {
+        withTaxUnit({});
+        withDonor({ id: 123 });
+
+        const body = {
+          donor: {
+            name: "Test Testsson",
+            ssn: "1234567890",
+          },
+        };
+        await request(server).post("/donations/register").send(body).expect(200);
+
+        expect(addTaxUnitStub.called).to.be.false;
+      });
+
+      it("should update donor phone number if missing", async () => {
+        const stub = sinon.stub(DAO.donors, "updatePhone");
+        const donorId = 123;
+        withDonor({ id: donorId });
+
+        const body = {
+          donor: {
+            phone: "46701234567",
+          },
+        };
+        await request(server).post("/donations/register").send(body).expect(200);
+
+        expect(stub.calledOnce).to.be.true;
+        expect(stub.firstCall.args[0]).to.equal(donorId);
+        expect(stub.firstCall.args[1]).to.equal(body.donor.phone);
+      });
+
+      it("should initiate swish order", async () => {
+        const KID = "1234567890";
+        withCreatedKID(KID);
+        const stub = sinon.stub(swish, "initiateOrder");
+
+        const body = {
+          method: methods.SWISH,
+          donor: {
+            phone: "46701234567",
+          },
+          amount: 100,
+          recurring: false,
+        };
+        await request(server).post("/donations/register").send(body).expect(200);
+
+        expect(stub.calledOnce).to.be.true;
+        expect(stub.firstCall.args[0]).to.equal(KID);
+        expect(stub.firstCall.args[1]).to.deep.equal({ amount: body.amount });
+      });
+
+      it("should return 400 if missing body", async () => {
+        await request(server).post("/donations/register").send(undefined).expect(400);
+      });
+
+      it("should return 400 if badly formatted phone for swish", async () => {
+        await request(server)
+          .post("/donations/register")
+          .send({
+            method: methods.SWISH,
+            donor: {
+              phone: "123",
+            },
+          })
+          .expect(400);
+      });
+    });
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
 });
