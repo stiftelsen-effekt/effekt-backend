@@ -180,8 +180,5 @@ export async function getSwishOrder(ID: SwishOrder["ID"]) {
     });
     return await DAO.swish.getOrder(ID);
   }
-  return {
-    ID: order.ID,
-    status: order.status,
-  };
+  return order;
 }
