@@ -9,7 +9,7 @@
     "test": "mocha --require ts-node/register --require dotenv/config",
     "test-coverage": "nyc --reporter=text mocha --require ts-node/register src/__test__",
     "typecheck": "tsc --noEmit",
-    "build": "copyfiles -u 1 src/views/**/* dist/ && tsc",
+    "build": "copyfiles -u 1 src/views/**/* src/views/**/**/* src/views/**/**/**/* dist/ && tsc",
     "start": "node ./dist/server.js",
     "dev": "export NODEMON=true && nodemon src/server.ts",
     "debug": "export NODEMON=true && nodemon --exec 'node --inspect=0.0.0.0:9229 --require ts-node/register src/server.ts'",
