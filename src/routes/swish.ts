@@ -42,7 +42,7 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
  *                  status:
  *                    type: string
  */
-router.get("/orders/:id", async (req, res) => {
+router.get("/orders/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
     const order = await swish.getSwishOrder(parseInt(id));
@@ -53,7 +53,7 @@ router.get("/orders/:id", async (req, res) => {
     });
   } catch (err) {
     console.error("Error while fetching payment request: ", err);
-    res.sendStatus(500);
+    next(err);
   }
 });
 
@@ -80,14 +80,14 @@ interface SwishCallbackRequestBody {
  *      tags: [Swish]
  *      description: Called by Swish whenever there is a payment update (https://developer.swish.nu/documentation/guides/create-a-payment-request#handling-the-callback)
  */
-router.post("/callback", jsonBody, swishWhitelistMiddleware, async (req, res) => {
+router.post("/callback", jsonBody, swishWhitelistMiddleware, async (req, res, next) => {
   try {
     const { status, amount, id } = req.body as SwishCallbackRequestBody;
     await swish.handleOrderStatusUpdate(id, { status, amount });
     res.sendStatus(200);
   } catch (err) {
     console.error("Error while processing Swish callback: ", err);
-    res.sendStatus(500);
+    next(err);
   }
 });
 
