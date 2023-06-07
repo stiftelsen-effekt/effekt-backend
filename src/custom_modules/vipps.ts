@@ -831,7 +831,7 @@ module.exports = {
       description: "Fast donasjon til Gi Effektivt.",
       due: formattedDueDate,
       retryDays: 5,
-      transactionType: "RESERVE_CAPTURE",
+      transactionType: "DIRECT_CAPTURE",
     };
 
     const headers = this.getVippsHeaders(token);
