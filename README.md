@@ -532,8 +532,16 @@ gcloud run jobs create <SERVICE_NAME>-db-migrate \
 
 ### Vipps 🇳🇴
 
+> ❗ **NOK only**
+
 ### PayPal
 
 ### Facebook
 
 ### Swish 🇸🇪
+
+> ❗ **SEK only**
+
+> ❗ **One-time donations only**
+
+Read more about Swish [here](https://www.swish.nu/).
