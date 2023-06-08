@@ -64,7 +64,6 @@ async function getByKID(KID) {
       email: dbDonor[0].email,
       name: dbDonor[0].full_name,
       registered: dbDonor[0].date_registered,
-      phone: dbDonor[0].phone,
     };
   } else {
     return null;
@@ -235,16 +234,15 @@ async function search(filter): Promise<Array<Donor>> {
  * @returns {Number} The ID of the new Donor if successfull
  */
 async function add(
-  data: Pick<Partial<Donors>, "email" | "full_name" | "newsletter" | "phone">,
+  data: Pick<Partial<Donors>, "email" | "full_name" | "newsletter">,
 ): Promise<Donors["ID"]> {
   var res = await DAO.execute(
     `INSERT INTO Donors (
         email,
         full_name, 
         newsletter,
-        phone
     ) VALUES (?,?,?,?)`,
-    [data.email, data.full_name, data.newsletter, data.phone],
+    [data.email, data.full_name, data.newsletter],
   );
 
   return res[0].insertId;
@@ -272,11 +270,6 @@ async function updateNewsletter(donorID, newsletter) {
  */
 async function updateName(donorID, name) {
   let res = await DAO.query(`UPDATE Donors SET full_name = ? where ID = ?`, [name, donorID]);
-  return true;
-}
-
-async function updatePhone(donorID: Donors["ID"], phone: Donors["phone"]) {
-  await DAO.query(`UPDATE Donors SET phone = ? where ID = ?`, [phone, donorID]);
   return true;
 }
 
@@ -327,7 +320,6 @@ export const donors = {
   add,
   updateNewsletter,
   updateName,
-  updatePhone,
   update,
   deleteById,
 };

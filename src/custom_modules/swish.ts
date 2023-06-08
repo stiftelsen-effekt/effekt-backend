@@ -83,17 +83,19 @@ async function retrievePaymentRequest(instructionUUID: string): Promise<SwishPay
 /**
  * Creates a swish payment request and adds a swish order to the database
  */
-export async function initiateOrder(KID: string, data: Pick<SwishPaymentRequest, "amount">) {
+export async function initiateOrder(KID: string, data: { amount: number; phone: string }) {
   const instructionUUID = generateSwishInstructionUUID();
   const reference = generatePaymentReference();
   const donor = await DAO.donors.getByKID(KID);
 
-  if (!donor.phone) throw new Error("Missing phone number");
+  if (!donor) {
+    throw new Error(`Could not find donor with KID: ${KID}`);
+  }
 
   const paymentRequest = await createPaymentRequest({
     instructionUUID,
     amount: data.amount,
-    phone: donor.phone,
+    phone: data.phone,
     reference,
   });
 

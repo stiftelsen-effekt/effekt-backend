@@ -97,7 +97,6 @@ describe("donations", () => {
           donor: {
             email: "test@example.com",
             name: "Test Testsson",
-            phone: "46701234567",
             newsletter: true,
           },
         };
@@ -107,7 +106,6 @@ describe("donations", () => {
         expect(donorsAddStub.firstCall.args[0]).to.deep.equal({
           email: body.donor.email,
           full_name: body.donor.name,
-          phone: body.donor.phone,
           newsletter: body.donor.newsletter,
         });
       });
@@ -145,23 +143,6 @@ describe("donations", () => {
         expect(addTaxUnitStub.called).to.be.false;
       });
 
-      it("should update donor phone number if missing", async () => {
-        const stub = sinon.stub(DAO.donors, "updatePhone");
-        const donorId = 123;
-        withDonor({ id: donorId });
-
-        const body = {
-          donor: {
-            phone: "46701234567",
-          },
-        };
-        await request(server).post("/donations/register").send(body).expect(200);
-
-        expect(stub.calledOnce).to.be.true;
-        expect(stub.firstCall.args[0]).to.equal(donorId);
-        expect(stub.firstCall.args[1]).to.equal(body.donor.phone);
-      });
-
       it("should initiate swish order", async () => {
         const KID = "1234567890";
         withCreatedKID(KID);
@@ -169,17 +150,16 @@ describe("donations", () => {
 
         const body = {
           method: methods.SWISH,
-          donor: {
-            phone: "46701234567",
-          },
+          phone: "46701234567",
           amount: 100,
           recurring: false,
+          donor: {},
         };
         await request(server).post("/donations/register").send(body).expect(200);
 
         expect(stub.calledOnce).to.be.true;
         expect(stub.firstCall.args[0]).to.equal(KID);
-        expect(stub.firstCall.args[1]).to.deep.equal({ amount: body.amount });
+        expect(stub.firstCall.args[1]).to.deep.equal({ amount: body.amount, phone: body.phone });
       });
 
       it("should return 400 if missing body", async () => {
@@ -191,9 +171,7 @@ describe("donations", () => {
           .post("/donations/register")
           .send({
             method: methods.SWISH,
-            donor: {
-              phone: "123",
-            },
+            phone: "123",
           })
           .expect(400);
       });

@@ -17,12 +17,6 @@ describe("swish", () => {
     let getByKIDStub: sinon.SinonStub;
     let addOrderStub: sinon.SinonStub;
 
-    beforeEach(() => {
-      fetchStub = sinon.stub(global, "fetch");
-      getByKIDStub = sinon.stub(DAO.donors, "getByKID");
-      addOrderStub = sinon.stub(DAO.swish, "addOrder");
-    });
-
     function withPaymentRequestStatus(status: number) {
       fetchStub.resolves({
         status,
@@ -33,17 +27,24 @@ describe("swish", () => {
       getByKIDStub.resolves(donor as any);
     }
 
+    beforeEach(() => {
+      fetchStub = sinon.stub(global, "fetch");
+      getByKIDStub = sinon.stub(DAO.donors, "getByKID");
+      addOrderStub = sinon.stub(DAO.swish, "addOrder");
+
+      withDonor({ id: 1 });
+      withPaymentRequestStatus(201);
+    });
+
     it("should add order if donor has phone and payment request is successful", async () => {
       const KID = "1234567890";
       const donorId = 1323;
 
-      withPaymentRequestStatus(201);
       withDonor({
         id: donorId,
-        phone: "46707074730",
       });
 
-      await initiateOrder(KID, { amount: 100 });
+      await initiateOrder(KID, { amount: 100, phone: "46707074730" });
 
       expect(addOrderStub.called).to.be.true;
       expect(addOrderStub.args[0][0]).to.contain({
@@ -56,10 +57,7 @@ describe("swish", () => {
       const amount = 100;
       const phone = "46707074730";
 
-      withDonor({ phone });
-      withPaymentRequestStatus(201);
-
-      await initiateOrder("1234567890", { amount });
+      await initiateOrder("1234567890", { amount, phone });
 
       expect(fetchStub.called).to.be.true;
       expect(fetchStub.args[0][0]).to.contain("");
@@ -74,10 +72,7 @@ describe("swish", () => {
       const date = new Date("2020-01-01T00:00:00.000Z");
       sinon.useFakeTimers(date.getTime());
 
-      withDonor({ phone: "46707074730" });
-      withPaymentRequestStatus(201);
-
-      await initiateOrder("1234567890", { amount: 100 });
+      await initiateOrder("1234567890", { amount: 100, phone: "46707074730" });
 
       expect(fetchStub.called).to.be.true;
       const body = JSON.parse(fetchStub.args[0][1].body);
@@ -87,21 +82,26 @@ describe("swish", () => {
       expect(reference).to.match(/^[0-9]+$/);
     });
 
-    it("should throw error if donor has no phone", async () => {
-      withDonor({ phone: null });
+    it("should throw error if no donor found with KID", async () => {
+      withDonor(null);
 
-      await initiateOrder("1234567890", { amount: 100 }).catch((err) => {
-        expect(err.message).to.contain("Missing phone number");
-      });
+      try {
+        await initiateOrder("1234567890", { amount: 100, phone: "46707432643" });
+        throw new Error("Promise did not reject as expected");
+      } catch (err) {
+        expect(err.message).to.contain("Could not find donor");
+      }
     });
 
     it("should throw error if payment request is unsuccessful", async () => {
-      withDonor({ phone: "46707074730" });
       withPaymentRequestStatus(400);
 
-      await initiateOrder("1234567890", { amount: 100 }).catch((err) => {
+      try {
+        await initiateOrder("1234567890", { amount: 100, phone: "46707432643" });
+        throw new Error("Promise did not reject as expected");
+      } catch (err) {
         expect(err.message).to.contain("Could not initiate payment");
-      });
+      }
     });
   });
 

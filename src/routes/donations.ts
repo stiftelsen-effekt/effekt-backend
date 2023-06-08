@@ -54,9 +54,9 @@ router.post("/register", async (req, res, next) => {
       name: string;
       newsletter: boolean;
       ssn?: string;
-      phone?: string;
     };
     method: number;
+    phone?: string;
     recurring: boolean;
     amount: string | number;
   };
@@ -64,8 +64,8 @@ router.post("/register", async (req, res, next) => {
   if (!parsedData || Object.entries(parsedData).length === 0) return res.sendStatus(400);
 
   if (parsedData.method === methods.SWISH) {
-    if (!parsedData.donor.phone) return res.status(400).send("Missing phone number");
-    if (!parsedData.donor.phone.startsWith("467"))
+    if (!parsedData.phone) return res.status(400).send("Missing phone number");
+    if (!parsedData.phone.startsWith("467"))
       return res.status(400).send("Invalid phone number format");
     if (parsedData.recurring)
       return res.status(400).send("Recurring donations not supported with Swish");
@@ -112,7 +112,6 @@ router.post("/register", async (req, res, next) => {
         email: donor.email,
         full_name: donor.name,
         newsletter: donor.newsletter,
-        phone: donor.phone,
       });
       donationObject.taxUnitId = await DAO.tax.addTaxUnit(
         donationObject.donorID,
@@ -149,10 +148,6 @@ router.post("/register", async (req, res, next) => {
           //Not registered for newsletter, updating donor
           await DAO.donors.updateNewsletter(donationObject.donorID, donor.newsletter);
         }
-      }
-
-      if (!dbDonor.phone && donor.phone) {
-        await DAO.donors.updatePhone(donationObject.donorID, donor.phone);
       }
     }
 
@@ -207,6 +202,7 @@ router.post("/register", async (req, res, next) => {
       case methods.SWISH: {
         if (recurring == false) {
           await swish.initiateOrder(donationObject.KID, {
+            phone: parsedData.phone,
             amount:
               typeof donationObject.amount === "string"
                 ? parseInt(donationObject.amount)

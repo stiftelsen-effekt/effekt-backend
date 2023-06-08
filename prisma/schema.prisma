@@ -128,7 +128,6 @@ model Donors {
   newsletter       Boolean?
   trash            Int?               @db.TinyInt
   ssn              String?            @db.VarChar(45)
-  phone            String?            @db.VarChar(45)
   Combining_table  Combining_table[]
   Donations        Donations[]
   FB_payment_ID    FB_payment_ID[]

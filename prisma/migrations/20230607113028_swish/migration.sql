@@ -1,6 +1,3 @@
--- AlterTable
-ALTER TABLE `Donors` ADD COLUMN `phone` VARCHAR(45) NULL;
-
 -- CreateTable
 CREATE TABLE `SwishOrder` (
     `ID` INTEGER NOT NULL AUTO_INCREMENT,
