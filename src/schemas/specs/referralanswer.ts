@@ -3,7 +3,9 @@
  * Do not make direct changes to the file.
  */
 
-export interface paths {}
+export type paths = Record<string, never>;
+
+export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
@@ -38,8 +40,13 @@ export interface components {
       active: boolean;
     };
   };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 
-export interface operations {}
+export type external = Record<string, never>;
 
-export interface external {}
+export type operations = Record<string, never>;
