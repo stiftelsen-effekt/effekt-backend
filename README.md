@@ -174,9 +174,9 @@ Then run:
 ```sh
 docker run -d \
 --name effekt-mysql \
--p 3306:3306 -e \
-MYSQL_ROOT_PASSWORD=effekt \
-MYSQL_DATABASE=EffektDonasjonDB_Local \
+-p 3306:3306 \
+-e MYSQL_ROOT_PASSWORD=effekt \
+-e MYSQL_DATABASE=EffektDonasjonDB_Local \
 -v effekt-mysql_volume:/var/lib/mysql \
 mysql:latest
 ```
