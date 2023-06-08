@@ -41,7 +41,7 @@ async function getFacebookCampaignOrgShares(ID) {
             FROM FB_campaign_org_shares
             WHERE FB_campaign_ID = ?
             `,
-    [ID]
+    [ID],
   );
 
   return results;
@@ -53,7 +53,7 @@ async function getFacebookCampaignOrgShares(ID) {
  * @returns {Number | null} The ID of the tax unit associated with the paymentID
  */
 async function getRegisteredFacebookDonation(
-  paymentID: string
+  paymentID: string,
 ): Promise<RegisteredFacebookDonation | null> {
   let [results] = await DAO.query(
     `
@@ -61,7 +61,7 @@ async function getRegisteredFacebookDonation(
               FROM FB_payment_ID
               WHERE paymentID = ?
               `,
-    [paymentID]
+    [paymentID],
   );
 
   if (results.length > 0) {
@@ -81,7 +81,7 @@ async function getRegisteredFacebookDonation(
  * @returns {Array<{ donorID: number, taxUnitID: number }>}
  */
 async function getRegistededFacebookDonationByDonorID(
-  donorID
+  donorID,
 ): Promise<Array<{ donorID: number; taxUnitID: number }>> {
   let [results] = await DAO.query(
     `
@@ -90,7 +90,7 @@ async function getRegistededFacebookDonationByDonorID(
             WHERE donorID = ?
             GROUP BY donorID, taxUnitID
             `,
-    [donorID]
+    [donorID],
   );
 
   return results;
@@ -104,7 +104,7 @@ async function isCampaignRegistered(ID) {
             WHERE FB_campaign_ID = ?
             LIMIT 1
             `,
-    [ID]
+    [ID],
   );
 
   return results.length > 0;
@@ -119,16 +119,12 @@ async function isCampaignRegistered(ID) {
  * @param {Number} taxUnitID
  * @returns {Boolean} True if successful
  */
-async function registerPaymentFB(
-  donorID: number,
-  paymentID: string,
-  taxUnitID: number
-) {
+async function registerPaymentFB(donorID: number, paymentID: string, taxUnitID: number) {
   await DAO.query(
     `
             INSERT INTO FB_payment_ID (donorID, paymentID, taxUnitID)
             VALUES (?, ?, ?)`,
-    [donorID, paymentID, taxUnitID]
+    [donorID, paymentID, taxUnitID],
   );
 
   return true;
@@ -140,20 +136,13 @@ async function registerFacebookCampaign(
   Source_name,
   Permalink,
   Campaign_owner_name,
-  Fundraiser_type
+  Fundraiser_type,
 ) {
   await DAO.query(
     `
             INSERT INTO FB_campaigns (ID, Fundraiser_title, Source_name, Permalink, Campaign_owner_name, Fundraiser_type)
             VALUES (?, ?, ?, ?, ?, ?)`,
-    [
-      ID,
-      Fundraiser_title,
-      Source_name,
-      Permalink,
-      Campaign_owner_name,
-      Fundraiser_type,
-    ]
+    [ID, Fundraiser_title, Source_name, Permalink, Campaign_owner_name, Fundraiser_type],
   );
 
   return true;
@@ -164,23 +153,18 @@ async function registerFacebookReport(report) {
     `
             INSERT INTO FB_donation_reports (FB_report)
             VALUES (?)`,
-    [report]
+    [report],
   );
 
   return true;
 }
 
-async function registerFacebookCampaignOrgShare(
-  campaignID,
-  orgID,
-  share,
-  standardSplit
-) {
+async function registerFacebookCampaignOrgShare(campaignID, orgID, share, standardSplit) {
   await DAO.query(
     `
             INSERT INTO FB_campaign_org_shares (FB_campaign_ID, Org_ID, Share, Standard_split)
             VALUES (?, ?, ?, ?)`,
-    [campaignID, orgID, share, standardSplit]
+    [campaignID, orgID, share, standardSplit],
   );
 
   return true;

@@ -2,17 +2,14 @@ import * as express from "express";
 import { checkAvtaleGiroAgreement } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import {
-  sendAvtaleGiroChange,
-  sendAvtalegiroRegistered,
-} from "../custom_modules/mail";
+import { sendAvtaleGiroChange, sendAvtalegiroRegistered } from "../custom_modules/mail";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import { Donor } from "../schemas/types";
+import permissions from "../enums/authorizationPermissions";
+import moment from "moment";
 
 const router = express.Router();
 const rounding = require("../custom_modules/rounding");
-const authRoles = require("../enums/authorizationRoles");
-const moment = require("moment");
 
 /**
  * @openapi
@@ -47,7 +44,7 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
       req.body.sort,
       req.body.page,
       req.body.limit,
-      req.body.filter
+      req.body.filter,
     );
     if (results) {
       return res.json({
@@ -103,15 +100,11 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
  */
 router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    const agreement = await DAO.avtalegiroagreements.getAgreement(
-      req.params.id
-    );
+    const agreement = await DAO.avtalegiroagreements.getAgreement(req.params.id);
 
     const shares = await DAO.distributions.getSplitByKID(agreement.KID);
     const taxUnit = await DAO.tax.getByKID(agreement.KID);
-    const standardDistribution = await DAO.distributions.isStandardDistribution(
-      agreement.KID
-    );
+    const standardDistribution = await DAO.distributions.isStandardDistribution(agreement.KID);
     const donor = await DAO.donors.getByKID(agreement.KID);
 
     return res.json({
@@ -204,9 +197,7 @@ router.get("/expected/", authMiddleware.isAdmin, async (req, res, next) => {
 
     date = new Date(date);
 
-    const content = await DAO.avtalegiroagreements.getExpectedDonationsForDate(
-      date
-    );
+    const content = await DAO.avtalegiroagreements.getExpectedDonationsForDate(date);
 
     res.json({
       status: 200,
@@ -228,9 +219,7 @@ router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
 
     date = new Date(date);
 
-    const content = await DAO.avtalegiroagreements.getRecievedDonationsForDate(
-      date
-    );
+    const content = await DAO.avtalegiroagreements.getRecievedDonationsForDate(date);
 
     res.json({
       status: 200,
@@ -250,10 +239,7 @@ router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
  */
 router.get("/:KID/redirect", async (req, res, next) => {
   try {
-    if (
-      req.query.status &&
-      (req.query.status as string).toUpperCase() === "OK"
-    ) {
+    if (req.query.status && (req.query.status as string).toUpperCase() === "OK") {
       const agreement = await DAO.avtalegiroagreements.getByKID(req.params.KID);
       await sendAvtalegiroRegistered(agreement);
 
@@ -313,7 +299,7 @@ router.get("/:KID/redirect", async (req, res, next) => {
  */
 router.post(
   "/:KID/distribution",
-  authMiddleware.auth(authRoles.write_agreements),
+  authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
     checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },
@@ -323,10 +309,8 @@ router.post(
       const originalKID: string = req.params.KID;
       const parsedData = req.body;
       const shares = parsedData.distribution.shares;
-      const standardDistribution: boolean =
-        parsedData.distribution.standardDistribution;
-      const taxUnitId: number | null =
-        parsedData.distribution.taxUnit.id || null;
+      const standardDistribution: boolean = parsedData.distribution.standardDistribution;
+      const taxUnitId: number | null = parsedData.distribution.taxUnit.id || null;
       const donor: Donor = await DAO.donors.getByKID(originalKID);
 
       if (!donor) {
@@ -349,9 +333,7 @@ router.post(
         return next(err);
       }
 
-      if (
-        rounding.sumWithPrecision(split.map((split) => split.share)) !== "100"
-      ) {
+      if (rounding.sumWithPrecision(split.map((split) => split.share)) !== "100") {
         let err = new Error("Distribution does not sum to 100");
         (err as any).status = 400;
         return next(err);
@@ -368,7 +350,7 @@ router.post(
         donorId,
         metaOwnerID,
         taxUnitId,
-        standardDistribution
+        standardDistribution,
       );
 
       await sendAvtaleGiroChange(originalKID, "SHARES", split);
@@ -376,7 +358,7 @@ router.post(
     } catch (ex) {
       next({ ex });
     }
-  }
+  },
 );
 
 /**
@@ -405,7 +387,7 @@ router.post(
  */
 router.post(
   "/:KID/status",
-  authMiddleware.auth(authRoles.write_agreements),
+  authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
     checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },
@@ -421,7 +403,7 @@ router.post(
     } catch (ex) {
       next({ ex });
     }
-  }
+  },
 );
 
 /**
@@ -450,7 +432,7 @@ router.post(
  */
 router.post(
   "/:KID/amount",
-  authMiddleware.auth(authRoles.write_agreements),
+  authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
     checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },
@@ -468,7 +450,7 @@ router.post(
     } catch (ex) {
       next({ ex });
     }
-  }
+  },
 );
 
 /**
@@ -499,7 +481,7 @@ router.post(
  */
 router.post(
   "/:KID/paymentdate",
-  authMiddleware.auth(authRoles.write_agreements),
+  authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
     checkAvtaleGiroAgreement(req.params.KID, req, res, next);
   },
@@ -508,35 +490,26 @@ router.post(
       const KID = req.params.KID;
       const paymentDate = req.body.paymentDate;
 
-      const response = await DAO.avtalegiroagreements.updatePaymentDate(
-        KID,
-        paymentDate
-      );
+      const response = await DAO.avtalegiroagreements.updatePaymentDate(KID, paymentDate);
 
       await sendAvtaleGiroChange(KID, "CHARGEDAY", paymentDate);
       res.send(response);
     } catch (ex) {
       next({ ex });
     }
-  }
+  },
 );
 
-router.get(
-  "/donations/:kid",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      const donations = await DAO.avtalegiroagreements.getDonationsByKID(
-        req.params.kid
-      );
-      return res.json({
-        status: 200,
-        content: donations,
-      });
-    } catch (ex) {
-      next(ex);
-    }
+router.get("/donations/:kid", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const donations = await DAO.avtalegiroagreements.getDonationsByKID(req.params.kid);
+    return res.json({
+      status: 200,
+      content: donations,
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 module.exports = router;

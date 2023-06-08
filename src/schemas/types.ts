@@ -11,5 +11,4 @@ export type Distribution = distributionComponents["schemas"]["Distribution"];
 export type Donation = donationComponents["schemas"]["Donation"];
 export type Fundraiser = fundraiserComponents["schemas"]["Fundraiser"];
 export type TaxReport = taxReportComponents["schemas"]["TaxReport"];
-export type TaxYearlyReportUnit =
-  taxReportComponents["schemas"]["TaxYearlyReportUnit"];
+export type TaxYearlyReportUnit = taxReportComponents["schemas"]["TaxYearlyReportUnit"];

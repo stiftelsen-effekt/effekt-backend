@@ -24,9 +24,7 @@ export const KID = {
       // Total length 15
       KID = `${donorID.toString().padStart(6, "0")}${this.getRandomNumbers(8)}`;
     } else {
-      throw new Error(
-        `Unknown KID generate input. Length: ${length}, DonorID: ${donorID}`
-      );
+      throw new Error(`Unknown KID generate input. Length: ${length}, DonorID: ${donorID}`);
     }
 
     // Add checksum

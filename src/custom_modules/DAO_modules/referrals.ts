@@ -1,3 +1,4 @@
+import { Donors, Referral_records, Referral_types } from "@prisma/client";
 import { DAO } from "../DAO";
 
 //region Get
@@ -20,7 +21,7 @@ import { DAO } from "../DAO";
  * @returns {Array<ReferralType>} An array of payment method objects
  */
 async function getTypes() {
-  let [types] = await DAO.query(`
+  let [types] = await DAO.query<Referral_types[]>(`
         SELECT * FROM Referral_types 
             WHERE is_active = 1
             ORDER BY ordering`);
@@ -37,7 +38,7 @@ async function getTypes() {
  * @returns {Array<ReferralTypeAggregate>}
  */
 async function getAggregate() {
-  let [aggregates] = await DAO.query(`
+  let [aggregates] = await DAO.query<(Pick<Referral_types, "ID" | "name"> & { count: number })[]>(`
         SELECT Referral_types.ID, Referral_types.name, count(ReferralID) as count
             FROM Referral_records
             
@@ -53,15 +54,15 @@ async function getAggregate() {
  * Checks if the donor has answered referral question before
  * @param {number} donorID
  */
-async function getDonorAnswered(donorID) {
-  let [answersCount] = await DAO.query(
+async function getDonorAnswered(donorID: Donors["ID"]) {
+  let [answersCount] = await DAO.query<{ count: number }[]>(
     `
         SELECT count(UserID) as count
             FROM Referral_records
             
             WHERE UserID = ?
     `,
-    [donorID]
+    [donorID],
   );
 
   if (answersCount[0].count > 0) return true;
@@ -72,7 +73,7 @@ async function getDonorAnswered(donorID) {
  * Gets all referrals for a user
  * @param {number} donorID
  */
-async function getDonorAnswers(donorID) {
+async function getDonorAnswers(donorID: Donors["ID"]) {
   let [answers] = await DAO.query(
     `
         SELECT
@@ -87,7 +88,7 @@ async function getDonorAnswers(donorID) {
           WHERE r.UserId = ?
           ORDER BY id;
     `,
-    [donorID]
+    [donorID],
   );
 
   return answers;
@@ -107,7 +108,7 @@ async function getDonorAnswers(donorID) {
 async function addRecord(referralTypeID, donorID, session, otherComment) {
   let result = await DAO.query(
     `INSERT INTO Referral_records (ReferralID, UserID, website_session, other_comment) VALUES (?,?,?,?)`,
-    [referralTypeID, donorID, session, otherComment]
+    [referralTypeID, donorID, session, otherComment],
   );
 
   if (result[0].affectedRows > 0) return true;
@@ -124,7 +125,7 @@ async function addRecord(referralTypeID, donorID, session, otherComment) {
 async function checkRecordExist(referralTypeID, donorID, session) {
   let [result] = await DAO.query(
     `select * from Referral_records where ReferralID = ? and UserID = ? and website_session = ?`,
-    [referralTypeID, donorID, session]
+    [referralTypeID, donorID, session],
   );
 
   if (result.length > 0) return true;
@@ -141,15 +142,10 @@ async function checkRecordExist(referralTypeID, donorID, session) {
  * @param {string} otherComment
  * @returns {boolean} Indicates whether the record was updated
  */
-async function updateRecordComment(
-  referralTypeID,
-  donorID,
-  session,
-  otherComment
-) {
+async function updateRecordComment(referralTypeID, donorID, session, otherComment) {
   let result = await DAO.query(
     `UPDATE Referral_records SET other_comment = ? WHERE UserID = ? AND ReferralID = ? AND website_session = ?`,
-    [otherComment, donorID, referralTypeID, session]
+    [otherComment, donorID, referralTypeID, session],
   );
 
   if (result[0].affectedRows > 0) return true;
@@ -168,7 +164,7 @@ async function updateRecordComment(
 async function deleteRecord(referralTypeID, donorID, session) {
   let result = await DAO.query(
     `DELETE FROM Referral_records WHERE ReferralID = ? and UserID = ? and website_session = ?`,
-    [referralTypeID, donorID, session]
+    [referralTypeID, donorID, session],
   );
 
   if (result[0].affectedRows > 0) return true;

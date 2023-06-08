@@ -3,7 +3,7 @@ import { DAO } from "../custom_modules/DAO";
 
 const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-const roles = require("../enums/authorizationRoles");
+import { sendPasswordResetNoUserEmail } from "../custom_modules/mail";
 
 /**
  * @openapi
@@ -91,6 +91,15 @@ router.post("/", async (req, res, next) => {
   } catch (ex) {
     next(ex);
   }
+});
+
+router.post("/auth0", async (req, res, next) => {
+  // Send an email to the user with the error message if the error is a user does not exist error (fcpr)
+  if (req.body.data.type === "fcpr") {
+    const email = req.body.data.details.body.email;
+    await sendPasswordResetNoUserEmail(email);
+  }
+  res.send("OK");
 });
 
 router.get("/:id", authMiddleware.isAdmin, async (req, res, next) => {

@@ -1,20 +1,19 @@
-import { DAO } from '../custom_modules/DAO'
+import { DAO } from "../custom_modules/DAO";
 
-const express = require('express')
-const router = express.Router()
+import express from "express";
+const router = express.Router();
 
-router.get("/owners", async (req,res, next) => {
+router.get("/owners", async (req, res, next) => {
   try {
-    var owners = await DAO.meta.getDataOwners()
+    var owners = await DAO.meta.getDataOwners();
 
     res.json({
       status: 200,
-      content: owners
-    })
+      content: owners,
+    });
+  } catch (ex) {
+    next(ex);
   }
-  catch(ex) {
-    next(ex)
-  }
-})
+});
 
-module.exports = router
+module.exports = router;

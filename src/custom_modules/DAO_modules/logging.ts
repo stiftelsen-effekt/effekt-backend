@@ -1,5 +1,5 @@
 import { DAO } from "../DAO";
-const sqlString = require("sqlstring");
+import sqlString from "sqlstring";
 
 /**
  * @typedef ImportLogEntry
@@ -55,16 +55,16 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
       
       FROM Import_logs 
 
-      ${filesearch !== null && filesearch !== ""
-      ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' +
-      sqlString.escape("%" + filesearch + "%")
-      : ""
-    }
+      ${
+        filesearch !== null && filesearch !== ""
+          ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' + sqlString.escape("%" + filesearch + "%")
+          : ""
+      }
       
       ORDER BY timestamp DESC 
       LIMIT ? 
       OFFSET ?`,
-    [limit, offset]
+    [limit, offset],
   );
 
   let [counter] = await DAO.query(`
@@ -92,7 +92,7 @@ async function get(id) {
       FROM Import_logs
       
       WHERE ID = ?`,
-    [id]
+    [id],
   );
 
   if (res.length > 0) return res[0];
@@ -107,15 +107,13 @@ async function get(id) {
  * @param {object} result Results stored as JSON in DB
  */
 async function add(label, result) {
-  var res = await DAO.execute(
+  await DAO.execute(
     `INSERT INTO Import_logs
           (label, result) 
           VALUES 
           (?,?)`,
-    [label, JSON.stringify(result)]
+    [label, JSON.stringify(result)],
   );
-
-  return res.insertId;
 }
 //endregion
 

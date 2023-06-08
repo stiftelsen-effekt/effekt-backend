@@ -1,12 +1,12 @@
 import { DAO } from "../custom_modules/DAO";
 import { sendDonationReciept } from "../custom_modules/mail";
 
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const bodyParser = require("body-parser");
+import bodyParser from "body-parser";
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
-const request = require("request-promise-native");
+import request from "request-promise-native";
 
 const config = require("../config");
 
@@ -34,33 +34,22 @@ router.post("/ipn", urlEncodeParser, async (req, res, next) => {
 
   try {
     //"https://ipnpb.sandbox.paypal.com/cgi-bin/webscr/"
-    var verification = await request.post(
-      "https://ipnpb.paypal.com/cgi-bin/webscr",
-      {
-        encoding: "UTF-8",
-        headers: {
-          "User-Agent": "Stiftelsen Effekt IPN Script - Node",
-        },
-        form: responseBody,
-      }
-    );
+    var verification = await request.post("https://ipnpb.paypal.com/cgi-bin/webscr", {
+      encoding: "UTF-8",
+      headers: {
+        "User-Agent": "Stiftelsen Effekt IPN Script - Node",
+      },
+      form: responseBody,
+    });
   } catch (ex) {
-    console.error(
-      "Failed to send paypal verification postback for KID: " + KID
-    );
+    console.error("Failed to send paypal verification postback for KID: " + KID);
   }
 
   if (sum < 0) return false; //Refunded donation. Might want to automate this aswell.
   if (verification == "VERIFIED" && paymentStatus === "Completed") {
     try {
       //Add donation
-      var donationID = await DAO.donations.add(
-        KID,
-        3,
-        sum,
-        paymentDate,
-        transactionID
-      );
+      var donationID = await DAO.donations.add(KID, 3, sum, paymentDate, transactionID);
     } catch (ex) {
       console.error("Failed to update DB for paypal donation with KID: " + KID);
       console.error(ex);

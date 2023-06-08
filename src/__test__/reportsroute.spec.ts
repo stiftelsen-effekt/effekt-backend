@@ -24,14 +24,9 @@ describe("PayPal report route handles correctly", () => {
 
     mailStub = sinon.stub(mail, "sendDonationReciept");
 
-    historicStub = sinon.stub(
-      DAO.distributions,
-      "getHistoricPaypalSubscriptionKIDS"
-    );
+    historicStub = sinon.stub(DAO.distributions, "getHistoricPaypalSubscriptionKIDS");
 
-    parsingRulesStub = sinon
-      .stub(DAO.parsing, "getVippsParsingRules")
-      .resolves([]);
+    parsingRulesStub = sinon.stub(DAO.parsing, "getVippsParsingRules").resolves([]);
   });
 
   beforeEach(() => {
@@ -70,14 +65,9 @@ describe("Vipps route handles report correctly", () => {
 
     mailStub = sinon.stub(mail, "sendDonationReciept");
 
-    historicStub = sinon.stub(
-      DAO.distributions,
-      "getHistoricPaypalSubscriptionKIDS"
-    );
+    historicStub = sinon.stub(DAO.distributions, "getHistoricPaypalSubscriptionKIDS");
 
-    parsingRulesStub = sinon
-      .stub(DAO.parsing, "getVippsParsingRules")
-      .resolves([]);
+    parsingRulesStub = sinon.stub(DAO.parsing, "getVippsParsingRules").resolves([]);
   });
 
   beforeEach(() => {

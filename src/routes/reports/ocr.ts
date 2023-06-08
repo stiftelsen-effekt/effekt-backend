@@ -1,26 +1,26 @@
-const OCRparser = require('../../custom_modules/parsers/OCR.js')
-const ocr = require('../../custom_modules/ocr')
+const OCRparser = require("../../custom_modules/parsers/OCR.js");
+const ocr = require("../../custom_modules/ocr");
 
 module.exports = async (req, res, next) => {
-    let metaOwnerID = parseInt(req.body.metaOwnerID)
+  let metaOwnerID = parseInt(req.body.metaOwnerID);
 
-    var data = req.files.report.data.toString('UTF-8')
+  var data = req.files.report.data.toString("UTF-8");
 
-    try {
-        var transactions = OCRparser.parse(data)
-    }   catch(ex) {
-        return next(ex)
-    }
+  try {
+    var transactions = OCRparser.parse(data);
+  } catch (ex) {
+    return next(ex);
+  }
 
-    const result = await ocr.addDonations(transactions, metaOwnerID)
+  const result = await ocr.addDonations(transactions, metaOwnerID);
 
-    res.json({
-        status: 200,
-        content: {
-            valid: result.valid,
-            //Not used
-            invalid: result.invalid,
-            invalidTransactions: result.invalidTransactions
-        }
-    })
-}
+  res.json({
+    status: 200,
+    content: {
+      valid: result.valid,
+      //Not used
+      invalid: result.invalid,
+      invalidTransactions: result.invalidTransactions,
+    },
+  });
+};

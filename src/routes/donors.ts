@@ -1,13 +1,14 @@
 import * as express from "express";
-import { checkDonor } from "../custom_modules/authorization/authMiddleware";
+import { checkAdminOrTheDonor } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import { fnr } from "@navikt/fnrvalidator";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { TaxReport, TaxYearlyReportUnit } from "../schemas/types";
+import permissions from "../enums/authorizationPermissions";
+import bodyParser from "body-parser";
 
 const router = express.Router();
-const roles = require("../enums/authorizationRoles");
-const bodyParser = require("body-parser");
+
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
 
 /**
@@ -24,65 +25,58 @@ const urlEncodeParser = bodyParser.urlencoded({ extended: false });
  *    tags: [Donors]
  *    description: Add a new user
  */
-router.post(
-  "/",
-  authMiddleware.isAdmin,
-  urlEncodeParser,
-  async (req, res, next) => {
-    try {
-      if (!req.body.name || !req.body.email) {
-        let error = new Error("Missing param email or param name");
-        throw error;
-      }
+router.post("/", authMiddleware.isAdmin, urlEncodeParser, async (req, res, next) => {
+  try {
+    if (!req.body.name || !req.body.email) {
+      let error = new Error("Missing param email or param name");
+      throw error;
+    }
 
-      const existing = await DAO.donors.getIDbyEmail(req.body.email);
+    const existing = await DAO.donors.getIDbyEmail(req.body.email);
 
-      if (existing !== null) {
-        return res.status(409).json({
-          status: 409,
-          content: "Email already exists",
+    if (existing !== null) {
+      return res.status(409).json({
+        status: 409,
+        content: "Email already exists",
+      });
+    }
+
+    const donorId = await DAO.donors.add(req.body.email, req.body.name);
+
+    /**
+     * If we are provided a social security number, we should add a tax unit to the donor
+     */
+    if (req.body.ssn) {
+      if (req.body.ssn.length === 11) {
+        // Birth number is 11 digits
+        const validation = fnr(req.body.ssn);
+        if (validation.status !== "valid") {
+          return res.status(400).json({
+            status: 400,
+            content: "Invalid ssn (failed fnr validation) " + validation.reasons.join(", "),
+          });
+        }
+      } else if (req.body.ssn.length === 9) {
+        // Organization number is 9 digits
+        // No validatino performed
+      } else {
+        return res.status(400).json({
+          status: 400,
+          content: "Invalid ssn (length is not 9 or 11)",
         });
       }
 
-      const donorId = await DAO.donors.add(req.body.email, req.body.name);
-
-      /**
-       * If we are provided a social security number, we should add a tax unit to the donor
-       */
-      if (req.body.ssn) {
-        if (req.body.ssn.length === 11) {
-          // Birth number is 11 digits
-          const validation = fnr(req.body.ssn);
-          if (validation.status !== "valid") {
-            return res.status(400).json({
-              status: 400,
-              content:
-                "Invalid ssn (failed fnr validation) " +
-                validation.reasons.join(", "),
-            });
-          }
-        } else if (req.body.ssn.length === 9) {
-          // Organization number is 9 digits
-          // No validatino performed
-        } else {
-          return res.status(400).json({
-            status: 400,
-            content: "Invalid ssn (length is not 9 or 11)",
-          });
-        }
-
-        await DAO.tax.addTaxUnit(donorId, req.body.ssn, req.body.name);
-      }
-
-      return res.json({
-        status: 200,
-        content: "OK",
-      });
-    } catch (ex) {
-      next(ex);
+      await DAO.tax.addTaxUnit(donorId, req.body.ssn, req.body.name);
     }
+
+    return res.json({
+      status: 200,
+      content: "OK",
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 /**
  * @openapi
@@ -230,9 +224,9 @@ router.post("/search/", authMiddleware.isAdmin, async (req, res, next) => {
  */
 router.get(
   "/:id",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -252,7 +246,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -292,9 +286,9 @@ router.get(
  */
 router.get(
   "/:id/referrals",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -314,7 +308,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -354,9 +348,9 @@ router.get(
  */
 router.get(
   "/:id/taxunits",
-  authMiddleware.auth(roles.read_profile),
+  authMiddleware.auth(permissions.read_profile),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -376,7 +370,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 // A route to get yearly tax reports
@@ -417,9 +411,9 @@ router.get(
  */
 router.get(
   "/:id/taxreports",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -434,9 +428,7 @@ router.get(
       taxUnits = taxUnits.filter((tu) => tu.archived === null);
 
       let donations = await DAO.donations.getByDonorId(parseInt(req.params.id));
-      let eaFundsDonations = await DAO.donations.getEAFundsDonations(
-        parseInt(req.params.id)
-      );
+      let eaFundsDonations = await DAO.donations.getEAFundsDonations(parseInt(req.params.id));
 
       /**
        * TODO: This is hard coded to only include 2022 for now, but should be
@@ -446,18 +438,11 @@ router.get(
 
       const yearlyreportunits = taxUnits.map((tu): TaxYearlyReportUnit => {
         const fundsSumForUnit = eaFundsDonations
-          .filter(
-            (d) =>
-              new Date(d.timestamp).getFullYear() === year &&
-              d.taxUnitId === tu.id
-          )
+          .filter((d) => new Date(d.timestamp).getFullYear() === year && d.taxUnitId === tu.id)
           .reduce((acc, item) => acc + parseFloat(item.sum), 0);
 
-        const geSumForYear = tu.taxDeductions.find((d) => d.year === year)
-          ?.sumDonations
-          ? parseFloat(
-              tu.taxDeductions.find((d) => d.year === year)?.sumDonations ?? "0"
-            )
+        const geSumForYear = tu.taxDeductions.find((d) => d.year === year)?.sumDonations
+          ? parseFloat(tu.taxDeductions.find((d) => d.year === year)?.sumDonations ?? "0")
           : 0;
 
         const completeSum = geSumForYear + fundsSumForUnit;
@@ -489,25 +474,18 @@ router.get(
       });
 
       const cryptoDonationsInYear = donations.filter((d) => {
-        return (
-          new Date(d.timestamp).getFullYear() === year &&
-          d.paymentMethod === "Crypto"
-        );
+        return new Date(d.timestamp).getFullYear() === year && d.paymentMethod === "Crypto";
       });
 
       const sumGeDonationsWithoutTaxUnit = donations
         .filter((d) => {
-          return (
-            new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null
-          );
+          return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
         })
         .reduce((acc, item) => acc + parseFloat(item.sum), 0);
 
       const sumEanDOnationsWithoutTaxUnit = eaFundsDonations
         .filter((d) => {
-          return (
-            new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null
-          );
+          return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
         })
         .reduce((acc, item) => acc + parseFloat(item.sum), 0);
 
@@ -515,16 +493,10 @@ router.get(
         {
           year: year,
           units: yearlyreportunits,
-          sumDonations: yearlyreportunits.reduce(
-            (a, b) => a + b.sumDonations,
-            0
-          ),
-          sumTaxDeductions: yearlyreportunits
-            .map((u) => u.taxDeduction)
-            .reduce((a, b) => a + b, 0),
+          sumDonations: yearlyreportunits.reduce((a, b) => a + b.sumDonations, 0),
+          sumTaxDeductions: yearlyreportunits.map((u) => u.taxDeduction).reduce((a, b) => a + b, 0),
           sumDonationsWithoutTaxUnit: {
-            sumDonations:
-              sumGeDonationsWithoutTaxUnit + sumEanDOnationsWithoutTaxUnit,
+            sumDonations: sumGeDonationsWithoutTaxUnit + sumEanDOnationsWithoutTaxUnit,
             channels: [
               {
                 channel: "Gi Effektivt",
@@ -557,7 +529,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -601,9 +573,9 @@ router.get(
  */
 router.post(
   "/:id/taxunits",
-  authMiddleware.auth(roles.write_profile),
+  authMiddleware.auth(permissions.write_profile),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -622,9 +594,7 @@ router.post(
         if (validation.status !== "valid") {
           return res.status(400).json({
             status: 400,
-            content:
-              "Invalid ssn (failed fnr validation) " +
-              validation.reasons.join(", "),
+            content: "Invalid ssn (failed fnr validation) " + validation.reasons.join(", "),
           });
         }
       } else if (ssn.length === 9) {
@@ -671,7 +641,7 @@ router.post(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 // Route for deleting tax unit from donor by donor id and tax unit id
@@ -725,9 +695,9 @@ router.post(
  */
 router.delete(
   "/:id/taxunits/:taxunitid",
-  authMiddleware.auth(roles.write_profile),
+  authMiddleware.auth(permissions.write_profile),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -747,11 +717,7 @@ router.delete(
         });
       }
 
-      const deleted = await DAO.tax.deleteById(
-        taxUnit.id,
-        donor.id,
-        req.body.transferId
-      );
+      const deleted = await DAO.tax.deleteById(taxUnit.id, donor.id, req.body.transferId);
       if (deleted) {
         return res.json({
           status: 200,
@@ -766,7 +732,7 @@ router.delete(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -837,9 +803,7 @@ router.put("/:id/taxunits/:taxunitid", async (req, res, next) => {
       if (validation.status !== "valid") {
         return res.status(400).json({
           status: 400,
-          content:
-            "Invalid ssn (failed fnr validation) " +
-            validation.reasons.join(", "),
+          content: "Invalid ssn (failed fnr validation) " + validation.reasons.join(", "),
         });
       }
     } else if (ssn.length === 9) {
@@ -912,9 +876,9 @@ router.put("/:id/taxunits/:taxunitid", async (req, res, next) => {
  */
 router.delete(
   "/:id",
-  authMiddleware.auth(roles.write_donations),
+  authMiddleware.auth(permissions.write_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -936,7 +900,7 @@ router.delete(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -976,9 +940,9 @@ router.delete(
  */
 router.get(
   "/:id/donations",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -990,7 +954,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -1030,15 +994,13 @@ router.get(
  */
 router.get(
   "/:id/recurring/avtalegiro",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
-      const agreements = await DAO.avtalegiroagreements.getByDonorId(
-        req.params.id
-      );
+      const agreements = await DAO.avtalegiroagreements.getByDonorId(req.params.id);
 
       return res.json({
         status: 200,
@@ -1047,7 +1009,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -1087,9 +1049,9 @@ router.get(
  */
 router.get(
   "/:id/recurring/vipps",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1102,7 +1064,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -1144,15 +1106,13 @@ router.get(
  */
 router.get(
   "/:id/donations/aggregated",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
-      const aggregated = await DAO.donations.getYearlyAggregateByDonorId(
-        req.params.id
-      );
+      const aggregated = await DAO.donations.getYearlyAggregateByDonorId(req.params.id);
 
       return res.json({
         status: 200,
@@ -1161,7 +1121,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -1207,9 +1167,9 @@ router.get(
  */
 router.get(
   "/:id/distributions/",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1226,17 +1186,14 @@ router.get(
       const requests = [];
       for (let i = 0; i < distributions.length; i++) {
         const dist = distributions[i];
-        requests.push(
-          getDistributionTaxUnitAndStandardDistribution(i, dist.kid)
-        );
+        requests.push(getDistributionTaxUnitAndStandardDistribution(i, dist.kid));
       }
 
       const results = await Promise.all(requests);
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
         distributions[result.index].taxUnit = result.taxUnit;
-        distributions[result.index].standardDistribution =
-          result.standardDistribution;
+        distributions[result.index].standardDistribution = result.standardDistribution;
       }
 
       return res.json({
@@ -1246,14 +1203,12 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 async function getDistributionTaxUnitAndStandardDistribution(index, kid) {
   const taxUnit = await DAO.tax.getByKID(kid);
-  const standardDistribution = await DAO.distributions.isStandardDistribution(
-    kid
-  );
+  const standardDistribution = await DAO.distributions.isStandardDistribution(kid);
   return {
     index: index,
     taxUnit: taxUnit,
@@ -1298,9 +1253,9 @@ async function getDistributionTaxUnitAndStandardDistribution(index, kid) {
  */
 router.get(
   "/:id/distributions/aggregated",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1313,7 +1268,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -1325,9 +1280,9 @@ router.get(
  */
 router.get(
   "/:id/summary/",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1340,7 +1295,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -1352,9 +1307,9 @@ router.get(
  */
 router.get(
   "/:id/history/",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1367,15 +1322,15 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 // A route for getting all the donations to EA funds for a given donor ID
 router.get(
   "/:id/funds/donations/",
-  authMiddleware.auth(roles.read_donations),
+  authMiddleware.auth(permissions.read_donations),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1388,7 +1343,7 @@ router.get(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -1432,9 +1387,9 @@ router.get(
  */
 router.put(
   "/:id",
-  authMiddleware.auth(roles.write_profile),
+  authMiddleware.auth(permissions.write_profile),
   (req, res, next) => {
-    checkDonor(parseInt(req.params.id), req, res, next);
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -1473,7 +1428,7 @@ router.put(
         req.params.id,
         req.body.name,
         req.body.newsletter,
-        req.body.trash
+        req.body.trash,
       );
       if (updated) {
         return res.json({
@@ -1489,33 +1444,29 @@ router.put(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
-router.post(
-  "/id/email/name",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      let donorID;
+router.post("/id/email/name", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    let donorID;
 
-      if (req.body.email) {
-        donorID = await DAO.donors.getIDbyEmail(req.body.email);
-      }
-
-      if (donorID == null) {
-        donorID = await DAO.donors.getIDByMatchedNameFB(req.body.name);
-      }
-      // If no email matches, get donorID by name instead
-
-      return res.json({
-        status: 200,
-        content: donorID,
-      });
-    } catch (ex) {
-      next(ex);
+    if (req.body.email) {
+      donorID = await DAO.donors.getIDbyEmail(req.body.email);
     }
+
+    if (donorID == null) {
+      donorID = await DAO.donors.getIDByMatchedNameFB(req.body.name);
+    }
+    // If no email matches, get donorID by name instead
+
+    return res.json({
+      status: 200,
+      content: donorID,
+    });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 module.exports = router;

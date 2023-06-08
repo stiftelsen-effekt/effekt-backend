@@ -9,7 +9,7 @@ import { DAO } from "../DAO";
 async function getVippsParsingRules(periodStart, periodEnd) {
   var [res] = await DAO.query(
     "SELECT * FROM Vipps_matching_rules WHERE PeriodFrom <= ? and PeriodTo >= ? ORDER BY precedence DESC",
-    [periodStart, periodEnd]
+    [periodStart, periodEnd],
   );
 
   return res.map((res) => {

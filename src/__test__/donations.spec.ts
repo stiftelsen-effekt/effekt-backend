@@ -54,7 +54,7 @@ describe("See descriptive statistics of my donations", function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
 
     checkDonorStub = sinon
-      .stub(authMiddleware, "checkDonor")
+      .stub(authMiddleware, "checkAdminOrTheDonor")
       .callsFake(function (donorID, res, req, next) {
         next();
       });
@@ -75,9 +75,7 @@ describe("See descriptive statistics of my donations", function () {
   it("Gets all the donations of a donor by ID", async function () {
     aggregatedByIdStub.resolves(mockDonations);
 
-    const response = await request(server)
-      .get("/donors/2349/donations/aggregated")
-      .expect(200);
+    const response = await request(server).get("/donors/2349/donations/aggregated").expect(200);
 
     let donations = response.body.content;
     expect(donations).to.have.length(5);
@@ -93,9 +91,7 @@ describe("See descriptive statistics of my donations", function () {
   it("Donor doesn't have donations", async function () {
     aggregatedByIdStub.withArgs("2349").resolves([]);
 
-    const response = await request(server)
-      .get("/donors/2349/donations/aggregated")
-      .expect(200);
+    const response = await request(server).get("/donors/2349/donations/aggregated").expect(200);
 
     expect(response.body.content).to.be.empty;
   });
@@ -104,14 +100,10 @@ describe("See descriptive statistics of my donations", function () {
     checkDonorStub.restore();
 
     checkDonorStub.callsFake(function (donorID, res, req, next) {
-      throw new InvalidTokenError(
-        "Unexpected 'https://konduit.no/user-id' value"
-      );
+      throw new InvalidTokenError("Unexpected 'https://konduit.no/user-id' value");
     });
 
-    const response = await request(server)
-      .get("/donors/1/donations/aggregated")
-      .expect(401);
+    const response = await request(server).get("/donors/1/donations/aggregated").expect(401);
   });
 
   after(function () {

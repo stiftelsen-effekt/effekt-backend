@@ -12,4 +12,3 @@ components:
           description: An array of objects depending on the route / resource
       example:
         pages: 100
-        

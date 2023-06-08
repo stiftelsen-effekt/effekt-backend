@@ -1,3 +1,6 @@
+import * as dotenv from "dotenv";
+dotenv.config();
+
 import { DAO } from "./custom_modules/DAO";
 import { openAPIOptions, swaggerOptions } from "./openapi-config";
 import * as config from "./config";
@@ -6,18 +9,18 @@ console.log("--------------------------------------------------");
 console.log("| gieffektivt.no donation backend (╯°□°）╯︵ ┻━┻ |");
 console.log("--------------------------------------------------");
 
-const express = require("express");
-const fileUpload = require("express-fileupload");
-const pretty = require("express-prettify");
-const rateLimit = require("express-rate-limit");
-const honeypot = require("honeypot");
-const logging = require("./handlers/loggingHandler.js");
-const http = require("http");
-const hogan = require("hogan-express");
-const bearerToken = require("express-bearer-token");
-const swaggerUi = require("swagger-ui-express");
-const swaggerJsdoc = require("swagger-jsdoc");
-const querystring = require("querystring");
+import bearerToken from "express-bearer-token";
+import express from "express";
+import fileUpload from "express-fileupload";
+import hogan from "hogan-express";
+import honeypot from "honeypot";
+import http from "http";
+import logging from "./handlers/loggingHandler.js";
+import pretty from "express-prettify";
+import rateLimit from "express-rate-limit";
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
+import qs from "qs";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -36,18 +39,10 @@ DAO.connect(() => {
   //Setup request logging
   logging(app);
 
-  app.get("/api-docs/swagger.json", (req, res) =>
-    res.json(openapiSpecification)
-  );
-  app.use(
-    "/api-docs",
-    swaggerUi.serve,
-    swaggerUi.setup(openapiSpecification, swaggerOptions)
-  );
+  app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification));
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, swaggerOptions));
   app.get("/oauth2-redirect.html", (req, res, next) =>
-    res.redirect(
-      `/api-docs/oauth2-redirect.html?${querystring.stringify(req.query)}`
-    )
+    res.redirect(`/api-docs/oauth2-redirect.html?${qs.stringify(req.query)}`),
   );
   app.get("/", async (req, res, next) => {
     res.redirect("/api-docs/");
@@ -60,14 +55,14 @@ DAO.connect(() => {
   app.use(
     pretty({
       query: "pretty",
-    })
+    }),
   );
 
   //File upload
   app.use(
     fileUpload({
       limits: { fileSize: 10 * 1024 * 1024 }, //Probably totally overkill, consider reducing
-    })
+    }),
   );
   app.enable("trust proxy");
 
@@ -92,7 +87,7 @@ DAO.connect(() => {
       windowMs: 60 * 1000, // 1 minute
       max: 1000, //limit each IP to 50 requests per minute
       delayMs: 0, // disable delaying - full speed until the max limit is reached
-    })
+    }),
   );
 
   //Set cross origin as allowed
@@ -100,13 +95,9 @@ DAO.connect(() => {
     if (config.env === "production") {
       const remoteOrigin = req.get("Origin");
       if (
-        config.allowedProductionOrigins.some(
-          (allowedOrigin) => allowedOrigin === remoteOrigin
-        ) ||
+        config.allowedProductionOrigins.some((allowedOrigin) => allowedOrigin === remoteOrigin) ||
         (remoteOrigin &&
-          remoteOrigin.match(
-            /https:\/\/main-site-(.*)-effective-altruism-norway.vercel.app/
-          )[0])
+          remoteOrigin.match(/https:\/\/main-site-(.*)-effective-altruism-norway.vercel.app/)[0])
       ) {
         res.setHeader("Access-Control-Allow-Origin", remoteOrigin);
         res.setHeader("Vary", "Origin");
@@ -118,12 +109,9 @@ DAO.connect(() => {
     res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, baggage, sentry-trace"
+      "Content-Type, Authorization, baggage, sentry-trace",
     );
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,PUT,POST,DELETE,PATCH,OPTIONS"
-    );
+    res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH,OPTIONS");
     next();
   });
 
@@ -181,14 +169,8 @@ DAO.connect(() => {
   //Error handling
   app.use(errorHandler);
 
-  mainServer.listen(config.port, config.host, () => {
-    console.log(
-      "Main http server listening on http://" +
-        config.host +
-        ":" +
-        config.port +
-        " 📞"
-    );
+  mainServer.listen(parseInt(config.port), config.host, () => {
+    console.log("Main http server listening on http://" + config.host + ":" + config.port + " 📞");
 
     console.log("Don't Panic. 🐬");
     console.log("---");

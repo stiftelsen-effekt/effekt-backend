@@ -58,18 +58,12 @@ const getTransactions = (data) => {
     if (row[fieldMapping.type] == "Abonnementsbetaling") {
       acc.push({
         date: DateTime.fromFormat(
-          row[fieldMapping.date] +
-            " " +
-            row[fieldMapping.time] +
-            " " +
-            row[fieldMapping.timeZone],
-          "DD.MM.YYYY hh:mm:ss z"
+          row[fieldMapping.date] + " " + row[fieldMapping.time] + " " + row[fieldMapping.timeZone],
+          "DD.MM.YYYY hh:mm:ss z",
         ),
         transactionID: row[fieldMapping.transactionID],
         referenceTransactionID: row[fieldMapping.referenceTransactionID],
-        amount: Number(
-          row[fieldMapping.grossAmount].replace(/[,]/, ".").replace(/\s/g, "")
-        ),
+        amount: Number(row[fieldMapping.grossAmount].replace(/[,]/, ".").replace(/\s/g, "")),
         email: row[fieldMapping.email],
       });
     }

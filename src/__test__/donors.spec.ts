@@ -107,10 +107,10 @@ describe("Check if donations returns for user ID", function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
     checkDonorStub = sinon.replace(
       authMiddleware,
-      "checkDonor",
+      "checkAdminOrTheDonor",
       function (donorId, res, req, next) {
         next();
-      }
+      },
     );
 
     donorStub = sinon.stub(DAO.donors, "getByID");
@@ -131,9 +131,7 @@ describe("Check if donations returns for user ID", function () {
   });
 
   it("Should return 200 OK with the dontions by ID", async function () {
-    const response = await request(server)
-      .get("/donors/237/donations")
-      .expect(200);
+    const response = await request(server).get("/donors/237/donations").expect(200);
   });
 
   it("Should return the donations", async function () {
@@ -156,10 +154,10 @@ describe("Check if profile information is updated", function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
     checkDonorStub = sinon.replace(
       authMiddleware,
-      "checkDonor",
+      "checkAdminOrTheDonor",
       function (donorId, res, req, next) {
         next();
-      }
+      },
     );
 
     donorStub = sinon.stub(DAO.donors, "getByID");
@@ -239,10 +237,10 @@ describe("Check if /:id/recurring/avtalegiro return agreements", function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
     checkDonorStub = sinon.replace(
       authMiddleware,
-      "checkDonor",
+      "checkAdminOrTheDonor",
       function (donorId, res, req, next) {
         next();
-      }
+      },
     );
 
     agreementStub = sinon.stub(DAO.avtalegiroagreements, "getByDonorId");
@@ -259,15 +257,11 @@ describe("Check if /:id/recurring/avtalegiro return agreements", function () {
     sinon.resetHistory();
   });
   it("Should return 200 OK", async function () {
-    const response = await request(server)
-      .get("/donors/237/recurring/avtalegiro")
-      .expect(200);
+    const response = await request(server).get("/donors/237/recurring/avtalegiro").expect(200);
   });
 
   it("Should return the agreements", async function () {
-    const response = await request(server).get(
-      "/donors/237/recurring/avtalegiro"
-    );
+    const response = await request(server).get("/donors/237/recurring/avtalegiro");
     expect(response.body.content).to.deep.equal(mockAgreements);
   });
 
@@ -281,10 +275,10 @@ describe("Check if /:id/recurring/vipps return agreements", function () {
     authStub = sinon.stub(authMiddleware, "auth").returns([]);
     checkDonorStub = sinon.replace(
       authMiddleware,
-      "checkDonor",
+      "checkAdminOrTheDonor",
       function (donorId, res, req, next) {
         next();
-      }
+      },
     );
 
     agreementStub = sinon.stub(DAO.vipps, "getAgreementsByDonorId");
@@ -302,9 +296,7 @@ describe("Check if /:id/recurring/vipps return agreements", function () {
   });
 
   it("Should return 200 OK", async function () {
-    const response = await request(server)
-      .get("/donors/237/recurring/vipps")
-      .expect(200);
+    const response = await request(server).get("/donors/237/recurring/vipps").expect(200);
   });
 
   it("Should return the agreements", async function () {

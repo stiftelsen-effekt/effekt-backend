@@ -1,5 +1,11 @@
 const fs = require("fs");
 
+const getAllowedProductionOrigins = () => {
+  const allowedProductionOriginsEnv = process.env.ALLOWED_PRODUCTION_ORIGINS || "";
+  // returns [ '' ] if unset
+  return allowedProductionOriginsEnv.split(",");
+};
+
 module.exports = {
   //Environment
   env: process.env.NODE_ENV || "development",
@@ -21,8 +27,7 @@ module.exports = {
   vipps_client_secret: process.env.VIPPS_CLIENT_SECRET,
   vipps_ocp_apim_subscription_key: process.env.VIPPS_OCP_APIM_SUBSCRIPTION_KEY,
   vipps_merchant_serial_number: process.env.VIPPS_MERCHANT_SERIAL_NUMBER,
-  vipps_api_url:
-    process.env.NODE_ENV === "production" ? "api.vipps.no" : "apitest.vipps.no",
+  vipps_api_url: process.env.NODE_ENV === "production" ? "api.vipps.no" : "apitest.vipps.no",
 
   nets_sftp_server: process.env.NETS_SFTP_SERVER,
   nets_sftp_user: process.env.NETS_SFTP_USER,
@@ -36,7 +41,7 @@ module.exports = {
   facebook_sync_app_secret: process.env.FACEBOOK_SYNC_APP_SECRET,
 
   //Set port for API listening, default to 5050
-  port: process.env.EFFEKT_PORT || process.env.PORT || 5050,
+  port: process.env.EFFEKT_PORT || process.env.PORT || "5050",
   //Set host for API listening, default to localhost
   host: process.env.EFFEKT_HOST || process.env.HOST || "localhost",
 
@@ -53,10 +58,11 @@ module.exports = {
   //Debugging
   debugReturnExceptions: true,
 
+  // Auth0
+  authAudience: process.env.AUTH_AUDIENCE,
+  authIssuerBaseURL: process.env.AUTH_BASE_URL,
+  authUserIdClaim: process.env.AUTH_USER_ID_CLAIM,
+
   //Prod allowed origins
-  allowedProductionOrigins: [
-    "https://gieffektivt.no",
-    "https://admin.gieffektivt.no",
-    "http://localhost:3000",
-  ],
+  allowedProductionOrigins: getAllowedProductionOrigins(),
 };

@@ -2,7 +2,7 @@ import { distributions } from "./distributions";
 import { DAO } from "../DAO";
 import { Donation } from "../../schemas/types";
 import paymentMethods from "../../enums/paymentMethods";
-const sqlString = require("sqlstring");
+import sqlString from "sqlstring";
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = [
@@ -104,7 +104,7 @@ async function getOrder(orderID) {
             WHERE
                 orderID = ?
             LIMIT 1`,
-    [orderID]
+    [orderID],
   );
 
   if (res.length === 0) return false;
@@ -139,11 +139,12 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
         WHERE 
             ID = ?
         `,
-    [agreementID]
+    [agreementID],
   );
 
-  if (res.length != 1) {
-    throw new Error("Could not find agreement with ID " + agreementID);
+  if (res.length < 1) {
+    console.error("Could not find agreement with ID " + agreementID);
+    return false;
   }
 
   let agreement = res[0];
@@ -155,8 +156,7 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
     share: split.share,
   }));
 
-  if (res.length === 0) return false;
-  else return agreement;
+  return agreement;
 }
 
 /**
@@ -175,46 +175,27 @@ async function getAgreements(sort, page, limit, filter) {
   let where = [];
   if (filter) {
     if (filter.amount) {
-      if (filter.amount.from)
-        where.push(`amount >= ${sqlString.escape(filter.amount.from)} `);
-      if (filter.amount.to)
-        where.push(`amount <= ${sqlString.escape(filter.amount.to)} `);
+      if (filter.amount.from) where.push(`amount >= ${sqlString.escape(filter.amount.from)} `);
+      if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to)} `);
     }
     if (filter.created) {
       if (filter.created.from)
-        where.push(
-          `VA.timestamp_created >= ${sqlString.escape(filter.created.from)} `
-        );
+        where.push(`VA.timestamp_created >= ${sqlString.escape(filter.created.from)} `);
       if (filter.created.to)
-        where.push(
-          `VA.timestamp_created <= ${sqlString.escape(filter.created.to)} `
-        );
+        where.push(`VA.timestamp_created <= ${sqlString.escape(filter.created.to)} `);
     }
     if (filter.chargeDay) {
       if (filter.chargeDay.from !== undefined)
-        where.push(
-          `VA.monthly_charge_day >= ${sqlString.escape(filter.chargeDay.from)} `
-        );
+        where.push(`VA.monthly_charge_day >= ${sqlString.escape(filter.chargeDay.from)} `);
       if (filter.chargeDay.to !== undefined)
-        where.push(
-          `VA.monthly_charge_day <= ${sqlString.escape(filter.chargeDay.to)} `
-        );
+        where.push(`VA.monthly_charge_day <= ${sqlString.escape(filter.chargeDay.to)} `);
     }
 
-    if (filter.KID)
-      where.push(
-        ` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `
-      );
+    if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
     if (filter.donor)
-      where.push(
-        ` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `
-      );
+      where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
     if (filter.statuses.length > 0)
-      where.push(
-        ` status IN (${filter.statuses
-          .map((ID) => sqlString.escape(ID))
-          .join(",")}) `
-      );
+      where.push(` status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `);
   }
 
   const [agreements] = await DAO.query(
@@ -237,7 +218,7 @@ async function getAgreements(sort, page, limit, filter) {
         ORDER BY ${sortColumn} ${sortDirection}
         LIMIT ? OFFSET ?
         `,
-    [limit, offset]
+    [limit, offset],
   );
 
   const [counter] = await DAO.query(`
@@ -280,7 +261,7 @@ async function getAgreementsByDonorId(donorId): Promise<VippsAgreement[]> {
                 WHERE 
                     donorID = ?
             `,
-    [donorId]
+    [donorId],
   );
 
   return agreements;
@@ -302,44 +283,28 @@ async function getCharges(sort, page, limit, filter) {
   let where = [];
   if (filter) {
     if (filter.amount) {
-      if (filter.amount.from)
-        where.push(`amountNOK >= ${sqlString.escape(filter.amount.from)} `);
-      if (filter.amount.to)
-        where.push(`amountNOK <= ${sqlString.escape(filter.amount.to)} `);
+      if (filter.amount.from) where.push(`amountNOK >= ${sqlString.escape(filter.amount.from)} `);
+      if (filter.amount.to) where.push(`amountNOK <= ${sqlString.escape(filter.amount.to)} `);
     }
 
     if (filter.dueDate) {
-      if (filter.dueDate.from)
-        where.push(`dueDate >= ${sqlString.escape(filter.dueDate.from)} `);
-      if (filter.dueDate.to)
-        where.push(`dueDate <= ${sqlString.escape(filter.dueDate.to)} `);
+      if (filter.dueDate.from) where.push(`dueDate >= ${sqlString.escape(filter.dueDate.from)} `);
+      if (filter.dueDate.to) where.push(`dueDate <= ${sqlString.escape(filter.dueDate.to)} `);
     }
 
     if (filter.timestamp) {
       if (filter.dueDate.from)
-        where.push(
-          `timestamp_created >= ${sqlString.escape(filter.dueDate.from)} `
-        );
+        where.push(`timestamp_created >= ${sqlString.escape(filter.dueDate.from)} `);
       if (filter.dueDate.to)
-        where.push(
-          `timestamp_created <= ${sqlString.escape(filter.dueDate.to)} `
-        );
+        where.push(`timestamp_created <= ${sqlString.escape(filter.dueDate.to)} `);
     }
 
     if (filter.KID)
-      where.push(
-        ` CAST(VC.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `
-      );
+      where.push(` CAST(VC.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
     if (filter.donor)
-      where.push(
-        ` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `
-      );
+      where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
     if (filter.statuses.length > 0)
-      where.push(
-        ` VC.status IN (${filter.statuses
-          .map((ID) => sqlString.escape(ID))
-          .join(",")}) `
-      );
+      where.push(` VC.status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `);
   }
 
   const [charges] = await DAO.query(
@@ -365,7 +330,7 @@ async function getCharges(sort, page, limit, filter) {
         ORDER BY ${sortColumn} ${sortDirection}
         LIMIT ? OFFSET ?
         `,
-    [limit, offset]
+    [limit, offset],
   );
 
   const [counter] = await DAO.query(`
@@ -385,9 +350,7 @@ async function getCharges(sort, page, limit, filter) {
  * @property {string} agreementUrlCode The code used in the Vipps merchantAgreementUrl
  * @return {number | false} agreementId
  */
-async function getAgreementIdByUrlCode(
-  agreementUrlCode
-): Promise<number | false> {
+async function getAgreementIdByUrlCode(agreementUrlCode): Promise<number | false> {
   let [res] = await DAO.query(
     `
         SELECT ID FROM 
@@ -395,7 +358,7 @@ async function getAgreementIdByUrlCode(
         WHERE 
             agreement_url_code = ?
         `,
-    [agreementUrlCode]
+    [agreementUrlCode],
   );
 
   if (res.length === 0) return false;
@@ -416,7 +379,7 @@ async function getCharge(agreementId, chargeId) {
         WHERE
             agreementID = ? AND chargeID = ?
         `,
-    [agreementId, chargeId]
+    [agreementId, chargeId],
   );
 
   if (res.length === 0) return false;
@@ -435,7 +398,7 @@ async function getInitialCharge(agreementID) {
         WHERE 
             agreementID = ? and status = "PENDING" && type = "INITIAL"
         `,
-    [agreementID]
+    [agreementID],
   );
 
   if (res.length === 0) return false;
@@ -578,8 +541,9 @@ async function getChargeSumHistogram() {
   return results;
 }
 
-async function getDonationsByUrlCode(urlcode: string):Promise<Donation[]>{
-  let [results] = await DAO.query(`
+async function getDonationsByUrlCode(urlcode: string): Promise<Donation[]> {
+  let [results] = await DAO.query(
+    `
             SELECT * FROM Vipps_agreement_charges as CH
 
             LEFT JOIN Donations ON
@@ -592,22 +556,22 @@ async function getDonationsByUrlCode(urlcode: string):Promise<Donation[]>{
             WHERE CH.agreementID = ? AND CH.\`status\` = 'CHARGED'
 
             ORDER BY (Donations.timestamp_confirmed) DESC
-        `,[urlcode]);
+        `,
+    [urlcode],
+  );
 
-  return results.map((row) => (
-    {
-      id: row.ID,
-      donor: "",
-      donorId: row.Donor_ID,
-      email: "",
-      sum: row.sum_confirmed,
-      transactionCost: row.transaction_cost,
-      paymentMethod: paymentMethods.vipps_recurring,
-      KID: row.KID_fordeling,
-      taxUnitId: null,
-      timestamp: row.timestamp_confirmed,
-    } ));
-
+  return results.map((row) => ({
+    id: row.ID,
+    donor: "",
+    donorId: row.Donor_ID,
+    email: "",
+    sum: row.sum_confirmed,
+    transactionCost: row.transaction_cost,
+    paymentMethod: paymentMethods.vipps_recurring,
+    KID: row.KID_fordeling,
+    taxUnitId: null,
+    timestamp: row.timestamp_confirmed,
+  }));
 }
 
 //endregion
@@ -627,7 +591,7 @@ async function addToken(token) {
             VALUES
             (?,?,?)
     `,
-    [token.expires, token.type, token.token]
+    [token.expires, token.type, token.token],
   );
 
   return result.insertId;
@@ -646,7 +610,7 @@ async function addOrder(order) {
                     VALUES
                     (?,?,?,?)
         `,
-    [order.orderID, order.donorID, order.KID, order.token]
+    [order.orderID, order.donorID, order.KID, order.token],
   );
 
   return result.insertId;
@@ -668,7 +632,7 @@ async function addAgreement(
   amount,
   monthlyChargeDay,
   agreementUrlCode,
-  status = "PENDING"
+  status = "PENDING",
 ) {
   if (monthlyChargeDay < 0 || monthlyChargeDay > 28) {
     return false;
@@ -681,15 +645,7 @@ async function addAgreement(
                 (ID, donorID, KID, amount, monthly_charge_day, agreement_url_code, status)
             VALUES
                 (?,?,?,?,?,?,?)`,
-      [
-        agreementID,
-        donorID,
-        KID,
-        amount,
-        monthlyChargeDay,
-        agreementUrlCode,
-        status,
-      ]
+      [agreementID, donorID, KID, amount, monthlyChargeDay, agreementUrlCode, status],
     );
 
     return true;
@@ -709,15 +665,7 @@ async function addAgreement(
  * @param {"INITIAL" | "RECURRING"} type
  * @return {boolean} Success or not
  */
-async function addCharge(
-  chargeID,
-  agreementID,
-  amountNOK,
-  KID,
-  dueDate,
-  status,
-  type
-) {
+async function addCharge(chargeID, agreementID, amountNOK, KID, dueDate, status, type) {
   try {
     DAO.query(
       `
@@ -725,7 +673,7 @@ async function addCharge(
                 (chargeID, agreementId, amountNOK, KID, dueDate, status, type)
             VALUES
                 (?,?,?,?,?,?,?)`,
-      [chargeID, agreementID, amountNOK, KID, dueDate, status, type]
+      [chargeID, agreementID, amountNOK, KID, dueDate, status, type],
     );
 
     return true;
@@ -744,16 +692,12 @@ async function addCharge(
  * @param {Array<VippsTransactionLogItem>} transactionHistory
  * @return {boolean} Success or not
  */
-async function updateOrderTransactionStatusHistory(
-  orderId,
-  transactionHistory
-) {
+async function updateOrderTransactionStatusHistory(orderId, transactionHistory) {
   let transaction = await DAO.startTransaction();
   try {
-    await transaction.query(
-      `DELETE FROM Vipps_order_transaction_statuses WHERE orderID = ?`,
-      [orderId]
-    );
+    await transaction.query(`DELETE FROM Vipps_order_transaction_statuses WHERE orderID = ?`, [
+      orderId,
+    ]);
 
     const mappedInsertValues = transactionHistory.map((logItem) => [
       orderId,
@@ -771,7 +715,7 @@ async function updateOrderTransactionStatusHistory(
                     VALUES
                     ?
         `,
-      [mappedInsertValues]
+      [mappedInsertValues],
     );
 
     await DAO.commitTransaction(transaction);
@@ -779,10 +723,7 @@ async function updateOrderTransactionStatusHistory(
     return true;
   } catch (ex) {
     await DAO.rollbackTransaction(transaction);
-    console.error(
-      `Failed to update order transaction history for orderId ${orderId}`,
-      ex
-    );
+    console.error(`Failed to update order transaction history for orderId ${orderId}`, ex);
     return false;
   }
 }
@@ -800,7 +741,7 @@ async function updateVippsOrderDonation(orderID, donationID) {
                 SET donationID = ?
                 WHERE orderID = ?
         `,
-    [donationID, orderID]
+    [donationID, orderID],
   );
 
   return result.affectedRows != 0 ? true : false;
@@ -814,10 +755,7 @@ async function updateVippsOrderDonation(orderID, donationID) {
  */
 async function updateAgreementPrice(agreementId, price) {
   try {
-    DAO.query(`UPDATE Vipps_agreements SET amount = ? WHERE ID = ?`, [
-      price,
-      agreementId,
-    ]);
+    DAO.query(`UPDATE Vipps_agreements SET amount = ? WHERE ID = ?`, [price, agreementId]);
 
     return true;
   } catch (ex) {
@@ -833,10 +771,7 @@ async function updateAgreementPrice(agreementId, price) {
  */
 async function updateAgreementStatus(agreementID, status) {
   try {
-    DAO.query(`UPDATE Vipps_agreements SET status = ? WHERE ID = ?`, [
-      status,
-      agreementID,
-    ]);
+    DAO.query(`UPDATE Vipps_agreements SET status = ? WHERE ID = ?`, [status, agreementID]);
 
     return true;
   } catch (ex) {
@@ -856,10 +791,10 @@ async function updateAgreementCancellationDate(agreementID) {
   const mysqlDate = today.toISOString().split("T")[0];
 
   try {
-    DAO.query(
-      `UPDATE Vipps_agreements SET cancellation_date = ? WHERE ID = ?`,
-      [mysqlDate, agreementID]
-    );
+    DAO.query(`UPDATE Vipps_agreements SET cancellation_date = ? WHERE ID = ?`, [
+      mysqlDate,
+      agreementID,
+    ]);
 
     return true;
   } catch (ex) {
@@ -875,10 +810,10 @@ async function updateAgreementCancellationDate(agreementID) {
  */
 async function updateAgreementChargeDay(agreementId, chargeDay) {
   try {
-    DAO.query(
-      `UPDATE Vipps_agreements SET monthly_charge_day = ? WHERE ID = ?`,
-      [chargeDay, agreementId]
-    );
+    DAO.query(`UPDATE Vipps_agreements SET monthly_charge_day = ? WHERE ID = ?`, [
+      chargeDay,
+      agreementId,
+    ]);
 
     return true;
   } catch (ex) {
@@ -894,10 +829,7 @@ async function updateAgreementChargeDay(agreementId, chargeDay) {
  */
 async function updateAgreementKID(agreementId, KID) {
   try {
-    DAO.query(`UPDATE Vipps_agreements SET KID = ? WHERE ID = ?`, [
-      KID,
-      agreementId,
-    ]);
+    DAO.query(`UPDATE Vipps_agreements SET KID = ? WHERE ID = ?`, [KID, agreementId]);
 
     return true;
   } catch (ex) {
@@ -913,10 +845,10 @@ async function updateAgreementKID(agreementId, KID) {
  */
 async function updateAgreementPauseDate(agreementId, pausedUntilDate) {
   try {
-    DAO.query(
-      `UPDATE Vipps_agreements SET paused_until_date = ? WHERE ID = ?`,
-      [pausedUntilDate, agreementId]
-    );
+    DAO.query(`UPDATE Vipps_agreements SET paused_until_date = ? WHERE ID = ?`, [
+      pausedUntilDate,
+      agreementId,
+    ]);
 
     return true;
   } catch (ex) {
@@ -932,10 +864,10 @@ async function updateAgreementPauseDate(agreementId, pausedUntilDate) {
  */
 async function updateAgreementForcedCharge(agreementId, forceChargeDate) {
   try {
-    DAO.query(
-      `UPDATE Vipps_agreements SET force_charge_date = ? WHERE ID = ?`,
-      [forceChargeDate, agreementId]
-    );
+    DAO.query(`UPDATE Vipps_agreements SET force_charge_date = ? WHERE ID = ?`, [
+      forceChargeDate,
+      agreementId,
+    ]);
 
     return true;
   } catch (ex) {
@@ -963,7 +895,7 @@ async function updateChargeStatus(newStatus, agreementID, chargeID) {
             WHERE agreementID = ?
             AND chargeID = ?
         `,
-      [newStatus, agreementID, chargeID]
+      [newStatus, agreementID, chargeID],
     );
 
     return true;

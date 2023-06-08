@@ -72,7 +72,7 @@ describe("AvtaleGiro file generation", () => {
     file = await avtalegiro.generateAvtaleGiroFile(
       42,
       mockAgreements,
-      DateTime.fromJSDate(new Date("2021-10-10 10:00"))
+      DateTime.fromJSDate(new Date("2021-10-10 10:00")),
     );
 
     expect(getLines().length).to.be.equal(14);
@@ -105,7 +105,7 @@ describe("AvtaleGiro file generation", () => {
     file = await avtalegiro.generateAvtaleGiroFile(
       42,
       mockAgreements,
-      DateTime.fromJSDate(new Date("2021-10-10 10:00"))
+      DateTime.fromJSDate(new Date("2021-10-10 10:00")),
     );
 
     // Assignment 1
@@ -167,5 +167,134 @@ describe("AvtaleGiro file generation", () => {
     expect(getSubString(12, 16, 10)).to.be.equal(" HÅKONHARN");
     // Filler
     expect(getSubString(12, 76, 5)).to.be.equal("00000");
+  });
+});
+
+describe("AvtaleGiro claim due date calculation", () => {
+  it("Calculates correct due dates for a normal week", () => {
+    // Monday 8th of May 2023
+    const date = DateTime.fromJSDate(new Date("2023-05-08 10:00"));
+    const dueDates = avtalegiro.getDueDates(date);
+
+    expect(dueDates.length).to.be.equal(1);
+    expect(dueDates[0].toISODate()).to.be.equal("2023-05-12");
+  });
+
+  it("Calculates correct due dates for a week with a holiday", () => {
+    // Monday 1st of May 2023
+    const date = DateTime.fromJSDate(new Date("2023-05-01 10:00"));
+    const dueDates = avtalegiro.getDueDates(date);
+
+    expect(dueDates.length).to.be.equal(0);
+  });
+
+  it("Calculates correct due dates for a week with a holiday and a weekend", () => {
+    // Friday 28th of April 2023
+    const date = DateTime.fromJSDate(new Date("2023-04-28 10:00"));
+    const dueDates = avtalegiro.getDueDates(date);
+
+    expect(dueDates.length).to.be.equal(1);
+    expect(dueDates[0].toISODate()).to.be.equal("2023-05-05");
+  });
+
+  it("Returns due dates for all the days in a period of april / may 2023", () => {
+    // Iterate over all the days in May 2023 and add them to a list
+    const dueDates = [];
+    let date = DateTime.fromJSDate(new Date("2023-04-28 10:00"));
+    while (date <= DateTime.fromJSDate(new Date("2023-05-23 10:00"))) {
+      let claimDueDates = avtalegiro.getDueDates(date);
+      dueDates.push(...claimDueDates);
+      date = date.plus({ days: 1 });
+    }
+    dueDates.sort((a, b) => a.toMillis() - b.toMillis());
+
+    expect(dueDates.length).to.be.equal(26);
+    // Expect the due dates to be unique in the list
+    expect(dueDates).to.be.deep.equal([...new Set(dueDates)]);
+    // Expect all the dates from 05.05.2023 to 30.05.2023 to be in the list
+    expect(dueDates.map((d) => d.toFormat("dd.MM.yyyy"))).to.be.deep.equal([
+      "05.05.2023",
+      "06.05.2023",
+      "07.05.2023",
+      "08.05.2023",
+      "09.05.2023",
+      "10.05.2023",
+      "11.05.2023",
+      "12.05.2023",
+      "13.05.2023",
+      "14.05.2023",
+      "15.05.2023",
+      "16.05.2023",
+      "17.05.2023",
+      "18.05.2023",
+      "19.05.2023",
+      "20.05.2023",
+      "21.05.2023",
+      "22.05.2023",
+      "23.05.2023",
+      "24.05.2023",
+      "25.05.2023",
+      "26.05.2023",
+      "27.05.2023",
+      "28.05.2023",
+      "29.05.2023",
+      "30.05.2023",
+    ]);
+  });
+
+  it("Returns due dates for christmas 2023", () => {
+    // Iterate over all the days from 10.12.2023 to 10.01.2024 and add them to a list
+    const dueDates = [];
+    let date = DateTime.fromJSDate(new Date("2023-12-10 10:00"));
+    while (date <= DateTime.fromJSDate(new Date("2024-01-10 10:00"))) {
+      let claimDueDates = avtalegiro.getDueDates(date);
+      dueDates.push(...claimDueDates);
+      date = date.plus({ days: 1 });
+    }
+    dueDates.sort((a, b) => a.toMillis() - b.toMillis());
+
+    expect(dueDates.length).to.be.equal(33);
+    // Expect the due dates to be unique in the list
+    expect(dueDates).to.be.deep.equal([...new Set(dueDates)]);
+    // Expect all the dates from 15.12.2023 to 15.01.2024 to be in the list
+    expect(dueDates.map((d) => d.toFormat("dd.MM.yyyy"))).to.be.deep.equal([
+      "15.12.2023",
+      "16.12.2023",
+      "17.12.2023",
+      "18.12.2023",
+      "19.12.2023",
+      "20.12.2023",
+      "21.12.2023",
+      "22.12.2023",
+      "23.12.2023",
+      "24.12.2023",
+      "25.12.2023",
+      "26.12.2023",
+      "27.12.2023",
+      "28.12.2023",
+      "29.12.2023",
+      "30.12.2023",
+      "31.12.2023",
+      "01.01.2024",
+      "02.01.2024",
+      "03.01.2024",
+      "04.01.2024",
+      "05.01.2024",
+      "06.01.2024",
+      "07.01.2024",
+      "08.01.2024",
+      "09.01.2024",
+      "10.01.2024",
+      "11.01.2024",
+      "12.01.2024",
+      "13.01.2024",
+      "14.01.2024",
+      "15.01.2024",
+      "16.01.2024",
+    ]);
+  });
+
+  after(() => {
+    sinon.restore();
   });
 });

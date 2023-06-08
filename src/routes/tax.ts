@@ -1,7 +1,7 @@
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
 // A route that updates a tax unit name and ssn
@@ -65,7 +65,7 @@ router.put("/:id", async (req, res, next) => {
       return;
     }
 
-    const changed = await DAO.tax.updateTaxUnit(id, taxUnit);
+    const changed = await DAO.tax.updateTaxUnit(parseInt(id), taxUnit);
     if (changed) {
       res.json({
         status: 200,
@@ -82,22 +82,21 @@ router.put("/:id", async (req, res, next) => {
   }
 });
 
-router.put(
-  "/donations/assign",
-  authMiddleware.isAdmin,
-  async (req, res, next) => {
-    try {
-      const singleTaxUnits = await DAO.donors.getIDsWithOneTaxUnit()
+router.put("/donations/assign", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const singleTaxUnits = await DAO.donors.getIDsWithOneTaxUnit();
 
-      for (let i = 0; i < singleTaxUnits.length; i++) {
-        await DAO.tax.updateKIDsMissingTaxUnit(singleTaxUnits[i]["ID"], singleTaxUnits[i]["Donor_ID"])
-      }
-
-      return res.json({status: 200});
-    } catch (ex) {
-      next(ex);
+    for (let i = 0; i < singleTaxUnits.length; i++) {
+      await DAO.tax.updateKIDsMissingTaxUnit(
+        singleTaxUnits[i]["ID"],
+        singleTaxUnits[i]["Donor_ID"],
+      );
     }
+
+    return res.json({ status: 200 });
+  } catch (ex) {
+    next(ex);
   }
-);
+});
 
 module.exports = router;

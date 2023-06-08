@@ -4,10 +4,10 @@ import { KID } from "../custom_modules/KID";
 // http://www.paypalobjects.com/en_US/vhelp/paypalmanager_help/credit_card_numbers.htm
 // Luhn algorithm/MOD10 is used to validate credit card numbers also, so testing the function(s) against some credit card numbers seems like a good idea.
 var TestCardNumbers = [
-  378282246310005, 371449635398431, 5610591081018250, 30569309025904,
-  38520000023237, 6011111111111117, 6011000990139424, 3530111333300000,
-  3566002020360505, 5555555555554444, 5105105105105100, 4111111111111111,
-  4012888888881881, 4222222222222, 5019717010103742, 6331101999990016,
+  378282246310005, 371449635398431, 5610591081018250, 30569309025904, 38520000023237,
+  6011111111111117, 6011000990139424, 3530111333300000, 3566002020360505, 5555555555554444,
+  5105105105105100, 4111111111111111, 4012888888881881, 4222222222222, 5019717010103742,
+  6331101999990016,
 ];
 
 describe("KID module", function () {
@@ -58,9 +58,7 @@ describe("KID module", function () {
     it("luhn_caclulate multi-number check", function () {
       for (var x = 0; x < TestCardNumbers.length; x++) {
         var CurrentNumber = TestCardNumbers[x].toString();
-        var ValidationNumber = parseInt(
-          CurrentNumber[CurrentNumber.length - 1]
-        );
+        var ValidationNumber = parseInt(CurrentNumber[CurrentNumber.length - 1]);
         var CaluclationNumber = parseInt(CurrentNumber.slice(0, -1));
         expect(KID.luhn_caclulate(CaluclationNumber)).equal(ValidationNumber);
         expect(KID.luhn_caclulate(CaluclationNumber)).to.be.a("number");

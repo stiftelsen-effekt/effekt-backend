@@ -13,8 +13,27 @@ import { avtalegiroagreements } from "./DAO_modules/avtalegiroagreements";
 import { logging } from "./DAO_modules/logging";
 import { organizations } from "./DAO_modules/organizations";
 import * as mysql from "mysql2/promise";
+import { Prisma } from "@prisma/client";
+import config from "../config";
 
-const config = require("../config");
+/**
+ * Generated prisma types assume certain transformations applied by prisma client
+ */
+export type SqlResult<T> = T extends Array<infer U>
+  ? {
+      [K in keyof T]: SqlResult<U>;
+    }
+  : T extends Record<string, any>
+  ? {
+      [K in keyof T]: T[K] extends boolean
+        ? 0 | 1
+        : T[K] extends Date
+        ? string
+        : T[K] extends Prisma.Decimal
+        ? string /* decimal is a string: https://github.com/sidorares/node-mysql2/issues/1561 */
+        : T[K];
+    }
+  : T;
 
 export const DAO = {
   //Submodules
@@ -33,27 +52,31 @@ export const DAO = {
   tax: tax,
   logging: logging,
 
-  dbPool: undefined,
+  dbPool: undefined as mysql.Pool | undefined,
 
   /**
    * Sets up a connection to the database, uses config.js file for parameters
    * @param {function} cb Callback for when DAO has been sucessfully set up
    */
   connect: async function (cb) {
-    const dbSocketPath = process.env.DB_SOCKET_PATH || "/cloudsql";
-
-    var args = {
-        user: config.db_username,
-        password: config.db_password,
-        database: config.db_name,
-        waitForConnections: true,
-        enableKeepAlive: true as true, // Workaround for type checking quirk
-        timezone: '+00:00',
+    const args = {
+      user: config.db_username,
+      password: config.db_password,
+      database: config.db_name,
+      waitForConnections: true,
+      enableKeepAlive: true as true, // Workaround for type checking quirk
+      timezone: "+00:00",
     };
-    if (process.env.K_SERVICE != null)
-      args["socketPath"] = `${dbSocketPath}/${process.env.CLOUD_SQL_CONNECTION_NAME}`;
-    else
-      args["host"] = "127.0.0.1";
+
+    // Using Unix sockets to connect to cloud SQL is the default way
+    // https://cloud.google.com/sql/docs/mysql/connect-run#connect-unix-socket
+    // K_SERVICE is used to detect if running on GCP Cloud Run
+    if (process.env.K_SERVICE != null) {
+      args["socketPath"] = `/cloudsql/${process.env.CLOUD_SQL_CONNECTION_NAME}`;
+    } else {
+      args["host"] = config.db_host; // localhost is default in undefined
+    }
+
     this.dbPool = mysql.createPool(args);
 
     //Check whether connection was successfull
@@ -62,9 +85,7 @@ export const DAO = {
       await this.dbPool.query("SELECT 1 + 1 AS Solution");
       console.log("Connected to database | Using database " + config.db_name);
     } catch (ex) {
-      console.error(
-        "Connection to database failed! | Using database " + config.db_name
-      );
+      console.error("Connection to database failed! | Using database " + config.db_name);
       console.log(ex);
       process.exit();
     }
@@ -72,14 +93,18 @@ export const DAO = {
     cb();
   },
 
-  query: async function <T>(query, params = undefined, retries = 0) {
+  query: async function <T = any>(
+    query,
+    params = undefined,
+    retries = 0,
+  ): Promise<[SqlResult<T>, mysql.FieldPacket[]]> {
     try {
-      return await this.dbPool.query(query, params);
+      return await (this as typeof DAO).dbPool.query<any>(query, params);
     } catch (ex) {
       if (retries < 7 && ex.code === "PROTOCOL_CONNECTION_LOST") {
         console.log("Retrying query");
         await wait(2 ** retries * 100);
-        return await this.query(query, params, retries + 1);
+        return await (this as typeof DAO).query<T>(query, params, retries + 1);
       } else {
         console.error(ex);
         throw new Error(ex);
@@ -87,9 +112,13 @@ export const DAO = {
     }
   },
 
-  execute: async function <T>(query, params = undefined, retries = 0) {
+  execute: async function <T = any>(
+    query: string,
+    params = undefined,
+    retries = 0,
+  ): Promise<[SqlResult<T>, mysql.FieldPacket[]]> {
     try {
-      return await DAO.dbPool.execute(query, params);
+      return await DAO.dbPool.execute<any>(query, params);
     } catch (ex) {
       if (retries < 7 && ex.code === "PROTOCOL_CONNECTION_LOST") {
         console.error(ex);
@@ -97,10 +126,10 @@ export const DAO = {
           "Retrying query `" +
             query.substr(0, Math.min(query.length, 120)) +
             (query.length > 120 ? "...`" : "`"),
-          retries
+          retries,
         );
         await wait(2 ** retries * 1000);
-        return await this.execute(query, params, retries + 1);
+        return await (this as typeof DAO).execute<T>(query, params, retries + 1);
       } else {
         console.error(ex);
         throw new Error(ex);

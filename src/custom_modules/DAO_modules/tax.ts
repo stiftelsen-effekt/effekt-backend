@@ -10,10 +10,7 @@ import { donationHelpers } from "../donationHelpers";
  * @returns {TaxUnit | null} A tax unit if found
  */
 async function getById(id: number): Promise<TaxUnit | null> {
-  const [result] = await DAO.execute<RowDataPacket[]>(
-    `SELECT * FROM Tax_unit where ID = ?`,
-    [id]
-  );
+  const [result] = await DAO.execute<RowDataPacket[]>(`SELECT * FROM Tax_unit where ID = ?`, [id]);
 
   if (result.length > 0)
     return {
@@ -44,7 +41,7 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
           WHERE T.Donor_ID = ?
           
           GROUP BY T.ID, T.full_name, T.registered`,
-    [donorId]
+    [donorId],
   );
 
   // Get sum of donations for tax unit grouped by year
@@ -55,7 +52,7 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
           INNER JOIN Donations as D ON D.KID_fordeling = C.KID
           WHERE T.Donor_ID = ? AND D.Payment_ID <> 10
           GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
-    [donorId]
+    [donorId],
   );
 
   const taxDeductionRules = {
@@ -102,7 +99,7 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
           sumDonations: ag.sum_donations,
           taxDeduction: taxDeductionRules[ag.year](ag.sum_donations),
         })),
-    })
+    }),
   );
 
   return units;
@@ -117,14 +114,13 @@ async function getByKID(KID: string): Promise<TaxUnit | null> {
   const [idResult] = await DAO.execute<RowDataPacket[]>(
     `SELECT Tax_unit_ID FROM Combining_table WHERE KID = ?
         GROUP BY Tax_unit_ID;`,
-    [KID]
+    [KID],
   );
 
   if (idResult.length > 0 && idResult[0].Tax_unit_ID) {
-    const [result] = await DAO.execute<RowDataPacket[]>(
-      `SELECT * FROM Tax_unit where ID = ?`,
-      [idResult[0].Tax_unit_ID]
-    );
+    const [result] = await DAO.execute<RowDataPacket[]>(`SELECT * FROM Tax_unit where ID = ?`, [
+      idResult[0].Tax_unit_ID,
+    ]);
 
     const donor = await DAO.donors.getByKID(KID);
 
@@ -136,7 +132,7 @@ async function getByKID(KID: string): Promise<TaxUnit | null> {
               INNER JOIN Donations as D ON D.KID_fordeling = C.KID
               WHERE T.Donor_ID = ? AND D.Payment_ID <> 10
               GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
-      [donor.id]
+      [donor.id],
     );
 
     const taxDeductionRules = {
@@ -192,13 +188,10 @@ async function getByKID(KID: string): Promise<TaxUnit | null> {
  * @param {string} ssn A social security number
  * @returns {TaxUnit | null} A tax unit if found
  */
-async function getByDonorIdAndSsn(
-  donorId: number,
-  ssn: string
-): Promise<TaxUnit | null> {
+async function getByDonorIdAndSsn(donorId: number, ssn: string): Promise<TaxUnit | null> {
   const [result] = await DAO.execute<RowDataPacket[]>(
     `SELECT * FROM Tax_unit where Donor_ID = ? AND ssn = ?`,
-    [donorId, ssn]
+    [donorId, ssn],
   );
 
   if (result.length > 0) {
@@ -218,9 +211,7 @@ export type EmailTaxUnitReport = {
   name: string;
   units: [{ name: string; sum: number }];
 };
-async function getReportsWithUserOnProfilePage(): Promise<
-  EmailTaxUnitReport[]
-> {
+async function getReportsWithUserOnProfilePage(): Promise<EmailTaxUnitReport[]> {
   const [result] = await DAO.execute<RowDataPacket[]>(`
     SELECT TaxUnitName, \`SUM(sum_confirmed)\` as DonationsSum, DonorUserEmail, DonorUserName FROM v_Tax_deductions
       WHERE (SELECT COUNT(*) FROM Auth0_users WHERE Email = DonorUserEmail) = 1
@@ -244,9 +235,7 @@ async function getReportsWithUserOnProfilePage(): Promise<
   return mapped;
 }
 
-async function getReportsWithoutUserOnProfilePage(): Promise<
-  EmailTaxUnitReport[]
-> {
+async function getReportsWithoutUserOnProfilePage(): Promise<EmailTaxUnitReport[]> {
   const [result] = await DAO.execute<RowDataPacket[]>(`
     SELECT TaxUnitName, \`SUM(sum_confirmed)\` as DonationsSum, DonorUserEmail, DonorUserName FROM v_Tax_deductions
         WHERE (SELECT COUNT(*) FROM Auth0_users WHERE Email = DonorUserEmail) = 0
@@ -279,14 +268,10 @@ async function getReportsWithoutUserOnProfilePage(): Promise<
  * @param {String} name The name of the tax unit. Could for example be Ola Normann, or Norske Bedrift AS
  * @returns {Number} The ID of the created tax unit
  */
-async function addTaxUnit(
-  donorId: number,
-  ssn: string | null,
-  name: string
-): Promise<number> {
+async function addTaxUnit(donorId: number, ssn: string | null, name: string): Promise<number> {
   const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
     `INSERT INTO Tax_unit SET Donor_ID = ?, ssn = ?, full_name = ?`,
-    [donorId, ssn, name]
+    [donorId, ssn, name],
   );
 
   return result.insertId;
@@ -301,7 +286,7 @@ async function addTaxUnit(
 async function updateTaxUnit(id: number, taxUnit: TaxUnit): Promise<number> {
   const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
     `UPDATE Tax_unit SET full_name = ?, ssn = ? WHERE ID = ?`,
-    [taxUnit.name, taxUnit.ssn, id]
+    [taxUnit.name, taxUnit.ssn, id],
   );
 
   return result.affectedRows;
@@ -313,10 +298,7 @@ async function updateTaxUnit(id: number, taxUnit: TaxUnit): Promise<number> {
  * @param {TaxUnit} donorID The donor ID
  * @returns {number} The number of rows affected
  */
-async function updateKIDsMissingTaxUnit(
-  taxUnitID: number,
-  donorID: number
-): Promise<boolean> {
+async function updateKIDsMissingTaxUnit(taxUnitID: number, donorID: number): Promise<boolean> {
   const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
     `
       UPDATE Combining_table
@@ -324,7 +306,7 @@ async function updateKIDsMissingTaxUnit(
       WHERE Tax_unit_ID IS NULL
       AND Donor_ID = ?
     `,
-    [taxUnitID, donorID]
+    [taxUnitID, donorID],
   );
 
   return true;
@@ -349,11 +331,7 @@ type TransferKIDBinding = {
  * @param {number?} transferId The id of the tax unit to transfer donations to
  * @returns {number} The number of rows affected
  */
-async function deleteById(
-  id: number,
-  donorId: number,
-  transferId?: number
-): Promise<number> {
+async function deleteById(id: number, donorId: number, transferId?: number): Promise<number> {
   try {
     var transaction = await DAO.startTransaction();
 
@@ -364,7 +342,7 @@ async function deleteById(
           WHERE KID_fordeling IN (SELECT KID FROM Combining_table WHERE Tax_unit_ID = ? GROUP BY KID)
           AND YEAR(timestamp_confirmed) = YEAR(CURDATE())
           `,
-        [id]
+        [id],
       );
       console.log(donations);
 
@@ -421,7 +399,7 @@ async function deleteById(
         
         ON Origin.origDistKey = Destination.destDistKey
       `,
-        [...Array.from(kidsToTransfer), transferId]
+        [...Array.from(kidsToTransfer), transferId],
       );
       console.log(transferKIDs);
 
@@ -430,15 +408,13 @@ async function deleteById(
         let destinationKID = transferKID.destKID;
         if (destinationKID === null) {
           // No matching KID found, so we need to create a new one
-          const split = transferKID.origDistKey
-            .split(";")
-            .reduce((acc, cur) => {
-              if (cur === "s" || cur === "c") return acc;
+          const split = transferKID.origDistKey.split(";").reduce((acc, cur) => {
+            if (cur === "s" || cur === "c") return acc;
 
-              const [orgId, percentage] = cur.split("|");
-              acc.push({ id: orgId, share: percentage });
-              return acc;
-            }, [] as { id: string; share: string }[]);
+            const [orgId, percentage] = cur.split("|");
+            acc.push({ id: orgId, share: percentage });
+            return acc;
+          }, [] as { id: string; share: string }[]);
           const KID = await donationHelpers.createKID(15, donorId);
 
           const res = await DAO.distributions.add(
@@ -446,7 +422,7 @@ async function deleteById(
             KID,
             donorId,
             transferId,
-            transferKID.origStandard === 1
+            transferKID.origStandard === 1,
           );
 
           if (!res) {
@@ -461,7 +437,7 @@ async function deleteById(
           `
           UPDATE Donations SET KID_fordeling = ? WHERE KID_fordeling = ? AND YEAR(timestamp_confirmed) = YEAR(CURDATE())
         `,
-          [destinationKID, transferKID.origKID]
+          [destinationKID, transferKID.origKID],
         );
       }
     }
@@ -469,7 +445,7 @@ async function deleteById(
     // Remove original tax unit name and ssn, and set archived field to current timestamp
     const [result] = await transaction.execute<ResultSetHeader>(
       `UPDATE Tax_unit SET full_name = 'Archived', ssn = 'Archived', archived = CURRENT_TIMESTAMP WHERE ID = ?`,
-      [id]
+      [id],
     );
 
     DAO.commitTransaction(transaction);

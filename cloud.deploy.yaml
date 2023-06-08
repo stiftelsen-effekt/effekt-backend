@@ -1,14 +1,35 @@
 steps:
-- name: 'gcr.io/cloud-builders/npm'
-  args: ['install']
-- name: 'gcr.io/cloud-builders/npm'
-  args: ['run', 'test']
-- name: 'gcr.io/cloud-builders/npm'
-  args: ['run', 'build']
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/effektapi:latest', '.']
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/effektapi:latest']
-- name: 'gcr.io/cloud-builders/gcloud'
-  args: ['run', 'deploy', 'effektapi', '--image', 'gcr.io/$PROJECT_ID/effektapi:latest', '--region', 'europe-north1', '--platform', 'managed', '--allow-unauthenticated']
-images: ['gcr.io/$PROJECT_ID/effektapi:latest']
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["build", "-t", "gcr.io/$PROJECT_ID/effektapi:latest", "."]
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build"
+    args: ["push", "gcr.io/$PROJECT_ID/effektapi:latest"]
+
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "migrate-db-norway"
+    waitFor: ["build"]
+    args:
+      - "run"
+      - "jobs"
+      - "execute"
+      - "effektapi-db-migrate"
+      - "--region"
+      - "europe-north1"
+      - "--wait"
+
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "deploy-norway"
+    waitFor: ["migrate-db-norway"]
+    args:
+      - "run"
+      - "deploy"
+      - "effektapi"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/effektapi:latest"
+      - "--region"
+      - "europe-north1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+
+images: ["gcr.io/$PROJECT_ID/effektapi:latest"]

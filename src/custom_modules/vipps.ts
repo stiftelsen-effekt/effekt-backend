@@ -1,13 +1,15 @@
+import { createHash } from "crypto";
 import { DAO } from "./DAO";
 import { sendDonationReciept, sendVippsErrorWarning } from "./mail";
 
 const config = require("./../config");
-const crypto = require("crypto");
+import crypto from "crypto";
 const paymentMethods = require("../enums/paymentMethods");
-const request = require("request-promise-native");
+import request from "request-promise-native";
 const mail = require("../custom_modules/mail");
-const moment = require("moment");
-const hash = require("object-hash");
+import moment from "moment";
+import hash from "object-hash";
+import { pollLoop } from "./pollLoop";
 
 //Timings selected based on the vipps guidelines
 //https://www.vipps.no/developers-documentation/ecom/documentation/#polling-guidelines
@@ -106,6 +108,7 @@ const VIPPS_TEXT = "Donasjon til Gi Effektivt.";
  * @property {string} due ISO-8601 date string for due date
  * @property {number} retryDays For how many days vipps shall attempt to retry charge
  * @property {string} orderId The ID of the order
+ * @property {string} transactionType The transaction type (either DIRECT_CAPTURE or RESERVE_CAPTURE)
  */
 
 /**
@@ -218,9 +221,8 @@ module.exports = {
    * @param {string} orderId
    */
   async pollOrder(orderId) {
-    setTimeout(() => {
-      this.pollLoop(orderId, this.checkOrderDetails);
-    }, POLLING_START_DELAY);
+    await new Promise((resolve) => setTimeout(resolve, POLLING_START_DELAY));
+    await pollLoop((polls) => this.checkOrderDetails(orderId, polls), POLLING_INTERVAL);
   },
 
   /**
@@ -231,31 +233,22 @@ module.exports = {
    * @param {number} polls How many times have we polled the detail endpoint
    * @returns {boolean} True if we should cancel the polling, false otherwise
    */
-  async checkOrderDetails(orderId, polls) {
+  async checkOrderDetails(orderId: string, polls: number): Promise<boolean> {
     console.log(`Polling ${orderId}, ${polls}th poll`);
     let orderDetails = await this.getOrderDetails(orderId);
 
     //If we've been polling for more than eleven minutes, stop polling for updates
     if (polls * POLLING_INTERVAL + POLLING_START_DELAY > 1000 * 60 * 10) {
       //Update transaction log history with all information we have
-      await this.updateOrderTransactionLogHistory(
-        orderId,
-        orderDetails.transactionLogHistory
-      );
+      await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory);
       return true;
     }
 
-    let captureLogItem = this.findTransactionLogItem(
-      orderDetails.transactionLogHistory,
-      "CAPTURE"
-    );
-    let reserveLogItem = this.findTransactionLogItem(
-      orderDetails.transactionLogHistory,
-      "RESERVE"
-    );
+    let captureLogItem = this.findTransactionLogItem(orderDetails.transactionLogHistory, "CAPTURE");
+    let reserveLogItem = this.findTransactionLogItem(orderDetails.transactionLogHistory, "RESERVE");
     if (
       orderDetails.transactionLogHistory.some((logItem) =>
-        this.transactionLogItemFinalIsFinalState(logItem)
+        this.transactionLogItemFinalIsFinalState(logItem),
       )
     ) {
       if (captureLogItem !== null) {
@@ -267,27 +260,21 @@ module.exports = {
             paymentMethods.vipps,
             captureLogItem.amount / 100,
             captureLogItem.timeStamp,
-            captureLogItem.transactionId
+            captureLogItem.transactionId,
           );
           await DAO.vipps.updateVippsOrderDonation(orderId, donationID);
           await sendDonationReciept(donationID);
         } catch (ex) {
           //Donation already registered, no additional actions required
           if (ex.message.indexOf("EXISTING_DONATION") === -1) {
-            console.info(
-              `Vipps donation for orderid ${orderId} already exists`,
-              ex
-            );
+            console.info(`Vipps donation for orderid ${orderId} already exists`, ex);
           } else {
             throw ex;
           }
         }
       }
 
-      await this.updateOrderTransactionLogHistory(
-        orderId,
-        orderDetails.transactionLogHistory
-      );
+      await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory);
 
       //We are in a final state, cancel further polling
       return true;
@@ -307,8 +294,7 @@ module.exports = {
    */
   findTransactionLogItem(transactionLogHistory, operation) {
     let items = transactionLogHistory.filter(
-      (logItem) =>
-        logItem.operation === operation && logItem.operationSuccess === true
+      (logItem) => logItem.operation === operation && logItem.operationSuccess === true,
     );
     if (items.length > 0) return items[0];
     else return null;
@@ -320,10 +306,7 @@ module.exports = {
    * @returns
    */
   transactionLogItemFinalIsFinalState(transactionLogItem) {
-    if (
-      transactionLogItem.operation === "CAPTURE" &&
-      transactionLogItem.operationSuccess === true
-    )
+    if (transactionLogItem.operation === "CAPTURE" && transactionLogItem.operationSuccess === true)
       return true;
     else if (
       transactionLogItem.operation === "CANCEL" &&
@@ -355,10 +338,7 @@ module.exports = {
    * @param {Array<TransactionLogItem>} transactionLogHistory
    */
   async updateOrderTransactionLogHistory(orderId, transactionLogHistory) {
-    await DAO.vipps.updateOrderTransactionStatusHistory(
-      orderId,
-      transactionLogHistory
-    );
+    await DAO.vipps.updateOrderTransactionStatusHistory(orderId, transactionLogHistory);
   },
 
   /**
@@ -379,12 +359,10 @@ module.exports = {
     //convert string timestamp to JS Date in transaction log history
     orderDetails = {
       ...orderDetails,
-      transactionLogHistory: orderDetails.transactionLogHistory.map(
-        (logItem) => ({
-          ...logItem,
-          timeStamp: new Date(logItem.timeStamp),
-        })
-      ),
+      transactionLogHistory: orderDetails.transactionLogHistory.map((logItem) => ({
+        ...logItem,
+        timeStamp: new Date(logItem.timeStamp),
+      })),
     };
 
     return orderDetails;
@@ -434,7 +412,7 @@ module.exports = {
           paymentMethods.vipps,
           captureRequest.transactionInfo.amount / 100,
           captureRequest.transactionInfo.timeStamp,
-          captureRequest.transactionInfo.transactionId
+          captureRequest.transactionInfo.transactionId,
         );
         await DAO.vipps.updateVippsOrderDonation(orderId, donationID);
         await sendDonationReciept(donationID);
@@ -442,10 +420,7 @@ module.exports = {
       } catch (ex) {
         //Donation already registered, no additional actions required
         if (ex.message.indexOf("EXISTING_DONATION") === -1) {
-          console.info(
-            `Vipps donation for orderid ${orderId} already exists`,
-            ex
-          );
+          console.info(`Vipps donation for orderid ${orderId} already exists`, ex);
         } else {
           throw ex;
         }
@@ -468,9 +443,7 @@ module.exports = {
       let order = await DAO.vipps.getOrder(orderId);
 
       if (order.donationID == null) {
-        console.error(
-          `Could not refund order with id ${orderId}, order has not been captured`
-        );
+        console.error(`Could not refund order with id ${orderId}, order has not been captured`);
         return false;
       }
 
@@ -494,10 +467,7 @@ module.exports = {
 
       await DAO.donations.remove(order.donationID);
       let orderDetails = await this.getOrderDetails(orderId);
-      await this.updateOrderTransactionLogHistory(
-        orderId,
-        orderDetails.transactionLogHistory
-      );
+      await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory);
 
       return true;
     } catch (ex) {
@@ -531,10 +501,7 @@ module.exports = {
       });
 
       let orderDetails = await this.getOrderDetails(orderId);
-      await this.updateOrderTransactionLogHistory(
-        orderId,
-        orderDetails.transactionLogHistory
-      );
+      await this.updateOrderTransactionLogHistory(orderId, orderDetails.transactionLogHistory);
 
       return true;
     } catch (ex) {
@@ -588,16 +555,21 @@ module.exports = {
 
     // Real price is set in øre
     const realAmount = amount * 100;
-    const agreementUrlCode = hash(new Date() + Math.random().toString());
+    const agreementUrlCode = crypto.randomBytes(16).toString("hex");
 
     const data = {
-      currency: "NOK",
-      interval: "MONTH",
-      intervalCount: 1,
+      pricing: {
+        type: "LEGACY",
+        amount: realAmount,
+        currency: "NOK",
+      },
+      interval: {
+        unit: "MONTH",
+        count: 1,
+      },
       isApp: false,
       merchantRedirectUrl: `https://gieffektivt.no/opprettet`,
       merchantAgreementUrl: `${config.minside_url}/${agreementUrlCode}`,
-      price: realAmount,
       productDescription: agreementUrlCode,
       productName: "Månedlig donasjon til Gi Effektivt.",
     };
@@ -614,7 +586,7 @@ module.exports = {
     try {
       /** @type {DraftRespone} */
       let response = await request.post({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements`,
         headers: this.getVippsHeaders(token),
         json: data,
       });
@@ -632,7 +604,7 @@ module.exports = {
         KID,
         amount,
         monthlyChargeDay,
-        agreementUrlCode
+        agreementUrlCode,
       );
 
       // If adding to effekt database failed, cancel agreement
@@ -640,17 +612,12 @@ module.exports = {
         await this.updateAgreementStatus(response.agreementId, "STOPPED");
         await DAO.vipps.updateAgreementStatus(response.agreementId, "STOPPED");
 
-        console.error(
-          "Failed adding agreement to database, draft agreement cancelled"
-        );
+        console.error("Failed adding agreement to database, draft agreement cancelled");
         return false;
       }
 
       if (response.chargeId) {
-        const reservedCharge = await this.getCharge(
-          response.agreementId,
-          response.chargeId
-        );
+        const reservedCharge = await this.getCharge(response.agreementId, response.chargeId);
 
         if (reservedCharge)
           await DAO.vipps.addCharge(
@@ -660,7 +627,7 @@ module.exports = {
             KID,
             reservedCharge.due,
             reservedCharge.status,
-            reservedCharge.type
+            reservedCharge.type,
           );
       }
 
@@ -692,7 +659,7 @@ module.exports = {
 
     try {
       let agreementRequest = await request.get({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${id}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${id}`,
         headers: this.getVippsHeaders(token),
       });
 
@@ -717,7 +684,7 @@ module.exports = {
 
     try {
       let agreementRequest = await request.get({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements?status=${status}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements?status=${status}`,
         headers: this.getVippsHeaders(token),
       });
 
@@ -755,7 +722,7 @@ module.exports = {
 
     try {
       await request.patch({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}`,
         headers: this.getVippsHeaders(token),
         body: JSON.stringify(body),
       });
@@ -793,7 +760,7 @@ module.exports = {
 
     try {
       await request.patch({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}`,
         headers: this.getVippsHeaders(token),
         body: JSON.stringify(body),
       });
@@ -813,16 +780,18 @@ module.exports = {
     const token = await this.fetchToken();
     if (token === false) return false;
 
-    // Required by Vipps, prevents duplicate requests
-    const idempotencyKey = hash(agreementId + chargeId);
+    const charge = await this.getCharge(agreementId, chargeId);
 
-    let headers = this.getVippsHeaders(token);
-    headers["Idempotency-Key"] = idempotencyKey;
+    const body = {
+      amount: charge.amount,
+      description: charge.description,
+    };
 
     try {
       await request.post({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}/capture`,
-        headers,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}/capture`,
+        headers: this.getVippsHeaders(token),
+        body: JSON.stringify(body),
       });
 
       return true;
@@ -841,9 +810,7 @@ module.exports = {
    */
   async createCharge(agreementId, amountKroner, daysInAdvance = 3) {
     if (daysInAdvance <= 2) {
-      console.error(
-        "Today must be more than 2 days in advance of the due date"
-      );
+      console.error("Today must be more than 2 days in advance of the due date");
       return false;
     }
 
@@ -857,13 +824,6 @@ module.exports = {
     const token = await this.fetchToken();
     if (token === false) return false;
 
-    // idempotencyKey required by Vipps, prevents charging twice in a day
-    const idempotencyKey = `${new Date().setHours(0, 0, 0, 0)}-${agreementId}`;
-
-    let headers = this.getVippsHeaders(token);
-    headers["Idempotency-Key"] = idempotencyKey;
-    headers["agreementId"] = agreementId;
-
     /** @type {ChargePayload} */
     const data = {
       amount: amountKroner * 100,
@@ -871,7 +831,10 @@ module.exports = {
       description: "Fast donasjon til Gi Effektivt.",
       due: formattedDueDate,
       retryDays: 5,
+      transactionType: "DIRECT_CAPTURE",
     };
+
+    const headers = this.getVippsHeaders(token);
 
     try {
       const vippsAgreement = await this.getAgreement(agreementId);
@@ -881,8 +844,8 @@ module.exports = {
       }
 
       const response = await request.post({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges`,
-        headers: headers,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges`,
+        headers,
         body: JSON.stringify(data),
       });
 
@@ -890,8 +853,7 @@ module.exports = {
       const charge = await this.getCharge(agreementId, chargeId);
       const agreement = await DAO.vipps.getAgreement(agreementId);
 
-      if (!agreement)
-        throw new Error("Agreement not found in database: " + agreementId);
+      if (!agreement) throw new Error("Agreement not found in database: " + agreementId);
 
       if (response)
         await DAO.vipps.addCharge(
@@ -901,7 +863,7 @@ module.exports = {
           agreement.KID,
           formattedDueDate,
           charge.status,
-          "RECURRING"
+          "RECURRING",
         );
 
       return chargeId;
@@ -929,7 +891,7 @@ module.exports = {
 
     try {
       const response = await request.get({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}`,
         headers: this.getVippsHeaders(token),
       });
 
@@ -950,15 +912,13 @@ module.exports = {
       const charges = await this.getCharges(agreementId);
 
       if (charges) {
-        const chargedCharges = charges.filter(
-          (charge) => charge.status === "CHARGED"
-        );
+        const chargedCharges = charges.filter((charge) => charge.status === "CHARGED");
         chargedCharges.sort((a, b) =>
           new Date(a.due).getTime() < new Date(b.due).getTime()
             ? 1
             : new Date(b.due).getTime() < new Date(a.due).getTime()
             ? -1
-            : 0
+            : 0,
         );
         return chargedCharges[0];
       }
@@ -980,7 +940,7 @@ module.exports = {
 
     try {
       const response = await request.get({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges`,
         headers: this.getVippsHeaders(token),
       });
 
@@ -1002,13 +962,10 @@ module.exports = {
 
     try {
       charges.forEach((charge) => {
-        if (charge.status === "DUE" || charge.status === "PENDING")
-          dueCharges.push(charge);
+        if (charge.status === "DUE" || charge.status === "PENDING") dueCharges.push(charge);
       });
       if (dueCharges.length > 0) {
-        const sortedByDue = dueCharges.sort((a, b) =>
-          a.due > b.due ? 1 : b.due > a.due ? -1 : 0
-        );
+        const sortedByDue = dueCharges.sort((a, b) => (a.due > b.due ? 1 : b.due > a.due ? -1 : 0));
         return sortedByDue[0];
       }
       return false;
@@ -1061,7 +1018,7 @@ module.exports = {
 
     try {
       await request.delete({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}`,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}`,
         headers: this.getVippsHeaders(token),
       });
 
@@ -1082,13 +1039,6 @@ module.exports = {
     const token = await this.fetchToken();
     if (token === false) return false;
 
-    // Idempotency-Key to prevent duplicate refund requests
-    // Required by Vipps
-    const idempotencyKey = `${agreementId}-${chargeId}`;
-
-    let headers = this.getVippsHeaders(token);
-    headers["Idempotency-Key"] = idempotencyKey;
-
     const charge = await this.getCharge(agreementId, chargeId);
 
     // Charge must be paid to be refunded
@@ -1101,8 +1051,8 @@ module.exports = {
 
     try {
       const response = await request.post({
-        uri: `https://${config.vipps_api_url}/recurring/v2/agreements/${agreementId}/charges/${chargeId}/refund`,
-        headers,
+        uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}/refund`,
+        headers: this.getVippsHeaders(token),
         body: JSON.stringify(body),
       });
 
@@ -1134,9 +1084,7 @@ module.exports = {
   async checkAgreement(agreementId, polls) {
     // If we've been polling for more than eleven minutes, stop polling for updates
     if (polls * POLLING_INTERVAL + POLLING_START_DELAY > 1000 * 60 * 10) {
-      console.log(
-        "Stopped polling checkAgreement for agreementId " + agreementId
-      );
+      console.log("Stopped polling checkAgreement for agreementId " + agreementId);
       return true;
     }
 
@@ -1151,28 +1099,18 @@ module.exports = {
 
       // Keep polling until initial charge has been captured
       if (initialChargeID) {
-        const isCaptured = await this.captureInitalCharge(
-          agreementId,
-          initialChargeID
-        );
+        const isCaptured = await this.captureInitalCharge(agreementId, initialChargeID);
 
         // Update database and stop polling only if capture was successful
         if (isCaptured) {
-          await DAO.vipps.updateChargeStatus(
-            "CHARGED",
-            agreementId,
-            initialChargeID
-          );
+          await DAO.vipps.updateChargeStatus("CHARGED", agreementId, initialChargeID);
           return true;
         }
       }
     }
 
     // Stop polling agreement if it has another status than pending or active
-    if (
-      vippsAgreement.status !== "PENDING" &&
-      vippsAgreement.status !== "ACTIVE"
-    ) {
+    if (vippsAgreement.status !== "PENDING" && vippsAgreement.status !== "ACTIVE") {
       await DAO.vipps.updateAgreementStatus(agreementId, vippsAgreement.status);
       return true;
     }
@@ -1195,6 +1133,7 @@ module.exports = {
       merchant_serial_number: config.vipps_merchant_serial_number,
       "Ocp-Apim-Subscription-Key": config.vipps_ocp_apim_subscription_key,
       Authorization: `${token.type} ${token.token}`,
+      "Idempotency-Key": crypto.randomBytes(16).toString("hex"),
     };
   },
 
@@ -1221,32 +1160,27 @@ module.exports = {
         const anonDonorId = 1464;
         const standardKID = 87397824;
         const chargeDay = 1;
+        const chargeAmount = agreements[i].pricing.amount;
 
         // Adds agreement if it does not exist in effektDB (with default values)
         await DAO.vipps.addAgreement(
           agreements[i].id,
           anonDonorId,
           standardKID,
-          agreements[i].price / 100,
+          chargeAmount / 100,
           chargeDay,
           agreements[i].productDescription,
-          agreements[i].status
+          agreements[i].status,
         );
 
-        await DAO.vipps.updateAgreementPrice(
-          agreements[i].id,
-          agreements[i].price / 100
-        );
-        await DAO.vipps.updateAgreementStatus(
-          agreements[i].id,
-          agreements[i].status
-        );
+        await DAO.vipps.updateAgreementPrice(agreements[i].id, chargeAmount / 100);
+        await DAO.vipps.updateAgreementStatus(agreements[i].id, agreements[i].status);
 
         const agreement = await DAO.vipps.getAgreement(agreements[i].id);
-        if (!agreement)
-          throw new Error(
-            `Agreement ${agreements[i].id} not found in database`
-          );
+        if (!agreement) {
+          console.error(`Agreement ${agreements[i].id} not found in database`);
+          continue;
+        }
 
         const charges = await this.getCharges(agreements[i].id);
 
@@ -1259,19 +1193,12 @@ module.exports = {
             agreement.KID,
             charges[j].due,
             charges[j].status,
-            charges[j].type
+            charges[j].type,
           );
-          await DAO.vipps.updateChargeStatus(
-            charges[j].status,
-            agreements[i].id,
-            charges[j].id
-          );
+          await DAO.vipps.updateChargeStatus(charges[j].status, agreements[i].id, charges[j].id);
 
           if (charges[j].status === "CHARGED") {
-            const charge = await DAO.vipps.getCharge(
-              agreements[i].id,
-              charges[j].id
-            );
+            const charge = await DAO.vipps.getCharge(agreements[i].id, charges[j].id);
             const paymentMethod = 8;
             const dayOfMonth = new Date().getDate();
             const thisMonth = new Date().getMonth();
@@ -1281,16 +1208,13 @@ module.exports = {
 
             // If a charge has failed on the last day of a month, set registeredDate to current day
             // This prevents charges being incorrectly registered as paid in the previous month
-            if (
-              dayOfMonth >= 2 &&
-              new Date(charge.dueDate).getMonth() < thisMonth
-            ) {
+            if (dayOfMonth >= 2 && new Date(charge.dueDate).getMonth() < thisMonth) {
               registeredDate = new Date();
             }
 
             const donationExists = await DAO.donations.externalPaymentIDExists(
               externalPaymentId,
-              paymentMethod
+              paymentMethod,
             );
 
             if (!donationExists) {
@@ -1301,7 +1225,7 @@ module.exports = {
                 charges[j].amount / 100,
                 registeredDate,
                 externalPaymentId,
-                metaOwnerId
+                metaOwnerId,
               );
             }
           }
@@ -1328,10 +1252,15 @@ module.exports = {
       const timeNow = new Date().getTime();
       const dueDate = new Date(timeNow + 1000 * 60 * 60 * 24 * daysInAdvance);
       const dueDayIsLastDayOfMonth =
-        new Date(
-          timeNow + 1000 * 60 * 60 * 24 * (daysInAdvance + 1)
-        ).getDate() === 1;
+        new Date(timeNow + 1000 * 60 * 60 * 24 * (daysInAdvance + 1)).getDate() === 1;
       const activeAgreements = await DAO.vipps.getActiveAgreements();
+
+      if (!activeAgreements || activeAgreements.length === 0) {
+        return {
+          activeAgreements: 0,
+          createdCharges: 0,
+        };
+      }
 
       // Find agreements with due dates that are 3 days from now
       if (activeAgreements) {
@@ -1347,35 +1276,25 @@ module.exports = {
           if (
             chargeDay === dueDate.getDate() ||
             (chargeDay === 0 && dueDayIsLastDayOfMonth) || // chargeDay at 0 means should charge on last day of month
-            dueDate.setHours(0, 0, 0, 0) ===
-              forceChargeDate.setHours(0, 0, 0, 0)
+            dueDate.setHours(0, 0, 0, 0) === forceChargeDate.setHours(0, 0, 0, 0)
           ) {
             // Check if agreement is not paused
             // Invalid pause ending date is treated as not paused
-            if (
-              new Date(pauseEnd) < new Date() ||
-              isNaN(Date.parse(pauseEnd))
-            ) {
+            if (new Date(pauseEnd) < new Date() || isNaN(Date.parse(pauseEnd))) {
               // Check if agreement is also active in Vipps database
               const vippsAgreement = await this.getAgreement(agreement.ID);
-              const monthAlreadyCharged = await this.hasChargedDueMonth(
-                agreement.ID,
-                dueDate
-              );
+              const monthAlreadyCharged = await this.hasChargedDueMonth(agreement.ID, dueDate);
               if (vippsAgreement.status === "ACTIVE" && !monthAlreadyCharged) {
                 const formattedDueDate = moment(dueDate).format("YYYY-MM-DD");
                 console.log(
-                  "Creating charge due " +
-                    formattedDueDate +
-                    " for agreement " +
-                    vippsAgreement.id
+                  "Creating charge due " + formattedDueDate + " for agreement " + vippsAgreement.id,
                 );
                 chargeCount += 1;
 
                 await this.createCharge(
                   vippsAgreement.id,
-                  vippsAgreement.price / 100,
-                  daysInAdvance
+                  vippsAgreement.pricing.amount / 100,
+                  daysInAdvance,
                 );
               }
             }
@@ -1390,19 +1309,5 @@ module.exports = {
     } catch (ex) {
       console.error(ex);
     }
-  },
-
-  /**
-   *
-   * @param {string} id Resource ID
-   * @param {function} fn Function that does the polling
-   * @param {number} count The count of how many times we've polled
-   */
-  async pollLoop(id, fn, count = 1) {
-    let shouldCancel = await fn(id, count);
-    if (!shouldCancel)
-      setTimeout(() => {
-        this.pollLoop(id, fn, count + 1);
-      }, POLLING_INTERVAL);
   },
 };

@@ -8,9 +8,7 @@ import { DAO } from "../DAO";
  * @returns {Number} An ID
  */
 async function getIDbyEmail(email): Promise<number | null> {
-  var [result] = await DAO.execute(`SELECT ID FROM Donors where email = ?`, [
-    email,
-  ]);
+  var [result] = await DAO.execute(`SELECT ID FROM Donors where email = ?`, [email]);
 
   if (result.length > 0) return result[0].ID;
   else return null;
@@ -22,10 +20,7 @@ async function getIDbyEmail(email): Promise<number | null> {
  * @returns {Donor | null} A donor object
  */
 async function getByID(ID): Promise<Donor | null> {
-  var [result] = await DAO.execute(
-    `SELECT * FROM Donors where ID = ? LIMIT 1`,
-    [ID]
-  );
+  var [result] = await DAO.execute(`SELECT * FROM Donors where ID = ? LIMIT 1`, [ID]);
 
   if (result.length > 0)
     return {
@@ -59,7 +54,7 @@ async function getByKID(KID): Promise<Donor | null> {
                 
             WHERE KID = ? 
             GROUP BY Donors.ID LIMIT 1`,
-    [KID]
+    [KID],
   );
 
   if (dbDonor.length > 0) {
@@ -87,7 +82,7 @@ async function getByFacebookPayment(paymentID) {
         where Donations.PaymentExternal_ID = ?
         and email like "donasjon%@gieffektivt.no"
       `,
-    [paymentID]
+    [paymentID],
   );
 
   return result[0];
@@ -109,7 +104,7 @@ async function getIDByMatchedNameFB(name) {
           group by DR.ID
           order by most_recent_donation DESC
           `,
-    [name]
+    [name],
   );
 
   // Query above does not find donors that have not donated before
@@ -119,7 +114,7 @@ async function getIDByMatchedNameFB(name) {
               SELECT ID FROM Donors
               where full_name = ?
           `,
-      [name]
+      [name],
     );
   }
 
@@ -142,13 +137,12 @@ async function getIDsWithOneTaxUnit() {
       inner join Donations as DN on DN.Donor_ID = D.ID
       group by TU.Donor_ID) as Data
     where TaxUnitCount = 1 and DonationsCount > 0)
-    `
+    `,
   );
 
   if (res.length === 0) return false;
-  else return res
+  else return res;
 }
-
 
 /**
  * Gets donorID by agreement_url_code in Vipps_agreements
@@ -161,7 +155,7 @@ async function getIDByAgreementCode(agreementUrlCode) {
         SELECT donorID FROM Vipps_agreements
         where agreement_url_code = ?
         `,
-    [agreementUrlCode]
+    [agreementUrlCode],
   );
 
   if (res.length === 0) return false;
@@ -246,7 +240,7 @@ async function add(email = "", name, newsletter = null) {
             full_name, 
             newsletter
         ) VALUES (?,?,?)`,
-    [email, name, newsletter == true]
+    [email, name, newsletter == true],
   );
 
   return res[0].insertId;
@@ -262,10 +256,7 @@ async function add(email = "", name, newsletter = null) {
  * @returns {boolean}
  */
 async function updateNewsletter(donorID, newsletter) {
-  let res = await DAO.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [
-    newsletter,
-    donorID,
-  ]);
+  let res = await DAO.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [newsletter, donorID]);
   return true;
 }
 
@@ -276,10 +267,7 @@ async function updateNewsletter(donorID, newsletter) {
  * @returns {boolean}
  */
 async function updateName(donorID, name) {
-  let res = await DAO.query(`UPDATE Donors SET full_name = ? where ID = ?`, [
-    name,
-    donorID,
-  ]);
+  let res = await DAO.query(`UPDATE Donors SET full_name = ? where ID = ?`, [name, donorID]);
   return true;
 }
 
@@ -296,7 +284,7 @@ async function update(donorID, name, newsletter, trash?: boolean) {
 
   let [res] = await DAO.query(
     `UPDATE Donors SET full_name = ?, newsletter = ?, trash = ? where ID = ?`,
-    [name, newsletter, isTrash, donorID]
+    [name, newsletter, isTrash, donorID],
   );
 
   if (res.affectedRows === 1) {

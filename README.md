@@ -11,24 +11,26 @@ The API is also responsible for handling payment processing.
 - [Effect Foundation API](#effect-foundation-api)
 - [API endpoints](#api-endpoints)
 - [Get started developing](#get-started-developing)
-  - [Clone and install packages](#clone-and-install-packages)
+  - [Clone repository](#clone-repository)
+  - [Bring your environment](#bring-your-environment)
+  - [Install packages](#install-packages)
   - [Setup MySQL](#setup-mysql)
     - [Run MySQL locally (no Docker)](#run-mysql-locally-no-docker)
     - [Run MySQL locally (inside a Docker container)](#run-mysql-locally-inside-a-docker-container)
     - [Set up local Schema](#set-up-local-schema)
     - [Add test data to your local MySQL instance](#add-test-data-to-your-local-mysql-instance)
-  - [Google Cloud & Cloud Sql Auth Proxy setup](#google-cloud--cloud-sql-auth-proxy-setup)
+  - [Google Cloud \& Cloud Sql Auth Proxy setup](#google-cloud--cloud-sql-auth-proxy-setup)
     - [Google Cloud access](#google-cloud-access)
     - [Google Cloud Sql Auth Proxy setup](#google-cloud-sql-auth-proxy-setup)
-  - [Configuring and running the API](#configuring-and-running-the-api)
+  - [Running the API](#running-the-api)
   - [Testing](#testing)
 - [Build and deployment](#build-and-deployment)
   - [Environments](#environments)
   - [Google cloud build](#google-cloud-build)
-- [Code Structure & Implementation Details](#code-structure--implementation-details)
+- [Code Structure \& Implementation Details](#code-structure--implementation-details)
   - [Routes](#routes)
   - [Business logic](#business-logic)
-  - [Authentication & Authorization](#authentication--authorization)
+  - [Authentication \& Authorization](#authentication--authorization)
   - [KIDs](#kids)
   - [Data Access](#data-access)
   - [Email](#email)
@@ -39,7 +41,7 @@ The API is also responsible for handling payment processing.
 - [Database](#database)
   - [Tables Overview](#tables-overview)
   - [Database Schema Migrations](#database-schema-migrations)
-    - [Downloading production schema](#downloading-production-schema)
+    - [Migration job](#migration-job)
 - [Payment processing](#payment-processing)
   - [Bank](#bank)
   - [Vipps](#vipps)
@@ -58,10 +60,12 @@ We are currently working on improving this documentation.
 
 To run the API locally, follow these setup steps:
 
-1. Clone and install packages
-2. Setup MySQL
+1. Clone repository
+2. Bring your environment
+3. Install packages
+4. Setup MySQL
 
-### Clone and install packages
+### Clone repository
 
 Clone this repository to your local machine:
 
@@ -70,6 +74,20 @@ git clone https://github.com/stiftelsen-effekt/effekt-backend.git
 ```
 
 > **Note** To clone the repository, you must have access and be part of the [Stiftelsen Effekt github organization](https://github.com/stiftelsen-effekt). You must also be logged in on git on your local machine. If you do not have access to clone the repository, enquire on our [tech](https://effektteam.slack.com/archives/G011BE3BG3H) channel.
+
+### Bring your environment
+
+To get started, make a copy of `.env.example` and name it `.env`. The values in this file will automatically be picked up by the node.js application and the file will not be added to source control so it is okay to have secret values in there.
+
+Open the .env file and update the variables with your own values:
+
+- `DB_USER` (name of database user)
+- `DB_PASS` (password of database user)
+- `DB_NAME` (name of MySQL instance)
+
+The other configuration variables are only needed to run specific parts of the code, such as payment processing or mail processing.
+
+### Install packages
 
 The api uses [node.js](https://nodejs.org/en/) and npm is the package manager. Go to the root folder of the cloned repository, and install the requisite packages with the command:
 
@@ -81,9 +99,9 @@ npm install
 
 There are three options for setting up MySQL for your local API service to connect to:
 
-1. Run MySQL locally (no Docker)
-2. Run MySQL locally (inside a Docker container)
-3. Connect to the production database
+1. [Run MySQL locally (no Docker)](#run-mysql-locally-no-docker)
+2. [Run MySQL locally (inside a Docker container)](#run-mysql-locally-inside-a-docker-container)
+3. [Connect to the production database](#connect-to-production-database-google-cloud--cloud-sql-auth-proxy-setup)
 
 Strongly prefer running locally (either with or without a Docker container), rather than connecting to the production database. It's easier to set up, and way safer - no chance of leaking personal info of our users, and no chance of writing invalid data to the production database.
 
@@ -91,35 +109,55 @@ Running locally is the easiest option if this is the only use for MySQL on your 
 
 In any of the approaches, we're going to expose MySQL on the default MySQL port of 3306.
 
+**Quick setup example**: If you got Docker Compose installed the entire setup of MySQL can be done with
+
+```sh
+docker compose up -d # Sets up MySQL and the database: EffektDonasjonDB_Local
+```
+
+then:
+
+```sh
+npx prisma migrate reset # Migrates schemas and tables to the database and seeds testdata
+```
+
+Read on if you are unfamiliar with these commands.
+
 #### Run MySQL locally (no Docker)
 
 First, install MySQL using one of the below commands (or look for installation instructions online).
 
 If you use brew, installing MySQL is as easy as:
 
-```
+```sh
 brew install mysql
 ```
 
 On Windows, you can install with Chocolatey:
 
-```
+```sh
 choco install mysql
 ```
 
 The default user is `root`, let's set a password of `effekt`:
 
-```
+```sh
 mysql -h 127.0.0.1 -uroot -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'effekt'; flush privileges;"
 ```
 
 Now we can log in to the MySQL command prompt with:
 
-```
+```sh
 mysql -h 127.0.0.1 -uroot -peffekt
 ```
 
 On Mac or Linux, you can start MySQL with `mysql.server start` (and stop it with `mysql.server stop` if you want).
+
+As the last step, create the local database named `EffektDonasjonDB_Local` with:
+
+```sh
+mysql -h 127.0.0.1 -uroot -peffekt -e 'create database EffektDonasjonDB_Local'
+```
 
 #### Run MySQL locally (inside a Docker container)
 
@@ -127,30 +165,48 @@ First, follow instructions on the Docker website (or look for an online tutorial
 
 If you're on Mac, it should be as easy as:
 
-```
+```sh
 brew cask install docker
 ```
 
 Then run:
 
-```
-docker run --name effekt-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=effekt -d mysql:latest
+```sh
+docker run -d \
+--name effekt-mysql \
+-p 3306:3306 \
+-e MYSQL_ROOT_PASSWORD=effekt \
+-e MYSQL_DATABASE=EffektDonasjonDB_Local \
+-v effekt-mysql_volume:/var/lib/mysql \
+mysql:latest
 ```
 
-This creates and runs a new Docker container named `effekt-mysql`, and runs MySQL inside the container. The default user is `root` with password `effekt`. It also sets up port forwarding, so your local port 3306 gets forwarded to port 3306 inside your Docker container (where MySQL is running).
+Or if you want to use docker compose (installed with Docker Desktop) run this command from the project root directory:
+
+```sh
+docker compose up -d
+```
+
+This creates and runs a new Docker container named `effekt-mysql`, runs MySQL inside the container and creates the database `EffektDonasjonDB_Local`. The default user is `root` with password `effekt`. It also sets up port forwarding, so your local port 3306 gets forwarded to port 3306 inside your Docker container (where MySQL is running).
+
+The `-v  effekt-mysql_volume:/var/lib/mysql` command attachs a named volume for persistent storage of your database (even if you remove the container). You can safely remove this you want to reset everything when removing the container.
 
 Now we can log in to the MySQL command prompt with:
 
-```
-mysql -h 127.0.0.1 -uroot -peffekt
+```sh
+docker exec -it effekt-mysql mysql -h 127.0.0.1 -peffekt
 ```
 
-Some basic Docker commands:
+_Some basic Docker commands:_
 
 - `docker ps` to list all currently-running containers
 - `docker stop effekt-mysql` to stop the container
 - `docker start effekt-mysql` to start the container
 - `docker rm effekt-mysql` to remove the container
+- `docker logs effekt-mysql` to view the logs
+- `docker exec -it effekt-mysql /bin/bash` to enter the container shell
+- `docker volume ls` to list volumes used by docker
+- `docker volume rm effekt-mysql-volume` to remove the named volume
 
 #### Set up local Schema
 
@@ -162,33 +218,11 @@ First, create a new "database" named `EffektDonasjonDB_Local`:
 mysql -h 127.0.0.1 -uroot -peffekt -e 'create database EffektDonasjonDB_Local'
 ```
 
-A snapshot of the production schema is stored in [db/prod_schema.sql](db/prod_schema.sql). Feel free to take a look - it's just sql commands for creating tables, adding indexes, etc. First one more setup step to work around an error message:
+The schema is defined by prisma in [prisma/schema.prisma](prisma/schema.prisma). Prisma is a tool that generates a database schema from this file, and also generates a node.js client for interacting with the database. To begin with, you should run the existing migrations to setup your local database:
 
 ```
-mysql -h 127.0.0.1 -uroot -peffekt -e 'SET GLOBAL log_bin_trust_function_creators = 1'
+npx prisma migrate reset
 ```
-
-Now let's load in the schema:
-
-```
-mysql -h 127.0.0.1 -uroot -peffekt EffektDonasjonDB_Local < db/prod_schema.sql
-```
-
-(on Windows, try this instead:)
-
-```
-cmd /c "mysql -h 127.0.0.1 -uroot -peffekt EffektDonasjonDB_Local < db/prod_schema.sql"
-```
-
-To get your local schema fully up-to-date with the production schema, you'll also need to apply any migrations (commands which change the MySQL schema) that have been created in the [db/migrations](db/migrations) folder. We use the db-migrate tool. To apply all migrations, run:
-
-```
-npx db-migrate up --config db/database.json --migrations-dir db/migrations
-```
-
-On Windows - if you get any node-gyp errors about Visual Studio c++ build tools installation, you may need to add a PYTHON env variable (as described in the [node-gyp README](https://github.com/nodejs/node-gyp#on-windows))
-
-If the output ends with `[INFO] Done`, it completed successfully.
 
 Now, let's double check the schema is correct! Try:
 
@@ -202,10 +236,10 @@ you should see output like:
 +-----------------------------------+
 | Tables_in_EffektDonasjonDB_Local  |
 +-----------------------------------+
-| Access_applications               |
-| Access_applications_callbacks     |
-| Access_applications_permissions   |
-| Access_keys                       |
+| _prisma_migrations                |
+| Auth0_users                       |
+| Avtalegiro_agreements             |
+| Avtalegiro_conversion_reminders   |
 ...
 ```
 
@@ -262,33 +296,19 @@ If all has gone well, you should be seeing this in your terminal of choice.
 
 The proxy is now listening for connections on port 3306 (the standard mysql port), and forwards any communication to the internal google cloud network through a secure tunnel.
 
-### Configuring and running the API
-
-Before we can run the API, we need to specify some environment variables. You can see all of the variables in [config.js](./config.js). Many of the variables declared here are not needed for most development.
-
-To get started, we **need** these to be set to run the api:
-
-- `DB_USER` (name of database user)
-- `DB_PASS` (password of database user)
-- `DB_NAME` (name of MySQL instance)
-
-The other configuration variables are only needed to run specific parts of the code, such as payment processing or mail processing.
+### Running the API
 
 Let's run the service, using our locally-running MySQL instance (either native or in Docker):
 
 ```
-DB_NAME='EffektDonasjonDB_Local' DB_USER='root' DB_PASS='effekt' npm start
+npm start
 ```
-
-(Depending on your operation system, setting environment variables may be a different process. Check out the procedure for [windows](docs/win_environment_variables.md) and [macos / linux](nix_environment_variables.md) respectively).
 
 If all goes well, you should be seeing something like this in your terminal
 
 <img src="docs/api_terminal.png" width="500" />
 
-We can verify that the api is indeed operational by testing it in our browser. Navigation go http://localhost:3000 should yield a welcoming message.
-
-<img src="docs/browser_root_route.png" width="500" />
+We can verify that the api is indeed operational by testing it in our browser. Navigation go http://localhost:5050 should redirect you to http://localhost:5050/api-docs/ shownig the API documentation
 
 If you need to connect the service to our production MySQL instance, first complete the Google Cloud SQL Auth Proxy setup above, then please enquire about these credentials on our [tech](https://effektteam.slack.com/archives/G011BE3BG3H) slack channel, and we will send them to you privately. We have two databases: `EffektDonasjonDB` and `EffektDonasjonDB_Dev`. The former is for our live production data, whilst the latter is for development.
 
@@ -508,72 +528,42 @@ Distributions (2 records)
 
 ### Database Schema Migrations
 
-We use the db-migrate tool ([github](https://github.com/db-migrate/node-db-migrate)) ([docs](https://db-migrate.readthedocs.io/en/latest/)) to create and apply our database migrations.
-
-Configuration for db-migrate is stored in [db/database.json](db/database.json), and the migration scripts are stored in [db/migrations](db/migrations).
-
-With a locally running database, use
+We're using prisma to manage database schema migrations. The schema is defined in [/prisma/schema.prisma](prisma/schema.prisma). To apply the schema locally, run
 
 ```
-npx db-migrate up --config db/database.json --migrations-dir db/migrations
+npx prisma db push
 ```
 
-to apply all migrations. You may see a warning like `Ignoring invalid configuration option passed to Connection: driver. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection` when running the tool, this can be ignored.
-
-Use
+This is useful while developing locally. Once you're ready to make a migration file, run
 
 ```
-npx db-migrate down --config db/database.json --migrations-dir db/migrations
+npx prisma migrate dev --name <migration-name>
 ```
 
-to unapply the latest migration. You will likely need to apply migrations somewhat frequently (whenever you git pull and there are new migration files).
+This will create a new migration file in [/prisma/migrations](prisma/migrations).
 
-db-migrate keeps track of which migrations have been applied in a "migrations" table inside your MySQL database. Each migration that's run gets its own entry.
+The migrations are run automatically in our CI/CD pipeline as part of the deployment flow.
 
-Create a new set of 3 migration files (node script, upgrade sql file, downgrade sql file) using:
+It is generally advised to use the [expand and contract pattern](https://www.prisma.io/dataguide/types/relational/expand-and-contract-pattern) when making changes to the database schema. This means that you first add the new column, then migrate the code to use the new column, then remove the old column. This ensures that the code is always compatible with the database schema.
 
-```
-npx db-migrate create name-of-my-migration --sql-file --config db/database.json --migrations-dir db/migrations
-```
+#### Migration job
 
-You shouldn't need to touch the node script at all. You do need to manually craft the upgrade and downgrade SQL files. The upgrade file can be any SQL statement(s), the downgrade file should be a "revert" that brings the database back to the prior state. Some example file contents:
+The migrations are run in Cloud Run Job, similarly to what is described [here](https://cloud.google.com/blog/topics/developers-practitioners/running-database-migrations-cloud-run-jobs) (except not using Procfile)
 
-- add column (upgrade): `ALTER TABLE Donations ADD COLUMN doggo VARCHAR(20);`
-- add column (downgrade): `ALTER TABLE Donations DROP COLUMN doggo;`
-- add index (upgrade): `CREATE INDEX idx_donor_id ON Donations (Donor_ID);`
-- add index (downgrade): `DROP INDEX idx_donor_id ON Donations;`
+The CI/CD pipeline is only executing the jobs. The jobs have to be created manually for each environment. These are the steps to create a job for a specific environment:
 
-The process for updating production schema should be as follows. Usually you have a desired schema migration, and a corresponding code change that reads/writes the new fields:
+1. Create a secret for the DB url if one doesn't already exist for that environment
+1. Replace the placeholder values and run the `gcloud` command
 
-1. Stash your code changes for later
-2. Create your migration files
-3. Run unit & manual tests first (don't apply the migration yet)
-4. Apply the migration locally
-5. Run unit & manual tests to ensure the service still runs properly with the DB schema change
-6. Unapply then re-apply the migration to ensure migration down works properly.
-7. Test it with your code change
-8. Get code review (code + corresponding migration together is fine) and merge your change to main branch
-9. (You or someone with access) apply the migration to production DB
-10. Deploy the code relying on that migration to production DB
-
-For maximum safety, to prevent cases where your code is accidentally deployed but the migration hasn't been run, you can also feel free to create two separate changesets, first the DB migration, and then your code using the new schema (and wait until the migration has been applied to the production DB before merging your code to main).
-
-To actually apply a migration to production, ensure Cloud Sql Auth Proxy is running, then use the following command:
-
-```
-DB_USER='<produser>' DB_PASS='<prodpassword>' npx db-migrate up -c 1 -e prod --config db/database.json --migrations-dir db/migrations
-```
-
-You can instead do `-e dev` to apply migrations against EffektDonasjonDB_Dev.
-
-#### Downloading production schema
-
-This shouldn't be needed often. Usually we should be able to stick with the existing schema snapshot and set of migration files. But if we get too many migration files, it might be nice to delete them and put in a new schema snapshot as a starting point.
-
-Set up Cloud Sql Auth Proxy, then run:
-
-```
-mysqldump -h 127.0.0.1 -u'<produser>' -p'<prodpassword>' --no-data --triggers --routines --events --set-gtid-purged=OFF EffektDonasjonDB > db/prod_schema.sql
+```sh
+gcloud run jobs create <SERVICE_NAME>-db-migrate \
+  --image gcr.io/<PROJECT_ID>/<IMAGE_NAME>:latest \
+  --set-secrets DB_URL=<SERVICE_NAME>-db-url:latest \
+  --set-cloudsql-instances <PROJECT_ID>:europe-north1:<CLOUD_SQL_NAME> \
+  --region europe-north1 \
+  --max-retries 0 \
+  --command "./node_modules/.bin/prisma" \
+  --args "migrate,deploy"
 ```
 
 ## Payment processing
