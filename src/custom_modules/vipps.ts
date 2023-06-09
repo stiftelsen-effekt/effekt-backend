@@ -222,7 +222,7 @@ module.exports = {
    */
   async pollOrder(orderId) {
     await new Promise((resolve) => setTimeout(resolve, POLLING_START_DELAY));
-    await pollLoop((polls) => this.checkOrderDetails(orderId, polls), POLLING_INTERVAL);
+    await pollLoop((polls) => this.checkOrderDetails(orderId, polls).bind(this), POLLING_INTERVAL);
   },
 
   /**
@@ -1069,7 +1069,7 @@ module.exports = {
    */
   async pollAgreement(agreementId) {
     setTimeout(() => {
-      pollLoop(agreementId, this.checkAgreement.bind(this));
+      pollLoop((polls) => this.checkAgreement(agreementId, polls).bind(this), POLLING_INTERVAL);
     }, POLLING_START_DELAY);
   },
 
