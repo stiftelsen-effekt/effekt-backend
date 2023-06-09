@@ -176,7 +176,7 @@ router.post("/register", async (req, res, next) => {
       paymentProviderUrl = res.externalPaymentUrl;
 
       //Start polling for updates (move this to inside initiateOrder?)
-      await vipps.pollOrder(res.orderId);
+      vipps.pollOrder(res.orderId);
     }
 
     try {
