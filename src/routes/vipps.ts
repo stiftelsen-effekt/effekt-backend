@@ -635,11 +635,11 @@ router.get("/agreementredirect/:urlcode", async (req, res, next) => {
           res.redirect("https://gieffektivt.no/donasjon-feilet");
           return false;
         }
-      } else {
-        setTimeout(async () => {
-          await retry(retries + 1);
-        }, 1000);
       }
+
+      setTimeout(async () => {
+        await retry(retries + 1);
+      }, 1000);
     };
 
     await retry(0);
