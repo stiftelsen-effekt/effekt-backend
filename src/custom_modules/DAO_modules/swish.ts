@@ -1,11 +1,6 @@
 import { Donations, SwishOrder } from "@prisma/client";
 import { DAO } from "../DAO";
 
-/**
- * Adds a Vipps order
- * @param {VippsOrder} order
- * @return {number} ID of inserted order
- */
 export const swish = {
   getOrder: async function (ID: SwishOrder["ID"]) {
     const [order] = await DAO.query<SwishOrder[]>(
