@@ -12,6 +12,6 @@ export async function pollLoop(
   const shouldCancel = await fn(count);
   if (!shouldCancel) {
     await new Promise((resolve) => setTimeout(resolve, interval));
-    await this.pollLoop(fn, interval, count + 1);
+    await pollLoop(fn, interval, count + 1);
   }
 }
