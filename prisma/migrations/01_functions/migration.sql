@@ -1,3 +1,4 @@
+SET GLOBAL log_bin_trust_function_creators = 1;
 -- -------------------------------------------------------------
 -- TablePlus 5.3.6(496)
 --
