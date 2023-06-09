@@ -611,6 +611,43 @@ router.get(
   },
 );
 
+router.get("/agreementredirect/:urlcode", async (req, res, next) => {
+  try {
+    const urlcode = req.params.urlcode;
+
+    let retry = async (retries) => {
+      const agreementId = await DAO.vipps.getAgreementIdByUrlCode(urlcode);
+      const agreement = await DAO.vipps.getAgreement(agreementId);
+
+      console.log(agreement, retries);
+
+      if (retries >= 20) {
+        res.redirect("https://gieffektivt.no/donasjon-feilet");
+        return false;
+      }
+
+      if (agreement) {
+        if (agreement.status === "ACTIVE") {
+          res.redirect("https://gieffektivt.no/opprettet");
+          return true;
+        }
+        if (agreement.status === "STOPPED" || agreement.status === "EXPIRED") {
+          res.redirect("https://gieffektivt.no/donasjon-feilet");
+          return false;
+        }
+      } else {
+        setTimeout(async () => {
+          await retry(retries + 1);
+        }, 1000);
+      }
+    };
+
+    await retry(0);
+  } catch (ex) {
+    next({ ex });
+  }
+});
+
 router.get(
   "/agreement/:agreementId/charge/:chargeId",
   authMiddleware.auth(permissions.read_vipps_api),

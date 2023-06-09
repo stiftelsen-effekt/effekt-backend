@@ -105,6 +105,7 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
         if (req.query.notify) {
           notifiedAgreements = await avtalegiro.notifyAgreements(
             agreements.filter((agreement) => agreement.notice == true),
+            claimDate,
           );
         }
 

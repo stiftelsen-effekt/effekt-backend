@@ -7,6 +7,7 @@ import express from "express";
 import { expect } from "chai";
 import request from "supertest";
 import { DateTime } from "luxon";
+import { SFTPWrapper } from "ssh2";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 const mail = require("../custom_modules/mail");
@@ -84,7 +85,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
     sftpListFake = sinon.fake.resolves([]);
     sftpEndFake = sinon.fake.resolves(true);
-    getConnectionStub = sinon.stub(sftp, "getConnection").resolves({
+    getConnectionStub = sinon.stub<any, "getConnection">(sftp, "getConnection").resolves({
       list: sftpListFake,
       end: sftpEndFake,
     });

@@ -41,7 +41,7 @@ export type VippsAgreement = {
   donorID: number;
   KID: string;
   amount: number;
-  status: string;
+  status: "ACTIVE" | "PENDING" | "EXPIRED" | "STOPPED";
   monthly_charge_day: number;
   agreement_url_code: string;
   paused_until_date: string;
