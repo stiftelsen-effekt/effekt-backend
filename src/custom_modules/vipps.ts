@@ -1219,7 +1219,7 @@ module.exports = {
 
             if (!donationExists) {
               // Add completed charges to Donations table (externalPaymentId is a unique column and prevents duplicate insertions)
-              const result = await DAO.donations.add(
+              const donationId = await DAO.donations.add(
                 charge.KID,
                 paymentMethod,
                 charges[j].amount / 100,
@@ -1227,6 +1227,14 @@ module.exports = {
                 externalPaymentId,
                 metaOwnerId,
               );
+
+              if (donationId !== null) {
+                await sendDonationReciept(donationId);
+              } else {
+                console.error(
+                  `Failed to add donation with externalPaymentId ${externalPaymentId}, no receipt sent`,
+                );
+              }
             }
           }
 
