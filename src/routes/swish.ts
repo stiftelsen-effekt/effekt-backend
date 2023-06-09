@@ -18,17 +18,17 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
 
 /**
  * @openapi
- * /swish/orders/{id}:
+ * /swish/orders/{KID}:
  *    get:
  *      tags: [Swish]
  *      description: Fetches a Swish order by id
  *    parameters:
  *      - in: path
- *        name: id
+ *        name: KID
  *        required: true
- *        description: Numeric ID of the order to fetch.
+ *        description: KID of the swish order to fetch.
  *        schema:
- *          type: integer
+ *          type: string
  *    responses:
  *      200:
  *        description: Swish order
@@ -37,18 +37,18 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
  *            schema:
  *              - type: object
  *                properties:
- *                  ID:
- *                    type: integer
+ *                  KID:
+ *                    type: string
  *                  status:
  *                    type: string
  */
-router.get("/orders/:id", async (req, res, next) => {
+router.get("/orders/:KID", async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const order = await swish.getSwishOrder(parseInt(id));
+    const { KID } = req.params;
+    const order = await swish.getSwishOrder(KID);
     if (!order) return res.sendStatus(404);
     res.json({
-      ID: order.ID,
+      KID: order.KID,
       status: order.status,
     });
   } catch (err) {

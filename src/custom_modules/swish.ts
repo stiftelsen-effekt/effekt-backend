@@ -174,8 +174,8 @@ function generatePaymentReference() {
   return date + random;
 }
 
-export async function getSwishOrder(ID: SwishOrder["ID"]) {
-  const order = await DAO.swish.getOrder(ID);
+export async function getSwishOrder(KID: SwishOrder["KID"]) {
+  const order = await DAO.swish.getOrderByKID(KID);
   if (!order) return null;
   const swishRequest = await retrievePaymentRequest(order.instructionUUID);
   if (swishRequest.status !== order.status) {
@@ -183,7 +183,7 @@ export async function getSwishOrder(ID: SwishOrder["ID"]) {
       status: swishRequest.status,
       amount: swishRequest.amount,
     });
-    return await DAO.swish.getOrder(ID);
+    return await DAO.swish.getOrderByKID(KID);
   }
   return order;
 }

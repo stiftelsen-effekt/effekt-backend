@@ -277,7 +277,7 @@ enum SwishOrderStatus {
 
 model SwishOrder {
   ID              Int               @id @default(autoincrement())
-  KID             String            @db.VarChar(15)
+  KID             String            @unique @db.VarChar(15)
   instructionUUID String            @unique @db.VarChar(36) /// Swish uses this to identify the order
   donorID         Int
   donationID      Int?

@@ -2,12 +2,12 @@ import { Donations, SwishOrder } from "@prisma/client";
 import { DAO } from "../DAO";
 
 export const swish = {
-  getOrder: async function (ID: SwishOrder["ID"]) {
+  getOrderByKID: async function (KID: SwishOrder["KID"]) {
     const [order] = await DAO.query<SwishOrder[]>(
       `
-        SELECT * FROM Swish_orders WHERE ID = ?
+        SELECT * FROM Swish_orders WHERE KID = ?
       `,
-      [ID],
+      [KID],
     );
     return order?.[0];
   },
