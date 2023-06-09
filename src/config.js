@@ -34,7 +34,7 @@ module.exports = {
   swish_payee_alias: process.env.SWISH_PAYEE_ALIAS,
   swish_url: "https://mss.cpc.getswish.net/swish-cpcapi/",
   swish_whitelist: [
-    "213.132.115.94", // Swish prod (to be deprecated after July 31)
+    "213.132.115.94",
     "35.228.51.224/28", // Swish prod
     "34.140.166.128/28", // Swish prod
     "89.46.83.171", // Swish test simulation server

@@ -16,7 +16,7 @@ const swishAgent = new Agent({
 });
 
 /**
- * https://developer.swish.nu/api/payment-request/v2#payment-request-object
+ * @see https://developer.swish.nu/api/payment-request/v2#payment-request-object
  */
 interface SwishPaymentRequest {
   amount: number;
@@ -29,10 +29,11 @@ interface SwishPaymentRequest {
 }
 
 /**
- * https://developer.swish.nu/api/payment-request/v2#create-payment-request
  * @param data.instructionUUID The identifier of the payment request to be saved. Example: 11A86BE70EA346E4B1C39C874173F088
  * @param data.reference Payment reference of the payee, which is the merchant that receives the payment.
  * @param data.phone The registered cellphone number of the person that makes the payment. It can only contain numbers and has to be at least 8 and at most 15 numbers. It also needs to match the following format in order to be found in Swish: country code + cellphone number (without leading zero). E.g.: 46712345678
+ *
+ * @see https://developer.swish.nu/api/payment-request/v2#create-payment-request
  */
 async function createPaymentRequest(data: {
   instructionUUID: string;
@@ -65,7 +66,7 @@ async function createPaymentRequest(data: {
 }
 
 /**
- * https://developer.swish.nu/api/payment-request/v2#retrieve-payment-request
+ * @see https://developer.swish.nu/api/payment-request/v2#retrieve-payment-request
  */
 async function retrievePaymentRequest(instructionUUID: string): Promise<SwishPaymentRequest> {
   const options = {
@@ -157,6 +158,8 @@ export async function handleOrderStatusUpdate(
 
 /**
  * Swish expects exactly this format
+ *
+ * @see https://developer.swish.nu/documentation/guidelines#uuid-description
  * @example 11A86BE70EA346E4B1C39C874173F088
  */
 function generateSwishInstructionUUID() {

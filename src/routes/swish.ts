@@ -78,7 +78,9 @@ interface SwishCallbackRequestBody {
  * /swish/callback:
  *    post:
  *      tags: [Swish]
- *      description: Called by Swish whenever there is a payment update (https://developer.swish.nu/documentation/guides/create-a-payment-request#handling-the-callback)
+ *      description: Called by Swish whenever there is a payment update
+ *
+ * @see https://developer.swish.nu/documentation/guides/create-a-payment-request#handling-the-callback
  */
 router.post("/callback", jsonBody, swishWhitelistMiddleware, async (req, res, next) => {
   try {
