@@ -568,7 +568,7 @@ module.exports = {
         count: 1,
       },
       isApp: false,
-      merchantRedirectUrl: `https://gieffektivt.no/opprettet`,
+      merchantRedirectUrl: `${config.api_url}/vipps/agreementredirect/${agreementUrlCode}`,
       merchantAgreementUrl: `${config.minside_url}/${agreementUrlCode}`,
       productDescription: agreementUrlCode,
       productName: "Månedlig donasjon til Gi Effektivt.",
