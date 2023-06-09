@@ -35,8 +35,6 @@ export interface components {
        * @description The date and time the donor was registered
        */
       registered?: string;
-      /** @description Phone number (swish) */
-      phone?: string;
     };
   };
   responses: never;
