@@ -1229,7 +1229,7 @@ module.exports = {
               );
 
               if (donationId !== null) {
-                await sendDonationReciept(donationId);
+                await sendDonationReceipt(donationId);
               } else {
                 console.error(
                   `Failed to add donation with externalPaymentId ${externalPaymentId}, no receipt sent`,
