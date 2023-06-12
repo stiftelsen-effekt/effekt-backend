@@ -1069,7 +1069,7 @@ module.exports = {
    */
   async pollAgreement(agreementId) {
     setTimeout(() => {
-      pollLoop(agreementId, this.checkAgreement.bind(this));
+      pollLoop((polls) => this.checkAgreement(agreementId, polls), POLLING_INTERVAL);
     }, POLLING_START_DELAY);
   },
 
