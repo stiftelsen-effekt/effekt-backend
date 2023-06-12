@@ -1,4 +1,4 @@
-import { SwishOrder } from "@prisma/client";
+import { Swish_order } from "@prisma/client";
 import { Agent } from "https";
 import uuid from "uuid/v4";
 import config from "../config";
@@ -195,7 +195,7 @@ function generatePaymentReference() {
   return date + random;
 }
 
-export async function getSwishOrder(KID: SwishOrder["KID"]) {
+export async function getSwishOrder(KID: Swish_order["KID"]) {
   const order = await DAO.swish.getOrderByKID(KID);
   if (!order) return null;
   if (isFinalSwishOrderStatus(order.status)) return order;

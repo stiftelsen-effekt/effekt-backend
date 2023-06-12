@@ -1,4 +1,4 @@
-import { SwishOrder } from "@prisma/client";
+import { Swish_order } from "@prisma/client";
 import { expect } from "chai";
 import express from "express";
 import sinon from "sinon";
@@ -279,7 +279,7 @@ describe("swish", () => {
         getOrderStub = sinon.stub(swish, "getSwishOrder");
       });
 
-      function withOrder(order: Partial<SwishOrder>) {
+      function withOrder(order: Partial<Swish_order>) {
         getOrderStub.resolves(order as any);
       }
 

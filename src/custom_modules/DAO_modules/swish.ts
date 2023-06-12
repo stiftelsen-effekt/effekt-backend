@@ -1,9 +1,9 @@
-import { Donations, SwishOrder } from "@prisma/client";
+import { Donations, Swish_order } from "@prisma/client";
 import { DAO } from "../DAO";
 
 export const swish = {
-  getOrderByKID: async function (KID: SwishOrder["KID"]) {
-    const [order] = await DAO.query<SwishOrder[]>(
+  getOrderByKID: async function (KID: Swish_order["KID"]) {
+    const [order] = await DAO.query<Swish_order[]>(
       `
         SELECT * FROM Swish_orders WHERE KID = ?
       `,
@@ -12,7 +12,7 @@ export const swish = {
     return order?.[0];
   },
   getOrderByInstructionUUID: async function (instructionUUID: string) {
-    const [order] = await DAO.query<SwishOrder[]>(
+    const [order] = await DAO.query<Swish_order[]>(
       `
         SELECT * FROM Swish_orders WHERE instructionUUID = ?
       `,
@@ -21,7 +21,7 @@ export const swish = {
     return order?.[0];
   },
   addOrder: async function (
-    order: Pick<SwishOrder, "KID" | "donorID" | "reference" | "instructionUUID">,
+    order: Pick<Swish_order, "KID" | "donorID" | "reference" | "instructionUUID">,
   ) {
     const [result] = await DAO.query(
       `
@@ -33,7 +33,7 @@ export const swish = {
 
     return result.insertId;
   },
-  updateOrderStatus: async function (orderID: SwishOrder["ID"], status: SwishOrder["status"]) {
+  updateOrderStatus: async function (orderID: Swish_order["ID"], status: Swish_order["status"]) {
     await DAO.query(
       `
         UPDATE Swish_orders SET status = ? WHERE id = ?
@@ -41,7 +41,7 @@ export const swish = {
       [status, orderID],
     );
   },
-  updateOrderDonationId: async function (orderID: SwishOrder["ID"], donationID: Donations["ID"]) {
+  updateOrderDonationId: async function (orderID: Swish_order["ID"], donationID: Donations["ID"]) {
     await DAO.query(
       `
         UPDATE Swish_orders SET donationID = ? WHERE id = ?
