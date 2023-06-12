@@ -34,10 +34,10 @@ module.exports = {
   swish_payee_alias: process.env.SWISH_PAYEE_ALIAS,
   swish_url: "https://mss.cpc.getswish.net/swish-cpcapi/",
   swish_whitelist: [
+    // Production https://developer.swish.nu/documentation/environments#production-environment
     "213.132.115.94",
-    "35.228.51.224/28", // Swish prod
-    "34.140.166.128/28", // Swish prod
-    "89.46.83.171", // Swish test simulation server
+    // Sandbox https://developer.swish.nu/documentation/environments#swish-sandbox
+    ...["89.46.83.0/24", "103.57.74.0/24", "77.81.6.112"],
   ],
 
   nets_sftp_server: process.env.NETS_SFTP_SERVER,
