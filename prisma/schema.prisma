@@ -97,20 +97,20 @@ model Distribution {
 }
 
 model Donations {
-  ID                  Int           @id @unique(map: "ID_UNIQUE") @default(autoincrement()) /// Unik donasjonsID
+  ID                  Int          @id @unique(map: "ID_UNIQUE") @default(autoincrement()) /// Unik donasjonsID
   Donor_ID            Int /// Foreign key til donor_id
   Payment_ID          Int /// Foreign key til Payment_ID
-  PaymentExternal_ID  String?       @unique(map: "PaymentExternal_ID_UNIQUE") @db.VarChar(32) /// Payment ID in external system (ex: Vipps)
-  sum_confirmed       Decimal       @db.Decimal(16, 2) /// Donert sum bekreftet fra betalingstjeneste (NOK)
-  timestamp_confirmed DateTime      @default(now()) @db.Timestamp(0) /// Timestamp/dato når donasjon er bekreftet fra betalingstjeneste
-  transaction_cost    Decimal?      @db.Decimal(16, 2) /// beregnet transaction cost basert på Payment_ID (oppslag på kostnad) og sum confirmed
-  KID_fordeling       String        @db.VarChar(16) /// Same as KID. Used to join to Combining_table for distribution percentages (registrert KID fra betalingstjeneste, oppslag i donations_distribution for Donor_ID)
-  inserted            DateTime?     @default(now()) @db.Timestamp(0)
-  last_updated        DateTime?     @default(now()) @db.Timestamp(0)
-  Meta_owner_ID       Int           @default(3)
-  Donors              Donors        @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Donors_ID")
-  Payment             Payment       @relation(fields: [Payment_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Payment")
-  Swish_order         Swish_order[]
+  PaymentExternal_ID  String?      @unique(map: "PaymentExternal_ID_UNIQUE") @db.VarChar(32) /// Payment ID in external system (ex: Vipps)
+  sum_confirmed       Decimal      @db.Decimal(16, 2) /// Donert sum bekreftet fra betalingstjeneste (NOK)
+  timestamp_confirmed DateTime     @default(now()) @db.Timestamp(0) /// Timestamp/dato når donasjon er bekreftet fra betalingstjeneste
+  transaction_cost    Decimal?     @db.Decimal(16, 2) /// beregnet transaction cost basert på Payment_ID (oppslag på kostnad) og sum confirmed
+  KID_fordeling       String       @db.VarChar(16) /// Same as KID. Used to join to Combining_table for distribution percentages (registrert KID fra betalingstjeneste, oppslag i donations_distribution for Donor_ID)
+  inserted            DateTime?    @default(now()) @db.Timestamp(0)
+  last_updated        DateTime?    @default(now()) @db.Timestamp(0)
+  Meta_owner_ID       Int          @default(3)
+  Donors              Donors       @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Donors_ID")
+  Payment             Payment      @relation(fields: [Payment_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Payment")
+  Swish_order         Swish_order?
 
   @@index([KID_fordeling, timestamp_confirmed], map: "KidAndTimestamp")
   @@index([timestamp_confirmed], map: "Timestamp")
@@ -273,7 +273,7 @@ model Swish_order {
   KID             String     @unique @db.VarChar(15)
   instructionUUID String     @unique @db.VarChar(36) /// Swish uses this to identify the order
   donorID         Int
-  donationID      Int?
+  donationID      Int?       @unique
   status          String? /// External status from swish
   reference       String     @db.VarChar(32)
   registered      DateTime   @default(now()) @db.DateTime(0)

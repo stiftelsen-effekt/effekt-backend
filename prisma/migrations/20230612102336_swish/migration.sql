@@ -11,6 +11,7 @@ CREATE TABLE `Swish_order` (
 
     UNIQUE INDEX `Swish_order_KID_key`(`KID`),
     UNIQUE INDEX `Swish_order_instructionUUID_key`(`instructionUUID`),
+    UNIQUE INDEX `Swish_order_donationID_key`(`donationID`),
     PRIMARY KEY (`ID`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
