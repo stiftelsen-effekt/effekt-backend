@@ -268,24 +268,17 @@ model Seeded {
   @@ignore
 }
 
-enum SwishOrderStatus {
-  PAID
-  DECLINED
-  ERROR
-  CANCELLED
-}
-
 model SwishOrder {
-  ID              Int               @id @default(autoincrement())
-  KID             String            @unique @db.VarChar(15)
-  instructionUUID String            @unique @db.VarChar(36) /// Swish uses this to identify the order
+  ID              Int        @id @default(autoincrement())
+  KID             String     @unique @db.VarChar(15)
+  instructionUUID String     @unique @db.VarChar(36) /// Swish uses this to identify the order
   donorID         Int
   donationID      Int?
-  status          SwishOrderStatus? /// External status from swish
-  reference       String            @db.VarChar(32)
-  registered      DateTime          @default(now()) @db.DateTime(0)
-  donor           Donors            @relation(fields: [donorID], references: [ID], onDelete: Cascade, onUpdate: Cascade)
-  donation        Donations?        @relation(fields: [donationID], references: [ID], onDelete: Cascade, onUpdate: Cascade)
+  status          String? /// External status from swish
+  reference       String     @db.VarChar(32)
+  registered      DateTime   @default(now()) @db.DateTime(0)
+  donor           Donors     @relation(fields: [donorID], references: [ID], onDelete: Cascade, onUpdate: Cascade)
+  donation        Donations? @relation(fields: [donationID], references: [ID], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model Tax_unit {

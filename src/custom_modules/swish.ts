@@ -1,4 +1,4 @@
-import { SwishOrder, SwishOrderStatus } from "@prisma/client";
+import { SwishOrder } from "@prisma/client";
 import { Agent } from "https";
 import uuid from "uuid/v4";
 import config from "../config";
@@ -25,7 +25,21 @@ interface SwishPaymentRequest {
   payerAlias: string;
   payeeAlias: string;
   payeePaymentReference?: string;
-  status?: "PAID" | "DECLINED" | "ERROR" | "CANCELLED"; // missing in api docs, but should be there according to examples
+  status?: string; // missing in api docs, but should be there according to examples
+}
+
+/**
+ * @see https://developer.swish.nu/documentation/guides/create-a-payment-request#if-the-payment-is-successful
+ */
+enum FinalSwishOrderStatus {
+  PAID = "PAID",
+  DECLINED = "DECLINED",
+  ERROR = "ERROR",
+  CANCELLED = "CANCELLED",
+}
+
+function isFinalSwishOrderStatus(status: string): status is keyof typeof FinalSwishOrderStatus {
+  return status in FinalSwishOrderStatus;
 }
 
 /**
@@ -120,7 +134,7 @@ export async function initiateOrder(KID: string, data: { amount: number; phone: 
 export async function handleOrderStatusUpdate(
   instructionUUID: string,
   data: {
-    status: SwishOrderStatus;
+    status: string;
     amount: number;
   },
 ) {
@@ -128,6 +142,11 @@ export async function handleOrderStatusUpdate(
 
   if (!order) {
     console.error(`Could not find order with instructionUUID: ${instructionUUID}`);
+    return;
+  }
+
+  if (isFinalSwishOrderStatus(order.status)) {
+    console.info(`Order status already final, skipping update. Status: ${order.status}`);
     return;
   }
 
@@ -139,7 +158,7 @@ export async function handleOrderStatusUpdate(
   await DAO.swish.updateOrderStatus(order.ID, data.status);
 
   switch (data.status) {
-    case SwishOrderStatus.PAID: {
+    case FinalSwishOrderStatus.PAID: {
       const donationID = await DAO.donations.add(
         order.KID,
         paymentMethods.swish,
@@ -149,8 +168,10 @@ export async function handleOrderStatusUpdate(
       );
       await DAO.swish.updateOrderDonationId(order.ID, donationID);
       await sendDonationReceipt(donationID);
+      break;
     }
-    default: {
+    case FinalSwishOrderStatus.DECLINED:
+    case FinalSwishOrderStatus.ERROR: {
       // TODO: Send error mail (https://github.com/stiftelsen-effekt/effekt-backend/issues/552)
     }
   }
@@ -177,13 +198,14 @@ function generatePaymentReference() {
 export async function getSwishOrder(KID: SwishOrder["KID"]) {
   const order = await DAO.swish.getOrderByKID(KID);
   if (!order) return null;
+  if (isFinalSwishOrderStatus(order.status)) return order;
+
   const swishRequest = await retrievePaymentRequest(order.instructionUUID);
-  if (swishRequest.status !== order.status) {
-    await handleOrderStatusUpdate(order.instructionUUID, {
-      status: swishRequest.status,
-      amount: swishRequest.amount,
-    });
-    return await DAO.swish.getOrderByKID(KID);
-  }
-  return order;
+  if (swishRequest.status === order.status) return order;
+
+  await handleOrderStatusUpdate(order.instructionUUID, {
+    status: swishRequest.status,
+    amount: swishRequest.amount,
+  });
+  return await DAO.swish.getOrderByKID(KID);
 }
