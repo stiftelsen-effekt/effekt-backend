@@ -810,7 +810,7 @@ async function add(
   registeredDate = null,
   externalPaymentID = null,
   metaOwnerID = null,
-) {
+): Promise<number> {
   var [donorIDQuery] = await DAO.query(
     "SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1",
     [KID],

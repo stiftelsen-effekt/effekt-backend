@@ -1,3 +1,4 @@
+import { Donors } from "@prisma/client";
 import { Donor } from "../../schemas/types";
 import { DAO } from "../DAO";
 
@@ -39,8 +40,8 @@ async function getByID(ID): Promise<Donor | null> {
  * @param {Number} KID
  * @returns {Donor | null} A donor Object
  */
-async function getByKID(KID): Promise<Donor | null> {
-  let [dbDonor] = await DAO.query(
+async function getByKID(KID) {
+  let [dbDonor] = await DAO.query<Donors[]>(
     `SELECT    
             ID,
             email, 
@@ -230,17 +231,18 @@ async function search(filter): Promise<Array<Donor>> {
 //region Add
 /**
  * Adds a new Donor to the database
- * @param {Donor} donor A donorObject with two properties, email (string) and name(string)
  * @returns {Number} The ID of the new Donor if successfull
  */
-async function add(email = "", name, newsletter = null) {
+async function add(
+  data: Pick<Partial<Donors>, "email" | "full_name" | "newsletter">,
+): Promise<Donors["ID"]> {
   var res = await DAO.execute(
     `INSERT INTO Donors (
-            email,
-            full_name, 
-            newsletter
-        ) VALUES (?,?,?)`,
-    [email, name, newsletter == true],
+        email,
+        full_name, 
+        newsletter,
+    ) VALUES (?,?,?,?)`,
+    [data.email, data.full_name, data.newsletter],
   );
 
   return res[0].insertId;

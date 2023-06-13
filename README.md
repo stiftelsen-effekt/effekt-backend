@@ -52,7 +52,7 @@ The API is also responsible for handling payment processing.
 
 ## API endpoints
 
-Our API endpoints are described in the swagger documentation available [here (production)](https://data.gieffektivt.no/docs/) or [here (development)](https://dev.data.gieffektivt.no/docs/)).
+Our API endpoints are described in the swagger documentation available [here (production)](https://data.gieffektivt.no/api-docs/) or [here (development)](https://dev.data.gieffektivt.no/api-docs/)).
 
 We are currently working on improving this documentation.
 
@@ -570,8 +570,18 @@ gcloud run jobs create <SERVICE_NAME>-db-migrate \
 
 ### Bank
 
-### Vipps
+### Vipps 🇳🇴
+
+> ❗ **NOK only**
 
 ### PayPal
 
 ### Facebook
+
+### Swish 🇸🇪
+
+> ❗ **SEK only**
+
+> ❗ **One-time donations only**
+
+Read more about Swish [here](https://www.swish.nu/).

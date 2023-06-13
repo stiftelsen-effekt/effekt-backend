@@ -1,9 +1,9 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
+import * as config from "./config";
 import { DAO } from "./custom_modules/DAO";
 import { openAPIOptions, swaggerOptions } from "./openapi-config";
-import * as config from "./config";
 
 console.log("--------------------------------------------------");
 console.log("| gieffektivt.no donation backend (╯°□°）╯︵ ┻━┻ |");
@@ -129,12 +129,13 @@ DAO.connect(() => {
 
   //Routes
   const donorsRoute = require("./routes/donors");
-  const donationsRoute = require("./routes/donations");
+  const donationsRoute = require("./routes/donations").default;
   const distributionsRoute = require("./routes/distributions");
   const organizationsRoute = require("./routes/organizations");
   const reportsRoute = require("./routes/reports");
   const paypalRoute = require("./routes/paypal");
   const vippsRoute = require("./routes/vipps");
+  const swishRoute = require("./routes/swish").default;
   const paymentRoute = require("./routes/payment");
   const referralsRoute = require("./routes/referrals");
   const scheduledRoute = require("./routes/scheduled");
@@ -152,6 +153,7 @@ DAO.connect(() => {
   app.use("/reports", reportsRoute);
   app.use("/paypal", paypalRoute);
   app.use("/vipps", vippsRoute);
+  app.use("/swish", swishRoute);
   app.use("/payment", paymentRoute);
   app.use("/referrals", referralsRoute);
   app.use("/scheduled", scheduledRoute);

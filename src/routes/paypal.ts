@@ -1,5 +1,5 @@
 import { DAO } from "../custom_modules/DAO";
-import { sendDonationReciept } from "../custom_modules/mail";
+import { sendDonationReceipt } from "../custom_modules/mail";
 
 import express from "express";
 const router = express.Router();
@@ -55,7 +55,7 @@ router.post("/ipn", urlEncodeParser, async (req, res, next) => {
       console.error(ex);
     }
 
-    if (config.env === "production") sendDonationReciept(donationID);
+    if (config.env === "production") sendDonationReceipt(donationID);
   } else if (req.body.txn_type == "subscr_signup") {
     //Subscribtion IPN, ignore
   } else {

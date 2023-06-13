@@ -1,26 +1,26 @@
 import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
+import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { donationHelpers } from "../custom_modules/donationHelpers";
+import {
+  sendDonationHistory,
+  sendDonationReceipt,
+  sendDonationRegistered,
+} from "../custom_modules/mail";
+import * as swish from "../custom_modules/swish";
+import rateLimit from "express-rate-limit";
+import methods from "../enums/methods";
+import bodyParser from "body-parser";
+import apicache from "apicache";
 
 const config = require("../config");
 
 const router = express.Router();
-import bodyParser from "body-parser";
 const urlEncodeParser = bodyParser.urlencoded({ extended: true });
-import apicache from "apicache";
 const cache = apicache.middleware;
-import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import {
-  sendDonationHistory,
-  sendDonationReciept,
-  sendDonationRegistered,
-} from "../custom_modules/mail";
-
-const methods = require("../enums/methods");
 
 const vipps = require("../custom_modules/vipps");
 const dateRangeHelper = require("../custom_modules/dateRangeHelper");
-import rateLimit from "express-rate-limit";
 
 /**
  * @openapi
@@ -47,8 +47,29 @@ router.get("/status", async (req, res, next) => {
  *    description: Registers a pending donation
  */
 router.post("/register", async (req, res, next) => {
-  if (!req.body) return res.sendStatus(400);
-  let parsedData = req.body;
+  let parsedData = req.body as {
+    organizations: any;
+    donor: {
+      email: string;
+      name: string;
+      newsletter: boolean;
+      ssn?: string;
+    };
+    method: number;
+    phone?: string;
+    recurring: boolean;
+    amount: string | number;
+  };
+
+  if (!parsedData || Object.entries(parsedData).length === 0) return res.sendStatus(400);
+
+  if (parsedData.method === methods.SWISH) {
+    if (!parsedData.phone) return res.status(400).send("Missing phone number");
+    if (!parsedData.phone.startsWith("467"))
+      return res.status(400).send("Invalid phone number format");
+    if (parsedData.recurring)
+      return res.status(400).send("Recurring donations not supported with Swish");
+  }
 
   let donationOrganizations = parsedData.organizations;
   let donor = parsedData.donor;
@@ -56,24 +77,21 @@ router.post("/register", async (req, res, next) => {
   let recurring = parsedData.recurring;
 
   try {
-    var donationObject: {
+    var donationObject: Pick<typeof parsedData, "amount" | "method" | "recurring"> & {
       KID: string;
-      method: string;
       donorID: number | null;
       taxUnitId: number;
-      amount: string;
       split: Awaited<ReturnType<typeof donationHelpers.getStandardSplit>>;
-      recurring: boolean;
       standardSplit?: boolean;
     } = {
-      KID: null, //Set later in code
+      amount: parsedData.amount,
       method: parsedData.method,
+      recurring: parsedData.recurring,
+      KID: null, //Set later in code
       donorID: null, //Set later in code
       taxUnitId: null, //Set later in code
-      amount: parsedData.amount,
       standardSplit: undefined,
       split: [],
-      recurring: parsedData.recurring,
     };
 
     //Create a donation split object
@@ -90,12 +108,11 @@ router.post("/register", async (req, res, next) => {
 
     if (donationObject.donorID == null) {
       //Donor does not exist, create donor
-      donationObject.donorID = await DAO.donors.add(
-        donor.email,
-        donor.name,
-        // !!--!! ================================================= SSN removed
-        donor.newsletter,
-      );
+      donationObject.donorID = await DAO.donors.add({
+        email: donor.email,
+        full_name: donor.name,
+        newsletter: donor.newsletter,
+      });
       donationObject.taxUnitId = await DAO.tax.addTaxUnit(
         donationObject.donorID,
         donor.ssn,
@@ -171,12 +188,29 @@ router.post("/register", async (req, res, next) => {
       }
     }
 
-    if (donationObject.method == methods.VIPPS && recurring == 0) {
-      const res = await vipps.initiateOrder(donationObject.KID, donationObject.amount);
-      paymentProviderUrl = res.externalPaymentUrl;
+    switch (donationObject.method) {
+      case methods.VIPPS: {
+        if (recurring == false) {
+          const res = await vipps.initiateOrder(donationObject.KID, donationObject.amount);
+          paymentProviderUrl = res.externalPaymentUrl;
 
-      //Start polling for updates (move this to inside initiateOrder?)
-      vipps.pollOrder(res.orderId);
+          //Start polling for updates (move this to inside initiateOrder?)
+          vipps.pollOrder(res.orderId);
+        }
+        break;
+      }
+      case methods.SWISH: {
+        if (recurring == false) {
+          await swish.initiateOrder(donationObject.KID, {
+            phone: parsedData.phone,
+            amount:
+              typeof donationObject.amount === "string"
+                ? parseInt(donationObject.amount)
+                : donationObject.amount,
+          });
+        }
+        break;
+      }
     }
 
     try {
@@ -256,7 +290,7 @@ router.post("/confirm", authMiddleware.isAdmin, urlEncodeParser, async (req, res
     );
 
     if (config.env === "production" && req.body.reciept === true)
-      await sendDonationReciept(donationID);
+      await sendDonationReceipt(donationID);
 
     res.json({
       status: 200,
@@ -390,7 +424,7 @@ router.post("/reciepts", authMiddleware.isAdmin, async (req, res, next) => {
     for (let i = 0; i < donationIDs.length; i++) {
       let donationID = donationIDs[i];
 
-      var mailStatus = await sendDonationReciept(donationID);
+      var mailStatus = await sendDonationReceipt(donationID);
 
       if (mailStatus == false)
         console.error(`Failed to send donation for donationID ${donationID}`);
@@ -609,9 +643,9 @@ router.delete("/:id", authMiddleware.isAdmin, async (req, res, next) => {
  */
 router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res, next) => {
   if (req.body.email && req.body.email.indexOf("@") > -1) {
-    var mailStatus = await sendDonationReciept(req.params.id, req.body.email);
+    var mailStatus = await sendDonationReceipt(req.params.id, req.body.email);
   } else {
-    var mailStatus = await sendDonationReciept(req.params.id);
+    var mailStatus = await sendDonationReceipt(req.params.id);
   }
 
   if (mailStatus === true) {
@@ -627,4 +661,4 @@ router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-module.exports = router;
+export default router;

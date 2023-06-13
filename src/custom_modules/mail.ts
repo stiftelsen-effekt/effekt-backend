@@ -136,7 +136,7 @@ const reusableHTML = {
  * @param {number} donationID
  * @param {string} reciever Reciever email
  */
-export async function sendDonationReciept(donationID, reciever = null) {
+export async function sendDonationReceipt(donationID, reciever = null) {
   try {
     var donation = await DAO.donations.getByID(donationID);
     if (!donation.email) {

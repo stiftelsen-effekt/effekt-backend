@@ -41,7 +41,7 @@ router.post("/", authMiddleware.isAdmin, urlEncodeParser, async (req, res, next)
       });
     }
 
-    const donorId = await DAO.donors.add(req.body.email, req.body.name);
+    const donorId = await DAO.donors.add({ email: req.body.email, full_name: req.body.name });
 
     /**
      * If we are provided a social security number, we should add a tax unit to the donor
@@ -134,7 +134,7 @@ router.post("/auth0/register", async (req, res, next) => {
     let donorID = await DAO.donors.getIDbyEmail(req.body.email);
 
     if (donorID === null) {
-      donorID = await DAO.donors.add(req.body.email, null, false);
+      donorID = await DAO.donors.add({ email: req.body.email, newsletter: false });
     }
 
     res.json({

@@ -1,5 +1,5 @@
 import { DAO } from "../../custom_modules/DAO";
-import { sendDonationReciept } from "../../custom_modules/mail";
+import { sendDonationReceipt } from "../../custom_modules/mail";
 import { parseReport } from "../../custom_modules/parsers/paypal";
 
 const config = require("../../config");
@@ -53,7 +53,7 @@ module.exports = async (req, res, next) => {
           metaOwnerID,
         );
         valid++;
-        if (config.env === "production") await sendDonationReciept(donationID);
+        if (config.env === "production") await sendDonationReceipt(donationID);
       } catch (ex) {
         //If the donation already existed, ignore and keep moving
         if (ex.message.indexOf("EXISTING_DONATION") === -1) throw ex;

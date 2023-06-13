@@ -1,5 +1,5 @@
 import { DAO } from "../../custom_modules/DAO";
-import { sendEffektDonationReciept, sendDonationReciept } from "../../custom_modules/mail";
+import { sendEffektDonationReciept, sendDonationReceipt } from "../../custom_modules/mail";
 import { parseReport } from "../../custom_modules/parsers/bank";
 
 const config = require("../../config");
@@ -63,7 +63,7 @@ module.exports = async (req, res, next) => {
             //Send special reciept if the donation is for the old effekt system
             await sendEffektDonationReciept(donationID);
           } else {
-            await sendDonationReciept(donationID);
+            await sendDonationReceipt(donationID);
           }
         }
       } catch (ex) {
