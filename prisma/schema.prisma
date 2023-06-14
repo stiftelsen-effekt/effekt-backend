@@ -26,10 +26,9 @@ model Auth0_users {
 }
 
 model AvtaleGiro_replaced_distributions {
-  Original_AvtaleGiro_KID String            @db.VarChar(15)
-  Replacement_KID         String            @id @db.VarChar(15)
-  Timestamp               DateTime?         @default(now()) @db.DateTime(0)
-  Combining_table         Combining_table[]
+  Original_AvtaleGiro_KID String    @db.VarChar(15)
+  Replacement_KID         String    @id @db.VarChar(15)
+  Timestamp               DateTime? @default(now()) @db.DateTime(0)
 }
 
 model Avtalegiro_agreements {
@@ -58,18 +57,17 @@ model Avtalegiro_shipment {
 }
 
 model Combining_table {
-  Donor_ID                          Int
-  Distribution_ID                   Int
-  Tax_unit_ID                       Int?
-  KID                               String                             @db.VarChar(16)
-  timestamp_created                 DateTime?                          @default(now()) @db.DateTime(0)
-  Meta_owner_ID                     Int                                @default(3)
-  Replaced_old_organizations        Int?                               @db.TinyInt
-  Standard_split                    Boolean?
-  AvtaleGiro_replaced_distributions AvtaleGiro_replaced_distributions? @relation(fields: [KID], references: [Replacement_KID])
-  Distribution                      Distribution                       @relation(fields: [Distribution_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Distribution")
-  Donors                            Donors                             @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Donor")
-  Tax_unit                          Tax_unit?                          @relation(fields: [Tax_unit_ID], references: [ID], map: "fk_Combining_to_TaxUnit")
+  Donor_ID                   Int
+  Distribution_ID            Int
+  Tax_unit_ID                Int?
+  KID                        String       @db.VarChar(16)
+  timestamp_created          DateTime?    @default(now()) @db.DateTime(0)
+  Meta_owner_ID              Int          @default(3)
+  Replaced_old_organizations Int?         @db.TinyInt
+  Standard_split             Boolean?
+  Distribution               Distribution @relation(fields: [Distribution_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Distribution")
+  Donors                     Donors       @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Donor")
+  Tax_unit                   Tax_unit?    @relation(fields: [Tax_unit_ID], references: [ID], map: "fk_Combining_to_TaxUnit")
 
   @@id([Donor_ID, Distribution_ID, KID])
   @@index([KID], map: "KID")
