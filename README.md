@@ -123,7 +123,7 @@ docker compose up -d # Sets up MySQL and the database: EffektDonasjonDB_Local
 then:
 
 ```sh
-npx prisma migrate reset # Migrates schemas and tables to the database and seeds testdata
+npx prisma migrate reset # Migrates schemas and tables to the database and seeds test-data
 ```
 
 Read on if you are unfamiliar with these commands.
@@ -229,7 +229,7 @@ The schema is defined by prisma in [prisma/schema.prisma](prisma/schema.prisma).
 npx prisma migrate reset
 ```
 
-Use the `--skip-seed` flag, if you want the database to be empty (no testdata will be added).
+Use the `--skip-seed` flag, if you want the database to be empty (no test-data will be added).
 
 Now, let's double check that the schema is correct! Try:
 
@@ -289,7 +289,7 @@ You can add test-data inside [seed.ts](/prisma/seed.ts) to suit your needs, and 
 npx prisma db seed
 ```
 
-The test-data is stored in the folder [prisma/fakedata/json](/prisma/fakedata/json/). To add more random test-data to the json files, run [fakeDataToJsonScript.ts](/prisma/fakedata/fakeDataToJsonScript.ts), and modify it to your needs. If you want to delete the test-data from the json files, make sure to at least leave an empty array.
+The test-data is stored in the folder [prisma/fakedata/json](/prisma/fakedata/json/). To add more random test-data to the json files, run [addFakeDataScript.ts](/prisma/fakedata/addFakeDataScript.ts), and modify it to your needs. If you want to delete the test-data from the json files, make sure to at least leave an empty array.
 
 You can also manually add test-data with a graphical tool like [`Prisma Studio` etc.](#view-the-database-with-gui)
 
