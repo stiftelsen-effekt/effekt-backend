@@ -72,8 +72,9 @@ function createFakeDataToDonor(donor: Donors, taxUnitID: number) {
     const fakeDonation = createFakeDonation(donor, incrementedID);
     createFakePaymentIntent(incrementedID, fakeDonation);
 
+    const isStandardSplit: boolean = faker.datatype.boolean(0.4);
     createFakeDistributions().forEach((distribution) =>
-      createFakeCombiningTable(donor.ID, distribution.ID, taxUnitID, fakeDonation),
+      createFakeCombiningTable(donor.ID, distribution.ID, taxUnitID, fakeDonation, isStandardSplit),
     );
   }
 }
@@ -101,8 +102,15 @@ function createFakeCombiningTable(
   distributionID: number,
   taxUnitID: number,
   donation: Donations,
+  isStandardSplit: boolean,
 ) {
-  const fakeCombiningTable = generateCombiningTable(donorID, distributionID, taxUnitID, donation);
+  const fakeCombiningTable = generateCombiningTable(
+    donorID,
+    distributionID,
+    taxUnitID,
+    donation,
+    isStandardSplit,
+  );
   fakeCombiningTables.push(fakeCombiningTable);
 }
 

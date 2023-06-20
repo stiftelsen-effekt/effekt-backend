@@ -106,6 +106,7 @@ export function generateCombiningTable(
   distributionID: number,
   taxUnitID: number,
   donation: Donations,
+  isStandardSplit: boolean,
 ): Combining_table {
   return {
     Donor_ID: donorID,
@@ -115,7 +116,7 @@ export function generateCombiningTable(
     timestamp_created: donation.timestamp_confirmed,
     Meta_owner_ID: 3,
     Replaced_old_organizations: null,
-    Standard_split: faker.datatype.boolean(0.4),
+    Standard_split: isStandardSplit,
   };
 }
 

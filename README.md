@@ -277,19 +277,21 @@ You can also view the database with `Prisma Studio`, a GUI of the database via. 
 npx prisma studio
 ```
 
-ALternativly download and connect with a visual database tool like `MySQL Workbench`.
+Alternatively download and connect with a visual database tool like `MySQL Workbench`.
 
 #### Add test data to your local MySQL instance
 
-Test data is automatically seeded with the `npx prisma migrate reset` command (unless `--skip-seed` flag was passed), and is genereated from [seed.ts](/prisma/seed.ts)
+Test data is automatically seeded with the `npx prisma migrate reset` command (unless `--skip-seed` flag was passed), and is generated from [seed.ts](/prisma/seed.ts)
 
-You can add testdata inside [seed.ts](/prisma/seed.ts) to suit your needs, and manually seed the database with:
+You can add test-data inside [seed.ts](/prisma/seed.ts) to suit your needs, and manually seed the database with:
 
 ```sh
 npx prisma db seed
 ```
 
-You can also manually add testdata with a graphical tool like [`Prisma Studio` etc.](#view-the-database-with-gui)
+The test-data is stored in the folder [prisma/fakedata/json](/prisma/fakedata/json/). To add more random test-data to the json files, run [fakeDataToJsonScript.ts](/prisma/fakedata/fakeDataToJsonScript.ts), and modify it to your needs. If you want to delete the test-data from the json files, make sure to at least leave an empty array.
+
+You can also manually add test-data with a graphical tool like [`Prisma Studio` etc.](#view-the-database-with-gui)
 
 Or, of course, also use `mysql` queries like `INSERT` etc. to manipulate the database.
 
