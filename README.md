@@ -62,7 +62,7 @@ We are currently working on improving this documentation.
 To run the API locally, follow these setup steps:
 
 1. [Clone Repository](#clone-repository)
-2. [Bring your environment](#bring-your-environment)
+2. [Bring up your environment](#bring-up-your-environment)
 3. [Install packages](#install-packages)
 4. [Setup MySQL](#setup-mysql)
 
