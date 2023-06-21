@@ -134,7 +134,7 @@ router.post("/auth0/register", async (req, res, next) => {
     let donorID = await DAO.donors.getIDbyEmail(req.body.email);
 
     if (donorID === null) {
-      donorID = await DAO.donors.add({ email: req.body.email, newsletter: false });
+      donorID = await DAO.donors.add({ email: req.body.email, full_name: null, newsletter: false });
     }
 
     res.json({
