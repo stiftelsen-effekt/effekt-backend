@@ -236,13 +236,13 @@ async function search(filter): Promise<Array<Donor>> {
 async function add(
   data: Pick<Partial<Donors>, "email" | "full_name" | "newsletter">,
 ): Promise<Donors["ID"]> {
-  var res = await DAO.execute(
+  var res = await DAO.query(
     `INSERT INTO Donors (
         email,
         full_name, 
         newsletter,
-    ) VALUES (?,?,?,?)`,
-    [data.email, data.full_name, data.newsletter],
+    ) VALUES (?,?,?)`,
+    [data.email, data.full_name || null, data.newsletter || false],
   );
 
   return res[0].insertId;
