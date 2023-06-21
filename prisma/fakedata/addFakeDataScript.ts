@@ -10,6 +10,7 @@ import {
   Tax_unit,
 } from "@prisma/client";
 import fs from "fs";
+import path from "path";
 import {
   generateCombiningTable,
   generateFakeDistribution,
@@ -118,9 +119,9 @@ function getLastID(dataArray: any[]): number {
   return dataArray[dataArray.length - 1]?.ID ?? 0;
 }
 
-function writeToJSON(path: string, data: Object) {
-  const basePath: string = "./json/";
-  fs.writeFile(basePath + path, JSON.stringify(data), "utf8", (err) => {
+function writeToJSON(pathToJSON: string, data: Object) {
+  const basePath: string = path.resolve(__dirname, "json/");
+  fs.writeFile(basePath + pathToJSON, JSON.stringify(data), "utf8", (err) => {
     if (err) {
       console.error(`Error writing file: ${err}`);
       return;
@@ -129,6 +130,6 @@ function writeToJSON(path: string, data: Object) {
 }
 
 function readAndParseJSON(filePath: string) {
-  const jsonFile = fs.readFileSync("./json/" + filePath, "utf8");
+  const jsonFile = fs.readFileSync("prisma/fakedata/json/" + filePath, "utf8");
   return JSON.parse(jsonFile);
 }

@@ -1,4 +1,16 @@
-import { PrismaClient } from "@prisma/client";
+import {
+  Combining_table,
+  Data_owner,
+  Distribution,
+  Donations,
+  Donors,
+  Organizations,
+  Payment,
+  Payment_intent,
+  PrismaClient,
+  Referral_types,
+  Tax_unit,
+} from "@prisma/client";
 import fs from "fs";
 import path from "path";
 
@@ -6,16 +18,16 @@ const prisma = new PrismaClient();
 const basePath: string = path.resolve(__dirname, "./fakedata/json/");
 
 async function main() {
-  const fakeDonors = readAndParseJsonFile("/fakeDonors.json");
-  const fakePayments = readAndParseJsonFile("/fakePayments.json");
-  const fakeOrganizations = readAndParseJsonFile("/fakeOrganizations.json");
-  const fakeTaxUnits = readAndParseJsonFile("/fakeTaxUnits.json");
-  const fakeDonations = readAndParseJsonFile("/fakeDonations.json");
-  const fakePaymentIntents = readAndParseJsonFile("/fakePaymentIntents.json");
-  const fakeDistributions = readAndParseJsonFile("/fakeDistributions.json");
-  const fakeCombiningTables = readAndParseJsonFile("/fakeCombiningTables.json");
-  const fakeReferralTypes = readAndParseJsonFile("/fakeReferralTypes.json");
-  const fakeDataOwner = readAndParseJsonFile("/fakeDataOwner.json");
+  const fakeDonors: Donors[] = readAndParseJsonFile("/fakeDonors.json");
+  const fakePayments: Payment[] = readAndParseJsonFile("/fakePayments.json");
+  const fakeOrganizations: Organizations[] = readAndParseJsonFile("/fakeOrganizations.json");
+  const fakeTaxUnits: Tax_unit[] = readAndParseJsonFile("/fakeTaxUnits.json");
+  const fakeDonations: Donations[] = readAndParseJsonFile("/fakeDonations.json");
+  const fakePaymentIntents: Payment_intent[] = readAndParseJsonFile("/fakePaymentIntents.json");
+  const fakeDistributions: Distribution[] = readAndParseJsonFile("/fakeDistributions.json");
+  const fakeCombiningTables: Combining_table[] = readAndParseJsonFile("/fakeCombiningTables.json");
+  const fakeReferralTypes: Referral_types[] = readAndParseJsonFile("/fakeReferralTypes.json");
+  const fakeDataOwner: Data_owner[] = readAndParseJsonFile("/fakeDataOwner.json");
 
   await prisma.donors.createMany({ data: fakeDonors });
   await prisma.payment.createMany({ data: fakePayments });
