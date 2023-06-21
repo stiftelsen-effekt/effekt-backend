@@ -240,7 +240,7 @@ async function add(
     `INSERT INTO Donors (
         email,
         full_name, 
-        newsletter,
+        newsletter
     ) VALUES (?,?,?)`,
     [data.email, data.full_name || null, data.newsletter || false],
   );
