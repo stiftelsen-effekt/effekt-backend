@@ -1,0 +1,2996 @@
+[
+  {
+    "Id": 1,
+    "KID_fordeling": "000001532886494",
+    "Payment_method": "8",
+    "timetamp": "2022-05-22T01:38:28.975Z"
+  },
+  {
+    "Id": 2,
+    "KID_fordeling": "000002198361889",
+    "Payment_method": "10",
+    "timetamp": "2021-10-15T10:30:39.237Z"
+  },
+  {
+    "Id": 3,
+    "KID_fordeling": "000004674945243",
+    "Payment_method": "7",
+    "timetamp": "2023-01-15T08:29:36.759Z"
+  },
+  {
+    "Id": 4,
+    "KID_fordeling": "000004979138478",
+    "Payment_method": "3",
+    "timetamp": "2022-11-29T02:32:11.632Z"
+  },
+  {
+    "Id": 5,
+    "KID_fordeling": "000004653535163",
+    "Payment_method": "4",
+    "timetamp": "2023-03-24T10:57:14.641Z"
+  },
+  {
+    "Id": 6,
+    "KID_fordeling": "000004337169140",
+    "Payment_method": "6",
+    "timetamp": "2023-01-23T08:15:41.156Z"
+  },
+  {
+    "Id": 7,
+    "KID_fordeling": "000004938472570",
+    "Payment_method": "6",
+    "timetamp": "2023-04-23T04:13:29.919Z"
+  },
+  {
+    "Id": 8,
+    "KID_fordeling": "000004225653114",
+    "Payment_method": "3",
+    "timetamp": "2023-06-04T14:38:05.814Z"
+  },
+  {
+    "Id": 9,
+    "KID_fordeling": "000004149462774",
+    "Payment_method": "3",
+    "timetamp": "2023-05-26T00:58:31.099Z"
+  },
+  {
+    "Id": 10,
+    "KID_fordeling": "000004359317650",
+    "Payment_method": "5",
+    "timetamp": "2023-04-13T05:06:08.151Z"
+  },
+  {
+    "Id": 11,
+    "KID_fordeling": "000005756379276",
+    "Payment_method": "4",
+    "timetamp": "2023-04-23T14:55:56.493Z"
+  },
+  {
+    "Id": 12,
+    "KID_fordeling": "000005199574830",
+    "Payment_method": "10",
+    "timetamp": "2023-03-19T19:33:14.267Z"
+  },
+  {
+    "Id": 13,
+    "KID_fordeling": "000005593964686",
+    "Payment_method": "9",
+    "timetamp": "2023-06-11T20:52:11.813Z"
+  },
+  {
+    "Id": 14,
+    "KID_fordeling": "000005731736285",
+    "Payment_method": "2",
+    "timetamp": "2023-05-15T15:33:33.442Z"
+  },
+  {
+    "Id": 15,
+    "KID_fordeling": "000005732481519",
+    "Payment_method": "8",
+    "timetamp": "2023-05-27T21:51:35.871Z"
+  },
+  {
+    "Id": 16,
+    "KID_fordeling": "000005375597258",
+    "Payment_method": "10",
+    "timetamp": "2023-04-26T17:51:11.273Z"
+  },
+  {
+    "Id": 17,
+    "KID_fordeling": "000005475171517",
+    "Payment_method": "5",
+    "timetamp": "2023-04-26T20:31:11.719Z"
+  },
+  {
+    "Id": 18,
+    "KID_fordeling": "000005114686925",
+    "Payment_method": "7",
+    "timetamp": "2023-04-21T18:08:27.963Z"
+  },
+  {
+    "Id": 19,
+    "KID_fordeling": "000005417519591",
+    "Payment_method": "6",
+    "timetamp": "2023-03-07T00:12:57.589Z"
+  },
+  {
+    "Id": 20,
+    "KID_fordeling": "000005848165998",
+    "Payment_method": "7",
+    "timetamp": "2023-04-29T00:16:17.759Z"
+  },
+  {
+    "Id": 21,
+    "KID_fordeling": "000006137335623",
+    "Payment_method": "10",
+    "timetamp": "2021-07-06T15:56:26.369Z"
+  },
+  {
+    "Id": 22,
+    "KID_fordeling": "000006743345529",
+    "Payment_method": "2",
+    "timetamp": "2021-09-02T10:17:53.355Z"
+  },
+  {
+    "Id": 23,
+    "KID_fordeling": "000006385955270",
+    "Payment_method": "10",
+    "timetamp": "2021-06-26T14:49:55.637Z"
+  },
+  {
+    "Id": 24,
+    "KID_fordeling": "000006544338855",
+    "Payment_method": "6",
+    "timetamp": "2022-04-13T05:26:35.128Z"
+  },
+  {
+    "Id": 25,
+    "KID_fordeling": "000006872479388",
+    "Payment_method": "3",
+    "timetamp": "2023-01-30T10:16:02.083Z"
+  },
+  {
+    "Id": 26,
+    "KID_fordeling": "000006519276999",
+    "Payment_method": "7",
+    "timetamp": "2022-02-15T15:14:18.376Z"
+  },
+  {
+    "Id": 27,
+    "KID_fordeling": "000006486946319",
+    "Payment_method": "2",
+    "timetamp": "2022-09-26T04:27:20.394Z"
+  },
+  {
+    "Id": 28,
+    "KID_fordeling": "000006153869513",
+    "Payment_method": "4",
+    "timetamp": "2023-03-23T11:55:39.190Z"
+  },
+  {
+    "Id": 29,
+    "KID_fordeling": "000007459259417",
+    "Payment_method": "6",
+    "timetamp": "2023-05-14T14:04:17.539Z"
+  },
+  {
+    "Id": 30,
+    "KID_fordeling": "000007579515284",
+    "Payment_method": "4",
+    "timetamp": "2023-03-26T18:15:22.031Z"
+  },
+  {
+    "Id": 31,
+    "KID_fordeling": "000007544855450",
+    "Payment_method": "2",
+    "timetamp": "2023-04-05T23:16:39.440Z"
+  },
+  {
+    "Id": 32,
+    "KID_fordeling": "000007139843788",
+    "Payment_method": "3",
+    "timetamp": "2023-04-13T04:01:18.539Z"
+  },
+  {
+    "Id": 33,
+    "KID_fordeling": "000007365851323",
+    "Payment_method": "6",
+    "timetamp": "2023-03-03T20:29:27.027Z"
+  },
+  {
+    "Id": 34,
+    "KID_fordeling": "000007843744629",
+    "Payment_method": "7",
+    "timetamp": "2023-05-09T19:17:37.746Z"
+  },
+  {
+    "Id": 35,
+    "KID_fordeling": "000007491424730",
+    "Payment_method": "4",
+    "timetamp": "2023-01-30T22:52:25.041Z"
+  },
+  {
+    "Id": 36,
+    "KID_fordeling": "000008436457959",
+    "Payment_method": "10",
+    "timetamp": "2022-03-17T17:02:12.517Z"
+  },
+  {
+    "Id": 37,
+    "KID_fordeling": "000008975754949",
+    "Payment_method": "6",
+    "timetamp": "2022-10-27T11:42:48.104Z"
+  },
+  {
+    "Id": 38,
+    "KID_fordeling": "000008913368190",
+    "Payment_method": "2",
+    "timetamp": "2021-11-04T05:16:31.279Z"
+  },
+  {
+    "Id": 39,
+    "KID_fordeling": "000008614644964",
+    "Payment_method": "8",
+    "timetamp": "2023-06-12T22:10:12.967Z"
+  },
+  {
+    "Id": 40,
+    "KID_fordeling": "000008845131146",
+    "Payment_method": "4",
+    "timetamp": "2022-04-23T10:51:02.387Z"
+  },
+  {
+    "Id": 41,
+    "KID_fordeling": "000008549672429",
+    "Payment_method": "4",
+    "timetamp": "2023-02-03T01:07:24.886Z"
+  },
+  {
+    "Id": 42,
+    "KID_fordeling": "000008172455225",
+    "Payment_method": "8",
+    "timetamp": "2023-06-06T18:15:40.329Z"
+  },
+  {
+    "Id": 43,
+    "KID_fordeling": "000008917165493",
+    "Payment_method": "3",
+    "timetamp": "2021-07-10T06:17:03.643Z"
+  },
+  {
+    "Id": 44,
+    "KID_fordeling": "000009522498766",
+    "Payment_method": "3",
+    "timetamp": "2023-02-24T08:54:47.112Z"
+  },
+  {
+    "Id": 45,
+    "KID_fordeling": "000009828849373",
+    "Payment_method": "6",
+    "timetamp": "2023-02-23T19:14:51.125Z"
+  },
+  {
+    "Id": 46,
+    "KID_fordeling": "000009429529887",
+    "Payment_method": "2",
+    "timetamp": "2023-02-20T02:48:11.896Z"
+  },
+  {
+    "Id": 47,
+    "KID_fordeling": "000009337219522",
+    "Payment_method": "4",
+    "timetamp": "2023-05-11T15:16:53.195Z"
+  },
+  {
+    "Id": 48,
+    "KID_fordeling": "000009833742316",
+    "Payment_method": "9",
+    "timetamp": "2023-02-03T10:43:33.629Z"
+  },
+  {
+    "Id": 49,
+    "KID_fordeling": "000009238944947",
+    "Payment_method": "3",
+    "timetamp": "2023-03-29T01:06:08.440Z"
+  },
+  {
+    "Id": 50,
+    "KID_fordeling": "000009977423210",
+    "Payment_method": "8",
+    "timetamp": "2023-02-24T14:55:44.552Z"
+  },
+  {
+    "Id": 51,
+    "KID_fordeling": "000009169529295",
+    "Payment_method": "2",
+    "timetamp": "2023-02-24T16:05:13.255Z"
+  },
+  {
+    "Id": 52,
+    "KID_fordeling": "000010785259515",
+    "Payment_method": "10",
+    "timetamp": "2022-09-25T17:14:02.739Z"
+  },
+  {
+    "Id": 53,
+    "KID_fordeling": "000010593916942",
+    "Payment_method": "2",
+    "timetamp": "2023-02-08T05:39:53.656Z"
+  },
+  {
+    "Id": 54,
+    "KID_fordeling": "000010951142974",
+    "Payment_method": "8",
+    "timetamp": "2023-03-07T23:33:07.336Z"
+  },
+  {
+    "Id": 55,
+    "KID_fordeling": "000010323715879",
+    "Payment_method": "2",
+    "timetamp": "2023-06-14T02:47:19.648Z"
+  },
+  {
+    "Id": 56,
+    "KID_fordeling": "000010936317386",
+    "Payment_method": "3",
+    "timetamp": "2023-05-27T09:05:31.194Z"
+  },
+  {
+    "Id": 57,
+    "KID_fordeling": "000010765592836",
+    "Payment_method": "4",
+    "timetamp": "2023-03-13T22:14:51.082Z"
+  },
+  {
+    "Id": 58,
+    "KID_fordeling": "000010492838478",
+    "Payment_method": "8",
+    "timetamp": "2022-10-27T02:33:48.192Z"
+  },
+  {
+    "Id": 59,
+    "KID_fordeling": "000010782858475",
+    "Payment_method": "10",
+    "timetamp": "2022-12-10T21:47:19.592Z"
+  },
+  {
+    "Id": 60,
+    "KID_fordeling": "000010578285214",
+    "Payment_method": "4",
+    "timetamp": "2023-05-03T06:00:42.176Z"
+  },
+  {
+    "Id": 61,
+    "KID_fordeling": "000010548125656",
+    "Payment_method": "2",
+    "timetamp": "2023-01-12T17:20:38.579Z"
+  },
+  {
+    "Id": 62,
+    "KID_fordeling": "000011483495369",
+    "Payment_method": "3",
+    "timetamp": "2022-01-23T19:34:03.992Z"
+  },
+  {
+    "Id": 63,
+    "KID_fordeling": "000011171196485",
+    "Payment_method": "7",
+    "timetamp": "2022-02-26T22:08:52.198Z"
+  },
+  {
+    "Id": 64,
+    "KID_fordeling": "000011244632243",
+    "Payment_method": "9",
+    "timetamp": "2023-03-03T08:37:34.210Z"
+  },
+  {
+    "Id": 65,
+    "KID_fordeling": "000011158276151",
+    "Payment_method": "8",
+    "timetamp": "2022-08-10T21:52:20.502Z"
+  },
+  {
+    "Id": 66,
+    "KID_fordeling": "000012622167141",
+    "Payment_method": "6",
+    "timetamp": "2022-10-23T08:17:29.915Z"
+  },
+  {
+    "Id": 67,
+    "KID_fordeling": "000012312429769",
+    "Payment_method": "5",
+    "timetamp": "2021-12-20T19:57:00.556Z"
+  },
+  {
+    "Id": 68,
+    "KID_fordeling": "000012352372960",
+    "Payment_method": "3",
+    "timetamp": "2023-03-04T07:50:33.128Z"
+  },
+  {
+    "Id": 69,
+    "KID_fordeling": "000012514592190",
+    "Payment_method": "8",
+    "timetamp": "2022-03-20T09:47:52.249Z"
+  },
+  {
+    "Id": 70,
+    "KID_fordeling": "000013463916174",
+    "Payment_method": "9",
+    "timetamp": "2022-12-23T17:21:04.711Z"
+  },
+  {
+    "Id": 71,
+    "KID_fordeling": "000013171438867",
+    "Payment_method": "3",
+    "timetamp": "2022-05-13T09:04:37.550Z"
+  },
+  {
+    "Id": 72,
+    "KID_fordeling": "000013399237893",
+    "Payment_method": "10",
+    "timetamp": "2022-12-13T13:09:01.491Z"
+  },
+  {
+    "Id": 73,
+    "KID_fordeling": "000013486345260",
+    "Payment_method": "8",
+    "timetamp": "2022-05-25T16:34:30.670Z"
+  },
+  {
+    "Id": 74,
+    "KID_fordeling": "000013426223775",
+    "Payment_method": "9",
+    "timetamp": "2022-12-19T03:15:25.483Z"
+  },
+  {
+    "Id": 75,
+    "KID_fordeling": "000013261268695",
+    "Payment_method": "2",
+    "timetamp": "2023-03-15T10:24:22.359Z"
+  },
+  {
+    "Id": 76,
+    "KID_fordeling": "000013827433346",
+    "Payment_method": "4",
+    "timetamp": "2022-02-05T07:43:50.793Z"
+  },
+  {
+    "Id": 77,
+    "KID_fordeling": "000013299526635",
+    "Payment_method": "2",
+    "timetamp": "2022-07-24T08:38:20.479Z"
+  },
+  {
+    "Id": 78,
+    "KID_fordeling": "000014675523881",
+    "Payment_method": "2",
+    "timetamp": "2023-01-23T10:20:37.577Z"
+  },
+  {
+    "Id": 79,
+    "KID_fordeling": "000014771999118",
+    "Payment_method": "10",
+    "timetamp": "2023-03-13T18:21:05.182Z"
+  },
+  {
+    "Id": 80,
+    "KID_fordeling": "000014967193682",
+    "Payment_method": "4",
+    "timetamp": "2023-01-06T18:51:55.742Z"
+  },
+  {
+    "Id": 81,
+    "KID_fordeling": "000014463519596",
+    "Payment_method": "5",
+    "timetamp": "2023-04-25T17:38:50.937Z"
+  },
+  {
+    "Id": 82,
+    "KID_fordeling": "000014633929238",
+    "Payment_method": "8",
+    "timetamp": "2023-03-18T21:40:27.284Z"
+  },
+  {
+    "Id": 83,
+    "KID_fordeling": "000014131528417",
+    "Payment_method": "8",
+    "timetamp": "2023-03-01T05:33:45.337Z"
+  },
+  {
+    "Id": 84,
+    "KID_fordeling": "000014589235366",
+    "Payment_method": "2",
+    "timetamp": "2023-03-09T09:00:14.155Z"
+  },
+  {
+    "Id": 85,
+    "KID_fordeling": "000014754977941",
+    "Payment_method": "3",
+    "timetamp": "2023-01-28T10:21:47.754Z"
+  },
+  {
+    "Id": 86,
+    "KID_fordeling": "000014417381663",
+    "Payment_method": "8",
+    "timetamp": "2023-05-23T10:28:10.003Z"
+  },
+  {
+    "Id": 87,
+    "KID_fordeling": "000016243226590",
+    "Payment_method": "2",
+    "timetamp": "2022-03-23T12:35:14.408Z"
+  },
+  {
+    "Id": 88,
+    "KID_fordeling": "000016256359452",
+    "Payment_method": "7",
+    "timetamp": "2021-04-28T08:29:16.672Z"
+  },
+  {
+    "Id": 89,
+    "KID_fordeling": "000016925835353",
+    "Payment_method": "8",
+    "timetamp": "2020-06-26T23:05:11.173Z"
+  },
+  {
+    "Id": 90,
+    "KID_fordeling": "000017588379663",
+    "Payment_method": "4",
+    "timetamp": "2021-11-09T01:05:17.322Z"
+  },
+  {
+    "Id": 91,
+    "KID_fordeling": "000017658579283",
+    "Payment_method": "5",
+    "timetamp": "2023-04-04T11:05:10.274Z"
+  },
+  {
+    "Id": 92,
+    "KID_fordeling": "000018518614823",
+    "Payment_method": "5",
+    "timetamp": "2023-04-07T06:11:43.767Z"
+  },
+  {
+    "Id": 93,
+    "KID_fordeling": "000018141157471",
+    "Payment_method": "3",
+    "timetamp": "2023-04-10T18:18:48.880Z"
+  },
+  {
+    "Id": 94,
+    "KID_fordeling": "000018785421142",
+    "Payment_method": "7",
+    "timetamp": "2023-02-11T01:21:46.585Z"
+  },
+  {
+    "Id": 95,
+    "KID_fordeling": "000019353889975",
+    "Payment_method": "7",
+    "timetamp": "2023-05-30T11:40:28.819Z"
+  },
+  {
+    "Id": 96,
+    "KID_fordeling": "000019196131312",
+    "Payment_method": "2",
+    "timetamp": "2023-06-15T22:40:11.804Z"
+  },
+  {
+    "Id": 97,
+    "KID_fordeling": "000019563384296",
+    "Payment_method": "9",
+    "timetamp": "2023-04-17T20:35:10.451Z"
+  },
+  {
+    "Id": 98,
+    "KID_fordeling": "000019315988261",
+    "Payment_method": "9",
+    "timetamp": "2023-04-28T23:33:33.613Z"
+  },
+  {
+    "Id": 99,
+    "KID_fordeling": "000019699851879",
+    "Payment_method": "8",
+    "timetamp": "2023-04-28T07:04:11.862Z"
+  },
+  {
+    "Id": 100,
+    "KID_fordeling": "000019749595963",
+    "Payment_method": "4",
+    "timetamp": "2023-05-09T07:17:07.868Z"
+  },
+  {
+    "Id": 101,
+    "KID_fordeling": "000019891761868",
+    "Payment_method": "7",
+    "timetamp": "2023-03-25T14:09:57.981Z"
+  },
+  {
+    "Id": 102,
+    "KID_fordeling": "000019913517330",
+    "Payment_method": "4",
+    "timetamp": "2023-04-13T20:05:06.209Z"
+  },
+  {
+    "Id": 103,
+    "KID_fordeling": "000020237219512",
+    "Payment_method": "5",
+    "timetamp": "2023-05-11T20:40:55.321Z"
+  },
+  {
+    "Id": 104,
+    "KID_fordeling": "000020457763827",
+    "Payment_method": "6",
+    "timetamp": "2023-05-14T18:23:45.890Z"
+  },
+  {
+    "Id": 105,
+    "KID_fordeling": "000021292334451",
+    "Payment_method": "10",
+    "timetamp": "2023-05-13T01:37:17.716Z"
+  },
+  {
+    "Id": 106,
+    "KID_fordeling": "000021743221893",
+    "Payment_method": "2",
+    "timetamp": "2022-11-05T00:46:41.851Z"
+  },
+  {
+    "Id": 107,
+    "KID_fordeling": "000021192477731",
+    "Payment_method": "3",
+    "timetamp": "2022-09-02T09:46:47.027Z"
+  },
+  {
+    "Id": 108,
+    "KID_fordeling": "000021177384761",
+    "Payment_method": "10",
+    "timetamp": "2022-09-26T12:47:13.571Z"
+  },
+  {
+    "Id": 109,
+    "KID_fordeling": "000021883834273",
+    "Payment_method": "4",
+    "timetamp": "2022-07-31T17:39:57.879Z"
+  },
+  {
+    "Id": 110,
+    "KID_fordeling": "000021331395687",
+    "Payment_method": "7",
+    "timetamp": "2023-01-07T09:54:51.625Z"
+  },
+  {
+    "Id": 111,
+    "KID_fordeling": "000021577225226",
+    "Payment_method": "10",
+    "timetamp": "2022-10-05T16:52:25.067Z"
+  },
+  {
+    "Id": 112,
+    "KID_fordeling": "000021627544469",
+    "Payment_method": "9",
+    "timetamp": "2022-06-24T09:43:53.918Z"
+  },
+  {
+    "Id": 113,
+    "KID_fordeling": "000021948133638",
+    "Payment_method": "9",
+    "timetamp": "2022-11-08T04:45:25.084Z"
+  },
+  {
+    "Id": 114,
+    "KID_fordeling": "000021659695460",
+    "Payment_method": "2",
+    "timetamp": "2023-03-31T16:48:19.981Z"
+  },
+  {
+    "Id": 115,
+    "KID_fordeling": "000022772214585",
+    "Payment_method": "7",
+    "timetamp": "2023-02-03T11:42:43.456Z"
+  },
+  {
+    "Id": 116,
+    "KID_fordeling": "000022722913310",
+    "Payment_method": "8",
+    "timetamp": "2023-04-01T15:26:30.922Z"
+  },
+  {
+    "Id": 117,
+    "KID_fordeling": "000022212357382",
+    "Payment_method": "8",
+    "timetamp": "2023-03-03T04:08:57.204Z"
+  },
+  {
+    "Id": 118,
+    "KID_fordeling": "000022483797266",
+    "Payment_method": "8",
+    "timetamp": "2023-04-16T17:46:30.795Z"
+  },
+  {
+    "Id": 119,
+    "KID_fordeling": "000022169267543",
+    "Payment_method": "2",
+    "timetamp": "2023-03-31T14:33:32.717Z"
+  },
+  {
+    "Id": 120,
+    "KID_fordeling": "000022999424512",
+    "Payment_method": "8",
+    "timetamp": "2023-04-29T23:23:38.590Z"
+  },
+  {
+    "Id": 121,
+    "KID_fordeling": "000022549131823",
+    "Payment_method": "6",
+    "timetamp": "2023-04-15T18:18:43.787Z"
+  },
+  {
+    "Id": 122,
+    "KID_fordeling": "000022186192187",
+    "Payment_method": "4",
+    "timetamp": "2023-04-04T12:29:30.890Z"
+  },
+  {
+    "Id": 123,
+    "KID_fordeling": "000022274283153",
+    "Payment_method": "9",
+    "timetamp": "2023-04-30T20:13:47.228Z"
+  },
+  {
+    "Id": 124,
+    "KID_fordeling": "000023741993861",
+    "Payment_method": "7",
+    "timetamp": "2022-11-06T08:36:35.360Z"
+  },
+  {
+    "Id": 125,
+    "KID_fordeling": "000023145316834",
+    "Payment_method": "10",
+    "timetamp": "2022-08-20T21:56:33.649Z"
+  },
+  {
+    "Id": 126,
+    "KID_fordeling": "000023252573177",
+    "Payment_method": "10",
+    "timetamp": "2021-07-25T14:17:38.869Z"
+  },
+  {
+    "Id": 127,
+    "KID_fordeling": "000023789256437",
+    "Payment_method": "7",
+    "timetamp": "2023-02-12T00:40:43.855Z"
+  },
+  {
+    "Id": 128,
+    "KID_fordeling": "000024189554678",
+    "Payment_method": "10",
+    "timetamp": "2022-12-23T05:34:02.787Z"
+  },
+  {
+    "Id": 129,
+    "KID_fordeling": "000024624296711",
+    "Payment_method": "3",
+    "timetamp": "2022-08-11T09:20:18.326Z"
+  },
+  {
+    "Id": 130,
+    "KID_fordeling": "000024273268649",
+    "Payment_method": "9",
+    "timetamp": "2022-07-31T19:32:40.002Z"
+  },
+  {
+    "Id": 131,
+    "KID_fordeling": "000025576396961",
+    "Payment_method": "4",
+    "timetamp": "2023-06-05T23:47:11.522Z"
+  },
+  {
+    "Id": 132,
+    "KID_fordeling": "000025689631262",
+    "Payment_method": "6",
+    "timetamp": "2023-06-21T02:26:29.371Z"
+  },
+  {
+    "Id": 133,
+    "KID_fordeling": "000025882426452",
+    "Payment_method": "4",
+    "timetamp": "2023-04-07T09:11:38.249Z"
+  },
+  {
+    "Id": 134,
+    "KID_fordeling": "000025864256695",
+    "Payment_method": "10",
+    "timetamp": "2023-03-24T05:36:05.413Z"
+  },
+  {
+    "Id": 135,
+    "KID_fordeling": "000025551532747",
+    "Payment_method": "2",
+    "timetamp": "2023-03-24T05:22:05.219Z"
+  },
+  {
+    "Id": 136,
+    "KID_fordeling": "000025597531232",
+    "Payment_method": "7",
+    "timetamp": "2023-03-21T11:45:04.556Z"
+  },
+  {
+    "Id": 137,
+    "KID_fordeling": "000025682533952",
+    "Payment_method": "5",
+    "timetamp": "2023-03-30T06:04:53.599Z"
+  },
+  {
+    "Id": 138,
+    "KID_fordeling": "000026798996760",
+    "Payment_method": "6",
+    "timetamp": "2021-01-15T14:17:22.912Z"
+  },
+  {
+    "Id": 139,
+    "KID_fordeling": "000026999445914",
+    "Payment_method": "8",
+    "timetamp": "2021-11-18T03:28:54.477Z"
+  },
+  {
+    "Id": 140,
+    "KID_fordeling": "000026556667843",
+    "Payment_method": "3",
+    "timetamp": "2023-02-09T07:38:12.461Z"
+  },
+  {
+    "Id": 141,
+    "KID_fordeling": "000026775119394",
+    "Payment_method": "8",
+    "timetamp": "2021-08-26T03:45:15.095Z"
+  },
+  {
+    "Id": 142,
+    "KID_fordeling": "000027862536490",
+    "Payment_method": "9",
+    "timetamp": "2023-03-17T07:02:12.388Z"
+  },
+  {
+    "Id": 143,
+    "KID_fordeling": "000028665989936",
+    "Payment_method": "10",
+    "timetamp": "2021-11-18T09:24:17.724Z"
+  },
+  {
+    "Id": 144,
+    "KID_fordeling": "000028815895579",
+    "Payment_method": "9",
+    "timetamp": "2021-10-18T09:59:06.226Z"
+  },
+  {
+    "Id": 145,
+    "KID_fordeling": "000028435597274",
+    "Payment_method": "7",
+    "timetamp": "2021-08-14T07:15:37.348Z"
+  },
+  {
+    "Id": 146,
+    "KID_fordeling": "000028328475729",
+    "Payment_method": "9",
+    "timetamp": "2023-04-03T16:54:50.577Z"
+  },
+  {
+    "Id": 147,
+    "KID_fordeling": "000028612394289",
+    "Payment_method": "3",
+    "timetamp": "2022-09-16T18:17:57.150Z"
+  },
+  {
+    "Id": 148,
+    "KID_fordeling": "000028559371357",
+    "Payment_method": "9",
+    "timetamp": "2021-11-29T09:41:38.381Z"
+  },
+  {
+    "Id": 149,
+    "KID_fordeling": "000028238211743",
+    "Payment_method": "9",
+    "timetamp": "2022-08-06T11:29:08.625Z"
+  },
+  {
+    "Id": 150,
+    "KID_fordeling": "000028689531110",
+    "Payment_method": "3",
+    "timetamp": "2021-03-02T02:09:00.085Z"
+  },
+  {
+    "Id": 151,
+    "KID_fordeling": "000028915976568",
+    "Payment_method": "5",
+    "timetamp": "2022-01-04T20:02:03.568Z"
+  },
+  {
+    "Id": 152,
+    "KID_fordeling": "000029577241440",
+    "Payment_method": "10",
+    "timetamp": "2022-12-08T11:16:09.322Z"
+  },
+  {
+    "Id": 153,
+    "KID_fordeling": "000030789696470",
+    "Payment_method": "2",
+    "timetamp": "2022-12-13T19:10:49.921Z"
+  },
+  {
+    "Id": 154,
+    "KID_fordeling": "000030928846317",
+    "Payment_method": "5",
+    "timetamp": "2022-06-11T04:29:13.395Z"
+  },
+  {
+    "Id": 155,
+    "KID_fordeling": "000031191118459",
+    "Payment_method": "6",
+    "timetamp": "2021-01-10T00:38:19.892Z"
+  },
+  {
+    "Id": 156,
+    "KID_fordeling": "000031954965195",
+    "Payment_method": "9",
+    "timetamp": "2021-03-03T05:06:49.941Z"
+  },
+  {
+    "Id": 157,
+    "KID_fordeling": "000031931835594",
+    "Payment_method": "5",
+    "timetamp": "2021-03-26T01:48:54.665Z"
+  },
+  {
+    "Id": 158,
+    "KID_fordeling": "000031248831443",
+    "Payment_method": "10",
+    "timetamp": "2022-10-23T18:23:51.736Z"
+  },
+  {
+    "Id": 159,
+    "KID_fordeling": "000031199114849",
+    "Payment_method": "7",
+    "timetamp": "2022-04-24T20:58:44.894Z"
+  },
+  {
+    "Id": 160,
+    "KID_fordeling": "000031593645182",
+    "Payment_method": "10",
+    "timetamp": "2022-08-01T13:04:19.273Z"
+  },
+  {
+    "Id": 161,
+    "KID_fordeling": "000031137245432",
+    "Payment_method": "5",
+    "timetamp": "2022-01-12T17:28:47.896Z"
+  },
+  {
+    "Id": 162,
+    "KID_fordeling": "000031989357970",
+    "Payment_method": "7",
+    "timetamp": "2020-12-30T04:20:24.029Z"
+  },
+  {
+    "Id": 163,
+    "KID_fordeling": "000031775224996",
+    "Payment_method": "5",
+    "timetamp": "2021-04-23T08:03:08.966Z"
+  },
+  {
+    "Id": 164,
+    "KID_fordeling": "000031934255170",
+    "Payment_method": "2",
+    "timetamp": "2023-01-09T14:24:56.684Z"
+  },
+  {
+    "Id": 165,
+    "KID_fordeling": "000032813399410",
+    "Payment_method": "5",
+    "timetamp": "2021-11-12T11:38:20.139Z"
+  },
+  {
+    "Id": 166,
+    "KID_fordeling": "000032536625240",
+    "Payment_method": "4",
+    "timetamp": "2023-05-07T16:35:04.167Z"
+  },
+  {
+    "Id": 167,
+    "KID_fordeling": "000032982344817",
+    "Payment_method": "5",
+    "timetamp": "2021-04-22T12:21:56.517Z"
+  },
+  {
+    "Id": 168,
+    "KID_fordeling": "000032566822964",
+    "Payment_method": "5",
+    "timetamp": "2022-03-04T22:22:04.966Z"
+  },
+  {
+    "Id": 169,
+    "KID_fordeling": "000032728261911",
+    "Payment_method": "4",
+    "timetamp": "2023-05-08T23:17:52.722Z"
+  },
+  {
+    "Id": 170,
+    "KID_fordeling": "000032246653458",
+    "Payment_method": "6",
+    "timetamp": "2022-08-05T23:38:26.104Z"
+  },
+  {
+    "Id": 171,
+    "KID_fordeling": "000032925824966",
+    "Payment_method": "4",
+    "timetamp": "2023-04-27T05:40:26.694Z"
+  },
+  {
+    "Id": 172,
+    "KID_fordeling": "000032368111517",
+    "Payment_method": "10",
+    "timetamp": "2021-02-13T15:00:51.776Z"
+  },
+  {
+    "Id": 173,
+    "KID_fordeling": "000033634536487",
+    "Payment_method": "5",
+    "timetamp": "2022-02-04T04:25:49.879Z"
+  },
+  {
+    "Id": 174,
+    "KID_fordeling": "000033428842950",
+    "Payment_method": "8",
+    "timetamp": "2022-03-16T02:22:33.993Z"
+  },
+  {
+    "Id": 175,
+    "KID_fordeling": "000034319792932",
+    "Payment_method": "10",
+    "timetamp": "2023-06-07T05:49:54.126Z"
+  },
+  {
+    "Id": 176,
+    "KID_fordeling": "000034817392656",
+    "Payment_method": "2",
+    "timetamp": "2023-04-21T14:40:38.386Z"
+  },
+  {
+    "Id": 177,
+    "KID_fordeling": "000034752833391",
+    "Payment_method": "4",
+    "timetamp": "2023-04-06T10:20:45.050Z"
+  },
+  {
+    "Id": 178,
+    "KID_fordeling": "000034163219289",
+    "Payment_method": "6",
+    "timetamp": "2023-03-05T12:26:07.288Z"
+  },
+  {
+    "Id": 179,
+    "KID_fordeling": "000035269561151",
+    "Payment_method": "8",
+    "timetamp": "2021-08-23T18:09:54.726Z"
+  },
+  {
+    "Id": 180,
+    "KID_fordeling": "000035418685745",
+    "Payment_method": "7",
+    "timetamp": "2022-01-05T19:12:04.645Z"
+  },
+  {
+    "Id": 181,
+    "KID_fordeling": "000035819249638",
+    "Payment_method": "8",
+    "timetamp": "2020-10-05T04:46:14.158Z"
+  },
+  {
+    "Id": 182,
+    "KID_fordeling": "000036861182636",
+    "Payment_method": "4",
+    "timetamp": "2021-11-20T19:08:44.126Z"
+  },
+  {
+    "Id": 183,
+    "KID_fordeling": "000036463945695",
+    "Payment_method": "2",
+    "timetamp": "2023-05-27T19:59:50.577Z"
+  },
+  {
+    "Id": 184,
+    "KID_fordeling": "000036566214296",
+    "Payment_method": "9",
+    "timetamp": "2021-09-26T09:53:18.147Z"
+  },
+  {
+    "Id": 185,
+    "KID_fordeling": "000036512934922",
+    "Payment_method": "5",
+    "timetamp": "2022-06-17T11:02:11.873Z"
+  },
+  {
+    "Id": 186,
+    "KID_fordeling": "000036834226338",
+    "Payment_method": "10",
+    "timetamp": "2022-05-22T06:42:54.704Z"
+  },
+  {
+    "Id": 187,
+    "KID_fordeling": "000036639471642",
+    "Payment_method": "8",
+    "timetamp": "2023-03-20T16:57:15.874Z"
+  },
+  {
+    "Id": 188,
+    "KID_fordeling": "000037782415659",
+    "Payment_method": "10",
+    "timetamp": "2021-03-25T07:23:32.707Z"
+  },
+  {
+    "Id": 189,
+    "KID_fordeling": "000038443897483",
+    "Payment_method": "7",
+    "timetamp": "2023-04-21T19:41:41.882Z"
+  },
+  {
+    "Id": 190,
+    "KID_fordeling": "000038538257254",
+    "Payment_method": "6",
+    "timetamp": "2023-02-27T02:24:27.624Z"
+  },
+  {
+    "Id": 191,
+    "KID_fordeling": "000039433398169",
+    "Payment_method": "2",
+    "timetamp": "2023-01-23T09:36:41.912Z"
+  },
+  {
+    "Id": 192,
+    "KID_fordeling": "000039159952843",
+    "Payment_method": "4",
+    "timetamp": "2022-01-19T19:30:52.395Z"
+  },
+  {
+    "Id": 193,
+    "KID_fordeling": "000039242494688",
+    "Payment_method": "7",
+    "timetamp": "2022-05-20T02:58:06.625Z"
+  },
+  {
+    "Id": 194,
+    "KID_fordeling": "000039876993625",
+    "Payment_method": "3",
+    "timetamp": "2022-01-05T08:14:27.320Z"
+  },
+  {
+    "Id": 195,
+    "KID_fordeling": "000039331797793",
+    "Payment_method": "5",
+    "timetamp": "2022-01-17T04:19:33.122Z"
+  },
+  {
+    "Id": 196,
+    "KID_fordeling": "000039779516531",
+    "Payment_method": "6",
+    "timetamp": "2022-05-27T22:16:23.868Z"
+  },
+  {
+    "Id": 197,
+    "KID_fordeling": "000039784435826",
+    "Payment_method": "3",
+    "timetamp": "2022-12-11T10:41:14.978Z"
+  },
+  {
+    "Id": 198,
+    "KID_fordeling": "000039612573889",
+    "Payment_method": "10",
+    "timetamp": "2022-02-01T04:35:32.345Z"
+  },
+  {
+    "Id": 199,
+    "KID_fordeling": "000039554854743",
+    "Payment_method": "2",
+    "timetamp": "2021-11-14T21:05:21.146Z"
+  },
+  {
+    "Id": 200,
+    "KID_fordeling": "000041549621518",
+    "Payment_method": "8",
+    "timetamp": "2022-08-11T20:45:33.154Z"
+  },
+  {
+    "Id": 201,
+    "KID_fordeling": "000041981248333",
+    "Payment_method": "8",
+    "timetamp": "2023-05-26T06:50:43.938Z"
+  },
+  {
+    "Id": 202,
+    "KID_fordeling": "000041872151810",
+    "Payment_method": "9",
+    "timetamp": "2022-07-05T23:20:24.415Z"
+  },
+  {
+    "Id": 203,
+    "KID_fordeling": "000041113963858",
+    "Payment_method": "10",
+    "timetamp": "2022-01-18T22:18:45.506Z"
+  },
+  {
+    "Id": 204,
+    "KID_fordeling": "000041155771540",
+    "Payment_method": "9",
+    "timetamp": "2022-01-05T14:01:26.061Z"
+  },
+  {
+    "Id": 205,
+    "KID_fordeling": "000041342537242",
+    "Payment_method": "8",
+    "timetamp": "2022-11-24T19:30:35.712Z"
+  },
+  {
+    "Id": 206,
+    "KID_fordeling": "000042699112589",
+    "Payment_method": "2",
+    "timetamp": "2022-03-11T12:31:53.531Z"
+  },
+  {
+    "Id": 207,
+    "KID_fordeling": "000042825414271",
+    "Payment_method": "10",
+    "timetamp": "2022-02-24T09:48:18.835Z"
+  },
+  {
+    "Id": 208,
+    "KID_fordeling": "000042419394988",
+    "Payment_method": "3",
+    "timetamp": "2023-04-15T06:08:30.607Z"
+  },
+  {
+    "Id": 209,
+    "KID_fordeling": "000043586746695",
+    "Payment_method": "5",
+    "timetamp": "2023-03-05T20:28:51.516Z"
+  },
+  {
+    "Id": 210,
+    "KID_fordeling": "000043911819548",
+    "Payment_method": "10",
+    "timetamp": "2023-03-03T19:11:14.589Z"
+  },
+  {
+    "Id": 211,
+    "KID_fordeling": "000043859577678",
+    "Payment_method": "3",
+    "timetamp": "2023-06-03T16:28:11.112Z"
+  },
+  {
+    "Id": 212,
+    "KID_fordeling": "000045178775370",
+    "Payment_method": "4",
+    "timetamp": "2022-06-17T18:01:15.867Z"
+  },
+  {
+    "Id": 213,
+    "KID_fordeling": "000045177226623",
+    "Payment_method": "8",
+    "timetamp": "2023-01-05T18:05:03.184Z"
+  },
+  {
+    "Id": 214,
+    "KID_fordeling": "000045955577684",
+    "Payment_method": "5",
+    "timetamp": "2021-05-31T16:32:54.567Z"
+  },
+  {
+    "Id": 215,
+    "KID_fordeling": "000045149871993",
+    "Payment_method": "9",
+    "timetamp": "2022-05-16T21:23:51.619Z"
+  },
+  {
+    "Id": 216,
+    "KID_fordeling": "000045423947410",
+    "Payment_method": "7",
+    "timetamp": "2021-12-23T20:57:08.812Z"
+  },
+  {
+    "Id": 217,
+    "KID_fordeling": "000045352239722",
+    "Payment_method": "9",
+    "timetamp": "2022-02-27T20:50:52.544Z"
+  },
+  {
+    "Id": 218,
+    "KID_fordeling": "000045273843867",
+    "Payment_method": "2",
+    "timetamp": "2022-07-22T06:54:14.365Z"
+  },
+  {
+    "Id": 219,
+    "KID_fordeling": "000045435459255",
+    "Payment_method": "3",
+    "timetamp": "2021-05-27T00:38:23.693Z"
+  },
+  {
+    "Id": 220,
+    "KID_fordeling": "000046387248779",
+    "Payment_method": "8",
+    "timetamp": "2022-09-18T23:49:11.408Z"
+  },
+  {
+    "Id": 221,
+    "KID_fordeling": "000046133745193",
+    "Payment_method": "2",
+    "timetamp": "2023-04-06T04:31:30.080Z"
+  },
+  {
+    "Id": 222,
+    "KID_fordeling": "000047562342593",
+    "Payment_method": "5",
+    "timetamp": "2021-07-19T03:17:50.544Z"
+  },
+  {
+    "Id": 223,
+    "KID_fordeling": "000047943681651",
+    "Payment_method": "9",
+    "timetamp": "2021-10-18T18:22:39.341Z"
+  },
+  {
+    "Id": 224,
+    "KID_fordeling": "000047927156910",
+    "Payment_method": "7",
+    "timetamp": "2021-06-23T00:07:16.315Z"
+  },
+  {
+    "Id": 225,
+    "KID_fordeling": "000047837744524",
+    "Payment_method": "9",
+    "timetamp": "2021-09-02T04:07:08.778Z"
+  },
+  {
+    "Id": 226,
+    "KID_fordeling": "000048448454222",
+    "Payment_method": "6",
+    "timetamp": "2023-06-08T08:18:56.044Z"
+  },
+  {
+    "Id": 227,
+    "KID_fordeling": "000048493992571",
+    "Payment_method": "10",
+    "timetamp": "2022-10-17T06:34:21.493Z"
+  },
+  {
+    "Id": 228,
+    "KID_fordeling": "000048575995534",
+    "Payment_method": "8",
+    "timetamp": "2023-03-03T10:06:17.666Z"
+  },
+  {
+    "Id": 229,
+    "KID_fordeling": "000048115399148",
+    "Payment_method": "7",
+    "timetamp": "2023-03-17T02:22:30.610Z"
+  },
+  {
+    "Id": 230,
+    "KID_fordeling": "000048792834474",
+    "Payment_method": "5",
+    "timetamp": "2022-09-01T18:14:26.074Z"
+  },
+  {
+    "Id": 231,
+    "KID_fordeling": "000048634648926",
+    "Payment_method": "8",
+    "timetamp": "2022-08-26T10:08:54.637Z"
+  },
+  {
+    "Id": 232,
+    "KID_fordeling": "000048163318982",
+    "Payment_method": "5",
+    "timetamp": "2023-01-02T00:42:55.590Z"
+  },
+  {
+    "Id": 233,
+    "KID_fordeling": "000048713178753",
+    "Payment_method": "7",
+    "timetamp": "2023-01-03T22:35:16.364Z"
+  },
+  {
+    "Id": 234,
+    "KID_fordeling": "000049331774916",
+    "Payment_method": "8",
+    "timetamp": "2023-03-08T21:00:36.531Z"
+  },
+  {
+    "Id": 235,
+    "KID_fordeling": "000049514584470",
+    "Payment_method": "10",
+    "timetamp": "2022-10-26T11:41:59.973Z"
+  },
+  {
+    "Id": 236,
+    "KID_fordeling": "000049844674843",
+    "Payment_method": "3",
+    "timetamp": "2023-02-26T09:36:59.071Z"
+  },
+  {
+    "Id": 237,
+    "KID_fordeling": "000049384314511",
+    "Payment_method": "9",
+    "timetamp": "2023-03-16T14:22:53.214Z"
+  },
+  {
+    "Id": 238,
+    "KID_fordeling": "000051341673658",
+    "Payment_method": "6",
+    "timetamp": "2023-03-20T18:27:47.647Z"
+  },
+  {
+    "Id": 239,
+    "KID_fordeling": "000051474193755",
+    "Payment_method": "10",
+    "timetamp": "2022-08-22T05:28:08.876Z"
+  },
+  {
+    "Id": 240,
+    "KID_fordeling": "000051595252928",
+    "Payment_method": "10",
+    "timetamp": "2021-06-20T12:17:38.050Z"
+  },
+  {
+    "Id": 241,
+    "KID_fordeling": "000051146977130",
+    "Payment_method": "2",
+    "timetamp": "2022-10-17T21:31:34.025Z"
+  },
+  {
+    "Id": 242,
+    "KID_fordeling": "000051572623786",
+    "Payment_method": "2",
+    "timetamp": "2022-04-10T22:48:42.224Z"
+  },
+  {
+    "Id": 243,
+    "KID_fordeling": "000052623255271",
+    "Payment_method": "5",
+    "timetamp": "2023-02-03T04:22:38.148Z"
+  },
+  {
+    "Id": 244,
+    "KID_fordeling": "000053993729457",
+    "Payment_method": "3",
+    "timetamp": "2023-04-01T18:56:26.683Z"
+  },
+  {
+    "Id": 245,
+    "KID_fordeling": "000053283981891",
+    "Payment_method": "5",
+    "timetamp": "2023-05-13T13:21:37.404Z"
+  },
+  {
+    "Id": 246,
+    "KID_fordeling": "000053373517712",
+    "Payment_method": "6",
+    "timetamp": "2023-06-12T09:05:02.806Z"
+  },
+  {
+    "Id": 247,
+    "KID_fordeling": "000053272887364",
+    "Payment_method": "4",
+    "timetamp": "2023-06-20T13:39:50.370Z"
+  },
+  {
+    "Id": 248,
+    "KID_fordeling": "000053913646989",
+    "Payment_method": "9",
+    "timetamp": "2023-05-19T18:01:00.170Z"
+  },
+  {
+    "Id": 249,
+    "KID_fordeling": "000053943646157",
+    "Payment_method": "2",
+    "timetamp": "2023-05-19T01:41:22.137Z"
+  },
+  {
+    "Id": 250,
+    "KID_fordeling": "000054491263783",
+    "Payment_method": "5",
+    "timetamp": "2023-05-29T20:45:16.375Z"
+  },
+  {
+    "Id": 251,
+    "KID_fordeling": "000054834254242",
+    "Payment_method": "3",
+    "timetamp": "2022-12-08T17:20:39.446Z"
+  },
+  {
+    "Id": 252,
+    "KID_fordeling": "000054155518472",
+    "Payment_method": "8",
+    "timetamp": "2023-02-28T02:21:41.686Z"
+  },
+  {
+    "Id": 253,
+    "KID_fordeling": "000055838665788",
+    "Payment_method": "5",
+    "timetamp": "2023-03-16T21:09:22.092Z"
+  },
+  {
+    "Id": 254,
+    "KID_fordeling": "000055784323838",
+    "Payment_method": "7",
+    "timetamp": "2023-05-28T00:19:51.099Z"
+  },
+  {
+    "Id": 255,
+    "KID_fordeling": "000055257161814",
+    "Payment_method": "10",
+    "timetamp": "2023-03-08T15:11:01.613Z"
+  },
+  {
+    "Id": 256,
+    "KID_fordeling": "000055161419514",
+    "Payment_method": "5",
+    "timetamp": "2023-02-16T21:40:43.193Z"
+  },
+  {
+    "Id": 257,
+    "KID_fordeling": "000055385639780",
+    "Payment_method": "2",
+    "timetamp": "2023-05-22T04:12:42.711Z"
+  },
+  {
+    "Id": 258,
+    "KID_fordeling": "000055737248348",
+    "Payment_method": "10",
+    "timetamp": "2023-03-12T01:48:21.456Z"
+  },
+  {
+    "Id": 259,
+    "KID_fordeling": "000055824362762",
+    "Payment_method": "4",
+    "timetamp": "2023-06-19T19:47:00.937Z"
+  },
+  {
+    "Id": 260,
+    "KID_fordeling": "000056269519320",
+    "Payment_method": "2",
+    "timetamp": "2023-02-19T11:13:00.836Z"
+  },
+  {
+    "Id": 261,
+    "KID_fordeling": "000057443833785",
+    "Payment_method": "6",
+    "timetamp": "2022-11-04T04:27:13.686Z"
+  },
+  {
+    "Id": 262,
+    "KID_fordeling": "000057634654727",
+    "Payment_method": "5",
+    "timetamp": "2022-02-07T20:09:11.419Z"
+  },
+  {
+    "Id": 263,
+    "KID_fordeling": "000057198791782",
+    "Payment_method": "9",
+    "timetamp": "2022-10-24T11:16:23.704Z"
+  },
+  {
+    "Id": 264,
+    "KID_fordeling": "000057618666259",
+    "Payment_method": "6",
+    "timetamp": "2023-03-22T19:32:33.883Z"
+  },
+  {
+    "Id": 265,
+    "KID_fordeling": "000057182536623",
+    "Payment_method": "6",
+    "timetamp": "2023-04-22T09:27:20.182Z"
+  },
+  {
+    "Id": 266,
+    "KID_fordeling": "000058796957734",
+    "Payment_method": "9",
+    "timetamp": "2022-05-07T04:48:52.037Z"
+  },
+  {
+    "Id": 267,
+    "KID_fordeling": "000058986574588",
+    "Payment_method": "3",
+    "timetamp": "2022-01-28T14:46:07.427Z"
+  },
+  {
+    "Id": 268,
+    "KID_fordeling": "000058278654627",
+    "Payment_method": "7",
+    "timetamp": "2022-02-07T12:44:42.335Z"
+  },
+  {
+    "Id": 269,
+    "KID_fordeling": "000058315434736",
+    "Payment_method": "3",
+    "timetamp": "2022-01-21T04:06:14.347Z"
+  },
+  {
+    "Id": 270,
+    "KID_fordeling": "000058996649867",
+    "Payment_method": "6",
+    "timetamp": "2022-12-07T15:39:16.039Z"
+  },
+  {
+    "Id": 271,
+    "KID_fordeling": "000058614831830",
+    "Payment_method": "4",
+    "timetamp": "2023-04-19T12:19:41.927Z"
+  },
+  {
+    "Id": 272,
+    "KID_fordeling": "000058653386449",
+    "Payment_method": "5",
+    "timetamp": "2023-04-13T00:23:40.524Z"
+  },
+  {
+    "Id": 273,
+    "KID_fordeling": "000059273941142",
+    "Payment_method": "2",
+    "timetamp": "2022-05-30T03:31:32.291Z"
+  },
+  {
+    "Id": 274,
+    "KID_fordeling": "000060793571898",
+    "Payment_method": "2",
+    "timetamp": "2022-05-25T23:12:27.236Z"
+  },
+  {
+    "Id": 275,
+    "KID_fordeling": "000060458262460",
+    "Payment_method": "3",
+    "timetamp": "2021-10-13T03:10:05.524Z"
+  },
+  {
+    "Id": 276,
+    "KID_fordeling": "000060359356338",
+    "Payment_method": "6",
+    "timetamp": "2021-11-22T00:55:39.420Z"
+  },
+  {
+    "Id": 277,
+    "KID_fordeling": "000060745999619",
+    "Payment_method": "5",
+    "timetamp": "2022-10-12T14:43:17.564Z"
+  },
+  {
+    "Id": 278,
+    "KID_fordeling": "000060196817153",
+    "Payment_method": "6",
+    "timetamp": "2021-08-23T19:03:31.731Z"
+  },
+  {
+    "Id": 279,
+    "KID_fordeling": "000060188258911",
+    "Payment_method": "3",
+    "timetamp": "2021-01-06T15:48:05.984Z"
+  },
+  {
+    "Id": 280,
+    "KID_fordeling": "000060754556151",
+    "Payment_method": "5",
+    "timetamp": "2021-05-27T10:10:17.090Z"
+  },
+  {
+    "Id": 281,
+    "KID_fordeling": "000060684321411",
+    "Payment_method": "9",
+    "timetamp": "2021-07-02T15:51:55.986Z"
+  },
+  {
+    "Id": 282,
+    "KID_fordeling": "000060118766132",
+    "Payment_method": "9",
+    "timetamp": "2023-03-12T18:49:30.985Z"
+  },
+  {
+    "Id": 283,
+    "KID_fordeling": "000061717611224",
+    "Payment_method": "4",
+    "timetamp": "2023-04-30T07:36:57.518Z"
+  },
+  {
+    "Id": 284,
+    "KID_fordeling": "000061689988147",
+    "Payment_method": "7",
+    "timetamp": "2023-02-13T09:04:00.127Z"
+  },
+  {
+    "Id": 285,
+    "KID_fordeling": "000061334551167",
+    "Payment_method": "2",
+    "timetamp": "2023-04-20T23:18:01.466Z"
+  },
+  {
+    "Id": 286,
+    "KID_fordeling": "000061224626269",
+    "Payment_method": "6",
+    "timetamp": "2023-02-05T06:21:03.713Z"
+  },
+  {
+    "Id": 287,
+    "KID_fordeling": "000061742168240",
+    "Payment_method": "2",
+    "timetamp": "2023-04-24T16:53:10.579Z"
+  },
+  {
+    "Id": 288,
+    "KID_fordeling": "000061455797342",
+    "Payment_method": "7",
+    "timetamp": "2023-06-10T00:33:06.795Z"
+  },
+  {
+    "Id": 289,
+    "KID_fordeling": "000061449115254",
+    "Payment_method": "2",
+    "timetamp": "2023-02-28T13:36:04.701Z"
+  },
+  {
+    "Id": 290,
+    "KID_fordeling": "000062372672667",
+    "Payment_method": "5",
+    "timetamp": "2022-09-17T00:06:52.164Z"
+  },
+  {
+    "Id": 291,
+    "KID_fordeling": "000062638168559",
+    "Payment_method": "8",
+    "timetamp": "2022-12-18T23:00:16.629Z"
+  },
+  {
+    "Id": 292,
+    "KID_fordeling": "000062886859222",
+    "Payment_method": "2",
+    "timetamp": "2022-09-03T16:57:45.088Z"
+  },
+  {
+    "Id": 293,
+    "KID_fordeling": "000063812797189",
+    "Payment_method": "3",
+    "timetamp": "2021-11-05T20:26:22.819Z"
+  },
+  {
+    "Id": 294,
+    "KID_fordeling": "000063632854582",
+    "Payment_method": "7",
+    "timetamp": "2022-03-05T03:33:34.550Z"
+  },
+  {
+    "Id": 295,
+    "KID_fordeling": "000063894998622",
+    "Payment_method": "5",
+    "timetamp": "2022-11-21T13:33:53.358Z"
+  },
+  {
+    "Id": 296,
+    "KID_fordeling": "000063522266145",
+    "Payment_method": "3",
+    "timetamp": "2023-06-19T05:10:06.063Z"
+  },
+  {
+    "Id": 297,
+    "KID_fordeling": "000063326894522",
+    "Payment_method": "3",
+    "timetamp": "2022-11-09T01:35:54.664Z"
+  },
+  {
+    "Id": 298,
+    "KID_fordeling": "000063898275993",
+    "Payment_method": "8",
+    "timetamp": "2022-05-25T00:15:24.207Z"
+  },
+  {
+    "Id": 299,
+    "KID_fordeling": "000063912378997",
+    "Payment_method": "7",
+    "timetamp": "2021-08-03T07:54:22.003Z"
+  },
+  {
+    "Id": 300,
+    "KID_fordeling": "000063359997762",
+    "Payment_method": "3",
+    "timetamp": "2022-06-03T17:56:46.117Z"
+  },
+  {
+    "Id": 301,
+    "KID_fordeling": "000063816151128",
+    "Payment_method": "5",
+    "timetamp": "2022-04-29T18:35:59.004Z"
+  },
+  {
+    "Id": 302,
+    "KID_fordeling": "000063932713967",
+    "Payment_method": "8",
+    "timetamp": "2022-08-29T10:50:01.680Z"
+  },
+  {
+    "Id": 303,
+    "KID_fordeling": "000065148338265",
+    "Payment_method": "6",
+    "timetamp": "2022-01-03T06:31:12.240Z"
+  },
+  {
+    "Id": 304,
+    "KID_fordeling": "000065487695887",
+    "Payment_method": "9",
+    "timetamp": "2022-12-31T23:35:12.942Z"
+  },
+  {
+    "Id": 305,
+    "KID_fordeling": "000066944411678",
+    "Payment_method": "6",
+    "timetamp": "2023-06-16T13:55:05.650Z"
+  },
+  {
+    "Id": 306,
+    "KID_fordeling": "000066377858338",
+    "Payment_method": "10",
+    "timetamp": "2023-05-25T03:46:21.069Z"
+  },
+  {
+    "Id": 307,
+    "KID_fordeling": "000066949849658",
+    "Payment_method": "4",
+    "timetamp": "2023-06-16T10:40:36.055Z"
+  },
+  {
+    "Id": 308,
+    "KID_fordeling": "000066827762833",
+    "Payment_method": "8",
+    "timetamp": "2023-06-18T09:49:38.980Z"
+  },
+  {
+    "Id": 309,
+    "KID_fordeling": "000066957146559",
+    "Payment_method": "2",
+    "timetamp": "2023-05-24T14:09:51.729Z"
+  },
+  {
+    "Id": 310,
+    "KID_fordeling": "000066322276941",
+    "Payment_method": "3",
+    "timetamp": "2023-05-26T22:58:56.882Z"
+  },
+  {
+    "Id": 311,
+    "KID_fordeling": "000067198818972",
+    "Payment_method": "4",
+    "timetamp": "2023-03-18T11:08:54.093Z"
+  },
+  {
+    "Id": 312,
+    "KID_fordeling": "000068416761846",
+    "Payment_method": "5",
+    "timetamp": "2023-02-20T15:35:55.046Z"
+  },
+  {
+    "Id": 313,
+    "KID_fordeling": "000068168737457",
+    "Payment_method": "9",
+    "timetamp": "2022-07-26T19:32:25.243Z"
+  },
+  {
+    "Id": 314,
+    "KID_fordeling": "000068134392668",
+    "Payment_method": "9",
+    "timetamp": "2022-12-18T07:53:06.435Z"
+  },
+  {
+    "Id": 315,
+    "KID_fordeling": "000068527873696",
+    "Payment_method": "4",
+    "timetamp": "2022-11-14T08:22:26.889Z"
+  },
+  {
+    "Id": 316,
+    "KID_fordeling": "000068673451487",
+    "Payment_method": "3",
+    "timetamp": "2022-12-22T00:04:07.198Z"
+  },
+  {
+    "Id": 317,
+    "KID_fordeling": "000068163135772",
+    "Payment_method": "2",
+    "timetamp": "2022-06-07T18:23:09.589Z"
+  },
+  {
+    "Id": 318,
+    "KID_fordeling": "000068142417192",
+    "Payment_method": "2",
+    "timetamp": "2022-05-24T18:07:09.768Z"
+  },
+  {
+    "Id": 319,
+    "KID_fordeling": "000068763652267",
+    "Payment_method": "9",
+    "timetamp": "2022-12-31T03:29:46.519Z"
+  },
+  {
+    "Id": 320,
+    "KID_fordeling": "000068316314274",
+    "Payment_method": "10",
+    "timetamp": "2023-01-19T08:24:17.960Z"
+  },
+  {
+    "Id": 321,
+    "KID_fordeling": "000068413542785",
+    "Payment_method": "5",
+    "timetamp": "2023-02-26T08:46:54.979Z"
+  },
+  {
+    "Id": 322,
+    "KID_fordeling": "000069562892237",
+    "Payment_method": "9",
+    "timetamp": "2023-02-05T21:04:40.561Z"
+  },
+  {
+    "Id": 323,
+    "KID_fordeling": "000069652659850",
+    "Payment_method": "10",
+    "timetamp": "2023-03-07T07:17:12.677Z"
+  },
+  {
+    "Id": 324,
+    "KID_fordeling": "000069738138648",
+    "Payment_method": "9",
+    "timetamp": "2023-02-09T15:47:11.901Z"
+  },
+  {
+    "Id": 325,
+    "KID_fordeling": "000069961545949",
+    "Payment_method": "7",
+    "timetamp": "2022-10-28T03:42:08.873Z"
+  },
+  {
+    "Id": 326,
+    "KID_fordeling": "000069229899310",
+    "Payment_method": "5",
+    "timetamp": "2023-05-19T00:21:03.873Z"
+  },
+  {
+    "Id": 327,
+    "KID_fordeling": "000069344377143",
+    "Payment_method": "8",
+    "timetamp": "2023-04-05T06:29:24.995Z"
+  },
+  {
+    "Id": 328,
+    "KID_fordeling": "000070374847138",
+    "Payment_method": "6",
+    "timetamp": "2023-06-13T09:05:54.485Z"
+  },
+  {
+    "Id": 329,
+    "KID_fordeling": "000070297264940",
+    "Payment_method": "7",
+    "timetamp": "2023-03-26T06:01:04.106Z"
+  },
+  {
+    "Id": 330,
+    "KID_fordeling": "000070826768767",
+    "Payment_method": "8",
+    "timetamp": "2023-06-20T15:13:01.235Z"
+  },
+  {
+    "Id": 331,
+    "KID_fordeling": "000070956417870",
+    "Payment_method": "6",
+    "timetamp": "2023-02-10T00:59:49.307Z"
+  },
+  {
+    "Id": 332,
+    "KID_fordeling": "000070858365482",
+    "Payment_method": "10",
+    "timetamp": "2023-05-16T11:44:22.150Z"
+  },
+  {
+    "Id": 333,
+    "KID_fordeling": "000070577344685",
+    "Payment_method": "10",
+    "timetamp": "2023-03-15T07:03:45.818Z"
+  },
+  {
+    "Id": 334,
+    "KID_fordeling": "000070376123884",
+    "Payment_method": "5",
+    "timetamp": "2023-01-24T10:39:13.809Z"
+  },
+  {
+    "Id": 335,
+    "KID_fordeling": "000071331731258",
+    "Payment_method": "2",
+    "timetamp": "2022-08-02T20:57:45.913Z"
+  },
+  {
+    "Id": 336,
+    "KID_fordeling": "000071718156848",
+    "Payment_method": "2",
+    "timetamp": "2023-05-24T02:01:48.269Z"
+  },
+  {
+    "Id": 337,
+    "KID_fordeling": "000071667788419",
+    "Payment_method": "2",
+    "timetamp": "2021-11-17T02:45:45.011Z"
+  },
+  {
+    "Id": 338,
+    "KID_fordeling": "000071754123223",
+    "Payment_method": "8",
+    "timetamp": "2021-11-13T16:21:21.965Z"
+  },
+  {
+    "Id": 339,
+    "KID_fordeling": "000071788436542",
+    "Payment_method": "10",
+    "timetamp": "2022-08-03T04:35:31.232Z"
+  },
+  {
+    "Id": 340,
+    "KID_fordeling": "000071344622650",
+    "Payment_method": "8",
+    "timetamp": "2022-09-12T12:43:11.370Z"
+  },
+  {
+    "Id": 341,
+    "KID_fordeling": "000071177485472",
+    "Payment_method": "7",
+    "timetamp": "2021-09-11T19:52:40.663Z"
+  },
+  {
+    "Id": 342,
+    "KID_fordeling": "000071516328748",
+    "Payment_method": "2",
+    "timetamp": "2022-10-29T05:54:38.156Z"
+  },
+  {
+    "Id": 343,
+    "KID_fordeling": "000071851968876",
+    "Payment_method": "3",
+    "timetamp": "2022-11-14T05:50:09.625Z"
+  },
+  {
+    "Id": 344,
+    "KID_fordeling": "000072577744765",
+    "Payment_method": "4",
+    "timetamp": "2022-05-11T17:32:20.822Z"
+  },
+  {
+    "Id": 345,
+    "KID_fordeling": "000072125595297",
+    "Payment_method": "7",
+    "timetamp": "2022-04-16T11:09:27.123Z"
+  },
+  {
+    "Id": 346,
+    "KID_fordeling": "000073749388622",
+    "Payment_method": "6",
+    "timetamp": "2023-03-03T01:34:45.601Z"
+  },
+  {
+    "Id": 347,
+    "KID_fordeling": "000073756729643",
+    "Payment_method": "4",
+    "timetamp": "2022-06-09T07:39:53.162Z"
+  },
+  {
+    "Id": 348,
+    "KID_fordeling": "000073154491275",
+    "Payment_method": "2",
+    "timetamp": "2023-01-09T05:24:13.746Z"
+  },
+  {
+    "Id": 349,
+    "KID_fordeling": "000073545863398",
+    "Payment_method": "5",
+    "timetamp": "2023-04-09T07:02:59.823Z"
+  },
+  {
+    "Id": 350,
+    "KID_fordeling": "000073423825519",
+    "Payment_method": "8",
+    "timetamp": "2022-04-26T02:33:05.385Z"
+  },
+  {
+    "Id": 351,
+    "KID_fordeling": "000074657419292",
+    "Payment_method": "10",
+    "timetamp": "2023-06-08T03:23:42.633Z"
+  },
+  {
+    "Id": 352,
+    "KID_fordeling": "000074144717696",
+    "Payment_method": "4",
+    "timetamp": "2023-06-16T20:08:29.541Z"
+  },
+  {
+    "Id": 353,
+    "KID_fordeling": "000074362448255",
+    "Payment_method": "9",
+    "timetamp": "2023-06-09T12:17:03.499Z"
+  },
+  {
+    "Id": 354,
+    "KID_fordeling": "000074672877763",
+    "Payment_method": "3",
+    "timetamp": "2023-06-14T16:57:33.829Z"
+  },
+  {
+    "Id": 355,
+    "KID_fordeling": "000074494352524",
+    "Payment_method": "5",
+    "timetamp": "2023-06-04T00:13:50.581Z"
+  },
+  {
+    "Id": 356,
+    "KID_fordeling": "000074322384855",
+    "Payment_method": "8",
+    "timetamp": "2023-06-04T18:38:56.507Z"
+  },
+  {
+    "Id": 357,
+    "KID_fordeling": "000074172914819",
+    "Payment_method": "5",
+    "timetamp": "2023-06-19T17:24:59.087Z"
+  },
+  {
+    "Id": 358,
+    "KID_fordeling": "000074584215573",
+    "Payment_method": "6",
+    "timetamp": "2023-06-05T09:30:32.265Z"
+  },
+  {
+    "Id": 359,
+    "KID_fordeling": "000074424782147",
+    "Payment_method": "3",
+    "timetamp": "2023-06-09T10:33:43.461Z"
+  },
+  {
+    "Id": 360,
+    "KID_fordeling": "000074319293960",
+    "Payment_method": "7",
+    "timetamp": "2023-06-04T15:02:24.585Z"
+  },
+  {
+    "Id": 361,
+    "KID_fordeling": "000075126554122",
+    "Payment_method": "8",
+    "timetamp": "2021-05-15T02:49:54.429Z"
+  },
+  {
+    "Id": 362,
+    "KID_fordeling": "000075386411492",
+    "Payment_method": "5",
+    "timetamp": "2022-06-10T16:53:42.309Z"
+  },
+  {
+    "Id": 363,
+    "KID_fordeling": "000075865847125",
+    "Payment_method": "7",
+    "timetamp": "2020-08-15T23:30:41.638Z"
+  },
+  {
+    "Id": 364,
+    "KID_fordeling": "000075487699334",
+    "Payment_method": "6",
+    "timetamp": "2020-08-30T12:44:27.856Z"
+  },
+  {
+    "Id": 365,
+    "KID_fordeling": "000076648972420",
+    "Payment_method": "6",
+    "timetamp": "2022-10-14T13:53:45.052Z"
+  },
+  {
+    "Id": 366,
+    "KID_fordeling": "000077292416417",
+    "Payment_method": "3",
+    "timetamp": "2022-07-01T03:47:11.283Z"
+  },
+  {
+    "Id": 367,
+    "KID_fordeling": "000078543887877",
+    "Payment_method": "6",
+    "timetamp": "2023-03-31T18:56:09.474Z"
+  },
+  {
+    "Id": 368,
+    "KID_fordeling": "000078511218410",
+    "Payment_method": "7",
+    "timetamp": "2023-06-20T21:34:22.790Z"
+  },
+  {
+    "Id": 369,
+    "KID_fordeling": "000078296264159",
+    "Payment_method": "2",
+    "timetamp": "2023-03-19T17:03:23.779Z"
+  },
+  {
+    "Id": 370,
+    "KID_fordeling": "000078875897395",
+    "Payment_method": "10",
+    "timetamp": "2023-05-20T17:49:44.093Z"
+  },
+  {
+    "Id": 371,
+    "KID_fordeling": "000078299988192",
+    "Payment_method": "8",
+    "timetamp": "2023-03-28T05:47:39.226Z"
+  },
+  {
+    "Id": 372,
+    "KID_fordeling": "000078461894251",
+    "Payment_method": "2",
+    "timetamp": "2023-03-31T14:23:18.772Z"
+  },
+  {
+    "Id": 373,
+    "KID_fordeling": "000078383591712",
+    "Payment_method": "8",
+    "timetamp": "2023-05-13T06:42:43.197Z"
+  },
+  {
+    "Id": 374,
+    "KID_fordeling": "000078968768230",
+    "Payment_method": "10",
+    "timetamp": "2023-06-04T18:04:31.490Z"
+  },
+  {
+    "Id": 375,
+    "KID_fordeling": "000078743815918",
+    "Payment_method": "5",
+    "timetamp": "2023-05-05T00:53:30.156Z"
+  },
+  {
+    "Id": 376,
+    "KID_fordeling": "000078791244516",
+    "Payment_method": "10",
+    "timetamp": "2023-03-14T15:38:01.163Z"
+  },
+  {
+    "Id": 377,
+    "KID_fordeling": "000079284867755",
+    "Payment_method": "6",
+    "timetamp": "2022-12-19T20:06:46.705Z"
+  },
+  {
+    "Id": 378,
+    "KID_fordeling": "000080429486931",
+    "Payment_method": "4",
+    "timetamp": "2023-06-12T01:28:55.167Z"
+  },
+  {
+    "Id": 379,
+    "KID_fordeling": "000080115516280",
+    "Payment_method": "4",
+    "timetamp": "2023-04-11T14:25:14.324Z"
+  },
+  {
+    "Id": 380,
+    "KID_fordeling": "000080914134269",
+    "Payment_method": "3",
+    "timetamp": "2023-05-26T16:09:40.651Z"
+  },
+  {
+    "Id": 381,
+    "KID_fordeling": "000080843218324",
+    "Payment_method": "9",
+    "timetamp": "2023-04-18T03:09:19.297Z"
+  },
+  {
+    "Id": 382,
+    "KID_fordeling": "000080235389261",
+    "Payment_method": "3",
+    "timetamp": "2023-04-02T19:21:36.967Z"
+  },
+  {
+    "Id": 383,
+    "KID_fordeling": "000080982754824",
+    "Payment_method": "8",
+    "timetamp": "2023-05-17T09:34:22.699Z"
+  },
+  {
+    "Id": 384,
+    "KID_fordeling": "000081473774214",
+    "Payment_method": "3",
+    "timetamp": "2023-01-04T04:16:48.002Z"
+  },
+  {
+    "Id": 385,
+    "KID_fordeling": "000081395964695",
+    "Payment_method": "3",
+    "timetamp": "2023-01-05T09:11:30.759Z"
+  },
+  {
+    "Id": 386,
+    "KID_fordeling": "000081589323666",
+    "Payment_method": "2",
+    "timetamp": "2023-05-25T12:02:53.538Z"
+  },
+  {
+    "Id": 387,
+    "KID_fordeling": "000081244927265",
+    "Payment_method": "7",
+    "timetamp": "2022-12-20T17:41:02.528Z"
+  },
+  {
+    "Id": 388,
+    "KID_fordeling": "000081975448820",
+    "Payment_method": "6",
+    "timetamp": "2023-01-25T23:08:53.128Z"
+  },
+  {
+    "Id": 389,
+    "KID_fordeling": "000081739312411",
+    "Payment_method": "9",
+    "timetamp": "2023-01-25T09:22:26.463Z"
+  },
+  {
+    "Id": 390,
+    "KID_fordeling": "000081677191330",
+    "Payment_method": "5",
+    "timetamp": "2023-05-24T13:50:29.301Z"
+  },
+  {
+    "Id": 391,
+    "KID_fordeling": "000081393679139",
+    "Payment_method": "5",
+    "timetamp": "2022-09-22T04:50:07.689Z"
+  },
+  {
+    "Id": 392,
+    "KID_fordeling": "000081142814698",
+    "Payment_method": "2",
+    "timetamp": "2023-01-07T20:47:21.947Z"
+  },
+  {
+    "Id": 393,
+    "KID_fordeling": "000081372511410",
+    "Payment_method": "4",
+    "timetamp": "2023-02-13T01:28:32.957Z"
+  },
+  {
+    "Id": 394,
+    "KID_fordeling": "000082644679779",
+    "Payment_method": "5",
+    "timetamp": "2022-06-09T07:56:33.243Z"
+  },
+  {
+    "Id": 395,
+    "KID_fordeling": "000082985325578",
+    "Payment_method": "9",
+    "timetamp": "2023-05-31T17:55:26.817Z"
+  },
+  {
+    "Id": 396,
+    "KID_fordeling": "000082546539931",
+    "Payment_method": "10",
+    "timetamp": "2023-01-08T01:31:23.181Z"
+  },
+  {
+    "Id": 397,
+    "KID_fordeling": "000082676533795",
+    "Payment_method": "9",
+    "timetamp": "2023-05-23T18:03:23.409Z"
+  },
+  {
+    "Id": 398,
+    "KID_fordeling": "000082838667630",
+    "Payment_method": "6",
+    "timetamp": "2022-04-21T13:05:26.212Z"
+  },
+  {
+    "Id": 399,
+    "KID_fordeling": "000082611599356",
+    "Payment_method": "9",
+    "timetamp": "2023-06-20T13:00:30.352Z"
+  },
+  {
+    "Id": 400,
+    "KID_fordeling": "000082987665625",
+    "Payment_method": "10",
+    "timetamp": "2022-09-26T15:32:13.342Z"
+  },
+  {
+    "Id": 401,
+    "KID_fordeling": "000082232946598",
+    "Payment_method": "3",
+    "timetamp": "2022-06-09T12:41:15.397Z"
+  },
+  {
+    "Id": 402,
+    "KID_fordeling": "000082977419157",
+    "Payment_method": "2",
+    "timetamp": "2022-10-21T21:32:27.344Z"
+  },
+  {
+    "Id": 403,
+    "KID_fordeling": "000082275643318",
+    "Payment_method": "9",
+    "timetamp": "2022-07-10T00:01:04.085Z"
+  },
+  {
+    "Id": 404,
+    "KID_fordeling": "000084835991922",
+    "Payment_method": "10",
+    "timetamp": "2022-02-16T08:14:42.691Z"
+  },
+  {
+    "Id": 405,
+    "KID_fordeling": "000084878898828",
+    "Payment_method": "7",
+    "timetamp": "2021-11-06T15:27:27.899Z"
+  },
+  {
+    "Id": 406,
+    "KID_fordeling": "000084757411685",
+    "Payment_method": "2",
+    "timetamp": "2021-12-20T10:14:34.092Z"
+  },
+  {
+    "Id": 407,
+    "KID_fordeling": "000084526352632",
+    "Payment_method": "2",
+    "timetamp": "2022-06-19T09:52:26.943Z"
+  },
+  {
+    "Id": 408,
+    "KID_fordeling": "000084787787765",
+    "Payment_method": "9",
+    "timetamp": "2022-09-18T09:42:10.264Z"
+  },
+  {
+    "Id": 409,
+    "KID_fordeling": "000084574693267",
+    "Payment_method": "10",
+    "timetamp": "2022-09-04T04:31:22.293Z"
+  },
+  {
+    "Id": 410,
+    "KID_fordeling": "000084328672468",
+    "Payment_method": "5",
+    "timetamp": "2021-11-02T14:01:37.038Z"
+  },
+  {
+    "Id": 411,
+    "KID_fordeling": "000085379758544",
+    "Payment_method": "8",
+    "timetamp": "2021-09-20T21:11:07.753Z"
+  },
+  {
+    "Id": 412,
+    "KID_fordeling": "000085752924275",
+    "Payment_method": "6",
+    "timetamp": "2021-04-07T01:38:24.348Z"
+  },
+  {
+    "Id": 413,
+    "KID_fordeling": "000085655236645",
+    "Payment_method": "4",
+    "timetamp": "2022-05-16T04:13:46.267Z"
+  },
+  {
+    "Id": 414,
+    "KID_fordeling": "000085161381919",
+    "Payment_method": "6",
+    "timetamp": "2021-06-15T06:15:01.733Z"
+  },
+  {
+    "Id": 415,
+    "KID_fordeling": "000085545932429",
+    "Payment_method": "5",
+    "timetamp": "2022-01-22T23:10:29.950Z"
+  },
+  {
+    "Id": 416,
+    "KID_fordeling": "000085122145593",
+    "Payment_method": "2",
+    "timetamp": "2022-07-20T07:18:23.238Z"
+  },
+  {
+    "Id": 417,
+    "KID_fordeling": "000085922558433",
+    "Payment_method": "4",
+    "timetamp": "2023-04-03T13:46:42.374Z"
+  },
+  {
+    "Id": 418,
+    "KID_fordeling": "000085279344478",
+    "Payment_method": "9",
+    "timetamp": "2021-03-06T05:17:27.634Z"
+  },
+  {
+    "Id": 419,
+    "KID_fordeling": "000085985711846",
+    "Payment_method": "3",
+    "timetamp": "2021-02-11T22:30:46.498Z"
+  },
+  {
+    "Id": 420,
+    "KID_fordeling": "000085741253299",
+    "Payment_method": "2",
+    "timetamp": "2022-01-05T19:50:36.609Z"
+  },
+  {
+    "Id": 421,
+    "KID_fordeling": "000086845696672",
+    "Payment_method": "2",
+    "timetamp": "2022-10-27T16:13:38.124Z"
+  },
+  {
+    "Id": 422,
+    "KID_fordeling": "000086623419115",
+    "Payment_method": "3",
+    "timetamp": "2022-08-21T13:33:42.937Z"
+  },
+  {
+    "Id": 423,
+    "KID_fordeling": "000086676437782",
+    "Payment_method": "6",
+    "timetamp": "2023-05-05T17:26:46.371Z"
+  },
+  {
+    "Id": 424,
+    "KID_fordeling": "000086425227567",
+    "Payment_method": "10",
+    "timetamp": "2023-06-16T23:43:09.735Z"
+  },
+  {
+    "Id": 425,
+    "KID_fordeling": "000086688327690",
+    "Payment_method": "7",
+    "timetamp": "2023-04-23T22:08:54.031Z"
+  },
+  {
+    "Id": 426,
+    "KID_fordeling": "000086225478683",
+    "Payment_method": "4",
+    "timetamp": "2022-12-07T18:22:42.368Z"
+  },
+  {
+    "Id": 427,
+    "KID_fordeling": "000086399229235",
+    "Payment_method": "2",
+    "timetamp": "2023-04-04T03:58:30.211Z"
+  },
+  {
+    "Id": 428,
+    "KID_fordeling": "000086742279366",
+    "Payment_method": "4",
+    "timetamp": "2023-05-15T02:26:54.900Z"
+  },
+  {
+    "Id": 429,
+    "KID_fordeling": "000087547691292",
+    "Payment_method": "3",
+    "timetamp": "2022-01-20T23:36:24.543Z"
+  },
+  {
+    "Id": 430,
+    "KID_fordeling": "000087863429863",
+    "Payment_method": "10",
+    "timetamp": "2022-10-26T03:39:18.437Z"
+  },
+  {
+    "Id": 431,
+    "KID_fordeling": "000087671393665",
+    "Payment_method": "3",
+    "timetamp": "2022-11-27T17:19:48.535Z"
+  },
+  {
+    "Id": 432,
+    "KID_fordeling": "000088561216263",
+    "Payment_method": "2",
+    "timetamp": "2021-09-25T06:43:17.064Z"
+  },
+  {
+    "Id": 433,
+    "KID_fordeling": "000088999258374",
+    "Payment_method": "8",
+    "timetamp": "2020-09-05T20:06:15.525Z"
+  },
+  {
+    "Id": 434,
+    "KID_fordeling": "000088951121388",
+    "Payment_method": "4",
+    "timetamp": "2023-05-04T05:07:07.572Z"
+  },
+  {
+    "Id": 435,
+    "KID_fordeling": "000088561126876",
+    "Payment_method": "6",
+    "timetamp": "2022-09-22T17:34:07.981Z"
+  },
+  {
+    "Id": 436,
+    "KID_fordeling": "000088344474163",
+    "Payment_method": "5",
+    "timetamp": "2023-04-24T14:44:45.090Z"
+  },
+  {
+    "Id": 437,
+    "KID_fordeling": "000088172491354",
+    "Payment_method": "5",
+    "timetamp": "2021-07-22T05:31:04.415Z"
+  },
+  {
+    "Id": 438,
+    "KID_fordeling": "000089383362327",
+    "Payment_method": "7",
+    "timetamp": "2022-05-06T06:17:59.887Z"
+  },
+  {
+    "Id": 439,
+    "KID_fordeling": "000089598155854",
+    "Payment_method": "6",
+    "timetamp": "2022-06-21T10:21:41.891Z"
+  },
+  {
+    "Id": 440,
+    "KID_fordeling": "000089889436518",
+    "Payment_method": "4",
+    "timetamp": "2022-07-12T23:22:41.383Z"
+  },
+  {
+    "Id": 441,
+    "KID_fordeling": "000089752158355",
+    "Payment_method": "4",
+    "timetamp": "2022-11-23T12:22:06.029Z"
+  },
+  {
+    "Id": 442,
+    "KID_fordeling": "000090412888696",
+    "Payment_method": "8",
+    "timetamp": "2022-03-27T11:48:05.797Z"
+  },
+  {
+    "Id": 443,
+    "KID_fordeling": "000090597769679",
+    "Payment_method": "7",
+    "timetamp": "2021-12-01T17:26:33.944Z"
+  },
+  {
+    "Id": 444,
+    "KID_fordeling": "000090189253256",
+    "Payment_method": "2",
+    "timetamp": "2023-05-21T16:05:53.972Z"
+  },
+  {
+    "Id": 445,
+    "KID_fordeling": "000090932586580",
+    "Payment_method": "6",
+    "timetamp": "2022-03-31T03:16:46.784Z"
+  },
+  {
+    "Id": 446,
+    "KID_fordeling": "000090813887529",
+    "Payment_method": "10",
+    "timetamp": "2023-04-08T20:39:37.746Z"
+  },
+  {
+    "Id": 447,
+    "KID_fordeling": "000090181958258",
+    "Payment_method": "4",
+    "timetamp": "2022-04-30T20:21:45.559Z"
+  },
+  {
+    "Id": 448,
+    "KID_fordeling": "000090886919795",
+    "Payment_method": "5",
+    "timetamp": "2022-07-31T11:34:30.735Z"
+  },
+  {
+    "Id": 449,
+    "KID_fordeling": "000090357768242",
+    "Payment_method": "9",
+    "timetamp": "2022-06-24T07:09:08.011Z"
+  },
+  {
+    "Id": 450,
+    "KID_fordeling": "000090666161964",
+    "Payment_method": "4",
+    "timetamp": "2022-05-13T04:42:19.310Z"
+  },
+  {
+    "Id": 451,
+    "KID_fordeling": "000091354319872",
+    "Payment_method": "7",
+    "timetamp": "2021-10-06T03:32:39.310Z"
+  },
+  {
+    "Id": 452,
+    "KID_fordeling": "000092241517652",
+    "Payment_method": "3",
+    "timetamp": "2023-04-18T06:20:25.257Z"
+  },
+  {
+    "Id": 453,
+    "KID_fordeling": "000092517673775",
+    "Payment_method": "3",
+    "timetamp": "2023-05-12T10:53:38.674Z"
+  },
+  {
+    "Id": 454,
+    "KID_fordeling": "000092451487323",
+    "Payment_method": "7",
+    "timetamp": "2023-06-11T03:21:51.465Z"
+  },
+  {
+    "Id": 455,
+    "KID_fordeling": "000092947648140",
+    "Payment_method": "9",
+    "timetamp": "2022-11-10T00:28:36.831Z"
+  },
+  {
+    "Id": 456,
+    "KID_fordeling": "000092889328263",
+    "Payment_method": "9",
+    "timetamp": "2023-06-11T07:52:28.727Z"
+  },
+  {
+    "Id": 457,
+    "KID_fordeling": "000092931389198",
+    "Payment_method": "3",
+    "timetamp": "2023-03-11T15:05:36.007Z"
+  },
+  {
+    "Id": 458,
+    "KID_fordeling": "000092368837958",
+    "Payment_method": "7",
+    "timetamp": "2023-06-11T12:36:54.511Z"
+  },
+  {
+    "Id": 459,
+    "KID_fordeling": "000092889267750",
+    "Payment_method": "2",
+    "timetamp": "2023-02-14T01:40:40.436Z"
+  },
+  {
+    "Id": 460,
+    "KID_fordeling": "000093389439592",
+    "Payment_method": "5",
+    "timetamp": "2022-10-17T20:49:53.642Z"
+  },
+  {
+    "Id": 461,
+    "KID_fordeling": "000093569639664",
+    "Payment_method": "7",
+    "timetamp": "2022-09-28T15:55:18.831Z"
+  },
+  {
+    "Id": 462,
+    "KID_fordeling": "000093352921949",
+    "Payment_method": "8",
+    "timetamp": "2023-01-31T12:33:59.500Z"
+  },
+  {
+    "Id": 463,
+    "KID_fordeling": "000093322586111",
+    "Payment_method": "4",
+    "timetamp": "2022-11-08T19:41:48.535Z"
+  },
+  {
+    "Id": 464,
+    "KID_fordeling": "000093481936321",
+    "Payment_method": "4",
+    "timetamp": "2022-10-06T12:31:20.655Z"
+  },
+  {
+    "Id": 465,
+    "KID_fordeling": "000093115242559",
+    "Payment_method": "7",
+    "timetamp": "2023-02-07T22:49:37.511Z"
+  },
+  {
+    "Id": 466,
+    "KID_fordeling": "000093351495358",
+    "Payment_method": "8",
+    "timetamp": "2022-12-18T10:23:47.526Z"
+  },
+  {
+    "Id": 467,
+    "KID_fordeling": "000093111671967",
+    "Payment_method": "10",
+    "timetamp": "2023-01-29T18:30:05.115Z"
+  },
+  {
+    "Id": 468,
+    "KID_fordeling": "000093761461362",
+    "Payment_method": "3",
+    "timetamp": "2023-04-12T09:33:57.864Z"
+  },
+  {
+    "Id": 469,
+    "KID_fordeling": "000094918635122",
+    "Payment_method": "8",
+    "timetamp": "2023-06-19T14:29:12.246Z"
+  },
+  {
+    "Id": 470,
+    "KID_fordeling": "000094679786312",
+    "Payment_method": "9",
+    "timetamp": "2022-12-29T01:47:07.220Z"
+  },
+  {
+    "Id": 471,
+    "KID_fordeling": "000094426542141",
+    "Payment_method": "4",
+    "timetamp": "2023-02-15T06:20:33.838Z"
+  },
+  {
+    "Id": 472,
+    "KID_fordeling": "000094933687744",
+    "Payment_method": "5",
+    "timetamp": "2023-05-07T23:57:56.551Z"
+  },
+  {
+    "Id": 473,
+    "KID_fordeling": "000094135626516",
+    "Payment_method": "10",
+    "timetamp": "2023-01-04T01:19:24.837Z"
+  },
+  {
+    "Id": 474,
+    "KID_fordeling": "000095633519145",
+    "Payment_method": "8",
+    "timetamp": "2022-05-23T06:34:14.909Z"
+  },
+  {
+    "Id": 475,
+    "KID_fordeling": "000095137829651",
+    "Payment_method": "3",
+    "timetamp": "2022-05-10T03:13:12.481Z"
+  },
+  {
+    "Id": 476,
+    "KID_fordeling": "000095729335141",
+    "Payment_method": "2",
+    "timetamp": "2022-05-05T18:13:56.408Z"
+  },
+  {
+    "Id": 477,
+    "KID_fordeling": "000095245874474",
+    "Payment_method": "5",
+    "timetamp": "2023-04-25T18:28:37.115Z"
+  },
+  {
+    "Id": 478,
+    "KID_fordeling": "000095147481220",
+    "Payment_method": "7",
+    "timetamp": "2022-04-22T22:56:49.661Z"
+  },
+  {
+    "Id": 479,
+    "KID_fordeling": "000095838524353",
+    "Payment_method": "8",
+    "timetamp": "2023-01-22T15:18:04.359Z"
+  },
+  {
+    "Id": 480,
+    "KID_fordeling": "000096773584261",
+    "Payment_method": "2",
+    "timetamp": "2022-03-10T03:02:47.508Z"
+  },
+  {
+    "Id": 481,
+    "KID_fordeling": "000096381297918",
+    "Payment_method": "9",
+    "timetamp": "2021-02-08T09:17:02.144Z"
+  },
+  {
+    "Id": 482,
+    "KID_fordeling": "000096371182641",
+    "Payment_method": "6",
+    "timetamp": "2022-08-12T17:03:20.198Z"
+  },
+  {
+    "Id": 483,
+    "KID_fordeling": "000096778576528",
+    "Payment_method": "5",
+    "timetamp": "2021-07-31T11:16:52.622Z"
+  },
+  {
+    "Id": 484,
+    "KID_fordeling": "000096572121521",
+    "Payment_method": "4",
+    "timetamp": "2020-10-27T23:01:22.009Z"
+  },
+  {
+    "Id": 485,
+    "KID_fordeling": "000096237962483",
+    "Payment_method": "5",
+    "timetamp": "2021-10-07T08:17:39.618Z"
+  },
+  {
+    "Id": 486,
+    "KID_fordeling": "000096273415925",
+    "Payment_method": "7",
+    "timetamp": "2022-02-24T00:07:30.702Z"
+  },
+  {
+    "Id": 487,
+    "KID_fordeling": "000096771827845",
+    "Payment_method": "6",
+    "timetamp": "2022-05-23T13:51:22.629Z"
+  },
+  {
+    "Id": 488,
+    "KID_fordeling": "000097238499194",
+    "Payment_method": "5",
+    "timetamp": "2020-10-12T12:30:26.858Z"
+  },
+  {
+    "Id": 489,
+    "KID_fordeling": "000097812183354",
+    "Payment_method": "6",
+    "timetamp": "2021-05-31T11:44:09.608Z"
+  },
+  {
+    "Id": 490,
+    "KID_fordeling": "000097747282560",
+    "Payment_method": "5",
+    "timetamp": "2022-07-23T22:48:33.756Z"
+  },
+  {
+    "Id": 491,
+    "KID_fordeling": "000097297455954",
+    "Payment_method": "7",
+    "timetamp": "2023-01-05T22:43:14.987Z"
+  },
+  {
+    "Id": 492,
+    "KID_fordeling": "000097791732916",
+    "Payment_method": "7",
+    "timetamp": "2021-12-08T02:01:29.774Z"
+  },
+  {
+    "Id": 493,
+    "KID_fordeling": "000097838331516",
+    "Payment_method": "8",
+    "timetamp": "2022-05-21T11:05:39.466Z"
+  },
+  {
+    "Id": 494,
+    "KID_fordeling": "000097372614673",
+    "Payment_method": "3",
+    "timetamp": "2021-07-06T23:37:18.617Z"
+  },
+  {
+    "Id": 495,
+    "KID_fordeling": "000098678693684",
+    "Payment_method": "5",
+    "timetamp": "2023-05-24T11:42:15.801Z"
+  },
+  {
+    "Id": 496,
+    "KID_fordeling": "000098368845628",
+    "Payment_method": "4",
+    "timetamp": "2023-05-07T04:26:09.811Z"
+  },
+  {
+    "Id": 497,
+    "KID_fordeling": "000098438954772",
+    "Payment_method": "7",
+    "timetamp": "2023-06-12T16:36:33.738Z"
+  },
+  {
+    "Id": 498,
+    "KID_fordeling": "000099866541586",
+    "Payment_method": "9",
+    "timetamp": "2022-08-14T22:44:22.687Z"
+  },
+  {
+    "Id": 499,
+    "KID_fordeling": "000099746724998",
+    "Payment_method": "6",
+    "timetamp": "2023-02-01T23:04:56.869Z"
+  }
+]

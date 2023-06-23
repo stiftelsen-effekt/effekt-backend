@@ -1,0 +1,83 @@
+[
+  {
+    "ID": 2,
+    "payment_name": "Bank",
+    "abbriv": "Bank",
+    "short_desc": "",
+    "flat_fee": 2,
+    "percentage_fee": 0,
+    "lastUpdated": "2017-10-28T18:13:29.000Z"
+  },
+  {
+    "ID": 3,
+    "payment_name": "PayPal",
+    "abbriv": "PayPal",
+    "short_desc": "",
+    "flat_fee": 2.8,
+    "percentage_fee": 1.9,
+    "lastUpdated": "2018-02-03T14:54:40.000Z"
+  },
+  {
+    "ID": 4,
+    "payment_name": "Vipps KID",
+    "abbriv": "Vipps KID",
+    "short_desc": "",
+    "flat_fee": 0,
+    "percentage_fee": 1.5,
+    "lastUpdated": "2021-11-09T12:29:38.000Z"
+  },
+  {
+    "ID": 5,
+    "payment_name": "Bank u/KID",
+    "abbriv": "Bank u/KID",
+    "short_desc": "",
+    "flat_fee": 0,
+    "percentage_fee": 0,
+    "lastUpdated": "2019-11-11T14:58:23.000Z"
+  },
+  {
+    "ID": 6,
+    "payment_name": "Vipps",
+    "abbriv": "Vipps",
+    "short_desc": "",
+    "flat_fee": 0,
+    "percentage_fee": 2.99,
+    "lastUpdated": "2020-08-27T20:40:12.000Z"
+  },
+  {
+    "ID": 7,
+    "payment_name": "AvtaleGiro",
+    "abbriv": "AvtaleGiro",
+    "short_desc": "",
+    "flat_fee": 2,
+    "percentage_fee": 0,
+    "lastUpdated": "2021-05-25T10:51:19.000Z"
+  },
+  {
+    "ID": 8,
+    "payment_name": "Vipps Recurring",
+    "abbriv": "Vipps Recurring",
+    "short_desc": "",
+    "flat_fee": 0,
+    "percentage_fee": 2.99,
+    "lastUpdated": "2021-07-25T18:27:43.000Z"
+  },
+  {
+    "ID": 9,
+    "payment_name": "Facebook",
+    "abbriv": "Facebook",
+    "short_desc": "",
+    "flat_fee": 0,
+    "percentage_fee": 0,
+    "lastUpdated": "2022-05-22T19:37:12.000Z"
+  },
+  {
+    "ID": 10,
+    "payment_name": "Crypto",
+    "abbriv": "Crypto",
+    "short_desc": "",
+    "flat_fee": 0,
+    "percentage_fee": 0,
+    "lastUpdated": "2022-12-18T16:59:41.000Z"
+  }
+]
