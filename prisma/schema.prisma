@@ -118,8 +118,8 @@ model Donations {
 
 model Donors {
   ID               Int                @id @unique(map: "KID_UNIQUE") @default(autoincrement()) /// Unik kundeID
-  email            String             @unique(map: "email_UNIQUE", length: 63) @db.TinyText /// epost registrert i donasjonsskjema,\ntrigger generering av ny donor hvis den ikke eksisterer fra før
-  full_name        String?            @db.TinyText
+  email            String             @unique(map: "email_UNIQUE", length: 63) @db.VarChar(255) /// epost registrert i donasjonsskjema,\ntrigger generering av ny donor hvis den ikke eksisterer fra før
+  full_name        String?            @db.VarChar(255)
   date_registered  DateTime           @default(now()) @db.Timestamp(0) /// The date the donor first registrered
   password_hash    String?            @db.VarChar(64)
   password_salt    String?            @db.VarChar(32)
