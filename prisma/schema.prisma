@@ -135,8 +135,8 @@ model Donors {
   Vipps_agreements Vipps_agreements[]
   Swish_orders     Swish_order[]
 
-  @@index([full_name(length: 64)], map: "full_name")
-  @@index([email(length: 63), full_name(length: 64)], map: "search")
+  @@index([full_name(length: 63)], map: "full_name")
+  @@index([email(length: 63), full_name(length: 63)], map: "search")
 }
 
 model FB_campaign_org_shares {
