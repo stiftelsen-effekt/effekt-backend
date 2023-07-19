@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   bank: 2,
   bank_no_KID: 5,
   vipps_KID: 4,
