@@ -2,3 +2,4 @@ src/
 prisma/
 Dockerfile
 package-lock.json
+docker-compose.yml
