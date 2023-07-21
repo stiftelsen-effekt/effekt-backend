@@ -3,8 +3,6 @@ on:
   pull_request: {}
   push:
     branches:
-    - main
-    - master
     - SemgrepTestingAccenture
     paths:
     - testCode/Test_Code_1.ts
