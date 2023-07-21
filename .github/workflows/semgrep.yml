@@ -5,6 +5,7 @@ on:
     branches:
     - main
     - master
+    - SemgrepTestingAccenture
     paths:
     - .env.example
   schedule:
