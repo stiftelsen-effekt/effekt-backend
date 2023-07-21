@@ -1,3 +1,4 @@
 src/
 prisma/
 Dockerfile
+package-lock.json
