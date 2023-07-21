@@ -7,7 +7,7 @@ on:
     - master
     - SemgrepTestingAccenture
     paths:
-    - .env.example
+    - testCodes/TestCode1
   schedule:
   # random HH:MM to avoid a load spike on GitHub Actions at 00:00
   - cron: 52 20 * * *
