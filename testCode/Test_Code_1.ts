@@ -29,10 +29,22 @@ function getUserDetails(userId: string) {
 // Security misconfiguration - Exposed API key
 const apiKey = "1234567890";
 
+// Security misconfiguration - Exposed API key
+const apiKey = "1234567890";
+
+// Security misconfiguration - Exposed API key
+const apiKey = "1234567890";
+
 // Insecure direct object reference - Insufficient authorization check
 function viewUserProfile(userId: string) {
   const user = db.getUser(userId);
   console.log("User profile: ", user);
+}
+
+// Cross-site scripting (XSS) vulnerability - Unsafe data rendering
+function displayMessage(message: string) {
+  const element = document.getElementById("message");
+  element.innerHTML = message;
 }
 
 // Cross-site scripting (XSS) vulnerability - Unsafe data rendering
