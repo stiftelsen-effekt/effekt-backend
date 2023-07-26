@@ -29,7 +29,7 @@ DAO.connect(() => {
   console.log("DAO setup complete");
 
   const errorHandler = require("./handlers/errorHandler.js");
-
+  console.log("---------GSM----------")
   //Setup express
   const app = express();
 
