@@ -40,7 +40,6 @@ DAO.connect(() => {
   //Setup request logging
   logging(app);
   
-  console.log(process.env.DB_PASS);
   app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification));
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, swaggerOptions));
   app.get("/oauth2-redirect.html", (req, res, next) =>
