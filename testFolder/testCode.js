@@ -3,6 +3,7 @@
 // Hardcoded credentials
 const password = "admin123"; 
 
+
 // Broken access control - No authorization check
 function viewAdminPanel() {
   console.log("Admin panel accessed");
