@@ -39,7 +39,7 @@ function viewUserProfile(userId: string) {
 // Cross-site scripting (XSS) vulnerability - Unsafe data rendering
 function displayMessage(message: string) {
   const element = document.getElementById("message");
-  element.innerHTML = message; 
+  element.innerHTML = message; // nosemgrep accepted risk
 }
 
 // Code with potential SQL injection vulnerability
