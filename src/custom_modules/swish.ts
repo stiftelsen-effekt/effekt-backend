@@ -1,5 +1,6 @@
 import { Swish_order } from "@prisma/client";
 import { Agent } from "https";
+import fetch from "node-fetch";
 import uuid from "uuid/v4";
 import config from "../config";
 import paymentMethods from "../enums/paymentMethods";

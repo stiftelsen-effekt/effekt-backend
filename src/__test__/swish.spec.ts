@@ -6,6 +6,7 @@ import request from "supertest";
 import config from "../config";
 import { DAO } from "../custom_modules/DAO";
 import * as swish from "../custom_modules/swish";
+import * as fetch from "node-fetch";
 import * as mail from "../custom_modules/mail";
 import { initiateOrder } from "../custom_modules/swish";
 import swishRouter from "../routes/swish";
@@ -28,7 +29,7 @@ describe("swish", () => {
     }
 
     beforeEach(() => {
-      fetchStub = sinon.stub(global, "fetch");
+      fetchStub = sinon.stub(fetch, "default");
       getByKIDStub = sinon.stub(DAO.donors, "getByKID");
       addOrderStub = sinon.stub(DAO.swish, "addOrder");
 
@@ -213,7 +214,7 @@ describe("swish", () => {
 
     beforeEach(() => {
       getOrderByKIDStub = sinon.stub(DAO.swish, "getOrderByKID");
-      fetchStub = sinon.stub(global, "fetch");
+      fetchStub = sinon.stub(fetch, "default");
       getOrderByInstructionUUIDStub = sinon.stub(DAO.swish, "getOrderByInstructionUUID");
       updateOrderStatusStub = sinon.stub(DAO.swish, "updateOrderStatus");
       updateOrderDonationIdStub = sinon.stub(DAO.swish, "updateOrderDonationId");
