@@ -47,9 +47,9 @@ module.exports = async (req, res, next) => {
         "Content-Type": "application/vnd.ms-excel",
         "Content-disposition":
           "attachment;filename=Individual_Donations_" +
-          (moment as any)(dates.fromDate).format("YYYY-MM-DD") +
+          moment(dates.fromDate).format("YYYY-MM-DD") +
           "_to_" +
-          (moment as any)(dates.toDate).format("YYYY-MM-DD") +
+          moment(dates.toDate).format("YYYY-MM-DD") +
           ".xlsx",
         "Content-Length": excelFile.length,
       });
