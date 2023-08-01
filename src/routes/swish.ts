@@ -2,6 +2,7 @@ import bodyParser from "body-parser";
 import express, { RequestHandler } from "express";
 import ipRangeCheck from "ip-range-check";
 import config from "../config";
+import { DAO } from "../custom_modules/DAO";
 import * as swish from "../custom_modules/swish";
 
 const router = express.Router();
@@ -18,15 +19,15 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
 
 /**
  * @openapi
- * /swish/orders/{KID}:
+ * /swish/orders/{id}:
  *    get:
  *      tags: [Swish]
  *      description: Fetches a Swish order by id
  *    parameters:
  *      - in: path
- *        name: KID
+ *        name: id
  *        required: true
- *        description: KID of the swish order to fetch.
+ *        description: ID of the swish order to fetch.
  *        schema:
  *          type: string
  *    responses:
@@ -37,20 +38,15 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
  *            schema:
  *              - type: object
  *                properties:
- *                  KID:
- *                    type: string
  *                  status:
  *                    type: string
  */
-router.get("/orders/:KID", async (req, res, next) => {
+router.get("/orders/:id/status", async (req, res, next) => {
   try {
-    const { KID } = req.params;
-    const order = await swish.getSwishOrder(KID);
+    const { id } = req.params;
+    const order = await swish.getSwishOrder(parseInt(id));
     if (!order) return res.sendStatus(404);
-    res.json({
-      KID: order.KID,
-      status: order.status,
-    });
+    res.json({ status: order.status });
   } catch (err) {
     console.error("Error while fetching payment request: ", err);
     next(err);

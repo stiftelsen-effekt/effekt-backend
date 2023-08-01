@@ -1,4 +1,4 @@
-import { Swish_order } from "@prisma/client";
+import { Swish_orders } from "@prisma/client";
 import { expect } from "chai";
 import express from "express";
 import sinon from "sinon";
@@ -18,9 +18,11 @@ describe("swish", () => {
     let getByKIDStub: sinon.SinonStub;
     let addOrderStub: sinon.SinonStub;
 
-    function withPaymentRequestStatus(status: number) {
+    function withCreatePaymentRequestResponse(data: { status: number; token?: string }) {
       fetchStub.resolves({
-        status,
+        status: data.status,
+        headers: new Map([["paymentrequesttoken", data.token]]) as any,
+        json: () => Promise.resolve({}),
       } as Response);
     }
 
@@ -34,7 +36,7 @@ describe("swish", () => {
       addOrderStub = sinon.stub(DAO.swish, "addOrder");
 
       withDonor({ id: 1 });
-      withPaymentRequestStatus(201);
+      withCreatePaymentRequestResponse({ status: 201 });
     });
 
     it("should add order if donor has phone and payment request is successful", async () => {
@@ -61,7 +63,6 @@ describe("swish", () => {
       await initiateOrder("1234567890", { amount, phone });
 
       expect(fetchStub.called).to.be.true;
-      expect(fetchStub.args[0][0]).to.contain("");
       const body = JSON.parse(fetchStub.args[0][1].body);
       expect(body).to.contain({
         amount,
@@ -95,7 +96,7 @@ describe("swish", () => {
     });
 
     it("should throw error if payment request is unsuccessful", async () => {
-      withPaymentRequestStatus(400);
+      withCreatePaymentRequestResponse({ status: 400 });
 
       try {
         await initiateOrder("1234567890", { amount: 100, phone: "46707432643" });
@@ -204,7 +205,7 @@ describe("swish", () => {
   });
 
   describe("getSwishOrder()", () => {
-    let getOrderByKIDStub: sinon.SinonStub;
+    let getOrderByIDStub: sinon.SinonStub;
     let fetchStub: sinon.SinonStub;
     let getOrderByInstructionUUIDStub: sinon.SinonStub;
     let updateOrderStatusStub: sinon.SinonStub;
@@ -213,7 +214,7 @@ describe("swish", () => {
     let addDonationStub: sinon.SinonStub;
 
     beforeEach(() => {
-      getOrderByKIDStub = sinon.stub(DAO.swish, "getOrderByKID");
+      getOrderByIDStub = sinon.stub(DAO.swish, "getOrderByID");
       fetchStub = sinon.stub(fetch, "default");
       getOrderByInstructionUUIDStub = sinon.stub(DAO.swish, "getOrderByInstructionUUID");
       updateOrderStatusStub = sinon.stub(DAO.swish, "updateOrderStatus");
@@ -222,8 +223,8 @@ describe("swish", () => {
       addDonationStub = sinon.stub(DAO.donations, "add");
     });
 
-    function withOrder(order: Partial<Awaited<ReturnType<typeof DAO.swish.getOrderByKID>>>) {
-      getOrderByKIDStub.resolves(order as any);
+    function withOrder(order: Partial<Awaited<ReturnType<typeof DAO.swish.getOrderByID>>>) {
+      getOrderByIDStub.resolves(order as any);
       getOrderByInstructionUUIDStub.resolves(order as any);
     }
 
@@ -234,22 +235,22 @@ describe("swish", () => {
     }
 
     it("should return order if it exists", async () => {
-      const order = { KID: "123", status: "PAID" } as const;
+      const order = { ID: 123, status: "PAID" } as const;
       withOrder(order);
       withSwishPaymentRequest({});
 
-      const result = await swish.getSwishOrder(order.KID);
+      const result = await swish.getSwishOrder(order.ID);
 
       expect(result).to.deep.equal(order);
     });
 
     it("should handle order status update", async () => {
-      const order = { ID: 3, KID: "123", status: undefined } as const;
+      const order = { ID: 3, status: undefined } as const;
       const swishPaymentRequest = { status: "PAID", amount: 100 };
       withOrder(order);
       withSwishPaymentRequest(swishPaymentRequest);
 
-      await swish.getSwishOrder(order.KID);
+      await swish.getSwishOrder(order.ID);
 
       expect(updateOrderStatusStub.called).to.be.true;
       expect(updateOrderStatusStub.args[0][0]).to.equal(order.ID);
@@ -259,7 +260,7 @@ describe("swish", () => {
     it("should return null if order doesn't exist", async () => {
       withOrder(null);
 
-      const result = await swish.getSwishOrder("123");
+      const result = await swish.getSwishOrder(123);
 
       expect(result).to.be.null;
     });
@@ -273,25 +274,25 @@ describe("swish", () => {
       server.use("/swish", swishRouter);
     });
 
-    describe("GET /swish/orders/:id", async () => {
+    describe("GET /swish/orders/:id/status", async () => {
       let getOrderStub: sinon.SinonStub;
 
       beforeEach(() => {
         getOrderStub = sinon.stub(swish, "getSwishOrder");
       });
 
-      function withOrder(order: Partial<Swish_order>) {
+      function withOrder(order: Partial<Swish_orders>) {
         getOrderStub.resolves(order as any);
       }
 
       it("should return 200 if order exists", async () => {
-        const KID = "123";
-        withOrder({ KID });
+        const ID = 123;
+        withOrder({ ID });
 
-        await request(server).get(`/swish/orders/${KID}`).expect(200);
+        await request(server).get(`/swish/orders/${ID}/status`).expect(200);
 
         expect(getOrderStub.called).to.be.true;
-        expect(getOrderStub.args[0][0]).to.equal(KID);
+        expect(getOrderStub.args[0][0]).to.equal(ID);
       });
 
       it("should return 404 if order does not exist", async () => {

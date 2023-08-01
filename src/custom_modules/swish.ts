@@ -1,4 +1,4 @@
-import { Swish_order } from "@prisma/client";
+import { Swish_orders } from "@prisma/client";
 import { Agent } from "https";
 import fetch from "node-fetch";
 import uuid from "uuid/v4";
@@ -57,7 +57,7 @@ async function createPaymentRequest(data: {
   reference: string;
 }) {
   const swishRequestData: SwishPaymentRequest = {
-    callbackUrl: `${config.api_url}/swish/callback`,
+    callbackUrl: new URL("/swish/callback", config.api_url).toString(),
     amount: data.amount,
     currency: "SEK", // only SEK is supported
     payeeAlias: config.swish_payee_alias,
@@ -72,12 +72,19 @@ async function createPaymentRequest(data: {
     headers: { "Content-Type": "application/json" },
   };
 
-  const url = new URL(`/api/v2/paymentrequests/${data.instructionUUID}`, config.swish_url);
+  const url = new URL(
+    `/swish-cpcapi/api/v2/paymentrequests/${data.instructionUUID}`,
+    config.swish_url,
+  );
 
   console.info(`Starting payment initation - id: ${data.instructionUUID}`);
-  console.debug(JSON.stringify(data));
-  const res = await fetch(url.toString(), options);
-  return { success: res.status === 201, status: res.status };
+  const res = await fetch(url, options);
+  const success = res.status === 201;
+  if (!success) {
+    const body = await res.json();
+    console.error("Swish payment initiation failed", body);
+  }
+  return { success, status: res.status, token: res.headers.get("paymentrequesttoken") };
 }
 
 /**
@@ -89,7 +96,7 @@ async function retrievePaymentRequest(instructionUUID: string): Promise<SwishPay
     method: "GET",
   };
 
-  const url = new URL(`/api/v1/paymentrequests/${instructionUUID}`, config.swish_url);
+  const url = new URL(`/swish-cpcapi/api/v1/paymentrequests/${instructionUUID}`, config.swish_url);
 
   console.info(`Retrieving payment request - id: ${instructionUUID}`);
   const res = await fetch(url.toString(), options);
@@ -120,12 +127,17 @@ export async function initiateOrder(KID: string, data: { amount: number; phone: 
     throw new Error("Could not initiate payment");
   }
 
-  await DAO.swish.addOrder({
+  const orderID = await DAO.swish.addOrder({
     instructionUUID,
     donorID: donor.id,
     KID,
     reference,
   });
+
+  return {
+    orderID,
+    paymentRequestToken: paymentRequest.token,
+  };
 }
 
 /**
@@ -155,6 +167,8 @@ export async function handleOrderStatusUpdate(
     console.info(`Status unchanged, skipping update. Status: ${data.status}`);
     return;
   }
+
+  console.info(`Updating order status - id: ${order.ID}, status: ${data.status}`);
 
   await DAO.swish.updateOrderStatus(order.ID, data.status);
 
@@ -196,8 +210,8 @@ function generatePaymentReference() {
   return date + random;
 }
 
-export async function getSwishOrder(KID: Swish_order["KID"]) {
-  const order = await DAO.swish.getOrderByKID(KID);
+export async function getSwishOrder(ID: Swish_orders["ID"]) {
+  const order = await DAO.swish.getOrderByID(ID);
   if (!order) return null;
   if (isFinalSwishOrderStatus(order.status)) return order;
 
@@ -208,5 +222,5 @@ export async function getSwishOrder(KID: Swish_order["KID"]) {
     status: swishRequest.status,
     amount: swishRequest.amount,
   });
-  return await DAO.swish.getOrderByKID(KID);
+  return await DAO.swish.getOrderByID(ID);
 }
