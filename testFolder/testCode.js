@@ -29,6 +29,7 @@ function getUserDetails(userId: string) {
 // Security misconfiguration - Exposed API key
 const apiKey = "1234567890";
 
+
 // Insecure direct object reference - Insufficient authorization check
 function viewUserProfile(userId: string) {
   const user = db.getUser(userId);
