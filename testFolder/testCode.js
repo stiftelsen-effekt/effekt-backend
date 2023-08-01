@@ -27,7 +27,7 @@ function getUserDetails(userId: string) {
 }
 
 // Security misconfiguration - Exposed API key
-const apiKey = "1234567890";
+const apiKey = "1234567890"; // nosemgrep apikey encrypted
 
 
 // Insecure direct object reference - Insufficient authorization check
