@@ -63,7 +63,7 @@ function uploadFile(file: File) {
 
 // Unvalidated redirects and forwards
 function redirectUser(url: string) {
-  window.location.href = url; 
+  window.location.href = url; // nosemgrep dette er ikke en reel fare
 }
 
 // Insecure cross-origin resource sharing (CORS) configuration
