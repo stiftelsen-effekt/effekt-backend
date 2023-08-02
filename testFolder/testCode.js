@@ -28,7 +28,7 @@ function getUserDetails(userId: string) {
 }
 
 // Security misconfiguration - Exposed API key
-const apiKey = "1234567890"; // nosemgrep apikey encrypted
+const apiKey = "1234567890";
 
 
 // Insecure direct object reference - Insufficient authorization check
@@ -40,7 +40,7 @@ function viewUserProfile(userId: string) {
 // Cross-site scripting (XSS) vulnerability - Unsafe data rendering
 function displayMessage(message: string) {
   const element = document.getElementById("message");
-  element.innerHTML = message; // nosemgrep accepted risk
+  element.innerHTML = message; 
 }
 
 // Code with potential SQL injection vulnerability
