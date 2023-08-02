@@ -19,10 +19,10 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
 
 /**
  * @openapi
- * /swish/orders/{id}:
+ * /swish/orders/{id}/status:
  *    get:
  *      tags: [Swish]
- *      description: Fetches a Swish order by id
+ *      description: Fetches a Swish order status by ID
  *    parameters:
  *      - in: path
  *        name: id
@@ -40,6 +40,8 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
  *                properties:
  *                  status:
  *                    type: string
+ *      404:
+ *        description: Swish order not found
  */
 router.get("/orders/:id/status", async (req, res, next) => {
   try {
