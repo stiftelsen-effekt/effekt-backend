@@ -10,7 +10,7 @@ src/
 .nvmrc
 .prettierignore
 .prettierrc
-.Dockerfile
+Dockerfile
 README.md
 cloud.deploy.yaml
 cloud.dev.deploy.yaml
