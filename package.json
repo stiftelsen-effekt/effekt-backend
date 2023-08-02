@@ -6,8 +6,8 @@
     "node": "^18.0.0"
   },
   "scripts": {
-    "test": "mocha --require ts-node/register --require dotenv/config",
-    "test-coverage": "nyc --reporter=text mocha --require ts-node/register src/__test__",
+    "test": "cross-env DOTENV_CONFIG_PATH=.env.test mocha --require ts-node/register --require dotenv/config",
+    "test-coverage": "cross-env DOTENV_CONFIG_PATH=.env.test nyc --reporter=text mocha --require ts-node/register src/__test__",
     "typecheck": "tsc --noEmit",
     "build": "copyfiles -u 1 src/views/**/* src/views/**/**/* src/views/**/**/**/* dist/ && tsc",
     "start": "node ./dist/server.js",
