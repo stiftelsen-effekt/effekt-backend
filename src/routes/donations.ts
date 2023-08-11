@@ -48,8 +48,10 @@ router.get("/status", async (req, res, next) => {
  *    description: Registers a pending donation
  */
 router.post("/register", async (req, res, next) => {
+  console.log(req.body);
+
   let parsedData = req.body as {
-    causeAreas: DistributionCauseArea[];
+    distributionCauseAreas: DistributionCauseArea[];
     donor: {
       email: string;
       name: string;
@@ -143,7 +145,7 @@ router.post("/register", async (req, res, next) => {
     const draftDistribution: DistributionInput = {
       donorId: donationObject.donorID,
       taxUnitId: donationObject.taxUnitId,
-      causeAreas: parsedData.causeAreas,
+      causeAreas: parsedData.distributionCauseAreas,
     };
 
     /* Get the standard shares of the organizations for all cause areas with standard split */
@@ -171,7 +173,7 @@ router.post("/register", async (req, res, next) => {
       donationObject.KID = await DAO.distributions.getKIDbySplit({
         donorId: donationObject.donorID,
         taxUnitId: donationObject.taxUnitId,
-        causeAreas: parsedData.causeAreas,
+        causeAreas: parsedData.distributionCauseAreas,
       });
 
       //Split does not exist create new KID and split

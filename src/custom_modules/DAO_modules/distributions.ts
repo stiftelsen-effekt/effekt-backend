@@ -368,6 +368,8 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
     HAVING SUM(CauseAreasOrgSum) = 100;
   `;
 
+  console.log(query);
+
   const [res] = await DAO.query(query, [input.donorId, input.taxUnitId, input.taxUnitId]);
 
   const filteredDistributions = res.filter((row) => row.KID.length > minKidLength);
@@ -442,11 +444,15 @@ async function getSplitByKID(KID: string): Promise<Distribution> {
 async function getStandardDistributionByCauseAreaID(
   causeAreaID: number,
 ): Promise<DistributionCauseAreaOrganization[]> {
+  console.log(causeAreaID);
+
   let [result] = await DAO.query<Organizations[]>(
     `
         SELECT
             ID,
-            std_percentage_share,
+            std_percentage_share
+
+        FROM Organizations
 
         WHERE
             cause_area_ID = ?

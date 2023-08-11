@@ -25,6 +25,14 @@ components:
         ordering:
           type: number
           description: The cause area ordering
+      required:
+        - id
+        - name
+        - shortDescription
+        - longDescription
+        - informationUrl
+        - isActive
+        - ordering
       example:
         id: 1
         name: "Global Health"

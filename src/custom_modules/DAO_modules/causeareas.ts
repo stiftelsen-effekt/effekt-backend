@@ -12,7 +12,7 @@ export const causeareas = {
       [id],
     );
     if (causeAreas.length === 0) throw new Error("Cause area not found");
-    const mapped = causeAreas.map<CauseArea>(mapCauseArea);
+    const mapped = causeAreas.map(mapCauseArea);
 
     return mapped[0];
   },
@@ -52,7 +52,7 @@ export const causeareas = {
         SELECT * FROM Cause_areas
       `,
     );
-    const mapped = causeAreas.map<CauseArea>(mapCauseArea);
+    const mapped = causeAreas.map(mapCauseArea);
 
     return mapped;
   },
@@ -70,7 +70,7 @@ export const causeareas = {
         SELECT * FROM Cause_areas WHERE is_active = 1 ORDER BY ordering ASC
       `,
     );
-    const mapped = causeAreas.map<CauseArea>(mapCauseArea);
+    const mapped = causeAreas.map(mapCauseArea);
 
     return mapped;
   },
@@ -147,11 +147,12 @@ export const causeareas = {
   },
 };
 
-export const mapCauseArea = (c: Cause_areas) => ({
+export const mapCauseArea = (c: Cause_areas): CauseArea => ({
   id: c.ID,
   name: c.name,
   shortDescription: c.short_desc,
   longDescription: c.long_desc,
+  informationUrl: c.info_url,
   isActive: c.is_active == 1,
   ordering: c.ordering,
 });

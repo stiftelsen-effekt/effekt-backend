@@ -85,6 +85,7 @@ export const mapOrganization = (org: SqlResult<Organizations>): Organization => 
     informationUrl: org.info_url,
     isActive: org.is_active === 1,
     ordering: org.ordering,
+    causeAreaId: org.cause_area_ID,
   };
 };
 

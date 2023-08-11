@@ -22,19 +22,19 @@ export interface components {
      */
     CauseArea: {
       /** @description The cause area id */
-      id?: number;
+      id: number;
       /** @description The cause area name */
-      name?: string;
+      name: string;
       /** @description The cause area short description */
-      shortDescription?: string;
+      shortDescription: string;
       /** @description The cause area long description */
-      longDescription?: string;
+      longDescription: string;
       /** @description The cause area information url */
-      informationUrl?: string;
+      informationUrl: string;
       /** @description Whether the cause area is active */
-      isActive?: boolean;
+      isActive: boolean;
       /** @description The cause area ordering */
-      ordering?: number;
+      ordering: number;
     };
   };
   responses: never;
