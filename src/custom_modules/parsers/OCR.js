@@ -1,7 +1,7 @@
 const serviceCodeEnum = require("../../enums/serviceCode");
 const transactionCodeEnum = require("../../enums/transactionCode");
 const recordTypeEnum = require("../../enums/recordType");
-const paymentMethodsEnum = require("../../enums/paymentMethods");
+const paymentMethodsEnum = require("../../enums/paymentMethods").default;
 const { utcDate } = require("../utcDate");
 
 module.exports = {
