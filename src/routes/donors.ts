@@ -1207,6 +1207,9 @@ router.get(
 );
 
 async function getDistributionTaxUnitAndStandardDistribution(index, kid) {
+  // !!! === CAUSE AREAS TODO === !!!
+  throw new Error("Not implemented");
+  /*
   const taxUnit = await DAO.tax.getByKID(kid);
   const standardDistribution = await DAO.distributions.isStandardDistribution(kid);
   return {
@@ -1214,6 +1217,7 @@ async function getDistributionTaxUnitAndStandardDistribution(index, kid) {
     taxUnit: taxUnit,
     standardDistribution: standardDistribution,
   };
+  */
 }
 
 /**

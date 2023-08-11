@@ -1,0 +1,35 @@
+openapi: 3.0.1
+components:
+  schemas:
+    CauseArea:
+      type: object
+      properties:
+        id:
+          type: number
+          description: The cause area id
+        name:
+          type: string
+          description: The cause area name
+        shortDescription:
+          type: string
+          description: The cause area short description
+        longDescription:
+          type: string
+          description: The cause area long description
+        informationUrl:
+          type: string
+          description: The cause area information url
+        isActive:
+          type: boolean
+          description: Whether the cause area is active
+        ordering:
+          type: number
+          description: The cause area ordering
+      example:
+        id: 1
+        name: "Global Health"
+        shortDescription: "This cause area is about global health"
+        longDescription: "This is a longer description about global health"
+        informationUrl: "https://gieffektivt.no/cause-areas/global-health/"
+        isActive: true
+        ordering: 1

@@ -382,13 +382,9 @@ async function getByID(donationID) {
     KID: dbDonation.KID_fordeling,
   };
 
-  //TODO: Standardize split object form
-  let split = await distributions.getSplitByKID(donation.KID);
+  const distribution = await distributions.getSplitByKID(donation.KID);
 
-  donation["distribution"] = split.map((split) => ({
-    abbriv: split.abbriv,
-    share: split.share,
-  }));
+  donation["distribution"] = distribution.causeAreas;
 
   return donation;
 }

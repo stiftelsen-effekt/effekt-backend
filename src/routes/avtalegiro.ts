@@ -102,22 +102,17 @@ router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const agreement = await DAO.avtalegiroagreements.getAgreement(req.params.id);
 
-    const shares = await DAO.distributions.getSplitByKID(agreement.KID);
+    const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
     const taxUnit = await DAO.tax.getByKID(agreement.KID);
-    const standardDistribution = await DAO.distributions.isStandardDistribution(agreement.KID);
     const donor = await DAO.donors.getByKID(agreement.KID);
 
     return res.json({
       status: 200,
       content: {
         ...agreement,
-        distribution: {
-          KID: agreement.KID,
-          donor,
-          taxUnit,
-          standardDistribution,
-          shares,
-        },
+        distribution,
+        donor,
+        taxUnit,
       },
     });
   } catch (ex) {
@@ -318,6 +313,11 @@ router.post(
       }
       const donorId: number = donor.id;
 
+      throw new Error("Not implemented");
+
+      // !!! === CAUSE AREAS TODO === !!!
+
+      /*
       const split = standardDistribution
         ? await DAO.organizations.getStandardSplit()
         : shares
@@ -355,6 +355,7 @@ router.post(
 
       await sendAvtaleGiroChange(originalKID, "SHARES", split);
       res.send(response);
+      */
     } catch (ex) {
       next({ ex });
     }

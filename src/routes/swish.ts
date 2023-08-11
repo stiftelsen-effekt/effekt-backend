@@ -22,25 +22,25 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
  *    get:
  *      tags: [Swish]
  *      description: Fetches a Swish order by id
- *    parameters:
- *      - in: path
- *        name: KID
- *        required: true
- *        description: KID of the swish order to fetch.
- *        schema:
- *          type: string
- *    responses:
- *      200:
- *        description: Swish order
- *        content:
- *          application/json:
- *            schema:
- *              - type: object
- *                properties:
- *                  KID:
- *                    type: string
- *                  status:
- *                    type: string
+ *      parameters:
+ *        - in: path
+ *          name: KID
+ *          required: true
+ *          description: KID of the swish order to fetch.
+ *          schema:
+ *            type: string
+ *      responses:
+ *        200:
+ *          description: Swish order
+ *          content:
+ *            application/json:
+ *              schema:
+ *                - type: object
+ *                  properties:
+ *                    KID:
+ *                      type: string
+ *                    status:
+ *                      type: string
  */
 router.get("/orders/:KID", async (req, res, next) => {
   try {

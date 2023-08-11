@@ -57,10 +57,10 @@ async function getAggregate() {
 async function getDonorAnswered(donorID: Donors["ID"]) {
   let [answersCount] = await DAO.query<{ count: number }[]>(
     `
-        SELECT count(UserID) as count
+        SELECT count(DonorID) as count
             FROM Referral_records
             
-            WHERE UserID = ?
+            WHERE DonorID = ?
     `,
     [donorID],
   );
@@ -77,7 +77,7 @@ async function getDonorAnswers(donorID: Donors["ID"]) {
   let [answers] = await DAO.query(
     `
         SELECT
-          r.id AS id, t.id AS typeId, r.UserId AS donorId, r.Registered AS timestamp, r.website_session AS session, t.is_active AS active,
+          r.id AS id, t.id AS typeId, r.DonorID AS donorId, r.Registered AS timestamp, r.website_session AS session, t.is_active AS active,
           CASE r.ReferralID
             WHEN 10 THEN r.other_comment
             ELSE t.name END
@@ -85,7 +85,7 @@ async function getDonorAnswers(donorID: Donors["ID"]) {
           FROM Referral_records r
             JOIN Referral_types t
               ON r.ReferralID = t.ID
-          WHERE r.UserId = ?
+          WHERE r.DonorID = ?
           ORDER BY id;
     `,
     [donorID],
@@ -107,7 +107,7 @@ async function getDonorAnswers(donorID: Donors["ID"]) {
  */
 async function addRecord(referralTypeID, donorID, session, otherComment) {
   let result = await DAO.query(
-    `INSERT INTO Referral_records (ReferralID, UserID, website_session, other_comment) VALUES (?,?,?,?)`,
+    `INSERT INTO Referral_records (ReferralID, DonorID, website_session, other_comment) VALUES (?,?,?,?)`,
     [referralTypeID, donorID, session, otherComment],
   );
 
@@ -124,7 +124,7 @@ async function addRecord(referralTypeID, donorID, session, otherComment) {
  */
 async function checkRecordExist(referralTypeID, donorID, session) {
   let [result] = await DAO.query(
-    `select * from Referral_records where ReferralID = ? and UserID = ? and website_session = ?`,
+    `select * from Referral_records where ReferralID = ? and DonorID = ? and website_session = ?`,
     [referralTypeID, donorID, session],
   );
 
@@ -144,7 +144,7 @@ async function checkRecordExist(referralTypeID, donorID, session) {
  */
 async function updateRecordComment(referralTypeID, donorID, session, otherComment) {
   let result = await DAO.query(
-    `UPDATE Referral_records SET other_comment = ? WHERE UserID = ? AND ReferralID = ? AND website_session = ?`,
+    `UPDATE Referral_records SET other_comment = ? WHERE DonorID = ? AND ReferralID = ? AND website_session = ?`,
     [otherComment, donorID, referralTypeID, session],
   );
 
@@ -163,7 +163,7 @@ async function updateRecordComment(referralTypeID, donorID, session, otherCommen
  */
 async function deleteRecord(referralTypeID, donorID, session) {
   let result = await DAO.query(
-    `DELETE FROM Referral_records WHERE ReferralID = ? and UserID = ? and website_session = ?`,
+    `DELETE FROM Referral_records WHERE ReferralID = ? and DonorID = ? and website_session = ?`,
     [referralTypeID, donorID, session],
   );
 

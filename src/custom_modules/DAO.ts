@@ -16,6 +16,7 @@ import { organizations } from "./DAO_modules/organizations";
 import * as mysql from "mysql2/promise";
 import { Prisma } from "@prisma/client";
 import config from "../config";
+import { causeareas } from "./DAO_modules/causeareas";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -42,6 +43,7 @@ export const DAO = {
   organizations: organizations,
   donations: donations,
   distributions: distributions,
+  causeareas: causeareas,
   payment: payment,
   vipps: vipps,
   parsing: parsing,

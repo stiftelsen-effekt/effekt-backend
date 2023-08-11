@@ -115,24 +115,8 @@ router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
     }
 
     const KID = agreement["KID"];
-    const standardDistribution = await DAO.distributions.isStandardDistribution(KID);
-    const activeOrganizations = await DAO.organizations.getActive();
-    let shares = await DAO.distributions.getSplitByKID(KID);
 
-    const distribution = {
-      kid: KID,
-      standardDistribution,
-      // Fill missing organizations with 0 shares
-      shares: activeOrganizations.map((organization) => {
-        const share = shares.find((share) => share.id === organization.id);
-        return {
-          abbriv: organization.abbriv,
-          name: organization.name,
-          id: organization.id,
-          share: share ? share.share : 0,
-        };
-      }),
-    };
+    const distribution = await DAO.distributions.getSplitByKID(KID);
 
     res.status(200).json({ content: { agreement, distribution } });
   } catch (ex) {
@@ -513,6 +497,10 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
 
     const shares = req.body.distribution.shares;
 
+    throw new Error("Not implemented");
+
+    // !!! === CAUSE AREAS TODO === !!!
+    /*
     const split = standardDistribution
       ? await DAO.organizations.getStandardSplit()
       : shares
@@ -541,14 +529,20 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
         taxUnitId = existingTaxUnit.id;
       }
     }
+    */
 
     //Check for existing distribution with that KID
+
+    /*
+    !!! === CAUSE AREAS TODO === !!!
     let KID = await DAO.distributions.getKIDbySplit(
       split,
       donorId,
       standardDistribution,
       taxUnitId,
     );
+
+    
 
     if (!KID) {
       KID = await donationHelpers.createKID();
@@ -561,6 +555,8 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
         metaOwnerID,
       );
     }
+    */
+    let KID = null;
 
     const response = await DAO.vipps.updateAgreementKID(agreementId, KID);
     if (response) await sendVippsAgreementChange(agreementCode, "SHARES", KID);

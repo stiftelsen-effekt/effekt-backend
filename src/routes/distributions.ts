@@ -52,15 +52,23 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
 
     //Check for existing distribution with that KID
     let foundMatchingDistribution = false;
+    /*
+    !!! === CAUSE AREAS TODO === !!!
     let KID = await DAO.distributions.getKIDbySplit(
       shares,
       donorId,
       standardDistribution,
       taxUnitId,
     );
+    */
+    let KID = null;
 
     if (!KID) {
       KID = await donationHelpers.createKID(15, donorId);
+
+      throw new Error("KID generation not implemented yet");
+      /*
+      !!! === CAUSE AREAS TODO === !!!
       await DAO.distributions.add(
         shares,
         KID,
@@ -69,6 +77,7 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
         standardDistribution,
         metaOwnerID,
       );
+      */
     } else {
       foundMatchingDistribution = true;
     }
@@ -106,9 +115,8 @@ router.post("/search", authMiddleware.isAdmin, async (req, res, next) => {
 router.get("/:KID", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     if (!req.params.KID) res.status(400).json({ status: 400, content: "No KID provided" });
-    const shares = await DAO.distributions.getSplitByKID(req.params.KID);
+    const distribution = await DAO.distributions.getSplitByKID(req.params.KID);
     const taxUnit = await DAO.tax.getByKID(req.params.KID);
-    const standardDistribution = await DAO.distributions.isStandardDistribution(req.params.KID);
     const donor = await DAO.donors.getByKID(req.params.KID);
     return res.json({
       status: 200,
@@ -116,8 +124,7 @@ router.get("/:KID", authMiddleware.isAdmin, async (req, res, next) => {
         KID: req.params.KID,
         donor,
         taxUnit,
-        standardDistribution,
-        shares,
+        distribution,
       },
     });
   } catch (ex) {

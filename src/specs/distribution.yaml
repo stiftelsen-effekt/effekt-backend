@@ -3,27 +3,85 @@ components:
   schemas:
     Distribution:
       type: object
-      required:
       properties:
-        KID:
+        kid:
           type: string
-          description: The KID of the distribution
-        shares:
+          description: The distribution KID
+        donorId:
+          type: integer
+          description: The donor id
+        taxUnitId:
+          type: integer
+          description: The tax unit id
+        causeAreas:
           type: array
           items:
-            $ref: "#/components/schemas/DistributionShare"
+            $ref: "#/components/schemas/DistributionCauseArea"
+      required:
+        - kid
+        - donorId
+        - taxUnitId
+        - causeAreas
       example:
-        KID: "000013901401"
-        shares:
+        id: 1
+        kid: "000013901401"
+        donorId: 139
+        taxUnitId: 1319
+        causeAreas:
+          - causeAreaId: 1
+            standardSplit: true
+            percentageShare: "25.00"
+            organizations:
+              - id: 5
+                name: "Against Malaria Foundation"
+                percentageShare: "25.00"
+              - id: 6
+                name: "GiveWells tildelingsfond"
+                percentageShare: "75.00"
+          - causeAreaId: 2
+            standardSplit: true
+            percentageShare: "75.00"
+            organizations:
+              - id: 5
+                name: "Against Malaria Foundation"
+                percentageShare: "25.00"
+              - id: 6
+                name: "GiveWells tildelingsfond"
+                percentageShare: "75.00"
+    DistributionCauseArea:
+      type: object
+      properties:
+        id:
+          type: number
+          description: The cause area id
+        standardSplit:
+          type: boolean
+          description: Whether the distribution is a standard distribution
+        percentageShare:
+          type: string
+          description: The percentage share for the given cause area in decimal form
+        organizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/DistributionCauseAreaOrganization"
+      required:
+        - id
+        - standardSplit
+        - percentageShare
+        - organizations
+      example:
+        id: 1
+        standardSplit: true
+        percentageShare: "25.00"
+        organizations:
           - id: 5
             name: "Against Malaria Foundation"
-            share: "25.00"
+            percentageShare: "25.00"
           - id: 6
             name: "GiveWells tildelingsfond"
-            share: "75.00"
-    DistributionShare:
+            percentageShare: "75.00"
+    DistributionCauseAreaOrganization:
       type: object
-      required:
       properties:
         id:
           type: integer
@@ -31,10 +89,31 @@ components:
         name:
           type: string
           description: The organization name
-        share:
+        percentageShare:
           type: string
           description: The percentage share for the given organizations in decimal form
+      required:
+        - id
+        - percentageShare
       example:
         id: 5
         name: "Against Malaria Foundation"
-        share: "25.00"
+        percentageShare: "25.00"
+    DistributionInput:
+      description: All of Distribution except KID
+      type: object
+      properties:
+        donorId:
+          type: integer
+          description: The donor id
+        taxUnitId:
+          type: integer
+          description: The tax unit id
+        causeAreas:
+          type: array
+          items:
+            $ref: "#/components/schemas/DistributionCauseArea"
+      required:
+        - donorId
+        - taxUnitId
+        - causeAreas

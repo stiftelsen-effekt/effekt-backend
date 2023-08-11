@@ -12,6 +12,7 @@ import rateLimit from "express-rate-limit";
 import methods from "../enums/methods";
 import bodyParser from "body-parser";
 import apicache from "apicache";
+import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
 
 const config = require("../config");
 
@@ -48,7 +49,7 @@ router.get("/status", async (req, res, next) => {
  */
 router.post("/register", async (req, res, next) => {
   let parsedData = req.body as {
-    organizations: any;
+    causeAreas: DistributionCauseArea[];
     donor: {
       email: string;
       name: string;
@@ -71,7 +72,6 @@ router.post("/register", async (req, res, next) => {
       return res.status(400).send("Recurring donations not supported with Swish");
   }
 
-  let donationOrganizations = parsedData.organizations;
   let donor = parsedData.donor;
   let paymentProviderUrl = "";
   let recurring = parsedData.recurring;
@@ -81,7 +81,6 @@ router.post("/register", async (req, res, next) => {
       KID: string;
       donorID: number | null;
       taxUnitId: number;
-      split: Awaited<ReturnType<typeof donationHelpers.getStandardSplit>>;
       standardSplit?: boolean;
     } = {
       amount: parsedData.amount,
@@ -91,17 +90,7 @@ router.post("/register", async (req, res, next) => {
       donorID: null, //Set later in code
       taxUnitId: null, //Set later in code
       standardSplit: undefined,
-      split: [],
     };
-
-    //Create a donation split object
-    if (donationOrganizations) {
-      donationObject.split = await donationHelpers.createDonationSplitArray(donationOrganizations);
-      donationObject.standardSplit = false;
-    } else {
-      donationObject.split = await donationHelpers.getStandardSplit();
-      donationObject.standardSplit = true;
-    }
 
     //Check if existing donor
     donationObject.donorID = await DAO.donors.getIDbyEmail(donor.email);
@@ -119,7 +108,6 @@ router.post("/register", async (req, res, next) => {
         donor.name,
       );
     } else {
-      // !!--!! =================================================
       //Check for existing tax unit if SSN provided
       if (typeof donor.ssn !== "undefined" && donor.ssn != null && donor.ssn !== "") {
         const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(donationObject.donorID, donor.ssn);
@@ -134,7 +122,7 @@ router.post("/register", async (req, res, next) => {
           );
         }
       }
-      // !!--!! =================================================
+
       // Check that name is registered and update name if no name set
       const dbDonor = await DAO.donors.getByID(donationObject.donorID);
       if (dbDonor.name === "" || dbDonor.name === null) {
@@ -151,40 +139,51 @@ router.post("/register", async (req, res, next) => {
       }
     }
 
+    /* Construct distribution object */
+    const draftDistribution: DistributionInput = {
+      donorId: donationObject.donorID,
+      taxUnitId: donationObject.taxUnitId,
+      causeAreas: parsedData.causeAreas,
+    };
+
+    /* Get the standard shares of the organizations for all cause areas with standard split */
+    for (const causeArea of draftDistribution.causeAreas) {
+      if (causeArea.standardSplit) {
+        const standardShareOrganizations =
+          await DAO.distributions.getStandardDistributionByCauseAreaID(causeArea.id);
+        causeArea.organizations = standardShareOrganizations;
+      }
+    }
+
     /** Use new KID for avtalegiro */
     if (donationObject.method == methods.BANK && donationObject.recurring == true) {
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
       donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID);
-      // !!--!! ================================================= TAX UNIT
-      await DAO.distributions.add(
-        donationObject.split,
-        donationObject.KID,
-        donationObject.donorID,
-        donationObject.taxUnitId,
-        donationObject.standardSplit,
-      );
+
+      const distribution: Distribution = {
+        kid: donationObject.KID,
+        ...draftDistribution,
+      };
+
+      await DAO.distributions.add(distribution);
     } else {
       //Try to get existing KID
-      // !!--!! ================================================= TAX UNIT
-      donationObject.KID = await DAO.distributions.getKIDbySplit(
-        donationObject.split,
-        donationObject.donorID,
-        donationObject.standardSplit,
-        donationObject.taxUnitId,
-      );
+      donationObject.KID = await DAO.distributions.getKIDbySplit({
+        donorId: donationObject.donorID,
+        taxUnitId: donationObject.taxUnitId,
+        causeAreas: parsedData.causeAreas,
+      });
 
       //Split does not exist create new KID and split
       if (donationObject.KID == null) {
         donationObject.KID = await donationHelpers.createKID();
 
-        // !!--!! ================================================= TAX UNIT
-        await DAO.distributions.add(
-          donationObject.split,
-          donationObject.KID,
-          donationObject.donorID,
-          donationObject.taxUnitId,
-          donationObject.standardSplit,
-        );
+        const distribution: Distribution = {
+          kid: donationObject.KID,
+          ...draftDistribution,
+        };
+
+        await DAO.distributions.add(distribution);
       }
     }
 

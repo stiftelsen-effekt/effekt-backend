@@ -1,5 +1,6 @@
 import { Organizations } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
+import { Organization } from "../../schemas/types";
 
 //region Get
 
@@ -56,24 +57,6 @@ async function getAll() {
 
   return organizations.map(mapOrganization);
 }
-
-async function getStandardSplit() {
-  var [standardSplit] = await DAO.execute<Organizations[]>(
-    `SELECT * FROM Organizations WHERE std_percentage_share > 0 AND is_active = 1`,
-  );
-
-  if (standardSplit.reduce((acc, org) => (acc += org.std_percentage_share), 0) != 100) {
-    throw new Error("Standard split does not sum to 100 percent");
-  }
-
-  return standardSplit.map((org) => {
-    return {
-      id: org.ID,
-      name: org.full_name,
-      share: org.std_percentage_share,
-    };
-  });
-}
 //endregion
 
 //region Add
@@ -91,21 +74,23 @@ async function getStandardSplit() {
  * @param {Object} org A line from a database query representing an organization
  * @returns {Object} A mapping with JS like syntax instead of the db fields, camel case instead of underscore and so on
  */
-function mapOrganization(org: SqlResult<Organizations>) {
+export const mapOrganization = (org: SqlResult<Organizations>): Organization => {
   return {
     id: org.ID,
     name: org.full_name,
-    abbriv: org.abbriv,
-    shortDesc: org.short_desc,
+    abbreviation: org.abbriv,
+    shortDescription: org.short_desc,
+    longDescription: org.long_desc,
     standardShare: org.std_percentage_share,
-    infoUrl: org.info_url,
+    informationUrl: org.info_url,
+    isActive: org.is_active === 1,
+    ordering: org.ordering,
   };
-}
+};
 
 export const organizations = {
   getByIDs,
   getByID,
   getActive,
   getAll,
-  getStandardSplit,
 };

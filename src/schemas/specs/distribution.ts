@@ -11,40 +11,107 @@ export interface components {
   schemas: {
     /**
      * @example {
-     *   "KID": "000013901401",
-     *   "shares": [
+     *   "id": 1,
+     *   "kid": "000013901401",
+     *   "donorId": 139,
+     *   "taxUnitId": 1319,
+     *   "causeAreas": [
      *     {
-     *       "id": 5,
-     *       "name": "Against Malaria Foundation",
-     *       "share": "25.00"
+     *       "causeAreaId": 1,
+     *       "standardSplit": true,
+     *       "percentageShare": "25.00",
+     *       "organizations": [
+     *         {
+     *           "id": 5,
+     *           "name": "Against Malaria Foundation",
+     *           "percentageShare": "25.00"
+     *         },
+     *         {
+     *           "id": 6,
+     *           "name": "GiveWells tildelingsfond",
+     *           "percentageShare": "75.00"
+     *         }
+     *       ]
      *     },
      *     {
-     *       "id": 6,
-     *       "name": "GiveWells tildelingsfond",
-     *       "share": "75.00"
+     *       "causeAreaId": 2,
+     *       "standardSplit": true,
+     *       "percentageShare": "75.00",
+     *       "organizations": [
+     *         {
+     *           "id": 5,
+     *           "name": "Against Malaria Foundation",
+     *           "percentageShare": "25.00"
+     *         },
+     *         {
+     *           "id": 6,
+     *           "name": "GiveWells tildelingsfond",
+     *           "percentageShare": "75.00"
+     *         }
+     *       ]
      *     }
      *   ]
      * }
      */
     Distribution: {
-      /** @description The KID of the distribution */
-      KID?: string;
-      shares?: components["schemas"]["DistributionShare"][];
+      /** @description The distribution KID */
+      kid: string;
+      /** @description The donor id */
+      donorId: number;
+      /** @description The tax unit id */
+      taxUnitId: number;
+      causeAreas: components["schemas"]["DistributionCauseArea"][];
+    };
+    /**
+     * @example {
+     *   "id": 1,
+     *   "standardSplit": true,
+     *   "percentageShare": "25.00",
+     *   "organizations": [
+     *     {
+     *       "id": 5,
+     *       "name": "Against Malaria Foundation",
+     *       "percentageShare": "25.00"
+     *     },
+     *     {
+     *       "id": 6,
+     *       "name": "GiveWells tildelingsfond",
+     *       "percentageShare": "75.00"
+     *     }
+     *   ]
+     * }
+     */
+    DistributionCauseArea: {
+      /** @description The cause area id */
+      id: number;
+      /** @description Whether the distribution is a standard distribution */
+      standardSplit: boolean;
+      /** @description The percentage share for the given cause area in decimal form */
+      percentageShare: string;
+      organizations: components["schemas"]["DistributionCauseAreaOrganization"][];
     };
     /**
      * @example {
      *   "id": 5,
      *   "name": "Against Malaria Foundation",
-     *   "share": "25.00"
+     *   "percentageShare": "25.00"
      * }
      */
-    DistributionShare: {
+    DistributionCauseAreaOrganization: {
       /** @description The organization id */
-      id?: number;
+      id: number;
       /** @description The organization name */
       name?: string;
       /** @description The percentage share for the given organizations in decimal form */
-      share?: string;
+      percentageShare: string;
+    };
+    /** @description All of Distribution except KID */
+    DistributionInput: {
+      /** @description The donor id */
+      donorId: number;
+      /** @description The tax unit id */
+      taxUnitId: number;
+      causeAreas: components["schemas"]["DistributionCauseArea"][];
     };
   };
   responses: never;

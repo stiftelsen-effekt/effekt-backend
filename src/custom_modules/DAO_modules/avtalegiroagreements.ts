@@ -103,6 +103,8 @@ async function replaceDistribution(
   taxUnitId: number | null = null,
   standardDistribution: boolean = false,
 ) {
+  throw new Error("Not implemented");
+  /*
   if (replacementKID.length !== 15 || originalKID.length !== 15) {
     return false;
   }
@@ -151,6 +153,7 @@ async function replaceDistribution(
   );
 
   return true;
+  */
 }
 
 async function setActive(KID, active) {

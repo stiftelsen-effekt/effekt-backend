@@ -332,6 +332,8 @@ type TransferKIDBinding = {
  * @returns {number} The number of rows affected
  */
 async function deleteById(id: number, donorId: number, transferId?: number): Promise<number> {
+  throw new Error("Not implemented");
+  /*
   try {
     var transaction = await DAO.startTransaction();
 
@@ -461,6 +463,7 @@ async function deleteById(id: number, donorId: number, transferId?: number): Pro
 
     throw ex;
   }
+  */
 }
 
 //endregion

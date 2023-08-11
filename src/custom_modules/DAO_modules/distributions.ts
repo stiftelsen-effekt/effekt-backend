@@ -2,7 +2,20 @@ import Decimal from "decimal.js";
 import { DAO } from "../DAO";
 
 import sqlString from "sqlstring";
-import { Distribution, Organizations } from "@prisma/client";
+import {
+  Distribution_cause_area_organizations,
+  Distribution_cause_areas,
+  Distributions,
+  Organizations,
+} from "@prisma/client";
+import { ResultSetHeader } from "mysql2";
+import {
+  Distribution,
+  DistributionCauseArea,
+  DistributionCauseAreaOrganization,
+  DistributionInput,
+} from "../../schemas/types";
+import { min } from "moment";
 
 //region GET
 async function getAll(page = 0, limit = 10, sort, filter = null) {
@@ -164,103 +177,307 @@ async function getByDonorId(donorId) {
  * @returns {boolean}
  */
 async function KIDexists(KID) {
-  var [res] = await DAO.query("SELECT * FROM Combining_table WHERE KID = ? LIMIT 1", [KID]);
+  var [res] = await DAO.query("SELECT * FROM Distributions WHERE KID = ? LIMIT 1", [KID]);
 
   if (res.length > 0) return true;
   else return false;
 }
 
 /**
- * Takes in a distribution array and a Donor ID, and returns the KID if the specified distribution exists for the given donor.
- * @param {array<object>} split
- * @param {number} donorID
- * @param {boolean} standardDistribution
- * @param {number} taxUnitId The ID of the associated tax unit for a distribution. Can be undefined if the distribution is not associated with a tax unit.
- * @param {number} minKidLength Specify a minimum length of KID to match against
- * @returns {number | null} KID or null if no KID found
+ * Takes in a candidate distribution and returns a KID if the distribution already exists
+ * @param {DistributionInput} input
+ * @param {number} minKidLength Used to filter out distributions with KID shorter than this
+ * @returns {string | null} KID or null if no KID found
  */
-async function getKIDbySplit(
-  split,
-  donorID: number,
-  standardDistribution: boolean,
-  taxUnitId?: number,
-  minKidLength = 0,
-) {
-  let query = `
-        SELECT 
-            KID, 
-            Count(KID) as KID_count 
-            
-        FROM Distribution as D
-            INNER JOIN Combining_table as C 
-                ON C.Distribution_ID = D.ID
-        
-        WHERE
+async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promise<string | null> {
+  // TOOD? If donor only has one tax unit, always use that one?
 
-        (Standard_split = ${standardDistribution ? "1)" : "0 OR Standard_split IS NULL)"}
-
-        AND
-        `;
-
-  for (let i = 0; i < split.length; i++) {
-    query += `(OrgID = ${sqlString.escape(split[i].id)} AND percentage_share = ${sqlString.escape(
-      split[i].share,
-    )} AND C.Donor_ID = ${sqlString.escape(donorID)} AND ${
-      taxUnitId ? "C.Tax_unit_ID = " + sqlString.escape(taxUnitId) : "C.Tax_unit_ID IS NULL"
-    })`;
-    if (i < split.length - 1) query += ` OR `;
+  // Validate input
+  // Must have one or more cause areas
+  if (input.causeAreas.length === 0) {
+    throw new Error("Must have one or more cause areas");
   }
 
-  query += ` GROUP BY C.KID
-        
-        HAVING 
-            KID_count = ${split.length}
-            AND
-            LENGTH(KID) >= ${sqlString.escape(minKidLength)}`;
+  // Cause areas share must sum to 100
+  const causeAreaShareSum = input.causeAreas.reduce(
+    (sum, causeArea) => sum + parseFloat(causeArea.percentageShare),
+    0,
+  );
+  if (causeAreaShareSum !== 100) {
+    throw new Error(`Cause area share must sum to 100, but was ${causeAreaShareSum}`);
+  }
 
-  var [res] = await DAO.execute(query);
+  // Organization share must sum to 100 within each cause area
+  input.causeAreas.forEach((causeArea) => {
+    const orgShareSum = causeArea.organizations.reduce(
+      (sum, org) => sum + parseFloat(org.percentageShare),
+      0,
+    );
+    if (orgShareSum !== 100) {
+      throw new Error(
+        `Organization share must sum to 100 within each cause area, but was ${orgShareSum} for cause area ${causeArea.id}`,
+      );
+    }
+  });
 
-  if (res.length > 0) return res[0].KID;
-  else return null;
+  /**
+   * This is a fairly complex query, so here's a breakdown of what it does:
+   *
+   * 1. Get all distributions that match the donor ID and tax unit ID
+   * 2. Join with cause areas and cause area organizations
+   * 3. Filter on only distribution that match the cause area ID and organization ID
+   * 4. Filter on distributions that have cause areas with the correct percentage share and standard distribution
+   * 5. Filter on distributions that have organizations within that cause area with the correct percentage share
+   *
+   * Steps 4 and 5 are what's going on with the doubly nested maps in the WHERE clause
+   *
+   * In the select clause we have a windowed sum for the percentage shares within a cause area
+   * What this does is that it sums up the percentage shares for all the organizations within a cause area,
+   * and multiplies it by the percentage share of the cause area itself.
+   *
+   * For example, if we have a distribution with 100% to cause area 1, we would expect the cause areasorgsum
+   * to be 100. If we have a distribution with 50% to cause area 1 and 50% to cause area 2, we would expect
+   * the cause areasorgsum to be 50 for each cause area.
+   *
+   *
+   * This would yield a result something like this:
+   *
+   * | KID | Cause_area_ID | Percentage_share | Organization_ID | Percentage_share | CauseAreasOrgSum |
+   * |-----|---------------|------------------|-----------------|------------------|------------------|
+   * | 323 | 1             | 50               | 1               | 20               | 50               |
+   * | 323 | 1             | 50               | 2               | 80               | 50               |
+   * | 323 | 2             | 50               | 3               | 40               | 50               |
+   * | 323 | 2             | 50               | 4               | 60               | 50               |
+   * |-----|---------------|------------------|-----------------|------------------|------------------|
+   *
+   * The next step is to group this result by KID, cause area and cause area org sum. Notice that the cause
+   * area org sum is the same for all rows within a cause area, so it does not affect the grouping by cause
+   * area. This would yield a result something like this:
+   *
+   * | KID | Cause_area_ID | CauseAreasOrgSum |
+   * |-----|---------------|------------------|
+   * | 323 | 1             | 50               |
+   * | 323 | 2             | 50               |
+   * |-----|---------------|------------------|
+   *
+   * The next step is to group this result by KID and sum the cause area org sum. This would yield a result
+   *
+   * | KID | SUM(CauseAreasOrgSum) |
+   * |-----|-----------------------|
+   * | 323 | 100                   |
+   * |-----|-----------------------|
+   *
+   * If the sum is 100, we know that the distribution already exists, and we can return the KID.
+   * If it does not sum to 100, we know that the distribution does not exist, and we can return null.
+   *
+   * There might be distributions that partially match our criteria. For example, if we're looking for
+   * a distribution with 100% to cause area 1, and 50% to organization 1 within cause area 1 and 50% to
+   * organization 2 within cause area 1, we might find a distribution that has 100% to cause area 1 and
+   * 50% to organization 1 within cause area 1 and 50% to organization 3 within cause area 1.
+   *
+   * This would look like this in the result:
+   *
+   * | KID | Cause_area_ID | Percentage_share | Organization_ID | Percentage_share | CauseAreasOrgSum |
+   * |-----|---------------|------------------|-----------------|------------------|------------------|
+   * | 878 | 1             | 100              | 1               | 50               | 50               |
+   * |-----|---------------|------------------|-----------------|------------------|------------------|
+   *
+   * Which would yield this result after grouping on cause areas:
+   *
+   * | KID | Cause_area_ID | CauseAreasOrgSum |
+   * |-----|---------------|------------------|
+   * | 878 | 1             | 50               |
+   * |-----|---------------|------------------|
+   *
+   * And finally after grouping on KID (distribution):
+   *
+   * | KID | SUM(CauseAreasOrgSum) |
+   * |-----|-----------------------|
+   * | 878 | 50                    |
+   * |-----|-----------------------|
+   *
+   * Which does not have a sum for the cause areas of 100, so we know that this distribution does not match
+   * our criteria.
+   */
+
+  const query = `
+    SELECT 
+      KID, 
+      SUM(CauseAreasOrgSum) 
+    FROM
+    (
+      SELECT 
+          * 
+      FROM 
+      (
+          SELECT
+              KID,
+              Cause_area_ID,
+              ROUND(
+                  SUM(CAO.Percentage_share) OVER (PARTITION BY CA.ID) * CA.Percentage_share / 100
+              ) AS CauseAreasOrgSum
+          FROM 
+              Distributions AS D
+              LEFT JOIN Distribution_cause_areas AS CA ON CA.Distribution_KID = D.KID
+              LEFT JOIN Distribution_cause_area_organizations AS CAO ON CAO.Distribution_cause_area_ID = CA.ID
+          WHERE 
+              D.Donor_ID = ? 
+              AND (D.Tax_unit_ID = ? OR (D.Tax_unit_ID IS NULL AND ? IS NULL))
+              AND 
+              (
+                  -- Map out the cause area distribution
+                  ${input.causeAreas
+                    .map((causeArea) => {
+                      return `
+                        (
+                            CA.Cause_area_ID = ${sqlString.escape(causeArea.id)} 
+                            AND CA.Percentage_share = ${sqlString.escape(
+                              causeArea.percentageShare,
+                            )} 
+                            AND CA.Standard_split = ${
+                              sqlString.escape(causeArea.standardSplit) ? 1 : 0
+                            }
+                            AND
+                            (
+                              ${causeArea.organizations
+                                .map((organization) => {
+                                  return `
+                                  (Organization_ID = ${sqlString.escape(
+                                    organization.id,
+                                  )} AND CAO.Percentage_share = ${sqlString.escape(
+                                    organization.percentageShare,
+                                  )})
+                                `;
+                                })
+                                .join(" OR ")}
+                            )
+                        )
+                      `;
+                    })
+                    .join(" OR ")}
+              )
+      ) sub
+      GROUP BY 
+          KID, 
+          Cause_area_ID, 
+          CauseAreasOrgSum
+    ) sub2
+    GROUP BY 
+      KID
+      
+    HAVING SUM(CauseAreasOrgSum) = 100;
+  `;
+
+  const [res] = await DAO.query(query, [input.donorId, input.taxUnitId, input.taxUnitId]);
+
+  const filteredDistributions = res.filter((row) => row.KID.length > minKidLength);
+
+  if (filteredDistributions.length > 0) {
+    return filteredDistributions[0].KID;
+  }
+
+  return null;
 }
 
 /**
  * Gets organizaitons and distribution share from a KID
  * @param {number} KID
- * @returns {[{
- *  id: number,
- *  full_name: string,
- *  abbriv: string,
- *  share: string
- * }]}
+ * @returns {Distribution} A distributions, throws error if not found
  */
-async function getSplitByKID(KID) {
+async function getSplitByKID(KID: string): Promise<Distribution> {
   let [result] = await DAO.query<
-    (Pick<Organizations, "full_name" | "abbriv"> & {
-      id: Organizations["ID"];
-      share: Distribution["percentage_share"];
-    })[]
+    (Distributions & Distribution_cause_areas & Distribution_cause_area_organizations)[]
   >(
     `
-            SELECT 
-                Organizations.ID as id,
-                Organizations.full_name,
-                Organizations.abbriv, 
-                Distribution.percentage_share as share
-            
-            FROM Combining_table as Combining
-                INNER JOIN Distribution as Distribution
-                    ON Combining.Distribution_ID = Distribution.ID
-                INNER JOIN Organizations as Organizations
-                    ON Organizations.ID = Distribution.OrgID
-            
-            WHERE 
-                KID = ?`,
+        SELECT *
+
+        FROM 
+          Distributions AS D
+          LEFT JOIN Distribution_cause_areas AS CA ON CA.Distribution_KID = D.KID
+          LEFT JOIN Distribution_cause_area_organizations AS CAO ON CAO.Distribution_cause_area_ID = CA.ID
+        
+        WHERE 
+            D.KID = ?`,
     [KID],
   );
 
   if (result.length == 0) throw new Error("NOT FOUND | No distribution with the KID " + KID);
-  return result;
+
+  const distribution: Distribution = {
+    kid: result[0].KID,
+    donorId: result[0].Donor_ID,
+    taxUnitId: result[0].Tax_unit_ID,
+    causeAreas: result.reduce((acc: DistributionCauseArea[], row) => {
+      const existingCauseArea = acc.find((item) => item.id === row.Cause_area_ID);
+
+      const organization: DistributionCauseAreaOrganization = {
+        id: row.Organization_ID,
+        percentageShare: row.Percentage_share,
+      };
+
+      if (existingCauseArea) {
+        existingCauseArea.organizations.push(organization);
+      } else {
+        acc.push({
+          id: row.Cause_area_ID,
+          percentageShare: row.Percentage_share,
+          standardSplit: row.Standard_split === 1,
+          organizations: [organization],
+        });
+      }
+
+      return acc;
+    }, []),
+  };
+
+  return distribution;
+}
+
+/**
+ * Gets the standard distribution between organizations for a given cause area
+ * @param {number} causeAreaID
+ * @returns {DistributionCauseAreaOrganization[]} A list of organizations and their percentage share
+ * @throws {Error} Throws error if no organizations are found or if the sum of the standard shares is not 100
+ */
+async function getStandardDistributionByCauseAreaID(
+  causeAreaID: number,
+): Promise<DistributionCauseAreaOrganization[]> {
+  let [result] = await DAO.query<Organizations[]>(
+    `
+        SELECT
+            ID,
+            std_percentage_share,
+
+        WHERE
+            cause_area_ID = ?
+            AND
+            std_percentage_share IS NOT NULL
+            AND
+            std_percentage_share > 0
+            AND 
+            is_active = 1`,
+    [causeAreaID],
+  );
+
+  if (result.length == 0)
+    throw new Error(
+      "NOT FOUND | No organizations with a standard share found for cause area with ID " +
+        causeAreaID,
+    );
+
+  // Validate that they sum to 100
+  const sum = result.reduce((acc, row) => acc + row.std_percentage_share, 0);
+  if (sum !== 100)
+    throw new Error(
+      "INVALID | The sum of the standard shares for cause area with ID " +
+        causeAreaID +
+        " is not 100",
+    );
+
+  return result.map((row) => ({
+    id: row.ID,
+    percentageShare: row.std_percentage_share.toString(),
+  }));
 }
 
 /**
@@ -268,7 +485,9 @@ async function getSplitByKID(KID) {
  * @param {Array} transactions A list of transactions that must have a ReferenceTransactionId
  * @returns {Object} Returns an object with referenceTransactionId's as keys and KIDs as values
  */
-async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
+async function getHistoricPaypalSubscriptionKIDS(
+  referenceIDs: string[],
+): Promise<{ [key: string]: string }> {
   let [res] = await DAO.query(
     `SELECT 
             ReferenceTransactionNumber,
@@ -288,41 +507,19 @@ async function getHistoricPaypalSubscriptionKIDS(referenceIDs) {
 
   return mapping;
 }
-
-/**
- * Checks whether a given distribution has standard split
- * @param {number} KID
- * @returns {boolean}
- */
-async function isStandardDistribution(KID) {
-  var [res] = await DAO.query(
-    "SELECT KID, Standard_split FROM Combining_table WHERE KID = ? GROUP BY KID, Standard_split;",
-    [KID],
-  );
-
-  if (res.length > 0 && res[0]["Standard_split"] === 1) return true;
-  else return false;
-}
 //endregion
 
 //region add
 /**
  * Adds a given distribution to the databse, connected to the supplied DonorID and the given KID
- * @param {Array<object>} split
- * @param {number} KID
- * @param {number} donorID
- * @param {number | null} taxUnitId The id of the tax unit to associate the distribution with. Can be null if no tax unit is associated.
- * @param {boolean} standardDistribution
- * @param {number | null} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
+ * @param {Distribution} distribution
+ * @param {number} metaOwnerID Optional meta owner ID, specifies who is the owner of the data
+ * @return {boolean} Returns true if the distribution was added successfully, throws if fails
  */
 async function add(
-  split,
-  KID,
-  donorID,
-  taxUnitId = null,
-  standardDistribution = false,
-  metaOwnerID = null,
-) {
+  distribution: Distribution,
+  metaOwnerID: number | null = null,
+): Promise<boolean> {
   try {
     var transaction = await DAO.startTransaction();
 
@@ -330,24 +527,70 @@ async function add(
       metaOwnerID = await DAO.meta.getDefaultOwnerID();
     }
 
-    let distribution_table_values = split.map((item) => {
-      return [item.id, item.share];
-    });
-    var res = await transaction.query(
-      "INSERT INTO Distribution (OrgID, percentage_share) VALUES ?",
-      [distribution_table_values],
+    console.log(distribution);
+
+    const [distributionResult] = await transaction.query<ResultSetHeader>(
+      `INSERT INTO Distributions (KID, Donor_ID, Tax_unit_ID, Meta_Owner_ID) VALUES (?, ?, ?, ?);`,
+      [distribution.kid, distribution.donorId, distribution.taxUnitId, metaOwnerID],
     );
 
-    let first_inserted_id = (res[0] as any).insertId;
-    var combining_table_values = Array.apply(null, Array(split.length)).map((item, i) => {
-      return [donorID, taxUnitId, standardDistribution, first_inserted_id + i, KID, metaOwnerID];
-    });
+    console.log(distributionResult);
 
-    //Update combining table
-    var res = await transaction.query(
-      "INSERT INTO Combining_table (Donor_ID, Tax_unit_ID, Standard_split, Distribution_ID, KID, Meta_owner_ID) VALUES ?",
-      [combining_table_values],
+    if (distributionResult.affectedRows !== 1) {
+      throw new Error("Could not add distribution");
+    }
+
+    const distributionCauseAreaInserts = await Promise.all(
+      distribution.causeAreas.map((causeArea) =>
+        (async () => {
+          const [result] = await transaction.query<ResultSetHeader>(
+            `INSERT INTO Distribution_cause_areas (Distribution_KID, Cause_area_ID, Percentage_share, Standard_split) VALUES (?, ?, ?, ?);`,
+            [
+              distribution.kid,
+              causeArea.id,
+              causeArea.percentageShare,
+              causeArea.standardSplit ? 1 : 0,
+            ],
+          );
+
+          if (result.affectedRows !== 1) {
+            throw new Error("Could not add distribution cause area");
+          }
+
+          return {
+            causeAreaId: causeArea.id,
+            distributionCauseAreaId: result.insertId,
+          };
+        })(),
+      ),
     );
+
+    console.log(distributionCauseAreaInserts);
+
+    const distributionCauseAreaOrganizationInsertsRowValues = [];
+    for (const causeAreaInsert of distributionCauseAreaInserts) {
+      const causeArea = distribution.causeAreas.find(
+        (item) => item.id === causeAreaInsert.causeAreaId,
+      );
+      if (!causeArea) {
+        throw new Error("Could not find cause area");
+      }
+      const orgs = causeArea.organizations;
+      for (const org of orgs) {
+        distributionCauseAreaOrganizationInsertsRowValues.push([
+          causeAreaInsert.distributionCauseAreaId,
+          org.id,
+          org.percentageShare,
+        ]);
+      }
+    }
+
+    const [distributionCauseAreaOrganizationInsert] = await transaction.query<ResultSetHeader>(
+      `INSERT INTO Distribution_cause_area_organizations (Distribution_cause_area_ID, Organization_ID, Percentage_share) VALUES ?;`,
+      [distributionCauseAreaOrganizationInsertsRowValues],
+    );
+
+    console.log(distributionCauseAreaOrganizationInsert);
 
     await DAO.commitTransaction(transaction);
     return true;
@@ -362,10 +605,10 @@ export const distributions = {
   KIDexists,
   getKIDbySplit,
   getSplitByKID,
+  getStandardDistributionByCauseAreaID,
   getHistoricPaypalSubscriptionKIDS,
   getAll,
   getAllByDonor,
   getByDonorId,
-  isStandardDistribution,
   add,
 };
