@@ -102,7 +102,8 @@ export const causeareas = {
           Organizations.long_desc AS O_long_desc,
           Organizations.is_active AS O_is_active,
           Organizations.ordering AS O_ordering,
-          Organizations.info_url AS O_info_url
+          Organizations.info_url AS O_info_url,
+          Organizations.std_percentage_share AS O_std_percentage_share
           
           FROM Cause_areas 
             INNER JOIN Organizations ON Organizations.cause_area_id = Cause_areas.ID
