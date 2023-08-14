@@ -1,7 +1,9 @@
 import { faker } from "@faker-js/faker";
 import {
-  Combining_table,
-  Distribution,
+  Distributions,
+  Distribution_cause_areas,
+  Distribution_cause_area_organizations,
+  Cause_areas,
   Donations,
   Donors,
   Organizations,
@@ -12,7 +14,6 @@ import {
 import fs from "fs";
 import path from "path";
 import {
-  generateCombiningTable,
   generateFakeDistribution,
   generateFakeDonation,
   generateFakeDonor,
@@ -23,22 +24,25 @@ import {
 const AMOUNT_OF_DONORS: number = 50;
 const MAX_DONATIONS_PER_DONOR: number = 10;
 
-const fakeDonors: Donors[] = readAndParseJSON("fakeDonors.json");
-const fakeDonations: Donations[] = readAndParseJSON("fakeDonations.json");
-const fakeTaxUnits: Tax_unit[] = readAndParseJSON("fakeTaxUnits.json");
-const fakeDistributions: Distribution[] = readAndParseJSON("fakeDistributions.json");
-const fakeCombiningTables: Combining_table[] = readAndParseJSON("fakeCombiningTables.json");
-const fakePaymentIntents: Payment_intent[] = readAndParseJSON("fakePaymentIntents.json");
+const fakeDonors: Donors[] = []; // readAndParseJSON("fakeDonors.json");
+const fakeDonations: Donations[] = []; //readAndParseJSON("fakeDonations.json");
+const fakeTaxUnits: Tax_unit[] = []; // readAndParseJSON("fakeTaxUnits.json");
+const fakePaymentIntents: Payment_intent[] = []; // readAndParseJSON("fakePaymentIntents.json");
 const fakePayments: Payment[] = readAndParseJSON("fakePayments.json");
 const fakeOrganizations: Organizations[] = readAndParseJSON("fakeOrganizations.json");
+const fakeCauseAreas: Cause_areas[] = readAndParseJSON("fakeCauseAreas.json");
+const fakeDistributions: Distributions[] = []; //readAndParseJSON("fakeDistributions.json");
+const fakeDistributionCauseAreas: Distribution_cause_areas[] = []; // readAndParseJSON("fakeDistributionCauseAreas.json");
+const fakeDistributionCauseAreaOrganizations: Distribution_cause_area_organizations[] = []; // readAndParseJSON("fakeDistributionCauseAreaOrganizations.json");
 
 populateFakeDataArrays();
 writeToJSON("/fakeDonors.json", fakeDonors);
 writeToJSON("/fakeDonations.json", fakeDonations);
 writeToJSON("/fakeTaxUnits.json", fakeTaxUnits);
-writeToJSON("/fakeDistributions.json", fakeDistributions);
-writeToJSON("/fakeCombiningTables.json", fakeCombiningTables);
 writeToJSON("/fakePaymentIntents.json", fakePaymentIntents);
+writeToJSON("/fakeDistributions.json", fakeDistributions);
+writeToJSON("/fakeDistributionCauseAreas.json", fakeDistributionCauseAreas);
+writeToJSON("/fakeDistributionCauseAreaOrganizations.json", fakeDistributionCauseAreaOrganizations);
 
 function populateFakeDataArrays() {
   const lastDonorID: number = getLastID(fakeDonors);
@@ -73,10 +77,22 @@ function createFakeDataToDonor(donor: Donors, taxUnitID: number) {
     const fakeDonation = createFakeDonation(donor, incrementedID);
     createFakePaymentIntent(incrementedID, fakeDonation);
 
-    const isStandardSplit: boolean = faker.datatype.boolean(0.4);
-    createFakeDistributions().forEach((distribution) =>
-      createFakeCombiningTable(donor.ID, distribution.ID, taxUnitID, fakeDonation, isStandardSplit),
+    const fakeDistribution = generateFakeDistribution(
+      fakeDonation.Donor_ID,
+      taxUnitID,
+      fakeDonation,
+      fakeCauseAreas,
+      fakeOrganizations,
+      getLastID(fakeDistributionCauseAreas),
+      getLastID(fakeDistributionCauseAreaOrganizations),
     );
+    fakeDistributions.push(fakeDistribution.distribution);
+    fakeDistributionCauseAreas.push(...fakeDistribution.distributionCauseAreas);
+    //console.log(fakeDistribution.distributionCauseAreaOrganizations, getLastID(fakeDistributionCauseAreaOrganizations))
+    fakeDistributionCauseAreaOrganizations.push(
+      ...fakeDistribution.distributionCauseAreaOrganizations,
+    );
+    //console.log(fakeDistributionCauseAreaOrganizations.slice(-fakeDistribution.distributionCauseAreaOrganizations.length), getLastID(fakeDistributionCauseAreaOrganizations))
   }
 }
 
@@ -89,30 +105,6 @@ function createFakeDonation(donor: Donors, donationID: number) {
 function createFakePaymentIntent(id: number, donation: Donations) {
   const fakePaymentIntent = generateFakePaymentIntent(id, donation);
   fakePaymentIntents.push(fakePaymentIntent);
-}
-
-function createFakeDistributions() {
-  const lastDistributionID: number = getLastID(fakeDistributions);
-  const fakeDistribution = generateFakeDistribution(lastDistributionID + 1, fakeOrganizations);
-  fakeDistributions.push(...fakeDistribution);
-  return fakeDistribution;
-}
-
-function createFakeCombiningTable(
-  donorID: number,
-  distributionID: number,
-  taxUnitID: number,
-  donation: Donations,
-  isStandardSplit: boolean,
-) {
-  const fakeCombiningTable = generateCombiningTable(
-    donorID,
-    distributionID,
-    taxUnitID,
-    donation,
-    isStandardSplit,
-  );
-  fakeCombiningTables.push(fakeCombiningTable);
 }
 
 function getLastID(dataArray: any[]): number {

@@ -1,7 +1,9 @@
 import {
-  Combining_table,
+  Cause_areas,
   Data_owner,
-  Distribution,
+  Distribution_cause_area_organizations,
+  Distribution_cause_areas,
+  Distributions,
   Donations,
   Donors,
   Organizations,
@@ -20,25 +22,34 @@ const basePath: string = path.resolve(__dirname, "./fakedata/json/");
 async function main() {
   const fakeDonors: Donors[] = readAndParseJsonFile("/fakeDonors.json");
   const fakePayments: Payment[] = readAndParseJsonFile("/fakePayments.json");
+  const fakeCauseAreas: Cause_areas[] = readAndParseJsonFile("/fakeCauseAreas.json");
   const fakeOrganizations: Organizations[] = readAndParseJsonFile("/fakeOrganizations.json");
   const fakeTaxUnits: Tax_unit[] = readAndParseJsonFile("/fakeTaxUnits.json");
   const fakeDonations: Donations[] = readAndParseJsonFile("/fakeDonations.json");
   const fakePaymentIntents: Payment_intent[] = readAndParseJsonFile("/fakePaymentIntents.json");
-  const fakeDistributions: Distribution[] = readAndParseJsonFile("/fakeDistributions.json");
-  const fakeCombiningTables: Combining_table[] = readAndParseJsonFile("/fakeCombiningTables.json");
+  const fakeDistributions: Distributions[] = readAndParseJsonFile("/fakeDistributions.json");
+  const fakeDistributionCauseAreas: Distribution_cause_areas[] = readAndParseJsonFile(
+    "/fakeDistributionCauseAreas.json",
+  );
+  const fakeDistributionCauseAreaOrganizations: Distribution_cause_area_organizations[] =
+    readAndParseJsonFile("/fakeDistributionCauseAreaOrganizations.json");
   const fakeReferralTypes: Referral_types[] = readAndParseJsonFile("/fakeReferralTypes.json");
   const fakeDataOwner: Data_owner[] = readAndParseJsonFile("/fakeDataOwner.json");
 
-  await prisma.donors.createMany({ data: fakeDonors });
+  await prisma.data_owner.createMany({ data: fakeDataOwner });
   await prisma.payment.createMany({ data: fakePayments });
+  await prisma.donors.createMany({ data: fakeDonors });
+  await prisma.cause_areas.createMany({ data: fakeCauseAreas });
   await prisma.organizations.createMany({ data: fakeOrganizations });
   await prisma.tax_unit.createMany({ data: fakeTaxUnits });
+  await prisma.distributions.createMany({ data: fakeDistributions });
+  await prisma.distribution_cause_areas.createMany({ data: fakeDistributionCauseAreas });
+  await prisma.distribution_cause_area_organizations.createMany({
+    data: fakeDistributionCauseAreaOrganizations,
+  });
   await prisma.donations.createMany({ data: fakeDonations });
   await prisma.payment_intent.createMany({ data: fakePaymentIntents });
-  await prisma.distribution.createMany({ data: fakeDistributions });
-  await prisma.combining_table.createMany({ data: fakeCombiningTables });
   await prisma.referral_types.createMany({ data: fakeReferralTypes });
-  await prisma.data_owner.createMany({ data: fakeDataOwner });
 }
 
 function readAndParseJsonFile(path: string) {
