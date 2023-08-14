@@ -135,7 +135,43 @@ ALTER TABLE `Organizations` ADD COLUMN `cause_area_ID` INTEGER NOT NULL DEFAULT 
 ALTER TABLE `Paypal_historic_distributions` MODIFY `KID` VARCHAR(191) NOT NULL;
 
 -- AlterTable remove foreign key FK_replacement_KID_to_Combining_table
-ALTER TABLE `AvtaleGiro_replaced_distributions` DROP FOREIGN KEY `FK_replacement_KID_to_Combining_table`;
+/*
+    Purpose: Drop the foreign key 'FK_replacement_KID_to_Combining_table' from the table 'AvtaleGiro_replaced_distributions' if it exists.
+
+    Rationale:
+    MySQL does not provide a straightforward "DROP FOREIGN KEY IF EXISTS" command. To achieve this behavior, 
+    we use a three-step process:
+    1. Create a temporary stored procedure to encapsulate the logic of checking for the foreign key's existence and then dropping it.
+    2. Call the stored procedure.
+    3. Drop the temporary stored procedure to clean up.
+
+    This way, we get the desired behavior in an all-in-one SQL solution without leaving any remnants or requiring external scripting.
+
+    The reason we have to add this caveat is that the production schema has a foreign key constraint on the table which was not added
+    in the prisma schema. I'm not sure why, but this circumvents the problem.
+*/
+
+-- 1. Create the procedure
+CREATE PROCEDURE DropForeignKeyIfExist()
+BEGIN
+    DECLARE _foreignKeyExists INT DEFAULT 0;
+
+    SELECT COUNT(*) INTO _foreignKeyExists
+    FROM information_schema.KEY_COLUMN_USAGE
+    WHERE table_name = 'AvtaleGiro_replaced_distributions'
+    AND constraint_name = 'FK_replacement_KID_to_Combining_table'
+    AND table_schema = DATABASE();
+
+    IF _foreignKeyExists > 0 THEN
+        ALTER TABLE `AvtaleGiro_replaced_distributions` DROP FOREIGN KEY `FK_replacement_KID_to_Combining_table`;
+    END IF;
+END;
+
+-- 2. Call the procedure
+CALL DropForeignKeyIfExist();
+
+-- 3. Drop the procedure
+DROP PROCEDURE DropForeignKeyIfExist;
 
 -- AlterTable
 ALTER TABLE `Referral_records` DROP COLUMN `UserID`,
