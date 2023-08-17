@@ -3,6 +3,28 @@ import { Donor } from "../../schemas/types";
 import { DAO } from "../DAO";
 
 //region Get
+
+/**
+ * Gets all donors from the database with a limit and offset
+ * @param limit How many donors to get
+ * @param offset How many donors to skip
+ * @returns {Donor[]}
+ */
+async function getAll(limit: number, offset: number): Promise<Donor[]> {
+  var [result] = await DAO.query(`SELECT * FROM Donors LIMIT ? OFFSET ?`, [limit, offset]);
+
+  return result.map((donor) => {
+    return {
+      id: donor.ID,
+      name: donor.full_name,
+      email: donor.email,
+      registered: donor.date_registered,
+      newsletter: donor.newsletter === 1,
+      trash: donor.trash,
+    };
+  });
+}
+
 /**
  * Gets the ID of a Donor based on their email
  * @param {String} email An email
@@ -309,6 +331,7 @@ async function deleteById(donorID) {
 //endregion
 
 export const donors = {
+  getAll,
   getByID,
   getIDbyEmail,
   getByKID,

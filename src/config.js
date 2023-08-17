@@ -22,6 +22,7 @@ module.exports = {
   mailgun_api_key: process.env.MAILGUN_API_KEY,
   mailchimp_api_key: process.env.MAILCHIMP_API_KEY,
   mailchimp_audience_id: process.env.MAILCHIMP_AUDIENCE_ID,
+  mailchimp_server: process.env.MAILCHIMP_SERVER,
 
   vipps_client_id: process.env.VIPPS_CLIENT_ID,
   vipps_client_secret: process.env.VIPPS_CLIENT_SECRET,
