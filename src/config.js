@@ -67,7 +67,7 @@ module.exports = {
   authorizationRequired: process.env.AUTH_REQUIRED == false ? false : true,
 
   //Debugging
-  debugReturnExceptions: true,
+  debugReturnExceptions: process.env.NODE_ENV === "development",
 
   // Auth0
   authAudience: process.env.AUTH_AUDIENCE,
