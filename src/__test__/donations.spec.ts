@@ -26,9 +26,8 @@ describe("donations", () => {
       let donorsAddStub: sinon.SinonStub;
       let addTaxUnitStub: sinon.SinonStub;
       let taxGetByDonorIdAndSsnStub: sinon.SinonStub;
-      let createDonationSplitArrayStub: sinon.SinonStub;
-      let getStandardSplitStub: sinon.SinonStub;
       let createKIDStub: sinon.SinonStub;
+      let distributionsGetStandardDistributionByCauseAreaIDStub: sinon.SinonStub;
       let distributionsGetKIDBySplitStub: sinon.SinonStub;
       let distributionsAddStub: sinon.SinonStub;
       let addPaymentIntentStub: sinon.SinonStub;
@@ -41,16 +40,12 @@ describe("donations", () => {
         donorsGetByIDStub.resolves(donor);
       }
 
-      function withDonationSplit(
-        donationSplitArray: Awaited<ReturnType<typeof donationHelpers.createDonationSplitArray>>,
+      function withCauseAreaStandardDistribution(
+        distribution: Awaited<
+          ReturnType<typeof DAO.distributions.getStandardDistributionByCauseAreaID>
+        >,
       ): void {
-        createDonationSplitArrayStub.returns(donationSplitArray);
-      }
-
-      function withDonationStandardSplit(
-        donationStandardSplit: Awaited<ReturnType<typeof donationHelpers.getStandardSplit>>,
-      ): void {
-        getStandardSplitStub.returns(donationStandardSplit);
+        distributionsGetStandardDistributionByCauseAreaIDStub.returns(distribution);
       }
 
       function withCreatedKID(KID: string) {
@@ -76,8 +71,10 @@ describe("donations", () => {
         donorsGetByIDStub = sinon.stub(DAO.donors, "getByID");
         donorsAddStub = sinon.stub(DAO.donors, "add");
         addTaxUnitStub = sinon.stub(DAO.tax, "addTaxUnit");
-        createDonationSplitArrayStub = sinon.stub(donationHelpers, "createDonationSplitArray");
-        getStandardSplitStub = sinon.stub(donationHelpers, "getStandardSplit");
+        distributionsGetStandardDistributionByCauseAreaIDStub = sinon.stub(
+          DAO.distributions,
+          "getStandardDistributionByCauseAreaID",
+        );
         createKIDStub = sinon.stub(donationHelpers, "createKID");
         distributionsGetKIDBySplitStub = sinon.stub(DAO.distributions, "getKIDbySplit");
         distributionsAddStub = sinon.stub(DAO.distributions, "add");
@@ -86,8 +83,7 @@ describe("donations", () => {
         taxGetByDonorIdAndSsnStub = sinon.stub(DAO.tax, "getByDonorIdAndSsn");
 
         withDonor(null);
-        withDonationSplit([]);
-        withDonationStandardSplit([]);
+        withCauseAreaStandardDistribution([]);
         withDistributionsKID();
         withReferralAnswered(false);
       });

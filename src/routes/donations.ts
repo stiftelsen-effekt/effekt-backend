@@ -83,7 +83,6 @@ router.post("/register", async (req, res, next) => {
       KID: string;
       donorID: number | null;
       taxUnitId: number;
-      standardSplit?: boolean;
     } = {
       amount: parsedData.amount,
       method: parsedData.method,
@@ -91,7 +90,6 @@ router.post("/register", async (req, res, next) => {
       KID: null, //Set later in code
       donorID: null, //Set later in code
       taxUnitId: null, //Set later in code
-      standardSplit: undefined,
     };
 
     //Check if existing donor
