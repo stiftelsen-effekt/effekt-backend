@@ -1,5 +1,14 @@
 [
   {
+    "ID": 1,
+    "name": "Global health and development",
+    "short_desc": "Global health and development",
+    "long_desc": "Global health and development",
+    "info_url": "https://www.charitynavigator.org/index.cfm?bay=content.view&cpid=48",
+    "is_active": 1,
+    "ordering": 1
+  },
+  {
     "ID": 2,
     "name": "Animal welfare",
     "short_desc": "Animal welfare",
