@@ -60,7 +60,7 @@ export const DAO = {
    * Sets up a connection to the database, uses config.js file for parameters
    * @param {function} cb Callback for when DAO has been sucessfully set up
    */
-  connect: async function (cb) {
+  connect: async function (cb?: () => void) {
     const args = {
       user: config.db_username,
       password: config.db_password,
@@ -89,7 +89,7 @@ export const DAO = {
     } catch (ex) {
       console.error("Connection to database failed! | Using database " + config.db_name);
       console.log(ex);
-      process.exit();
+      process.exit(1);
     }
 
     cb();
