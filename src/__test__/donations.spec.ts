@@ -90,6 +90,7 @@ describe("donations", () => {
 
       it("should add a new donor if donor does not exist", async () => {
         const body = {
+          distributionCauseAreas: [],
           donor: {
             email: "test@example.com",
             name: "Test Testsson",
@@ -111,6 +112,7 @@ describe("donations", () => {
         donorsAddStub.resolves(donorId);
 
         const body = {
+          distributionCauseAreas: [],
           donor: {
             name: "Test Testsson",
             ssn: "1234567890",
@@ -129,6 +131,7 @@ describe("donations", () => {
         withDonor({ id: 123 });
 
         const body = {
+          distributionCauseAreas: [],
           donor: {
             name: "Test Testsson",
             ssn: "1234567890",
@@ -145,6 +148,7 @@ describe("donations", () => {
         const stub = sinon.stub(swish, "initiateOrder");
 
         const body = {
+          distributionCauseAreas: [],
           method: methods.SWISH,
           phone: "46701234567",
           amount: 100,
