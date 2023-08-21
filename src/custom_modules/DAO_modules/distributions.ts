@@ -192,34 +192,6 @@ async function KIDexists(KID) {
 async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promise<string | null> {
   // TOOD? If donor only has one tax unit, always use that one?
 
-  // Validate input
-  // Must have one or more cause areas
-  if (input.causeAreas.length === 0) {
-    throw new Error("Must have one or more cause areas");
-  }
-
-  // Cause areas share must sum to 100
-  const causeAreaShareSum = input.causeAreas.reduce(
-    (sum, causeArea) => sum + parseFloat(causeArea.percentageShare),
-    0,
-  );
-  if (causeAreaShareSum !== 100) {
-    throw new Error(`Cause area share must sum to 100, but was ${causeAreaShareSum}`);
-  }
-
-  // Organization share must sum to 100 within each cause area
-  input.causeAreas.forEach((causeArea) => {
-    const orgShareSum = causeArea.organizations.reduce(
-      (sum, org) => sum + parseFloat(org.percentageShare),
-      0,
-    );
-    if (orgShareSum !== 100) {
-      throw new Error(
-        `Organization share must sum to 100 within each cause area, but was ${orgShareSum} for cause area ${causeArea.id}`,
-      );
-    }
-  });
-
   /**
    * This is a fairly complex query, so here's a breakdown of what it does:
    *

@@ -13,6 +13,7 @@ import methods from "../enums/methods";
 import bodyParser from "body-parser";
 import apicache from "apicache";
 import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
+import { validateCauseAreaInput } from "../custom_modules/distributions";
 
 const config = require("../config");
 
@@ -65,6 +66,13 @@ router.post("/register", async (req, res, next) => {
   };
 
   if (!parsedData || Object.entries(parsedData).length === 0) return res.sendStatus(400);
+
+  try {
+    validateCauseAreaInput(parsedData.distributionCauseAreas);
+  } catch (err) {
+    err.status = 400;
+    return next(err);
+  }
 
   if (parsedData.method === methods.SWISH) {
     if (!parsedData.phone) return res.status(400).send("Missing phone number");
