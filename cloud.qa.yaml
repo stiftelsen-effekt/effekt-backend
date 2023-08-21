@@ -11,3 +11,6 @@ steps:
   - name: "gcr.io/cloud-builders/npm:lts"
     waitFor: ["install"]
     args: ["run", "format:check"]
+  - name: "gcr.io/cloud-builders/npm:lts"
+    waitFor: ["install"]
+    args: ["run", "validate"]
