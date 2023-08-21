@@ -8,6 +8,7 @@ import { donationHelpers } from "../custom_modules/donationHelpers";
 import * as swish from "../custom_modules/swish";
 import methods from "../enums/methods";
 import donationsRouter from "../routes/donations";
+import { components } from "../schemas/specs/distribution";
 
 describe("donations", () => {
   describe("routes", () => {
@@ -21,6 +22,17 @@ describe("donations", () => {
     });
 
     describe("POST /donations/register", () => {
+      const defaultBody = {
+        donor: {},
+        distributionCauseAreas: [
+          {
+            id: 1,
+            standardSplit: true,
+            percentageShare: "100.00",
+          },
+        ],
+      };
+
       let donorsGetIDByEmailStub: sinon.SinonStub;
       let donorsGetByIDStub: sinon.SinonStub;
       let donorsAddStub: sinon.SinonStub;
@@ -88,9 +100,13 @@ describe("donations", () => {
         withReferralAnswered(false);
       });
 
+      it("should return 200", async () => {
+        await request(server).post("/donations/register").send(defaultBody).expect(200);
+      });
+
       it("should add a new donor if donor does not exist", async () => {
         const body = {
-          distributionCauseAreas: [],
+          ...defaultBody,
           donor: {
             email: "test@example.com",
             name: "Test Testsson",
@@ -112,7 +128,7 @@ describe("donations", () => {
         donorsAddStub.resolves(donorId);
 
         const body = {
-          distributionCauseAreas: [],
+          ...defaultBody,
           donor: {
             name: "Test Testsson",
             ssn: "1234567890",
@@ -131,11 +147,7 @@ describe("donations", () => {
         withDonor({ id: 123 });
 
         const body = {
-          distributionCauseAreas: [],
-          donor: {
-            name: "Test Testsson",
-            ssn: "1234567890",
-          },
+          ...defaultBody,
         };
         await request(server).post("/donations/register").send(body).expect(200);
 
@@ -148,12 +160,11 @@ describe("donations", () => {
         const stub = sinon.stub(swish, "initiateOrder");
 
         const body = {
-          distributionCauseAreas: [],
+          ...defaultBody,
           method: methods.SWISH,
           phone: "46701234567",
           amount: 100,
           recurring: false,
-          donor: {},
         };
         await request(server).post("/donations/register").send(body).expect(200);
 
@@ -164,6 +175,67 @@ describe("donations", () => {
 
       it("should return 400 if missing body", async () => {
         await request(server).post("/donations/register").send(undefined).expect(400);
+      });
+
+      it("should return 400 if missing distribution cause areas", () => {
+        const body = {
+          ...defaultBody,
+          distributionCauseAreas: undefined,
+        };
+        return request(server).post("/donations/register").send(body).expect(400);
+      });
+
+      it("should return 400 if empty distribution cause areas", () => {
+        const body = {
+          ...defaultBody,
+          distributionCauseAreas: [],
+        };
+        return request(server).post("/donations/register").send(body).expect(400);
+      });
+
+      it("should return 400 if distribution cause areas doesn't sum to 100", () => {
+        const body = {
+          ...defaultBody,
+          distributionCauseAreas: [
+            {
+              id: 1,
+              standardSplit: true,
+              percentageShare: "50.00",
+            },
+            {
+              id: 2,
+              standardSplit: true,
+              percentageShare: "70.00",
+            },
+          ],
+        };
+
+        return request(server).post("/donations/register").send(body).expect(400);
+      });
+
+      it("should return 400 if distribution cause area split doesn't sum to 100 ", () => {
+        const body = {
+          ...defaultBody,
+          distributionCauseAreas: [
+            {
+              id: 1,
+              standardSplit: false,
+              percentageShare: "100.00",
+              organizations: [
+                {
+                  id: 1,
+                  percentageShare: "50.00",
+                },
+                {
+                  id: 2,
+                  percentageShare: "70.00",
+                },
+              ],
+            },
+          ],
+        };
+
+        return request(server).post("/donations/register").send(body).expect(400);
       });
 
       it("should return 400 if badly formatted phone for swish", async () => {
