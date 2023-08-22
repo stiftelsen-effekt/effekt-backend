@@ -368,8 +368,6 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
     HAVING SUM(CauseAreasOrgSum) = 100;
   `;
 
-  console.log(query);
-
   const [res] = await DAO.query(query, [input.donorId, input.taxUnitId, input.taxUnitId]);
 
   const filteredDistributions = res.filter((row) => row.KID.length > minKidLength);
@@ -444,8 +442,6 @@ async function getSplitByKID(KID: string): Promise<Distribution> {
 async function getStandardDistributionByCauseAreaID(
   causeAreaID: number,
 ): Promise<DistributionCauseAreaOrganization[]> {
-  console.log(causeAreaID);
-
   let [result] = await DAO.query<Organizations[]>(
     `
         SELECT
@@ -533,14 +529,10 @@ async function add(
       metaOwnerID = await DAO.meta.getDefaultOwnerID();
     }
 
-    console.log(distribution);
-
     const [distributionResult] = await transaction.query<ResultSetHeader>(
       `INSERT INTO Distributions (KID, Donor_ID, Tax_unit_ID, Meta_Owner_ID) VALUES (?, ?, ?, ?);`,
       [distribution.kid, distribution.donorId, distribution.taxUnitId, metaOwnerID],
     );
-
-    console.log(distributionResult);
 
     if (distributionResult.affectedRows !== 1) {
       throw new Error("Could not add distribution");
@@ -571,8 +563,6 @@ async function add(
       ),
     );
 
-    console.log(distributionCauseAreaInserts);
-
     const distributionCauseAreaOrganizationInsertsRowValues = [];
     for (const causeAreaInsert of distributionCauseAreaInserts) {
       const causeArea = distribution.causeAreas.find(
@@ -595,8 +585,6 @@ async function add(
       `INSERT INTO Distribution_cause_area_organizations (Distribution_cause_area_ID, Organization_ID, Percentage_share) VALUES ?;`,
       [distributionCauseAreaOrganizationInsertsRowValues],
     );
-
-    console.log(distributionCauseAreaOrganizationInsert);
 
     await DAO.commitTransaction(transaction);
     return true;
