@@ -142,7 +142,7 @@ DAO.connect(() => {
   const facebookRoute = require("./routes/facebook");
   const loggingRoute = require("./routes/logging");
   const mailRoute = require("./routes/mail");
-  const avtaleGiroRoute = require("./routes/avtalegiro");
+  const avtaleGiroRoute = require("./routes/avtalegiro").default;
   const taxRoute = require("./routes/tax");
 
   app.use("/donors", donorsRoute);

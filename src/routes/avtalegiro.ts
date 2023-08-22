@@ -356,7 +356,7 @@ router.post(
       await sendAvtaleGiroChange(originalKID, "SHARES", split);
       res.send(response);
     } catch (ex) {
-      next({ ex });
+      next(ex);
     }
   },
 );
@@ -512,4 +512,4 @@ router.get("/donations/:kid", authMiddleware.isAdmin, async (req, res, next) => 
   }
 });
 
-module.exports = router;
+export default router;
