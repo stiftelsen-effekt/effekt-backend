@@ -69,13 +69,13 @@ async function getAll(page = 0, limit = 10, sort, filter = null) {
  * @returns {{
  *  donorID: number,
  *  distributions: [{
- *      KID: number,
- *      organizations: [{
+ *      kid: number,
+ *      shares: [{
  *          name: string,
  *          share: number
  *      }]}]}}
  */
-async function getAllByDonor(donorID) {
+async function getAllByDonor(donorID: number) {
   var [res] = await DAO.query(
     `select Donors.ID as donID, Combining_table.KID as KID, Distribution.ID, Organizations.ID as orgId, Organizations.full_name, Distribution.percentage_share 
     from Donors
@@ -88,7 +88,14 @@ async function getAllByDonor(donorID) {
 
   var distObj = {
     donorID: donorID,
-    distributions: [],
+    distributions: [] as Array<{
+      kid: string;
+      shares: Array<{
+        id: number;
+        name: string;
+        share: number;
+      }>;
+    }>,
   };
 
   // Finds all unique KID numbers

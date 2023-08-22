@@ -7,11 +7,6 @@ import request from "supertest";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 
-let donorUpdateStub: sinon.SinonStub;
-let agreementStub: sinon.SinonStub;
-let donorStub: sinon.SinonStub;
-let checkDonorStub: sinon.SinonStub;
-
 const jack = {
   id: 237,
   name: "Jack Torrance",
@@ -101,10 +96,15 @@ const mockAgreementsVipps = [
 ];
 
 describe("donors", () => {
+  let donorUpdateStub: sinon.SinonStub;
+  let agreementStub: sinon.SinonStub;
+  let donorStub: sinon.SinonStub;
+  let checkDonorStub: sinon.SinonStub;
+
   describe("routes", () => {
     let server: express.Express;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       server = express();
       server.use(bodyParser.json());
       server.use(bodyParser.urlencoded({ extended: true }));
@@ -112,7 +112,7 @@ describe("donors", () => {
       // This must be stubbed before importing the routes
       sinon.stub(authMiddleware, "auth").returns([]);
 
-      const donorsRouter = require("../routes/donors");
+      const { default: donorsRouter } = await import("../routes/donors");
       server.use("/donors", donorsRouter);
 
       checkDonorStub = sinon
@@ -208,6 +208,63 @@ describe("donors", () => {
         });
         expect(response.status).to.equal(400);
         expect(donorUpdateStub.callCount).to.equal(0);
+      });
+    });
+
+    describe("GET /donors/:id/distributions", () => {
+      let donorDistributionsStub: sinon.SinonStub;
+      let taxUnitByKIDStub: sinon.SinonStub;
+      let isStandardDistributionStub: sinon.SinonStub;
+
+      beforeEach(function () {
+        donorDistributionsStub = sinon.stub(DAO.distributions, "getAllByDonor");
+        taxUnitByKIDStub = sinon.stub(DAO.tax, "getByKID");
+        isStandardDistributionStub = sinon.stub(DAO.distributions, "isStandardDistribution");
+      });
+
+      function withDonorDistributions(
+        distributions: Partial<Awaited<ReturnType<typeof DAO.distributions.getAllByDonor>>>,
+      ) {
+        donorDistributionsStub.resolves(distributions);
+      }
+
+      function withTaxUnits(
+        entries: Array<[string, Partial<Awaited<ReturnType<typeof DAO.tax.getByKID>>>]>,
+      ) {
+        for (const [kid, taxUnit] of entries) {
+          taxUnitByKIDStub.withArgs(kid).resolves(taxUnit);
+        }
+      }
+
+      function withStandardDistributionKIDs(kids: string[]) {
+        isStandardDistributionStub.callsFake((kid) => kids.includes(kid));
+      }
+
+      beforeEach(function () {
+        withDonorDistributions({ distributions: [] });
+      });
+
+      it("should return 200", async () => {
+        const response = await request(server).get("/donors/237/distributions").expect(200);
+        expect(response.body.status).to.equal(200);
+      });
+
+      it("should return distribution tax units", async () => {
+        const kid = "12345678901";
+        withDonorDistributions({
+          distributions: [
+            {
+              kid,
+              shares: [],
+            },
+          ],
+        });
+        withStandardDistributionKIDs([kid]);
+        const taxUnit = { id: 3 };
+        withTaxUnits([[kid, taxUnit]]);
+        const response = await request(server).get("/donors/237/distributions").expect(200);
+        expect(response.body.content[0].taxUnit).to.deep.equal(taxUnit);
+        expect(response.body.content[0].standardDistribution).to.equal(true);
       });
     });
 

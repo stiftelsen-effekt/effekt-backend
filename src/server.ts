@@ -127,7 +127,7 @@ DAO.connect(() => {
   const mainServer = http.createServer(app);
 
   //Routes
-  const donorsRoute = require("./routes/donors");
+  const donorsRoute = require("./routes/donors").default;
   const donationsRoute = require("./routes/donations").default;
   const distributionsRoute = require("./routes/distributions");
   const organizationsRoute = require("./routes/organizations");

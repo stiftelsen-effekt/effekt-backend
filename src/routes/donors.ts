@@ -1192,8 +1192,8 @@ router.get(
       const results = await Promise.all(requests);
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
-        distributions[result.index].taxUnit = result.taxUnit;
-        distributions[result.index].standardDistribution = result.standardDistribution;
+        (distributions[result.index] as any).taxUnit = result.taxUnit;
+        (distributions[result.index] as any).standardDistribution = result.standardDistribution;
       }
 
       return res.json({
@@ -1469,4 +1469,4 @@ router.post("/id/email/name", authMiddleware.isAdmin, async (req, res, next) => 
   }
 });
 
-module.exports = router;
+export default router;
