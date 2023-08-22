@@ -356,7 +356,7 @@ router.post(
       await sendAvtaleGiroChange(originalKID, "SHARES", split);
       res.send(response);
     } catch (ex) {
-      next(ex);
+      next({ ex });
     }
   },
 );
