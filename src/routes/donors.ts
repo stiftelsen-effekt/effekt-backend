@@ -774,72 +774,79 @@ router.delete(
  *      404:
  *        description: Tax unit with given id not found
  */
-router.put("/:id/taxunits/:taxunitid", async (req, res, next) => {
-  try {
-    const id = req.params.id;
-    const taxUnitId = parseInt(req.params.taxunitid);
-    const taxUnit = req.body.taxUnit;
-    const ssn = taxUnit.ssn;
+router.put(
+  "/:id/taxunits/:taxunitid",
+  authMiddleware.auth(permissions.write_profile),
+  (req, res, next) => {
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const id = req.params.id;
+      const taxUnitId = parseInt(req.params.taxunitid);
+      const taxUnit = req.body.taxUnit;
+      const ssn = taxUnit.ssn;
 
-    if (!id || !taxUnitId || !taxUnit) {
-      res.status(400).json({
-        status: 400,
-        content: "Missing parameters id or taxUnitid or taxUnit in json body",
-      });
-      return;
-    }
+      if (!id || !taxUnitId || !taxUnit) {
+        res.status(400).json({
+          status: 400,
+          content: "Missing parameters id or taxUnitid or taxUnit in json body",
+        });
+        return;
+      }
 
-    if (!taxUnit.name || !taxUnit.ssn) {
-      res.status(400).json({
-        status: 400,
-        content: "Missing parameters name or ssn on tax unit",
-      });
-      return;
-    }
+      if (!taxUnit.name || !taxUnit.ssn) {
+        res.status(400).json({
+          status: 400,
+          content: "Missing parameters name or ssn on tax unit",
+        });
+        return;
+      }
 
-    if (ssn.length === 11) {
-      // Birth number is 11 digits
-      const validation = fnr(ssn);
-      if (validation.status !== "valid") {
+      if (ssn.length === 11) {
+        // Birth number is 11 digits
+        const validation = fnr(ssn);
+        if (validation.status !== "valid") {
+          return res.status(400).json({
+            status: 400,
+            content: "Invalid ssn (failed fnr validation) " + validation.reasons.join(", "),
+          });
+        }
+      } else if (ssn.length === 9) {
+        // Organization number is 9 digits
+        // No validatino performed
+      } else {
         return res.status(400).json({
           status: 400,
-          content: "Invalid ssn (failed fnr validation) " + validation.reasons.join(", "),
+          content: "Invalid ssn (length is not 9 or 11)",
         });
       }
-    } else if (ssn.length === 9) {
-      // Organization number is 9 digits
-      // No validatino performed
-    } else {
-      return res.status(400).json({
-        status: 400,
-        content: "Invalid ssn (length is not 9 or 11)",
-      });
-    }
 
-    const donor = await DAO.donors.getByID(req.params.id);
-    if (!donor) {
-      return res.status(404).json({
-        status: 404,
-        content: "No donor found with ID " + req.params.id,
-      });
-    }
+      const donor = await DAO.donors.getByID(req.params.id);
+      if (!donor) {
+        return res.status(404).json({
+          status: 404,
+          content: "No donor found with ID " + req.params.id,
+        });
+      }
 
-    const changed = await DAO.tax.updateTaxUnit(taxUnitId, taxUnit);
-    if (changed) {
-      res.json({
-        status: 200,
-        content: taxUnit,
-      });
-    } else {
-      res.json({
-        status: 500,
-        content: "Could not update tax unit",
-      });
+      const changed = await DAO.tax.updateTaxUnit(taxUnitId, taxUnit);
+      if (changed) {
+        res.json({
+          status: 200,
+          content: taxUnit,
+        });
+      } else {
+        res.json({
+          status: 500,
+          content: "Could not update tax unit",
+        });
+      }
+    } catch (ex) {
+      next(ex);
     }
-  } catch (ex) {
-    next(ex);
-  }
-});
+  },
+);
 
 /**
  * @openapi
