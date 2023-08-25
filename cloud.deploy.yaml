@@ -52,7 +52,7 @@ steps:
       - "deploy"
       - "geeffektivt-dev"
       - "--image"
-      - "gcr.io/$PROJECT_ID/effektapi-dev:latest"
+      - "gcr.io/$PROJECT_ID/effektapi:latest"
       - "--region"
       - "europe-north1"
       - "--platform"
