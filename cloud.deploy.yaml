@@ -34,7 +34,7 @@ steps:
 
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-sweden"
-    waitFor: ["push-build"]
+    waitFor: ["build"]
     args:
       - "run"
       - "jobs"
