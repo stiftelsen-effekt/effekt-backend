@@ -1,4 +1,5 @@
 const fs = require("fs");
+const { join } = require("path");
 
 const getAllowedProductionOrigins = () => {
   const allowedProductionOriginsEnv = process.env.ALLOWED_PRODUCTION_ORIGINS || "";
@@ -29,10 +30,24 @@ module.exports = {
   vipps_merchant_serial_number: process.env.VIPPS_MERCHANT_SERIAL_NUMBER,
   vipps_api_url: process.env.NODE_ENV === "production" ? "api.vipps.no" : "apitest.vipps.no",
 
-  swish_cert: process.env.SWISH_CERT,
-  swish_cert_key: process.env.SWISH_CERT_KEY,
-  swish_payee_alias: process.env.SWISH_PAYEE_ALIAS,
   swish_url: "https://mss.cpc.getswish.net/swish-cpcapi/",
+  swish_cert:
+    process.env.SWISH_CERT ||
+    (process.env.NODE_ENV === "development"
+      ? fs.readFileSync(
+          join(__dirname, "..", "certs", "Swish_Merchant_TestCertificate_1234679304.pem"),
+          "utf8",
+        )
+      : undefined),
+  swish_cert_key:
+    process.env.SWISH_CERT_KEY ||
+    (process.env.NODE_ENV === "development"
+      ? fs.readFileSync(
+          join(__dirname, "..", "certs", "Swish_Merchant_TestCertificate_1234679304.key"),
+          "utf8",
+        )
+      : undefined),
+  swish_payee_alias: process.env.SWISH_PAYEE_ALIAS || "1234679304",
   swish_whitelist: [
     // Production https://developer.swish.nu/documentation/environments#production-environment
     "213.132.115.94",
