@@ -11,8 +11,8 @@
     "typecheck": "tsc --noEmit",
     "build": "copyfiles -u 1 src/views/**/* src/views/**/**/* src/views/**/**/**/* dist/ && tsc",
     "start": "node ./dist/server.js",
-    "dev": "export NODEMON=true && nodemon src/server.ts",
-    "debug": "export NODEMON=true && nodemon --exec 'node --inspect=0.0.0.0:9229 --require ts-node/register src/server.ts'",
+    "dev": "cross-env NODEMON=true NODE_ENV=development nodemon src/server.ts",
+    "debug": "cross-env NODEMON=true nodemon --exec 'node --inspect=0.0.0.0:9229 --require ts-node/register src/server.ts'",
     "generate-types-from-schema": "cd src && openapi-typescript \"specs/**/*.yaml\" --output schemas/",
     "generate-test-data": "ts-node prisma/fakedata/addFakeDataScript.ts",
     "format:check": "prettier --check .",
@@ -85,7 +85,6 @@
     "swagger-jsdoc": "^6.1.0",
     "swagger-ui-express": "^4.2.0",
     "ts-node": "^10.4.0",
-    "typescript": "^4.5.4",
     "validator": "^13.7.0"
   },
   "devDependencies": {
@@ -120,6 +119,7 @@
     "sinon": "^15.0.4",
     "supertest": "^6.1.6",
     "ts-loader": "^9.2.6",
+    "typescript": "^4.5.4",
     "webpack-cli": "^4.9.1"
   },
   "lint-staged": {

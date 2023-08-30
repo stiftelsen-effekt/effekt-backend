@@ -65,20 +65,19 @@ async function createPaymentRequest(data: {
     payeePaymentReference: data.reference,
   };
 
-  const options = {
-    agent: swishAgent,
-    method: "PUT",
-    body: JSON.stringify(swishRequestData),
-    headers: { "Content-Type": "application/json" },
-  };
-
   const url = new URL(
     `/swish-cpcapi/api/v2/paymentrequests/${data.instructionUUID}`,
     config.swish_url,
   );
 
   console.info(`Starting payment initation - id: ${data.instructionUUID}`);
-  const res = await fetch(url, options);
+
+  const res = await fetch(url, {
+    agent: swishAgent,
+    method: "PUT",
+    body: JSON.stringify(swishRequestData),
+    headers: { "Content-Type": "application/json" },
+  });
   const success = res.status === 201;
   if (!success) {
     const body = await res.json();

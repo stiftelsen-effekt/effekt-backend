@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { DAO } from "../DAO";
 
 import sqlString from "sqlstring";
+import { OkPacket, ResultSetHeader } from "mysql2/promise";
 
 export type AvtaleGiroAgreement = {
   id: number;
@@ -154,12 +155,35 @@ async function replaceDistribution(
 }
 
 async function setActive(KID, active) {
-  let res = await DAO.query(`UPDATE Avtalegiro_agreements SET active = ? where KID = ?`, [
-    active,
-    KID,
-  ]);
+  try {
+    var transaction = await DAO.startTransaction();
 
-  return true;
+    let [res] = await transaction.query<ResultSetHeader | OkPacket>(
+      `UPDATE Avtalegiro_agreements SET active = ? WHERE KID = ?`,
+      [active, KID],
+    );
+
+    if (res.affectedRows === 0) {
+      await DAO.rollbackTransaction(transaction);
+      return false;
+    }
+
+    if (!active) {
+      let [res] = await DAO.query<ResultSetHeader | OkPacket>(
+        `UPDATE Avtalegiro_agreements SET cancelled = NOW() WHERE KID = ?`,
+        [KID],
+      );
+      if (res.affectedRows === 0) {
+        await DAO.rollbackTransaction(transaction);
+        return false;
+      }
+    }
+
+    return true;
+  } catch (ex) {
+    if (transaction) await DAO.rollbackTransaction(transaction);
+    throw ex;
+  }
 }
 
 async function isActive(KID) {
