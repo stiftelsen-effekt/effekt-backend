@@ -65,6 +65,7 @@
     "ip-range-check": "^0.2.0",
     "jsonfile": "^4.0.0",
     "luxon": "^1.25.0",
+    "mailersend": "^2.2.0",
     "mime": "^2.4.6",
     "moment": "^2.29.4",
     "morgan": "^1.10.0",
@@ -84,8 +85,8 @@
     "ssh2-sftp-client": "^9.1.0",
     "swagger-jsdoc": "^6.1.0",
     "swagger-ui-express": "^4.2.0",
-    "typescript": "^4.5.4",
     "ts-node": "^10.4.0",
+    "typescript": "^4.5.4",
     "validator": "^13.7.0"
   },
   "devDependencies": {

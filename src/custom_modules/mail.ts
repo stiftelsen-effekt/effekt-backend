@@ -9,6 +9,8 @@ const template = require("./template");
 import request from "request-promise-native";
 import fs from "fs-extra";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
+import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
+import { APIResponse } from "mailersend/lib/services/request.service";
 
 /**
  * @typedef VippsAgreement
@@ -166,32 +168,67 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     return false;
   }
 
+  const outputs = [];
+
+  for (const share of split) {
+    if (share.id === 12) {
+      console.log("GiveWell");
+    } else {
+      const url = `https://impact.gieffektivt.no/api/evaluations?charity_abbreviation=${
+        share.abbriv
+      }&currency=NOK&language=NO&donation_year=${moment(
+        donation.timestamp,
+      ).year()}&donation_month=${moment(donation.timestamp).month()}`;
+      console.log(url);
+      const request = await fetch(url);
+      const result = await request.json();
+
+      console.log(
+        "Outputs",
+        ((parseFloat(share.share) / 100) * donation.sum) /
+          result.evaluations[0].converted_cost_per_output,
+      );
+
+      console.log(result.evaluations);
+      console.log(result.evaluations[0].intervention);
+    }
+  }
+
   let organizations = formatOrganizationsFromSplit(split, donation.sum);
 
-  try {
-    await send({
-      reciever: reciever ? reciever : donation.email,
-      subject: "Gi Effektivt - Din donasjon er mottatt",
-      templateName: "reciept",
-      templateData: {
-        header:
-          "Hei" + (donation.donor && donation.donor.length > 0 ? " " + donation.donor : "") + ",",
-        donationSum: formatCurrency(donation.sum),
-        organizations: organizations,
-        donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-        paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
-        //Adds a message to donations with inactive organizations
-        hasReplacedOrgs,
-        hasSciInDistribution,
-        reusableHTML,
-      },
-    });
+  const mailResult = await sendTemplate(
+    "donasjon@gieffektivt.no",
+    donation.email,
+    "Donasjon mottatt",
+    config.mailersend_donation_receipt_template_id,
+    {
+      donorName: donation.donor,
+      donationKID: donation.KID,
+      donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
+      paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
+      donationTotalSum: formatCurrency(donation.sum) + " kr",
+    },
+    {
+      organizations,
+      outputs: [],
+    },
+  );
 
-    return true;
-  } catch (ex) {
+  /**
+   * HTTP 202 is the status code for accepted
+   * If the mail was not accepted, log the error and return false
+   * If the mail was accepted, return true
+   * Accepted means that the mail was sent to the mail server, not that it was delivered
+   * It is scheduled for delivery
+   */
+  if (mailResult === false) {
+    return false;
+  } else if (mailResult.statusCode !== 202) {
     console.error("Failed to send donation reciept");
-    console.error(ex);
-    return ex.statusCode;
+    console.error(mailResult);
+    return mailResult.statusCode;
+  } else {
+    return true;
   }
 }
 
@@ -267,15 +304,15 @@ function decideUIPaymentMethod(donationMethod) {
   return donationMethod;
 }
 
-function formatOrganizationsFromSplit(split, sum) {
+function formatOrganizationsFromSplit(split: { full_name: string; share: string }[], sum) {
   return split.map(function (org) {
     var amount = sum * parseFloat(org.share) * 0.01;
     var roundedAmount = amount > 1 ? Math.round(amount) : 1;
 
     return {
       name: org.full_name,
-      amount: (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount),
-      percentage: parseFloat(org.share),
+      sum: (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount) + " kr",
+      percentage: parseFloat(org.share) + "%",
     };
   });
 }
@@ -951,6 +988,69 @@ async function send(options: {
   if (result.statusCode === 200) {
     return true;
   } else {
+    return false;
+  }
+}
+
+/**
+{
+    "donorName": "",
+    "donationKID": "",
+    "donationDate": "",
+    "paymentMethod": "",
+    "donationTotalSum": "",
+    "elements": [
+      {
+          "sum": "",
+          "name": "",
+          "output": "",
+          "percentage": ""
+      }
+    ]
+}
+ */
+async function sendTemplate(
+  from: string,
+  to: string,
+  subject: string,
+  templateId: string,
+  variables: { [key: string]: string },
+  personalization: any,
+): Promise<APIResponse | false> {
+  const mailersend = new MailerSend({
+    apiKey: config.mailersend_api_key,
+  });
+
+  const sentFrom = new Sender(from, "Gi Effektivt");
+  const recipients = [new Recipient(to)];
+
+  const email = new EmailParams()
+    .setFrom(sentFrom)
+    .setTo(recipients)
+    .setTemplateId(templateId)
+    .setVariables([
+      {
+        email: to,
+        substitutions: Object.keys(variables).map((key) => ({
+          var: key,
+          value: variables[key],
+        })),
+      },
+    ])
+    .setPersonalization([
+      {
+        email: to,
+        data: personalization,
+      },
+    ])
+    .setSubject(subject);
+
+  try {
+    const response = await mailersend.email.send(email);
+    return response;
+  } catch (ex) {
+    console.error("Failed to send mailersend email");
+    console.error(ex);
     return false;
   }
 }
