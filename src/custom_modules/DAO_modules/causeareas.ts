@@ -1,4 +1,4 @@
-import { Cause_areas, Donations, Organizations, Swish_order } from "@prisma/client";
+import { Cause_areas, Organizations } from "@prisma/client";
 import { DAO } from "../DAO";
 import { CauseArea, Organization } from "../../schemas/types";
 import { mapOrganization } from "./organizations";

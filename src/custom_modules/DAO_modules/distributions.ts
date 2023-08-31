@@ -1,4 +1,3 @@
-import Decimal from "decimal.js";
 import { DAO } from "../DAO";
 
 import sqlString from "sqlstring";
@@ -6,6 +5,7 @@ import {
   Distribution_cause_area_organizations,
   Distribution_cause_areas,
   Distributions,
+  Donors,
   Organizations,
 } from "@prisma/client";
 import { ResultSetHeader } from "mysql2";
@@ -15,10 +15,19 @@ import {
   DistributionCauseAreaOrganization,
   DistributionInput,
 } from "../../schemas/types";
-import { min } from "moment";
 
+export type DistributionsListFilter = {
+  KID?: string;
+  donor?: string;
+  email?: string;
+};
 //region GET
-async function getAll(page = 0, limit = 10, sort, filter = null) {
+async function getAll(
+  page = 0,
+  limit = 10,
+  sort: { id: string; desc?: boolean },
+  filter: null | DistributionsListFilter = null,
+) {
   let where = [];
   if (filter) {
     if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
@@ -30,43 +39,57 @@ async function getAll(page = 0, limit = 10, sort, filter = null) {
       );
   }
 
-  let queryString = `
+  const queryFrom = `
+    FROM Distributions
+
+    LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
+        ON Donations.KID_fordeling = Distributions.KID
+
+    INNER JOIN Donors
+        ON Distributions.Donor_ID = Donors.ID
+  `;
+
+  const queryGroupBy = `
+    GROUP BY Distributions.KID, Donors.full_name, Donors.email
+  `;
+
+  const queryWhere = where.length > 0 ? "WHERE " + where.join(" AND ") : "";
+
+  const querySelectList = `
+    Distributions.KID,
+    IFNULL(Donations.sum, 0) as sum,
+    IFNULL(Donations.count, 0) as count,
+    Donors.full_name,
+    Donors.email
+  `;
+
+  const queryString = `
         SELECT
-            Combining.KID,
-            Donations.sum,
-            Donations.count,
-            Donors.full_name,
-            Donors.email
+            ${querySelectList}
 
-            FROM Combining_table as Combining
+            ${queryFrom}
+            ${queryWhere}
+            ${queryGroupBy}
 
-            LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
-                ON Donations.KID_fordeling = Combining.KID
-
-            INNER JOIN Donors
-                ON Combining.Donor_ID = Donors.ID
-
-            ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}
-
-            GROUP BY Combining.KID, Donors.full_name, Donors.email
-
-            ORDER BY ${sort.id} ${sort.desc ? " DESC" : ""}
+            ORDER BY ${sort.id} ${sort.desc ? "DESC" : ""}
 
             LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit * page)}`;
 
-  const [rows] = await DAO.query(queryString);
+  const [rows] = await DAO.query<
+    (Pick<Distributions, "KID"> & { sum: number; count: number } & Pick<
+        Donors,
+        "full_name" | "email"
+      >)[]
+  >(queryString);
 
-  const [counter] = await DAO.query(`
-        SELECT COUNT(*) as count 
-            FROM Combining_table as Combining
+  const counterQueryString = `
+  SELECT COUNT(*) as count FROM (SELECT 
+      ${querySelectList}
+      ${queryFrom}
+      ${queryWhere}
+      ${queryGroupBy}) as sub`;
 
-            LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
-                ON Donations.KID_fordeling = Combining.KID
-
-            INNER JOIN Donors
-                ON Combining.Donor_ID = Donors.ID
-
-            ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}`);
+  const [counter] = await DAO.query<{ count: number }[]>(counterQueryString);
 
   const pages = Math.ceil(counter[0].count / limit);
 
