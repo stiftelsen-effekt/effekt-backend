@@ -1,6 +1,8 @@
+import { ErrorRequestHandler } from "express";
+
 const config = require("../config.js");
 
-module.exports = (err, req, res, next) => {
+const handler: ErrorRequestHandler = (err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
@@ -16,3 +18,5 @@ module.exports = (err, req, res, next) => {
     content: err.msg,
   });
 };
+
+export default handler;

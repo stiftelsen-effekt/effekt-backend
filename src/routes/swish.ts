@@ -18,39 +18,36 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
 
 /**
  * @openapi
- * /swish/orders/{KID}:
+ * /swish/orders/{id}/status:
  *    get:
  *      tags: [Swish]
- *      description: Fetches a Swish order by id
- *      parameters:
- *        - in: path
- *          name: KID
- *          required: true
- *          description: KID of the swish order to fetch.
- *          schema:
- *            type: string
- *      responses:
- *        200:
- *          description: Swish order
- *          content:
- *            application/json:
- *              schema:
- *                - type: object
- *                  properties:
- *                    KID:
- *                      type: string
- *                    status:
- *                      type: string
+ *      description: Fetches a Swish order status by ID
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        description: ID of the swish order to fetch.
+ *        schema:
+ *          type: string
+ *    responses:
+ *      200:
+ *        description: Swish order
+ *        content:
+ *          application/json:
+ *            schema:
+ *              - type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *      404:
+ *        description: Swish order not found
  */
-router.get("/orders/:KID", async (req, res, next) => {
+router.get("/orders/:id/status", async (req, res, next) => {
   try {
-    const { KID } = req.params;
-    const order = await swish.getSwishOrder(KID);
+    const { id } = req.params;
+    const order = await swish.getSwishOrder(parseInt(id));
     if (!order) return res.sendStatus(404);
-    res.json({
-      KID: order.KID,
-      status: order.status,
-    });
+    res.json({ status: order.status });
   } catch (err) {
     console.error("Error while fetching payment request: ", err);
     next(err);

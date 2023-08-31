@@ -84,6 +84,7 @@ router.post("/register", async (req, res, next) => {
 
   let donor = parsedData.donor;
   let paymentProviderUrl = "";
+  let orderID = null;
   let recurring = parsedData.recurring;
 
   try {
@@ -208,13 +209,14 @@ router.post("/register", async (req, res, next) => {
       }
       case methods.SWISH: {
         if (recurring == false) {
-          await swish.initiateOrder(donationObject.KID, {
+          const res = await swish.initiateOrder(donationObject.KID, {
             phone: parsedData.phone,
             amount:
               typeof donationObject.amount === "string"
                 ? parseInt(donationObject.amount)
                 : donationObject.amount,
           });
+          orderID = res.orderID;
         }
         break;
       }
@@ -245,6 +247,7 @@ router.post("/register", async (req, res, next) => {
       donorID: donationObject.donorID,
       hasAnsweredReferral,
       paymentProviderUrl,
+      swishOrderID: orderID,
     },
   });
 });

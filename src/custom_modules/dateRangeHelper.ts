@@ -1,4 +1,4 @@
-import * as moment from "moment";
+import moment from "moment";
 
 module.exports = {
   /** A function that checks for the parameters formDate and toDate, and returns JS Date objects coresponding. Throws exception if errors.
@@ -17,8 +17,8 @@ module.exports = {
 
     //Check if dates are valid ISO 8601
     if (
-      !(moment as any)(fromDate, moment.ISO_8601, true).isValid() ||
-      !(moment as any)(toDate, moment.ISO_8601, true).isValid()
+      !moment(fromDate, moment.ISO_8601, true).isValid() ||
+      !moment(toDate, moment.ISO_8601, true).isValid()
     )
       throw new Error("Dates must be in ISO 8601 format");
 

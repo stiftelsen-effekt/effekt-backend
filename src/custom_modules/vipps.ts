@@ -4,7 +4,7 @@ import { sendDonationReceipt, sendVippsErrorWarning } from "./mail";
 
 const config = require("./../config");
 import crypto from "crypto";
-const paymentMethods = require("../enums/paymentMethods");
+import paymentMethods from "../enums/paymentMethods";
 import request from "request-promise-native";
 const mail = require("../custom_modules/mail");
 import moment from "moment";

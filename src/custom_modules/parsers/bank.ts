@@ -1,4 +1,4 @@
-import * as moment from "moment";
+import moment from "moment";
 import { parse } from "csv-parse/sync";
 
 const parseUtil = require("./util");

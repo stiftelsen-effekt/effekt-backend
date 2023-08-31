@@ -1,9 +1,9 @@
 import { DAO } from "../../custom_modules/DAO";
 import { sendDonationReceipt } from "../../custom_modules/mail";
 import { parseReport } from "../../custom_modules/parsers/vipps";
+import payment from "../../enums/paymentMethods";
 
 const config = require("../../config");
-const payment = require("../../enums/paymentMethods");
 
 module.exports = async (req, res, next) => {
   if (!req.files || !req.files.report) return res.sendStatus(400);
