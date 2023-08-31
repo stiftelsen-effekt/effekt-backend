@@ -961,7 +961,19 @@ export async function sendOcrBackup(fileContents) {
  * @param {MailOptions} options
  * @returns {boolean | number} True if success, status code else
  */
-async function send(options) {
+async function send(options: {
+  reciever: string;
+  subject: string;
+  templateName: string;
+  templateData: Record<string, any>;
+}) {
+  if (!config.mailgun_api_key && config.env === "development") {
+    console.log(
+      `Missing mailgun API key not set, not sending email to ${options.reciever}: ${options.subject}`,
+    );
+    return true;
+  }
+
   const templateRoot = `./${process.env.NODEMON ? "src" : "dist"}/views/mail/${
     options.templateName
   }`;

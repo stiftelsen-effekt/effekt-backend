@@ -32,4 +32,31 @@ steps:
       - "managed"
       - "--allow-unauthenticated"
 
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "reset-db-sweden"
+    waitFor: ["build"]
+    args:
+      - "run"
+      - "jobs"
+      - "execute"
+      - "geeffektivt-dev-db-reset"
+      - "--region"
+      - "europe-north1"
+      - "--wait"
+
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "deploy-sweden"
+    waitFor: ["reset-db-sweden"]
+    args:
+      - "run"
+      - "deploy"
+      - "geeffektivt-dev"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/effektapi:latest"
+      - "--region"
+      - "europe-north1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+
 images: ["gcr.io/$PROJECT_ID/effektapi:latest"]

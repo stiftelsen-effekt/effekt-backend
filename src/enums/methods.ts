@@ -1,7 +1,9 @@
+import paymentMethods from "./paymentMethods";
+
 export default {
-  VIPPS: 6,
-  BANK: 2,
-  PAYPAL: 3,
-  AVTALEGIRO: 7,
-  SWISH: 10,
+  VIPPS: paymentMethods.vipps,
+  BANK: paymentMethods.bank,
+  PAYPAL: paymentMethods.paypal,
+  AVTALEGIRO: paymentMethods.avtalegiro,
+  SWISH: paymentMethods.swish,
 };

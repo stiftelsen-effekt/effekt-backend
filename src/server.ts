@@ -21,6 +21,7 @@ import rateLimit from "express-rate-limit";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import qs from "qs";
+import errorHandler from "./handlers/errorHandler";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -30,8 +31,6 @@ console.log("Top level dependencies loaded");
 //If unsucsessfull, quit app
 DAO.connect(() => {
   console.log("DAO setup complete");
-
-  const errorHandler = require("./handlers/errorHandler.js");
 
   //Setup express
   const app = express();

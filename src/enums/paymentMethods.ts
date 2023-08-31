@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   bank: 2,
   bank_no_KID: 5,
   vipps_KID: 4,
@@ -7,5 +7,5 @@ module.exports = {
   avtalegiro: 7,
   vipps_recurring: 8,
   facebook: 9,
-  swish: 10,
+  swish: 11,
 };

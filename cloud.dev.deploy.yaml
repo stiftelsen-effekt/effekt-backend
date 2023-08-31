@@ -6,51 +6,24 @@ steps:
     id: "push-build"
 
   - name: "gcr.io/cloud-builders/gcloud"
-    id: "migrate-db-norway"
+    id: "reset-db-norway"
     waitFor: ["push-build"]
     args:
       - "run"
       - "jobs"
       - "execute"
-      - "effektapi-dev-db-migrate"
+      - "effektapi-dev-db-reset"
       - "--region"
       - "europe-north1"
       - "--wait"
 
   - name: "gcr.io/cloud-builders/gcloud"
     id: "deploy-norway"
-    waitFor: ["migrate-db-norway"]
+    waitFor: ["reset-db-norway"]
     args:
       - "run"
       - "deploy"
       - "effektapi-dev"
-      - "--image"
-      - "gcr.io/$PROJECT_ID/effektapi-dev:latest"
-      - "--region"
-      - "europe-north1"
-      - "--platform"
-      - "managed"
-      - "--allow-unauthenticated"
-
-  - name: "gcr.io/cloud-builders/gcloud"
-    id: "migrate-db-sweden"
-    waitFor: ["push-build"]
-    args:
-      - "run"
-      - "jobs"
-      - "execute"
-      - "geeffektivt-dev-db-migrate"
-      - "--region"
-      - "europe-north1"
-      - "--wait"
-
-  - name: "gcr.io/cloud-builders/gcloud"
-    id: "deploy-sweden"
-    waitFor: ["migrate-db-sweden"]
-    args:
-      - "run"
-      - "deploy"
-      - "geeffektivt-dev"
       - "--image"
       - "gcr.io/$PROJECT_ID/effektapi-dev:latest"
       - "--region"

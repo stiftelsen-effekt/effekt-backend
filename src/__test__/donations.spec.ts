@@ -97,13 +97,22 @@ describe("donations", () => {
             newsletter: true,
           },
         };
-        await request(server).post("/donations/register").send(body).expect(200);
+        const response = await request(server).post("/donations/register").send(body).expect(200);
 
         expect(donorsAddStub.calledOnce).to.be.true;
         expect(donorsAddStub.firstCall.args[0]).to.deep.equal({
           email: body.donor.email,
           full_name: body.donor.name,
           newsletter: body.donor.newsletter,
+        });
+
+        expect(response.body).to.deep.equal({
+          content: {
+            hasAnsweredReferral: false,
+            paymentProviderUrl: "",
+            swishOrderID: null,
+          },
+          status: 200,
         });
       });
 
@@ -143,9 +152,11 @@ describe("donations", () => {
       });
 
       it("should initiate swish order", async () => {
+        const stub = sinon.stub(swish, "initiateOrder");
         const KID = "1234567890";
         withCreatedKID(KID);
-        const stub = sinon.stub(swish, "initiateOrder");
+        const orderID = "123";
+        stub.resolves({ orderID, paymentRequestToken: "123" });
 
         const body = {
           distributionCauseAreas: [],
@@ -155,11 +166,16 @@ describe("donations", () => {
           recurring: false,
           donor: {},
         };
-        await request(server).post("/donations/register").send(body).expect(200);
+        const response = await request(server).post("/donations/register").send(body).expect(200);
 
         expect(stub.calledOnce).to.be.true;
         expect(stub.firstCall.args[0]).to.equal(KID);
         expect(stub.firstCall.args[1]).to.deep.equal({ amount: body.amount, phone: body.phone });
+
+        expect(response.body)
+          .to.have.property("content")
+          .that.has.property("swishOrderID")
+          .equal(orderID);
       });
 
       it("should return 400 if missing body", async () => {

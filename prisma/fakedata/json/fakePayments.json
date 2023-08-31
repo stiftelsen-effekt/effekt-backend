@@ -79,5 +79,14 @@
     "flat_fee": 0,
     "percentage_fee": 0,
     "lastUpdated": "2022-12-18T16:59:41.000Z"
+  },
+  {
+    "ID": 11,
+    "payment_name": "Swish",
+    "abbriv": "Swish",
+    "short_desc": "",
+    "flat_fee": 0,
+    "percentage_fee": 0,
+    "lastUpdated": "2022-12-18T17:00:01.000Z"
   }
 ]
