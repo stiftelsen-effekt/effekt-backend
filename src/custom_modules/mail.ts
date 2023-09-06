@@ -163,7 +163,7 @@ export async function sendDonationReceipt(donationID, reciever = null) {
 
   const mailResult = await sendTemplate({
     from: "donasjon@gieffektivt.no",
-    to: "teknisk@gieffektivt.no", //donation.email,
+    to: donation.email,
     subject: "Gi Effektivt - Din donasjon er mottatt",
     templateId: config.mailersend_donation_receipt_template_id,
     variables: {
@@ -311,7 +311,7 @@ export async function sendDonationRegistered(KID, sum) {
 
     await sendTemplate({
       from: "donasjon@gieffektivt.no",
-      to: "teknisk@gieffektivt.no", //donor.email,
+      to: donor.email,
       subject: "Gi Effektivt - Donasjon klar til innbetaling",
       templateId: config.mailersend_donation_registered_template_id,
       variables: {
@@ -610,7 +610,7 @@ export async function sendAvtalegiroNotification(
   try {
     await sendTemplate({
       from: "donasjon@gieffektivt.no",
-      to: "teknisk@gieffektivt.no", // donor.email,
+      to: donor.email,
       subject: `Gi Effektivt - AvtaleGiro trekk ${claimDate.toFormat("dd.MM.yyyy")}`,
       templateId: config.mailersend_avtalegiro_notification_template_id,
       variables: {
