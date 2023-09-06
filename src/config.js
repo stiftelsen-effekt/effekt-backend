@@ -27,6 +27,10 @@ module.exports = {
 
   //Mailersend templates
   mailersend_donation_receipt_template_id: process.env.MAILERSEND_DONATION_RECEIPT_TEMPLATE_ID,
+  mailersend_donation_registered_template_id:
+    process.env.MAILERSEND_DONATION_REGISTERED_TEMPLATE_ID,
+  mailersend_avtalegiro_notification_template_id:
+    process.env.MAILERSEND_AVTALEGIRO_NOTIFICATION_TEMPLATE_ID,
 
   vipps_client_id: process.env.VIPPS_CLIENT_ID,
   vipps_client_secret: process.env.VIPPS_CLIENT_SECRET,

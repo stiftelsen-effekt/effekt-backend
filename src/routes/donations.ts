@@ -2,11 +2,7 @@ import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { donationHelpers } from "../custom_modules/donationHelpers";
-import {
-  sendDonationHistory,
-  sendDonationReceipt,
-  sendDonationRegistered,
-} from "../custom_modules/mail";
+import { sendDonationReceipt, sendDonationRegistered } from "../custom_modules/mail";
 import * as swish from "../custom_modules/swish";
 import rateLimit from "express-rate-limit";
 import methods from "../enums/methods";
@@ -453,35 +449,6 @@ router.get("/externalID/:externalID/:methodID", authMiddleware.isAdmin, async (r
       status: 200,
       content: donation,
     });
-  } catch (ex) {
-    next(ex);
-  }
-});
-
-let historyRateLimit = new rateLimit({
-  windowMs: 60 * 1000 * 60, // 1 hour
-  max: 5,
-  delayMs: 0, // disable delaying - full speed until the max limit is reached
-});
-router.post("/history/email", historyRateLimit, async (req, res, next) => {
-  try {
-    let email = req.body.email;
-    let id = await DAO.donors.getIDbyEmail(email);
-
-    if (id != null) {
-      var mailsent = await sendDonationHistory(id);
-      if (mailsent) {
-        res.json({
-          status: 200,
-          content: "ok",
-        });
-      }
-    } else {
-      res.json({
-        status: 200,
-        content: "ok",
-      });
-    }
   } catch (ex) {
     next(ex);
   }
