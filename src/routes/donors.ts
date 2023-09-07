@@ -1181,6 +1181,12 @@ router.get(
   async (req, res, next) => {
     try {
       const result = await DAO.distributions.getAllByDonor(req.params.id);
+
+      /**
+       * Cause Areas Todo: Not backwards compatible with old distributions object
+       */
+      throw new Error("Not backwards compatible with old distributions object");
+
       let distributions = result.distributions;
 
       if (req.query.kids) {
@@ -1199,8 +1205,8 @@ router.get(
       const results = await Promise.all(requests);
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
-        distributions[result.index].taxUnit = result.taxUnit;
-        distributions[result.index].standardDistribution = result.standardDistribution;
+        (distributions[result.index] as any).taxUnit = result.taxUnit;
+        (distributions[result.index] as any).standardDistribution = result.standardDistribution;
       }
 
       return res.json({

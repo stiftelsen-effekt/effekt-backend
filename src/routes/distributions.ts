@@ -149,6 +149,12 @@ router.get(
     try {
       if (!req.params.donorID) res.status(400).json({ status: 400, content: "No KID provided" });
       let distributions = await DAO.distributions.getAllByDonor(req.params.donorID);
+
+      /**
+       * Cause Areas Todo: Not backwards compatible with old distributions object
+       */
+      throw new Error("Not backwards compatible with old distributions object");
+
       return res.json({
         status: 200,
         content: distributions,
