@@ -169,8 +169,17 @@ async function setActive(KID, active) {
     }
 
     if (!active) {
-      let [res] = await DAO.query<ResultSetHeader | OkPacket>(
+      let [res] = await transaction.query<ResultSetHeader | OkPacket>(
         `UPDATE Avtalegiro_agreements SET cancelled = NOW() WHERE KID = ?`,
+        [KID],
+      );
+      if (res.affectedRows === 0) {
+        await DAO.rollbackTransaction(transaction);
+        return false;
+      }
+    } else {
+      let [res] = await transaction.query<ResultSetHeader | OkPacket>(
+        `UPDATE Avtalegiro_agreements SET cancelled = NULL WHERE KID = ?`,
         [KID],
       );
       if (res.affectedRows === 0) {
@@ -202,17 +211,13 @@ async function isActive(KID) {
  * @return {boolean} Success
  */
 async function cancelAgreement(KID) {
-  const today = new Date();
-  //YYYY-MM-DD format
-  const mysqlDate = today.toISOString().slice(0, 19).replace("T", " ");
-
   DAO.query(
     `
             UPDATE Avtalegiro_agreements
-            SET cancelled = ?, active = 0
+            SET cancelled = NOW(), active = 0
             WHERE KID = ?
         `,
-    [mysqlDate, KID],
+    [KID],
   );
 
   return true;
