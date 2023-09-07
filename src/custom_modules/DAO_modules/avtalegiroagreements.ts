@@ -188,6 +188,8 @@ async function setActive(KID, active) {
       }
     }
 
+    await DAO.commitTransaction(transaction);
+
     return true;
   } catch (ex) {
     if (transaction) await DAO.rollbackTransaction(transaction);
