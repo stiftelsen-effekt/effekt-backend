@@ -633,4 +633,42 @@ describe("DAO Distributions", () => {
       sinon.restore();
     });
   });
+
+  describe("getByDonorId", () => {
+    it("Gets a distribution for a donor with a given ID", async () => {
+      const queryStub = sinon.stub(DAO, "query");
+
+      const mockQueryResponse = [
+        {
+          KID: "000001333993788",
+          full_name: "Helga Larsen",
+          email: "helga@larsen.no",
+          sum: 1300,
+          count: 3,
+        },
+        {
+          KID: "13903788",
+          full_name: "Helga Larsen",
+          email: "helga@larsen.no",
+          sum: 40000,
+          count: 1,
+        },
+      ];
+
+      queryStub.resolves([mockQueryResponse, []]);
+
+      const result = await DAO.distributions.getByDonorId(1);
+
+      expect(queryStub.calledOnce).to.be.true;
+      expect(queryStub.firstCall.args[0]).to.contain("WHERE");
+      expect(queryStub.firstCall.args[0]).to.contain("Donor_ID = ?");
+      expect(queryStub.firstCall.args[1]).to.deep.equal([1]);
+
+      expect(result).to.deep.equal(mockQueryResponse);
+    });
+
+    afterEach(() => {
+      sinon.restore();
+    });
+  });
 });

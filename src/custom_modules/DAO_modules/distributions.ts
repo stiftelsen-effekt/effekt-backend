@@ -108,7 +108,7 @@ async function getAll(
  *  distributions: Distribution[]
  * }}
  */
-async function getAllByDonor(donorID) {
+async function getAllByDonor(donorID: number) {
   var [res] = await DAO.query<DistributionDbResult>(
     `SELECT *,
       CAO.Percentage_share AS Organization_percentage_share,
@@ -136,35 +136,31 @@ async function getAllByDonor(donorID) {
  * Returns the flat distributions (not the actual split between organizations)
  * for a given donor id, with number of donations and donation sum.
  * @param {Number} donorId
- * @returns {Array<{
- *  kid: number,
- *  count: number,
- *  sum: number,
- *  full_name: string,
- *  email: string,
- * }>}
  */
-async function getByDonorId(donorId) {
-  var [distributions] = await DAO.query(
+async function getByDonorId(donorId: number) {
+  var [distributions] = await DAO.query<
+    (Pick<Distributions, "KID"> &
+      Pick<Donors, "full_name" | "email"> & { sum: number; count: number })[]
+  >(
     `
-            SELECT
-            Combining.KID,
+        SELECT
+            Distributions.KID,
             Donations.sum,
             Donations.count,
             Donors.full_name,
             Donors.email
 
-            FROM Combining_table as Combining
+            FROM Distributions
 
             LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
-                ON Donations.KID_fordeling = Combining.KID
+                ON Donations.KID_fordeling = Distributions.KID
 
             INNER JOIN Donors
-                ON Combining.Donor_ID = Donors.ID
+                ON Distributions.Donor_ID = Donors.ID
 
-            WHERE Donors.ID = ?
+            WHERE Distributions.Donor_ID = ?
 
-            GROUP BY Combining.KID, Donors.full_name, Donors.email
+            GROUP BY Distributions.KID, Donors.full_name, Donors.email
         `,
     [donorId],
   );
