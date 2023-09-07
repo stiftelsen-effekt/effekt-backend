@@ -1,5 +1,5 @@
 import sinon from "sinon";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { DAO } from "../../custom_modules/DAO";
 
 describe("DAO Distributions", () => {
@@ -665,6 +665,161 @@ describe("DAO Distributions", () => {
       expect(queryStub.firstCall.args[1]).to.deep.equal([1]);
 
       expect(result).to.deep.equal(mockQueryResponse);
+    });
+
+    afterEach(() => {
+      sinon.restore();
+    });
+  });
+
+  describe("getSplitByKID", () => {
+    it("Gets a distribution split for a KID", async () => {
+      const queryStub = sinon.stub(DAO, "query");
+
+      const mockQueryResponse = [
+        {
+          KID: "000001333993788",
+          Donor_ID: 1,
+          Tax_unit_ID: 1,
+          Meta_owner_ID: 3,
+          Replaced_old_organizations: 0,
+          inserted: "2023-02-28 12:22:44",
+          last_updated: "2023-02-28 12:22:44",
+          ID: 9,
+          Distribution_KID: "000001333993788",
+          Cause_area_ID: 3,
+          Percentage_share: "100.000000000000",
+          Standard_split: 1,
+          Distribution_cause_area_ID: 5,
+          Organization_ID: 20,
+          Organization_percentage_share: "100.000000000000",
+          Cause_area_percentage_share: "77.000000000000",
+        },
+        {
+          KID: "000001333993788",
+          Donor_ID: 1,
+          Tax_unit_ID: 1,
+          Meta_owner_ID: 3,
+          Replaced_old_organizations: 0,
+          inserted: "2023-02-28 12:22:44",
+          last_updated: "2023-02-28 12:22:44",
+          ID: 10,
+          Distribution_KID: "000001333993788",
+          Cause_area_ID: 2,
+          Percentage_share: "50.000000000000",
+          Standard_split: 1,
+          Distribution_cause_area_ID: 6,
+          Organization_ID: 17,
+          Organization_percentage_share: "50.000000000000",
+          Cause_area_percentage_share: "23.000000000000",
+        },
+        {
+          KID: "000001333993788",
+          Donor_ID: 1,
+          Tax_unit_ID: 1,
+          Meta_owner_ID: 3,
+          Replaced_old_organizations: 0,
+          inserted: "2023-02-28 12:22:44",
+          last_updated: "2023-02-28 12:22:44",
+          ID: 11,
+          Distribution_KID: "000001333993788",
+          Cause_area_ID: 2,
+          Percentage_share: "50.000000000000",
+          Standard_split: 1,
+          Distribution_cause_area_ID: 6,
+          Organization_ID: 18,
+          Organization_percentage_share: "50.000000000000",
+          Cause_area_percentage_share: "23.000000000000",
+        },
+      ];
+
+      queryStub.resolves([mockQueryResponse, []]);
+
+      const result = await DAO.distributions.getSplitByKID("000001333993788");
+
+      expect(queryStub.calledOnce).to.be.true;
+      expect(queryStub.firstCall.args[0]).to.contain("WHERE");
+      expect(queryStub.firstCall.args[0]).to.contain("KID = ?");
+      expect(queryStub.firstCall.args[1]).to.deep.equal(["000001333993788"]);
+      expect(result.kid).to.equal("000001333993788");
+      expect(result.causeAreas.length).to.equal(2);
+      expect(result.causeAreas[0].percentageShare).to.equal("77.000000000000");
+      expect(result.causeAreas[0].organizations.length).to.equal(1);
+      expect(result.causeAreas[0].organizations[0].percentageShare).to.equal("100.000000000000");
+      expect(result.causeAreas[1].percentageShare).to.equal("23.000000000000");
+      expect(result.causeAreas[1].organizations.length).to.equal(2);
+      expect(result.causeAreas[1].organizations[0].percentageShare).to.equal("50.000000000000");
+      expect(result.causeAreas[1].organizations[1].percentageShare).to.equal("50.000000000000");
+    });
+
+    it("Throws error if DB query returns multiple distributions", async () => {
+      const queryStub = sinon.stub(DAO, "query");
+
+      const mockQueryResponse = [
+        {
+          KID: "000001333993788",
+          Donor_ID: 1,
+          Tax_unit_ID: 1,
+          Meta_owner_ID: 3,
+          Replaced_old_organizations: 0,
+          inserted: "2023-02-28 12:22:44",
+          last_updated: "2023-02-28 12:22:44",
+          ID: 9,
+          Distribution_KID: "000001333993788",
+          Cause_area_ID: 3,
+          Percentage_share: "100.000000000000",
+          Standard_split: 1,
+          Distribution_cause_area_ID: 5,
+          Organization_ID: 20,
+          Organization_percentage_share: "100.000000000000",
+          Cause_area_percentage_share: "100.000000000000",
+        },
+        {
+          KID: "000001333993789",
+          Donor_ID: 1,
+          Tax_unit_ID: 1,
+          Meta_owner_ID: 3,
+          Replaced_old_organizations: 0,
+          inserted: "2023-02-28 12:22:44",
+          last_updated: "2023-02-28 12:22:44",
+          ID: 10,
+          Distribution_KID: "000001333993788",
+          Cause_area_ID: 2,
+          Percentage_share: "50.000000000000",
+          Standard_split: 1,
+          Distribution_cause_area_ID: 6,
+          Organization_ID: 17,
+          Organization_percentage_share: "50.000000000000",
+          Cause_area_percentage_share: "100.000000000000",
+        },
+        {
+          KID: "000001333993789",
+          Donor_ID: 1,
+          Tax_unit_ID: 1,
+          Meta_owner_ID: 3,
+          Replaced_old_organizations: 0,
+          inserted: "2023-02-28 12:22:44",
+          last_updated: "2023-02-28 12:22:44",
+          ID: 11,
+          Distribution_KID: "000001333993788",
+          Cause_area_ID: 2,
+          Percentage_share: "50.000000000000",
+          Standard_split: 1,
+          Distribution_cause_area_ID: 6,
+          Organization_ID: 18,
+          Organization_percentage_share: "50.000000000000",
+          Cause_area_percentage_share: "100.000000000000",
+        },
+      ];
+
+      queryStub.resolves([mockQueryResponse, []]);
+
+      try {
+        const result = await DAO.distributions.getSplitByKID("000001333993788");
+        throw new Error("Promise did not reject as expected");
+      } catch (ex) {
+        expect(ex.message).to.contain("multiple distributions");
+      }
     });
 
     afterEach(() => {

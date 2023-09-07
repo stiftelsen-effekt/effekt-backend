@@ -605,6 +605,16 @@ const mapDbDistributionsToDistributions = (
  * If you have multiple distributions returned from DB, use mapDbDistributionsToDistributions
  */
 const mapDbDistributionToDistribution = (result: SqlResult<DistributionDbResult>): Distribution => {
+  if (result.length === 0) {
+    throw new Error("No rows in result");
+  }
+
+  // Validate that all rows have the same KID
+  const KIDsSet = new Set(result.map((row) => row.KID));
+  if (KIDsSet.size !== 1) {
+    throw new Error("Rows in result have different KIDs, multiple distributions found");
+  }
+
   const distribution: Distribution = {
     kid: result[0].KID,
     donorId: result[0].Donor_ID,
