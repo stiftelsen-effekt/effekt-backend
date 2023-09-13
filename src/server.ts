@@ -32,8 +32,6 @@ console.log("Top level dependencies loaded");
 DAO.connect(() => {
   console.log("DAO setup complete");
 
-  console.log("---------GSM----------");
-
   //Setup express
   const app = express();
 

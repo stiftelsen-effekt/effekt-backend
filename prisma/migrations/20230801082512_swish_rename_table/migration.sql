@@ -1,10 +1,16 @@
 ALTER TABLE `Swish_order` RENAME TO `Swish_orders`;
 
 -- DropForeignKey
+ALTER TABLE `Swish_orders` DROP FOREIGN KEY `Swish_order_KID_fkey`;
+
+-- DropForeignKey
 ALTER TABLE `Swish_orders` DROP FOREIGN KEY `Swish_order_donationID_fkey`;
 
 -- DropForeignKey
 ALTER TABLE `Swish_orders` DROP FOREIGN KEY `Swish_order_donorID_fkey`;
+
+-- AddForeignKey
+ALTER TABLE `Swish_orders` ADD CONSTRAINT `Swish_orders_KID_fkey` FOREIGN KEY (`KID`) REFERENCES `Distributions`(`KID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Swish_orders` ADD CONSTRAINT `Swish_orders_donorID_fkey` FOREIGN KEY (`donorID`) REFERENCES `Donors`(`ID`) ON DELETE CASCADE ON UPDATE CASCADE;

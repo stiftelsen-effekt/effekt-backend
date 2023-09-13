@@ -39,6 +39,10 @@ async function main() {
   await prisma.data_owner.createMany({ data: fakeDataOwner });
   await prisma.payment.createMany({ data: fakePayments });
   await prisma.donors.createMany({ data: fakeDonors });
+  // Multiple cause area migrations manually creates a cause area for global health to successfully migrate
+  // existing production data. Thus, running the migrations in the seed file will cause a duplicate key error.
+  // To avoid this, we delete all cause areas before seeding.
+  await prisma.cause_areas.deleteMany({});
   await prisma.cause_areas.createMany({ data: fakeCauseAreas });
   await prisma.organizations.createMany({ data: fakeOrganizations });
   await prisma.tax_unit.createMany({ data: fakeTaxUnits });
