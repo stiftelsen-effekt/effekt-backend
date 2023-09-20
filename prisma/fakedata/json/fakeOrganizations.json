@@ -126,10 +126,10 @@
     "short_desc": "Penger donert til oss brukes til videre drift og utvikling av våre tjenester. ",
     "long_desc": "gieffektivt.no",
     "info_url": "https://gieffektivt.no/organisasjoner",
-    "std_percentage_share": 0,
+    "std_percentage_share": 100,
     "is_active": 1,
     "ordering": 10,
-    "cause_area_ID": 1
+    "cause_area_ID": 4
   },
   {
     "ID": 12,
