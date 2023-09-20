@@ -56,18 +56,72 @@ model Avtalegiro_shipment {
   generated  DateTime? @default(now()) @db.DateTime(0)
 }
 
+model AutoGiro_agreements {
+  ID           Int       @id @default(autoincrement())
+  KID          String    @unique(map: "KID_UNIQUE") @db.VarChar(16)
+  amount       Int
+  payment_date Int
+  notice       Boolean
+  active       Boolean   @default(false)
+  last_updated DateTime? @default(now()) @db.DateTime(0)
+  created      DateTime? @default(now()) @db.DateTime(0)
+  cancelled    DateTime? @db.Date
+}
+
+model AutoGiro_shipment {
+  ID           Int       @id @default(autoincrement())
+  num_charges  Int
+  sent_date    DateTime? @default(now()) @db.DateTime(0)
+  last_updated DateTime? @default(now()) @db.DateTime(0)
+  created      DateTime? @default(now()) @db.DateTime(0)
+
+  charges AutoGiro_agreement_charges[]
+}
+
+model AutoGiro_agreement_charges {
+  ID           Int       @id @default(autoincrement())
+  agreementID  Int
+  shipmentID   Int
+  donationID   Int?      @unique
+  status       String
+  amount       String
+  claim_date   DateTime?
+  last_updated DateTime? @default(now()) @db.DateTime(0)
+  created      DateTime? @default(now()) @db.DateTime(0)
+
+  donation Donations?        @relation(fields: [donationID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+  shipment AutoGiro_shipment @relation(fields: [shipmentID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+}
+
+model AutoGiro_mandates {
+  ID                  Int       @id @default(autoincrement())
+  status              String
+  last_updated        DateTime? @default(now()) @db.DateTime(0)
+  created             DateTime? @default(now()) @db.DateTime(0)
+  bank_account        String?   @db.VarChar(16)
+  special_information String?
+  name_and_address    String?
+  postal_code         String?
+  postal_label        String?
+
+  KID String @unique @db.VarChar(16) // This binds mandates to both donor and tax units (SSN)
+
+  combing_table Combining_table[]
+}
+
 model Combining_table {
   Donor_ID                   Int
   Distribution_ID            Int
   Tax_unit_ID                Int?
-  KID                        String       @db.VarChar(16)
-  timestamp_created          DateTime?    @default(now()) @db.DateTime(0)
-  Meta_owner_ID              Int          @default(3)
-  Replaced_old_organizations Int?         @db.TinyInt
+  KID                        String             @db.VarChar(16)
+  timestamp_created          DateTime?          @default(now()) @db.DateTime(0)
+  Meta_owner_ID              Int                @default(3)
+  Replaced_old_organizations Int?               @db.TinyInt
   Standard_split             Boolean?
-  Distribution               Distribution @relation(fields: [Distribution_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Distribution")
-  Donors                     Donors       @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Donor")
-  Tax_unit                   Tax_unit?    @relation(fields: [Tax_unit_ID], references: [ID], map: "fk_Combining_to_TaxUnit")
+  Distribution               Distribution       @relation(fields: [Distribution_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Distribution")
+  Donors                     Donors             @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Donor")
+  Tax_unit                   Tax_unit?          @relation(fields: [Tax_unit_ID], references: [ID], map: "fk_Combining_to_TaxUnit")
+  Autogiro_mandate           AutoGiro_mandates? @relation(fields: [KID], references: [KID], map: "fk_Combining_to_AutoGiroMandates")
 
   @@id([Donor_ID, Distribution_ID, KID])
   @@index([KID], map: "KID")
@@ -95,20 +149,21 @@ model Distribution {
 }
 
 model Donations {
-  ID                  Int           @id @unique(map: "ID_UNIQUE") @default(autoincrement()) /// Unik donasjonsID
-  Donor_ID            Int /// Foreign key til donor_id
-  Payment_ID          Int /// Foreign key til Payment_ID
-  PaymentExternal_ID  String?       @unique(map: "PaymentExternal_ID_UNIQUE") @db.VarChar(32) /// Payment ID in external system (ex: Vipps)
-  sum_confirmed       Decimal       @db.Decimal(16, 2) /// Donert sum bekreftet fra betalingstjeneste (NOK)
-  timestamp_confirmed DateTime      @default(now()) @db.Timestamp(0) /// Timestamp/dato når donasjon er bekreftet fra betalingstjeneste
-  transaction_cost    Decimal?      @db.Decimal(16, 2) /// beregnet transaction cost basert på Payment_ID (oppslag på kostnad) og sum confirmed
-  KID_fordeling       String        @db.VarChar(16) /// Same as KID. Used to join to Combining_table for distribution percentages (registrert KID fra betalingstjeneste, oppslag i donations_distribution for Donor_ID)
-  inserted            DateTime?     @default(now()) @db.Timestamp(0)
-  last_updated        DateTime?     @default(now()) @db.Timestamp(0)
-  Meta_owner_ID       Int           @default(3)
-  Donors              Donors        @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Donors_ID")
-  Payment             Payment       @relation(fields: [Payment_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Payment")
-  Swish_orders        Swish_orders?
+  ID                         Int                         @id @unique(map: "ID_UNIQUE") @default(autoincrement()) /// Unik donasjonsID
+  Donor_ID                   Int /// Foreign key til donor_id
+  Payment_ID                 Int /// Foreign key til Payment_ID
+  PaymentExternal_ID         String?                     @unique(map: "PaymentExternal_ID_UNIQUE") @db.VarChar(32) /// Payment ID in external system (ex: Vipps)
+  sum_confirmed              Decimal                     @db.Decimal(16, 2) /// Donert sum bekreftet fra betalingstjeneste (NOK)
+  timestamp_confirmed        DateTime                    @default(now()) @db.Timestamp(0) /// Timestamp/dato når donasjon er bekreftet fra betalingstjeneste
+  transaction_cost           Decimal?                    @db.Decimal(16, 2) /// beregnet transaction cost basert på Payment_ID (oppslag på kostnad) og sum confirmed
+  KID_fordeling              String                      @db.VarChar(16) /// Same as KID. Used to join to Combining_table for distribution percentages (registrert KID fra betalingstjeneste, oppslag i donations_distribution for Donor_ID)
+  inserted                   DateTime?                   @default(now()) @db.Timestamp(0)
+  last_updated               DateTime?                   @default(now()) @db.Timestamp(0)
+  Meta_owner_ID              Int                         @default(3)
+  Donors                     Donors                      @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Donors_ID")
+  Payment                    Payment                     @relation(fields: [Payment_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Payment")
+  Swish_orders               Swish_orders?
+  AutoGiro_agreement_charges AutoGiro_agreement_charges?
 
   @@index([KID_fordeling, timestamp_confirmed], map: "KidAndTimestamp")
   @@index([timestamp_confirmed], map: "Timestamp")
