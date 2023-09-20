@@ -77,6 +77,9 @@ module.exports = {
   bankAccount: process.env.BANK_ACCOUNT,
   nets_customer_id: process.env.NETS_CUSTOMER_ID,
 
+  autogiro_customer_number: process.env.AUTOGIRO_CUSTOMER_NUMBER,
+  autogiro_bankgiro_number: process.env.AUTOGIRO_BANKGIRO_NUMBER,
+
   //Server addresss
   serverAddress: process.env.SERVER_ADDRESS,
 

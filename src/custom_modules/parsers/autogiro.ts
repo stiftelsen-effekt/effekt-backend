@@ -6,81 +6,63 @@
  * "Record and file descriptions – files from Bankgirot with new file layout"
  */
 
-type AutoGiroParsedResult = {
+import { DateTime } from "luxon";
+import { parseMandates } from "./autogiro/mandates";
+import { parsePaymentSpecification } from "./autogiro/transactions";
+import { parseEMandates } from "./autogiro/emandates";
+import { parseCancellationAndAmendment } from "./autogiro/changes";
+
+export interface AutoGiroParsedResult {
   openingRecord: AutoGiroOpeningRecord;
-  deposits: AutoGiroDepositRecord[];
-  withdrawals: AutoGiroWithdrawalRecord[];
-  refunds: AutoGiroWithdrawalRefundRecord[];
-  endRecord: any;
-};
+}
+
 export const AutoGiroParser = {
-  parse: (data: string): AutoGiroParsedResult => {
+  parse: (data: string) => {
     const lines = data.split("\n");
 
-    let result = {
-      openingRecord: null,
-      deposits: [],
-      withdrawals: [],
-      refunds: [],
-      endRecord: null,
-    };
+    if (lines.length === 0) throw new Error("Not a valid autogiro file, no lines found");
 
-    for (const line of lines) {
-      const transactionCode = getTransactionCode(line);
+    const openingRecordTransactionCode = getTransactionCode(lines[0]);
+    let openingRecord: AutoGiroOpeningRecord;
+    if (openingRecordTransactionCode === AutoGiroTransactionCode.OPENING_RECORD)
+      openingRecord = parseOpeningRecord(lines[0]);
+    else if (openingRecordTransactionCode === AutoGiroTransactionCode.E_MANDATE_OPENING_RECORD)
+      openingRecord = parseEMandateOpeningRecord(lines[0]);
+    else
+      throw new Error(
+        `Not a valid autogiro file, unknown transaction code (${openingRecordTransactionCode}) in opening record`,
+      );
 
-      switch (transactionCode) {
-        case AutoGiroTransactionCode.OPENING_RECORD:
-          const openingRecord = parseOpeningRecord(line);
-          result.openingRecord = openingRecord;
-          break;
-        case AutoGiroTransactionCode.DEPOSIT_RECORD:
-          const depositRecord = parseDepositRecord(line);
-          result.deposits.push({ ...depositRecord, payments: [] });
-          break;
-        case AutoGiroTransactionCode.INCOMING_PAYMENT_RECORD:
-          const incomingPaymentRecord = parseIncomingPaymentRecord(line);
-          result.deposits[result.deposits.length - 1].payments.push(incomingPaymentRecord);
-          break;
-        case AutoGiroTransactionCode.WITHDRAWAL_RECORD:
-          const withdrawalRecord = parseWithdrawalRecord(line);
-          result.withdrawals.push(withdrawalRecord);
-          break;
-        case AutoGiroTransactionCode.OUTGOING_PAYMENT_RECORD:
-          const outgoingPaymentRecord = parseOutgoingPaymentRecord(line);
-          result.withdrawals[result.withdrawals.length - 1].payments.push(outgoingPaymentRecord);
-          break;
-        case AutoGiroTransactionCode.WITHDRAWAL_REFUND_RECORD:
-          const withdrawalRefundRecord = parseWithdrawalRefundRecord(line);
-          result.refunds.push(withdrawalRefundRecord);
-          break;
-        case AutoGiroTransactionCode.PAYMENT_REFUND_RECORD:
-          const paymentRefundRecord = parsePaymentRefundRecord(line);
-          result.refunds[result.refunds.length - 1].refunds.push(paymentRefundRecord);
-          break;
-        case AutoGiroTransactionCode.END_RECORD:
-          break;
-        default:
-          throw new Error("Not a valid autogiro file, unknown transaction code");
-      }
+    const remainingLines = lines.slice(1, lines.length);
 
-      if (transactionCode === AutoGiroTransactionCode.END_RECORD) break;
-    }
-
-    return result;
+    if (openingRecord.fileContents === AutoGiroContent.PAYMENT_SPECIFICATION_AND_STOP)
+      return parsePaymentSpecification(remainingLines, openingRecord);
+    else if (openingRecord.fileContents === AutoGiroContent.MANDATES)
+      return parseMandates(remainingLines, openingRecord);
+    else if (openingRecord.fileContents === AutoGiroContent.E_MANDATES)
+      return parseEMandates(remainingLines, openingRecord);
+    else if (openingRecord.fileContents === AutoGiroContent.CANCELLATION_AND_AMENDMENT)
+      return parseCancellationAndAmendment(remainingLines, openingRecord);
+    else
+      throw new Error(
+        `Not a valid autogiro file, unknown layout (${openingRecord.fileContents}) in opening record`,
+      );
   },
 };
 
-const getTransactionCode = (line: string) => {
+export const getTransactionCode = (line: string) => {
   return line.substring(0, 2);
 };
 
 /**
  * Section 8.2.2 in technical specification
  */
-type AutoGiroOpeningRecord = {
-  dateWritten: string;
-  payeeCustomerNumber: string;
+export type AutoGiroOpeningRecord = {
+  dateWritten: DateTime;
+  payeeCustomerNumber?: string;
+  clearingNumber?: string;
   payeeBankGiroNumber: string;
+  fileContents: AutoGiroContent;
 };
 const parseOpeningRecord = (line: string): AutoGiroOpeningRecord => {
   const expectedLayoutName = "AUTOGIRO".padEnd(20, " ");
@@ -88,193 +70,79 @@ const parseOpeningRecord = (line: string): AutoGiroOpeningRecord => {
   if (expectedLayoutName !== actualLayoutName)
     throw new Error("Not a valid autogiro file, missing AutoGiro layout name");
 
-  const expectedContents = "BET. SPEC & STOPP TK".padEnd(20, " ");
-  const actualContents = line.substring(44, 44 + 20);
-  if (expectedContents !== actualContents)
-    throw new Error("Not a valid autogiro file, incorrect contents in opening record");
+  const fileContents = line.substring(44, 44 + 20).trim();
+  const validContentTypes = [
+    AutoGiroContent.PAYMENT_SPECIFICATION_AND_STOP,
+    AutoGiroContent.MANDATES,
+    AutoGiroContent.CANCELLATION_AND_AMENDMENT,
+  ];
+  if (!validContentTypes.includes(fileContents as AutoGiroContent))
+    throw new Error(
+      `Not a valid autogiro file, unknown file contents (${fileContents}) in opening record`,
+    );
 
   return {
-    dateWritten: line.substring(26, 26 + 20),
+    dateWritten: DateTime.fromFormat(line.substring(26, 26 + 20), "yyyyMMdd"),
     payeeCustomerNumber: line.substring(64, 64 + 6),
     payeeBankGiroNumber: line.substring(70, 70 + 10),
+    fileContents: fileContents as AutoGiroContent,
   };
 };
+const parseEMandateOpeningRecord = (line: string): AutoGiroOpeningRecord => {
+  const expectedFileContents = "AG-EMEDGIV";
+  const actualFileContents = line.substring(24, 24 + 10);
+  console.log(expectedFileContents, actualFileContents);
+  if (expectedFileContents !== actualFileContents)
+    throw new Error("Not a valid autogiro file, missing e-mandate content type");
 
-/**
- * Section 8.2.2 in technical specification
- */
-type AutoGiroDepositRecord = {
-  payeeBankAccount: string;
-  paymentDate: string;
-  depositSerialNumber: string;
-  approvedAmount: number;
-  numberOfApprovedPayments: number;
-  payments: AutoGiroIncomingPaymentRecord[];
-};
-const parseDepositRecord = (line: string): AutoGiroDepositRecord => {
   return {
-    payeeBankAccount: line.substring(2, 2 + 35),
-    paymentDate: line.substring(37, 37 + 8),
-    depositSerialNumber: line.substring(45, 45 + 5),
-    approvedAmount: parseInt(line.substring(50, 50 + 18)),
-    numberOfApprovedPayments: parseInt(line.substring(71, 71 + 8)),
-    payments: [],
+    dateWritten: DateTime.fromFormat(line.substring(2, 2 + 8), "yyyyMMdd"),
+    clearingNumber: line.substring(10, 10 + 4),
+    payeeBankGiroNumber: line.substring(14, 14 + 10),
+    fileContents: AutoGiroContent.E_MANDATES,
   };
 };
 
-/**
- * Section 8.2.2 in technical specification
- */
-type AutoGiroIncomingPaymentRecord = {
-  paymentDate: string;
-  periodCode: string;
-  numberOfRecurringPaymens: string;
-  payerNumber: string;
-  amount: number;
-  payeeBankGiroNumber: string;
-  paymentReference: string;
-  paymentStatusCode: AutoGiroPaymentStatusCode;
-};
-const parseIncomingPaymentRecord = (line: string): AutoGiroIncomingPaymentRecord => {
-  return {
-    paymentDate: line.substring(2, 2 + 8),
-    periodCode: line.substring(10, 10 + 1),
-    numberOfRecurringPaymens: line.substring(11, 11 + 3),
-    payerNumber: line.substring(15, 15 + 16),
-    amount: parseInt(line.substring(31, 31 + 12)),
-    payeeBankGiroNumber: line.substring(43, 43 + 10),
-    paymentReference: line.substring(53, 53 + 16),
-    paymentStatusCode: parseInt(line.substring(79, 79 + 1)),
-  };
-};
+export enum AutoGiroContent {
+  PAYMENT_SPECIFICATION_AND_STOP = "BET. SPEC & STOPP TK",
+  MANDATES = "AG-MEDAVI",
+  E_MANDATES = "AG-EMEDGIV",
+  CANCELLATION_AND_AMENDMENT = "MAKULERING/ÄNDRING",
+}
 
 /**
- * Section 8.2.2 in technical specification
- */
-type AutoGiroWithdrawalRecord = {
-  payeeBankAccount: string;
-  paymentDate: string;
-  withdrawalSerialNumber: string;
-  approvedAmount: number;
-  numberOfApprovedPayments: number;
-  payments: AutoGiroOutgoingPaymentRecord[];
-};
-const parseWithdrawalRecord = (line: string): AutoGiroWithdrawalRecord => {
-  return {
-    payeeBankAccount: line.substring(2, 2 + 35),
-    paymentDate: line.substring(37, 37 + 8),
-    withdrawalSerialNumber: line.substring(45, 45 + 5),
-    approvedAmount: parseInt(line.substring(50, 50 + 18)),
-    numberOfApprovedPayments: parseInt(line.substring(71, 71 + 8)),
-    payments: [],
-  };
-};
-
-/**
- * Section 8.2.2 in technical specification
- */
-type AutoGiroOutgoingPaymentRecord = {
-  paymentDate: string;
-  periodCode: string;
-  numberOfRecurringPaymens: string;
-  payerNumber: string;
-  amount: number;
-  payeeBankGiroNumber: string;
-  paymentReference: string;
-  paymentStatusCode: AutoGiroPaymentStatusCode;
-};
-const parseOutgoingPaymentRecord = (line: string): AutoGiroOutgoingPaymentRecord => {
-  return {
-    paymentDate: line.substring(2, 2 + 8),
-    periodCode: line.substring(10, 10 + 1),
-    numberOfRecurringPaymens: line.substring(11, 11 + 3),
-    payerNumber: line.substring(15, 15 + 16),
-    amount: parseInt(line.substring(31, 31 + 12)),
-    payeeBankGiroNumber: line.substring(43, 43 + 10),
-    paymentReference: line.substring(53, 53 + 16),
-    paymentStatusCode: parseInt(line.substring(79, 79 + 1)),
-  };
-};
-
-/**
- * Section 8.2.2 in technical specification
- */
-type AutoGiroWithdrawalRefundRecord = {
-  payeeBankAccount: string;
-  paymentDate: string;
-  withdrawalSerialNumber: string;
-  approvedAmount: number;
-  numberOfApprovedPayments: number;
-  refunds: AutoGiroPaymentRefundRecord[];
-};
-const parseWithdrawalRefundRecord = (line: string): AutoGiroWithdrawalRefundRecord => {
-  return {
-    payeeBankAccount: line.substring(2, 2 + 35),
-    paymentDate: line.substring(37, 37 + 8),
-    withdrawalSerialNumber: line.substring(45, 45 + 5),
-    approvedAmount: parseInt(line.substring(50, 50 + 18)),
-    numberOfApprovedPayments: parseInt(line.substring(71, 71 + 8)),
-    refunds: [],
-  };
-};
-
-/**
- * Section 8.2.2 in technical specification
- */
-type AutoGiroPaymentRefundRecord = {
-  originalPaymentDate: string;
-  originalPeriodCode: string;
-  originalNumberOfRenewals: number;
-  originalPayerNumber: string;
-  originalAmount: number;
-  payeeBankGiroNumber: string;
-  originalPaymentReference: string;
-  paymentRefundDate: string;
-  paymentRefundCode: AutoGiroPaymentStatusCode;
-};
-const parsePaymentRefundRecord = (line: string): AutoGiroPaymentRefundRecord => {
-  return {
-    originalPaymentDate: line.substring(2, 2 + 8),
-    originalPeriodCode: line.substring(10, 10 + 1),
-    originalNumberOfRenewals: parseInt(line.substring(11, 11 + 3)),
-    originalPayerNumber: line.substring(15, 15 + 16),
-    originalAmount: parseInt(line.substring(31, 31 + 12)),
-    payeeBankGiroNumber: line.substring(43, 43 + 10),
-    originalPaymentReference: line.substring(53, 53 + 16),
-    paymentRefundDate: line.substring(69, 69 + 8),
-    paymentRefundCode: parseInt(line.substring(77, 77 + 2)),
-  };
-};
-
-/**
- * Section 8.2.1 in technical specification
+ * Section 8 in technical specification
  */
 export enum AutoGiroTransactionCode {
   OPENING_RECORD = "01",
+
+  // 8.2 Payments specification and Rejected payments in balance check inquiry
   DEPOSIT_RECORD = "15",
   INCOMING_PAYMENT_RECORD = "82",
   WITHDRAWAL_RECORD = "16",
   OUTGOING_PAYMENT_RECORD = "32",
   WITHDRAWAL_REFUND_RECORD = "17",
+  // 8.5 Cancellations and amendments
+  CANCELLED_CANCELLED_MANDATE = "03",
+  CANCELLED_BY_PAYER = "11",
+  CANCELLED_PAYEE_AGREEMENT_TERMINATED = "21",
+  CANCEL_ALL_PAYMENTS_BY_PAYER_NUMBER = "23",
+  CANCEL_ALL_PAYMENTS_BY_PAYER_NUMBER_AND_DATE = "24",
+  CANCEL_ONE_PAYMENT_BY_PAYER_NUMBER_AND_DATE_AND_REFERENCE = "25",
+  ALL_PAYMENTS_NEW_DATE = "26",
+  ALL_PAYMENTS_NEW_DATE_BY_PAYMENT_DATE = "27",
+  ALL_PAYMENTS_NEW_DATE_BY_PAYMENT_DATE_AND_PAYER_NUMBER = "28",
+  SPECIFIC_PAYMENT_NEW_DATE_BY_REFERENCE = "29",
+  // 8.6 Mandates by form
+  E_MANDATE_OPENING_RECORD = "51",
+  E_MANDATE_INFORMATION_RECORD = "52",
+  E_MANDATE_SPECIAL_INFORMATION_RECORD = "53",
+  E_MANDATE_NAME_AND_ADDRESS_FIRST_RECORD = "54",
+  E_MANDATE_NAME_AND_ADDRESS_SECOND_RECORD = "55",
+  E_MANDATE_POST_NUMBER_RECORD = "56",
+  E_MANDATE_END_RECORD = "59",
+  // 8.3.2
+  MANDATE_ADD_OR_DELETE_RECORD = "73",
   PAYMENT_REFUND_RECORD = "77",
   END_RECORD = "09",
-}
-
-/**
- * Section 8.2.3 in technical specification
- */
-export enum AutoGiroPaymentStatusCode {
-  APPROVED = 0,
-  INSUFFICIENT_FUNDS = 1,
-  ACCOUNT_CLOSED = 2,
-  RENEWED_FUNDS = 9,
-}
-
-/**
- * Section 8.2.3 in technical specification
- */
-export enum AutoGiroPaymentRefundCodes {
-  NO_MANDATE_SUBMITTED = 1,
-  MANDATE_WITHDRAWN = 2,
-  UNREASONABLE_AMOUNT = 3,
 }
