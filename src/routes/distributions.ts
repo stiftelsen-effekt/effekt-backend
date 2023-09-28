@@ -118,6 +118,23 @@ router.get("/:KID", authMiddleware.isAdmin, async (req, res, next) => {
     const distribution = await DAO.distributions.getSplitByKID(req.params.KID);
     const taxUnit = await DAO.tax.getByKID(req.params.KID);
     const donor = await DAO.donors.getByKID(req.params.KID);
+
+    type BackwardsCompatibleResponse = {
+      status: 200;
+      content: {
+        KID: string;
+        donor: unknown;
+        taxUnit: unknown;
+        standardDistribution: boolean;
+        shares: Array<{
+          full_name: string;
+          abbriv: string;
+          id: number;
+          share: string;
+        }>;
+      };
+    };
+
     return res.json({
       status: 200,
       content: {
@@ -126,7 +143,7 @@ router.get("/:KID", authMiddleware.isAdmin, async (req, res, next) => {
         taxUnit,
         distribution,
       },
-    });
+    } satisfies BackwardsCompatibleResponse);
   } catch (ex) {
     if (ex.message.indexOf("NOT FOUND") !== -1)
       res.status(404).send({
@@ -155,10 +172,25 @@ router.get(
        */
       throw new Error("Not backwards compatible with old distributions object");
 
+      type BackwardsCompatibleResponse = {
+        status: 200;
+        content: Array<{
+          donorID: number;
+          distributions: Array<{
+            kid: string;
+            shares: Array<{
+              id: number;
+              name: string;
+              share: string;
+            }>;
+          }>;
+        }>;
+      };
+
       return res.json({
         status: 200,
         content: distributions,
-      });
+      } satisfies BackwardsCompatibleResponse);
     } catch (ex) {
       if (ex.message.indexOf("NOT FOUND") !== -1)
         res.status(404).send({

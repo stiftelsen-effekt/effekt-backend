@@ -1209,10 +1209,24 @@ router.get(
         (distributions[result.index] as any).standardDistribution = result.standardDistribution;
       }
 
+      type BackwardsCompatibleResponse = {
+        status: 200;
+        content: Array<{
+          kid: string;
+          taxUnit: unknown;
+          standardDistribution: boolean;
+          shares: Array<{
+            id: number;
+            name: string;
+            share: string;
+          }>;
+        }>;
+      };
+
       return res.json({
         status: 200,
         content: distributions,
-      });
+      } satisfies BackwardsCompatibleResponse);
     } catch (ex) {
       next(ex);
     }

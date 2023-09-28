@@ -118,7 +118,25 @@ router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
 
     const distribution = await DAO.distributions.getSplitByKID(KID);
 
-    res.status(200).json({ content: { agreement, distribution } });
+    type BackwardsCompatibleResponse = {
+      content: {
+        agreement: unknown;
+        distribution: {
+          kid: string;
+          standardDistribution: boolean;
+          shares: Array<{
+            abbriv: string;
+            name: string;
+            id: number;
+            share: string | number;
+          }>;
+        };
+      };
+    };
+
+    res
+      .status(200)
+      .json({ content: { agreement, distribution } } satisfies BackwardsCompatibleResponse);
   } catch (ex) {
     next({ ex });
   }
