@@ -21,6 +21,8 @@ export const KID = {
       // 1 position for checksum
       // Total length 15
       KID = `${donorID.toString().padStart(6, "0")}${this.getRandomNumbers(8)}`;
+    } else if (length == 15 && donorID == null) {
+      KID = "9" + this.getRandomNumbers(13);
     } else {
       throw new Error(`Unknown KID generate input. Length: ${length}, DonorID: ${donorID}`);
     }

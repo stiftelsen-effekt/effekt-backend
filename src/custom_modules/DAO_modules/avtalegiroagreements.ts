@@ -620,6 +620,21 @@ async function getShipmentIDs(today: DateTime): Promise<number[]> {
   return rows.map((row) => row.ID);
 }
 
+async function getAgreementsWithKIDStartingWith(prefix: string): Promise<AvtaleGiroAgreement[]> {
+  let [rows] = await DAO.query(
+    `SELECT ID, KID, amount, payment_date, notice FROM Avtalegiro_agreements WHERE KID LIKE ?`,
+    [`${prefix}%`],
+  );
+
+  return rows.map((row) => ({
+    id: row.ID,
+    KID: row.KID,
+    amount: row.amount,
+    paymentDate: row.payment_date,
+    notice: row.notice,
+  }));
+}
+
 /**
  * Adds a new shipment row to db
  * @param {Number} numClaims The number of claims in that shipment
@@ -677,6 +692,7 @@ export const avtalegiroagreements = {
   getExpectedDonationsForDate,
   getDonationsByKID,
   getShipmentIDs,
+  getAgreementsWithKIDStartingWith,
 
   addShipment,
 };

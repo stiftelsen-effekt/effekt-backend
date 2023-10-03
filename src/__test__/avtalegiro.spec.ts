@@ -2,6 +2,7 @@ import { DAO } from "../custom_modules/DAO";
 import sinon from "sinon";
 import { expect } from "chai";
 import { DateTime } from "luxon";
+import { donationHelpers } from "../custom_modules/donationHelpers";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 const config = require("../config");
@@ -292,6 +293,49 @@ describe("AvtaleGiro claim due date calculation", () => {
       "15.01.2024",
       "16.01.2024",
     ]);
+  });
+
+  after(() => {
+    sinon.restore();
+  });
+});
+
+describe("AvtaleGiro KID generation", () => {
+  let getAgreementsWithKIDStartingWithStub;
+
+  before(() => {
+    getAgreementsWithKIDStartingWithStub = sinon.stub(
+      DAO.avtalegiroagreements,
+      "getAgreementsWithKIDStartingWith",
+    );
+  });
+
+  it("Generates a valid KID starting with the number 9", async () => {
+    getAgreementsWithKIDStartingWithStub.resolves([]);
+
+    const KID = await donationHelpers.createAvtaleGiroKID();
+
+    expect(KID.length).to.be.equal(15);
+    expect(KID.startsWith("9")).to.be.true;
+  });
+
+  it("Should retry if there are agreements starting with the same 6 digits", async () => {
+    getAgreementsWithKIDStartingWithStub.onCall(0).resolves([
+      {
+        id: 1,
+        KID: "900000000000000",
+        amount: 100,
+        paymentDate: "2021-10-10",
+        notice: false,
+      },
+    ]);
+    getAgreementsWithKIDStartingWithStub.onCall(1).resolves([]);
+
+    const KID = await donationHelpers.createAvtaleGiroKID();
+
+    expect(KID.length).to.be.equal(15);
+    expect(KID.startsWith("9")).to.be.true;
+    expect(getAgreementsWithKIDStartingWithStub.calledTwice).to.be.true;
   });
 
   after(() => {

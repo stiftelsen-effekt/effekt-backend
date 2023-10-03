@@ -56,4 +56,18 @@ export const donationHelpers = {
 
     return newKID;
   },
+
+  createAvtaleGiroKID: async (depth = 0) => {
+    let newKID = KID.generate(15);
+    //If there is an existing agreement with the same first 6 digits, try new kid, call this function recursively
+    const matchingPrefix = await DAO.avtalegiroagreements.getAgreementsWithKIDStartingWith(
+      newKID.substr(0, 6),
+    );
+    if (matchingPrefix.length != 0) {
+      console.log(`Retry ${depth} | ${newKID} | ${matchingPrefix.length} matches`);
+      newKID = await donationHelpers.createAvtaleGiroKID(depth + 1);
+    }
+
+    return newKID;
+  },
 };

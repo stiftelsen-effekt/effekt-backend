@@ -340,7 +340,7 @@ router.post(
       }
 
       // Create new KID for the old replaced distribution
-      const replacementKID = await donationHelpers.createKID(15, donorId);
+      const replacementKID = await donationHelpers.createAvtaleGiroKID();
 
       // Replace distribution
       const response = await DAO.avtalegiroagreements.replaceDistribution(
