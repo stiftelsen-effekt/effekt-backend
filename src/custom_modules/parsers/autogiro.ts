@@ -13,6 +13,7 @@ import { parseEMandates } from "./autogiro/emandates";
 import { parseCancellationAndAmendment } from "./autogiro/changes";
 
 export interface AutoGiroParsedResult {
+  reportContents: AutoGiroContent;
   openingRecord: AutoGiroOpeningRecord;
 }
 

@@ -1,4 +1,5 @@
 import {
+  AutoGiroContent,
   AutoGiroOpeningRecord,
   AutoGiroParsedResult,
   AutoGiroTransactionCode,
@@ -19,6 +20,7 @@ export const parsePaymentSpecification = (
   openingRecord: AutoGiroOpeningRecord,
 ) => {
   let result: AutoGiroParsedTransactionsResult = {
+    reportContents: AutoGiroContent.PAYMENT_SPECIFICATION_AND_STOP,
     openingRecord,
     deposits: [],
     withdrawals: [],
@@ -68,6 +70,7 @@ export const parsePaymentSpecification = (
 };
 
 interface AutoGiroParsedTransactionsResult extends AutoGiroParsedResult {
+  reportContents: AutoGiroContent.PAYMENT_SPECIFICATION_AND_STOP;
   deposits: AutoGiroDepositRecord[];
   withdrawals: AutoGiroWithdrawalRecord[];
   refunds: AutoGiroWithdrawalRefundRecord[];

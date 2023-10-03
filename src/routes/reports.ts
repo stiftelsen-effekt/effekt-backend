@@ -13,5 +13,6 @@ router.post("/facebook", isAdmin, require("./reports/facebook"));
 router.post("/paypal", isAdmin, require("./reports/paypal"));
 router.post("/range", urlEncodeParser, isAdmin, require("./reports/range"));
 router.post("/taxdeductions", urlEncodeParser, isAdmin, require("./reports/tax"));
+router.post("/autogiro", isAdmin, require("./reports/autogiro"));
 
 module.exports = router;

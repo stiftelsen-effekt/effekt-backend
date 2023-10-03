@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import {
+  AutoGiroContent,
   AutoGiroOpeningRecord,
   AutoGiroParsedResult,
   AutoGiroTransactionCode,
@@ -11,12 +12,15 @@ import {
  * This file contains information about mandates from internet banks
  * The opening record contains information about the file layout, which determines
  * how the rest of the file should be parsed.
+ * It's our responsibility to verify the contents of the mandates before we approve
+ * them with Bankgirot.
  * @param lines All the lines in the file, except the opening record
  * @param openingRecord The parsed opening record
  * @returns An object containing the parsed information from the file
  */
 export const parseEMandates = (lines: string[], openingRecord: AutoGiroOpeningRecord) => {
   let result: AutoGiroParsedEMandatesResult = {
+    reportContents: AutoGiroContent.E_MANDATES,
     openingRecord,
     emandates: [],
   };
@@ -76,6 +80,7 @@ export const parseEMandates = (lines: string[], openingRecord: AutoGiroOpeningRe
 };
 
 interface AutoGiroParsedEMandatesResult extends AutoGiroParsedResult {
+  reportContents: AutoGiroContent.E_MANDATES;
   emandates: AutoGiroParsedEMandate[];
 }
 

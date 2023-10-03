@@ -5,6 +5,8 @@ import workdays from "norwegian-workdays";
 import config from "../config";
 import { AutoGiro_agreements } from "@prisma/client";
 import { AutoGiroContent, AutoGiroParser } from "./parsers/autogiro";
+import { DAO } from "./DAO";
+import paymentMethods from "../enums/paymentMethods";
 
 /**
  * Generates a claims file to claim payments for AutoGiro agreements
@@ -42,11 +44,16 @@ export async function generateAutogiroGiroFile(
 export async function processAutogiroInputFile(fileContents: string) {
   const parsedFile = AutoGiroParser.parse(fileContents);
 
-  if (parsedFile.openingRecord.fileContents === AutoGiroContent.PAYMENT_SPECIFICATION_AND_STOP) {
-    if (!("deposits" in parsedFile))
-      throw new Error("Missing deposits in payment specifications file");
-
+  if (parsedFile.reportContents === AutoGiroContent.PAYMENT_SPECIFICATION_AND_STOP) {
     for (const deposit of parsedFile.deposits) {
+      for (const payment of deposit.payments) {
+        await DAO.donations.add(
+          payment.payerNumber,
+          paymentMethods.autoGiro,
+          payment.amount,
+          payment.paymentDate,
+        );
+      }
     }
   }
 

@@ -8,4 +8,6 @@ export default {
   vipps_recurring: 8,
   facebook: 9,
   swish: 11,
+  autoGiro: 12,
+  bankGiro: 13,
 };

@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import {
+  AutoGiroContent,
   AutoGiroOpeningRecord,
   AutoGiroParsedResult,
   AutoGiroTransactionCode,
@@ -17,6 +18,7 @@ import {
  */
 export const parseMandates = (lines: string[], openingRecord: AutoGiroOpeningRecord) => {
   let result: AutoGiroParsedMandatesResult = {
+    reportContents: AutoGiroContent.MANDATES,
     openingRecord,
     mandates: [],
   };
@@ -44,6 +46,7 @@ export const parseMandates = (lines: string[], openingRecord: AutoGiroOpeningRec
 };
 
 interface AutoGiroParsedMandatesResult extends AutoGiroParsedResult {
+  reportContents: AutoGiroContent.MANDATES;
   mandates: AutoGiroMandateAddOrDeleteRecord[];
 }
 
