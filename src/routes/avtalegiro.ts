@@ -106,6 +106,25 @@ router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
     const taxUnit = await DAO.tax.getByKID(agreement.KID);
     const donor = await DAO.donors.getByKID(agreement.KID);
 
+    type BackwardsCompatibleResponse = {
+      status: 200;
+      content: {
+        ID: number;
+        distribution: {
+          KID: string;
+          donor: unknown;
+          taxUnit: unknown;
+          standardDistribution: boolean;
+          shares: Array<{
+            full_name: string;
+            abbriv: string;
+            id: number;
+            share: string;
+          }>;
+        };
+      };
+    };
+
     return res.json({
       status: 200,
       content: {
@@ -114,7 +133,7 @@ router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
         donor,
         taxUnit,
       },
-    });
+    } satisfies BackwardsCompatibleResponse);
   } catch (ex) {
     next(ex);
   }
