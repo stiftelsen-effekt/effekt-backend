@@ -3,6 +3,7 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { donationHelpers } from "../custom_modules/donationHelpers";
 
 import express from "express";
+import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
 const router = express.Router();
 
 const rounding = require("../custom_modules/rounding");
@@ -135,13 +136,21 @@ router.get("/:KID", authMiddleware.isAdmin, async (req, res, next) => {
       };
     };
 
+    const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
+
     return res.json({
       status: 200,
       content: {
         KID: req.params.KID,
         donor,
         taxUnit,
-        distribution,
+        standardDistribution: causeArea.standardSplit,
+        shares: causeArea.organizations.map((org) => ({
+          full_name: org.name,
+          abbriv: org.name,
+          id: org.id,
+          share: org.percentageShare,
+        })),
       },
     } satisfies BackwardsCompatibleResponse);
   } catch (ex) {
@@ -165,16 +174,11 @@ router.get(
   async (req, res, next) => {
     try {
       if (!req.params.donorID) res.status(400).json({ status: 400, content: "No KID provided" });
-      let distributions = await DAO.distributions.getAllByDonor(req.params.donorID);
-
-      /**
-       * Cause Areas Todo: Not backwards compatible with old distributions object
-       */
-      throw new Error("Not backwards compatible with old distributions object");
+      let { distributions, donorID } = await DAO.distributions.getAllByDonor(req.params.donorID);
 
       type BackwardsCompatibleResponse = {
         status: 200;
-        content: Array<{
+        content: {
           donorID: number;
           distributions: Array<{
             kid: string;
@@ -184,12 +188,22 @@ router.get(
               share: string;
             }>;
           }>;
-        }>;
+        };
       };
 
       return res.json({
         status: 200,
-        content: distributions,
+        content: {
+          donorID,
+          distributions: distributions.map((distribution) => ({
+            kid: distribution.kid,
+            shares: findGlobalHealthCauseAreaOrThrow(distribution).organizations.map((org) => ({
+              id: org.id,
+              name: org.name,
+              share: org.percentageShare,
+            })),
+          })),
+        },
       } satisfies BackwardsCompatibleResponse);
     } catch (ex) {
       if (ex.message.indexOf("NOT FOUND") !== -1)

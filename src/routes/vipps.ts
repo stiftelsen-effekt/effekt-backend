@@ -7,6 +7,7 @@ import permissions from "../enums/authorizationPermissions";
 import express from "express";
 const router = express.Router();
 import bodyParser from "body-parser";
+import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
 const jsonBody = bodyParser.json();
 const dns = require("dns").promises;
 const config = require("../config");
@@ -134,9 +135,23 @@ router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
       };
     };
 
-    res
-      .status(200)
-      .json({ content: { agreement, distribution } } satisfies BackwardsCompatibleResponse);
+    const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
+
+    res.status(200).json({
+      content: {
+        agreement,
+        distribution: {
+          kid: distribution.kid,
+          standardDistribution: causeArea.standardSplit,
+          shares: causeArea.organizations.map((org) => ({
+            abbriv: org.name,
+            name: org.name,
+            id: org.id,
+            share: org.percentageShare,
+          })),
+        },
+      },
+    } satisfies BackwardsCompatibleResponse);
   } catch (ex) {
     next({ ex });
   }

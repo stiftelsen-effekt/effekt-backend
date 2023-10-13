@@ -7,6 +7,7 @@ import { donationHelpers } from "../custom_modules/donationHelpers";
 import { Donor } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import moment from "moment";
+import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
 
 const router = express.Router();
 const rounding = require("../custom_modules/rounding");
@@ -127,13 +128,24 @@ router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
       };
     };
 
+    const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
+
     return res.json({
       status: 200,
       content: {
         ...agreement,
-        distribution,
-        donor,
-        taxUnit,
+        distribution: {
+          KID: distribution.kid,
+          donor,
+          taxUnit,
+          standardDistribution: causeArea.standardSplit,
+          shares: causeArea.organizations.map((org) => ({
+            full_name: org.name,
+            abbriv: org.name,
+            id: org.id,
+            share: org.percentageShare,
+          })),
+        },
       },
     } satisfies BackwardsCompatibleResponse);
   } catch (ex) {
