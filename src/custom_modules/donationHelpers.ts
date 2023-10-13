@@ -2,7 +2,7 @@ import { DAO } from "./DAO";
 import { KID } from "./KID";
 
 export const donationHelpers = {
-  createDonationSplitArray: async (passedOrganizations) => {
+  createDonationSplitArray: async (passedOrganizations: { split: number; id: number }[]) => {
     //Filter passed organizations for 0 shares
     var filteredOrganizations = passedOrganizations.filter((org) => org.split > 0);
 
