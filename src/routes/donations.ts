@@ -48,7 +48,7 @@ router.get("/status", async (req, res, next) => {
  */
 router.post("/register", async (req, res, next) => {
   let parsedData = req.body as {
-    organizations: { split: number; id: number }[];
+    organizations?: { split: number; id: number }[];
     donor: {
       email: string;
       name: string;
