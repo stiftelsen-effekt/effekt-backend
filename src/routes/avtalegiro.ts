@@ -102,6 +102,8 @@ router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const agreement = await DAO.avtalegiroagreements.getAgreement(req.params.id);
 
+    if (!agreement) return res.sendStatus(404);
+
     const shares = await DAO.distributions.getSplitByKID(agreement.KID);
     const taxUnit = await DAO.tax.getByKID(agreement.KID);
     const standardDistribution = await DAO.distributions.isStandardDistribution(agreement.KID);

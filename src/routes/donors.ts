@@ -1190,22 +1190,23 @@ router.get(
         distributions = distributions.filter((dist) => kidSet.has(dist.kid));
       }
 
-      const requests = [];
-      for (let i = 0; i < distributions.length; i++) {
-        const dist = distributions[i];
-        requests.push(getDistributionTaxUnitAndStandardDistribution(i, dist.kid));
-      }
-
-      const results = await Promise.all(requests);
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        distributions[result.index].taxUnit = result.taxUnit;
-        distributions[result.index].standardDistribution = result.standardDistribution;
-      }
+      const distributionsWithTaxUnitAndDistribution = await Promise.all(
+        distributions.map(async (distribution, index) => {
+          const result = await getDistributionTaxUnitAndStandardDistribution(
+            index,
+            distribution.kid,
+          );
+          return {
+            ...distribution,
+            taxUnit: result.taxUnit,
+            standardDistribution: result.standardDistribution,
+          };
+        }),
+      );
 
       return res.json({
         status: 200,
-        content: distributions,
+        content: distributionsWithTaxUnitAndDistribution,
       });
     } catch (ex) {
       next(ex);

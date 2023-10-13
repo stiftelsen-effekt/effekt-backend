@@ -3,6 +3,7 @@ import { DAO } from "../DAO";
 
 import sqlString from "sqlstring";
 import { OkPacket, ResultSetHeader } from "mysql2/promise";
+import { Avtalegiro_agreements } from "@prisma/client";
 
 export type AvtaleGiroAgreement = {
   id: number;
@@ -323,8 +324,8 @@ async function getAgreements(sort, page, limit, filter) {
  * @param {string} id AvtaleGiro ID
  * @return {AvtaleGiro} AvtaleGiro agreement
  */
-async function getAgreement(id) {
-  const [result] = await DAO.query(
+async function getAgreement(id: string) {
+  const [result] = await DAO.query<Avtalegiro_agreements[]>(
     `
         SELECT DISTINCT
             AG.ID,
