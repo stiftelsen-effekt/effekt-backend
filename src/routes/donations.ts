@@ -159,14 +159,12 @@ router.post("/register", async (req, res, next) => {
     /** Use new KID for avtalegiro */
     if (donationObject.method == methods.BANK && donationObject.recurring == true) {
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
-      donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID);
-
-      const distribution: Distribution = {
-        kid: donationObject.KID,
+      donationObject.KID = await donationHelpers.createAvtaleGiroKID();
+      // !!--!! ================================================= TAX UNIT
+      await DAO.distributions.add({
         ...draftDistribution,
-      };
-
-      await DAO.distributions.add(distribution);
+        kid: donationObject.KID,
+      });
     } else {
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit({

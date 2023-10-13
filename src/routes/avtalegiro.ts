@@ -102,6 +102,8 @@ router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const agreement = await DAO.avtalegiroagreements.getAgreement(req.params.id);
 
+    if (!agreement) return res.sendStatus(404);
+
     const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
     const taxUnit = await DAO.tax.getByKID(agreement.KID);
     const donor = await DAO.donors.getByKID(agreement.KID);
@@ -359,7 +361,7 @@ router.post(
       }
 
       // Create new KID for the old replaced distribution
-      const replacementKID = await donationHelpers.createKID(15, donorId);
+      const replacementKID = await donationHelpers.createAvtaleGiroKID();
 
       // Replace distribution
       const response = await DAO.avtalegiroagreements.replaceDistribution(

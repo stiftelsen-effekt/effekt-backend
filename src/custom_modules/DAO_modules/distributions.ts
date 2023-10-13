@@ -1,15 +1,15 @@
 import { DAO, SqlResult } from "../DAO";
 
-import sqlString from "sqlstring";
 import {
-  Distribution_cause_area_organizations,
-  Distribution_cause_areas,
   Distributions,
+  Distribution_cause_areas,
+  Distribution_cause_area_organizations,
   Donors,
   Organizations,
   Prisma,
 } from "@prisma/client";
 import { ResultSetHeader } from "mysql2";
+import sqlString from "sqlstring";
 import {
   Distribution,
   DistributionCauseArea,
