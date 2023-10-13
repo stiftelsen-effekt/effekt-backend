@@ -58,6 +58,7 @@ model Avtalegiro_shipment {
 
 model AutoGiro_agreements {
   ID           Int       @id @default(autoincrement())
+  mandateID    Int       @unique(map: "mandateID_UNIQUE") @db.Int
   KID          String    @unique(map: "KID_UNIQUE") @db.VarChar(16)
   amount       Int
   payment_date Int
@@ -66,6 +67,8 @@ model AutoGiro_agreements {
   last_updated DateTime? @default(now()) @db.DateTime(0)
   created      DateTime? @default(now()) @db.DateTime(0)
   cancelled    DateTime? @db.Date
+
+  mandate AutoGiro_mandates @relation(fields: [mandateID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
 }
 
 model AutoGiro_shipment {
@@ -106,22 +109,21 @@ model AutoGiro_mandates {
 
   KID String @unique @db.VarChar(16) // This binds mandates to both donor and tax units (SSN)
 
-  combing_table Combining_table[]
+  agreements AutoGiro_agreements?
 }
 
 model Combining_table {
   Donor_ID                   Int
   Distribution_ID            Int
   Tax_unit_ID                Int?
-  KID                        String             @db.VarChar(16)
-  timestamp_created          DateTime?          @default(now()) @db.DateTime(0)
-  Meta_owner_ID              Int                @default(3)
-  Replaced_old_organizations Int?               @db.TinyInt
+  KID                        String       @db.VarChar(16)
+  timestamp_created          DateTime?    @default(now()) @db.DateTime(0)
+  Meta_owner_ID              Int          @default(3)
+  Replaced_old_organizations Int?         @db.TinyInt
   Standard_split             Boolean?
-  Distribution               Distribution       @relation(fields: [Distribution_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Distribution")
-  Donors                     Donors             @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Donor")
-  Tax_unit                   Tax_unit?          @relation(fields: [Tax_unit_ID], references: [ID], map: "fk_Combining_to_TaxUnit")
-  Autogiro_mandate           AutoGiro_mandates? @relation(fields: [KID], references: [KID], map: "fk_Combining_to_AutoGiroMandates")
+  Distribution               Distribution @relation(fields: [Distribution_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Distribution")
+  Donors                     Donors       @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Donor")
+  Tax_unit                   Tax_unit?    @relation(fields: [Tax_unit_ID], references: [ID], map: "fk_Combining_to_TaxUnit")
 
   @@id([Donor_ID, Distribution_ID, KID])
   @@index([KID], map: "KID")

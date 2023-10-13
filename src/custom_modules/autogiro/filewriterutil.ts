@@ -32,9 +32,18 @@ export default {
       "0",
     )}${bankgiroNumber.padStart(10, "0")}  `;
   },
+  /**
+   *
+   * @param date The date of the withdrawal
+   * @param KID Autogiro agreement KID (called payer number in the specification)
+   * @param bankgiroNumber The bankgiro number of the organization (payee)
+   * @param paymentAmount The amount in øre
+   * @param paymentReference The charge ID from the database
+   * @returns
+   */
   getWithdrawalRecord: (
     date: DateTime,
-    donorId: number,
+    KID: string,
     bankgiroNumber: string,
     paymentAmount: number,
     paymentReference: string,
@@ -48,9 +57,10 @@ export default {
      * that we don't want to deal with, since we already have a robust system
      * for doing the necessary logic in the AvtaleGiro module.
      */
-    return `${AutoGiroPaymentCodes.INCOMMING}${date.toFormat("yyyyLLdd")}0    ${donorId
-      .toString()
-      .padStart(16, "0")}${paymentAmount.toString().padStart(12, "0")}${bankgiroNumber.padStart(
+    return `${AutoGiroPaymentCodes.INCOMMING}${date.toFormat("yyyyLLdd")}0    ${KID.padStart(
+      16,
+      "0",
+    )}${paymentAmount.toString().padStart(12, "0")}${bankgiroNumber.padStart(
       10,
       "0",
     )}${paymentReference.padEnd(16, " ")}           `;

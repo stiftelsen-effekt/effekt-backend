@@ -16,7 +16,7 @@ import paymentMethods from "../enums/paymentMethods";
  * @returns {Buffer} The file buffer
  */
 export async function generateAutogiroGiroFile(
-  shipmentID: string,
+  shipmentID: number,
   agreements: AutoGiro_agreements[],
   dueDate: DateTime,
 ) {
@@ -32,9 +32,25 @@ export async function generateAutogiroGiroFile(
   /**
    * Withdrawal requests
    */
-  agreements.forEach((agreement) => {
-    //fileContents += writer.getWithdrawalRecord(dueDate, agreement., config.autogiro_bankgiro_number, agreement.limit, agreement.KID);
-  });
+  for (const agreement of agreements) {
+    // Create a charge record for each agreement
+    const chargeId = await DAO.autogiroagreements.addAgreementCharge({
+      agreementID: agreement.ID,
+      shipmentID: shipmentID,
+      status: "PENDING",
+      claim_date: dueDate.toJSDate(),
+      amount: agreement.amount.toString(),
+      donationID: null,
+    });
+
+    fileContents += writer.getWithdrawalRecord(
+      today,
+      agreement.KID,
+      config.autogiro_bankgiro_number,
+      agreement.amount,
+      chargeId.toString(),
+    );
+  }
 
   const fileBuffer = Buffer.from(fileContents, "utf8");
 
@@ -44,6 +60,7 @@ export async function generateAutogiroGiroFile(
 export async function processAutogiroInputFile(fileContents: string) {
   const parsedFile = AutoGiroParser.parse(fileContents);
 
+  /*
   if (parsedFile.reportContents === AutoGiroContent.PAYMENT_SPECIFICATION_AND_STOP) {
     for (const deposit of parsedFile.deposits) {
       for (const payment of deposit.payments) {
@@ -56,6 +73,7 @@ export async function processAutogiroInputFile(fileContents: string) {
       }
     }
   }
+  */
 
   return parsedFile;
 }

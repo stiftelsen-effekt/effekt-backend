@@ -7,6 +7,7 @@ import { DateTime } from "luxon";
 
 import express from "express";
 import { AvtaleGiroAgreement } from "../custom_modules/DAO_modules/avtalegiroagreements";
+import { generateAutogiroGiroFile } from "../custom_modules/autogiro";
 
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
@@ -257,6 +258,52 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
     next({ ex });
   }
 });
+
+router.post(
+  "/autogiro",
+  /*authMiddleware.isAdmin,*/ async (req, res, next) => {
+    let result;
+    try {
+      const today = DateTime.fromJSDate(new Date());
+      const claimDate = today.plus({ days: 3 });
+
+      /**
+       * Get active agreements
+       */
+      const agreements = await DAO.autogiroagreements.getAgreementsByPaymentDate(claimDate.day);
+
+      if (agreements.length > 0) {
+        /**
+         * Create file to charge agreements for current day
+         */
+        const shipmentID = await DAO.autogiroagreements.addShipment(agreements.length);
+        const autoGiroClaimsFile = await generateAutogiroGiroFile(
+          shipmentID,
+          agreements,
+          claimDate,
+        );
+
+        result = {
+          shipmentID: shipmentID,
+          numCharges: agreements.length,
+          file: autoGiroClaimsFile.toString(),
+        };
+      } else {
+        result = {
+          shipmentID: null,
+          numCharges: 0,
+          file: null,
+        };
+      }
+
+      await DAO.logging.add("AutoGiro", result);
+      // await sendOcrBackup(JSON.stringify(result, null, 2));
+      res.json(result);
+    } catch (ex) {
+      next({ ex });
+    }
+  },
+);
 
 router.post("/vipps", authMiddleware.isAdmin, async (req, res, next) => {
   try {

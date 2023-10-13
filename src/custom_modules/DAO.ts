@@ -16,6 +16,7 @@ import { organizations } from "./DAO_modules/organizations";
 import * as mysql from "mysql2/promise";
 import { Prisma } from "@prisma/client";
 import config from "../config";
+import { autogiroagreements } from "./DAO_modules/autogiroagreements";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -49,6 +50,7 @@ export const DAO = {
   meta: meta,
   initialpaymentmethod: initialpaymentmethod,
   avtalegiroagreements: avtalegiroagreements,
+  autogiroagreements: autogiroagreements,
   facebook: facebook,
   tax: tax,
   logging: logging,
