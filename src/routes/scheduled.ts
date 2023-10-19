@@ -271,8 +271,9 @@ router.post(
        * Get active agreements
        */
       const agreements = await DAO.autogiroagreements.getAgreementsByPaymentDate(claimDate.day);
+      const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
 
-      if (agreements.length > 0) {
+      if (agreements.length > 0 || mandatesToBeConfirmed.length > 0) {
         /**
          * Create file to charge agreements for current day
          */
@@ -280,12 +281,14 @@ router.post(
         const autoGiroClaimsFile = await generateAutogiroGiroFile(
           shipmentID,
           agreements,
+          mandatesToBeConfirmed,
           claimDate,
         );
 
         result = {
           shipmentID: shipmentID,
           numCharges: agreements.length,
+          numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
           file: autoGiroClaimsFile.toString(),
         };
       } else {

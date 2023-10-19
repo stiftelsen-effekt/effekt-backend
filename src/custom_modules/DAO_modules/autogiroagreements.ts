@@ -2,14 +2,15 @@ import {
   AutoGiro_agreement_charges,
   AutoGiro_agreements,
   AutoGiro_mandates,
-  AutoGiro_shipment,
+  AutoGiro_shipments,
 } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
 import { DateTime } from "luxon";
+import sqlString from "sqlstring";
 
 export const autogiroagreements = {
   getShipmentById: async function (ID: number) {
-    const [shipment] = await DAO.query<AutoGiro_shipment[]>(
+    const [shipment] = await DAO.query<AutoGiro_shipments[]>(
       `
         SELECT * FROM AutoGiro_shipments WHERE ID = ?
       `,
@@ -34,6 +35,94 @@ export const autogiroagreements = {
       `,
       [sent.toISO(), ID],
     );
+  },
+  getAgreements: async function (
+    sort: { desc: boolean; id: string },
+    page: number,
+    limit: number,
+    filter: any,
+  ) {
+    const sortColumn = sort.id;
+    const sortDirection = sort.desc ? "DESC" : "ASC";
+    const offset = page * limit;
+
+    let where = [];
+    if (filter) {
+      if (filter.amount) {
+        if (filter.amount.from)
+          where.push(`amount >= ${sqlString.escape(filter.amount.from * 100)} `);
+        if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to * 100)} `);
+      }
+      if (filter.paymentDate) {
+        if (filter.paymentDate.from !== undefined)
+          where.push(`AG.payment_date >= ${sqlString.escape(filter.paymentDate.from)} `);
+        if (filter.paymentDate.to !== undefined)
+          where.push(`AG.payment_date <= ${sqlString.escape(filter.paymentDate.to)} `);
+      }
+      if (filter.created) {
+        if (filter.created.from)
+          where.push(`AG.created >= ${sqlString.escape(filter.created.from)} `);
+        if (filter.created.to) where.push(`AG.created <= ${sqlString.escape(filter.created.to)} `);
+      }
+
+      if (filter.KID)
+        where.push(` CAST(CT.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
+      if (filter.donor)
+        where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
+      if (filter.statuses.length > 0)
+        where.push(
+          ` AG.active IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `,
+        );
+    }
+
+    const [agreements] = await DAO.query(
+      `
+          SELECT DISTINCT
+              AG.ID,
+              AG.active,
+              ROUND(AG.amount / 100, 0) as amount,
+              AG.KID,
+              AG.payment_date,
+              AG.created,
+              AG.cancelled,
+              AG.last_updated,
+              AG.notice,
+              Donors.full_name 
+          FROM AutoGiro_agreements as AG
+          INNER JOIN Combining_table as CT
+              ON AG.KID = CT.KID
+          INNER JOIN Donors 
+              ON CT.Donor_ID = Donors.ID
+          WHERE
+              ${where.length !== 0 ? where.join(" AND ") : "1"}
+
+          ORDER BY ${sortColumn} ${sortDirection}
+          LIMIT ? OFFSET ?
+          `,
+      [limit, offset],
+    );
+
+    const [counter] = await DAO.query(`
+          SELECT COUNT(*) as count FROM AutoGiro_agreements
+      `);
+
+    return {
+      pages: Math.ceil(counter[0].count / limit),
+      rows: agreements,
+    };
+  },
+  getAgreementSumHistogram: async function () {
+    let [results] = await DAO.query(`
+              SELECT 
+                  floor(amount/500)*500/100 	AS bucket, 
+                  count(*) 						AS items,
+                  ROUND(100*LN(COUNT(*)))         AS bar
+              FROM AutoGiro_agreements
+              GROUP BY 1
+              ORDER BY 1;
+          `);
+
+    return results;
   },
   getAgreementById: async function (ID: number) {
     const [agreement] = await DAO.query<AutoGiro_agreements[]>(
@@ -131,6 +220,14 @@ export const autogiroagreements = {
     );
     return result.insertId;
   },
+  cancelAgreementCharge: async function (ID: number) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_agreement_charges SET status = "CANCELLED" WHERE ID = ?
+      `,
+      [ID],
+    );
+  },
   getMandateById: async function (ID: number) {
     const [mandate] = await DAO.query<AutoGiro_mandates[]>(
       `
@@ -138,7 +235,7 @@ export const autogiroagreements = {
       `,
       [ID],
     );
-    return mandate?.[0];
+    return mapMandateType(mandate?.[0]);
   },
   getMandateByKID: async function (KID: string) {
     const [mandate] = await DAO.query<AutoGiro_mandates[]>(
@@ -147,22 +244,24 @@ export const autogiroagreements = {
       `,
       [KID],
     );
-    return mandate?.[0];
+    return mapMandateType(mandate?.[0]);
   },
-  getMandateByStatus: async function (status: string) {
-    const [mandate] = await DAO.query<AutoGiro_mandates[]>(
+  getMandatesByStatus: async function (status: string) {
+    const [mandates] = await DAO.query<AutoGiro_mandates[]>(
       `
         SELECT * FROM AutoGiro_mandates WHERE status = ?
       `,
       [status],
     );
-    return mandate?.[0];
+    return mandates.map(mapMandateType);
   },
-  addMandate: async function (mandate: AutoGiro_mandates): Promise<number> {
+  addMandate: async function (
+    mandate: Omit<AutoGiro_mandates, "ID" | "last_updated" | "created">,
+  ): Promise<number> {
     const [result] = await DAO.query(
       `
         INSERT INTO AutoGiro_mandates (KID, status, bank_account, special_information, name_and_address, postal_code, postal_label)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
       [
         mandate.KID,
@@ -176,6 +275,33 @@ export const autogiroagreements = {
     );
     return result.insertId;
   },
+  activateMandate: async function (ID: number) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_mandates SET status = "ACTIVE" WHERE ID = ?
+      `,
+      [ID],
+    );
+  },
+  cancelMandate: async function (ID: number) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_mandates SET status = "CANCELLED" WHERE ID = ?
+      `,
+      [ID],
+    );
+  },
+  setMandateStatus: async function (
+    ID: number,
+    status: "NEW" | "ACTIVE" | "CANCELLED" | "PENDING" | "REJECTED",
+  ) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_mandates SET status = ? WHERE ID = ?
+      `,
+      [status, ID],
+    );
+  },
 };
 
 const mapAgreementType = (agreement: SqlResult<AutoGiro_agreements>): AutoGiro_agreements => {
@@ -186,5 +312,13 @@ const mapAgreementType = (agreement: SqlResult<AutoGiro_agreements>): AutoGiro_a
     last_updated: DateTime.fromISO(agreement.last_updated).toJSDate(),
     created: DateTime.fromISO(agreement.created).toJSDate(),
     cancelled: agreement.cancelled ? DateTime.fromISO(agreement.cancelled).toJSDate() : null,
+  };
+};
+
+const mapMandateType = (mandate: SqlResult<AutoGiro_mandates>): AutoGiro_mandates => {
+  return {
+    ...mandate,
+    last_updated: DateTime.fromISO(mandate.last_updated).toJSDate(),
+    created: DateTime.fromISO(mandate.created).toJSDate(),
   };
 };

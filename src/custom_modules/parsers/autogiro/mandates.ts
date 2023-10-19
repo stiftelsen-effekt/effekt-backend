@@ -78,7 +78,7 @@ const parseMandateAddOrDeleteRecord = (line: string): AutoGiroMandateAddOrDelete
  * Section 8.3.3 in technical specification
  */
 export enum AutoGiroMandateInformationCodes {
-  DELECTION = 3,
+  DELETION = 3,
   ADDITION = 4,
   CHANGE = 5,
   CANCELLATION = 10,
@@ -87,6 +87,14 @@ export enum AutoGiroMandateInformationCodes {
   DELETED_CUSTOMER_BANK_RESPONSE = 44,
   DELETED_BANK_RESPONSE = 46,
 }
+
+export const AutoGiroMandateCancelledInformationCodes = [
+  AutoGiroMandateInformationCodes.DELETION,
+  AutoGiroMandateInformationCodes.CANCELLATION,
+  AutoGiroMandateInformationCodes.DELETED_NO_BANK_RESPONSE,
+  AutoGiroMandateInformationCodes.DELETED_CUSTOMER_BANK_RESPONSE,
+  AutoGiroMandateInformationCodes.DELETED_BANK_RESPONSE,
+];
 
 export enum AutoGiroMandateCommentaryCodes {
   DELETED_ON_REQUEST = 2,

@@ -71,7 +71,7 @@ model AutoGiro_agreements {
   mandate AutoGiro_mandates @relation(fields: [mandateID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
 }
 
-model AutoGiro_shipment {
+model AutoGiro_shipments {
   ID           Int       @id @default(autoincrement())
   num_charges  Int
   sent_date    DateTime? @default(now()) @db.DateTime(0)
@@ -92,8 +92,8 @@ model AutoGiro_agreement_charges {
   last_updated DateTime? @default(now()) @db.DateTime(0)
   created      DateTime? @default(now()) @db.DateTime(0)
 
-  donation Donations?        @relation(fields: [donationID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
-  shipment AutoGiro_shipment @relation(fields: [shipmentID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+  donation Donations?         @relation(fields: [donationID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+  shipment AutoGiro_shipments @relation(fields: [shipmentID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
 }
 
 model AutoGiro_mandates {
@@ -339,7 +339,7 @@ model Swish_orders {
 model Tax_unit {
   ID              Int               @id @default(autoincrement())
   Donor_ID        Int
-  ssn             String            @db.VarChar(11)
+  ssn             String            @db.VarChar(16)
   full_name       String            @db.VarChar(128)
   registered      DateTime?         @default(now()) @db.DateTime(0)
   archived        DateTime?         @db.DateTime(0)

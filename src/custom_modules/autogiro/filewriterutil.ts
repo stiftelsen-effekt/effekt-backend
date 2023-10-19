@@ -6,9 +6,10 @@
  * "Record and file descriptions – files to Bankgirot"
  */
 
-import { AutoGiro_agreement_charges } from "@prisma/client";
+import { AutoGiro_agreement_charges, AutoGiro_mandates } from "@prisma/client";
 import { DateTime } from "luxon";
 import config from "../../config";
+import { TaxUnit } from "../../schemas/types";
 
 /* Example file:
 0120160713AUTOGIRO                                            4711170009902346  
@@ -65,6 +66,27 @@ export default {
       "0",
     )}${paymentReference.padEnd(16, " ")}           `;
   },
+  /**
+   *
+   * @param mandate The mandate to confirm with the bank
+   * @param bankGiroNumber Payee bankgiro number (i.e. the bankgiro number of the organization)
+   * @returns
+   */
+  getMandateConfirmationRecord: (
+    mandate: AutoGiro_mandates,
+    taxUnit: TaxUnit,
+    bankGiroNumber: string,
+  ) => {
+    if (mandate.status !== "NEW") throw new Error("Can only request confirmation of new mandates");
+
+    return `${AutoGiroMandateCodes.ADD_OR_CONFIRM}${bankGiroNumber.padStart(
+      10,
+      "0",
+    )}${mandate.KID.padStart(16, "0")}${mandate.bank_account.padStart(
+      16,
+      "0",
+    )}${taxUnit.ssn.padStart(12, "0")}${" ".padStart(20, " ")}    `;
+  },
   getCancellationRecord: (charge: AutoGiro_agreement_charges, donorId: number) => {
     if (charge.status !== "PENDING") throw new Error("Can only cancel pending charges");
 
@@ -95,6 +117,10 @@ enum AutoGiroCancellationRecordCode {
 }
 
 enum AutoGiroPaymentCodes {
-  INCOMMING = 82,
-  OUTGOING = 32,
+  INCOMMING = "82",
+  OUTGOING = "32",
+}
+
+enum AutoGiroMandateCodes {
+  ADD_OR_CONFIRM = "04",
 }
