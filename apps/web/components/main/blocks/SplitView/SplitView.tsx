@@ -1,7 +1,5 @@
-import { useRouter } from "next/router";
 import React from "react";
 import styles from "./SplitView.module.scss";
-import { EffektButton } from "../../../shared/components/EffektButton/EffektButton";
 import { SanityImageSource } from "@sanity/image-url/lib/types/types";
 import { ResponsiveImage } from "../../../shared/responsiveimage";
 import { LinkType } from "../Links/Links";
@@ -24,8 +22,6 @@ export const SplitView: React.FC<SplitView> = ({
   links,
   image,
 }) => {
-  const router = useRouter();
-
   const classes = [styles.splitview];
   if (swapped) classes.push(styles.swapped);
 
