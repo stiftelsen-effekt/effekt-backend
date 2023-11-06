@@ -9,6 +9,14 @@ import { DateTime } from "luxon";
 import sqlString from "sqlstring";
 
 export const autogiroagreements = {
+  getAllShipments: async function () {
+    const [shipments] = await DAO.query<AutoGiro_shipments[]>(
+      `
+        SELECT * FROM AutoGiro_shipments
+      `,
+    );
+    return shipments;
+  },
   getShipmentById: async function (ID: number) {
     const [shipment] = await DAO.query<AutoGiro_shipments[]>(
       `

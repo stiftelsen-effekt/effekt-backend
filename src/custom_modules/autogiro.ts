@@ -35,6 +35,7 @@ export async function generateAutogiroGiroFile(
     config.autogiro_customer_number,
     config.autogiro_bankgiro_number,
   );
+  fileContents += "\n";
 
   /**
    * Withdrawal requests
@@ -57,6 +58,7 @@ export async function generateAutogiroGiroFile(
       agreement.amount,
       chargeId.toString(),
     );
+    fileContents += "\n";
   }
 
   /**
@@ -70,6 +72,7 @@ export async function generateAutogiroGiroFile(
       taxUnit,
       config.autogiro_bankgiro_number,
     );
+    fileContents += "\n";
 
     await DAO.autogiroagreements.setMandateStatus(mandate.ID, "PENDING");
   }

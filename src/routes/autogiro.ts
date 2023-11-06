@@ -18,6 +18,43 @@ router.post("/reports/process", async (req, res) => {
   res.json(result);
 });
 
+router.get("/shipments", isAdmin, async (req, res, next) => {
+  try {
+    const shipments = await DAO.autogiroagreements.getAllShipments();
+    if (shipments) {
+      return res.json({
+        status: 200,
+        content: shipments,
+      });
+    } else {
+      return res.status(500).json({
+        status: 500,
+        content: "Error getting shipments",
+      });
+    }
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+router.get("/shipment/:id/report", isAdmin, async (req, res, next) => {
+  try {
+    const fileContents = await DAO.logging.getAutoGiroShipmentFile(parseInt(req.params.id));
+
+    if (fileContents) {
+      res.setHeader("Content-Type", "text/plain");
+      res.send(fileContents);
+    } else {
+      return res.status(500).json({
+        status: 500,
+        content: "Error getting shipment report",
+      });
+    }
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 router.get("/agreement/:id", isAdmin, async (req, res, next) => {
   try {
     const agreement = await DAO.autogiroagreements.getAgreementById(req.params.id);

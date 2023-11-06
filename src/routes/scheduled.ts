@@ -259,54 +259,51 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
   }
 });
 
-router.post(
-  "/autogiro",
-  /*authMiddleware.isAdmin,*/ async (req, res, next) => {
-    let result;
-    try {
-      const today = DateTime.fromJSDate(new Date());
-      const claimDate = today.plus({ days: 3 });
+router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
+  let result;
+  try {
+    const today = DateTime.fromJSDate(new Date());
+    const claimDate = today.plus({ days: 3 });
 
+    /**
+     * Get active agreements
+     */
+    const agreements = await DAO.autogiroagreements.getAgreementsByPaymentDate(claimDate.day);
+    const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
+
+    if (agreements.length > 0 || mandatesToBeConfirmed.length > 0) {
       /**
-       * Get active agreements
+       * Create file to charge agreements for current day
        */
-      const agreements = await DAO.autogiroagreements.getAgreementsByPaymentDate(claimDate.day);
-      const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
+      const shipmentID = await DAO.autogiroagreements.addShipment(agreements.length);
+      const autoGiroClaimsFile = await generateAutogiroGiroFile(
+        shipmentID,
+        agreements,
+        mandatesToBeConfirmed,
+        claimDate,
+      );
 
-      if (agreements.length > 0 || mandatesToBeConfirmed.length > 0) {
-        /**
-         * Create file to charge agreements for current day
-         */
-        const shipmentID = await DAO.autogiroagreements.addShipment(agreements.length);
-        const autoGiroClaimsFile = await generateAutogiroGiroFile(
-          shipmentID,
-          agreements,
-          mandatesToBeConfirmed,
-          claimDate,
-        );
-
-        result = {
-          shipmentID: shipmentID,
-          numCharges: agreements.length,
-          numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
-          file: autoGiroClaimsFile.toString(),
-        };
-      } else {
-        result = {
-          shipmentID: null,
-          numCharges: 0,
-          file: null,
-        };
-      }
-
-      await DAO.logging.add("AutoGiro", result);
-      // await sendOcrBackup(JSON.stringify(result, null, 2));
-      res.json(result);
-    } catch (ex) {
-      next({ ex });
+      result = {
+        shipmentID: shipmentID,
+        numCharges: agreements.length,
+        numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
+        file: autoGiroClaimsFile.toString(),
+      };
+    } else {
+      result = {
+        shipmentID: null,
+        numCharges: 0,
+        file: null,
+      };
     }
-  },
-);
+
+    await DAO.logging.add("AutoGiro", result);
+    // await sendOcrBackup(JSON.stringify(result, null, 2));
+    res.json(result);
+  } catch (ex) {
+    next({ ex });
+  }
+});
 
 router.post("/vipps", authMiddleware.isAdmin, async (req, res, next) => {
   try {
