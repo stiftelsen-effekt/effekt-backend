@@ -717,7 +717,11 @@ module.exports = {
       return false;
     }
     let body = {
-      price: price,
+      pricing: {
+        type: "LEGACY",
+        amount: price,
+        currency: "NOK",
+      },
     };
 
     try {
