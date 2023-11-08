@@ -6,6 +6,7 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { TaxReport, TaxYearlyReportUnit } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import bodyParser from "body-parser";
+import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
 
 const router = express.Router();
 
@@ -1182,11 +1183,6 @@ router.get(
     try {
       const result = await DAO.distributions.getAllByDonor(req.params.id);
 
-      /**
-       * Cause Areas Todo: Not backwards compatible with old distributions object
-       */
-      throw new Error("Not backwards compatible with old distributions object");
-
       let distributions = result.distributions;
 
       if (req.query.kids) {
@@ -1226,7 +1222,18 @@ router.get(
 
       return res.json({
         status: 200,
-        content: distributions,
+        content: distributionsWithTaxUnitAndDistribution.map((distribution) => {
+          return {
+            kid: distribution.kid,
+            taxUnit: distribution.taxUnit,
+            standardDistribution: distribution.standardDistribution,
+            shares: findGlobalHealthCauseAreaOrThrow(distribution).organizations.map((org) => ({
+              id: org.id,
+              name: org.name,
+              share: org.percentageShare,
+            })),
+          };
+        }),
       } satisfies BackwardsCompatibleResponse);
     } catch (ex) {
       next(ex);
@@ -1234,18 +1241,16 @@ router.get(
   },
 );
 
-async function getDistributionTaxUnitAndStandardDistribution(index, kid) {
-  // !!! === CAUSE AREAS TODO === !!!
-  throw new Error("Not implemented");
-  /*
+async function getDistributionTaxUnitAndStandardDistribution(index: number, kid: string) {
   const taxUnit = await DAO.tax.getByKID(kid);
-  const standardDistribution = await DAO.distributions.isStandardDistribution(kid);
+  const distribution = await DAO.distributions.getSplitByKID(kid);
+  const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
+  const standardDistribution = causeArea.standardSplit;
   return {
     index: index,
     taxUnit: taxUnit,
     standardDistribution: standardDistribution,
   };
-  */
 }
 
 /**

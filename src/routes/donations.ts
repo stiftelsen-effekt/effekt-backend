@@ -13,6 +13,7 @@ import methods from "../enums/methods";
 import bodyParser from "body-parser";
 import apicache from "apicache";
 import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
+import { GLOBAL_HEALTH_CAUSE_AREA_ID } from "../custom_modules/distribution";
 
 const config = require("../config");
 
@@ -51,7 +52,7 @@ router.post("/register", async (req, res, next) => {
   console.log(req.body);
 
   let parsedData = req.body as {
-    distributionCauseAreas: DistributionCauseArea[];
+    organizations?: { split: number; id: number }[];
     donor: {
       email: string;
       name: string;
@@ -144,7 +145,24 @@ router.post("/register", async (req, res, next) => {
     const draftDistribution: DistributionInput = {
       donorId: donationObject.donorID,
       taxUnitId: donationObject.taxUnitId,
-      causeAreas: parsedData.distributionCauseAreas,
+      causeAreas: [
+        {
+          id: GLOBAL_HEALTH_CAUSE_AREA_ID,
+          percentageShare: "100",
+          ...(parsedData.organizations
+            ? {
+                organizations: parsedData.organizations.map((org) => ({
+                  id: org.id,
+                  percentageShare: org.split.toString(),
+                })),
+                standardSplit: false,
+              }
+            : {
+                organizations: [],
+                standardSplit: true,
+              }),
+        },
+      ],
     };
 
     /* Get the standard shares of the organizations for all cause areas with standard split */
@@ -170,7 +188,7 @@ router.post("/register", async (req, res, next) => {
       donationObject.KID = await DAO.distributions.getKIDbySplit({
         donorId: donationObject.donorID,
         taxUnitId: donationObject.taxUnitId,
-        causeAreas: parsedData.distributionCauseAreas,
+        causeAreas: draftDistribution.causeAreas,
       });
 
       //Split does not exist create new KID and split
