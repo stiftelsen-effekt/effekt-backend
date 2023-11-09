@@ -378,11 +378,11 @@ async function getByDonorId(donorId) {
                 Donors.full_name
             FROM Avtalegiro_agreements as AG
             
-            INNER JOIN Combining_table as CT
-                ON AG.KID = CT.KID
+            INNER JOIN Distributions as D
+                ON AG.KID = D.KID
             
             INNER JOIN Donors 
-                ON CT.Donor_ID = Donors.ID
+                ON D.Donor_ID = Donors.ID
             
             WHERE Donors.ID = ?`,
     [donorId],
