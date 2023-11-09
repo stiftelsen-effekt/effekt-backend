@@ -346,10 +346,10 @@ async function getAgreement(id: string) {
             Donors.full_name,
             Donors.ID 
         FROM Avtalegiro_agreements as AG
-        INNER JOIN Combining_table as CT
-            ON AG.KID = CT.KID
+        INNER JOIN Distributions as D
+            ON AG.KID = D.KID
         INNER JOIN Donors 
-            ON CT.Donor_ID = Donors.ID
+            ON D.Donor_ID = Donors.ID
         WHERE AG.ID = ?
         `,
     [id],
