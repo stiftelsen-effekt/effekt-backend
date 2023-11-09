@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { isSwedishWorkingDay } from "./swedish-workdays";
+import { isSwedishWorkingDay } from "../custom_modules/swedish-workdays";
 
 describe("isSwedishWorkingDay()", () => {
   it("should return false for saturday", () => {
