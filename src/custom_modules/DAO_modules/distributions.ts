@@ -16,6 +16,7 @@ import {
   DistributionCauseAreaOrganization,
   DistributionInput,
 } from "../../schemas/types";
+import { PoolConnection } from "mysql2/promise";
 
 export type DistributionsListFilter = {
   KID?: string;
@@ -491,9 +492,10 @@ async function getHistoricPaypalSubscriptionKIDS(
 async function add(
   distribution: Distribution,
   metaOwnerID: number | null = null,
+  suppliedTransaction?: PoolConnection,
 ): Promise<boolean> {
   try {
-    var transaction = await DAO.startTransaction();
+    var transaction = suppliedTransaction ?? (await DAO.startTransaction());
 
     if (metaOwnerID == null) {
       metaOwnerID = await DAO.meta.getDefaultOwnerID();
@@ -556,10 +558,10 @@ async function add(
       [distributionCauseAreaOrganizationInsertsRowValues],
     );
 
-    await DAO.commitTransaction(transaction);
+    if (!suppliedTransaction) await DAO.commitTransaction(transaction);
     return true;
   } catch (ex) {
-    await DAO.rollbackTransaction(transaction);
+    if (!suppliedTransaction) await DAO.rollbackTransaction(transaction);
     throw ex;
   }
 }
