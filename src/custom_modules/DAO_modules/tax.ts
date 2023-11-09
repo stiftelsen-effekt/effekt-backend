@@ -112,7 +112,7 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
  */
 async function getByKID(KID: string): Promise<TaxUnit | null> {
   const [idResult] = await DAO.execute<RowDataPacket[]>(
-    `SELECT Tax_unit_ID FROM Combining_table WHERE KID = ?
+    `SELECT Tax_unit_ID FROM Distributions WHERE KID = ?
         GROUP BY Tax_unit_ID;`,
     [KID],
   );
@@ -128,7 +128,7 @@ async function getByKID(KID: string): Promise<TaxUnit | null> {
     const [aggregateYearlyDonations] = await DAO.execute<RowDataPacket[]>(
       `SELECT T.ID, YEAR(D.timestamp_confirmed) as year, SUM(D.sum_confirmed) as sum_donations
               FROM Tax_unit as T
-              INNER JOIN (SELECT KID, Tax_unit_ID FROM Combining_table GROUP BY KID, Tax_unit_ID) as C ON C.Tax_unit_ID = T.ID
+              INNER JOIN (SELECT KID, Tax_unit_ID FROM Distributions GROUP BY KID, Tax_unit_ID) as C ON C.Tax_unit_ID = T.ID
               INNER JOIN Donations as D ON D.KID_fordeling = C.KID
               WHERE T.Donor_ID = ? AND D.Payment_ID <> 10
               GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
