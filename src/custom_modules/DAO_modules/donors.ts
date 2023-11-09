@@ -50,7 +50,7 @@ async function getByKID(KID) {
             
             FROM Donors 
             
-            INNER JOIN Combining_table 
+            INNER JOIN Distributions 
                 ON Donor_ID = Donors.ID 
                 
             WHERE KID = ? 
