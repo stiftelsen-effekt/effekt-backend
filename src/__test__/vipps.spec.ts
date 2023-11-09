@@ -4,6 +4,7 @@ import sinon from "sinon";
 import express from "express";
 import { expect } from "chai";
 import request from "supertest";
+import * as mail from "../custom_modules/mail";
 
 const vipps = require("../custom_modules/vipps");
 
@@ -132,6 +133,7 @@ describe("POST /scheduled/vipps", function () {
   let getVippsAgreementStub;
   let getActiveAgreementStub;
   let addDonationStub;
+  let donationRecieptStub;
 
   before(function () {
     authStub = sinon.replace(authMiddleware, "isAdmin", []);
@@ -167,6 +169,8 @@ describe("POST /scheduled/vipps", function () {
     addDonationStub = sinon.stub(DAO.donations, "add");
 
     loggingStub = sinon.stub(DAO.logging, "add");
+
+    donationRecieptStub = sinon.stub(mail, "sendDonationReceipt");
 
     const scheduledRoute = require("../routes/scheduled");
     server = express();
@@ -221,6 +225,9 @@ describe("POST /scheduled/vipps", function () {
     externalPaymentIDExistsStub.withArgs("agr_1.chr-1").resolves(true);
     externalPaymentIDExistsStub.withArgs("agr_3.chr-3").resolves(false);
 
+    // Resolve for charge 3 agreement 3
+    addDonationStub.resolves(123);
+
     const response = await request(server).post("/scheduled/vipps").expect(200);
 
     expect(addAgreementStub.callCount).to.be.equal(3);
@@ -234,6 +241,7 @@ describe("POST /scheduled/vipps", function () {
     expect(loggingStub.calledOnce).to.be.true;
     expect(externalPaymentIDExistsStub.callCount).to.be.equal(2);
     expect(addDonationStub.calledOnce).to.be.true;
+    expect(donationRecieptStub.calledOnce).to.be.true;
   });
 
   it("Create future due charges", async function () {

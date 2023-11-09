@@ -1,5 +1,5 @@
 import sinon from "sinon";
-import { assert, expect } from "chai";
+import { expect } from "chai";
 import { DAO } from "../../custom_modules/DAO";
 
 describe("DAO Distributions", () => {
