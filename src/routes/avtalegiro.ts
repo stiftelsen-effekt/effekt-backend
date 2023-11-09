@@ -4,13 +4,15 @@ import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendAvtaleGiroChange, sendAvtalegiroRegistered } from "../custom_modules/mail";
 import { donationHelpers } from "../custom_modules/donationHelpers";
-import { Donor } from "../schemas/types";
+import { DistributionInput, Donor } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import moment from "moment";
-import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
+import {
+  findGlobalHealthCauseAreaOrThrow,
+  validateDistribution,
+} from "../custom_modules/distribution";
 
 const router = express.Router();
-const rounding = require("../custom_modules/rounding");
 
 /**
  * @openapi
@@ -335,62 +337,32 @@ router.post(
     try {
       if (!req.body) return res.sendStatus(400);
       const originalKID: string = req.params.KID;
-      const parsedData = req.body;
-      const shares = parsedData.distribution.shares;
-      const standardDistribution: boolean = parsedData.distribution.standardDistribution;
-      const taxUnitId: number | null = parsedData.distribution.taxUnit.id || null;
-      const donor: Donor = await DAO.donors.getByKID(originalKID);
+      const distributionInput = req.body as DistributionInput;
 
-      if (!donor) {
-        throw new Error(`Donor with KID: ${originalKID} not found.`);
-      }
-      const donorId: number = donor.id;
-
-      throw new Error("Not implemented");
-
-      // !!! === CAUSE AREAS TODO === !!!
-
-      /*
-      const split = standardDistribution
-        ? await DAO.organizations.getStandardSplit()
-        : shares
-            .map((org) => {
-              return { id: org.id, share: org.share };
-            })
-            .filter((org) => parseFloat(org.share) !== 0);
-      const metaOwnerID = 3;
-
-      if (split.length === 0) {
-        let err = new Error("Empty distribution array provided");
-        (err as any).status = 400;
-        return next(err);
+      try {
+        validateDistribution(distributionInput);
+      } catch (ex) {
+        return res.status(400).json({
+          status: 400,
+          content: ex.message,
+        });
       }
 
-      if (rounding.sumWithPrecision(split.map((split) => split.share)) !== "100") {
-        let err = new Error("Distribution does not sum to 100");
-        (err as any).status = 400;
-        return next(err);
-      }
-
-      // Create new KID for the old replaced distribution
-      const replacementKID = await donationHelpers.createAvtaleGiroKID();
-
-      // Replace distribution
-      const response = await DAO.avtalegiroagreements.replaceDistribution(
-        replacementKID,
-        originalKID,
-        split,
-        donorId,
-        metaOwnerID,
-        taxUnitId,
-        standardDistribution,
+      const originalDistribution = await DAO.distributions.getSplitByKID(originalKID);
+      const newKid = await donationHelpers.createAvtaleGiroKID();
+      await DAO.avtalegiroagreements.replaceDistribution(
+        originalDistribution,
+        newKid,
+        distributionInput,
       );
+      await sendAvtaleGiroChange(originalKID, "SHARES");
 
-      await sendAvtaleGiroChange(originalKID, "SHARES", split);
-      res.send(response);
-      */
+      res.json({
+        status: 200,
+        content: "OK",
+      });
     } catch (ex) {
-      next({ ex });
+      next(ex);
     }
   },
 );
