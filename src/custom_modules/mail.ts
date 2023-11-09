@@ -666,6 +666,8 @@ export async function sendAvtaleGiroChange(
   change: "CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES",
   newValue: string | number = "",
 ) {
+  throw new Error("Not implemented");
+  /*
   try {
     const agreement = await DAO.avtalegiroagreements.getByKID(KID);
     const donor = await DAO.donors.getByKID(KID);
@@ -712,6 +714,7 @@ export async function sendAvtaleGiroChange(
     console.error(ex);
     return ex.statusCode;
   }
+  */
 }
 
 /**
