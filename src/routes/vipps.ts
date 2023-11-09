@@ -11,7 +11,6 @@ import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution
 const jsonBody = bodyParser.json();
 const dns = require("dns").promises;
 const config = require("../config");
-const rounding = require("../custom_modules/rounding");
 const vipps = require("../custom_modules/vipps");
 
 const vippsCallbackProdServers = [

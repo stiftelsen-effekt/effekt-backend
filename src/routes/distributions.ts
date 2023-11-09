@@ -4,9 +4,8 @@ import { donationHelpers } from "../custom_modules/donationHelpers";
 
 import express from "express";
 import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
+import { sumWithPrecision } from "../custom_modules/rounding";
 const router = express.Router();
-
-const rounding = require("../custom_modules/rounding");
 
 router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
   try {
@@ -45,7 +44,7 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
       });
     }
 
-    if (rounding.sumWithPrecision(shares.map((share) => share.share)) !== "100") {
+    if (sumWithPrecision(shares.map((share) => share.share)) !== "100") {
       let err = new Error("Distribution does not sum to 100");
       (err as any).status = 400;
       return next(err);
