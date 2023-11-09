@@ -182,8 +182,6 @@ export function generateFakeDistribution(
     }
   }
 
-  console.log(distributionCauseAreaOrganizations.map((d) => d.ID));
-
   return { distribution, distributionCauseAreas, distributionCauseAreaOrganizations };
 }
 

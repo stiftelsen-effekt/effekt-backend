@@ -49,8 +49,6 @@ router.get("/status", async (req, res, next) => {
  *    description: Registers a pending donation
  */
 router.post("/register", async (req, res, next) => {
-  console.log(req.body);
-
   let parsedData = req.body as {
     organizations?: { split: number; id: number }[];
     donor: {
