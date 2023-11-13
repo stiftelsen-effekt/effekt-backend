@@ -31,9 +31,9 @@ async function getById(id: number): Promise<TaxUnit | null> {
 async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
   const [result] = await DAO.execute<RowDataPacket[]>(
     `SELECT T.ID, T.Donor_ID, T.full_name, T.registered, T.ssn, T.archived,
-        (SELECT COUNT(D.ID) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
+        (SELECT COUNT(D.ID) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Distributions WHERE Tax_unit_ID = T.ID))
         as num_donations,
-        (SELECT SUM(D.sum_confirmed) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
+        (SELECT SUM(D.sum_confirmed) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Distributions WHERE Tax_unit_ID = T.ID))
         as sum_donations
           
           FROM Tax_unit as T
@@ -48,8 +48,8 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
   const [aggregateYearlyDonations] = await DAO.execute<RowDataPacket[]>(
     `SELECT T.ID, YEAR(D.timestamp_confirmed) as year, SUM(D.sum_confirmed) as sum_donations
           FROM Tax_unit as T
-          INNER JOIN (SELECT KID, Tax_unit_ID FROM Combining_table GROUP BY KID, Tax_unit_ID) C ON C.Tax_unit_ID = T.ID
-          INNER JOIN Donations as D ON D.KID_fordeling = C.KID
+          INNER JOIN (SELECT KID, Tax_unit_ID FROM Distributions GROUP BY KID, Tax_unit_ID) as DS ON DS.Tax_unit_ID = T.ID
+          INNER JOIN Donations as D ON D.KID_fordeling = DS.KID
           WHERE T.Donor_ID = ? AND D.Payment_ID <> 10
           GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
     [donorId],

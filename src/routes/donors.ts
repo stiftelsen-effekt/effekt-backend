@@ -1185,73 +1185,22 @@ router.get(
 
       let distributions = result.distributions;
 
-      if (req.query.kids) {
+      if (typeof req.query.kids !== undefined) {
         const kidSet = new Set<string>();
         req.query.kids.split(",").map((kid) => kidSet.add(kid));
 
         distributions = distributions.filter((dist) => kidSet.has(dist.kid));
       }
 
-      const distributionsWithTaxUnitAndDistribution = await Promise.all(
-        distributions.map(async (distribution, index) => {
-          const result = await getDistributionTaxUnitAndStandardDistribution(
-            index,
-            distribution.kid,
-          );
-          return {
-            ...distribution,
-            taxUnit: result.taxUnit,
-            standardDistribution: result.standardDistribution,
-          };
-        }),
-      );
-
-      type BackwardsCompatibleResponse = {
-        status: 200;
-        content: Array<{
-          kid: string;
-          taxUnit: unknown;
-          standardDistribution: boolean;
-          shares: Array<{
-            id: number;
-            name: string;
-            share: string;
-          }>;
-        }>;
-      };
-
       return res.json({
         status: 200,
-        content: distributionsWithTaxUnitAndDistribution.map((distribution) => {
-          return {
-            kid: distribution.kid,
-            taxUnit: distribution.taxUnit,
-            standardDistribution: distribution.standardDistribution,
-            shares: findGlobalHealthCauseAreaOrThrow(distribution).organizations.map((org) => ({
-              id: org.id,
-              name: org.name,
-              share: org.percentageShare,
-            })),
-          };
-        }),
-      } satisfies BackwardsCompatibleResponse);
+        content: distributions,
+      });
     } catch (ex) {
       next(ex);
     }
   },
 );
-
-async function getDistributionTaxUnitAndStandardDistribution(index: number, kid: string) {
-  const taxUnit = await DAO.tax.getByKID(kid);
-  const distribution = await DAO.distributions.getSplitByKID(kid);
-  const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
-  const standardDistribution = causeArea.standardSplit;
-  return {
-    index: index,
-    taxUnit: taxUnit,
-    standardDistribution: standardDistribution,
-  };
-}
 
 /**
  * @openapi
