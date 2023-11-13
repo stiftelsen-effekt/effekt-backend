@@ -117,23 +117,24 @@ model Donations {
 }
 
 model Donors {
-  ID               Int                @id @unique(map: "KID_UNIQUE") @default(autoincrement()) /// Unik kundeID
-  email            String             @unique(map: "email_UNIQUE", length: 63) @db.TinyText /// epost registrert i donasjonsskjema,\ntrigger generering av ny donor hvis den ikke eksisterer fra før
-  full_name        String?            @db.TinyText
-  date_registered  DateTime           @default(now()) @db.Timestamp(0) /// The date the donor first registrered
-  password_hash    String?            @db.VarChar(64)
-  password_salt    String?            @db.VarChar(32)
-  Meta_owner_ID    Int                @default(3)
-  newsletter       Boolean?
-  trash            Int?               @db.TinyInt
-  ssn              String?            @db.VarChar(45)
-  Combining_table  Combining_table[]
-  Donations        Donations[]
-  FB_payment_ID    FB_payment_ID[]
-  Funds_donations  Funds_donations[]
-  Tax_unit         Tax_unit[]
-  Vipps_agreements Vipps_agreements[]
-  Swish_orders     Swish_orders[]
+  ID                           Int                            @id @unique(map: "KID_UNIQUE") @default(autoincrement()) /// Unik kundeID
+  email                        String                         @unique(map: "email_UNIQUE", length: 63) @db.TinyText /// epost registrert i donasjonsskjema,\ntrigger generering av ny donor hvis den ikke eksisterer fra før
+  full_name                    String?                        @db.TinyText
+  date_registered              DateTime                       @default(now()) @db.Timestamp(0) /// The date the donor first registrered
+  password_hash                String?                        @db.VarChar(64)
+  password_salt                String?                        @db.VarChar(32)
+  Meta_owner_ID                Int                            @default(3)
+  newsletter                   Boolean?
+  trash                        Int?                           @db.TinyInt
+  ssn                          String?                        @db.VarChar(45)
+  Combining_table              Combining_table[]
+  Donations                    Donations[]
+  FB_payment_ID                FB_payment_ID[]
+  Funds_donations              Funds_donations[]
+  Tax_unit                     Tax_unit[]
+  Vipps_agreements             Vipps_agreements[]
+  Swish_orders                 Swish_orders[]
+  Adoveo_giftcard_transactions Adoveo_giftcard_transactions[]
 
   @@index([full_name(length: 63)], map: "full_name")
   @@index([email(length: 63), full_name(length: 63)], map: "search")
@@ -175,6 +176,41 @@ model FB_payment_ID {
 
   @@index([donorID], map: "donorID_idx")
   @@index([taxUnitID], map: "fk_fbpayment_to_taxunit_idx")
+}
+
+model Adoveo_fundraiser_transactions {
+  ID           Int      @id @default(autoincrement())
+  KID          String   @db.VarChar(16)
+  Sum          Decimal  @db.Decimal(15, 2)
+  Timestamp    DateTime @db.DateTime(0)
+  Sender_email String   @db.VarChar(45)
+  Sender_phone String   @db.VarChar(15)
+  Status       String   @db.VarChar(10)
+  Location     String   @db.VarChar(45)
+  Hash         String   @unique(map: "Hash_UNIQUE") @db.VarChar(32)
+
+  @@index([KID], map: "KID_idx")
+}
+
+model Adoveo_giftcard_transactions {
+  ID              Int      @id @default(autoincrement())
+  KID             String   @db.VarChar(16)
+  Sum             Decimal  @db.Decimal(15, 2)
+  Timestamp       DateTime @db.DateTime(0)
+  Sender_donor_ID Int      @db.Int
+  Sender_name     String   @db.VarChar(45)
+  Sender_email    String   @db.VarChar(45)
+  Sender_phone    String   @db.VarChar(15)
+  Receiver_name   String   @db.VarChar(45)
+  Receiver_phone  String   @db.VarChar(15)
+  Message         String   @db.VarChar(45)
+  Status          String   @db.VarChar(10)
+  Location        String   @db.VarChar(45)
+  CouponSend      String   @db.VarChar(45)
+
+  Donors Donors? @relation(fields: [Sender_donor_ID], references: [ID], onDelete: Cascade, map: "FK_Adoveo_giftcard_transactions_donorid")
+
+  @@index([KID], map: "KID_idx")
 }
 
 model Funds_donations {
