@@ -16,6 +16,7 @@ import { organizations } from "./DAO_modules/organizations";
 import * as mysql from "mysql2/promise";
 import { Prisma } from "@prisma/client";
 import config from "../config";
+import { adoveo } from "./DAO_modules/adoveo";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -53,6 +54,7 @@ export const DAO = {
   tax: tax,
   logging: logging,
   swish: swish,
+  adoveo: adoveo,
 
   dbPool: undefined as mysql.Pool | undefined,
 
