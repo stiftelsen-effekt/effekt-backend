@@ -111,7 +111,7 @@ export const DAO = {
         return await (this as typeof DAO).query<T>(query, params, retries + 1);
       } else {
         console.error(ex);
-        throw new Error(ex);
+        throw ex;
       }
     }
   },
@@ -136,7 +136,7 @@ export const DAO = {
         return await (this as typeof DAO).execute<T>(query, params, retries + 1);
       } else {
         console.error(ex);
-        throw new Error(ex);
+        throw ex;
       }
     }
   },
