@@ -8,5 +8,6 @@ export default {
   vipps_recurring: 8,
   facebook: 9,
   swish: 11,
-  adoveo: 12,
+  fundrasier: 13,
+  giftcard: 14,
 };
