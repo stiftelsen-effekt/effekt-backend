@@ -4,6 +4,7 @@ import express from "express";
 const router = express.Router();
 
 import bodyParser from "body-parser";
+import { adoveoReportRouter } from "./reports/adoveo";
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
 
 router.post("/ocr", isAdmin, require("./reports/ocr"));
@@ -13,5 +14,6 @@ router.post("/facebook", isAdmin, require("./reports/facebook"));
 router.post("/paypal", isAdmin, require("./reports/paypal"));
 router.post("/range", urlEncodeParser, isAdmin, require("./reports/range"));
 router.post("/taxdeductions", urlEncodeParser, isAdmin, require("./reports/tax"));
+router.use("/adoveo", isAdmin, adoveoReportRouter);
 
 module.exports = router;
