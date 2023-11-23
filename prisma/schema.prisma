@@ -198,8 +198,8 @@ model Adoveo_fundraiser {
 
 model Adoveo_fundraiser_org_shares {
   ID             Int      @id @default(autoincrement())
-  Fundraiser_ID  Int      @unique(map: "Fundraiser_ID_UNIQUE")
-  Org_ID         Int      @unique(map: "Org_ID_UNIQUE")
+  Fundraiser_ID  Int
+  Org_ID         Int
   Share          Decimal  @db.Decimal(15, 12)
   Standard_split Boolean?
 
@@ -212,7 +212,7 @@ model Adoveo_fundraiser_org_shares {
 
 model Adoveo_fundraiser_transactions {
   ID            Int      @id @default(autoincrement())
-  Fundraiser_ID Int      @unique(map: "Fundraiser_ID_UNIQUE")
+  Fundraiser_ID Int
   Donation_ID   Int?     @unique(map: "Donation_ID_UNIQUE")
   Sum           Decimal  @db.Decimal(15, 2)
   Timestamp     DateTime @db.DateTime(0)
@@ -241,10 +241,12 @@ model Adoveo_giftcard_transactions {
   Receiver_donor_ID Int?     @db.Int
   Receiver_name     String   @db.VarChar(45)
   Receiver_phone    String   @db.VarChar(15)
-  Message           String   @db.VarChar(45)
+  Message           String   @db.Text
   Status            String   @db.VarChar(10)
   Location          String   @db.VarChar(45)
   CouponSend        String   @db.VarChar(45)
+
+  Hash String @unique(map: "Hash_UNIQUE") @db.VarChar(32)
 
   Created      DateTime @default(now()) @db.DateTime(0)
   Last_updated DateTime @default(now()) @db.DateTime(0)

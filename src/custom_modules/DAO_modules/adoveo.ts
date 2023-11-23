@@ -1,7 +1,54 @@
-import { Adoveo_fundraiser_transactions, Adoveo_giftcard_transactions } from "@prisma/client";
+import {
+  Adoveo_fundraiser,
+  Adoveo_fundraiser_org_shares,
+  Adoveo_fundraiser_transactions,
+  Adoveo_giftcard_transactions,
+} from "@prisma/client";
 import { DAO } from "../DAO";
 
 export const adoveo = {
+  getFundraiserByID: async function (id: Adoveo_fundraiser["ID"]) {
+    const [fundraiser] = await DAO.query<Adoveo_fundraiser[]>(
+      `
+            SELECT * FROM Adoveo_fundraiser WHERE ID = ?
+        `,
+      [id],
+    );
+    return fundraiser?.[0];
+  },
+  addFundraiser: async function (fundraiser: Omit<Adoveo_fundraiser, "ID">) {
+    const [result] = await DAO.query(
+      `
+            INSERT INTO Adoveo_fundraiser (Name, Donor_ID)
+            VALUES (?, ?)
+        `,
+      [fundraiser.Name, fundraiser.Donor_ID],
+    );
+
+    return result.insertId;
+  },
+  getFundraiserOrgShares: async function (fundraiserId: Adoveo_fundraiser["ID"]) {
+    const [shares] = await DAO.query<Adoveo_fundraiser_org_shares[]>(
+      `
+            SELECT * FROM Adoveo_fundraiser_org_shares WHERE Fundraiser_ID = ?
+        `,
+      [fundraiserId],
+    );
+    return shares;
+  },
+  addFundraiserOrgShare: async function (
+    share: Omit<Adoveo_fundraiser_org_shares, "ID" | "Created" | "Last_updated">,
+  ) {
+    const [result] = await DAO.query(
+      `
+            INSERT INTO Adoveo_fundraiser_org_shares (Fundraiser_ID, Org_ID, Share)
+            VALUES (?, ?, ?)
+        `,
+      [share.Fundraiser_ID, share.Org_ID, share.Share],
+    );
+
+    return result.insertId;
+  },
   getFundraiserTransactionByID: async function (id: Adoveo_fundraiser_transactions["ID"]) {
     const [transaction] = await DAO.query<Adoveo_fundraiser_transactions[]>(
       `
@@ -21,7 +68,7 @@ export const adoveo = {
     return transaction?.[0];
   },
   addFundraiserTransaction: async function (
-    transaction: Omit<Adoveo_fundraiser_transactions, "ID">,
+    transaction: Omit<Adoveo_fundraiser_transactions, "ID" | "Created" | "Last_updated">,
   ) {
     const [result] = await DAO.query(
       `
@@ -54,6 +101,17 @@ export const adoveo = {
       [status, id],
     );
   },
+  updateFundraiserTransactionDonationID: async function (
+    id: Adoveo_fundraiser_transactions["ID"],
+    donationId: Adoveo_fundraiser_transactions["Donation_ID"],
+  ) {
+    await DAO.query(
+      `
+            UPDATE Adoveo_fundraiser_transactions SET Donation_ID = ? WHERE ID = ?
+        `,
+      [donationId, id],
+    );
+  },
   getGiftcardTransactionByID: async function (id: Adoveo_giftcard_transactions["ID"]) {
     const [transaction] = await DAO.query<Adoveo_giftcard_transactions[]>(
       `
@@ -63,11 +121,22 @@ export const adoveo = {
     );
     return transaction?.[0];
   },
-  addGiftcardTransaction: async function (transaction: Omit<Adoveo_giftcard_transactions, "ID">) {
+  getGiftcardTransactionByHash: async function (hash: Adoveo_giftcard_transactions["Hash"]) {
+    const [transaction] = await DAO.query<Adoveo_giftcard_transactions[]>(
+      `
+            SELECT * FROM Adoveo_giftcard_transactions WHERE Hash = ?
+        `,
+      [hash],
+    );
+    return transaction?.[0];
+  },
+  addGiftcardTransaction: async function (
+    transaction: Omit<Adoveo_giftcard_transactions, "ID" | "Created" | "Last_updated">,
+  ) {
     const [result] = await DAO.query(
       `
-            INSERT INTO Adoveo_giftcard_transactions (Donation_ID, Sum, Timestamp, Sender_donor_ID, Sender_name, Sender_email, Sender_phone, Receiver_donor_ID, Receiver_name, Receiver_phone, Message, Status, Location, CouponSend)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO Adoveo_giftcard_transactions (Donation_ID, Sum, Timestamp, Sender_donor_ID, Sender_name, Sender_email, Sender_phone, Receiver_donor_ID, Receiver_name, Receiver_phone, Message, Status, Location, CouponSend, Hash)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         `,
       [
         transaction.Donation_ID,
@@ -84,6 +153,7 @@ export const adoveo = {
         transaction.Status,
         transaction.Location,
         transaction.CouponSend,
+        transaction.Hash,
       ],
     );
 
@@ -98,6 +168,17 @@ export const adoveo = {
             UPDATE Adoveo_giftcard_transactions SET status = ? WHERE ID = ?
         `,
       [status, id],
+    );
+  },
+  updateGiftcardTransactionDonationID: async function (
+    id: Adoveo_giftcard_transactions["ID"],
+    donationId: Adoveo_giftcard_transactions["Donation_ID"],
+  ) {
+    await DAO.query(
+      `
+            UPDATE Adoveo_giftcard_transactions SET Donation_ID = ? WHERE ID = ?
+        `,
+      [donationId, id],
     );
   },
 };

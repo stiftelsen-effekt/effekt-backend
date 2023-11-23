@@ -3,7 +3,6 @@
 
   - You are about to drop the column `KID` on the `Adoveo_fundraiser_transactions` table. All the data in the column will be lost.
   - You are about to drop the column `KID` on the `Adoveo_giftcard_transactions` table. All the data in the column will be lost.
-  - A unique constraint covering the columns `[Fundraiser_ID]` on the table `Adoveo_fundraiser_transactions` will be added. If there are existing duplicate values, this will fail.
   - A unique constraint covering the columns `[Donation_ID]` on the table `Adoveo_fundraiser_transactions` will be added. If there are existing duplicate values, this will fail.
   - A unique constraint covering the columns `[Donation_ID]` on the table `Adoveo_giftcard_transactions` will be added. If there are existing duplicate values, this will fail.
   - Added the required column `Fundraiser_ID` to the `Adoveo_fundraiser_transactions` table without a default value. This is not possible if the table is not empty.
@@ -54,13 +53,8 @@ CREATE TABLE `Adoveo_fundraiser_org_shares` (
     `Created` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `Last_updated` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
-    UNIQUE INDEX `Fundraiser_ID_UNIQUE`(`Fundraiser_ID`),
-    UNIQUE INDEX `Org_ID_UNIQUE`(`Org_ID`),
     PRIMARY KEY (`ID`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateIndex
-CREATE UNIQUE INDEX `Fundraiser_ID_UNIQUE` ON `Adoveo_fundraiser_transactions`(`Fundraiser_ID`);
 
 -- CreateIndex
 CREATE UNIQUE INDEX `Donation_ID_UNIQUE` ON `Adoveo_fundraiser_transactions`(`Donation_ID`);
