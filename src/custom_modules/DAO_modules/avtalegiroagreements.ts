@@ -3,6 +3,7 @@ import { DAO } from "../DAO";
 
 import sqlString from "sqlstring";
 import { OkPacket, ResultSetHeader } from "mysql2/promise";
+import { Avtalegiro_agreements } from "@prisma/client";
 
 export type AvtaleGiroAgreement = {
   id: number;
@@ -169,7 +170,7 @@ async function setActive(KID, active) {
     }
 
     if (!active) {
-      let [res] = await DAO.query<ResultSetHeader | OkPacket>(
+      let [res] = await transaction.query<ResultSetHeader | OkPacket>(
         `UPDATE Avtalegiro_agreements SET cancelled = NOW() WHERE KID = ?`,
         [KID],
       );
@@ -177,7 +178,18 @@ async function setActive(KID, active) {
         await DAO.rollbackTransaction(transaction);
         return false;
       }
+    } else {
+      let [res] = await transaction.query<ResultSetHeader | OkPacket>(
+        `UPDATE Avtalegiro_agreements SET cancelled = NULL WHERE KID = ?`,
+        [KID],
+      );
+      if (res.affectedRows === 0) {
+        await DAO.rollbackTransaction(transaction);
+        return false;
+      }
     }
+
+    await DAO.commitTransaction(transaction);
 
     return true;
   } catch (ex) {
@@ -202,17 +214,13 @@ async function isActive(KID) {
  * @return {boolean} Success
  */
 async function cancelAgreement(KID) {
-  const today = new Date();
-  //YYYY-MM-DD format
-  const mysqlDate = today.toISOString().slice(0, 19).replace("T", " ");
-
   DAO.query(
     `
             UPDATE Avtalegiro_agreements
-            SET cancelled = ?, active = 0
+            SET cancelled = NOW(), active = 0
             WHERE KID = ?
         `,
-    [mysqlDate, KID],
+    [KID],
   );
 
   return true;
@@ -316,8 +324,8 @@ async function getAgreements(sort, page, limit, filter) {
  * @param {string} id AvtaleGiro ID
  * @return {AvtaleGiro} AvtaleGiro agreement
  */
-async function getAgreement(id) {
-  const [result] = await DAO.query(
+async function getAgreement(id: string) {
+  const [result] = await DAO.query<Avtalegiro_agreements[]>(
     `
         SELECT DISTINCT
             AG.ID,
@@ -613,6 +621,21 @@ async function getShipmentIDs(today: DateTime): Promise<number[]> {
   return rows.map((row) => row.ID);
 }
 
+async function getAgreementsWithKIDStartingWith(prefix: string): Promise<AvtaleGiroAgreement[]> {
+  let [rows] = await DAO.query(
+    `SELECT ID, KID, amount, payment_date, notice FROM Avtalegiro_agreements WHERE KID LIKE ?`,
+    [`${prefix}%`],
+  );
+
+  return rows.map((row) => ({
+    id: row.ID,
+    KID: row.KID,
+    amount: row.amount,
+    paymentDate: row.payment_date,
+    notice: row.notice,
+  }));
+}
+
 /**
  * Adds a new shipment row to db
  * @param {Number} numClaims The number of claims in that shipment
@@ -670,6 +693,7 @@ export const avtalegiroagreements = {
   getExpectedDonationsForDate,
   getDonationsByKID,
   getShipmentIDs,
+  getAgreementsWithKIDStartingWith,
 
   addShipment,
 };

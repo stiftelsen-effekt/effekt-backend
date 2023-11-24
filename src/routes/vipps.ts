@@ -277,10 +277,18 @@ router.put("/agreement/:urlcode/cancel", async (req, res, next) => {
     if (response) {
       await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED");
       await DAO.vipps.updateAgreementCancellationDate(agreementId);
+      await sendVippsAgreementChange(agreementCode, "STOPPED");
+    } else {
+      res.status(500).json({
+        status: 500,
+        content: "Could not cancel agreement",
+      });
     }
 
-    await sendVippsAgreementChange(agreementCode, "STOPPED");
-    res.send(response);
+    res.status(200).json({
+      status: 200,
+      content: response,
+    });
   } catch (ex) {
     next({ ex });
   }
@@ -323,9 +331,17 @@ router.put("/agreement/:urlcode/price", jsonBody, async (req, res, next) => {
     if (response) {
       await DAO.vipps.updateAgreementPrice(agreementId, price / 100);
       await sendVippsAgreementChange(agreementCode, "AMOUNT", price / 100);
+    } else {
+      res.status(500).json({
+        status: 500,
+        content: "Could not update agreement price",
+      });
     }
 
-    res.send();
+    res.status(200).json({
+      status: 200,
+      content: response,
+    });
   } catch (ex) {
     next({ ex });
   }

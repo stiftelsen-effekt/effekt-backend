@@ -2,7 +2,7 @@ import { DAO } from "./DAO";
 import { KID } from "./KID";
 
 export const donationHelpers = {
-  createDonationSplitArray: async (passedOrganizations) => {
+  createDonationSplitArray: async (passedOrganizations: { split: number; id: number }[]) => {
     //Filter passed organizations for 0 shares
     var filteredOrganizations = passedOrganizations.filter((org) => org.split > 0);
 
@@ -53,6 +53,20 @@ export const donationHelpers = {
     //If KID already exists, try new kid, call this function recursively
     if (await DAO.distributions.KIDexists(newKID))
       newKID = await donationHelpers.createKID(length, donorId);
+
+    return newKID;
+  },
+
+  createAvtaleGiroKID: async (depth = 0) => {
+    let newKID = KID.generate(15);
+    //If there is an existing agreement with the same first 6 digits, try new kid, call this function recursively
+    const matchingPrefix = await DAO.avtalegiroagreements.getAgreementsWithKIDStartingWith(
+      newKID.substr(0, 6),
+    );
+    if (matchingPrefix.length != 0) {
+      console.log(`Retry ${depth} | ${newKID} | ${matchingPrefix.length} matches`);
+      newKID = await donationHelpers.createAvtaleGiroKID(depth + 1);
+    }
 
     return newKID;
   },

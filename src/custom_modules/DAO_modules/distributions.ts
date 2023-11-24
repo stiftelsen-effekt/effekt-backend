@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import { DAO } from "../DAO";
 
 import sqlString from "sqlstring";
-import { Distribution, Organizations } from "@prisma/client";
+import { Combining_table, Distribution, Donors, Organizations } from "@prisma/client";
 
 //region GET
 async function getAll(page = 0, limit = 10, sort, filter = null) {
@@ -75,8 +75,17 @@ async function getAll(page = 0, limit = 10, sort, filter = null) {
  *          share: number
  *      }]}]}}
  */
-async function getAllByDonor(donorID) {
-  var [res] = await DAO.query(
+async function getAllByDonor(donorID: number) {
+  var [res] = await DAO.query<
+    Array<
+      {
+        donID: Donors["ID"];
+        orgId: Organizations["ID"];
+      } & Pick<Combining_table, "KID"> &
+        Pick<Organizations, "full_name"> &
+        Pick<Distribution, "ID" | "percentage_share">
+    >
+  >(
     `select Donors.ID as donID, Combining_table.KID as KID, Distribution.ID, Organizations.ID as orgId, Organizations.full_name, Distribution.percentage_share 
     from Donors
     inner join Combining_table on Combining_table.Donor_ID = Donors.ID
@@ -88,7 +97,14 @@ async function getAllByDonor(donorID) {
 
   var distObj = {
     donorID: donorID,
-    distributions: [],
+    distributions: [] as Array<{
+      kid: string;
+      shares: Array<{
+        id: number;
+        name: string;
+        share: string;
+      }>;
+    }>,
   };
 
   // Finds all unique KID numbers

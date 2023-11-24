@@ -48,7 +48,7 @@ router.get("/status", async (req, res, next) => {
  */
 router.post("/register", async (req, res, next) => {
   let parsedData = req.body as {
-    organizations: any;
+    organizations?: { split: number; id: number }[];
     donor: {
       email: string;
       name: string;
@@ -155,7 +155,7 @@ router.post("/register", async (req, res, next) => {
     /** Use new KID for avtalegiro */
     if (donationObject.method == methods.BANK && donationObject.recurring == true) {
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
-      donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID);
+      donationObject.KID = await donationHelpers.createAvtaleGiroKID();
       // !!--!! ================================================= TAX UNIT
       await DAO.distributions.add(
         donationObject.split,

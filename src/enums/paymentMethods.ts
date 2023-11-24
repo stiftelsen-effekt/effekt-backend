@@ -9,5 +9,6 @@ export default {
   facebook: 9,
   swish: 11,
   autoGiro: 12,
-  bankGiro: 13,
+  fundrasier: 13,
+  giftcard: 14,
 };
