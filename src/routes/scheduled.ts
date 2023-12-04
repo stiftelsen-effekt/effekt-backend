@@ -277,173 +277,170 @@ router.post("/vipps", authMiddleware.isAdmin, async (req, res, next) => {
 /**
  * Check that the user metadata value for donor id matches the email address for the donor in database
  */
-router.get(
-  "/auth0/validateusers",
-  /* authMiddleware.isAdmin, */ async (req, res, next) => {
-    /**
-     * Fetch Auth0 managment token
-     */
+router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next) => {
+  /**
+   * Fetch Auth0 managment token
+   */
 
-    const token = await fetch("https://gieffektivt.eu.auth0.com/oauth/token", {
+  const token = await fetch("https://gieffektivt.eu.auth0.com/oauth/token", {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      client_id: process.env.AUTH0_CLIENT_ID,
+      client_secret: process.env.AUTH0_CLIENT_SECRET,
+      audience: "https://gieffektivt.eu.auth0.com/api/v2/",
+      grant_type: "client_credentials",
+    }),
+    method: "POST",
+  }).then((res) => res.json());
+
+  /**
+   * Calling https://gieffektivt.eu.auth0.com/api/v2/users?page=0&fields=email,user_metadata&include_totals=true&per_page=100
+   *
+   * Returns a list of all users with email and user_metadata with the following format:
+   *
+   *  {
+   *  	"start": 0,
+   *  	"limit": 100,
+   *  	"length": 100,
+   *  	"users": [
+   *  		{
+   *  			"email": "donor@gmail.com",
+   *  			"user_metadata": {
+   *  				"gieffektivt-user-id": 13139
+   *  			}
+   *  		},
+   *  		{
+   *  			(...)
+   *  		},
+   *  		{
+   *  			"email": "donor2@gmail.com",
+   *  			"user_metadata": {
+   *  				"gieffektivt-user-id": 74782
+   *  			}
+   *  		}
+   *  	],
+   *  	"total": 880
+   *  }
+   *
+   * We want to check that the user_metadata.gieffektivt-user-id matches the id of the user in the database
+   *
+   * First we get all users from Auth0
+   * Start by getting the first page
+   * Then we get the total number of users
+   * Then we get the rest of the pages in paralell
+   */
+
+  const perPage = 100;
+
+  const users = [];
+
+  const firstPage = await fetch(
+    `https://gieffektivt.eu.auth0.com/api/v2/users?page=0&fields=email,user_metadata&include_totals=true&per_page=${perPage}`,
+    {
       headers: {
-        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.access_token}`,
       },
-      body: JSON.stringify({
-        client_id: process.env.AUTH0_CLIENT_ID,
-        client_secret: process.env.AUTH0_CLIENT_SECRET,
-        audience: "https://gieffektivt.eu.auth0.com/api/v2/",
-        grant_type: "client_credentials",
-      }),
-      method: "POST",
-    }).then((res) => res.json());
+    },
+  ).then((res) => res.json());
 
-    /**
-     * Calling https://gieffektivt.eu.auth0.com/api/v2/users?page=0&fields=email,user_metadata&include_totals=true&per_page=100
-     *
-     * Returns a list of all users with email and user_metadata with the following format:
-     *
-     *  {
-     *  	"start": 0,
-     *  	"limit": 100,
-     *  	"length": 100,
-     *  	"users": [
-     *  		{
-     *  			"email": "donor@gmail.com",
-     *  			"user_metadata": {
-     *  				"gieffektivt-user-id": 13139
-     *  			}
-     *  		},
-     *  		{
-     *  			(...)
-     *  		},
-     *  		{
-     *  			"email": "donor2@gmail.com",
-     *  			"user_metadata": {
-     *  				"gieffektivt-user-id": 74782
-     *  			}
-     *  		}
-     *  	],
-     *  	"total": 880
-     *  }
-     *
-     * We want to check that the user_metadata.gieffektivt-user-id matches the id of the user in the database
-     *
-     * First we get all users from Auth0
-     * Start by getting the first page
-     * Then we get the total number of users
-     * Then we get the rest of the pages in paralell
-     */
+  users.push(...firstPage.users);
 
-    const perPage = 100;
+  const numberOfPages = Math.ceil(firstPage.total / perPage);
 
-    const users = [];
-
-    const firstPage = await fetch(
-      `https://gieffektivt.eu.auth0.com/api/v2/users?page=0&fields=email,user_metadata&include_totals=true&per_page=${perPage}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token.access_token}`,
-        },
-      },
-    ).then((res) => res.json());
-
-    users.push(...firstPage.users);
-
-    const numberOfPages = Math.ceil(firstPage.total / perPage);
-
-    const promises = [];
-    for (let i = 1; i < numberOfPages; i++) {
-      promises.push(
-        fetch(
-          `https://gieffektivt.eu.auth0.com/api/v2/users?page=${i}&fields=email,user_metadata&include_totals=true&per_page=${perPage}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token.access_token}`,
-            },
+  const promises = [];
+  for (let i = 1; i < numberOfPages; i++) {
+    promises.push(
+      fetch(
+        `https://gieffektivt.eu.auth0.com/api/v2/users?page=${i}&fields=email,user_metadata&include_totals=true&per_page=${perPage}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token.access_token}`,
           },
-        ).then((res) => res.json()),
+        },
+      ).then((res) => res.json()),
+    );
+  }
+
+  const results = await Promise.allSettled(promises);
+
+  results.forEach((result) => {
+    if (result.status === "fulfilled") {
+      users.push(...result.value.users);
+    } else {
+      console.error(result.reason);
+    }
+  });
+
+  /**
+   * Now we have all the users from Auth0
+   * We need to check that the user_metadata.gieffektivt-user-id matches the id of the user in the database
+   */
+  const mismatchedUsers = [];
+
+  for (const user of users) {
+    const email = user.email;
+
+    if (!email || typeof email !== "string") {
+      console.warn(`User has no email in Auth0`);
+      continue;
+    }
+
+    const userMetadata = user.user_metadata;
+    if (!userMetadata || !userMetadata[config.authUserMetadataKey]) {
+      console.warn(
+        `User ${user.email} has no user_metadata or no ${config.authUserMetadataKey} in user_metadata`,
       );
+      continue;
     }
 
-    const results = await Promise.allSettled(promises);
+    const userId = userMetadata[config.authUserMetadataKey];
+    const alternateEmail = userMetadata["donor-email"] || "";
 
-    results.forEach((result) => {
-      if (result.status === "fulfilled") {
-        users.push(...result.value.users);
-      } else {
-        console.error(result.reason);
-      }
-    });
+    const userInDatabase = await DAO.donors.getByID(userId);
 
-    /**
-     * Now we have all the users from Auth0
-     * We need to check that the user_metadata.gieffektivt-user-id matches the id of the user in the database
-     */
-    const mismatchedUsers = [];
-
-    for (const user of users) {
-      const email = user.email;
-
-      if (!email || typeof email !== "string") {
-        console.warn(`User has no email in Auth0`);
-        continue;
-      }
-
-      const userMetadata = user.user_metadata;
-      if (!userMetadata || !userMetadata[config.authUserMetadataKey]) {
-        console.warn(
-          `User ${user.email} has no user_metadata or no ${config.authUserMetadataKey} in user_metadata`,
-        );
-        continue;
-      }
-
-      const userId = userMetadata[config.authUserMetadataKey];
-      const alternateEmail = userMetadata["donor-email"] || "";
-
-      const userInDatabase = await DAO.donors.getByID(userId);
-
-      if (!userInDatabase) {
-        console.warn(`User ${userId} with email ${email} in Auth0 has no user in database`);
-        mismatchedUsers.push({ userId, email, reason: "No user in database" });
-        continue;
-      }
-
-      if (
-        userInDatabase.email.trim().toLowerCase() !== email.trim().toLowerCase() &&
-        userInDatabase.email.trim().toLowerCase() !== alternateEmail.trim().toLowerCase()
-      ) {
-        console.warn(
-          `User ${userId} has email ${email} in Auth0, but email ${userInDatabase.email} in database`,
-        );
-        mismatchedUsers.push({ userId, email, reason: "Email mismatch" });
-      }
+    if (!userInDatabase) {
+      console.warn(`User ${userId} with email ${email} in Auth0 has no user in database`);
+      mismatchedUsers.push({ userId, email, reason: "No user in database" });
+      continue;
     }
 
-    if (mismatchedUsers.length > 0) {
-      console.warn(`Found ${mismatchedUsers.length} mismatched users`);
-    }
-
-    const result = {
-      matched: users.length - mismatchedUsers.length,
-      mismatched: mismatchedUsers.length,
-      mismatchedUsers,
-    };
-
-    await DAO.logging.add("Auth0 check", result);
-
-    if (mismatchedUsers.length > 0) {
-      await sendPlaintextErrorMail(
-        JSON.stringify(mismatchedUsers, null, 2),
-        "Mismatched users",
-        "Mismatched users",
+    if (
+      userInDatabase.email.trim().toLowerCase() !== email.trim().toLowerCase() &&
+      userInDatabase.email.trim().toLowerCase() !== alternateEmail.trim().toLowerCase()
+    ) {
+      console.warn(
+        `User ${userId} has email ${email} in Auth0, but email ${userInDatabase.email} in database`,
       );
+      mismatchedUsers.push({ userId, email, reason: "Email mismatch" });
     }
+  }
 
-    res.json({
-      status: 200,
-      content: result,
-    });
-  },
-);
+  if (mismatchedUsers.length > 0) {
+    console.warn(`Found ${mismatchedUsers.length} mismatched users`);
+  }
+
+  const result = {
+    matched: users.length - mismatchedUsers.length,
+    mismatched: mismatchedUsers.length,
+    mismatchedUsers,
+  };
+
+  await DAO.logging.add("Auth0 check", result);
+
+  if (mismatchedUsers.length > 0) {
+    await sendPlaintextErrorMail(
+      JSON.stringify(mismatchedUsers, null, 2),
+      "Mismatched users",
+      "Mismatched users",
+    );
+  }
+
+  res.json({
+    status: 200,
+    content: result,
+  });
+});
 
 module.exports = router;
