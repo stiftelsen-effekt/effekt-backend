@@ -955,6 +955,35 @@ async function send(options: {
   }
 }
 
+export async function sendPlaintextErrorMail(
+  errorMessage: string,
+  errorType: string,
+  errorContext: string,
+) {
+  const data = {
+    from: "Gi Effektivt <donasjon@gieffektivt.no>",
+    to: "hakon.harnes@effektivaltruisme.no",
+    subject: `Error: ${errorType}`,
+    text: `Error: ${errorType}\nContext: ${errorContext}\n\n${errorMessage}`,
+  };
+
+  const result = await request.post({
+    url: "https://api.eu.mailgun.net/v3/mg.gieffektivt.no/messages",
+    auth: {
+      user: "api",
+      password: config.mailgun_api_key,
+    },
+    formData: data,
+    resolveWithFullResponse: true,
+  });
+
+  if (result.statusCode === 200) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 function formatDate(date) {
   return moment(date).format("DD.MM.YYYY");
 }
