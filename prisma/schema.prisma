@@ -34,6 +34,7 @@ model Organizations {
 
   Cause_areas                           Cause_areas                             @relation(fields: [cause_area_ID], references: [ID], onDelete: Cascade, map: "fk_Organizations_to_Cause_areas_idx")
   Distribution_cause_area_organizations Distribution_cause_area_organizations[]
+  Adoveo_fundraiser_org_shares          Adoveo_fundraiser_org_shares[]
 }
 
 model AvtaleGiro_replaced_distributions {
@@ -139,20 +140,22 @@ model Data_owner {
 }
 
 model Donations {
-  ID                  Int           @id @unique(map: "ID_UNIQUE") @default(autoincrement()) /// Unik donasjonsID
-  Donor_ID            Int /// Foreign key til donor_id
-  Payment_ID          Int /// Foreign key til Payment_ID
-  PaymentExternal_ID  String?       @unique(map: "PaymentExternal_ID_UNIQUE") @db.VarChar(32) /// Payment ID in external system (ex: Vipps)
-  sum_confirmed       Decimal       @db.Decimal(16, 2) /// Donert sum bekreftet fra betalingstjeneste (NOK)
-  timestamp_confirmed DateTime      @default(now()) @db.Timestamp(0) /// Timestamp/dato når donasjon er bekreftet fra betalingstjeneste
-  transaction_cost    Decimal?      @db.Decimal(16, 2) /// beregnet transaction cost basert på Payment_ID (oppslag på kostnad) og sum confirmed
-  KID_fordeling       String        @db.VarChar(16) /// Same as KID. Used to join to Combining_table for distribution percentages (registrert KID fra betalingstjeneste, oppslag i donations_distribution for Donor_ID)
-  inserted            DateTime?     @default(now()) @db.Timestamp(0)
-  last_updated        DateTime?     @default(now()) @db.Timestamp(0)
-  Meta_owner_ID       Int           @default(3)
-  Donors              Donors        @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Donors_ID")
-  Payment             Payment       @relation(fields: [Payment_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Payment")
-  Swish_orders        Swish_orders?
+  ID                             Int                             @id @unique(map: "ID_UNIQUE") @default(autoincrement()) /// Unik donasjonsID
+  Donor_ID                       Int /// Foreign key til donor_id
+  Payment_ID                     Int /// Foreign key til Payment_ID
+  PaymentExternal_ID             String?                         @unique(map: "PaymentExternal_ID_UNIQUE") @db.VarChar(32) /// Payment ID in external system (ex: Vipps)
+  sum_confirmed                  Decimal                         @db.Decimal(16, 2) /// Donert sum bekreftet fra betalingstjeneste (NOK)
+  timestamp_confirmed            DateTime                        @default(now()) @db.Timestamp(0) /// Timestamp/dato når donasjon er bekreftet fra betalingstjeneste
+  transaction_cost               Decimal?                        @db.Decimal(16, 2) /// beregnet transaction cost basert på Payment_ID (oppslag på kostnad) og sum confirmed
+  KID_fordeling                  String                          @db.VarChar(16) /// Same as KID. Used to join to Combining_table for distribution percentages (registrert KID fra betalingstjeneste, oppslag i donations_distribution for Donor_ID)
+  inserted                       DateTime?                       @default(now()) @db.Timestamp(0)
+  last_updated                   DateTime?                       @default(now()) @db.Timestamp(0)
+  Meta_owner_ID                  Int                             @default(3)
+  Donors                         Donors                          @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Donors_ID")
+  Payment                        Payment                         @relation(fields: [Payment_ID], references: [ID], onDelete: Cascade, map: "fk_Donations_to_Payment")
+  Swish_orders                   Swish_orders?
+  Adoveo_fundraiser_transactions Adoveo_fundraiser_transactions?
+  Adoveo_giftcard_transactions   Adoveo_giftcard_transactions?
 
   // When we delete a distribution we delete the associated donations.
   Distributions Distributions @relation(fields: [KID_fordeling], references: [KID], onDelete: Cascade, map: "fk_Donations_to_Distributions_KID")
@@ -187,6 +190,10 @@ model Donors {
   Paypal_historic_distributions Paypal_historic_distributions[]
   Referral_records              Referral_records[]
   Vipps_orders                  Vipps_orders[]
+
+  Adoveo_fundraiser                     Adoveo_fundraiser[]
+  Adoveo_giftcard_transactions_sender   Adoveo_giftcard_transactions[] @relation(name: "senderDonor")
+  Adoveo_giftcard_transactions_receiver Adoveo_giftcard_transactions[] @relation(name: "receiverDonor")
 
   @@index([full_name(length: 63)], map: "full_name")
   @@index([email(length: 63), full_name(length: 63)], map: "search")
@@ -228,6 +235,80 @@ model FB_payment_ID {
 
   @@index([donorID], map: "donorID_idx")
   @@index([taxUnitID], map: "fk_fbpayment_to_taxunit_idx")
+}
+
+model Adoveo_fundraiser {
+  ID       Int    @id @default(autoincrement())
+  Donor_ID Int?
+  Name     String @db.VarChar(45)
+
+  Created      DateTime @default(now()) @db.DateTime(0)
+  Last_updated DateTime @default(now()) @db.DateTime(0)
+
+  Donors                         Donors?                          @relation(fields: [Donor_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "FK_Adoveo_fundraiser_donorid")
+  Adoveo_fundraiser_transactions Adoveo_fundraiser_transactions[]
+  Adoveo_fundraiser_org_shares   Adoveo_fundraiser_org_shares[]
+}
+
+model Adoveo_fundraiser_org_shares {
+  ID             Int      @id @default(autoincrement())
+  Fundraiser_ID  Int
+  Org_ID         Int
+  Share          Decimal  @db.Decimal(15, 12)
+  Standard_split Boolean?
+
+  Created      DateTime @default(now()) @db.DateTime(0)
+  Last_updated DateTime @default(now()) @db.DateTime(0)
+
+  Fundraiser    Adoveo_fundraiser @relation(fields: [Fundraiser_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "FK_Adoveo_fundraiser_org_shares_fundraiserid")
+  Organizations Organizations     @relation(fields: [Org_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "FK_Adoveo_fundraiser_org_shares_orgid")
+}
+
+model Adoveo_fundraiser_transactions {
+  ID            Int      @id @default(autoincrement())
+  Fundraiser_ID Int
+  Donation_ID   Int?     @unique(map: "Donation_ID_UNIQUE")
+  Sum           Decimal  @db.Decimal(15, 2)
+  Timestamp     DateTime @db.DateTime(0)
+  Sender_email  String   @db.VarChar(45)
+  Sender_phone  String   @db.VarChar(15)
+  Status        String   @db.VarChar(10)
+  Location      String   @db.VarChar(45)
+  Hash          String   @unique(map: "Hash_UNIQUE") @db.VarChar(32)
+
+  Created      DateTime @default(now()) @db.DateTime(0)
+  Last_updated DateTime @default(now()) @db.DateTime(0)
+
+  Fundraiser Adoveo_fundraiser @relation(fields: [Fundraiser_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "FK_Adoveo_fundraiser_transactions_fundraiserid")
+  Donations  Donations?        @relation(fields: [Donation_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_fundraiser_transactions_donationid")
+}
+
+model Adoveo_giftcard_transactions {
+  ID                Int      @id @default(autoincrement())
+  Donation_ID       Int?     @unique(map: "Donation_ID_UNIQUE")
+  Sum               Decimal  @db.Decimal(15, 2)
+  Timestamp         DateTime @db.DateTime(0)
+  Sender_donor_ID   Int?     @db.Int
+  Sender_name       String   @db.VarChar(45)
+  Sender_email      String   @db.VarChar(45)
+  Sender_phone      String   @db.VarChar(15)
+  Receiver_donor_ID Int?     @db.Int
+  Receiver_name     String   @db.VarChar(45)
+  Receiver_phone    String   @db.VarChar(15)
+  Message           String   @db.Text
+  Status            String   @db.VarChar(10)
+  Location          String   @db.VarChar(45)
+  CouponSend        String   @db.VarChar(45)
+
+  Hash String @unique(map: "Hash_UNIQUE") @db.VarChar(32)
+
+  Created      DateTime @default(now()) @db.DateTime(0)
+  Last_updated DateTime @default(now()) @db.DateTime(0)
+
+  Donations Donations? @relation(fields: [Donation_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_giftcard_transactions_donationid")
+
+  SenderDonor   Donors? @relation(name: "senderDonor", fields: [Sender_donor_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_giftcard_transactions_sender_donorid")
+  ReceiverDonor Donors? @relation(name: "receiverDonor", fields: [Receiver_donor_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_giftcard_transactions_receiver_donorid")
 }
 
 model Funds_donations {
