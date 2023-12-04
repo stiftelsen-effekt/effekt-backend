@@ -25,6 +25,8 @@ export interface components {
       id: number;
       /** @description The cause area name */
       name: string;
+      /** @description The cause area standard percentage share */
+      standardPercentageShare?: number;
       /** @description The cause area short description */
       shortDescription: string;
       /** @description The cause area long description */

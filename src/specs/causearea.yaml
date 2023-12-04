@@ -10,6 +10,9 @@ components:
         name:
           type: string
           description: The cause area name
+        standardPercentageShare:
+          type: number
+          description: The cause area standard percentage share
         shortDescription:
           type: string
           description: The cause area short description

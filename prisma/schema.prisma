@@ -8,13 +8,14 @@ datasource db {
 }
 
 model Cause_areas {
-  ID         Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
-  name       String  @unique(map: "name_UNIQUE") @db.VarChar(45)
-  short_desc String? @db.VarChar(255)
-  long_desc  String? @db.VarChar(45)
-  info_url   String? @db.VarChar(156)
-  is_active  Int?    @db.TinyInt
-  ordering   Int?    @db.TinyInt
+  ID                   Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
+  name                 String  @unique(map: "name_UNIQUE") @db.VarChar(45)
+  short_desc           String? @db.VarChar(255)
+  long_desc            String? @db.VarChar(45)
+  info_url             String? @db.VarChar(156)
+  is_active            Int?    @db.TinyInt
+  ordering             Int?    @db.TinyInt
+  std_percentage_share Int?    @default(0) @db.TinyInt /// The percentage share of the standard distribution, determined by Effekt. Updated about twice a year
 
   Distribution_cause_areas Distribution_cause_areas[]
   Organizations            Organizations[]
@@ -393,7 +394,7 @@ model Referral_types {
 
 model Swish_orders {
   ID              Int      @id @default(autoincrement())
-  KID             String   @unique @db.VarChar(15)
+  KID             String   @db.VarChar(15)
   instructionUUID String   @unique @db.VarChar(36) /// Swish uses this to identify the order
   donorID         Int
   donationID      Int?     @unique

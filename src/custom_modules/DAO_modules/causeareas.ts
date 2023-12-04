@@ -123,6 +123,7 @@ export const causeareas = {
         is_active: row.CA_is_active,
         info_url: row.CA_info_url,
         ordering: row.CA_ordering,
+        std_percentage_share: row.CA_std_percentage_share,
       });
       const organization = mapOrganization({
         ID: row.O_ID,
@@ -156,4 +157,5 @@ export const mapCauseArea = (c: Cause_areas): CauseArea => ({
   informationUrl: c.info_url,
   isActive: c.is_active == 1,
   ordering: c.ordering,
+  standardPercentageShare: c.std_percentage_share,
 });
