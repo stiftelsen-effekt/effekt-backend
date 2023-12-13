@@ -3,15 +3,12 @@ const chalk = require("chalk");
 const process = require("process");
 
 module.exports = function (app) {
-  app.use(
-    morgan("dev", {
-      stream: {
-        write: function (str) {
-          console.log(str.substr(0, str.length - 1) + ` | Worker: ${chalk.red(process.pid)}`);
-        },
-      },
-    }),
-  );
+  let mode = "dev";
+  if (process.env.NODE_ENV === "production") {
+    mode = "short";
+  }
+
+  app.use(morgan(mode));
 };
 
 function padRight(str, len) {
