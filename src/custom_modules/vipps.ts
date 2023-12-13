@@ -266,7 +266,7 @@ module.exports = {
           await sendDonationReceipt(donationID);
         } catch (ex) {
           //Donation already registered, no additional actions required
-          if (ex.message.indexOf("EXISTING_DONATION") === -1) {
+          if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
             console.info(`Vipps donation for orderid ${orderId} already exists`, ex);
           } else {
             throw ex;
