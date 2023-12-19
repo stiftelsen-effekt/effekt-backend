@@ -408,7 +408,7 @@ async function getByDonorId(donorId): Promise<Array<Donation>> {
       Donor.full_name,
       Donor.email,
       Payment.payment_name,
-      Combining.Tax_unit_ID
+      Distributions.Tax_unit_ID
 
     FROM Donations as Donation
 
@@ -418,8 +418,8 @@ async function getByDonorId(donorId): Promise<Array<Donation>> {
     INNER JOIN Payment
         ON Donation.Payment_ID = Payment.ID
         
-    INNER JOIN (SELECT KID, Tax_unit_ID FROM Combining_table GROUP BY KID, Tax_unit_ID) Combining
-    ON KID = KID_fordeling
+    INNER JOIN Distributions
+      ON KID = KID_fordeling
 
     WHERE 
         Donation.Donor_ID = ?`,
@@ -668,25 +668,27 @@ async function getSummaryByYear(donorID) {
 async function getYearlyAggregateByDonorId(donorId) {
   const [res] = await DAO.query(
     `
-            SELECT
-                Organizations.ID as ID,
-                Organizations.full_name as organization,
-                Organizations.abbriv,
-                SUM(Donations.sum_confirmed * percentage_share / 100) as value, 
-                year(Donations.timestamp_confirmed) as \`year\`
+    SELECT
+    O.ID as ID,
+    O.full_name as organization,
+    O.abbriv,
+    O.Cause_area_ID as causeAreaID,
+    SUM(Donations.sum_confirmed * (CA.percentage_share / 100) * (CAO.percentage_share / 100)) as value, 
+    YEAR(Donations.timestamp_confirmed) as \`year\`
 
-            FROM Donations
-                INNER JOIN Combining_table 
-                    ON Combining_table.KID = Donations.KID_fordeling
-                INNER JOIN Distribution 
-                    ON Combining_table.Distribution_ID = Distribution.ID
-                INNER JOIN Organizations 
-                    ON Organizations.ID = Distribution.OrgID
-            WHERE 
-                Donations.Donor_ID = ?
-                
-            GROUP BY Organizations.id, \`year\`
-        `,
+    FROM Donations
+        INNER JOIN Distributions as D
+            ON D.KID = Donations.KID_fordeling
+        LEFT JOIN Distribution_cause_areas as CA
+            ON CA.Distribution_KID = D.KID
+        LEFT JOIN Distribution_cause_area_organizations as CAO
+            ON CAO.Distribution_cause_area_ID = CA.ID
+    LEFT JOIN Organizations as O
+    ON O.ID = CAO.Organization_ID
+    WHERE 
+        Donations.Donor_ID = ?
+        
+    GROUP BY O.ID, \`year\``,
     [donorId],
   );
 
