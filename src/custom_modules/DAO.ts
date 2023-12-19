@@ -9,7 +9,6 @@ import { payment } from "./DAO_modules/payment";
 import { parsing } from "./DAO_modules/parsing";
 import { referrals } from "./DAO_modules/referrals";
 import { meta } from "./DAO_modules/meta";
-import { initialpaymentmethod } from "./DAO_modules/initialpaymentmethod";
 import { avtalegiroagreements } from "./DAO_modules/avtalegiroagreements";
 import { logging } from "./DAO_modules/logging";
 import { organizations } from "./DAO_modules/organizations";
@@ -17,6 +16,7 @@ import * as mysql from "mysql2/promise";
 import { Prisma } from "@prisma/client";
 import config from "../config";
 import { causeareas } from "./DAO_modules/causeareas";
+import { donationfollowup } from "./DAO_modules/donationfollowup";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -49,7 +49,7 @@ export const DAO = {
   parsing: parsing,
   referrals: referrals,
   meta: meta,
-  initialpaymentmethod: initialpaymentmethod,
+  donationfollowup: donationfollowup,
   avtalegiroagreements: avtalegiroagreements,
   facebook: facebook,
   tax: tax,
@@ -70,6 +70,7 @@ export const DAO = {
       waitForConnections: true,
       enableKeepAlive: true as true, // Workaround for type checking quirk
       timezone: "+00:00",
+      port: 3307,
     };
 
     // Using Unix sockets to connect to cloud SQL is the default way
