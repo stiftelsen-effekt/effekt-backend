@@ -10,7 +10,8 @@ import { DateTime } from "luxon";
 import { Adoveo_fundraiser_transactions, Adoveo_giftcard_transactions } from "@prisma/client";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import { sendDonationReceipt } from "./mail";
-import { DistributionCauseArea } from "../schemas/types";
+import { DistributionCauseArea, DistributionInput } from "../schemas/types";
+import { mapPureOrgSharesToDistributionInputCauseAreas } from "./mapping";
 
 enum AdoveoPaymentTypes {
   FUNDRAISER = 13,
@@ -27,12 +28,10 @@ export async function processFundraisingReport(report: Buffer, fundraiserId: num
     throw new Error("Fundraiser not found");
   }
   const shares = await DAO.adoveo.getFundraiserOrgShares(fundraiserId);
-  if (!shares.length) {
-    throw new Error("Fundraiser has no shares");
-  }
-  if (shares.reduce((sum, share) => sum + Number(share.Share), 0) !== 100) {
-    throw new Error("Shares do not add up to 100");
-  }
+
+  const causeAreasInput = await mapPureOrgSharesToDistributionInputCauseAreas(
+    shares.map((s) => ({ orgId: s.Org_ID, percentageShare: parseFloat(s.Share) })),
+  );
 
   /**
    * Parse report
@@ -53,7 +52,7 @@ export async function processFundraisingReport(report: Buffer, fundraiserId: num
     const result = await addFundraiserRecord({
       fundraiserId,
       row,
-      split: shares.map((share) => ({ id: share.Org_ID, share: share.Share })),
+      causeAreas: causeAreasInput,
     });
 
     if (result.success) {
@@ -71,11 +70,11 @@ export async function processFundraisingReport(report: Buffer, fundraiserId: num
 async function addFundraiserRecord({
   fundraiserId,
   row,
-  split,
+  causeAreas,
 }: {
   fundraiserId: number;
   row: AdoveoFundraiserTransactionReportRow;
-  split: { id: number; share: string }[];
+  causeAreas: DistributionInput["causeAreas"];
 }): Promise<{
   success: boolean;
   addedTransaction: boolean;
@@ -154,7 +153,7 @@ async function addFundraiserRecord({
         console.log("Status is sale, adding donation");
         const donationId = await addDonation(
           row,
-          split,
+          causeAreas,
           transaction.ID,
           AdoveoPaymentTypes.FUNDRAISER,
         );
@@ -183,7 +182,7 @@ async function addFundraiserRecord({
         await DAO.adoveo.updateFundraiserTransactionStatus(existingTransaction.ID, row.status);
         const donationid = await addDonation(
           row,
-          split,
+          causeAreas,
           existingTransaction.ID,
           AdoveoPaymentTypes.FUNDRAISER,
         );
@@ -207,7 +206,7 @@ async function addFundraiserRecord({
           console.log("Status is still sale, but donation is missing, adding donation");
           const donationId = await addDonation(
             row,
-            split,
+            causeAreas,
             existingTransaction.ID,
             AdoveoPaymentTypes.FUNDRAISER,
           );
@@ -246,19 +245,25 @@ export async function processGiftCardsReport(report: Buffer) {
    */
   const data = parseGiftCardsReport(report);
 
+  /**
+   * Get standard cause areas with organizations
+   */
   let causeAreas = await DAO.causeareas.getActiveWithOrganizations();
   if (!causeAreas.length) {
     throw new Error("No active cause areas");
   }
-  causeAreas = causeAreas
+  const causeAreasInput: DistributionInput["causeAreas"] = causeAreas
     .filter((causeArea) => causeArea.standardPercentageShare > 0)
-    .map((c) => ({ ...c, organizations: c.organizations.filter((o) => o.standardShare > 0) }))
-    .map((causeArea) => ({
-      ...causeArea,
-      organizations: causeArea.organizations.map((organization) => ({
-        ...organization,
-        standardShare: organization.standardShare / causeArea.standardPercentageShare,
-      })),
+    .map((c) => ({
+      id: c.id,
+      percentageShare: c.standardPercentageShare.toString(),
+      standardSplit: true,
+      organizations: c.organizations
+        .filter((o) => o.standardShare > 0)
+        .map((o) => ({
+          id: o.id,
+          percentageShare: o.standardShare.toString(),
+        })),
     }));
 
   const processResult = {
@@ -274,7 +279,7 @@ export async function processGiftCardsReport(report: Buffer) {
   for (let row of data) {
     const result = await addGiftcardRecord({
       row,
-      causeAreas,
+      causeAreas: causeAreasInput,
     });
 
     if (result.success) {
@@ -294,7 +299,7 @@ async function addGiftcardRecord({
   causeAreas,
 }: {
   row: AdoveoGiftCardsTransactionReportRow;
-  causeAreas: DistributionCauseArea[];
+  causeAreas: DistributionInput["causeAreas"];
 }): Promise<{
   success: boolean;
   addedTransaction: boolean;
@@ -509,7 +514,7 @@ async function getKID(causeAreas: DistributionCauseArea[], donorId: number, taxU
 
 async function addDonation(
   row: AdoveoFundraiserTransactionReportRow | AdoveoGiftCardsTransactionReportRow,
-  causeAreas: DistributionCauseArea[],
+  causeAreas: DistributionInput["causeAreas"],
   transactionId: number,
   paymentType: AdoveoPaymentTypes,
 ) {
