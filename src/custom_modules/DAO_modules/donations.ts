@@ -807,10 +807,9 @@ async function add(
   externalPaymentID = null,
   metaOwnerID = null,
 ): Promise<number> {
-  var [donorIDQuery] = await DAO.query(
-    "SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1",
-    [KID],
-  );
+  var [donorIDQuery] = await DAO.query("SELECT Donor_ID FROM Distributions WHERE KID = ? LIMIT 1", [
+    KID,
+  ]);
 
   if (donorIDQuery.length != 1) {
     throw new Error("NO_KID | KID " + KID + " does not exist");
