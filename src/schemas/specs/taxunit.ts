@@ -71,9 +71,11 @@ export interface components {
         /** @description The year the tax deduction is for */
         year?: number;
         /** @description The sum of all donations for the tax unit for the year */
-        sumDonations?: string;
+        sumDonations?: number;
         /** @description The tax deduction for the tax unit for the year */
         taxDeduction?: number;
+        /** @description The tax benefit for the tax unit for the year */
+        taxBenefit?: number;
       }[];
     };
   };

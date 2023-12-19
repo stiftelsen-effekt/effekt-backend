@@ -2,7 +2,7 @@ import { mapPureOrgSharesToDistributionInputCauseAreas } from "../custom_modules
 import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import { expect } from "chai";
-import { get } from "request";
+
 describe("mapPureOrgSharesToDistributionInputCauseAreas", () => {
   let getByIDStub: sinon.SinonStub;
 

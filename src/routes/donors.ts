@@ -443,7 +443,7 @@ router.get(
           .reduce((acc, item) => acc + parseFloat(item.sum), 0);
 
         const geSumForYear = tu.taxDeductions.find((d) => d.year === year)?.sumDonations
-          ? parseFloat(tu.taxDeductions.find((d) => d.year === year)?.sumDonations ?? "0")
+          ? tu.taxDeductions.find((d) => d.year === year)?.sumDonations ?? 0
           : 0;
 
         const completeSum = geSumForYear + fundsSumForUnit;
