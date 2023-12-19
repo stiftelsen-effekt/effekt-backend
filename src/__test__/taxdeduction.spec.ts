@@ -1,12 +1,9 @@
 import { expect } from "chai";
 import sinon from "sinon";
-import {
-  getTaxUnitsWithDeductions,
-  TaxDeductionDonation,
-  TaxLocale,
-} from "../custom_modules/taxdeductions";
+import { getTaxUnitsWithDeductions, TaxDeductionDonation } from "../custom_modules/taxdeductions";
 import { Tax_unit } from "@prisma/client";
 import { SqlResult } from "../custom_modules/DAO";
+import { RequestLocale } from "../middleware/locale";
 
 describe("getTaxUnitsWithDeductions", () => {
   let clock: sinon.SinonFakeTimers;
@@ -43,7 +40,7 @@ describe("getTaxUnitsWithDeductions", () => {
       },
     ];
 
-    const locale = TaxLocale.NO;
+    const locale = RequestLocale.NO;
 
     // Act
     const result = getTaxUnitsWithDeductions({ donations, taxUnits, locale });
@@ -97,7 +94,7 @@ describe("getTaxUnitsWithDeductions", () => {
       },
     ];
 
-    const locale = TaxLocale.NO;
+    const locale = RequestLocale.NO;
 
     // Act
     const result = getTaxUnitsWithDeductions({ donations, taxUnits, locale });
@@ -134,7 +131,7 @@ describe("getTaxUnitsWithDeductions", () => {
       },
       // Add more tax units if needed
     ];
-    const locale = TaxLocale.NO;
+    const locale = RequestLocale.NO;
 
     // Act
     const result = getTaxUnitsWithDeductions({ donations, taxUnits, locale });
@@ -174,7 +171,7 @@ describe("getTaxUnitsWithDeductions", () => {
         archived: null,
       },
     ];
-    const locale = TaxLocale.NO;
+    const locale = RequestLocale.NO;
 
     // Act & Assert
     try {
@@ -197,7 +194,7 @@ describe("getTaxUnitsWithDeductions", () => {
         archived: null,
       },
     ];
-    const locale = TaxLocale.SE;
+    const locale = RequestLocale.SE;
 
     // Act & Assert
     try {
@@ -220,7 +217,7 @@ describe("getTaxUnitsWithDeductions", () => {
         archived: null,
       },
     ];
-    const locale = "invalid" as TaxLocale;
+    const locale = "invalid" as RequestLocale;
 
     // Act & Assert
     try {

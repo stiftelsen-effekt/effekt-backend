@@ -2,6 +2,7 @@ import { Tax_unit } from "@prisma/client";
 import { TaxUnit } from "../schemas/types";
 import { DateTime } from "luxon";
 import { SqlResult } from "./DAO";
+import { RequestLocale } from "../middleware/locale";
 
 export interface TaxDeductionDonation {
   year: number;
@@ -12,12 +13,7 @@ export interface TaxDeductionDonation {
 export interface TaxDeductionCalculationInput {
   donations: TaxDeductionDonation[];
   taxUnits: Tax_unit[];
-  locale: TaxLocale;
-}
-
-export enum TaxLocale {
-  NO = "NO",
-  SE = "SE",
+  locale: RequestLocale;
 }
 
 export interface TaxDeductionYearlyMapping {
@@ -34,7 +30,7 @@ type TaxUnitYearlyCalculationResult = {
 export const getTaxUnitsWithDeductions: (input: {
   donations: TaxDeductionDonation[];
   taxUnits: SqlResult<Tax_unit>[];
-  locale: TaxLocale;
+  locale: RequestLocale;
 }) => TaxUnit[] = ({ donations, taxUnits, locale }) => {
   const result: TaxUnit[] = [];
 
@@ -79,9 +75,9 @@ export const getTaxUnitsWithDeductions: (input: {
  * Each year might have a different minimum threshold and maximum deduction limit for NO tax units.
  * Donations are provided as a filtered list of donations for a specific tax unit and year.
  */
-const getYearlyMapping = (locale: TaxLocale): TaxDeductionYearlyMapping => {
+const getYearlyMapping = (locale: RequestLocale): TaxDeductionYearlyMapping => {
   switch (locale) {
-    case TaxLocale.NO:
+    case RequestLocale.NO:
       return {
         2016: (donations) =>
           getNoTaxDeductions({
@@ -147,7 +143,7 @@ const getYearlyMapping = (locale: TaxLocale): TaxDeductionYearlyMapping => {
             sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
           }),
       };
-    case TaxLocale.SE:
+    case RequestLocale.SE:
       throw new Error("Not implemented");
     default:
       throw new Error("Invalid locale");

@@ -5,6 +5,7 @@ import { donationHelpers } from "../custom_modules/donationHelpers";
 import express from "express";
 import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
 import { sumWithPrecision } from "../custom_modules/rounding";
+import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 const router = express.Router();
 
 router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
@@ -112,57 +113,62 @@ router.post("/search", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-router.get("/:KID", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    if (!req.params.KID) res.status(400).json({ status: 400, content: "No KID provided" });
-    const distribution = await DAO.distributions.getSplitByKID(req.params.KID);
-    const taxUnit = await DAO.tax.getByKID(req.params.KID);
-    const donor = await DAO.donors.getByKID(req.params.KID);
+router.get(
+  "/:KID",
+  authMiddleware.isAdmin,
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
+    try {
+      if (!req.params.KID) res.status(400).json({ status: 400, content: "No KID provided" });
+      const distribution = await DAO.distributions.getSplitByKID(req.params.KID);
+      const taxUnit = await DAO.tax.getByKID(req.params.KID, req.locale);
+      const donor = await DAO.donors.getByKID(req.params.KID);
 
-    type BackwardsCompatibleResponse = {
-      status: 200;
-      content: {
-        KID: string;
-        donor: unknown;
-        taxUnit: unknown;
-        standardDistribution: boolean;
-        shares: Array<{
-          full_name: string;
-          abbriv: string;
-          id: number;
-          share: string;
-        }>;
+      type BackwardsCompatibleResponse = {
+        status: 200;
+        content: {
+          KID: string;
+          donor: unknown;
+          taxUnit: unknown;
+          standardDistribution: boolean;
+          shares: Array<{
+            full_name: string;
+            abbriv: string;
+            id: number;
+            share: string;
+          }>;
+        };
       };
-    };
 
-    const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
+      const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
 
-    return res.json({
-      status: 200,
-      content: {
-        KID: req.params.KID,
-        donor,
-        taxUnit,
-        standardDistribution: causeArea.standardSplit,
-        shares: causeArea.organizations.map((org) => ({
-          full_name: org.name,
-          abbriv: org.name,
-          id: org.id,
-          share: org.percentageShare,
-        })),
-      },
-    } satisfies BackwardsCompatibleResponse);
-  } catch (ex) {
-    if (ex.message.indexOf("NOT FOUND") !== -1)
-      res.status(404).send({
-        status: 404,
-        content: ex.message,
-      });
-    else {
-      next(ex);
+      return res.json({
+        status: 200,
+        content: {
+          KID: req.params.KID,
+          donor,
+          taxUnit,
+          standardDistribution: causeArea.standardSplit,
+          shares: causeArea.organizations.map((org) => ({
+            full_name: org.name,
+            abbriv: org.name,
+            id: org.id,
+            share: org.percentageShare,
+          })),
+        },
+      } satisfies BackwardsCompatibleResponse);
+    } catch (ex) {
+      if (ex.message.indexOf("NOT FOUND") !== -1)
+        res.status(404).send({
+          status: 404,
+          content: ex.message,
+        });
+      else {
+        next(ex);
+      }
     }
-  }
-});
+  },
+);
 
 router.get(
   "/all/:donorID",

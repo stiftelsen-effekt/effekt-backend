@@ -478,13 +478,12 @@ async function getDonorId(email: string, name: string) {
 }
 
 async function getDefaultTaxUnitId(donorId: number) {
-  const taxUnits = await DAO.tax.getByDonorId(donorId);
-  const activeTaxUnits = taxUnits.filter((taxUnit) => taxUnit.archived === null);
+  const taxUnits = await DAO.tax.getActiveTaxUnitIdsByDonorId(donorId);
 
   let taxUnitId: number | undefined;
-  if (activeTaxUnits.length === 1) {
+  if (taxUnits.length === 1) {
     console.log("Donor has only one tax unit, using that");
-    taxUnitId = activeTaxUnits[0].id;
+    taxUnitId = taxUnits[0].id;
   }
   return taxUnitId;
 }

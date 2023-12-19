@@ -11,6 +11,7 @@ import {
   findGlobalHealthCauseAreaOrThrow,
   validateDistribution,
 } from "../custom_modules/distribution";
+import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 
 const router = express.Router();
 
@@ -101,59 +102,64 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
  *      401:
  *        description: User not authorized to view resource
  */
-router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    const agreement = await DAO.avtalegiroagreements.getAgreement(req.params.id);
+router.get(
+  "/agreement/:id",
+  authMiddleware.isAdmin,
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
+    try {
+      const agreement = await DAO.avtalegiroagreements.getAgreement(req.params.id);
 
-    if (!agreement) return res.sendStatus(404);
+      if (!agreement) return res.sendStatus(404);
 
-    const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
-    const taxUnit = await DAO.tax.getByKID(agreement.KID);
-    const donor = await DAO.donors.getByKID(agreement.KID);
+      const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
+      const taxUnit = await DAO.tax.getByKID(agreement.KID, req.locale);
+      const donor = await DAO.donors.getByKID(agreement.KID);
 
-    type BackwardsCompatibleResponse = {
-      status: 200;
-      content: {
-        ID: number;
-        distribution: {
-          KID: string;
-          donor: unknown;
-          taxUnit: unknown;
-          standardDistribution: boolean;
-          shares: Array<{
-            full_name: string;
-            abbriv: string;
-            id: number;
-            share: string;
-          }>;
+      type BackwardsCompatibleResponse = {
+        status: 200;
+        content: {
+          ID: number;
+          distribution: {
+            KID: string;
+            donor: unknown;
+            taxUnit: unknown;
+            standardDistribution: boolean;
+            shares: Array<{
+              full_name: string;
+              abbriv: string;
+              id: number;
+              share: string;
+            }>;
+          };
         };
       };
-    };
 
-    const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
+      const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
 
-    return res.json({
-      status: 200,
-      content: {
-        ...agreement,
-        distribution: {
-          KID: distribution.kid,
-          donor,
-          taxUnit,
-          standardDistribution: causeArea.standardSplit,
-          shares: causeArea.organizations.map((org) => ({
-            full_name: org.name,
-            abbriv: org.name,
-            id: org.id,
-            share: org.percentageShare,
-          })),
+      return res.json({
+        status: 200,
+        content: {
+          ...agreement,
+          distribution: {
+            KID: distribution.kid,
+            donor,
+            taxUnit,
+            standardDistribution: causeArea.standardSplit,
+            shares: causeArea.organizations.map((org) => ({
+              full_name: org.name,
+              abbriv: org.name,
+              id: org.id,
+              share: org.percentageShare,
+            })),
+          },
         },
-      },
-    } satisfies BackwardsCompatibleResponse);
-  } catch (ex) {
-    next(ex);
-  }
-});
+      } satisfies BackwardsCompatibleResponse);
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
 
 router.get("/histogram", async (req, res, next) => {
   try {

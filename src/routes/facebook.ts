@@ -295,7 +295,7 @@ router.post("/register/donations", authMiddleware.isAdmin, async (req, res, next
           );
         } else {
           // If no fb to tax unit mapping exists check if donor has only one tax unit
-          let taxUnits = await DAO.tax.getByDonorId(donorID);
+          let taxUnits = await DAO.tax.getActiveTaxUnitIdsByDonorId(donorID);
           if (taxUnits.length == 1) {
             taxUnitID = taxUnits[0].id;
             console.log(

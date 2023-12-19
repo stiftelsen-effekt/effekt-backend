@@ -7,6 +7,7 @@ import { TaxReport, TaxYearlyReportUnit } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import bodyParser from "body-parser";
 import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
+import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 
 const router = express.Router();
 
@@ -353,9 +354,19 @@ router.get(
   (req, res, next) => {
     checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
-  async (req, res, next) => {
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
     try {
-      var taxUnits = await DAO.tax.getByDonorId(req.params.id);
+      const donorId = parseInt(req.params.id);
+
+      if (isNaN(donorId)) {
+        return res.status(400).json({
+          status: 400,
+          content: "Invalid donor ID",
+        });
+      }
+
+      var taxUnits = await DAO.tax.getByDonorId(donorId, req.locale);
 
       if (taxUnits) {
         return res.json({
@@ -416,16 +427,19 @@ router.get(
   (req, res, next) => {
     checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
-  async (req, res, next) => {
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
     try {
-      if (isNaN(parseInt(req.params.id))) {
+      const donorId = parseInt(req.params.id);
+
+      if (isNaN(donorId)) {
         return res.status(400).json({
           status: 400,
           content: "Invalid donor ID",
         });
       }
 
-      let taxUnits = await DAO.tax.getByDonorId(parseInt(req.params.id));
+      let taxUnits = await DAO.tax.getByDonorId(donorId, req.locale);
       taxUnits = taxUnits.filter((tu) => tu.archived === null);
 
       let donations = await DAO.donations.getByDonorId(parseInt(req.params.id));
@@ -578,7 +592,8 @@ router.post(
   (req, res, next) => {
     checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
-  async (req, res, next) => {
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
     try {
       const { name, ssn } = req.body;
 
@@ -621,7 +636,7 @@ router.post(
 
       // If successfully created tax unit
       if (taxUnit) {
-        const taxUnits = await DAO.tax.getByDonorId(donor.id);
+        const taxUnits = await DAO.tax.getByDonorId(donor.id, req.locale);
 
         // if this is the first tax unit created for the donor (also counts archived tax units)
         if (taxUnits.length === 1) {
