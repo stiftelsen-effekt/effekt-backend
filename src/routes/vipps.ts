@@ -209,7 +209,7 @@ router.get("/histogram/charges", async (req, res, next) => {
   }
 });
 
-router.get("/agreements/report", authMiddleware.auth(permissions.admin), async (req, res, next) => {
+router.get("/agreements/report", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     let content = await DAO.vipps.getAgreementReport();
 
@@ -222,7 +222,7 @@ router.get("/agreements/report", authMiddleware.auth(permissions.admin), async (
   }
 });
 
-router.post("/agreements", authMiddleware.auth(permissions.admin), async (req, res, next) => {
+router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     var results = await DAO.vipps.getAgreements(
       req.body.sort,
@@ -248,7 +248,7 @@ router.post("/agreements", authMiddleware.auth(permissions.admin), async (req, r
   }
 });
 
-router.post("/charges", authMiddleware.auth(permissions.admin), async (req, res, next) => {
+router.post("/charges", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     var results = await DAO.vipps.getCharges(
       req.body.sort,
