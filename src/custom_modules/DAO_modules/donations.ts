@@ -769,7 +769,7 @@ async function getEAFundsDonations(donorId: number): Promise<
 > {
   const [res] = await DAO.query(
     `
-  SELECT * FROM EffektDonasjonDB.Funds_donations WHERE DonorID = ?
+  SELECT * FROM Funds_donations WHERE DonorID = ?
   `,
     [donorId],
   );

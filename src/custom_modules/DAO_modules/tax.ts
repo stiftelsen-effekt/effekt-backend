@@ -41,7 +41,7 @@ async function getByDonorId(donorId: number, locale: RequestLocale): Promise<Arr
   );
 
   // Get all donations for the donor with attached tax unit id
-  const [donations] = await DAO.query<{ year: number; sum: number; taxUnitId: number }[]>(
+  const [donations] = await DAO.query<{ year: number; sum: string; taxUnitId: number }[]>(
     `SELECT YEAR(Donations.timestamp_confirmed) as year, Donations.sum_confirmed as sum, Tax_unit.ID as taxUnitId
       FROM Donations
       INNER JOIN Distributions ON Distributions.KID = Donations.KID_fordeling
@@ -52,7 +52,7 @@ async function getByDonorId(donorId: number, locale: RequestLocale): Promise<Arr
 
   const calculatedUnits = getTaxUnitsWithDeductions({
     taxUnits,
-    donations,
+    donations: donations.map((d) => ({ ...d, sum: parseFloat(d.sum) })),
     locale,
   });
 
@@ -99,7 +99,7 @@ async function getByKID(KID: string, locale: RequestLocale): Promise<TaxUnit | n
   if (!donor) return null;
 
   // Get all donations for the donor with attached tax unit id
-  const [donations] = await DAO.query<{ year: number; sum: number; taxUnitId: number }[]>(
+  const [donations] = await DAO.query<{ year: number; sum: string; taxUnitId: number }[]>(
     `SELECT YEAR(Donations.timestamp_confirmed) as year, Donations.sum_confirmed as sum, Tax_unit.ID as taxUnitId
       FROM Donations
       INNER JOIN Distributions ON Distributions.KID = Donations.KID_fordeling
@@ -110,7 +110,7 @@ async function getByKID(KID: string, locale: RequestLocale): Promise<TaxUnit | n
 
   const calculatedUnits = getTaxUnitsWithDeductions({
     taxUnits,
-    donations,
+    donations: donations.map((d) => ({ ...d, sum: parseFloat(d.sum) })),
     locale,
   });
 

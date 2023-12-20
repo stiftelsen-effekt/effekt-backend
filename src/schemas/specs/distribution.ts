@@ -18,6 +18,7 @@ export interface components {
      *   "causeAreas": [
      *     {
      *       "causeAreaId": 1,
+     *       "name": "Global Health and Development",
      *       "standardSplit": true,
      *       "percentageShare": "25.00",
      *       "organizations": [
@@ -35,6 +36,7 @@ export interface components {
      *     },
      *     {
      *       "causeAreaId": 2,
+     *       "name": "Animal Welfare",
      *       "standardSplit": true,
      *       "percentageShare": "75.00",
      *       "organizations": [
@@ -84,6 +86,8 @@ export interface components {
     DistributionCauseArea: {
       /** @description The cause area id */
       id: number;
+      /** @description The cause area name */
+      name?: string;
       /** @description Whether the distribution is a standard distribution */
       standardSplit: boolean;
       /** @description The percentage share for the given cause area in decimal form */

@@ -174,8 +174,13 @@ CALL DropForeignKeyIfExist();
 DROP PROCEDURE DropForeignKeyIfExist;
 
 -- AlterTable
-ALTER TABLE `Referral_records` DROP COLUMN `UserID`,
-    ADD COLUMN `DonorID` INTEGER NULL;
+-- Remove DonorID column, set all DonorID = UserID, drop UserID column
+-- Update fk_referral_record_donor_id to reference DonorID instead of UserID
+ALTER TABLE `Referral_records` ADD COLUMN `DonorID` INTEGER NULL;
+UPDATE `Referral_records` SET `DonorID` = `UserID`;
+ALTER TABLE `Referral_records` DROP FOREIGN KEY `fk_referral_record_donor_id`;
+ALTER TABLE `Referral_records` ADD CONSTRAINT `fk_referral_record_donor_id` FOREIGN KEY (`DonorID`) REFERENCES `Donors`(`ID`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `Referral_records` DROP COLUMN `UserID`;
 
 -- DropTable
 DROP TABLE `Auth0_users`;

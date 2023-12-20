@@ -113,12 +113,16 @@ async function getAllByDonor(donorID: number) {
   var [res] = await DAO.query<DistributionDbResult>(
     `SELECT *,
       CAO.Percentage_share AS Organization_percentage_share,
-      CA.Percentage_share AS Cause_area_percentage_share
+      CA.Percentage_share AS Cause_area_percentage_share,
+      C.name AS Cause_area_name,
+      O.full_name AS Organization_name
 
     FROM 
       Distributions AS D
       LEFT JOIN Distribution_cause_areas AS CA ON CA.Distribution_KID = D.KID
       LEFT JOIN Distribution_cause_area_organizations AS CAO ON CAO.Distribution_cause_area_ID = CA.ID
+      INNER JOIN Cause_areas AS C ON C.ID = CA.Cause_area_ID
+      INNER JOIN Organizations AS O ON O.ID = CAO.Organization_ID
     
     WHERE 
         D.Donor_ID = ?`,
@@ -387,12 +391,16 @@ async function getSplitByKID(KID: string): Promise<Distribution> {
     `
         SELECT *,
           CAO.Percentage_share AS Organization_percentage_share,
-          CA.Percentage_share AS Cause_area_percentage_share
+          CA.Percentage_share AS Cause_area_percentage_share,
+          C.name AS Cause_area_name,
+          O.full_name AS Organization_name
 
         FROM 
           Distributions AS D
           LEFT JOIN Distribution_cause_areas AS CA ON CA.Distribution_KID = D.KID
           LEFT JOIN Distribution_cause_area_organizations AS CAO ON CAO.Distribution_cause_area_ID = CA.ID
+          INNER JOIN Cause_areas AS C ON C.ID = CA.Cause_area_ID
+          INNER JOIN Organizations AS O ON O.ID = CAO.Organization_ID
         
         WHERE 
             D.KID = ?`,
@@ -417,6 +425,7 @@ async function getStandardDistributionByCauseAreaID(
     `
         SELECT
             ID,
+            name,
             std_percentage_share
 
         FROM Organizations
@@ -449,6 +458,7 @@ async function getStandardDistributionByCauseAreaID(
 
   return result.map((row) => ({
     id: row.ID,
+    name: row.full_name,
     percentageShare: row.std_percentage_share.toString(),
   }));
 }
@@ -571,6 +581,8 @@ export type DistributionDbResultRow = Distributions &
   Omit<Distribution_cause_area_organizations, "Percentage_share"> & {
     Cause_area_percentage_share: Prisma.Decimal;
     Organization_percentage_share: Prisma.Decimal;
+    Cause_area_name: string;
+    Organization_name: string;
   };
 export type DistributionDbResult = DistributionDbResultRow[];
 
@@ -626,6 +638,7 @@ const mapDbDistributionToDistribution = (result: SqlResult<DistributionDbResult>
 
       const organization: DistributionCauseAreaOrganization = {
         id: row.Organization_ID,
+        name: row.Organization_name,
         percentageShare: row.Organization_percentage_share,
       };
 
@@ -634,6 +647,7 @@ const mapDbDistributionToDistribution = (result: SqlResult<DistributionDbResult>
       } else {
         acc.push({
           id: row.Cause_area_ID,
+          name: row.Cause_area_name,
           percentageShare: row.Cause_area_percentage_share,
           standardSplit: row.Standard_split === 1,
           organizations: [organization],

@@ -75,7 +75,7 @@ export const getTaxUnitsWithDeductions: (input: {
  * Each year might have a different minimum threshold and maximum deduction limit for NO tax units.
  * Donations are provided as a filtered list of donations for a specific tax unit and year.
  */
-const getYearlyMapping = (locale: RequestLocale): TaxDeductionYearlyMapping => {
+export const getYearlyMapping = (locale: RequestLocale): TaxDeductionYearlyMapping => {
   switch (locale) {
     case RequestLocale.NO:
       return {

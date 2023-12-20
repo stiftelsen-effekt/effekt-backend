@@ -29,6 +29,7 @@ components:
         taxUnitId: 1319
         causeAreas:
           - causeAreaId: 1
+            name: "Global Health and Development"
             standardSplit: true
             percentageShare: "25.00"
             organizations:
@@ -39,6 +40,7 @@ components:
                 name: "GiveWells tildelingsfond"
                 percentageShare: "75.00"
           - causeAreaId: 2
+            name: "Animal Welfare"
             standardSplit: true
             percentageShare: "75.00"
             organizations:
@@ -54,6 +56,9 @@ components:
         id:
           type: number
           description: The cause area id
+        name:
+          type: string
+          description: The cause area name
         standardSplit:
           type: boolean
           description: Whether the distribution is a standard distribution
