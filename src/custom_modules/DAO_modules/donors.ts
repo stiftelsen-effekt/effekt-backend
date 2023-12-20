@@ -180,7 +180,9 @@ async function search(filter): Promise<Array<Donor>> {
   var havings = [];
   var params = [];
   if (filter.query !== undefined && filter.query.length >= 1) {
-    params.push(filter.query);
+    // Remove @ from query att all locations
+    const matchSanitized = filter.query.replace(/@/g, " ");
+    params.push(matchSanitized);
     if (filter.query.match("^[0-9]+$")) wheres.push("Donors.ID = ?");
     else wheres.push("MATCH (full_name, email) AGAINST (? IN BOOLEAN MODE)");
   }
