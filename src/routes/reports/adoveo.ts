@@ -4,7 +4,7 @@ import { isAdmin } from "../../custom_modules/authorization/authMiddleware";
 
 export const adoveoReportRouter = Router();
 
-adoveoReportRouter.post("/fundraiser/:id", async (req, res, next) => {
+adoveoReportRouter.post("/fundraiser/:id", isAdmin, async (req, res, next) => {
   const fundraiserId = req.params.id;
   if (!fundraiserId) {
     return res.status(400).json({

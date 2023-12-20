@@ -266,7 +266,7 @@ module.exports = {
           await sendDonationReceipt(donationID);
         } catch (ex) {
           //Donation already registered, no additional actions required
-          if (ex.message.indexOf("EXISTING_DONATION") === -1) {
+          if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
             console.info(`Vipps donation for orderid ${orderId} already exists`, ex);
           } else {
             throw ex;
@@ -394,7 +394,7 @@ module.exports = {
         json: data,
       });
     } catch (ex) {
-      if (ex.statusCode === 423 || ex.statusCode === 402) {
+      if (ex.statusCode === 423 || ex.statusCode === 402 || ex.error[0].errorCode == 61) {
         //This is most likely a case of the polling trying to capture an order already captured by the callback, simply return true
         return true;
       } else {
@@ -419,8 +419,9 @@ module.exports = {
         return true;
       } catch (ex) {
         //Donation already registered, no additional actions required
-        if (ex.message.indexOf("EXISTING_DONATION") === -1) {
+        if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
           console.info(`Vipps donation for orderid ${orderId} already exists`, ex);
+          return true;
         } else {
           throw ex;
         }
