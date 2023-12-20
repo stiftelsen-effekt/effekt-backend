@@ -43,6 +43,7 @@ module.exports = async (req, res, next) => {
         //If the donation already existed, ignore and keep moving
         if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
           invalid++;
+          continue;
         } else {
           console.error(
             "Failed to update DB for bank_custom donation with KID: " + transaction.KID,
@@ -54,6 +55,7 @@ module.exports = async (req, res, next) => {
             transaction,
           });
           invalid++;
+          continue;
         }
       }
 
