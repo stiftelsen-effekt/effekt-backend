@@ -7,7 +7,11 @@ import permissions from "../enums/authorizationPermissions";
 import express from "express";
 const router = express.Router();
 import bodyParser from "body-parser";
-import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
+import {
+  findGlobalHealthCauseAreaOrThrow,
+  validateDistribution,
+} from "../custom_modules/distribution";
+import { DistributionInput } from "../schemas/types";
 const jsonBody = bodyParser.json();
 const dns = require("dns").promises;
 const config = require("../config");
@@ -540,71 +544,37 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
     }
 
     const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
-    const standardDistribution = req.body.distribution.standardDistribution;
-    let taxUnitId: number | undefined = req.body.distribution.taxUnit?.id;
 
-    const shares = req.body.distribution.shares;
-
-    throw new Error("Not implemented");
-
-    // !!! === CAUSE AREAS TODO === !!!
-    /*
-    const split = standardDistribution
-      ? await DAO.organizations.getStandardSplit()
-      : shares
-          .map((org) => {
-            return { id: org.id, share: org.share };
-          })
-          .filter((org) => parseFloat(org.share) !== 0);
-
-    const metaOwnerID = 3;
-
-    if (split.length === 0) {
-      let err = new Error("Empty distribution array provided");
-      (err as any).status = 400;
-      return next(err);
+    const distributionInput = req.body.distribution as DistributionInput;
+    try {
+      validateDistribution(distributionInput);
+    } catch (ex) {
+      return res.status(400).json({
+        status: 400,
+        content: ex.message,
+      });
     }
 
-    if (rounding.sumWithPrecision(split.map((split) => split.share)) !== "100") {
-      let err = new Error("Distribution does not sum to 100");
-      (err as any).status = 400;
-      return next(err);
+    if (distributionInput.donorId !== donorId) {
+      return res.status(400).json({
+        status: 400,
+        content: "Donor ID mismatch",
+      });
     }
 
-    if (!taxUnitId) {
-      const existingTaxUnit = await DAO.tax.getByKID(existingAgreement.KID);
-      if (existingTaxUnit) {
-        taxUnitId = existingTaxUnit.id;
-      }
-    }
-    */
+    let KID: string;
 
-    //Check for existing distribution with that KID
+    /**
+     * Check for existing distribution
+     */
+    const existingDistributionKID = await DAO.distributions.getKIDbySplit(distributionInput);
 
-    /*
-    !!! === CAUSE AREAS TODO === !!!
-    let KID = await DAO.distributions.getKIDbySplit(
-      split,
-      donorId,
-      standardDistribution,
-      taxUnitId,
-    );
-
-    
-
-    if (!KID) {
+    if (existingDistributionKID) {
+      KID = existingDistributionKID;
+    } else {
       KID = await donationHelpers.createKID();
-      await DAO.distributions.add(
-        split,
-        KID,
-        donorId,
-        taxUnitId,
-        standardDistribution,
-        metaOwnerID,
-      );
+      await DAO.distributions.add({ ...distributionInput, kid: KID });
     }
-    */
-    let KID = null;
 
     const response = await DAO.vipps.updateAgreementKID(agreementId, KID);
     if (response) await sendVippsAgreementChange(agreementCode, "SHARES", KID);
