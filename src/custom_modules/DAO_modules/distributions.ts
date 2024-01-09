@@ -425,7 +425,7 @@ async function getStandardDistributionByCauseAreaID(
     `
         SELECT
             ID,
-            name,
+            full_name,
             std_percentage_share
 
         FROM Organizations
