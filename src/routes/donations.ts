@@ -102,11 +102,15 @@ router.post("/register", async (req, res, next) => {
         full_name: donor.name,
         newsletter: donor.newsletter,
       });
-      donationObject.taxUnitId = await DAO.tax.addTaxUnit(
-        donationObject.donorID,
-        donor.ssn,
-        donor.name,
-      );
+      if (donor.ssn != null && donor.ssn !== "") {
+        donationObject.taxUnitId = await DAO.tax.addTaxUnit(
+          donationObject.donorID,
+          donor.ssn,
+          donor.name,
+        );
+      } else {
+        donationObject.taxUnitId = null;
+      }
     } else {
       //Check for existing tax unit if SSN provided
       if (typeof donor.ssn !== "undefined" && donor.ssn != null && donor.ssn !== "") {
