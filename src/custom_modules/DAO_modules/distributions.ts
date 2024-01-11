@@ -553,13 +553,24 @@ async function add(
       if (!causeArea) {
         throw new Error("Could not find cause area");
       }
-      const orgs = causeArea.organizations;
-      for (const org of orgs) {
-        distributionCauseAreaOrganizationInsertsRowValues.push([
-          causeAreaInsert.distributionCauseAreaId,
-          org.id,
-          org.percentageShare,
-        ]);
+      if (!causeArea.standardSplit) {
+        const orgs = causeArea.organizations;
+        for (const org of orgs) {
+          distributionCauseAreaOrganizationInsertsRowValues.push([
+            causeAreaInsert.distributionCauseAreaId,
+            org.id,
+            org.percentageShare,
+          ]);
+        }
+      } else {
+        const orgs = await getStandardDistributionByCauseAreaID(causeArea.id);
+        for (const org of orgs) {
+          distributionCauseAreaOrganizationInsertsRowValues.push([
+            causeAreaInsert.distributionCauseAreaId,
+            org.id,
+            org.percentageShare,
+          ]);
+        }
       }
     }
 
