@@ -587,6 +587,27 @@ async function add(
   }
 }
 //endregion
+
+/**
+ * Sets a tax unit for all donations for a given donor
+ * Note that this is not to be used outside of the tax module
+ * This is because we need to make sure that donations with a distribution
+ * given before the current year are then connected to a replacement
+ * KID with no tax unit, since the donations are already reported to the
+ * tax authorities.
+ * @param donorId
+ * @param taxUnitId
+ */
+async function connectFirstTaxUnit(donorId: number, taxUnitId: number) {
+  const [res] = await DAO.query(
+    `
+    UPDATE Distributions
+    SET Tax_unit_ID = ?
+    WHERE Donor_ID = ?`,
+    [taxUnitId, donorId],
+  );
+}
+
 export type DistributionDbResultRow = Distributions &
   Omit<Distribution_cause_areas, "Percentage_share"> &
   Omit<Distribution_cause_area_organizations, "Percentage_share"> & {
@@ -682,4 +703,5 @@ export const distributions = {
   getAllByDonor,
   getByDonorId,
   add,
+  connectFirstTaxUnit,
 };

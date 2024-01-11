@@ -3,6 +3,7 @@ import { DAO } from "../DAO";
 import { Donation } from "../../schemas/types";
 
 import sqlString from "sqlstring";
+import { DateTime } from "luxon";
 
 /** @typedef Donation
  * @prop {number} id
@@ -905,6 +906,20 @@ async function transferDonationsFromDummy(targetDonorID, dummyDonorID, newTaxUni
   return true;
 }
 
+async function updateKIDBeforeTimestamp(originalKID: string, newKID: string, timestamp: DateTime) {
+  await DAO.execute(
+    `
+      UPDATE Donations
+      SET KID_fordeling = ?
+      WHERE KID_fordeling = ?
+      AND timestamp_confirmed < ?
+    `,
+    [newKID, originalKID, timestamp.toISO()],
+  );
+
+  return true;
+}
+
 //endregion
 
 //region Delete
@@ -966,5 +981,6 @@ export const donations = {
   registerConfirmedByIDs,
   getHistogramBySum,
   transferDonationsFromDummy,
+  updateKIDBeforeTimestamp,
   remove,
 };

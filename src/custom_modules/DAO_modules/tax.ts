@@ -227,25 +227,6 @@ async function updateTaxUnit(id: number, taxUnit: TaxUnit): Promise<number> {
   return result.affectedRows;
 }
 
-/**
- *  Updates all KID numbers missing a tax unit for a single donor
- * @param {number} taxUnitID The id of the tax unit
- * @param {TaxUnit} donorID The donor ID
- * @returns {number} The number of rows affected
- */
-async function updateKIDsMissingTaxUnit(taxUnitID: number, donorID: number): Promise<number> {
-  const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
-    `
-      UPDATE Distributions
-      SET Tax_unit_ID = ?
-      WHERE Tax_unit_ID IS NULL
-      AND Donor_ID = ?
-    `,
-    [taxUnitID, donorID],
-  );
-
-  return result.affectedRows;
-}
 //endregion
 
 //region Delete
@@ -410,7 +391,6 @@ export const tax = {
   getActiveTaxUnitIdsByDonorId,
   getReportsWithUserOnProfilePage,
   getReportsWithoutUserOnProfilePage,
-  updateKIDsMissingTaxUnit,
   addTaxUnit,
   updateTaxUnit,
   deleteById,

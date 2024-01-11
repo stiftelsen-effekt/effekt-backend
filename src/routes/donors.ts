@@ -9,6 +9,7 @@ import bodyParser from "body-parser";
 import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { TaxDeductionDonation, getYearlyMapping } from "../custom_modules/taxdeductions";
+import { connectDonationsForFirstTaxUnit } from "../custom_modules/tax";
 
 const router = express.Router();
 
@@ -659,7 +660,7 @@ router.post(
         // if this is the first tax unit created for the donor (also counts archived tax units)
         if (taxUnits.length === 1) {
           // Update the donor's KID numbers missing a tax unit
-          await DAO.tax.updateKIDsMissingTaxUnit(taxUnitId, donor.id);
+          await connectDonationsForFirstTaxUnit(donor.id, taxUnit.id);
         }
 
         return res.json({

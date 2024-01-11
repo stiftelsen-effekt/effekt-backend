@@ -10,7 +10,7 @@ export const donationHelpers = {
    * @param {number | null} donorId Used for new KID format with 15 positions
    * @returns {string} The generated KID
    */
-  createKID: async (length = 8, donorId = null) => {
+  createKID: async (length = 8, donorId = null): Promise<string> => {
     //Create new valid KID
     let newKID = KID.generate(length, donorId);
     //If KID already exists, try new kid, call this function recursively
