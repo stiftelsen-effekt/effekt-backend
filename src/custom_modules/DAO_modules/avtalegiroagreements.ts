@@ -136,8 +136,8 @@ async function replaceDistribution(
     // Add new distribution using the original KID
     await DAO.distributions.add(
       {
-        kid: originalDistribution.kid,
         ...newDistributionInput,
+        kid: originalDistribution.kid,
       },
       metaOwnerID,
       transaction,
@@ -151,6 +151,14 @@ async function replaceDistribution(
           `,
       [newKid, originalDistribution.kid],
     );
+
+    // Reset the AvtaleGiro agreement to use the new distribution KID
+    // We need to do this because of a foreign key constraint that updates the agreement
+    // KID when we edit the distribution
+    await transaction.query(`UPDATE Avtalegiro_agreements SET KID = ? WHERE KID = ?`, [
+      originalDistribution.kid,
+      newKid,
+    ]);
 
     await DAO.commitTransaction(transaction);
   } catch (ex) {
@@ -632,6 +640,9 @@ async function getAgreementsWithKIDStartingWith(prefix: string): Promise<AvtaleG
     `SELECT ID, KID, amount, payment_date, notice FROM Avtalegiro_agreements WHERE KID LIKE ?`,
     [`${prefix}%`],
   );
+
+  console.log("Matching prefix");
+  console.log(rows);
 
   return rows.map((row) => ({
     id: row.ID,
