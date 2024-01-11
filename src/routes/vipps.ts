@@ -7,10 +7,14 @@ import permissions from "../enums/authorizationPermissions";
 import express from "express";
 const router = express.Router();
 import bodyParser from "body-parser";
+import {
+  findGlobalHealthCauseAreaOrThrow,
+  validateDistribution,
+} from "../custom_modules/distribution";
+import { DistributionInput } from "../schemas/types";
 const jsonBody = bodyParser.json();
 const dns = require("dns").promises;
 const config = require("../config");
-const rounding = require("../custom_modules/rounding");
 const vipps = require("../custom_modules/vipps");
 
 const vippsCallbackProdServers = [
@@ -110,26 +114,42 @@ router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
     }
 
     const KID = agreement["KID"];
-    const standardDistribution = await DAO.distributions.isStandardDistribution(KID);
-    const activeOrganizations = await DAO.organizations.getActive();
-    let shares = await DAO.distributions.getSplitByKID(KID);
 
-    const distribution = {
-      kid: KID,
-      standardDistribution,
-      // Fill missing organizations with 0 shares
-      shares: activeOrganizations.map((organization) => {
-        const share = shares.find((share) => share.id === organization.id);
-        return {
-          abbriv: organization.abbriv,
-          name: organization.name,
-          id: organization.id,
-          share: share ? share.share : 0,
+    const distribution = await DAO.distributions.getSplitByKID(KID);
+
+    type BackwardsCompatibleResponse = {
+      content: {
+        agreement: unknown;
+        distribution: {
+          kid: string;
+          standardDistribution: boolean;
+          shares: Array<{
+            abbriv: string;
+            name: string;
+            id: number;
+            share: string | number;
+          }>;
         };
-      }),
+      };
     };
 
-    res.status(200).json({ content: { agreement, distribution } });
+    const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
+
+    res.status(200).json({
+      content: {
+        agreement,
+        distribution: {
+          kid: distribution.kid,
+          standardDistribution: causeArea.standardSplit,
+          shares: causeArea.organizations.map((org) => ({
+            abbriv: org.name,
+            name: org.name,
+            id: org.id,
+            share: org.percentageShare,
+          })),
+        },
+      },
+    } satisfies BackwardsCompatibleResponse);
   } catch (ex) {
     next({ ex });
   }
@@ -184,7 +204,7 @@ router.get("/histogram/charges", async (req, res, next) => {
   }
 });
 
-router.get("/agreements/report", authMiddleware.auth(permissions.admin), async (req, res, next) => {
+router.get("/agreements/report", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     let content = await DAO.vipps.getAgreementReport();
 
@@ -197,7 +217,7 @@ router.get("/agreements/report", authMiddleware.auth(permissions.admin), async (
   }
 });
 
-router.post("/agreements", authMiddleware.auth(permissions.admin), async (req, res, next) => {
+router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     var results = await DAO.vipps.getAgreements(
       req.body.sort,
@@ -223,7 +243,7 @@ router.post("/agreements", authMiddleware.auth(permissions.admin), async (req, r
   }
 });
 
-router.post("/charges", authMiddleware.auth(permissions.admin), async (req, res, next) => {
+router.post("/charges", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     var results = await DAO.vipps.getCharges(
       req.body.sort,
@@ -555,58 +575,36 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
     }
 
     const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
-    const standardDistribution = req.body.distribution.standardDistribution;
-    let taxUnitId: number | undefined = req.body.distribution.taxUnit?.id;
 
-    const shares = req.body.distribution.shares;
-
-    const split = standardDistribution
-      ? await DAO.organizations.getStandardSplit()
-      : shares
-          .map((org) => {
-            return { id: org.id, share: org.share };
-          })
-          .filter((org) => parseFloat(org.share) !== 0);
-
-    const metaOwnerID = 3;
-
-    if (split.length === 0) {
-      let err = new Error("Empty distribution array provided");
-      (err as any).status = 400;
-      return next(err);
+    const distributionInput = req.body.distribution as DistributionInput;
+    try {
+      validateDistribution(distributionInput);
+    } catch (ex) {
+      return res.status(400).json({
+        status: 400,
+        content: ex.message,
+      });
     }
 
-    if (rounding.sumWithPrecision(split.map((split) => split.share)) !== "100") {
-      let err = new Error("Distribution does not sum to 100");
-      (err as any).status = 400;
-      return next(err);
+    if (distributionInput.donorId !== donorId) {
+      return res.status(400).json({
+        status: 400,
+        content: "Donor ID mismatch",
+      });
     }
 
-    if (!taxUnitId) {
-      const existingTaxUnit = await DAO.tax.getByKID(existingAgreement.KID);
-      if (existingTaxUnit) {
-        taxUnitId = existingTaxUnit.id;
-      }
-    }
+    let KID: string;
 
-    //Check for existing distribution with that KID
-    let KID = await DAO.distributions.getKIDbySplit(
-      split,
-      donorId,
-      standardDistribution,
-      taxUnitId,
-    );
+    /**
+     * Check for existing distribution
+     */
+    const existingDistributionKID = await DAO.distributions.getKIDbySplit(distributionInput);
 
-    if (!KID) {
+    if (existingDistributionKID) {
+      KID = existingDistributionKID;
+    } else {
       KID = await donationHelpers.createKID();
-      await DAO.distributions.add(
-        split,
-        KID,
-        donorId,
-        taxUnitId,
-        standardDistribution,
-        metaOwnerID,
-      );
+      await DAO.distributions.add({ ...distributionInput, kid: KID });
     }
 
     const response = await DAO.vipps.updateAgreementKID(agreementId, KID);

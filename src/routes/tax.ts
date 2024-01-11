@@ -2,6 +2,7 @@ import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 
 import express from "express";
+import { connectDonationsForFirstTaxUnit } from "../custom_modules/tax";
 const router = express.Router();
 
 // A route that updates a tax unit name and ssn
@@ -87,10 +88,7 @@ router.put("/donations/assign", authMiddleware.isAdmin, async (req, res, next) =
     const singleTaxUnits = await DAO.donors.getIDsWithOneTaxUnit();
 
     for (let i = 0; i < singleTaxUnits.length; i++) {
-      await DAO.tax.updateKIDsMissingTaxUnit(
-        singleTaxUnits[i]["ID"],
-        singleTaxUnits[i]["Donor_ID"],
-      );
+      await connectDonationsForFirstTaxUnit(singleTaxUnits[i]["Donor_ID"], singleTaxUnits[i]["ID"]);
     }
 
     return res.json({ status: 200 });

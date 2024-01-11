@@ -9,6 +9,7 @@ const template = require("./template");
 import request from "request-promise-native";
 import fs from "fs-extra";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
+import { DistributionCauseAreaOrganization } from "../schemas/types";
 
 /**
  * @typedef VippsAgreement
@@ -150,14 +151,17 @@ export async function sendDonationReceipt(donationID, reciever = null) {
   }
 
   try {
-    var split = await DAO.distributions.getSplitByKID(donation.KID);
+    var distribution = await DAO.distributions.getSplitByKID(donation.KID);
   } catch (ex) {
     console.error("Failed to send mail donation reciept, could not get donation split by KID");
     console.error(ex);
     return false;
   }
 
-  const hasSciInDistribution = split.some((org) => org.id === 2);
+  const hasSciInDistribution =
+    distribution.causeAreas
+      .find((causeArea) => causeArea.id === 1)
+      ?.organizations.some((org) => org.id === 2) ?? false;
 
   try {
     var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
@@ -166,7 +170,17 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     return false;
   }
 
-  let organizations = formatOrganizationsFromSplit(split, donation.sum);
+  const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
+    (acc, causeArea) => {
+      causeArea.organizations.forEach((org) => {
+        acc.push(org);
+      });
+      return acc;
+    },
+    [],
+  );
+
+  const organizations = formatOrganizationsFromSplit(split, donation.sum);
 
   try {
     await send({
@@ -214,14 +228,17 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
   }
 
   try {
-    var split = await DAO.distributions.getSplitByKID(donation.KID);
+    var distribution = await DAO.distributions.getSplitByKID(donation.KID);
   } catch (ex) {
     console.error("Failed to send mail donation reciept, could not get donation split by KID");
     console.error(ex);
     return false;
   }
 
-  const hasSciInDistribution = split.some((org) => org.id === 2);
+  const hasSciInDistribution =
+    distribution.causeAreas
+      .find((causeArea) => causeArea.id === 1)
+      ?.organizations.some((org) => org.id === 2) ?? false;
 
   try {
     var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
@@ -230,7 +247,17 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
     return false;
   }
 
-  let organizations = formatOrganizationsFromSplit(split, donation.sum);
+  const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
+    (acc, causeArea) => {
+      causeArea.organizations.forEach((org) => {
+        acc.push(org);
+      });
+      return acc;
+    },
+    [],
+  );
+
+  const organizations = formatOrganizationsFromSplit(split, donation.sum);
 
   try {
     await send({
@@ -299,17 +326,32 @@ export async function sendDonationRegistered(KID, sum) {
     }
 
     try {
-      var split = await DAO.distributions.getSplitByKID(KID);
+      var distribution = await DAO.distributions.getSplitByKID(KID);
     } catch (ex) {
       console.error("Failed to send mail donation reciept, could not get donation split by KID");
       console.error(ex);
       return false;
     }
 
+    /*
     let organizations = split.map((split) => ({
       name: split.full_name,
       percentage: parseFloat(split.share),
     }));
+    */
+    const organizations = distribution.causeAreas.reduce((acc, causeArea) => {
+      causeArea.organizations.forEach((org) => {
+        acc.push({
+          // !!! === CAUSE AREAS TODO === !!!
+          // Need to get name
+          name: org.id.toString(),
+          // Round to nearest 2 decimals
+          percentage: Math.round(parseFloat(org.percentageShare) * 100) / 100,
+        });
+      });
+      return acc;
+    }, []);
+
     var KIDstring = KID.toString();
 
     await send({
@@ -374,11 +416,19 @@ export async function sendVippsAgreementChange(agreementCode, change, newValue =
     const donor = await DAO.donors.getByID(agreement.donorID);
     const email = donor.email;
 
-    const split = await DAO.distributions.getSplitByKID(agreement.KID);
-    const organizations = split.map((split) => ({
-      name: split.full_name,
-      percentage: parseFloat(split.share),
-    }));
+    const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
+    const organizations = distribution.causeAreas.reduce((acc, causeArea) => {
+      causeArea.organizations.forEach((org) => {
+        acc.push({
+          // !!! === CAUSE AREAS TODO === !!!
+          // Need to get name
+          name: org.id.toString(),
+          // Round to nearest 2 decimals
+          percentage: Math.round(parseFloat(org.percentageShare) * 100) / 100,
+        });
+      });
+      return acc;
+    }, []);
 
     if (agreement.status !== "ACTIVE") return false;
 
@@ -621,11 +671,18 @@ export async function sendAvtaleGiroChange(
     const donor = await DAO.donors.getByKID(KID);
     const email = donor.email;
 
-    const split = await DAO.distributions.getSplitByKID(KID);
-    const organizations = split.map((split) => ({
-      name: split.full_name,
-      percentage: parseFloat(split.share),
-    }));
+    const distribution = await DAO.distributions.getSplitByKID(KID);
+    const organizations = distribution.causeAreas.reduce((acc, causeArea) => {
+      causeArea.organizations.forEach((org) => {
+        acc.push({
+          name: org.name.toString(),
+          percentage: Math.round(parseFloat(org.percentageShare) * 100) / 100,
+        });
+      });
+      return acc;
+    }, []);
+
+    console.log(organizations);
 
     let changeDesc = "endret";
     if (change === "CANCELLED") changeDesc = "avsluttet";

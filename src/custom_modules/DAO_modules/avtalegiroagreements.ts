@@ -4,6 +4,7 @@ import { DAO } from "../DAO";
 import sqlString from "sqlstring";
 import { OkPacket, ResultSetHeader } from "mysql2/promise";
 import { Avtalegiro_agreements } from "@prisma/client";
+import { Distribution, DistributionInput } from "../../schemas/types";
 
 export type AvtaleGiroAgreement = {
   id: number;
@@ -96,61 +97,74 @@ async function updatePaymentDate(KID, paymentDate) {
   return true;
 }
 
+/**
+ * When updating an AvtaleGiro distribution, we need to do some extra work to preserve donation history
+ * This is because the KID is used as the active identifier for AvtaleGiro agreements, and we can't change it
+ * Therefore, when the user wishes to update their AvtaleGiro distribution, we need to preserve the old distribution
+ * We do this by preserving the old distribution with a new KID number, and then adding the new distribution with the original KID number
+ * We also need to update all donations with the old distribution to use the new KID number
+ * @param originalDistribution
+ * @param newKid This is a KID used to store the historic distribution. Not the new distribution, as that one carries the original KID
+ * @param newDistributionInput
+ * @param metaOwnerID
+ * @returns
+ */
 async function replaceDistribution(
-  replacementKID: string,
-  originalKID: string,
-  split,
-  donorId,
-  metaOwnerID,
-  taxUnitId: number | null = null,
-  standardDistribution: boolean = false,
+  originalDistribution: Distribution,
+  newKid: string,
+  newDistributionInput: DistributionInput,
+  metaOwnerID?: number,
 ) {
-  if (replacementKID.length !== 15 || originalKID.length !== 15) {
-    return false;
+  if (!metaOwnerID) {
+    metaOwnerID = await DAO.meta.getDefaultOwnerID();
   }
 
-  const originalTaxUnit = await DAO.tax.getByKID(originalKID);
+  const transaction = await DAO.startTransaction();
+  try {
+    // Replaces original KID with a new KID to preserve donation history
+    await transaction.query(`UPDATE Distributions SET KID = ? WHERE KID = ?`, [
+      newKid,
+      originalDistribution.kid,
+    ]);
 
-  // Replaces original KID with a new replacement KID
-  await DAO.query(
-    `
-            UPDATE Combining_table
-            SET KID = ?
-            WHERE KID = ?
-        `,
-    [replacementKID, originalKID],
-  );
+    // Updates donations with the old distributions to use the replacement KID (preserves donation history)
+    await transaction.query(`UPDATE Donations SET KID_fordeling = ? WHERE KID_fordeling = ?`, [
+      newKid,
+      originalDistribution.kid,
+    ]);
 
-  // Updates donations with the old distributions to use the replacement KID (preserves donation history)
-  await DAO.query(
-    `
-            UPDATE Donations
-            SET KID_fordeling = ?
-            WHERE KID_fordeling = ?
-        `,
-    [replacementKID, originalKID],
-  );
+    // Add new distribution using the original KID
+    await DAO.distributions.add(
+      {
+        ...newDistributionInput,
+        kid: originalDistribution.kid,
+      },
+      metaOwnerID,
+      transaction,
+    );
 
-  const replacementTaxUnitId: number = taxUnitId !== null ? taxUnitId : originalTaxUnit.id;
+    // Links the replacement KID to the original AvtaleGiro KID
+    await transaction.query(
+      `
+              INSERT INTO AvtaleGiro_replaced_distributions(Replacement_KID, Original_AvtaleGiro_KID)
+              VALUES (?, ?)
+          `,
+      [newKid, originalDistribution.kid],
+    );
 
-  // Add new distribution using the original KID
-  await DAO.distributions.add(
-    split,
-    originalKID,
-    donorId,
-    replacementTaxUnitId,
-    standardDistribution,
-    metaOwnerID,
-  );
+    // Reset the AvtaleGiro agreement to use the new distribution KID
+    // We need to do this because of a foreign key constraint that updates the agreement
+    // KID when we edit the distribution
+    await transaction.query(`UPDATE Avtalegiro_agreements SET KID = ? WHERE KID = ?`, [
+      originalDistribution.kid,
+      newKid,
+    ]);
 
-  // Links the replacement KID to the original AvtaleGiro KID
-  await DAO.query(
-    `
-            INSERT INTO AvtaleGiro_replaced_distributions(Replacement_KID, Original_AvtaleGiro_KID)
-            VALUES (?, ?)
-        `,
-    [replacementKID, originalKID],
-  );
+    await DAO.commitTransaction(transaction);
+  } catch (ex) {
+    await DAO.rollbackTransaction(transaction);
+    throw ex;
+  }
 
   return true;
 }
@@ -340,10 +354,10 @@ async function getAgreement(id: string) {
             Donors.full_name,
             Donors.ID 
         FROM Avtalegiro_agreements as AG
-        INNER JOIN Combining_table as CT
-            ON AG.KID = CT.KID
+        INNER JOIN Distributions as D
+            ON AG.KID = D.KID
         INNER JOIN Donors 
-            ON CT.Donor_ID = Donors.ID
+            ON D.Donor_ID = Donors.ID
         WHERE AG.ID = ?
         `,
     [id],
@@ -357,7 +371,7 @@ async function getAgreement(id: string) {
 }
 
 async function getByDonorId(donorId) {
-  let [agreements] = await DAO.query(
+  let [agreements] = await DAO.query<Avtalegiro_agreements & { full_name: string }>(
     `
             SELECT DISTINCT
                 AG.ID,
@@ -372,11 +386,11 @@ async function getByDonorId(donorId) {
                 Donors.full_name
             FROM Avtalegiro_agreements as AG
             
-            INNER JOIN Combining_table as CT
-                ON AG.KID = CT.KID
+            INNER JOIN Distributions as D
+                ON AG.KID = D.KID
             
             INNER JOIN Donors 
-                ON CT.Donor_ID = Donors.ID
+                ON D.Donor_ID = Donors.ID
             
             WHERE Donors.ID = ?`,
     [donorId],
@@ -626,6 +640,9 @@ async function getAgreementsWithKIDStartingWith(prefix: string): Promise<AvtaleG
     `SELECT ID, KID, amount, payment_date, notice FROM Avtalegiro_agreements WHERE KID LIKE ?`,
     [`${prefix}%`],
   );
+
+  console.log("Matching prefix");
+  console.log(rows);
 
   return rows.map((row) => ({
     id: row.ID,

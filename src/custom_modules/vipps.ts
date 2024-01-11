@@ -1159,8 +1159,6 @@ module.exports = {
 
       agreements = agreements.concat(active, pending, stopped, expired);
 
-      console.log("Updating database rows...");
-
       for (let i = 0; i < agreements.length; i++) {
         const anonDonorId = 1464;
         const standardKID = 87397824;
@@ -1233,7 +1231,7 @@ module.exports = {
                 metaOwnerId,
               );
 
-              if (donationId !== null) {
+              if (donationId) {
                 await sendDonationReceipt(donationId);
               } else {
                 console.error(

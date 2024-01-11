@@ -167,14 +167,10 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
 
     const claimDates = getDueDates(today);
 
-    console.log(claimDates.map((claimDate) => claimDate.toISO()));
-
     const shipmentIDs = await DAO.avtalegiroagreements.getShipmentIDs(today);
-    console.log(shipmentIDs);
 
     // Remove elements from shipment ID's up to claimDate length is left
     shipmentIDs.splice(0, shipmentIDs.length - claimDates.length);
-    console.log(shipmentIDs);
     for (let claimDate of claimDates) {
       /**
        * Check if we have recieved an "accepted" reciept from MasterCard (Nets)
@@ -183,14 +179,12 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
 
       // Get first shipment ID from array for each claim date
       const shipmentID = shipmentIDs.shift();
-      console.log(shipmentID, shipmentIDs);
 
       // If shipment ID is undefined, we're missing a shipment for the claim date
       // Something might have gone wrong, so we should retry
       // Else we should check if we have recieved an accepted reciept
       if (typeof shipmentID !== "undefined") {
         let accepted = await checkIfAcceptedReciept(shipmentID);
-        console.log(`Accepted reciept for shipment ${shipmentID}: ${accepted}`);
         if (accepted) {
           continue;
         }
