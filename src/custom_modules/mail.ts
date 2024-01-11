@@ -666,8 +666,6 @@ export async function sendAvtaleGiroChange(
   change: "CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES",
   newValue: string | number = "",
 ) {
-  throw new Error("Not implemented");
-  /*
   try {
     const agreement = await DAO.avtalegiroagreements.getByKID(KID);
     const donor = await DAO.donors.getByKID(KID);
@@ -677,15 +675,14 @@ export async function sendAvtaleGiroChange(
     const organizations = distribution.causeAreas.reduce((acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
         acc.push({
-          // !!! === CAUSE AREAS TODO === !!!
-          // Need to get name
-          name: org.id.toString(),
-          // Round to nearest 2 decimals
+          name: org.name.toString(),
           percentage: Math.round(parseFloat(org.percentageShare) * 100) / 100,
         });
       });
       return acc;
     }, []);
+
+    console.log(organizations);
 
     let changeDesc = "endret";
     if (change === "CANCELLED") changeDesc = "avsluttet";
@@ -714,7 +711,6 @@ export async function sendAvtaleGiroChange(
     console.error(ex);
     return ex.statusCode;
   }
-  */
 }
 
 /**
