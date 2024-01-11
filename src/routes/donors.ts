@@ -446,9 +446,9 @@ router.get(
       let donations = await DAO.donations.getByDonorId(donorId);
       let eaFundsDonations = await DAO.donations.getEAFundsDonations(donorId);
 
-      // Current year down to 2022
+      // Previous year down to 2022
       const years = Array.from(
-        { length: new Date().getFullYear() - 2021 },
+        { length: new Date().getFullYear() - 1 - 2021 },
         (_, i) => 2022 + i,
       ).reverse();
       const reports: Array<TaxReport> = [];
