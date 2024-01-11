@@ -267,6 +267,12 @@ router.put("/agreement/:urlcode/cancel", async (req, res, next) => {
   try {
     const agreementCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
     const response = await vipps.updateAgreementStatus(agreementId, "STOPPED");
 
     if (response) {
@@ -320,6 +326,12 @@ router.put("/agreement/:urlcode/price", jsonBody, async (req, res, next) => {
     const price = req.body.price;
     const agreementCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
     const response = await vipps.updateAgreementPrice(agreementId, price);
 
     // Only update database if Vipps update was successful
@@ -347,6 +359,12 @@ router.put("/agreement/:urlcode/pause", jsonBody, async (req, res, next) => {
     const pausedUntilDateString = req.body.pausedUntilDate;
     const agreementCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
 
     const dayMs = 86400000;
     const pausedUntilDate = new Date(pausedUntilDateString);
@@ -377,6 +395,12 @@ router.put("/agreement/:urlcode/pause/end", jsonBody, async (req, res, next) => 
   try {
     const agreementCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
     const response = await DAO.vipps.updateAgreementPauseDate(agreementId, null);
 
     if (response) await sendVippsAgreementChange(agreementCode, "UNPAUSED");
@@ -431,6 +455,12 @@ router.put("/agreement/:urlcode/chargeday", jsonBody, async (req, res, next) => 
     const agreementCode = req.params.urlcode;
     const chargeDay = req.body.chargeDay;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
 
     // 0 means last day of each month
     if (chargeDay < 0 || chargeDay > 28) {
@@ -453,6 +483,12 @@ router.put("/agreement/:urlcode/forcedcharge", jsonBody, async (req, res, next) 
     const agreementCode = req.params.urlcode;
     const forcedChargeDate = req.body.forcedChargeDate;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
 
     const response = await DAO.vipps.updateAgreementForcedCharge(agreementId, forcedChargeDate);
 
@@ -628,6 +664,12 @@ router.get("/agreementredirect/:urlcode", async (req, res, next) => {
 
     let retry = async (retries) => {
       const agreementId = await DAO.vipps.getAgreementIdByUrlCode(urlcode);
+      if (!agreementId) {
+        return res.status(404).json({
+          status: 404,
+          content: "Agreement not found",
+        });
+      }
       const agreement = await DAO.vipps.getAgreement(agreementId);
 
       console.log(agreement, retries);
@@ -698,6 +740,12 @@ router.post("/agreement/:urlcode/charges/cancel", jsonBody, async (req, res, nex
   try {
     const agreementCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
     const charges = await vipps.getCharges(agreementId);
 
     // Cancel all pending or due charges
