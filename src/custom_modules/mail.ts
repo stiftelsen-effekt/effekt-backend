@@ -333,18 +333,11 @@ export async function sendDonationRegistered(KID, sum) {
       return false;
     }
 
-    /*
-    let organizations = split.map((split) => ({
-      name: split.full_name,
-      percentage: parseFloat(split.share),
-    }));
-    */
     const organizations = distribution.causeAreas.reduce((acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
         acc.push({
-          // !!! === CAUSE AREAS TODO === !!!
           // Need to get name
-          name: org.id.toString(),
+          name: org.name ? org.name.toString() : org.id.toString(),
           // Round to nearest 2 decimals
           percentage: Math.round(parseFloat(org.percentageShare) * 100) / 100,
         });
