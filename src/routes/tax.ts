@@ -2,7 +2,7 @@ import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 
 import express from "express";
-import { connectDonationsForFirstTaxUnit } from "../custom_modules/tax";
+import { setTaxUnitOnDistribution } from "../custom_modules/tax";
 const router = express.Router();
 
 // A route that updates a tax unit name and ssn
@@ -85,10 +85,11 @@ router.put("/:id", async (req, res, next) => {
 
 router.put("/donations/assign", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    const singleTaxUnits = await DAO.donors.getIDsWithOneTaxUnit();
+    const distributionsToAssign = await DAO.donors.getKIDsWithOneTaxUnit(2023);
 
-    for (let i = 0; i < singleTaxUnits.length; i++) {
-      await connectDonationsForFirstTaxUnit(singleTaxUnits[i]["Donor_ID"], singleTaxUnits[i]["ID"]);
+    for (const distribution of distributionsToAssign) {
+      console.log(`Assigning ${distribution.KID} to ${distribution.Tax_unit_ID}`);
+      await setTaxUnitOnDistribution(distribution.KID, distribution.Tax_unit_ID);
     }
 
     return res.json({ status: 200 });

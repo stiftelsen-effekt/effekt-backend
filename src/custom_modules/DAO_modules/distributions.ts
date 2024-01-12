@@ -608,6 +608,23 @@ async function connectFirstTaxUnit(donorId: number, taxUnitId: number) {
   );
 }
 
+/**
+ * CAUTION: Should only be used when we've made sure that the donations
+ * for the given KID are not reported to the tax authorities
+ * Sets a tax unit ID on a distribution
+ * @param kid string
+ * @param taxUnitId
+ */
+async function addTaxUnitToDistribution(kid: string, taxUnitId: number) {
+  const [res] = await DAO.query(
+    `
+    UPDATE Distributions
+    SET Tax_unit_ID = ?
+    WHERE KID = ?`,
+    [taxUnitId, kid],
+  );
+}
+
 export type DistributionDbResultRow = Distributions &
   Omit<Distribution_cause_areas, "Percentage_share"> &
   Omit<Distribution_cause_area_organizations, "Percentage_share"> & {
@@ -703,5 +720,6 @@ export const distributions = {
   getAllByDonor,
   getByDonorId,
   add,
+  addTaxUnitToDistribution,
   connectFirstTaxUnit,
 };
