@@ -156,6 +156,10 @@ router.post("/register", async (req, res, next) => {
         const standardShareOrganizations =
           await DAO.distributions.getStandardDistributionByCauseAreaID(causeArea.id);
         causeArea.organizations = standardShareOrganizations;
+      } else {
+        causeArea.organizations = causeArea.organizations.filter(
+          (o) => parseFloat(o.percentageShare) > 0,
+        );
       }
     }
 
