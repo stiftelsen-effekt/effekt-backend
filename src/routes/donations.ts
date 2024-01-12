@@ -50,7 +50,7 @@ router.get("/status", async (req, res, next) => {
  */
 router.post("/register", async (req, res, next) => {
   let parsedData = req.body as {
-    organizations?: { split: number; id: number }[];
+    distributionCauseAreas: DistributionCauseArea[];
     donor: {
       email: string;
       name: string;
@@ -147,24 +147,7 @@ router.post("/register", async (req, res, next) => {
     const draftDistribution: DistributionInput = {
       donorId: donationObject.donorID,
       taxUnitId: donationObject.taxUnitId,
-      causeAreas: [
-        {
-          id: GLOBAL_HEALTH_CAUSE_AREA_ID,
-          percentageShare: "100",
-          ...(parsedData.organizations
-            ? {
-                organizations: parsedData.organizations.map((org) => ({
-                  id: org.id,
-                  percentageShare: org.split.toString(),
-                })),
-                standardSplit: false,
-              }
-            : {
-                organizations: [],
-                standardSplit: true,
-              }),
-        },
-      ],
+      causeAreas: parsedData.distributionCauseAreas,
     };
 
     /* Get the standard shares of the organizations for all cause areas with standard split */
