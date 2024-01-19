@@ -47,7 +47,7 @@ describe("swish", () => {
         id: donorId,
       });
 
-      await initiateOrder(KID, { amount: 100, phone: "46707074730" });
+      await initiateOrder(KID, { amount: 100 });
 
       expect(addOrderStub.called).to.be.true;
       expect(addOrderStub.args[0][0]).to.contain({
@@ -58,15 +58,13 @@ describe("swish", () => {
 
     it("should call swish payment request endpoint", async () => {
       const amount = 100;
-      const phone = "46707074730";
 
-      await initiateOrder("1234567890", { amount, phone });
+      await initiateOrder("1234567890", { amount });
 
       expect(fetchStub.called).to.be.true;
       const body = JSON.parse(fetchStub.args[0][1].body);
       expect(body).to.contain({
         amount,
-        payerAlias: phone,
       });
     });
 
@@ -74,7 +72,7 @@ describe("swish", () => {
       const date = new Date("2020-01-01T00:00:00.000Z");
       sinon.useFakeTimers(date.getTime());
 
-      await initiateOrder("1234567890", { amount: 100, phone: "46707074730" });
+      await initiateOrder("1234567890", { amount: 100 });
 
       expect(fetchStub.called).to.be.true;
       const body = JSON.parse(fetchStub.args[0][1].body);
@@ -88,7 +86,7 @@ describe("swish", () => {
       withDonor(null);
 
       try {
-        await initiateOrder("1234567890", { amount: 100, phone: "46707432643" });
+        await initiateOrder("1234567890", { amount: 100 });
         throw new Error("Promise did not reject as expected");
       } catch (err) {
         expect(err.message).to.contain("Could not find donor");
@@ -99,7 +97,7 @@ describe("swish", () => {
       withCreatePaymentRequestResponse({ status: 400 });
 
       try {
-        await initiateOrder("1234567890", { amount: 100, phone: "46707432643" });
+        await initiateOrder("1234567890", { amount: 100 });
         throw new Error("Promise did not reject as expected");
       } catch (err) {
         expect(err.message).to.contain("Could not initiate payment");
