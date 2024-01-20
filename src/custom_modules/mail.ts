@@ -372,6 +372,53 @@ export async function sendDonationRegistered(KID, sum) {
 }
 
 /**
+ * Sends a follow-up email to a donor regarding an incomplete donation.
+ * @param {number} paymentIntentId The ID of the payment intent.
+ */
+export async function sendDonationFollowUp(paymentIntentId) {
+  try {
+    // Retrieve the payment intent from the database
+    const paymentIntent = await DAO.initialpaymentmethod.getPaymentIntent(paymentIntentId);
+    if (!paymentIntent) {
+      console.error(`No payment intent found with ID ${paymentIntentId}`);
+      return false;
+    }
+
+    // Retrieve the donor's information using the KID from the payment intent
+    const donor = await DAO.donors.getByKID(paymentIntent.KID_fordeling);
+    if (!donor) {
+      console.error(`No donor found with KID ${paymentIntent.KID_fordeling}`);
+      return false;
+    }
+
+    // Format the payment intent details for the email
+    const paymentIntentDetails = {
+      date: moment(paymentIntent.Timestamp).format("DD.MM.YYYY"),
+      amount: formatCurrency(paymentIntent.Payment_amount),
+      paymentMethod: paymentIntent.Payment_method,
+    };
+
+    // Send the follow-up email
+    await send({
+      reciever: donor.email,
+      subject: "Påminnelse om din donasjon hos Gi Effektivt",
+      templateName: "donationFollowUp",
+      templateData: {
+        header: `Hei ${donor.name || ""},`,
+        paymentIntentDetails,
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send donation follow-up email");
+    console.error(ex);
+    return false;
+  }
+}
+
+/**
  * @param {string} email
  */
 export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {

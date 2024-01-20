@@ -76,6 +76,7 @@ export const DAO = {
       waitForConnections: true,
       enableKeepAlive: true as true, // Workaround for type checking quirk
       timezone: "+00:00",
+      port: 3307,
     };
 
     // Using Unix sockets to connect to cloud SQL is the default way
