@@ -216,7 +216,7 @@ router.post("/register", async (req, res, next) => {
     }
 
     try {
-      await DAO.initialpaymentmethod.addPaymentIntent(donationObject.KID, donationObject.method);
+      await DAO.paymentintent.addPaymentIntent(donationObject.KID, donationObject.method);
     } catch (error) {
       console.error(error);
     }

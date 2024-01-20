@@ -81,7 +81,7 @@ describe("donations", () => {
         createKIDStub = sinon.stub(donationHelpers, "createKID");
         distributionsGetKIDBySplitStub = sinon.stub(DAO.distributions, "getKIDbySplit");
         distributionsAddStub = sinon.stub(DAO.distributions, "add");
-        addPaymentIntentStub = sinon.stub(DAO.initialpaymentmethod, "addPaymentIntent");
+        addPaymentIntentStub = sinon.stub(DAO.paymentintent, "addPaymentIntent");
         referralsGetDonorAnsweredStub = sinon.stub(DAO.referrals, "getDonorAnswered");
         taxGetByDonorIdAndSsnStub = sinon.stub(DAO.tax, "getByDonorIdAndSsn");
 

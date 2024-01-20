@@ -9,7 +9,7 @@ import { payment } from "./DAO_modules/payment";
 import { parsing } from "./DAO_modules/parsing";
 import { referrals } from "./DAO_modules/referrals";
 import { meta } from "./DAO_modules/meta";
-import { initialpaymentmethod } from "./DAO_modules/initialpaymentmethod";
+import { paymentintent } from "./DAO_modules/paymentintent";
 import { avtalegiroagreements } from "./DAO_modules/avtalegiroagreements";
 import { logging } from "./DAO_modules/logging";
 import { organizations } from "./DAO_modules/organizations";
@@ -48,7 +48,7 @@ export const DAO = {
   parsing: parsing,
   referrals: referrals,
   meta: meta,
-  initialpaymentmethod: initialpaymentmethod,
+  paymentintent: paymentintent,
   avtalegiroagreements: avtalegiroagreements,
   facebook: facebook,
   tax: tax,
@@ -70,6 +70,7 @@ export const DAO = {
       waitForConnections: true,
       enableKeepAlive: true as true, // Workaround for type checking quirk
       timezone: "+00:00",
+      port: 3307,
     };
 
     // Using Unix sockets to connect to cloud SQL is the default way
