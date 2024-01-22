@@ -713,6 +713,16 @@ export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
     return false;
   }
 
+  split = split.causeAreas.reduce((acc, causeArea) => {
+    causeArea.organizations.forEach((org) => {
+      acc.push({
+        name: org.name.toString(),
+        percentage: Math.round(parseFloat(org.percentageShare) * 100) / 100,
+      });
+    });
+    return acc;
+  });
+
   // Agreement amount is stored in øre
   organizations = formatOrganizationsFromSplit(split, agreement.amount / 100);
 
