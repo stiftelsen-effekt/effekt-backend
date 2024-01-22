@@ -43,11 +43,14 @@ components:
                 type: integer
                 description: The year the tax deduction is for
               sumDonations:
-                type: string
+                type: number
                 description: The sum of all donations for the tax unit for the year
               taxDeduction:
                 type: number
                 description: The tax deduction for the tax unit for the year
+              taxBenefit:
+                type: number
+                description: The tax benefit for the tax unit for the year
           description: The tax deductions for the tax unit
       example:
         id: 984

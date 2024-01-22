@@ -16,6 +16,8 @@ import { organizations } from "./DAO_modules/organizations";
 import * as mysql from "mysql2/promise";
 import { Prisma } from "@prisma/client";
 import config from "../config";
+import { causeareas } from "./DAO_modules/causeareas";
+import { adoveo } from "./DAO_modules/adoveo";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -28,8 +30,12 @@ export type SqlResult<T> = T extends Array<infer U>
   ? {
       [K in keyof T]: T[K] extends boolean
         ? 0 | 1
-        : T[K] extends Date
+        : // Date
+        T[K] extends Date
         ? string
+        : // Date or null
+        T[K] extends Date | null
+        ? string | null
         : T[K] extends Prisma.Decimal
         ? string /* decimal is a string: https://github.com/sidorares/node-mysql2/issues/1561 */
         : T[K];
@@ -42,6 +48,7 @@ export const DAO = {
   organizations: organizations,
   donations: donations,
   distributions: distributions,
+  causeareas: causeareas,
   payment: payment,
   vipps: vipps,
   parsing: parsing,
@@ -53,6 +60,7 @@ export const DAO = {
   tax: tax,
   logging: logging,
   swish: swish,
+  adoveo: adoveo,
 
   dbPool: undefined as mysql.Pool | undefined,
 
@@ -109,7 +117,7 @@ export const DAO = {
         return await (this as typeof DAO).query<T>(query, params, retries + 1);
       } else {
         console.error(ex);
-        throw new Error(ex);
+        throw ex;
       }
     }
   },
@@ -134,7 +142,7 @@ export const DAO = {
         return await (this as typeof DAO).execute<T>(query, params, retries + 1);
       } else {
         console.error(ex);
-        throw new Error(ex);
+        throw ex;
       }
     }
   },

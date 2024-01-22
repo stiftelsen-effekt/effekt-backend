@@ -7,6 +7,7 @@ import {
   sendFacebookTaxConfirmation,
   sendTaxYearlyReportNoticeNoUser,
   sendTaxYearlyReportNoticeWithUser,
+  sendDonorMissingTaxUnitNotice,
 } from "../custom_modules/mail";
 
 import express from "express";
@@ -145,6 +146,75 @@ router.post("/taxreport/notice", authMiddleware.isAdmin, async (req, res, next) 
   } catch (ex) {
     next(ex);
   }
+});
+
+/**
+ * Sends a notice to all donors that are eligible for tax deduction in the given year
+ * Specify a list of emails to exclude from the notice, a tax year (usually the year before the current year)
+ * and a minimum sum for the donations in the given year to qualify for tax deduction (500 for 2023 f.ex.)
+ */
+router.post("/notice/missingtaxunit", authMiddleware.isAdmin, async (req, res, next) => {
+  const { excludedEmails, year, minSum } = req.body;
+  if (!year || !minSum) {
+    res.status(400).json({
+      status: 400,
+      content: "Missing parameters year or minSum",
+    });
+    return;
+  }
+
+  const donorsWithDonationsMissingTaxUnit = await DAO.tax.getDonorsEligableForDeductionInYear(
+    year,
+    minSum,
+    excludedEmails,
+  );
+
+  let successfullySent = 0;
+  let failedToSend = 0;
+  const totalEmails = donorsWithDonationsMissingTaxUnit.length;
+
+  // Batch send to all donors, maximum 10 at a time
+  // Using Promise.all to send all at once
+  let results = [];
+  while (successfullySent + failedToSend < totalEmails) {
+    const promises = [];
+    const MAX_CONCURRENT = 10;
+
+    console.log(
+      `Batch sending ${MAX_CONCURRENT} reports (total: ${
+        successfullySent + failedToSend
+      }) (success: ${successfullySent}) (failed: ${failedToSend})...`,
+    );
+
+    for (let i = 0; i < MAX_CONCURRENT; i++) {
+      if (donorsWithDonationsMissingTaxUnit.length > 0) {
+        const donor = donorsWithDonationsMissingTaxUnit.pop();
+        promises.push(sendDonorMissingTaxUnitNotice(donor, year));
+      } else {
+        break;
+      }
+    }
+
+    const results = await Promise.allSettled(promises);
+    results.forEach((result) => {
+      results.push(result);
+      if (result.status === "fulfilled") {
+        successfullySent++;
+      } else {
+        console.error("Failed to send", result.reason);
+        failedToSend++;
+      }
+    });
+  }
+
+  res.json({
+    status: 200,
+    content: {
+      success: successfullySent,
+      failed: failedToSend,
+      results: results,
+    },
+  });
 });
 
 module.exports = router;

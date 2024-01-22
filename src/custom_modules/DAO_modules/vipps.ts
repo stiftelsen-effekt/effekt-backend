@@ -147,12 +147,9 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
 
   let agreement = res[0];
 
-  let split = await distributions.getSplitByKID(agreement.KID);
+  const distribution = await distributions.getSplitByKID(agreement.KID);
 
-  agreement.distribution = split.map((split) => ({
-    abbriv: split.abbriv,
-    share: split.share,
-  }));
+  agreement.distribution = distribution.causeAreas;
 
   return agreement;
 }

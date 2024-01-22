@@ -295,7 +295,7 @@ router.post("/register/donations", authMiddleware.isAdmin, async (req, res, next
           );
         } else {
           // If no fb to tax unit mapping exists check if donor has only one tax unit
-          let taxUnits = await DAO.tax.getByDonorId(donorID);
+          let taxUnits = await DAO.tax.getActiveTaxUnitIdsByDonorId(donorID);
           if (taxUnits.length == 1) {
             taxUnitID = taxUnits[0].id;
             console.log(
@@ -314,14 +314,23 @@ router.post("/register/donations", authMiddleware.isAdmin, async (req, res, next
        *    =========================
        */
 
+      /**
+       * !!! === CAUSE AREAS TODO === !!!
       let KID = await DAO.distributions.getKIDbySplit(
         distribution,
         donorID,
         false,
         taxUnitID ? taxUnitID : undefined,
       );
+      */
+      let KID = null;
+
       if (!KID) {
         KID = await donationHelpers.createKID(15, donorID);
+
+        throw new Error("Not implemented");
+        /*
+         * !!! === CAUSE AREAS TODO === !!!
         await DAO.distributions.add(
           distribution,
           KID,
@@ -330,6 +339,7 @@ router.post("/register/donations", authMiddleware.isAdmin, async (req, res, next
           false,
           metaOwner,
         );
+        */
       }
       donationInfo.KID = KID;
 

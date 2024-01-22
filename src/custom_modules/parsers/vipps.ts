@@ -32,8 +32,6 @@ export const parseReport = (report) => {
       throw new Error("Parsing failed, probably wrong delimiter.");
     }
   } catch (ex) {
-    console.error("Using semicolon delimiter failed, trying comma.");
-
     try {
       var data = parse(reportText, {
         delimiter: ",",

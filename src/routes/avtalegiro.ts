@@ -4,12 +4,16 @@ import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendAvtaleGiroChange, sendAvtalegiroRegistered } from "../custom_modules/mail";
 import { donationHelpers } from "../custom_modules/donationHelpers";
-import { Donor } from "../schemas/types";
+import { DistributionInput, Donor } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import moment from "moment";
+import {
+  findGlobalHealthCauseAreaOrThrow,
+  validateDistribution,
+} from "../custom_modules/distribution";
+import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 
 const router = express.Router();
-const rounding = require("../custom_modules/rounding");
 
 /**
  * @openapi
@@ -98,32 +102,64 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
  *      401:
  *        description: User not authorized to view resource
  */
-router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    const agreement = await DAO.avtalegiroagreements.getAgreement(req.params.id);
+router.get(
+  "/agreement/:id",
+  authMiddleware.isAdmin,
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
+    try {
+      const agreement = await DAO.avtalegiroagreements.getAgreement(req.params.id);
 
-    const shares = await DAO.distributions.getSplitByKID(agreement.KID);
-    const taxUnit = await DAO.tax.getByKID(agreement.KID);
-    const standardDistribution = await DAO.distributions.isStandardDistribution(agreement.KID);
-    const donor = await DAO.donors.getByKID(agreement.KID);
+      if (!agreement) return res.sendStatus(404);
 
-    return res.json({
-      status: 200,
-      content: {
-        ...agreement,
-        distribution: {
-          KID: agreement.KID,
-          donor,
-          taxUnit,
-          standardDistribution,
-          shares,
+      const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
+      const taxUnit = await DAO.tax.getByKID(agreement.KID, req.locale);
+      const donor = await DAO.donors.getByKID(agreement.KID);
+
+      type BackwardsCompatibleResponse = {
+        status: 200;
+        content: {
+          ID: number;
+          distribution: {
+            KID: string;
+            donor: unknown;
+            taxUnit: unknown;
+            standardDistribution: boolean;
+            shares: Array<{
+              full_name: string;
+              abbriv: string;
+              id: number;
+              share: string;
+            }>;
+          };
+        };
+      };
+
+      const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
+
+      return res.json({
+        status: 200,
+        content: {
+          ...agreement,
+          distribution: {
+            KID: distribution.kid,
+            donor,
+            taxUnit,
+            standardDistribution: causeArea.standardSplit,
+            shares: causeArea.organizations.map((org) => ({
+              full_name: org.name,
+              abbriv: org.name,
+              id: org.id,
+              share: org.percentageShare,
+            })),
+          },
         },
-      },
-    });
-  } catch (ex) {
-    next(ex);
-  }
-});
+      } satisfies BackwardsCompatibleResponse);
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
 
 router.get("/histogram", async (req, res, next) => {
   try {
@@ -307,56 +343,32 @@ router.post(
     try {
       if (!req.body) return res.sendStatus(400);
       const originalKID: string = req.params.KID;
-      const parsedData = req.body;
-      const shares = parsedData.distribution.shares;
-      const standardDistribution: boolean = parsedData.distribution.standardDistribution;
-      const taxUnitId: number | null = parsedData.distribution.taxUnit.id || null;
-      const donor: Donor = await DAO.donors.getByKID(originalKID);
+      const distributionInput = req.body as DistributionInput;
 
-      if (!donor) {
-        throw new Error(`Donor with KID: ${originalKID} not found.`);
-      }
-      const donorId: number = donor.id;
-
-      const split = standardDistribution
-        ? await DAO.organizations.getStandardSplit()
-        : shares
-            .map((org) => {
-              return { id: org.id, share: org.share };
-            })
-            .filter((org) => parseFloat(org.share) !== 0);
-      const metaOwnerID = 3;
-
-      if (split.length === 0) {
-        let err = new Error("Empty distribution array provided");
-        (err as any).status = 400;
-        return next(err);
+      try {
+        validateDistribution(distributionInput);
+      } catch (ex) {
+        return res.status(400).json({
+          status: 400,
+          content: ex.message,
+        });
       }
 
-      if (rounding.sumWithPrecision(split.map((split) => split.share)) !== "100") {
-        let err = new Error("Distribution does not sum to 100");
-        (err as any).status = 400;
-        return next(err);
-      }
-
-      // Create new KID for the old replaced distribution
-      const replacementKID = await donationHelpers.createKID(15, donorId);
-
-      // Replace distribution
-      const response = await DAO.avtalegiroagreements.replaceDistribution(
-        replacementKID,
-        originalKID,
-        split,
-        donorId,
-        metaOwnerID,
-        taxUnitId,
-        standardDistribution,
+      const originalDistribution = await DAO.distributions.getSplitByKID(originalKID);
+      const newKid = await donationHelpers.createAvtaleGiroKID();
+      await DAO.avtalegiroagreements.replaceDistribution(
+        originalDistribution,
+        newKid,
+        distributionInput,
       );
+      await sendAvtaleGiroChange(originalKID, "SHARES");
 
-      await sendAvtaleGiroChange(originalKID, "SHARES", split);
-      res.send(response);
+      res.json({
+        status: 200,
+        content: "OK",
+      });
     } catch (ex) {
-      next({ ex });
+      next(ex);
     }
   },
 );

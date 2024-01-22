@@ -98,6 +98,7 @@ module.exports = {
   authAudience: process.env.AUTH_AUDIENCE,
   authIssuerBaseURL: process.env.AUTH_BASE_URL,
   authUserIdClaim: process.env.AUTH_USER_ID_CLAIM,
+  authUserMetadataKey: process.env.AUTH_USER_METADATA_KEY,
 
   //Prod allowed origins
   allowedProductionOrigins: getAllowedProductionOrigins(),
