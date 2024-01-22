@@ -160,18 +160,6 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     return false;
   }
 
-  const hasSciInDistribution =
-    distribution.causeAreas
-      .find((causeArea) => causeArea.id === 1)
-      ?.organizations.some((org) => org.id === 2) ?? false;
-
-  try {
-    var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
-  } catch (ex) {
-    console.log(ex);
-    return false;
-  }
-
   const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
     (acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
@@ -186,7 +174,7 @@ export async function sendDonationReceipt(donationID, reciever = null) {
 
   const mailResult = await sendTemplate({
     from: "donasjon@gieffektivt.no",
-    to: donation.email,
+    to: reciever || donation.email,
     subject: "Gi Effektivt - Din donasjon er mottatt",
     templateId: config.mailersend_donation_receipt_template_id,
     variables: {
