@@ -1,5 +1,5 @@
 # ---- Build ----
-FROM node:18-alpine AS build
+FROM node:18 AS build
 
 WORKDIR /usr/src/app
 COPY package*.json ./
@@ -13,7 +13,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # ---- Release ----
-FROM node:18-alpine
+FROM node:18
 
 WORKDIR /usr/src/app
 COPY --from=build /usr/src/app/dist ./dist
