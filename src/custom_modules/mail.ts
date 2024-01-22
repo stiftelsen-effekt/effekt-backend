@@ -11,7 +11,7 @@ import fs from "fs-extra";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
 import { APIResponse } from "mailersend/lib/services/request.service";
-import { DistributionCauseAreaOrganization } from "../schemas/types";
+import { DistributionCauseAreaOrganization, Donor } from "../schemas/types";
 
 /**
  * @typedef VippsAgreement
@@ -691,7 +691,15 @@ export async function sendAvtalegiroNotification(
  * @returns {true | number} True if successfull, or an error code if failed
  */
 export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
-  let donor, split, organizations;
+  let donor: Donor;
+  let split: {
+    causeAreas: {
+      id: number;
+      percentageShare: string;
+      organizations: DistributionCauseAreaOrganization[];
+    }[];
+  };
+  let organizations: { name: string; sum: string; percentage: string }[];
 
   try {
     donor = await DAO.donors.getByKID(agreement.KID);
@@ -713,22 +721,26 @@ export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
     return false;
   }
 
-  split = split.causeAreas.reduce((acc, causeArea) => {
-    causeArea.organizations.forEach((org) => {
-      acc.push({
-        name: org.name.toString(),
-        percentage: Math.round(parseFloat(org.percentageShare) * 100) / 100,
+  const reducedSplit = split.causeAreas.reduce(
+    (acc: { name: string; percentageShare: string }[], causeArea) => {
+      causeArea.organizations.forEach((org) => {
+        acc.push({
+          name: org.name.toString(),
+          percentageShare:
+            Math.round(
+              (parseFloat(org.percentageShare) / 100) *
+                (parseFloat(causeArea.percentageShare) / 100) *
+                100,
+            ) + " %",
+        });
       });
-    });
-    return acc;
-  });
+      return acc;
+    },
+    [],
+  );
 
   // Agreement amount is stored in øre
-  organizations = formatOrganizationsFromSplit(split, agreement.amount / 100);
-
-  organizations.forEach((org) => {
-    org.amount;
-  });
+  organizations = formatOrganizationsFromSplit(reducedSplit, agreement.amount / 100);
 
   try {
     await send({
