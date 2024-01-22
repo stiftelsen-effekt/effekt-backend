@@ -2,7 +2,11 @@
 FROM node:18 AS build
 
 # Install build dependencies for native modules
-RUN apk add --no-cache make gcc g++ python3 libxml2-dev
+RUN apt-get update && apt-get install -y \
+    make \
+    g++ \
+    python3 \
+    libxml2-dev
 
 WORKDIR /usr/src/app
 COPY package*.json ./
@@ -22,7 +26,11 @@ RUN npm run build
 FROM node:18
 
 # Install build dependencies for native modules
-RUN apk add --no-cache make gcc g++ python3 libxml2-dev
+RUN apt-get update && apt-get install -y \
+    make \
+    g++ \
+    python3 \
+    libxml2-dev
 
 WORKDIR /usr/src/app
 COPY --from=build /usr/src/app/dist ./dist
