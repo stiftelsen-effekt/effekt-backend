@@ -300,6 +300,7 @@ function formatOrganizationsFromSplit(split: { name?: string; percentageShare: s
     return {
       name: org.name || "Unknown",
       sum: (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount) + " kr",
+      amount: (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount),
       percentage: parseFloat(org.percentageShare) + "%",
     };
   });
@@ -726,12 +727,11 @@ export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
       causeArea.organizations.forEach((org) => {
         acc.push({
           name: org.name.toString(),
-          percentageShare:
-            Math.round(
-              (parseFloat(org.percentageShare) / 100) *
-                (parseFloat(causeArea.percentageShare) / 100) *
-                100,
-            ) + " %",
+          percentageShare: Math.round(
+            (parseFloat(org.percentageShare) / 100) *
+              (parseFloat(causeArea.percentageShare) / 100) *
+              100,
+          ).toString(),
         });
       });
       return acc;
