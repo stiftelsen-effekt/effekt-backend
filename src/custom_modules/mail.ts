@@ -9,6 +9,8 @@ const template = require("./template");
 import request from "request-promise-native";
 import fs from "fs-extra";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
+import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
+import { APIResponse } from "mailersend/lib/services/request.service";
 import { DistributionCauseAreaOrganization } from "../schemas/types";
 
 /**
@@ -158,18 +160,6 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     return false;
   }
 
-  const hasSciInDistribution =
-    distribution.causeAreas
-      .find((causeArea) => causeArea.id === 1)
-      ?.organizations.some((org) => org.id === 2) ?? false;
-
-  try {
-    var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
-  } catch (ex) {
-    console.log(ex);
-    return false;
-  }
-
   const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
     (acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
@@ -182,30 +172,38 @@ export async function sendDonationReceipt(donationID, reciever = null) {
 
   const organizations = formatOrganizationsFromSplit(split, donation.sum);
 
-  try {
-    await send({
-      reciever: reciever ? reciever : donation.email,
-      subject: "Gi Effektivt - Din donasjon er mottatt",
-      templateName: "reciept",
-      templateData: {
-        header:
-          "Hei" + (donation.donor && donation.donor.length > 0 ? " " + donation.donor : "") + ",",
-        donationSum: formatCurrency(donation.sum),
-        organizations: organizations,
-        donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
-        paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
-        //Adds a message to donations with inactive organizations
-        hasReplacedOrgs,
-        hasSciInDistribution,
-        reusableHTML,
-      },
-    });
+  const mailResult = await sendTemplate({
+    from: "donasjon@gieffektivt.no",
+    to: reciever || donation.email,
+    subject: "Gi Effektivt - Din donasjon er mottatt",
+    templateId: config.mailersend_donation_receipt_template_id,
+    variables: {
+      donorName: donation.donor,
+      donationKID: donation.KID,
+      donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
+      paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
+      donationTotalSum: formatCurrency(donation.sum) + " kr",
+    },
+    personalization: {
+      organizations,
+    },
+  });
 
-    return true;
-  } catch (ex) {
+  /**
+   * HTTP 202 is the status code for accepted
+   * If the mail was not accepted, log the error and return false
+   * If the mail was accepted, return true
+   * Accepted means that the mail was sent to the mail server, not that it was delivered
+   * It is scheduled for delivery
+   */
+  if (mailResult === false) {
+    return false;
+  } else if (mailResult.statusCode !== 202) {
     console.error("Failed to send donation reciept");
-    console.error(ex);
-    return ex.statusCode;
+    console.error(mailResult);
+    return mailResult.statusCode;
+  } else {
+    return true;
   }
 }
 
@@ -294,15 +292,15 @@ function decideUIPaymentMethod(donationMethod) {
   return donationMethod;
 }
 
-function formatOrganizationsFromSplit(split, sum) {
+function formatOrganizationsFromSplit(split: { name?: string; percentageShare: string }[], sum) {
   return split.map(function (org) {
-    var amount = sum * parseFloat(org.share) * 0.01;
+    var amount = sum * parseFloat(org.percentageShare) * 0.01;
     var roundedAmount = amount > 1 ? Math.round(amount) : 1;
 
     return {
-      name: org.full_name,
-      amount: (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount),
-      percentage: parseFloat(org.share),
+      name: org.name || "Unknown",
+      sum: (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount) + " kr",
+      percentage: parseFloat(org.percentageShare) + "%",
     };
   });
 }
@@ -347,19 +345,19 @@ export async function sendDonationRegistered(KID, sum) {
 
     var KIDstring = KID.toString();
 
-    await send({
-      subject: "Gi Effektivt - Donasjon klar for innbetaling",
-      reciever: donor.email,
-      templateName: "registered",
-      templateData: {
-        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
-        name: donor.name,
-        //Add thousand seperator regex at end of amount
-        kid: KIDstring,
-        accountNumber: config.bankAccount,
-        organizations: organizations,
-        sum: formatCurrency(sum),
-        reusableHTML,
+    await sendTemplate({
+      from: "donasjon@gieffektivt.no",
+      to: donor.email,
+      subject: "Gi Effektivt - Donasjon klar til innbetaling",
+      templateId: config.mailersend_donation_registered_template_id,
+      variables: {
+        donationKID: KID,
+        donationSum: formatCurrency(sum) + " kr",
+        orgAccountNr: config.bankAccount,
+        donationTotalSum: formatCurrency(sum) + " kr",
+      },
+      personalization: {
+        organizations,
       },
     });
 
@@ -540,86 +538,6 @@ export async function sendVippsProblemReport(senderUrl, senderEmail, donorMessag
 }
 
 /**
- * @param {number} donorID
- */
-export async function sendDonationHistory(donorID) {
-  let total: number | string = 0;
-  try {
-    var donationSummary = await DAO.donations.getSummary(donorID);
-    var yearlyDonationSummary = await DAO.donations.getSummaryByYear(donorID);
-    var donationHistory = await DAO.donations.getHistory(donorID);
-    var donor = await DAO.donors.getByID(donorID);
-    var email = donor.email;
-    var dates = [];
-    var templateName;
-
-    if (!email) {
-      console.error("No email provided for donor ID " + donorID);
-      return false;
-    }
-
-    if (donationHistory.length == 0) {
-      templateName = "noDonationHistory";
-    } else {
-      templateName = "donationHistory";
-      for (let i = 0; i < donationHistory.length; i++) {
-        dates.push(formatDateText(donationHistory[i].date));
-      }
-
-      for (let i = 0; i < donationSummary.length - 1; i++) {
-        total += donationSummary[i].sum;
-      }
-    }
-
-    // Formatting all currencies
-
-    yearlyDonationSummary.forEach((obj) => {
-      obj.yearSum = formatCurrency(obj.yearSum);
-    });
-
-    donationSummary.forEach((obj) => {
-      obj.sum = formatCurrency(obj.sum);
-    });
-
-    donationHistory.forEach((obj) => {
-      obj.donationSum = formatCurrency(obj.donationSum);
-      obj.distributions.forEach((distribution) => {
-        distribution.sum = formatCurrency(distribution.sum);
-      });
-    });
-
-    total = formatCurrency(total);
-  } catch (ex) {
-    console.error("Failed to send donation history, could not get donation by ID");
-    console.error(ex);
-    return false;
-  }
-
-  try {
-    await send({
-      reciever: email,
-      subject: "Gi Effektivt - Din donasjonshistorikk",
-      templateName: templateName,
-      templateData: {
-        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
-        total: total,
-        donationSummary: donationSummary,
-        yearlyDonationSummary: yearlyDonationSummary,
-        donationHistory: donationHistory,
-        dates: dates,
-        reusableHTML,
-      },
-    });
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to send donation history");
-    console.error(ex);
-    return ex.statusCode;
-  }
-}
-
-/**
  * Sends donors confirmation of their tax deductible donation for a given year
  * @param {TaxDeductionRecord} taxDeductionRecord
  * @param {number} year The year the tax deductions are counted for
@@ -740,21 +658,22 @@ export async function sendAvtalegiroNotification(
   // Agreement amount is stored in øre
   organizations = formatOrganizationsFromSplit(split, agreement.amount / 100);
 
-  organizations.forEach((org) => {
-    org.amount;
-  });
-
   try {
-    await send({
-      reciever: donor.email,
-      subject: `Gi Effektivt - Varsel trekk AvtaleGiro`,
-      templateName: "avtalegironotice",
-      templateData: {
-        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
-        agreementSum: formatCurrency(agreement.amount / 100),
-        organizations: organizations,
-        claimDate: claimDate.toFormat("dd.MM.yyyy"),
-        reusableHTML,
+    await sendTemplate({
+      from: "donasjon@gieffektivt.no",
+      to: donor.email,
+      subject: `Gi Effektivt - AvtaleGiro trekk ${claimDate.toFormat("dd.MM.yyyy")}`,
+      templateId: config.mailersend_avtalegiro_notification_template_id,
+      variables: {
+        paymentMethod: "AvtaleGiro",
+        donationKID: agreement.KID,
+        donorName: donor.name,
+        agreementSum: formatCurrency(agreement.amount / 100) + " kr",
+        agreementClaimDate: claimDate.toFormat("dd.MM.yyyy"),
+        donationTotalSum: formatCurrency(agreement.amount / 100) + " kr",
+      },
+      personalization: {
+        organizations,
       },
     });
 
@@ -1032,6 +951,70 @@ async function send(options: {
   if (result.statusCode === 200) {
     return true;
   } else {
+    return false;
+  }
+}
+
+/**
+{
+    "donorName": "",
+    "donationKID": "",
+    "donationDate": "",
+    "paymentMethod": "",
+    "donationTotalSum": "",
+    "elements": [
+      {
+          "sum": "",
+          "name": "",
+          "output": "",
+          "percentage": ""
+      }
+    ]
+}
+ */
+type SendTemplateParameters = {
+  from: string;
+  to: string;
+  subject: string;
+  templateId: string;
+  variables: { [key: string]: string };
+  personalization: any;
+};
+async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse | false> {
+  const mailersend = new MailerSend({
+    apiKey: config.mailersend_api_key,
+  });
+
+  const sentFrom = new Sender(params.from, "Gi Effektivt");
+  const recipients = [new Recipient(params.to)];
+
+  const email = new EmailParams()
+    .setFrom(sentFrom)
+    .setTo(recipients)
+    .setTemplateId(params.templateId)
+    .setVariables([
+      {
+        email: params.to,
+        substitutions: Object.keys(params.variables).map((key) => ({
+          var: key,
+          value: params.variables[key],
+        })),
+      },
+    ])
+    .setPersonalization([
+      {
+        email: params.to,
+        data: params.personalization,
+      },
+    ])
+    .setSubject(params.subject);
+
+  try {
+    const response = await mailersend.email.send(email);
+    return response;
+  } catch (ex) {
+    console.error("Failed to send mailersend email");
+    console.error(ex);
     return false;
   }
 }

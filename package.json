@@ -66,6 +66,7 @@
     "jsonfile": "^4.0.0",
     "libxmljs": "^1.0.11",
     "luxon": "^1.25.0",
+    "mailersend": "^2.2.0",
     "mime": "^2.4.6",
     "moment": "^2.29.4",
     "morgan": "^1.10.0",

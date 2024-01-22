@@ -175,14 +175,12 @@ const writeXMLTaxReport = (
   year: number,
 ) => {
   const doc = Document();
-  const root = doc
-    .node("melding")
-    .attr({
-      xmlns: "urn:ske:fastsetting:innsamling:gavefrivilligorganisasjon:v2",
-      "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-      "xsi:schemaLocation":
-        "urn:ske:fastsetting:innsamling:gavefrivilligorganisasjon:v2 gavefrivilligorganisasjon_v2_0.xsd ",
-    });
+  const root = doc.node("melding").attr({
+    xmlns: "urn:ske:fastsetting:innsamling:gavefrivilligorganisasjon:v2",
+    "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "xsi:schemaLocation":
+      "urn:ske:fastsetting:innsamling:gavefrivilligorganisasjon:v2 gavefrivilligorganisasjon_v2_0.xsd ",
+  });
 
   const leveranse = root.node("leveranse");
 

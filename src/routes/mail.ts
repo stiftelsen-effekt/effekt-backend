@@ -12,7 +12,6 @@ import {
 
 import express from "express";
 const router = express.Router();
-const mail = require("../custom_modules/mail");
 const authMiddleware = require("../custom_modules/authorization/authMiddleware");
 
 router.post("/donation/registered", authMiddleware.isAdmin, async (req, res, next) => {
@@ -47,7 +46,7 @@ router.post("/donation/receipt/effekt", authMiddleware.isAdmin, async (req, res,
   }
 });
 
-router.post("/avtalegiro/notice", async (req, res, next) => {
+router.post("/avtalegiro/notice", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const KID = req.body.KID;
     const agreement = await DAO.avtalegiroagreements.getByKID(KID);
