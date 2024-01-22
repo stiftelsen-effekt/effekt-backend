@@ -886,6 +886,37 @@ export async function sendTaxYearlyReportNoticeNoUser(report: EmailTaxUnitReport
   }
 }
 
+export async function sendDonorMissingTaxUnitNotice(
+  donor: { email: string; full_name: string; donationsSum: number },
+  year: number,
+) {
+  console.log(`Sending donor missing tax unit notice to ${donor.email}`);
+
+  try {
+    await send({
+      reciever: donor.email,
+      subject: `[Rettelse] Gi Effektivt - Donasjonene dine kvalifiserer til skattefradrag`,
+      templateName: "taxDeductionEligibleNotice",
+      templateData: {
+        header:
+          "Hei" +
+          (donor.full_name && donor.full_name.length > 0 ? " " + donor.full_name : "") +
+          ",",
+        year: year,
+        donorEmail: donor.email,
+        sumDonations: formatCurrency(donor.donationsSum),
+        reusableHTML,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send DonorMissingTaxUnitNotice");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
 /**
  * When a user requests a password reset, they might never have registered in the first place
  * This function sends an email to the user, informing them that they have not registered
