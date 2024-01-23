@@ -74,7 +74,7 @@ export const autogiroagreements = {
       }
 
       if (filter.KID)
-        where.push(` CAST(CT.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
+        where.push(` CAST(DI.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
       if (filter.donor)
         where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
       if (filter.statuses.length > 0)
@@ -97,10 +97,10 @@ export const autogiroagreements = {
               AG.notice,
               Donors.full_name 
           FROM AutoGiro_agreements as AG
-          INNER JOIN Combining_table as CT
-              ON AG.KID = CT.KID
+          INNER JOIN Distributions as DI
+              ON AG.KID = DI.KID
           INNER JOIN Donors 
-              ON CT.Donor_ID = Donors.ID
+              ON DI.Donor_ID = Donors.ID
           WHERE
               ${where.length !== 0 ? where.join(" AND ") : "1"}
 
