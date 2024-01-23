@@ -1,7 +1,7 @@
 import { Swish_orders } from "@prisma/client";
 import { Agent } from "https";
 import fetch from "node-fetch";
-import uuid from "uuid/v4";
+import { v4 as uuidv4 } from "uuid";
 import config from "../config";
 import paymentMethods from "../enums/paymentMethods";
 import { DAO } from "./DAO";
@@ -199,7 +199,7 @@ export async function handleOrderStatusUpdate(
  */
 function generateSwishInstructionUUID() {
   const regex = /-/g;
-  return uuid().replace(regex, "").toUpperCase();
+  return uuidv4().replace(regex, "").toUpperCase();
 }
 
 function generatePaymentReference() {

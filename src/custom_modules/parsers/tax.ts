@@ -24,8 +24,6 @@ export const parseReport = (report) => {
       skip_empty_lines: true,
     });
   } catch (ex) {
-    console.error("Using semicolon delimiter failed, trying comma.");
-
     try {
       var data = parse(reportText, {
         delimiter: ",",
@@ -41,8 +39,6 @@ export const parseReport = (report) => {
   }
 
   return data.map((row) => {
-    console.log(row);
-
     /** @type {TaxDeductionRecord} */
     let record = {
       fullname: row[0],

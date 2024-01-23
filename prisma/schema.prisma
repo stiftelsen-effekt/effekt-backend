@@ -7,28 +7,44 @@ datasource db {
   url      = env("DB_URL")
 }
 
-model Auth0_users {
-  Id             String  @id @db.VarChar(64)
-  Given_Name     String? @map("Given Name") @db.Text
-  Family_Name    String? @map("Family Name") @db.Text
-  Nickname       String? @db.Text
-  Name           String? @db.Text
-  Email          String? @db.VarChar(64)
-  Email_Verified String? @map("Email Verified") @db.Text
-  Picture        String? @db.Text
-  Connection     String? @db.Text
-  Created_At     String? @map("Created At") @db.Text
-  Updated_At     String? @map("Updated At") @db.Text
-  donorid        Int?
+model Cause_areas {
+  ID                   Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
+  name                 String  @unique(map: "name_UNIQUE") @db.VarChar(45)
+  short_desc           String? @db.VarChar(255)
+  long_desc            String? @db.VarChar(45)
+  info_url             String? @db.VarChar(156)
+  is_active            Int?    @db.TinyInt
+  ordering             Int?    @db.TinyInt
+  std_percentage_share Int?    @default(0) @db.TinyInt /// The percentage share of the standard distribution, determined by Effekt. Updated about twice a year
 
-  @@index([donorid], map: "index2")
-  @@index([Email], map: "index3")
+  Distribution_cause_areas Distribution_cause_areas[]
+  Organizations            Organizations[]
+}
+
+model Organizations {
+  ID                   Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
+  cause_area_ID        Int     @default(1) @db.Int
+  full_name            String  @unique(map: "full_name_UNIQUE") @db.VarChar(45)
+  abbriv               String  @unique(map: "abbriv_UNIQUE") @db.VarChar(10)
+  short_desc           String? @db.VarChar(255)
+  long_desc            String  @db.VarChar(45)
+  info_url             String? @db.VarChar(156)
+  std_percentage_share Int?    @default(0) @db.TinyInt /// The percentage share of the standard distribution, determined by Effekt. Updated about twice a year
+  is_active            Int?    @db.TinyInt
+  ordering             Int?    @db.TinyInt
+
+  Cause_areas                           Cause_areas                             @relation(fields: [cause_area_ID], references: [ID], onDelete: Cascade, map: "fk_Organizations_to_Cause_areas_idx")
+  Distribution_cause_area_organizations Distribution_cause_area_organizations[]
+  Adoveo_fundraiser_org_shares          Adoveo_fundraiser_org_shares[]
 }
 
 model AvtaleGiro_replaced_distributions {
   Original_AvtaleGiro_KID String    @db.VarChar(15)
   Replacement_KID         String    @id @db.VarChar(15)
   Timestamp               DateTime? @default(now()) @db.DateTime(0)
+
+  DistributionsOriginal    Distributions @relation(name: "Original", fields: [Original_AvtaleGiro_KID], references: [KID], onDelete: Cascade, map: "fk_AvtaleGiro_replaced_distributions_to_Distributions_idx")
+  DistributionsReplacement Distributions @relation(name: "Replacement", fields: [Replacement_KID], references: [KID], onDelete: Cascade, map: "fk_AvtaleGiro_replaced_distributions_to_Distributions_idx2")
 }
 
 model Avtalegiro_agreements {
@@ -41,6 +57,9 @@ model Avtalegiro_agreements {
   last_updated DateTime? @default(now()) @db.DateTime(0)
   created      DateTime? @default(now()) @db.DateTime(0)
   cancelled    DateTime? @db.Date
+
+  // If we delete a distribution there should be no agreements with that distribution. Therefore we restrict on deletion of a distribution.
+  Distributions Distributions @relation(fields: [KID], references: [KID], onDelete: Restrict, map: "fk_Avtalegiro_agreements_to_Distributions_idx")
 }
 
 model Avtalegiro_conversion_reminders {
@@ -48,6 +67,8 @@ model Avtalegiro_conversion_reminders {
   KID              String    @unique(map: "KID_UNIQUE") @db.VarChar(45)
   NumReminders     Int       @default(0)
   LastReminderSent DateTime? @db.DateTime(0)
+
+  Distributions Distributions @relation(fields: [KID], references: [KID], onDelete: Cascade, map: "fk_Avtalegiro_conversion_reminders_to_Distributions_idx")
 }
 
 model Avtalegiro_shipment {
@@ -112,42 +133,67 @@ model AutoGiro_mandates {
   agreements AutoGiro_agreements?
 }
 
-model Combining_table {
+model Distributions {
+  KID                        String    @id @db.VarChar(16)
   Donor_ID                   Int
-  Distribution_ID            Int
-  Tax_unit_ID                Int?
-  KID                        String       @db.VarChar(16)
-  timestamp_created          DateTime?    @default(now()) @db.DateTime(0)
-  Meta_owner_ID              Int          @default(3)
-  Replaced_old_organizations Int?         @db.TinyInt
-  Standard_split             Boolean?
-  Distribution               Distribution @relation(fields: [Distribution_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Distribution")
-  Donors                     Donors       @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Combining_to_Donor")
-  Tax_unit                   Tax_unit?    @relation(fields: [Tax_unit_ID], references: [ID], map: "fk_Combining_to_TaxUnit")
+  Tax_unit_ID                Int?      @default(0)
+  Meta_owner_ID              Int       @default(3)
+  Replaced_old_organizations Boolean?  @default(false)
+  inserted                   DateTime? @default(now()) @db.DateTime(0)
+  last_updated               DateTime? @default(now()) @db.DateTime(0)
 
-  @@id([Donor_ID, Distribution_ID, KID])
-  @@index([KID], map: "KID")
-  @@index([KID, Tax_unit_ID], map: "KIDTaxUnit")
-  @@index([Distribution_ID], map: "fk_Combining_to_Distribution_idx")
-  @@index([Donor_ID], map: "fk_Combining_to_Donor_idx")
-  @@index([Tax_unit_ID], map: "fk_Combining_to_TaxUnit_idx")
-  @@index([Tax_unit_ID, Donor_ID], map: "taxUnitDonorId")
+  Donors     Donors     @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Distributions_to_Donors_idx")
+  Tax_unit   Tax_unit?  @relation(fields: [Tax_unit_ID], references: [ID], onDelete: SetNull, map: "fk_Distributions_to_Tax_unit_idx")
+  Data_owner Data_owner @relation(fields: [Meta_owner_ID], references: [ID], onDelete: Restrict, map: "fk_Distributions_to_Data_owner_idx")
+
+  Avtalgiro_agreements                          Avtalegiro_agreements[]
+  AvtaleGiro_replaced_distributions_original    AvtaleGiro_replaced_distributions[] @relation(name: "Original")
+  AvtaleGiro_replaced_distributions_replacement AvtaleGiro_replaced_distributions[] @relation(name: "Replacement")
+  Avtalegiro_conversion_reminders               Avtalegiro_conversion_reminders[]
+  Distribution_cause_areas                      Distribution_cause_areas[]
+  Donations                                     Donations[]
+  Payment_intent                                Payment_intent[]
+  Paypal_historic_distributions                 Paypal_historic_distributions[]
+  Vipps_agreement_charges                       Vipps_agreement_charges[]
+  Vipps_agreements                              Vipps_agreements[]
+  Vipps_orders                                  Vipps_orders[]
+  Swish_orders                                  Swish_orders[]
+  Vipps_matching_rules                          Vipps_matching_rules[]
+}
+
+model Distribution_cause_areas {
+  ID               Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
+  Distribution_KID String  @db.VarChar(16)
+  Cause_area_ID    Int     @db.Int
+  Percentage_share Decimal @db.Decimal(15, 12)
+  Standard_split   Boolean @default(false)
+
+  // This is the link to the specific distribtion. If we delete a distribution it should cascade from Distribution -> Distribution_cause_areas -> Distribution_cause_area_organizations to clean up everything.
+  Distributions Distributions @relation(fields: [Distribution_KID], references: [KID], onDelete: Cascade, map: "fk_Distribution_cause_areas_to_Distributions_idx")
+  // Restrict deletion of cause areas. If we delete a cause area there should be no distributions with that cause area.
+  Cause_areas   Cause_areas   @relation(fields: [Cause_area_ID], references: [ID], onDelete: Restrict, map: "fk_Distribution_cause_areas_to_Cause_areas_idx")
+
+  Distribution_cause_area_organizations Distribution_cause_area_organizations[]
+}
+
+model Distribution_cause_area_organizations {
+  ID                         Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
+  Distribution_cause_area_ID Int     @db.Int
+  Organization_ID            Int     @db.Int
+  Percentage_share           Decimal @db.Decimal(15, 12)
+
+  // This is the link to the cause area for a specific distribution. If we delete a distribution it should cascade from Distribution -> Distribution_cause_areas -> Distribution_cause_area_organizations to clean up everything.
+  Distribution_cause_areas Distribution_cause_areas @relation(fields: [Distribution_cause_area_ID], references: [ID], onDelete: Cascade, map: "fk_Distribution_ca_organizations_to_Distribution_ca_idx")
+  // Restrict deletion of organization. If we delete an organization there should be no distributions with that organization.
+  Organizations            Organizations            @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, map: "fk_Distribution_cause_area_organizations_to_Organizations_idx")
 }
 
 model Data_owner {
   ID      Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
   owner   String  @unique(map: "owner_UNIQUE") @db.VarChar(128)
   default Boolean @default(false)
-}
 
-model Distribution {
-  ID               Int               @id @unique(map: "ID_UNIQUE") @default(autoincrement())
-  OrgID            Int
-  percentage_share Decimal           @db.Decimal(15, 12) /// For donations registrered with this KID, the percentage share of the donation given to this organization.
-  Combining_table  Combining_table[]
-  Organizations    Organizations     @relation(fields: [OrgID], references: [ID], onDelete: Cascade, map: "fk_Distribution_to_Organizations")
-
-  @@index([OrgID], map: "fk_Distribution_to_Organizations_idx")
+  Distributions Distributions[]
 }
 
 model Donations {
@@ -169,6 +215,11 @@ model Donations {
   Adoveo_giftcard_transactions   Adoveo_giftcard_transactions?
   AutoGiro_agreement_charges     AutoGiro_agreement_charges?
 
+  // When we delete a distribution we delete the associated donations.
+  Distributions Distributions @relation(fields: [KID_fordeling], references: [KID], onDelete: Cascade, map: "fk_Donations_to_Distributions_KID")
+
+  Vipps_orders Vipps_orders[]
+
   @@index([KID_fordeling, timestamp_confirmed], map: "KidAndTimestamp")
   @@index([timestamp_confirmed], map: "Timestamp")
   @@index([Donor_ID], map: "fk_Donations_Donors_KID_idx")
@@ -176,25 +227,29 @@ model Donations {
 }
 
 model Donors {
-  ID                Int                 @id @unique(map: "KID_UNIQUE") @default(autoincrement()) /// Unik kundeID
-  email             String              @unique(map: "email_UNIQUE", length: 63) @db.TinyText /// epost registrert i donasjonsskjema,\ntrigger generering av ny donor hvis den ikke eksisterer fra før
-  full_name         String?             @db.TinyText
-  date_registered   DateTime            @default(now()) @db.Timestamp(0) /// The date the donor first registrered
-  password_hash     String?             @db.VarChar(64)
-  password_salt     String?             @db.VarChar(32)
-  Meta_owner_ID     Int                 @default(3)
-  newsletter        Boolean?
-  trash             Int?                @db.TinyInt
-  ssn               String?             @db.VarChar(45)
-  Combining_table   Combining_table[]
-  Donations         Donations[]
-  FB_payment_ID     FB_payment_ID[]
-  Funds_donations   Funds_donations[]
-  Tax_unit          Tax_unit[]
-  Vipps_agreements  Vipps_agreements[]
-  Swish_orders      Swish_orders[]
-  Adoveo_fundraiser Adoveo_fundraiser[]
+  ID              Int      @id @unique(map: "KID_UNIQUE") @default(autoincrement()) /// Unik kundeID
+  email           String   @unique(map: "email_UNIQUE", length: 63) @db.TinyText /// epost registrert i donasjonsskjema,\ntrigger generering av ny donor hvis den ikke eksisterer fra før
+  full_name       String?  @db.TinyText
+  date_registered DateTime @default(now()) @db.Timestamp(0) /// The date the donor first registrered
+  password_hash   String?  @db.VarChar(64)
+  password_salt   String?  @db.VarChar(32)
+  Meta_owner_ID   Int      @default(3)
+  newsletter      Boolean?
+  trash           Int?     @db.TinyInt
+  ssn             String?  @db.VarChar(45)
 
+  Donations                     Donations[]
+  Distributions                 Distributions[]
+  FB_payment_ID                 FB_payment_ID[]
+  Funds_donations               Funds_donations[]
+  Tax_unit                      Tax_unit[]
+  Vipps_agreements              Vipps_agreements[]
+  Swish_orders                  Swish_orders[]
+  Paypal_historic_distributions Paypal_historic_distributions[]
+  Referral_records              Referral_records[]
+  Vipps_orders                  Vipps_orders[]
+
+  Adoveo_fundraiser                     Adoveo_fundraiser[]
   Adoveo_giftcard_transactions_sender   Adoveo_giftcard_transactions[] @relation(name: "senderDonor")
   Adoveo_giftcard_transactions_receiver Adoveo_giftcard_transactions[] @relation(name: "receiverDonor")
 
@@ -335,20 +390,6 @@ model Import_logs {
   timestamp DateTime? @default(now()) @db.DateTime(0)
 }
 
-model Organizations {
-  ID                           Int                            @id @unique(map: "ID_UNIQUE") @default(autoincrement())
-  full_name                    String                         @unique(map: "full_name_UNIQUE") @db.VarChar(45)
-  abbriv                       String                         @unique(map: "abbriv_UNIQUE") @db.VarChar(10)
-  short_desc                   String?                        @db.VarChar(255)
-  long_desc                    String                         @db.VarChar(45)
-  info_url                     String?                        @db.VarChar(156)
-  std_percentage_share         Int?                           @default(0) @db.TinyInt /// The percentage share of the standard distribution, determined by Effekt. Updated about twice a year
-  is_active                    Int?                           @db.TinyInt
-  ordering                     Int?                           @db.TinyInt
-  Distribution                 Distribution[]
-  Adoveo_fundraiser_org_shares Adoveo_fundraiser_org_shares[]
-}
-
 model Payment {
   ID             Int         @id @default(autoincrement())
   payment_name   String      @unique(map: "payment_name_UNIQUE") @db.VarChar(45)
@@ -366,24 +407,36 @@ model Payment_intent {
   KID_fordeling  String?   @db.VarChar(20)
   timetamp       DateTime? @default(now()) @db.DateTime(0)
 
+  // When we delete a distribution we save the payment intent for statistics. Simply set the KID to null.
+  Distributions Distributions? @relation(fields: [KID_fordeling], references: [KID], onDelete: SetNull, map: "fk_Payment_intent_to_Distributions_idx")
+
   @@index([KID_fordeling], map: "KID_fordeling_idx")
 }
 
 model Paypal_historic_distributions {
   ID                         Int    @id @default(autoincrement())
   Donor_ID                   Int    @unique(map: "Donor_ID_UNIQUE")
-  KID                        Int    @unique(map: "KID_UNIQUE")
+  KID                        String @unique(map: "KID_UNIQUE")
   ReferenceTransactionNumber String @unique(map: "ReferenceTransactionNumber_UNIQUE") @db.VarChar(32)
+
+  // When we delete a donor we also delete all associated paypal historic distributions.
+  Donors        Donors        @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Paypal_historic_distributions_to_Donors_idx")
+  // When we delete a distribution we delete the associated paypal historic distributions.
+  Distributions Distributions @relation(fields: [KID], references: [KID], onDelete: Cascade, map: "fk_Paypal_historic_distributions_to_Distributions_idx")
 }
 
 model Referral_records {
-  ID              Int            @id @default(autoincrement())
+  ID              Int       @id @default(autoincrement())
   ReferralID      Int
-  UserID          Int
-  Registered      DateTime?      @default(now()) @db.DateTime(0)
-  other_comment   String?        @db.VarChar(1000)
-  website_session String?        @db.VarChar(45)
-  Referral_types  Referral_types @relation(fields: [ReferralID], references: [ID], onDelete: NoAction, map: "referral_type")
+  DonorID         Int?
+  Registered      DateTime? @default(now()) @db.DateTime(0)
+  other_comment   String?   @db.VarChar(1000)
+  website_session String?   @db.VarChar(45)
+
+  // When deleting a donor we should not delete the referral record. We should set the donor to null.
+  Donors         Donors?        @relation(fields: [DonorID], references: [ID], onDelete: SetNull, map: "fk_Referral_records_to_Donors_idx")
+  // We don't allow deletion of referral types. If we delete a referral type we should not have any referral records with that type.
+  Referral_types Referral_types @relation(fields: [ReferralID], references: [ID], onDelete: Restrict, map: "referral_type")
 
   @@index([ReferralID], map: "referral_type_idx")
 }
@@ -396,71 +449,76 @@ model Referral_types {
   Referral_records Referral_records[]
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
-model Seeded {
-  Status    String    @db.VarChar(255)
-  Timestamp DateTime? @default(now()) @db.DateTime(0)
-
-  @@ignore
-}
-
 model Swish_orders {
-  ID              Int        @id @default(autoincrement())
-  KID             String     @db.VarChar(15)
-  instructionUUID String     @unique @db.VarChar(36) /// Swish uses this to identify the order
+  ID              Int      @id @default(autoincrement())
+  KID             String   @db.VarChar(15)
+  instructionUUID String   @unique @db.VarChar(36) /// Swish uses this to identify the order
   donorID         Int
-  donationID      Int?       @unique
+  donationID      Int?     @unique
   status          String? /// External status from swish
-  reference       String     @db.VarChar(32)
-  registered      DateTime   @default(now()) @db.DateTime(0)
-  donor           Donors     @relation(fields: [donorID], references: [ID], onDelete: Cascade, onUpdate: Cascade)
-  donation        Donations? @relation(fields: [donationID], references: [ID], onDelete: Cascade, onUpdate: Cascade)
+  reference       String   @db.VarChar(32)
+  registered      DateTime @default(now()) @db.DateTime(0)
+
+  donor         Donors        @relation(fields: [donorID], references: [ID], onDelete: Cascade, onUpdate: Cascade)
+  donation      Donations?    @relation(fields: [donationID], references: [ID], onDelete: Cascade, onUpdate: Cascade)
+  Distributions Distributions @relation(fields: [KID], references: [KID], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model Tax_unit {
-  ID              Int               @id @default(autoincrement())
-  Donor_ID        Int
-  ssn             String            @db.VarChar(16)
-  full_name       String            @db.VarChar(128)
-  registered      DateTime?         @default(now()) @db.DateTime(0)
-  archived        DateTime?         @db.DateTime(0)
-  Combining_table Combining_table[]
+  ID         Int       @id @default(autoincrement())
+  Donor_ID   Int
+  ssn        String    @db.VarChar(11)
+  full_name  String    @db.VarChar(128)
+  registered DateTime? @default(now()) @db.DateTime(0)
+  archived   DateTime? @db.DateTime(0)
+
   FB_payment_ID   FB_payment_ID[]
   Funds_donations Funds_donations[]
-  Donors          Donors            @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "FK_tax_unit_donor_id")
+  Distributions   Distributions[]
+
+  // When a donor is deleted we also delete the tax unit.
+  Donors Donors @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "FK_tax_unit_donor_id")
 
   @@index([Donor_ID], map: "FK_tax_unit_donor_id_idx")
 }
 
 model Vipps_agreement_charges {
-  chargeID          String           @unique(map: "chargeID_UNIQUE") @db.VarChar(11)
-  agreementID       String           @db.VarChar(20)
-  amountNOK         Int              @db.UnsignedInt
-  KID               String           @db.VarChar(15)
-  dueDate           String           @db.VarChar(100)
-  timestamp_created DateTime?        @default(now()) @db.Timestamp(0)
-  status            String           @db.VarChar(30)
-  type              String?          @db.VarChar(20)
-  Vipps_agreements  Vipps_agreements @relation(fields: [agreementID], references: [ID], onDelete: Cascade, map: "FK_agreementID_ID")
+  chargeID          String    @unique(map: "chargeID_UNIQUE") @db.VarChar(11)
+  agreementID       String    @db.VarChar(20)
+  amountNOK         Int       @db.UnsignedInt
+  KID               String    @db.VarChar(16)
+  dueDate           String    @db.VarChar(100)
+  timestamp_created DateTime? @default(now()) @db.Timestamp(0)
+  status            String    @db.VarChar(30)
+  type              String?   @db.VarChar(20)
+
+  Vipps_agreements Vipps_agreements @relation(fields: [agreementID], references: [ID], onDelete: Cascade, map: "FK_agreementID_ID")
+
+  // We don't allow deletion of a distribution with an associated vipps agreement. If we delete a distribution we should not have any vipps agreements with that distribution.
+  Distributions Distributions @relation(fields: [KID], references: [KID], onDelete: Restrict, map: "FK_KID_KID")
 
   @@id([chargeID, agreementID])
   @@index([agreementID], map: "FK_ID_agreementID_idx")
 }
 
 model Vipps_agreements {
-  ID                      String                    @id @db.VarChar(20)
-  donorID                 Int
-  KID                     String                    @db.VarChar(15)
-  amount                  Int
-  status                  String?                   @db.VarChar(30)
-  monthly_charge_day      Int
-  paused_until_date       String?                   @db.VarChar(255)
-  agreement_url_code      String                    @db.VarChar(100)
-  timestamp_created       DateTime?                 @default(now()) @db.Timestamp(0)
-  force_charge_date       String?                   @db.VarChar(100)
-  cancellation_date       DateTime?                 @db.Date
+  ID                 String    @id @db.VarChar(20)
+  donorID            Int
+  KID                String    @db.VarChar(16)
+  amount             Int
+  status             String?   @db.VarChar(30)
+  monthly_charge_day Int
+  paused_until_date  String?   @db.VarChar(255)
+  agreement_url_code String    @db.VarChar(100)
+  timestamp_created  DateTime? @default(now()) @db.Timestamp(0)
+  force_charge_date  String?   @db.VarChar(100)
+  cancellation_date  DateTime? @db.Date
+
   Vipps_agreement_charges Vipps_agreement_charges[]
   Donors                  Donors                    @relation(fields: [donorID], references: [ID], onDelete: Cascade, map: "FK_donorID")
+
+  // We don't allow deletion of a distribution with an associated vipps agreement. If we delete a distribution we should not have any vipps agreements with that distribution.
+  Distributions Distributions @relation(fields: [KID], references: [KID], onDelete: Cascade, map: "FK_KID")
 
   @@index([KID], map: "KID_idx")
   @@index([donorID], map: "donorID_idx")
@@ -472,8 +530,11 @@ model Vipps_matching_rules {
   Message       String?  @db.VarChar(45)
   PeriodFrom    DateTime @db.Date
   PeriodTo      DateTime @db.Date
-  ResolveKID    String   @db.VarChar(32)
+  ResolveKID    String   @db.VarChar(16)
   precedence    Int?
+
+  // We don't allow deletion of a distribution with an associated vipps matching rule. If we delete a distribution we should not have any vipps matching rules with that distribution.
+  Distributions Distributions @relation(fields: [ResolveKID], references: [KID], onDelete: Restrict, map: "fk_Vipps_matching_rules_to_Distributions_idx")
 }
 
 model Vipps_order_transaction_statuses {
@@ -491,9 +552,16 @@ model Vipps_orders {
   orderID    String    @db.VarChar(256)
   donorID    Int
   donationID Int?
-  KID        String    @db.VarChar(15)
+  KID        String    @db.VarChar(16)
   token      String?   @db.VarChar(256)
   registered DateTime? @default(now()) @db.DateTime(0)
+
+  // When we delete a donor we also delete all associated vipps orders.
+  Donors       Donors        @relation(fields: [donorID], references: [ID], onDelete: Cascade, map: "fk_Vipps_orders_to_Donors_idx")
+  // When we delete a donation we also delete all associated vipps orders.
+  Donations    Donations?    @relation(fields: [donationID], references: [ID], onDelete: Cascade, map: "fk_Vipps_orders_to_Donations_idx")
+  // When we delete a distribution we also delete all associated vipps orders.
+  Distribution Distributions @relation(fields: [KID], references: [KID], onDelete: Cascade, map: "fk_Vipps_orders_to_Distributions_idx")
 
   @@index([donationID, orderID], map: "DonationID")
   @@index([donorID], map: "Donor_ID_idx")
@@ -509,24 +577,6 @@ model Vipps_tokens {
 
 model schema_migrations {
   version String @id @db.VarChar(255)
-}
-
-model Combining_temp {
-  Donor_ID                   Int
-  Distribution_ID            Int
-  Tax_unit_ID                Int?
-  KID                        String    @db.VarChar(15)
-  timestamp_created          DateTime? @default(now()) @db.DateTime(0)
-  Meta_owner_ID              Int       @default(3)
-  Replaced_old_organizations Int?      @db.TinyInt
-  Standard_split             Boolean?
-
-  @@id([Donor_ID, Distribution_ID, KID])
-  @@index([KID], map: "KID")
-  @@index([Distribution_ID], map: "fk_Combining_to_Distribution_idx")
-  @@index([Donor_ID], map: "fk_Combining_to_Donor_idx")
-  @@index([Tax_unit_ID], map: "fk_Combining_to_TaxUnit_idx")
-  @@index([Tax_unit_ID, Donor_ID], map: "taxUnitDonorId")
 }
 
 model Conversion_rates {

@@ -2,16 +2,14 @@ import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { donationHelpers } from "../custom_modules/donationHelpers";
-import {
-  sendDonationHistory,
-  sendDonationReceipt,
-  sendDonationRegistered,
-} from "../custom_modules/mail";
+import { sendDonationReceipt, sendDonationRegistered } from "../custom_modules/mail";
 import * as swish from "../custom_modules/swish";
 import rateLimit from "express-rate-limit";
 import methods from "../enums/methods";
 import bodyParser from "body-parser";
 import apicache from "apicache";
+import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
+import { GLOBAL_HEALTH_CAUSE_AREA_ID } from "../custom_modules/distribution";
 
 const config = require("../config");
 
@@ -48,7 +46,7 @@ router.get("/status", async (req, res, next) => {
  */
 router.post("/register", async (req, res, next) => {
   let parsedData = req.body as {
-    organizations?: { split: number; id: number }[];
+    distributionCauseAreas: DistributionCauseArea[];
     donor: {
       email: string;
       name: string;
@@ -71,7 +69,6 @@ router.post("/register", async (req, res, next) => {
       return res.status(400).send("Recurring donations not supported with Swish");
   }
 
-  let donationOrganizations = parsedData.organizations;
   let donor = parsedData.donor;
   let paymentProviderUrl = "";
   let orderID = null;
@@ -82,8 +79,6 @@ router.post("/register", async (req, res, next) => {
       KID: string;
       donorID: number | null;
       taxUnitId: number;
-      split: Awaited<ReturnType<typeof donationHelpers.getStandardSplit>>;
-      standardSplit?: boolean;
     } = {
       amount: parsedData.amount,
       method: parsedData.method,
@@ -91,18 +86,7 @@ router.post("/register", async (req, res, next) => {
       KID: null, //Set later in code
       donorID: null, //Set later in code
       taxUnitId: null, //Set later in code
-      standardSplit: undefined,
-      split: [],
     };
-
-    //Create a donation split object
-    if (donationOrganizations) {
-      donationObject.split = await donationHelpers.createDonationSplitArray(donationOrganizations);
-      donationObject.standardSplit = false;
-    } else {
-      donationObject.split = await donationHelpers.getStandardSplit();
-      donationObject.standardSplit = true;
-    }
 
     //Check if existing donor
     donationObject.donorID = await DAO.donors.getIDbyEmail(donor.email);
@@ -114,13 +98,16 @@ router.post("/register", async (req, res, next) => {
         full_name: donor.name,
         newsletter: donor.newsletter,
       });
-      donationObject.taxUnitId = await DAO.tax.addTaxUnit(
-        donationObject.donorID,
-        donor.ssn,
-        donor.name,
-      );
+      if (donor.ssn != null && donor.ssn !== "") {
+        donationObject.taxUnitId = await DAO.tax.addTaxUnit(
+          donationObject.donorID,
+          donor.ssn,
+          donor.name,
+        );
+      } else {
+        donationObject.taxUnitId = null;
+      }
     } else {
-      // !!--!! =================================================
       //Check for existing tax unit if SSN provided
       if (typeof donor.ssn !== "undefined" && donor.ssn != null && donor.ssn !== "") {
         const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(donationObject.donorID, donor.ssn);
@@ -135,7 +122,7 @@ router.post("/register", async (req, res, next) => {
           );
         }
       }
-      // !!--!! =================================================
+
       // Check that name is registered and update name if no name set
       const dbDonor = await DAO.donors.getByID(donationObject.donorID);
       if (dbDonor.name === "" || dbDonor.name === null) {
@@ -152,40 +139,53 @@ router.post("/register", async (req, res, next) => {
       }
     }
 
+    /* Construct distribution object */
+    const draftDistribution: DistributionInput = {
+      donorId: donationObject.donorID,
+      taxUnitId: donationObject.taxUnitId,
+      causeAreas: parsedData.distributionCauseAreas,
+    };
+
+    /* Get the standard shares of the organizations for all cause areas with standard split */
+    for (const causeArea of draftDistribution.causeAreas) {
+      if (causeArea.standardSplit) {
+        const standardShareOrganizations =
+          await DAO.distributions.getStandardDistributionByCauseAreaID(causeArea.id);
+        causeArea.organizations = standardShareOrganizations;
+      } else {
+        causeArea.organizations = causeArea.organizations.filter(
+          (o) => parseFloat(o.percentageShare) > 0,
+        );
+      }
+    }
+
     /** Use new KID for avtalegiro */
     if (donationObject.method == methods.BANK && donationObject.recurring == true) {
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
       donationObject.KID = await donationHelpers.createAvtaleGiroKID();
       // !!--!! ================================================= TAX UNIT
-      await DAO.distributions.add(
-        donationObject.split,
-        donationObject.KID,
-        donationObject.donorID,
-        donationObject.taxUnitId,
-        donationObject.standardSplit,
-      );
+      await DAO.distributions.add({
+        ...draftDistribution,
+        kid: donationObject.KID,
+      });
     } else {
       //Try to get existing KID
-      // !!--!! ================================================= TAX UNIT
-      donationObject.KID = await DAO.distributions.getKIDbySplit(
-        donationObject.split,
-        donationObject.donorID,
-        donationObject.standardSplit,
-        donationObject.taxUnitId,
-      );
+      donationObject.KID = await DAO.distributions.getKIDbySplit({
+        donorId: donationObject.donorID,
+        taxUnitId: donationObject.taxUnitId,
+        causeAreas: draftDistribution.causeAreas,
+      });
 
       //Split does not exist create new KID and split
       if (donationObject.KID == null) {
         donationObject.KID = await donationHelpers.createKID();
 
-        // !!--!! ================================================= TAX UNIT
-        await DAO.distributions.add(
-          donationObject.split,
-          donationObject.KID,
-          donationObject.donorID,
-          donationObject.taxUnitId,
-          donationObject.standardSplit,
-        );
+        const distribution: Distribution = {
+          kid: donationObject.KID,
+          ...draftDistribution,
+        };
+
+        await DAO.distributions.add(distribution);
       }
     }
 
@@ -453,35 +453,6 @@ router.get("/externalID/:externalID/:methodID", authMiddleware.isAdmin, async (r
       status: 200,
       content: donation,
     });
-  } catch (ex) {
-    next(ex);
-  }
-});
-
-let historyRateLimit = new rateLimit({
-  windowMs: 60 * 1000 * 60, // 1 hour
-  max: 5,
-  delayMs: 0, // disable delaying - full speed until the max limit is reached
-});
-router.post("/history/email", historyRateLimit, async (req, res, next) => {
-  try {
-    let email = req.body.email;
-    let id = await DAO.donors.getIDbyEmail(email);
-
-    if (id != null) {
-      var mailsent = await sendDonationHistory(id);
-      if (mailsent) {
-        res.json({
-          status: 200,
-          content: "ok",
-        });
-      }
-    } else {
-      res.json({
-        status: 200,
-        content: "ok",
-      });
-    }
   } catch (ex) {
     next(ex);
   }

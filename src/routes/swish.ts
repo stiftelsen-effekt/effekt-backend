@@ -2,7 +2,6 @@ import bodyParser from "body-parser";
 import express, { RequestHandler } from "express";
 import ipRangeCheck from "ip-range-check";
 import config from "../config";
-import { DAO } from "../custom_modules/DAO";
 import * as swish from "../custom_modules/swish";
 
 const router = express.Router();

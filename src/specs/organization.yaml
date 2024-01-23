@@ -1,0 +1,52 @@
+openapi: 3.0.1
+components:
+  schemas:
+    Organization:
+      type: object
+      properties:
+        id:
+          type: number
+          description: The organization id
+        causeAreaId:
+          type: number
+          description: The cause area id the organization belongs to
+        standardShare:
+          type: number
+          description: The standard share within the cause area
+        name:
+          type: string
+          description: The organization name
+        abbreviation:
+          type: string
+          description: The organization abbreviation
+        shortDescription:
+          type: string
+          description: The organization short description
+        longDescription:
+          type: string
+          description: The organization long description
+        informationUrl:
+          type: string
+          description: The organization information url
+        isActive:
+          type: boolean
+          description: Whether the organization is active or not
+        ordering:
+          type: number
+          description: The ordering of the organization within the cause area (used for sorting frontend)
+      required:
+        - id
+        - causeAreaId
+        - name
+        - isActive
+        - ordering
+      example:
+        id: 1
+        causeAreaId: 1
+        standardShare: "100"
+        name: "GiveWell"
+        shortDescription: "This is GiveWell's top charities fund"
+        longDescription: "This is a longer description about GiveWell and their top charities fund"
+        informationUrl: "https://gieffektivt.no/givewell/"
+        isActive: true
+        ordering: 1

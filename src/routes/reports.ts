@@ -15,6 +15,6 @@ router.post("/paypal", isAdmin, require("./reports/paypal"));
 router.post("/range", urlEncodeParser, isAdmin, require("./reports/range"));
 router.post("/taxdeductions", urlEncodeParser, isAdmin, require("./reports/tax"));
 router.post("/autogiro", isAdmin, require("./reports/autogiro"));
-router.use("/adoveo", isAdmin, adoveoReportRouter);
+router.use("/adoveo", adoveoReportRouter);
 
 module.exports = router;

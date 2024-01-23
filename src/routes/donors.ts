@@ -6,6 +6,10 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { TaxReport, TaxYearlyReportUnit } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import bodyParser from "body-parser";
+import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
+import { LocaleRequest, localeMiddleware } from "../middleware/locale";
+import { TaxDeductionDonation, getYearlyMapping } from "../custom_modules/taxdeductions";
+import { connectDonationsForFirstTaxUnit } from "../custom_modules/tax";
 
 const router = express.Router();
 
@@ -352,9 +356,19 @@ router.get(
   (req, res, next) => {
     checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
-  async (req, res, next) => {
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
     try {
-      var taxUnits = await DAO.tax.getByDonorId(req.params.id);
+      const donorId = parseInt(req.params.id);
+
+      if (isNaN(donorId)) {
+        return res.status(400).json({
+          status: 400,
+          content: "Invalid donor ID",
+        });
+      }
+
+      var taxUnits = await DAO.tax.getByDonorId(donorId, req.locale);
 
       if (taxUnits) {
         return res.json({
@@ -415,82 +429,102 @@ router.get(
   (req, res, next) => {
     checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
-  async (req, res, next) => {
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
     try {
-      if (isNaN(parseInt(req.params.id))) {
+      const donorId = parseInt(req.params.id);
+
+      if (isNaN(donorId)) {
         return res.status(400).json({
           status: 400,
           content: "Invalid donor ID",
         });
       }
 
-      let taxUnits = await DAO.tax.getByDonorId(parseInt(req.params.id));
+      let taxUnits = await DAO.tax.getByDonorId(donorId, req.locale);
       taxUnits = taxUnits.filter((tu) => tu.archived === null);
 
-      let donations = await DAO.donations.getByDonorId(parseInt(req.params.id));
-      let eaFundsDonations = await DAO.donations.getEAFundsDonations(parseInt(req.params.id));
+      let donations = await DAO.donations.getByDonorId(donorId);
+      let eaFundsDonations = await DAO.donations.getEAFundsDonations(donorId);
 
-      /**
-       * TODO: This is hard coded to only include 2022 for now, but should be
-       * changed to include all years in the future.
-       */
-      const year = 2022;
+      // Previous year down to 2022
+      const years = Array.from(
+        { length: new Date().getFullYear() - 1 - 2021 },
+        (_, i) => 2022 + i,
+      ).reverse();
+      const reports: Array<TaxReport> = [];
 
-      const yearlyreportunits = taxUnits.map((tu): TaxYearlyReportUnit => {
-        const fundsSumForUnit = eaFundsDonations
-          .filter((d) => new Date(d.timestamp).getFullYear() === year && d.taxUnitId === tu.id)
+      for (const year of years) {
+        const yearlyreportunits = taxUnits.map((tu): TaxYearlyReportUnit => {
+          const fundsDonations: TaxDeductionDonation[] = eaFundsDonations
+            .filter((d) => new Date(d.timestamp).getFullYear() === year && d.taxUnitId === tu.id)
+            .map((d) => ({
+              year: year,
+              sum: parseFloat(d.sum),
+              taxUnitId: tu.id,
+            }));
+          const fundsSum = fundsDonations.reduce((a, b) => a + b.sum, 0);
+
+          const geDonations: TaxDeductionDonation[] = donations
+            .filter((d) => new Date(d.timestamp).getFullYear() === year && d.taxUnitId === tu.id)
+            .map((d) => ({
+              year: year,
+              sum: parseFloat(d.sum),
+              taxUnitId: tu.id,
+            }));
+          const geSum = geDonations.reduce((a, b) => a + b.sum, 0);
+
+          const deductionRules = getYearlyMapping(req.locale);
+
+          if (!(year in deductionRules)) {
+            throw new Error(`Missing yearly mapping for year ${year}`);
+          }
+
+          const completeDeduction = deductionRules[year]([...geDonations, ...fundsDonations]);
+
+          let reportUnit: TaxYearlyReportUnit = {
+            id: tu.id,
+            name: tu.name,
+            ssn: tu.ssn,
+            sumDonations: geSum + fundsSum,
+            taxDeduction: completeDeduction.deduction,
+            channels: [],
+          };
+
+          if (parseFloat(tu.sumDonations) > 0) {
+            reportUnit.channels.push({
+              channel: "Gi Effektivt",
+              sumDonations: geSum,
+            });
+          }
+
+          if (fundsSum > 0) {
+            reportUnit.channels.push({
+              channel: "EAN Giverportal",
+              sumDonations: fundsSum,
+            });
+          }
+
+          return reportUnit;
+        });
+
+        const cryptoDonationsInYear = donations.filter((d) => {
+          return new Date(d.timestamp).getFullYear() === year && d.paymentMethod === "Crypto";
+        });
+
+        const sumGeDonationsWithoutTaxUnit = donations
+          .filter((d) => {
+            return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
+          })
           .reduce((acc, item) => acc + parseFloat(item.sum), 0);
 
-        const geSumForYear = tu.taxDeductions.find((d) => d.year === year)?.sumDonations
-          ? parseFloat(tu.taxDeductions.find((d) => d.year === year)?.sumDonations ?? "0")
-          : 0;
+        const sumEanDOnationsWithoutTaxUnit = eaFundsDonations
+          .filter((d) => {
+            return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
+          })
+          .reduce((acc, item) => acc + parseFloat(item.sum), 0);
 
-        const completeSum = geSumForYear + fundsSumForUnit;
-
-        let reportUnit: TaxYearlyReportUnit = {
-          id: tu.id,
-          name: tu.name,
-          ssn: tu.ssn,
-          sumDonations: completeSum,
-          taxDeduction: Math.min(completeSum, 25000),
-          channels: [],
-        };
-
-        if (parseFloat(tu.sumDonations) > 0) {
-          reportUnit.channels.push({
-            channel: "Gi Effektivt",
-            sumDonations: geSumForYear,
-          });
-        }
-
-        if (fundsSumForUnit > 0) {
-          reportUnit.channels.push({
-            channel: "EAN Giverportal",
-            sumDonations: fundsSumForUnit,
-          });
-        }
-
-        return reportUnit;
-      });
-
-      const cryptoDonationsInYear = donations.filter((d) => {
-        return new Date(d.timestamp).getFullYear() === year && d.paymentMethod === "Crypto";
-      });
-
-      const sumGeDonationsWithoutTaxUnit = donations
-        .filter((d) => {
-          return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
-        })
-        .reduce((acc, item) => acc + parseFloat(item.sum), 0);
-
-      const sumEanDOnationsWithoutTaxUnit = eaFundsDonations
-        .filter((d) => {
-          return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
-        })
-        .reduce((acc, item) => acc + parseFloat(item.sum), 0);
-
-      const reports: Array<TaxReport> = [
-        {
+        reports.push({
           year: year,
           units: yearlyreportunits,
           sumDonations: yearlyreportunits.reduce((a, b) => a + b.sumDonations, 0),
@@ -519,8 +553,8 @@ router.get(
                   },
                 ]
               : [],
-        },
-      ];
+        });
+      }
 
       return res.json({
         status: 200,
@@ -577,7 +611,8 @@ router.post(
   (req, res, next) => {
     checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
-  async (req, res, next) => {
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
     try {
       const { name, ssn } = req.body;
 
@@ -620,12 +655,12 @@ router.post(
 
       // If successfully created tax unit
       if (taxUnit) {
-        const taxUnits = await DAO.tax.getByDonorId(donor.id);
+        const taxUnits = await DAO.tax.getByDonorId(donor.id, req.locale);
 
         // if this is the first tax unit created for the donor (also counts archived tax units)
         if (taxUnits.length === 1) {
           // Update the donor's KID numbers missing a tax unit
-          await DAO.tax.updateKIDsMissingTaxUnit(taxUnitId, donor.id);
+          await connectDonationsForFirstTaxUnit(donor.id, taxUnit.id);
         }
 
         return res.json({
@@ -1181,48 +1216,25 @@ router.get(
   async (req, res, next) => {
     try {
       const result = await DAO.distributions.getAllByDonor(req.params.id);
+
       let distributions = result.distributions;
 
-      if (req.query.kids) {
+      if (typeof req.query.kids !== undefined) {
         const kidSet = new Set<string>();
         req.query.kids.split(",").map((kid) => kidSet.add(kid));
 
         distributions = distributions.filter((dist) => kidSet.has(dist.kid));
       }
 
-      const distributionsWithTaxUnitAndDistribution = await Promise.all(
-        distributions.map(async (distribution, index) => {
-          const result = await getDistributionTaxUnitAndStandardDistribution(
-            index,
-            distribution.kid,
-          );
-          return {
-            ...distribution,
-            taxUnit: result.taxUnit,
-            standardDistribution: result.standardDistribution,
-          };
-        }),
-      );
-
       return res.json({
         status: 200,
-        content: distributionsWithTaxUnitAndDistribution,
+        content: distributions,
       });
     } catch (ex) {
       next(ex);
     }
   },
 );
-
-async function getDistributionTaxUnitAndStandardDistribution(index, kid) {
-  const taxUnit = await DAO.tax.getByKID(kid);
-  const standardDistribution = await DAO.distributions.isStandardDistribution(kid);
-  return {
-    index: index,
-    taxUnit: taxUnit,
-    standardDistribution: standardDistribution,
-  };
-}
 
 /**
  * @openapi

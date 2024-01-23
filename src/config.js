@@ -21,8 +21,16 @@ module.exports = {
 
   //API keys
   mailgun_api_key: process.env.MAILGUN_API_KEY,
+  mailersend_api_key: process.env.MAILERSEND_API_KEY,
   mailchimp_api_key: process.env.MAILCHIMP_API_KEY,
   mailchimp_audience_id: process.env.MAILCHIMP_AUDIENCE_ID,
+
+  //Mailersend templates
+  mailersend_donation_receipt_template_id: process.env.MAILERSEND_DONATION_RECEIPT_TEMPLATE_ID,
+  mailersend_donation_registered_template_id:
+    process.env.MAILERSEND_DONATION_REGISTERED_TEMPLATE_ID,
+  mailersend_avtalegiro_notification_template_id:
+    process.env.MAILERSEND_AVTALEGIRO_NOTIFICATION_TEMPLATE_ID,
 
   vipps_client_id: process.env.VIPPS_CLIENT_ID,
   vipps_client_secret: process.env.VIPPS_CLIENT_SECRET,
@@ -93,6 +101,7 @@ module.exports = {
   authAudience: process.env.AUTH_AUDIENCE,
   authIssuerBaseURL: process.env.AUTH_BASE_URL,
   authUserIdClaim: process.env.AUTH_USER_ID_CLAIM,
+  authUserMetadataKey: process.env.AUTH_USER_METADATA_KEY,
 
   //Prod allowed origins
   allowedProductionOrigins: getAllowedProductionOrigins(),

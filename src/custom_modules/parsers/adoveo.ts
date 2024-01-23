@@ -40,7 +40,6 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
         bom: true,
         skip_empty_lines: true,
         columns: (header) => {
-          console.log(header);
           return header.map((column) => {
             // Convert to camelCase and remove spaces
             // I.e. from Sender Name => senderName
@@ -65,9 +64,9 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
    * Verify that the parsed data conforms to the following format:
    * {
    *  date: '2023-11-12 13:21:56',
-   *  senderName: 'Fride Nordstrand Nilsen',
-   *  senderEmail: 'fride-nn@live.no',
-   *  senderPhone: '004791192243',
+   *  senderName: 'John Doe',
+   *  senderEmail: 'john-doe@example.com',
+   *  senderPhone: '00123456789',
    *  amount: '200',
    *  status: 'SALE',
    *  location: '(banner)'
@@ -88,6 +87,10 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
       if (!row[field]) {
         console.error("Parsing adoveo transactions failed. Missing field " + field);
         throw new Error("Parsing adoveo transactions failed. Missing field " + field);
+      }
+
+      if (field === "senderEmail" && row[field] == "null") {
+        row[field] = "adoveo+unknown@gieffektivt.no";
       }
     }
     if (row.status !== "SALE" && row.status !== "RESERVED") {
@@ -144,7 +147,6 @@ export const parseGiftCardsReport = (report): AdoveoGiftCardsTransactionReportRo
         bom: true,
         skip_empty_lines: true,
         columns: (header) => {
-          console.log(header);
           return header.map((column) => {
             // Convert to camelCase and remove spaces
             // I.e. from Sender Name => senderName
@@ -165,15 +167,13 @@ export const parseGiftCardsReport = (report): AdoveoGiftCardsTransactionReportRo
     }
   }
 
-  // Date,Sender Name,Sender Email,Sender Phone,Receiver Name,Receiver Phone,Message,Amount,Status,Location,CouponSend,
-
   /**
    * Verify that the parsed data conforms to the following format:
    * {
    *  date: '2023-11-12 13:21:56',
-   *  senderName: 'Fride Nordstrand Nilsen',
-   *  senderEmail: 'fride-nn@live.no',
-   *  senderPhone: '004791192243',
+   *  senderName: 'John Doe',
+   *  senderEmail: 'john-doe@example.com',
+   *  senderPhone: '00123456789',
    *  receiverName: 'Fride Brorstad Nilsen',
    *  receiverPhone: '0047922922129',
    *  message: 'Takk for at du er du!',
@@ -203,6 +203,13 @@ export const parseGiftCardsReport = (report): AdoveoGiftCardsTransactionReportRo
       if (!row[field]) {
         console.error("Parsing adoveo gift card transactions failed. Missing field " + field);
         throw new Error("Parsing adoveo gift card transactions failed. Missing field " + field);
+      }
+
+      if (field === "senderEmail" && row[field] == "null") {
+        row[field] = "adoveo+unknown@gieffektivt.no";
+      }
+      if (field === "receiverEmail" && row[field] == "null") {
+        row[field] = "adoveo+unknown@gieffektivt.no";
       }
     }
     if (row.status !== "SALE" && row.status !== "RESERVED") {

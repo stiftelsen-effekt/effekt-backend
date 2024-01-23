@@ -17,6 +17,7 @@ import * as mysql from "mysql2/promise";
 import { Prisma } from "@prisma/client";
 import config from "../config";
 import { autogiroagreements } from "./DAO_modules/autogiroagreements";
+import { causeareas } from "./DAO_modules/causeareas";
 import { adoveo } from "./DAO_modules/adoveo";
 
 /**
@@ -30,8 +31,12 @@ export type SqlResult<T> = T extends Array<infer U>
   ? {
       [K in keyof T]: T[K] extends boolean
         ? 0 | 1
-        : T[K] extends Date
+        : // Date
+        T[K] extends Date
         ? string
+        : // Date or null
+        T[K] extends Date | null
+        ? string | null
         : T[K] extends Prisma.Decimal
         ? string /* decimal is a string: https://github.com/sidorares/node-mysql2/issues/1561 */
         : T[K];
@@ -44,6 +49,7 @@ export const DAO = {
   organizations: organizations,
   donations: donations,
   distributions: distributions,
+  causeareas: causeareas,
   payment: payment,
   vipps: vipps,
   parsing: parsing,
