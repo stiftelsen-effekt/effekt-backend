@@ -3,6 +3,7 @@ import { AutoGiroParser } from "../custom_modules/parsers/autogiro";
 import { processAutogiroInputFile } from "../custom_modules/autogiro";
 import { isAdmin } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
+import { localeMiddleware } from "../middleware/locale";
 
 const router = express.Router();
 
@@ -55,27 +56,20 @@ router.get("/shipment/:id/report", isAdmin, async (req, res, next) => {
   }
 });
 
-router.get("/agreement/:id", isAdmin, async (req, res, next) => {
+router.get("/agreement/:id", isAdmin, localeMiddleware, async (req, res, next) => {
   try {
     const agreement = await DAO.autogiroagreements.getAgreementById(req.params.id);
 
     if (agreement) {
-      const shares = await DAO.distributions.getSplitByKID(agreement.KID);
-      const taxUnit = await DAO.tax.getByKID(agreement.KID);
-      const standardDistribution = await DAO.distributions.isStandardDistribution(agreement.KID);
+      const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
+      const taxUnit = await DAO.tax.getByKID(agreement.KID, req.locale);
       const donor = await DAO.donors.getByKID(agreement.KID);
 
       return res.json({
         status: 200,
         content: {
           ...agreement,
-          distribution: {
-            KID: agreement.KID,
-            donor,
-            taxUnit,
-            standardDistribution,
-            shares,
-          },
+          distribution,
         },
       });
     } else {

@@ -12,6 +12,7 @@ import {
   AutoGiroMandateCommentaryCodes,
   AutoGiroMandateInformationCodes,
 } from "./parsers/autogiro/mandates";
+import { RequestLocale } from "../middleware/locale";
 
 /**
  * Generates a claims file to claim payments for AutoGiro agreements
@@ -65,7 +66,7 @@ export async function generateAutogiroGiroFile(
    * Mandates that need confirmation
    */
   for (const mandate of mandatesToBeConfirmed) {
-    const taxUnit = await DAO.tax.getByKID(mandate.KID);
+    const taxUnit = await DAO.tax.getByKID(mandate.KID, RequestLocale.SE);
 
     fileContents += writer.getMandateConfirmationRecord(
       mandate,
@@ -136,7 +137,7 @@ export async function processAutogiroInputFile(fileContents: string) {
      */
     for (const emandate of parsedFile.emandates) {
       try {
-        const taxUnit = await DAO.tax.getByKID(emandate.payerNumber);
+        const taxUnit = await DAO.tax.getByKID(emandate.payerNumber, RequestLocale.SE);
         if (emandate.payerSsn && !taxUnit) {
           try {
             const donor = await DAO.donors.getByKID(emandate.payerNumber);
