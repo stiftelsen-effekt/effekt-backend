@@ -25,12 +25,10 @@ export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId
     const currentYear = new Date().getFullYear();
     return donationDate.getFullYear() < currentYear;
   });
-  console.log(filteredDonations);
 
   const distributionsNeedingReplacement = new Set(
     filteredDonations.map((donation) => donation.KID),
   );
-  console.log(distributionsNeedingReplacement);
 
   for (const KID of distributionsNeedingReplacement) {
     /**
@@ -53,8 +51,6 @@ export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId
      */
     const previousYearStart = DateTime.now().minus({ years: 1 }).startOf("year");
     await DAO.donations.updateKIDBeforeTimestamp(KID, replacementKID, previousYearStart);
-
-    console.log("Updated KID for donations before current year", KID, replacementKID);
   }
 }
 
@@ -108,8 +104,6 @@ export async function createXMLReportToTaxAuthorities(
   const eanTaxUnits = await parseEanTaxUnits(eanUnitsCsv);
 
   for (const unit of eanTaxUnits) {
-    console.log(unit);
-    console.log(taxUnitsMap.has(unit.ssn));
     if (unit.gieffektivt && !taxUnitsMap.has(unit.ssn)) {
       throw new Error(
         `Report says that tax unit ${unit.ssn} has donated to GE, but we don't have any donations for the unit in the database`,
@@ -125,21 +119,11 @@ export async function createXMLReportToTaxAuthorities(
         ...taxUnitsMap.get(unit.ssn),
         sum: taxUnitsMap.get(unit.ssn).sum + unit.sum,
       });
-      console.log(
-        `Adding ${unit.sum} to ${unit.ssn} from EAN report, total is now ${
-          taxUnitsMap.get(unit.ssn).sum
-        }`,
-      );
     } else {
       taxUnitsMap.set(unit.ssn, {
         name: unit.name,
         sum: unit.sum,
       });
-      console.log(
-        `Adding ${unit.sum} to a new unit, ${unit.ssn} from EAN report, total is now ${
-          taxUnitsMap.get(unit.ssn).sum
-        }`,
-      );
     }
   }
 
@@ -158,7 +142,6 @@ export async function createXMLReportToTaxAuthorities(
   ).then((res) => res.text());
 
   const valid = validateXml(doc, xsdContent);
-  console.log("XML is valid:", valid);
 
   if (!valid) {
     //throw new Error("XML is invalid when validating against XSD");
@@ -198,8 +181,6 @@ const writeXMLTaxReport = (
   leveranse.node("oppgavegiversLeveranseReferanse", "skatteraport" + +new Date());
   leveranse.node("leveransetype", "ordinaer");
 
-  let cumulativeRoundingError = 0;
-
   giftEntities.forEach((entity) => {
     const oppgave = leveranse.node("oppgave");
     const oppgaveeier = oppgave.node("oppgaveeier");
@@ -210,15 +191,7 @@ const writeXMLTaxReport = (
     }
     oppgaveeier.node("navn", entity.name); // Replace with actual name
     oppgave.node("beloep", Math.round(entity.amount).toFixed(0));
-
-    const roundingError = entity.amount - Math.round(entity.amount);
-    if (roundingError !== 0) {
-      console.log("Rounding error", roundingError);
-    }
-    cumulativeRoundingError += roundingError;
   });
-
-  console.log("Cumulative rounding error", cumulativeRoundingError);
 
   const oppgaveoppsummering = leveranse.node("oppgaveoppsummering");
   oppgaveoppsummering.node("antallOppgaver", giftEntities.length.toString());
@@ -234,7 +207,5 @@ const validateXml = (doc: XMLDocument, xsdContent: string): boolean => {
   const xsdDoc = libxmljs.parseXml(xsdContent);
   const result = doc.validate(xsdDoc);
   const errors = doc.validationErrors;
-  console.log(errors);
-  console.log(result);
   return false;
 };

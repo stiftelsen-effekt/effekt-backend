@@ -112,8 +112,6 @@ async function getAutoGiroShipmentFile(id: number) {
     [id],
   );
 
-  console.log(res, id);
-
   if (res.length > 0) return res[0].fileContents;
   else return null;
 }
