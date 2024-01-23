@@ -77,6 +77,62 @@ model Avtalegiro_shipment {
   generated  DateTime? @default(now()) @db.DateTime(0)
 }
 
+model AutoGiro_agreements {
+  ID           Int       @id @default(autoincrement())
+  mandateID    Int       @unique(map: "mandateID_UNIQUE") @db.Int
+  KID          String    @unique(map: "KID_UNIQUE") @db.VarChar(16)
+  amount       Int
+  payment_date Int
+  notice       Boolean
+  active       Boolean   @default(false)
+  last_updated DateTime? @default(now()) @db.DateTime(0)
+  created      DateTime? @default(now()) @db.DateTime(0)
+  cancelled    DateTime? @db.Date
+
+  mandate AutoGiro_mandates @relation(fields: [mandateID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+}
+
+model AutoGiro_shipments {
+  ID           Int       @id @default(autoincrement())
+  num_charges  Int
+  sent_date    DateTime? @default(now()) @db.DateTime(0)
+  last_updated DateTime? @default(now()) @db.DateTime(0)
+  created      DateTime? @default(now()) @db.DateTime(0)
+
+  charges AutoGiro_agreement_charges[]
+}
+
+model AutoGiro_agreement_charges {
+  ID           Int       @id @default(autoincrement())
+  agreementID  Int
+  shipmentID   Int
+  donationID   Int?      @unique
+  status       String
+  amount       String
+  claim_date   DateTime?
+  last_updated DateTime? @default(now()) @db.DateTime(0)
+  created      DateTime? @default(now()) @db.DateTime(0)
+
+  donation Donations?         @relation(fields: [donationID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+  shipment AutoGiro_shipments @relation(fields: [shipmentID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+}
+
+model AutoGiro_mandates {
+  ID                  Int       @id @default(autoincrement())
+  status              String
+  last_updated        DateTime? @default(now()) @db.DateTime(0)
+  created             DateTime? @default(now()) @db.DateTime(0)
+  bank_account        String?   @db.VarChar(16)
+  special_information String?
+  name_and_address    String?
+  postal_code         String?
+  postal_label        String?
+
+  KID String @unique @db.VarChar(16) // This binds mandates to both donor and tax units (SSN)
+
+  agreements AutoGiro_agreements?
+}
+
 model Distributions {
   KID                        String    @id @db.VarChar(16)
   Donor_ID                   Int
@@ -157,6 +213,7 @@ model Donations {
   Swish_orders                   Swish_orders?
   Adoveo_fundraiser_transactions Adoveo_fundraiser_transactions?
   Adoveo_giftcard_transactions   Adoveo_giftcard_transactions?
+  AutoGiro_agreement_charges     AutoGiro_agreement_charges?
 
   // When we delete a distribution we delete the associated donations.
   Distributions Distributions @relation(fields: [KID_fordeling], references: [KID], onDelete: Cascade, map: "fk_Donations_to_Distributions_KID")

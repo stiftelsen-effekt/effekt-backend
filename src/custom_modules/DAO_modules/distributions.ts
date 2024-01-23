@@ -588,6 +588,15 @@ async function add(
 }
 //endregion
 
+//region modify
+async function setTaxUnit(KID: string, taxUnitId: number) {
+  const [donations] = await DAO.query(`SELECT * FROM Donations WHERE KID_fordeling = ?`, [KID]);
+
+  if (donations.length > 0)
+    throw new Error("KID is already associated with donations, cannot add tax unit");
+  await DAO.query("UPDATE Distributions SET Tax_unit_ID = ? WHERE KID = ?", [taxUnitId, KID]);
+}
+
 /**
  * Sets a tax unit for all donations for a given donor
  * Note that this is not to be used outside of the tax module
@@ -720,6 +729,7 @@ export const distributions = {
   getAllByDonor,
   getByDonorId,
   add,
+  setTaxUnit,
   addTaxUnitToDistribution,
   connectFirstTaxUnit,
 };
