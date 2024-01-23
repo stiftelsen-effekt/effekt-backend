@@ -7,7 +7,7 @@ import { localeMiddleware } from "../middleware/locale";
 
 const router = express.Router();
 
-router.post("/reports/process", async (req, res) => {
+router.post("/reports/process", isAdmin, async (req, res) => {
   const report = req.files.report;
   if (Array.isArray(report)) {
     throw new Error("Expected a single file");
