@@ -144,7 +144,83 @@ export const getYearlyMapping = (locale: RequestLocale): TaxDeductionYearlyMappi
           }),
       };
     case RequestLocale.SE:
-      throw new Error("Not implemented");
+      return {
+        2016: (donations) =>
+          getNoTaxDeductions({
+            year: 2016,
+            sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
+          }),
+        2017: (donations) =>
+          getNoTaxDeductions({
+            year: 2017,
+            sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
+          }),
+        2018: (donations) =>
+          getNoTaxDeductions({
+            year: 2018,
+            sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
+          }),
+        2019: (donations) =>
+          getSwedishDeductionByYearlySum({
+            year: 2019,
+            minimumThreshold: 2000,
+            maximumDeductionLimit: 12000,
+            baseTaxRate: 0.25,
+            sumDonations: donations
+              .filter((d) => d.sum >= 200)
+              .reduce((acc, donation) => acc + donation.sum, 0),
+          }),
+        2020: (donations) =>
+          getSwedishDeductionByYearlySum({
+            year: 2020,
+            minimumThreshold: 2000,
+            maximumDeductionLimit: 12000,
+            baseTaxRate: 0.25,
+            sumDonations: donations
+              .filter((d) => d.sum >= 200)
+              .reduce((acc, donation) => acc + donation.sum, 0),
+          }),
+        2021: (donations) =>
+          getSwedishDeductionByYearlySum({
+            year: 2021,
+            minimumThreshold: 2000,
+            maximumDeductionLimit: 12000,
+            baseTaxRate: 0.25,
+            sumDonations: donations
+              .filter((d) => d.sum >= 200)
+              .reduce((acc, donation) => acc + donation.sum, 0),
+          }),
+        2022: (donations) =>
+          getSwedishDeductionByYearlySum({
+            year: 2022,
+            minimumThreshold: 2000,
+            maximumDeductionLimit: 12000,
+            baseTaxRate: 0.25,
+            sumDonations: donations
+              .filter((d) => d.sum >= 200)
+              .reduce((acc, donation) => acc + donation.sum, 0),
+          }),
+        2023: (donations) =>
+          getSwedishDeductionByYearlySum({
+            year: 2023,
+            minimumThreshold: 2000,
+            maximumDeductionLimit: 12000,
+            baseTaxRate: 0.25,
+            sumDonations: donations
+              .filter((d) => d.sum >= 200)
+              .reduce((acc, donation) => acc + donation.sum, 0),
+          }),
+        2024: (donations) =>
+          getSwedishDeductionByYearlySum({
+            year: 2024,
+            minimumThreshold: 2000,
+            maximumDeductionLimit: 12000,
+            baseTaxRate: 0.25,
+            sumDonations: donations
+              .filter((d) => d.sum >= 200)
+              .reduce((acc, donation) => acc + donation.sum, 0),
+          }),
+      };
     default:
       throw new Error("Invalid locale");
   }
@@ -163,6 +239,38 @@ const getNoTaxDeductions: (input: {
 };
 
 const getNorwegianDeductionByYearlySum: (input: {
+  year: number;
+  minimumThreshold: number;
+  maximumDeductionLimit: number;
+  baseTaxRate: number;
+  sumDonations: number;
+}) => TaxUnitYearlyCalculationResult = ({
+  year,
+  minimumThreshold,
+  maximumDeductionLimit,
+  baseTaxRate,
+  sumDonations,
+}) => {
+  const deduction =
+    sumDonations >= minimumThreshold ? Math.min(sumDonations, maximumDeductionLimit) : 0;
+  const benefit = deduction * baseTaxRate;
+
+  return {
+    year,
+    sumDonations,
+    deduction,
+    benefit,
+  };
+};
+
+/**
+ * Swedish rules
+ * 25% of sum of donations
+ * Maximum sum is 12 000
+ * Sum must be over 2 000
+ * Only donations of value 200 sek and over are counted towards the sum
+ */
+const getSwedishDeductionByYearlySum: (input: {
   year: number;
   minimumThreshold: number;
   maximumDeductionLimit: number;
