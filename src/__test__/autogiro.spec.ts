@@ -134,7 +134,7 @@ describe("Autogiro file writer", () => {
     const date = DateTime.fromObject({ year: 2016, month: 7, day: 14 });
     const record = AutoGiroFileWriter.getWithdrawalRecord(
       date,
-      123,
+      "123",
       "0009902346",
       75000,
       "INBETALNING1",
