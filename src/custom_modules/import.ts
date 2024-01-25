@@ -5,6 +5,9 @@ import { DistributionCauseArea, DistributionInput } from "../schemas/types";
 import { DAO } from "./DAO";
 import { donationHelpers } from "./donationHelpers";
 import { parseSwedishDonationsReport } from "./parsers/sedonations";
+import { sumWithPrecision } from "./rounding";
+
+const Decimal = require("decimal.js");
 
 export const importSwedishDonationsReport = async (report) => {
   const data = parseSwedishDonationsReport(report);
@@ -39,7 +42,15 @@ export const importSwedishDonationsReport = async (report) => {
     for (const donation of donor.donations) {
       console.log(`Processing donation ${counter} for donor ${donor.email}`);
 
+      if (donation.referenceNumber.trim().toLowerCase() === "adoveo") {
+        console.log("Skipping adoveo donation");
+        continue;
+      }
+
       counter++;
+
+      const parsedDate = DateTime.fromISO(donation.date, { locale: "sv-SE" });
+
       // Transform donation to match the database
       const sum = donation.amount;
       const distributionSum =
@@ -49,9 +60,37 @@ export const importSwedishDonationsReport = async (report) => {
         donation.distribution.operations.sum;
 
       if (sum !== distributionSum) {
-        console.error("Sum mismatch", sum, distributionSum);
-        console.error("For donor ", donor.email);
-        continue;
+        if (sum - distributionSum == parseFloat(donation.distribution.unknownSum)) {
+          // Spread according to quarterly key
+          console.log("Sum mismatch is due to unknown sum, spreading according to quarterly key");
+          const quarter = parsedDate.quarter;
+          console.log("MONTH", parsedDate.month);
+          console.log("QUARTER", quarter);
+          const parsedUnknownSum = new Decimal(donation.distribution.unknownSum);
+          donation.distribution.globalHealth.sum = new Decimal(
+            donation.distribution.globalHealth.sum,
+          )
+            .plus(parsedUnknownSum.times(querterlyCauseAreaKeys[quarter].globalHealth))
+            .toNumber();
+          donation.distribution.globalHealth.standardDistribution = true;
+          donation.distribution.animal.sum = new Decimal(donation.distribution.animal.sum)
+            .plus(parsedUnknownSum.times(querterlyCauseAreaKeys[quarter].animalWelfare))
+            .toNumber();
+          donation.distribution.animal.standardDistribution = true;
+          donation.distribution.climate.sum = new Decimal(donation.distribution.climate.sum)
+            .plus(parsedUnknownSum.times(querterlyCauseAreaKeys[quarter].climateChange))
+            .toNumber();
+          donation.distribution.climate.standardDistribution = true;
+          console.log(JSON.stringify(donation.distribution, null, 2));
+        } else {
+          console.error(
+            "Unknown sum mismatch",
+            sum - distributionSum,
+            donation.distribution.unknownSum,
+          );
+          console.error("For donor ", donor.email);
+          continue;
+        }
       }
 
       const causeAreas: DistributionCauseArea[] = [];
@@ -107,7 +146,35 @@ export const importSwedishDonationsReport = async (report) => {
         });
       }
 
-      console.log(JSON.stringify(causeAreas, null, 2));
+      for (const causeArea of causeAreas) {
+        if (causeArea.standardSplit) {
+          causeArea.organizations = await DAO.distributions.getStandardDistributionByCauseAreaID(
+            causeArea.id,
+          );
+        }
+      }
+
+      const causeAreasSum = sumWithPrecision(
+        causeAreas.map((causeArea) => causeArea.percentageShare),
+      );
+      if (causeAreasSum !== "100") {
+        console.log("Cause area sum is not 100, adjusting");
+        causeAreas[0].percentageShare = new Decimal(causeAreas[0].percentageShare)
+          .plus(new Decimal(100).minus(new Decimal(causeAreasSum)))
+          .toString();
+      }
+
+      for (const causeArea of causeAreas) {
+        const orgsSum = sumWithPrecision(causeArea.organizations.map((org) => org.percentageShare));
+        if (orgsSum !== "100") {
+          console.log("Org sum is not 100, adjusting");
+          causeArea.organizations[0].percentageShare = new Decimal(
+            causeArea.organizations[0].percentageShare,
+          )
+            .plus(new Decimal(100).minus(new Decimal(orgsSum)))
+            .toString();
+        }
+      }
 
       const distributionInput: DistributionInput = {
         donorId,
@@ -133,18 +200,12 @@ export const importSwedishDonationsReport = async (report) => {
         } else {
           paymentMethodId = paymentMethods.bank;
         }
-      } else if (donation.paymentMethod === "AutoGiro") {
+      } else if (donation.paymentMethod === "Autogiro") {
         paymentMethodId = paymentMethods.autoGiro;
       } else {
         console.error("Unknown payment method", donation.paymentMethod);
         continue;
       }
-
-      const parsedDate = DateTime.fromISO(donation.date, { locale: "sv-SE" });
-
-      const externalReference = `${donation.date.replace(/-/g, "")}.${
-        donation.referenceNumber
-      }.${donorId}.${counter}`;
 
       try {
         await DAO.donations.add(
@@ -152,7 +213,7 @@ export const importSwedishDonationsReport = async (report) => {
           paymentMethodId,
           donation.amount,
           parsedDate.toJSDate(),
-          externalReference,
+          donation.finalBankId,
         );
       } catch (ex) {
         if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
@@ -166,6 +227,29 @@ export const importSwedishDonationsReport = async (report) => {
   }
 
   return true;
+};
+
+const querterlyCauseAreaKeys = {
+  1: {
+    globalHealth: 0.5926781406,
+    climateChange: 0.27201705,
+    animalWelfare: 0.1353048094,
+  },
+  2: {
+    globalHealth: 0.6225749186,
+    climateChange: 0.2642915309,
+    animalWelfare: 0.1131335505,
+  },
+  3: {
+    globalHealth: 0.4697435897,
+    climateChange: 0.4312820513,
+    animalWelfare: 0.098974359,
+  },
+  4: {
+    globalHealth: 0.5385023616,
+    climateChange: 0.3631056626,
+    animalWelfare: 0.0983919758,
+  },
 };
 
 const orgAbrivToIdMapping: {

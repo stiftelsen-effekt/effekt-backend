@@ -17,6 +17,7 @@ import {
   DistributionInput,
 } from "../../schemas/types";
 import { PoolConnection } from "mysql2/promise";
+import { sumWithPrecision } from "../rounding";
 
 export type DistributionsListFilter = {
   KID?: string;
@@ -201,21 +202,17 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
   }
 
   // Cause areas share must sum to 100
-  const causeAreaShareSum = input.causeAreas.reduce(
-    (sum, causeArea) => sum + parseFloat(causeArea.percentageShare),
-    0,
+  const causeAreaShareSum = sumWithPrecision(
+    input.causeAreas.map((causeArea) => causeArea.percentageShare),
   );
-  if (causeAreaShareSum !== 100) {
+  if (causeAreaShareSum !== "100") {
     throw new Error(`Cause area share must sum to 100, but was ${causeAreaShareSum}`);
   }
 
   // Organization share must sum to 100 within each cause area
   input.causeAreas.forEach((causeArea) => {
-    const orgShareSum = causeArea.organizations.reduce(
-      (sum, org) => sum + parseFloat(org.percentageShare),
-      0,
-    );
-    if (orgShareSum !== 100) {
+    const orgShareSum = sumWithPrecision(causeArea.organizations.map((org) => org.percentageShare));
+    if (orgShareSum !== "100") {
       throw new Error(
         `Organization share must sum to 100 within each cause area, but was ${orgShareSum} for cause area ${causeArea.id}`,
       );

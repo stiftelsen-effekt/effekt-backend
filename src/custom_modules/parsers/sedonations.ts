@@ -20,6 +20,7 @@ export type SwedishDonationsReportRow = {
   taxDeduction: string;
   personalnumber: string;
   email: string;
+  unknown: string;
   health: string;
   sci: string;
   amf: string;
@@ -51,6 +52,12 @@ export type SwedishDonationsReportRow = {
   globalhlsa: string;
   klimat: string;
   djurvlfrd: string;
+  lookuphelper: string;
+  nordeahits: string;
+  bankid: string;
+  manualbankid: string;
+  finalbankid: string;
+  duplicates: string;
 };
 
 export const parseSwedishDonationsReport = (report): ExtractedDonor[] => {
@@ -106,14 +113,22 @@ export const parseSwedishDonationsReport = (report): ExtractedDonor[] => {
 
   const donors: Map<string, ExtractedDonor> = new Map();
   for (let i = 0; i < data.length; i++) {
-    const row = data[i];
+    let row = data[i];
+
+    if (row.email === "") {
+      if (row.namn === "") {
+        console.error(`No donor name or email for row ${i}`);
+      } else {
+        row.email = row.namn.replace(/ /g, "").toLowerCase() + "+donor@geeffektivt.se";
+      }
+    }
+
     const globalHealthKeys = ["sci", "amf", "mc", "hki", "gd", "gw", "gw2", "ni", "dtw"];
-
     const climateKeys = ["catf", "burn", "cw", "tw", "ec", "fp", "c180", "il", "gec", "ci"];
-
     const animalKeys = ["asf", "thl", "gfi", "wai", "fn", "ace"];
 
     const distribution = {
+      unknownSum: row.unknown,
       globalHealth: {
         sum: 0,
         standardDistribution: false,
@@ -268,8 +283,8 @@ export const parseSwedishDonationsReport = (report): ExtractedDonor[] => {
         date: row.datum,
         paymentMethod: row.paymentMethod,
         referenceNumber: row.referencenumber,
-        amount:
-          parseFloat(row.belopp.replace(/,/g, "")) + parseFloat(row.paymentTip.replace(/,/g, "")),
+        finalBankId: row.finalbankid,
+        amount: parseFloat(row.belopp.replace(/,/g, "")),
         distribution,
       });
     } else {
@@ -282,9 +297,8 @@ export const parseSwedishDonationsReport = (report): ExtractedDonor[] => {
             date: row.datum,
             paymentMethod: row.paymentMethod,
             referenceNumber: row.referencenumber,
-            amount:
-              parseFloat(row.belopp.replace(/,/g, "")) +
-              parseFloat(row.paymentTip.replace(/,/g, "")),
+            finalBankId: row.finalbankid,
+            amount: parseFloat(row.belopp.replace(/,/g, "")),
             distribution,
           },
         ],
@@ -323,7 +337,9 @@ type ExtractedDonor = {
     amount: number;
     paymentMethod: string;
     referenceNumber: string;
+    finalBankId: string;
     distribution: {
+      unknownSum: string;
       globalHealth: {
         sum: number;
         standardDistribution: boolean;
