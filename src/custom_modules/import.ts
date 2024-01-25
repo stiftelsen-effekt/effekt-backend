@@ -13,9 +13,6 @@ export const importSwedishDonationsReport = async (report) => {
   const data = parseSwedishDonationsReport(report);
 
   for (const donor of data) {
-    if (donor.email !== "amandalinkan@gmail.com") {
-      continue;
-    }
     let donorId: number;
     let taxUnitId: number;
     const existing = await DAO.donors.getIDbyEmail(donor.email);
@@ -82,7 +79,6 @@ export const importSwedishDonationsReport = async (report) => {
             .plus(parsedUnknownSum.times(querterlyCauseAreaKeys[quarter].climateChange))
             .toNumber();
           donation.distribution.climate.standardDistribution = true;
-          console.log(JSON.stringify(donation.distribution, null, 2));
         } else {
           console.error(
             "Unknown sum mismatch",
@@ -176,8 +172,6 @@ export const importSwedishDonationsReport = async (report) => {
             .toString();
         }
       }
-
-      console.log(JSON.stringify(causeAreas, null, 2));
 
       const distributionInput: DistributionInput = {
         donorId,
