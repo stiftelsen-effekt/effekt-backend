@@ -165,7 +165,7 @@ model Distribution_cause_areas {
   ID               Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
   Distribution_KID String  @db.VarChar(16)
   Cause_area_ID    Int     @db.Int
-  Percentage_share Decimal @db.Decimal(15, 12)
+  Percentage_share Decimal @db.Decimal(18, 15)
   Standard_split   Boolean @default(false)
 
   // This is the link to the specific distribtion. If we delete a distribution it should cascade from Distribution -> Distribution_cause_areas -> Distribution_cause_area_organizations to clean up everything.
@@ -180,7 +180,7 @@ model Distribution_cause_area_organizations {
   ID                         Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
   Distribution_cause_area_ID Int     @db.Int
   Organization_ID            Int     @db.Int
-  Percentage_share           Decimal @db.Decimal(15, 12)
+  Percentage_share           Decimal @db.Decimal(18, 15)
 
   // This is the link to the cause area for a specific distribution. If we delete a distribution it should cascade from Distribution -> Distribution_cause_areas -> Distribution_cause_area_organizations to clean up everything.
   Distribution_cause_areas Distribution_cause_areas @relation(fields: [Distribution_cause_area_ID], references: [ID], onDelete: Cascade, map: "fk_Distribution_ca_organizations_to_Distribution_ca_idx")
@@ -261,7 +261,7 @@ model FB_campaign_org_shares {
   ID             Int      @id @default(autoincrement())
   FB_campaign_ID String   @db.VarChar(20)
   Org_ID         Int
-  Share          Decimal  @db.Decimal(15, 12)
+  Share          Decimal  @db.Decimal(18, 15)
   Standard_split Boolean?
 
   @@index([Org_ID], map: "fk_FB_campaign_org_shares_1_idx")
@@ -312,7 +312,7 @@ model Adoveo_fundraiser_org_shares {
   ID             Int      @id @default(autoincrement())
   Fundraiser_ID  Int
   Org_ID         Int
-  Share          Decimal  @db.Decimal(15, 12)
+  Share          Decimal  @db.Decimal(18, 15)
   Standard_split Boolean?
 
   Created      DateTime @default(now()) @db.DateTime(0)

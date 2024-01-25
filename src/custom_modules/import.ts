@@ -13,6 +13,9 @@ export const importSwedishDonationsReport = async (report) => {
   const data = parseSwedishDonationsReport(report);
 
   for (const donor of data) {
+    if (donor.email !== "amandalinkan@gmail.com") {
+      continue;
+    }
     let donorId: number;
     let taxUnitId: number;
     const existing = await DAO.donors.getIDbyEmail(donor.email);
@@ -64,8 +67,6 @@ export const importSwedishDonationsReport = async (report) => {
           // Spread according to quarterly key
           console.log("Sum mismatch is due to unknown sum, spreading according to quarterly key");
           const quarter = parsedDate.quarter;
-          console.log("MONTH", parsedDate.month);
-          console.log("QUARTER", quarter);
           const parsedUnknownSum = new Decimal(donation.distribution.unknownSum);
           donation.distribution.globalHealth.sum = new Decimal(
             donation.distribution.globalHealth.sum,
@@ -175,6 +176,8 @@ export const importSwedishDonationsReport = async (report) => {
             .toString();
         }
       }
+
+      console.log(JSON.stringify(causeAreas, null, 2));
 
       const distributionInput: DistributionInput = {
         donorId,

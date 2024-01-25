@@ -312,9 +312,7 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
           SELECT
               KID,
               Cause_area_ID,
-              ROUND(
-                  SUM(CAO.Percentage_share) OVER (PARTITION BY CA.ID) * CA.Percentage_share / 100
-              ) AS CauseAreasOrgSum
+              SUM(CAO.Percentage_share) OVER (PARTITION BY CA.ID) * CA.Percentage_share / 100 AS CauseAreasOrgSum
           FROM 
               Distributions AS D
               LEFT JOIN Distribution_cause_areas AS CA ON CA.Distribution_KID = D.KID
