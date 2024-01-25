@@ -33,13 +33,25 @@ steps:
       - "--allow-unauthenticated"
 
   - name: "gcr.io/cloud-builders/gcloud"
-    id: "reset-db-sweden"
+    id: "reset-dev-db-sweden"
     waitFor: ["build"]
     args:
       - "run"
       - "jobs"
       - "execute"
       - "geeffektivt-dev-db-reset"
+      - "--region"
+      - "europe-north1"
+      - "--wait"
+
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "migrate-db-sweden"
+    waitFor: ["reset-db-sweden"]
+    args:
+      - "run"
+      - "jobs"
+      - "execute"
+      - "geeffektivt-db-migrate"
       - "--region"
       - "europe-north1"
       - "--wait"
