@@ -46,7 +46,7 @@ steps:
 
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-sweden"
-    waitFor: ["reset-db-sweden"]
+    waitFor: ["reset-dev-db-sweden"]
     args:
       - "run"
       - "jobs"
