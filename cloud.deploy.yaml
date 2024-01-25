@@ -45,6 +45,21 @@ steps:
       - "--wait"
 
   - name: "gcr.io/cloud-builders/gcloud"
+    id: "deploy-dev-sweden"
+    waitFor: ["reset-dev-db-sweden"]
+    args:
+      - "run"
+      - "deploy"
+      - "geeffektivt-dev"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/effektapi:latest"
+      - "--region"
+      - "europe-north1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+
+  - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-sweden"
     waitFor: ["reset-dev-db-sweden"]
     args:
@@ -58,11 +73,11 @@ steps:
 
   - name: "gcr.io/cloud-builders/gcloud"
     id: "deploy-sweden"
-    waitFor: ["reset-db-sweden"]
+    waitFor: ["migrate-db-sweden"]
     args:
       - "run"
       - "deploy"
-      - "geeffektivt-dev"
+      - "geeffektivt"
       - "--image"
       - "gcr.io/$PROJECT_ID/effektapi:latest"
       - "--region"
