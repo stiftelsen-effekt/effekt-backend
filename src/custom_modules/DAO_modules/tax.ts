@@ -193,6 +193,96 @@ async function getReportsWithoutUserOnProfilePage(): Promise<EmailTaxUnitReport[
 
   return mapped;
 }
+
+async function getDonorsEligableForDeductionInYear(
+  year: number,
+  minSum: number,
+  excludedEmails: string[],
+) {
+  const [result] = await DAO.query<
+    {
+      donationsSum: number;
+      email: string;
+      full_name: string;
+      unitCount: number;
+    }[]
+  >(
+    `
+    SELECT 
+      SUM(sum_confirmed) as donationsSum,
+      Donors.email,
+      Donors.full_name,
+      (SELECT COUNT(*) FROM Tax_unit WHERE Donor_ID = Donors.ID) as unitCount
+    
+  
+    FROM Donations as D
+      
+    INNER JOIN Distributions as DI
+      ON DI.KID = D.KID_fordeling
+    INNER JOIN Donors
+      ON Donors.ID = D.Donor_ID
+      
+    WHERE 
+      DI.Tax_unit_ID IS NULL
+      AND YEAR (D.timestamp_confirmed) = ?
+      AND (Donors.trash = 0 OR Donors.trash IS NULL)
+      AND (Donors.email NOT LIKE '%auksjon%')
+      AND (Donors.email NOT LIKE '%gieffektivt.no')
+      AND (Donors.email NOT LIKE '%gieffektiv.no')
+      AND (Donors.email NOT IN (?))
+      AND (SELECT COUNT(*) FROM Tax_unit WHERE Donor_ID = Donors.ID) = 0
+      
+    GROUP BY
+      Donors.email,
+      Donors.full_name
+      
+      HAVING SUM(sum_confirmed) >= ?
+      
+      ORDER BY SUM(sum_confirmed) DESC
+  `,
+    [year, excludedEmails, minSum],
+  );
+
+  return result;
+}
+
+async function getTaxXMLReportUnits(year: number) {
+  const [result] = await DAO.query<
+    {
+      donationsSum: string;
+      ssn: string;
+      full_name: string;
+    }[]
+  >(
+    `
+    SELECT 
+      SUM(sum_confirmed) as donationsSum,
+      Tax_unit.ssn,
+      Tax_unit.full_name
+
+      FROM Donations as D
+
+      INNER JOIN Distributions as DI
+        ON DI.KID = D.KID_fordeling
+
+      INNER JOIN Tax_unit
+        ON Tax_unit.ID = DI.Tax_unit_ID
+
+      WHERE 
+        DI.Tax_unit_ID IS NOT NULL
+        AND YEAR (D.timestamp_confirmed) = ?
+
+      GROUP BY
+        Tax_unit.ssn,
+        Tax_unit.full_name
+
+      ORDER BY SUM(sum_confirmed) DESC
+  `,
+    [year],
+  );
+
+  return result;
+}
 //endregion
 
 //region Modify
@@ -391,6 +481,8 @@ export const tax = {
   getActiveTaxUnitIdsByDonorId,
   getReportsWithUserOnProfilePage,
   getReportsWithoutUserOnProfilePage,
+  getTaxXMLReportUnits,
+  getDonorsEligableForDeductionInYear,
   addTaxUnit,
   updateTaxUnit,
   deleteById,

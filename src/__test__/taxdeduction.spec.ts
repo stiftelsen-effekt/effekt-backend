@@ -181,14 +181,21 @@ describe("getTaxUnitsWithDeductions", () => {
     }
   });
 
-  it("(temporary) should throw not implemented for SE locale", async () => {
+  it("should calculate deductions correctly for SE locale", async () => {
     // Arrange
-    const donations: TaxDeductionDonation[] = [];
+    const donations: TaxDeductionDonation[] = [
+      { year: 2020, sum: 500, taxUnitId: 1 },
+      { year: 2021, sum: 250, taxUnitId: 1 },
+      { year: 2021, sum: 7800, taxUnitId: 1 },
+      { year: 2022, sum: 150, taxUnitId: 1 }, // Does not count towards deductions since it's below 200 SEK
+      { year: 2022, sum: 7800, taxUnitId: 1 },
+      { year: 2023, sum: 78000, taxUnitId: 1 },
+    ];
     const taxUnits: SqlResult<Tax_unit>[] = [
       {
         ID: 1,
         Donor_ID: 101,
-        ssn: "12345678901",
+        ssn: "202401234436",
         full_name: "Test Tax Unit",
         registered: "2019-01-01T00:00:00.000Z",
         archived: null,
@@ -196,12 +203,17 @@ describe("getTaxUnitsWithDeductions", () => {
     ];
     const locale = RequestLocale.SE;
 
-    // Act & Assert
-    try {
-      getTaxUnitsWithDeductions({ donations, taxUnits, locale });
-    } catch (ex) {
-      expect(ex.message).to.contain(`Not implemented`);
-    }
+    // Act
+    const result = getTaxUnitsWithDeductions({ donations, taxUnits, locale });
+
+    // Assert
+    expect(result).to.be.an("array");
+    expect(result[0].taxDeductions).to.deep.include.members([
+      { year: 2020, sumDonations: 500, deduction: 0, benefit: 0 }, // Minimum 2000, maximum 12 000, base tax rate 30%
+      { year: 2021, sumDonations: 8050, deduction: 8050, benefit: 2012.5 }, // Minimum 2000, maximum 12 000, base tax rate 25%
+      { year: 2022, sumDonations: 7800, deduction: 7800, benefit: 1950 }, // Minimum 2000, maximum 12 000, base tax rate 25%
+      { year: 2023, sumDonations: 78000, deduction: 12000, benefit: 3000 }, // Minimum 2000, maximum 12 000, base tax rate 25%
+    ]);
   });
 
   it("should throw for invalid locale", async () => {

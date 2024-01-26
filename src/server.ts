@@ -22,6 +22,7 @@ import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import qs from "qs";
 import errorHandler from "./handlers/errorHandler";
+import { importRouter } from "./routes/import";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -144,6 +145,7 @@ DAO.connect(() => {
   const loggingRoute = require("./routes/logging");
   const mailRoute = require("./routes/mail");
   const avtaleGiroRoute = require("./routes/avtalegiro");
+  const autoGiroRoute = require("./routes/autogiro");
   const taxRoute = require("./routes/tax");
 
   app.use("/donors", donorsRoute);
@@ -163,7 +165,9 @@ DAO.connect(() => {
   app.use("/logging", loggingRoute);
   app.use("/mail", mailRoute);
   app.use("/avtalegiro", avtaleGiroRoute);
+  app.use("/autogiro", autoGiroRoute);
   app.use("/tax", taxRoute);
+  app.use("/import", importRouter);
 
   app.use("/static", express.static(__dirname + "/static"));
   app.use("/style", express.static(__dirname + "/views/style"));
