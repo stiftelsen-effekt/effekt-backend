@@ -40,14 +40,23 @@ async function getByDonorId(donorId: number, locale: RequestLocale): Promise<Arr
     [donorId],
   );
 
+  const eligbleCauseAreasByLocale = {
+    [RequestLocale.NO]: [1],
+    [RequestLocale.SE]: [1],
+  };
+
   // Get all donations for the donor with attached tax unit id
   const [donations] = await DAO.query<{ year: number; sum: string; taxUnitId: number }[]>(
-    `SELECT YEAR(Donations.timestamp_confirmed) as year, Donations.sum_confirmed as sum, Tax_unit.ID as taxUnitId
-      FROM Donations
-      INNER JOIN Distributions ON Distributions.KID = Donations.KID_fordeling
-      INNER JOIN Tax_unit ON Tax_unit.ID = Distributions.Tax_unit_ID
-      WHERE Tax_unit.Donor_ID = ?`,
-    [donorId],
+    `SELECT 
+      YEAR(Donations.timestamp_confirmed) as year,
+      ROUND(COALESCE((SELECT SUM(DA.Percentage_share) as prct FROM Distribution_cause_areas as DA WHERE Distribution_KID = Donations.KID_fordeling AND Cause_area_ID IN (?)),0)/100 * Donations.sum_confirmed) as sum,
+      Tax_unit.ID as taxUnitId
+        
+        FROM Donations
+        INNER JOIN Distributions ON Distributions.KID = Donations.KID_fordeling
+        INNER JOIN Tax_unit ON Tax_unit.ID = Distributions.Tax_unit_ID
+        WHERE Tax_unit.Donor_ID = ?`,
+    [eligbleCauseAreasByLocale[locale], donorId],
   );
 
   const calculatedUnits = getTaxUnitsWithDeductions({
