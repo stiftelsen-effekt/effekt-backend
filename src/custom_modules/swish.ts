@@ -221,7 +221,7 @@ export async function getSwishOrder(ID: Swish_orders["ID"]) {
 }
 
 /** https://swish-developer-docs.web.app/api/qr-codes/v1#mcom-to-qcom */
-export async function streamQrCode(token: string) {
+export async function streamQrCode(token: string, options: { format: "png" }) {
   const response = await fetch(`https://mpc.getswish.net/qrg-swish/api/v1/commerce`, {
     body: JSON.stringify({
       token,

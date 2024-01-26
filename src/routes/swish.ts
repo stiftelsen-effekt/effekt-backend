@@ -71,19 +71,15 @@ router.get("/orders/:id/status", async (req, res, next) => {
  *      200:
  *        description: QR code
  *        content:
- *          application/json:
- *            schema:
- *              - type: object
- *                properties:
- *                  qr:
- *                    type: string
+ *          image/png
  *
  */
 router.get("/qr/:token", async (req, res, next) => {
   try {
     const { token } = req.params;
-    const stream = await swish.streamQrCode(token);
-    res.type("png");
+    const format = "png";
+    const stream = await swish.streamQrCode(token, { format });
+    res.type(format);
     stream.pipe(res);
   } catch (err) {
     console.error("Error while fetching QR: ", err);
