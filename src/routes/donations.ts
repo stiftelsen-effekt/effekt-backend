@@ -160,10 +160,9 @@ router.post("/register", async (req, res, next) => {
     }
 
     /** Use new KID for avtalegiro */
-    if (donationObject.method == methods.BANK && donationObject.recurring == true) {
+    if (donationObject.method == methods.AVTALEGIRO) {
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
       donationObject.KID = await donationHelpers.createAvtaleGiroKID();
-      // !!--!! ================================================= TAX UNIT
       await DAO.distributions.add({
         ...draftDistribution,
         kid: donationObject.KID,
