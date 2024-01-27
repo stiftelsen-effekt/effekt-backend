@@ -33,10 +33,10 @@ export type SqlResult<T> = T extends Array<infer U>
         ? 0 | 1
         : // Date
         T[K] extends Date
-        ? string
+        ? Date
         : // Date or null
         T[K] extends Date | null
-        ? string | null
+        ? Date | null
         : T[K] extends Prisma.Decimal
         ? string /* decimal is a string: https://github.com/sidorares/node-mysql2/issues/1561 */
         : T[K];

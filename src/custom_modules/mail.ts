@@ -692,7 +692,7 @@ export async function sendAvtalegiroNotification(
  * @returns {true | number} True if successfull, or an error code if failed
  */
 export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
-  let donor: Donor;
+  let donor;
   let split: {
     causeAreas: {
       id: number;

@@ -236,4 +236,24 @@ router.put(
   },
 );
 
+router.put(
+  "/:KID/cancel",
+  authMiddleware.auth(permissions.write_agreements),
+  (req, res, next) => {
+    checkDonorOwnsDistribution(req.params.KID, req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const originalKID: string = req.params.KID;
+      await DAO.autogiroagreements.cancelAgreementByKID(originalKID);
+      res.json({
+        status: 200,
+        content: "OK",
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
+
 module.exports = router;

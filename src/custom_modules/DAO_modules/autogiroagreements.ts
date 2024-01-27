@@ -263,6 +263,14 @@ export const autogiroagreements = {
       [paymentDate, KID],
     );
   },
+  cancelAgreementByKID: async function (KID: string) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_agreements SET active = 0, cancelled = NOW() WHERE KID = ?
+      `,
+      [KID],
+    );
+  },
   getAgreementChargeById: async function (ID: number) {
     const [charge] = await DAO.query<AutoGiro_agreement_charges[]>(
       `
@@ -407,16 +415,11 @@ const mapAgreementType = (agreement: SqlResult<AutoGiro_agreements>): AutoGiro_a
     ...agreement,
     notice: agreement.notice == 1,
     active: agreement.active == 1,
-    last_updated: DateTime.fromISO(agreement.last_updated).toJSDate(),
-    created: DateTime.fromISO(agreement.created).toJSDate(),
-    cancelled: agreement.cancelled ? DateTime.fromISO(agreement.cancelled).toJSDate() : null,
   };
 };
 
 const mapMandateType = (mandate: SqlResult<AutoGiro_mandates>): AutoGiro_mandates => {
   return {
     ...mandate,
-    last_updated: DateTime.fromISO(mandate.last_updated).toJSDate(),
-    created: DateTime.fromISO(mandate.created).toJSDate(),
   };
 };
