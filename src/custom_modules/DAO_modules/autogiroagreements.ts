@@ -163,6 +163,18 @@ export const autogiroagreements = {
     );
     return agreements.map(mapAgreementType);
   },
+  getAgreementsByDonorId: async function (donorId: number) {
+    const [agreements] = await DAO.query<AutoGiro_agreements[]>(
+      `
+        SELECT * FROM AutoGiro_agreements as AG
+          INNER JOIN Distributions as D ON
+            AG.KID = D.KID 
+          WHERE Donor_ID = ?
+      `,
+      [donorId],
+    );
+    return agreements.map(mapAgreementType);
+  },
   addAgreement: async function (agreement: AutoGiro_agreements): Promise<number> {
     const [result] = await DAO.query(
       `

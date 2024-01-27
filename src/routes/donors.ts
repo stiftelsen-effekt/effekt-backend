@@ -1054,6 +1054,26 @@ router.get(
   },
 );
 
+router.get(
+  "/:id/recurring/autogiro",
+  authMiddleware.auth(permissions.read_donations),
+  (req, res, next) => {
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const agreements = await DAO.autogiroagreements.getAgreementsByDonorId(req.params.id);
+
+      return res.json({
+        status: 200,
+        content: agreements,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
+
 /**
  * @openapi
  * /donors/{id}/recurring/vipps:
