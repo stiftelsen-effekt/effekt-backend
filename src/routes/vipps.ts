@@ -577,8 +577,9 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
     const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
 
     const distributionInput = req.body.distribution as DistributionInput;
+    let validatedDistribution: DistributionInput | null = null;
     try {
-      validateDistribution(distributionInput);
+      validatedDistribution = validateDistribution(distributionInput);
     } catch (ex) {
       return res.status(400).json({
         status: 400,
@@ -586,7 +587,7 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
       });
     }
 
-    if (distributionInput.donorId !== donorId) {
+    if (validatedDistribution.donorId !== donorId) {
       return res.status(400).json({
         status: 400,
         content: "Donor ID mismatch",
@@ -598,13 +599,13 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
     /**
      * Check for existing distribution
      */
-    const existingDistributionKID = await DAO.distributions.getKIDbySplit(distributionInput);
+    const existingDistributionKID = await DAO.distributions.getKIDbySplit(validatedDistribution);
 
     if (existingDistributionKID) {
       KID = existingDistributionKID;
     } else {
       KID = await donationHelpers.createKID();
-      await DAO.distributions.add({ ...distributionInput, kid: KID });
+      await DAO.distributions.add({ ...validatedDistribution, kid: KID });
     }
 
     const response = await DAO.vipps.updateAgreementKID(agreementId, KID);

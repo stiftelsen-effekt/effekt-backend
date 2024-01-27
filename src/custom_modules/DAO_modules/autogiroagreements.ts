@@ -7,6 +7,7 @@ import {
 import { DAO, SqlResult } from "../DAO";
 import { DateTime } from "luxon";
 import sqlString from "sqlstring";
+import { Distribution, DistributionInput } from "../../schemas/types";
 
 export const autogiroagreements = {
   getAllShipments: async function () {
@@ -184,6 +185,83 @@ export const autogiroagreements = {
       [agreement.KID, agreement.amount, agreement.payment_date, agreement.notice, agreement.active],
     );
     return result.insertId;
+  },
+  replaceAgreementDistribution: async (
+    originalDistribution: Distribution,
+    newKid: string,
+    newDistributionInput: DistributionInput,
+    metaOwnerID?: number,
+  ) => {
+    if (!metaOwnerID) {
+      metaOwnerID = await DAO.meta.getDefaultOwnerID();
+    }
+
+    const transaction = await DAO.startTransaction();
+    try {
+      // Replaces original KID with a new KID to preserve donation history
+      await transaction.query(`UPDATE Distributions SET KID = ? WHERE KID = ?`, [
+        newKid,
+        originalDistribution.kid,
+      ]);
+
+      // Updates donations with the old distributions to use the replacement KID (preserves donation history)
+      await transaction.query(`UPDATE Donations SET KID_fordeling = ? WHERE KID_fordeling = ?`, [
+        newKid,
+        originalDistribution.kid,
+      ]);
+
+      // Add new distribution using the original KID
+      await DAO.distributions.add(
+        {
+          ...newDistributionInput,
+          kid: originalDistribution.kid,
+        },
+        metaOwnerID,
+        transaction,
+      );
+
+      // Links the replacement KID to the original AutoGiro KID
+      await transaction.query(
+        `
+                INSERT INTO AutoGiro_replaced_distributions(Replacement_KID, Original_AutoGiro_KID)
+                VALUES (?, ?)
+            `,
+        [newKid, originalDistribution.kid],
+      );
+
+      // Reset the AutoGiro agreement to use the new distribution KID
+      // We need to do this because of a foreign key constraint that updates the agreement
+      // KID when we edit the distribution
+      await transaction.query(`UPDATE AutoGiro_agreements SET KID = ? WHERE KID = ?`, [
+        originalDistribution.kid,
+        newKid,
+      ]);
+
+      await DAO.commitTransaction(transaction);
+    } catch (ex) {
+      await DAO.rollbackTransaction(transaction);
+      throw ex;
+    }
+
+    return true;
+  },
+  setAgreementAmountByKID: async function (KID: string, amount: number) {
+    console.log("Setting amount to", amount, "for KID", KID);
+    await DAO.query(
+      `
+        UPDATE AutoGiro_agreements SET amount = ? WHERE KID = ?
+      `,
+      [amount, KID],
+    );
+    console.log("Done");
+  },
+  setAgreementPaymentDateByKID: async function (KID: string, paymentDate: number) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_agreements SET payment_date = ? WHERE KID = ?
+      `,
+      [paymentDate, KID],
+    );
   },
   getAgreementChargeById: async function (ID: number) {
     const [charge] = await DAO.query<AutoGiro_agreement_charges[]>(
