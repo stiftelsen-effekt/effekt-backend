@@ -256,4 +256,41 @@ router.put(
   },
 );
 
+router.put("/:KID/drafted/paymentdate", async (req, res, next) => {
+  try {
+    const paymentDate = req.body.paymentDate;
+
+    if (typeof paymentDate !== "number") {
+      return res.status(400).json({
+        status: 400,
+        content: "Invalid payment date",
+      });
+    }
+    if (paymentDate < 0 || paymentDate > 28) {
+      return res.status(400).json({
+        status: 400,
+        content: "Invalid payment date (must be between 0 and 28)",
+      });
+    }
+
+    const agreement = await DAO.autogiroagreements.getAgreementByKID(req.params.KID);
+
+    if (agreement.active === false) {
+      await DAO.autogiroagreements.setAgreementPaymentDateByKID(req.params.KID, paymentDate);
+    } else {
+      return res.status(400).json({
+        status: 400,
+        content: "Agreement is not in drafted state",
+      });
+    }
+
+    res.json({
+      status: 200,
+      content: "OK",
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 module.exports = router;
