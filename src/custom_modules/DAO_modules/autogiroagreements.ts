@@ -186,6 +186,28 @@ export const autogiroagreements = {
     );
     return result.insertId;
   },
+  draftAgreement: async function (
+    agreement: Pick<AutoGiro_agreements, "KID" | "amount" | "payment_date">,
+  ): Promise<number> {
+    const [mandateResult] = await DAO.query(
+      `
+        INSERT INTO AutoGiro_mandates (status, KID)
+        VALUES (?, ?)
+    `,
+      ["DRAFTED", agreement.KID],
+    );
+
+    const mandateID = mandateResult.insertId;
+
+    const [agreementResult] = await DAO.query(
+      `
+        INSERT INTO AutoGiro_agreements (mandateID, KID, amount, payment_date, notice, active)
+        VALUES (?,?, ?, ?, ?, ?)
+      `,
+      [mandateID, agreement.KID, agreement.amount, agreement.payment_date, 1, 0],
+    );
+    return agreementResult.insertId;
+  },
   replaceAgreementDistribution: async (
     originalDistribution: Distribution,
     newKid: string,

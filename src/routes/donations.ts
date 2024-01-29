@@ -4,12 +4,11 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import { sendDonationReceipt, sendDonationRegistered } from "../custom_modules/mail";
 import * as swish from "../custom_modules/swish";
-import rateLimit from "express-rate-limit";
 import methods from "../enums/methods";
 import bodyParser from "body-parser";
 import apicache from "apicache";
 import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
-import { GLOBAL_HEALTH_CAUSE_AREA_ID } from "../custom_modules/distribution";
+import { DateTime } from "luxon";
 
 const config = require("../config");
 
@@ -166,6 +165,22 @@ router.post("/register", async (req, res, next) => {
       await DAO.distributions.add({
         ...draftDistribution,
         kid: donationObject.KID,
+      });
+    } else if (donationObject.method == methods.AUTOGIRO) {
+      donationObject.KID = await donationHelpers.createAvtaleGiroKID();
+      await DAO.distributions.add({
+        ...draftDistribution,
+        kid: donationObject.KID,
+      });
+
+      // Draft AutoGiro
+      await DAO.autogiroagreements.draftAgreement({
+        KID: donationObject.KID,
+        amount:
+          typeof donationObject.amount === "string"
+            ? parseFloat(donationObject.amount)
+            : donationObject.amount,
+        payment_date: DateTime.now().plus({ days: 6 }).day,
       });
     } else {
       //Try to get existing KID
