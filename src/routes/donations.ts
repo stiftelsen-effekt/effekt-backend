@@ -2,7 +2,11 @@ import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { donationHelpers } from "../custom_modules/donationHelpers";
-import { sendDonationReceipt, sendDonationRegistered } from "../custom_modules/mail";
+import {
+  sendAutoGiroRegistered,
+  sendDonationReceipt,
+  sendDonationRegistered,
+} from "../custom_modules/mail";
 import * as swish from "../custom_modules/swish";
 import methods from "../enums/methods";
 import bodyParser from "body-parser";
@@ -182,6 +186,12 @@ router.post("/register", async (req, res, next) => {
             : donationObject.amount,
         payment_date: DateTime.now().plus({ days: 6 }).day,
       });
+
+      try {
+        await sendAutoGiroRegistered(donationObject.KID, donor.email);
+      } catch (ex) {
+        console.error(`Failed to send AutoGiro registered email for KID ${donationObject.KID}`);
+      }
     } else {
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit({

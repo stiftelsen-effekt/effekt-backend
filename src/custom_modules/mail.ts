@@ -206,6 +206,77 @@ export async function sendDonationReceipt(donationID, reciever = null) {
 }
 
 /**
+ * Sends a donation reciept
+ * @param {number} agreementKid
+ * @param {string} reciever Reciever email
+ */
+export async function sendAutoGiroRegistered(agreementKid, reciever = null) {
+  try {
+    var agreement = await DAO.autogiroagreements.getAgreementByKID(agreementKid);
+    var donor = await DAO.donors.getByKID(agreementKid);
+    if (!donor.email) {
+      console.error("No email provided for agreement with KID " + agreementKid);
+      return false;
+    }
+  } catch (ex) {
+    console.error("Failed to send mail donation reciept, could not get donation by ID");
+    console.error(ex);
+    return false;
+  }
+
+  try {
+    var distribution = await DAO.distributions.getSplitByKID(agreement.KID);
+  } catch (ex) {
+    console.error("Failed to send mail donation reciept, could not get donation split by KID");
+    console.error(ex);
+    return false;
+  }
+
+  const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
+    (acc, causeArea) => {
+      causeArea.organizations.forEach((org) => {
+        acc.push(org);
+      });
+      return acc;
+    },
+    [],
+  );
+
+  const organizations = formatOrganizationsFromSplit(split, agreement.amount);
+
+  const mailResult = await sendTemplate({
+    to: reciever || donor.email,
+    templateId: config.mailersend_autogiro_registered_template_id,
+    variables: {
+      donorName: donor.name,
+      donationKID: agreement.KID,
+      paymentMethod: decideUIPaymentMethod("AutoGiro"),
+      donationTotalSum: formatCurrency(agreement.amount) + " kr",
+    },
+    personalization: {
+      organizations,
+    },
+  });
+
+  /**
+   * HTTP 202 is the status code for accepted
+   * If the mail was not accepted, log the error and return false
+   * If the mail was accepted, return true
+   * Accepted means that the mail was sent to the mail server, not that it was delivered
+   * It is scheduled for delivery
+   */
+  if (mailResult === false) {
+    return false;
+  } else if (mailResult.statusCode !== 202) {
+    console.error("Failed to send autogiro registered reciept");
+    console.error(mailResult);
+    return mailResult.statusCode;
+  } else {
+    return true;
+  }
+}
+
+/**
  * Sends a donation reciept with notice of old system
  * @param {number} donationID
  * @param {string} reciever Reciever email

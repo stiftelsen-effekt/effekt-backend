@@ -31,6 +31,8 @@ module.exports = {
     process.env.MAILERSEND_DONATION_REGISTERED_TEMPLATE_ID,
   mailersend_avtalegiro_notification_template_id:
     process.env.MAILERSEND_AVTALEGIRO_NOTIFICATION_TEMPLATE_ID,
+  mailersend_autogiro_registered_template_id:
+    process.env.MAILERSEND_AUTOGIRO_REGISTERED_TEMPLATE_ID,
 
   mail_sender_from: process.env.MAIL_SENDER_FROM,
 
