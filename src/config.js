@@ -32,6 +32,8 @@ module.exports = {
   mailersend_avtalegiro_notification_template_id:
     process.env.MAILERSEND_AVTALEGIRO_NOTIFICATION_TEMPLATE_ID,
 
+  mail_sender_from: process.env.MAIL_SENDER_FROM,
+
   vipps_client_id: process.env.VIPPS_CLIENT_ID,
   vipps_client_secret: process.env.VIPPS_CLIENT_SECRET,
   vipps_ocp_apim_subscription_key: process.env.VIPPS_OCP_APIM_SUBSCRIPTION_KEY,

@@ -173,9 +173,7 @@ export async function sendDonationReceipt(donationID, reciever = null) {
   const organizations = formatOrganizationsFromSplit(split, donation.sum);
 
   const mailResult = await sendTemplate({
-    from: "donasjon@gieffektivt.no",
     to: reciever || donation.email,
-    subject: "Gi Effektivt - Din donasjon er mottatt",
     templateId: config.mailersend_donation_receipt_template_id,
     variables: {
       donorName: donation.donor,
@@ -347,9 +345,7 @@ export async function sendDonationRegistered(KID, sum) {
     var KIDstring = KID.toString();
 
     await sendTemplate({
-      from: "donasjon@gieffektivt.no",
       to: donor.email,
-      subject: "Gi Effektivt - Donasjon klar til innbetaling",
       templateId: config.mailersend_donation_registered_template_id,
       variables: {
         donationKID: KID,
@@ -661,9 +657,7 @@ export async function sendAvtalegiroNotification(
 
   try {
     await sendTemplate({
-      from: "donasjon@gieffektivt.no",
       to: donor.email,
-      subject: `Gi Effektivt - AvtaleGiro trekk ${claimDate.toFormat("dd.MM.yyyy")}`,
       templateId: config.mailersend_avtalegiro_notification_template_id,
       variables: {
         paymentMethod: "AvtaleGiro",
@@ -995,9 +989,7 @@ async function send(options: {
 }
  */
 type SendTemplateParameters = {
-  from: string;
   to: string;
-  subject: string;
   templateId: string;
   variables: { [key: string]: string };
   personalization: any;
@@ -1007,11 +999,9 @@ async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse
     apiKey: config.mailersend_api_key,
   });
 
-  const sentFrom = new Sender(params.from, "Gi Effektivt");
   const recipients = [new Recipient(params.to)];
 
   const email = new EmailParams()
-    .setFrom(sentFrom)
     .setTo(recipients)
     .setTemplateId(params.templateId)
     .setVariables([
@@ -1028,8 +1018,7 @@ async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse
         email: params.to,
         data: params.personalization,
       },
-    ])
-    .setSubject(params.subject);
+    ]);
 
   try {
     const response = await mailersend.email.send(email);
