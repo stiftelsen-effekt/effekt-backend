@@ -158,7 +158,6 @@ export type EmailTaxUnitReport = {
 async function getReportsWithUserOnProfilePage(): Promise<EmailTaxUnitReport[]> {
   const [result] = await DAO.execute<RowDataPacket[]>(`
     SELECT TaxUnitName, \`SUM(sum_confirmed)\` as DonationsSum, DonorUserEmail, DonorUserName FROM v_Tax_deductions
-      WHERE (SELECT COUNT(*) FROM Auth0_users WHERE Email = DonorUserEmail) = 1
   `);
 
   const mapped: EmailTaxUnitReport[] = [];

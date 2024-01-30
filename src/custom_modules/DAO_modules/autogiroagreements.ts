@@ -89,7 +89,7 @@ export const autogiroagreements = {
           SELECT DISTINCT
               AG.ID,
               AG.active,
-              ROUND(AG.amount / 100, 0) as amount,
+              AG.amount,
               AG.KID,
               AG.payment_date,
               AG.created,
@@ -176,13 +176,25 @@ export const autogiroagreements = {
     );
     return agreements.map(mapAgreementType);
   },
-  addAgreement: async function (agreement: AutoGiro_agreements): Promise<number> {
+  addAgreement: async function (
+    agreement: Pick<
+      AutoGiro_agreements,
+      "mandateID" | "KID" | "amount" | "notice" | "active" | "payment_date"
+    >,
+  ): Promise<number> {
     const [result] = await DAO.query(
       `
-        INSERT INTO AutoGiro_agreements (KID, amount, payment_date, notice, active)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO AutoGiro_agreements (mandateID, KID, amount, payment_date, notice, active)
+        VALUES (?, ?, ?, ?, ?, ?)
       `,
-      [agreement.KID, agreement.amount, agreement.payment_date, agreement.notice, agreement.active],
+      [
+        agreement.mandateID,
+        agreement.KID,
+        agreement.amount,
+        agreement.payment_date,
+        agreement.notice,
+        agreement.active,
+      ],
     );
     return result.insertId;
   },
@@ -372,7 +384,8 @@ export const autogiroagreements = {
       `,
       [KID],
     );
-    return mapMandateType(mandate?.[0]);
+    if (mandate.length === 0) return null;
+    return mapMandateType(mandate[0]);
   },
   getMandatesByStatus: async function (status: string) {
     const [mandates] = await DAO.query<AutoGiro_mandates[]>(

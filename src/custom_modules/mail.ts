@@ -843,11 +843,11 @@ export async function sendTaxYearlyReportNoticeWithUser(report: EmailTaxUnitRepo
   try {
     await send({
       reciever: report.email,
-      subject: `Gi Effektivt - Årsoppgave for 2022`,
+      subject: `Gi Effektivt - Årsoppgave for 2023`,
       templateName: "taxDeductionUser",
       templateData: {
         header: "Hei" + (report.name && report.name.length > 0 ? " " + report.name : "") + ",",
-        year: 2022,
+        year: 2023,
         units: formattedUnits,
         donorEmail: report.email,
         reusableHTML,
@@ -863,6 +863,8 @@ export async function sendTaxYearlyReportNoticeWithUser(report: EmailTaxUnitRepo
 }
 
 export async function sendTaxYearlyReportNoticeNoUser(report: EmailTaxUnitReport) {
+  return false;
+
   const formattedUnits = report.units.map((u) => {
     return {
       ...u,

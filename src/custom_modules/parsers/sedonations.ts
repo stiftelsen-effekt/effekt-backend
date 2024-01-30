@@ -318,7 +318,6 @@ export const parseSwedishDonationsReport = (report): ExtractedDonor[] => {
         donation.distribution.operations.sum;
       if (sum !== donation.amount) {
         console.error(donor.name, donor.email);
-        console.error("Sum mismatch for donation", donation);
         numberOfErrors++;
       }
     }
@@ -332,46 +331,48 @@ type ExtractedDonor = {
   email: string;
   name: string;
   ssn: string | null;
-  donations: {
-    date: string;
-    amount: number;
-    paymentMethod: string;
-    referenceNumber: string;
-    finalBankId: string;
-    distribution: {
-      unknownSum: string;
-      globalHealth: {
-        sum: number;
-        standardDistribution: boolean;
-        orgs: {
-          name: string;
-          amount: number;
-        }[];
-      };
-      climate: {
-        sum: number;
-        standardDistribution: boolean;
-        orgs: {
-          name: string;
-          amount: number;
-        }[];
-      };
-      animal: {
-        sum: number;
-        standardDistribution: boolean;
-        orgs: {
-          name: string;
-          amount: number;
-        }[];
-      };
-      operations: {
-        sum: number;
-        standardDistribution: boolean;
-        orgs: {
-          name: string;
-          amount: number;
-        }[];
-      };
+  donations: ExtractedDonorDonation[];
+};
+
+export type ExtractedDonorDonation = {
+  date: string;
+  amount: number;
+  paymentMethod: string;
+  referenceNumber: string;
+  finalBankId: string;
+  distribution: {
+    unknownSum: string;
+    globalHealth: {
+      sum: number;
+      standardDistribution: boolean;
+      orgs: {
+        name: string;
+        amount: number;
+      }[];
     };
-  }[];
+    climate: {
+      sum: number;
+      standardDistribution: boolean;
+      orgs: {
+        name: string;
+        amount: number;
+      }[];
+    };
+    animal: {
+      sum: number;
+      standardDistribution: boolean;
+      orgs: {
+        name: string;
+        amount: number;
+      }[];
+    };
+    operations: {
+      sum: number;
+      standardDistribution: boolean;
+      orgs: {
+        name: string;
+        amount: number;
+      }[];
+    };
+  };
 };

@@ -331,9 +331,9 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
                             AND CA.Percentage_share = ${sqlString.escape(
                               causeArea.percentageShare,
                             )} 
-                            AND CA.Standard_split = ${
-                              sqlString.escape(causeArea.standardSplit) ? 1 : 0
-                            }
+                            AND CA.Standard_split = ${sqlString.escape(
+                              causeArea.standardSplit ? 1 : 0,
+                            )}
                             AND
                             (
                               ${causeArea.organizations
