@@ -82,6 +82,7 @@ DAO.connect(() => {
   });
 
   //Rate limiting
+  /*
   app.use(
     rateLimit({
       windowMs: 60 * 1000, // 1 minute
@@ -91,6 +92,7 @@ DAO.connect(() => {
       },
     }),
   );
+  */
 
   //Set cross origin as allowed
   app.use(function (req, res, next) {
