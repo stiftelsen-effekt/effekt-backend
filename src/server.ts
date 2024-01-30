@@ -17,7 +17,7 @@ import honeypot from "honeypot";
 import http from "http";
 import logging from "./handlers/loggingHandler.js";
 import pretty from "express-prettify";
-import rateLimit from "express-rate-limit";
+// import rateLimit from "express-rate-limit";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import qs from "qs";
