@@ -17,7 +17,7 @@ import honeypot from "honeypot";
 import http from "http";
 import logging from "./handlers/loggingHandler.js";
 import pretty from "express-prettify";
-// import rateLimit from "express-rate-limit";
+import rateLimit from "express-rate-limit";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import qs from "qs";
@@ -82,7 +82,6 @@ DAO.connect(() => {
   });
 
   //Rate limiting
-  /*
   app.use(
     rateLimit({
       windowMs: 60 * 1000, // 1 minute
@@ -92,7 +91,6 @@ DAO.connect(() => {
       },
     }),
   );
-  */
 
   //Set cross origin as allowed
   app.use(function (req, res, next) {
