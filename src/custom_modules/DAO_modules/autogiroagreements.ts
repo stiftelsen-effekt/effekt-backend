@@ -416,6 +416,23 @@ export const autogiroagreements = {
     );
     return result.insertId;
   },
+  updateMandate: async function (mandate: Omit<AutoGiro_mandates, "last_updated" | "created">) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_mandates SET KID = ?, status = ?, bank_account = ?, special_information = ?, name_and_address = ?, postal_code = ?, postal_label = ? WHERE ID = ?
+      `,
+      [
+        mandate.KID,
+        mandate.status,
+        mandate.bank_account,
+        mandate.special_information,
+        mandate.name_and_address,
+        mandate.postal_code,
+        mandate.postal_label,
+        mandate.ID,
+      ],
+    );
+  },
   activateMandate: async function (ID: number) {
     await DAO.query(
       `
