@@ -220,6 +220,7 @@ router.post("/register", async (req, res, next) => {
     }
 
     try {
+      console.log(donationObject.KID, donationObject.amount, donationObject.method);
       await DAO.initialpaymentmethod.addPaymentIntent(
         donationObject.amount,
         donationObject.method,

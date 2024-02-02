@@ -19,67 +19,34 @@ async function getPaymentIntent(paymentIntentId) {
 }
 
 /**
- * Fetches all payment intents that require follow-up.
- * @param {number} daysBeforeFollowUp - The number of days to wait before following up.
- * @param {number} maxFollowUps - The maximum number of follow-ups allowed.
- * @returns {Array<Object>} An array of payment intents that require follow-up.
+ * Finds all payment intents that require follow-up.
+ * @param {number} daysPast - The number of days to check past since the payment intent timestamp.
  */
-async function getPaymentIntentsForFollowUp(daysBeforeFollowUp, maxFollowUps) {
-  const [paymentIntents] = await DAO.query(
+async function getPaymentIntentsToFollowUp(daysPast) {
+  const followUpRequiredPaymentIntents = await DAO.query(
     `
-    SELECT 
-      Payment_intent.Id,
-      Payment_intent.Payment_amount,
-      Payment_intent.Payment_method,
-      Payment_intent.KID_fordeling,
-      Payment_intent.Timestamp,
-      Payment_intent.Transaction_confirmed,
-      COUNT(Payment_follow_up.Payment_intent_id) AS follow_up_count
-    FROM Payment_intent
-    LEFT JOIN Payment_follow_up
-      ON Payment_intent.Id = Payment_follow_up.Payment_intent_id
-    WHERE 
-      Payment_intent.Transaction_confirmed = 0 AND
-      Payment_intent.Timestamp <= DATE_SUB(NOW(), INTERVAL ? DAY) AND
-      COUNT(Payment_follow_up.Payment_intent_id) < ?
-    GROUP BY Payment_intent.Id
+    SELECT pi.*
+    FROM Payment_intent pi
+    LEFT JOIN Payment_follow_up pfu ON pi.Id = pfu.Payment_intent_id
+    WHERE pi.Payment_is_confirmed = 0
+      AND pi.timetamp < DATE_SUB(NOW(), INTERVAL ? DAY)
+      AND pfu.Id IS NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM Donations d
+        WHERE d.timestamp_confirmed >= pi.timetamp AND d.Payment_id = pi.Payment_method
+      )
     `,
-    [daysBeforeFollowUp, maxFollowUps],
+    [daysPast],
   );
 
-  return paymentIntents;
+  console.log(followUpRequiredPaymentIntents[0]);
+
+  const paymentIntentIds = followUpRequiredPaymentIntents[0].map((pi) => pi.Id);
+
+  return paymentIntentIds;
 }
 
-/**
- * Checks if a donation has been received within x days after the payment intent was registered.
- * @param {number} paymentIntentId - The ID of the payment intent.
- * @param {number} days - The number of days to check for a donation.
- * @returns {boolean} True if a donation has been received, otherwise false.
- */
-async function checkDonationReceived(paymentIntentId, days) {
-  const [result] = await DAO.query(
-    `
-    SELECT EXISTS(
-      SELECT 1
-      FROM Donations
-      WHERE 
-        Donations.KID_fordeling = (
-          SELECT KID_fordeling
-          FROM Payment_intent
-          WHERE Id = ?
-        ) AND
-        Donations.timestamp_confirmed >= DATE_SUB(
-          (SELECT Timestamp
-           FROM Payment_intent
-           WHERE Id = ?),
-          INTERVAL ? DAY)
-    ) AS donation_received
-    `,
-    [paymentIntentId, paymentIntentId, days],
-  );
-
-  return result[0].donation_received === 1;
-}
 //endregion
 
 //region Add
@@ -92,11 +59,10 @@ async function checkDonationReceived(paymentIntentId, days) {
 async function addPaymentIntent(paymentAmount, paymentMethod, KID) {
   await DAO.execute(
     `INSERT INTO Payment_intent (
-            Payment_amount,
-            Payment_method,
-            KID_fordeling,
-            Timestamp,
-        ) VALUES (?, ?, ?, NOW())`,
+      Payment_amount,
+      Payment_method,
+      KID_fordeling
+      ) VALUES (?, ?, ?)`,
     [paymentAmount, paymentMethod, KID],
   );
 }
@@ -121,14 +87,13 @@ async function addPaymentFollowUp(paymentIntentId, followUpDate) {
 /**
  * Updates the transaction confirmed status of a payment intent.
  * @param {number} paymentIntentId - The ID of the payment intent.
- * @param {boolean} transactionConfirmed - The new transaction confirmed status.
  */
-async function updateTransactionConfirmed(paymentIntentId, transactionConfirmed) {
+async function setPaymentConfirmed(paymentIntentId) {
   await DAO.execute(
     `UPDATE Payment_intent
-     SET Transaction_confirmed = ?
+     SET Payment_is_confirmed = 1
      WHERE Id = ?`,
-    [transactionConfirmed ? 1 : 0, paymentIntentId],
+    [paymentIntentId],
   );
 }
 //endregion
@@ -138,9 +103,8 @@ async function updateTransactionConfirmed(paymentIntentId, transactionConfirmed)
 
 export const initialpaymentmethod = {
   getPaymentIntent,
-  getPaymentIntentsForFollowUp,
+  getPaymentIntentsToFollowUp,
   addPaymentIntent,
   addPaymentFollowUp,
-  checkDonationReceived,
-  updateTransactionConfirmed,
+  setPaymentConfirmed,
 };

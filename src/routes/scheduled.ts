@@ -1,5 +1,9 @@
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { sendOcrBackup, sendPlaintextErrorMail } from "../custom_modules/mail";
+import {
+  sendDonationFollowUp,
+  sendOcrBackup,
+  sendPlaintextErrorMail,
+} from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
 import { getDueDates } from "../custom_modules/avtalegiro";
 import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_modules/nets";
@@ -8,6 +12,7 @@ import { DateTime } from "luxon";
 import express from "express";
 import fetch from "node-fetch";
 import config from "../config";
+import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
 
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
@@ -435,6 +440,38 @@ router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next
     status: 200,
     content: result,
   });
+});
+
+// Define the number of days to wait before following up and the maximum number of follow-ups
+const DAYS_BEFORE_FOLLOW_UP = 3;
+
+/**
+ * Route to initiate follow-up on incomplete donations.
+ */
+router.post("/initiate-follow-ups", async (req, res, next) => {
+  //router.post("/initiate-follow-ups", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    // Fetch all payment intents that require follow-up
+    const paymentIntentIds = await initialpaymentmethod.getPaymentIntentsToFollowUp(
+      DAYS_BEFORE_FOLLOW_UP,
+    );
+    console.log("Found " + paymentIntentIds.length + " payment intents that require follow-up.");
+
+    // Iterate over each payment intent and send follow-up emails
+    for (const paymentIntentId of paymentIntentIds) {
+      console.log(paymentIntentId);
+      //const emailSent = await sendDonationFollowUp(paymentIntent.Id);
+      const emailSent = false;
+      if (emailSent) {
+        // Add a follow-up entry to the database
+        await initialpaymentmethod.addPaymentFollowUp(paymentIntentId, new Date());
+      }
+    }
+
+    res.json({ message: "Follow-up process initiated successfully." });
+  } catch (ex) {
+    next({ ex });
+  }
 });
 
 module.exports = router;
