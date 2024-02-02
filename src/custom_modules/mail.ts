@@ -12,6 +12,7 @@ import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
 import { APIResponse } from "mailersend/lib/services/request.service";
 import { DistributionCauseAreaOrganization, Donor } from "../schemas/types";
+import { get } from "request";
 
 /**
  * @typedef VippsAgreement
@@ -163,7 +164,14 @@ export async function sendDonationReceipt(donationID, reciever = null) {
   const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
     (acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
-        acc.push(org);
+        acc.push({
+          id: org.id,
+          name: org.name,
+          percentageShare: getOrganizationOverallPercentage(
+            org.percentageShare,
+            causeArea.percentageShare,
+          ).toString(),
+        });
       });
       return acc;
     },
@@ -235,7 +243,15 @@ export async function sendAutoGiroRegistered(agreementKid, reciever = null) {
   const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
     (acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
-        acc.push(org);
+        acc.push({
+          id: org.id,
+          name: org.name,
+          percentageShare: (
+            (parseFloat(org.percentageShare) / 100) *
+            (parseFloat(causeArea.percentageShare) / 100) *
+            100
+          ).toString(),
+        });
       });
       return acc;
     },
@@ -317,7 +333,14 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
   const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
     (acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
-        acc.push(org);
+        acc.push({
+          id: org.id,
+          name: org.name,
+          percentageShare: getOrganizationOverallPercentage(
+            org.percentageShare,
+            causeArea.percentageShare,
+          ).toString(),
+        });
       });
       return acc;
     },
@@ -401,17 +424,22 @@ export async function sendDonationRegistered(KID, sum) {
       return false;
     }
 
-    const organizations = distribution.causeAreas.reduce((acc, causeArea) => {
+    const split = distribution.causeAreas.reduce((acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
         acc.push({
           // Need to get name
           name: org.name ? org.name.toString() : org.id.toString(),
           // Round to nearest 2 decimals
-          percentage: Math.round(parseFloat(org.percentageShare) * 100) / 100,
+          percentageShare: getOrganizationOverallPercentage(
+            org.percentageShare,
+            causeArea.percentageShare,
+          ).toString(),
         });
       });
       return acc;
     }, []);
+
+    const organizations = formatOrganizationsFromSplit(split, sum);
 
     var KIDstring = KID.toString();
 
@@ -1131,6 +1159,16 @@ export async function sendPlaintextErrorMail(
     return false;
   }
 }
+
+const roundCurrency = (amount: number) => {
+  return Math.round(amount * 100) / 100;
+};
+
+const getOrganizationOverallPercentage = (percentage: string, causeAreaPercentage: string) => {
+  return roundCurrency(
+    (parseFloat(percentage) / 100) * (parseFloat(causeAreaPercentage) / 100) * 100,
+  );
+};
 
 function formatDate(date) {
   return moment(date).format("DD.MM.YYYY");
