@@ -19,33 +19,62 @@ async function getPaymentIntent(paymentIntentId) {
 }
 
 /**
- * Finds all payment intents that require follow-up.
- * @param {number} daysPast - The number of days to check past since the payment intent timestamp.
+ * Fetches all payment intents that were created in the last X days.
+ * @returns {Promise<number[]>} - The IDs of the payment intents.
  */
-async function getPaymentIntentsToFollowUp(daysPast) {
-  const followUpRequiredPaymentIntents = await DAO.query(
+async function getPaymentIntentsFromLastMonth() {
+  const [paymentIntents] = await DAO.query(
     `
-    SELECT pi.*
-    FROM Payment_intent pi
-    LEFT JOIN Payment_follow_up pfu ON pi.Id = pfu.Payment_intent_id
-    WHERE pi.Payment_is_confirmed = 0
-      AND pi.timetamp < DATE_SUB(NOW(), INTERVAL ? DAY)
-      AND pfu.Id IS NULL
-      AND NOT EXISTS (
-        SELECT 1
-        FROM Donations d
-        WHERE d.timestamp_confirmed >= pi.timetamp AND d.Payment_id = pi.Payment_method
-      )
+    SELECT *
+    FROM Payment_intent
+    WHERE timetamp > DATE_SUB(NOW(), INTERVAL 1 MONTH)
     `,
-    [daysPast],
   );
 
-  console.log(followUpRequiredPaymentIntents[0]);
-
-  const paymentIntentIds = followUpRequiredPaymentIntents[0].map((pi) => pi.Id);
-
-  return paymentIntentIds;
+  return paymentIntents;
 }
+
+/**
+ * Fetches all follow-ups made for a payment intent.
+ * @param {number} paymentIntentId - The IDs of the payment intents.
+ * @returns {Promise<object[]>} - The follow-up entries.
+ */
+async function getFollowUpsForPaymentIntent(paymentIntentId) {
+  const [followUps] = await DAO.query(
+    `
+    SELECT *
+    FROM Payment_follow_up
+    WHERE Payment_intent_id = ?
+    `,
+    [paymentIntentId],
+  );
+
+  return followUps;
+}
+
+/**
+ * Checks if a donation has been received for a payment intent.
+ * @param {number} paymentIntentId - The ID of the payment intent.
+ * @returns {Promise<boolean>} - Whether a donation has been received.
+ */
+async function checkIfDonationReceived(paymentIntentId) {
+  const paymentIntent = await getPaymentIntent(paymentIntentId);
+  const paymentMethod = paymentIntent.Payment_method;
+  const paymentIntentDate = paymentIntent.timetamp;
+  const paymentAmount = paymentIntent.Payment_amount;
+
+  // To determine if the payment intent is paid, check if there have been any donations with the same payment method since the date of the payment intent.
+  const [donation] = await DAO.query(
+    `
+    SELECT * from Donations
+    WHERE Payment_ID = ? AND timestamp_confirmed > ? AND sum_confirmed >= ?
+    `,
+    [paymentMethod, paymentIntentDate, paymentAmount],
+  );
+
+  return donation.length > 0;
+}
+
 //endregion
 
 //region Add
@@ -82,18 +111,6 @@ async function addPaymentFollowUp(paymentIntentId, followUpDate) {
 //endregion
 
 //region Modify
-/**
- * Updates the transaction confirmed status of a payment intent.
- * @param {number} paymentIntentId - The ID of the payment intent.
- */
-async function setPaymentConfirmed(paymentIntentId) {
-  await DAO.execute(
-    `UPDATE Payment_intent
-     SET Payment_is_confirmed = 1
-     WHERE Id = ?`,
-    [paymentIntentId],
-  );
-}
 //endregion
 
 //region Delete
@@ -101,8 +118,9 @@ async function setPaymentConfirmed(paymentIntentId) {
 
 export const initialpaymentmethod = {
   getPaymentIntent,
-  getPaymentIntentsToFollowUp,
+  getPaymentIntentsFromLastMonth,
+  getFollowUpsForPaymentIntent,
+  checkIfDonationReceived,
   addPaymentIntent,
   addPaymentFollowUp,
-  setPaymentConfirmed,
 };

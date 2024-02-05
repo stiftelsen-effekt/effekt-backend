@@ -10,6 +10,7 @@ import { generateAutogiroGiroFile } from "../custom_modules/autogiro";
 import fetch from "node-fetch";
 import config from "../config";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
+import paymentMethods from "../enums/paymentMethods";
 
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
@@ -485,8 +486,46 @@ router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next
   });
 });
 
-// Define the number of days to wait before following up and the maximum number of follow-ups
-const DAYS_BEFORE_FOLLOW_UP = 3;
+type FollowUpConfig = {
+  daysBeforeFollowUp: number;
+  maxFollowUps: number;
+};
+
+type ConditionalFollowUpConfig = FollowUpConfig & {
+  paymentMethod: number;
+  amountRange: { min: number; max: number };
+};
+
+// EXAMPLES BELOW - REPLACE WITH ACTUAL CONFIG
+const defaultFollowUpConfig: FollowUpConfig = {
+  daysBeforeFollowUp: 3,
+  maxFollowUps: 1,
+};
+
+const conditionalFollowUpConfig: ConditionalFollowUpConfig[] = [
+  // Send additional follow-ups for all bank payments over 10,000 NOK
+  // They are also sent out earlier than the default follow-up
+  {
+    paymentMethod: paymentMethods.bank,
+    amountRange: { min: 10000, max: Infinity },
+    daysBeforeFollowUp: 2,
+    maxFollowUps: 3,
+  },
+  // Do not send follow-ups for Vipps payments under 50 NOK
+  {
+    paymentMethod: paymentMethods.vipps,
+    amountRange: { min: 0, max: 50 },
+    daysBeforeFollowUp: 0,
+    maxFollowUps: 0,
+  },
+  // Send additional follow-ups for all Vipps payments over 10,000 NOK
+  {
+    paymentMethod: paymentMethods.vipps,
+    amountRange: { min: 10000, max: Infinity },
+    daysBeforeFollowUp: 2,
+    maxFollowUps: 3,
+  },
+];
 
 /**
  * Route to initiate follow-up on incomplete donations.
@@ -494,24 +533,65 @@ const DAYS_BEFORE_FOLLOW_UP = 3;
 router.post("/initiate-follow-ups", async (req, res, next) => {
   //router.post("/initiate-follow-ups", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    // Fetch all payment intents that require follow-up
-    const paymentIntentIds = await initialpaymentmethod.getPaymentIntentsToFollowUp(
-      DAYS_BEFORE_FOLLOW_UP,
-    );
-    console.log("Found " + paymentIntentIds.length + " payment intents that require follow-up.");
+    const paymentIntents = await initialpaymentmethod.getPaymentIntentsFromLastMonth();
 
-    // Iterate over each payment intent and send follow-up emails
-    for (const paymentIntentId of paymentIntentIds) {
-      console.log(paymentIntentId);
-      //const emailSent = await sendDonationFollowUp(paymentIntent.Id);
+    for (const paymentIntent of paymentIntents) {
+      const paymentMethod: number = paymentIntent.Payment_method;
+      const paymentAmount: number = paymentIntent.Payment_amount;
+
+      let maxFollowUps = defaultFollowUpConfig.maxFollowUps;
+      let daysBeforeFollowUp = defaultFollowUpConfig.daysBeforeFollowUp;
+
+      // Override the default follow-up config if a conditional follow-up config matches the payment intent
+      for (const config of conditionalFollowUpConfig) {
+        if (
+          config.paymentMethod === paymentMethod &&
+          paymentAmount >= config.amountRange.min &&
+          paymentAmount <= config.amountRange.max
+        ) {
+          maxFollowUps = config.maxFollowUps;
+          daysBeforeFollowUp = config.daysBeforeFollowUp;
+          break;
+        }
+      }
+
+      // Check if enough time has passed since the payment intent was created
+      const timeSincePaymentIntent = new Date().getTime() - paymentIntent.timetamp.getTime();
+      if (timeSincePaymentIntent < daysBeforeFollowUp * 24 * 60 * 60 * 1000) continue;
+
+      const followUps = await initialpaymentmethod.getFollowUpsForPaymentIntent(paymentIntent.Id);
+
+      // Check if the maximum number of follow-ups has been reached
+      if (followUps.length >= maxFollowUps) continue;
+
+      // Check if a previous follow-up has been sent and if enough time has passed since the last follow-up
+      if (followUps.length > 0) {
+        const sortedByDate = followUps.sort((a, b) => a.Follow_up_date - b.Follow_up_date);
+        const lastFollowUp = sortedByDate[followUps.length - 1];
+        const timeSinceLastFollowUp = new Date().getTime() - lastFollowUp.Follow_up_date.getTime();
+        if (timeSinceLastFollowUp < daysBeforeFollowUp * 24 * 60 * 60 * 1000) continue;
+      }
+
+      // Check if a payment has been received for the payment intent
+      const paymentReceived: boolean = await initialpaymentmethod.checkIfDonationReceived(
+        paymentIntent.Id,
+      );
+
+      if (paymentReceived) continue;
+
+      console.log(`Initiating follow-up for payment intent ${paymentIntent.Id}.`);
+      // TODO: Add logic to send follow-up email
+      // const emailSent = await initialpaymentmethod.sendDonationFollowUp(paymentIntent.Id);
       const emailSent = false;
       if (emailSent) {
-        // Add a follow-up entry to the database
-        await initialpaymentmethod.addPaymentFollowUp(paymentIntentId, new Date());
+        await initialpaymentmethod.addPaymentFollowUp(paymentIntent.Id, new Date());
       }
     }
 
-    res.json({ message: "Follow-up process initiated successfully." });
+    res.json({
+      message: "Follow-up process initiated successfully.",
+      paymentIntents,
+    });
   } catch (ex) {
     next({ ex });
   }
