@@ -126,7 +126,7 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
     return next(ex);
   }
 
-  let payments = [];
+  let payments: { amount: number; externalReference: string; KID: string }[] = [];
   let postingDate: DateTime;
   for (const record of records) {
     if (record.recordType === RecordType.AccountAndCurrencyStartRecord) {
@@ -135,6 +135,7 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
       payments.push({
         amount: parseFloat(record.amount),
         externalReference: record.transactionSerialNumber,
+        KID: "",
       });
     } else if (record.recordType === RecordType.MessageRecord) {
       // Add KID to last payment
@@ -172,7 +173,7 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
       const donationId = await DAO.donations.add(
         payment.KID,
         2,
-        parseFloat(payment.amount) / 100,
+        payment.amount / 100,
         postingDate.toJSDate(),
         payment.externalReference,
       );
