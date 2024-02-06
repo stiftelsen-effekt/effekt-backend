@@ -47,11 +47,16 @@ router.get("/shipments", isAdmin, async (req, res, next) => {
 
 router.get("/shipment/:id/report", isAdmin, async (req, res, next) => {
   try {
-    const fileContents = await DAO.logging.getAutoGiroShipmentFile(parseInt(req.params.id));
+    const file = await DAO.logging.getAutoGiroShipmentFile(parseInt(req.params.id));
 
-    if (fileContents) {
-      res.setHeader("Content-Type", "text/plain");
-      res.send(fileContents);
+    if (file) {
+      return res.json({
+        status: 200,
+        content: {
+          file: file.fileContents,
+          filename: file.filename,
+        },
+      });
     } else {
       return res.status(500).json({
         status: 500,
@@ -117,7 +122,33 @@ router.post("/agreements", isAdmin, async (req, res, next) => {
       req.body.limit,
       req.body.filter,
     );
-    console.log(results);
+    if (results) {
+      return res.json({
+        status: 200,
+        content: {
+          pages: results.pages,
+          rows: results.rows,
+        },
+      });
+    } else {
+      return res.status(500).json({
+        status: 500,
+        content: "Error getting agreements",
+      });
+    }
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+router.post("/mandates", isAdmin, async (req, res, next) => {
+  try {
+    var results = await DAO.autogiroagreements.getMandates(
+      req.body.sort,
+      req.body.page,
+      req.body.limit,
+      req.body.filter,
+    );
     if (results) {
       return res.json({
         status: 200,

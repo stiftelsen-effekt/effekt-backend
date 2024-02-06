@@ -52,4 +52,26 @@ router.get("/active", async (req, res, next) => {
   }
 });
 
+router.get("/all", async (req, res, next) => {
+  try {
+    const causeAreas = await DAO.causeareas.getAll();
+    const organizations = await DAO.organizations.getAll();
+
+    const causeAreasWithOrganizations = [];
+    for (let causeArea of causeAreas) {
+      causeAreasWithOrganizations.push({
+        ...causeArea,
+        organizations: organizations.filter((org) => org.causeAreaId === causeArea.id),
+      });
+    }
+
+    res.json({
+      status: 200,
+      content: causeAreasWithOrganizations,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 module.exports = router;

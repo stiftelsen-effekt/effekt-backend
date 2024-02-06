@@ -4,6 +4,7 @@ import { Donation } from "../../schemas/types";
 
 import sqlString from "sqlstring";
 import { DateTime } from "luxon";
+import { Donations, Prisma } from "@prisma/client";
 
 /** @typedef Donation
  * @prop {number} id
@@ -62,12 +63,24 @@ async function getAll(sort, page, limit = 10, filter = null) {
 
       if (filter.KID)
         where.push(` CAST(KID_fordeling as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
-      if (filter.paymentMethodIDs)
+      if (filter.paymentMethodIDs) {
+        if (filter.paymentMethodIDs.length == 0) {
+          return {
+            rows: [],
+            stats: {
+              numDonations: 0,
+              sumDonations: 0,
+              avgDonation: 0,
+            },
+            pages: 0,
+          };
+        }
         where.push(
           ` Payment_ID IN (${filter.paymentMethodIDs
             .map((ID) => sqlString.escape(ID))
             .join(",")}) `,
         );
+      }
 
       if (filter.donor)
         where.push(
@@ -79,17 +92,34 @@ async function getAll(sort, page, limit = 10, filter = null) {
       if (filter.id) where.push(` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `);
 
       if (filter.organizationIDs) {
-        where.push(` OrgId IN (${filter.organizationIDs.map(sqlString.escape).join(",")}) `);
+        if (filter.organizationIDs.length == 0) {
+          return {
+            rows: [],
+            stats: {
+              numDonations: 0,
+              sumDonations: 0,
+              avgDonation: 0,
+            },
+            pages: 0,
+          };
+        }
+        where.push(
+          ` Distribution_cause_area_organizations.Organization_ID IN (${filter.organizationIDs
+            .map(sqlString.escape)
+            .join(",")}) `,
+        );
       }
     }
 
     // Only apply this join when filtering by organizationIDs.
     const organizationJoin = filter?.organizationIDs
       ? `
-        INNER JOIN Combining_table
-          ON Donations.KID_fordeling = Combining_table.KID
-        INNER JOIN Distribution
-          ON Combining_table.Distribution_ID = Distribution.ID`
+        INNER JOIN Distributions
+          ON Donations.KID_fordeling = Distributions.KID
+        LEFT JOIN Distribution_cause_areas
+          ON Distributions.KID = Distribution_cause_areas.Distribution_KID
+        LEFT JOIN Distribution_cause_area_organizations
+          ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID`
       : "";
 
     const columns = `
@@ -105,6 +135,8 @@ async function getAll(sort, page, limit = 10, filter = null) {
     const query = `
         SELECT 
           count(*) OVER() AS full_count,
+          sum(sum_confirmed) OVER() AS full_sum,
+          avg(sum_confirmed) OVER() AS full_avg,
           ${columns}
         FROM Donations
         INNER JOIN Donors
@@ -123,12 +155,19 @@ async function getAll(sort, page, limit = 10, filter = null) {
 
     const [donations] = await DAO.query(query, [limit, page * limit]);
 
-    const counter = donations.length > 0 ? donations[0]["full_count"] : 0;
+    const numDonations = donations.length > 0 ? donations[0]["full_count"] : 0;
+    const sumDonations = donations.length > 0 ? donations[0]["full_sum"] : 0;
+    const avgDonation = donations.length > 0 ? donations[0]["full_avg"] : 0;
 
-    const pages = Math.ceil(counter / limit);
+    const pages = Math.ceil(numDonations / limit);
 
     return {
       rows: mapToJS(donations),
+      stats: {
+        numDonations,
+        sumDonations,
+        avgDonation,
+      },
       pages,
     };
   } else {
@@ -385,7 +424,7 @@ async function getByID(donationID) {
 
   const distribution = await distributions.getSplitByKID(donation.KID);
 
-  donation["distribution"] = distribution.causeAreas;
+  donation["distribution"] = distribution;
 
   return donation;
 }
@@ -787,6 +826,31 @@ async function getEAFundsDonations(donorId: number): Promise<
   });
 }
 
+async function getLatestByLegacySeDistribution(legacyKID: string): Promise<Donations | null> {
+  const [res] = await DAO.query<Donations[]>(
+    `
+    SELECT * FROM LegacySeDistributionConnection
+      INNER JOIN Donations
+        ON Donations.PaymentExternal_ID = LegacySeDistributionConnection.paymentID
+
+      WHERE legacyKID = ?
+
+      ORDER BY Donations.timestamp_confirmed DESC
+      
+      LIMIT 1
+    `,
+    [legacyKID],
+  );
+
+  if (res.length === 0) return null;
+
+  return {
+    ...res[0],
+    sum_confirmed: res[0].sum_confirmed as unknown as Prisma.Decimal,
+    transaction_cost: res[0].transaction_cost as unknown as Prisma.Decimal,
+  };
+}
+
 //endregion
 
 //region Add
@@ -853,6 +917,21 @@ async function add(
   );
 
   return addDonationQuery.insertId;
+}
+
+async function addLegacySeDonationDistribution(
+  legacyDistributionReference: string,
+  paymentExternalId: string,
+): Promise<number> {
+  const [res] = await DAO.query(
+    `
+    INSERT INTO LegacySeDistributionConnection (paymentID, legacyKID)
+    VALUES (?, ?)
+  `,
+    [paymentExternalId, legacyDistributionReference],
+  );
+
+  return res.insertId;
 }
 //endregion
 
@@ -975,9 +1054,11 @@ export const donations = {
   getLatestByKID,
   getByExternalPaymentID,
   getEAFundsDonations,
+  getLatestByLegacySeDistribution,
   externalPaymentIDExists,
   updateTransactionCost,
   add,
+  addLegacySeDonationDistribution,
   registerConfirmedByIDs,
   getHistogramBySum,
   transferDonationsFromDummy,

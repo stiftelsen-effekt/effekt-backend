@@ -111,6 +111,7 @@ describe("donations", () => {
             hasAnsweredReferral: false,
             paymentProviderUrl: "",
             swishOrderID: null,
+            swishPaymentRequestToken: null,
           },
           status: 200,
         });
@@ -156,12 +157,12 @@ describe("donations", () => {
         const KID = "1234567890";
         withCreatedKID(KID);
         const orderID = "123";
-        stub.resolves({ orderID, paymentRequestToken: "123" });
+        const paymentRequestToken = "234";
+        stub.resolves({ orderID, paymentRequestToken });
 
         const body = {
           distributionCauseAreas: [],
           method: methods.SWISH,
-          phone: "46701234567",
           amount: 100,
           recurring: false,
           donor: {},
@@ -170,24 +171,28 @@ describe("donations", () => {
 
         expect(stub.calledOnce).to.be.true;
         expect(stub.firstCall.args[0]).to.equal(KID);
-        expect(stub.firstCall.args[1]).to.deep.equal({ amount: body.amount, phone: body.phone });
+        expect(stub.firstCall.args[1]).to.deep.equal({ amount: body.amount });
 
         expect(response.body)
           .to.have.property("content")
           .that.has.property("swishOrderID")
           .equal(orderID);
+        expect(response.body)
+          .to.have.property("content")
+          .that.has.property("swishPaymentRequestToken")
+          .equal(paymentRequestToken);
       });
 
       it("should return 400 if missing body", async () => {
         await request(server).post("/donations/register").send(undefined).expect(400);
       });
 
-      it("should return 400 if badly formatted phone for swish", async () => {
+      it("should return 400 if for recurring swish", async () => {
         await request(server)
           .post("/donations/register")
           .send({
             method: methods.SWISH,
-            phone: "123",
+            recurring: true,
           })
           .expect(400);
       });
