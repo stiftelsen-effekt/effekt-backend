@@ -283,7 +283,6 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
         numCharges: agreements.length,
         numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
         file: autoGiroClaimsFile.toString(),
-        // BFEP.IAGAG.478442.240202.083250
         filename: `BFEP.IAGAG.${shipmentID}.${today.toFormat("yyLLdd.HHmmss")}`,
       };
     } else {
