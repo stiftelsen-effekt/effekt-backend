@@ -179,7 +179,7 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
       );
       continue;
     } catch (ex) {
-      console.error(`Failed to find distribution for KID: ${payment.KID}`, ex);
+      console.error(`Failed to find distribution for KID: ${payment.KID}`);
       continue;
     }
   }
