@@ -107,12 +107,16 @@ async function get(id) {
 async function getAutoGiroShipmentFile(id: number) {
   let [res] = await DAO.query(
     `
-    SELECT JSON_EXTRACT(result, '$.file') as fileContents FROM Import_logs
+    SELECT 
+      JSON_EXTRACT(result, '$.file') as fileContents,
+      JSON_EXTRACT(result, '$.filename') as filename
+      
+    FROM Import_logs
     WHERE label = "AutoGiro" AND JSON_EXTRACT(result, '$.shipmentID') = ?`,
     [id],
   );
 
-  if (res.length > 0) return res[0].fileContents;
+  if (res.length > 0) return res[0];
   else return null;
 }
 //endregion

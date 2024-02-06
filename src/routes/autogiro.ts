@@ -47,11 +47,16 @@ router.get("/shipments", isAdmin, async (req, res, next) => {
 
 router.get("/shipment/:id/report", isAdmin, async (req, res, next) => {
   try {
-    const fileContents = await DAO.logging.getAutoGiroShipmentFile(parseInt(req.params.id));
+    const file = await DAO.logging.getAutoGiroShipmentFile(parseInt(req.params.id));
 
-    if (fileContents) {
-      res.setHeader("Content-Type", "text/plain");
-      res.send(fileContents);
+    if (file) {
+      return res.json({
+        status: 200,
+        content: {
+          file: file.fileContents,
+          filename: file.filename,
+        },
+      });
     } else {
       return res.status(500).json({
         status: 500,

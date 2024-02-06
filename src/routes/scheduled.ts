@@ -283,18 +283,25 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
         numCharges: agreements.length,
         numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
         file: autoGiroClaimsFile.toString(),
+        // BFEP.IAGAG.478442.240202.083250
+        filename: `BFEP.IAGAG.${shipmentID}.${today.toFormat("yyLLdd.HHmmss")}`,
       };
     } else {
       result = {
         shipmentID: null,
         numCharges: 0,
+        mandatesToBeConfirmed: 0,
         file: null,
+        filename: null,
       };
     }
 
     await DAO.logging.add("AutoGiro", result);
     // await sendOcrBackup(JSON.stringify(result, null, 2));
-    res.json(result);
+    res.json({
+      status: 200,
+      content: result,
+    });
   } catch (ex) {
     next({ ex });
   }
