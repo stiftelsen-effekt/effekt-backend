@@ -74,7 +74,7 @@ export default {
    */
   getMandateConfirmationRecord: (
     mandate: AutoGiro_mandates,
-    taxUnit: TaxUnit,
+    taxUnit: TaxUnit | null,
     bankGiroNumber: string,
   ) => {
     if (mandate.status !== "NEW") throw new Error("Can only request confirmation of new mandates");
@@ -82,10 +82,9 @@ export default {
     return `${AutoGiroMandateCodes.ADD_OR_CONFIRM}${bankGiroNumber.padStart(
       10,
       "0",
-    )}${mandate.KID.padStart(16, "0")}${mandate.bank_account.padStart(
-      16,
-      "0",
-    )}${taxUnit.ssn.padStart(12, "0")}${" ".padStart(20, " ")}    `;
+    )}${mandate.KID.padStart(16, "0")}${mandate.bank_account.padStart(16, "0")}${(
+      taxUnit?.ssn ?? ""
+    ).padStart(12, "0")}${" ".padStart(20, " ")}    `;
   },
   getCancellationRecord: (charge: AutoGiro_agreement_charges, donorId: number) => {
     if (charge.status !== "PENDING") throw new Error("Can only cancel pending charges");
