@@ -40,7 +40,7 @@ export const checkAdminOrTheDonor = (donorId: number, req, res, next) => {
   handler(req, res, next);
 };
 
-export const checkAvtaleGiroAgreement = (KID, req, res, next) => {
+export const checkDonorOwnsDistribution = (KID, req, res, next) => {
   DAO.donors
     .getByKID(KID)
     .then((donor) => {

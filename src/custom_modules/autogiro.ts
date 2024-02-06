@@ -144,6 +144,7 @@ export async function processAutogiroInputFile(fileContents: string) {
             const taxUnitId = await DAO.tax.addTaxUnit(donor.id, emandate.payerSsn, donor.name);
             await DAO.distributions.setTaxUnit(emandate.payerNumber, taxUnitId);
           } catch (ex) {
+            console.log(ex);
             console.error(
               `Failed to add tax unit for donor with KID ${emandate.payerNumber} based on e-mandate`,
             );
@@ -153,15 +154,34 @@ export async function processAutogiroInputFile(fileContents: string) {
           }
         }
 
-        const mandateId = await DAO.autogiroagreements.addMandate({
-          KID: emandate.payerNumber,
-          name_and_address: emandate.information.payerNameAndAddress,
-          postal_code: emandate.information.postNumber,
-          postal_label: emandate.information.postAddress,
-          special_information: emandate.information.specialInformation,
-          status: "NEW",
-          bank_account: emandate.payerBankAccountNumber,
-        });
+        const existingMandage = await DAO.autogiroagreements.getMandateByKID(emandate.payerNumber);
+
+        if (!existingMandage) {
+          await DAO.autogiroagreements.addMandate({
+            KID: emandate.payerNumber,
+            name_and_address: emandate.information.payerNameAndAddress,
+            postal_code: emandate.information.postNumber,
+            postal_label: emandate.information.postAddress,
+            special_information: emandate.information.specialInformation,
+            status: "NEW",
+            bank_account: emandate.payerBankAccountNumber,
+          });
+        } else if (existingMandage.status === "DRAFTED") {
+          await DAO.autogiroagreements.updateMandate({
+            ID: existingMandage.ID,
+            KID: emandate.payerNumber,
+            name_and_address: emandate.information.payerNameAndAddress,
+            postal_code: emandate.information.postNumber,
+            postal_label: emandate.information.postAddress,
+            special_information: emandate.information.specialInformation,
+            status: "NEW",
+            bank_account: emandate.payerBankAccountNumber,
+          });
+        } else {
+          console.log(
+            `Mandate with KID ${emandate.payerNumber} already exists with status ${existingMandage.status}, skipping`,
+          );
+        }
       } catch (ex) {
         console.error(ex);
         console.log(`Failed to add mandate with KID ${emandate.payerNumber}`);

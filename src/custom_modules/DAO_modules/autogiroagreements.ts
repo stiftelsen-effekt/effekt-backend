@@ -7,6 +7,7 @@ import {
 import { DAO, SqlResult } from "../DAO";
 import { DateTime } from "luxon";
 import sqlString from "sqlstring";
+import { Distribution, DistributionInput } from "../../schemas/types";
 
 export const autogiroagreements = {
   getAllShipments: async function () {
@@ -88,7 +89,7 @@ export const autogiroagreements = {
           SELECT DISTINCT
               AG.ID,
               AG.active,
-              ROUND(AG.amount / 100, 0) as amount,
+              AG.amount,
               AG.KID,
               AG.payment_date,
               AG.created,
@@ -163,15 +164,146 @@ export const autogiroagreements = {
     );
     return agreements.map(mapAgreementType);
   },
-  addAgreement: async function (agreement: AutoGiro_agreements): Promise<number> {
+  getAgreementsByDonorId: async function (donorId: number) {
+    const [agreements] = await DAO.query<AutoGiro_agreements[]>(
+      `
+        SELECT * FROM AutoGiro_agreements as AG
+          INNER JOIN Distributions as D ON
+            AG.KID = D.KID 
+          WHERE Donor_ID = ?
+      `,
+      [donorId],
+    );
+    return agreements.map(mapAgreementType);
+  },
+  addAgreement: async function (
+    agreement: Pick<
+      AutoGiro_agreements,
+      "mandateID" | "KID" | "amount" | "notice" | "active" | "payment_date"
+    >,
+  ): Promise<number> {
     const [result] = await DAO.query(
       `
-        INSERT INTO AutoGiro_agreements (KID, amount, payment_date, notice, active)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO AutoGiro_agreements (mandateID, KID, amount, payment_date, notice, active)
+        VALUES (?, ?, ?, ?, ?, ?)
       `,
-      [agreement.KID, agreement.amount, agreement.payment_date, agreement.notice, agreement.active],
+      [
+        agreement.mandateID,
+        agreement.KID,
+        agreement.amount,
+        agreement.payment_date,
+        agreement.notice,
+        agreement.active,
+      ],
     );
     return result.insertId;
+  },
+  draftAgreement: async function (
+    agreement: Pick<AutoGiro_agreements, "KID" | "amount" | "payment_date">,
+  ): Promise<number> {
+    const [mandateResult] = await DAO.query(
+      `
+        INSERT INTO AutoGiro_mandates (status, KID)
+        VALUES (?, ?)
+    `,
+      ["DRAFTED", agreement.KID],
+    );
+
+    const mandateID = mandateResult.insertId;
+
+    const [agreementResult] = await DAO.query(
+      `
+        INSERT INTO AutoGiro_agreements (mandateID, KID, amount, payment_date, notice, active)
+        VALUES (?,?, ?, ?, ?, ?)
+      `,
+      [mandateID, agreement.KID, agreement.amount, agreement.payment_date, 1, 0],
+    );
+    return agreementResult.insertId;
+  },
+  replaceAgreementDistribution: async (
+    originalDistribution: Distribution,
+    newKid: string,
+    newDistributionInput: DistributionInput,
+    metaOwnerID?: number,
+  ) => {
+    if (!metaOwnerID) {
+      metaOwnerID = await DAO.meta.getDefaultOwnerID();
+    }
+
+    const transaction = await DAO.startTransaction();
+    try {
+      // Replaces original KID with a new KID to preserve donation history
+      await transaction.query(`UPDATE Distributions SET KID = ? WHERE KID = ?`, [
+        newKid,
+        originalDistribution.kid,
+      ]);
+
+      // Updates donations with the old distributions to use the replacement KID (preserves donation history)
+      await transaction.query(`UPDATE Donations SET KID_fordeling = ? WHERE KID_fordeling = ?`, [
+        newKid,
+        originalDistribution.kid,
+      ]);
+
+      // Add new distribution using the original KID
+      await DAO.distributions.add(
+        {
+          ...newDistributionInput,
+          kid: originalDistribution.kid,
+        },
+        metaOwnerID,
+        transaction,
+      );
+
+      // Links the replacement KID to the original AutoGiro KID
+      await transaction.query(
+        `
+                INSERT INTO AutoGiro_replaced_distributions(Replacement_KID, Original_AutoGiro_KID)
+                VALUES (?, ?)
+            `,
+        [newKid, originalDistribution.kid],
+      );
+
+      // Reset the AutoGiro agreement to use the new distribution KID
+      // We need to do this because of a foreign key constraint that updates the agreement
+      // KID when we edit the distribution
+      await transaction.query(`UPDATE AutoGiro_agreements SET KID = ? WHERE KID = ?`, [
+        originalDistribution.kid,
+        newKid,
+      ]);
+
+      await DAO.commitTransaction(transaction);
+    } catch (ex) {
+      await DAO.rollbackTransaction(transaction);
+      throw ex;
+    }
+
+    return true;
+  },
+  setAgreementAmountByKID: async function (KID: string, amount: number) {
+    console.log("Setting amount to", amount, "for KID", KID);
+    await DAO.query(
+      `
+        UPDATE AutoGiro_agreements SET amount = ? WHERE KID = ?
+      `,
+      [amount, KID],
+    );
+    console.log("Done");
+  },
+  setAgreementPaymentDateByKID: async function (KID: string, paymentDate: number) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_agreements SET payment_date = ? WHERE KID = ?
+      `,
+      [paymentDate, KID],
+    );
+  },
+  cancelAgreementByKID: async function (KID: string) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_agreements SET active = 0, cancelled = NOW() WHERE KID = ?
+      `,
+      [KID],
+    );
   },
   getAgreementChargeById: async function (ID: number) {
     const [charge] = await DAO.query<AutoGiro_agreement_charges[]>(
@@ -236,6 +368,65 @@ export const autogiroagreements = {
       [ID],
     );
   },
+  getMandates: async function (
+    sort: { desc: boolean; id: string },
+    page: number,
+    limit: number,
+    filter: any,
+  ) {
+    const sortColumn = sort.id;
+    const sortDirection = sort.desc ? "DESC" : "ASC";
+    const offset = page * limit;
+
+    let where = [];
+    if (filter) {
+      if (filter.KID)
+        where.push(` CAST(DI.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
+      if (filter.donor)
+        where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
+      if (filter.statuses && filter.statuses.length > 0)
+        where.push(
+          ` AG.status IN (${filter.statuses.map((status) => sqlString.escape(status)).join(",")}) `,
+        );
+    }
+
+    const [mandates] = await DAO.query(
+      `
+          SELECT DISTINCT
+              AG.ID,
+              AG.KID,
+              AG.status,
+              AG.bank_account,
+              AG.special_information,
+              AG.name_and_address,
+              AG.postal_code,
+              AG.postal_label,
+              AG.last_updated,
+              AG.created,
+              Donors.full_name
+          FROM AutoGiro_mandates as AG
+          INNER JOIN Distributions as DI
+              ON AG.KID = DI.KID
+          INNER JOIN Donors 
+              ON DI.Donor_ID = Donors.ID
+          WHERE
+              ${where.length !== 0 ? where.join(" AND ") : "1"}
+
+          ORDER BY ${sortColumn} ${sortDirection}
+          LIMIT ? OFFSET ?
+          `,
+      [limit, offset],
+    );
+
+    const [counter] = await DAO.query(`
+          SELECT COUNT(*) as count FROM AutoGiro_mandates
+      `);
+
+    return {
+      pages: Math.ceil(counter[0].count / limit),
+      rows: mandates,
+    };
+  },
   getMandateById: async function (ID: number) {
     const [mandate] = await DAO.query<AutoGiro_mandates[]>(
       `
@@ -252,7 +443,8 @@ export const autogiroagreements = {
       `,
       [KID],
     );
-    return mapMandateType(mandate?.[0]);
+    if (mandate.length === 0) return null;
+    return mapMandateType(mandate[0]);
   },
   getMandatesByStatus: async function (status: string) {
     const [mandates] = await DAO.query<AutoGiro_mandates[]>(
@@ -282,6 +474,23 @@ export const autogiroagreements = {
       ],
     );
     return result.insertId;
+  },
+  updateMandate: async function (mandate: Omit<AutoGiro_mandates, "last_updated" | "created">) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_mandates SET KID = ?, status = ?, bank_account = ?, special_information = ?, name_and_address = ?, postal_code = ?, postal_label = ? WHERE ID = ?
+      `,
+      [
+        mandate.KID,
+        mandate.status,
+        mandate.bank_account,
+        mandate.special_information,
+        mandate.name_and_address,
+        mandate.postal_code,
+        mandate.postal_label,
+        mandate.ID,
+      ],
+    );
   },
   activateMandate: async function (ID: number) {
     await DAO.query(
@@ -317,16 +526,11 @@ const mapAgreementType = (agreement: SqlResult<AutoGiro_agreements>): AutoGiro_a
     ...agreement,
     notice: agreement.notice == 1,
     active: agreement.active == 1,
-    last_updated: DateTime.fromISO(agreement.last_updated).toJSDate(),
-    created: DateTime.fromISO(agreement.created).toJSDate(),
-    cancelled: agreement.cancelled ? DateTime.fromISO(agreement.cancelled).toJSDate() : null,
   };
 };
 
 const mapMandateType = (mandate: SqlResult<AutoGiro_mandates>): AutoGiro_mandates => {
   return {
     ...mandate,
-    last_updated: DateTime.fromISO(mandate.last_updated).toJSDate(),
-    created: DateTime.fromISO(mandate.created).toJSDate(),
   };
 };

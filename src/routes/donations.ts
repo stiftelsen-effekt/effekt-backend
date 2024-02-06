@@ -2,14 +2,17 @@ import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { donationHelpers } from "../custom_modules/donationHelpers";
-import { sendDonationReceipt, sendDonationRegistered } from "../custom_modules/mail";
+import {
+  sendAutoGiroRegistered,
+  sendDonationReceipt,
+  sendDonationRegistered,
+} from "../custom_modules/mail";
 import * as swish from "../custom_modules/swish";
-import rateLimit from "express-rate-limit";
 import methods from "../enums/methods";
 import bodyParser from "body-parser";
 import apicache from "apicache";
 import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
-import { GLOBAL_HEALTH_CAUSE_AREA_ID } from "../custom_modules/distribution";
+import { DateTime } from "luxon";
 
 const config = require("../config");
 
@@ -54,7 +57,6 @@ router.post("/register", async (req, res, next) => {
       ssn?: string;
     };
     method: number;
-    phone?: string;
     recurring: boolean;
     amount: string | number;
   };
@@ -62,16 +64,14 @@ router.post("/register", async (req, res, next) => {
   if (!parsedData || Object.entries(parsedData).length === 0) return res.sendStatus(400);
 
   if (parsedData.method === methods.SWISH) {
-    if (!parsedData.phone) return res.status(400).send("Missing phone number");
-    if (!parsedData.phone.startsWith("467"))
-      return res.status(400).send("Invalid phone number format");
     if (parsedData.recurring)
       return res.status(400).send("Recurring donations not supported with Swish");
   }
 
   let donor = parsedData.donor;
   let paymentProviderUrl = "";
-  let orderID = null;
+  let swishOrderID = null;
+  let swishPaymentRequestToken = null;
   let recurring = parsedData.recurring;
 
   try {
@@ -160,14 +160,35 @@ router.post("/register", async (req, res, next) => {
     }
 
     /** Use new KID for avtalegiro */
-    if (donationObject.method == methods.BANK && donationObject.recurring == true) {
+    if (donationObject.method == methods.AVTALEGIRO) {
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
       donationObject.KID = await donationHelpers.createAvtaleGiroKID();
-      // !!--!! ================================================= TAX UNIT
       await DAO.distributions.add({
         ...draftDistribution,
         kid: donationObject.KID,
       });
+    } else if (donationObject.method == methods.AUTOGIRO) {
+      donationObject.KID = await donationHelpers.createAvtaleGiroKID();
+      await DAO.distributions.add({
+        ...draftDistribution,
+        kid: donationObject.KID,
+      });
+
+      // Draft AutoGiro
+      await DAO.autogiroagreements.draftAgreement({
+        KID: donationObject.KID,
+        amount:
+          typeof donationObject.amount === "string"
+            ? parseFloat(donationObject.amount)
+            : donationObject.amount,
+        payment_date: DateTime.now().plus({ days: 6 }).day,
+      });
+
+      try {
+        await sendAutoGiroRegistered(donationObject.KID, donor.email);
+      } catch (ex) {
+        console.error(`Failed to send AutoGiro registered email for KID ${donationObject.KID}`);
+      }
     } else {
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit({
@@ -203,13 +224,13 @@ router.post("/register", async (req, res, next) => {
       case methods.SWISH: {
         if (recurring == false) {
           const res = await swish.initiateOrder(donationObject.KID, {
-            phone: parsedData.phone,
             amount:
               typeof donationObject.amount === "string"
                 ? parseInt(donationObject.amount)
                 : donationObject.amount,
           });
-          orderID = res.orderID;
+          swishOrderID = res.orderID;
+          swishPaymentRequestToken = res.paymentRequestToken;
         }
         break;
       }
@@ -240,7 +261,8 @@ router.post("/register", async (req, res, next) => {
       donorID: donationObject.donorID,
       hasAnsweredReferral,
       paymentProviderUrl,
-      swishOrderID: orderID,
+      swishOrderID,
+      swishPaymentRequestToken,
     },
   });
 });
@@ -388,6 +410,7 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
       content: {
         rows: results.rows,
         pages: results.pages,
+        stats: results.stats,
       },
     });
   } catch (ex) {

@@ -95,6 +95,7 @@ export const causeareas = {
           Cause_areas.is_active as CA_is_active,
           Cause_areas.info_url as CA_info_url,
           Cause_areas.ordering as CA_ordering,
+          Cause_areas.std_percentage_share as CA_std_percentage_share,
           Organizations.ID AS O_ID,
           Organizations.full_name AS O_full_name,
           Organizations.abbriv AS O_abbriv,

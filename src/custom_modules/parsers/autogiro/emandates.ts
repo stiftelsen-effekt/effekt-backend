@@ -108,7 +108,7 @@ type AutoGiroEMandateInformationRecord = Omit<AutoGiroParsedEMandate, "informati
 const parseEMandateInformationRecord = (line: string): AutoGiroEMandateInformationRecord => {
   return {
     payeeBankGiroNumber: line.substring(2, 2 + 10),
-    payerNumber: line.substring(12, 12 + 16),
+    payerNumber: line.substring(13, 13 + 15),
     payerBankAccountNumber: line.substring(28, 28 + 16),
     payerSsn: line.substring(44, 44 + 12),
     informationCode: parseInt(line.substring(61, 61 + 1)) as AutoGiroEMandateInformationCodes,
