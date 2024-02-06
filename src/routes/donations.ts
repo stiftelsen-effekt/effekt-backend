@@ -57,7 +57,6 @@ router.post("/register", async (req, res, next) => {
       ssn?: string;
     };
     method: number;
-    phone?: string;
     recurring: boolean;
     amount: string | number;
   };
@@ -65,16 +64,14 @@ router.post("/register", async (req, res, next) => {
   if (!parsedData || Object.entries(parsedData).length === 0) return res.sendStatus(400);
 
   if (parsedData.method === methods.SWISH) {
-    if (!parsedData.phone) return res.status(400).send("Missing phone number");
-    if (!parsedData.phone.startsWith("467"))
-      return res.status(400).send("Invalid phone number format");
     if (parsedData.recurring)
       return res.status(400).send("Recurring donations not supported with Swish");
   }
 
   let donor = parsedData.donor;
   let paymentProviderUrl = "";
-  let orderID = null;
+  let swishOrderID = null;
+  let swishPaymentRequestToken = null;
   let recurring = parsedData.recurring;
 
   try {
@@ -227,13 +224,13 @@ router.post("/register", async (req, res, next) => {
       case methods.SWISH: {
         if (recurring == false) {
           const res = await swish.initiateOrder(donationObject.KID, {
-            phone: parsedData.phone,
             amount:
               typeof donationObject.amount === "string"
                 ? parseInt(donationObject.amount)
                 : donationObject.amount,
           });
-          orderID = res.orderID;
+          swishOrderID = res.orderID;
+          swishPaymentRequestToken = res.paymentRequestToken;
         }
         break;
       }
@@ -264,7 +261,8 @@ router.post("/register", async (req, res, next) => {
       donorID: donationObject.donorID,
       hasAnsweredReferral,
       paymentProviderUrl,
-      swishOrderID: orderID,
+      swishOrderID,
+      swishPaymentRequestToken,
     },
   });
 });

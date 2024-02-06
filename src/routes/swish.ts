@@ -54,6 +54,39 @@ router.get("/orders/:id/status", async (req, res, next) => {
   }
 });
 
+/**
+ * @openapi
+ * /swish/qr/{token}:
+ *    get:
+ *      tags: [Swish]
+ *      description: Fetches a QR code for a Swish payment request
+ *    parameters:
+ *      - in: path
+ *        name: token
+ *        required: true
+ *        description: Token of the payment request to fetch QR code for
+ *        schema:
+ *          type: string
+ *    responses:
+ *      200:
+ *        description: QR code
+ *        content:
+ *          image/png
+ *
+ */
+router.get("/qr/:token", async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const format = "png";
+    const stream = await swish.streamQrCode(token, { format });
+    res.type(format);
+    stream.pipe(res);
+  } catch (err) {
+    console.error("Error while fetching QR: ", err);
+    next(err);
+  }
+});
+
 interface SwishCallbackRequestBody {
   id: string;
   amount: number;

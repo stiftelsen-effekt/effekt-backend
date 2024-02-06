@@ -4,6 +4,7 @@ import { getTaxUnitsWithDeductions, TaxDeductionDonation } from "../custom_modul
 import { Tax_unit } from "@prisma/client";
 import { SqlResult } from "../custom_modules/DAO";
 import { RequestLocale } from "../middleware/locale";
+import { DateTime } from "luxon";
 
 describe("getTaxUnitsWithDeductions", () => {
   let clock: sinon.SinonFakeTimers;
@@ -35,7 +36,7 @@ describe("getTaxUnitsWithDeductions", () => {
         Donor_ID: 101,
         ssn: "12345678901",
         full_name: "Test Tax Unit",
-        registered: "2019-01-01T00:00:00.000Z",
+        registered: DateTime.fromISO("2019-01-01T00:00:00.000Z").toJSDate(),
         archived: null,
       },
     ];
@@ -81,7 +82,7 @@ describe("getTaxUnitsWithDeductions", () => {
         Donor_ID: 101,
         ssn: "12345678901",
         full_name: "Test Tax Unit 1",
-        registered: "2019-01-01T00:00:00.000Z",
+        registered: DateTime.fromISO("2019-01-01T00:00:00.000Z").toJSDate(),
         archived: null,
       },
       {
@@ -89,7 +90,7 @@ describe("getTaxUnitsWithDeductions", () => {
         Donor_ID: 102,
         ssn: "12345678902",
         full_name: "Test Tax Unit 2",
-        registered: "2019-01-01T00:00:00.000Z",
+        registered: DateTime.fromISO("2019-01-01T00:00:00.000Z").toJSDate(),
         archived: null,
       },
     ];
@@ -126,7 +127,7 @@ describe("getTaxUnitsWithDeductions", () => {
         Donor_ID: 101,
         ssn: "12345678901",
         full_name: "Test Tax Unit",
-        registered: "2019-01-01T00:00:00.000Z",
+        registered: DateTime.fromISO("2019-01-01T00:00:00.000Z").toJSDate(),
         archived: null,
       },
       // Add more tax units if needed
@@ -167,7 +168,7 @@ describe("getTaxUnitsWithDeductions", () => {
         Donor_ID: 101,
         ssn: "12345678901",
         full_name: "Test Tax Unit",
-        registered: "2019-01-01T00:00:00.000Z",
+        registered: DateTime.fromISO("2019-01-01T00:00:00.000Z").toJSDate(),
         archived: null,
       },
     ];
@@ -197,7 +198,7 @@ describe("getTaxUnitsWithDeductions", () => {
         Donor_ID: 101,
         ssn: "202401234436",
         full_name: "Test Tax Unit",
-        registered: "2019-01-01T00:00:00.000Z",
+        registered: DateTime.fromISO("2019-01-01T00:00:00.000Z").toJSDate(),
         archived: null,
       },
     ];
@@ -225,7 +226,7 @@ describe("getTaxUnitsWithDeductions", () => {
         Donor_ID: 101,
         ssn: "12345678901",
         full_name: "Test Tax Unit",
-        registered: "2019-01-01T00:00:00.000Z",
+        registered: DateTime.fromISO("2019-01-01T00:00:00.000Z").toJSDate(),
         archived: null,
       },
     ];
