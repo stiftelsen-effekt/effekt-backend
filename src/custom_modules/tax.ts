@@ -1,6 +1,8 @@
 import { DateTime } from "luxon";
 import { DAO } from "./DAO";
 import { donationHelpers } from "./donationHelpers";
+import libxmljs, { XMLDocument, Document } from "libxmljs";
+import { parseEanTaxUnits } from "./parsers/eanTaxUnits";
 
 export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId: number) {
   /**
@@ -23,12 +25,10 @@ export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId
     const currentYear = new Date().getFullYear();
     return donationDate.getFullYear() < currentYear;
   });
-  console.log(filteredDonations);
 
   const distributionsNeedingReplacement = new Set(
     filteredDonations.map((donation) => donation.KID),
   );
-  console.log(distributionsNeedingReplacement);
 
   for (const KID of distributionsNeedingReplacement) {
     /**
@@ -51,8 +51,6 @@ export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId
      */
     const previousYearStart = DateTime.now().minus({ years: 1 }).startOf("year");
     await DAO.donations.updateKIDBeforeTimestamp(KID, replacementKID, previousYearStart);
-
-    console.log("Updated KID for donations before current year", KID, replacementKID);
   }
 }
 
@@ -85,3 +83,129 @@ export async function setTaxUnitOnDistribution(kid: string, taxUnitId: number) {
   // Set the tax unit on the original distribution
   await DAO.distributions.addTaxUnitToDistribution(kid, taxUnitId);
 }
+
+export async function createXMLReportToTaxAuthorities(
+  year: number,
+  minSum: number,
+  eanUnitsCsv: Buffer,
+  contactInformation: ContactInformation,
+): Promise<XMLDocument> {
+  const geTaxUnits = await DAO.tax.getTaxXMLReportUnits(year);
+
+  const taxUnitsMap = new Map<string, { name: string; sum: number }>();
+  geTaxUnits.forEach((unit) => {
+    const sum = parseFloat(unit.donationsSum);
+    taxUnitsMap.set(unit.ssn, {
+      name: unit.full_name,
+      sum,
+    });
+  });
+
+  const eanTaxUnits = await parseEanTaxUnits(eanUnitsCsv);
+
+  for (const unit of eanTaxUnits) {
+    if (unit.gieffektivt && !taxUnitsMap.has(unit.ssn)) {
+      throw new Error(
+        `Report says that tax unit ${unit.ssn} has donated to GE, but we don't have any donations for the unit in the database`,
+      );
+    } else if (!unit.gieffektivt && taxUnitsMap.has(unit.ssn)) {
+      throw new Error(
+        `Report says that tax unit ${unit.ssn} has not donated to GE, but we have donations for the unit in the database`,
+      );
+    }
+
+    if (taxUnitsMap.has(unit.ssn)) {
+      taxUnitsMap.set(unit.ssn, {
+        ...taxUnitsMap.get(unit.ssn),
+        sum: taxUnitsMap.get(unit.ssn).sum + unit.sum,
+      });
+    } else {
+      taxUnitsMap.set(unit.ssn, {
+        name: unit.name,
+        sum: unit.sum,
+      });
+    }
+  }
+
+  const giftEntities = Array.from(taxUnitsMap)
+    .filter((unit) => unit[1].sum >= minSum)
+    .map((unit) => ({
+      identificationNumber: unit[0],
+      amount: unit[1].sum,
+      name: unit[1].name,
+    }));
+
+  const doc = writeXMLTaxReport(giftEntities, contactInformation, year);
+
+  const xsdContent = await fetch(
+    "https://www.skatteetaten.no/contentassets/3bcbe50b50924c4297c2b62eb89a38da/v2_0_3/gavefrivilligorganisasjon_v2_0.xsd",
+  ).then((res) => res.text());
+
+  const valid = validateXml(doc, xsdContent);
+
+  if (!valid) {
+    //throw new Error("XML is invalid when validating against XSD");
+  }
+
+  return doc;
+}
+
+type GiftEntity = { name: string; identificationNumber: string; amount: number };
+type ContactInformation = { name: string; phoneNumber: string; email: string; smsNumber: string };
+const writeXMLTaxReport = (
+  giftEntities: GiftEntity[],
+  contactInformation: ContactInformation,
+  year: number,
+) => {
+  const doc = Document();
+  const root = doc.node("melding").attr({
+    xmlns: "urn:ske:fastsetting:innsamling:gavefrivilligorganisasjon:v2",
+    "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "xsi:schemaLocation":
+      "urn:ske:fastsetting:innsamling:gavefrivilligorganisasjon:v2 gavefrivilligorganisasjon_v2_0.xsd ",
+  });
+
+  const leveranse = root.node("leveranse");
+
+  // Add oppgavegiver and other static elements
+  const oppgavegiver = leveranse.node("oppgavegiver");
+  oppgavegiver.node("organisasjonsnummer", "919809140");
+  oppgavegiver.node("organisasjonsnavn", "Effektiv Altruisme Norge");
+  const kontaktinformasjon = oppgavegiver.node("kontaktinformasjon");
+  kontaktinformasjon.node("navn", contactInformation.name);
+  kontaktinformasjon.node("telefonnummer", contactInformation.phoneNumber);
+  kontaktinformasjon.node("varselEpostadresse", contactInformation.email);
+  kontaktinformasjon.node("varselSmsMobilnummer", contactInformation.smsNumber);
+
+  leveranse.node("inntektsaar", year.toString());
+  leveranse.node("oppgavegiversLeveranseReferanse", "skatteraport" + +new Date());
+  leveranse.node("leveransetype", "ordinaer");
+
+  giftEntities.forEach((entity) => {
+    const oppgave = leveranse.node("oppgave");
+    const oppgaveeier = oppgave.node("oppgaveeier");
+    if (entity.identificationNumber.length === 11) {
+      oppgaveeier.node("foedselsnummer", entity.identificationNumber);
+    } else if (entity.identificationNumber.length === 9) {
+      oppgaveeier.node("organisasjonsnummer", entity.identificationNumber);
+    }
+    oppgaveeier.node("navn", entity.name); // Replace with actual name
+    oppgave.node("beloep", Math.round(entity.amount).toFixed(0));
+  });
+
+  const oppgaveoppsummering = leveranse.node("oppgaveoppsummering");
+  oppgaveoppsummering.node("antallOppgaver", giftEntities.length.toString());
+  oppgaveoppsummering.node(
+    "sumBeloep",
+    Math.round(giftEntities.reduce((acc, curr) => acc + curr.amount, 0)).toFixed(0),
+  );
+
+  return doc;
+};
+
+const validateXml = (doc: XMLDocument, xsdContent: string): boolean => {
+  const xsdDoc = libxmljs.parseXml(xsdContent);
+  const result = doc.validate(xsdDoc);
+  const errors = doc.validationErrors;
+  return false;
+};

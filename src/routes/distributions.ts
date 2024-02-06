@@ -124,39 +124,16 @@ router.get(
       const taxUnit = await DAO.tax.getByKID(req.params.KID, req.locale);
       const donor = await DAO.donors.getByKID(req.params.KID);
 
-      type BackwardsCompatibleResponse = {
-        status: 200;
-        content: {
-          KID: string;
-          donor: unknown;
-          taxUnit: unknown;
-          standardDistribution: boolean;
-          shares: Array<{
-            full_name: string;
-            abbriv: string;
-            id: number;
-            share: string;
-          }>;
-        };
-      };
-
-      const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
-
       return res.json({
         status: 200,
         content: {
           KID: req.params.KID,
           donor,
           taxUnit,
-          standardDistribution: causeArea.standardSplit,
-          shares: causeArea.organizations.map((org) => ({
-            full_name: org.name,
-            abbriv: org.name,
-            id: org.id,
-            share: org.percentageShare,
-          })),
+          standardDistribution: distribution.causeAreas.some((c) => c.standardSplit),
+          causeAreas: distribution.causeAreas,
         },
-      } satisfies BackwardsCompatibleResponse);
+      });
     } catch (ex) {
       if (ex.message.indexOf("NOT FOUND") !== -1)
         res.status(404).send({

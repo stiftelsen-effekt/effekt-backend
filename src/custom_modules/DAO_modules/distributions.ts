@@ -17,6 +17,7 @@ import {
   DistributionInput,
 } from "../../schemas/types";
 import { PoolConnection } from "mysql2/promise";
+import { sumWithPrecision } from "../rounding";
 
 export type DistributionsListFilter = {
   KID?: string;
@@ -201,21 +202,17 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
   }
 
   // Cause areas share must sum to 100
-  const causeAreaShareSum = input.causeAreas.reduce(
-    (sum, causeArea) => sum + parseFloat(causeArea.percentageShare),
-    0,
+  const causeAreaShareSum = sumWithPrecision(
+    input.causeAreas.map((causeArea) => causeArea.percentageShare),
   );
-  if (causeAreaShareSum !== 100) {
+  if (causeAreaShareSum !== "100") {
     throw new Error(`Cause area share must sum to 100, but was ${causeAreaShareSum}`);
   }
 
   // Organization share must sum to 100 within each cause area
   input.causeAreas.forEach((causeArea) => {
-    const orgShareSum = causeArea.organizations.reduce(
-      (sum, org) => sum + parseFloat(org.percentageShare),
-      0,
-    );
-    if (orgShareSum !== 100) {
+    const orgShareSum = sumWithPrecision(causeArea.organizations.map((org) => org.percentageShare));
+    if (orgShareSum !== "100") {
       throw new Error(
         `Organization share must sum to 100 within each cause area, but was ${orgShareSum} for cause area ${causeArea.id}`,
       );
@@ -315,9 +312,7 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
           SELECT
               KID,
               Cause_area_ID,
-              ROUND(
-                  SUM(CAO.Percentage_share) OVER (PARTITION BY CA.ID) * CA.Percentage_share / 100
-              ) AS CauseAreasOrgSum
+              SUM(CAO.Percentage_share) OVER (PARTITION BY CA.ID) * CA.Percentage_share / 100 AS CauseAreasOrgSum
           FROM 
               Distributions AS D
               LEFT JOIN Distribution_cause_areas AS CA ON CA.Distribution_KID = D.KID
@@ -336,9 +331,9 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
                             AND CA.Percentage_share = ${sqlString.escape(
                               causeArea.percentageShare,
                             )} 
-                            AND CA.Standard_split = ${
-                              sqlString.escape(causeArea.standardSplit) ? 1 : 0
-                            }
+                            AND CA.Standard_split = ${sqlString.escape(
+                              causeArea.standardSplit ? 1 : 0,
+                            )}
                             AND
                             (
                               ${causeArea.organizations
@@ -588,6 +583,15 @@ async function add(
 }
 //endregion
 
+//region modify
+async function setTaxUnit(KID: string, taxUnitId: number) {
+  const [donations] = await DAO.query(`SELECT * FROM Donations WHERE KID_fordeling = ?`, [KID]);
+
+  if (donations.length > 0)
+    throw new Error("KID is already associated with donations, cannot add tax unit");
+  await DAO.query("UPDATE Distributions SET Tax_unit_ID = ? WHERE KID = ?", [taxUnitId, KID]);
+}
+
 /**
  * Sets a tax unit for all donations for a given donor
  * Note that this is not to be used outside of the tax module
@@ -720,6 +724,7 @@ export const distributions = {
   getAllByDonor,
   getByDonorId,
   add,
+  setTaxUnit,
   addTaxUnitToDistribution,
   connectFirstTaxUnit,
 };

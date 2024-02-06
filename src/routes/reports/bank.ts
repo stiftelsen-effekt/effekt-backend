@@ -1,12 +1,18 @@
 import { DAO } from "../../custom_modules/DAO";
+import { isAdmin } from "../../custom_modules/authorization/authMiddleware";
 import { sendEffektDonationReciept, sendDonationReceipt } from "../../custom_modules/mail";
 import { parseReport } from "../../custom_modules/parsers/bank";
+import { Router } from "express";
+import { RecordType, parseTotalInFile } from "../../custom_modules/parsers/sebank";
+import { DateTime } from "luxon";
 
 const config = require("../../config");
 
 const BANK_NO_KID_ID = 5;
 
-module.exports = async (req, res, next) => {
+export const bankReportRouter = Router();
+
+bankReportRouter.post("/no", isAdmin, async (req, res, next) => {
   let metaOwnerID = parseInt(req.body.metaOwnerID);
 
   var data = req.files.report.data.toString("UTF-8");
@@ -95,4 +101,91 @@ module.exports = async (req, res, next) => {
       invalidTransactions,
     },
   });
-};
+});
+
+bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
+  if (req.files === null || req.files.report === undefined) {
+    return res.status(400).json({
+      status: 400,
+      message: "Missing report",
+    });
+  }
+
+  if (Array.isArray(req.files.report)) {
+    return res.status(400).json({
+      status: 400,
+      message: "Multiple reports not supported",
+    });
+  }
+
+  var data = req.files.report.data.toString();
+
+  try {
+    var records = parseTotalInFile(data);
+  } catch (ex) {
+    return next(ex);
+  }
+
+  let payments: { amount: number; externalReference: string; KID: string }[] = [];
+  let postingDate: DateTime;
+  for (const record of records) {
+    if (record.recordType === RecordType.AccountAndCurrencyStartRecord) {
+      postingDate = DateTime.fromFormat(record.postingDate, "yyyyMMdd");
+    } else if (record.recordType === RecordType.PaymentRecord) {
+      payments.push({
+        amount: parseFloat(record.amount),
+        externalReference: record.transactionSerialNumber,
+        KID: "",
+      });
+    } else if (record.recordType === RecordType.MessageRecord) {
+      // Add KID to last payment
+      payments[payments.length - 1].KID = record.messages[0];
+    }
+  }
+
+  // Filter out Swish payments
+  payments = payments.filter((p) => p.KID !== "OrderID:");
+
+  for (let payment of payments) {
+    // Let's see if we can find the distribution
+    try {
+      const exists = await DAO.distributions.KIDexists(payment.KID);
+      if (!exists) {
+        console.log(`Did not find distribution for KID: ${payment.KID}`);
+        console.log(`Looking for legacy distribution`);
+
+        const latestDonation = await DAO.donations.getLatestByLegacySeDistribution(payment.KID);
+
+        if (latestDonation) {
+          console.log(`Found legacy donation with ID: ${latestDonation.ID}`);
+          const paymentKID = latestDonation.KID_fordeling;
+          payment.KID = paymentKID;
+        } else {
+          console.log(`Did not find legacy distribution for KID: ${payment.KID}`);
+          continue;
+        }
+      }
+
+      // Add donation
+      console.log(
+        `Adding donation for KID: ${payment.KID} with amount: ${payment.amount} and externalReference: ${payment.externalReference}`,
+      );
+      const donationId = await DAO.donations.add(
+        payment.KID,
+        2,
+        payment.amount / 100,
+        postingDate.toJSDate(),
+        payment.externalReference,
+      );
+      continue;
+    } catch (ex) {
+      console.error(`Failed to find distribution for KID: ${payment.KID}`);
+      continue;
+    }
+  }
+
+  res.json({
+    status: 200,
+    content: payments,
+  });
+});

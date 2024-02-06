@@ -47,6 +47,15 @@ model AvtaleGiro_replaced_distributions {
   DistributionsReplacement Distributions @relation(name: "Replacement", fields: [Replacement_KID], references: [KID], onDelete: Cascade, map: "fk_AvtaleGiro_replaced_distributions_to_Distributions_idx2")
 }
 
+model AutoGiro_replaced_distributions {
+  Original_AutoGiro_KID String    @db.VarChar(15)
+  Replacement_KID       String    @id @db.VarChar(15)
+  Timestamp             DateTime? @default(now()) @db.DateTime(0)
+
+  DistributionsOriginal    Distributions @relation(name: "Original", fields: [Original_AutoGiro_KID], references: [KID], onDelete: Cascade, map: "fk_AutoGiro_replaced_distributions_to_Distributions_idx")
+  DistributionsReplacement Distributions @relation(name: "Replacement", fields: [Replacement_KID], references: [KID], onDelete: Cascade, map: "fk_AutoGiro_replaced_distributions_to_Distributions_idx2")
+}
+
 model Avtalegiro_agreements {
   ID           Int       @id @default(autoincrement())
   KID          String    @db.VarChar(15)
@@ -77,6 +86,62 @@ model Avtalegiro_shipment {
   generated  DateTime? @default(now()) @db.DateTime(0)
 }
 
+model AutoGiro_agreements {
+  ID           Int       @id @default(autoincrement())
+  mandateID    Int       @unique(map: "mandateID_UNIQUE") @db.Int
+  KID          String    @unique(map: "KID_UNIQUE") @db.VarChar(16)
+  amount       Int
+  payment_date Int
+  notice       Boolean
+  active       Boolean   @default(false)
+  last_updated DateTime? @default(now()) @db.DateTime(0)
+  created      DateTime? @default(now()) @db.DateTime(0)
+  cancelled    DateTime? @db.Date
+
+  mandate AutoGiro_mandates @relation(fields: [mandateID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+}
+
+model AutoGiro_shipments {
+  ID           Int       @id @default(autoincrement())
+  num_charges  Int
+  sent_date    DateTime? @default(now()) @db.DateTime(0)
+  last_updated DateTime? @default(now()) @db.DateTime(0)
+  created      DateTime? @default(now()) @db.DateTime(0)
+
+  charges AutoGiro_agreement_charges[]
+}
+
+model AutoGiro_agreement_charges {
+  ID           Int       @id @default(autoincrement())
+  agreementID  Int
+  shipmentID   Int
+  donationID   Int?      @unique
+  status       String
+  amount       String
+  claim_date   DateTime?
+  last_updated DateTime? @default(now()) @db.DateTime(0)
+  created      DateTime? @default(now()) @db.DateTime(0)
+
+  donation Donations?         @relation(fields: [donationID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+  shipment AutoGiro_shipments @relation(fields: [shipmentID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+}
+
+model AutoGiro_mandates {
+  ID                  Int       @id @default(autoincrement())
+  status              String
+  last_updated        DateTime? @default(now()) @db.DateTime(0)
+  created             DateTime? @default(now()) @db.DateTime(0)
+  bank_account        String?   @db.VarChar(16)
+  special_information String?
+  name_and_address    String?
+  postal_code         String?
+  postal_label        String?
+
+  KID String @unique @db.VarChar(16) // This binds mandates to both donor and tax units (SSN)
+
+  agreements AutoGiro_agreements?
+}
+
 model Distributions {
   KID                        String    @id @db.VarChar(16)
   Donor_ID                   Int
@@ -93,6 +158,8 @@ model Distributions {
   Avtalgiro_agreements                          Avtalegiro_agreements[]
   AvtaleGiro_replaced_distributions_original    AvtaleGiro_replaced_distributions[] @relation(name: "Original")
   AvtaleGiro_replaced_distributions_replacement AvtaleGiro_replaced_distributions[] @relation(name: "Replacement")
+  AutoGiro_replaced_distributions_original      AutoGiro_replaced_distributions[]   @relation(name: "Original")
+  AutoGiro_replaced_distributions_replacement   AutoGiro_replaced_distributions[]   @relation(name: "Replacement")
   Avtalegiro_conversion_reminders               Avtalegiro_conversion_reminders[]
   Distribution_cause_areas                      Distribution_cause_areas[]
   Donations                                     Donations[]
@@ -109,7 +176,7 @@ model Distribution_cause_areas {
   ID               Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
   Distribution_KID String  @db.VarChar(16)
   Cause_area_ID    Int     @db.Int
-  Percentage_share Decimal @db.Decimal(15, 12)
+  Percentage_share Decimal @db.Decimal(18, 15)
   Standard_split   Boolean @default(false)
 
   // This is the link to the specific distribtion. If we delete a distribution it should cascade from Distribution -> Distribution_cause_areas -> Distribution_cause_area_organizations to clean up everything.
@@ -124,7 +191,7 @@ model Distribution_cause_area_organizations {
   ID                         Int     @id @unique(map: "ID_UNIQUE") @default(autoincrement())
   Distribution_cause_area_ID Int     @db.Int
   Organization_ID            Int     @db.Int
-  Percentage_share           Decimal @db.Decimal(15, 12)
+  Percentage_share           Decimal @db.Decimal(18, 15)
 
   // This is the link to the cause area for a specific distribution. If we delete a distribution it should cascade from Distribution -> Distribution_cause_areas -> Distribution_cause_area_organizations to clean up everything.
   Distribution_cause_areas Distribution_cause_areas @relation(fields: [Distribution_cause_area_ID], references: [ID], onDelete: Cascade, map: "fk_Distribution_ca_organizations_to_Distribution_ca_idx")
@@ -157,6 +224,8 @@ model Donations {
   Swish_orders                   Swish_orders?
   Adoveo_fundraiser_transactions Adoveo_fundraiser_transactions?
   Adoveo_giftcard_transactions   Adoveo_giftcard_transactions?
+  AutoGiro_agreement_charges     AutoGiro_agreement_charges?
+  LegacySeDistributionConnection LegacySeDistributionConnection?
 
   // When we delete a distribution we delete the associated donations.
   Distributions Distributions @relation(fields: [KID_fordeling], references: [KID], onDelete: Cascade, map: "fk_Donations_to_Distributions_KID")
@@ -204,7 +273,7 @@ model FB_campaign_org_shares {
   ID             Int      @id @default(autoincrement())
   FB_campaign_ID String   @db.VarChar(20)
   Org_ID         Int
-  Share          Decimal  @db.Decimal(15, 12)
+  Share          Decimal  @db.Decimal(18, 15)
   Standard_split Boolean?
 
   @@index([Org_ID], map: "fk_FB_campaign_org_shares_1_idx")
@@ -238,6 +307,14 @@ model FB_payment_ID {
   @@index([taxUnitID], map: "fk_fbpayment_to_taxunit_idx")
 }
 
+model LegacySeDistributionConnection {
+  ID        Int    @id @default(autoincrement())
+  paymentID String @unique @db.VarChar(32)
+  legacyKID String @db.VarChar(16)
+
+  Donations Donations @relation(fields: [paymentID], references: [PaymentExternal_ID], onDelete: Restrict, map: "fk_LegacySeDistributionConnection_to_Donations_idx")
+}
+
 model Adoveo_fundraiser {
   ID       Int    @id @default(autoincrement())
   Donor_ID Int?
@@ -255,7 +332,7 @@ model Adoveo_fundraiser_org_shares {
   ID             Int      @id @default(autoincrement())
   Fundraiser_ID  Int
   Org_ID         Int
-  Share          Decimal  @db.Decimal(15, 12)
+  Share          Decimal  @db.Decimal(18, 15)
   Standard_split Boolean?
 
   Created      DateTime @default(now()) @db.DateTime(0)

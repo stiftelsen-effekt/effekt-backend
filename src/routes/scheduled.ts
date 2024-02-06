@@ -6,6 +6,7 @@ import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_mo
 import { DateTime } from "luxon";
 
 import express from "express";
+import { generateAutogiroGiroFile } from "../custom_modules/autogiro";
 import fetch from "node-fetch";
 import config from "../config";
 
@@ -249,6 +250,58 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
     res.send("OK");
   } catch (ex) {
     console.error(ex);
+    next({ ex });
+  }
+});
+
+router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
+  let result;
+  try {
+    const today = DateTime.fromJSDate(new Date());
+    const claimDate = today.plus({ days: 3 });
+
+    /**
+     * Get active agreements
+     */
+    const agreements = await DAO.autogiroagreements.getAgreementsByPaymentDate(claimDate.day);
+    const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
+
+    if (agreements.length > 0 || mandatesToBeConfirmed.length > 0) {
+      /**
+       * Create file to charge agreements for current day
+       */
+      const shipmentID = await DAO.autogiroagreements.addShipment(agreements.length);
+      const autoGiroClaimsFile = await generateAutogiroGiroFile(
+        shipmentID,
+        agreements,
+        mandatesToBeConfirmed,
+        claimDate,
+      );
+
+      result = {
+        shipmentID: shipmentID,
+        numCharges: agreements.length,
+        numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
+        file: autoGiroClaimsFile.toString(),
+        filename: `BFEP.IAGAG.${shipmentID}.${today.toFormat("yyLLdd.HHmmss")}`,
+      };
+    } else {
+      result = {
+        shipmentID: null,
+        numCharges: 0,
+        mandatesToBeConfirmed: 0,
+        file: null,
+        filename: null,
+      };
+    }
+
+    await DAO.logging.add("AutoGiro", result);
+    // await sendOcrBackup(JSON.stringify(result, null, 2));
+    res.json({
+      status: 200,
+      content: result,
+    });
+  } catch (ex) {
     next({ ex });
   }
 });

@@ -1,7 +1,7 @@
 import { Swish_orders } from "@prisma/client";
 import { Agent } from "https";
 import fetch from "node-fetch";
-import uuid from "uuid/v4";
+import { v4 as uuidv4 } from "uuid";
 import config from "../config";
 import paymentMethods from "../enums/paymentMethods";
 import { DAO } from "./DAO";
@@ -21,11 +21,11 @@ const swishAgent = new Agent({
  */
 interface SwishPaymentRequest {
   amount: number;
-  currency: string;
+  currency: "SEK";
   callbackUrl: string;
-  payerAlias: string;
   payeeAlias: string;
   payeePaymentReference?: string;
+  ageLimit?: string;
   status?: string; // missing in api docs, but should be there according to examples
 }
 
@@ -46,14 +46,12 @@ function isFinalSwishOrderStatus(status: string): status is keyof typeof FinalSw
 /**
  * @param data.instructionUUID The identifier of the payment request to be saved. Example: 11A86BE70EA346E4B1C39C874173F088
  * @param data.reference Payment reference of the payee, which is the merchant that receives the payment.
- * @param data.phone The registered cellphone number of the person that makes the payment. It can only contain numbers and has to be at least 8 and at most 15 numbers. It also needs to match the following format in order to be found in Swish: country code + cellphone number (without leading zero). E.g.: 46712345678
  *
  * @see https://developer.swish.nu/api/payment-request/v2#create-payment-request
  */
 async function createPaymentRequest(data: {
   instructionUUID: string;
   amount: number;
-  phone: string;
   reference: string;
 }) {
   const swishRequestData: SwishPaymentRequest = {
@@ -61,7 +59,6 @@ async function createPaymentRequest(data: {
     amount: data.amount,
     currency: "SEK", // only SEK is supported
     payeeAlias: config.swish_payee_alias,
-    payerAlias: data.phone,
     payeePaymentReference: data.reference,
   };
 
@@ -105,7 +102,7 @@ async function retrievePaymentRequest(instructionUUID: string): Promise<SwishPay
 /**
  * Creates a swish payment request and adds a swish order to the database
  */
-export async function initiateOrder(KID: string, data: { amount: number; phone: string }) {
+export async function initiateOrder(KID: string, data: { amount: number }) {
   const instructionUUID = generateSwishInstructionUUID();
   const reference = generatePaymentReference();
   const donor = await DAO.donors.getByKID(KID);
@@ -117,7 +114,6 @@ export async function initiateOrder(KID: string, data: { amount: number; phone: 
   const paymentRequest = await createPaymentRequest({
     instructionUUID,
     amount: data.amount,
-    phone: data.phone,
     reference,
   });
 
@@ -199,7 +195,7 @@ export async function handleOrderStatusUpdate(
  */
 function generateSwishInstructionUUID() {
   const regex = /-/g;
-  return uuid().replace(regex, "").toUpperCase();
+  return uuidv4().replace(regex, "").toUpperCase();
 }
 
 function generatePaymentReference() {
@@ -222,4 +218,24 @@ export async function getSwishOrder(ID: Swish_orders["ID"]) {
     amount: swishRequest.amount,
   });
   return await DAO.swish.getOrderByID(ID);
+}
+
+/** https://swish-developer-docs.web.app/api/qr-codes/v1#mcom-to-qcom */
+export async function streamQrCode(token: string, options: { format: "png" }) {
+  const response = await fetch(`https://mpc.getswish.net/qrg-swish/api/v1/commerce`, {
+    body: JSON.stringify({
+      token,
+      size: "300",
+      format: "png",
+      border: "0",
+      transparent: true,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+
+    method: "POST",
+  });
+
+  return response.body;
 }

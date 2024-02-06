@@ -286,8 +286,7 @@ async function getAgreements(sort, page, limit, filter) {
       if (filter.created.to) where.push(`AG.created <= ${sqlString.escape(filter.created.to)} `);
     }
 
-    if (filter.KID)
-      where.push(` CAST(CT.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
+    if (filter.KID) where.push(` CAST(D.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
     if (filter.donor)
       where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
     if (filter.statuses.length > 0)
@@ -308,10 +307,10 @@ async function getAgreements(sort, page, limit, filter) {
             AG.notice,
             Donors.full_name 
         FROM Avtalegiro_agreements as AG
-        INNER JOIN Combining_table as CT
-            ON AG.KID = CT.KID
+        INNER JOIN Distributions as D
+            ON AG.KID = D.KID
         INNER JOIN Donors 
-            ON CT.Donor_ID = Donors.ID
+            ON D.Donor_ID = Donors.ID
         WHERE
             ${where.length !== 0 ? where.join(" AND ") : "1"}
 

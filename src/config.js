@@ -21,8 +21,20 @@ module.exports = {
 
   //API keys
   mailgun_api_key: process.env.MAILGUN_API_KEY,
+  mailersend_api_key: process.env.MAILERSEND_API_KEY,
   mailchimp_api_key: process.env.MAILCHIMP_API_KEY,
   mailchimp_audience_id: process.env.MAILCHIMP_AUDIENCE_ID,
+
+  //Mailersend templates
+  mailersend_donation_receipt_template_id: process.env.MAILERSEND_DONATION_RECEIPT_TEMPLATE_ID,
+  mailersend_donation_registered_template_id:
+    process.env.MAILERSEND_DONATION_REGISTERED_TEMPLATE_ID,
+  mailersend_avtalegiro_notification_template_id:
+    process.env.MAILERSEND_AVTALEGIRO_NOTIFICATION_TEMPLATE_ID,
+  mailersend_autogiro_registered_template_id:
+    process.env.MAILERSEND_AUTOGIRO_REGISTERED_TEMPLATE_ID,
+
+  mail_sender_from: process.env.MAIL_SENDER_FROM,
 
   vipps_client_id: process.env.VIPPS_CLIENT_ID,
   vipps_client_secret: process.env.VIPPS_CLIENT_SECRET,
@@ -76,6 +88,9 @@ module.exports = {
   //Bank account for recieving donations
   bankAccount: process.env.BANK_ACCOUNT,
   nets_customer_id: process.env.NETS_CUSTOMER_ID,
+
+  autogiro_customer_number: process.env.AUTOGIRO_CUSTOMER_NUMBER,
+  autogiro_bankgiro_number: process.env.AUTOGIRO_BANKGIRO_NUMBER,
 
   //Server addresss
   serverAddress: process.env.SERVER_ADDRESS,

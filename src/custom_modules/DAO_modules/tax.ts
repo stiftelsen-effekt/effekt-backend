@@ -40,14 +40,23 @@ async function getByDonorId(donorId: number, locale: RequestLocale): Promise<Arr
     [donorId],
   );
 
+  const eligbleCauseAreasByLocale = {
+    [RequestLocale.NO]: [1],
+    [RequestLocale.SE]: [1],
+  };
+
   // Get all donations for the donor with attached tax unit id
   const [donations] = await DAO.query<{ year: number; sum: string; taxUnitId: number }[]>(
-    `SELECT YEAR(Donations.timestamp_confirmed) as year, Donations.sum_confirmed as sum, Tax_unit.ID as taxUnitId
-      FROM Donations
-      INNER JOIN Distributions ON Distributions.KID = Donations.KID_fordeling
-      INNER JOIN Tax_unit ON Tax_unit.ID = Distributions.Tax_unit_ID
-      WHERE Tax_unit.Donor_ID = ?`,
-    [donorId],
+    `SELECT 
+      YEAR(Donations.timestamp_confirmed) as year,
+      ROUND(COALESCE((SELECT SUM(DA.Percentage_share) as prct FROM Distribution_cause_areas as DA WHERE Distribution_KID = Donations.KID_fordeling AND Cause_area_ID IN (?)),0)/100 * Donations.sum_confirmed) as sum,
+      Tax_unit.ID as taxUnitId
+        
+        FROM Donations
+        INNER JOIN Distributions ON Distributions.KID = Donations.KID_fordeling
+        INNER JOIN Tax_unit ON Tax_unit.ID = Distributions.Tax_unit_ID
+        WHERE Tax_unit.Donor_ID = ?`,
+    [eligbleCauseAreasByLocale[locale], donorId],
   );
 
   const calculatedUnits = getTaxUnitsWithDeductions({
@@ -149,7 +158,6 @@ export type EmailTaxUnitReport = {
 async function getReportsWithUserOnProfilePage(): Promise<EmailTaxUnitReport[]> {
   const [result] = await DAO.execute<RowDataPacket[]>(`
     SELECT TaxUnitName, \`SUM(sum_confirmed)\` as DonationsSum, DonorUserEmail, DonorUserName FROM v_Tax_deductions
-      WHERE (SELECT COUNT(*) FROM Auth0_users WHERE Email = DonorUserEmail) = 1
   `);
 
   const mapped: EmailTaxUnitReport[] = [];
@@ -192,6 +200,96 @@ async function getReportsWithoutUserOnProfilePage(): Promise<EmailTaxUnitReport[
   }
 
   return mapped;
+}
+
+async function getDonorsEligableForDeductionInYear(
+  year: number,
+  minSum: number,
+  excludedEmails: string[],
+) {
+  const [result] = await DAO.query<
+    {
+      donationsSum: number;
+      email: string;
+      full_name: string;
+      unitCount: number;
+    }[]
+  >(
+    `
+    SELECT 
+      SUM(sum_confirmed) as donationsSum,
+      Donors.email,
+      Donors.full_name,
+      (SELECT COUNT(*) FROM Tax_unit WHERE Donor_ID = Donors.ID) as unitCount
+    
+  
+    FROM Donations as D
+      
+    INNER JOIN Distributions as DI
+      ON DI.KID = D.KID_fordeling
+    INNER JOIN Donors
+      ON Donors.ID = D.Donor_ID
+      
+    WHERE 
+      DI.Tax_unit_ID IS NULL
+      AND YEAR (D.timestamp_confirmed) = ?
+      AND (Donors.trash = 0 OR Donors.trash IS NULL)
+      AND (Donors.email NOT LIKE '%auksjon%')
+      AND (Donors.email NOT LIKE '%gieffektivt.no')
+      AND (Donors.email NOT LIKE '%gieffektiv.no')
+      AND (Donors.email NOT IN (?))
+      AND (SELECT COUNT(*) FROM Tax_unit WHERE Donor_ID = Donors.ID) = 0
+      
+    GROUP BY
+      Donors.email,
+      Donors.full_name
+      
+      HAVING SUM(sum_confirmed) >= ?
+      
+      ORDER BY SUM(sum_confirmed) DESC
+  `,
+    [year, excludedEmails, minSum],
+  );
+
+  return result;
+}
+
+async function getTaxXMLReportUnits(year: number) {
+  const [result] = await DAO.query<
+    {
+      donationsSum: string;
+      ssn: string;
+      full_name: string;
+    }[]
+  >(
+    `
+    SELECT 
+      SUM(sum_confirmed) as donationsSum,
+      Tax_unit.ssn,
+      Tax_unit.full_name
+
+      FROM Donations as D
+
+      INNER JOIN Distributions as DI
+        ON DI.KID = D.KID_fordeling
+
+      INNER JOIN Tax_unit
+        ON Tax_unit.ID = DI.Tax_unit_ID
+
+      WHERE 
+        DI.Tax_unit_ID IS NOT NULL
+        AND YEAR (D.timestamp_confirmed) = ?
+
+      GROUP BY
+        Tax_unit.ssn,
+        Tax_unit.full_name
+
+      ORDER BY SUM(sum_confirmed) DESC
+  `,
+    [year],
+  );
+
+  return result;
 }
 //endregion
 
@@ -391,6 +489,8 @@ export const tax = {
   getActiveTaxUnitIdsByDonorId,
   getReportsWithUserOnProfilePage,
   getReportsWithoutUserOnProfilePage,
+  getTaxXMLReportUnits,
+  getDonorsEligableForDeductionInYear,
   addTaxUnit,
   updateTaxUnit,
   deleteById,
