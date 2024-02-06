@@ -12,6 +12,7 @@ import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
 import { APIResponse } from "mailersend/lib/services/request.service";
 import { DistributionCauseAreaOrganization, Donor } from "../schemas/types";
+import { get } from "request";
 
 /**
  * @typedef VippsAgreement
@@ -163,7 +164,14 @@ export async function sendDonationReceipt(donationID, reciever = null) {
   const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
     (acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
-        acc.push(org);
+        acc.push({
+          id: org.id,
+          name: org.name,
+          percentageShare: getOrganizationOverallPercentage(
+            org.percentageShare,
+            causeArea.percentageShare,
+          ).toString(),
+        });
       });
       return acc;
     },
@@ -173,9 +181,7 @@ export async function sendDonationReceipt(donationID, reciever = null) {
   const organizations = formatOrganizationsFromSplit(split, donation.sum);
 
   const mailResult = await sendTemplate({
-    from: "donasjon@gieffektivt.no",
     to: reciever || donation.email,
-    subject: "Gi Effektivt - Din donasjon er mottatt",
     templateId: config.mailersend_donation_receipt_template_id,
     variables: {
       donorName: donation.donor,
@@ -200,6 +206,85 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     return false;
   } else if (mailResult.statusCode !== 202) {
     console.error("Failed to send donation reciept");
+    console.error(mailResult);
+    return mailResult.statusCode;
+  } else {
+    return true;
+  }
+}
+
+/**
+ * Sends a donation reciept
+ * @param {number} agreementKid
+ * @param {string} reciever Reciever email
+ */
+export async function sendAutoGiroRegistered(agreementKid, reciever = null) {
+  try {
+    var agreement = await DAO.autogiroagreements.getAgreementByKID(agreementKid);
+    var donor = await DAO.donors.getByKID(agreementKid);
+    if (!donor.email) {
+      console.error("No email provided for agreement with KID " + agreementKid);
+      return false;
+    }
+  } catch (ex) {
+    console.error("Failed to send mail donation reciept, could not get donation by ID");
+    console.error(ex);
+    return false;
+  }
+
+  try {
+    var distribution = await DAO.distributions.getSplitByKID(agreement.KID);
+  } catch (ex) {
+    console.error("Failed to send mail donation reciept, could not get donation split by KID");
+    console.error(ex);
+    return false;
+  }
+
+  const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
+    (acc, causeArea) => {
+      causeArea.organizations.forEach((org) => {
+        acc.push({
+          id: org.id,
+          name: org.name,
+          percentageShare: (
+            (parseFloat(org.percentageShare) / 100) *
+            (parseFloat(causeArea.percentageShare) / 100) *
+            100
+          ).toString(),
+        });
+      });
+      return acc;
+    },
+    [],
+  );
+
+  const organizations = formatOrganizationsFromSplit(split, agreement.amount);
+
+  const mailResult = await sendTemplate({
+    to: reciever || donor.email,
+    templateId: config.mailersend_autogiro_registered_template_id,
+    variables: {
+      donorName: donor.name,
+      donationKID: agreement.KID,
+      paymentMethod: decideUIPaymentMethod("AutoGiro"),
+      donationTotalSum: formatCurrency(agreement.amount) + " kr",
+    },
+    personalization: {
+      organizations,
+    },
+  });
+
+  /**
+   * HTTP 202 is the status code for accepted
+   * If the mail was not accepted, log the error and return false
+   * If the mail was accepted, return true
+   * Accepted means that the mail was sent to the mail server, not that it was delivered
+   * It is scheduled for delivery
+   */
+  if (mailResult === false) {
+    return false;
+  } else if (mailResult.statusCode !== 202) {
+    console.error("Failed to send autogiro registered reciept");
     console.error(mailResult);
     return mailResult.statusCode;
   } else {
@@ -248,7 +333,14 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
   const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
     (acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
-        acc.push(org);
+        acc.push({
+          id: org.id,
+          name: org.name,
+          percentageShare: getOrganizationOverallPercentage(
+            org.percentageShare,
+            causeArea.percentageShare,
+          ).toString(),
+        });
       });
       return acc;
     },
@@ -332,24 +424,27 @@ export async function sendDonationRegistered(KID, sum) {
       return false;
     }
 
-    const organizations = distribution.causeAreas.reduce((acc, causeArea) => {
+    const split = distribution.causeAreas.reduce((acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
         acc.push({
           // Need to get name
           name: org.name ? org.name.toString() : org.id.toString(),
           // Round to nearest 2 decimals
-          percentage: Math.round(parseFloat(org.percentageShare) * 100) / 100,
+          percentageShare: getOrganizationOverallPercentage(
+            org.percentageShare,
+            causeArea.percentageShare,
+          ).toString(),
         });
       });
       return acc;
     }, []);
 
+    const organizations = formatOrganizationsFromSplit(split, sum);
+
     var KIDstring = KID.toString();
 
     await sendTemplate({
-      from: "donasjon@gieffektivt.no",
       to: donor.email,
-      subject: "Gi Effektivt - Donasjon klar til innbetaling",
       templateId: config.mailersend_donation_registered_template_id,
       variables: {
         donationKID: KID,
@@ -661,9 +756,7 @@ export async function sendAvtalegiroNotification(
 
   try {
     await sendTemplate({
-      from: "donasjon@gieffektivt.no",
       to: donor.email,
-      subject: `Gi Effektivt - AvtaleGiro trekk ${claimDate.toFormat("dd.MM.yyyy")}`,
       templateId: config.mailersend_avtalegiro_notification_template_id,
       variables: {
         paymentMethod: "AvtaleGiro",
@@ -692,7 +785,7 @@ export async function sendAvtalegiroNotification(
  * @returns {true | number} True if successfull, or an error code if failed
  */
 export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
-  let donor: Donor;
+  let donor;
   let split: {
     causeAreas: {
       id: number;
@@ -778,11 +871,11 @@ export async function sendTaxYearlyReportNoticeWithUser(report: EmailTaxUnitRepo
   try {
     await send({
       reciever: report.email,
-      subject: `Gi Effektivt - Årsoppgave for 2022`,
+      subject: `Gi Effektivt - Årsoppgave for 2023`,
       templateName: "taxDeductionUser",
       templateData: {
         header: "Hei" + (report.name && report.name.length > 0 ? " " + report.name : "") + ",",
-        year: 2022,
+        year: 2023,
         units: formattedUnits,
         donorEmail: report.email,
         reusableHTML,
@@ -798,6 +891,8 @@ export async function sendTaxYearlyReportNoticeWithUser(report: EmailTaxUnitRepo
 }
 
 export async function sendTaxYearlyReportNoticeNoUser(report: EmailTaxUnitReport) {
+  return false;
+
   const formattedUnits = report.units.map((u) => {
     return {
       ...u,
@@ -995,9 +1090,7 @@ async function send(options: {
 }
  */
 type SendTemplateParameters = {
-  from: string;
   to: string;
-  subject: string;
   templateId: string;
   variables: { [key: string]: string };
   personalization: any;
@@ -1007,11 +1100,9 @@ async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse
     apiKey: config.mailersend_api_key,
   });
 
-  const sentFrom = new Sender(params.from, "Gi Effektivt");
   const recipients = [new Recipient(params.to)];
 
   const email = new EmailParams()
-    .setFrom(sentFrom)
     .setTo(recipients)
     .setTemplateId(params.templateId)
     .setVariables([
@@ -1028,8 +1119,7 @@ async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse
         email: params.to,
         data: params.personalization,
       },
-    ])
-    .setSubject(params.subject);
+    ]);
 
   try {
     const response = await mailersend.email.send(email);
@@ -1069,6 +1159,16 @@ export async function sendPlaintextErrorMail(
     return false;
   }
 }
+
+const roundCurrency = (amount: number) => {
+  return Math.round(amount * 100) / 100;
+};
+
+const getOrganizationOverallPercentage = (percentage: string, causeAreaPercentage: string) => {
+  return roundCurrency(
+    (parseFloat(percentage) / 100) * (parseFloat(causeAreaPercentage) / 100) * 100,
+  );
+};
 
 function formatDate(date) {
   return moment(date).format("DD.MM.YYYY");

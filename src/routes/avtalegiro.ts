@@ -1,10 +1,10 @@
 import * as express from "express";
-import { checkAvtaleGiroAgreement } from "../custom_modules/authorization/authMiddleware";
+import { checkDonorOwnsDistribution } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendAvtaleGiroChange, sendAvtalegiroRegistered } from "../custom_modules/mail";
 import { donationHelpers } from "../custom_modules/donationHelpers";
-import { DistributionInput, Donor } from "../schemas/types";
+import { DistributionInput } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import moment from "moment";
 import {
@@ -337,7 +337,7 @@ router.post(
   "/:KID/distribution",
   authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
-    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
+    checkDonorOwnsDistribution(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -345,8 +345,9 @@ router.post(
       const originalKID: string = req.params.KID;
       const distributionInput = req.body as DistributionInput;
 
+      let validatedDistribtion: DistributionInput | null = null;
       try {
-        validateDistribution(distributionInput);
+        validatedDistribtion = validateDistribution(distributionInput);
       } catch (ex) {
         return res.status(400).json({
           status: 400,
@@ -354,19 +355,26 @@ router.post(
         });
       }
 
-      const originalDistribution = await DAO.distributions.getSplitByKID(originalKID);
-      const newKid = await donationHelpers.createAvtaleGiroKID();
-      await DAO.avtalegiroagreements.replaceDistribution(
-        originalDistribution,
-        newKid,
-        distributionInput,
-      );
-      await sendAvtaleGiroChange(originalKID, "SHARES");
+      if (validatedDistribtion) {
+        const originalDistribution = await DAO.distributions.getSplitByKID(originalKID);
+        const newKid = await donationHelpers.createAvtaleGiroKID();
+        await DAO.avtalegiroagreements.replaceDistribution(
+          originalDistribution,
+          newKid,
+          validatedDistribtion,
+        );
+        await sendAvtaleGiroChange(originalKID, "SHARES");
 
-      res.json({
-        status: 200,
-        content: "OK",
-      });
+        res.json({
+          status: 200,
+          content: "OK",
+        });
+      } else {
+        res.status(400).json({
+          status: 400,
+          content: "Invalid distribution",
+        });
+      }
     } catch (ex) {
       next(ex);
     }
@@ -401,7 +409,7 @@ router.post(
   "/:KID/status",
   authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
-    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
+    checkDonorOwnsDistribution(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -446,7 +454,7 @@ router.post(
   "/:KID/amount",
   authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
-    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
+    checkDonorOwnsDistribution(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -495,7 +503,7 @@ router.post(
   "/:KID/paymentdate",
   authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
-    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
+    checkDonorOwnsDistribution(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {

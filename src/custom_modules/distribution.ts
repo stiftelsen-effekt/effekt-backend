@@ -1,6 +1,8 @@
 import { Distribution, DistributionInput } from "../schemas/types";
 import { sumWithPrecision } from "./rounding";
 
+const Decimal = require("decimal.js");
+
 export const GLOBAL_HEALTH_CAUSE_AREA_ID = 1;
 
 export function findGlobalHealthCauseAreaOrThrow(distribution: Distribution) {
@@ -21,7 +23,9 @@ export function findGlobalHealthCauseAreaOrThrow(distribution: Distribution) {
   return causeArea;
 }
 
-export function validateDistribution(distribution: DistributionInput | Distribution) {
+export function validateDistribution(
+  distribution: DistributionInput | Distribution,
+): Distribution | DistributionInput {
   if (typeof distribution !== "object") {
     throw new Error(`Distribution is not an object`);
   }
@@ -97,4 +101,21 @@ export function validateDistribution(distribution: DistributionInput | Distribut
       throw new Error(`Distribution cause area ${causeArea.id}'s organizations do not sum to 100`);
     }
   }
+
+  // Remove cause areas with zero percentage share
+  const causeAreas = distribution.causeAreas.filter(
+    (causeArea) => new Decimal(causeArea.percentageShare).equals(0) === false,
+  );
+
+  // Remove organizations with zero percentage share
+  for (const causeArea of causeAreas) {
+    causeArea.organizations = causeArea.organizations.filter(
+      (organization) => new Decimal(organization.percentageShare).equals(0) === false,
+    );
+  }
+
+  return {
+    ...distribution,
+    causeAreas,
+  };
 }

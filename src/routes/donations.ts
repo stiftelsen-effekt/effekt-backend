@@ -2,14 +2,17 @@ import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { donationHelpers } from "../custom_modules/donationHelpers";
-import { sendDonationReceipt, sendDonationRegistered } from "../custom_modules/mail";
+import {
+  sendAutoGiroRegistered,
+  sendDonationReceipt,
+  sendDonationRegistered,
+} from "../custom_modules/mail";
 import * as swish from "../custom_modules/swish";
-import rateLimit from "express-rate-limit";
 import methods from "../enums/methods";
 import bodyParser from "body-parser";
 import apicache from "apicache";
 import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
-import { GLOBAL_HEALTH_CAUSE_AREA_ID } from "../custom_modules/distribution";
+import { DateTime } from "luxon";
 
 const config = require("../config");
 
@@ -157,14 +160,35 @@ router.post("/register", async (req, res, next) => {
     }
 
     /** Use new KID for avtalegiro */
-    if (donationObject.method == methods.BANK && donationObject.recurring == true) {
+    if (donationObject.method == methods.AVTALEGIRO) {
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
       donationObject.KID = await donationHelpers.createAvtaleGiroKID();
-      // !!--!! ================================================= TAX UNIT
       await DAO.distributions.add({
         ...draftDistribution,
         kid: donationObject.KID,
       });
+    } else if (donationObject.method == methods.AUTOGIRO) {
+      donationObject.KID = await donationHelpers.createAvtaleGiroKID();
+      await DAO.distributions.add({
+        ...draftDistribution,
+        kid: donationObject.KID,
+      });
+
+      // Draft AutoGiro
+      await DAO.autogiroagreements.draftAgreement({
+        KID: donationObject.KID,
+        amount:
+          typeof donationObject.amount === "string"
+            ? parseFloat(donationObject.amount)
+            : donationObject.amount,
+        payment_date: DateTime.now().plus({ days: 6 }).day,
+      });
+
+      try {
+        await sendAutoGiroRegistered(donationObject.KID, donor.email);
+      } catch (ex) {
+        console.error(`Failed to send AutoGiro registered email for KID ${donationObject.KID}`);
+      }
     } else {
       //Try to get existing KID
       donationObject.KID = await DAO.distributions.getKIDbySplit({

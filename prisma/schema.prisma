@@ -47,6 +47,15 @@ model AvtaleGiro_replaced_distributions {
   DistributionsReplacement Distributions @relation(name: "Replacement", fields: [Replacement_KID], references: [KID], onDelete: Cascade, map: "fk_AvtaleGiro_replaced_distributions_to_Distributions_idx2")
 }
 
+model AutoGiro_replaced_distributions {
+  Original_AutoGiro_KID String    @db.VarChar(15)
+  Replacement_KID       String    @id @db.VarChar(15)
+  Timestamp             DateTime? @default(now()) @db.DateTime(0)
+
+  DistributionsOriginal    Distributions @relation(name: "Original", fields: [Original_AutoGiro_KID], references: [KID], onDelete: Cascade, map: "fk_AutoGiro_replaced_distributions_to_Distributions_idx")
+  DistributionsReplacement Distributions @relation(name: "Replacement", fields: [Replacement_KID], references: [KID], onDelete: Cascade, map: "fk_AutoGiro_replaced_distributions_to_Distributions_idx2")
+}
+
 model Avtalegiro_agreements {
   ID           Int       @id @default(autoincrement())
   KID          String    @db.VarChar(15)
@@ -149,6 +158,8 @@ model Distributions {
   Avtalgiro_agreements                          Avtalegiro_agreements[]
   AvtaleGiro_replaced_distributions_original    AvtaleGiro_replaced_distributions[] @relation(name: "Original")
   AvtaleGiro_replaced_distributions_replacement AvtaleGiro_replaced_distributions[] @relation(name: "Replacement")
+  AutoGiro_replaced_distributions_original      AutoGiro_replaced_distributions[]   @relation(name: "Original")
+  AutoGiro_replaced_distributions_replacement   AutoGiro_replaced_distributions[]   @relation(name: "Replacement")
   Avtalegiro_conversion_reminders               Avtalegiro_conversion_reminders[]
   Distribution_cause_areas                      Distribution_cause_areas[]
   Donations                                     Donations[]
