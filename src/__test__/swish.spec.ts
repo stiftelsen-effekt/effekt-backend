@@ -11,6 +11,7 @@ import * as mail from "../custom_modules/mail";
 import { initiateOrder } from "../custom_modules/swish";
 import swishRouter from "../routes/swish";
 import paymentMethods from "../enums/paymentMethods";
+import { DateTime } from "luxon";
 
 describe("swish", () => {
   describe("initiateOrder()", () => {
@@ -121,7 +122,7 @@ describe("swish", () => {
     });
 
     function withOrder(
-      order: Partial<Awaited<ReturnType<typeof DAO.swish.getOrderByInstructionUUID>>>,
+      order: Partial<Awaited<ReturnType<typeof DAO.swish.getOrderByInstructionUUID>>> | null,
     ) {
       getOrderByInstructionUUIDStub.resolves(order as any);
     }
@@ -145,7 +146,7 @@ describe("swish", () => {
     it('should create a donation if status is "PAID"', async () => {
       const order = {
         KID: "1234567890",
-        registered: "2020-01-01T00:00:00.000Z",
+        registered: DateTime.fromISO("2020-01-01T00:00:00.000Z").toJSDate(),
         reference: "20010112345",
       };
       const amount = 123;
@@ -221,7 +222,7 @@ describe("swish", () => {
       addDonationStub = sinon.stub(DAO.donations, "add");
     });
 
-    function withOrder(order: Partial<Awaited<ReturnType<typeof DAO.swish.getOrderByID>>>) {
+    function withOrder(order: Partial<Awaited<ReturnType<typeof DAO.swish.getOrderByID>>> | null) {
       getOrderByIDStub.resolves(order as any);
       getOrderByInstructionUUIDStub.resolves(order as any);
     }
@@ -279,7 +280,7 @@ describe("swish", () => {
         getOrderStub = sinon.stub(swish, "getSwishOrder");
       });
 
-      function withOrder(order: Partial<Swish_orders>) {
+      function withOrder(order: Partial<Swish_orders> | null) {
         getOrderStub.resolves(order as any);
       }
 
