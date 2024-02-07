@@ -158,35 +158,13 @@ router.get(
       if (!req.params.donorID) res.status(400).json({ status: 400, content: "No KID provided" });
       let { distributions, donorID } = await DAO.distributions.getAllByDonor(req.params.donorID);
 
-      type BackwardsCompatibleResponse = {
-        status: 200;
-        content: {
-          donorID: number;
-          distributions: Array<{
-            kid: string;
-            shares: Array<{
-              id: number;
-              name: string;
-              share: string;
-            }>;
-          }>;
-        };
-      };
-
       return res.json({
         status: 200,
         content: {
           donorID,
-          distributions: distributions.map((distribution) => ({
-            kid: distribution.kid,
-            shares: findGlobalHealthCauseAreaOrThrow(distribution).organizations.map((org) => ({
-              id: org.id,
-              name: org.name,
-              share: org.percentageShare,
-            })),
-          })),
+          distributions,
         },
-      } satisfies BackwardsCompatibleResponse);
+      });
     } catch (ex) {
       if (ex.message.indexOf("NOT FOUND") !== -1)
         res.status(404).send({

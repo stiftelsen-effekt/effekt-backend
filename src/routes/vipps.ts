@@ -117,39 +117,12 @@ router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
 
     const distribution = await DAO.distributions.getSplitByKID(KID);
 
-    type BackwardsCompatibleResponse = {
-      content: {
-        agreement: unknown;
-        distribution: {
-          kid: string;
-          standardDistribution: boolean;
-          shares: Array<{
-            abbriv: string;
-            name: string;
-            id: number;
-            share: string | number;
-          }>;
-        };
-      };
-    };
-
-    const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
-
     res.status(200).json({
       content: {
         agreement,
-        distribution: {
-          kid: distribution.kid,
-          standardDistribution: causeArea.standardSplit,
-          shares: causeArea.organizations.map((org) => ({
-            abbriv: org.name,
-            name: org.name,
-            id: org.id,
-            share: org.percentageShare,
-          })),
-        },
+        distribution,
       },
-    } satisfies BackwardsCompatibleResponse);
+    });
   } catch (ex) {
     next({ ex });
   }
