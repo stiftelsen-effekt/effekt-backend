@@ -198,19 +198,14 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
       req.body.limit,
       req.body.filter,
     );
-    if (results !== false) {
-      return res.json({
-        status: 200,
-        content: {
-          pages: results.pages,
-          rows: results.rows,
-        },
-      });
-    } else {
-      let err = new Error("Could not fetch agreements");
-      (err as any).status = 500;
-      return next(err);
-    }
+    return res.json({
+      status: 200,
+      content: {
+        pages: results.pages,
+        rows: results.rows,
+        statistics: results.statistics,
+      },
+    });
   } catch (ex) {
     next(ex);
   }
@@ -224,19 +219,14 @@ router.post("/charges", authMiddleware.isAdmin, async (req, res, next) => {
       req.body.limit,
       req.body.filter,
     );
-    if (results !== false) {
-      return res.json({
-        status: 200,
-        content: {
-          pages: results.pages,
-          rows: results.rows,
-        },
-      });
-    } else {
-      let err = new Error("Could not fetch charges");
-      (err as any).status = 500;
-      return next(err);
-    }
+    return res.json({
+      status: 200,
+      content: {
+        pages: results.pages,
+        rows: results.rows,
+        statistics: results.statistics,
+      },
+    });
   } catch (ex) {
     next(ex);
   }
