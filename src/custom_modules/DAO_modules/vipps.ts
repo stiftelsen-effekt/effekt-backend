@@ -147,9 +147,7 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
 
   let agreement = res[0];
 
-  const distribution = await distributions.getSplitByKID(agreement.KID);
-
-  agreement.distribution = distribution.causeAreas;
+  agreement.distribution = await distributions.getSplitByKID(agreement.KID);
 
   return agreement;
 }
