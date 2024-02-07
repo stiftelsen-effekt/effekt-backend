@@ -121,17 +121,11 @@ router.get(
     try {
       if (!req.params.KID) res.status(400).json({ status: 400, content: "No KID provided" });
       const distribution = await DAO.distributions.getSplitByKID(req.params.KID);
-      const taxUnit = await DAO.tax.getByKID(req.params.KID, req.locale);
-      const donor = await DAO.donors.getByKID(req.params.KID);
 
       return res.json({
         status: 200,
         content: {
-          KID: req.params.KID,
-          donor,
-          taxUnit,
-          standardDistribution: distribution.causeAreas.some((c) => c.standardSplit),
-          causeAreas: distribution.causeAreas,
+          ...distribution,
         },
       });
     } catch (ex) {
