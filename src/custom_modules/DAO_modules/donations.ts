@@ -43,7 +43,20 @@ import { Donations, Prisma } from "@prisma/client";
  * @param {object} filter Filtering object
  * @returns {[Array<IDonation & donorName: string>, nextcursor]} An array of donations pluss the donorname
  */
-async function getAll(sort, page, limit = 10, filter = null) {
+async function getAll(
+  sort,
+  page,
+  limit = 10,
+  filter = null,
+): Promise<{
+  rows: Array<any>;
+  statistics: {
+    numDonations: number;
+    sumDonations: number;
+    avgDonation: number;
+  };
+  pages: number;
+}> {
   if (sort) {
     const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
 
@@ -67,7 +80,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
         if (filter.paymentMethodIDs.length == 0) {
           return {
             rows: [],
-            stats: {
+            statistics: {
               numDonations: 0,
               sumDonations: 0,
               avgDonation: 0,
@@ -95,7 +108,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
         if (filter.organizationIDs.length == 0) {
           return {
             rows: [],
-            stats: {
+            statistics: {
               numDonations: 0,
               sumDonations: 0,
               avgDonation: 0,
@@ -163,7 +176,7 @@ async function getAll(sort, page, limit = 10, filter = null) {
 
     return {
       rows: mapToJS(donations),
-      stats: {
+      statistics: {
         numDonations,
         sumDonations,
         avgDonation,

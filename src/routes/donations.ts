@@ -410,7 +410,7 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
       content: {
         rows: results.rows,
         pages: results.pages,
-        stats: results.stats,
+        statistics: results.statistics,
       },
     });
   } catch (ex) {

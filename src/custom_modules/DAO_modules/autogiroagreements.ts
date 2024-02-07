@@ -50,7 +50,15 @@ export const autogiroagreements = {
     page: number,
     limit: number,
     filter: any,
-  ) {
+  ): Promise<{
+    pages: number;
+    rows: AutoGiro_agreements[];
+    statistics: {
+      numAgreements: number;
+      sumAgreements: string;
+      avgAgreement: string;
+    };
+  }> {
     const sortColumn = sort.id;
     const sortDirection = sort.desc ? "DESC" : "ASC";
     const offset = page * limit;
@@ -78,25 +86,44 @@ export const autogiroagreements = {
         where.push(` CAST(DI.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
       if (filter.donor)
         where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
-      if (filter.statuses.length > 0)
+      if (filter.statuses) {
+        if (filter.statuses.length === 0) {
+          return {
+            pages: 0,
+            rows: [],
+            statistics: {
+              numAgreements: 0,
+              sumAgreements: "0",
+              avgAgreement: "0",
+            },
+          };
+        }
         where.push(
           ` AG.active IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `,
         );
+      }
     }
+
+    const columns = `
+      AG.ID,
+      AG.active,
+      AG.amount,
+      AG.KID,
+      AG.payment_date,
+      AG.created,
+      AG.cancelled,
+      AG.last_updated,
+      AG.notice,
+      Donors.full_name 
+    `;
 
     const [agreements] = await DAO.query(
       `
-          SELECT DISTINCT
-              AG.ID,
-              AG.active,
-              AG.amount,
-              AG.KID,
-              AG.payment_date,
-              AG.created,
-              AG.cancelled,
-              AG.last_updated,
-              AG.notice,
-              Donors.full_name 
+          SELECT
+              count(*) OVER() AS full_count,
+              sum(amount) OVER() AS full_sum,
+              avg(amount) OVER() AS full_avg,
+              ${columns}
           FROM AutoGiro_agreements as AG
           INNER JOIN Distributions as DI
               ON AG.KID = DI.KID
@@ -105,25 +132,33 @@ export const autogiroagreements = {
           WHERE
               ${where.length !== 0 ? where.join(" AND ") : "1"}
 
+          GROUP BY
+              ${columns}
+
           ORDER BY ${sortColumn} ${sortDirection}
           LIMIT ? OFFSET ?
           `,
       [limit, offset],
     );
 
-    const [counter] = await DAO.query(`
-          SELECT COUNT(*) as count FROM AutoGiro_agreements
-      `);
+    const numAgreements = agreements.length > 0 ? agreements[0]["full_count"] : 0;
+    const sumAgreements = agreements.length > 0 ? agreements[0]["full_sum"] : 0;
+    const avgAgreement = agreements.length > 0 ? agreements[0]["full_avg"] : 0;
 
     return {
-      pages: Math.ceil(counter[0].count / limit),
+      pages: Math.ceil(numAgreements / limit),
       rows: agreements,
+      statistics: {
+        numAgreements,
+        sumAgreements,
+        avgAgreement,
+      },
     };
   },
   getAgreementSumHistogram: async function () {
     let [results] = await DAO.query(`
               SELECT 
-                  floor(amount/500)*500/100 	AS bucket, 
+                  floor(amount/500)*500 	AS bucket, 
                   count(*) 						AS items,
                   ROUND(100*LN(COUNT(*)))         AS bar
               FROM AutoGiro_agreements
