@@ -45,6 +45,14 @@ export const autogiroagreements = {
       [sent.toISO(), ID],
     );
   },
+  removeShipment: async function (ID: number) {
+    await DAO.query(
+      `
+        DELETE FROM AutoGiro_shipments WHERE ID = ?
+      `,
+      [ID],
+    );
+  },
   getAgreements: async function (
     sort: { desc: boolean; id: string },
     page: number,

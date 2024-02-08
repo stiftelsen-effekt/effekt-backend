@@ -271,12 +271,20 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
        * Create file to charge agreements for current day
        */
       const shipmentID = await DAO.autogiroagreements.addShipment(agreements.length);
-      const autoGiroClaimsFile = await generateAutogiroGiroFile(
-        shipmentID,
-        agreements,
-        mandatesToBeConfirmed,
-        claimDate,
-      );
+
+      let autoGiroClaimsFile: Buffer;
+      try {
+        autoGiroClaimsFile = await generateAutogiroGiroFile(
+          shipmentID,
+          agreements,
+          mandatesToBeConfirmed,
+          claimDate,
+        );
+      } catch (ex) {
+        console.error(ex);
+        await DAO.autogiroagreements.removeShipment(shipmentID);
+        throw new Error("Error generating file");
+      }
 
       result = {
         shipmentID: shipmentID,
