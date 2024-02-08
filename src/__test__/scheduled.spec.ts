@@ -177,10 +177,10 @@ describe("POST /initiate-follow-ups", function () {
   let sendDonationFollowUpStub;
 
   before(function () {
-    // Set up the server and stubs
     server = express();
-    server.use(express.json());
-    server.post("/initiate-follow-ups", require("../routes/initiate-follow-ups"));
+    const scheduledRoute = require("../routes/scheduled");
+    server = express();
+    server.use("/scheduled", scheduledRoute);
 
     getPaymentIntentsFromLastMonthStub = sinon.stub(
       initialpaymentmethod,
@@ -229,7 +229,7 @@ describe("POST /initiate-follow-ups", function () {
     checkIfDonationReceivedStub.resolves(false);
     // sendDonationFollowUpStub.resolves(true); Can be added when the function is implemented
 
-    const response = await request(server).post("/initiate-follow-ups").expect(200);
+    const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
     expect(response.body.message).to.equal("Follow-up process initiated successfully.");
     expect(addPaymentFollowUpStub.callCount).to.equal(2);
@@ -250,7 +250,7 @@ describe("POST /initiate-follow-ups", function () {
     getFollowUpsForPaymentIntentStub.resolves([]);
     checkIfDonationReceivedStub.resolves(true);
 
-    const response = await request(server).post("/initiate-follow-ups").expect(200);
+    const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
     expect(response.body.message).to.equal("Follow-up process initiated successfully.");
     expect(addPaymentFollowUpStub.called).to.be.false;
@@ -270,7 +270,7 @@ describe("POST /initiate-follow-ups", function () {
     getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
     getFollowUpsForPaymentIntentStub.resolves([]);
 
-    const response = await request(server).post("/initiate-follow-ups").expect(200);
+    const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
     expect(response.body.message).to.equal("Follow-up process initiated successfully.");
     expect(addPaymentFollowUpStub.called).to.be.false;
@@ -291,7 +291,7 @@ describe("POST /initiate-follow-ups", function () {
     getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
     getFollowUpsForPaymentIntentStub.resolves(followUps);
 
-    const response = await request(server).post("/initiate-follow-ups").expect(200);
+    const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
     expect(response.body.message).to.equal("Follow-up process initiated successfully.");
     expect(addPaymentFollowUpStub.called).to.be.false;
