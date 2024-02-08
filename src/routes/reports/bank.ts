@@ -146,6 +146,10 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
   // Filter out Swish payments
   payments = payments.filter((p) => p.KID !== "OrderID:");
 
+  let valid = 0;
+  let invalid = 0;
+  let invalidTransactions = [];
+
   for (let payment of payments) {
     // Let's see if we can find the distribution
     try {
@@ -162,6 +166,18 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
           payment.KID = paymentKID;
         } else {
           console.log(`Did not find legacy distribution for KID: ${payment.KID}`);
+          invalid++;
+          invalidTransactions.push({
+            reason: "Did not find distribution for KID",
+            transaction: {
+              date: postingDate,
+              message: "",
+              amount: payment.amount,
+              KID: payment.KID,
+              externalRef: payment.externalReference,
+              paymentID: 2,
+            },
+          });
           continue;
         }
       }
@@ -177,8 +193,21 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
         postingDate.toJSDate(),
         payment.externalReference,
       );
+      valid++;
       continue;
     } catch (ex) {
+      invalid++;
+      invalidTransactions.push({
+        reason: ex.message,
+        transaction: {
+          date: postingDate,
+          message: ex.message,
+          amount: payment.amount,
+          KID: payment.KID,
+          externalRef: payment.externalReference,
+          paymentID: 2,
+        },
+      });
       console.error(`Failed to find distribution for KID: ${payment.KID}`);
       continue;
     }
@@ -186,6 +215,10 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
 
   res.json({
     status: 200,
-    content: payments,
+    content: {
+      valid,
+      invalid,
+      invalidTransactions,
+    },
   });
 });
