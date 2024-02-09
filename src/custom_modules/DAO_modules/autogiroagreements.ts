@@ -368,6 +368,65 @@ export const autogiroagreements = {
       [ID],
     );
   },
+  getMandates: async function (
+    sort: { desc: boolean; id: string },
+    page: number,
+    limit: number,
+    filter: any,
+  ) {
+    const sortColumn = sort.id;
+    const sortDirection = sort.desc ? "DESC" : "ASC";
+    const offset = page * limit;
+
+    let where = [];
+    if (filter) {
+      if (filter.KID)
+        where.push(` CAST(DI.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
+      if (filter.donor)
+        where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
+      if (filter.statuses && filter.statuses.length > 0)
+        where.push(
+          ` AG.status IN (${filter.statuses.map((status) => sqlString.escape(status)).join(",")}) `,
+        );
+    }
+
+    const [mandates] = await DAO.query(
+      `
+          SELECT DISTINCT
+              AG.ID,
+              AG.KID,
+              AG.status,
+              AG.bank_account,
+              AG.special_information,
+              AG.name_and_address,
+              AG.postal_code,
+              AG.postal_label,
+              AG.last_updated,
+              AG.created,
+              Donors.full_name
+          FROM AutoGiro_mandates as AG
+          INNER JOIN Distributions as DI
+              ON AG.KID = DI.KID
+          INNER JOIN Donors 
+              ON DI.Donor_ID = Donors.ID
+          WHERE
+              ${where.length !== 0 ? where.join(" AND ") : "1"}
+
+          ORDER BY ${sortColumn} ${sortDirection}
+          LIMIT ? OFFSET ?
+          `,
+      [limit, offset],
+    );
+
+    const [counter] = await DAO.query(`
+          SELECT COUNT(*) as count FROM AutoGiro_mandates
+      `);
+
+    return {
+      pages: Math.ceil(counter[0].count / limit),
+      rows: mandates,
+    };
+  },
   getMandateById: async function (ID: number) {
     const [mandate] = await DAO.query<AutoGiro_mandates[]>(
       `

@@ -225,6 +225,7 @@ model Donations {
   Adoveo_fundraiser_transactions Adoveo_fundraiser_transactions?
   Adoveo_giftcard_transactions   Adoveo_giftcard_transactions?
   AutoGiro_agreement_charges     AutoGiro_agreement_charges?
+  LegacySeDistributionConnection LegacySeDistributionConnection?
 
   // When we delete a distribution we delete the associated donations.
   Distributions Distributions @relation(fields: [KID_fordeling], references: [KID], onDelete: Cascade, map: "fk_Donations_to_Distributions_KID")
@@ -304,6 +305,14 @@ model FB_payment_ID {
 
   @@index([donorID], map: "donorID_idx")
   @@index([taxUnitID], map: "fk_fbpayment_to_taxunit_idx")
+}
+
+model LegacySeDistributionConnection {
+  ID        Int    @id @default(autoincrement())
+  paymentID String @unique @db.VarChar(32)
+  legacyKID String @db.VarChar(16)
+
+  Donations Donations @relation(fields: [paymentID], references: [PaymentExternal_ID], onDelete: Restrict, map: "fk_LegacySeDistributionConnection_to_Donations_idx")
 }
 
 model Adoveo_fundraiser {
