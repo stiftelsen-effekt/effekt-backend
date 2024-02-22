@@ -11,6 +11,7 @@ import { parseMandates } from "./autogiro/mandates";
 import { parsePaymentSpecification } from "./autogiro/transactions";
 import { parseEMandates } from "./autogiro/emandates";
 import { parseCancellationAndAmendment } from "./autogiro/changes";
+import { parseRejectedCharges } from "./autogiro/rejected";
 
 export interface AutoGiroParsedResult {
   reportContents: AutoGiroContent;
@@ -44,6 +45,8 @@ export const AutoGiroParser = {
       return parseEMandates(remainingLines, openingRecord);
     else if (openingRecord.fileContents === AutoGiroContent.CANCELLATION_AND_AMENDMENT)
       return parseCancellationAndAmendment(remainingLines, openingRecord);
+    else if (openingRecord.fileContents === AutoGiroContent.REJECTED_CHARGES)
+      return parseRejectedCharges(remainingLines, openingRecord);
     else
       throw new Error(
         `Not a valid autogiro file, unknown layout (${openingRecord.fileContents}) in opening record`,
@@ -76,6 +79,7 @@ const parseOpeningRecord = (line: string): AutoGiroOpeningRecord => {
     AutoGiroContent.PAYMENT_SPECIFICATION_AND_STOP,
     AutoGiroContent.MANDATES,
     AutoGiroContent.CANCELLATION_AND_AMENDMENT,
+    AutoGiroContent.REJECTED_CHARGES,
   ];
   if (!validContentTypes.includes(fileContents as AutoGiroContent))
     throw new Error(
@@ -83,7 +87,7 @@ const parseOpeningRecord = (line: string): AutoGiroOpeningRecord => {
     );
 
   return {
-    dateWritten: DateTime.fromFormat(line.substring(26, 26 + 20), "yyyyMMdd"),
+    dateWritten: DateTime.fromFormat(line.substring(26, 26 + 8), "yyyyMMdd"),
     payeeCustomerNumber: line.substring(64, 64 + 6),
     payeeBankGiroNumber: line.substring(70, 70 + 10),
     fileContents: fileContents as AutoGiroContent,
@@ -109,6 +113,7 @@ export enum AutoGiroContent {
   MANDATES = "AG-MEDAVI",
   E_MANDATES = "AG-EMEDGIV",
   CANCELLATION_AND_AMENDMENT = "MAKULERING/ÄNDRING",
+  REJECTED_CHARGES = "AVVISADE BET UPPDR",
 }
 
 /**

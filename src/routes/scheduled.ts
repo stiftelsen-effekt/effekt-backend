@@ -6,7 +6,7 @@ import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_mo
 import { DateTime } from "luxon";
 
 import express from "express";
-import { generateAutogiroGiroFile } from "../custom_modules/autogiro";
+import { generateAutogiroGiroFile, getAutogiroDueDates } from "../custom_modules/autogiro";
 import fetch from "node-fetch";
 import config from "../config";
 
@@ -258,27 +258,33 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
   let result;
   try {
     const today = DateTime.fromJSDate(new Date());
-    const claimDate = today.plus({ days: 3 });
-
-    /**
-     * Get active agreements
-     */
-    const agreements = await DAO.autogiroagreements.getAgreementsByPaymentDate(claimDate.day);
+    const claimDates = getAutogiroDueDates(today);
+    let agreementsToClaim = [];
+    for (let claimDate of claimDates) {
+      const agreements = await DAO.autogiroagreements.getAgreementsByPaymentDate(claimDate.day);
+      const activeAgreements = agreements
+        .filter((agreement) => agreement.active)
+        .filter((agreement) => agreement.KID.length === 15); // Temporary filter for only new agreements
+      const toClaim = activeAgreements.map((agreement) => ({
+        agreement: agreement,
+        claimDate: claimDate,
+      }));
+      agreementsToClaim = [...agreementsToClaim, ...toClaim];
+    }
     const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
 
-    if (agreements.length > 0 || mandatesToBeConfirmed.length > 0) {
+    if (agreementsToClaim.length > 0 || mandatesToBeConfirmed.length > 0) {
       /**
        * Create file to charge agreements for current day
        */
-      const shipmentID = await DAO.autogiroagreements.addShipment(agreements.length);
+      const shipmentID = await DAO.autogiroagreements.addShipment(agreementsToClaim.length);
 
       let autoGiroClaimsFile: Buffer;
       try {
         autoGiroClaimsFile = await generateAutogiroGiroFile(
           shipmentID,
-          agreements,
+          agreementsToClaim,
           mandatesToBeConfirmed,
-          claimDate,
         );
       } catch (ex) {
         console.error(ex);
@@ -288,7 +294,7 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
 
       result = {
         shipmentID: shipmentID,
-        numCharges: agreements.length,
+        numCharges: agreementsToClaim.length,
         numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
         file: autoGiroClaimsFile.toString(),
         filename: `BFEP.IAGAG.${shipmentID}.${today.toFormat("yyLLdd.HHmmss")}`,

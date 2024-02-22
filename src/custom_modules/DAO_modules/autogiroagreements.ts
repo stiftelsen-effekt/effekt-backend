@@ -340,6 +340,14 @@ export const autogiroagreements = {
       [paymentDate, KID],
     );
   },
+  activateAgreementByKID: async function (KID: string) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_agreements SET active = 1 WHERE KID = ?
+      `,
+      [KID],
+    );
+  },
   cancelAgreementByKID: async function (KID: string) {
     await DAO.query(
       `
@@ -407,6 +415,14 @@ export const autogiroagreements = {
     await DAO.query(
       `
         UPDATE AutoGiro_agreement_charges SET status = "CANCELLED" WHERE ID = ?
+      `,
+      [ID],
+    );
+  },
+  setAgreementChargeFailed: async function (ID: number) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_agreement_charges SET status = "FAILED" WHERE ID = ?
       `,
       [ID],
     );

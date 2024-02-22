@@ -113,3 +113,16 @@ export enum AutoGiroMandateCommentaryCodes {
   DELETED = 33,
   MANDATE_DELETED_BECAUSE_BANKGIRO_NUMBER_DELETED = 98,
 }
+
+export const AutogiroMandateFailedCommentaryCodes = [
+  AutoGiroMandateCommentaryCodes.ACCOUNT_NOT_VALID_FOR_AUTOGIRO,
+  AutoGiroMandateCommentaryCodes.MISSING_MANDATE_IN_BANKGIRO,
+  AutoGiroMandateCommentaryCodes.INCORRECT_BANK_OR_PERSONAL_INFORMATION,
+  AutoGiroMandateCommentaryCodes.MISING_PAYER_BANKGIRO_NUMBER,
+  AutoGiroMandateCommentaryCodes.MANDATE_ALREADY_EXISTS,
+  AutoGiroMandateCommentaryCodes.WRONG_PERSONAL_OR_ORGANIZATION_NUMBER,
+  AutoGiroMandateCommentaryCodes.WRONG_PAYER_NUMBER,
+  AutoGiroMandateCommentaryCodes.WRONG_PAYER_BANK_ACCOUNT_NUMBER,
+  AutoGiroMandateCommentaryCodes.WRONG_PAYER_BANKGIRO_NUMBER,
+  AutoGiroMandateCommentaryCodes.BANKGIRO_NUMBER_DELETED,
+];

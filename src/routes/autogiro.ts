@@ -14,18 +14,6 @@ import { donationHelpers } from "../custom_modules/donationHelpers";
 
 const router = express.Router();
 
-router.post("/reports/process", isAdmin, async (req, res) => {
-  const report = req.files.report;
-  if (Array.isArray(report)) {
-    throw new Error("Expected a single file");
-  }
-  const data = report.data.toString("latin1");
-
-  const result = await processAutogiroInputFile(data);
-
-  res.json(result);
-});
-
 router.get("/shipments", isAdmin, async (req, res, next) => {
   try {
     const shipments = await DAO.autogiroagreements.getAllShipments();

@@ -11,8 +11,10 @@ import {
   AutoGiroMandateCancelledInformationCodes,
   AutoGiroMandateCommentaryCodes,
   AutoGiroMandateInformationCodes,
+  AutogiroMandateFailedCommentaryCodes,
 } from "./parsers/autogiro/mandates";
 import { RequestLocale } from "../middleware/locale";
+import { isSwedishWorkingDay } from "./swedish-workdays";
 
 /**
  * Generates a claims file to claim payments for AutoGiro agreements
@@ -24,9 +26,11 @@ import { RequestLocale } from "../middleware/locale";
  */
 export async function generateAutogiroGiroFile(
   shipmentID: number,
-  agreements: AutoGiro_agreements[],
+  agreementsToClaim: {
+    agreement: AutoGiro_agreements;
+    claimDate: DateTime;
+  }[],
   mandatesToBeConfirmed: AutoGiro_mandates[],
-  dueDate: DateTime,
 ) {
   const today = DateTime.fromJSDate(new Date());
   let fileContents = "";
@@ -41,22 +45,22 @@ export async function generateAutogiroGiroFile(
   /**
    * Withdrawal requests
    */
-  for (const agreement of agreements) {
+  for (const agreementClaim of agreementsToClaim) {
     // Create a charge record for each agreement
     const chargeId = await DAO.autogiroagreements.addAgreementCharge({
-      agreementID: agreement.ID,
+      agreementID: agreementClaim.agreement.ID,
       shipmentID: shipmentID,
       status: "PENDING",
-      claim_date: dueDate.toJSDate(),
-      amount: agreement.amount.toString(),
+      claim_date: agreementClaim.claimDate.toJSDate(),
+      amount: agreementClaim.agreement.amount.toString(),
       donationID: null,
     });
 
     fileContents += writer.getWithdrawalRecord(
-      today,
-      agreement.KID,
+      agreementClaim.claimDate,
+      agreementClaim.agreement.KID,
       config.autogiro_bankgiro_number,
-      agreement.amount,
+      agreementClaim.agreement.amount,
       chargeId.toString(),
     );
     fileContents += "\n";
@@ -90,22 +94,70 @@ export async function processAutogiroInputFile(fileContents: string) {
     /**
      * AutoGiro payments
      */
+    let valid = 0;
+    let invalid = 0;
+    const invalidTransactions = [];
     for (const deposit of parsedFile.deposits) {
       for (const payment of deposit.payments) {
-        await DAO.donations.add(
-          payment.payerNumber,
-          paymentMethods.autoGiro,
-          payment.amount,
-          payment.paymentDate,
-        );
+        const reference = `autogiro.${parsedFile.openingRecord.dateWritten.toFormat("yyyyMMdd")}.${
+          payment.paymentReference
+        }`;
+        try {
+          const KID = await getValidatedKID(payment.payerNumber);
+
+          let date = DateTime.fromFormat(payment.paymentDate, "yyyyMMdd").toJSDate();
+
+          try {
+            await DAO.donations.add(
+              KID,
+              paymentMethods.autoGiro,
+              payment.amount / 100,
+              date,
+              reference,
+            );
+          } catch (ex) {
+            if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
+              invalid++;
+              console.log(
+                `Ignoring duplicate donation for KID ${payment.payerNumber} with reference ${payment.paymentReference}`,
+              );
+              continue;
+            } else {
+              throw ex;
+            }
+          }
+
+          valid++;
+        } catch (ex) {
+          invalid++;
+          console.error(ex);
+          invalidTransactions.push({
+            KID: payment.payerNumber,
+            reference: reference,
+            amount: payment.amount,
+            date: payment.paymentDate,
+            message: ex.message,
+          });
+          continue;
+        }
       }
     }
+
+    return {
+      openingRecord: parsedFile.openingRecord,
+      results: {
+        valid,
+        invalid,
+        invalidTransactions,
+      },
+    };
   } else if (parsedFile.reportContents === AutoGiroContent.CANCELLATION_AND_AMENDMENT) {
     /**
      * Autogiro payment cancellation and amendments
      */
 
     for (const cancellation of parsedFile.cancellations) {
+      console.log("Cancellation", cancellation.reference, cancellation.commentCode);
       try {
         const charge = await DAO.autogiroagreements.getAgreementChargeById(
           parseInt(cancellation.reference),
@@ -192,42 +244,255 @@ export async function processAutogiroInputFile(fileContents: string) {
      * Status updates on mandate from the bank
      * Can be cancelled mandates, or confirmations of new mandates
      */
-
+    let confirmed = 0;
+    let rejected = 0;
+    let cancelled = 0;
+    let invalid = 0;
+    const invalidMandates = [];
     for (const mandate of parsedFile.mandates) {
-      if (AutoGiroMandateCancelledInformationCodes.some((c) => c === mandate.informationCode)) {
-        // Mandate cancellation or deletion
-        try {
-          const dbMandate = await DAO.autogiroagreements.getMandateByKID(mandate.payerNumber);
-          await DAO.autogiroagreements.cancelMandate(dbMandate.ID);
-          console.log(
-            `Cancelled mandate with KID ${mandate.payerNumber} with information code ${mandate.informationCode} and comment code ${mandate.commentaryCode}`,
-          );
-        } catch (ex) {
-          console.error(ex);
-          console.log(
-            `Failed to cancel mandate with KID ${mandate.payerNumber} with information code ${mandate.informationCode} and comment code ${mandate.commentaryCode}`,
-          );
-        }
-      } else if (
-        mandate.informationCode === AutoGiroMandateInformationCodes.ADDITION ||
-        mandate.informationCode === AutoGiroMandateInformationCodes.BANK_RESPONSE_FOR_NEW_MANDATE
-      ) {
-        if (mandate.commentaryCode === AutoGiroMandateCommentaryCodes.NEW_MANDATE) {
-          // New mandate accepted, either the bank confirms a mandate or we've successfully added a mandate
+      try {
+        const KID = await getValidatedKID(mandate.payerNumber);
+
+        if (AutoGiroMandateCancelledInformationCodes.some((c) => c === mandate.informationCode)) {
+          // Mandate cancellation or deletion
           try {
-            const dbMandate = await DAO.autogiroagreements.getMandateByKID(mandate.payerNumber);
-            await DAO.autogiroagreements.activateMandate(dbMandate.ID);
+            const dbMandate = await DAO.autogiroagreements.getMandateByKID(KID);
+            await DAO.autogiroagreements.cancelMandate(dbMandate.ID);
             console.log(
-              `Updated mandate with KID ${mandate.payerNumber} and ID ${dbMandate.ID} to ACTIVE`,
+              `Cancelled mandate with KID ${KID} with information code ${mandate.informationCode} and comment code ${mandate.commentaryCode}`,
             );
+            // Set agreement status to stopped
+            await DAO.autogiroagreements.cancelAgreementByKID(dbMandate.KID);
+
+            cancelled++;
           } catch (ex) {
             console.error(ex);
-            console.log(`Failed to update mandate with KID ${mandate.payerNumber} to ACTIVE`);
+            console.log(
+              `Failed to cancel mandate with KID ${KID} with information code ${mandate.informationCode} and comment code ${mandate.commentaryCode}`,
+            );
+            invalid++;
+            invalidMandates.push({
+              KID: mandate.payerNumber,
+              informationCode: mandate.informationCode,
+              commentaryCode: mandate.commentaryCode,
+              message: ex.message,
+            });
+            continue;
+          }
+        } else if (
+          mandate.informationCode === AutoGiroMandateInformationCodes.ADDITION ||
+          mandate.informationCode === AutoGiroMandateInformationCodes.BANK_RESPONSE_FOR_NEW_MANDATE
+        ) {
+          if (mandate.commentaryCode === AutoGiroMandateCommentaryCodes.NEW_MANDATE) {
+            // New mandate accepted, either the bank confirms a mandate or we've successfully added a mandate
+            try {
+              const dbMandate = await DAO.autogiroagreements.getMandateByKID(KID);
+              await DAO.autogiroagreements.activateMandate(dbMandate.ID);
+              console.log(`Updated mandate with KID ${KID} and ID ${dbMandate.ID} to ACTIVE`);
+              await DAO.autogiroagreements.activateAgreementByKID(dbMandate.KID);
+              console.log(`Updated agreement with KID ${KID} to ACTIVE`);
+
+              confirmed++;
+            } catch (ex) {
+              console.error(ex);
+              console.log(`Failed to update mandate with KID ${KID} to ACTIVE`);
+              invalid++;
+              invalidMandates.push({
+                KID: mandate.payerNumber,
+                informationCode: mandate.informationCode,
+                commentaryCode: mandate.commentaryCode,
+                message: ex.message,
+              });
+              continue;
+            }
+          } else if (
+            AutogiroMandateFailedCommentaryCodes.some((c) => c === mandate.commentaryCode)
+          ) {
+            // Mandate addition failed
+            try {
+              const dbMandate = await DAO.autogiroagreements.getMandateByKID(KID);
+              await DAO.autogiroagreements.setMandateStatus(dbMandate.ID, "REJECTED");
+              console.log(
+                `Updated mandate with KID ${KID} and ID ${dbMandate.ID} to REJECTED with commentary code ${mandate.commentaryCode}`,
+              );
+              rejected++;
+            } catch (ex) {
+              console.error(ex);
+              console.log(`Failed to update mandate with KID ${KID} to REJECTED`);
+              invalid++;
+              invalidMandates.push({
+                KID: mandate.payerNumber,
+                informationCode: mandate.informationCode,
+                commentaryCode: mandate.commentaryCode,
+                message: ex.message,
+              });
+              continue;
+            }
           }
         }
+      } catch (ex) {
+        invalid++;
+        console.error(ex);
+        invalidMandates.push({
+          KID: mandate.payerNumber,
+          informationCode: mandate.informationCode,
+          commentaryCode: mandate.commentaryCode,
+          message: ex.message,
+        });
       }
     }
+
+    return {
+      openingRecord: parsedFile.openingRecord,
+      results: {
+        confirmed,
+        cancelled,
+        invalid,
+        rejected,
+        invalidMandates,
+      },
+    };
+  } else if (parsedFile.reportContents === AutoGiroContent.REJECTED_CHARGES) {
+    /**
+     * Rejected charges
+     */
+    let rejectedCharges = 0;
+    let failedRejectedCharges = 0;
+    for (const charge of parsedFile.rejectedCharges) {
+      try {
+        const dbCharge = await DAO.autogiroagreements.getAgreementChargeById(
+          charge.paymentReference,
+        );
+
+        if (dbCharge.status === "FAILED") {
+          // Ignore charges that are already marked as failed
+          continue;
+        }
+
+        if (!dbCharge) {
+          console.log(`Could not find charge with reference ${charge.paymentReference}`);
+          rejectedCharges++;
+          continue;
+        }
+
+        await DAO.autogiroagreements.setAgreementChargeFailed(dbCharge.ID);
+        console.log(`Updated charge with reference ${charge.paymentReference} to FAILED`);
+        rejectedCharges++;
+      } catch (ex) {
+        console.error(ex);
+        console.log(`Failed to update charge with reference ${charge.paymentReference}`);
+        failedRejectedCharges++;
+      }
+    }
+
+    return {
+      openingRecord: parsedFile.openingRecord,
+      results: {
+        rejectedCharges,
+        failedRejectedCharges,
+      },
+    };
   }
 
   return parsedFile;
+}
+
+const getValidatedKID = async (KID: string) => {
+  let returnKID = KID;
+  let exists = await DAO.distributions.KIDexists(returnKID);
+  if (!exists) {
+    // Check if we have the kid when we remove leading zeros
+    returnKID = parseInt(KID.trim()).toString();
+    exists = await DAO.distributions.KIDexists(returnKID);
+    if (!exists) {
+      console.log(`KID ${returnKID} not found in distributions`);
+      throw new Error(`KID ${returnKID} not found in distributions`);
+    }
+  }
+  return returnKID;
+};
+
+/**
+ * A function that returns a list of due dates for payment claims
+ * We are required to send claims four banking days in advance of the due date
+ * Holidays and weekends are not counted as banking days
+ * Takes in a date to calculate the due date from
+ * @returns
+ */
+export function getAutogiroDueDates(date: DateTime) {
+  // Start iterating backwards 30 days from the date given
+  // Keep going until 4 days after the date given
+  // Add all the dates that have 4 banking days in between
+  // Return the list of dates
+
+  // We only send claims on banking days
+  // Thus, we start by checking if the date given is a banking day
+  if (!isSwedishWorkingDay(date.toJSDate())) {
+    return [];
+  }
+
+  let dueDates: DateTime[] = [];
+  let iterationDate = date.plus({ days: 30 });
+  while (iterationDate >= date.plus({ days: 4 })) {
+    let bankingDays = 0;
+    let innerIterationDate = iterationDate.minus({ days: 1 });
+    while (innerIterationDate >= date) {
+      if (isSwedishWorkingDay(innerIterationDate.toJSDate())) {
+        bankingDays++;
+      }
+      innerIterationDate = innerIterationDate.minus({ days: 1 });
+    }
+
+    if (bankingDays === 4) {
+      dueDates.push(iterationDate);
+    }
+
+    iterationDate = iterationDate.minus({ days: 1 });
+  }
+
+  // Debug table to visualize the due dates
+  // printDueDatesTable(date, dueDates);
+
+  return dueDates;
+}
+
+/**
+ * Debugging helper for due date calculation
+ * @param date
+ * @param dueDates
+ */
+function printDueDatesTable(date: DateTime, dueDates: DateTime[]) {
+  console.log("");
+  console.log("");
+
+  let tableWidth = dueDates[0].diff(date, "days").days + 1;
+
+  console.log("-".repeat(tableWidth * 8));
+
+  // Bold text
+  console.log(`Due dates for claims on \x1b[1m${date.toFormat("dd.MM.yyyy")}\x1b[0m`);
+  console.log("");
+
+  // Letter for the day, e.g. Mon for Monday
+
+  console.log(
+    Array.from({ length: tableWidth }, (_, i) => date.plus({ day: i }).toFormat("ccc")).join("\t"),
+  );
+  console.log(Array.from({ length: tableWidth }, (_, i) => date.plus({ day: i }).day).join("\t"));
+  // Green square is a banking day, yellow is not
+  console.log(
+    Array.from({ length: tableWidth }, (_, i) =>
+      workdays.isWorkingDay(date.plus({ day: i }).toJSDate()) ? "🟢" : "🟡",
+    ).join("\t"),
+  );
+  // Checkmark if the date is a due date
+  console.log(
+    Array.from({ length: tableWidth }, (_, i) =>
+      dueDates.map((d) => d.toISO()).includes(date.plus({ day: i }).toISO()) ? "✅" : "",
+    ).join("\t"),
+  );
+  console.log("-".repeat(tableWidth * 8));
+
+  console.log("");
+  console.log("");
 }
