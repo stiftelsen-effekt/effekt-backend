@@ -9,4 +9,10 @@ export const results = {
     const [res] = await DAO.query("SELECT * FROM EffektAnalysisDB.OP_ref_data");
     return res;
   },
+  getMonthlyDonationsPerOrg: async () => {
+    const [res] = await DAO.query<{ Org: string; DonationMonth: string; TotalDonations: string }[]>(
+      "SELECT * FROM EffektAnalysisDB.v_Monthly_donations_per_org",
+    );
+    return res;
+  },
 };
