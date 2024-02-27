@@ -190,9 +190,14 @@ async function KIDexists(KID) {
  * Takes in a candidate distribution and returns a KID if the distribution already exists
  * @param {DistributionInput} input
  * @param {number} minKidLength Used to filter out distributions with KID shorter than this
+ * @param {number} maxKidLength Used to filter out distributions with KID longer than this
  * @returns {string | null} KID or null if no KID found
  */
-async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promise<string | null> {
+async function getKIDbySplit(
+  input: DistributionInput,
+  minKidLength = 0,
+  maxKidLength = Number.MAX_SAFE_INTEGER,
+): Promise<string | null> {
   // TOOD? If donor only has one tax unit, always use that one?
 
   // Validate input
@@ -367,7 +372,9 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
 
   const [res] = await DAO.query(query, [input.donorId, input.taxUnitId, input.taxUnitId]);
 
-  const filteredDistributions = res.filter((row) => row.KID.length > minKidLength);
+  const filteredDistributions = res.filter(
+    (row) => row.KID.length >= minKidLength && row.KID.length <= maxKidLength,
+  );
 
   if (filteredDistributions.length > 0) {
     return filteredDistributions[0].KID;
