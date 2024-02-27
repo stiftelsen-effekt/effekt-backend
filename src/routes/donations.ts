@@ -168,7 +168,7 @@ router.post("/register", async (req, res, next) => {
         kid: donationObject.KID,
       });
     } else if (donationObject.method == methods.AUTOGIRO) {
-      donationObject.KID = await donationHelpers.createKID(9);
+      donationObject.KID = await donationHelpers.createKID(8);
       await DAO.distributions.add({
         ...draftDistribution,
         kid: donationObject.KID,
