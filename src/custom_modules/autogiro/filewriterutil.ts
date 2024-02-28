@@ -88,18 +88,20 @@ export default {
       if (formattedSSN.includes("+")) {
         formattedSSN = formattedSSN.replace("+", "");
       }
-      // Check if the first two digits are before the current year, if so, add 20 to the year
-      // Else add 19
-      const year = parseInt(formattedSSN.substring(0, 2));
-      const currentYear = new Date().getFullYear().toString().substring(2, 4);
-      if (year > parseInt(currentYear)) {
-        formattedSSN = "19" + formattedSSN;
-      } else {
-        formattedSSN = "20" + formattedSSN;
-      }
-
       if (formattedSSN.length !== 12) {
-        throw new Error("Invalid SSN" + formattedSSN);
+        // Check if the first two digits are before the current year, if so, add 20 to the year
+        // Else add 19
+        const year = parseInt(formattedSSN.substring(0, 2));
+        const currentYear = new Date().getFullYear().toString().substring(2, 4);
+        if (year > parseInt(currentYear)) {
+          formattedSSN = "19" + formattedSSN;
+        } else {
+          formattedSSN = "20" + formattedSSN;
+        }
+
+        if (formattedSSN.length !== 12) {
+          throw new Error("Invalid SSN" + formattedSSN);
+        }
       }
     }
 
