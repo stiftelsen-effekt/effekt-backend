@@ -228,39 +228,49 @@ resultsRouter.get("/donations/monthly/outputs", async (req, res, next) => {
     const viaMaximumImpactGrants = donationSums.filter((donationSum) => donationSum.Org === "TCF");
 
     for (const donationSum of viaMaximumImpactGrants) {
-      const relevantGrant = maximumImpactGrants.max_impact_fund_grants
-        .sort((a, b) => {
-          if (a.start_year === b.start_year) {
-            return a.start_month - b.start_month;
-          }
-          return a.start_year - b.start_year;
-        })
-        .filter((grant, i, filtered) => {
-          // Same year, same month or later
-          if (
-            grant.start_year === parseInt(donationSum.DonationMonth.split("-")[0]) &&
-            grant.start_month >= parseInt(donationSum.DonationMonth.split("-")[1])
-          ) {
-            return true;
-          }
-          // Later year
-          if (grant.start_year > parseInt(donationSum.DonationMonth.split("-")[0])) {
-            return true;
-          }
-          // If last grant available retyrb trye
-          if (i === filtered.length - 1) {
-            return true;
-          }
-        })[0];
+      const sortedGrants = maximumImpactGrants.max_impact_fund_grants.sort((a, b) => {
+        if (a.start_year === b.start_year) {
+          return a.start_month - b.start_month;
+        }
+        return a.start_year - b.start_year;
+      });
+
+      let relevantIndex = sortedGrants.length - 1;
+      for (let i = 0; i < sortedGrants.length; i++) {
+        // We want to look BACKWARDS in time, move through
+        // sorted grants until we find the first grant that
+        // is after the donation month, then we take the previous
+        // one
+        const grant = sortedGrants[i];
+        if (grant.start_year > parseInt(donationSum.DonationMonth.split("-")[0])) {
+          relevantIndex = Math.max(i - 1, 0);
+          break;
+        }
+        if (
+          grant.start_year === parseInt(donationSum.DonationMonth.split("-")[0]) &&
+          grant.start_month > parseInt(donationSum.DonationMonth.split("-")[1])
+        ) {
+          relevantIndex = Math.max(i - 1, 0);
+          break;
+        }
+      }
+
+      const relevantGrant = sortedGrants[relevantIndex];
 
       for (const allotment of relevantGrant.allotment_set) {
         const output = allotment.intervention.short_description;
         const centsPerOutput = allotment.sum_in_cents / allotment.number_outputs_purchased;
         const total = parseFloat(donationSum.TotalDonations);
+
         const outputIndex = result.findIndex((r) => r.output === output);
 
         const exchangeRate = getBestExchangeRate(exchangeRates, donationSum.DonationMonth);
-        const sumInCents = (total / exchangeRate) * 100;
+        let sumInCents = (total / exchangeRate) * 100;
+        const shareOfAllotment =
+          allotment.sum_in_cents /
+          relevantGrant.allotment_set.reduce((acc, allotment) => acc + allotment.sum_in_cents, 0);
+
+        sumInCents = sumInCents * shareOfAllotment;
 
         const org = mapApiToOrg(allotment.charity.abbreviation.toLowerCase());
 
