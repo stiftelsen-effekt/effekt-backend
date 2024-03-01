@@ -25,13 +25,6 @@ importRouter.post("/donations/se", isAdmin, async (req, res, next) => {
     });
   }
 
-  if (!medgivandeReport) {
-    return res.status(400).json({
-      status: 400,
-      message: "Missing medgivandeReport",
-    });
-  }
-
   if (Array.isArray(medgivandeReport)) {
     return res.status(400).json({
       status: 400,
@@ -39,7 +32,7 @@ importRouter.post("/donations/se", isAdmin, async (req, res, next) => {
     });
   }
 
-  const result = await importSwedishDonationsReport(report.data, medgivandeReport.data);
+  const result = await importSwedishDonationsReport(report.data, medgivandeReport?.data ?? null);
 
   res.json({
     status: 200,
