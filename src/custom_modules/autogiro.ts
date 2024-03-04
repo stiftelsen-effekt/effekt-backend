@@ -381,7 +381,8 @@ type ProcessAutogiroPaymentResult = {
   reason?: string;
   transaction?: {
     KID: string;
-    reference: string;
+    transactionID: string;
+    paymentID: number;
     amount: number;
     date: Date;
   };
@@ -390,7 +391,9 @@ const processAutogiroDeposit = async (
   payment,
   reportDate,
 ): Promise<ProcessAutogiroPaymentResult> => {
-  const reference = `autogiro.${reportDate.toFormat("yyyyMMdd")}.${payment.paymentReference}`;
+  const reference = `autogiro.${reportDate.toFormat(
+    "yyyyMMdd",
+  )}.${payment.paymentReference.trim()}`;
   try {
     const KID = await getValidatedKID(payment.payerNumber);
 
@@ -422,7 +425,8 @@ const processAutogiroDeposit = async (
       reason: ex.message,
       transaction: {
         KID: payment.payerNumber,
-        reference: reference,
+        transactionID: reference,
+        paymentID: paymentMethods.autoGiro,
         amount: payment.amount,
         date: date,
       },
