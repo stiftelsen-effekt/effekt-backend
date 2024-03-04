@@ -289,7 +289,7 @@ resultsRouter.get("/donations/monthly/outputs", async (req, res, next) => {
                       numberOfOutputs: 0,
                     },
                     smartDistribution: {
-                      sum: total,
+                      sum: total * shareOfAllotment,
                       numberOfOutputs: sumInCents / centsPerOutput,
                     },
                   },
@@ -308,7 +308,7 @@ resultsRouter.get("/donations/monthly/outputs", async (req, res, next) => {
                         numberOfOutputs: 0,
                       },
                       smartDistribution: {
-                        sum: total,
+                        sum: total * shareOfAllotment,
                         numberOfOutputs: sumInCents / centsPerOutput,
                       },
                     },
@@ -331,7 +331,7 @@ resultsRouter.get("/donations/monthly/outputs", async (req, res, next) => {
                 numberOfOutputs: 0,
               },
               smartDistribution: {
-                sum: total,
+                sum: total * shareOfAllotment,
                 numberOfOutputs: sumInCents / centsPerOutput,
               },
             },
@@ -340,7 +340,8 @@ resultsRouter.get("/donations/monthly/outputs", async (req, res, next) => {
         } else {
           // Update totals
           const orgIndex = result[outputIndex].total.organizations.findIndex((o) => o[org]);
-          result[outputIndex].total.organizations[orgIndex][org].smartDistribution.sum += total;
+          result[outputIndex].total.organizations[orgIndex][org].smartDistribution.sum +=
+            total * shareOfAllotment;
           result[outputIndex].total.organizations[orgIndex][
             org
           ].smartDistribution.numberOfOutputs += sumInCents / centsPerOutput;
@@ -363,7 +364,7 @@ resultsRouter.get("/donations/monthly/outputs", async (req, res, next) => {
                     numberOfOutputs: 0,
                   },
                   smartDistribution: {
-                    sum: total,
+                    sum: total * shareOfAllotment,
                     numberOfOutputs: sumInCents / centsPerOutput,
                   },
                 },
@@ -378,7 +379,7 @@ resultsRouter.get("/donations/monthly/outputs", async (req, res, next) => {
                 numberOfOutputs: 0,
               },
               smartDistribution: {
-                sum: total,
+                sum: total * shareOfAllotment,
                 numberOfOutputs: sumInCents / centsPerOutput,
               },
             },
