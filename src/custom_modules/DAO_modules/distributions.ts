@@ -492,6 +492,19 @@ async function getHistoricPaypalSubscriptionKIDS(
 
   return mapping;
 }
+
+/**
+ * Returns all KIDs that start with a given prefix
+ * @param prefix
+ * @returns
+ */
+async function getKIDsByPrefix(prefix: string): Promise<string[]> {
+  let [res] = await DAO.query<{ KID: string }[]>(`SELECT KID FROM Distributions WHERE KID LIKE ?`, [
+    prefix + "%",
+  ]);
+
+  return res.map((row) => row.KID);
+}
 //endregion
 
 //region add
@@ -730,6 +743,7 @@ export const distributions = {
   getAll,
   getAllByDonor,
   getByDonorId,
+  getKIDsByPrefix,
   add,
   setTaxUnit,
   addTaxUnitToDistribution,

@@ -98,50 +98,26 @@ export async function processAutogiroInputFile(fileContents: string) {
     let invalid = 0;
     const invalidTransactions = [];
     for (const deposit of parsedFile.deposits) {
-      for (const payment of deposit.payments) {
-        const reference = `autogiro.${parsedFile.openingRecord.dateWritten.toFormat("yyyyMMdd")}.${
-          payment.paymentReference
-        }`;
-        try {
-          const KID = await getValidatedKID(payment.payerNumber);
-
-          let date = DateTime.fromFormat(payment.paymentDate, "yyyyMMdd").toJSDate();
-
-          try {
-            await DAO.donations.add(
-              KID,
-              paymentMethods.autoGiro,
-              payment.amount / 100,
-              date,
-              reference,
-            );
-          } catch (ex) {
-            if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
-              invalid++;
-              console.log(
-                `Ignoring duplicate donation for KID ${payment.payerNumber} with reference ${payment.paymentReference}`,
-              );
-              continue;
-            } else {
-              throw ex;
+      const promises = deposit.payments.map((payment) =>
+        processAutogiroDeposit(payment, parsedFile.openingRecord.dateWritten),
+      );
+      const results = await Promise.allSettled(promises);
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          if (result.value.valid) {
+            valid++;
+          } else {
+            invalid++;
+            if (result.value.transaction) {
+              invalidTransactions.push({
+                reason: result.value.reason,
+                transaction: result.value.transaction,
+              });
             }
           }
-
-          valid++;
-        } catch (ex) {
+        } else {
           invalid++;
-          console.error(ex);
-          let date = DateTime.fromFormat(payment.paymentDate, "yyyyMMdd").toJSDate();
-          invalidTransactions.push({
-            reason: ex.message,
-            transaction: {
-              KID: payment.payerNumber,
-              reference: reference,
-              amount: payment.amount,
-              date: date,
-            },
-          });
-          continue;
+          console.error(result.reason);
         }
       }
     }
@@ -400,19 +376,85 @@ export async function processAutogiroInputFile(fileContents: string) {
   return parsedFile;
 }
 
+type ProcessAutogiroPaymentResult = {
+  valid: boolean;
+  reason?: string;
+  transaction?: {
+    KID: string;
+    reference: string;
+    amount: number;
+    date: Date;
+  };
+};
+const processAutogiroDeposit = async (
+  payment,
+  reportDate,
+): Promise<ProcessAutogiroPaymentResult> => {
+  const reference = `autogiro.${reportDate.toFormat("yyyyMMdd")}.${payment.paymentReference}`;
+  try {
+    const KID = await getValidatedKID(payment.payerNumber);
+
+    let date = DateTime.fromFormat(payment.paymentDate, "yyyyMMdd").toJSDate();
+
+    try {
+      await DAO.donations.add(KID, paymentMethods.autoGiro, payment.amount / 100, date, reference);
+      return {
+        valid: true,
+      };
+    } catch (ex) {
+      if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
+        console.log(
+          `Ignoring duplicate donation for KID ${payment.payerNumber} with reference ${reference}`,
+        );
+        return {
+          valid: false,
+          reason: "EXISTING_DONATION",
+        };
+      } else {
+        throw ex;
+      }
+    }
+  } catch (ex) {
+    console.error(ex);
+    let date = DateTime.fromFormat(payment.paymentDate, "yyyyMMdd").toJSDate();
+    return {
+      valid: false,
+      reason: ex.message,
+      transaction: {
+        KID: payment.payerNumber,
+        reference: reference,
+        amount: payment.amount,
+        date: date,
+      },
+    };
+  }
+};
+
 const getValidatedKID = async (KID: string) => {
   let returnKID = KID;
   let exists = await DAO.distributions.KIDexists(returnKID);
-  if (!exists) {
-    // Check if we have the kid when we remove leading zeros
-    returnKID = parseInt(KID.trim()).toString();
-    exists = await DAO.distributions.KIDexists(returnKID);
-    if (!exists) {
-      console.log(`KID ${returnKID} not found in distributions`);
-      throw new Error(`KID ${returnKID} not found in distributions`);
-    }
+  if (exists) {
+    return returnKID;
   }
-  return returnKID;
+
+  // Check if we have the kid when we remove leading zeros
+  returnKID = parseInt(KID.trim()).toString();
+  exists = await DAO.distributions.KIDexists(returnKID);
+  if (exists) {
+    return returnKID;
+  }
+
+  // Check if we find a KID that starts with the KID we have
+  // The banks sometimes omit the last digit
+  // If there is only one KID in the database that is one digit longer than the KID we have, we assume that is the correct KID
+  const matchingKids = await DAO.distributions.getKIDsByPrefix(returnKID);
+  const oneLonger = matchingKids.filter((kid) => kid.length === KID.length + 1);
+  if (oneLonger.length === 1) {
+    return oneLonger[0];
+  }
+
+  console.log(`KID ${returnKID} not found in distributions`);
+  throw new Error(`KID ${returnKID} not found in distributions`);
 };
 
 /**

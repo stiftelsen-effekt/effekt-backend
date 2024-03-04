@@ -87,7 +87,7 @@ const parseOpeningRecord = (line: string): AutoGiroOpeningRecord => {
     );
 
   return {
-    dateWritten: DateTime.fromFormat(line.substring(26, 26 + 8), "yyyyMMdd"),
+    dateWritten: DateTime.fromFormat(line.substring(24, 24 + 8), "yyyyMMdd"),
     payeeCustomerNumber: line.substring(64, 64 + 6),
     payeeBankGiroNumber: line.substring(70, 70 + 10),
     fileContents: fileContents as AutoGiroContent,
