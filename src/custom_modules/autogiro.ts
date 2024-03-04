@@ -131,12 +131,15 @@ export async function processAutogiroInputFile(fileContents: string) {
         } catch (ex) {
           invalid++;
           console.error(ex);
+          let date = DateTime.fromFormat(payment.paymentDate, "yyyyMMdd").toJSDate();
           invalidTransactions.push({
-            KID: payment.payerNumber,
-            reference: reference,
-            amount: payment.amount,
-            date: payment.paymentDate,
-            message: ex.message,
+            reason: ex.message,
+            transaction: {
+              KID: payment.payerNumber,
+              reference: reference,
+              amount: payment.amount,
+              date: date,
+            },
           });
           continue;
         }
