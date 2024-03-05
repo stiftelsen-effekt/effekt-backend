@@ -15,6 +15,11 @@ import {
 } from "./parsers/autogiro/mandates";
 import { RequestLocale } from "../middleware/locale";
 import { isSwedishWorkingDay } from "./swedish-workdays";
+import {
+  AutoGiroIncomingPaymentRecord,
+  AutoGiroPaymentStatusCode,
+  autogiroPaymentStatusCodeToStringExplenation,
+} from "./parsers/autogiro/transactions";
 
 /**
  * Generates a claims file to claim payments for AutoGiro agreements
@@ -97,8 +102,19 @@ export async function processAutogiroInputFile(fileContents: string) {
     let valid = 0;
     let invalid = 0;
     const invalidTransactions = [];
+    const unapprovedPayments: AutoGiroIncomingPaymentRecord[] = [];
+
     for (const deposit of parsedFile.deposits) {
-      const promises = deposit.payments.map((payment) =>
+      const approvedPayments = deposit.payments.filter(
+        (payment) => payment.paymentStatusCode === AutoGiroPaymentStatusCode.APPROVED,
+      );
+      unapprovedPayments.push(
+        ...deposit.payments.filter(
+          (payment) => payment.paymentStatusCode !== AutoGiroPaymentStatusCode.APPROVED,
+        ),
+      );
+
+      const promises = approvedPayments.map((payment) =>
         processAutogiroDeposit(payment, parsedFile.openingRecord.dateWritten),
       );
       const results = await Promise.allSettled(promises);
@@ -121,6 +137,16 @@ export async function processAutogiroInputFile(fileContents: string) {
         }
       }
     }
+
+    await DAO.logging.add("Autogiro - Payments BAG", {
+      valid,
+      invalid: invalidTransactions.length,
+      ignored: invalid - invalidTransactions.length,
+      unapprovedPayments: unapprovedPayments.map((p) => ({
+        reason: autogiroPaymentStatusCodeToStringExplenation(p.paymentStatusCode),
+        payment: p,
+      })),
+    });
 
     return {
       openingRecord: parsedFile.openingRecord,
@@ -452,7 +478,7 @@ const getValidatedKID = async (KID: string) => {
   // The banks sometimes omit the last digit
   // If there is only one KID in the database that is one digit longer than the KID we have, we assume that is the correct KID
   const matchingKids = await DAO.distributions.getKIDsByPrefix(returnKID);
-  const oneLonger = matchingKids.filter((kid) => kid.length === KID.length + 1);
+  const oneLonger = matchingKids.filter((kid) => kid.length === returnKID.length + 1);
   if (oneLonger.length === 1) {
     return oneLonger[0];
   }

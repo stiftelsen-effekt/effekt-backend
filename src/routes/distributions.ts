@@ -3,91 +3,42 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { donationHelpers } from "../custom_modules/donationHelpers";
 
 import express from "express";
-import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
+import { validateDistribution } from "../custom_modules/distribution";
 import { sumWithPrecision } from "../custom_modules/rounding";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
+import { DistributionInput } from "../schemas/types";
 const router = express.Router();
 
 router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    if (
-      req.body.standardDistribution === null ||
-      typeof req.body.standardDistribution === "undefined"
-    ) {
-      return res.status(400).json({
-        status: 400,
-        content: "Missing param standard distribution",
-      });
-    }
-    if (!req.body.donor || !req.body.donor.id) {
-      return res.status(400).json({
-        status: 400,
-        content: "Missing param donor ID",
-      });
-    }
-    if (!req.body.shares) {
-      return res.status(400).json({
-        status: 400,
-        content: "Missing param distribution",
+    let distribution = req.body as DistributionInput;
+
+    const validatedDistribution = validateDistribution(distribution);
+
+    const existing = await DAO.distributions.getKIDbySplit(validatedDistribution);
+
+    if (existing) {
+      return res.json({
+        status: 200,
+        content: {
+          KID: existing,
+          newDistribution: false,
+        },
       });
     }
 
-    const standardDistribution = req.body.standardDistribution;
-    const donorId = req.body.donor.id;
-    const metaOwnerID = req.body.metaOwnerID;
-    const taxUnitId = req.body.taxUnit ? req.body.taxUnit.id : null;
-    const shares = req.body.shares;
+    const KID = await donationHelpers.createKID();
 
-    if (shares.length === 0) {
-      return res.status(400).json({
-        status: 400,
-        content: "Distribution must contain at least one organization",
-      });
-    }
-
-    if (sumWithPrecision(shares.map((share) => share.share)) !== "100") {
-      let err = new Error("Distribution does not sum to 100");
-      (err as any).status = 400;
-      return next(err);
-    }
-
-    //Check for existing distribution with that KID
-    let foundMatchingDistribution = false;
-    /*
-    !!! === CAUSE AREAS TODO === !!!
-    let KID = await DAO.distributions.getKIDbySplit(
-      shares,
-      donorId,
-      standardDistribution,
-      taxUnitId,
-    );
-    */
-    let KID = null;
-
-    if (!KID) {
-      KID = await donationHelpers.createKID(15, donorId);
-
-      throw new Error("KID generation not implemented yet");
-      /*
-      !!! === CAUSE AREAS TODO === !!!
-      await DAO.distributions.add(
-        shares,
-        KID,
-        donorId,
-        taxUnitId,
-        standardDistribution,
-        metaOwnerID,
-      );
-      */
-    } else {
-      foundMatchingDistribution = true;
-    }
+    await DAO.distributions.add({
+      kid: KID,
+      ...validatedDistribution,
+    });
 
     res.json({
       status: 200,
       content: {
         KID,
-        newDistribution: !foundMatchingDistribution,
+        newDistribution: true,
       },
     });
   } catch (ex) {

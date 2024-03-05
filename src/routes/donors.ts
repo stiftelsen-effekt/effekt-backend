@@ -635,6 +635,8 @@ router.post(
       } else if (ssn.length === 9) {
         // Organization number is 9 digits
         // No validatino performed
+      } else if (ssn.length === 13) {
+        // Temp no validation for SE numbers
       } else {
         return res.status(400).json({
           status: 400,
