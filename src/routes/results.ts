@@ -101,7 +101,12 @@ resultsRouter.get("/donations/monthly/outputs", async (req, res, next) => {
         output = "Kroner";
         centsPerOutput = 100;
       } else {
-        output = relevantEvaluation.intervention.short_description;
+        if (relevantEvaluation.intervention.short_description.startsWith("Dollar mottatt")) {
+          output = "Dollar mottatt";
+        } else {
+          output = relevantEvaluation.intervention.short_description;
+        }
+
         centsPerOutput = relevantEvaluation.cents_per_output;
       }
 
