@@ -65,7 +65,7 @@ export async function generateAutogiroGiroFile(
       agreementClaim.claimDate,
       agreementClaim.agreement.KID,
       config.autogiro_bankgiro_number,
-      agreementClaim.agreement.amount,
+      agreementClaim.agreement.amount * 100, // Agreement amount in øre
       chargeId.toString(),
     );
     fileContents += "\n";

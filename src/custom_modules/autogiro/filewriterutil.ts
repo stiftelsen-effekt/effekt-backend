@@ -125,9 +125,12 @@ export default {
       AutoGiroCancellationRecordCode.CANCEL_ALL_FOR_PAYMENT_DATE_AMOUNT_AND_REFERENCE
     }${config.autogiro_bankgiro_number.padStart(10, "0")}${donorId
       .toString()
-      .padStart(16, "0")}${cancellationDate}${charge.amount.toString().padStart(12, "0")}${
-      AutoGiroPaymentCodes.INCOMMING
-    }        ${charge.ID.toString().padEnd(16, " ")}      `;
+      .padStart(16, "0")}${cancellationDate}${Math.round(parseInt(charge.amount) * 100)
+      .toString()
+      .padStart(12, "0")}${AutoGiroPaymentCodes.INCOMMING}        ${charge.ID.toString().padEnd(
+      16,
+      " ",
+    )}      `;
   },
   /*
     getMandateApprovalRecord: (mandate: ) => {
