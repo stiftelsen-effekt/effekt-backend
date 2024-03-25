@@ -194,16 +194,18 @@ export async function processAutogiroInputFile(fileContents: string) {
      */
     for (const emandate of parsedFile.emandates) {
       try {
-        const taxUnit = await DAO.tax.getByKID(emandate.payerNumber, RequestLocale.SE);
+        const validKID = await getValidatedKID(emandate.payerNumber);
+
+        const taxUnit = await DAO.tax.getByKID(validKID, RequestLocale.SE);
         if (emandate.payerSsn && !taxUnit) {
           try {
-            const donor = await DAO.donors.getByKID(emandate.payerNumber);
+            const donor = await DAO.donors.getByKID(validKID);
             const taxUnitId = await DAO.tax.addTaxUnit(donor.id, emandate.payerSsn, donor.name);
-            await DAO.distributions.setTaxUnit(emandate.payerNumber, taxUnitId);
+            await DAO.distributions.setTaxUnit(validKID, taxUnitId);
           } catch (ex) {
             console.log(ex);
             console.error(
-              `Failed to add tax unit for donor with KID ${emandate.payerNumber} based on e-mandate`,
+              `Failed to add tax unit for donor with KID ${validKID} based on e-mandate`,
             );
             // If we can't add the tax unit, we won't be able to send a confirmation file for the mandate
             // Therefore we fail fast here
@@ -211,11 +213,11 @@ export async function processAutogiroInputFile(fileContents: string) {
           }
         }
 
-        const existingMandage = await DAO.autogiroagreements.getMandateByKID(emandate.payerNumber);
+        const existingMandage = await DAO.autogiroagreements.getMandateByKID(validKID);
 
         if (!existingMandage) {
           await DAO.autogiroagreements.addMandate({
-            KID: emandate.payerNumber,
+            KID: validKID,
             name_and_address: emandate.information.payerNameAndAddress,
             postal_code: emandate.information.postNumber,
             postal_label: emandate.information.postAddress,
@@ -226,7 +228,7 @@ export async function processAutogiroInputFile(fileContents: string) {
         } else if (existingMandage.status === "DRAFTED") {
           await DAO.autogiroagreements.updateMandate({
             ID: existingMandage.ID,
-            KID: emandate.payerNumber,
+            KID: validKID,
             name_and_address: emandate.information.payerNameAndAddress,
             postal_code: emandate.information.postNumber,
             postal_label: emandate.information.postAddress,
@@ -236,7 +238,7 @@ export async function processAutogiroInputFile(fileContents: string) {
           });
         } else {
           console.log(
-            `Mandate with KID ${emandate.payerNumber} already exists with status ${existingMandage.status}, skipping`,
+            `Mandate with KID ${validKID} already exists with status ${existingMandage.status}, skipping`,
           );
         }
       } catch (ex) {

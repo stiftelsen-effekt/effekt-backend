@@ -264,7 +264,7 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
       const agreements = await DAO.autogiroagreements.getAgreementsByPaymentDate(claimDate.day);
       const activeAgreements = agreements
         .filter((agreement) => agreement.active)
-        .filter((agreement) => agreement.KID.length === 15); // Temporary filter for only new agreements
+        .filter((agreement) => agreement.KID.length === 15 || agreement.KID.length === 8);
       const toClaim = activeAgreements.map((agreement) => ({
         agreement: agreement,
         claimDate: claimDate,
