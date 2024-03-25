@@ -429,6 +429,13 @@ const processAutogiroDeposit = async (
 
     try {
       await DAO.donations.add(KID, paymentMethods.autoGiro, payment.amount / 100, date, reference);
+      const chargeId = payment.paymentReference.trim();
+      try {
+        await DAO.autogiroagreements.setAgreementChargeCompleted(chargeId);
+      } catch (ex) {
+        console.error(ex);
+        console.log(`Failed to update charge with ID ${chargeId} to COMPLETED`);
+      }
       return {
         valid: true,
       };

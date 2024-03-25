@@ -427,6 +427,14 @@ export const autogiroagreements = {
       [ID],
     );
   },
+  setAgreementChargeCompleted: async function (ID: number) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_agreement_charges SET status = "COMPLETED" WHERE ID = ?
+      `,
+      [ID],
+    );
+  },
   getMandates: async function (
     sort: { desc: boolean; id: string },
     page: number,
