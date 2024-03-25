@@ -146,6 +146,7 @@ export async function processAutogiroInputFile(fileContents: string) {
         reason: autogiroPaymentStatusCodeToStringExplenation(p.paymentStatusCode),
         payment: p,
       })),
+      file: fileContents,
     });
 
     return {
@@ -192,6 +193,10 @@ export async function processAutogiroInputFile(fileContents: string) {
     /**
      * New e-mandates
      */
+    let valid = 0;
+    let invalid = 0;
+    let ignored = 0;
+
     for (const emandate of parsedFile.emandates) {
       try {
         const validKID = await getValidatedKID(emandate.payerNumber);
@@ -225,6 +230,8 @@ export async function processAutogiroInputFile(fileContents: string) {
             status: "NEW",
             bank_account: emandate.payerBankAccountNumber,
           });
+          valid++;
+          continue;
         } else if (existingMandage.status === "DRAFTED") {
           await DAO.autogiroagreements.updateMandate({
             ID: existingMandage.ID,
@@ -236,16 +243,27 @@ export async function processAutogiroInputFile(fileContents: string) {
             status: "NEW",
             bank_account: emandate.payerBankAccountNumber,
           });
+          valid++;
+          continue;
         } else {
           console.log(
             `Mandate with KID ${validKID} already exists with status ${existingMandage.status}, skipping`,
           );
+          ignored++;
+          continue;
         }
       } catch (ex) {
         console.error(ex);
         console.log(`Failed to add mandate with KID ${emandate.payerNumber}`);
       }
     }
+
+    await DAO.logging.add("Autogiro - e-mandates BGE", {
+      valid,
+      invalid,
+      ignored,
+      file: fileContents,
+    });
   } else if (parsedFile.reportContents === AutoGiroContent.MANDATES) {
     /**
      * Status updates on mandate from the bank
