@@ -180,6 +180,13 @@ DAO.connect(() => {
   //Error handling
   app.use(errorHandler);
 
+  app.use((req, res, next) => {
+    res.status(404).json({
+      status: 404,
+      content: "Not found",
+    });
+  });
+
   mainServer.listen(parseInt(config.port), config.host, () => {
     console.log("Main http server listening on http://" + config.host + ":" + config.port + " 📞");
 
