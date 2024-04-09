@@ -51,6 +51,23 @@ export async function generateAutogiroGiroFile(
    * Withdrawal requests
    */
   for (const agreementClaim of agreementsToClaim) {
+    // Check for existing charges
+    const existingCharge = await DAO.autogiroagreements.getAgreementChargeByAgreementIdAndClaimDate(
+      agreementClaim.agreement.ID,
+      agreementClaim.claimDate,
+    );
+
+    if (existingCharge) {
+      console.log(
+        `Skipping charge for agreement with KID ${
+          agreementClaim.agreement.KID
+        } and claim date ${agreementClaim.claimDate.toISO()} as it already exists with ID ${
+          existingCharge.ID
+        }`,
+      );
+      continue;
+    }
+
     // Create a charge record for each agreement
     const chargeId = await DAO.autogiroagreements.addAgreementCharge({
       agreementID: agreementClaim.agreement.ID,
@@ -75,14 +92,20 @@ export async function generateAutogiroGiroFile(
    * Mandates that need confirmation
    */
   for (const mandate of mandatesToBeConfirmed) {
-    const taxUnit = await DAO.tax.getByKID(mandate.KID, RequestLocale.SE);
+    try {
+      const taxUnit = await DAO.tax.getByKID(mandate.KID, RequestLocale.SE);
 
-    fileContents += writer.getMandateConfirmationRecord(
-      mandate,
-      taxUnit,
-      config.autogiro_bankgiro_number,
-    );
-    fileContents += "\n";
+      fileContents += writer.getMandateConfirmationRecord(
+        mandate,
+        taxUnit,
+        config.autogiro_bankgiro_number,
+      );
+      fileContents += "\n";
+    } catch (ex) {
+      console.error(ex);
+      console.log(`Failed to add mandate confirmation record for mandate with KID ${mandate.KID}`);
+      continue;
+    }
 
     await DAO.autogiroagreements.setMandateStatus(mandate.ID, "PENDING");
   }

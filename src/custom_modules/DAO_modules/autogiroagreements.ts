@@ -392,6 +392,24 @@ export const autogiroagreements = {
     );
     return charge?.[0];
   },
+  /**
+   * Check if an agreement charge exists for a given KID and claim date (month and year, since we only charge once a month)
+   * @param KID
+   * @param claimDate
+   * @returns
+   */
+  getAgreementChargeByAgreementIdAndClaimDate: async function (
+    agreementId: number,
+    claimDate: DateTime,
+  ) {
+    const [charge] = await DAO.query<AutoGiro_agreement_charges[]>(
+      `
+        SELECT * FROM AutoGiro_agreement_charges WHERE agreementID = ? AND YEAR(claim_date) = ? AND MONTH(claim_date) = ?
+      `,
+      [agreementId, claimDate.year, claimDate.month],
+    );
+    return charge?.[0];
+  },
   addAgreementCharge: async function (
     charge: Omit<AutoGiro_agreement_charges, "ID" | "created" | "last_updated">,
   ): Promise<number> {

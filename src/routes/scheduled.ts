@@ -254,14 +254,30 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
   }
 });
 
-router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
+// authMiddleware.isAdmin,
+router.post("/autogiro", async (req, res, next) => {
   let result;
   try {
     const today = DateTime.fromJSDate(new Date());
-    const claimDates = getAutogiroDueDates(today);
+    let claimDates: DateTime<boolean>[];
+    if (!req.query.claimDates) {
+      claimDates = getAutogiroDueDates(today);
+    } else {
+      const stringDates = (req.query as any).claimDates.split(",");
+      claimDates = [];
+      for (const stringDate of stringDates) {
+        // Use 6AM to avoid issues with daylight saving time, as the time is not used in the file
+        claimDates.push(DateTime.fromFormat(stringDate + " 06:00:00", "yyyy-LL-dd HH:mm:ss"));
+      }
+    }
+
     let agreementsToClaim = [];
     for (let claimDate of claimDates) {
-      const agreements = await DAO.autogiroagreements.getAgreementsByPaymentDate(claimDate.day);
+      const isClaimDateLastDayOfMonth = claimDate.day == today.endOf("month").day;
+
+      const agreements = await DAO.autogiroagreements.getAgreementsByPaymentDate(
+        isClaimDateLastDayOfMonth ? 0 : claimDate.day,
+      );
       const activeAgreements = agreements
         .filter((agreement) => agreement.active)
         .filter((agreement) => agreement.KID.length === 15 || agreement.KID.length === 8);
