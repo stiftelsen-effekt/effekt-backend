@@ -14,18 +14,6 @@ import { donationHelpers } from "../custom_modules/donationHelpers";
 
 const router = express.Router();
 
-router.post("/reports/process", isAdmin, async (req, res) => {
-  const report = req.files.report;
-  if (Array.isArray(report)) {
-    throw new Error("Expected a single file");
-  }
-  const data = report.data.toString("latin1");
-
-  const result = await processAutogiroInputFile(data);
-
-  res.json(result);
-});
-
 router.get("/shipments", isAdmin, async (req, res, next) => {
   try {
     const shipments = await DAO.autogiroagreements.getAllShipments();
@@ -122,20 +110,14 @@ router.post("/agreements", isAdmin, async (req, res, next) => {
       req.body.limit,
       req.body.filter,
     );
-    if (results) {
-      return res.json({
-        status: 200,
-        content: {
-          pages: results.pages,
-          rows: results.rows,
-        },
-      });
-    } else {
-      return res.status(500).json({
-        status: 500,
-        content: "Error getting agreements",
-      });
-    }
+    return res.json({
+      status: 200,
+      content: {
+        pages: results.pages,
+        rows: results.rows,
+        statistics: results.statistics,
+      },
+    });
   } catch (ex) {
     next(ex);
   }

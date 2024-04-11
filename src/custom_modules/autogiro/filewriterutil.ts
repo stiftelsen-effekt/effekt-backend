@@ -79,12 +79,39 @@ export default {
   ) => {
     if (mandate.status !== "NEW") throw new Error("Can only request confirmation of new mandates");
 
+    let formattedSSN = taxUnit?.ssn ?? "";
+    if (formattedSSN.length !== 0) {
+      // Strip - and + from the SSN
+      if (formattedSSN.includes("-")) {
+        formattedSSN = formattedSSN.replace("-", "");
+      }
+      if (formattedSSN.includes("+")) {
+        formattedSSN = formattedSSN.replace("+", "");
+      }
+      if (formattedSSN.length !== 12) {
+        // Check if the first two digits are before the current year, if so, add 20 to the year
+        // Else add 19
+        const year = parseInt(formattedSSN.substring(0, 2));
+        const currentYear = new Date().getFullYear().toString().substring(2, 4);
+        if (year > parseInt(currentYear)) {
+          formattedSSN = "19" + formattedSSN;
+        } else {
+          formattedSSN = "20" + formattedSSN;
+        }
+
+        if (formattedSSN.length !== 12) {
+          throw new Error("Invalid SSN" + formattedSSN);
+        }
+      }
+    }
+
     return `${AutoGiroMandateCodes.ADD_OR_CONFIRM}${bankGiroNumber.padStart(
       10,
       "0",
-    )}${mandate.KID.padStart(16, "0")}${mandate.bank_account.padStart(16, "0")}${(
-      taxUnit?.ssn ?? ""
-    ).padStart(12, "0")}${" ".padStart(20, " ")}    `;
+    )}${mandate.KID.padStart(16, "0")}${mandate.bank_account.padStart(
+      16,
+      "0",
+    )}${formattedSSN.padStart(12, "0")}${" ".padStart(20, " ")}    `;
   },
   getCancellationRecord: (charge: AutoGiro_agreement_charges, donorId: number) => {
     if (charge.status !== "PENDING") throw new Error("Can only cancel pending charges");
@@ -98,9 +125,12 @@ export default {
       AutoGiroCancellationRecordCode.CANCEL_ALL_FOR_PAYMENT_DATE_AMOUNT_AND_REFERENCE
     }${config.autogiro_bankgiro_number.padStart(10, "0")}${donorId
       .toString()
-      .padStart(16, "0")}${cancellationDate}${charge.amount.toString().padStart(12, "0")}${
-      AutoGiroPaymentCodes.INCOMMING
-    }        ${charge.ID.toString().padEnd(16, " ")}      `;
+      .padStart(16, "0")}${cancellationDate}${Math.round(parseInt(charge.amount) * 100)
+      .toString()
+      .padStart(12, "0")}${AutoGiroPaymentCodes.INCOMMING}        ${charge.ID.toString().padEnd(
+      16,
+      " ",
+    )}      `;
   },
   /*
     getMandateApprovalRecord: (mandate: ) => {

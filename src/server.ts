@@ -23,6 +23,7 @@ import swaggerUi from "swagger-ui-express";
 import qs from "qs";
 import errorHandler from "./handlers/errorHandler";
 import { importRouter } from "./routes/import";
+import { resultsRouter } from "./routes/results";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -170,6 +171,7 @@ DAO.connect(() => {
   app.use("/autogiro", autoGiroRoute);
   app.use("/tax", taxRoute);
   app.use("/import", importRouter);
+  app.use("/results", resultsRouter);
 
   app.use("/static", express.static(__dirname + "/static"));
   app.use("/style", express.static(__dirname + "/views/style"));
@@ -177,6 +179,13 @@ DAO.connect(() => {
 
   //Error handling
   app.use(errorHandler);
+
+  app.use((req, res, next) => {
+    res.status(404).json({
+      status: 404,
+      content: "Not found",
+    });
+  });
 
   mainServer.listen(parseInt(config.port), config.host, () => {
     console.log("Main http server listening on http://" + config.host + ":" + config.port + " 📞");

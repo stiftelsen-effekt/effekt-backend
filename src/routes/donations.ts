@@ -168,7 +168,7 @@ router.post("/register", async (req, res, next) => {
         kid: donationObject.KID,
       });
     } else if (donationObject.method == methods.AUTOGIRO) {
-      donationObject.KID = await donationHelpers.createAvtaleGiroKID();
+      donationObject.KID = await donationHelpers.createKID(8);
       await DAO.distributions.add({
         ...draftDistribution,
         kid: donationObject.KID,
@@ -191,11 +191,15 @@ router.post("/register", async (req, res, next) => {
       }
     } else {
       //Try to get existing KID
-      donationObject.KID = await DAO.distributions.getKIDbySplit({
-        donorId: donationObject.donorID,
-        taxUnitId: donationObject.taxUnitId,
-        causeAreas: draftDistribution.causeAreas,
-      });
+      donationObject.KID = await DAO.distributions.getKIDbySplit(
+        {
+          donorId: donationObject.donorID,
+          taxUnitId: donationObject.taxUnitId,
+          causeAreas: draftDistribution.causeAreas,
+        },
+        0,
+        8,
+      );
 
       //Split does not exist create new KID and split
       if (donationObject.KID == null) {
@@ -410,7 +414,7 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
       content: {
         rows: results.rows,
         pages: results.pages,
-        stats: results.stats,
+        statistics: results.statistics,
       },
     });
   } catch (ex) {

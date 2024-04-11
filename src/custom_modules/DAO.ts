@@ -19,6 +19,7 @@ import config from "../config";
 import { autogiroagreements } from "./DAO_modules/autogiroagreements";
 import { causeareas } from "./DAO_modules/causeareas";
 import { adoveo } from "./DAO_modules/adoveo";
+import { results } from "./DAO_modules/results";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -63,6 +64,7 @@ export const DAO = {
   logging: logging,
   swish: swish,
   adoveo: adoveo,
+  results: results,
 
   dbPool: undefined as mysql.Pool | undefined,
 
