@@ -104,7 +104,9 @@ describe("donors", () => {
   describe("routes", () => {
     let server: express.Express;
 
-    beforeEach(() => {
+    beforeEach(function (done) {
+      this.timeout(5000);
+
       server = express();
       server.use(bodyParser.json());
       server.use(bodyParser.urlencoded({ extended: true }));
@@ -120,6 +122,8 @@ describe("donors", () => {
         .callsFake((_, req, res, next) => {
           next();
         });
+
+      done();
     });
 
     describe("GET /donors/:id/donations", function () {
@@ -133,7 +137,7 @@ describe("donors", () => {
 
       it("Should return 200 OK with the dontions by ID", async function () {
         const response = await request(server).get("/donors/237/donations").expect(200);
-      }).timeout(5000);
+      });
 
       it("Should return the donations", async function () {
         const response = await request(server).get("/donors/237/donations");
