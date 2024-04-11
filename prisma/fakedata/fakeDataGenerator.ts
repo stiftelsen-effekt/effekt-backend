@@ -202,7 +202,6 @@ export function generateFakePaymentIntent(ID: number, donation: Donations): Paym
     KID_fordeling: donation.KID_fordeling,
     Payment_method: donation.Payment_ID,
     Payment_amount: donation.sum_confirmed,
-    timetamp: donation.inserted,
     timestamp: donation.inserted,
   };
 }
