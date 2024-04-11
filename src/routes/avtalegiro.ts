@@ -50,20 +50,14 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
       req.body.limit,
       req.body.filter,
     );
-    if (results) {
-      return res.json({
-        status: 200,
-        content: {
-          pages: results.pages,
-          rows: results.rows,
-        },
-      });
-    } else {
-      return res.status(500).json({
-        status: 500,
-        content: "Error getting agreements",
-      });
-    }
+    return res.json({
+      status: 200,
+      content: {
+        pages: results.pages,
+        rows: results.rows,
+        statistics: results.statistics,
+      },
+    });
   } catch (ex) {
     next(ex);
   }
@@ -113,48 +107,14 @@ router.get(
       if (!agreement) return res.sendStatus(404);
 
       const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
-      const taxUnit = await DAO.tax.getByKID(agreement.KID, req.locale);
-      const donor = await DAO.donors.getByKID(agreement.KID);
-
-      type BackwardsCompatibleResponse = {
-        status: 200;
-        content: {
-          ID: number;
-          distribution: {
-            KID: string;
-            donor: unknown;
-            taxUnit: unknown;
-            standardDistribution: boolean;
-            shares: Array<{
-              full_name: string;
-              abbriv: string;
-              id: number;
-              share: string;
-            }>;
-          };
-        };
-      };
-
-      const causeArea = findGlobalHealthCauseAreaOrThrow(distribution);
 
       return res.json({
         status: 200,
         content: {
           ...agreement,
-          distribution: {
-            KID: distribution.kid,
-            donor,
-            taxUnit,
-            standardDistribution: causeArea.standardSplit,
-            shares: causeArea.organizations.map((org) => ({
-              full_name: org.name,
-              abbriv: org.name,
-              id: org.id,
-              share: org.percentageShare,
-            })),
-          },
+          distribution,
         },
-      } satisfies BackwardsCompatibleResponse);
+      });
     } catch (ex) {
       next(ex);
     }

@@ -262,7 +262,20 @@ async function exists(KID) {
  * @param {object} filter Filtering object
  * @return {[AvtaleGiro]} Array of AvtaleGiro agreements
  */
-async function getAgreements(sort, page, limit, filter) {
+async function getAgreements(
+  sort,
+  page,
+  limit,
+  filter,
+): Promise<{
+  pages: number;
+  rows: Avtalegiro_agreements[];
+  statistics: {
+    numAgreements: number;
+    sumAgreements: number;
+    avgAgreement: number;
+  };
+}> {
   const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
   const sortDirection = sort.desc ? "DESC" : "ASC";
   const offset = page * limit;
@@ -289,47 +302,71 @@ async function getAgreements(sort, page, limit, filter) {
     if (filter.KID) where.push(` CAST(D.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
     if (filter.donor)
       where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
-    if (filter.statuses.length > 0)
+    if (filter.statuses) {
+      if (filter.statuses.length === 0) {
+        return {
+          pages: 0,
+          rows: [],
+          statistics: {
+            numAgreements: 0,
+            sumAgreements: 0,
+            avgAgreement: 0,
+          },
+        };
+      }
       where.push(` AG.active IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `);
+    }
   }
 
-  const [agreements] = await DAO.query(
-    `
-        SELECT DISTINCT
-            AG.ID,
-            AG.active,
-            ROUND(AG.amount / 100, 0) as amount,
-            AG.KID,
-            AG.payment_date,
-            AG.created,
-            AG.cancelled,
-            AG.last_updated,
-            AG.notice,
-            Donors.full_name 
-        FROM Avtalegiro_agreements as AG
-        INNER JOIN Distributions as D
-            ON AG.KID = D.KID
-        INNER JOIN Donors 
-            ON D.Donor_ID = Donors.ID
-        WHERE
-            ${where.length !== 0 ? where.join(" AND ") : "1"}
+  const columns = `
+    AG.ID,
+    AG.active,
+    AG.KID,
+    AG.payment_date,
+    AG.created,
+    AG.cancelled,
+    AG.last_updated,
+    AG.notice,
+    Donors.full_name 
+  `;
 
-        ORDER BY ${sortColumn} ${sortDirection}
-        LIMIT ? OFFSET ?
-        `,
-    [limit, offset],
-  );
+  const query = `
+    SELECT
+      count(*) OVER() AS full_count,
+      ROUND(sum(AG.amount) OVER() / 100, 0) AS full_sum,
+      ROUND(avg(AG.amount) OVER() / 100, 0) AS full_avg,
+      ROUND(AG.amount / 100, 0) as amount,
+      ${columns}
+    FROM Avtalegiro_agreements as AG
+    INNER JOIN Distributions as D
+        ON AG.KID = D.KID
+    INNER JOIN Donors 
+        ON D.Donor_ID = Donors.ID
+    WHERE
+        ${where.length !== 0 ? where.join(" AND ") : "1"}
 
-  const [counter] = await DAO.query(`
-        SELECT COUNT(*) as count FROM Avtalegiro_agreements
-    `);
+    GROUP BY
+      ${columns}
 
-  if (agreements.length === 0) return false;
-  else
-    return {
-      pages: Math.ceil(counter[0].count / limit),
-      rows: agreements,
-    };
+    ORDER BY ${sortColumn} ${sortDirection}
+    LIMIT ? OFFSET ?
+  `;
+
+  const [agreements] = await DAO.query(query, [limit, offset]);
+
+  const numAgreements = agreements.length > 0 ? agreements[0].full_count : 0;
+  const sumAgreements = agreements.length > 0 ? agreements[0].full_sum : 0;
+  const avgAgreement = agreements.length > 0 ? agreements[0].full_avg : 0;
+
+  return {
+    pages: Math.ceil(numAgreements / limit),
+    rows: agreements,
+    statistics: {
+      numAgreements,
+      sumAgreements,
+      avgAgreement,
+    },
+  };
 }
 
 /**
@@ -564,7 +601,7 @@ async function getRecievedDonationsForDate(date) {
 async function getAgreementSumHistogram() {
   let [results] = await DAO.query(`
             SELECT 
-                floor(amount/500)*500/100 	AS bucket, 
+                floor((amount/100)/500)*500 	AS bucket, 
                 count(*) 						AS items,
                 ROUND(100*LN(COUNT(*)))         AS bar
             FROM Avtalegiro_agreements

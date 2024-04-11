@@ -101,7 +101,7 @@ const parseDepositRecord = (line: string): AutoGiroDepositRecord => {
 /**
  * Section 8.2.2 in technical specification
  */
-type AutoGiroIncomingPaymentRecord = {
+export type AutoGiroIncomingPaymentRecord = {
   paymentDate: string;
   periodCode: string;
   numberOfRecurringPaymens: string;
@@ -240,3 +240,18 @@ export enum AutoGiroPaymentRefundCodes {
   MANDATE_WITHDRAWN = 2,
   UNREASONABLE_AMOUNT = 3,
 }
+
+export const autogiroPaymentStatusCodeToStringExplenation = (code: AutoGiroPaymentStatusCode) => {
+  switch (code) {
+    case AutoGiroPaymentStatusCode.APPROVED:
+      return "Approved";
+    case AutoGiroPaymentStatusCode.INSUFFICIENT_FUNDS:
+      return "Insufficient funds";
+    case AutoGiroPaymentStatusCode.ACCOUNT_CLOSED:
+      return "Account closed";
+    case AutoGiroPaymentStatusCode.RENEWED_FUNDS:
+      return "Renewed funds (retrying payment automatically)";
+    default:
+      return "Unknown code";
+  }
+};

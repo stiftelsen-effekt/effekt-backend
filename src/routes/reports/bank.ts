@@ -126,7 +126,8 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
     return next(ex);
   }
 
-  let payments: { amount: number; externalReference: string; KID: string }[] = [];
+  let payments: { amount: number; externalReference: string; messages: string[]; KID?: string }[] =
+    [];
   let postingDate: DateTime;
   for (const record of records) {
     if (record.recordType === RecordType.AccountAndCurrencyStartRecord) {
@@ -135,26 +136,45 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
       payments.push({
         amount: parseFloat(record.amount),
         externalReference: record.transactionSerialNumber,
-        KID: "",
+        messages: [],
       });
     } else if (record.recordType === RecordType.MessageRecord) {
       // Add KID to last payment
-      payments[payments.length - 1].KID = record.messages[0];
+      payments[payments.length - 1].messages.push(record.messages[0]);
+      payments[payments.length - 1].messages.push(record.messages[1]);
     }
   }
 
   // Filter out Swish payments
-  payments = payments.filter((p) => p.KID !== "OrderID:");
+  payments = payments.filter((p) => !p.messages.some((m) => m.startsWith("Swishnummer:")));
+
+  let valid = 0;
+  let invalid = 0;
+  let invalidTransactions = [];
 
   for (let payment of payments) {
     // Let's see if we can find the distribution
     try {
-      const exists = await DAO.distributions.KIDexists(payment.KID);
+      let exists = false;
+      for (const message of payment.messages) {
+        if (await DAO.distributions.KIDexists(message.trim())) {
+          exists = true;
+          payment.KID = message;
+          break;
+        }
+      }
       if (!exists) {
         console.log(`Did not find distribution for KID: ${payment.KID}`);
         console.log(`Looking for legacy distribution`);
 
-        const latestDonation = await DAO.donations.getLatestByLegacySeDistribution(payment.KID);
+        let latestDonation;
+        for (const message of payment.messages) {
+          latestDonation = await DAO.donations.getLatestByLegacySeDistribution(message.trim());
+          if (latestDonation) {
+            payment.KID = latestDonation.KID_fordeling;
+            break;
+          }
+        }
 
         if (latestDonation) {
           console.log(`Found legacy donation with ID: ${latestDonation.ID}`);
@@ -162,6 +182,17 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
           payment.KID = paymentKID;
         } else {
           console.log(`Did not find legacy distribution for KID: ${payment.KID}`);
+          invalid++;
+          invalidTransactions.push({
+            reason: "Did not find distribution for KID",
+            transaction: {
+              date: postingDate,
+              message: payment.messages.join(", "),
+              amount: payment.amount,
+              externalRef: payment.externalReference,
+              paymentID: 2,
+            },
+          });
           continue;
         }
       }
@@ -177,8 +208,21 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
         postingDate.toJSDate(),
         payment.externalReference,
       );
+      valid++;
       continue;
     } catch (ex) {
+      invalid++;
+      invalidTransactions.push({
+        reason: ex.message,
+        transaction: {
+          date: postingDate,
+          message: ex.message,
+          amount: payment.amount,
+          KID: payment.KID,
+          externalRef: payment.externalReference,
+          paymentID: 2,
+        },
+      });
       console.error(`Failed to find distribution for KID: ${payment.KID}`);
       continue;
     }
@@ -186,6 +230,10 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
 
   res.json({
     status: 200,
-    content: payments,
+    content: {
+      valid,
+      invalid,
+      invalidTransactions,
+    },
   });
 });

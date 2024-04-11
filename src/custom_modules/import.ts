@@ -12,18 +12,23 @@ const Decimal = require("decimal.js");
 
 export const importSwedishDonationsReport = async (report, medgivandeReport) => {
   const data = parseSwedishDonationsReport(report);
-  const medgivandeReportData = parseSwedishMedgivandeReport(medgivandeReport);
 
-  for (const row of medgivandeReportData) {
-    await DAO.autogiroagreements.addMandate({
-      KID: row.kid.trim(),
-      name_and_address: row.name,
-      status: "ACTIVE",
-      special_information: "",
-      postal_code: "",
-      postal_label: "",
-      bank_account: "",
-    });
+  if (medgivandeReport) {
+    const medgivandeReportData = parseSwedishMedgivandeReport(medgivandeReport);
+
+    for (const row of medgivandeReportData) {
+      await DAO.autogiroagreements.addMandate({
+        KID: row.kid.trim(),
+        name_and_address: row.name,
+        status: "ACTIVE",
+        special_information: "",
+        postal_code: "",
+        postal_label: "",
+        bank_account: "",
+      });
+    }
+  } else {
+    console.warn("No medgivande report found, skipping adding mandates");
   }
 
   for (const donor of data) {
@@ -71,6 +76,8 @@ export const importSwedishDonationsReport = async (report, medgivandeReport) => 
       counter++;
 
       const parsedDate = DateTime.fromISO(donation.date, { locale: "sv-SE" });
+      console.log(donation.date);
+      console.log(parsedDate.toJSDate());
 
       // Transform donation distribution to match the database
       const distributionInput = await getDistributionInput(donorId, taxUnitId, donation);
@@ -193,7 +200,7 @@ export const importSwedishDonationsReport = async (report, medgivandeReport) => 
         );
       } catch (ex) {
         if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
-          // console.log("Donation already exists, skipping");
+          console.log("Donation already exists, skipping");
           continue;
         } else {
           throw ex;
@@ -268,7 +275,9 @@ const getDistributionInput = async (
     donation.distribution.operations.sum;
 
   if (sum !== distributionSum) {
-    if (sum - distributionSum == parseFloat(donation.distribution.unknownSum)) {
+    if (
+      (sum - distributionSum).toFixed(2) === parseFloat(donation.distribution.unknownSum).toFixed(2)
+    ) {
       // Spread according to quarterly key
       console.log("Sum mismatch is due to unknown sum, spreading according to quarterly key");
       const quarter = parsedDate.quarter;
