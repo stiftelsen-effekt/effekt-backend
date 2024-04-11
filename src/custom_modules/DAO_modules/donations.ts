@@ -399,6 +399,9 @@ async function getByID(donationID) {
                 Donation.KID_fordeling,
                 Donation.transaction_cost,
                 Donation.timestamp_confirmed,
+                Donation.Payment_ID,
+                Donation.PaymentExternal_ID,
+                Donation.Meta_owner_ID,
                 Donor.ID as donorId,
                 Donor.full_name,
                 Donor.email,
@@ -431,8 +434,11 @@ async function getByID(donationID) {
     sum: dbDonation.sum_confirmed,
     transactionCost: dbDonation.transaction_cost,
     timestamp: dbDonation.timestamp_confirmed,
+    paymentId: dbDonation.Payment_ID,
+    paymentExternalRef: dbDonation.PaymentExternal_ID,
     paymentMethod: dbDonation.payment_name,
     KID: dbDonation.KID_fordeling,
+    metaOwnerId: dbDonation.Meta_owner_ID,
   };
 
   const distribution = await distributions.getSplitByKID(donation.KID);
@@ -949,6 +955,37 @@ async function addLegacySeDonationDistribution(
 //endregion
 
 //region Modify
+async function update(donation: {
+  id: number;
+  paymentId?: number;
+  paymentExternalRef?: string;
+  sum?: number;
+  transactionCost?: number;
+  timestamp?: Date;
+  metaOwnerId?: number;
+}) {
+  const existingDonation = await DAO.donations.getByID(donation.id);
+
+  const paymentId = donation.paymentId ?? existingDonation.paymentId;
+  const paymentExternalRef = donation.paymentExternalRef ?? existingDonation.paymentExternalRef;
+  const sum = donation.sum ?? existingDonation.sum;
+  const transactionCost = donation.transactionCost ?? existingDonation.transactionCost;
+  const timestamp = donation.timestamp ?? existingDonation.timestamp;
+  const metaOwnerId = donation.metaOwnerId ?? existingDonation.metaOwnerId;
+
+  await DAO.execute(
+    `UPDATE Donations SET
+      Payment_ID = ?,
+      PaymentExternal_ID = ?,
+      sum_confirmed = ?,
+      transaction_cost = ?,
+      timestamp_confirmed = ?,
+      Meta_owner_ID = ?
+    WHERE ID = ?`,
+    [paymentId, paymentExternalRef, sum, transactionCost, timestamp, metaOwnerId, donation.id],
+  );
+}
+
 async function registerConfirmedByIDs(IDs) {
   var [donations] = await DAO.execute(
     `UPDATE Donations 
@@ -1070,6 +1107,7 @@ export const donations = {
   getLatestByLegacySeDistribution,
   externalPaymentIDExists,
   updateTransactionCost,
+  update,
   add,
   addLegacySeDonationDistribution,
   registerConfirmedByIDs,

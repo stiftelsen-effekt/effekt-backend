@@ -271,6 +271,29 @@ router.post("/register", async (req, res, next) => {
   });
 });
 
+router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    // Verify donation id as number
+    const donationId = parseInt(req.params.id);
+    if (isNaN(donationId)) return res.status(400).send("Invalid donation ID");
+
+    const result = await DAO.donations.update({
+      id: req.params.id,
+      paymentId: req.body.paymentId,
+      paymentExternalRef: req.body.paymentExternalRef,
+      sum: req.body.sum,
+      transactionCost: req.body.transactionCost,
+      timestamp: new Date(req.body.timestamp),
+      metaOwnerId: req.body.metaOwnerId,
+    });
+    return res.json({
+      status: 200,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 /**
  * @openapi
  * /donations/bank/pending:
