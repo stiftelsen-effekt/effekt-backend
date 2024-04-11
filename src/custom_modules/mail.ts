@@ -466,6 +466,79 @@ export async function sendDonationRegistered(KID, sum) {
 }
 
 /**
+ * @param {string} KID
+ */
+export async function sendPaymentIntentFollowUp(KID, sum): Promise<boolean | number> {
+  try {
+    try {
+      var donor = await DAO.donors.getByKID(KID);
+    } catch (ex) {
+      console.error("Failed to send mail donation follow up, could not get donor by KID");
+      console.error(ex);
+      return false;
+    }
+
+    if (!donor) {
+      console.error(`Failed to send mail donation follow up, no donors attached to KID ${KID}`);
+      return false;
+    }
+
+    try {
+      var distribution = await DAO.distributions.getSplitByKID(KID);
+    } catch (ex) {
+      console.error("Failed to send mail donation follow up, could not get donation split by KID");
+      console.error(ex);
+      return false;
+    }
+
+    const split = distribution.causeAreas.reduce((acc, causeArea) => {
+      causeArea.organizations.forEach((org) => {
+        acc.push({
+          // Need to get name
+          name: org.name ? org.name.toString() : org.id.toString(),
+          // Round to nearest 2 decimals
+          percentageShare: getOrganizationOverallPercentage(
+            org.percentageShare,
+            causeArea.percentageShare,
+          ).toString(),
+        });
+      });
+      return acc;
+    }, []);
+
+    const organizations = formatOrganizationsFromSplit(split, sum);
+
+    var KIDstring = KID.toString();
+
+    const response = await sendTemplate({
+      to: "hakon.harnes@effektivaltruisme.no", //donor.email,
+      templateId: config.mailersend_payment_intent_followup_template_id,
+      variables: {
+        donationKID: KID,
+        donationSum: formatCurrency(sum) + " kr",
+        orgAccountNr: config.bankAccount,
+        donationTotalSum: formatCurrency(sum) + " kr",
+      },
+      personalization: {
+        organizations,
+      },
+    });
+
+    console.log(`Response from mailersend:`, response);
+
+    if (response === false) {
+      return false;
+    }
+    // 202 is the status code for accepted for processing
+    return response.statusCode === 202;
+  } catch (ex) {
+    console.error("Failed to send mail donation follow up");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+/**
  * @param {string} email
  */
 export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {

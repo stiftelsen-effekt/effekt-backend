@@ -1,12 +1,13 @@
+import { Payment_follow_up, Payment_intent } from "@prisma/client";
 import { DAO } from "../DAO";
+import { KID } from "../KID";
 
 //region Get
 /**
  * Fetches a single payment intent by ID.
- * @param {number} paymentIntentId - The ID of the payment intent.
  */
 async function getPaymentIntent(paymentIntentId) {
-  const [paymentIntent] = await DAO.query(
+  const [paymentIntent] = await DAO.query<Payment_intent[]>(
     `
     SELECT *
     FROM Payment_intent
@@ -20,14 +21,13 @@ async function getPaymentIntent(paymentIntentId) {
 
 /**
  * Fetches all payment intents that were created in the last X days.
- * @returns {Promise<number[]>} - The IDs of the payment intents.
  */
 async function getPaymentIntentsFromLastMonth() {
-  const [paymentIntents] = await DAO.query(
+  const [paymentIntents] = await DAO.query<Payment_intent[]>(
     `
     SELECT *
     FROM Payment_intent
-    WHERE timetamp > DATE_SUB(NOW(), INTERVAL 1 MONTH)
+    WHERE timestamp > DATE_SUB(NOW(), INTERVAL 1 MONTH)
     `,
   );
 
@@ -40,7 +40,7 @@ async function getPaymentIntentsFromLastMonth() {
  * @returns {Promise<object[]>} - The follow-up entries.
  */
 async function getFollowUpsForPaymentIntent(paymentIntentId) {
-  const [followUps] = await DAO.query(
+  const [followUps] = await DAO.query<Payment_follow_up[]>(
     `
     SELECT *
     FROM Payment_follow_up
@@ -60,16 +60,16 @@ async function getFollowUpsForPaymentIntent(paymentIntentId) {
 async function checkIfDonationReceived(paymentIntentId) {
   const paymentIntent = await getPaymentIntent(paymentIntentId);
   const paymentMethod = paymentIntent.Payment_method;
-  const paymentIntentDate = paymentIntent.timetamp;
-  const paymentAmount = paymentIntent.Payment_amount;
+  const paymentIntentDate = paymentIntent.timestamp;
+  const paymentKID = paymentIntent.KID_fordeling;
 
   // To determine if the payment intent is paid, check if there have been any donations with the same payment method since the date of the payment intent.
   const [donation] = await DAO.query(
     `
     SELECT * from Donations
-    WHERE Payment_ID = ? AND timestamp_confirmed > ? AND sum_confirmed >= ?
+    WHERE Payment_ID = ? AND timestamp_confirmed >= ? AND KID_fordeling = ?
     `,
-    [paymentMethod, paymentIntentDate, paymentAmount],
+    [paymentMethod, paymentIntentDate, paymentKID],
   );
 
   return donation.length > 0;

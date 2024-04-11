@@ -1,5 +1,9 @@
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { sendOcrBackup, sendPlaintextErrorMail } from "../custom_modules/mail";
+import {
+  sendOcrBackup,
+  sendPaymentIntentFollowUp,
+  sendPlaintextErrorMail,
+} from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
 import { getDueDates } from "../custom_modules/avtalegiro";
 import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_modules/nets";
@@ -516,34 +520,20 @@ type ConditionalFollowUpConfig = FollowUpConfig & {
   amountRange: { min: number; max: number };
 };
 
-// EXAMPLES BELOW - REPLACE WITH ACTUAL CONFIG
+// Default config is now to not follow up
 const defaultFollowUpConfig: FollowUpConfig = {
-  daysBeforeFollowUp: 3,
-  maxFollowUps: 1,
+  daysBeforeFollowUp: 5,
+  maxFollowUps: 0,
 };
 
 const conditionalFollowUpConfig: ConditionalFollowUpConfig[] = [
-  // Send additional follow-ups for all bank payments over 10,000 NOK
+  // Send additional follow-ups for all bank payments over 100 NOK
   // They are also sent out earlier than the default follow-up
   {
     paymentMethod: paymentMethods.bank,
-    amountRange: { min: 10000, max: Infinity },
-    daysBeforeFollowUp: 2,
-    maxFollowUps: 3,
-  },
-  // Do not send follow-ups for Vipps payments under 50 NOK
-  {
-    paymentMethod: paymentMethods.vipps,
-    amountRange: { min: 0, max: 50 },
-    daysBeforeFollowUp: 0,
-    maxFollowUps: 0,
-  },
-  // Send additional follow-ups for all Vipps payments over 10,000 NOK
-  {
-    paymentMethod: paymentMethods.vipps,
-    amountRange: { min: 10000, max: Infinity },
-    daysBeforeFollowUp: 2,
-    maxFollowUps: 3,
+    amountRange: { min: 100, max: Infinity },
+    daysBeforeFollowUp: 5,
+    maxFollowUps: 1,
   },
 ];
 
@@ -555,9 +545,10 @@ router.post("/initiate-follow-ups", async (req, res, next) => {
   try {
     const paymentIntents = await initialpaymentmethod.getPaymentIntentsFromLastMonth();
 
+    const followUpSent = [];
     for (const paymentIntent of paymentIntents) {
       const paymentMethod: number = paymentIntent.Payment_method;
-      const paymentAmount: number = paymentIntent.Payment_amount;
+      const paymentAmount: number = parseFloat(paymentIntent.Payment_amount);
 
       let maxFollowUps = defaultFollowUpConfig.maxFollowUps;
       let daysBeforeFollowUp = defaultFollowUpConfig.daysBeforeFollowUp;
@@ -576,7 +567,7 @@ router.post("/initiate-follow-ups", async (req, res, next) => {
       }
 
       // Check if enough time has passed since the payment intent was created
-      const timeSincePaymentIntent = new Date().getTime() - paymentIntent.timetamp.getTime();
+      const timeSincePaymentIntent = new Date().getTime() - paymentIntent.timestamp.getTime();
       if (timeSincePaymentIntent < daysBeforeFollowUp * 24 * 60 * 60 * 1000) continue;
 
       const followUps = await initialpaymentmethod.getFollowUpsForPaymentIntent(paymentIntent.Id);
@@ -586,7 +577,9 @@ router.post("/initiate-follow-ups", async (req, res, next) => {
 
       // Check if a previous follow-up has been sent and if enough time has passed since the last follow-up
       if (followUps.length > 0) {
-        const sortedByDate = followUps.sort((a, b) => a.Follow_up_date - b.Follow_up_date);
+        const sortedByDate = followUps.sort(
+          (a, b) => a.Follow_up_date.getTime() - b.Follow_up_date.getTime(),
+        );
         const lastFollowUp = sortedByDate[followUps.length - 1];
         const timeSinceLastFollowUp = new Date().getTime() - lastFollowUp.Follow_up_date.getTime();
         if (timeSinceLastFollowUp < daysBeforeFollowUp * 24 * 60 * 60 * 1000) continue;
@@ -600,17 +593,21 @@ router.post("/initiate-follow-ups", async (req, res, next) => {
       if (paymentReceived) continue;
 
       console.log(`Initiating follow-up for payment intent ${paymentIntent.Id}.`);
-      // TODO: Add logic to send follow-up email
-      // const emailSent = await initialpaymentmethod.sendDonationFollowUp(paymentIntent.Id);
-      const emailSent = false;
-      if (emailSent) {
+
+      const emailSent = await sendPaymentIntentFollowUp(
+        paymentIntent.KID_fordeling,
+        paymentIntent.Payment_amount,
+      );
+
+      if (emailSent === true) {
         await initialpaymentmethod.addPaymentFollowUp(paymentIntent.Id, new Date());
+        followUpSent.push(paymentIntent);
       }
     }
 
     res.json({
       message: "Follow-up process initiated successfully.",
-      paymentIntents,
+      followUpSent,
     });
   } catch (ex) {
     next({ ex });

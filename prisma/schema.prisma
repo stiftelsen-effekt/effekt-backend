@@ -423,14 +423,24 @@ model Payment {
 
 model Payment_intent {
   Id             Int       @id @unique(map: "Id_UNIQUE") @default(autoincrement())
-  Payment_method String?   @db.VarChar(45)
+  Payment_method Int?      @db.Int
+  Payment_amount Decimal?  @db.Decimal(16, 2)
   KID_fordeling  String?   @db.VarChar(20)
-  timetamp       DateTime? @default(now()) @db.DateTime(0)
+  timestamp      DateTime? @default(now()) @db.DateTime(0)
 
   // When we delete a distribution we save the payment intent for statistics. Simply set the KID to null.
-  Distributions Distributions? @relation(fields: [KID_fordeling], references: [KID], onDelete: SetNull, map: "fk_Payment_intent_to_Distributions_idx")
+  Distributions     Distributions?      @relation(fields: [KID_fordeling], references: [KID], onDelete: SetNull, map: "fk_Payment_intent_to_Distributions_idx")
+  Payment_follow_up Payment_follow_up[]
 
   @@index([KID_fordeling], map: "KID_fordeling_idx")
+}
+
+model Payment_follow_up {
+  Id                Int      @id @default(autoincrement())
+  Payment_intent_id Int
+  Follow_up_date    DateTime @db.DateTime(0)
+
+  Payment_intent Payment_intent @relation(fields: [Payment_intent_id], references: [Id], onDelete: Cascade, map: "fk_Payment_follow_up_to_Payment_intent_idx")
 }
 
 model Paypal_historic_distributions {
