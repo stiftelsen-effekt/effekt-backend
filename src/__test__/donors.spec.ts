@@ -104,7 +104,9 @@ describe("donors", () => {
   describe("routes", () => {
     let server: express.Express;
 
-    beforeEach(() => {
+    beforeEach(function (done) {
+      this.timeout(5000);
+
       server = express();
       server.use(bodyParser.json());
       server.use(bodyParser.urlencoded({ extended: true }));
@@ -120,6 +122,8 @@ describe("donors", () => {
         .callsFake((_, req, res, next) => {
           next();
         });
+
+      done();
     });
 
     describe("GET /donors/:id/donations", function () {

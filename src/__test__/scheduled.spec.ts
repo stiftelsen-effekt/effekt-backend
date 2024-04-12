@@ -5,6 +5,9 @@ import express from "express";
 import { expect } from "chai";
 import * as nets from "../custom_modules/nets";
 import request from "supertest";
+import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
+import paymentMethods from "../enums/paymentMethods";
+import exp from "constants";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 const mail = require("../custom_modules/mail");
@@ -50,6 +53,8 @@ describe("POST /scheduled/avtalegiro", function () {
   let authStub;
 
   before(function () {
+    this.timeout(5000);
+
     authStub = sinon.replace(authMiddleware, "isAdmin", []);
 
     avtalegiroFileStub = sinon
@@ -163,5 +168,144 @@ describe("POST /scheduled/avtalegiro", function () {
 
   after(function () {
     sinon.restore();
+  });
+});
+
+describe("POST /initiate-follow-ups", function () {
+  let server;
+  let getPaymentIntentsFromLastMonthStub;
+  let getFollowUpsForPaymentIntentStub;
+  let checkIfDonationReceivedStub;
+  let addPaymentFollowUpStub;
+  let sendDonationFollowUpStub;
+
+  before(function () {
+    this.timeout(5000);
+
+    server = express();
+    const scheduledRoute = require("../routes/scheduled");
+    server = express();
+    server.use("/scheduled", scheduledRoute);
+
+    getPaymentIntentsFromLastMonthStub = sinon.stub(
+      initialpaymentmethod,
+      "getPaymentIntentsFromLastMonth",
+    );
+    getFollowUpsForPaymentIntentStub = sinon.stub(
+      initialpaymentmethod,
+      "getFollowUpsForPaymentIntent",
+    );
+    checkIfDonationReceivedStub = sinon.stub(initialpaymentmethod, "checkIfDonationReceived");
+    addPaymentFollowUpStub = sinon.stub(initialpaymentmethod, "addPaymentFollowUp");
+    sendDonationFollowUpStub = sinon.stub(mail, "sendPaymentIntentFollowUp");
+  });
+
+  afterEach(function () {
+    // Reset the history of stubs after each test
+    sinon.resetHistory();
+  });
+
+  after(function () {
+    // Restore the original functions after all tests
+    sinon.restore();
+  });
+
+  it("should initiate follow-ups for eligible payment intents", async function () {
+    // Mock data
+    const paymentIntents = [
+      {
+        Id: 1,
+        Payment_method: paymentMethods.bank,
+        Payment_amount: 15000,
+        KID_fordeling: "001",
+        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      },
+      {
+        Id: 2,
+        Payment_method: paymentMethods.bank,
+        Payment_amount: 20000,
+        KID_fordeling: "002",
+        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      },
+    ];
+
+    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
+    getFollowUpsForPaymentIntentStub.resolves([]);
+    checkIfDonationReceivedStub.resolves(false);
+    sendDonationFollowUpStub.resolves(true);
+
+    const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
+
+    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
+    expect(sendDonationFollowUpStub.callCount).to.equal(2);
+    expect(addPaymentFollowUpStub.callCount).to.equal(2);
+  });
+
+  it("should not initiate follow-ups for payment intents with received donations", async function () {
+    const paymentIntents = [
+      {
+        Id: 1,
+        Payment_method: paymentMethods.bank,
+        Payment_amount: 15000,
+        KID_fordeling: "001",
+        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      },
+    ];
+
+    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
+    getFollowUpsForPaymentIntentStub.resolves([]);
+    checkIfDonationReceivedStub.resolves(true);
+    sendDonationFollowUpStub.resolves(true);
+
+    const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
+
+    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
+    expect(addPaymentFollowUpStub.called).to.be.false;
+    expect(sendDonationFollowUpStub.called).to.be.false;
+  });
+
+  it("should not initiate follow-ups for payment intents that are not due yet", async function () {
+    const paymentIntents = [
+      {
+        Id: 1,
+        Payment_method: paymentMethods.bank,
+        Payment_amount: 15000,
+        KID_fordeling: "001",
+        timestamp: new Date(),
+      },
+    ];
+
+    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
+    getFollowUpsForPaymentIntentStub.resolves([]);
+    sendDonationFollowUpStub.resolves(true);
+
+    const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
+
+    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
+    expect(addPaymentFollowUpStub.called).to.be.false;
+    expect(sendDonationFollowUpStub.called).to.be.false;
+  });
+
+  it("should not initiate follow-ups for payment intents that have reached the max follow-ups", async function () {
+    const paymentIntents = [
+      {
+        Id: 1,
+        Payment_method: paymentMethods.bank,
+        Payment_amount: 15000,
+        KID_fordeling: "001",
+        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    const followUps = [{ Follow_up_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) }];
+
+    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
+    getFollowUpsForPaymentIntentStub.resolves(followUps);
+    sendDonationFollowUpStub.resolves(true);
+
+    const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
+
+    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
+    expect(addPaymentFollowUpStub.called).to.be.false;
+    expect(sendDonationFollowUpStub.called).to.be.false;
   });
 });
