@@ -260,8 +260,7 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
   }
 });
 
-// authMiddleware.isAdmin,
-router.post("/autogiro", async (req, res, next) => {
+router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
   let result;
   try {
     const today = DateTime.fromJSDate(new Date());
