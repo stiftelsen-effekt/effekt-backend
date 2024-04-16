@@ -1411,6 +1411,11 @@ router.post("/:originId/merge/:destinationId", authMiddleware.isAdmin, async (re
     }
 
     await DAO.donors.mergeDonors(originId, destinationId);
+
+    return res.json({
+      status: 200,
+      content: true,
+    });
   } catch (ex) {
     next(ex);
   }
