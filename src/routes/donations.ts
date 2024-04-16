@@ -13,6 +13,8 @@ import bodyParser from "body-parser";
 import apicache from "apicache";
 import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
 import { DateTime } from "luxon";
+import { distributions } from "../custom_modules/DAO_modules/distributions";
+import { validateDistribution } from "../custom_modules/distribution";
 
 const config = require("../config");
 
@@ -290,6 +292,43 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
       timestamp: new Date(req.body.timestamp),
       metaOwnerId: req.body.metaOwnerId,
     });
+
+    if (req.body.distribution) {
+      const validatedDistribution = validateDistribution(req.body.distribution);
+
+      if (!("kid" in validatedDistribution)) {
+        throw new Error("Distribution does not have a KID");
+      }
+
+      const existing = await DAO.distributions.getSplitByKID(validatedDistribution.kid);
+
+      console.log(existing, ...existing.causeAreas.map((c) => c.organizations));
+      console.log(
+        validatedDistribution,
+        ...validatedDistribution.causeAreas.map((c) => c.organizations),
+      );
+
+      const existingBySplitKID = await DAO.distributions.getKIDbySplit(validatedDistribution);
+
+      console.log(existingBySplitKID);
+
+      if (existingBySplitKID != null && existingBySplitKID === validatedDistribution.kid) {
+        console.log("NO CHANGE");
+      } else if (existingBySplitKID != null) {
+        console.log("UPDATE to existing KID");
+        await DAO.donations.updateKIDById(req.params.id, existingBySplitKID);
+      } else {
+        console.log("UPDATE creating new KID");
+        const newKid = await donationHelpers.createKID();
+        await DAO.distributions.add({
+          ...validatedDistribution,
+          // Overwrite the KID with the new one
+          kid: newKid,
+        });
+        await DAO.donations.updateKIDById(req.params.id, newKid);
+      }
+    }
+
     return res.json({
       status: 200,
     });

@@ -1049,6 +1049,19 @@ async function updateKIDBeforeTimestamp(originalKID: string, newKID: string, tim
   return true;
 }
 
+async function updateKIDById(donationId: number, newKID: string) {
+  const [res] = await DAO.query(
+    `
+    UPDATE Donations
+    SET KID_fordeling = ?
+    WHERE ID = ?
+  `,
+    [newKID, donationId],
+  );
+
+  return res.affectedRows > 0;
+}
+
 //endregion
 
 //region Delete
@@ -1114,5 +1127,6 @@ export const donations = {
   getHistogramBySum,
   transferDonationsFromDummy,
   updateKIDBeforeTimestamp,
+  updateKIDById,
   remove,
 };
