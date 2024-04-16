@@ -283,7 +283,7 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
     const donationId = parseInt(req.params.id);
     if (isNaN(donationId)) return res.status(400).send("Invalid donation ID");
 
-    const result = await DAO.donations.update({
+    await DAO.donations.update({
       id: req.params.id,
       paymentId: req.body.paymentId,
       paymentExternalRef: req.body.paymentExternalRef,
@@ -300,25 +300,15 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
         throw new Error("Distribution does not have a KID");
       }
 
-      const existing = await DAO.distributions.getSplitByKID(validatedDistribution.kid);
-
-      console.log(existing, ...existing.causeAreas.map((c) => c.organizations));
-      console.log(
-        validatedDistribution,
-        ...validatedDistribution.causeAreas.map((c) => c.organizations),
-      );
-
       const existingBySplitKID = await DAO.distributions.getKIDbySplit(validatedDistribution);
 
-      console.log(existingBySplitKID);
-
       if (existingBySplitKID != null && existingBySplitKID === validatedDistribution.kid) {
-        console.log("NO CHANGE");
+        // No change
       } else if (existingBySplitKID != null) {
-        console.log("UPDATE to existing KID");
+        // Use an existing KID for a distribution matching the split
         await DAO.donations.updateKIDById(req.params.id, existingBySplitKID);
       } else {
-        console.log("UPDATE creating new KID");
+        // Create a new KID and distribution
         const newKid = await donationHelpers.createKID();
         await DAO.distributions.add({
           ...validatedDistribution,
