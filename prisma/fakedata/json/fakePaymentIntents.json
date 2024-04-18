@@ -3,1659 +3,1422 @@
     "Id": 1,
     "KID_fordeling": "000001557651286",
     "Payment_method": 2,
-    "timetamp": "2023-05-11T13:48:20.423Z",
     "timestamp": "2023-05-11T13:48:20.423Z"
   },
   {
     "Id": 2,
     "KID_fordeling": "000001794945871",
     "Payment_method": 2,
-    "timetamp": "2023-02-18T22:24:13.705Z",
     "timestamp": "2023-02-18T22:24:13.705Z"
   },
   {
     "Id": 3,
     "KID_fordeling": "000001333993788",
     "Payment_method": 10,
-    "timetamp": "2023-03-01T04:22:44.000Z",
     "timestamp": "2023-03-01T04:22:44.000Z"
   },
   {
     "Id": 4,
     "KID_fordeling": "000001798639637",
     "Payment_method": 8,
-    "timetamp": "2023-03-04T18:32:12.570Z",
     "timestamp": "2023-03-04T18:32:12.570Z"
   },
   {
     "Id": 5,
     "KID_fordeling": "000001793339258",
     "Payment_method": 7,
-    "timetamp": "2023-02-07T09:47:55.285Z",
     "timestamp": "2023-02-07T09:47:55.285Z"
   },
   {
     "Id": 6,
     "KID_fordeling": "000001881542474",
     "Payment_method": 3,
-    "timetamp": "2023-05-20T03:42:09.095Z",
     "timestamp": "2023-05-20T03:42:09.095Z"
   },
   {
     "Id": 7,
     "KID_fordeling": "000002681647166",
     "Payment_method": 6,
-    "timetamp": "2022-11-30T12:25:29.714Z",
     "timestamp": "2022-11-30T12:25:29.714Z"
   },
   {
     "Id": 8,
     "KID_fordeling": "000002524385636",
     "Payment_method": 7,
-    "timetamp": "2022-04-27T08:03:46.178Z",
     "timestamp": "2022-04-27T08:03:46.178Z"
   },
   {
     "Id": 9,
     "KID_fordeling": "000002996938193",
     "Payment_method": 7,
-    "timetamp": "2021-04-30T09:57:44.606Z",
     "timestamp": "2021-04-30T09:57:44.606Z"
   },
   {
     "Id": 10,
     "KID_fordeling": "000002543687178",
     "Payment_method": 10,
-    "timetamp": "2022-08-24T22:07:15.462Z",
     "timestamp": "2022-08-24T22:07:15.462Z"
   },
   {
     "Id": 11,
     "KID_fordeling": "000003968923676",
     "Payment_method": 9,
-    "timetamp": "2022-05-02T02:40:59.558Z",
     "timestamp": "2022-05-02T02:40:59.558Z"
   },
   {
     "Id": 12,
     "KID_fordeling": "000003887921736",
     "Payment_method": 2,
-    "timetamp": "2022-11-08T08:56:32.890Z",
     "timestamp": "2022-11-08T08:56:32.890Z"
   },
   {
     "Id": 13,
     "KID_fordeling": "000003573935826",
     "Payment_method": 9,
-    "timetamp": "2023-03-04T07:30:56.399Z",
     "timestamp": "2023-03-04T07:30:56.399Z"
   },
   {
     "Id": 14,
     "KID_fordeling": "000003594237541",
     "Payment_method": 3,
-    "timetamp": "2023-04-08T04:24:11.865Z",
     "timestamp": "2023-04-08T04:24:11.865Z"
   },
   {
     "Id": 15,
     "KID_fordeling": "000003815257971",
     "Payment_method": 3,
-    "timetamp": "2023-06-03T05:29:00.276Z",
     "timestamp": "2023-06-03T05:29:00.276Z"
   },
   {
     "Id": 16,
     "KID_fordeling": "000004273554180",
     "Payment_method": 8,
-    "timetamp": "2023-05-28T12:55:17.688Z",
     "timestamp": "2023-05-28T12:55:17.688Z"
   },
   {
     "Id": 17,
     "KID_fordeling": "000004546777170",
     "Payment_method": 6,
-    "timetamp": "2023-06-07T00:46:24.924Z",
     "timestamp": "2023-06-07T00:46:24.924Z"
   },
   {
     "Id": 18,
     "KID_fordeling": "000004179773868",
     "Payment_method": 3,
-    "timetamp": "2023-01-19T20:38:55.181Z",
     "timestamp": "2023-01-19T20:38:55.181Z"
   },
   {
     "Id": 19,
     "KID_fordeling": "000004232485336",
     "Payment_method": 4,
-    "timetamp": "2022-10-07T18:52:56.976Z",
     "timestamp": "2022-10-07T18:52:56.976Z"
   },
   {
     "Id": 20,
     "KID_fordeling": "000004914753480",
     "Payment_method": 8,
-    "timetamp": "2022-11-15T12:52:09.548Z",
     "timestamp": "2022-11-15T12:52:09.548Z"
   },
   {
     "Id": 21,
     "KID_fordeling": "000004512185119",
     "Payment_method": 8,
-    "timetamp": "2022-06-25T18:27:20.163Z",
     "timestamp": "2022-06-25T18:27:20.163Z"
   },
   {
     "Id": 22,
     "KID_fordeling": "000005465893567",
     "Payment_method": 9,
-    "timetamp": "2023-05-11T02:16:01.724Z",
     "timestamp": "2023-05-11T02:16:01.724Z"
   },
   {
     "Id": 23,
     "KID_fordeling": "000005282343317",
     "Payment_method": 3,
-    "timetamp": "2023-01-31T15:40:36.285Z",
     "timestamp": "2023-01-31T15:40:36.285Z"
   },
   {
     "Id": 24,
     "KID_fordeling": "000005412589334",
     "Payment_method": 3,
-    "timetamp": "2022-10-03T18:29:42.121Z",
     "timestamp": "2022-10-03T18:29:42.121Z"
   },
   {
     "Id": 25,
     "KID_fordeling": "000005819651190",
     "Payment_method": 4,
-    "timetamp": "2022-09-08T15:37:58.296Z",
     "timestamp": "2022-09-08T15:37:58.296Z"
   },
   {
     "Id": 26,
     "KID_fordeling": "000005892253427",
     "Payment_method": 4,
-    "timetamp": "2022-12-07T11:43:57.957Z",
     "timestamp": "2022-12-07T11:43:57.957Z"
   },
   {
     "Id": 27,
     "KID_fordeling": "000005412889858",
     "Payment_method": 10,
-    "timetamp": "2022-10-06T13:19:14.722Z",
     "timestamp": "2022-10-06T13:19:14.722Z"
   },
   {
     "Id": 28,
     "KID_fordeling": "000005775751877",
     "Payment_method": 6,
-    "timetamp": "2023-02-16T18:36:59.200Z",
     "timestamp": "2023-02-16T18:36:59.200Z"
   },
   {
     "Id": 29,
     "KID_fordeling": "000006927271426",
     "Payment_method": 9,
-    "timetamp": "2023-05-07T13:30:11.865Z",
     "timestamp": "2023-05-07T13:30:11.865Z"
   },
   {
     "Id": 30,
     "KID_fordeling": "000006341196571",
     "Payment_method": 5,
-    "timetamp": "2023-03-20T13:23:37.493Z",
     "timestamp": "2023-03-20T13:23:37.493Z"
   },
   {
     "Id": 31,
     "KID_fordeling": "000006844542487",
     "Payment_method": 8,
-    "timetamp": "2023-03-21T21:19:18.115Z",
     "timestamp": "2023-03-21T21:19:18.115Z"
   },
   {
     "Id": 32,
     "KID_fordeling": "000006974847284",
     "Payment_method": 10,
-    "timetamp": "2022-10-31T01:34:32.624Z",
     "timestamp": "2022-10-31T01:34:32.624Z"
   },
   {
     "Id": 33,
     "KID_fordeling": "000006782874967",
     "Payment_method": 8,
-    "timetamp": "2023-02-18T23:56:10.648Z",
     "timestamp": "2023-02-18T23:56:10.648Z"
   },
   {
     "Id": 34,
     "KID_fordeling": "000006928529640",
     "Payment_method": 4,
-    "timetamp": "2023-06-12T16:33:31.988Z",
     "timestamp": "2023-06-12T16:33:31.988Z"
   },
   {
     "Id": 35,
     "KID_fordeling": "000006212788563",
     "Payment_method": 10,
-    "timetamp": "2023-03-12T03:54:48.184Z",
     "timestamp": "2023-03-12T03:54:48.184Z"
   },
   {
     "Id": 36,
     "KID_fordeling": "000006323353141",
     "Payment_method": 5,
-    "timetamp": "2023-02-01T17:30:55.781Z",
     "timestamp": "2023-02-01T17:30:55.781Z"
   },
   {
     "Id": 37,
     "KID_fordeling": "000006879333224",
     "Payment_method": 8,
-    "timetamp": "2022-10-25T20:15:27.814Z",
     "timestamp": "2022-10-25T20:15:27.814Z"
   },
   {
     "Id": 38,
     "KID_fordeling": "000007776659158",
     "Payment_method": 2,
-    "timetamp": "2023-01-20T00:35:56.779Z",
     "timestamp": "2023-01-20T00:35:56.779Z"
   },
   {
     "Id": 39,
     "KID_fordeling": "000007129399890",
     "Payment_method": 10,
-    "timetamp": "2023-01-21T08:32:46.403Z",
     "timestamp": "2023-01-21T08:32:46.403Z"
   },
   {
     "Id": 40,
     "KID_fordeling": "000007849595231",
     "Payment_method": 8,
-    "timetamp": "2022-10-22T17:09:09.472Z",
     "timestamp": "2022-10-22T17:09:09.472Z"
   },
   {
     "Id": 41,
     "KID_fordeling": "000007437794584",
     "Payment_method": 8,
-    "timetamp": "2023-05-13T02:49:43.724Z",
     "timestamp": "2023-05-13T02:49:43.724Z"
   },
   {
     "Id": 42,
     "KID_fordeling": "000008859144985",
     "Payment_method": 5,
-    "timetamp": "2023-08-06T21:41:24.320Z",
     "timestamp": "2023-08-06T21:41:24.320Z"
   },
   {
     "Id": 43,
     "KID_fordeling": "000008113169166",
     "Payment_method": 8,
-    "timetamp": "2023-08-13T22:36:42.401Z",
     "timestamp": "2023-08-13T22:36:42.401Z"
   },
   {
     "Id": 44,
     "KID_fordeling": "000008593655957",
     "Payment_method": 5,
-    "timetamp": "2023-08-11T09:40:22.409Z",
     "timestamp": "2023-08-11T09:40:22.409Z"
   },
   {
     "Id": 45,
     "KID_fordeling": "000009757674826",
     "Payment_method": 8,
-    "timetamp": "2023-01-14T14:43:16.226Z",
     "timestamp": "2023-01-14T14:43:16.226Z"
   },
   {
     "Id": 46,
     "KID_fordeling": "000009911956994",
     "Payment_method": 9,
-    "timetamp": "2022-11-24T02:40:37.101Z",
     "timestamp": "2022-11-24T02:40:37.101Z"
   },
   {
     "Id": 47,
     "KID_fordeling": "000009829834796",
     "Payment_method": 4,
-    "timetamp": "2023-06-05T23:08:00.930Z",
     "timestamp": "2023-06-05T23:08:00.930Z"
   },
   {
     "Id": 48,
     "KID_fordeling": "000009664463750",
     "Payment_method": 7,
-    "timetamp": "2023-02-07T13:09:19.355Z",
     "timestamp": "2023-02-07T13:09:19.355Z"
   },
   {
     "Id": 49,
     "KID_fordeling": "000009469615810",
     "Payment_method": 3,
-    "timetamp": "2023-02-21T00:46:40.658Z",
     "timestamp": "2023-02-21T00:46:40.658Z"
   },
   {
     "Id": 50,
     "KID_fordeling": "000009449298844",
     "Payment_method": 9,
-    "timetamp": "2023-08-08T08:36:31.482Z",
     "timestamp": "2023-08-08T08:36:31.482Z"
   },
   {
     "Id": 51,
     "KID_fordeling": "000009746139766",
     "Payment_method": 9,
-    "timetamp": "2022-10-26T11:08:31.834Z",
     "timestamp": "2022-10-26T11:08:31.834Z"
   },
   {
     "Id": 52,
     "KID_fordeling": "000009239684468",
     "Payment_method": 4,
-    "timetamp": "2022-10-28T16:00:39.621Z",
     "timestamp": "2022-10-28T16:00:39.621Z"
   },
   {
     "Id": 53,
     "KID_fordeling": "000010252238711",
     "Payment_method": 9,
-    "timetamp": "2022-07-11T06:07:06.225Z",
     "timestamp": "2022-07-11T06:07:06.225Z"
   },
   {
     "Id": 54,
     "KID_fordeling": "000010631761417",
     "Payment_method": 6,
-    "timetamp": "2023-07-18T00:32:30.305Z",
     "timestamp": "2023-07-18T00:32:30.305Z"
   },
   {
     "Id": 55,
     "KID_fordeling": "000010298393645",
     "Payment_method": 4,
-    "timetamp": "2023-07-08T10:00:42.112Z",
     "timestamp": "2023-07-08T10:00:42.112Z"
   },
   {
     "Id": 56,
     "KID_fordeling": "000010542358782",
     "Payment_method": 10,
-    "timetamp": "2022-08-25T21:57:32.794Z",
     "timestamp": "2022-08-25T21:57:32.794Z"
   },
   {
     "Id": 57,
     "KID_fordeling": "000010244679360",
     "Payment_method": 6,
-    "timetamp": "2022-08-19T08:31:43.178Z",
     "timestamp": "2022-08-19T08:31:43.178Z"
   },
   {
     "Id": 58,
     "KID_fordeling": "000011174297843",
     "Payment_method": 5,
-    "timetamp": "2022-09-12T06:23:57.916Z",
     "timestamp": "2022-09-12T06:23:57.916Z"
   },
   {
     "Id": 59,
     "KID_fordeling": "000011845375960",
     "Payment_method": 6,
-    "timetamp": "2022-10-03T02:06:48.200Z",
     "timestamp": "2022-10-03T02:06:48.200Z"
   },
   {
     "Id": 60,
     "KID_fordeling": "000012411291797",
     "Payment_method": 5,
-    "timetamp": "2023-07-29T17:05:15.407Z",
     "timestamp": "2023-07-29T17:05:15.407Z"
   },
   {
     "Id": 61,
     "KID_fordeling": "000012371983490",
     "Payment_method": 10,
-    "timetamp": "2023-05-08T20:33:38.103Z",
     "timestamp": "2023-05-08T20:33:38.103Z"
   },
   {
     "Id": 62,
     "KID_fordeling": "000012567922229",
     "Payment_method": 10,
-    "timetamp": "2023-04-28T18:58:38.105Z",
     "timestamp": "2023-04-28T18:58:38.105Z"
   },
   {
     "Id": 63,
     "KID_fordeling": "000012499287196",
     "Payment_method": 7,
-    "timetamp": "2023-06-28T01:26:36.819Z",
     "timestamp": "2023-06-28T01:26:36.819Z"
   },
   {
     "Id": 64,
     "KID_fordeling": "000012857342831",
     "Payment_method": 8,
-    "timetamp": "2023-07-08T09:20:01.612Z",
     "timestamp": "2023-07-08T09:20:01.612Z"
   },
   {
     "Id": 65,
     "KID_fordeling": "000012848555673",
     "Payment_method": 6,
-    "timetamp": "2023-05-02T09:34:22.243Z",
     "timestamp": "2023-05-02T09:34:22.243Z"
   },
   {
     "Id": 66,
     "KID_fordeling": "000013772492420",
     "Payment_method": 6,
-    "timetamp": "2023-05-16T21:26:01.339Z",
     "timestamp": "2023-05-16T21:26:01.339Z"
   },
   {
     "Id": 67,
     "KID_fordeling": "000013499612425",
     "Payment_method": 6,
-    "timetamp": "2023-02-09T13:45:56.801Z",
     "timestamp": "2023-02-09T13:45:56.801Z"
   },
   {
     "Id": 68,
     "KID_fordeling": "000013548784159",
     "Payment_method": 6,
-    "timetamp": "2022-08-03T23:45:06.826Z",
     "timestamp": "2022-08-03T23:45:06.826Z"
   },
   {
     "Id": 69,
     "KID_fordeling": "000013212972775",
     "Payment_method": 9,
-    "timetamp": "2023-02-02T21:39:02.125Z",
     "timestamp": "2023-02-02T21:39:02.125Z"
   },
   {
     "Id": 70,
     "KID_fordeling": "000013354317219",
     "Payment_method": 10,
-    "timetamp": "2022-08-10T17:18:03.361Z",
     "timestamp": "2022-08-10T17:18:03.361Z"
   },
   {
     "Id": 71,
     "KID_fordeling": "000013241476335",
     "Payment_method": 5,
-    "timetamp": "2022-10-05T13:05:18.330Z",
     "timestamp": "2022-10-05T13:05:18.330Z"
   },
   {
     "Id": 72,
     "KID_fordeling": "000013412392378",
     "Payment_method": 9,
-    "timetamp": "2023-02-15T01:33:42.741Z",
     "timestamp": "2023-02-15T01:33:42.741Z"
   },
   {
     "Id": 73,
     "KID_fordeling": "000014191659193",
     "Payment_method": 8,
-    "timetamp": "2023-07-03T18:45:22.631Z",
     "timestamp": "2023-07-03T18:45:22.631Z"
   },
   {
     "Id": 74,
     "KID_fordeling": "000014533514338",
     "Payment_method": 6,
-    "timetamp": "2023-07-21T08:03:58.414Z",
     "timestamp": "2023-07-21T08:03:58.414Z"
   },
   {
     "Id": 75,
     "KID_fordeling": "000014762217843",
     "Payment_method": 2,
-    "timetamp": "2023-08-02T17:10:48.532Z",
     "timestamp": "2023-08-02T17:10:48.532Z"
   },
   {
     "Id": 76,
     "KID_fordeling": "000014415583211",
     "Payment_method": 4,
-    "timetamp": "2023-07-27T14:33:02.241Z",
     "timestamp": "2023-07-27T14:33:02.241Z"
   },
   {
     "Id": 77,
     "KID_fordeling": "000014974425317",
     "Payment_method": 5,
-    "timetamp": "2023-07-06T09:18:37.230Z",
     "timestamp": "2023-07-06T09:18:37.230Z"
   },
   {
     "Id": 78,
     "KID_fordeling": "000014381612770",
     "Payment_method": 9,
-    "timetamp": "2023-07-13T12:06:05.600Z",
     "timestamp": "2023-07-13T12:06:05.600Z"
   },
   {
     "Id": 79,
     "KID_fordeling": "000014943329152",
     "Payment_method": 6,
-    "timetamp": "2023-07-31T18:44:43.237Z",
     "timestamp": "2023-07-31T18:44:43.237Z"
   },
   {
     "Id": 80,
     "KID_fordeling": "000014411987853",
     "Payment_method": 4,
-    "timetamp": "2023-07-18T08:29:21.187Z",
     "timestamp": "2023-07-18T08:29:21.187Z"
   },
   {
     "Id": 81,
     "KID_fordeling": "000015897829139",
     "Payment_method": 8,
-    "timetamp": "2022-12-13T10:20:31.950Z",
     "timestamp": "2022-12-13T10:20:31.950Z"
   },
   {
     "Id": 82,
     "KID_fordeling": "000015538196492",
     "Payment_method": 10,
-    "timetamp": "2023-05-20T19:30:15.750Z",
     "timestamp": "2023-05-20T19:30:15.750Z"
   },
   {
     "Id": 83,
     "KID_fordeling": "000015662691656",
     "Payment_method": 4,
-    "timetamp": "2022-12-12T01:08:59.108Z",
     "timestamp": "2022-12-12T01:08:59.108Z"
   },
   {
     "Id": 84,
     "KID_fordeling": "000015292689252",
     "Payment_method": 8,
-    "timetamp": "2023-02-20T10:49:11.647Z",
     "timestamp": "2023-02-20T10:49:11.647Z"
   },
   {
     "Id": 85,
     "KID_fordeling": "000015847596234",
     "Payment_method": 4,
-    "timetamp": "2022-09-23T06:27:56.328Z",
     "timestamp": "2022-09-23T06:27:56.328Z"
   },
   {
     "Id": 86,
     "KID_fordeling": "000015126513256",
     "Payment_method": 9,
-    "timetamp": "2022-12-20T06:54:45.323Z",
     "timestamp": "2022-12-20T06:54:45.323Z"
   },
   {
     "Id": 87,
     "KID_fordeling": "000015853137287",
     "Payment_method": 3,
-    "timetamp": "2023-04-20T16:51:05.785Z",
     "timestamp": "2023-04-20T16:51:05.785Z"
   },
   {
     "Id": 88,
     "KID_fordeling": "000016865433292",
     "Payment_method": 3,
-    "timetamp": "2022-12-26T02:57:31.791Z",
     "timestamp": "2022-12-26T02:57:31.791Z"
   },
   {
     "Id": 89,
     "KID_fordeling": "000016476192444",
     "Payment_method": 3,
-    "timetamp": "2023-03-11T17:21:51.786Z",
     "timestamp": "2023-03-11T17:21:51.786Z"
   },
   {
     "Id": 90,
     "KID_fordeling": "000016425835812",
     "Payment_method": 3,
-    "timetamp": "2022-09-22T21:21:22.994Z",
     "timestamp": "2022-09-22T21:21:22.994Z"
   },
   {
     "Id": 91,
     "KID_fordeling": "000016229314758",
     "Payment_method": 8,
-    "timetamp": "2022-12-09T16:06:02.514Z",
     "timestamp": "2022-12-09T16:06:02.514Z"
   },
   {
     "Id": 92,
     "KID_fordeling": "000016483431645",
     "Payment_method": 10,
-    "timetamp": "2023-02-12T21:37:30.509Z",
     "timestamp": "2023-02-12T21:37:30.509Z"
   },
   {
     "Id": 93,
     "KID_fordeling": "000016244613184",
     "Payment_method": 9,
-    "timetamp": "2022-09-16T00:17:52.298Z",
     "timestamp": "2022-09-16T00:17:52.298Z"
   },
   {
     "Id": 94,
     "KID_fordeling": "000016897374480",
     "Payment_method": 6,
-    "timetamp": "2022-11-04T04:20:12.948Z",
     "timestamp": "2022-11-04T04:20:12.948Z"
   },
   {
     "Id": 95,
     "KID_fordeling": "000016496733417",
     "Payment_method": 10,
-    "timetamp": "2023-05-15T11:56:52.371Z",
     "timestamp": "2023-05-15T11:56:52.371Z"
   },
   {
     "Id": 96,
     "KID_fordeling": "000016212117127",
     "Payment_method": 4,
-    "timetamp": "2022-09-17T10:19:27.712Z",
     "timestamp": "2022-09-17T10:19:27.712Z"
   },
   {
     "Id": 97,
     "KID_fordeling": "000016281841854",
     "Payment_method": 6,
-    "timetamp": "2022-09-18T01:46:13.693Z",
     "timestamp": "2022-09-18T01:46:13.693Z"
   },
   {
     "Id": 98,
     "KID_fordeling": "000017967432158",
     "Payment_method": 6,
-    "timetamp": "2021-12-25T01:07:49.432Z",
     "timestamp": "2021-12-25T01:07:49.432Z"
   },
   {
     "Id": 99,
     "KID_fordeling": "000018583971488",
     "Payment_method": 2,
-    "timetamp": "2022-01-12T19:04:56.929Z",
     "timestamp": "2022-01-12T19:04:56.929Z"
   },
   {
     "Id": 100,
     "KID_fordeling": "000018313934277",
     "Payment_method": 9,
-    "timetamp": "2021-11-27T15:04:14.612Z",
     "timestamp": "2021-11-27T15:04:14.612Z"
   },
   {
     "Id": 101,
     "KID_fordeling": "000018257946311",
     "Payment_method": 5,
-    "timetamp": "2023-07-13T18:10:40.155Z",
     "timestamp": "2023-07-13T18:10:40.155Z"
   },
   {
     "Id": 102,
     "KID_fordeling": "000018446684963",
     "Payment_method": 10,
-    "timetamp": "2022-09-14T20:58:10.877Z",
     "timestamp": "2022-09-14T20:58:10.877Z"
   },
   {
     "Id": 103,
     "KID_fordeling": "000020427565831",
     "Payment_method": 6,
-    "timetamp": "2021-06-16T11:46:26.952Z",
     "timestamp": "2021-06-16T11:46:26.952Z"
   },
   {
     "Id": 104,
     "KID_fordeling": "000020924721226",
     "Payment_method": 4,
-    "timetamp": "2021-05-09T00:49:58.125Z",
     "timestamp": "2021-05-09T00:49:58.125Z"
   },
   {
     "Id": 105,
     "KID_fordeling": "000020115448662",
     "Payment_method": 5,
-    "timetamp": "2023-04-14T17:32:16.758Z",
     "timestamp": "2023-04-14T17:32:16.758Z"
   },
   {
     "Id": 106,
     "KID_fordeling": "000020274945912",
     "Payment_method": 3,
-    "timetamp": "2021-02-28T17:26:36.505Z",
     "timestamp": "2021-02-28T17:26:36.505Z"
   },
   {
     "Id": 107,
     "KID_fordeling": "000023789418995",
     "Payment_method": 3,
-    "timetamp": "2023-08-12T01:59:40.591Z",
     "timestamp": "2023-08-12T01:59:40.591Z"
   },
   {
     "Id": 108,
     "KID_fordeling": "000023348876410",
     "Payment_method": 6,
-    "timetamp": "2022-07-15T15:11:23.239Z",
     "timestamp": "2022-07-15T15:11:23.239Z"
   },
   {
     "Id": 109,
     "KID_fordeling": "000023113443677",
     "Payment_method": 5,
-    "timetamp": "2022-12-06T09:27:31.692Z",
     "timestamp": "2022-12-06T09:27:31.692Z"
   },
   {
     "Id": 110,
     "KID_fordeling": "000023415743220",
     "Payment_method": 9,
-    "timetamp": "2022-10-03T03:58:44.313Z",
     "timestamp": "2022-10-03T03:58:44.313Z"
   },
   {
     "Id": 111,
     "KID_fordeling": "000023143312629",
     "Payment_method": 5,
-    "timetamp": "2022-06-13T15:58:49.785Z",
     "timestamp": "2022-06-13T15:58:49.785Z"
   },
   {
     "Id": 112,
     "KID_fordeling": "000023314525389",
     "Payment_method": 4,
-    "timetamp": "2022-01-09T13:45:33.350Z",
     "timestamp": "2022-01-09T13:45:33.350Z"
   },
   {
     "Id": 113,
     "KID_fordeling": "000023633468725",
     "Payment_method": 4,
-    "timetamp": "2023-04-17T21:51:41.426Z",
     "timestamp": "2023-04-17T21:51:41.426Z"
   },
   {
     "Id": 114,
     "KID_fordeling": "000023947631679",
     "Payment_method": 10,
-    "timetamp": "2022-04-13T14:38:32.045Z",
     "timestamp": "2022-04-13T14:38:32.045Z"
   },
   {
     "Id": 115,
     "KID_fordeling": "000023582475689",
     "Payment_method": 7,
-    "timetamp": "2023-05-08T13:00:15.524Z",
     "timestamp": "2023-05-08T13:00:15.524Z"
   },
   {
     "Id": 116,
     "KID_fordeling": "000024566163663",
     "Payment_method": 7,
-    "timetamp": "2021-11-22T11:47:48.865Z",
     "timestamp": "2021-11-22T11:47:48.865Z"
   },
   {
     "Id": 117,
     "KID_fordeling": "000024332227636",
     "Payment_method": 8,
-    "timetamp": "2023-06-13T07:56:40.689Z",
     "timestamp": "2023-06-13T07:56:40.689Z"
   },
   {
     "Id": 118,
     "KID_fordeling": "000024948356118",
     "Payment_method": 5,
-    "timetamp": "2021-07-11T19:48:37.579Z",
     "timestamp": "2021-07-11T19:48:37.579Z"
   },
   {
     "Id": 119,
     "KID_fordeling": "000024377218581",
     "Payment_method": 5,
-    "timetamp": "2021-10-01T04:10:12.910Z",
     "timestamp": "2021-10-01T04:10:12.910Z"
   },
   {
     "Id": 120,
     "KID_fordeling": "000025119215926",
     "Payment_method": 5,
-    "timetamp": "2022-03-29T04:55:27.134Z",
     "timestamp": "2022-03-29T04:55:27.134Z"
   },
   {
     "Id": 121,
     "KID_fordeling": "000025819364990",
     "Payment_method": 7,
-    "timetamp": "2022-02-24T18:43:46.213Z",
     "timestamp": "2022-02-24T18:43:46.213Z"
   },
   {
     "Id": 122,
     "KID_fordeling": "000025891181569",
     "Payment_method": 6,
-    "timetamp": "2022-02-20T15:49:09.551Z",
     "timestamp": "2022-02-20T15:49:09.551Z"
   },
   {
     "Id": 123,
     "KID_fordeling": "000025946633671",
     "Payment_method": 2,
-    "timetamp": "2022-11-27T00:35:01.126Z",
     "timestamp": "2022-11-27T00:35:01.126Z"
   },
   {
     "Id": 124,
     "KID_fordeling": "000025441439657",
     "Payment_method": 4,
-    "timetamp": "2023-08-05T03:49:11.882Z",
     "timestamp": "2023-08-05T03:49:11.882Z"
   },
   {
     "Id": 125,
     "KID_fordeling": "000025188886482",
     "Payment_method": 10,
-    "timetamp": "2021-02-12T20:24:57.418Z",
     "timestamp": "2021-02-12T20:24:57.418Z"
   },
   {
     "Id": 126,
     "KID_fordeling": "000026485195536",
     "Payment_method": 9,
-    "timetamp": "2022-12-05T14:23:06.858Z",
     "timestamp": "2022-12-05T14:23:06.858Z"
   },
   {
     "Id": 127,
     "KID_fordeling": "000026113486174",
     "Payment_method": 6,
-    "timetamp": "2023-02-06T20:26:04.690Z",
     "timestamp": "2023-02-06T20:26:04.690Z"
   },
   {
     "Id": 128,
     "KID_fordeling": "000026433611956",
     "Payment_method": 5,
-    "timetamp": "2023-06-13T16:41:29.481Z",
     "timestamp": "2023-06-13T16:41:29.481Z"
   },
   {
     "Id": 129,
     "KID_fordeling": "000026525558164",
     "Payment_method": 2,
-    "timetamp": "2023-04-11T04:59:16.492Z",
     "timestamp": "2023-04-11T04:59:16.492Z"
   },
   {
     "Id": 130,
     "KID_fordeling": "000026215212577",
     "Payment_method": 10,
-    "timetamp": "2023-06-26T20:17:19.470Z",
     "timestamp": "2023-06-26T20:17:19.470Z"
   },
   {
     "Id": 131,
     "KID_fordeling": "000027568344934",
     "Payment_method": 5,
-    "timetamp": "2023-07-10T16:32:08.164Z",
     "timestamp": "2023-07-10T16:32:08.164Z"
   },
   {
     "Id": 132,
     "KID_fordeling": "000027847558726",
     "Payment_method": 3,
-    "timetamp": "2023-08-12T12:42:36.955Z",
     "timestamp": "2023-08-12T12:42:36.955Z"
   },
   {
     "Id": 133,
     "KID_fordeling": "000027314132872",
     "Payment_method": 10,
-    "timetamp": "2023-08-14T13:33:39.804Z",
     "timestamp": "2023-08-14T13:33:39.804Z"
   },
   {
     "Id": 134,
     "KID_fordeling": "000027514142184",
     "Payment_method": 3,
-    "timetamp": "2023-08-14T22:07:58.626Z",
     "timestamp": "2023-08-14T22:07:58.626Z"
   },
   {
     "Id": 135,
     "KID_fordeling": "000027548635534",
     "Payment_method": 4,
-    "timetamp": "2023-07-05T04:51:59.663Z",
     "timestamp": "2023-07-05T04:51:59.663Z"
   },
   {
     "Id": 136,
     "KID_fordeling": "000028866483481",
     "Payment_method": 6,
-    "timetamp": "2023-05-09T17:22:29.584Z",
     "timestamp": "2023-05-09T17:22:29.584Z"
   },
   {
     "Id": 137,
     "KID_fordeling": "000028415159491",
     "Payment_method": 8,
-    "timetamp": "2023-06-02T15:47:59.694Z",
     "timestamp": "2023-06-02T15:47:59.694Z"
   },
   {
     "Id": 138,
     "KID_fordeling": "000028754869817",
     "Payment_method": 4,
-    "timetamp": "2023-05-15T22:29:17.510Z",
     "timestamp": "2023-05-15T22:29:17.510Z"
   },
   {
     "Id": 139,
     "KID_fordeling": "000028754188341",
     "Payment_method": 7,
-    "timetamp": "2023-06-15T00:42:39.962Z",
     "timestamp": "2023-06-15T00:42:39.962Z"
   },
   {
     "Id": 140,
     "KID_fordeling": "000028445385421",
     "Payment_method": 7,
-    "timetamp": "2023-06-07T14:13:50.850Z",
     "timestamp": "2023-06-07T14:13:50.850Z"
   },
   {
     "Id": 141,
     "KID_fordeling": "000029864586853",
     "Payment_method": 10,
-    "timetamp": "2023-08-01T07:17:05.451Z",
     "timestamp": "2023-08-01T07:17:05.451Z"
   },
   {
     "Id": 142,
     "KID_fordeling": "000029946443669",
     "Payment_method": 6,
-    "timetamp": "2023-07-24T23:50:21.263Z",
     "timestamp": "2023-07-24T23:50:21.263Z"
   },
   {
     "Id": 143,
     "KID_fordeling": "000029394321482",
     "Payment_method": 6,
-    "timetamp": "2023-08-11T22:07:11.244Z",
     "timestamp": "2023-08-11T22:07:11.244Z"
   },
   {
     "Id": 144,
     "KID_fordeling": "000030868137313",
     "Payment_method": 9,
-    "timetamp": "2022-08-05T17:01:39.659Z",
     "timestamp": "2022-08-05T17:01:39.659Z"
   },
   {
     "Id": 145,
     "KID_fordeling": "000030373966313",
     "Payment_method": 4,
-    "timetamp": "2022-01-11T18:27:39.583Z",
     "timestamp": "2022-01-11T18:27:39.583Z"
   },
   {
     "Id": 146,
     "KID_fordeling": "000030289852672",
     "Payment_method": 6,
-    "timetamp": "2021-04-25T23:30:23.221Z",
     "timestamp": "2021-04-25T23:30:23.221Z"
   },
   {
     "Id": 147,
     "KID_fordeling": "000030362327295",
     "Payment_method": 7,
-    "timetamp": "2021-12-29T07:59:43.036Z",
     "timestamp": "2021-12-29T07:59:43.036Z"
   },
   {
     "Id": 148,
     "KID_fordeling": "000031413237418",
     "Payment_method": 8,
-    "timetamp": "2023-05-29T07:30:21.425Z",
     "timestamp": "2023-05-29T07:30:21.425Z"
   },
   {
     "Id": 149,
     "KID_fordeling": "000033319585114",
     "Payment_method": 8,
-    "timetamp": "2023-05-15T04:31:35.053Z",
     "timestamp": "2023-05-15T04:31:35.053Z"
   },
   {
     "Id": 150,
     "KID_fordeling": "000033774376470",
     "Payment_method": 5,
-    "timetamp": "2022-10-20T22:48:25.866Z",
     "timestamp": "2022-10-20T22:48:25.866Z"
   },
   {
     "Id": 151,
     "KID_fordeling": "000033363966673",
     "Payment_method": 7,
-    "timetamp": "2022-12-22T05:57:43.304Z",
     "timestamp": "2022-12-22T05:57:43.304Z"
   },
   {
     "Id": 152,
     "KID_fordeling": "000033768636517",
     "Payment_method": 2,
-    "timetamp": "2023-08-13T04:19:06.687Z",
     "timestamp": "2023-08-13T04:19:06.687Z"
   },
   {
     "Id": 153,
     "KID_fordeling": "000033353643175",
     "Payment_method": 6,
-    "timetamp": "2022-12-19T19:11:23.337Z",
     "timestamp": "2022-12-19T19:11:23.337Z"
   },
   {
     "Id": 154,
     "KID_fordeling": "000033545278757",
     "Payment_method": 6,
-    "timetamp": "2022-11-15T06:54:55.130Z",
     "timestamp": "2022-11-15T06:54:55.130Z"
   },
   {
     "Id": 155,
     "KID_fordeling": "000033919158841",
     "Payment_method": 5,
-    "timetamp": "2022-10-11T16:08:11.834Z",
     "timestamp": "2022-10-11T16:08:11.834Z"
   },
   {
     "Id": 156,
     "KID_fordeling": "000034347264722",
     "Payment_method": 5,
-    "timetamp": "2023-06-01T19:49:10.530Z",
     "timestamp": "2023-06-01T19:49:10.530Z"
   },
   {
     "Id": 157,
     "KID_fordeling": "000034366548757",
     "Payment_method": 5,
-    "timetamp": "2022-04-19T22:13:31.300Z",
     "timestamp": "2022-04-19T22:13:31.300Z"
   },
   {
     "Id": 158,
     "KID_fordeling": "000034317223948",
     "Payment_method": 7,
-    "timetamp": "2022-08-10T07:37:09.591Z",
     "timestamp": "2022-08-10T07:37:09.591Z"
   },
   {
     "Id": 159,
     "KID_fordeling": "000034963639173",
     "Payment_method": 3,
-    "timetamp": "2021-09-16T04:23:05.243Z",
     "timestamp": "2021-09-16T04:23:05.243Z"
   },
   {
     "Id": 160,
     "KID_fordeling": "000035813933930",
     "Payment_method": 4,
-    "timetamp": "2023-07-24T04:40:59.301Z",
     "timestamp": "2023-07-24T04:40:59.301Z"
   },
   {
     "Id": 161,
     "KID_fordeling": "000035267757421",
     "Payment_method": 9,
-    "timetamp": "2023-04-20T07:58:07.954Z",
     "timestamp": "2023-04-20T07:58:07.954Z"
   },
   {
     "Id": 162,
     "KID_fordeling": "000035252427717",
     "Payment_method": 2,
-    "timetamp": "2023-02-11T09:21:06.185Z",
     "timestamp": "2023-02-11T09:21:06.185Z"
   },
   {
     "Id": 163,
     "KID_fordeling": "000035979969215",
     "Payment_method": 8,
-    "timetamp": "2022-11-13T14:20:41.705Z",
     "timestamp": "2022-11-13T14:20:41.705Z"
   },
   {
     "Id": 164,
     "KID_fordeling": "000035118536941",
     "Payment_method": 5,
-    "timetamp": "2022-03-28T08:35:18.749Z",
     "timestamp": "2022-03-28T08:35:18.749Z"
   },
   {
     "Id": 165,
     "KID_fordeling": "000035427644584",
     "Payment_method": 5,
-    "timetamp": "2023-04-29T11:50:14.258Z",
     "timestamp": "2023-04-29T11:50:14.258Z"
   },
   {
     "Id": 166,
     "KID_fordeling": "000036227497215",
     "Payment_method": 10,
-    "timetamp": "2023-08-06T06:12:06.988Z",
     "timestamp": "2023-08-06T06:12:06.988Z"
   },
   {
     "Id": 167,
     "KID_fordeling": "000036338483575",
     "Payment_method": 6,
-    "timetamp": "2023-08-09T09:23:53.384Z",
     "timestamp": "2023-08-09T09:23:53.384Z"
   },
   {
     "Id": 168,
     "KID_fordeling": "000036842966859",
     "Payment_method": 7,
-    "timetamp": "2023-08-05T14:57:32.143Z",
     "timestamp": "2023-08-05T14:57:32.143Z"
   },
   {
     "Id": 169,
     "KID_fordeling": "000036429757648",
     "Payment_method": 6,
-    "timetamp": "2023-08-08T08:09:35.562Z",
     "timestamp": "2023-08-08T08:09:35.562Z"
   },
   {
     "Id": 170,
     "KID_fordeling": "000036925524245",
     "Payment_method": 9,
-    "timetamp": "2023-08-12T09:33:18.549Z",
     "timestamp": "2023-08-12T09:33:18.549Z"
   },
   {
     "Id": 171,
     "KID_fordeling": "000036412653515",
     "Payment_method": 5,
-    "timetamp": "2023-08-07T03:04:21.166Z",
     "timestamp": "2023-08-07T03:04:21.166Z"
   },
   {
     "Id": 172,
     "KID_fordeling": "000036432522617",
     "Payment_method": 3,
-    "timetamp": "2023-08-14T21:43:55.985Z",
     "timestamp": "2023-08-14T21:43:55.985Z"
   },
   {
     "Id": 173,
     "KID_fordeling": "000036135348757",
     "Payment_method": 9,
-    "timetamp": "2023-08-09T05:45:43.408Z",
     "timestamp": "2023-08-09T05:45:43.408Z"
   },
   {
     "Id": 174,
     "KID_fordeling": "000037237911252",
     "Payment_method": 10,
-    "timetamp": "2022-02-14T19:21:07.809Z",
     "timestamp": "2022-02-14T19:21:07.809Z"
   },
   {
     "Id": 175,
     "KID_fordeling": "000038517271672",
     "Payment_method": 3,
-    "timetamp": "2022-03-12T11:03:13.571Z",
     "timestamp": "2022-03-12T11:03:13.571Z"
   },
   {
     "Id": 176,
     "KID_fordeling": "000038512843756",
     "Payment_method": 2,
-    "timetamp": "2020-11-30T19:37:06.414Z",
     "timestamp": "2020-11-30T19:37:06.414Z"
   },
   {
     "Id": 177,
     "KID_fordeling": "000038756194643",
     "Payment_method": 9,
-    "timetamp": "2022-11-02T07:25:05.352Z",
     "timestamp": "2022-11-02T07:25:05.352Z"
   },
   {
     "Id": 178,
     "KID_fordeling": "000038414353953",
     "Payment_method": 7,
-    "timetamp": "2022-04-30T05:10:13.765Z",
     "timestamp": "2022-04-30T05:10:13.765Z"
   },
   {
     "Id": 179,
     "KID_fordeling": "000038791477573",
     "Payment_method": 8,
-    "timetamp": "2021-09-28T22:29:09.980Z",
     "timestamp": "2021-09-28T22:29:09.980Z"
   },
   {
     "Id": 180,
     "KID_fordeling": "000040616993339",
     "Payment_method": 9,
-    "timetamp": "2022-03-01T02:47:13.863Z",
     "timestamp": "2022-03-01T02:47:13.863Z"
   },
   {
     "Id": 181,
     "KID_fordeling": "000040428569749",
     "Payment_method": 4,
-    "timetamp": "2021-12-31T04:09:56.806Z",
     "timestamp": "2021-12-31T04:09:56.806Z"
   },
   {
     "Id": 182,
     "KID_fordeling": "000040235598899",
     "Payment_method": 4,
-    "timetamp": "2021-06-20T06:09:42.680Z",
     "timestamp": "2021-06-20T06:09:42.680Z"
   },
   {
     "Id": 183,
     "KID_fordeling": "000040481729339",
     "Payment_method": 8,
-    "timetamp": "2023-05-21T14:44:30.738Z",
     "timestamp": "2023-05-21T14:44:30.738Z"
   },
   {
     "Id": 184,
     "KID_fordeling": "000040997176827",
     "Payment_method": 8,
-    "timetamp": "2021-06-09T03:55:59.323Z",
     "timestamp": "2021-06-09T03:55:59.323Z"
   },
   {
     "Id": 185,
     "KID_fordeling": "000040981789635",
     "Payment_method": 2,
-    "timetamp": "2022-04-09T09:04:30.966Z",
     "timestamp": "2022-04-09T09:04:30.966Z"
   },
   {
     "Id": 186,
     "KID_fordeling": "000040336164948",
     "Payment_method": 3,
-    "timetamp": "2022-09-27T05:46:44.223Z",
     "timestamp": "2022-09-27T05:46:44.223Z"
   },
   {
     "Id": 187,
     "KID_fordeling": "000040841936715",
     "Payment_method": 8,
-    "timetamp": "2023-06-03T23:42:12.241Z",
     "timestamp": "2023-06-03T23:42:12.241Z"
   },
   {
     "Id": 188,
     "KID_fordeling": "000040486773654",
     "Payment_method": 7,
-    "timetamp": "2021-12-08T01:10:48.893Z",
     "timestamp": "2021-12-08T01:10:48.893Z"
   },
   {
     "Id": 189,
     "KID_fordeling": "000040549688733",
     "Payment_method": 3,
-    "timetamp": "2023-01-01T16:32:29.880Z",
     "timestamp": "2023-01-01T16:32:29.880Z"
   },
   {
     "Id": 190,
     "KID_fordeling": "000041342246745",
     "Payment_method": 6,
-    "timetamp": "2023-06-07T10:57:30.237Z",
     "timestamp": "2023-06-07T10:57:30.237Z"
   },
   {
     "Id": 191,
     "KID_fordeling": "000041217862238",
     "Payment_method": 7,
-    "timetamp": "2023-07-31T04:06:17.963Z",
     "timestamp": "2023-07-31T04:06:17.963Z"
   },
   {
     "Id": 192,
     "KID_fordeling": "000041758489631",
     "Payment_method": 2,
-    "timetamp": "2023-08-01T09:13:05.719Z",
     "timestamp": "2023-08-01T09:13:05.719Z"
   },
   {
     "Id": 193,
     "KID_fordeling": "000041657431155",
     "Payment_method": 6,
-    "timetamp": "2023-08-09T16:08:18.999Z",
     "timestamp": "2023-08-09T16:08:18.999Z"
   },
   {
     "Id": 194,
     "KID_fordeling": "000041524511965",
     "Payment_method": 2,
-    "timetamp": "2023-06-27T06:23:35.789Z",
     "timestamp": "2023-06-27T06:23:35.789Z"
   },
   {
     "Id": 195,
     "KID_fordeling": "000041755563370",
     "Payment_method": 5,
-    "timetamp": "2023-06-17T03:32:59.568Z",
     "timestamp": "2023-06-17T03:32:59.568Z"
   },
   {
     "Id": 196,
     "KID_fordeling": "000041584165637",
     "Payment_method": 2,
-    "timetamp": "2023-07-29T12:00:10.628Z",
     "timestamp": "2023-07-29T12:00:10.628Z"
   },
   {
     "Id": 197,
     "KID_fordeling": "000041481846826",
     "Payment_method": 5,
-    "timetamp": "2023-06-11T15:58:38.192Z",
     "timestamp": "2023-06-11T15:58:38.192Z"
   },
   {
     "Id": 198,
     "KID_fordeling": "000041967211610",
     "Payment_method": 4,
-    "timetamp": "2023-07-26T20:58:54.897Z",
     "timestamp": "2023-07-26T20:58:54.897Z"
   },
   {
     "Id": 199,
     "KID_fordeling": "000041749441766",
     "Payment_method": 3,
-    "timetamp": "2023-07-03T20:09:24.010Z",
     "timestamp": "2023-07-03T20:09:24.010Z"
   },
   {
     "Id": 200,
     "KID_fordeling": "000042371926280",
     "Payment_method": 8,
-    "timetamp": "2023-07-09T07:24:24.764Z",
     "timestamp": "2023-07-09T07:24:24.764Z"
   },
   {
     "Id": 201,
     "KID_fordeling": "000042965865753",
     "Payment_method": 7,
-    "timetamp": "2023-05-12T20:17:10.702Z",
     "timestamp": "2023-05-12T20:17:10.702Z"
   },
   {
     "Id": 202,
     "KID_fordeling": "000043933647885",
     "Payment_method": 2,
-    "timetamp": "2023-06-16T12:56:43.413Z",
     "timestamp": "2023-06-16T12:56:43.413Z"
   },
   {
     "Id": 203,
     "KID_fordeling": "000043296324973",
     "Payment_method": 9,
-    "timetamp": "2023-07-21T19:10:21.585Z",
     "timestamp": "2023-07-21T19:10:21.585Z"
   },
   {
     "Id": 204,
     "KID_fordeling": "000043459754875",
     "Payment_method": 8,
-    "timetamp": "2023-06-14T04:57:26.901Z",
     "timestamp": "2023-06-14T04:57:26.901Z"
   },
   {
     "Id": 205,
     "KID_fordeling": "000043361743354",
     "Payment_method": 2,
-    "timetamp": "2023-08-04T16:12:18.318Z",
     "timestamp": "2023-08-04T16:12:18.318Z"
   },
   {
     "Id": 206,
     "KID_fordeling": "000043379385867",
     "Payment_method": 5,
-    "timetamp": "2023-07-09T17:49:20.058Z",
     "timestamp": "2023-07-09T17:49:20.058Z"
   },
   {
     "Id": 207,
     "KID_fordeling": "000044933799361",
     "Payment_method": 6,
-    "timetamp": "2023-08-03T11:56:48.012Z",
     "timestamp": "2023-08-03T11:56:48.012Z"
   },
   {
     "Id": 208,
     "KID_fordeling": "000044349158160",
     "Payment_method": 6,
-    "timetamp": "2022-02-18T05:04:51.632Z",
     "timestamp": "2022-02-18T05:04:51.632Z"
   },
   {
     "Id": 209,
     "KID_fordeling": "000044296511585",
     "Payment_method": 3,
-    "timetamp": "2022-12-17T19:32:43.512Z",
     "timestamp": "2022-12-17T19:32:43.512Z"
   },
   {
     "Id": 210,
     "KID_fordeling": "000044919147866",
     "Payment_method": 3,
-    "timetamp": "2022-12-26T13:23:15.543Z",
     "timestamp": "2022-12-26T13:23:15.543Z"
   },
   {
     "Id": 211,
     "KID_fordeling": "000044527992513",
     "Payment_method": 4,
-    "timetamp": "2021-09-27T16:30:55.073Z",
     "timestamp": "2021-09-27T16:30:55.073Z"
   },
   {
     "Id": 212,
     "KID_fordeling": "000045727857695",
     "Payment_method": 10,
-    "timetamp": "2023-03-11T23:15:23.623Z",
     "timestamp": "2023-03-11T23:15:23.623Z"
   },
   {
     "Id": 213,
     "KID_fordeling": "000045174836432",
     "Payment_method": 7,
-    "timetamp": "2023-08-01T06:33:02.037Z",
     "timestamp": "2023-08-01T06:33:02.037Z"
   },
   {
     "Id": 214,
     "KID_fordeling": "000045727493954",
     "Payment_method": 3,
-    "timetamp": "2023-07-24T19:33:05.379Z",
     "timestamp": "2023-07-24T19:33:05.379Z"
   },
   {
     "Id": 215,
     "KID_fordeling": "000046422492291",
     "Payment_method": 3,
-    "timetamp": "2023-02-07T22:32:59.684Z",
     "timestamp": "2023-02-07T22:32:59.684Z"
   },
   {
     "Id": 216,
     "KID_fordeling": "000046977139222",
     "Payment_method": 3,
-    "timetamp": "2022-11-03T20:25:37.570Z",
     "timestamp": "2022-11-03T20:25:37.570Z"
   },
   {
     "Id": 217,
     "KID_fordeling": "000046736885834",
     "Payment_method": 8,
-    "timetamp": "2021-08-12T06:44:01.692Z",
     "timestamp": "2021-08-12T06:44:01.692Z"
   },
   {
     "Id": 218,
     "KID_fordeling": "000046618788296",
     "Payment_method": 2,
-    "timetamp": "2022-02-23T11:19:22.958Z",
     "timestamp": "2022-02-23T11:19:22.958Z"
   },
   {
     "Id": 219,
     "KID_fordeling": "000046129373984",
     "Payment_method": 3,
-    "timetamp": "2022-11-15T08:02:37.453Z",
     "timestamp": "2022-11-15T08:02:37.453Z"
   },
   {
     "Id": 220,
     "KID_fordeling": "000047891913536",
     "Payment_method": 10,
-    "timetamp": "2022-01-11T18:37:07.419Z",
     "timestamp": "2022-01-11T18:37:07.419Z"
   },
   {
     "Id": 221,
     "KID_fordeling": "000047569984561",
     "Payment_method": 4,
-    "timetamp": "2021-08-08T13:26:15.951Z",
     "timestamp": "2021-08-08T13:26:15.951Z"
   },
   {
     "Id": 222,
     "KID_fordeling": "000047393212718",
     "Payment_method": 6,
-    "timetamp": "2022-12-08T01:08:47.152Z",
     "timestamp": "2022-12-08T01:08:47.152Z"
   },
   {
     "Id": 223,
     "KID_fordeling": "000047225223453",
     "Payment_method": 5,
-    "timetamp": "2022-05-28T17:36:45.417Z",
     "timestamp": "2022-05-28T17:36:45.417Z"
   },
   {
     "Id": 224,
     "KID_fordeling": "000047334779536",
     "Payment_method": 2,
-    "timetamp": "2022-11-14T22:33:13.999Z",
     "timestamp": "2022-11-14T22:33:13.999Z"
   },
   {
     "Id": 225,
     "KID_fordeling": "000047489192261",
     "Payment_method": 6,
-    "timetamp": "2023-02-27T05:55:14.564Z",
     "timestamp": "2023-02-27T05:55:14.564Z"
   },
   {
     "Id": 226,
     "KID_fordeling": "000047385551313",
     "Payment_method": 8,
-    "timetamp": "2021-12-24T14:01:04.966Z",
     "timestamp": "2021-12-24T14:01:04.966Z"
   },
   {
     "Id": 227,
     "KID_fordeling": "000047461971476",
     "Payment_method": 8,
-    "timetamp": "2023-05-07T01:40:27.011Z",
     "timestamp": "2023-05-07T01:40:27.011Z"
   },
   {
     "Id": 228,
     "KID_fordeling": "000047653341686",
     "Payment_method": 10,
-    "timetamp": "2021-09-11T11:59:29.190Z",
     "timestamp": "2021-09-11T11:59:29.190Z"
   },
   {
     "Id": 229,
     "KID_fordeling": "000048232685783",
     "Payment_method": 6,
-    "timetamp": "2023-04-09T22:18:45.491Z",
     "timestamp": "2023-04-09T22:18:45.491Z"
   },
   {
     "Id": 230,
     "KID_fordeling": "000048445927485",
     "Payment_method": 2,
-    "timetamp": "2023-04-25T20:20:46.730Z",
     "timestamp": "2023-04-25T20:20:46.730Z"
   },
   {
     "Id": 231,
     "KID_fordeling": "000048976278811",
     "Payment_method": 6,
-    "timetamp": "2022-06-18T08:58:00.748Z",
     "timestamp": "2022-06-18T08:58:00.748Z"
   },
   {
     "Id": 232,
     "KID_fordeling": "000048674932891",
     "Payment_method": 5,
-    "timetamp": "2023-02-10T08:21:27.046Z",
     "timestamp": "2023-02-10T08:21:27.046Z"
   },
   {
     "Id": 233,
     "KID_fordeling": "000048611858647",
     "Payment_method": 9,
-    "timetamp": "2022-08-15T23:32:05.595Z",
     "timestamp": "2022-08-15T23:32:05.595Z"
   },
   {
     "Id": 234,
     "KID_fordeling": "000049618178898",
     "Payment_method": 3,
-    "timetamp": "2023-05-09T05:52:10.595Z",
     "timestamp": "2023-05-09T05:52:10.595Z"
   },
   {
     "Id": 235,
     "KID_fordeling": "000049366347844",
     "Payment_method": 5,
-    "timetamp": "2022-06-07T02:45:07.420Z",
     "timestamp": "2022-06-07T02:45:07.420Z"
   },
   {
     "Id": 236,
     "KID_fordeling": "000049922337230",
     "Payment_method": 10,
-    "timetamp": "2022-06-15T13:45:30.263Z",
     "timestamp": "2022-06-15T13:45:30.263Z"
   },
   {
     "Id": 237,
     "KID_fordeling": "000050478743326",
     "Payment_method": 8,
-    "timetamp": "2023-04-03T20:19:29.864Z",
     "timestamp": "2023-04-03T20:19:29.864Z"
   }
 ]
