@@ -1388,6 +1388,39 @@ router.get(
   },
 );
 
+router.post("/:originId/merge/:destinationId", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const originId = parseInt(req.params.originId);
+    const destinationId = parseInt(req.params.destinationId);
+
+    if (isNaN(originId) || isNaN(destinationId)) {
+      return res.status(400).json({
+        status: 400,
+        content: "Invalid donor ID",
+      });
+    }
+
+    const donorOrigin = await DAO.donors.getByID(originId);
+    const donorDestination = await DAO.donors.getByID(destinationId);
+
+    if (!donorOrigin || !donorDestination) {
+      return res.status(404).json({
+        status: 404,
+        content: "Donor not found",
+      });
+    }
+
+    await DAO.donors.mergeDonors(originId, destinationId);
+
+    return res.json({
+      status: 200,
+      content: true,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 /**
  * @openapi
  * /donors/{id}:
@@ -1466,9 +1499,27 @@ router.put(
           });
         }
       }
+
+      let email;
+      // Check for email
+      if (req.body.email) {
+        if (typeof req.body.email !== "string") {
+          return res.status(400).json({
+            status: 400,
+            content: "The email must be a string",
+          });
+        } else {
+          email = req.body.email;
+        }
+      } else {
+        // If no email is provided, use the existing email
+        email = donor.email;
+      }
+
       const updated = await DAO.donors.update(
         req.params.id,
         req.body.name,
+        email,
         req.body.newsletter,
         req.body.trash,
       );

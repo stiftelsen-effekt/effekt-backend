@@ -13,6 +13,8 @@ import bodyParser from "body-parser";
 import apicache from "apicache";
 import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
 import { DateTime } from "luxon";
+import { distributions } from "../custom_modules/DAO_modules/distributions";
+import { validateDistribution } from "../custom_modules/distribution";
 
 const config = require("../config");
 
@@ -273,6 +275,56 @@ router.post("/register", async (req, res, next) => {
       swishPaymentRequestToken,
     },
   });
+});
+
+router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    // Verify donation id as number
+    const donationId = parseInt(req.params.id);
+    if (isNaN(donationId)) return res.status(400).send("Invalid donation ID");
+
+    await DAO.donations.update({
+      id: req.params.id,
+      paymentId: req.body.paymentId,
+      paymentExternalRef: req.body.paymentExternalRef,
+      sum: req.body.sum,
+      transactionCost: req.body.transactionCost,
+      timestamp: new Date(req.body.timestamp),
+      metaOwnerId: req.body.metaOwnerId,
+    });
+
+    if (req.body.distribution) {
+      const validatedDistribution = validateDistribution(req.body.distribution);
+
+      if (!("kid" in validatedDistribution)) {
+        throw new Error("Distribution does not have a KID");
+      }
+
+      const existingBySplitKID = await DAO.distributions.getKIDbySplit(validatedDistribution);
+
+      if (existingBySplitKID != null && existingBySplitKID === validatedDistribution.kid) {
+        // No change
+      } else if (existingBySplitKID != null) {
+        // Use an existing KID for a distribution matching the split
+        await DAO.donations.updateKIDById(req.params.id, existingBySplitKID);
+      } else {
+        // Create a new KID and distribution
+        const newKid = await donationHelpers.createKID();
+        await DAO.distributions.add({
+          ...validatedDistribution,
+          // Overwrite the KID with the new one
+          kid: newKid,
+        });
+        await DAO.donations.updateKIDById(req.params.id, newKid);
+      }
+    }
+
+    return res.json({
+      status: 200,
+    });
+  } catch (ex) {
+    next(ex);
+  }
 });
 
 /**

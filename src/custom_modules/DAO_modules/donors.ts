@@ -305,19 +305,23 @@ async function updateName(donorID, name) {
  * @param {boolean} newsletter
  * @returns {boolean}
  */
-async function update(donorID, name, newsletter, trash?: boolean) {
+async function update(donorID, name, email, newsletter, trash?: boolean) {
   let isTrash = trash;
   if (typeof trash === "undefined") isTrash = (await getByID(donorID)).trash;
 
   let [res] = await DAO.query(
-    `UPDATE Donors SET full_name = ?, newsletter = ?, trash = ? where ID = ?`,
-    [name, newsletter, isTrash, donorID],
+    `UPDATE Donors SET full_name = ?, email = ?, newsletter = ?, trash = ? where ID = ?`,
+    [name, email, newsletter, isTrash, donorID],
   );
 
   if (res.affectedRows === 1) {
     return true;
   }
   return false;
+}
+
+async function mergeDonors(originDonorId: number, destinationDonorId: number) {
+  await DAO.query(`CALL merge_donors(?, ?)`, [originDonorId, destinationDonorId]);
 }
 //endregion
 
@@ -346,5 +350,6 @@ export const donors = {
   updateNewsletter,
   updateName,
   update,
+  mergeDonors,
   deleteById,
 };
