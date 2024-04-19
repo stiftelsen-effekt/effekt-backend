@@ -1500,6 +1500,7 @@ router.put(
         }
       }
 
+      let email;
       // Check for email
       if (req.body.email) {
         if (typeof req.body.email !== "string") {
@@ -1507,18 +1508,18 @@ router.put(
             status: 400,
             content: "The email must be a string",
           });
+        } else {
+          email = req.body.email;
         }
       } else {
-        return res.status(400).json({
-          status: 400,
-          content: "The email cannot be null",
-        });
+        // If no email is provided, use the existing email
+        email = donor.email;
       }
 
       const updated = await DAO.donors.update(
         req.params.id,
         req.body.name,
-        req.body.email,
+        email,
         req.body.newsletter,
         req.body.trash,
       );
