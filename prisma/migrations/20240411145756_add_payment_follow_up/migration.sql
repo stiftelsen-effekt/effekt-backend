@@ -90,8 +90,38 @@ CREATE TABLE `Payment_follow_up` (
     PRIMARY KEY (`Id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- Temporary drop foreign key from legacy se distribution connection to donations if it exists
+
+-- Step 1: Create the procedure
+CREATE PROCEDURE DropForeignKeyIfExist()
+BEGIN
+    DECLARE _foreignKeyExists INT DEFAULT 0;
+
+    SELECT COUNT(*) INTO _foreignKeyExists
+    FROM information_schema.KEY_COLUMN_USAGE
+    WHERE table_name = 'LegacySeDistributionConnection'
+    AND constraint_name = 'fk_LegacySeDistributionConnection_to_Donations_idx'
+    AND table_schema = DATABASE();
+
+    IF _foreignKeyExists = 1 THEN
+      ALTER TABLE `LegacySeDistributionConnection` DROP FOREIGN KEY `fk_LegacySeDistributionConnection_to_Donations_idx`;
+    END IF;
+END;
+
+-- Step 2: Call the procedure
+CALL DropForeignKeyIfExist();
+
+-- Step 3: Drop the procedure
+DROP PROCEDURE DropForeignKeyIfExist;
+
+-- Set character set for legacy se distribution connection
+ALTER TABLE `LegacySeDistributionConnection` MODIFY `paymentID` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NOT NULL;
+
 -- Set character set for external id
 ALTER TABLE `Donations` MODIFY `PaymentExternal_ID` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL;
+
+-- Remove legacy connections with adoveo as legacy KID
+DELETE FROM `LegacySeDistributionConnection` WHERE `legacyKID` = 'adoveo' AND ID > 0;
 
 -- AddForeignKey
 ALTER TABLE `LegacySeDistributionConnection` ADD CONSTRAINT `fk_LegacySeDistributionConnection_to_Donations_idx` FOREIGN KEY (`paymentID`) REFERENCES `Donations`(`PaymentExternal_ID`) ON DELETE RESTRICT ON UPDATE CASCADE;
