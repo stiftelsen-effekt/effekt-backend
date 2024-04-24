@@ -986,6 +986,17 @@ async function update(donation: {
   );
 }
 
+async function updateDonorId(donationId: number, donorId: number) {
+  await DAO.execute(
+    `
+    UPDATE Donations
+    SET Donor_ID = ?
+    WHERE ID = ?
+  `,
+    [donorId, donationId],
+  );
+}
+
 async function registerConfirmedByIDs(IDs) {
   var [donations] = await DAO.execute(
     `UPDATE Donations 
@@ -1121,6 +1132,7 @@ export const donations = {
   externalPaymentIDExists,
   updateTransactionCost,
   update,
+  updateDonorId,
   add,
   addLegacySeDonationDistribution,
   registerConfirmedByIDs,

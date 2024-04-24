@@ -283,6 +283,9 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
     const donationId = parseInt(req.params.id);
     if (isNaN(donationId)) return res.status(400).send("Invalid donation ID");
 
+    const existingDonation = await DAO.donations.getByID(donationId);
+    if (!existingDonation) return res.status(404).send("Donation not found");
+
     await DAO.donations.update({
       id: req.params.id,
       paymentId: req.body.paymentId,
@@ -316,6 +319,11 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
           kid: newKid,
         });
         await DAO.donations.updateKIDById(req.params.id, newKid);
+      }
+
+      if (validatedDistribution.donorId !== existingDonation.donorId) {
+        console.log("UPDATE DONOR ID");
+        await DAO.donations.updateDonorId(donationId, validatedDistribution.donorId);
       }
     }
 
