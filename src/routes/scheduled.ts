@@ -260,86 +260,95 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
   }
 });
 
-router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
-  let result;
-  try {
-    const today = DateTime.fromJSDate(new Date());
-    let claimDates: DateTime<boolean>[];
-    if (!req.query.claimDates) {
-      claimDates = getAutogiroDueDates(today);
-    } else {
-      const stringDates = (req.query as any).claimDates.split(",");
-      claimDates = [];
-      for (const stringDate of stringDates) {
-        // Use 6AM to avoid issues with daylight saving time, as the time is not used in the file
-        claimDates.push(DateTime.fromFormat(stringDate + " 06:00:00", "yyyy-LL-dd HH:mm:ss"));
-      }
-    }
+router.post(
+  "/autogiro",
+  /*authMiddleware.isAdmin,*/ async (req, res, next) => {
+    let result;
+    try {
+      const today = DateTime.fromJSDate(new Date());
 
-    let agreementsToClaim = [];
-    for (let claimDate of claimDates) {
-      const isClaimDateLastDayOfMonth = claimDate.day == today.endOf("month").day;
+      const agreements = await DAO.autogiroagreements.getAgreementsToCharge();
 
-      const agreements = await DAO.autogiroagreements.getAgreementsByPaymentDate(
-        isClaimDateLastDayOfMonth ? 0 : claimDate.day,
-      );
-      const activeAgreements = agreements
-        .filter((agreement) => agreement.active)
-        .filter((agreement) => agreement.KID.length === 15 || agreement.KID.length === 8);
-      const toClaim = activeAgreements.map((agreement) => ({
-        agreement: agreement,
-        claimDate: claimDate,
-      }));
-      agreementsToClaim = [...agreementsToClaim, ...toClaim];
-    }
-    const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
+      let agreementsToClaim = [];
+      for (let agreement of agreements) {
+        if (agreement.payment_date === 0) {
+          const lastDayOfMonth = today.endOf("month");
+          agreementsToClaim.push({
+            agreement,
+            claimDate: lastDayOfMonth,
+          });
+          continue;
+        }
 
-    if (agreementsToClaim.length > 0 || mandatesToBeConfirmed.length > 0) {
-      /**
-       * Create file to charge agreements for current day
-       */
-      const shipmentID = await DAO.autogiroagreements.addShipment(agreementsToClaim.length);
+        if (agreement.payment_date <= today.day) {
+          const skewedDate = today.plus({ days: 2 });
+          if (skewedDate.month !== today.month) {
+            console.error("Skewed date is in next month");
+            continue;
+          }
+          agreementsToClaim.push({
+            agreement,
+            claimDate: skewedDate,
+          });
+          continue;
+        }
 
-      let autoGiroClaimsFile: Buffer;
-      try {
-        autoGiroClaimsFile = await generateAutogiroGiroFile(
-          shipmentID,
-          agreementsToClaim,
-          mandatesToBeConfirmed,
-        );
-      } catch (ex) {
-        console.error(ex);
-        await DAO.autogiroagreements.removeShipment(shipmentID);
-        throw new Error("Error generating file");
+        const claimDate = today.set({ day: agreement.payment_date });
+        agreementsToClaim.push({
+          agreement,
+          claimDate: claimDate,
+        });
       }
 
-      result = {
-        shipmentID: shipmentID,
-        numCharges: agreementsToClaim.length,
-        numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
-        file: autoGiroClaimsFile.toString(),
-        filename: `BFEP.IAGAG.${shipmentID}.${today.toFormat("yyLLdd.HHmmss")}`,
-      };
-    } else {
-      result = {
-        shipmentID: null,
-        numCharges: 0,
-        mandatesToBeConfirmed: 0,
-        file: null,
-        filename: null,
-      };
-    }
+      const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
 
-    await DAO.logging.add("AutoGiro", result);
-    // await sendOcrBackup(JSON.stringify(result, null, 2));
-    res.json({
-      status: 200,
-      content: result,
-    });
-  } catch (ex) {
-    next({ ex });
-  }
-});
+      if (agreementsToClaim.length > 0 || mandatesToBeConfirmed.length > 0) {
+        /**
+         * Create file to charge agreements for current day
+         */
+        const shipmentID = await DAO.autogiroagreements.addShipment(agreementsToClaim.length);
+
+        let autoGiroClaimsFile: Buffer;
+        try {
+          autoGiroClaimsFile = await generateAutogiroGiroFile(
+            shipmentID,
+            agreementsToClaim,
+            mandatesToBeConfirmed,
+          );
+        } catch (ex) {
+          console.error(ex);
+          await DAO.autogiroagreements.removeShipment(shipmentID);
+          throw new Error("Error generating file");
+        }
+
+        result = {
+          shipmentID: shipmentID,
+          numCharges: agreementsToClaim.length,
+          numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
+          file: autoGiroClaimsFile.toString(),
+          filename: `BFEP.IAGAG.${shipmentID}.${today.toFormat("yyLLdd.HHmmss")}`,
+        };
+      } else {
+        result = {
+          shipmentID: null,
+          numCharges: 0,
+          mandatesToBeConfirmed: 0,
+          file: null,
+          filename: null,
+        };
+      }
+
+      await DAO.logging.add("AutoGiro", result);
+      // await sendOcrBackup(JSON.stringify(result, null, 2));
+      res.json({
+        status: 200,
+        content: result,
+      });
+    } catch (ex) {
+      next({ ex });
+    }
+  },
+);
 
 router.post("/vipps", authMiddleware.isAdmin, async (req, res, next) => {
   try {
