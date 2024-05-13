@@ -524,8 +524,6 @@ export async function sendPaymentIntentFollowUp(KID, sum): Promise<boolean | num
       },
     });
 
-    console.log(`Response from mailersend:`, response);
-
     if (response === false) {
       return false;
     }
