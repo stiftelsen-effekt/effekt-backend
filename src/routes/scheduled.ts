@@ -564,8 +564,7 @@ const conditionalFollowUpConfig: ConditionalFollowUpConfig[] = [
 /**
  * Route to initiate follow-up on incomplete donations.
  */
-router.post("/initiate-follow-ups", async (req, res, next) => {
-  //router.post("/initiate-follow-ups", authMiddleware.isAdmin, async (req, res, next) => {
+router.post("/initiate-follow-ups", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const paymentIntents = await initialpaymentmethod.getPaymentIntentsFromLastMonth();
 
