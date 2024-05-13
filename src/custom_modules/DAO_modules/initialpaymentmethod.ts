@@ -59,17 +59,18 @@ async function getFollowUpsForPaymentIntent(paymentIntentId) {
  */
 async function checkIfDonationReceived(paymentIntentId) {
   const paymentIntent = await getPaymentIntent(paymentIntentId);
-  const paymentMethod = paymentIntent.Payment_method;
   const paymentIntentDate = paymentIntent.timestamp;
   const paymentKID = paymentIntent.KID_fordeling;
 
-  // To determine if the payment intent is paid, check if there have been any donations with the same payment method since the date of the payment intent.
+  // To determine if the payment intent is paid, check if there have been any donations with the same KID since the date of the payment intent.
+  // We do not check for the exact amount or payment method, as the donation may have been made with a different amount or method.
+  // We don't want to pester the user with follow-ups if they have already made a donation.
   const [donation] = await DAO.query(
     `
     SELECT * from Donations
-    WHERE Payment_ID = ? AND timestamp_confirmed >= ? AND KID_fordeling = ?
+    WHERE timestamp_confirmed >= ? AND KID_fordeling = ?
     `,
-    [paymentMethod, paymentIntentDate, paymentKID],
+    [paymentIntentDate, paymentKID],
   );
 
   return donation.length > 0;
