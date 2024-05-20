@@ -12,7 +12,7 @@ import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
 import { APIResponse } from "mailersend/lib/services/request.service";
 import { DistributionCauseAreaOrganization, Donor } from "../schemas/types";
-import { get } from "request";
+import { getImpactEstimatesForDonation } from "./impact";
 
 /**
  * @typedef VippsAgreement
@@ -161,6 +161,16 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     return false;
   }
 
+  const impactEstimates = await getImpactEstimatesForDonation(
+    new Date(donation.timestamp),
+    parseFloat(donation.sum),
+    distribution,
+  );
+
+  if (impactEstimates.length === 0) {
+    console.warn("Failed to get impact estimates for donation");
+  }
+
   const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
     (acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
@@ -192,6 +202,9 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     },
     personalization: {
       organizations,
+      outputs: impactEstimates.map(
+        (estimate) => `${estimate.roundedNumberOfOutputs} ${estimate.output}`,
+      ),
     },
   });
 

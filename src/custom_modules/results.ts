@@ -69,10 +69,33 @@ export const getEvaluations = async () => {
   return evaluations;
 };
 
+export const getEvaluation = async (charities: string[], date: Date) => {
+  if (charities.length === 0) throw new Error("No charities provided");
+  const evaluationResult = await fetch(
+    `https://impact.gieffektivt.no/api/evaluations?charity_abbreviation=${charities.join(
+      "&charity_abbreviation=",
+    )}&currency=NOK&language=no&donation_year=${date.getFullYear()}&donation_month=${
+      date.getMonth() + 1
+    }`,
+  );
+  const evaluations: ImpactEvaluationsResponse = await evaluationResult.json();
+  return evaluations;
+};
+
 export const getMaximumImpactGrants = async () => {
   const maxImpactFundGrantsResult = await fetch(
     `https://impact.gieffektivt.no/api/max_impact_fund_grants?language=NO`,
   );
   const maxImpactFundGrants: ImpactGrantResponse = await maxImpactFundGrantsResult.json();
+  return maxImpactFundGrants;
+};
+
+export const getMaximumImpactGrant = async (date: Date) => {
+  const maxImpactFundGrantResult = await fetch(
+    `https://impact.gieffektivt.no/api/max_impact_fund_grants?currency=NOK&language=no&donation_year=${date.getFullYear()}&donation_month=${
+      date.getMonth() + 1
+    }`,
+  );
+  const maxImpactFundGrants: ImpactGrantResponse = await maxImpactFundGrantResult.json();
   return maxImpactFundGrants;
 };

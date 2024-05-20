@@ -88,68 +88,65 @@ router.post("/facebook/tax/confirmation", authMiddleware.isAdmin, async (req, re
   }
 });
 
-router.post(
-  "/taxreport/notice",
-  /*authMiddleware.isAdmin,*/ async (req, res, next) => {
-    try {
-      const reportsWithUserOnProfilePage = await DAO.tax.getReportsWithUserOnProfilePage();
-      const reportsWithoutUserOnProfilePage = []; //await DAO.tax.getReportsWithoutUserOnProfilePage();
+router.post("/taxreport/notice", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const reportsWithUserOnProfilePage = await DAO.tax.getReportsWithUserOnProfilePage();
+    const reportsWithoutUserOnProfilePage = []; //await DAO.tax.getReportsWithoutUserOnProfilePage();
 
-      let successfullySent = 0;
-      let failedToSend = 0;
+    let successfullySent = 0;
+    let failedToSend = 0;
 
-      // Batch send to all users with profile page, maximum 10 at a time
-      // Using Promise.all to send all at once
-      let results = [];
-      const totalEmails =
-        reportsWithUserOnProfilePage.length + reportsWithoutUserOnProfilePage.length;
-      while (successfullySent + failedToSend < totalEmails) {
-        const promises = [];
-        const MAX_CONCURRENT = 10;
+    // Batch send to all users with profile page, maximum 10 at a time
+    // Using Promise.all to send all at once
+    let results = [];
+    const totalEmails =
+      reportsWithUserOnProfilePage.length + reportsWithoutUserOnProfilePage.length;
+    while (successfullySent + failedToSend < totalEmails) {
+      const promises = [];
+      const MAX_CONCURRENT = 10;
 
-        console.log(
-          `Batch sending ${MAX_CONCURRENT} reports (total: ${
-            successfullySent + failedToSend
-          }) (success: ${successfullySent}) (failed: ${failedToSend})...`,
-        );
+      console.log(
+        `Batch sending ${MAX_CONCURRENT} reports (total: ${
+          successfullySent + failedToSend
+        }) (success: ${successfullySent}) (failed: ${failedToSend})...`,
+      );
 
-        for (let i = 0; i < MAX_CONCURRENT; i++) {
-          if (reportsWithUserOnProfilePage.length > 0) {
-            const report = reportsWithUserOnProfilePage.pop();
-            promises.push(sendTaxYearlyReportNoticeWithUser(report));
-          } else if (reportsWithoutUserOnProfilePage.length > 0) {
-            const report = reportsWithoutUserOnProfilePage.pop();
-            promises.push(sendTaxYearlyReportNoticeNoUser(report));
-          } else {
-            break;
-          }
+      for (let i = 0; i < MAX_CONCURRENT; i++) {
+        if (reportsWithUserOnProfilePage.length > 0) {
+          const report = reportsWithUserOnProfilePage.pop();
+          promises.push(sendTaxYearlyReportNoticeWithUser(report));
+        } else if (reportsWithoutUserOnProfilePage.length > 0) {
+          const report = reportsWithoutUserOnProfilePage.pop();
+          promises.push(sendTaxYearlyReportNoticeNoUser(report));
+        } else {
+          break;
         }
-
-        const results = await Promise.allSettled(promises);
-        results.forEach((result) => {
-          results.push(result);
-          if (result.status === "fulfilled") {
-            successfullySent++;
-          } else {
-            console.error("Failed to send", result.reason);
-            failedToSend++;
-          }
-        });
       }
 
-      res.json({
-        status: 200,
-        content: {
-          success: successfullySent,
-          failed: failedToSend,
-          results: results,
-        },
+      const results = await Promise.allSettled(promises);
+      results.forEach((result) => {
+        results.push(result);
+        if (result.status === "fulfilled") {
+          successfullySent++;
+        } else {
+          console.error("Failed to send", result.reason);
+          failedToSend++;
+        }
       });
-    } catch (ex) {
-      next(ex);
     }
-  },
-);
+
+    res.json({
+      status: 200,
+      content: {
+        success: successfullySent,
+        failed: failedToSend,
+        results: results,
+      },
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
 
 /**
  * Sends a notice to all donors that are eligible for tax deduction in the given year

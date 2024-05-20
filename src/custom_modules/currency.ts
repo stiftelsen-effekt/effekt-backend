@@ -1,3 +1,5 @@
+import { DateTime } from "luxon";
+
 type ExchangeRateResponse = {
   meta: {
     id: string;
@@ -130,4 +132,29 @@ export const getBestExchangeRate = (exchangeRates: ExchangeRateResponse, date: s
       ][0],
     );
   }
+};
+
+/**
+ * Get the exchange rate for a given date
+ * @param date Date in JS Date format
+ * @returns Exchange rate for the given date
+ */
+export const getExchangeRateForDate = async (date: Date) => {
+  const start = DateTime.fromJSDate(date).minus({ days: 31 });
+  const end = DateTime.fromJSDate(date);
+
+  const url = `https://data.norges-bank.no/api/data/EXR/B.USD.NOK.SP?format=sdmx-json&startPeriod=${
+    start.toISODate().split("T")[0]
+  }&endPeriod=${end.toISODate().split("T")[0]}&locale=no`;
+
+  const exchangeRateResult = await fetch(url);
+
+  const exchangeRate = await exchangeRateResult.json();
+
+  // Pick last available exchange rate
+  const closest =
+    exchangeRate.data.dataSets[0].series["0:0:0:0"].observations[0][
+      exchangeRate.data.dataSets[0].series["0:0:0:0"].observations[0].length - 1
+    ];
+  return closest;
 };
