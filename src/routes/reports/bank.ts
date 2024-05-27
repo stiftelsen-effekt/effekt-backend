@@ -157,9 +157,21 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
     try {
       let exists = false;
       for (const message of payment.messages) {
-        if (await DAO.distributions.KIDexists(message.trim())) {
+        // Get consecutive digits from message
+        const sanitizedMessage = message.trim().replace(/\D/g, "");
+        console.log(sanitizedMessage);
+        if (sanitizedMessage.length < 8) {
+          continue;
+        }
+        if (await DAO.distributions.KIDexists(sanitizedMessage)) {
           exists = true;
-          payment.KID = message;
+          payment.KID = sanitizedMessage;
+          break;
+        }
+        const prefixMatches = await DAO.distributions.getKIDsByPrefix(sanitizedMessage);
+        if (prefixMatches.length === 1 && sanitizedMessage.length >= 10) {
+          exists = true;
+          payment.KID = prefixMatches[0];
           break;
         }
       }
@@ -188,8 +200,8 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
             transaction: {
               date: postingDate,
               message: payment.messages.join(", "),
-              amount: payment.amount,
-              externalRef: payment.externalReference,
+              amount: payment.amount / 100,
+              transactionID: payment.externalReference,
               paymentID: 2,
             },
           });
@@ -219,7 +231,7 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
           message: ex.message,
           amount: payment.amount,
           KID: payment.KID,
-          externalRef: payment.externalReference,
+          transactionID: payment.externalReference,
           paymentID: 2,
         },
       });
