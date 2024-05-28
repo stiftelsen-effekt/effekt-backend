@@ -176,8 +176,6 @@ router.put(
       distribution: DistributionInput | null;
     };
 
-    console.log(agreementChanges);
-
     try {
       const originalKID: string = req.params.KID;
       let validatedDistribtion: DistributionInput | null = null;
@@ -259,6 +257,26 @@ router.put(
     try {
       const originalKID: string = req.params.KID;
       await DAO.autogiroagreements.cancelAgreementByKID(originalKID);
+      res.json({
+        status: 200,
+        content: "OK",
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
+
+router.put(
+  "/:KID/activate",
+  authMiddleware.auth(permissions.write_agreements),
+  (req, res, next) => {
+    checkDonorOwnsDistribution(req.params.KID, req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const originalKID: string = req.params.KID;
+      await DAO.autogiroagreements.activateAgreementByKID(originalKID);
       res.json({
         status: 200,
         content: "OK",

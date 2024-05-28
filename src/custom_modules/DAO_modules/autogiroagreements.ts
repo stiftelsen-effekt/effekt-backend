@@ -343,7 +343,7 @@ export const autogiroagreements = {
   activateAgreementByKID: async function (KID: string) {
     await DAO.query(
       `
-        UPDATE AutoGiro_agreements SET active = 1 WHERE KID = ?
+        UPDATE AutoGiro_agreements SET active = 1, cancelled = NULL WHERE KID = ?
       `,
       [KID],
     );
