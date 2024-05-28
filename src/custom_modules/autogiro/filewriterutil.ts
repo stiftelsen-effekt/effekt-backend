@@ -113,7 +113,7 @@ export default {
       "0",
     )}${formattedSSN.padStart(12, "0")}${" ".padStart(20, " ")}    `;
   },
-  getCancellationRecord: (charge: AutoGiro_agreement_charges, donorId: number) => {
+  getCancellationRecord: (charge: AutoGiro_agreement_charges, KID: string) => {
     if (charge.status !== "PENDING") throw new Error("Can only cancel pending charges");
 
     /**
@@ -123,9 +123,10 @@ export default {
     const cancellationDate = DateTime.fromJSDate(charge.claim_date).toFormat("yyyyLLdd");
     return `${
       AutoGiroCancellationRecordCode.CANCEL_ALL_FOR_PAYMENT_DATE_AMOUNT_AND_REFERENCE
-    }${config.autogiro_bankgiro_number.padStart(10, "0")}${donorId
-      .toString()
-      .padStart(16, "0")}${cancellationDate}${Math.round(parseInt(charge.amount) * 100)
+    }${config.autogiro_bankgiro_number.padStart(10, "0")}${KID.padStart(
+      16,
+      "0",
+    )}${cancellationDate}${Math.round(parseInt(charge.amount) * 100)
       .toString()
       .padStart(12, "0")}${AutoGiroPaymentCodes.INCOMMING}        ${charge.ID.toString().padEnd(
       16,

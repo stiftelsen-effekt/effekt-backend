@@ -20,6 +20,7 @@ import {
   AutoGiroPaymentStatusCode,
   autogiroPaymentStatusCodeToStringExplenation,
 } from "./parsers/autogiro/transactions";
+import { AutogiroChargeToBeAmended } from "./DAO_modules/autogiroagreements";
 
 /**
  * Generates a claims file to claim payments for AutoGiro agreements
@@ -35,6 +36,7 @@ export async function generateAutogiroGiroFile(
     agreement: AutoGiro_agreements;
     claimDate: DateTime;
   }[],
+  chargesToBeAmended: AutogiroChargeToBeAmended[],
   mandatesToBeConfirmed: AutoGiro_mandates[],
 ) {
   const today = DateTime.fromJSDate(new Date());
@@ -86,6 +88,85 @@ export async function generateAutogiroGiroFile(
       chargeId.toString(),
     );
     fileContents += "\n";
+  }
+
+  const newChargesAfterAmendmentLines: string[] = [];
+  const cancelledChargesAfterAmendmentLines: string[] = [];
+  for (const chargeToBeAmended of chargesToBeAmended) {
+    /**
+     * First we cancel the existing charge
+     */
+    const charge = await DAO.autogiroagreements.getAgreementChargeById(chargeToBeAmended.chargeId);
+    if (!charge) {
+      console.log(`Could not find charge with ID ${chargeToBeAmended.chargeId}`);
+      continue;
+    }
+
+    if (charge.status !== "PENDING") {
+      console.log(`Charge with ID ${charge.ID} has already been completed, skipping`);
+      continue;
+    }
+
+    cancelledChargesAfterAmendmentLines.push(
+      writer.getCancellationRecord(charge, chargeToBeAmended.KID),
+    );
+
+    if (chargeToBeAmended.agreementCancelled) {
+      // Set charge status to cancelled
+      await DAO.autogiroagreements.cancelAgreementCharge(charge.ID);
+      // For cancelled agreements, we don't need to create a new charge
+      continue;
+    } else {
+      // Set charge status to amended
+      await DAO.autogiroagreements.setAgreementChargeAmended(charge.ID);
+    }
+
+    /**
+     * Then we create a new charge, if the agreement was not cancelled
+     */
+    let today = DateTime.fromJSDate(new Date());
+    let newClaimDate: DateTime;
+    if (chargeToBeAmended.agreementDay === 0) {
+      // End of month
+      newClaimDate = today.endOf("month");
+      if (getSeBankingDaysBetweenDates(today, newClaimDate) < 1) {
+        newClaimDate = newClaimDate.plus({ days: 1 }).endOf("month");
+      }
+    } else {
+      newClaimDate = today.set({ day: chargeToBeAmended.agreementDay });
+      if (getSeBankingDaysBetweenDates(today, newClaimDate) < 1) {
+        newClaimDate = newClaimDate.plus({ months: 1 });
+      }
+    }
+
+    const newChargeId = await DAO.autogiroagreements.addAgreementCharge({
+      agreementID: chargeToBeAmended.agreementId,
+      shipmentID: shipmentID,
+      status: "PENDING",
+      claim_date: newClaimDate.toJSDate(),
+      amount: chargeToBeAmended.agreementAmount.toString(),
+      donationID: null,
+    });
+
+    newChargesAfterAmendmentLines.push(
+      writer.getWithdrawalRecord(
+        newClaimDate,
+        chargeToBeAmended.KID,
+        config.autogiro_bankgiro_number,
+        chargeToBeAmended.agreementAmount * 100, // Agreement amount in øre
+        newChargeId.toString(),
+      ),
+    );
+  }
+
+  // Add the new charges for amended charges
+  if (newChargesAfterAmendmentLines.length > 0) {
+    fileContents += newChargesAfterAmendmentLines.join("\n") + "\n";
+  }
+
+  // Add the cancelled charges after amendment
+  if (cancelledChargesAfterAmendmentLines.length > 0) {
+    fileContents += cancelledChargesAfterAmendmentLines.join("\n") + "\n";
   }
 
   /**
@@ -538,86 +619,24 @@ const getValidatedKID = async (KID: string) => {
 };
 
 /**
- * A function that returns a list of due dates for payment claims
- * We are required to send claims four banking days in advance of the due date
- * Holidays and weekends are not counted as banking days
- * Takes in a date to calculate the due date from
- * @returns
+ * Returns the number of banking days between two dates
  */
-export function getAutogiroDueDates(date: DateTime) {
-  // Start iterating backwards 30 days from the date given
-  // Keep going until 4 days after the date given
-  // Add all the dates that have 4 banking days in between
-  // Return the list of dates
-
-  // We only send claims on banking days
-  // Thus, we start by checking if the date given is a banking day
-  if (!isSwedishWorkingDay(date.toJSDate())) {
-    return [];
+export function getSeBankingDaysBetweenDates(start: DateTime, end: DateTime) {
+  if (start > end) {
+    throw new Error("Start date must be before end date");
+  }
+  if (start.equals(end)) {
+    return 0;
   }
 
-  let dueDates: DateTime[] = [];
-  let iterationDate = date.plus({ days: 30 });
-  while (iterationDate >= date.plus({ days: 4 })) {
-    let bankingDays = 0;
-    let innerIterationDate = iterationDate.minus({ days: 1 });
-    while (innerIterationDate >= date) {
-      if (isSwedishWorkingDay(innerIterationDate.toJSDate())) {
-        bankingDays++;
-      }
-      innerIterationDate = innerIterationDate.minus({ days: 1 });
+  let dueDates = 0;
+  let currentDate = start.plus({ days: 1 }); // Skip the first day, as we're counting the days between the two dates
+  while (currentDate < end) {
+    if (isSwedishWorkingDay(currentDate.toJSDate())) {
+      dueDates++;
     }
-
-    if (bankingDays === 4) {
-      dueDates.push(iterationDate);
-    }
-
-    iterationDate = iterationDate.minus({ days: 1 });
+    currentDate = currentDate.plus({ days: 1 });
   }
-
-  // Debug table to visualize the due dates
-  // printDueDatesTable(date, dueDates);
 
   return dueDates;
-}
-
-/**
- * Debugging helper for due date calculation
- * @param date
- * @param dueDates
- */
-function printDueDatesTable(date: DateTime, dueDates: DateTime[]) {
-  console.log("");
-  console.log("");
-
-  let tableWidth = dueDates[0].diff(date, "days").days + 1;
-
-  console.log("-".repeat(tableWidth * 8));
-
-  // Bold text
-  console.log(`Due dates for claims on \x1b[1m${date.toFormat("dd.MM.yyyy")}\x1b[0m`);
-  console.log("");
-
-  // Letter for the day, e.g. Mon for Monday
-
-  console.log(
-    Array.from({ length: tableWidth }, (_, i) => date.plus({ day: i }).toFormat("ccc")).join("\t"),
-  );
-  console.log(Array.from({ length: tableWidth }, (_, i) => date.plus({ day: i }).day).join("\t"));
-  // Green square is a banking day, yellow is not
-  console.log(
-    Array.from({ length: tableWidth }, (_, i) =>
-      workdays.isWorkingDay(date.plus({ day: i }).toJSDate()) ? "🟢" : "🟡",
-    ).join("\t"),
-  );
-  // Checkmark if the date is a due date
-  console.log(
-    Array.from({ length: tableWidth }, (_, i) =>
-      dueDates.map((d) => d.toISO()).includes(date.plus({ day: i }).toISO()) ? "✅" : "",
-    ).join("\t"),
-  );
-  console.log("-".repeat(tableWidth * 8));
-
-  console.log("");
-  console.log("");
 }

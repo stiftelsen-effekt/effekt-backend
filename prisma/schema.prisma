@@ -243,12 +243,9 @@ model Donors {
   email           String   @unique(map: "email_UNIQUE", length: 63) @db.TinyText /// epost registrert i donasjonsskjema,\ntrigger generering av ny donor hvis den ikke eksisterer fra før
   full_name       String?  @db.TinyText
   date_registered DateTime @default(now()) @db.Timestamp(0) /// The date the donor first registrered
-  password_hash   String?  @db.VarChar(64)
-  password_salt   String?  @db.VarChar(32)
   Meta_owner_ID   Int      @default(3)
   newsletter      Boolean?
   trash           Int?     @db.TinyInt
-  ssn             String?  @db.VarChar(45)
 
   Donations                     Donations[]
   Distributions                 Distributions[]
@@ -497,7 +494,7 @@ model Swish_orders {
 model Tax_unit {
   ID         Int       @id @default(autoincrement())
   Donor_ID   Int
-  ssn        String    @db.VarChar(11)
+  ssn        String    @db.VarChar(32)
   full_name  String    @db.VarChar(128)
   registered DateTime? @default(now()) @db.DateTime(0)
   archived   DateTime? @db.DateTime(0)

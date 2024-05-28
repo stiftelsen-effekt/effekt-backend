@@ -483,6 +483,14 @@ export const autogiroagreements = {
       [ID],
     );
   },
+  setAgreementChargeAmended: async function (ID: number) {
+    await DAO.query(
+      `
+        UPDATE AutoGiro_agreement_charges SET status = "AMENDED" WHERE ID = ?
+      `,
+      [ID],
+    );
+  },
   getMandates: async function (
     sort: { desc: boolean; id: string },
     page: number,
@@ -634,6 +642,72 @@ export const autogiroagreements = {
       [status, ID],
     );
   },
+  /**
+   * Looks for agreements with pending charges that differ from the agreement amount and date
+   */
+  getAmendmentCandidates: async function () {
+    const [result] = await DAO.query<AutogiroChargeToBeAmended[]>(`
+      SELECT 
+        CH.ID as chargeId,
+        AG.ID as agreementId,
+        CH.status,
+        AG.KID,
+        CH.amount != AG.amount as changedAmount,
+        (
+          DAY(CH.claim_date) != AG.payment_date
+          AND
+          NOT(DATE(CH.claim_date) = LAST_DAY(CH.claim_date) AND AG.payment_date = 0)
+          ) as changedDate,
+          AG.cancelled IS NOT NULL as agreementCancelled,
+          AG.amount as agreementAmount,
+          CH.amount as chargeAmount,
+          AG.payment_date as agreementDay,
+          CH.claim_date as claimDate
+        
+        FROM AutoGiro_agreement_charges as CH
+          INNER JOIN AutoGiro_agreements as AG 
+            ON CH.agreementID = AG.ID 
+                
+          WHERE 
+            (
+              CH.amount != AG.amount
+              OR
+              (
+                DAY(CH.claim_date) != AG.payment_date
+                AND
+                NOT(DATE(CH.claim_date) = LAST_DAY(CH.claim_date) AND AG.payment_date = 0)
+              )
+            )
+            AND CH.status = "PENDING"
+      `);
+
+    return result.map(mapChargeToBeAmended);
+  },
+};
+
+export type AutogiroChargeToBeAmended = {
+  chargeId: number;
+  agreementId: number;
+  status: string;
+  KID: string;
+  changedAmount: boolean;
+  changedDate: boolean;
+  agreementCancelled: boolean;
+  agreementAmount: number;
+  chargeAmount: number;
+  agreementDay: number;
+  claimDate: Date;
+};
+
+const mapChargeToBeAmended = (
+  charge: SqlResult<AutogiroChargeToBeAmended>,
+): AutogiroChargeToBeAmended => {
+  return {
+    ...charge,
+    changedAmount: charge.changedAmount == 1,
+    changedDate: charge.changedDate == 1,
+    agreementCancelled: charge.agreementCancelled == 1,
+  };
 };
 
 const mapAgreementType = (agreement: SqlResult<AutoGiro_agreements>): AutoGiro_agreements => {

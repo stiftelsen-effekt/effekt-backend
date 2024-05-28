@@ -10,7 +10,7 @@ import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_mo
 import { DateTime } from "luxon";
 
 import express from "express";
-import { generateAutogiroGiroFile, getAutogiroDueDates } from "../custom_modules/autogiro";
+import { generateAutogiroGiroFile, getSeBankingDaysBetweenDates } from "../custom_modules/autogiro";
 import fetch from "node-fetch";
 import config from "../config";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
@@ -260,95 +260,119 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
   }
 });
 
-router.post(
-  "/autogiro",
-  /*authMiddleware.isAdmin,*/ async (req, res, next) => {
-    let result;
-    try {
-      const today = DateTime.fromJSDate(new Date());
+router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
+  let result;
+  try {
+    const today = DateTime.fromJSDate(new Date());
 
-      const agreements = await DAO.autogiroagreements.getAgreementsToCharge();
+    const agreements = await DAO.autogiroagreements.getAgreementsToCharge();
 
-      let agreementsToClaim = [];
-      for (let agreement of agreements) {
-        if (agreement.payment_date === 0) {
-          const lastDayOfMonth = today.endOf("month");
-          agreementsToClaim.push({
-            agreement,
-            claimDate: lastDayOfMonth,
-          });
-          continue;
-        }
-
-        if (agreement.payment_date <= today.day) {
-          const skewedDate = today.plus({ days: 2 });
-          if (skewedDate.month !== today.month) {
-            console.error("Skewed date is in next month");
-            continue;
-          }
-          agreementsToClaim.push({
-            agreement,
-            claimDate: skewedDate,
-          });
-          continue;
-        }
-
-        const claimDate = today.set({ day: agreement.payment_date });
+    let agreementsToClaim = [];
+    for (let agreement of agreements) {
+      if (agreement.payment_date === 0) {
+        const lastDayOfMonth = today.endOf("month");
         agreementsToClaim.push({
           agreement,
-          claimDate: claimDate,
+          claimDate: lastDayOfMonth,
         });
+        continue;
       }
 
-      const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
-
-      if (agreementsToClaim.length > 0 || mandatesToBeConfirmed.length > 0) {
-        /**
-         * Create file to charge agreements for current day
-         */
-        const shipmentID = await DAO.autogiroagreements.addShipment(agreementsToClaim.length);
-
-        let autoGiroClaimsFile: Buffer;
-        try {
-          autoGiroClaimsFile = await generateAutogiroGiroFile(
-            shipmentID,
-            agreementsToClaim,
-            mandatesToBeConfirmed,
-          );
-        } catch (ex) {
-          console.error(ex);
-          await DAO.autogiroagreements.removeShipment(shipmentID);
-          throw new Error("Error generating file");
+      if (agreement.payment_date <= today.day) {
+        const skewedDate = today.plus({ days: 2 });
+        if (skewedDate.month !== today.month) {
+          console.error("Skewed date is in next month");
+          continue;
         }
-
-        result = {
-          shipmentID: shipmentID,
-          numCharges: agreementsToClaim.length,
-          numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
-          file: autoGiroClaimsFile.toString(),
-          filename: `BFEP.IAGAG.${shipmentID}.${today.toFormat("yyLLdd.HHmmss")}`,
-        };
-      } else {
-        result = {
-          shipmentID: null,
-          numCharges: 0,
-          mandatesToBeConfirmed: 0,
-          file: null,
-          filename: null,
-        };
+        agreementsToClaim.push({
+          agreement,
+          claimDate: skewedDate,
+        });
+        continue;
       }
 
-      await DAO.logging.add("AutoGiro", result);
-      // await sendOcrBackup(JSON.stringify(result, null, 2));
-      res.json({
-        status: 200,
-        content: result,
+      const claimDate = today.set({ day: agreement.payment_date });
+      agreementsToClaim.push({
+        agreement,
+        claimDate: claimDate,
       });
-    } catch (ex) {
-      next({ ex });
     }
-  },
-);
+
+    const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
+
+    const amendmentCandidates = await DAO.autogiroagreements.getAmendmentCandidates();
+
+    console.log("Amendment candidate number: ", amendmentCandidates.length);
+
+    /* Check if the claim date is within the timeframe where we can send the file
+     * We need at least one banking day between the claim date and today
+     */
+    const chargesToAmend = amendmentCandidates.filter((candidate) => {
+      const claimDate = DateTime.fromJSDate(candidate.claimDate);
+      console.log(claimDate);
+      console.log(claimDate.diff(today, "days"));
+      if (claimDate.diff(today, "days").days > 0) {
+        // Find the number of banking days between today and the claim date
+        const bankingDaysBetween = getSeBankingDaysBetweenDates(today, claimDate);
+        console.log("Banking days between: ", bankingDaysBetween);
+        return bankingDaysBetween > 0;
+      }
+      return false;
+    });
+
+    console.log("Charges to amend: ", chargesToAmend.length);
+
+    if (
+      agreementsToClaim.length > 0 ||
+      mandatesToBeConfirmed.length > 0 ||
+      chargesToAmend.length > 0
+    ) {
+      /**
+       * Create file to charge agreements for current day
+       */
+      const shipmentID = await DAO.autogiroagreements.addShipment(agreementsToClaim.length);
+
+      let autoGiroClaimsFile: Buffer;
+      try {
+        autoGiroClaimsFile = await generateAutogiroGiroFile(
+          shipmentID,
+          agreementsToClaim,
+          chargesToAmend,
+          mandatesToBeConfirmed,
+        );
+      } catch (ex) {
+        console.error(ex);
+        await DAO.autogiroagreements.removeShipment(shipmentID);
+        throw new Error("Error generating file");
+      }
+
+      result = {
+        shipmentID: shipmentID,
+        numCharges: agreementsToClaim.length,
+        numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
+        file: autoGiroClaimsFile.toString(),
+        filename: `BFEP.IAGAG.${shipmentID}.${today.toFormat("yyLLdd.HHmmss")}`,
+      };
+    } else {
+      result = {
+        shipmentID: null,
+        numCharges: 0,
+        mandatesToBeConfirmed: 0,
+        file: null,
+        filename: null,
+      };
+    }
+
+    await DAO.logging.add("AutoGiro", result);
+    // await sendOcrBackup(JSON.stringify(result, null, 2));
+    res.json({
+      status: 200,
+      content: result,
+    });
+  } catch (ex) {
+    next({ ex });
+  }
+});
 
 router.post("/vipps", authMiddleware.isAdmin, async (req, res, next) => {
   try {

@@ -4,6 +4,7 @@ import { expect } from "chai";
 import AutoGiroFileWriter from "../custom_modules/autogiro/filewriterutil";
 import { DateTime } from "luxon";
 import { AutoGiroPaymentStatusCode } from "../custom_modules/parsers/autogiro/transactions";
+import { getSeBankingDaysBetweenDates } from "../custom_modules/autogiro";
 
 describe("Autogiro parser", () => {
   it("Should parse a valid autogiro transactions file", () => {
@@ -144,5 +145,92 @@ describe("Autogiro file writer", () => {
     expect(record).to.equal(
       "82201607140    00000000000001230000000750000009902346INBETALNING1               ",
     );
+  });
+
+  describe.only("Banking days between two dates", () => {
+    it("Should return 0 between two consecutive dates", () => {
+      const start = DateTime.fromObject({ year: 2024, month: 6, day: 11 });
+      const end = DateTime.fromObject({ year: 2016, month: 6, day: 12 });
+
+      const days = getSeBankingDaysBetweenDates(start, end);
+
+      expect(days).to.equal(0);
+    });
+
+    it("Should return 0 between two friday and monday over the weekend", () => {
+      const start = DateTime.fromObject({ year: 2024, month: 6, day: 14 });
+      const end = DateTime.fromObject({ year: 2024, month: 6, day: 17 });
+
+      const days = getSeBankingDaysBetweenDates(start, end);
+
+      expect(days).to.equal(0);
+    });
+
+    it("Should return 0 between the day before and the day after a holiday", () => {
+      const start = DateTime.fromObject({ year: 2024, month: 6, day: 5 });
+      // National day of Sweden is on the 6th of June
+      const end = DateTime.fromObject({ year: 2024, month: 6, day: 7 });
+
+      const days = getSeBankingDaysBetweenDates(start, end);
+
+      expect(days).to.equal(0);
+    });
+
+    it("Should return 1 between a monday and a wednesday with no holidays in between", () => {
+      const start = DateTime.fromObject({ year: 2024, month: 6, day: 12 });
+      const end = DateTime.fromObject({ year: 2024, month: 6, day: 14 });
+
+      const days = getSeBankingDaysBetweenDates(start, end);
+
+      expect(days).to.equal(1);
+    });
+
+    it("Should return 1 between a friday and a tuesday", () => {
+      const start = DateTime.fromObject({ year: 2024, month: 6, day: 14 });
+      const end = DateTime.fromObject({ year: 2024, month: 6, day: 18 });
+
+      const days = getSeBankingDaysBetweenDates(start, end);
+
+      expect(days).to.equal(1);
+    });
+
+    it("Should return 5 over a regular week with no holidays", () => {
+      const start = DateTime.fromObject({ year: 2024, month: 6, day: 23 }); // Sunday 23rd of June
+      const end = DateTime.fromObject({ year: 2024, month: 6, day: 30 }); // Sunday 30th of June
+
+      const days = getSeBankingDaysBetweenDates(start, end);
+
+      expect(days).to.equal(5);
+    });
+
+    it("Should return the correct number when crossing a monthly boundary", () => {
+      // 29th of April to 5th of May 2024
+      const start = DateTime.fromObject({ year: 2024, month: 4, day: 29 });
+      const end = DateTime.fromObject({ year: 2024, month: 5, day: 5 });
+
+      const days = getSeBankingDaysBetweenDates(start, end);
+
+      expect(days).to.equal(3);
+    });
+
+    it("Should return the correct number of days over new year", () => {
+      // Saturday 30th of December 2023 to friday 5th of January 2024
+      const start = DateTime.fromObject({ year: 2023, month: 12, day: 30 });
+      const end = DateTime.fromObject({ year: 2024, month: 1, day: 5 });
+
+      const days = getSeBankingDaysBetweenDates(start, end);
+
+      expect(days).to.equal(3);
+    });
+
+    it("Should return correct number of days for spans over several months", () => {
+      // 1st of May to 5th of August 2024
+      const start = DateTime.fromObject({ year: 2024, month: 5, day: 1 });
+      const end = DateTime.fromObject({ year: 2024, month: 8, day: 5 });
+
+      const days = getSeBankingDaysBetweenDates(start, end);
+
+      expect(days).to.equal(64);
+    });
   });
 });
