@@ -68,7 +68,7 @@ async function checkIfDonationReceived(paymentIntentId) {
   const [donation] = await DAO.query(
     `
     SELECT * from Donations
-    WHERE timestamp_confirmed >= ? AND KID_fordeling = ?
+    WHERE timestamp_confirmed >= DATE(?) AND KID_fordeling = ?
     `,
     [paymentIntentDate, paymentKID],
   );
