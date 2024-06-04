@@ -156,7 +156,7 @@ tidbytRouter.get("/donations/month", async (req, res, next) => {
         .join(" | ");
 
       return res.json({
-        feed_url: `${api_url}/tidbyt/donations/recent`,
+        feed_url: `${api_url}/tidbyt/donations/month`,
         title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
         title_text: "Donations (last 30 days)",
         data: [
