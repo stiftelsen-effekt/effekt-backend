@@ -323,14 +323,12 @@ export const autogiroagreements = {
     return true;
   },
   setAgreementAmountByKID: async function (KID: string, amount: number) {
-    console.log("Setting amount to", amount, "for KID", KID);
     await DAO.query(
       `
         UPDATE AutoGiro_agreements SET amount = ? WHERE KID = ?
       `,
       [amount, KID],
     );
-    console.log("Done");
   },
   setAgreementPaymentDateByKID: async function (KID: string, paymentDate: number) {
     await DAO.query(

@@ -247,6 +247,74 @@ router.put(
   },
 );
 
+router.post("/:KID/paymentdate", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const paymentDate = req.body.paymentDate;
+
+    if (typeof paymentDate !== "number") {
+      return res.status(400).json({
+        status: 400,
+        content: "Invalid payment date",
+      });
+    }
+    if (paymentDate < 0 || paymentDate > 28) {
+      return res.status(400).json({
+        status: 400,
+        content: "Invalid payment date (must be between 0 and 28)",
+      });
+    }
+
+    const agreement = await DAO.autogiroagreements.getAgreementByKID(req.params.KID);
+
+    if (!agreement) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
+
+    await DAO.autogiroagreements.setAgreementPaymentDateByKID(req.params.KID, paymentDate);
+
+    res.json({
+      status: 200,
+      content: "OK",
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+router.post("/:KID/amount", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const amount = req.body.amount / 100; /* Amount is sent as øre but stored as kroner */
+
+    if (typeof amount !== "number") {
+      return res.status(400).json({
+        status: 400,
+        content: "Invalid amount",
+      });
+    }
+
+    const agreement = await DAO.autogiroagreements.getAgreementByKID(req.params.KID);
+
+    if (!agreement) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
+
+    await DAO.autogiroagreements.setAgreementAmountByKID(req.params.KID, amount);
+
+    res.json({
+      status: 200,
+      content: "OK",
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 router.put(
   "/:KID/cancel",
   authMiddleware.auth(permissions.write_agreements),
