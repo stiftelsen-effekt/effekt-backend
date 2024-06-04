@@ -6,7 +6,9 @@ import { DateTime } from "luxon";
 export const tidbytRouter = express.Router();
 
 const formatNumber = (number: number): string =>
-  Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 }).format(number);
+  Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 })
+    .format(number)
+    .replace(/\u00A0/g, " ");
 
 tidbytRouter.get("/agreements/avtalegiro", async (req, res, next) => {
   try {
