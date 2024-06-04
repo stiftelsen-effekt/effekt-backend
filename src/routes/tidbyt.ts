@@ -154,7 +154,7 @@ tidbytRouter.get("/donations/month", async (req, res, next) => {
       });
     } else {
       return res.json({
-        feed_url: `${api_url}/tidbyt/donations/total`,
+        feed_url: `${api_url}/tidbyt/donations/month`,
         title_image: `${api_url}/static/scroll.png`,
         title_text: "Failed to get donation report",
         data: [],
@@ -162,7 +162,7 @@ tidbytRouter.get("/donations/month", async (req, res, next) => {
     }
   } catch (ex) {
     return res.json({
-      feed_url: `${api_url}/tidbyt/donations/total`,
+      feed_url: `${api_url}/tidbyt/donations/month`,
       title_image: `${api_url}/static/scroll.png`,
       title_text: "Failed to get donation report",
       data: [
