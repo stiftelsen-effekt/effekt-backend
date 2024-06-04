@@ -43,13 +43,10 @@ export function generateFakeDonor(donorID: number): Donors {
     ID: donorID,
     email: email,
     full_name: `${firstName} ${lastName}`,
-    password_hash: null,
-    password_salt: null,
     newsletter: faker.helpers.maybe(() => faker.datatype.boolean()) ?? null,
     trash: faker.helpers.maybe(() => faker.number.int({ min: 0, max: 1 })) ?? null,
     Meta_owner_ID: 3,
     date_registered: faker.date.past({ years: 3 }),
-    ssn: null,
   };
 }
 
