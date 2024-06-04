@@ -44,12 +44,31 @@ import { Donations, Prisma } from "@prisma/client";
  * @returns {[Array<IDonation & donorName: string>, nextcursor]} An array of donations pluss the donorname
  */
 async function getAll(
-  sort,
+  sort: {
+    id: string;
+    desc: boolean;
+  } | null,
   page,
   limit = 10,
-  filter = null,
+  filter: {
+    sum?: { from?: number; to?: number };
+    date?: { from?: Date; to?: Date };
+    KID?: string;
+    paymentMethodIDs?: Array<number>;
+    donor?: string;
+    id?: string;
+    organizationIDs?: Array<number>;
+  } = null,
 ): Promise<{
-  rows: Array<any>;
+  rows: Array<{
+    id: number;
+    donor: string;
+    paymentMethod: string;
+    sum: number;
+    transactionCost: number;
+    kid: string;
+    timestamp: Date;
+  }>;
   statistics: {
     numDonations: number;
     sumDonations: number;

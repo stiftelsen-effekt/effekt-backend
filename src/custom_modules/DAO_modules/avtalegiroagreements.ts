@@ -467,7 +467,20 @@ async function getByKID(KID: string): Promise<AvtaleGiroAgreement> {
  * @return {Object}
  */
 async function getAgreementReport() {
-  let [res] = await DAO.query(`
+  let [res] = await DAO.query<
+    {
+      activeAgreementCount: number;
+      averageAgreementSum: number;
+      totalAgreementSum: number;
+      medianAgreementSum: number;
+      draftedThisMonth: number;
+      sumDraftedThisMonth: number;
+      activatedThisMonth: number;
+      sumActivatedThisMonth: number;
+      stoppedThisMonth: number;
+      sumStoppedThisMonth: number;
+    }[]
+  >(`
     SELECT 
         count(ID) as activeAgreementCount,
         round(avg(amount)/100, 0) as averageAgreementSum,
