@@ -5,33 +5,6 @@ import { DateTime } from "luxon";
 
 export const tidbytRouter = express.Router();
 
-/**
- * Tidbyt JSON feeds on the following format:
- *
- * {
- *   "feed_url": "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/example.json",
- *   "title_image": "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
- *   "title_text": "Sales",
- *   "data": [
- *     {
- *       "title": "Sales",
- *       "value": "$56,854",
- *       "color": "FF0000"
- *     },
- *     {
- *       "title": "Orders",
- *       "value": "40",
- *       "color": "00FF00"
- *     },
- *     {
- *       "title": "Status",
- *       "value": "I am some long text that will scroll",
- *       "color": "0000FF"
- *     }
- *   ]
- *  }
- */
-
 const formatNumber = (number: number): string =>
   Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 }).format(number);
 
@@ -42,7 +15,7 @@ tidbytRouter.get("/agreements/avtalegiro", async (req, res, next) => {
     if (report) {
       return res.json({
         feed_url: `${api_url}/tidbyt/agreements/avtlaegiro`,
-        title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+        title_image: `${api_url}/static/scroll.png`,
         title_text: "Avtalegiro",
         data: [
           {
@@ -60,7 +33,7 @@ tidbytRouter.get("/agreements/avtalegiro", async (req, res, next) => {
     } else {
       return res.json({
         feed_url: `${api_url}/tidbyt/agreements/avtlaegiro`,
-        title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+        title_image: `${api_url}/static/scroll.png`,
         title_text: "Failed to get Avtalegiro report",
         data: [],
       });
@@ -68,7 +41,7 @@ tidbytRouter.get("/agreements/avtalegiro", async (req, res, next) => {
   } catch (ex) {
     return res.json({
       feed_url: `${api_url}/tidbyt/agreements/avtlaegiro`,
-      title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+      title_image: `${api_url}/static/scroll.png`,
       title_text: "Failed to get Avtalegiro report",
       data: [
         {
@@ -88,7 +61,7 @@ tidbytRouter.get("/agreements/vipps", async (req, res, next) => {
     if (report) {
       return res.json({
         feed_url: `${api_url}/tidbyt/agreements/vipps`,
-        title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+        title_image: `${api_url}/static/scroll.png`,
         title_text: "Vipps",
         data: [
           {
@@ -106,7 +79,7 @@ tidbytRouter.get("/agreements/vipps", async (req, res, next) => {
     } else {
       return res.json({
         feed_url: `${api_url}/tidbyt/agreements/vipps`,
-        title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+        title_image: `${api_url}/static/scroll.png`,
         title_text: "Failed to get Vipps report",
         data: [],
       });
@@ -114,7 +87,7 @@ tidbytRouter.get("/agreements/vipps", async (req, res, next) => {
   } catch (ex) {
     return res.json({
       feed_url: `${api_url}/tidbyt/agreements/vipps`,
-      title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+      title_image: `${api_url}/static/scroll.png`,
       title_text: "Failed to get Vipps report",
       data: [
         {
@@ -157,8 +130,8 @@ tidbytRouter.get("/donations/month", async (req, res, next) => {
 
       return res.json({
         feed_url: `${api_url}/tidbyt/donations/month`,
-        title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
-        title_text: "Donations (last 30 days)",
+        title_image: `${api_url}/static/scroll.png`,
+        title_text: "30 days",
         data: [
           {
             title: "Donations",
@@ -180,7 +153,7 @@ tidbytRouter.get("/donations/month", async (req, res, next) => {
     } else {
       return res.json({
         feed_url: `${api_url}/tidbyt/donations/total`,
-        title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+        title_image: `${api_url}/static/scroll.png`,
         title_text: "Failed to get donation report",
         data: [],
       });
@@ -188,7 +161,7 @@ tidbytRouter.get("/donations/month", async (req, res, next) => {
   } catch (ex) {
     return res.json({
       feed_url: `${api_url}/tidbyt/donations/total`,
-      title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+      title_image: `${api_url}/static/scroll.png`,
       title_text: "Failed to get donation report",
       data: [
         {
@@ -231,8 +204,8 @@ tidbytRouter.get("/donations/week", async (req, res, next) => {
 
       return res.json({
         feed_url: `${api_url}/tidbyt/donations/total`,
-        title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
-        title_text: "Donations (last week)",
+        title_image: `${api_url}/static/scroll.png`,
+        title_text: "7 days",
         data: [
           {
             title: "Donations",
@@ -254,7 +227,7 @@ tidbytRouter.get("/donations/week", async (req, res, next) => {
     } else {
       return res.json({
         feed_url: `${api_url}/tidbyt/donations/total`,
-        title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+        title_image: `${api_url}/static/scroll.png`,
         title_text: "Failed to get donation report",
         data: [],
       });
@@ -262,7 +235,7 @@ tidbytRouter.get("/donations/week", async (req, res, next) => {
   } catch (ex) {
     return res.json({
       feed_url: `${api_url}/tidbyt/donations/total`,
-      title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+      title_image: `${api_url}/static/scroll.png`,
       title_text: "Failed to get donation report",
       data: [
         {
@@ -299,8 +272,8 @@ tidbytRouter.get("/donations/total", async (req, res, next) => {
 
       return res.json({
         feed_url: `${api_url}/tidbyt/donations/total`,
-        title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
-        title_text: "Donations (all time)",
+        title_image: `${api_url}/static/scroll.png`,
+        title_text: "All time",
         data: [
           {
             title: "Donations",
@@ -322,7 +295,7 @@ tidbytRouter.get("/donations/total", async (req, res, next) => {
     } else {
       return res.json({
         feed_url: `${api_url}/tidbyt/donations/total`,
-        title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+        title_image: `${api_url}/static/scroll.png`,
         title_text: "Failed to get donation report",
         data: [],
       });
@@ -330,7 +303,7 @@ tidbytRouter.get("/donations/total", async (req, res, next) => {
   } catch (ex) {
     return res.json({
       feed_url: `${api_url}/tidbyt/donations/total`,
-      title_image: "https://tidbyt-json-display.s3.eu-west-1.amazonaws.com/heart.png",
+      title_image: `${api_url}/static/scroll.png`,
       title_text: "Failed to get donation report",
       data: [
         {
