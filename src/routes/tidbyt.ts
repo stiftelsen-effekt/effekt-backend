@@ -10,6 +10,15 @@ const formatNumber = (number: number): string =>
     .format(number)
     .replace(/\u00A0/g, " ");
 
+const rightAlign = (title: string, value: string): { title: string; value: string } => {
+  // We know the font is monospaced, at width 4, and we know the display is width 64
+  // Add spaces to the value to right align it
+  const titleLength = title.length;
+  const valueLength = value.length;
+  const spaces = " ".repeat((60 - titleLength * 4 - valueLength * 4) / 4);
+  return { title, value: `${spaces}${value}` };
+};
+
 tidbytRouter.get("/agreements/avtalegiro", async (req, res, next) => {
   try {
     const report = await DAO.avtalegiroagreements.getAgreementReport();
@@ -21,13 +30,11 @@ tidbytRouter.get("/agreements/avtalegiro", async (req, res, next) => {
         title_text: "Avtalegiro",
         data: [
           {
-            title: "Active",
-            value: formatNumber(report.activeAgreementCount),
+            ...rightAlign("Active", formatNumber(report.activeAgreementCount)),
             color: "FFFFFF",
           },
           {
-            title: "Sum",
-            value: formatNumber(report.totalAgreementSum),
+            ...rightAlign("Sum", formatNumber(report.totalAgreementSum)),
             color: "FFFFFF",
           },
         ],
@@ -67,13 +74,11 @@ tidbytRouter.get("/agreements/vipps", async (req, res, next) => {
         title_text: "Vipps",
         data: [
           {
-            title: "Active",
-            value: formatNumber(report.activeAgreementCount),
+            ...rightAlign("Active", formatNumber(report.activeAgreementCount)),
             color: "FFFFFF",
           },
           {
-            title: "Sum",
-            value: formatNumber(report.totalAgreementSum),
+            ...rightAlign("Sum", formatNumber(report.totalAgreementSum)),
             color: "FFFFFF",
           },
         ],
@@ -136,13 +141,11 @@ tidbytRouter.get("/donations/month", async (req, res, next) => {
         title_text: "30 days",
         data: [
           {
-            title: "Donations",
-            value: formatNumber(report.statistics.numDonations),
+            ...rightAlign("Num", formatNumber(report.statistics.numDonations)),
             color: "FFFFFF",
           },
           {
-            title: "Sum",
-            value: formatNumber(Math.round(report.statistics.sumDonations)),
+            ...rightAlign("Sum", formatNumber(Math.round(report.statistics.sumDonations))),
             color: "FFFFFF",
           },
           {
@@ -210,13 +213,11 @@ tidbytRouter.get("/donations/week", async (req, res, next) => {
         title_text: "7 days",
         data: [
           {
-            title: "Donations",
-            value: formatNumber(report.statistics.numDonations),
+            ...rightAlign("Num", formatNumber(report.statistics.numDonations)),
             color: "FFFFFF",
           },
           {
-            title: "Sum",
-            value: formatNumber(Math.round(report.statistics.sumDonations)),
+            ...rightAlign("Sum", formatNumber(Math.round(report.statistics.sumDonations))),
             color: "FFFFFF",
           },
           {
@@ -278,13 +279,11 @@ tidbytRouter.get("/donations/total", async (req, res, next) => {
         title_text: "All time",
         data: [
           {
-            title: "Donations",
-            value: formatNumber(report.statistics.numDonations),
+            ...rightAlign("Num", formatNumber(report.statistics.numDonations)),
             color: "FFFFFF",
           },
           {
-            title: "Sum",
-            value: formatNumber(Math.round(report.statistics.sumDonations)),
+            ...rightAlign("Sum", formatNumber(Math.round(report.statistics.sumDonations))),
             color: "FFFFFF",
           },
           {
