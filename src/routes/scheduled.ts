@@ -299,18 +299,13 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
     }
 
     const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
-
     const amendmentCandidates = await DAO.autogiroagreements.getAmendmentCandidates();
-
-    console.log("Amendment candidate number: ", amendmentCandidates.length);
 
     /* Check if the claim date is within the timeframe where we can send the file
      * We need at least one banking day between the claim date and today
      */
     const chargesToAmend = amendmentCandidates.filter((candidate) => {
       const claimDate = DateTime.fromJSDate(candidate.claimDate);
-      console.log(claimDate);
-      console.log(claimDate.diff(today, "days"));
       if (claimDate.diff(today, "days").days > 0) {
         // Find the number of banking days between today and the claim date
         const bankingDaysBetween = getSeBankingDaysBetweenDates(today, claimDate);
@@ -319,8 +314,6 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
       }
       return false;
     });
-
-    console.log("Charges to amend: ", chargesToAmend.length);
 
     if (
       agreementsToClaim.length > 0 ||
