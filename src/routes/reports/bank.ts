@@ -155,6 +155,12 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
   for (let payment of payments) {
     // Let's see if we can find the distribution
     try {
+      /** First things first, ignore existing donations */
+      if (await DAO.donations.getByExternalPaymentID(payment.externalReference, 2)) {
+        invalid++;
+        continue;
+      }
+
       let exists = false;
       for (const message of payment.messages) {
         // Get consecutive digits from message
