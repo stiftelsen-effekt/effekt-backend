@@ -1,10 +1,10 @@
 import { processAutogiroInputFile } from "../../custom_modules/autogiro";
 import { AutoGiroContent } from "../../custom_modules/parsers/autogiro";
+import chardet from "chardet";
 
 module.exports = async (req, res, next) => {
-  let metaOwnerID = parseInt(req.body.metaOwnerID);
-
-  var data = req.files.report.data.toString("latin1");
+  const encoding = chardet.detect(req.files.report.data);
+  var data = req.files.report.data.toString(encoding);
 
   try {
     const result = await processAutogiroInputFile(data);
