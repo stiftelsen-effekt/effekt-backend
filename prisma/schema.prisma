@@ -257,6 +257,7 @@ model Donors {
   Paypal_historic_distributions Paypal_historic_distributions[]
   Referral_records              Referral_records[]
   Vipps_orders                  Vipps_orders[]
+  Mailersend_survey_responses   Mailersend_survey_responses[]
 
   Adoveo_fundraiser                     Adoveo_fundraiser[]
   Adoveo_giftcard_transactions_sender   Adoveo_giftcard_transactions[] @relation(name: "senderDonor")
@@ -474,6 +475,18 @@ model Referral_types {
   is_active        Boolean            @default(true)
   ordering         Int?
   Referral_records Referral_records[]
+}
+
+model Mailersend_survey_responses {
+  ID         Int      @id @default(autoincrement())
+  surveyID   Int
+  questionID Int
+  DonorID    Int
+  answer     String
+  answerID   String
+  timestamp  DateTime @default(now()) @db.DateTime(0)
+
+  Donors Donors @relation(fields: [DonorID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Mailersend_survey_responses_to_Donors_idx")
 }
 
 model Swish_orders {
