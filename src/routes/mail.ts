@@ -217,138 +217,22 @@ router.post("/notice/missingtaxunit", authMiddleware.isAdmin, async (req, res, n
   });
 });
 
-/**
- * {
-  "email": {
-    "object": "email",
-    "id": "643e785e1ad4b461a307e5d2",
-    "created_at": "2023-04-18T11:00:46.609000Z",
-    "from": "test@domain.com",
-    "subject": "Test email",
-    "status": "sent",
-    "tags": null,
-    "preview_url": "http://preview.mailersend.com/email/643e785e1ad4b461a307e5d2",
-    "template": {
-      "object": "template",
-      "id": "83gwk2j7zqz1nxyd",
-      "url": "http://app.mailersend.com/templates/83gwk2j7zqz1nxyd"
-    },
-    "message": {
-      "object": "message",
-      "id": "643e785d4d8189e0ef046aa2",
-      "created_at": "2023-04-18T11:00:45.398000Z"
-    },
-    "recipient": {
-      "object": "recipient",
-      "id": "6410951922b6316e210cb2e2",
-      "email": "reciepient@email.com",
-      "created_at": "2023-03-14T15:39:05.608000Z"
-    }
-  },
-  "surveys": [
-    {
-      "survey_location_url": "http://preview.mailersend.com/email/643e785e1ad4b461a307e5d2#ml-survey-link-5",
-      "survey_id": "4",
-      "question_id": "5",
-      "question_index": 0,
-      "question_type": "intro",
-      "question": "We value your feedback.",
-      "next_question_index": 1,
-      "answers": [
-        {
-          "answer": "1",
-          "answer_id": "1"
-        }
-      ],
-      "rules": [
-        {
-          "$$hashKey": "object:3113",
-          "answered": "answered_specific",
-          "collapsed": true,
-          "question_index": 1,
-          "specific_answer": 1,
-          "specific_answer_value": "Very Unsatisfied",
-          "action": "skip_to_question",
-          "action_question_index": 2
-        }
-      ],
-      "correct_answers_rate": 0,
-      "is_last_question": false
-    },
-    {
-      "survey_location_url": "http://preview.mailersend.com/email/643e785e1ad4b461a307e5d2#ml-survey-link-5",
-      "survey_id": "4",
-      "question_id": "6",
-      "question_index": 1,
-      "question_type": "satisfaction_scale",
-      "question": "How would you rate our new product line?",
-      "next_question_index": 2,
-      "answers": [
-        {
-          "answer": "5",
-          "answer_id": "5",
-          "image": "https://assets.mlcdn.com/ml/images/editor/survey/faces/color/5.png"
-        }
-      ],
-      "rules": [
-        {
-          "$$hashKey": "object:3113",
-          "answered": "answered_specific",
-          "collapsed": true,
-          "question_index": 1,
-          "specific_answer": 1,
-          "specific_answer_value": "Very Unsatisfied",
-          "action": "skip_to_question",
-          "action_question_index": 2
-        }
-      ],
-      "correct_answers_rate": 0,
-      "is_last_question": false
-    },
-    {
-      "survey_location_url": "http://preview.mailersend.com/email/643e785e1ad4b461a307e5d2#ml-survey-link-5",
-      "survey_id": "4",
-      "question_id": "7",
-      "question_index": 2,
-      "question_type": "rating_scale",
-      "question": "How likely are you to recommend our new products to a friend or colleague?",
-      "next_question_index": 3,
-      "answers": [
-        {
-          "answer": "2",
-          "answer_id": "2"
-        }
-      ],
-      "rules": [
-        {
-          "$$hashKey": "object:3113",
-          "answered": "answered_specific",
-          "collapsed": true,
-          "question_index": 1,
-          "specific_answer": 1,
-          "specific_answer_value": "Very Unsatisfied",
-          "action": "skip_to_question",
-          "action_question_index": 2
-        }
-      ],
-      "correct_answers_rate": 0,
-      "is_last_question": true
-    }
-  ]
-}
- * 
- */
-
 router.post("/mailersend/survey/response", async (req, res, next) => {
   try {
-    console.log(req.body);
-
     const surveyResponse = req.body.data as SurveyEmail;
 
     let DonorID = await DAO.donors.getIDbyEmail(surveyResponse.email.recipient.email);
 
     if (!DonorID) {
       DonorID = 1464; // Anonymous donor
+    }
+
+    if (!surveyResponse.surveys) {
+      res.json({
+        status: 200,
+        content: "No surveys found in email",
+      });
+      return;
     }
 
     for (let survey of surveyResponse.surveys) {
