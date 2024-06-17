@@ -341,6 +341,8 @@ router.post("/notice/missingtaxunit", authMiddleware.isAdmin, async (req, res, n
 
 router.post("/mailersend/survey/response", async (req, res, next) => {
   try {
+    console.log(req.body);
+
     const surveyResponse = req.body as SurveyEmail;
 
     let DonorID = await DAO.donors.getIDbyEmail(surveyResponse.email.recipient.email);
