@@ -432,7 +432,6 @@ export const autogiroagreements = {
           ON CH.agreementID = AG.ID
       
       WHERE \`active\` = 1 
-      AND (LENGTH(AG.KID) = 15 OR LENGTH(AG.KID) = 8 OR AG.KID = 23121496795)
       AND CH.ID IS NULL
       ORDER BY AG.payment_date ASC`);
 
