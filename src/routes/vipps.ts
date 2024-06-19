@@ -634,20 +634,20 @@ router.get("/agreementredirect/:urlcode", async (req, res, next) => {
       }
       const agreement = await DAO.vipps.getAgreement(agreementId);
 
-      console.log(agreement, retries);
-
       if (retries >= 20) {
-        res.redirect("https://gieffektivt.no/donasjon-feilet");
+        res.redirect("https://gieffektivt.no/avtale-feilet");
         return false;
       }
 
       if (agreement) {
         if (agreement.status === "ACTIVE") {
-          res.redirect("https://gieffektivt.no/opprettet");
+          res.redirect(
+            `https://gieffektivt.no/opprettet?revenue=${agreement.amount}&kid=${agreement.KID}&method=vipps&recurring=true`,
+          );
           return true;
         }
         if (agreement.status === "STOPPED" || agreement.status === "EXPIRED") {
-          res.redirect("https://gieffektivt.no/donasjon-feilet");
+          res.redirect("https://gieffektivt.no/avtale-feilet");
           return false;
         }
       }
@@ -852,7 +852,9 @@ router.get("/redirect/:orderId", async (req, res, next) => {
       let order = await DAO.vipps.getOrder(orderId);
 
       if (order && order.donationID != null) {
-        res.redirect("https://gieffektivt.no/donasjon-mottatt");
+        res.redirect(
+          `https://gieffektivt.no/donasjon-mottatt?revenue=${order.amount}&kid=${order.KID}&method=vipps&recurring=false`,
+        );
         return true;
       } else if (retries >= 20) {
         res.redirect("https://gieffektivt.no/donasjon-feilet");

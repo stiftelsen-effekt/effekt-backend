@@ -239,7 +239,9 @@ router.get("/:KID/redirect", async (req, res, next) => {
       const agreement = await DAO.avtalegiroagreements.getByKID(req.params.KID);
       await sendAvtalegiroRegistered(agreement);
 
-      res.redirect("https://gieffektivt.no/opprettet");
+      res.redirect(
+        `https://gieffektivt.no/opprettet?revenue=${agreement.amount}&kid=${req.params.KID}&method=avtalegiro&recurring=true`,
+      );
     } else res.redirect("https://gieffektivt.no/avtale-feilet");
   } catch (ex) {
     next({ ex });
