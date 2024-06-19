@@ -442,6 +442,10 @@ module.exports = {
 
     try {
       let order = await DAO.vipps.getOrder(orderId);
+      if (!order) {
+        console.error(`Could not refund order with id ${orderId}, order not found in database`);
+        return false;
+      }
 
       if (order.donationID == null) {
         console.error(`Could not refund order with id ${orderId}, order has not been captured`);
