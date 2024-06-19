@@ -240,7 +240,9 @@ router.get("/:KID/redirect", async (req, res, next) => {
       await sendAvtalegiroRegistered(agreement);
 
       res.redirect(
-        `https://gieffektivt.no/opprettet?revenue=${agreement.amount}&kid=${req.params.KID}&method=avtalegiro&recurring=true`,
+        `https://gieffektivt.no/opprettet?revenue=${Math.round(agreement.amount / 100)}&kid=${
+          req.params.KID
+        }&method=avtalegiro&recurring=true`,
       );
     } else res.redirect("https://gieffektivt.no/avtale-feilet");
   } catch (ex) {
