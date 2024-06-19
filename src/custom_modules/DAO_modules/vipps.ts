@@ -1,6 +1,7 @@
 import { distributions } from "./distributions";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
+import { Vipps_order_transaction_statuses, Vipps_orders } from "@prisma/client";
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = [
@@ -96,7 +97,7 @@ async function getLatestToken() {
  * @return {VippsOrder | false}
  */
 async function getOrder(orderID) {
-  let [res] = await DAO.query(
+  let [res] = await DAO.query<Vipps_orders[]>(
     `
         SELECT * FROM Vipps_orders
             WHERE
@@ -109,12 +110,31 @@ async function getOrder(orderID) {
   else return res[0];
 }
 
+/** Fetches vipps transaction statuses for a given orderID
+ * @param {string} orderId
+ * @return {Vipps_order_transaction_statuses[] | false} Array of transaction statuses ordered descendingly by timestamp, false if no statuses found
+ * */
+async function getOrderTransactionStatusHistory(orderId) {
+  let [res] = await DAO.query<Vipps_order_transaction_statuses[]>(
+    `
+        SELECT * FROM Vipps_order_transaction_statuses
+            WHERE
+                orderID = ?
+            ORDER BY timestamp DESC
+        `,
+    [orderId],
+  );
+
+  if (res.length === 0) return false;
+  else return res;
+}
+
 /**
  * Fetches the most recent vipps order
  * @return {VippsOrder | false}
  */
 async function getRecentOrder() {
-  let [res] = await DAO.query(`
+  let [res] = await DAO.query<Vipps_orders[]>(`
         SELECT * FROM Vipps_orders
             ORDER BY 
                 registered DESC
@@ -1007,6 +1027,7 @@ export const vipps = {
   getLatestToken,
   getOrder,
   getRecentOrder,
+  getOrderTransactionStatusHistory,
   getAgreement,
   getAgreements,
   getAgreementsByDonorId,

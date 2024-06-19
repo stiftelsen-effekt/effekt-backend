@@ -852,8 +852,10 @@ router.get("/redirect/:orderId", async (req, res, next) => {
       let order = await DAO.vipps.getOrder(orderId);
 
       if (order && order.donationID != null) {
+        const donation = await DAO.donations.getByID(order.donationID);
+
         res.redirect(
-          `https://gieffektivt.no/donasjon-mottatt?revenue=${order.amount}&kid=${order.KID}&method=vipps&recurring=false`,
+          `https://gieffektivt.no/donasjon-mottatt?revenue=${donation.sum}&kid=${order.KID}&method=vipps&recurring=false`,
         );
         return true;
       } else if (retries >= 20) {
@@ -884,11 +886,15 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
   try {
     let order = await DAO.vipps.getRecentOrder();
 
-    console.log(order);
+    if (!order) {
+      res.status(404).json({
+        status: 404,
+        content: "No recent order found",
+      });
+      return false;
+    }
 
     let approved = await vipps.approveOrder(order.orderID, req.params.linkToken);
-
-    console.log("Approved", approved);
 
     if (!approved) throw new Error("Could not approve recent order");
 
@@ -896,14 +902,16 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
     for (let i = 0; i < 5; i++) {
       console.log("Wait 1000");
       await delay(1000);
+      if (!order) {
+        continue;
+      }
       order = await DAO.vipps.getOrder(order.orderID);
       console.log(order);
-      if (order.donationID != null) {
+      if (order && order.donationID != null) {
         res.json({ status: 200, content: "Donation registered successfully" });
         return true;
       }
     }
-    console.log("Timeout");
     throw new Error("Timed out when attempting to verify integration");
   } catch (ex) {
     console.warn(ex);
