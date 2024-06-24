@@ -15,6 +15,7 @@ import fetch from "node-fetch";
 import config from "../config";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
 import paymentMethods from "../enums/paymentMethods";
+import { AutoGiro_agreements } from "@prisma/client";
 
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
@@ -267,7 +268,10 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
 
     const agreements = await DAO.autogiroagreements.getAgreementsToCharge();
 
-    let agreementsToClaim = [];
+    let agreementsToClaim: {
+      agreement: AutoGiro_agreements;
+      claimDate: DateTime;
+    }[] = [];
     for (let agreement of agreements) {
       if (agreement.payment_date === 0) {
         const lastDayOfMonth = today.endOf("month");
@@ -309,10 +313,13 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
       if (claimDate.diff(today, "days").days > 0) {
         // Find the number of banking days between today and the claim date
         const bankingDaysBetween = getSeBankingDaysBetweenDates(today, claimDate);
-        console.log("Banking days between: ", bankingDaysBetween);
         return bankingDaysBetween > 0;
       }
       return false;
+    });
+
+    agreementsToClaim = agreementsToClaim.filter((agreement) => {
+      !chargesToAmend.some((charge) => charge.agreementId === agreement.agreement.ID);
     });
 
     if (

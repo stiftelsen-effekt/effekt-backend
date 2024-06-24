@@ -435,7 +435,7 @@ export const autogiroagreements = {
       AND CH.ID IS NULL
       ORDER BY AG.payment_date ASC`);
 
-    return agreements;
+    return agreements.map(mapAgreementType);
   },
   addAgreementCharge: async function (
     charge: Omit<AutoGiro_agreement_charges, "ID" | "created" | "last_updated">,
