@@ -674,6 +674,7 @@ export const autogiroagreements = {
                 AND
                 NOT(DATE(CH.claim_date) = LAST_DAY(CH.claim_date) AND AG.payment_date = 0)
               )
+              OR (CH.status = "PENDING" AND AG.cancelled IS NOT NULL)
             )
             AND CH.status = "PENDING"
       `);
