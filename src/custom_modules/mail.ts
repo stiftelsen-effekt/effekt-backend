@@ -196,7 +196,7 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     variables: {
       donorName: donation.donor,
       donationKID: donation.KID,
-      donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
+      donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
       paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
       donationTotalSum: formatCurrency(donation.sum) + " kr",
     },
@@ -372,7 +372,7 @@ export async function sendEffektDonationReciept(donationID, reciever = null) {
           "Hei" + (donation.donor && donation.donor.length > 0 ? " " + donation.donor : "") + ",",
         donationSum: formatCurrency(donation.sum),
         organizations: organizations,
-        donationDate: moment(donation.timestamp).format("DD.MM YYYY"),
+        donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
         paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
         //Adds a message to donations with inactive organizations
         hasReplacedOrgs,
