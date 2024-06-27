@@ -74,15 +74,14 @@ export const autogiroagreements = {
     let where = [];
     if (filter) {
       if (filter.amount) {
-        if (filter.amount.from)
-          where.push(`amount >= ${sqlString.escape(filter.amount.from * 100)} `);
-        if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to * 100)} `);
+        if (filter.amount.from) where.push(`amount >= ${sqlString.escape(filter.amount.from)} `);
+        if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to)} `);
       }
-      if (filter.paymentDate) {
-        if (filter.paymentDate.from !== undefined)
-          where.push(`AG.payment_date >= ${sqlString.escape(filter.paymentDate.from)} `);
-        if (filter.paymentDate.to !== undefined)
-          where.push(`AG.payment_date <= ${sqlString.escape(filter.paymentDate.to)} `);
+      if (filter.payment_date) {
+        if (filter.payment_date.from !== undefined)
+          where.push(`AG.payment_date >= ${sqlString.escape(filter.payment_date.from)} `);
+        if (filter.payment_date.to !== undefined)
+          where.push(`AG.payment_date <= ${sqlString.escape(filter.payment_date.to)} `);
       }
       if (filter.created) {
         if (filter.created.from)
