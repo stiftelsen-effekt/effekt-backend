@@ -210,10 +210,7 @@ export const autogiroagreements = {
   getAgreementsByDonorId: async function (donorId: number) {
     const [agreements] = await DAO.query<AutoGiro_agreements[]>(
       `
-        SELECT * FROM AutoGiro_agreements as AG
-          INNER JOIN Distributions as D ON
-            AG.KID = D.KID 
-          WHERE Donor_ID = ?
+        SELECT * FROM AutoGiro_agreements WHERE Donor_ID = ?
       `,
       [donorId],
     );
