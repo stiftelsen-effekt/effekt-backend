@@ -283,10 +283,13 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
       }
 
       if (agreement.payment_date <= today.day) {
-        const skewedDate = today.plus({ days: 2 });
-        if (skewedDate.month !== today.month) {
-          console.error("Skewed date is in next month");
-          continue;
+        let skewedDate = DateTime.now().plus({ days: 1 });
+        while (getSeBankingDaysBetweenDates(today, skewedDate) < 1) {
+          if (skewedDate.month !== today.month) {
+            console.error("Skewed date is in next month");
+            break;
+          }
+          skewedDate = skewedDate.plus({ days: 1 });
         }
         agreementsToClaim.push({
           agreement,
@@ -309,7 +312,10 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
      * We need at least one banking day between the claim date and today
      */
     const chargesToAmend = amendmentCandidates.filter((candidate) => {
-      const claimDate = DateTime.fromJSDate(candidate.claimDate);
+      const claimDate =
+        candidate.agreementDay == 0
+          ? DateTime.now().endOf("month")
+          : DateTime.now().set({ day: candidate.agreementDay });
       if (claimDate.diff(today, "days").days > 0) {
         // Find the number of banking days between today and the claim date
         const bankingDaysBetween = getSeBankingDaysBetweenDates(today, claimDate);
@@ -319,7 +325,7 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
     });
 
     agreementsToClaim = agreementsToClaim.filter((agreement) => {
-      !chargesToAmend.some((charge) => charge.agreementId === agreement.agreement.ID);
+      return !chargesToAmend.some((charge) => charge.agreementId === agreement.agreement.ID);
     });
 
     if (
