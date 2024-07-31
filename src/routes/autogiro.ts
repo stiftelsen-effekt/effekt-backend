@@ -190,14 +190,28 @@ router.put(
         }
       }
 
-      if (agreementChanges.amount !== null && typeof agreementChanges.amount !== "number") {
+      if (
+        typeof agreementChanges.amount !== "undefined" &&
+        agreementChanges.amount !== null &&
+        typeof agreementChanges.amount !== "number"
+      ) {
         return res.status(400).json({
           status: 400,
           content: "Invalid amount",
         });
+      } else if (typeof agreementChanges.amount !== "number") {
+        if (agreementChanges.amount > 0) {
+          await DAO.autogiroagreements.setAgreementAmountByKID(
+            originalKID,
+            agreementChanges.amount,
+          );
+        }
       }
 
-      if (agreementChanges.paymentDate !== null) {
+      if (
+        typeof agreementChanges.paymentDate !== "undefined" &&
+        agreementChanges.paymentDate !== null
+      ) {
         if (typeof agreementChanges.paymentDate !== "number") {
           return res.status(400).json({
             status: 400,
@@ -211,16 +225,10 @@ router.put(
         }
       }
 
-      if (agreementChanges.amount !== null) {
-        if (agreementChanges.amount > 0) {
-          await DAO.autogiroagreements.setAgreementAmountByKID(
-            originalKID,
-            agreementChanges.amount,
-          );
-        }
-      }
-
-      if (agreementChanges.paymentDate !== null) {
+      if (
+        typeof agreementChanges.paymentDate !== "undefined" &&
+        agreementChanges.paymentDate !== null
+      ) {
         // Payment day 0 is last day of month
         await DAO.autogiroagreements.setAgreementPaymentDateByKID(
           originalKID,
