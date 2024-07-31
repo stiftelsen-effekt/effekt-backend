@@ -170,18 +170,19 @@ router.put(
     checkDonorOwnsDistribution(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
-    const agreementChanges = req.body as {
-      paymentDate: number | null;
-      amount: number | null;
-      distribution: DistributionInput | null;
+    const { KID } = req.params;
+    const { paymentDate, amount, distribution } = req.body as {
+      paymentDate?: number | null;
+      amount?: number | null;
+      distribution?: DistributionInput | null;
     };
 
     try {
-      const originalKID: string = req.params.KID;
-      let validatedDistribtion: DistributionInput | null = null;
-      if (agreementChanges.distribution !== null) {
+      // Validate distribution
+      let validatedDistribution: DistributionInput | null = null;
+      if (distribution !== null) {
         try {
-          validatedDistribtion = validateDistribution(agreementChanges.distribution);
+          validatedDistribution = validateDistribution(distribution);
         } catch (ex) {
           return res.status(400).json({
             status: 400,
@@ -190,61 +191,39 @@ router.put(
         }
       }
 
-      if (
-        typeof agreementChanges.amount !== "undefined" &&
-        agreementChanges.amount !== null &&
-        typeof agreementChanges.amount !== "number"
-      ) {
-        return res.status(400).json({
-          status: 400,
-          content: "Invalid amount",
-        });
-      } else if (typeof agreementChanges.amount !== "number") {
-        if (agreementChanges.amount > 0) {
-          await DAO.autogiroagreements.setAgreementAmountByKID(
-            originalKID,
-            agreementChanges.amount,
-          );
-        }
-      }
-
-      if (
-        typeof agreementChanges.paymentDate !== "undefined" &&
-        agreementChanges.paymentDate !== null
-      ) {
-        if (typeof agreementChanges.paymentDate !== "number") {
+      // Validate and update amount
+      if (amount !== null && amount !== undefined) {
+        if (typeof amount !== "number" || amount <= 0) {
           return res.status(400).json({
             status: 400,
-            content: "Invalid payment date",
-          });
-        } else if (agreementChanges.paymentDate < 0 || agreementChanges.paymentDate > 28) {
-          return res.status(400).json({
-            status: 400,
-            content: "Invalid payment date (must be between 0 and 28)",
+            content: "Invalid amount: must be a positive number",
           });
         }
+        await DAO.autogiroagreements.setAgreementAmountByKID(KID, amount);
       }
 
-      if (
-        typeof agreementChanges.paymentDate !== "undefined" &&
-        agreementChanges.paymentDate !== null
-      ) {
-        // Payment day 0 is last day of month
-        await DAO.autogiroagreements.setAgreementPaymentDateByKID(
-          originalKID,
-          agreementChanges.paymentDate,
-        );
+      // Validate and update payment date
+      if (paymentDate !== null && paymentDate !== undefined) {
+        if (!Number.isInteger(paymentDate) || paymentDate < 0 || paymentDate > 28) {
+          return res.status(400).json({
+            status: 400,
+            content: "Invalid payment date: must be an integer between 0 and 28",
+          });
+        }
+        await DAO.autogiroagreements.setAgreementPaymentDateByKID(KID, paymentDate);
       }
 
-      if (validatedDistribtion) {
-        const originalDistribution = await DAO.distributions.getSplitByKID(originalKID);
+      // Update distribution
+      if (validatedDistribution) {
+        const originalDistribution = await DAO.distributions.getSplitByKID(KID);
         const newKid = await donationHelpers.createKID();
         await DAO.autogiroagreements.replaceAgreementDistribution(
           originalDistribution,
           newKid,
-          validatedDistribtion,
+          validatedDistribution,
         );
       }
+
       res.json({
         status: 200,
         content: "OK",
