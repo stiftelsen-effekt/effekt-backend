@@ -29,6 +29,8 @@ model Organizations {
   short_desc           String? @db.VarChar(255)
   long_desc            String  @db.VarChar(45)
   info_url             String? @db.VarChar(156)
+  widget_display_name  String? @db.VarChar(45)
+  widget_context       String? @db.Text
   std_percentage_share Int?    @default(0) @db.TinyInt /// The percentage share of the standard distribution, determined by Effekt. Updated about twice a year
   is_active            Int?    @db.TinyInt
   ordering             Int?    @db.TinyInt

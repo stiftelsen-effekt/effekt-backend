@@ -16,6 +16,12 @@ components:
         name:
           type: string
           description: The organization name
+        widgetDisplayName:
+          type: string
+          description: The organization widget display name
+        widgetContext:
+          type: string
+          description: The organization widget context
         abbreviation:
           type: string
           description: The organization abbreviation

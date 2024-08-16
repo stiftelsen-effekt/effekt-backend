@@ -97,6 +97,8 @@ export const causeareas = {
           Cause_areas.ordering as CA_ordering,
           Cause_areas.std_percentage_share as CA_std_percentage_share,
           Organizations.ID AS O_ID,
+          Organizations.widget_display_name AS O_widget_display_name,
+          Organizations.widget_context AS O_widget_context,
           Organizations.full_name AS O_full_name,
           Organizations.abbriv AS O_abbriv,
           Organizations.short_desc AS O_short_desc,
@@ -129,6 +131,8 @@ export const causeareas = {
       const organization = mapOrganization({
         ID: row.O_ID,
         full_name: row.O_full_name,
+        widget_display_name: row.O_widget_display_name,
+        widget_context: row.O_widget_context,
         abbriv: row.O_abbriv,
         short_desc: row.O_short_desc,
         long_desc: row.O_long_desc,

@@ -31,6 +31,10 @@ export interface components {
       standardShare?: number;
       /** @description The organization name */
       name: string;
+      /** @description The organization widget display name */
+      widgetDisplayName?: string;
+      /** @description The organization widget context */
+      widgetContext?: string;
       /** @description The organization abbreviation */
       abbreviation?: string;
       /** @description The organization short description */
@@ -51,6 +55,8 @@ export interface components {
   headers: never;
   pathItems: never;
 }
+
+export type $defs = Record<string, never>;
 
 export type external = Record<string, never>;
 

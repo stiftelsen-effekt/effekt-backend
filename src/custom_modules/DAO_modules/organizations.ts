@@ -78,6 +78,8 @@ export const mapOrganization = (org: SqlResult<Organizations>): Organization => 
   return {
     id: org.ID,
     name: org.full_name,
+    widgetDisplayName: org.widget_display_name,
+    widgetContext: org.widget_context,
     abbreviation: org.abbriv,
     shortDescription: org.short_desc,
     longDescription: org.long_desc,
