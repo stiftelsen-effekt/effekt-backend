@@ -307,7 +307,7 @@
     "short_desc": "Other",
     "long_desc": "Other",
     "info_url": "https://gieffektivt.no/organisasjoner",
-    "std_percentage_share": 0,
+    "std_percentage_share": 100,
     "is_active": 1,
     "ordering": 0,
     "cause_area_ID": 4
