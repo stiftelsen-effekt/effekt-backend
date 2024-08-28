@@ -471,6 +471,14 @@ export async function processAutogiroInputFile(fileContents: string) {
       }
     }
 
+    await DAO.logging.add("Autogiro - mandates BAM", {
+      confirmed,
+      invalid,
+      rejected,
+      cancelled,
+      file: fileContents,
+    });
+
     return {
       openingRecord: parsedFile.openingRecord,
       results: {
