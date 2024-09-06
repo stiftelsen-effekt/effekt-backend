@@ -71,6 +71,35 @@ export const getTaxUnitsWithDeductions: (input: {
   return result;
 };
 
+export const norwegianTaxDeductionLimits: {
+  [year: number]: { minimumThreshold: number; maximumDeductionLimit: number };
+} = {
+  2019: {
+    minimumThreshold: 500,
+    maximumDeductionLimit: 50000,
+  },
+  2020: {
+    minimumThreshold: 500,
+    maximumDeductionLimit: 50000,
+  },
+  2021: {
+    minimumThreshold: 500,
+    maximumDeductionLimit: 50000,
+  },
+  2022: {
+    minimumThreshold: 500,
+    maximumDeductionLimit: 25000,
+  },
+  2023: {
+    minimumThreshold: 500,
+    maximumDeductionLimit: 25000,
+  },
+  2024: {
+    minimumThreshold: 500,
+    maximumDeductionLimit: 25000,
+  },
+};
+
 /**
  * Each year might have a different minimum threshold and maximum deduction limit for NO tax units.
  * Donations are provided as a filtered list of donations for a specific tax unit and year.
@@ -97,48 +126,48 @@ export const getYearlyMapping = (locale: RequestLocale): TaxDeductionYearlyMappi
         2019: (donations) =>
           getNorwegianDeductionByYearlySum({
             year: 2019,
-            minimumThreshold: 500,
-            maximumDeductionLimit: 50000,
+            minimumThreshold: norwegianTaxDeductionLimits[2019].minimumThreshold,
+            maximumDeductionLimit: norwegianTaxDeductionLimits[2019].maximumDeductionLimit,
             baseTaxRate: 0.22,
             sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
           }),
         2020: (donations) =>
           getNorwegianDeductionByYearlySum({
             year: 2020,
-            minimumThreshold: 500,
-            maximumDeductionLimit: 50000,
+            minimumThreshold: norwegianTaxDeductionLimits[2020].minimumThreshold,
+            maximumDeductionLimit: norwegianTaxDeductionLimits[2020].maximumDeductionLimit,
             baseTaxRate: 0.22,
             sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
           }),
         2021: (donations) =>
           getNorwegianDeductionByYearlySum({
             year: 2021,
-            minimumThreshold: 500,
-            maximumDeductionLimit: 50000,
+            minimumThreshold: norwegianTaxDeductionLimits[2021].minimumThreshold,
+            maximumDeductionLimit: norwegianTaxDeductionLimits[2021].maximumDeductionLimit,
             baseTaxRate: 0.22,
             sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
           }),
         2022: (donations) =>
           getNorwegianDeductionByYearlySum({
             year: 2022,
-            minimumThreshold: 500,
-            maximumDeductionLimit: 25000,
+            minimumThreshold: norwegianTaxDeductionLimits[2022].minimumThreshold,
+            maximumDeductionLimit: norwegianTaxDeductionLimits[2022].maximumDeductionLimit,
             baseTaxRate: 0.22,
             sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
           }),
         2023: (donations) =>
           getNorwegianDeductionByYearlySum({
             year: 2023,
-            minimumThreshold: 500,
-            maximumDeductionLimit: 25000,
+            minimumThreshold: norwegianTaxDeductionLimits[2023].minimumThreshold,
+            maximumDeductionLimit: norwegianTaxDeductionLimits[2023].maximumDeductionLimit,
             baseTaxRate: 0.22,
             sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
           }),
         2024: (donations) =>
           getNorwegianDeductionByYearlySum({
             year: 2024,
-            minimumThreshold: 500,
-            maximumDeductionLimit: 25000,
+            minimumThreshold: norwegianTaxDeductionLimits[2024].minimumThreshold,
+            maximumDeductionLimit: norwegianTaxDeductionLimits[2024].maximumDeductionLimit,
             baseTaxRate: 0.22,
             sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
           }),

@@ -13,6 +13,8 @@ import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
 import { APIResponse } from "mailersend/lib/services/request.service";
 import { DistributionCauseAreaOrganization, Donor } from "../schemas/types";
 import { getImpactEstimatesForDonation } from "./impact";
+import { norwegianTaxDeductionLimits } from "./taxdeductions";
+import { RequestLocale } from "../middleware/locale";
 
 /**
  * @typedef VippsAgreement
@@ -171,6 +173,63 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     console.warn("Failed to get impact estimates for donation");
   }
 
+  let taxInformation: null | {
+    taxDeductionBarWidth: string;
+    taxDeductionBarRemainingWidth: string;
+    taxDeductionLabel: string;
+  } = null;
+  if (distribution.taxUnitId) {
+    const donationYear = new Date(donation.timestamp).getFullYear();
+    const taxUnits = await DAO.tax.getByDonorId(distribution.donorId, RequestLocale.NO);
+    const taxUnit = taxUnits.find((tu) => tu.id === distribution.taxUnitId);
+    const limits = norwegianTaxDeductionLimits[donationYear];
+
+    if (taxUnit && taxUnit.taxDeductions && limits) {
+      const taxUnitYear = taxUnit.taxDeductions.find((td) => td.year === donationYear);
+
+      if (taxUnitYear) {
+        const taxDeduction = taxUnitYear.deduction;
+        const donationsInYear = taxUnitYear.sumDonations;
+
+        if (taxDeduction >= limits.minimumThreshold) {
+          const taxDeductionBarWidth = `${Math.min(
+            100,
+            (taxDeduction / limits.maximumDeductionLimit) * 100,
+          )}%`;
+          const taxDeductionBarRemainingWidth = `${Math.min(
+            100,
+            ((limits.maximumDeductionLimit - taxDeduction) / limits.maximumDeductionLimit) * 100,
+          )}%`;
+          const taxDeductionLabel = `${formatCurrency(taxDeduction)} kr av ${formatCurrency(
+            limits.maximumDeductionLimit,
+          )} kr`;
+          taxInformation = {
+            taxDeductionBarWidth,
+            taxDeductionBarRemainingWidth,
+            taxDeductionLabel,
+          };
+        } else if (donationsInYear > 0) {
+          const taxDeductionBarWidth = `${Math.min(
+            100,
+            (donationsInYear / limits.minimumThreshold) * 100,
+          )}%`;
+          const taxDeductionBarRemainingWidth = `${Math.min(
+            100,
+            ((limits.minimumThreshold - donationsInYear) / limits.minimumThreshold) * 100,
+          )}%`;
+          const taxDeductionLabel = `${formatCurrency(donationsInYear)} kr av ${formatCurrency(
+            limits.minimumThreshold,
+          )} kr minstegrense`;
+          taxInformation = {
+            taxDeductionBarWidth,
+            taxDeductionBarRemainingWidth,
+            taxDeductionLabel,
+          };
+        }
+      }
+    }
+  }
+
   const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
     (acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
@@ -205,6 +264,7 @@ export async function sendDonationReceipt(donationID, reciever = null) {
       outputs: impactEstimates.map(
         (estimate) => `${estimate.roundedNumberOfOutputs} ${estimate.output}`,
       ),
+      ...taxInformation,
     },
   });
 
