@@ -1,6 +1,6 @@
 import { Payment_follow_up, Payment_intent } from "@prisma/client";
-import { DAO } from "../DAO";
-import { KID } from "../KID";
+import { DAO, SqlResult } from "../DAO";
+import Decimal from "decimal.js";
 
 //region Get
 /**
@@ -16,7 +16,7 @@ async function getPaymentIntent(paymentIntentId) {
     [paymentIntentId],
   );
 
-  return paymentIntent[0];
+  return mapPaymentIntent(paymentIntent[0]);
 }
 
 /**
@@ -31,7 +31,7 @@ async function getPaymentIntentsFromLastMonth() {
     `,
   );
 
-  return paymentIntents;
+  return paymentIntents.map(mapPaymentIntent);
 }
 
 /**
@@ -49,7 +49,7 @@ async function getFollowUpsForPaymentIntent(paymentIntentId) {
     [paymentIntentId],
   );
 
-  return followUps;
+  return followUps.map(mapPaymentFollowUp);
 }
 
 /**
@@ -116,6 +116,24 @@ async function addPaymentFollowUp(paymentIntentId, followUpDate) {
 
 //region Delete
 //endregion
+
+const mapPaymentIntent = (paymentIntent: SqlResult<Payment_intent>): Payment_intent => {
+  return {
+    Id: paymentIntent.Id,
+    Payment_amount: new Decimal(paymentIntent.Payment_amount),
+    Payment_method: paymentIntent.Payment_method,
+    KID_fordeling: paymentIntent.KID_fordeling,
+    timestamp: new Date(paymentIntent.timestamp),
+  };
+};
+
+const mapPaymentFollowUp = (paymentFollowUp: SqlResult<Payment_follow_up>): Payment_follow_up => {
+  return {
+    Id: paymentFollowUp.Id,
+    Payment_intent_id: paymentFollowUp.Payment_intent_id,
+    Follow_up_date: new Date(paymentFollowUp.Follow_up_date),
+  };
+};
 
 export const initialpaymentmethod = {
   getPaymentIntent,

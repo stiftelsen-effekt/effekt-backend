@@ -8,6 +8,7 @@ import request from "supertest";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
 import paymentMethods from "../enums/paymentMethods";
 import exp from "constants";
+import Decimal from "decimal.js";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 const mail = require("../custom_modules/mail");
@@ -216,14 +217,14 @@ describe("POST /initiate-follow-ups", function () {
       {
         Id: 1,
         Payment_method: paymentMethods.bank,
-        Payment_amount: 15000,
+        Payment_amount: new Decimal(15000),
         KID_fordeling: "001",
         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       },
       {
         Id: 2,
         Payment_method: paymentMethods.bank,
-        Payment_amount: 20000,
+        Payment_amount: new Decimal(20000),
         KID_fordeling: "002",
         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       },
@@ -246,7 +247,7 @@ describe("POST /initiate-follow-ups", function () {
       {
         Id: 1,
         Payment_method: paymentMethods.bank,
-        Payment_amount: 15000,
+        Payment_amount: new Decimal(15000),
         KID_fordeling: "001",
         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       },
@@ -269,7 +270,7 @@ describe("POST /initiate-follow-ups", function () {
       {
         Id: 1,
         Payment_method: paymentMethods.bank,
-        Payment_amount: 15000,
+        Payment_amount: new Decimal(15000),
         KID_fordeling: "001",
         timestamp: new Date(),
       },
@@ -291,7 +292,7 @@ describe("POST /initiate-follow-ups", function () {
       {
         Id: 1,
         Payment_method: paymentMethods.bank,
-        Payment_amount: 15000,
+        Payment_amount: new Decimal(15000),
         KID_fordeling: "001",
         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       },
@@ -307,5 +308,108 @@ describe("POST /initiate-follow-ups", function () {
     expect(response.body.message).to.equal("Follow-up process initiated successfully.");
     expect(addPaymentFollowUpStub.called).to.be.false;
     expect(sendDonationFollowUpStub.called).to.be.false;
+  });
+
+  it("should initiate only one follow-up for multiple intents with the same KID within 30 days", async function () {
+    // Mock data with two payment intents for the same KID
+    const paymentIntents = [
+      {
+        Id: 1,
+        Payment_method: paymentMethods.bank,
+        Payment_amount: new Decimal(15000),
+        KID_fordeling: "001",
+        timestamp: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), // 25 days ago
+      },
+      {
+        Id: 2,
+        Payment_method: paymentMethods.bank,
+        Payment_amount: new Decimal(20000),
+        KID_fordeling: "001", // Same KID as the first intent
+        timestamp: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
+      },
+      {
+        Id: 3,
+        Payment_method: paymentMethods.bank,
+        Payment_amount: new Decimal(10000),
+        KID_fordeling: "002", // Different KID
+        timestamp: new Date(Date.now() - 22 * 24 * 60 * 60 * 1000), // 22 days ago
+      },
+    ];
+
+    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
+    getFollowUpsForPaymentIntentStub.resolves([]);
+    checkIfDonationReceivedStub.resolves(false);
+    sendDonationFollowUpStub.resolves(true);
+
+    const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
+
+    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
+
+    // Check that only two follow-ups were initiated (one for KID "001" and one for KID "002")
+    expect(sendDonationFollowUpStub.callCount).to.equal(2);
+    expect(addPaymentFollowUpStub.callCount).to.equal(2);
+
+    // Verify that the follow-up was sent for the most recent intent with KID "001"
+    const followUpCalls = sendDonationFollowUpStub.getCalls();
+    const followUpForKID001 = followUpCalls.find((call) => call.args[0] === "001");
+    expect(followUpForKID001).to.exist;
+    expect(followUpForKID001.args[1]).to.equal(20000); // Amount of the most recent intent
+
+    // Verify that a follow-up was also sent for KID "002"
+    const followUpForKID002 = followUpCalls.find((call) => call.args[0] === "002");
+    expect(followUpForKID002).to.exist;
+    expect(followUpForKID002.args[1]).to.equal(10000);
+  });
+
+  it("should not send follow-ups for older intents of a KID after sending one for the most recent", async function () {
+    // Mock data with two payment intents for the same KID
+    const initialPaymentIntents = [
+      {
+        Id: 1,
+        Payment_method: paymentMethods.bank,
+        Payment_amount: new Decimal(15000),
+        KID_fordeling: "001",
+        timestamp: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), // 25 days ago
+      },
+      {
+        Id: 2,
+        Payment_method: paymentMethods.bank,
+        Payment_amount: new Decimal(20000),
+        KID_fordeling: "001", // Same KID as the first intent
+        timestamp: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
+      },
+    ];
+
+    // Set up initial conditions
+    getPaymentIntentsFromLastMonthStub.resolves(initialPaymentIntents);
+    getFollowUpsForPaymentIntentStub.resolves([]);
+    checkIfDonationReceivedStub.resolves(false);
+    sendDonationFollowUpStub.resolves(true);
+
+    // First run of the follow-up process
+    await request(server).post("/scheduled/initiate-follow-ups").expect(200);
+
+    // Verify that only one follow-up was sent (for the most recent intent)
+    expect(sendDonationFollowUpStub.callCount).to.equal(1);
+    expect(addPaymentFollowUpStub.callCount).to.equal(1);
+    expect(sendDonationFollowUpStub.firstCall.args[1]).to.equal(20000); // Amount of the most recent intent
+
+    // Reset call counts
+    sendDonationFollowUpStub.resetHistory();
+    addPaymentFollowUpStub.resetHistory();
+
+    // Set up conditions for the second run
+
+    // The newer intent now has a follow-up recorded
+    getFollowUpsForPaymentIntentStub.withArgs(2).resolves([{ Follow_up_date: new Date() }]);
+
+    // Second run of the follow-up process
+    const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
+
+    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
+
+    // Check that no new follow-ups were sent
+    expect(sendDonationFollowUpStub.callCount).to.equal(0);
+    expect(addPaymentFollowUpStub.callCount).to.equal(0);
   });
 });

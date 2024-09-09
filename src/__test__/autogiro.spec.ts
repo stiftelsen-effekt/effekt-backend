@@ -147,10 +147,10 @@ describe("Autogiro file writer", () => {
     );
   });
 
-  describe.only("Banking days between two dates", () => {
+  describe("Banking days between two dates", () => {
     it("Should return 0 between two consecutive dates", () => {
       const start = DateTime.fromObject({ year: 2024, month: 6, day: 11 });
-      const end = DateTime.fromObject({ year: 2016, month: 6, day: 12 });
+      const end = DateTime.fromObject({ year: 2024, month: 6, day: 12 });
 
       const days = getSeBankingDaysBetweenDates(start, end);
 

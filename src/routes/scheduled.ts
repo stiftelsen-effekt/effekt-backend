@@ -15,7 +15,7 @@ import fetch from "node-fetch";
 import config from "../config";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
 import paymentMethods from "../enums/paymentMethods";
-import { AutoGiro_agreements } from "@prisma/client";
+import { AutoGiro_agreements, Payment_follow_up, Payment_intent } from "@prisma/client";
 
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
@@ -594,69 +594,103 @@ const conditionalFollowUpConfig: ConditionalFollowUpConfig[] = [
 /**
  * Route to initiate follow-up on incomplete donations.
  */
+function groupPaymentIntentsByKID(
+  paymentIntents: Payment_intent[],
+): Record<string, Payment_intent[]> {
+  return paymentIntents.reduce((acc, intent) => {
+    if (!acc[intent.KID_fordeling]) {
+      acc[intent.KID_fordeling] = [];
+    }
+    acc[intent.KID_fordeling].push(intent);
+    return acc;
+  }, {} as Record<string, Payment_intent[]>);
+}
+
+function getMostRecentIntent(intents: Payment_intent[]): Payment_intent {
+  return intents.reduce((latest, current) =>
+    current.timestamp > latest.timestamp ? current : latest,
+  );
+}
+
+function getFollowUpConfig(paymentMethod: number, paymentAmount: number) {
+  let config = { ...defaultFollowUpConfig };
+  for (const conditionalConfig of conditionalFollowUpConfig) {
+    if (
+      conditionalConfig.paymentMethod === paymentMethod &&
+      paymentAmount >= conditionalConfig.amountRange.min &&
+      paymentAmount <= conditionalConfig.amountRange.max
+    ) {
+      config = { ...conditionalConfig };
+      break;
+    }
+  }
+  return config;
+}
+
+function hasEnoughTimePassed(timestamp: Date, daysToWait: number): boolean {
+  const timePassed = new Date().getTime() - timestamp.getTime();
+  return timePassed >= daysToWait * 24 * 60 * 60 * 1000;
+}
+
+async function shouldSendFollowUp(
+  intent: Payment_intent,
+  followUps: Payment_follow_up[],
+  config: { maxFollowUps: number; daysBeforeFollowUp: number },
+): Promise<boolean> {
+  if (followUps.length >= config.maxFollowUps) return false;
+
+  if (!hasEnoughTimePassed(intent.timestamp, config.daysBeforeFollowUp)) return false;
+
+  if (followUps.length > 0) {
+    const lastFollowUp = followUps.sort(
+      (a, b) => b.Follow_up_date.getTime() - a.Follow_up_date.getTime(),
+    )[0];
+    if (!hasEnoughTimePassed(lastFollowUp.Follow_up_date, config.daysBeforeFollowUp)) return false;
+  }
+
+  const paymentReceived = await initialpaymentmethod.checkIfDonationReceived(intent.Id);
+  return !paymentReceived;
+}
+
+async function processPaymentIntent(intent: Payment_intent): Promise<Payment_intent | null> {
+  const paymentAmount = intent.Payment_amount.toNumber();
+  const config = getFollowUpConfig(intent.Payment_method, paymentAmount);
+
+  const followUps = await initialpaymentmethod.getFollowUpsForPaymentIntent(intent.Id);
+
+  if (await shouldSendFollowUp(intent, followUps, config)) {
+    console.log(
+      `Initiating follow-up for payment intent ${intent.Id} (KID: ${intent.KID_fordeling}).`,
+    );
+
+    const emailSent = await sendPaymentIntentFollowUp(
+      intent.KID_fordeling,
+      intent.Payment_amount.toNumber(),
+    );
+
+    if (emailSent) {
+      await initialpaymentmethod.addPaymentFollowUp(intent.Id, new Date());
+      return intent;
+    }
+  }
+
+  return null;
+}
+
+// Main route handler
 router.post("/initiate-follow-ups", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const paymentIntents = await initialpaymentmethod.getPaymentIntentsFromLastMonth();
+    const groupedIntents = groupPaymentIntentsByKID(paymentIntents);
 
-    const followUpSent = [];
-    for (const paymentIntent of paymentIntents) {
-      const paymentMethod: number = paymentIntent.Payment_method;
-      const paymentAmount: number = parseFloat(paymentIntent.Payment_amount);
+    const followUpPromises = Object.values(groupedIntents).map((intents) =>
+      processPaymentIntent(getMostRecentIntent(intents)),
+    );
 
-      let maxFollowUps = defaultFollowUpConfig.maxFollowUps;
-      let daysBeforeFollowUp = defaultFollowUpConfig.daysBeforeFollowUp;
-
-      // Override the default follow-up config if a conditional follow-up config matches the payment intent
-      for (const config of conditionalFollowUpConfig) {
-        if (
-          config.paymentMethod === paymentMethod &&
-          paymentAmount >= config.amountRange.min &&
-          paymentAmount <= config.amountRange.max
-        ) {
-          maxFollowUps = config.maxFollowUps;
-          daysBeforeFollowUp = config.daysBeforeFollowUp;
-          break;
-        }
-      }
-
-      // Check if enough time has passed since the payment intent was created
-      const timeSincePaymentIntent = new Date().getTime() - paymentIntent.timestamp.getTime();
-      if (timeSincePaymentIntent < daysBeforeFollowUp * 24 * 60 * 60 * 1000) continue;
-
-      const followUps = await initialpaymentmethod.getFollowUpsForPaymentIntent(paymentIntent.Id);
-
-      // Check if the maximum number of follow-ups has been reached
-      if (followUps.length >= maxFollowUps) continue;
-
-      // Check if a previous follow-up has been sent and if enough time has passed since the last follow-up
-      if (followUps.length > 0) {
-        const sortedByDate = followUps.sort(
-          (a, b) => a.Follow_up_date.getTime() - b.Follow_up_date.getTime(),
-        );
-        const lastFollowUp = sortedByDate[followUps.length - 1];
-        const timeSinceLastFollowUp = new Date().getTime() - lastFollowUp.Follow_up_date.getTime();
-        if (timeSinceLastFollowUp < daysBeforeFollowUp * 24 * 60 * 60 * 1000) continue;
-      }
-
-      // Check if a payment has been received for the payment intent
-      const paymentReceived: boolean = await initialpaymentmethod.checkIfDonationReceived(
-        paymentIntent.Id,
-      );
-
-      if (paymentReceived) continue;
-
-      console.log(`Initiating follow-up for payment intent ${paymentIntent.Id}.`);
-
-      const emailSent = await sendPaymentIntentFollowUp(
-        paymentIntent.KID_fordeling,
-        paymentIntent.Payment_amount,
-      );
-
-      if (emailSent === true) {
-        await initialpaymentmethod.addPaymentFollowUp(paymentIntent.Id, new Date());
-        followUpSent.push(paymentIntent);
-      }
-    }
+    const followUpResults = await Promise.all(followUpPromises);
+    const followUpSent = followUpResults.filter(
+      (result): result is Payment_intent => result !== null,
+    );
 
     res.json({
       message: "Follow-up process initiated successfully.",

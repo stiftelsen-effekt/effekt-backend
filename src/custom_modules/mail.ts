@@ -541,7 +541,10 @@ export async function sendDonationRegistered(KID, sum) {
 /**
  * @param {string} KID
  */
-export async function sendPaymentIntentFollowUp(KID, sum): Promise<boolean | number> {
+export async function sendPaymentIntentFollowUp(
+  KID: string,
+  sum: number,
+): Promise<boolean | number> {
   try {
     try {
       var donor = await DAO.donors.getByKID(KID);
@@ -581,10 +584,9 @@ export async function sendPaymentIntentFollowUp(KID, sum): Promise<boolean | num
 
     const organizations = formatOrganizationsFromSplit(split, sum);
 
-    var KIDstring = KID.toString();
-
     const response = await sendTemplate({
-      to: "hakon.harnes@effektivaltruisme.no", //donor.email,
+      to: donor.email,
+      bcc: "hakon.harnes@effektivaltruisme.no",
       templateId: config.mailersend_payment_intent_followup_template_id,
       variables: {
         donationKID: KID,
@@ -1235,6 +1237,7 @@ async function send(options: {
  */
 type SendTemplateParameters = {
   to: string;
+  bcc?: string;
   templateId: string;
   variables: { [key: string]: string };
   personalization: any;
@@ -1264,6 +1267,10 @@ async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse
         data: params.personalization,
       },
     ]);
+
+  if (params.bcc) {
+    email.setBcc([new Recipient(params.bcc)]);
+  }
 
   try {
     const response = await mailersend.email.send(email);
