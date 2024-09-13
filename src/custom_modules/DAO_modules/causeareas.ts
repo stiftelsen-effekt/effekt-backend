@@ -127,6 +127,8 @@ export const causeareas = {
         info_url: row.CA_info_url,
         ordering: row.CA_ordering,
         std_percentage_share: row.CA_std_percentage_share,
+        widget_context: row.CA_widget_context,
+        widget_display_name: row.CA_widget_display_name,
       });
       const organization = mapOrganization({
         ID: row.O_ID,

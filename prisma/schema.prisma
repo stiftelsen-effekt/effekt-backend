@@ -16,6 +16,8 @@ model Cause_areas {
   is_active            Int?    @db.TinyInt
   ordering             Int?    @db.TinyInt
   std_percentage_share Int?    @default(0) @db.TinyInt /// The percentage share of the standard distribution, determined by Effekt. Updated about twice a year
+  widget_display_name  String? @db.VarChar(45)
+  widget_context       String? @db.Text
 
   Distribution_cause_areas Distribution_cause_areas[]
   Organizations            Organizations[]
