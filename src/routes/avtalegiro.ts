@@ -306,8 +306,10 @@ router.post(
   async (req, res, next) => {
     try {
       if (!req.body) return res.sendStatus(400);
+      if (!req.body.distribution)
+        return res.status(400).json({ status: 400, content: "Missing distribution object" });
       const originalKID: string = req.params.KID;
-      const distributionInput = req.body as DistributionInput;
+      const distributionInput = req.body.distribution as DistributionInput;
 
       let validatedDistribtion: DistributionInput | null = null;
       try {
