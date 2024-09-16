@@ -106,6 +106,8 @@ export interface components {
       id: number;
       /** @description The organization name */
       name?: string;
+      /** @description The organization widget display name */
+      widgetDisplayName?: string;
       /** @description The percentage share for the given organizations in decimal form */
       percentageShare: string;
     };

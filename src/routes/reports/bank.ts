@@ -1,6 +1,6 @@
 import { DAO } from "../../custom_modules/DAO";
 import { isAdmin } from "../../custom_modules/authorization/authMiddleware";
-import { sendEffektDonationReciept, sendDonationReceipt } from "../../custom_modules/mail";
+import { sendDonationReceipt } from "../../custom_modules/mail";
 import { parseReport } from "../../custom_modules/parsers/bank";
 import { Router } from "express";
 import { RecordType, parseTotalInFile } from "../../custom_modules/parsers/sebank";
@@ -67,12 +67,7 @@ bankReportRouter.post("/no", isAdmin, async (req, res, next) => {
 
       try {
         if (config.env === "production") {
-          if (metaOwnerID === 1) {
-            //Send special reciept if the donation is for the old effekt system
-            await sendEffektDonationReciept(donationID);
-          } else {
-            await sendDonationReceipt(donationID);
-          }
+          await sendDonationReceipt(donationID);
         }
       } catch (ex) {
         console.error("Failed to send donation reciept");

@@ -12,7 +12,11 @@ import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
 import { APIResponse } from "mailersend/lib/services/request.service";
 import { DistributionCauseAreaOrganization, Donor } from "../schemas/types";
-import { getImpactEstimatesForDonation } from "./impact";
+import {
+  getImpactEstimatesForDonation,
+  getImpactEstimatesForDonationByOrg,
+  OrganizationImpactEstimate,
+} from "./impact";
 import { norwegianTaxDeductionLimits } from "./taxdeductions";
 import { RequestLocale } from "../middleware/locale";
 
@@ -163,7 +167,7 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     return false;
   }
 
-  const impactEstimates = await getImpactEstimatesForDonation(
+  const impactEstimates = await getImpactEstimatesForDonationByOrg(
     new Date(donation.timestamp),
     parseFloat(donation.sum),
     distribution,
@@ -233,9 +237,11 @@ export async function sendDonationReceipt(donationID, reciever = null) {
   const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
     (acc, causeArea) => {
       causeArea.organizations.forEach((org) => {
+        const name = org.widgetDisplayName || org.name || "Unknown";
+
         acc.push({
           id: org.id,
-          name: org.name,
+          name: org.id === 12 ? `${name} ⓘ` : name,
           percentageShare: getOrganizationOverallPercentage(
             org.percentageShare,
             causeArea.percentageShare,
@@ -247,7 +253,13 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     [],
   );
 
-  const organizations = formatOrganizationsFromSplit(split, donation.sum);
+  let hasGiveWellTopCharitiesFund = distribution.causeAreas
+    .flatMap((causeArea) => causeArea.organizations.map((org) => org.id))
+    .includes(12);
+
+  const organizations = formatOrganizationsFromSplit(split, donation.sum, impactEstimates);
+
+  console.log(organizations, impactEstimates);
 
   const mailResult = await sendTemplate({
     to: reciever || donation.email,
@@ -261,10 +273,8 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     },
     personalization: {
       organizations,
-      outputs: impactEstimates.map(
-        (estimate) => `${estimate.roundedNumberOfOutputs} ${estimate.output}`,
-      ),
       ...taxInformation,
+      hasGiveWellTopCharitiesFund,
     },
   });
 
@@ -365,90 +375,6 @@ export async function sendAutoGiroRegistered(agreementKid, reciever = null) {
   }
 }
 
-/**
- * Sends a donation reciept with notice of old system
- * @param {number} donationID
- * @param {string} reciever Reciever email
- */
-export async function sendEffektDonationReciept(donationID, reciever = null) {
-  try {
-    var donation = await DAO.donations.getByID(donationID);
-    if (!donation.email) {
-      console.error("No email provided for donation ID " + donationID);
-      return false;
-    }
-  } catch (ex) {
-    console.error("Failed to send mail donation reciept, could not get donation by ID");
-    console.error(ex);
-    return false;
-  }
-
-  try {
-    var distribution = await DAO.distributions.getSplitByKID(donation.KID);
-  } catch (ex) {
-    console.error("Failed to send mail donation reciept, could not get donation split by KID");
-    console.error(ex);
-    return false;
-  }
-
-  const hasSciInDistribution =
-    distribution.causeAreas
-      .find((causeArea) => causeArea.id === 1)
-      ?.organizations.some((org) => org.id === 2) ?? false;
-
-  try {
-    var hasReplacedOrgs = await DAO.donations.getHasReplacedOrgs(donationID);
-  } catch (ex) {
-    console.log(ex);
-    return false;
-  }
-
-  const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
-    (acc, causeArea) => {
-      causeArea.organizations.forEach((org) => {
-        acc.push({
-          id: org.id,
-          name: org.name,
-          percentageShare: getOrganizationOverallPercentage(
-            org.percentageShare,
-            causeArea.percentageShare,
-          ).toString(),
-        });
-      });
-      return acc;
-    },
-    [],
-  );
-
-  const organizations = formatOrganizationsFromSplit(split, donation.sum);
-
-  try {
-    await send({
-      reciever: reciever ? reciever : donation.email,
-      subject: "Gi Effektivt - Din donasjon er mottatt",
-      templateName: "recieptEffekt",
-      templateData: {
-        header:
-          "Hei" + (donation.donor && donation.donor.length > 0 ? " " + donation.donor : "") + ",",
-        donationSum: formatCurrency(donation.sum),
-        organizations: organizations,
-        donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
-        paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
-        //Adds a message to donations with inactive organizations
-        hasReplacedOrgs,
-        hasSciInDistribution,
-        reusableHTML,
-      },
-    });
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to send donation reciept");
-    console.error(ex);
-    return ex.statusCode;
-  }
-}
-
 function decideUIPaymentMethod(donationMethod) {
   if (donationMethod.toUpperCase() == "BANK U/KID") {
     donationMethod = "Bank";
@@ -457,16 +383,30 @@ function decideUIPaymentMethod(donationMethod) {
   return donationMethod;
 }
 
-function formatOrganizationsFromSplit(split: { name?: string; percentageShare: string }[], sum) {
+function formatOrganizationsFromSplit(
+  split: DistributionCauseAreaOrganization[],
+  sum,
+  impactEstimates: OrganizationImpactEstimate[] = [],
+) {
   return split.map(function (org) {
     var amount = sum * parseFloat(org.percentageShare) * 0.01;
     var roundedAmount = amount > 1 ? Math.round(amount) : 1;
+
+    const impactEstimate = impactEstimates.find((estimate) => estimate.orgId === org.id);
+
+    let outputs = [];
+    if (impactEstimate) {
+      outputs = impactEstimate.outputs.map((output) => {
+        return `${output.roundedNumberOfOutputs} ${output.output}`;
+      });
+    }
 
     return {
       name: org.name || "Unknown",
       sum: (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount) + " kr",
       amount: (roundedAmount != amount ? "~ " : "") + formatCurrency(roundedAmount),
       percentage: parseFloat(org.percentageShare) + "%",
+      outputs: outputs,
     };
   });
 }
@@ -962,10 +902,11 @@ export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
   }
 
   const reducedSplit = split.causeAreas.reduce(
-    (acc: { name: string; percentageShare: string }[], causeArea) => {
+    (acc: { name: string; id: number; percentageShare: string }[], causeArea) => {
       causeArea.organizations.forEach((org) => {
         acc.push({
           name: org.name.toString(),
+          id: org.id,
           percentageShare: Math.round(
             (parseFloat(org.percentageShare) / 100) *
               (parseFloat(causeArea.percentageShare) / 100) *

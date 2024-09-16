@@ -395,7 +395,8 @@ async function getSplitByKID(KID: string): Promise<Distribution> {
           CAO.Percentage_share AS Organization_percentage_share,
           CA.Percentage_share AS Cause_area_percentage_share,
           C.name AS Cause_area_name,
-          O.full_name AS Organization_name
+          O.full_name AS Organization_name,
+          O.widget_display_name AS Organization_widget_display_name
 
         FROM 
           Distributions AS D
@@ -656,6 +657,7 @@ export type DistributionDbResultRow = Distributions &
     Organization_percentage_share: Prisma.Decimal;
     Cause_area_name: string;
     Organization_name: string;
+    Organization_widget_display_name: string;
   };
 export type DistributionDbResult = DistributionDbResultRow[];
 
@@ -712,6 +714,7 @@ const mapDbDistributionToDistribution = (result: SqlResult<DistributionDbResult>
       const organization: DistributionCauseAreaOrganization = {
         id: row.Organization_ID,
         name: row.Organization_name,
+        widgetDisplayName: row.Organization_widget_display_name,
         percentageShare: row.Organization_percentage_share,
       };
 

@@ -2,7 +2,6 @@ import { DateTime } from "luxon";
 import { DAO } from "../custom_modules/DAO";
 import {
   sendDonationRegistered,
-  sendEffektDonationReciept,
   sendAvtalegiroNotification,
   sendFacebookTaxConfirmation,
   sendTaxYearlyReportNoticeNoUser,
@@ -20,22 +19,6 @@ router.post("/donation/registered", authMiddleware.isAdmin, async (req, res, nex
     const sum = req.body.sum;
 
     await sendDonationRegistered(KID, sum);
-
-    res.json({
-      status: 200,
-      content: "OK",
-    });
-  } catch (ex) {
-    next(ex);
-  }
-});
-
-router.post("/donation/receipt/effekt", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    const donationID = req.body.donationID;
-    const recipient = req.body.recipient;
-
-    await sendEffektDonationReciept(donationID, recipient);
 
     res.json({
       status: 200,
