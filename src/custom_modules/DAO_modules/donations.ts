@@ -744,7 +744,16 @@ async function getSummaryByYear(donorID) {
 }
 
 async function getYearlyAggregateByDonorId(donorId) {
-  const [res] = await DAO.query(
+  const [res] = await DAO.query<
+    {
+      ID: number;
+      organization: string;
+      abbriv: string;
+      causeAreaID: number;
+      value: string;
+      year: number;
+    }[]
+  >(
     `
     SELECT
     O.ID as ID,

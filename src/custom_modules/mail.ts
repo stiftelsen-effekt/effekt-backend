@@ -259,7 +259,25 @@ export async function sendDonationReceipt(donationID, reciever = null) {
 
   const organizations = formatOrganizationsFromSplit(split, donation.sum, impactEstimates);
 
-  console.log(organizations, impactEstimates);
+  const yearlyOrgDonations = await DAO.donations.getYearlyAggregateByDonorId(donation.donorId);
+
+  const yearlyDonationsMap = yearlyOrgDonations.reduce<{ [year: number]: number }>((acc, org) => {
+    if (acc[org.year]) acc[org.year] += parseFloat(org.value);
+    else acc[org.year] = parseFloat(org.value);
+    return acc;
+  }, {});
+
+  const maxYearDonations = Math.max(...Object.values(yearlyDonationsMap));
+  const minYear = Math.min(...Object.keys(yearlyDonationsMap).map((year) => parseInt(year)));
+  const totalDonations = Object.values(yearlyDonationsMap).reduce((acc, sum) => acc + sum, 0);
+
+  const donationYearSums = Object.entries(yearlyDonationsMap)
+    .map(([year, sum]) => ({
+      year,
+      sum: formatCurrency(sum),
+      barPercentage: `${(sum / maxYearDonations) * 100}%`,
+    }))
+    .sort((a, b) => parseInt(b.year) - parseInt(a.year));
 
   const mailResult = await sendTemplate({
     to: reciever || donation.email,
@@ -270,10 +288,13 @@ export async function sendDonationReceipt(donationID, reciever = null) {
       donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
       paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
       donationTotalSum: formatCurrency(donation.sum) + " kr",
+      alltimeDonationsSum: formatCurrency(totalDonations) + " kr",
+      firstDonationYear: minYear.toString(),
     },
     personalization: {
       organizations,
       ...taxInformation,
+      donationYearSums,
       hasGiveWellTopCharitiesFund,
     },
   });
