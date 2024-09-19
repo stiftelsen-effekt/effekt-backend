@@ -7,6 +7,12 @@ const getAllowedProductionOrigins = () => {
   return allowedProductionOriginsEnv.split(",");
 };
 
+const getMailersendSecurityRecipients = () => {
+  const mailersendSecurityRecipientsEnv = process.env.MAILERSEND_SECURITY_RECIPIENTS || "";
+  // returns [ '' ] if unset
+  return mailersendSecurityRecipientsEnv.split(",");
+};
+
 module.exports = {
   //Environment
   env: process.env.NODE_ENV || "development",
@@ -37,6 +43,8 @@ module.exports = {
     process.env.MAILERSEND_PAYMENT_INTENT_FOLLOWUP_TEMPLATE_ID,
   mailersend_sanity_security_notification_template_id:
     process.env.MAILERSEND_SANITY_SECURITY_NOTIFICATION_TEMPLATE_ID,
+
+  mailersend_security_recipients: getMailersendSecurityRecipients(),
 
   mail_sender_from: process.env.MAIL_SENDER_FROM,
 

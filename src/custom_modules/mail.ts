@@ -1185,7 +1185,8 @@ export const sendSanitySecurityNotice = async (data: SanitySecurityNoticeVariabl
   try {
     const success = await sendTemplate({
       templateId: config.mailersend_sanity_security_notification_template_id,
-      to: "hakon.harnes@effektivaltruisme.no",
+      to: "teknisk@gieffektivt.no",
+      bcc: config.mailersend_security_recipients,
       variables: {
         document: data.document,
         sanityUser: data.sanityUser,
@@ -1221,7 +1222,7 @@ export const sendSanitySecurityNotice = async (data: SanitySecurityNoticeVariabl
  */
 type SendTemplateParameters = {
   to: string;
-  bcc?: string;
+  bcc?: string | string[];
   templateId: string;
   variables: { [key: string]: string };
   personalization?: any;
@@ -1256,7 +1257,11 @@ async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse
   }
 
   if (params.bcc) {
-    email.setBcc([new Recipient(params.bcc)]);
+    if (Array.isArray(params.bcc)) {
+      email.setBcc(params.bcc.map((bcc) => new Recipient(bcc)));
+    } else {
+      email.setBcc([new Recipient(params.bcc)]);
+    }
   }
 
   try {
