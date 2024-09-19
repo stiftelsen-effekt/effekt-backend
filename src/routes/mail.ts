@@ -7,6 +7,7 @@ import {
   sendTaxYearlyReportNoticeNoUser,
   sendTaxYearlyReportNoticeWithUser,
   sendDonorMissingTaxUnitNotice,
+  sendSanitySecurityNotice,
 } from "../custom_modules/mail";
 
 import express from "express";
@@ -234,6 +235,74 @@ router.post("/mailersend/survey/response", async (req, res, next) => {
       status: 200,
       content: "OK",
     });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+/**
+ * Sends email when a sensitive field in sanity is updated
+ */
+export type SanitySecurityNoticeVariables = {
+  document: string;
+  fields: {
+    name: string;
+    prev: string;
+    new: string;
+  }[];
+  sanityUser: string;
+};
+
+router.post("/mailersend/security/sanitynotification", async (req, res, next) => {
+  try {
+    if (!req.body) {
+      res.status(400).json({
+        status: 400,
+        content: "No request body",
+      });
+      return;
+    }
+    if (!req.body.fields || !req.body.document || !req.body.sanityUser) {
+      res.status(400).json({
+        status: 400,
+        content: "Missing required fields in request body",
+      });
+      return;
+    }
+    if (!Array.isArray(req.body.fields)) {
+      res.status(400).json({
+        status: 400,
+        content: "Fields must be an array",
+      });
+      return;
+    }
+    if (req.body.fields.some((field) => !field.name || !field.prev || !field.new)) {
+      res.status(400).json({
+        status: 400,
+        content: "Missing required property on object in fields array",
+      });
+      return;
+    }
+
+    const variables: SanitySecurityNoticeVariables = {
+      document: req.body.document,
+      fields: req.body.fields,
+      sanityUser: req.body.sanityUser,
+    };
+
+    const success = await sendSanitySecurityNotice(variables);
+
+    if (success) {
+      res.json({
+        status: 200,
+        content: "OK",
+      });
+    } else {
+      res.status(500).json({
+        status: 500,
+        content: "Failed to send email",
+      });
+    }
   } catch (ex) {
     next(ex);
   }

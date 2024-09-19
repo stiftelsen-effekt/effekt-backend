@@ -35,6 +35,8 @@ module.exports = {
     process.env.MAILERSEND_AUTOGIRO_REGISTERED_TEMPLATE_ID,
   mailersend_payment_intent_followup_template_id:
     process.env.MAILERSEND_PAYMENT_INTENT_FOLLOWUP_TEMPLATE_ID,
+  mailersend_sanity_security_notification_template_id:
+    process.env.MAILERSEND_SANITY_SECURITY_NOTIFICATION_TEMPLATE_ID,
 
   mail_sender_from: process.env.MAIL_SENDER_FROM,
 

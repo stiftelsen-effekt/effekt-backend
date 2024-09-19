@@ -19,6 +19,7 @@ import {
 } from "./impact";
 import { norwegianTaxDeductionLimits } from "./taxdeductions";
 import { RequestLocale } from "../middleware/locale";
+import { SanitySecurityNoticeVariables } from "../routes/mail";
 
 /**
  * @typedef VippsAgreement
@@ -1180,6 +1181,27 @@ async function send(options: {
   }
 }
 
+export const sendSanitySecurityNotice = async (data: SanitySecurityNoticeVariables) => {
+  try {
+    const success = await sendTemplate({
+      templateId: config.mailersend_sanity_security_notification_template_id,
+      to: "hakon.harnes@effektivaltruisme.no",
+      variables: {
+        document: data.document,
+        sanityUser: data.sanityUser,
+      },
+      personalization: {
+        fields: data.fields,
+      },
+    });
+
+    return success;
+  } catch (ex) {
+    console.error("Failed to send sanity security notice");
+    console.error(ex);
+    return false;
+  }
+};
 /**
 {
     "donorName": "",
@@ -1202,7 +1224,7 @@ type SendTemplateParameters = {
   bcc?: string;
   templateId: string;
   variables: { [key: string]: string };
-  personalization: any;
+  personalization?: any;
 };
 async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse | false> {
   const mailersend = new MailerSend({
@@ -1222,13 +1244,16 @@ async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse
           value: params.variables[key],
         })),
       },
-    ])
-    .setPersonalization([
+    ]);
+
+  if (params.personalization) {
+    email.setPersonalization([
       {
         email: params.to,
         data: params.personalization,
       },
     ]);
+  }
 
   if (params.bcc) {
     email.setBcc([new Recipient(params.bcc)]);
