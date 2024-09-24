@@ -183,7 +183,7 @@ router.post("/register", async (req, res, next) => {
           typeof donationObject.amount === "string"
             ? parseFloat(donationObject.amount)
             : donationObject.amount,
-        payment_date: 28,
+        payment_date: 27,
       });
 
       try {
