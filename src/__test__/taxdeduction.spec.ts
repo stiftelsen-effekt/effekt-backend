@@ -202,7 +202,7 @@ describe("getTaxUnitsWithDeductions", () => {
         archived: null,
       },
     ];
-    const locale = RequestLocale.SE;
+    const locale = RequestLocale.SV;
 
     // Act
     const result = getTaxUnitsWithDeductions({ donations, taxUnits, locale });

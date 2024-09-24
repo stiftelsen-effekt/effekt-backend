@@ -38,7 +38,7 @@ export const importSwedishDonationsReport = async (report, medgivandeReport) => 
     if (existing) {
       donorId = existing;
       if (donor.ssn) {
-        const units = await DAO.tax.getByDonorId(donorId, RequestLocale.SE);
+        const units = await DAO.tax.getByDonorId(donorId, RequestLocale.SV);
         if (units.some((unit) => unit.ssn === donor.ssn)) {
           taxUnitId = units.find((unit) => unit.ssn === donor.ssn).id;
         } else {

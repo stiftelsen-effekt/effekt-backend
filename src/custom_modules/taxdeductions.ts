@@ -172,7 +172,7 @@ export const getYearlyMapping = (locale: RequestLocale): TaxDeductionYearlyMappi
             sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
           }),
       };
-    case RequestLocale.SE:
+    case RequestLocale.SV:
       return {
         2016: (donations) =>
           getNoTaxDeductions({

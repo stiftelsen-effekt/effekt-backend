@@ -42,7 +42,7 @@ async function getByDonorId(donorId: number, locale: RequestLocale): Promise<Arr
 
   const eligbleCauseAreasByLocale = {
     [RequestLocale.NO]: [1],
-    [RequestLocale.SE]: [1],
+    [RequestLocale.SV]: [1],
   };
 
   // Get all donations for the donor with attached tax unit id

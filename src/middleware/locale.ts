@@ -2,7 +2,7 @@ import { RequestHandler, Request } from "express";
 
 export enum RequestLocale {
   NO = "NO",
-  SE = "SE",
+  SV = "SV",
 }
 
 export interface LocaleRequest extends Request {

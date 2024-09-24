@@ -174,7 +174,7 @@ export async function generateAutogiroGiroFile(
    */
   for (const mandate of mandatesToBeConfirmed) {
     try {
-      const taxUnit = await DAO.tax.getByKID(mandate.KID, RequestLocale.SE);
+      const taxUnit = await DAO.tax.getByKID(mandate.KID, RequestLocale.SV);
 
       fileContents += writer.getMandateConfirmationRecord(
         mandate,
@@ -305,7 +305,7 @@ export async function processAutogiroInputFile(fileContents: string) {
       try {
         const validKID = await getValidatedKID(emandate.payerNumber);
 
-        const taxUnit = await DAO.tax.getByKID(validKID, RequestLocale.SE);
+        const taxUnit = await DAO.tax.getByKID(validKID, RequestLocale.SV);
         if (emandate.payerSsn && !taxUnit) {
           try {
             const donor = await DAO.donors.getByKID(validKID);

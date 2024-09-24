@@ -12,9 +12,8 @@ import methods from "../enums/methods";
 import bodyParser from "body-parser";
 import apicache from "apicache";
 import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
-import { DateTime } from "luxon";
-import { distributions } from "../custom_modules/DAO_modules/distributions";
 import { validateDistribution } from "../custom_modules/distribution";
+import { localeMiddleware, LocaleRequest } from "../middleware/locale";
 
 const config = require("../config");
 
@@ -465,26 +464,32 @@ router.get("/median", cache("5 minutes"), async (req, res, next) => {
   }
 });
 
-router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    var results = await DAO.donations.getAll(
-      req.body.sort,
-      req.body.page,
-      req.body.limit,
-      req.body.filter,
-    );
-    return res.json({
-      status: 200,
-      content: {
-        rows: results.rows,
-        pages: results.pages,
-        statistics: results.statistics,
-      },
-    });
-  } catch (ex) {
-    next(ex);
-  }
-});
+router.post(
+  "/",
+  authMiddleware.isAdmin,
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
+    try {
+      var results = await DAO.donations.getAll(
+        req.body.sort,
+        req.body.page,
+        req.body.limit,
+        req.body.filter,
+        req.locale,
+      );
+      return res.json({
+        status: 200,
+        content: {
+          rows: results.rows,
+          pages: results.pages,
+          statistics: results.statistics,
+        },
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
 
 router.get("/histogram", async (req, res, next) => {
   try {

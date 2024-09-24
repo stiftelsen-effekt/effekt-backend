@@ -6,7 +6,6 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { TaxReport, TaxYearlyReportUnit } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import bodyParser from "body-parser";
-import { findGlobalHealthCauseAreaOrThrow } from "../custom_modules/distribution";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { TaxDeductionDonation, getYearlyMapping } from "../custom_modules/taxdeductions";
 import { connectDonationsForFirstTaxUnit } from "../custom_modules/tax";

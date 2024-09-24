@@ -2,6 +2,7 @@ import express from "express";
 import { DAO } from "../custom_modules/DAO";
 import { api_url } from "../config";
 import { DateTime } from "luxon";
+import { RequestLocale } from "../middleware/locale";
 
 export const tidbytRouter = express.Router();
 
@@ -122,6 +123,7 @@ tidbytRouter.get("/donations/month", async (req, res, next) => {
           to: DateTime.now().toJSDate(),
         },
       },
+      RequestLocale.NO,
     );
 
     if (report) {
@@ -194,6 +196,7 @@ tidbytRouter.get("/donations/week", async (req, res, next) => {
           to: DateTime.now().toJSDate(),
         },
       },
+      RequestLocale.NO,
     );
 
     if (report) {
@@ -260,6 +263,8 @@ tidbytRouter.get("/donations/total", async (req, res, next) => {
       },
       0,
       3,
+      {},
+      RequestLocale.NO,
     );
 
     if (report) {

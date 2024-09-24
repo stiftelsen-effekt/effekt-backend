@@ -5,6 +5,8 @@ import { Donation } from "../../schemas/types";
 import sqlString from "sqlstring";
 import { DateTime } from "luxon";
 import { Donations, Prisma } from "@prisma/client";
+import { RequestLocale } from "../../middleware/locale";
+import { get } from "request";
 
 /** @typedef Donation
  * @prop {number} id
@@ -55,10 +57,12 @@ async function getAll(
     date?: { from?: Date; to?: Date };
     KID?: string;
     paymentMethodIDs?: Array<number>;
+    taxUnitTypes?: Array<TaxUnitType | null>;
     donor?: string;
     id?: string;
     organizationIDs?: Array<number>;
   } = null,
+  locale: RequestLocale,
 ): Promise<{
   rows: Array<{
     id: number;
@@ -78,6 +82,8 @@ async function getAll(
 }> {
   if (sort) {
     const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
+
+    const taxUnitTypeFildDefinition = getTaxUnitTypeFieldDefinition(locale);
 
     let where = [];
     if (filter) {
@@ -123,6 +129,36 @@ async function getAll(
 
       if (filter.id) where.push(` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `);
 
+      if (filter.taxUnitTypes) {
+        if (filter.taxUnitTypes.length == 0) {
+          return {
+            rows: [],
+            statistics: {
+              numDonations: 0,
+              sumDonations: 0,
+              avgDonation: 0,
+            },
+            pages: 0,
+          };
+        }
+        const types = filter.taxUnitTypes
+          .filter((type) => type)
+          .map((type) => sqlString.escape(type));
+        const hasTypes = types.length > 0;
+        const includeUnknown = filter.taxUnitTypes.includes(null);
+        const or = hasTypes && includeUnknown ? " OR " : "";
+
+        const typesQuery = hasTypes ? `${taxUnitTypeFildDefinition} IN (${types.join(",")})` : "";
+        const unknownQuery = includeUnknown ? `${or} Tax_unit.ID IS NULL` : "";
+
+        where.push(
+          ` (
+            ${typesQuery}
+            ${unknownQuery}
+          ) `,
+        );
+      }
+
       if (filter.organizationIDs) {
         if (filter.organizationIDs.length == 0) {
           return {
@@ -146,8 +182,6 @@ async function getAll(
     // Only apply this join when filtering by organizationIDs.
     const organizationJoin = filter?.organizationIDs
       ? `
-        INNER JOIN Distributions
-          ON Donations.KID_fordeling = Distributions.KID
         LEFT JOIN Distribution_cause_areas
           ON Distributions.KID = Distribution_cause_areas.Distribution_KID
         LEFT JOIN Distribution_cause_area_organizations
@@ -162,6 +196,7 @@ async function getAll(
         Donations.transaction_cost,
         Donations.KID_fordeling,
         Donations.timestamp_confirmed
+        
       `;
 
     const query = `
@@ -169,12 +204,18 @@ async function getAll(
           count(*) OVER() AS full_count,
           sum(sum_confirmed) OVER() AS full_sum,
           avg(sum_confirmed) OVER() AS full_avg,
-          ${columns}
+          ${columns},
+          ${taxUnitTypeFildDefinition} as tax_unit_type
+
         FROM Donations
         INNER JOIN Donors
             ON Donations.Donor_ID = Donors.ID
         INNER JOIN Payment
             ON Donations.Payment_ID = Payment.ID  
+        INNER JOIN Distributions
+          ON Donations.KID_fordeling = Distributions.KID
+        LEFT JOIN Tax_unit
+          ON Distributions.Tax_unit_ID = Tax_unit.ID
         ${organizationJoin}
         
         WHERE 
@@ -1126,6 +1167,7 @@ const jsDBmapping = [
   ["transactionCost", "transaction_cost"],
   ["kid", "KID_fordeling"],
   ["timestamp", "timestamp_confirmed"],
+  ["taxUnitType", "tax_unit_type"],
 ];
 
 const mapToJS = (obj) =>
@@ -1136,6 +1178,27 @@ const mapToJS = (obj) =>
     });
     return returnObj;
   });
+
+enum TaxUnitType {
+  PERSON = "person",
+  ORGANIZATION = "organization",
+}
+
+const getTaxUnitTypeFieldDefinition = (locale: RequestLocale) => {
+  if (locale === RequestLocale.NO) {
+    return `IF (Tax_unit.ID IS NULL, NULL, IF (LENGTH(Tax_unit.ssn) = 9, "organization", "person"))`;
+  } else if (locale === RequestLocale.SV) {
+    return `IF (Tax_unit.ID IS NULL, NULL, 
+      IF(Tax_unit.ssn REGEXP '^[0-9]{6}-' AND CAST(SUBSTRING(Tax_unit.ssn, 3, 2) AS UNSIGNED) > 20,
+        'organization',
+        'person'
+      )
+    )`;
+  } else {
+    throw new Error("Unsupported locale");
+  }
+};
+
 //endregion
 
 export const donations = {
