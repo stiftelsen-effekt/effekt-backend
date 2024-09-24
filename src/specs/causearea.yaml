@@ -10,6 +10,12 @@ components:
         name:
           type: string
           description: The cause area name
+        widgetDisplayName:
+          type: string
+          description: The cause area widget display name
+        widgetContext:
+          type: string
+          description: The cause area widget context
         standardPercentageShare:
           type: number
           description: The cause area standard percentage share
