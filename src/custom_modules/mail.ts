@@ -283,7 +283,9 @@ export async function sendDonationReceipt(donationID, reciever = null) {
   const mailResult = await sendTemplate({
     to: reciever || donation.email,
     templateId: config.mailersend_donation_receipt_template_id,
-    variables: {
+    personalization: {
+      organizations,
+      ...taxInformation,
       donorName: donation.donor,
       donationKID: donation.KID,
       donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
@@ -291,10 +293,6 @@ export async function sendDonationReceipt(donationID, reciever = null) {
       donationTotalSum: formatCurrency(donation.sum) + " kr",
       alltimeDonationsSum: formatCurrency(totalDonations) + " kr",
       firstDonationYear: minYear.toString(),
-    },
-    personalization: {
-      organizations,
-      ...taxInformation,
       donationYearSums,
       hasGiveWellTopCharitiesFund,
     },
@@ -368,13 +366,11 @@ export async function sendAutoGiroRegistered(agreementKid, reciever = null) {
   const mailResult = await sendTemplate({
     to: reciever || donor.email,
     templateId: config.mailersend_autogiro_registered_template_id,
-    variables: {
+    personalization: {
       donorName: donor.name,
       donationKID: agreement.KID,
       paymentMethod: decideUIPaymentMethod("AutoGiro"),
       donationTotalSum: formatCurrency(agreement.amount) + " kr",
-    },
-    personalization: {
       organizations,
     },
   });
@@ -476,18 +472,14 @@ export async function sendDonationRegistered(KID, sum) {
 
     const organizations = formatOrganizationsFromSplit(split, sum);
 
-    var KIDstring = KID.toString();
-
     await sendTemplate({
       to: donor.email,
       templateId: config.mailersend_donation_registered_template_id,
-      variables: {
+      personalization: {
         donationKID: KID,
         donationSum: formatCurrency(sum) + " kr",
         orgAccountNr: config.bankAccount,
         donationTotalSum: formatCurrency(sum) + " kr",
-      },
-      personalization: {
         organizations,
       },
     });
@@ -550,14 +542,12 @@ export async function sendPaymentIntentFollowUp(
       to: donor.email,
       bcc: "hakon.harnes@effektivaltruisme.no",
       templateId: config.mailersend_payment_intent_followup_template_id,
-      variables: {
+      personalization: {
+        organizations,
         donationKID: KID,
         donationSum: formatCurrency(sum) + " kr",
         orgAccountNr: config.bankAccount,
         donationTotalSum: formatCurrency(sum) + " kr",
-      },
-      personalization: {
-        organizations,
       },
     });
 
@@ -866,16 +856,14 @@ export async function sendAvtalegiroNotification(
     await sendTemplate({
       to: donor.email,
       templateId: config.mailersend_avtalegiro_notification_template_id,
-      variables: {
+      personalization: {
+        organizations,
         paymentMethod: "AvtaleGiro",
         donationKID: agreement.KID,
         donorName: donor.name,
         agreementSum: formatCurrency(agreement.amount / 100) + " kr",
         agreementClaimDate: claimDate.toFormat("dd.MM.yyyy"),
         donationTotalSum: formatCurrency(agreement.amount / 100) + " kr",
-      },
-      personalization: {
-        organizations,
       },
     });
 
@@ -1187,12 +1175,10 @@ export const sendSanitySecurityNotice = async (data: SanitySecurityNoticeVariabl
       templateId: config.mailersend_sanity_security_notification_template_id,
       to: "teknisk@gieffektivt.no",
       bcc: config.mailersend_security_recipients,
-      variables: {
-        document: data.document,
-        sanityUser: data.sanityUser,
-      },
       personalization: {
         fields: data.fields,
+        document: data.document,
+        sanityUser: data.sanityUser,
       },
     });
 
@@ -1203,28 +1189,11 @@ export const sendSanitySecurityNotice = async (data: SanitySecurityNoticeVariabl
     return false;
   }
 };
-/**
-{
-    "donorName": "",
-    "donationKID": "",
-    "donationDate": "",
-    "paymentMethod": "",
-    "donationTotalSum": "",
-    "elements": [
-      {
-          "sum": "",
-          "name": "",
-          "output": "",
-          "percentage": ""
-      }
-    ]
-}
- */
+
 type SendTemplateParameters = {
   to: string;
   bcc?: string | string[];
   templateId: string;
-  variables: { [key: string]: string };
   personalization?: any;
 };
 async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse | false> {
@@ -1234,18 +1203,7 @@ async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse
 
   const recipients = [new Recipient(params.to)];
 
-  const email = new EmailParams()
-    .setTo(recipients)
-    .setTemplateId(params.templateId)
-    .setVariables([
-      {
-        email: params.to,
-        substitutions: Object.keys(params.variables).map((key) => ({
-          var: key,
-          value: params.variables[key],
-        })),
-      },
-    ]);
+  const email = new EmailParams().setTo(recipients).setTemplateId(params.templateId);
 
   if (params.personalization) {
     email.setPersonalization([
