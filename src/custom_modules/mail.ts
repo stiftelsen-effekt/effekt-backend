@@ -282,6 +282,7 @@ export async function sendDonationReceipt(donationID, reciever = null) {
 
   const mailResult = await sendTemplate({
     to: reciever || donation.email,
+    bcc: "gieffektivt@gmail.com",
     templateId: config.mailersend_donation_receipt_template_id,
     personalization: {
       organizations,
