@@ -102,6 +102,7 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
       if (isClaimDateLastDayOfMonth) {
         agreements = [...agreements, ...(await DAO.avtalegiroagreements.getByPaymentDate(0))];
       }
+      agreements = agreements.filter((agreement) => agreement.amount > 0);
 
       if (agreements.length > 0) {
         /**
@@ -209,6 +210,7 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
         agreements = [...agreements, ...(await DAO.avtalegiroagreements.getByPaymentDate(0))];
       }
 
+      agreements = agreements.filter((agreement) => agreement.amount > 0);
       if (agreements.length > 0) {
         /**
          * Notify agreements to be charged
