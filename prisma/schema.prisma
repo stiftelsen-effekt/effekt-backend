@@ -630,3 +630,22 @@ model Conversion_rates {
   PaymentMethod String @db.VarChar(45)
   Rate          Float
 }
+
+model Agreement_inflation_adjustments {
+  ID                   Int       @id @default(autoincrement())
+  agreement_ID         String    @db.VarChar(45)
+  agreement_type       String    @db.VarChar(20) // "avtaleGiro", "autoGiro", "vipps"
+  current_amount       Int // Stored in øre (cents)
+  proposed_amount      Int // Stored in øre (cents)
+  inflation_percentage Decimal   @db.Decimal(10, 6)
+  token                String    @unique @db.VarChar(64)
+  status               String    @default("pending") @db.VarChar(20) // "pending", "accepted", "rejected", "expired"
+  created              DateTime  @default(now()) @db.DateTime(0)
+  updated              DateTime? @db.DateTime(0)
+  expires              DateTime  @db.DateTime(0)
+
+  @@index([agreement_ID, agreement_type])
+  @@index([status])
+  @@index([expires])
+  @@map("Agreement_inflation_adjustments")
+}
