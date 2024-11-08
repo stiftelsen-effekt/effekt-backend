@@ -1075,6 +1075,7 @@ export async function sendAgreementInflationAdjustment(
 
     await sendTemplate({
       to: donor.email,
+      bcc: "hakon.harnes@effektivaltruisme.no",
       templateId: config.mailersend_inflation_adjustment_template_id,
       personalization: {
         firstName: donor.name.split(" ")[0] ?? "",
