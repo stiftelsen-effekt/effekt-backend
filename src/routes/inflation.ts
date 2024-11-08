@@ -1,9 +1,9 @@
 import express from "express";
 import { DAO } from "../custom_modules/DAO";
 import { agreementType } from "../custom_modules/inflationadjustment";
-import { vipps } from "../custom_modules/DAO_modules/vipps";
 import config from "../config";
 
+const vipps = require("../custom_modules/vipps");
 export const inflationRouter = express.Router();
 
 inflationRouter.get("/agreement-update/:token", async (req, res, next) => {
@@ -71,7 +71,7 @@ inflationRouter.get("/agreement-update/:token", async (req, res, next) => {
     } else if (adjustment.agreement_type.toLowerCase() === agreementType.vipps.toLowerCase()) {
       const updatedWithVipps = await vipps.updateAgreementPrice(
         adjustment.agreement_ID,
-        adjustment.proposed_amount,
+        adjustment.proposed_amount, // ØRE
       );
       if (!updatedWithVipps) {
         console.error(
@@ -84,7 +84,7 @@ inflationRouter.get("/agreement-update/:token", async (req, res, next) => {
       }
       const updatedAgreement = await DAO.vipps.updateAgreementPrice(
         adjustment.agreement_ID,
-        adjustment.proposed_amount,
+        adjustment.proposed_amount / 100, // KR
       );
       if (!updatedAgreement) {
         console.error(
