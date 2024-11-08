@@ -18,6 +18,7 @@ module.exports = {
   env: process.env.NODE_ENV || "development",
   api_url: process.env.EFFEKT_API_URL,
   minside_url: process.env.MIN_SIDE_URL,
+  frontend_url: process.env.FRONTEND_URL,
 
   //Insert db connection values
   db_host: process.env.DB_HOST,
@@ -43,6 +44,8 @@ module.exports = {
     process.env.MAILERSEND_PAYMENT_INTENT_FOLLOWUP_TEMPLATE_ID,
   mailersend_sanity_security_notification_template_id:
     process.env.MAILERSEND_SANITY_SECURITY_NOTIFICATION_TEMPLATE_ID,
+  mailersend_inflation_adjustment_template_id:
+    process.env.MAILERSEND_INFLATION_ADJUSTMENT_TEMPLATE_ID,
 
   mailersend_security_recipients: getMailersendSecurityRecipients(),
 
@@ -91,6 +94,9 @@ module.exports = {
 
   facebook_sync_app_id: process.env.FACBEOOK_SYNC_APP_ID,
   facebook_sync_app_secret: process.env.FACEBOOK_SYNC_APP_SECRET,
+
+  inflation_adjustment_success_slug: process.env.INFLATION_ADJUSTMENT_SUCCESS_SLUG,
+  inflation_adjustment_error_slug: process.env.INFLATION_ADJUSTMENT_ERROR_SLUG,
 
   //Set port for API listening, default to 5050
   port: process.env.EFFEKT_PORT || process.env.PORT || "5050",

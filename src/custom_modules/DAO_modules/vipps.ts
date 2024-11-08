@@ -1,7 +1,7 @@
 import { distributions } from "./distributions";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
-import { Vipps_order_transaction_statuses, Vipps_orders } from "@prisma/client";
+import { Vipps_agreements, Vipps_order_transaction_statuses, Vipps_orders } from "@prisma/client";
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = [
@@ -44,6 +44,7 @@ export type VippsAgreement = {
   amount: number;
   status: "ACTIVE" | "PENDING" | "EXPIRED" | "STOPPED";
   monthly_charge_day: number;
+  timestamp_created: string;
   agreement_url_code: string;
   paused_until_date: string;
   force_charge_date: string;
@@ -527,7 +528,7 @@ async function getInitialCharge(agreementID) {
  * @property {number} monthly_charge_day
  * @return {[VippsAgreement]}
  */
-async function getActiveAgreements() {
+async function getActiveAgreements(): Promise<VippsAgreement[] | false> {
   let [res] = await DAO.query(`
         SELECT * FROM 
             Vipps_agreements 
@@ -847,7 +848,7 @@ async function updateVippsOrderDonation(orderID, donationID) {
 /**
  * Updates price of a recurring agreement
  * @param {string} agreementId The agreement ID
- * @param {number} price
+ * @param {number} price In NOK
  * @return {boolean} Success
  */
 async function updateAgreementPrice(agreementId, price) {

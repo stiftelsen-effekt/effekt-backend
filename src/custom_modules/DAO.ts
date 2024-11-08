@@ -21,6 +21,7 @@ import { causeareas } from "./DAO_modules/causeareas";
 import { adoveo } from "./DAO_modules/adoveo";
 import { results } from "./DAO_modules/results";
 import { mail } from "./DAO_modules/mail";
+import { inflationadjustments } from "./DAO_modules/inflationadjustment";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -67,6 +68,7 @@ export const DAO = {
   adoveo: adoveo,
   results: results,
   mail: mail,
+  inflationadjustments: inflationadjustments,
 
   dbPool: undefined as mysql.Pool | undefined,
 

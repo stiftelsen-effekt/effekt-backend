@@ -16,6 +16,7 @@ import config from "../config";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
 import paymentMethods from "../enums/paymentMethods";
 import { AutoGiro_agreements, Payment_follow_up, Payment_intent } from "@prisma/client";
+import { getAllInflationEligibleAgreements } from "../custom_modules/inflationadjustment";
 
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
@@ -284,7 +285,10 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
         continue;
       }
 
-      if (agreement.payment_date <= today.day) {
+      if (
+        agreement.payment_date <= today.day &&
+        agreement.created.getDate() < agreement.payment_date
+      ) {
         let skewedDate = DateTime.now().plus({ days: 1 });
         while (getSeBankingDaysBetweenDates(today, skewedDate) < 1) {
           if (skewedDate.month !== today.month) {
@@ -679,7 +683,6 @@ async function processPaymentIntent(intent: Payment_intent): Promise<Payment_int
   return null;
 }
 
-// Main route handler
 router.post("/initiate-follow-ups", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const paymentIntents = await initialpaymentmethod.getPaymentIntentsFromLastMonth();
@@ -697,6 +700,35 @@ router.post("/initiate-follow-ups", authMiddleware.isAdmin, async (req, res, nex
     res.json({
       message: "Follow-up process initiated successfully.",
       followUpSent,
+    });
+  } catch (ex) {
+    next({ ex });
+  }
+});
+
+router.get("/inflation-reminder", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const eligibleAgreements = await getAllInflationEligibleAgreements();
+
+    const summary = {
+      totalEligible: {
+        avtaleGiro: eligibleAgreements.avtaleGiro.length,
+        autoGiro: eligibleAgreements.autoGiro.length,
+        vipps: eligibleAgreements.vipps.length,
+        total:
+          eligibleAgreements.avtaleGiro.length +
+          eligibleAgreements.autoGiro.length +
+          eligibleAgreements.vipps.length,
+      },
+      agreements: eligibleAgreements,
+      generated: DateTime.now().toISO(),
+    };
+
+    await DAO.logging.add("InflationReminder", summary);
+
+    res.json({
+      status: 200,
+      content: summary,
     });
   } catch (ex) {
     next({ ex });

@@ -20,6 +20,13 @@ import {
 import { norwegianTaxDeductionLimits } from "./taxdeductions";
 import { RequestLocale } from "../middleware/locale";
 import { SanitySecurityNoticeVariables } from "../routes/mail";
+import {
+  Agreement_inflation_adjustments,
+  AutoGiro_agreements,
+  Avtalegiro_agreements,
+} from "@prisma/client";
+import { agreementType } from "./inflationadjustment";
+import { VippsAgreement } from "./DAO_modules/vipps";
 
 /**
  * @typedef VippsAgreement
@@ -953,6 +960,143 @@ export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
     return true;
   } catch (ex) {
     console.error("Failed to send AvtaleGiro registered");
+    console.error(ex);
+    return ex.statusCode;
+  }
+}
+
+/**
+ * Sends an email to donors to allow them to easilly update recurring agreement amount in line with inflation
+ * @param adjustment
+ * @returns
+ */
+export async function sendAgreementInflationAdjustment(
+  adjustment: Agreement_inflation_adjustments,
+) {
+  try {
+    let agreement: Avtalegiro_agreements | VippsAgreement | AutoGiro_agreements;
+    let agreementCreated: DateTime;
+    if (adjustment.agreement_type === agreementType.avtaleGiro) {
+      let agreementId = parseInt(adjustment.agreement_ID);
+      let avtalegiroAgreement = await DAO.avtalegiroagreements.getByID(agreementId);
+      if (!avtalegiroAgreement) throw new Error("Agreement not found");
+      agreement = avtalegiroAgreement;
+      agreementCreated = DateTime.fromJSDate(agreement.created);
+    } else if (adjustment.agreement_type === agreementType.vipps) {
+      let agreementId = adjustment.agreement_ID;
+      let vippsagreement = await DAO.vipps.getAgreement(agreementId);
+      if (!vippsagreement) throw new Error("Agreement not found");
+      agreement = vippsagreement;
+      agreementCreated = DateTime.fromJSDate(agreement.timestamp_created as unknown as Date);
+    } else if (adjustment.agreement_type === agreementType.autoGiro) {
+      let agreementId = parseInt(adjustment.agreement_ID);
+      let autogiroAgreement = await DAO.autogiroagreements.getAgreementById(agreementId);
+      if (!autogiroAgreement) throw new Error("Agreement not found");
+      agreement = autogiroAgreement;
+      agreementCreated = DateTime.fromJSDate(agreement.created);
+    } else {
+      throw new Error("Unknown agreement type");
+    }
+
+    const donor = await DAO.donors.getByKID(agreement.KID);
+
+    let donations = await DAO.donations.getAllByKID(agreement.KID);
+    donations = donations.filter(
+      (d) =>
+        d.paymentMethod &&
+        d.paymentMethod.toLowerCase().startsWith(adjustment.agreement_type.toLowerCase()),
+    );
+    const totalDonationSum = donations.reduce((acc, d) => acc + parseFloat(d.sum), 0);
+
+    /* We now look at all the donations for the agreement and sum up the distribution and the impact estimates */
+    /* When looping over all the donations, we use a key value approach where we store the sum to the organization and the impact estimates on the org id key, keeping a running count */
+    let organizations: {
+      [orgId: number]: { name: string; sum: number; impactEstimate: OrganizationImpactEstimate };
+    } = {};
+    let hasGiveWellTopCharitiesFund = false;
+    for (let donation of donations) {
+      let distribution = await DAO.distributions.getSplitByKID(donation.KID);
+      if (
+        !hasGiveWellTopCharitiesFund &&
+        distribution.causeAreas.flatMap((c) => c.organizations).find((o) => o.id === 12)
+      ) {
+        hasGiveWellTopCharitiesFund = true;
+      }
+      let impactEstimates = await getImpactEstimatesForDonationByOrg(
+        new Date(donation.timestamp),
+        parseFloat(donation.sum),
+        distribution,
+      );
+
+      distribution.causeAreas.forEach((causeArea) => {
+        causeArea.organizations.forEach((org) => {
+          let amount =
+            parseFloat(donation.sum) *
+            (parseFloat(org.percentageShare) / 100) *
+            (parseFloat(causeArea.percentageShare) / 100);
+          let impactEstimate = impactEstimates.find((estimate) => estimate.orgId === org.id);
+
+          if (organizations[org.id]) {
+            organizations[org.id].sum += amount;
+            let existingOutputs = organizations[org.id].impactEstimate.outputs;
+            for (let output of impactEstimate.outputs) {
+              let existingOutput = existingOutputs.find((o) => o.output === output.output);
+              if (existingOutput) {
+                existingOutput.numberOfOutputs += output.numberOfOutputs;
+              } else {
+                existingOutputs.push(output);
+              }
+            }
+          } else {
+            organizations[org.id] = {
+              name: org.widgetDisplayName || org.name || "Unknown",
+              sum: amount,
+              impactEstimate: impactEstimate,
+            };
+          }
+        });
+      });
+    }
+
+    /* We now format the organizations to be used in the email template */
+    let formattedOrganizations = Object.entries(organizations).map(([orgId, orgData]) => {
+      let outputs =
+        orgData.impactEstimate.outputs.map((o) => `${Math.round(o.numberOfOutputs)} ${o.output}`) ??
+        [];
+
+      return {
+        name: orgId === "12" ? `${orgData.name} ⓘ` : orgData.name,
+        sum: formatCurrency(orgData.sum) + " kr",
+        amount: orgData.sum,
+        percentage: "100%",
+        outputs,
+      };
+    });
+
+    await sendTemplate({
+      to: "hakon.harnes@effektivaltruisme.no", //donor.email,
+      templateId: config.mailersend_inflation_adjustment_template_id,
+      personalization: {
+        firstName: donor.name,
+        organizations: formattedOrganizations,
+        totalDonated: formatCurrency(totalDonationSum) + " kr",
+        // Format in local norwegian year and written out month
+        agreementStarted: agreementCreated.setLocale("nb").toFormat("MMMM yyyy").toLowerCase(),
+        donationTotalSum: formatCurrency(totalDonationSum) + " kr",
+        currentAmount: formatCurrency(adjustment.current_amount) + " kr",
+        newAmount: formatCurrency(adjustment.proposed_amount) + " kr",
+        inflationRate:
+          (parseFloat(adjustment.inflation_percentage as unknown as string) * 100)
+            .toFixed(1)
+            .replace(".", ",") + " %",
+        updatingLink: `${config.api_url}/inflation/agreement-update/${adjustment.token}`,
+        hasGiveWellTopCharitiesFund,
+      },
+    });
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send inflation adjustment");
     console.error(ex);
     return ex.statusCode;
   }

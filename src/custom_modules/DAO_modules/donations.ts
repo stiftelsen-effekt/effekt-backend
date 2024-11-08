@@ -284,7 +284,7 @@ async function getTransactionCostsReport() {
  * @param {string} KID KID number
  * @returns {Array<Donation>} Array of Donation objects
  */
-async function getAllByKID(KID) {
+async function getAllByKID(KID): Promise<Array<Donation>> {
   var [getDonationsByKIDQuery] = await DAO.query(
     `
             SELECT *, D.ID, payment_name FROM Donations as D

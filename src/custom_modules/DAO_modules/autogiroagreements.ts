@@ -162,6 +162,14 @@ export const autogiroagreements = {
       },
     };
   },
+  getActiveAgreements: async function () {
+    const [agreements] = await DAO.query<AutoGiro_agreements[]>(
+      `
+        SELECT * FROM AutoGiro_agreements WHERE active = 1
+      `,
+    );
+    return agreements.map(mapAgreementType);
+  },
   getAgreementSumHistogram: async function () {
     let [results] = await DAO.query(`
               SELECT 
@@ -322,12 +330,13 @@ export const autogiroagreements = {
     return true;
   },
   setAgreementAmountByKID: async function (KID: string, amount: number) {
-    await DAO.query(
+    const [res] = await DAO.query(
       `
         UPDATE AutoGiro_agreements SET amount = ? WHERE KID = ?
       `,
       [amount, KID],
     );
+    return res.affectedRows > 0;
   },
   setAgreementPaymentDateByKID: async function (KID: string, paymentDate: number) {
     await DAO.query(

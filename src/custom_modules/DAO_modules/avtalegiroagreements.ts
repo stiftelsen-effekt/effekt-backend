@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { DAO } from "../DAO";
+import { DAO, SqlResult } from "../DAO";
 
 import sqlString from "sqlstring";
 import { OkPacket, ResultSetHeader } from "mysql2/promise";
@@ -47,6 +47,22 @@ async function getDonationsByKID(KID) {
 
   return donations;
 }
+
+/*
+ * Gets all active agreements
+ * @return {Array<AvtaleGiro>} Array of AvtaleGiro agreements
+ */
+async function getActiveAgreements(): Promise<Avtalegiro_agreements[]> {
+  let [agreements] = await DAO.query(
+    `
+            SELECT 
+                *
+            FROM Avtalegiro_agreements 
+            WHERE active = 1`,
+  );
+
+  return agreements.map((agreement) => mapDbAgreementToJs(agreement));
+}
 //endregion
 
 //region Add
@@ -78,7 +94,13 @@ async function updateNotification(KID, notice) {
   return true;
 }
 
-async function updateAmount(KID, amount) {
+/**
+ * Updates the amount of an AvtaleGiro agreement
+ * @param KID
+ * @param amount The new amount in ore
+ * @returns
+ */
+async function updateAmount(KID: string, amount: number) {
   await DAO.query(`UPDATE Avtalegiro_agreements SET amount = ? where KID = ?`, [amount, KID]);
 
   return true;
@@ -462,6 +484,23 @@ async function getByKID(KID: string): Promise<AvtaleGiroAgreement> {
   }
 }
 
+async function getByID(ID: number): Promise<Avtalegiro_agreements> {
+  let [agreement] = await DAO.query<Avtalegiro_agreements[]>(
+    `
+            SELECT 
+                *
+            FROM Avtalegiro_agreements 
+            WHERE ID = ?`,
+    [ID],
+  );
+
+  if (agreement.length > 0) {
+    return mapDbAgreementToJs(agreement[0]);
+  } else {
+    return null;
+  }
+}
+
 /**
  * Fetches key statistics of active agreements
  * @return {Object}
@@ -719,6 +758,19 @@ async function addShipment(numClaims) {
   return result.insertId;
 }
 
+const mapDbAgreementToJs = (
+  dbAgreement: SqlResult<Avtalegiro_agreements>,
+): Avtalegiro_agreements => {
+  return {
+    ...dbAgreement,
+    notice: dbAgreement.notice === 1,
+    active: dbAgreement.active === 1,
+    created: dbAgreement.created,
+    last_updated: dbAgreement.last_updated,
+    cancelled: dbAgreement.cancelled,
+  };
+};
+
 const jsDBmapping = [
   ["id", "ID"],
   ["full_name", "full_name"],
@@ -746,6 +798,8 @@ export const avtalegiroagreements = {
   replaceDistribution,
   remove,
   exists,
+  getActiveAgreements,
+  getByID,
   getByKID,
   getByDonorId,
   getAgreementSumHistogram,

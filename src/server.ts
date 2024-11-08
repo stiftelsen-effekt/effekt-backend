@@ -25,6 +25,7 @@ import errorHandler from "./handlers/errorHandler";
 import { importRouter } from "./routes/import";
 import { resultsRouter } from "./routes/results";
 import { tidbytRouter } from "./routes/tidbyt";
+import { inflationRouter } from "./routes/inflation";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -152,6 +153,7 @@ DAO.connect(() => {
   const autoGiroRoute = require("./routes/autogiro");
   const taxRoute = require("./routes/tax");
   const tidbytRoute = tidbytRouter;
+  const inflationRoute = inflationRouter;
 
   app.use("/donors", donorsRoute);
   app.use("/donations", donationsRoute);
@@ -175,6 +177,7 @@ DAO.connect(() => {
   app.use("/import", importRouter);
   app.use("/results", resultsRouter);
   app.use("/tidbyt", tidbytRoute);
+  app.use("/inflation", inflationRoute);
 
   app.use("/static", express.static(__dirname + "/static"));
   app.use("/style", express.static(__dirname + "/views/style"));
