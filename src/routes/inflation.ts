@@ -16,7 +16,13 @@ inflationRouter.get("/agreement-update/:token", async (req, res, next) => {
       return res.redirect(302, `${config.frontend_url}/${config.inflation_adjustment_error_slug}`);
     }
 
-    if (adjustment.status !== "pending") {
+    if (adjustment.status === "accepted") {
+      // Already accepted
+      return res.redirect(
+        302,
+        `${config.frontend_url}/${config.inflation_adjustment_success_slug}`,
+      );
+    } else if (adjustment.status !== "pending") {
       console.error(`Adjustment is not pending, but ${adjustment.status}`);
       return res.redirect(302, `${config.frontend_url}/${config.inflation_adjustment_error_slug}`);
     }
