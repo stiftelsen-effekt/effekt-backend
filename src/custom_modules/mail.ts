@@ -1074,10 +1074,10 @@ export async function sendAgreementInflationAdjustment(
     });
 
     await sendTemplate({
-      to: "hakon.harnes@effektivaltruisme.no", //donor.email,
+      to: donor.email,
       templateId: config.mailersend_inflation_adjustment_template_id,
       personalization: {
-        firstName: donor.name,
+        firstName: donor.name.split(" ")[0] ?? "",
         organizations: formattedOrganizations,
         totalDonated: formatCurrency(totalDonationSum) + " kr",
         // Format in local norwegian year and written out month
