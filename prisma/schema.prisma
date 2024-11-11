@@ -73,6 +73,8 @@ model Avtalegiro_agreements {
 
   // If we delete a distribution there should be no agreements with that distribution. Therefore we restrict on deletion of a distribution.
   Distributions Distributions @relation(fields: [KID], references: [KID], onDelete: Restrict, map: "fk_Avtalegiro_agreements_to_Distributions_idx")
+
+  Recurring_agreement_stopped Recurring_agreement_stopped[]
 }
 
 model Avtalegiro_conversion_reminders {
@@ -103,6 +105,8 @@ model AutoGiro_agreements {
   cancelled    DateTime? @db.Date
 
   mandate AutoGiro_mandates @relation(fields: [mandateID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+
+  Recurring_agreement_stopped Recurring_agreement_stopped[]
 }
 
 model AutoGiro_shipments {
@@ -144,6 +148,28 @@ model AutoGiro_mandates {
   KID String @unique @db.VarChar(16) // This binds mandates to both donor and tax units (SSN)
 
   agreements AutoGiro_agreements?
+}
+
+model Recurring_agreement_stopped_reasons {
+  ID   Int    @id @default(autoincrement())
+  name String @unique @db.VarChar(45)
+
+  Recurring_agreement_stopped Recurring_agreement_stopped[]
+}
+
+model Recurring_agreement_stopped {
+  ID                    Int       @id @default(autoincrement())
+  avtalegiroAgreementID Int?      @db.Int
+  autoGiroAgreementID   Int?      @db.Int
+  vippsAgreementID      String?   @db.VarChar(20)
+  reasonID              Int
+  timestamp             DateTime? @default(now()) @db.DateTime(0)
+  last_updated          DateTime? @default(now()) @db.DateTime(0)
+
+  reason     Recurring_agreement_stopped_reasons @relation(fields: [reasonID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+  avtalegiro Avtalegiro_agreements?              @relation(fields: [avtalegiroAgreementID], references: [ID], onDelete: SetNull, onUpdate: Cascade)
+  autoGiro   AutoGiro_agreements?                @relation(fields: [autoGiroAgreementID], references: [ID], onDelete: SetNull, onUpdate: Cascade)
+  vipps      Vipps_agreements?                   @relation(fields: [vippsAgreementID], references: [ID], onDelete: SetNull, onUpdate: Cascade)
 }
 
 model Distributions {
@@ -562,7 +588,8 @@ model Vipps_agreements {
   Donors                  Donors                    @relation(fields: [donorID], references: [ID], onDelete: Cascade, map: "FK_donorID")
 
   // We don't allow deletion of a distribution with an associated vipps agreement. If we delete a distribution we should not have any vipps agreements with that distribution.
-  Distributions Distributions @relation(fields: [KID], references: [KID], onDelete: Cascade, map: "FK_KID")
+  Distributions               Distributions                 @relation(fields: [KID], references: [KID], onDelete: Cascade, map: "FK_KID")
+  Recurring_agreement_stopped Recurring_agreement_stopped[]
 
   @@index([KID], map: "KID_idx")
   @@index([donorID], map: "donorID_idx")
