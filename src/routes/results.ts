@@ -377,18 +377,32 @@ resultsRouter.get("/donations/monthly/outputs", async (req, res, next) => {
             ],
           });
         } else {
-          result[outputIndex].monthly[periodIndex].organizations.push({
-            [org]: {
-              direct: {
-                sum: 0,
-                numberOfOutputs: 0,
+          // Check if org is already in the organizations array
+          if (!result[outputIndex].monthly[periodIndex].organizations.find((o) => o[org])) {
+            result[outputIndex].monthly[periodIndex].organizations.push({
+              [org]: {
+                direct: {
+                  sum: 0,
+                  numberOfOutputs: 0,
+                },
+                smartDistribution: {
+                  sum: total * shareOfAllotment,
+                  numberOfOutputs: sumInCents / centsPerOutput,
+                },
               },
-              smartDistribution: {
-                sum: total * shareOfAllotment,
-                numberOfOutputs: sumInCents / centsPerOutput,
-              },
-            },
-          });
+            });
+          } else {
+            // Update totals
+            const orgIndex = result[outputIndex].monthly[periodIndex].organizations.findIndex(
+              (o) => o[org],
+            );
+            result[outputIndex].monthly[periodIndex].organizations[orgIndex][
+              org
+            ].smartDistribution.sum += total * shareOfAllotment;
+            result[outputIndex].monthly[periodIndex].organizations[orgIndex][
+              org
+            ].smartDistribution.numberOfOutputs += sumInCents / centsPerOutput;
+          }
           result[outputIndex].monthly[periodIndex].numberOfOutputs += sumInCents / centsPerOutput;
         }
       }
