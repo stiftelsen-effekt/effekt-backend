@@ -44,9 +44,17 @@ adoveoReportRouter.post("/fundraiser/:id", isAdmin, async (req, res, next) => {
   });
 });
 
-adoveoReportRouter.post("/giftcards", isAdmin, async (req, res, next) => {
-  const report = req.files.report;
+adoveoReportRouter.post("/giftcards/:id", isAdmin, async (req, res, next) => {
+  const giftcardId = req.params.id;
+  if (!giftcardId) {
+    return res.status(400).json({
+      status: 400,
+      message: "Missing fundraiserId",
+    });
+  }
+  const parsedGiftcardId = parseInt(giftcardId);
 
+  const report = req.files.report;
   if (!report) {
     return res.status(400).json({
       status: 400,
@@ -61,7 +69,7 @@ adoveoReportRouter.post("/giftcards", isAdmin, async (req, res, next) => {
     });
   }
 
-  const result = await processGiftCardsReport(report.data);
+  const result = await processGiftCardsReport(report.data, parsedGiftcardId);
 
   res.json({
     status: 200,

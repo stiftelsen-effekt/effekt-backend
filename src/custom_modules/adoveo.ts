@@ -239,32 +239,24 @@ async function addFundraiserRecord({
   }
 }
 
-export async function processGiftCardsReport(report: Buffer) {
+export async function processGiftCardsReport(report: Buffer, giftcardId: number) {
+  /**
+   * Get giftcard and shares, and validate the data
+   */
+  const giftcard = await DAO.adoveo.getGiftcardByID(giftcardId);
+  if (!giftcard) {
+    throw new Error("Giftcard not found");
+  }
+  const shares = await DAO.adoveo.getGiftcardOrgShares(giftcardId);
+
+  const causeAreasInput = await mapPureOrgSharesToDistributionInputCauseAreas(
+    shares.map((s) => ({ orgId: s.Org_ID, percentageShare: parseFloat(s.Share) })),
+  );
+
   /**
    * Parse report
    */
   const data = parseGiftCardsReport(report);
-
-  /**
-   * Get standard cause areas with organizations
-   */
-  let causeAreas = await DAO.causeareas.getActiveWithOrganizations();
-  if (!causeAreas.length) {
-    throw new Error("No active cause areas");
-  }
-  const causeAreasInput: DistributionInput["causeAreas"] = causeAreas
-    .filter((causeArea) => causeArea.standardPercentageShare > 0)
-    .map((c) => ({
-      id: c.id,
-      percentageShare: c.standardPercentageShare.toString(),
-      standardSplit: true,
-      organizations: c.organizations
-        .filter((o) => o.standardShare > 0)
-        .map((o) => ({
-          id: o.id,
-          percentageShare: o.standardShare.toString(),
-        })),
-    }));
 
   const processResult = {
     addedTransactions: 0,
@@ -278,6 +270,7 @@ export async function processGiftCardsReport(report: Buffer) {
    */
   for (let row of data) {
     const result = await addGiftcardRecord({
+      giftcardId,
       row,
       causeAreas: causeAreasInput,
     });
@@ -295,9 +288,11 @@ export async function processGiftCardsReport(report: Buffer) {
 }
 
 async function addGiftcardRecord({
+  giftcardId,
   row,
   causeAreas,
 }: {
+  giftcardId: number;
   row: AdoveoGiftCardsTransactionReportRow;
   causeAreas: DistributionInput["causeAreas"];
 }): Promise<{
@@ -317,10 +312,7 @@ async function addGiftcardRecord({
 
   console.log("Processing row", row);
 
-  // To prevent duplicate entries, we check if the transaction already exists
-  // We get no unique identifier from Adoveo, so we have to use a hash of the fields
   const hashString = getGiftcardRowHash(row);
-
   console.log("Hash", hashString);
 
   /**
@@ -344,23 +336,21 @@ async function addGiftcardRecord({
   try {
     const existingTransaction = await DAO.adoveo.getGiftcardTransactionByHash(hashString);
     if (!existingTransaction) {
-      /**
-       * Scenario 1 and 2
-       */
       console.log("Transaction does not exist");
 
       const newTransaction: Omit<Adoveo_giftcard_transactions, "ID" | "Last_updated" | "Created"> =
         {
-          Sum: row.amount as any,
+          Giftcard_ID: giftcardId, // Add the giftcard ID
           Donation_ID: null,
+          Sum: row.amount as any,
           Timestamp: getTimestamp(row),
+          Sender_donor_ID: null,
           Sender_email: row.senderEmail,
           Sender_phone: row.senderPhone,
           Sender_name: row.senderName,
-          Sender_donor_ID: null,
+          Receiver_donor_ID: null,
           Receiver_name: row.receiverName,
           Receiver_phone: row.receiverPhone,
-          Receiver_donor_ID: null,
           Message: row.message,
           Status: row.status,
           Location: row.location,
@@ -369,16 +359,12 @@ async function addGiftcardRecord({
         };
 
       const transactionid = await DAO.adoveo.addGiftcardTransaction(newTransaction);
-
       result.addedTransaction = true;
 
       const transaction = await DAO.adoveo.getGiftcardTransactionByID(transactionid);
       console.log("Added transaction", transaction);
 
       if (row.status === "SALE") {
-        /**
-         * Scenario 1
-         */
         console.log("Status is sale, adding donation");
         const donationId = await addDonation(
           row,
@@ -391,9 +377,6 @@ async function addGiftcardRecord({
         result.success = true;
         return result;
       } else {
-        /**
-         * Scenario 2
-         */
         result.success = true;
         return result;
       }
@@ -535,7 +518,7 @@ async function addDonation(
   );
 
   try {
-    await sendDonationReceipt(donationId);
+    //await sendDonationReceipt(donationId);
   } catch (error) {
     console.error("Failed to send donation receipt for " + donationId);
     console.error(error);

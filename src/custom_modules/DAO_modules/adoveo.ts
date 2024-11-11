@@ -1,7 +1,9 @@
 import {
+  Adoveo_giftcard,
   Adoveo_fundraiser,
   Adoveo_fundraiser_org_shares,
   Adoveo_fundraiser_transactions,
+  Adoveo_giftcard_org_shares,
   Adoveo_giftcard_transactions,
 } from "@prisma/client";
 import { DAO } from "../DAO";
@@ -130,35 +132,6 @@ export const adoveo = {
     );
     return transaction?.[0];
   },
-  addGiftcardTransaction: async function (
-    transaction: Omit<Adoveo_giftcard_transactions, "ID" | "Created" | "Last_updated">,
-  ) {
-    const [result] = await DAO.query(
-      `
-            INSERT INTO Adoveo_giftcard_transactions (Donation_ID, Sum, Timestamp, Sender_donor_ID, Sender_name, Sender_email, Sender_phone, Receiver_donor_ID, Receiver_name, Receiver_phone, Message, Status, Location, CouponSend, Hash)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        `,
-      [
-        transaction.Donation_ID,
-        transaction.Sum,
-        transaction.Timestamp,
-        transaction.Sender_donor_ID,
-        transaction.Sender_name,
-        transaction.Sender_email,
-        transaction.Sender_phone,
-        transaction.Receiver_donor_ID,
-        transaction.Receiver_name,
-        transaction.Receiver_phone,
-        transaction.Message,
-        transaction.Status,
-        transaction.Location,
-        transaction.CouponSend,
-        transaction.Hash,
-      ],
-    );
-
-    return result.insertId;
-  },
   updateGiftcardTransactionStatus: async function (
     id: Adoveo_giftcard_transactions["ID"],
     status: string,
@@ -180,5 +153,86 @@ export const adoveo = {
         `,
       [donationId, id],
     );
+  },
+  getGiftcardByID: async function (id: Adoveo_giftcard["ID"]) {
+    const [giftcard] = await DAO.query<Adoveo_giftcard[]>(
+      `
+            SELECT * FROM Adoveo_giftcard WHERE ID = ?
+        `,
+      [id],
+    );
+    return giftcard?.[0];
+  },
+
+  addGiftcard: async function (giftcard: Omit<Adoveo_giftcard, "ID" | "Created" | "Last_updated">) {
+    const [result] = await DAO.query(
+      `
+            INSERT INTO Adoveo_giftcard (Name)
+        `,
+      [giftcard.Name],
+    );
+
+    return result.insertId;
+  },
+
+  getGiftcardOrgShares: async function (giftcardId: Adoveo_giftcard["ID"]) {
+    const [shares] = await DAO.query<Adoveo_giftcard_org_shares[]>(
+      `
+            SELECT * FROM Adoveo_giftcard_org_shares WHERE Giftcard_ID = ?
+        `,
+      [giftcardId],
+    );
+    return shares;
+  },
+
+  addGiftcardOrgShare: async function (
+    share: Omit<Adoveo_giftcard_org_shares, "ID" | "Created" | "Last_updated">,
+  ) {
+    const [result] = await DAO.query(
+      `
+            INSERT INTO Adoveo_giftcard_org_shares (Giftcard_ID, Org_ID, Share, Standard_split)
+            VALUES (?, ?, ?, ?)
+        `,
+      [share.Giftcard_ID, share.Org_ID, share.Share, share.Standard_split],
+    );
+
+    return result.insertId;
+  },
+
+  // Update the existing addGiftcardTransaction function to include Giftcard_ID
+  addGiftcardTransaction: async function (
+    transaction: Omit<Adoveo_giftcard_transactions, "ID" | "Created" | "Last_updated">,
+  ) {
+    const [result] = await DAO.query(
+      `
+            INSERT INTO Adoveo_giftcard_transactions (
+              Donation_ID, Giftcard_ID, Sum, Timestamp, 
+              Sender_donor_ID, Sender_name, Sender_email, Sender_phone, 
+              Receiver_donor_ID, Receiver_name, Receiver_phone, 
+              Message, Status, Location, CouponSend, Hash
+            )
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        `,
+      [
+        transaction.Donation_ID,
+        transaction.Giftcard_ID,
+        transaction.Sum,
+        transaction.Timestamp,
+        transaction.Sender_donor_ID,
+        transaction.Sender_name,
+        transaction.Sender_email,
+        transaction.Sender_phone,
+        transaction.Receiver_donor_ID,
+        transaction.Receiver_name,
+        transaction.Receiver_phone,
+        transaction.Message,
+        transaction.Status,
+        transaction.Location,
+        transaction.CouponSend,
+        transaction.Hash,
+      ],
+    );
+
+    return result.insertId;
   },
 };

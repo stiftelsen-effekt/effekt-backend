@@ -40,6 +40,7 @@ model Organizations {
   Cause_areas                           Cause_areas                             @relation(fields: [cause_area_ID], references: [ID], onDelete: Cascade, map: "fk_Organizations_to_Cause_areas_idx")
   Distribution_cause_area_organizations Distribution_cause_area_organizations[]
   Adoveo_fundraiser_org_shares          Adoveo_fundraiser_org_shares[]
+  Adoveo_giftcard_org_shares            Adoveo_giftcard_org_shares[]
 }
 
 model AvtaleGiro_replaced_distributions {
@@ -389,9 +390,35 @@ model Adoveo_fundraiser_transactions {
   Donations  Donations?        @relation(fields: [Donation_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_fundraiser_transactions_donationid")
 }
 
+model Adoveo_giftcard {
+  ID   Int    @id @default(autoincrement())
+  Name String @db.VarChar(45)
+
+  Created      DateTime @default(now()) @db.DateTime(0)
+  Last_updated DateTime @default(now()) @db.DateTime(0)
+
+  Adoveo_giftcard_org_shares   Adoveo_giftcard_org_shares[]
+  Adoveo_giftcard_transactions Adoveo_giftcard_transactions[]
+}
+
+model Adoveo_giftcard_org_shares {
+  ID             Int      @id @default(autoincrement())
+  Giftcard_ID    Int
+  Org_ID         Int
+  Share          Decimal  @db.Decimal(18, 15)
+  Standard_split Boolean?
+
+  Created      DateTime @default(now()) @db.DateTime(0)
+  Last_updated DateTime @default(now()) @db.DateTime(0)
+
+  Giftcard      Adoveo_giftcard @relation(fields: [Giftcard_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "FK_Adoveo_giftcard_org_shares_giftcardid")
+  Organizations Organizations   @relation(fields: [Org_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "FK_Adoveo_giftcard_org_shares_orgid")
+}
+
 model Adoveo_giftcard_transactions {
   ID                Int      @id @default(autoincrement())
   Donation_ID       Int?     @unique(map: "Donation_ID_UNIQUE")
+  Giftcard_ID       Int
   Sum               Decimal  @db.Decimal(15, 2)
   Timestamp         DateTime @db.DateTime(0)
   Sender_donor_ID   Int?     @db.Int
@@ -411,10 +438,10 @@ model Adoveo_giftcard_transactions {
   Created      DateTime @default(now()) @db.DateTime(0)
   Last_updated DateTime @default(now()) @db.DateTime(0)
 
-  Donations Donations? @relation(fields: [Donation_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_giftcard_transactions_donationid")
-
-  SenderDonor   Donors? @relation(name: "senderDonor", fields: [Sender_donor_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_giftcard_transactions_sender_donorid")
-  ReceiverDonor Donors? @relation(name: "receiverDonor", fields: [Receiver_donor_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_giftcard_transactions_receiver_donorid")
+  Donations       Donations?      @relation(fields: [Donation_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_giftcard_transactions_donationid")
+  Adoveo_giftcard Adoveo_giftcard @relation(fields: [Giftcard_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "FK_Adoveo_giftcard_transactions_giftcardid")
+  SenderDonor     Donors?         @relation(name: "senderDonor", fields: [Sender_donor_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_giftcard_transactions_sender_donorid")
+  ReceiverDonor   Donors?         @relation(name: "receiverDonor", fields: [Receiver_donor_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_giftcard_transactions_receiver_donorid")
 }
 
 model Funds_donations {
