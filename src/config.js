@@ -33,6 +33,8 @@ module.exports = {
     process.env.MAILERSEND_AVTALEGIRO_NOTIFICATION_TEMPLATE_ID,
   mailersend_autogiro_registered_template_id:
     process.env.MAILERSEND_AUTOGIRO_REGISTERED_TEMPLATE_ID,
+  mailersend_password_reset_no_user_template_id:
+    process.env.MAILERSEND_PASSWORD_RESET_NO_USER_TEMPLATE_ID,
 
   mail_sender_from: process.env.MAIL_SENDER_FROM,
 
