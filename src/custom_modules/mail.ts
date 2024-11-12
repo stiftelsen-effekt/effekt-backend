@@ -1206,7 +1206,6 @@ export async function sendPasswordResetNoUserEmail(email: string) {
     await sendTemplate({
       to: email,
       templateId: config.mailersend_password_reset_no_user_template_id,
-      personalization: {},
     });
 
     return true;
