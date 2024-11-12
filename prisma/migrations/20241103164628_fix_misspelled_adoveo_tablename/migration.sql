@@ -58,7 +58,7 @@ BEGIN
     -- Only execute the migration if there are transactions
     IF has_transactions > 0 THEN
         -- Add default giftcard
-        INSERT INTO `Adovel_giftcard` (`Donor_ID`, `Sum`, `Timestamp`, `Status`, `Hash`) 
+        INSERT INTO `Adoveo_giftcard` (`Donor_ID`, `Sum`, `Timestamp`, `Status`, `Hash`) 
           VALUES (1, 100.00, '2024-11-03 16:22:06', '', '');
 
         -- Connect existing giftcard transactions to the default giftcard
