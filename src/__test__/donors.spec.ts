@@ -253,6 +253,7 @@ describe("donors", () => {
       const mockDonations = [
         {
           ID: 1,
+          causeAreaID: 1,
           organization: "Against Malaria Foundation",
           abbriv: "AMF",
           value: "18.000000000000000000",
@@ -260,6 +261,7 @@ describe("donors", () => {
         },
         {
           ID: 2,
+          causeAreaID: 1,
           organization: "Røde Kors",
           abbriv: "RK",
           value: "100.000000000000000000",
@@ -267,6 +269,7 @@ describe("donors", () => {
         },
         {
           ID: 45,
+          causeAreaID: 1,
           organization: "Realfagbygget",
           abbriv: "A4",
           value: "250.000000000000000000",
@@ -274,6 +277,7 @@ describe("donors", () => {
         },
         {
           ID: 11,
+          causeAreaID: 1,
           organization: "SOS Barnebyer",
           abbriv: "SOS",
           value: "250.000000000000000000",
@@ -281,6 +285,7 @@ describe("donors", () => {
         },
         {
           ID: 60,
+          causeAreaID: 1,
           organization: "Barnekreftforeningen",
           abbriv: "BKF",
           value: "390.000000000000000000",
