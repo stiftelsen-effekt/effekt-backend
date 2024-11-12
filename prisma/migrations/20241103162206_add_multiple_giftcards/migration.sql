@@ -35,14 +35,23 @@ CREATE TABLE `Adoveo_giftcard_org_shares` (
     PRIMARY KEY (`ID`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- AddForeignKey
-ALTER TABLE `Adovel_giftcard` ADD CONSTRAINT `FK_Adovel_giftcards_donorid` FOREIGN KEY (`Donor_ID`) REFERENCES `Donors`(`ID`) ON DELETE CASCADE ON UPDATE CASCADE;
+-- Add default giftcard
+INSERT INTO `Adovel_giftcard` (`Donor_ID`, `Sum`, `Timestamp`, `Status`, `Hash`) 
+  VALUES (1, 100.00, '2024-11-03 16:22:06', '', '');
+
+INSERT INTO `Adoveo_giftcard_org_shares` (`Giftcard_ID`, `Org_ID`, `Share`, `Standard_split`) 
+  VALUES (1, 12, 100, 1);
+
+-- Connect existing giftcard transactions to the default giftcard
+UPDATE `Adoveo_giftcard_transactions` SET `Giftcard_ID` = 1;
 
 -- AddForeignKey
 ALTER TABLE `Adoveo_giftcard_org_shares` ADD CONSTRAINT `FK_Adoveo_giftcard_org_shares_giftcardid` FOREIGN KEY (`Giftcard_ID`) REFERENCES `Adovel_giftcard`(`ID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Adoveo_giftcard_org_shares` ADD CONSTRAINT `FK_Adoveo_giftcard_org_shares_orgid` FOREIGN KEY (`Org_ID`) REFERENCES `Organizations`(`ID`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+
 
 -- AddForeignKey
 ALTER TABLE `Adoveo_giftcard_transactions` ADD CONSTRAINT `FK_Adoveo_giftcard_transactions_giftcardid` FOREIGN KEY (`Giftcard_ID`) REFERENCES `Adovel_giftcard`(`ID`) ON DELETE CASCADE ON UPDATE CASCADE;
