@@ -26,6 +26,7 @@ import { importRouter } from "./routes/import";
 import { resultsRouter } from "./routes/results";
 import { tidbytRouter } from "./routes/tidbyt";
 import { inflationRouter } from "./routes/inflation";
+import { agreementfeedbackRouter } from "./routes/agreementfeedback";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -154,6 +155,7 @@ DAO.connect(() => {
   const taxRoute = require("./routes/tax");
   const tidbytRoute = tidbytRouter;
   const inflationRoute = inflationRouter;
+  const agreementfeedbackRoute = agreementfeedbackRouter;
 
   app.use("/donors", donorsRoute);
   app.use("/donations", donationsRoute);
@@ -178,6 +180,7 @@ DAO.connect(() => {
   app.use("/results", resultsRouter);
   app.use("/tidbyt", tidbytRoute);
   app.use("/inflation", inflationRoute);
+  app.use("/agreementfeedback", agreementfeedbackRoute);
 
   app.use("/static", express.static(__dirname + "/static"));
   app.use("/style", express.static(__dirname + "/views/style"));
