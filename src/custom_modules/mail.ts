@@ -1203,13 +1203,10 @@ export async function sendDonorMissingTaxUnitNotice(
  */
 export async function sendPasswordResetNoUserEmail(email: string) {
   try {
-    await send({
-      reciever: email,
-      subject: `Gi Effektivt - Glemt passord`,
-      templateName: "passwordResetNoUser",
-      templateData: {
-        reusableHTML,
-      },
+    await sendTemplate({
+      to: email,
+      templateId: config.mailersend_password_reset_no_user_template_id,
+      personalization: {},
     });
 
     return true;
