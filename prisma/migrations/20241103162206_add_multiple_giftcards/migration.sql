@@ -52,8 +52,6 @@ This approach ensures we only create the default giftcard if it's actually neede
 (i.e., if there are existing transactions that need to be connected to a giftcard).
 */
 
-DELIMITER //
-
 CREATE PROCEDURE ExecuteConditionalMigration()
 BEGIN
     DECLARE has_transactions INT;
@@ -81,9 +79,7 @@ BEGIN
         UPDATE `Adoveo_giftcard_transactions` 
         SET `Giftcard_ID` = 1;
     END IF;
-END //
-
-DELIMITER ;
+END;
 
 -- Execute the procedure
 CALL ExecuteConditionalMigration();
