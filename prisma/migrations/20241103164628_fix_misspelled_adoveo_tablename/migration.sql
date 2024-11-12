@@ -4,8 +4,6 @@
   - You are about to drop the `Adovel_giftcard` table. If the table is not empty, all the data it contains will be lost.
 
 */
--- DropForeignKey
-ALTER TABLE `Adovel_giftcard` DROP FOREIGN KEY `FK_Adovel_giftcards_donorid`;
 
 -- DropForeignKey
 ALTER TABLE `Adoveo_giftcard_org_shares` DROP FOREIGN KEY `FK_Adoveo_giftcard_org_shares_giftcardid`;
