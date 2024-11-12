@@ -46,7 +46,8 @@ module.exports = {
     process.env.MAILERSEND_SANITY_SECURITY_NOTIFICATION_TEMPLATE_ID,
   mailersend_inflation_adjustment_template_id:
     process.env.MAILERSEND_INFLATION_ADJUSTMENT_TEMPLATE_ID,
-  mailersend_password_reset_template_id: process.env.MAILERSEND_PASSWORD_RESET_TEMPLATE_ID,
+  mailersend_password_reset_no_user_template_id:
+    process.env.MAILERSEND_PASSWORD_RESET_NO_USER_TEMPLATE_ID,
 
   mailersend_security_recipients: getMailersendSecurityRecipients(),
 
