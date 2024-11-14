@@ -164,13 +164,13 @@ CALL convert_to_utf8mb4();
 DROP PROCEDURE convert_to_utf8mb4;
 
 -- Now for the cases where we need to remove some foreign keys before we can change the character set
-DROP FOREIGN KEY `FK_agreementID_ID` ON `Vipps_agreement_charges`;
+ALTER TABLE `Vipps_agreement_charges` DROP FOREIGN KEY `FK_agreementID_ID`;
 
 -- Update the character set and collation for the columns
-ALTER TABLE `EffektDonasjonDB`.`Vipps_agreement_charges` 
+ALTER TABLE `Vipps_agreement_charges` 
     CHANGE COLUMN `agreementID` `agreementID` VARCHAR(20) CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci' NOT NULL;
 
-ALTER TABLE `EffektDonasjonDB`.`Vipps_agreements` 
+ALTER TABLE `Vipps_agreements` 
     CHANGE COLUMN `ID` `ID` VARCHAR(20) CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci' NOT NULL ;
 
 -- Add the foreign key back
@@ -178,10 +178,10 @@ ALTER TABLE `Vipps_agreement_charges`
     ADD CONSTRAINT `FK_agreementID_ID` FOREIGN KEY (`agreementID`) REFERENCES `Vipps_agreements`(`ID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Drop search index on Donors table
-ALTER TABLE `EffektDonasjonDB`.`Donors` DROP INDEX `search`;
+ALTER TABLE `Donors` DROP INDEX `search`;
 
 -- Update the character set and collation for the columns
-ALTER TABLE `EffektDonasjonDB`.`Donors` 
+ALTER TABLE `Donors` 
     CHANGE COLUMN `email` `email` TINYTEXT CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci' NOT NULL COMMENT 'epost registrert i donasjonsskjema,\\\\ntrigger generering av ny donor hvis den ikke eksisterer fra før' ,
     CHANGE COLUMN `full_name` `full_name` TINYTEXT CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci' NULL DEFAULT NULL ;
 
