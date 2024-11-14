@@ -19,11 +19,65 @@ export const agreementfeedback = {
     }
     const [result] = await DAO.query(
       `
-      INSERT INTO Recurring_agreement_stopped_reasons (reasonID, avtaleGiroAgreementID, autogiroAgreementID, vippsAgreementID)
+      INSERT INTO Recurring_agreement_stopped (reasonID, avtaleGiroAgreementID, autogiroAgreementID, vippsAgreementID)
       VALUES (?, ?, ?, ?)
     `,
       [reasonId, avtaleGiroAgreementId, autogiroAgreementId, vippsAgreementId],
     );
     return result.affectedRows > 0 ? result.insertId : -1;
+  },
+  async deleteStoppedAgreementReasonRecord(id: number): Promise<number> {
+    const [result] = await DAO.query(
+      `
+      DELETE FROM Recurring_agreement_stopped
+      WHERE ID = ?
+    `,
+      [id],
+    );
+    return result.affectedRows > 0 ? id : -1;
+  },
+  async getStoppedAgreementReasonRecordExists(id: number): Promise<boolean> {
+    const [result] = await DAO.query(
+      `
+      SELECT * FROM Recurring_agreement_stopped
+      WHERE ID = ?
+    `,
+      [id],
+    );
+    return result.length > 0;
+  },
+  async getStoppedAgreementReasonRecordForAgreementWithin24Hours(
+    agreementId: string,
+    reasonId: number,
+    agreementType: string,
+  ): Promise<number | null> {
+    if (agreementType === "Vipps") {
+      const [result] = await DAO.query<SqlResult<Recurring_agreement_stopped_reasons>[]>(
+        `
+      SELECT ID FROM Recurring_agreement_stopped
+      WHERE vippsAgreementID = ? AND timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND reasonID = ?
+    `,
+        [agreementId, reasonId],
+      );
+      return result.length > 0 ? result[0].ID : null;
+    } else if (agreementType === "AvtaleGiro") {
+      const [result] = await DAO.query<SqlResult<Recurring_agreement_stopped_reasons>[]>(
+        `
+      SELECT ID FROM Recurring_agreement_stopped
+      WHERE avtalegiroAgreementID = ? AND timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND reasonID = ?
+    `,
+        [agreementId, reasonId],
+      );
+      return result.length > 0 ? result[0].ID : null;
+    } else if (agreementType === "AutoGiro") {
+      const [result] = await DAO.query<SqlResult<Recurring_agreement_stopped_reasons>[]>(
+        `
+      SELECT ID FROM Recurring_agreement_stopped
+      WHERE autoGiroAgreementID = ? AND timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND reasonID = ?
+    `,
+        [agreementId, reasonId],
+      );
+      return result.length > 0 ? result[0].ID : null;
+    }
   },
 };
