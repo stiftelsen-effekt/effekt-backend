@@ -8,4 +8,4 @@ DROP INDEX `search` ON `Donors`;
 CREATE INDEX `full_name` ON `Donors`(`full_name`(63));
 
 -- CreateIndex
-CREATE INDEX `search` ON `Donors`(`email`(63), `full_name`(63));
+CREATE FULLTEXT INDEX `search` ON `Donors`(`email`(63), `full_name`(63));

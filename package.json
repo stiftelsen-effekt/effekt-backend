@@ -16,6 +16,7 @@
     "debug": "cross-env NODEMON=true nodemon --exec 'node --inspect=0.0.0.0:9229 --require ts-node/register src/server.ts'",
     "generate-types-from-schema": "cd src && openapi-typescript \"specs/**/*.yaml\" --output schemas/",
     "generate-test-data": "ts-node prisma/fakedata/addFakeDataScript.ts",
+    "clean-test-data": "ts-node prisma/fakedata/cleanFakeDataScript.ts",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "prepare": "husky install",
