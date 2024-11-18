@@ -229,25 +229,20 @@ export async function getAllInflationEligibleAgreements() {
   // Now loop over all new adjustments and send emails to donors
   const newAdjustments = await DAO.inflationadjustments.getAllNew();
 
-  // Pick a random adjustment to send email for, while testing
-  const eliseAgreementId = "agr_QzQAYWw";
-  const eliseAdjustmendIndex = newAdjustments.findIndex(
-    (adjustment) => adjustment.agreement_ID === eliseAgreementId,
-  );
-  if (eliseAdjustmendIndex !== -1) {
-    const eliseAdjustment = newAdjustments[eliseAdjustmendIndex];
-    await sendAgreementInflationAdjustment(eliseAdjustment);
-    // Set adjustmemt to "pending"
-    await DAO.inflationadjustments.setPending(eliseAdjustment.ID);
-  } else {
-    console.error("Elise agreement not found");
-  }
-  /*
-  for (const adjustment of newAdjustments) {
+  // Get a selection of 10 random adjustments
+  const randomNewAdjustments = newAdjustments.sort(() => 0.5 - Math.random()).slice(0, 10);
+
+  console.log(randomNewAdjustments);
+
+  for (const adjustment of randomNewAdjustments) {
     // Send email to donor
-    await sendAgreementInflationAdjustment(adjustment);
+    try {
+      await sendAgreementInflationAdjustment(adjustment);
+      await DAO.inflationadjustments.setPending(adjustment.ID);
+    } catch (e) {
+      console.error("Failed to send email", e);
+    }
   }
-  */
 
   return eligibleAgreements;
 }
