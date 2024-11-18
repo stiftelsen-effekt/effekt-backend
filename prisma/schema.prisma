@@ -152,8 +152,10 @@ model AutoGiro_mandates {
 }
 
 model Recurring_agreement_stopped_reasons {
-  ID   Int    @id @default(autoincrement())
-  name String @unique @db.VarChar(45)
+  ID      Int     @id @default(autoincrement())
+  name    String  @unique @db.VarChar(45)
+  isOther Boolean @default(false)
+  order   Int     @default(99)
 
   Recurring_agreement_stopped Recurring_agreement_stopped[]
 }
@@ -164,6 +166,7 @@ model Recurring_agreement_stopped {
   autoGiroAgreementID   Int?      @db.Int
   vippsAgreementID      String?   @db.VarChar(20)
   reasonID              Int
+  otherComment          String?   @db.Text
   timestamp             DateTime? @default(now()) @db.DateTime(0)
   last_updated          DateTime? @default(now()) @db.DateTime(0)
 

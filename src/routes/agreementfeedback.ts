@@ -26,10 +26,11 @@ agreementfeedbackRouter.post(
   },
   async (req, res, next) => {
     try {
-      const { reasonId, agreementId, agreementType } = req.body as {
+      const { reasonId, agreementId, agreementType, otherComment } = req.body as {
         reasonId: number;
         agreementId: string;
         agreementType: "Vipps" | "AvtaleGiro" | "AutoGiro";
+        otherComment?: string;
       };
 
       let avtaleGiroAgreementId: number | null = null;
@@ -47,6 +48,14 @@ agreementfeedbackRouter.post(
           vippsAgreementId = agreementId;
           break;
       }
+
+      const reason = await DAO.agreementfeedback.getStoppedAgreementReasonById(reasonId);
+
+      if (!reason) {
+        res.status(400).json({ message: "Invalid reason id" });
+        return;
+      }
+
       let recordId =
         await DAO.agreementfeedback.getStoppedAgreementReasonRecordForAgreementWithin24Hours(
           agreementId,
@@ -60,6 +69,16 @@ agreementfeedbackRouter.post(
           avtaleGiroAgreementId,
           autogiroAgreementId,
           vippsAgreementId,
+          otherComment || null,
+        );
+      } else if (reason.isOther) {
+        await DAO.agreementfeedback.updateStoppedAgreementReasonRecord(
+          recordId,
+          reasonId,
+          avtaleGiroAgreementId,
+          autogiroAgreementId,
+          vippsAgreementId,
+          otherComment || null,
         );
       }
 
