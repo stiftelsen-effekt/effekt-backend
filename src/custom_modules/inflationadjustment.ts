@@ -27,6 +27,7 @@ interface AgreementWithInflationData extends BaseAgreement {
 const MINIMUM_INCREASE_NOK = 10;
 const MINIMUM_INFLATION_PERCENTAGE = 0.05;
 const MINIMUM_MONTHS_SINCE_UPDATE = 12;
+const ANON_DONOR_ID = 1464;
 
 const inflationYearMonthCache = new Map<string, number>();
 
@@ -153,6 +154,8 @@ export async function getAllInflationEligibleAgreements() {
 
   // Process AvtaleGiro agreements
   for (const agreement of avtaleGiroAgreements) {
+    let donor = await DAO.donors.getByKID(agreement.KID);
+    if (donor.id === ANON_DONOR_ID) continue; // Skip anonymous donors
     const eligible = await isEligibleForAdjustment(
       {
         ...agreement,
@@ -168,6 +171,8 @@ export async function getAllInflationEligibleAgreements() {
 
   // Process AutoGiro agreements
   for (const agreement of autoGiroAgreements) {
+    let donor = await DAO.donors.getByKID(agreement.KID);
+    if (donor.id === ANON_DONOR_ID) continue; // Skip anonymous donors
     const eligible = await isEligibleForAdjustment(
       {
         ...agreement,
@@ -183,6 +188,7 @@ export async function getAllInflationEligibleAgreements() {
 
   // Process Vipps agreements
   for (const agreement of vippsAgreements) {
+    if (agreement.donorID === ANON_DONOR_ID) continue; // Skip anonymous donors
     const eligible = await isEligibleForAdjustment(
       {
         ...mapVippsAgreement(agreement),
@@ -231,8 +237,6 @@ export async function getAllInflationEligibleAgreements() {
 
   // Get a selection of 10 random adjustments
   const randomNewAdjustments = newAdjustments.sort(() => 0.5 - Math.random()).slice(0, 10);
-
-  console.log(randomNewAdjustments);
 
   for (const adjustment of randomNewAdjustments) {
     // Send email to donor
