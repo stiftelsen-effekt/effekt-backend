@@ -5,7 +5,7 @@ export const agreementfeedback = {
   async getAllStoppedAgreementReasons(): Promise<Recurring_agreement_stopped_reasons[]> {
     const [result] = await DAO.query<SqlResult<Recurring_agreement_stopped_reasons>[]>(`
       SELECT * FROM Recurring_agreement_stopped_reasons
-      ORDER BY \`order\` DESC
+      ORDER BY \`order\` ASC
     `);
     return result.map(mapStoppedReason);
   },
