@@ -1,8 +1,30 @@
 import { Router } from "express";
-import { processFundraisingReport, processGiftCardsReport } from "../../custom_modules/adoveo";
+import {
+  processFundraisingCrawler,
+  processFundraisingReport,
+  processGiftCardsReport,
+} from "../../custom_modules/adoveo";
 import { isAdmin } from "../../custom_modules/authorization/authMiddleware";
 
 export const adoveoReportRouter = Router();
+
+adoveoReportRouter.post("/fundraiser/crawler", isAdmin, async (req, res, next) => {
+  if (!req.body.token) {
+    return res.status(400).json({
+      status: 400,
+      message: "Missing adoveo token",
+    });
+  }
+
+  const token = req.body.token;
+
+  await processFundraisingCrawler(token);
+
+  res.json({
+    status: 200,
+    message: "Crawler completed",
+  });
+});
 
 adoveoReportRouter.post("/fundraiser/:id", isAdmin, async (req, res, next) => {
   const fundraiserId = req.params.id;

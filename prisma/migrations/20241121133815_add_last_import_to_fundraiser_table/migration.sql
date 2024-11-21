@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Adoveo_fundraiser` ADD COLUMN `Last_import` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0);

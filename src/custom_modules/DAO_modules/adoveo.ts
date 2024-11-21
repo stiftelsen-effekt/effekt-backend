@@ -7,6 +7,7 @@ import {
   Adoveo_giftcard_transactions,
 } from "@prisma/client";
 import { DAO } from "../DAO";
+import { DateTime } from "luxon";
 
 export const adoveo = {
   getFundraiserByID: async function (id: Adoveo_fundraiser["ID"]) {
@@ -15,6 +16,15 @@ export const adoveo = {
             SELECT * FROM Adoveo_fundraiser WHERE ID = ?
         `,
       [id],
+    );
+    return fundraiser?.[0];
+  },
+  getFundraiserByAdoveoID: async function (adoveoId: Adoveo_fundraiser["Adoveo_ID"]) {
+    const [fundraiser] = await DAO.query<Adoveo_fundraiser[]>(
+      `
+            SELECT * FROM Adoveo_fundraiser WHERE Adoveo_ID = ?
+        `,
+      [adoveoId],
     );
     return fundraiser?.[0];
   },
@@ -112,6 +122,14 @@ export const adoveo = {
             UPDATE Adoveo_fundraiser_transactions SET Donation_ID = ? WHERE ID = ?
         `,
       [donationId, id],
+    );
+  },
+  updateFundraiserLastImport: async function (id: Adoveo_fundraiser["ID"], lastImport: DateTime) {
+    await DAO.query(
+      `
+            UPDATE Adoveo_fundraiser SET Last_import = ? WHERE ID = ?
+        `,
+      [lastImport.toJSDate(), id],
     );
   },
   getGiftcardTransactionByID: async function (id: Adoveo_giftcard_transactions["ID"]) {

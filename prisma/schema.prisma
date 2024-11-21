@@ -348,9 +348,11 @@ model LegacySeDistributionConnection {
 }
 
 model Adoveo_fundraiser {
-  ID       Int    @id @default(autoincrement())
-  Donor_ID Int?
-  Name     String @db.VarChar(45)
+  ID          Int       @id @default(autoincrement())
+  Donor_ID    Int?
+  Name        String    @db.VarChar(45)
+  Adoveo_ID   Int?      @unique
+  Last_import DateTime? @default(now()) @db.DateTime(0)
 
   Created      DateTime @default(now()) @db.DateTime(0)
   Last_updated DateTime @default(now()) @db.DateTime(0)
