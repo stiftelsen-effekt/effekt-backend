@@ -31,6 +31,19 @@ resultsRouter.get("/referrals/sums", async (req, res, next) => {
   }
 });
 
+resultsRouter.get("/headline", async (req, res, next) => {
+  try {
+    let headline = await DAO.results.getHeadlineFigures();
+
+    res.json({
+      status: 200,
+      content: headline,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 type MonthlyDonationsPerOrgResult = {
   output: string;
   total: AggregatedOrgResult;
