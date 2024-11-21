@@ -642,7 +642,7 @@ async function addDonation(
   );
 
   try {
-    //await sendDonationReceipt(donationId);
+    await sendDonationReceipt(donationId);
   } catch (error) {
     console.error("Failed to send donation receipt for " + donationId);
     console.error(error);
