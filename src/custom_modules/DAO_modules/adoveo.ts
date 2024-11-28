@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 import { DAO } from "../DAO";
 import { DateTime } from "luxon";
+import { escape } from "mysql2";
 
 export const adoveo = {
   getFundraiserByID: async function (id: Adoveo_fundraiser["ID"]) {
@@ -27,6 +28,27 @@ export const adoveo = {
       [adoveoId],
     );
     return fundraiser?.[0];
+  },
+  getFundraiserDonationSumsByIDs: async function (ids: Adoveo_fundraiser["ID"][]) {
+    const unionClauses = ids
+      .map(escape)
+      .map((id) => `SELECT ${id} as Fundraiser_ID`)
+      .join(" UNION ALL ");
+
+    const [sums] = await DAO.query<{ Fundraiser_ID: Adoveo_fundraiser["ID"]; Sum: number }[]>(
+      `
+      SELECT id.Fundraiser_ID,
+             COALESCE(sum(D.sum_confirmed), 0) as Sum
+      FROM (${unionClauses}) as id
+      LEFT JOIN Adoveo_fundraiser_transactions F ON id.Fundraiser_ID = F.Fundraiser_ID
+      LEFT JOIN Donations D ON F.Donation_ID = D.ID
+      GROUP BY id.Fundraiser_ID
+      ORDER BY id.Fundraiser_ID;
+    `,
+      [],
+    );
+
+    return sums.map(({ Fundraiser_ID, Sum }) => ({ fundraiserId: Fundraiser_ID, sum: Sum || 0 }));
   },
   addFundraiser: async function (fundraiser: Omit<Adoveo_fundraiser, "ID">) {
     const [result] = await DAO.query(
@@ -224,9 +246,9 @@ export const adoveo = {
     const [result] = await DAO.query(
       `
             INSERT INTO Adoveo_giftcard_transactions (
-              Donation_ID, Giftcard_ID, Sum, Timestamp, 
-              Sender_donor_ID, Sender_name, Sender_email, Sender_phone, 
-              Receiver_donor_ID, Receiver_name, Receiver_phone, 
+              Donation_ID, Giftcard_ID, Sum, Timestamp,
+              Sender_donor_ID, Sender_name, Sender_email, Sender_phone,
+              Receiver_donor_ID, Receiver_name, Receiver_phone,
               Message, Status, Location, CouponSend, Hash
             )
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
