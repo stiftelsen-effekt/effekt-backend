@@ -561,7 +561,7 @@ async function fetchAdoveoTransactions(token: string, adoveoId: number, lastImpo
     .filter((transaction) => transaction.Status === "SALE" || transaction.Status === "RESERVED")
     .map<AdoveoFundraiserTransactionReportRow>((transaction) => ({
       date: transaction.Created,
-      senderName: transaction.Name,
+      senderName: transaction.Name || "",
       senderEmail: transaction.Email || "adoveo+unknown@gieffektivt.no",
       senderPhone: transaction.Telephone,
       amount: transaction.Amount,
