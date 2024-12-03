@@ -685,6 +685,7 @@ export const autogiroagreements = {
               OR (CH.status = "PENDING" AND AG.cancelled IS NOT NULL)
             )
             AND CH.status = "PENDING"
+            AND claim_date > NOW()
       `);
 
     return result.map(mapChargeToBeAmended);
