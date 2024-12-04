@@ -6,7 +6,7 @@ export type AdoveoFundraiserTransactionReportRow = {
   senderEmail: string;
   senderPhone: string;
   amount: string;
-  status: "SALE" | "RESERVED";
+  status: "SALE" | "RESERVED" | "PAID";
   location: string;
 };
 
@@ -93,7 +93,7 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
         row[field] = "adoveo+unknown@gieffektivt.no";
       }
     }
-    if (row.status !== "SALE" && row.status !== "RESERVED") {
+    if (row.status !== "SALE" && row.status !== "RESERVED" && row.status !== "PAID") {
       console.error("Parsing adoveo transactions failed. Unknown status " + row.status);
       throw new Error("Parsing adoveo transactions failed. Unknown status " + row.status);
     }
@@ -111,7 +111,7 @@ export type AdoveoGiftCardsTransactionReportRow = {
   receiverPhone: string;
   message: string;
   amount: string;
-  status: "SALE" | "RESERVED";
+  status: "SALE" | "RESERVED" | "PAID";
   location: string;
   couponSend: string;
 };
@@ -212,7 +212,7 @@ export const parseGiftCardsReport = (report): AdoveoGiftCardsTransactionReportRo
         row[field] = "adoveo+unknown@gieffektivt.no";
       }
     }
-    if (row.status !== "SALE" && row.status !== "RESERVED") {
+    if (row.status !== "SALE" && row.status !== "RESERVED" && row.status !== "PAID") {
       console.error("Parsing adoveo gift card transactions failed. Unknown status " + row.status);
       throw new Error("Parsing adoveo gift card transactions failed. Unknown status " + row.status);
     }

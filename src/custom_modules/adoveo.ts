@@ -185,7 +185,7 @@ async function addFundraiserRecord({
       const transaction = await DAO.adoveo.getFundraiserTransactionByID(transactionid);
       console.log("Added transaction", transaction);
 
-      if (row.status === "SALE") {
+      if (statusCompleted(row.status)) {
         /**
          * Scenario 1
          */
@@ -213,7 +213,7 @@ async function addFundraiserRecord({
        */
       console.log("Transaction already exists");
 
-      if (existingTransaction.Status === "RESERVED" && row.status === "SALE") {
+      if (existingTransaction.Status === "RESERVED" && statusCompleted(row.status)) {
         /**
          * Scenario 3
          */
@@ -237,7 +237,7 @@ async function addFundraiserRecord({
         console.log("Status is still reserved, doing nothing");
         result.success = true;
         return result;
-      } else if (existingTransaction.Status === "SALE" && row.status === "SALE") {
+      } else if (statusCompleted(existingTransaction.Status) && statusCompleted(row.status)) {
         /**
          * Scenario 5
          */
@@ -260,7 +260,7 @@ async function addFundraiserRecord({
         }
         result.success = true;
         return result;
-      } else if (existingTransaction.Status === "SALE" && row.status === "RESERVED") {
+      } else if (statusCompleted(existingTransaction.Status) && row.status === "RESERVED") {
         /**
          * Scenario 6
          */
@@ -403,7 +403,7 @@ async function addGiftcardRecord({
       const transaction = await DAO.adoveo.getGiftcardTransactionByID(transactionid);
       console.log("Added transaction", transaction);
 
-      if (row.status === "SALE") {
+      if (statusCompleted(row.status)) {
         console.log("Status is sale, adding donation");
         const donationId = await addDonation(
           row,
@@ -425,7 +425,7 @@ async function addGiftcardRecord({
        */
       console.log("Transaction already exists");
 
-      if (existingTransaction.Status === "RESERVED" && row.status === "SALE") {
+      if (existingTransaction.Status === "RESERVED" && statusCompleted(row.status)) {
         /**
          * Scenario 3
          */
@@ -449,7 +449,7 @@ async function addGiftcardRecord({
         console.log("Status is still reserved, doing nothing");
         result.success = true;
         return result;
-      } else if (existingTransaction.Status === "SALE" && row.status === "SALE") {
+      } else if (statusCompleted(existingTransaction.Status) && statusCompleted(row.status)) {
         /**
          * Scenario 5
          */
@@ -469,7 +469,7 @@ async function addGiftcardRecord({
         }
         result.success = true;
         return result;
-      } else if (existingTransaction.Status === "SALE" && row.status === "RESERVED") {
+      } else if (statusCompleted(existingTransaction.Status) && row.status === "RESERVED") {
         /**
          * Scenario 6
          */
@@ -486,6 +486,13 @@ async function addGiftcardRecord({
     return result;
   }
 }
+
+const statusCompleted = (status: string) => {
+  if (status === "SALE" || status === "PAID") {
+    return true;
+  }
+  return false;
+};
 
 async function fetchAdoveoCampaigns(token: string) {
   const CAMPAIGN_FOLDER = "Innsamlinger";
@@ -558,14 +565,16 @@ async function fetchAdoveoTransactions(token: string, adoveoId: number, lastImpo
   const json = (await result.json()) as AdoveoResponse;
 
   const mapped = json.data
-    .filter((transaction) => transaction.Status === "SALE" || transaction.Status === "RESERVED")
+    .filter(
+      (transaction) => statusCompleted(transaction.Status) || transaction.Status === "RESERVED",
+    )
     .map<AdoveoFundraiserTransactionReportRow>((transaction) => ({
       date: transaction.Created,
       senderName: transaction.Name || "",
       senderEmail: transaction.Email || "adoveo+unknown@gieffektivt.no",
       senderPhone: transaction.Telephone,
       amount: transaction.Amount,
-      status: transaction.Status as "SALE" | "RESERVED",
+      status: transaction.Status as "SALE" | "PAID" | "RESERVED",
       location: transaction.location,
     }));
 
