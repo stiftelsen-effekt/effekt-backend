@@ -566,7 +566,7 @@ async function fetchAdoveoTransactions(token: string, adoveoId: number, lastImpo
       senderPhone: transaction.Telephone,
       amount: transaction.Amount,
       status: transaction.Status as "SALE" | "RESERVED",
-      location: transaction.Location,
+      location: transaction.location,
     }));
 
   return mapped;
