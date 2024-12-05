@@ -34,6 +34,8 @@ module.exports = {
 
   //Mailersend templates
   mailersend_donation_receipt_template_id: process.env.MAILERSEND_DONATION_RECEIPT_TEMPLATE_ID,
+  mailersend_first_donation_receipt_template_id:
+    process.env.MAILERSEND_FIRST_DONATION_RECEIPT_TEMPLATE_ID,
   mailersend_donation_registered_template_id:
     process.env.MAILERSEND_DONATION_REGISTERED_TEMPLATE_ID,
   mailersend_avtalegiro_notification_template_id:

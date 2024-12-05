@@ -251,6 +251,15 @@ async function search(filter): Promise<Array<Donor>> {
     };
   });
 }
+
+async function getNumberOfDonationsByDonorID(donorID: number) {
+  let [res] = await DAO.query<{ count: number }>(
+    `SELECT COUNT(*) as count FROM Donations WHERE Donor_ID = ?`,
+    [donorID],
+  );
+
+  return parseInt(res[0].count);
+}
 //endregion
 
 //region Add
@@ -345,6 +354,7 @@ export const donors = {
   getIDByMatchedNameFB,
   getKIDsWithOneTaxUnit,
   getIDByAgreementCode,
+  getNumberOfDonationsByDonorID,
   search,
   add,
   updateNewsletter,

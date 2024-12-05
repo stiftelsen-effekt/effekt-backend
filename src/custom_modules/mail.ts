@@ -11,7 +11,7 @@ import fs from "fs-extra";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
 import { APIResponse } from "mailersend/lib/services/request.service";
-import { DistributionCauseAreaOrganization, Donor } from "../schemas/types";
+import { Distribution, DistributionCauseAreaOrganization, Donor } from "../schemas/types";
 import {
   getImpactEstimatesForDonation,
   getImpactEstimatesForDonationByOrg,
@@ -167,6 +167,14 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     return false;
   }
 
+  /**
+   * Check if the donation is the first donation for the donor
+   */
+  const numberOfDonations = await DAO.donors.getNumberOfDonationsByDonorID(donation.donorId);
+  if (numberOfDonations === 1 && config.mailersend_first_donation_receipt_template_id) {
+    return await sendFirstDonationReceipt(donation, reciever);
+  }
+
   try {
     var distribution = await DAO.distributions.getSplitByKID(donation.KID);
   } catch (ex) {
@@ -185,81 +193,12 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     console.warn("Failed to get impact estimates for donation");
   }
 
-  let taxInformation: null | {
-    taxDeductionBarWidth: string;
-    taxDeductionBarRemainingWidth: string;
-    taxDeductionLabel: string;
-  } = null;
+  let taxInformation = null;
   if (distribution.taxUnitId) {
-    const donationYear = new Date(donation.timestamp).getFullYear();
-    const taxUnits = await DAO.tax.getByDonorId(distribution.donorId, RequestLocale.NO);
-    const taxUnit = taxUnits.find((tu) => tu.id === distribution.taxUnitId);
-    const limits = norwegianTaxDeductionLimits[donationYear];
-
-    if (taxUnit && taxUnit.taxDeductions && limits) {
-      const taxUnitYear = taxUnit.taxDeductions.find((td) => td.year === donationYear);
-
-      if (taxUnitYear) {
-        const taxDeduction = taxUnitYear.deduction;
-        const donationsInYear = taxUnitYear.sumDonations;
-
-        if (taxDeduction >= limits.minimumThreshold) {
-          const taxDeductionBarWidth = `${Math.min(
-            100,
-            (taxDeduction / limits.maximumDeductionLimit) * 100,
-          )}%`;
-          const taxDeductionBarRemainingWidth = `${Math.min(
-            100,
-            ((limits.maximumDeductionLimit - taxDeduction) / limits.maximumDeductionLimit) * 100,
-          )}%`;
-          const taxDeductionLabel = `${formatCurrency(taxDeduction)} kr av ${formatCurrency(
-            limits.maximumDeductionLimit,
-          )} kr`;
-          taxInformation = {
-            taxDeductionBarWidth,
-            taxDeductionBarRemainingWidth,
-            taxDeductionLabel,
-          };
-        } else if (donationsInYear > 0) {
-          const taxDeductionBarWidth = `${Math.min(
-            100,
-            (donationsInYear / limits.minimumThreshold) * 100,
-          )}%`;
-          const taxDeductionBarRemainingWidth = `${Math.min(
-            100,
-            ((limits.minimumThreshold - donationsInYear) / limits.minimumThreshold) * 100,
-          )}%`;
-          const taxDeductionLabel = `${formatCurrency(donationsInYear)} kr av ${formatCurrency(
-            limits.minimumThreshold,
-          )} kr minstegrense`;
-          taxInformation = {
-            taxDeductionBarWidth,
-            taxDeductionBarRemainingWidth,
-            taxDeductionLabel,
-          };
-        }
-      }
-    }
+    taxInformation = await getReceiptTaxInformation(donation, distribution);
   }
 
-  const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
-    (acc, causeArea) => {
-      causeArea.organizations.forEach((org) => {
-        const name = org.widgetDisplayName || org.name || "Unknown";
-
-        acc.push({
-          id: org.id,
-          name: org.id === 12 ? `${name} ⓘ` : name,
-          percentageShare: getOrganizationOverallPercentage(
-            org.percentageShare,
-            causeArea.percentageShare,
-          ).toString(),
-        });
-      });
-      return acc;
-    },
-    [],
-  );
+  const split = getSplitFromDistribution(distribution);
 
   let hasGiveWellTopCharitiesFund = distribution.causeAreas
     .flatMap((causeArea) => causeArea.organizations.map((org) => org.id))
@@ -267,25 +206,7 @@ export async function sendDonationReceipt(donationID, reciever = null) {
 
   const organizations = formatOrganizationsFromSplit(split, donation.sum, impactEstimates);
 
-  const yearlyOrgDonations = await DAO.donations.getYearlyAggregateByDonorId(donation.donorId);
-
-  const yearlyDonationsMap = yearlyOrgDonations.reduce<{ [year: number]: number }>((acc, org) => {
-    if (acc[org.year]) acc[org.year] += parseFloat(org.value);
-    else acc[org.year] = parseFloat(org.value);
-    return acc;
-  }, {});
-
-  const maxYearDonations = Math.max(...Object.values(yearlyDonationsMap));
-  const minYear = Math.min(...Object.keys(yearlyDonationsMap).map((year) => parseInt(year)));
-  const totalDonations = Object.values(yearlyDonationsMap).reduce((acc, sum) => acc + sum, 0);
-
-  const donationYearSums = Object.entries(yearlyDonationsMap)
-    .map(([year, sum]) => ({
-      year,
-      sum: formatCurrency(sum),
-      barPercentage: `${(sum / maxYearDonations) * 100}%`,
-    }))
-    .sort((a, b) => parseInt(b.year) - parseInt(a.year));
+  const { donationYearSums, minYear, totalDonations } = await getDonationYearSums(donation.donorId);
 
   const mailResult = await sendTemplate({
     to: reciever || donation.email,
@@ -315,6 +236,83 @@ export async function sendDonationReceipt(donationID, reciever = null) {
    */
   if (mailResult === false) {
     return false;
+  } else if ((mailResult as APIResponse).statusCode !== 202) {
+    console.error("Failed to send donation reciept");
+    console.error(mailResult);
+    return (mailResult as APIResponse).statusCode;
+  } else {
+    return true;
+  }
+}
+
+/**
+ * Sends a donation reciept
+ * @param {Donation} donation
+ * @param {string} reciever Reciever email
+ */
+export async function sendFirstDonationReceipt(donation, reciever = null) {
+  try {
+    var distribution = await DAO.distributions.getSplitByKID(donation.KID);
+  } catch (ex) {
+    console.error("Failed to send mail donation reciept, could not get donation split by KID");
+    console.error(ex);
+    return false;
+  }
+
+  const impactEstimates = await getImpactEstimatesForDonationByOrg(
+    new Date(donation.timestamp),
+    parseFloat(donation.sum),
+    distribution,
+  );
+
+  if (impactEstimates.length === 0) {
+    console.warn("Failed to get impact estimates for donation");
+  }
+
+  let taxInformation = null;
+  if (distribution.taxUnitId) {
+    taxInformation = await getReceiptTaxInformation(donation, distribution);
+  }
+
+  const split = getSplitFromDistribution(distribution);
+
+  let hasGiveWellTopCharitiesFund = distribution.causeAreas
+    .flatMap((causeArea) => causeArea.organizations.map((org) => org.id))
+    .includes(12);
+
+  const organizations = formatOrganizationsFromSplit(split, donation.sum, impactEstimates);
+
+  const numberOfDonors = await DAO.results.getNumberOfDonors();
+  const donor = await DAO.donors.getByID(donation.donorId);
+
+  const mailResult = await sendTemplate({
+    to: reciever || donation.email,
+    bcc: "gieffektivt@gmail.com",
+    templateId: config.mailersend_first_donation_receipt_template_id,
+    personalization: {
+      name: typeof donation.donor === "string" ? donation.donor.split(" ")[0] : "",
+      organizations,
+      ...taxInformation,
+      donorName: donation.donor,
+      donationKID: donation.KID,
+      donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
+      paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
+      donationTotalSum: formatCurrency(donation.sum) + " kr",
+      hasGiveWellTopCharitiesFund,
+      numberOfDonors: numberOfDonors,
+      donorEmail: donor.email,
+    },
+  });
+
+  /**
+   * HTTP 202 is the status code for accepted
+   * If the mail was not accepted, log the error and return false
+   * If the mail was accepted, return true
+   * Accepted means that the mail was sent to the mail server, not that it was delivered
+   * It is scheduled for delivery
+   */
+  if (mailResult === false) {
+    return false;
   } else if (mailResult.statusCode !== 202) {
     console.error("Failed to send donation reciept");
     console.error(mailResult);
@@ -323,6 +321,104 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     return true;
   }
 }
+
+const getSplitFromDistribution = (distribution: Distribution) => {
+  return distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>((acc, causeArea) => {
+    causeArea.organizations.forEach((org) => {
+      const name = org.widgetDisplayName || org.name || "Unknown";
+
+      acc.push({
+        id: org.id,
+        name: org.id === 12 ? `${name} ⓘ` : name,
+        percentageShare: getOrganizationOverallPercentage(
+          org.percentageShare,
+          causeArea.percentageShare,
+        ).toString(),
+      });
+    });
+    return acc;
+  }, []);
+};
+
+const getDonationYearSums = async (donorId) => {
+  const yearlyOrgDonations = await DAO.donations.getYearlyAggregateByDonorId(donorId);
+
+  const yearlyDonationsMap = yearlyOrgDonations.reduce<{ [year: number]: number }>((acc, org) => {
+    if (acc[org.year]) acc[org.year] += parseFloat(org.value);
+    else acc[org.year] = parseFloat(org.value);
+    return acc;
+  }, {});
+
+  const maxYearDonations = Math.max(...Object.values(yearlyDonationsMap));
+  const minYear = Math.min(...Object.keys(yearlyDonationsMap).map((year) => parseInt(year)));
+  const totalDonations = Object.values(yearlyDonationsMap).reduce((acc, sum) => acc + sum, 0);
+
+  const donationYearSums = Object.entries(yearlyDonationsMap)
+    .map(([year, sum]) => ({
+      year,
+      sum: formatCurrency(sum),
+      barPercentage: `${(sum / maxYearDonations) * 100}%`,
+    }))
+    .sort((a, b) => parseInt(b.year) - parseInt(a.year));
+
+  return { donationYearSums, minYear, totalDonations };
+};
+
+const getReceiptTaxInformation = async (donation, distribution: Distribution) => {
+  let taxInformation = null;
+
+  const donationYear = new Date(donation.timestamp).getFullYear();
+  const taxUnits = await DAO.tax.getByDonorId(distribution.donorId, RequestLocale.NO);
+  const taxUnit = taxUnits.find((tu) => tu.id === distribution.taxUnitId);
+  const limits = norwegianTaxDeductionLimits[donationYear];
+
+  if (taxUnit && taxUnit.taxDeductions && limits) {
+    const taxUnitYear = taxUnit.taxDeductions.find((td) => td.year === donationYear);
+
+    if (taxUnitYear) {
+      const taxDeduction = taxUnitYear.deduction;
+      const donationsInYear = taxUnitYear.sumDonations;
+
+      if (taxDeduction >= limits.minimumThreshold) {
+        const taxDeductionBarWidth = `${Math.min(
+          100,
+          (taxDeduction / limits.maximumDeductionLimit) * 100,
+        )}%`;
+        const taxDeductionBarRemainingWidth = `${Math.min(
+          100,
+          ((limits.maximumDeductionLimit - taxDeduction) / limits.maximumDeductionLimit) * 100,
+        )}%`;
+        const taxDeductionLabel = `${formatCurrency(taxDeduction)} kr av ${formatCurrency(
+          limits.maximumDeductionLimit,
+        )} kr`;
+        taxInformation = {
+          taxDeductionBarWidth,
+          taxDeductionBarRemainingWidth,
+          taxDeductionLabel,
+        };
+      } else if (donationsInYear > 0) {
+        const taxDeductionBarWidth = `${Math.min(
+          100,
+          (donationsInYear / limits.minimumThreshold) * 100,
+        )}%`;
+        const taxDeductionBarRemainingWidth = `${Math.min(
+          100,
+          ((limits.minimumThreshold - donationsInYear) / limits.minimumThreshold) * 100,
+        )}%`;
+        const taxDeductionLabel = `${formatCurrency(donationsInYear)} kr av ${formatCurrency(
+          limits.minimumThreshold,
+        )} kr minstegrense`;
+        taxInformation = {
+          taxDeductionBarWidth,
+          taxDeductionBarRemainingWidth,
+          taxDeductionLabel,
+        };
+      }
+    }
+  }
+
+  return taxInformation;
+};
 
 /**
  * Sends a donation reciept

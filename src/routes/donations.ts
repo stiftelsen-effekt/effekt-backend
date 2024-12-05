@@ -712,8 +712,6 @@ router.delete("/:id", authMiddleware.isAdmin, async (req, res, next) => {
  *                      content: "Receipt failed with error code 401"
  */
 router.post("/:id/receipt", async (req, res, next) => {
-  console.log(req.body);
-
   if (req.body.email && req.body.email.indexOf("@") > -1) {
     var mailStatus = await sendDonationReceipt(req.params.id, req.body.email);
   } else {

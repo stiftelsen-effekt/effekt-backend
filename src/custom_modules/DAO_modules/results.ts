@@ -46,4 +46,13 @@ export const results = {
       lastUpdated: updated[0].Inserted,
     };
   },
+  /*
+   * Get the number of donors all time
+   */
+  getNumberOfDonors: async () => {
+    const [res] = await DAO.query<{ numberOfDonors: number }[]>(
+      "SELECT COUNT(DISTINCT Donor_ID) as numberOfDonors FROM EffektAnalysisDB.Only_rec_orgs_Donations",
+    );
+    return res[0].numberOfDonors;
+  },
 };
