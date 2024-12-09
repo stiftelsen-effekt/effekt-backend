@@ -98,6 +98,10 @@ export const norwegianTaxDeductionLimits: {
     minimumThreshold: 500,
     maximumDeductionLimit: 25000,
   },
+  2025: {
+    minimumThreshold: 500,
+    maximumDeductionLimit: 25000,
+  },
 };
 
 /**
@@ -168,6 +172,14 @@ export const getYearlyMapping = (locale: RequestLocale): TaxDeductionYearlyMappi
             year: 2024,
             minimumThreshold: norwegianTaxDeductionLimits[2024].minimumThreshold,
             maximumDeductionLimit: norwegianTaxDeductionLimits[2024].maximumDeductionLimit,
+            baseTaxRate: 0.22,
+            sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
+          }),
+        2025: (donations) =>
+          getNorwegianDeductionByYearlySum({
+            year: 2025,
+            minimumThreshold: norwegianTaxDeductionLimits[2025].minimumThreshold,
+            maximumDeductionLimit: norwegianTaxDeductionLimits[2025].maximumDeductionLimit,
             baseTaxRate: 0.22,
             sumDonations: donations.reduce((acc, donation) => acc + donation.sum, 0),
           }),
@@ -242,6 +254,16 @@ export const getYearlyMapping = (locale: RequestLocale): TaxDeductionYearlyMappi
         2024: (donations) =>
           getSwedishDeductionByYearlySum({
             year: 2024,
+            minimumThreshold: 2000,
+            maximumDeductionLimit: 12000,
+            baseTaxRate: 0.25,
+            sumDonations: donations
+              .filter((d) => d.sum >= 200)
+              .reduce((acc, donation) => acc + donation.sum, 0),
+          }),
+        2025: (donations) =>
+          getSwedishDeductionByYearlySum({
+            year: 2025,
             minimumThreshold: 2000,
             maximumDeductionLimit: 12000,
             baseTaxRate: 0.25,
