@@ -29,3 +29,21 @@ fundraisersRouter.get("/donationsums", async (req, res) => {
     content: donationSums,
   });
 });
+
+fundraisersRouter.get("/:id/vippsnumber", async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  if (isNaN(id)) {
+    return res.status(400).json({
+      status: 400,
+      content: "id must be an integer",
+    });
+  }
+
+  const vippsNumberSum = await DAO.adoveo.getFundraiserVippsNumberLocationSum(id);
+
+  return res.json({
+    status: 200,
+    content: vippsNumberSum,
+  });
+});

@@ -50,6 +50,20 @@ export const adoveo = {
 
     return sums.map(({ Fundraiser_ID, Sum }) => ({ fundraiserId: Fundraiser_ID, sum: Sum || 0 }));
   },
+  getFundraiserVippsNumberLocationSum: async function (fundraiserId: Adoveo_fundraiser["ID"]) {
+    const [vippsNumberLocationSum] = await DAO.query<
+      { Vipps_number: string; Location: string; Sum: string }[]
+    >(
+      `
+      SELECT COALESCE(sum(D.sum_confirmed), 0) as Sum
+      FROM Adoveo_fundraiser_transactions F
+      LEFT JOIN Donations D ON F.Donation_ID = D.ID
+      WHERE F.Fundraiser_ID = ? AND F.Location = 'VippsNumber'
+        `,
+      [fundraiserId],
+    );
+    return parseFloat(vippsNumberLocationSum[0].Sum);
+  },
   addFundraiser: async function (fundraiser: Omit<Adoveo_fundraiser, "ID">) {
     const [result] = await DAO.query(
       `
