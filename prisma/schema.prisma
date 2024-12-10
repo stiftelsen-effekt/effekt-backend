@@ -628,13 +628,14 @@ model Vipps_agreements {
 }
 
 model Vipps_matching_rules {
-  ID            Int      @id @default(autoincrement())
-  SalesLocation String?  @db.VarChar(45)
-  Message       String?  @db.VarChar(45)
-  PeriodFrom    DateTime @db.Date
-  PeriodTo      DateTime @db.Date
-  ResolveKID    String   @db.VarChar(16)
-  precedence    Int?
+  ID                        Int      @id @default(autoincrement())
+  SalesLocation             String?  @db.VarChar(45)
+  Message                   String?  @db.VarChar(45)
+  PeriodFrom                DateTime @db.Date
+  PeriodTo                  DateTime @db.Date
+  ResolveKID                String   @db.VarChar(16)
+  ResolveAdoveoFundraiserID Int?     @db.Int
+  precedence                Int?
 
   // We don't allow deletion of a distribution with an associated vipps matching rule. If we delete a distribution we should not have any vipps matching rules with that distribution.
   Distributions Distributions @relation(fields: [ResolveKID], references: [KID], onDelete: Restrict, map: "fk_Vipps_matching_rules_to_Distributions_idx")
