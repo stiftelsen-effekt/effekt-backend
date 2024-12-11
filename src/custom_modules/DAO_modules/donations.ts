@@ -200,30 +200,43 @@ async function getAll(
       `;
 
     const query = `
-        SELECT 
-          count(*) OVER() AS full_count,
-          sum(sum_confirmed) OVER() AS full_sum,
-          avg(sum_confirmed) OVER() AS full_avg,
-          ${columns},
-          ${taxUnitTypeFildDefinition} as tax_unit_type
-
-        FROM Donations
-        INNER JOIN Donors
+        WITH filtered_donations AS (
+          SELECT DISTINCT
+            Donations.ID,
+            Donors.full_name,
+            Payment.payment_name,
+            Donations.sum_confirmed,
+            Donations.transaction_cost,
+            Donations.KID_fordeling,
+            Donations.timestamp_confirmed,
+            ${taxUnitTypeFildDefinition} as tax_unit_type
+          FROM Donations
+          INNER JOIN Donors
             ON Donations.Donor_ID = Donors.ID
-        INNER JOIN Payment
+          INNER JOIN Payment
             ON Donations.Payment_ID = Payment.ID  
-        INNER JOIN Distributions
-          ON Donations.KID_fordeling = Distributions.KID
-        LEFT JOIN Tax_unit
-          ON Distributions.Tax_unit_ID = Tax_unit.ID
-        ${organizationJoin}
-        
-        WHERE 
-            ${where.length !== 0 ? where.join(" AND ") : "1"}
-        GROUP BY 
-            ${columns}
-        ORDER BY ${sortColumn}
-        ${sort.desc ? "DESC" : ""} 
+          INNER JOIN Distributions
+            ON Donations.KID_fordeling = Distributions.KID
+          LEFT JOIN Tax_unit
+            ON Distributions.Tax_unit_ID = Tax_unit.ID
+          ${organizationJoin}
+          WHERE ${where.length !== 0 ? where.join(" AND ") : "1"}
+        ),
+        statistics AS (
+          SELECT 
+            COUNT(*) as full_count,
+            SUM(sum_confirmed) as full_sum,
+            AVG(sum_confirmed) as full_avg
+          FROM filtered_donations
+        )
+        SELECT 
+          d.*,
+          s.full_count,
+          s.full_sum,
+          s.full_avg
+        FROM filtered_donations d
+        CROSS JOIN statistics s
+        ORDER BY ${sortColumn} ${sort.desc ? "DESC" : ""} 
         LIMIT ? OFFSET ?`;
 
     const [donations] = await DAO.query(query, [limit, page * limit]);
