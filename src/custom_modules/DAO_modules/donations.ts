@@ -188,23 +188,12 @@ async function getAll(
           ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID`
       : "";
 
-    const columns = `
-        Donations.ID,
-        Donors.full_name,
-        Payment.payment_name,
-        Donations.sum_confirmed,
-        Donations.transaction_cost,
-        Donations.KID_fordeling,
-        Donations.timestamp_confirmed
-        
-      `;
-
     const query = `
         WITH filtered_donations AS (
           SELECT DISTINCT
             Donations.ID,
             Donors.full_name,
-            Payment.payment_name,
+            Payment.abbriv as payment_name,
             Donations.sum_confirmed,
             Donations.transaction_cost,
             Donations.KID_fordeling,
