@@ -2,6 +2,7 @@ import { distributions } from "./distributions";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
 import { Vipps_agreements, Vipps_order_transaction_statuses, Vipps_orders } from "@prisma/client";
+import { AgreementReport } from "./avtalegiroagreements";
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = [
@@ -545,20 +546,7 @@ async function getActiveAgreements(): Promise<VippsAgreement[] | false> {
  * @return {Object}
  */
 async function getAgreementReport() {
-  let [res] = await DAO.query<
-    {
-      activeAgreementCount: number;
-      averageAgreementSum: number;
-      totalAgreementSum: number;
-      medianAgreementSum: number;
-      draftedThisMonth: number;
-      sumDraftedThisMonth: number;
-      activatedThisMonth: number;
-      sumActivatedThisMonth: number;
-      stoppedThisMonth: number;
-      sumStoppedThisMonth: number;
-    }[]
-  >(`
+  let [res] = await DAO.query<AgreementReport[]>(`
     SELECT 
         count(ID) as activeAgreementCount,
         round(avg(amount), 0) as averageAgreementSum,
@@ -667,6 +655,47 @@ async function getChargeSumHistogram() {
             FROM Vipps_agreement_charges
             GROUP BY 1
             ORDER BY 1;
+        `);
+
+  return results;
+}
+
+/**
+ * A list of all missing charges for the last 2 months
+ * Calculated by looking at agreements where there is no charge corresponding to the monthly_charge_day
+ * @returns {Array<Object>} Returns an array of missing charges
+ */
+async function getMissingCharges() {
+  let [results] = await DAO.query<
+    {
+      agreementID: string;
+      KID: string;
+      amount: number;
+      monthly_charge_day: number;
+      missing_charge_date: string;
+      timestamp_created: string;
+      full_name: string;
+      vipps_recurring_donations_last_2months: number;
+    }[]
+  >(`
+        SELECT 
+          MI.*, 
+          D.full_name,
+          (
+              SELECT COUNT(*)
+              FROM Donations d
+              WHERE d.Donor_ID = D.ID
+              AND d.Payment_ID = 7
+              AND d.timestamp_confirmed >= DATE_SUB(CURRENT_DATE, INTERVAL 2 MONTH)
+          ) as vipps_recurring_donations_last_2months
+          
+          FROM EffektDonasjonDB.v_Missing_vipps_charges as MI
+          INNER JOIN Distributions as DIST
+            ON MI.KID = DIST.KID
+          INNER JOIN Donors as D
+            ON DIST.Donor_ID = D.ID
+        
+          WHERE D.ID != 1464
         `);
 
   return results;
@@ -1040,6 +1069,7 @@ export const vipps = {
   getChargeSumHistogram,
   getActiveAgreements,
   getAgreementReport,
+  getMissingCharges,
   addToken,
   addOrder,
   addAgreement,

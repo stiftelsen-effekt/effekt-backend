@@ -501,25 +501,25 @@ async function getByID(ID: number): Promise<Avtalegiro_agreements> {
   }
 }
 
+export type AgreementReport = {
+  activeAgreementCount: number;
+  averageAgreementSum: number;
+  totalAgreementSum: number;
+  medianAgreementSum: string;
+  draftedThisMonth: number;
+  sumDraftedThisMonth: number;
+  activatedThisMonth: number;
+  sumActivatedThisMonth: number;
+  stoppedThisMonth: number;
+  sumStoppedThisMonth: number;
+};
+
 /**
  * Fetches key statistics of active agreements
  * @return {Object}
  */
 async function getAgreementReport() {
-  let [res] = await DAO.query<
-    {
-      activeAgreementCount: number;
-      averageAgreementSum: number;
-      totalAgreementSum: number;
-      medianAgreementSum: number;
-      draftedThisMonth: number;
-      sumDraftedThisMonth: number;
-      activatedThisMonth: number;
-      sumActivatedThisMonth: number;
-      stoppedThisMonth: number;
-      sumStoppedThisMonth: number;
-    }[]
-  >(`
+  let [res] = await DAO.query<AgreementReport[]>(`
     SELECT 
         count(ID) as activeAgreementCount,
         round(avg(amount)/100, 0) as averageAgreementSum,
