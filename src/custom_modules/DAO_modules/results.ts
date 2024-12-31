@@ -55,4 +55,29 @@ export const results = {
     );
     return res[0].numberOfDonors;
   },
+  /**
+   * Get latest available LTV estimate for AvtaleGiro and Vipps recurring donors
+   */
+  getRecentLTV: async () => {
+    const [res] = await DAO.query<{ Label: string; Expected_LTV: number }[]>(`
+        WITH LatestDates AS (
+          SELECT 
+              Label,
+              MAX(Cutoff_date) as latest_date
+          FROM EffektAnalysisDB.Donor_LTV
+          WHERE Label IN ('Vipps', 'AvtaleGiro')
+          GROUP BY Label
+      )
+      SELECT 
+          d.Label,
+          d.Expected_LTV
+      FROM EffektAnalysisDB.Donor_LTV d
+      INNER JOIN LatestDates l
+          ON d.Label = l.Label
+          AND d.Cutoff_date = l.latest_date
+      WHERE d.Label IN ('Vipps', 'AvtaleGiro')
+    `);
+
+    return res;
+  },
 };
