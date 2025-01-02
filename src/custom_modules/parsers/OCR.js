@@ -56,9 +56,7 @@ class OCRTransaction {
     let year = currLine.substr(19, 2);
     let month = currLine.substr(17, 2);
     let day = currLine.substr(15, 2);
-    //const date = utcDate(parseInt("20" + year), parseInt(month), parseInt(day));
-    // temp hardcoded year to 2024
-    const date = utcDate(2024, parseInt(month), parseInt(day));
+    const date = utcDate(parseInt("20" + year), parseInt(month), parseInt(day));
 
     this.date = date;
     this.amount = parseInt(currLine.substr(32, 17)) / 100;
