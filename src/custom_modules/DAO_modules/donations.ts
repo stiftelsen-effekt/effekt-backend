@@ -513,9 +513,10 @@ async function getByID(donationID) {
 /**
  * Gets all donations by donor ID
  * @param donorId
+ * @param from Optional date to filter donations to donations after this date
  * @returns {Array<Donation>} An array of donation objects
  */
-async function getByDonorId(donorId): Promise<Array<Donation>> {
+async function getByDonorId(donorId: number | string, from?: Date): Promise<Array<Donation>> {
   var [donations] = await DAO.query(
     `
     SELECT 
@@ -543,8 +544,10 @@ async function getByDonorId(donorId): Promise<Array<Donation>> {
       ON KID = KID_fordeling
 
     WHERE 
-        Donation.Donor_ID = ?`,
-    [donorId],
+        Donation.Donor_ID = ?
+        ${from ? "AND Donation.timestamp_confirmed >= ?" : ""}
+        `,
+    from ? [donorId, from] : [donorId],
   );
 
   /** @type Array<Donation> */

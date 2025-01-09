@@ -6,9 +6,10 @@ import { expect } from "chai";
 import * as nets from "../custom_modules/nets";
 import request from "supertest";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
+import { donations } from "../custom_modules/DAO_modules/donations";
 import paymentMethods from "../enums/paymentMethods";
-import exp from "constants";
 import Decimal from "decimal.js";
+import { donors } from "../custom_modules/DAO_modules/donors";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 const mail = require("../custom_modules/mail");
@@ -176,9 +177,10 @@ describe("POST /initiate-follow-ups", function () {
   let server;
   let getPaymentIntentsFromLastMonthStub;
   let getFollowUpsForPaymentIntentStub;
-  let checkIfDonationReceivedStub;
   let addPaymentFollowUpStub;
   let sendDonationFollowUpStub;
+  let getDonorByKidStub;
+  let donorDonationsStub;
 
   before(function () {
     this.timeout(5000);
@@ -196,9 +198,19 @@ describe("POST /initiate-follow-ups", function () {
       initialpaymentmethod,
       "getFollowUpsForPaymentIntent",
     );
-    checkIfDonationReceivedStub = sinon.stub(initialpaymentmethod, "checkIfDonationReceived");
+    donorDonationsStub = sinon.stub(donations, "getByDonorId");
     addPaymentFollowUpStub = sinon.stub(initialpaymentmethod, "addPaymentFollowUp");
     sendDonationFollowUpStub = sinon.stub(mail, "sendPaymentIntentFollowUp");
+    getDonorByKidStub = sinon.stub(donors, "getByKID");
+
+    const donor = {
+      id: 1,
+      email: "donor@mcdonorson.com",
+      name: "Donor mc donorson",
+      registered: new Date(),
+    };
+
+    getDonorByKidStub.resolves(donor);
   });
 
   afterEach(function () {
@@ -232,7 +244,7 @@ describe("POST /initiate-follow-ups", function () {
 
     getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
     getFollowUpsForPaymentIntentStub.resolves([]);
-    checkIfDonationReceivedStub.resolves(false);
+    donorDonationsStub.resolves([]);
     sendDonationFollowUpStub.resolves(true);
 
     const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
@@ -253,9 +265,65 @@ describe("POST /initiate-follow-ups", function () {
       },
     ];
 
+    const recievedDonations = [
+      {
+        id: 1,
+        donor: "Donor mc donorson",
+        donorId: 1,
+        email: "donor@mcdonorson.com",
+        sum: 15000,
+        transactionCost: 2,
+        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        paymentMethod: 2,
+        KID: "001",
+        taxUnitId: 321,
+        metaOwnerId: 1,
+      },
+    ];
+
     getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
     getFollowUpsForPaymentIntentStub.resolves([]);
-    checkIfDonationReceivedStub.resolves(true);
+    donorDonationsStub.resolves(recievedDonations);
+    sendDonationFollowUpStub.resolves(true);
+
+    const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
+
+    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
+    expect(addPaymentFollowUpStub.called).to.be.false;
+    expect(sendDonationFollowUpStub.called).to.be.false;
+  });
+
+  it("should not initiate follow-ups for payment intents where the donor has donated any donations after the intent", async function () {
+    const paymentIntents = [
+      {
+        Id: 1,
+        Payment_method: paymentMethods.bank,
+        Payment_amount: new Decimal(15000),
+        KID_fordeling: "001",
+        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      },
+    ];
+
+    // A donation that was made after the payment intent, but with a different KID
+    const recievedDonations = [
+      {
+        id: 1,
+        donor: "Donor mc donorson",
+        donorId: 1,
+        email: "donor@mcdonorson.com",
+        sum: 120,
+        transactionCost: 2,
+        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        paymentMethod: 5,
+        KID: "123",
+        taxUnitId: null,
+        metaOwnerId: 1,
+      },
+    ];
+
+    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
+    getFollowUpsForPaymentIntentStub.resolves([]);
+    donorDonationsStub.resolves(recievedDonations);
     sendDonationFollowUpStub.resolves(true);
 
     const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
@@ -338,7 +406,7 @@ describe("POST /initiate-follow-ups", function () {
 
     getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
     getFollowUpsForPaymentIntentStub.resolves([]);
-    checkIfDonationReceivedStub.resolves(false);
+    donorDonationsStub.resolves([]);
     sendDonationFollowUpStub.resolves(true);
 
     const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
@@ -383,7 +451,7 @@ describe("POST /initiate-follow-ups", function () {
     // Set up initial conditions
     getPaymentIntentsFromLastMonthStub.resolves(initialPaymentIntents);
     getFollowUpsForPaymentIntentStub.resolves([]);
-    checkIfDonationReceivedStub.resolves(false);
+    donorDonationsStub.resolves([]);
     sendDonationFollowUpStub.resolves(true);
 
     // First run of the follow-up process

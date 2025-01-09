@@ -673,8 +673,14 @@ async function shouldSendFollowUp(
     if (!hasEnoughTimePassed(lastFollowUp.Follow_up_date, config.daysBeforeFollowUp)) return false;
   }
 
-  const paymentReceived = await initialpaymentmethod.checkIfDonationReceived(intent.Id);
-  return !paymentReceived;
+  // Check if we recieved any donation from the donor after the payment intent
+  const donor = await DAO.donors.getByKID(intent.KID_fordeling);
+
+  const donations = await DAO.donations.getByDonorId(donor.id, intent.timestamp);
+
+  if (donations.length > 0) return false;
+
+  return true;
 }
 
 async function processPaymentIntent(intent: Payment_intent): Promise<Payment_intent | null> {

@@ -21,13 +21,23 @@ async function getPaymentIntent(paymentIntentId) {
 
 /**
  * Fetches all payment intents that were created in the last X days.
+ * If a donor has multiple payment intents, only the most recent one is returned.
  */
 async function getPaymentIntentsFromLastMonth() {
   const [paymentIntents] = await DAO.query<Payment_intent[]>(
     `
-    SELECT *
-    FROM Payment_intent
-    WHERE timestamp > DATE_SUB(NOW(), INTERVAL 1 MONTH)
+    SELECT pi.*
+    FROM Payment_intent pi
+    JOIN Distributions d ON pi.KID_fordeling = d.KID
+    WHERE pi.timestamp > DATE_SUB(NOW(), INTERVAL 1 MONTH)
+    AND pi.timestamp = (
+        SELECT MAX(pi2.timestamp)
+        FROM Payment_intent pi2
+        JOIN Distributions d2 ON pi2.KID_fordeling = d2.KID
+        WHERE d2.Donor_ID = d.Donor_ID
+        AND pi2.timestamp > DATE_SUB(NOW(), INTERVAL 1 MONTH)
+    )
+    ORDER BY pi.timestamp DESC;
     `,
   );
 
