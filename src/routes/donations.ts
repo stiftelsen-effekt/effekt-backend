@@ -3,16 +3,17 @@ import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import {
-  sendDonationHistory,
+  sendAutoGiroRegistered,
   sendDonationReceipt,
   sendDonationRegistered,
 } from "../custom_modules/mail";
 import * as swish from "../custom_modules/swish";
-import rateLimit from "express-rate-limit";
 import methods from "../enums/methods";
 import bodyParser from "body-parser";
 import apicache from "apicache";
 import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
+import { validateDistribution } from "../custom_modules/distribution";
+import { localeMiddleware, LocaleRequest } from "../middleware/locale";
 
 const config = require("../config");
 
@@ -48,8 +49,6 @@ router.get("/status", async (req, res, next) => {
  *    description: Registers a pending donation
  */
 router.post("/register", async (req, res, next) => {
-  console.log(req.body);
-
   let parsedData = req.body as {
     distributionCauseAreas: DistributionCauseArea[];
     donor: {
@@ -59,7 +58,6 @@ router.post("/register", async (req, res, next) => {
       ssn?: string;
     };
     method: number;
-    phone?: string;
     recurring: boolean;
     amount: string | number;
   };
@@ -67,15 +65,14 @@ router.post("/register", async (req, res, next) => {
   if (!parsedData || Object.entries(parsedData).length === 0) return res.sendStatus(400);
 
   if (parsedData.method === methods.SWISH) {
-    if (!parsedData.phone) return res.status(400).send("Missing phone number");
-    if (!parsedData.phone.startsWith("467"))
-      return res.status(400).send("Invalid phone number format");
     if (parsedData.recurring)
       return res.status(400).send("Recurring donations not supported with Swish");
   }
 
   let donor = parsedData.donor;
   let paymentProviderUrl = "";
+  let swishOrderID = null;
+  let swishPaymentRequestToken = null;
   let recurring = parsedData.recurring;
 
   try {
@@ -83,7 +80,6 @@ router.post("/register", async (req, res, next) => {
       KID: string;
       donorID: number | null;
       taxUnitId: number;
-      standardSplit?: boolean;
     } = {
       amount: parsedData.amount,
       method: parsedData.method,
@@ -91,7 +87,6 @@ router.post("/register", async (req, res, next) => {
       KID: null, //Set later in code
       donorID: null, //Set later in code
       taxUnitId: null, //Set later in code
-      standardSplit: undefined,
     };
 
     //Check if existing donor
@@ -104,11 +99,15 @@ router.post("/register", async (req, res, next) => {
         full_name: donor.name,
         newsletter: donor.newsletter,
       });
-      donationObject.taxUnitId = await DAO.tax.addTaxUnit(
-        donationObject.donorID,
-        donor.ssn,
-        donor.name,
-      );
+      if (donor.ssn != null && donor.ssn !== "") {
+        donationObject.taxUnitId = await DAO.tax.addTaxUnit(
+          donationObject.donorID,
+          donor.ssn,
+          donor.name,
+        );
+      } else {
+        donationObject.taxUnitId = null;
+      }
     } else {
       //Check for existing tax unit if SSN provided
       if (typeof donor.ssn !== "undefined" && donor.ssn != null && donor.ssn !== "") {
@@ -154,27 +153,54 @@ router.post("/register", async (req, res, next) => {
         const standardShareOrganizations =
           await DAO.distributions.getStandardDistributionByCauseAreaID(causeArea.id);
         causeArea.organizations = standardShareOrganizations;
+      } else {
+        causeArea.organizations = causeArea.organizations.filter(
+          (o) => parseFloat(o.percentageShare) > 0,
+        );
       }
     }
 
     /** Use new KID for avtalegiro */
-    if (donationObject.method == methods.BANK && donationObject.recurring == true) {
+    if (donationObject.method == methods.AVTALEGIRO) {
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
-      donationObject.KID = await donationHelpers.createKID(15, donationObject.donorID);
-
-      const distribution: Distribution = {
-        kid: donationObject.KID,
+      donationObject.KID = await donationHelpers.createAvtaleGiroKID();
+      await DAO.distributions.add({
         ...draftDistribution,
-      };
+        kid: donationObject.KID,
+      });
+    } else if (donationObject.method == methods.AUTOGIRO) {
+      donationObject.KID = await donationHelpers.createKID(8);
+      await DAO.distributions.add({
+        ...draftDistribution,
+        kid: donationObject.KID,
+      });
 
-      await DAO.distributions.add(distribution);
+      // Draft AutoGiro
+      await DAO.autogiroagreements.draftAgreement({
+        KID: donationObject.KID,
+        amount:
+          typeof donationObject.amount === "string"
+            ? parseFloat(donationObject.amount)
+            : donationObject.amount,
+        payment_date: 27,
+      });
+
+      try {
+        await sendAutoGiroRegistered(donationObject.KID, donor.email);
+      } catch (ex) {
+        console.error(`Failed to send AutoGiro registered email for KID ${donationObject.KID}`);
+      }
     } else {
       //Try to get existing KID
-      donationObject.KID = await DAO.distributions.getKIDbySplit({
-        donorId: donationObject.donorID,
-        taxUnitId: donationObject.taxUnitId,
-        causeAreas: parsedData.distributionCauseAreas,
-      });
+      donationObject.KID = await DAO.distributions.getKIDbySplit(
+        {
+          donorId: donationObject.donorID,
+          taxUnitId: donationObject.taxUnitId,
+          causeAreas: draftDistribution.causeAreas,
+        },
+        0,
+        8,
+      );
 
       //Split does not exist create new KID and split
       if (donationObject.KID == null) {
@@ -202,20 +228,25 @@ router.post("/register", async (req, res, next) => {
       }
       case methods.SWISH: {
         if (recurring == false) {
-          await swish.initiateOrder(donationObject.KID, {
-            phone: parsedData.phone,
+          const res = await swish.initiateOrder(donationObject.KID, {
             amount:
               typeof donationObject.amount === "string"
                 ? parseInt(donationObject.amount)
                 : donationObject.amount,
           });
+          swishOrderID = res.orderID;
+          swishPaymentRequestToken = res.paymentRequestToken;
         }
         break;
       }
     }
 
     try {
-      await DAO.initialpaymentmethod.addPaymentIntent(donationObject.KID, donationObject.method);
+      await DAO.initialpaymentmethod.addPaymentIntent(
+        donationObject.amount,
+        donationObject.method,
+        donationObject.KID,
+      );
     } catch (error) {
       console.error(error);
     }
@@ -239,8 +270,68 @@ router.post("/register", async (req, res, next) => {
       donorID: donationObject.donorID,
       hasAnsweredReferral,
       paymentProviderUrl,
+      swishOrderID,
+      swishPaymentRequestToken,
     },
   });
+});
+
+router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    // Verify donation id as number
+    const donationId = parseInt(req.params.id);
+    if (isNaN(donationId)) return res.status(400).send("Invalid donation ID");
+
+    const existingDonation = await DAO.donations.getByID(donationId);
+    if (!existingDonation) return res.status(404).send("Donation not found");
+
+    await DAO.donations.update({
+      id: req.params.id,
+      paymentId: req.body.paymentId,
+      paymentExternalRef: req.body.paymentExternalRef,
+      sum: req.body.sum,
+      transactionCost: req.body.transactionCost,
+      timestamp: new Date(req.body.timestamp),
+      metaOwnerId: req.body.metaOwnerId,
+    });
+
+    if (req.body.distribution) {
+      const validatedDistribution = validateDistribution(req.body.distribution);
+
+      if (!("kid" in validatedDistribution)) {
+        throw new Error("Distribution does not have a KID");
+      }
+
+      const existingBySplitKID = await DAO.distributions.getKIDbySplit(validatedDistribution);
+
+      if (existingBySplitKID != null && existingBySplitKID === validatedDistribution.kid) {
+        // No change
+      } else if (existingBySplitKID != null) {
+        // Use an existing KID for a distribution matching the split
+        await DAO.donations.updateKIDById(req.params.id, existingBySplitKID);
+      } else {
+        // Create a new KID and distribution
+        const newKid = await donationHelpers.createKID();
+        await DAO.distributions.add({
+          ...validatedDistribution,
+          // Overwrite the KID with the new one
+          kid: newKid,
+        });
+        await DAO.donations.updateKIDById(req.params.id, newKid);
+      }
+
+      if (validatedDistribution.donorId !== existingDonation.donorId) {
+        console.log("UPDATE DONOR ID");
+        await DAO.donations.updateDonorId(donationId, validatedDistribution.donorId);
+      }
+    }
+
+    return res.json({
+      status: 200,
+    });
+  } catch (ex) {
+    next(ex);
+  }
 });
 
 /**
@@ -373,25 +464,32 @@ router.get("/median", cache("5 minutes"), async (req, res, next) => {
   }
 });
 
-router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    var results = await DAO.donations.getAll(
-      req.body.sort,
-      req.body.page,
-      req.body.limit,
-      req.body.filter,
-    );
-    return res.json({
-      status: 200,
-      content: {
-        rows: results.rows,
-        pages: results.pages,
-      },
-    });
-  } catch (ex) {
-    next(ex);
-  }
-});
+router.post(
+  "/",
+  authMiddleware.isAdmin,
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
+    try {
+      var results = await DAO.donations.getAll(
+        req.body.sort,
+        req.body.page,
+        req.body.limit,
+        req.body.filter,
+        req.locale,
+      );
+      return res.json({
+        status: 200,
+        content: {
+          rows: results.rows,
+          pages: results.pages,
+          statistics: results.statistics,
+        },
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
 
 router.get("/histogram", async (req, res, next) => {
   try {
@@ -451,35 +549,6 @@ router.get("/externalID/:externalID/:methodID", authMiddleware.isAdmin, async (r
       status: 200,
       content: donation,
     });
-  } catch (ex) {
-    next(ex);
-  }
-});
-
-let historyRateLimit = new rateLimit({
-  windowMs: 60 * 1000 * 60, // 1 hour
-  max: 5,
-  delayMs: 0, // disable delaying - full speed until the max limit is reached
-});
-router.post("/history/email", historyRateLimit, async (req, res, next) => {
-  try {
-    let email = req.body.email;
-    let id = await DAO.donors.getIDbyEmail(email);
-
-    if (id != null) {
-      var mailsent = await sendDonationHistory(id);
-      if (mailsent) {
-        res.json({
-          status: 200,
-          content: "ok",
-        });
-      }
-    } else {
-      res.json({
-        status: 200,
-        content: "ok",
-      });
-    }
   } catch (ex) {
     next(ex);
   }
@@ -642,7 +711,7 @@ router.delete("/:id", authMiddleware.isAdmin, async (req, res, next) => {
  *                      status: 500
  *                      content: "Receipt failed with error code 401"
  */
-router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res, next) => {
+router.post("/:id/receipt", async (req, res, next) => {
   if (req.body.email && req.body.email.indexOf("@") > -1) {
     var mailStatus = await sendDonationReceipt(req.params.id, req.body.email);
   } else {

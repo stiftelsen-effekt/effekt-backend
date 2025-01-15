@@ -1,7 +1,6 @@
 import { DAO } from "../../custom_modules/DAO";
 import moment from "moment";
 
-const reporting = require("../../custom_modules/reporting");
 const dateRangeHelper = require("../../custom_modules/dateRangeHelper");
 
 module.exports = async (req, res, next) => {
@@ -35,25 +34,6 @@ module.exports = async (req, res, next) => {
         status: 200,
         content: donationsFromRange,
       });
-    } else if (req.body.filetype === "excel") {
-      let organizations = await DAO.organizations.getAll();
-      let excelFile = reporting.createExcelFromIndividualDonations(
-        donationsFromRange,
-        organizations,
-        paymentMethods,
-      );
-
-      res.writeHead(200, {
-        "Content-Type": "application/vnd.ms-excel",
-        "Content-disposition":
-          "attachment;filename=Individual_Donations_" +
-          (moment as any)(dates.fromDate).format("YYYY-MM-DD") +
-          "_to_" +
-          (moment as any)(dates.toDate).format("YYYY-MM-DD") +
-          ".xlsx",
-        "Content-Length": excelFile.length,
-      });
-      res.end(excelFile);
     } else {
       res.status(400).json({
         code: 400,

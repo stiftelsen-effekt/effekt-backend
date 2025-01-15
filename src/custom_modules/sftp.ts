@@ -6,7 +6,7 @@ export async function getConnection() {
 
   await sftp.connect({
     host: config.nets_sftp_server,
-    port: 22,
+    port: 10026,
     username: config.nets_sftp_user,
     privateKey: config.nets_sftp_key,
     passphrase: config.nets_sftp_key_passphrase,

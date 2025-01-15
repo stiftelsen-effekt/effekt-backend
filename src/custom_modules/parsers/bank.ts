@@ -1,4 +1,4 @@
-import * as moment from "moment";
+import moment from "moment";
 import { parse } from "csv-parse/sync";
 
 const parseUtil = require("./util");
@@ -34,8 +34,6 @@ export const parseReport = (report) => {
       skip_empty_lines: true,
     });
   } catch (ex) {
-    console.error("Using semicolon delimiter failed, trying comma.");
-
     try {
       var data = parse(reportText, {
         delimiter: ",",

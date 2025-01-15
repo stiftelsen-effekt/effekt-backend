@@ -1,4 +1,4 @@
-import * as moment from "moment";
+import moment from "moment";
 import { parse } from "csv-parse/sync";
 const parseUtil = require("./util");
 
@@ -15,12 +15,18 @@ const fieldMapping = {
   Message: 16,
 };
 
+export type ParsedVippsReport = {
+  minDate: Date;
+  maxDate: Date;
+  transactions: VippsTransaction[];
+};
+
 /**
  * Parses a csv file from vipps reports
  * @param {Buffer} report A file buffer, from a csv comma seperated file
  * @return {Object} An object with a min- and maxDate field, representing the minimum and maximum date from the provided transactions, and an array of transactions in the field transaction
  */
-export const parseReport = (report) => {
+export const parseReport = (report): ParsedVippsReport => {
   let reportText = report.toString();
   try {
     var data = parse(reportText, {
@@ -32,8 +38,6 @@ export const parseReport = (report) => {
       throw new Error("Parsing failed, probably wrong delimiter.");
     }
   } catch (ex) {
-    console.error("Using semicolon delimiter failed, trying comma.");
-
     try {
       var data = parse(reportText, {
         delimiter: ",",
@@ -44,13 +48,13 @@ export const parseReport = (report) => {
       console.error("Using comma delimiter failed.");
       console.error("Parsing vipps failed.");
       console.error(ex);
-      return false;
+      throw new Error("Parsing failed.");
     }
   }
 
   let currentMinDate = null;
   let currentMaxDate = null;
-  let transactions = data.reduce((acc, dataRow) => {
+  let transactions = (data as any[]).reduce<VippsTransaction[]>((acc, dataRow: any) => {
     let transaction = buildTransactionFromArray(dataRow);
     if (transaction == false) return acc;
     if (transaction.date.toDate() < currentMinDate || currentMinDate == null)
@@ -68,7 +72,17 @@ export const parseReport = (report) => {
   };
 };
 
-const buildTransactionFromArray = (inputArray) => {
+export type VippsTransaction = {
+  date: moment.Moment;
+  location: string;
+  transactionID: string;
+  amount: number;
+  name: string;
+  message: string;
+  KID: string;
+};
+
+const buildTransactionFromArray = (inputArray): VippsTransaction | false => {
   if (inputArray[fieldMapping.TransactionType] !== "Salg") return false;
   let transaction = {
     date: moment.utc(inputArray[fieldMapping.SalesDate], "DD.MM.YYYY"),

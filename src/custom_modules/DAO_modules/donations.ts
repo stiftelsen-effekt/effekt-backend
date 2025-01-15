@@ -3,6 +3,10 @@ import { DAO } from "../DAO";
 import { Donation } from "../../schemas/types";
 
 import sqlString from "sqlstring";
+import { DateTime } from "luxon";
+import { Donations, Prisma } from "@prisma/client";
+import { RequestLocale } from "../../middleware/locale";
+import { get } from "request";
 
 /** @typedef Donation
  * @prop {number} id
@@ -41,9 +45,45 @@ import sqlString from "sqlstring";
  * @param {object} filter Filtering object
  * @returns {[Array<IDonation & donorName: string>, nextcursor]} An array of donations pluss the donorname
  */
-async function getAll(sort, page, limit = 10, filter = null) {
+async function getAll(
+  sort: {
+    id: string;
+    desc: boolean;
+  } | null,
+  page,
+  limit = 10,
+  filter: {
+    sum?: { from?: number; to?: number };
+    date?: { from?: Date; to?: Date };
+    KID?: string;
+    paymentMethodIDs?: Array<number>;
+    taxUnitTypes?: Array<TaxUnitType | null>;
+    donor?: string;
+    id?: string;
+    organizationIDs?: Array<number>;
+  } = null,
+  locale: RequestLocale,
+): Promise<{
+  rows: Array<{
+    id: number;
+    donor: string;
+    paymentMethod: string;
+    sum: number;
+    transactionCost: number;
+    kid: string;
+    timestamp: Date;
+  }>;
+  statistics: {
+    numDonations: number;
+    sumDonations: number;
+    avgDonation: number;
+  };
+  pages: number;
+}> {
   if (sort) {
     const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
+
+    const taxUnitTypeFildDefinition = getTaxUnitTypeFieldDefinition(locale);
 
     let where = [];
     if (filter) {
@@ -61,12 +101,24 @@ async function getAll(sort, page, limit = 10, filter = null) {
 
       if (filter.KID)
         where.push(` CAST(KID_fordeling as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
-      if (filter.paymentMethodIDs)
+      if (filter.paymentMethodIDs) {
+        if (filter.paymentMethodIDs.length == 0) {
+          return {
+            rows: [],
+            statistics: {
+              numDonations: 0,
+              sumDonations: 0,
+              avgDonation: 0,
+            },
+            pages: 0,
+          };
+        }
         where.push(
           ` Payment_ID IN (${filter.paymentMethodIDs
             .map((ID) => sqlString.escape(ID))
             .join(",")}) `,
         );
+      }
 
       if (filter.donor)
         where.push(
@@ -77,57 +129,120 @@ async function getAll(sort, page, limit = 10, filter = null) {
 
       if (filter.id) where.push(` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `);
 
+      if (filter.taxUnitTypes) {
+        if (filter.taxUnitTypes.length == 0) {
+          return {
+            rows: [],
+            statistics: {
+              numDonations: 0,
+              sumDonations: 0,
+              avgDonation: 0,
+            },
+            pages: 0,
+          };
+        }
+        const types = filter.taxUnitTypes
+          .filter((type) => type)
+          .map((type) => sqlString.escape(type));
+        const hasTypes = types.length > 0;
+        const includeUnknown = filter.taxUnitTypes.includes(null);
+        const or = hasTypes && includeUnknown ? " OR " : "";
+
+        const typesQuery = hasTypes ? `${taxUnitTypeFildDefinition} IN (${types.join(",")})` : "";
+        const unknownQuery = includeUnknown ? `${or} Tax_unit.ID IS NULL` : "";
+
+        where.push(
+          ` (
+            ${typesQuery}
+            ${unknownQuery}
+          ) `,
+        );
+      }
+
       if (filter.organizationIDs) {
-        where.push(` OrgId IN (${filter.organizationIDs.map(sqlString.escape).join(",")}) `);
+        if (filter.organizationIDs.length == 0) {
+          return {
+            rows: [],
+            statistics: {
+              numDonations: 0,
+              sumDonations: 0,
+              avgDonation: 0,
+            },
+            pages: 0,
+          };
+        }
+        where.push(
+          ` Distribution_cause_area_organizations.Organization_ID IN (${filter.organizationIDs
+            .map(sqlString.escape)
+            .join(",")}) `,
+        );
       }
     }
 
     // Only apply this join when filtering by organizationIDs.
     const organizationJoin = filter?.organizationIDs
       ? `
-        INNER JOIN Combining_table
-          ON Donations.KID_fordeling = Combining_table.KID
-        INNER JOIN Distribution
-          ON Combining_table.Distribution_ID = Distribution.ID`
+        LEFT JOIN Distribution_cause_areas
+          ON Distributions.KID = Distribution_cause_areas.Distribution_KID
+        LEFT JOIN Distribution_cause_area_organizations
+          ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID`
       : "";
 
-    const columns = `
-        Donations.ID,
-        Donors.full_name,
-        Payment.payment_name,
-        Donations.sum_confirmed,
-        Donations.transaction_cost,
-        Donations.KID_fordeling,
-        Donations.timestamp_confirmed
-      `;
-
     const query = `
-        SELECT 
-          count(*) OVER() AS full_count,
-          ${columns}
-        FROM Donations
-        INNER JOIN Donors
+        WITH filtered_donations AS (
+          SELECT DISTINCT
+            Donations.ID,
+            Donors.full_name,
+            Payment.abbriv as payment_name,
+            Donations.sum_confirmed,
+            Donations.transaction_cost,
+            Donations.KID_fordeling,
+            Donations.timestamp_confirmed,
+            ${taxUnitTypeFildDefinition} as tax_unit_type
+          FROM Donations
+          INNER JOIN Donors
             ON Donations.Donor_ID = Donors.ID
-        INNER JOIN Payment
+          INNER JOIN Payment
             ON Donations.Payment_ID = Payment.ID  
-        ${organizationJoin}
-        
-        WHERE 
-            ${where.length !== 0 ? where.join(" AND ") : "1"}
-        GROUP BY 
-            ${columns}
-        ORDER BY ${sortColumn}
-        ${sort.desc ? "DESC" : ""} 
+          INNER JOIN Distributions
+            ON Donations.KID_fordeling = Distributions.KID
+          LEFT JOIN Tax_unit
+            ON Distributions.Tax_unit_ID = Tax_unit.ID
+          ${organizationJoin}
+          WHERE ${where.length !== 0 ? where.join(" AND ") : "1"}
+        ),
+        statistics AS (
+          SELECT 
+            COUNT(*) as full_count,
+            SUM(sum_confirmed) as full_sum,
+            AVG(sum_confirmed) as full_avg
+          FROM filtered_donations
+        )
+        SELECT 
+          d.*,
+          s.full_count,
+          s.full_sum,
+          s.full_avg
+        FROM filtered_donations d
+        CROSS JOIN statistics s
+        ORDER BY ${sortColumn} ${sort.desc ? "DESC" : ""} 
         LIMIT ? OFFSET ?`;
 
     const [donations] = await DAO.query(query, [limit, page * limit]);
 
-    const counter = donations.length > 0 ? donations[0]["full_count"] : 0;
+    const numDonations = donations.length > 0 ? donations[0]["full_count"] : 0;
+    const sumDonations = donations.length > 0 ? donations[0]["full_sum"] : 0;
+    const avgDonation = donations.length > 0 ? donations[0]["full_avg"] : 0;
 
-    const pages = Math.ceil(counter / limit);
+    const pages = Math.ceil(numDonations / limit);
 
     return {
       rows: mapToJS(donations),
+      statistics: {
+        numDonations,
+        sumDonations,
+        avgDonation,
+      },
       pages,
     };
   } else {
@@ -171,7 +286,7 @@ async function getTransactionCostsReport() {
  * @param {string} KID KID number
  * @returns {Array<Donation>} Array of Donation objects
  */
-async function getAllByKID(KID) {
+async function getAllByKID(KID): Promise<Array<Donation>> {
   var [getDonationsByKIDQuery] = await DAO.query(
     `
             SELECT *, D.ID, payment_name FROM Donations as D
@@ -346,6 +461,9 @@ async function getByID(donationID) {
                 Donation.KID_fordeling,
                 Donation.transaction_cost,
                 Donation.timestamp_confirmed,
+                Donation.Payment_ID,
+                Donation.PaymentExternal_ID,
+                Donation.Meta_owner_ID,
                 Donor.ID as donorId,
                 Donor.full_name,
                 Donor.email,
@@ -378,13 +496,16 @@ async function getByID(donationID) {
     sum: dbDonation.sum_confirmed,
     transactionCost: dbDonation.transaction_cost,
     timestamp: dbDonation.timestamp_confirmed,
+    paymentId: dbDonation.Payment_ID,
+    paymentExternalRef: dbDonation.PaymentExternal_ID,
     paymentMethod: dbDonation.payment_name,
     KID: dbDonation.KID_fordeling,
+    metaOwnerId: dbDonation.Meta_owner_ID,
   };
 
   const distribution = await distributions.getSplitByKID(donation.KID);
 
-  donation["distribution"] = distribution.causeAreas;
+  donation["distribution"] = distribution;
 
   return donation;
 }
@@ -392,9 +513,10 @@ async function getByID(donationID) {
 /**
  * Gets all donations by donor ID
  * @param donorId
+ * @param from Optional date to filter donations to donations after this date
  * @returns {Array<Donation>} An array of donation objects
  */
-async function getByDonorId(donorId): Promise<Array<Donation>> {
+async function getByDonorId(donorId: number | string, from?: Date): Promise<Array<Donation>> {
   var [donations] = await DAO.query(
     `
     SELECT 
@@ -408,7 +530,7 @@ async function getByDonorId(donorId): Promise<Array<Donation>> {
       Donor.full_name,
       Donor.email,
       Payment.payment_name,
-      Combining.Tax_unit_ID
+      Distributions.Tax_unit_ID
 
     FROM Donations as Donation
 
@@ -418,12 +540,14 @@ async function getByDonorId(donorId): Promise<Array<Donation>> {
     INNER JOIN Payment
         ON Donation.Payment_ID = Payment.ID
         
-    INNER JOIN (SELECT KID, Tax_unit_ID FROM Combining_table GROUP BY KID, Tax_unit_ID) Combining
-    ON KID = KID_fordeling
+    INNER JOIN Distributions
+      ON KID = KID_fordeling
 
     WHERE 
-        Donation.Donor_ID = ?`,
-    [donorId],
+        Donation.Donor_ID = ?
+        ${from ? "AND Donation.timestamp_confirmed >= ?" : ""}
+        `,
+    from ? [donorId, from] : [donorId],
   );
 
   /** @type Array<Donation> */
@@ -666,27 +790,38 @@ async function getSummaryByYear(donorID) {
 }
 
 async function getYearlyAggregateByDonorId(donorId) {
-  const [res] = await DAO.query(
+  const [res] = await DAO.query<
+    {
+      ID: number;
+      organization: string;
+      abbriv: string;
+      causeAreaID: number;
+      value: string;
+      year: number;
+    }[]
+  >(
     `
-            SELECT
-                Organizations.ID as ID,
-                Organizations.full_name as organization,
-                Organizations.abbriv,
-                SUM(Donations.sum_confirmed * percentage_share / 100) as value, 
-                year(Donations.timestamp_confirmed) as \`year\`
+    SELECT
+    O.ID as ID,
+    O.full_name as organization,
+    O.abbriv,
+    O.Cause_area_ID as causeAreaID,
+    SUM(Donations.sum_confirmed * (CA.percentage_share / 100) * (CAO.percentage_share / 100)) as value, 
+    YEAR(Donations.timestamp_confirmed) as \`year\`
 
-            FROM Donations
-                INNER JOIN Combining_table 
-                    ON Combining_table.KID = Donations.KID_fordeling
-                INNER JOIN Distribution 
-                    ON Combining_table.Distribution_ID = Distribution.ID
-                INNER JOIN Organizations 
-                    ON Organizations.ID = Distribution.OrgID
-            WHERE 
-                Donations.Donor_ID = ?
-                
-            GROUP BY Organizations.id, \`year\`
-        `,
+    FROM Donations
+        INNER JOIN Distributions as D
+            ON D.KID = Donations.KID_fordeling
+        LEFT JOIN Distribution_cause_areas as CA
+            ON CA.Distribution_KID = D.KID
+        LEFT JOIN Distribution_cause_area_organizations as CAO
+            ON CAO.Distribution_cause_area_ID = CA.ID
+    LEFT JOIN Organizations as O
+    ON O.ID = CAO.Organization_ID
+    WHERE 
+        Donations.Donor_ID = ?
+        
+    GROUP BY O.ID, \`year\``,
     [donorId],
   );
 
@@ -767,7 +902,7 @@ async function getEAFundsDonations(donorId: number): Promise<
 > {
   const [res] = await DAO.query(
     `
-  SELECT * FROM EffektDonasjonDB.Funds_donations WHERE DonorID = ?
+  SELECT * FROM Funds_donations WHERE DonorID = ?
   `,
     [donorId],
   );
@@ -782,6 +917,31 @@ async function getEAFundsDonations(donorId: number): Promise<
       paymentExternalId: row.PaymentExternalID,
     };
   });
+}
+
+async function getLatestByLegacySeDistribution(legacyKID: string): Promise<Donations | null> {
+  const [res] = await DAO.query<Donations[]>(
+    `
+    SELECT * FROM LegacySeDistributionConnection
+      INNER JOIN Donations
+        ON Donations.PaymentExternal_ID = LegacySeDistributionConnection.paymentID
+
+      WHERE legacyKID = ?
+
+      ORDER BY Donations.timestamp_confirmed DESC
+      
+      LIMIT 1
+    `,
+    [legacyKID],
+  );
+
+  if (res.length === 0) return null;
+
+  return {
+    ...res[0],
+    sum_confirmed: res[0].sum_confirmed as unknown as Prisma.Decimal,
+    transaction_cost: res[0].transaction_cost as unknown as Prisma.Decimal,
+  };
 }
 
 //endregion
@@ -807,10 +967,9 @@ async function add(
   externalPaymentID = null,
   metaOwnerID = null,
 ): Promise<number> {
-  var [donorIDQuery] = await DAO.query(
-    "SELECT Donor_ID FROM Combining_table WHERE KID = ? LIMIT 1",
-    [KID],
-  );
+  var [donorIDQuery] = await DAO.query("SELECT Donor_ID FROM Distributions WHERE KID = ? LIMIT 1", [
+    KID,
+  ]);
 
   if (donorIDQuery.length != 1) {
     throw new Error("NO_KID | KID " + KID + " does not exist");
@@ -852,9 +1011,66 @@ async function add(
 
   return addDonationQuery.insertId;
 }
+
+async function addLegacySeDonationDistribution(
+  legacyDistributionReference: string,
+  paymentExternalId: string,
+): Promise<number> {
+  const [res] = await DAO.query(
+    `
+    INSERT INTO LegacySeDistributionConnection (paymentID, legacyKID)
+    VALUES (?, ?)
+  `,
+    [paymentExternalId, legacyDistributionReference],
+  );
+
+  return res.insertId;
+}
 //endregion
 
 //region Modify
+async function update(donation: {
+  id: number;
+  paymentId?: number;
+  paymentExternalRef?: string;
+  sum?: number;
+  transactionCost?: number;
+  timestamp?: Date;
+  metaOwnerId?: number;
+}) {
+  const existingDonation = await DAO.donations.getByID(donation.id);
+
+  const paymentId = donation.paymentId ?? existingDonation.paymentId;
+  const paymentExternalRef = donation.paymentExternalRef ?? existingDonation.paymentExternalRef;
+  const sum = donation.sum ?? existingDonation.sum;
+  const transactionCost = donation.transactionCost ?? existingDonation.transactionCost;
+  const timestamp = donation.timestamp ?? existingDonation.timestamp;
+  const metaOwnerId = donation.metaOwnerId ?? existingDonation.metaOwnerId;
+
+  await DAO.execute(
+    `UPDATE Donations SET
+      Payment_ID = ?,
+      PaymentExternal_ID = ?,
+      sum_confirmed = ?,
+      transaction_cost = ?,
+      timestamp_confirmed = ?,
+      Meta_owner_ID = ?
+    WHERE ID = ?`,
+    [paymentId, paymentExternalRef, sum, transactionCost, timestamp, metaOwnerId, donation.id],
+  );
+}
+
+async function updateDonorId(donationId: number, donorId: number) {
+  await DAO.execute(
+    `
+    UPDATE Donations
+    SET Donor_ID = ?
+    WHERE ID = ?
+  `,
+    [donorId, donationId],
+  );
+}
+
 async function registerConfirmedByIDs(IDs) {
   var [donations] = await DAO.execute(
     `UPDATE Donations 
@@ -904,6 +1120,33 @@ async function transferDonationsFromDummy(targetDonorID, dummyDonorID, newTaxUni
   return true;
 }
 
+async function updateKIDBeforeTimestamp(originalKID: string, newKID: string, timestamp: DateTime) {
+  await DAO.execute(
+    `
+      UPDATE Donations
+      SET KID_fordeling = ?
+      WHERE KID_fordeling = ?
+      AND timestamp_confirmed < ?
+    `,
+    [newKID, originalKID, timestamp.toISO()],
+  );
+
+  return true;
+}
+
+async function updateKIDById(donationId: number, newKID: string) {
+  const [res] = await DAO.query(
+    `
+    UPDATE Donations
+    SET KID_fordeling = ?
+    WHERE ID = ?
+  `,
+    [newKID, donationId],
+  );
+
+  return res.affectedRows > 0;
+}
+
 //endregion
 
 //region Delete
@@ -929,6 +1172,7 @@ const jsDBmapping = [
   ["transactionCost", "transaction_cost"],
   ["kid", "KID_fordeling"],
   ["timestamp", "timestamp_confirmed"],
+  ["taxUnitType", "tax_unit_type"],
 ];
 
 const mapToJS = (obj) =>
@@ -939,6 +1183,27 @@ const mapToJS = (obj) =>
     });
     return returnObj;
   });
+
+enum TaxUnitType {
+  PERSON = "person",
+  ORGANIZATION = "organization",
+}
+
+const getTaxUnitTypeFieldDefinition = (locale: RequestLocale) => {
+  if (locale === RequestLocale.NO) {
+    return `IF (Tax_unit.ID IS NULL, NULL, IF (LENGTH(Tax_unit.ssn) = 9, "organization", "person"))`;
+  } else if (locale === RequestLocale.SV) {
+    return `IF (Tax_unit.ID IS NULL, NULL, 
+      IF(Tax_unit.ssn REGEXP '^[0-9]{6}-' AND CAST(SUBSTRING(Tax_unit.ssn, 3, 2) AS UNSIGNED) > 20,
+        'organization',
+        'person'
+      )
+    )`;
+  } else {
+    throw new Error("Unsupported locale");
+  }
+};
+
 //endregion
 
 export const donations = {
@@ -959,11 +1224,17 @@ export const donations = {
   getLatestByKID,
   getByExternalPaymentID,
   getEAFundsDonations,
+  getLatestByLegacySeDistribution,
   externalPaymentIDExists,
   updateTransactionCost,
+  update,
+  updateDonorId,
   add,
+  addLegacySeDonationDistribution,
   registerConfirmedByIDs,
   getHistogramBySum,
   transferDonationsFromDummy,
+  updateKIDBeforeTimestamp,
+  updateKIDById,
   remove,
 };

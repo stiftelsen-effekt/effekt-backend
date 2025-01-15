@@ -4,7 +4,7 @@ import { sendDonationReceipt, sendVippsErrorWarning } from "./mail";
 
 const config = require("./../config");
 import crypto from "crypto";
-const paymentMethods = require("../enums/paymentMethods");
+import paymentMethods from "../enums/paymentMethods";
 import request from "request-promise-native";
 const mail = require("../custom_modules/mail");
 import moment from "moment";
@@ -266,7 +266,7 @@ module.exports = {
           await sendDonationReceipt(donationID);
         } catch (ex) {
           //Donation already registered, no additional actions required
-          if (ex.message.indexOf("EXISTING_DONATION") === -1) {
+          if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
             console.info(`Vipps donation for orderid ${orderId} already exists`, ex);
           } else {
             throw ex;
@@ -394,7 +394,7 @@ module.exports = {
         json: data,
       });
     } catch (ex) {
-      if (ex.statusCode === 423 || ex.statusCode === 402) {
+      if (ex.statusCode === 423 || ex.statusCode === 402 || ex.error[0].errorCode == 61) {
         //This is most likely a case of the polling trying to capture an order already captured by the callback, simply return true
         return true;
       } else {
@@ -419,8 +419,9 @@ module.exports = {
         return true;
       } catch (ex) {
         //Donation already registered, no additional actions required
-        if (ex.message.indexOf("EXISTING_DONATION") === -1) {
+        if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
           console.info(`Vipps donation for orderid ${orderId} already exists`, ex);
+          return true;
         } else {
           throw ex;
         }
@@ -441,6 +442,10 @@ module.exports = {
 
     try {
       let order = await DAO.vipps.getOrder(orderId);
+      if (!order) {
+        console.error(`Could not refund order with id ${orderId}, order not found in database`);
+        return false;
+      }
 
       if (order.donationID == null) {
         console.error(`Could not refund order with id ${orderId}, order has not been captured`);
@@ -717,7 +722,11 @@ module.exports = {
       return false;
     }
     let body = {
-      price: price,
+      pricing: {
+        type: "LEGACY",
+        amount: price,
+        currency: "NOK",
+      },
     };
 
     try {
@@ -806,17 +815,25 @@ module.exports = {
    * @param {string} agreementId The agreement id
    * @param {number} amountKroner The amount to charge in kroner, not øre
    * @param {number} daysInAdvance How many days in advance of the due date
+   * @param {Date} dueDate Optional due date, by default 3 days from current date
    * @return {boolean} Success
    */
-  async createCharge(agreementId, amountKroner, daysInAdvance = 3) {
+  async createCharge(
+    agreementId,
+    amountKroner,
+    daysInAdvance = 3,
+    dueDate?: Date,
+  ): Promise<boolean | string> {
     if (daysInAdvance <= 2) {
       console.error("Today must be more than 2 days in advance of the due date");
       return false;
     }
 
-    const timeNow = new Date().getTime();
-    const dueDateTime = new Date(timeNow + 1000 * 60 * 60 * 24 * daysInAdvance);
-    const dueDate = new Date(dueDateTime);
+    if (!dueDate) {
+      const timeNow = new Date().getTime();
+      const dueDateTime = new Date(timeNow + 1000 * 60 * 60 * 24 * daysInAdvance);
+      dueDate = new Date(dueDateTime);
+    }
 
     // This is the date format that Vipps accepts
     const formattedDueDate = moment(dueDate).format("YYYY-MM-DD");
@@ -1154,8 +1171,6 @@ module.exports = {
 
       agreements = agreements.concat(active, pending, stopped, expired);
 
-      console.log("Updating database rows...");
-
       for (let i = 0; i < agreements.length; i++) {
         const anonDonorId = 1464;
         const standardKID = 87397824;
@@ -1228,7 +1243,7 @@ module.exports = {
                 metaOwnerId,
               );
 
-              if (donationId !== null) {
+              if (donationId) {
                 await sendDonationReceipt(donationId);
               } else {
                 console.error(

@@ -1,7 +1,10 @@
 import { DateTime } from "luxon";
-import { DAO } from "../DAO";
+import { DAO, SqlResult } from "../DAO";
 
 import sqlString from "sqlstring";
+import { OkPacket, ResultSetHeader } from "mysql2/promise";
+import { Avtalegiro_agreements } from "@prisma/client";
+import { Distribution, DistributionInput } from "../../schemas/types";
 
 export type AvtaleGiroAgreement = {
   id: number;
@@ -44,6 +47,22 @@ async function getDonationsByKID(KID) {
 
   return donations;
 }
+
+/*
+ * Gets all active agreements
+ * @return {Array<AvtaleGiro>} Array of AvtaleGiro agreements
+ */
+async function getActiveAgreements(): Promise<Avtalegiro_agreements[]> {
+  let [agreements] = await DAO.query(
+    `
+            SELECT 
+                *
+            FROM Avtalegiro_agreements 
+            WHERE active = 1`,
+  );
+
+  return agreements.map((agreement) => mapDbAgreementToJs(agreement));
+}
 //endregion
 
 //region Add
@@ -75,7 +94,13 @@ async function updateNotification(KID, notice) {
   return true;
 }
 
-async function updateAmount(KID, amount) {
+/**
+ * Updates the amount of an AvtaleGiro agreement
+ * @param KID
+ * @param amount The new amount in ore
+ * @returns
+ */
+async function updateAmount(KID: string, amount: number) {
   await DAO.query(`UPDATE Avtalegiro_agreements SET amount = ? where KID = ?`, [amount, KID]);
 
   return true;
@@ -94,75 +119,119 @@ async function updatePaymentDate(KID, paymentDate) {
   return true;
 }
 
+/**
+ * When updating an AvtaleGiro distribution, we need to do some extra work to preserve donation history
+ * This is because the KID is used as the active identifier for AvtaleGiro agreements, and we can't change it
+ * Therefore, when the user wishes to update their AvtaleGiro distribution, we need to preserve the old distribution
+ * We do this by preserving the old distribution with a new KID number, and then adding the new distribution with the original KID number
+ * We also need to update all donations with the old distribution to use the new KID number
+ * @param originalDistribution
+ * @param newKid This is a KID used to store the historic distribution. Not the new distribution, as that one carries the original KID
+ * @param newDistributionInput
+ * @param metaOwnerID
+ * @returns
+ */
 async function replaceDistribution(
-  replacementKID: string,
-  originalKID: string,
-  split,
-  donorId,
-  metaOwnerID,
-  taxUnitId: number | null = null,
-  standardDistribution: boolean = false,
+  originalDistribution: Distribution,
+  newKid: string,
+  newDistributionInput: DistributionInput,
+  metaOwnerID?: number,
 ) {
-  throw new Error("Not implemented");
-  /*
-  if (replacementKID.length !== 15 || originalKID.length !== 15) {
-    return false;
+  if (!metaOwnerID) {
+    metaOwnerID = await DAO.meta.getDefaultOwnerID();
   }
 
-  const originalTaxUnit = await DAO.tax.getByKID(originalKID);
+  const transaction = await DAO.startTransaction();
+  try {
+    // Replaces original KID with a new KID to preserve donation history
+    await transaction.query(`UPDATE Distributions SET KID = ? WHERE KID = ?`, [
+      newKid,
+      originalDistribution.kid,
+    ]);
 
-  // Replaces original KID with a new replacement KID
-  await DAO.query(
-    `
-            UPDATE Combining_table
-            SET KID = ?
-            WHERE KID = ?
-        `,
-    [replacementKID, originalKID],
-  );
+    // Updates donations with the old distributions to use the replacement KID (preserves donation history)
+    await transaction.query(`UPDATE Donations SET KID_fordeling = ? WHERE KID_fordeling = ?`, [
+      newKid,
+      originalDistribution.kid,
+    ]);
 
-  // Updates donations with the old distributions to use the replacement KID (preserves donation history)
-  await DAO.query(
-    `
-            UPDATE Donations
-            SET KID_fordeling = ?
-            WHERE KID_fordeling = ?
-        `,
-    [replacementKID, originalKID],
-  );
+    // Add new distribution using the original KID
+    await DAO.distributions.add(
+      {
+        ...newDistributionInput,
+        kid: originalDistribution.kid,
+      },
+      metaOwnerID,
+      transaction,
+    );
 
-  const replacementTaxUnitId: number = taxUnitId !== null ? taxUnitId : originalTaxUnit.id;
+    // Links the replacement KID to the original AvtaleGiro KID
+    await transaction.query(
+      `
+              INSERT INTO AvtaleGiro_replaced_distributions(Replacement_KID, Original_AvtaleGiro_KID)
+              VALUES (?, ?)
+          `,
+      [newKid, originalDistribution.kid],
+    );
 
-  // Add new distribution using the original KID
-  await DAO.distributions.add(
-    split,
-    originalKID,
-    donorId,
-    replacementTaxUnitId,
-    standardDistribution,
-    metaOwnerID,
-  );
+    // Reset the AvtaleGiro agreement to use the new distribution KID
+    // We need to do this because of a foreign key constraint that updates the agreement
+    // KID when we edit the distribution
+    await transaction.query(`UPDATE Avtalegiro_agreements SET KID = ? WHERE KID = ?`, [
+      originalDistribution.kid,
+      newKid,
+    ]);
 
-  // Links the replacement KID to the original AvtaleGiro KID
-  await DAO.query(
-    `
-            INSERT INTO AvtaleGiro_replaced_distributions(Replacement_KID, Original_AvtaleGiro_KID)
-            VALUES (?, ?)
-        `,
-    [replacementKID, originalKID],
-  );
+    await DAO.commitTransaction(transaction);
+  } catch (ex) {
+    await DAO.rollbackTransaction(transaction);
+    throw ex;
+  }
 
   return true;
-  */
 }
 
 async function setActive(KID, active) {
-  let res = await DAO.query(`UPDATE Avtalegiro_agreements SET active = ? where KID = ?`, [
-    active,
-    KID,
-  ]);
+  try {
+    var transaction = await DAO.startTransaction();
 
-  return true;
+    let [res] = await transaction.query<ResultSetHeader | OkPacket>(
+      `UPDATE Avtalegiro_agreements SET active = ? WHERE KID = ?`,
+      [active, KID],
+    );
+
+    if (res.affectedRows === 0) {
+      await DAO.rollbackTransaction(transaction);
+      return false;
+    }
+
+    if (!active) {
+      let [res] = await transaction.query<ResultSetHeader | OkPacket>(
+        `UPDATE Avtalegiro_agreements SET cancelled = NOW() WHERE KID = ?`,
+        [KID],
+      );
+      if (res.affectedRows === 0) {
+        await DAO.rollbackTransaction(transaction);
+        return false;
+      }
+    } else {
+      let [res] = await transaction.query<ResultSetHeader | OkPacket>(
+        `UPDATE Avtalegiro_agreements SET cancelled = NULL WHERE KID = ?`,
+        [KID],
+      );
+      if (res.affectedRows === 0) {
+        await DAO.rollbackTransaction(transaction);
+        return false;
+      }
+    }
+
+    await DAO.commitTransaction(transaction);
+
+    return true;
+  } catch (ex) {
+    if (transaction) await DAO.rollbackTransaction(transaction);
+    throw ex;
+  }
 }
 
 async function isActive(KID) {
@@ -181,17 +250,13 @@ async function isActive(KID) {
  * @return {boolean} Success
  */
 async function cancelAgreement(KID) {
-  const today = new Date();
-  //YYYY-MM-DD format
-  const mysqlDate = today.toISOString().slice(0, 19).replace("T", " ");
-
   DAO.query(
     `
             UPDATE Avtalegiro_agreements
-            SET cancelled = ?, active = 0
+            SET cancelled = NOW(), active = 0
             WHERE KID = ?
         `,
-    [mysqlDate, KID],
+    [KID],
   );
 
   return true;
@@ -219,7 +284,20 @@ async function exists(KID) {
  * @param {object} filter Filtering object
  * @return {[AvtaleGiro]} Array of AvtaleGiro agreements
  */
-async function getAgreements(sort, page, limit, filter) {
+async function getAgreements(
+  sort,
+  page,
+  limit,
+  filter,
+): Promise<{
+  pages: number;
+  rows: Avtalegiro_agreements[];
+  statistics: {
+    numAgreements: number;
+    sumAgreements: number;
+    avgAgreement: number;
+  };
+}> {
   const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
   const sortDirection = sort.desc ? "DESC" : "ASC";
   const offset = page * limit;
@@ -243,51 +321,74 @@ async function getAgreements(sort, page, limit, filter) {
       if (filter.created.to) where.push(`AG.created <= ${sqlString.escape(filter.created.to)} `);
     }
 
-    if (filter.KID)
-      where.push(` CAST(CT.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
+    if (filter.KID) where.push(` CAST(D.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
     if (filter.donor)
       where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
-    if (filter.statuses.length > 0)
+    if (filter.statuses) {
+      if (filter.statuses.length === 0) {
+        return {
+          pages: 0,
+          rows: [],
+          statistics: {
+            numAgreements: 0,
+            sumAgreements: 0,
+            avgAgreement: 0,
+          },
+        };
+      }
       where.push(` AG.active IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `);
+    }
   }
 
-  const [agreements] = await DAO.query(
-    `
-        SELECT DISTINCT
-            AG.ID,
-            AG.active,
-            ROUND(AG.amount / 100, 0) as amount,
-            AG.KID,
-            AG.payment_date,
-            AG.created,
-            AG.cancelled,
-            AG.last_updated,
-            AG.notice,
-            Donors.full_name 
-        FROM Avtalegiro_agreements as AG
-        INNER JOIN Combining_table as CT
-            ON AG.KID = CT.KID
-        INNER JOIN Donors 
-            ON CT.Donor_ID = Donors.ID
-        WHERE
-            ${where.length !== 0 ? where.join(" AND ") : "1"}
+  const columns = `
+    AG.ID,
+    AG.active,
+    AG.KID,
+    AG.payment_date,
+    AG.created,
+    AG.cancelled,
+    AG.last_updated,
+    AG.notice,
+    Donors.full_name 
+  `;
 
-        ORDER BY ${sortColumn} ${sortDirection}
-        LIMIT ? OFFSET ?
-        `,
-    [limit, offset],
-  );
+  const query = `
+    SELECT
+      count(*) OVER() AS full_count,
+      ROUND(sum(AG.amount) OVER() / 100, 0) AS full_sum,
+      ROUND(avg(AG.amount) OVER() / 100, 0) AS full_avg,
+      ROUND(AG.amount / 100, 0) as amount,
+      ${columns}
+    FROM Avtalegiro_agreements as AG
+    INNER JOIN Distributions as D
+        ON AG.KID = D.KID
+    INNER JOIN Donors 
+        ON D.Donor_ID = Donors.ID
+    WHERE
+        ${where.length !== 0 ? where.join(" AND ") : "1"}
 
-  const [counter] = await DAO.query(`
-        SELECT COUNT(*) as count FROM Avtalegiro_agreements
-    `);
+    GROUP BY
+      ${columns}
 
-  if (agreements.length === 0) return false;
-  else
-    return {
-      pages: Math.ceil(counter[0].count / limit),
-      rows: agreements,
-    };
+    ORDER BY ${sortColumn} ${sortDirection}
+    LIMIT ? OFFSET ?
+  `;
+
+  const [agreements] = await DAO.query(query, [limit, offset]);
+
+  const numAgreements = agreements.length > 0 ? agreements[0].full_count : 0;
+  const sumAgreements = agreements.length > 0 ? agreements[0].full_sum : 0;
+  const avgAgreement = agreements.length > 0 ? agreements[0].full_avg : 0;
+
+  return {
+    pages: Math.ceil(numAgreements / limit),
+    rows: agreements,
+    statistics: {
+      numAgreements,
+      sumAgreements,
+      avgAgreement,
+    },
+  };
 }
 
 /**
@@ -295,8 +396,8 @@ async function getAgreements(sort, page, limit, filter) {
  * @param {string} id AvtaleGiro ID
  * @return {AvtaleGiro} AvtaleGiro agreement
  */
-async function getAgreement(id) {
-  const [result] = await DAO.query(
+async function getAgreement(id: string) {
+  const [result] = await DAO.query<Avtalegiro_agreements[]>(
     `
         SELECT DISTINCT
             AG.ID,
@@ -311,10 +412,10 @@ async function getAgreement(id) {
             Donors.full_name,
             Donors.ID 
         FROM Avtalegiro_agreements as AG
-        INNER JOIN Combining_table as CT
-            ON AG.KID = CT.KID
+        INNER JOIN Distributions as D
+            ON AG.KID = D.KID
         INNER JOIN Donors 
-            ON CT.Donor_ID = Donors.ID
+            ON D.Donor_ID = Donors.ID
         WHERE AG.ID = ?
         `,
     [id],
@@ -328,7 +429,7 @@ async function getAgreement(id) {
 }
 
 async function getByDonorId(donorId) {
-  let [agreements] = await DAO.query(
+  let [agreements] = await DAO.query<Avtalegiro_agreements & { full_name: string }>(
     `
             SELECT DISTINCT
                 AG.ID,
@@ -343,11 +444,11 @@ async function getByDonorId(donorId) {
                 Donors.full_name
             FROM Avtalegiro_agreements as AG
             
-            INNER JOIN Combining_table as CT
-                ON AG.KID = CT.KID
+            INNER JOIN Distributions as D
+                ON AG.KID = D.KID
             
             INNER JOIN Donors 
-                ON CT.Donor_ID = Donors.ID
+                ON D.Donor_ID = Donors.ID
             
             WHERE Donors.ID = ?`,
     [donorId],
@@ -383,12 +484,42 @@ async function getByKID(KID: string): Promise<AvtaleGiroAgreement> {
   }
 }
 
+async function getByID(ID: number): Promise<Avtalegiro_agreements> {
+  let [agreement] = await DAO.query<Avtalegiro_agreements[]>(
+    `
+            SELECT 
+                *
+            FROM Avtalegiro_agreements 
+            WHERE ID = ?`,
+    [ID],
+  );
+
+  if (agreement.length > 0) {
+    return mapDbAgreementToJs(agreement[0]);
+  } else {
+    return null;
+  }
+}
+
+export type AgreementReport = {
+  activeAgreementCount: number;
+  averageAgreementSum: number;
+  totalAgreementSum: number;
+  medianAgreementSum: string;
+  draftedThisMonth: number;
+  sumDraftedThisMonth: number;
+  activatedThisMonth: number;
+  sumActivatedThisMonth: number;
+  stoppedThisMonth: number;
+  sumStoppedThisMonth: number;
+};
+
 /**
  * Fetches key statistics of active agreements
  * @return {Object}
  */
 async function getAgreementReport() {
-  let [res] = await DAO.query(`
+  let [res] = await DAO.query<AgreementReport[]>(`
     SELECT 
         count(ID) as activeAgreementCount,
         round(avg(amount)/100, 0) as averageAgreementSum,
@@ -522,7 +653,7 @@ async function getRecievedDonationsForDate(date) {
 async function getAgreementSumHistogram() {
   let [results] = await DAO.query(`
             SELECT 
-                floor(amount/500)*500/100 	AS bucket, 
+                floor((amount/100)/500)*500 	AS bucket, 
                 count(*) 						AS items,
                 ROUND(100*LN(COUNT(*)))         AS bar
             FROM Avtalegiro_agreements
@@ -592,6 +723,24 @@ async function getShipmentIDs(today: DateTime): Promise<number[]> {
   return rows.map((row) => row.ID);
 }
 
+async function getAgreementsWithKIDStartingWith(prefix: string): Promise<AvtaleGiroAgreement[]> {
+  let [rows] = await DAO.query(
+    `SELECT ID, KID, amount, payment_date, notice FROM Avtalegiro_agreements WHERE KID LIKE ?`,
+    [`${prefix}%`],
+  );
+
+  console.log("Matching prefix");
+  console.log(rows);
+
+  return rows.map((row) => ({
+    id: row.ID,
+    KID: row.KID,
+    amount: row.amount,
+    paymentDate: row.payment_date,
+    notice: row.notice,
+  }));
+}
+
 /**
  * Adds a new shipment row to db
  * @param {Number} numClaims The number of claims in that shipment
@@ -608,6 +757,19 @@ async function addShipment(numClaims) {
 
   return result.insertId;
 }
+
+const mapDbAgreementToJs = (
+  dbAgreement: SqlResult<Avtalegiro_agreements>,
+): Avtalegiro_agreements => {
+  return {
+    ...dbAgreement,
+    notice: dbAgreement.notice === 1,
+    active: dbAgreement.active === 1,
+    created: dbAgreement.created,
+    last_updated: dbAgreement.last_updated,
+    cancelled: dbAgreement.cancelled,
+  };
+};
 
 const jsDBmapping = [
   ["id", "ID"],
@@ -636,6 +798,8 @@ export const avtalegiroagreements = {
   replaceDistribution,
   remove,
   exists,
+  getActiveAgreements,
+  getByID,
   getByKID,
   getByDonorId,
   getAgreementSumHistogram,
@@ -649,6 +813,7 @@ export const avtalegiroagreements = {
   getExpectedDonationsForDate,
   getDonationsByKID,
   getShipmentIDs,
+  getAgreementsWithKIDStartingWith,
 
   addShipment,
 };

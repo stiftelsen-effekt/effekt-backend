@@ -63,8 +63,7 @@ describe("Vipps CSV", () => {
     const sample = readCSV(reportType.vipps, "Vipps April 2019");
 
     const data = vippsParseReport(sample);
-    let transactions = data !== false ? data.transactions : [];
-    expect(transactions).to.be.length(15);
+    expect(data.transactions).to.be.length(15);
   });
 });
 

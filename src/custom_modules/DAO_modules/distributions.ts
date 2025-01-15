@@ -1,24 +1,36 @@
-import Decimal from "decimal.js";
-import { DAO } from "../DAO";
+import { DAO, SqlResult } from "../DAO";
 
-import sqlString from "sqlstring";
 import {
-  Distribution_cause_area_organizations,
-  Distribution_cause_areas,
   Distributions,
+  Distribution_cause_areas,
+  Distribution_cause_area_organizations,
+  Donors,
   Organizations,
+  Prisma,
 } from "@prisma/client";
 import { ResultSetHeader } from "mysql2";
+import sqlString from "sqlstring";
 import {
   Distribution,
   DistributionCauseArea,
   DistributionCauseAreaOrganization,
   DistributionInput,
 } from "../../schemas/types";
-import { min } from "moment";
+import { PoolConnection } from "mysql2/promise";
+import { sumWithPrecision } from "../rounding";
 
+export type DistributionsListFilter = {
+  KID?: string;
+  donor?: string;
+  email?: string;
+};
 //region GET
-async function getAll(page = 0, limit = 10, sort, filter = null) {
+async function getAll(
+  page = 0,
+  limit = 10,
+  sort: { id: string; desc?: boolean },
+  filter: null | DistributionsListFilter = null,
+) {
   let where = [];
   if (filter) {
     if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
@@ -30,43 +42,57 @@ async function getAll(page = 0, limit = 10, sort, filter = null) {
       );
   }
 
-  let queryString = `
+  const queryFrom = `
+    FROM Distributions
+
+    LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
+        ON Donations.KID_fordeling = Distributions.KID
+
+    INNER JOIN Donors
+        ON Distributions.Donor_ID = Donors.ID
+  `;
+
+  const queryGroupBy = `
+    GROUP BY Distributions.KID, Donors.full_name, Donors.email
+  `;
+
+  const queryWhere = where.length > 0 ? "WHERE " + where.join(" AND ") : "";
+
+  const querySelectList = `
+    Distributions.KID,
+    IFNULL(Donations.sum, 0) as sum,
+    IFNULL(Donations.count, 0) as count,
+    Donors.full_name,
+    Donors.email
+  `;
+
+  const queryString = `
         SELECT
-            Combining.KID,
-            Donations.sum,
-            Donations.count,
-            Donors.full_name,
-            Donors.email
+            ${querySelectList}
 
-            FROM Combining_table as Combining
+            ${queryFrom}
+            ${queryWhere}
+            ${queryGroupBy}
 
-            LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
-                ON Donations.KID_fordeling = Combining.KID
-
-            INNER JOIN Donors
-                ON Combining.Donor_ID = Donors.ID
-
-            ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}
-
-            GROUP BY Combining.KID, Donors.full_name, Donors.email
-
-            ORDER BY ${sort.id} ${sort.desc ? " DESC" : ""}
+            ORDER BY ${sort.id} ${sort.desc ? "DESC" : ""}
 
             LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit * page)}`;
 
-  const [rows] = await DAO.query(queryString);
+  const [rows] = await DAO.query<
+    (Pick<Distributions, "KID"> & { sum: number; count: number } & Pick<
+        Donors,
+        "full_name" | "email"
+      >)[]
+  >(queryString);
 
-  const [counter] = await DAO.query(`
-        SELECT COUNT(*) as count 
-            FROM Combining_table as Combining
+  const counterQueryString = `
+  SELECT COUNT(*) as count FROM (SELECT 
+      ${querySelectList}
+      ${queryFrom}
+      ${queryWhere}
+      ${queryGroupBy}) as sub`;
 
-            LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
-                ON Donations.KID_fordeling = Combining.KID
-
-            INNER JOIN Donors
-                ON Combining.Donor_ID = Donors.ID
-
-            ${where.length > 0 ? "WHERE " + where.join(" AND ") : ""}`);
+  const [counter] = await DAO.query<{ count: number }[]>(counterQueryString);
 
   const pages = Math.ceil(counter[0].count / limit);
 
@@ -81,52 +107,33 @@ async function getAll(page = 0, limit = 10, sort, filter = null) {
  * @param {Number} donorID
  * @returns {{
  *  donorID: number,
- *  distributions: [{
- *      KID: number,
- *      organizations: [{
- *          name: string,
- *          share: number
- *      }]}]}}
+ *  distributions: Distribution[]
+ * }}
  */
-async function getAllByDonor(donorID) {
-  var [res] = await DAO.query(
-    `select Donors.ID as donID, Combining_table.KID as KID, Distribution.ID, Organizations.ID as orgId, Organizations.full_name, Distribution.percentage_share 
-    from Donors
-    inner join Combining_table on Combining_table.Donor_ID = Donors.ID
-    inner join Distribution on Distribution.ID = Combining_table.Distribution_ID
-    inner join Organizations on Organizations.ID = Distribution.OrgID
-    where Donors.ID = ?`,
+async function getAllByDonor(donorID: number) {
+  var [res] = await DAO.query<DistributionDbResult>(
+    `SELECT *,
+      CAO.Percentage_share AS Organization_percentage_share,
+      CA.Percentage_share AS Cause_area_percentage_share,
+      C.name AS Cause_area_name,
+      O.full_name AS Organization_name
+
+    FROM 
+      Distributions AS D
+      LEFT JOIN Distribution_cause_areas AS CA ON CA.Distribution_KID = D.KID
+      LEFT JOIN Distribution_cause_area_organizations AS CAO ON CAO.Distribution_cause_area_ID = CA.ID
+      INNER JOIN Cause_areas AS C ON C.ID = CA.Cause_area_ID
+      INNER JOIN Organizations AS O ON O.ID = CAO.Organization_ID
+    
+    WHERE 
+        D.Donor_ID = ?`,
     [donorID],
   );
 
   var distObj = {
     donorID: donorID,
-    distributions: [],
+    distributions: mapDbDistributionsToDistributions(res),
   };
-
-  // Finds all unique KID numbers
-  const map = new Map();
-  for (const item of res) {
-    if (!map.has(item.KID)) {
-      map.set(item.KID, true);
-      distObj.distributions.push({
-        kid: item.KID,
-        shares: [],
-      });
-    }
-  }
-  // Adds organization and shares to each KID number
-  res.forEach((row) => {
-    distObj.distributions.forEach((obj) => {
-      if (row.KID == obj.kid) {
-        obj.shares.push({
-          id: row.orgId,
-          name: row.full_name,
-          share: row.percentage_share,
-        });
-      }
-    });
-  });
 
   return distObj;
 }
@@ -135,35 +142,31 @@ async function getAllByDonor(donorID) {
  * Returns the flat distributions (not the actual split between organizations)
  * for a given donor id, with number of donations and donation sum.
  * @param {Number} donorId
- * @returns {Array<{
- *  kid: number,
- *  count: number,
- *  sum: number,
- *  full_name: string,
- *  email: string,
- * }>}
  */
-async function getByDonorId(donorId) {
-  var [distributions] = await DAO.query(
+async function getByDonorId(donorId: number) {
+  var [distributions] = await DAO.query<
+    (Pick<Distributions, "KID"> &
+      Pick<Donors, "full_name" | "email"> & { sum: number; count: number })[]
+  >(
     `
-            SELECT
-            Combining.KID,
+        SELECT
+            Distributions.KID,
             Donations.sum,
             Donations.count,
             Donors.full_name,
             Donors.email
 
-            FROM Combining_table as Combining
+            FROM Distributions
 
             LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
-                ON Donations.KID_fordeling = Combining.KID
+                ON Donations.KID_fordeling = Distributions.KID
 
             INNER JOIN Donors
-                ON Combining.Donor_ID = Donors.ID
+                ON Distributions.Donor_ID = Donors.ID
 
-            WHERE Donors.ID = ?
+            WHERE Distributions.Donor_ID = ?
 
-            GROUP BY Combining.KID, Donors.full_name, Donors.email
+            GROUP BY Distributions.KID, Donors.full_name, Donors.email
         `,
     [donorId],
   );
@@ -187,9 +190,14 @@ async function KIDexists(KID) {
  * Takes in a candidate distribution and returns a KID if the distribution already exists
  * @param {DistributionInput} input
  * @param {number} minKidLength Used to filter out distributions with KID shorter than this
+ * @param {number} maxKidLength Used to filter out distributions with KID longer than this
  * @returns {string | null} KID or null if no KID found
  */
-async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promise<string | null> {
+async function getKIDbySplit(
+  input: DistributionInput,
+  minKidLength = 0,
+  maxKidLength = Number.MAX_SAFE_INTEGER,
+): Promise<string | null> {
   // TOOD? If donor only has one tax unit, always use that one?
 
   // Validate input
@@ -199,21 +207,17 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
   }
 
   // Cause areas share must sum to 100
-  const causeAreaShareSum = input.causeAreas.reduce(
-    (sum, causeArea) => sum + parseFloat(causeArea.percentageShare),
-    0,
+  const causeAreaShareSum = sumWithPrecision(
+    input.causeAreas.map((causeArea) => causeArea.percentageShare),
   );
-  if (causeAreaShareSum !== 100) {
+  if (causeAreaShareSum !== "100") {
     throw new Error(`Cause area share must sum to 100, but was ${causeAreaShareSum}`);
   }
 
   // Organization share must sum to 100 within each cause area
   input.causeAreas.forEach((causeArea) => {
-    const orgShareSum = causeArea.organizations.reduce(
-      (sum, org) => sum + parseFloat(org.percentageShare),
-      0,
-    );
-    if (orgShareSum !== 100) {
+    const orgShareSum = sumWithPrecision(causeArea.organizations.map((org) => org.percentageShare));
+    if (orgShareSum !== "100") {
       throw new Error(
         `Organization share must sum to 100 within each cause area, but was ${orgShareSum} for cause area ${causeArea.id}`,
       );
@@ -313,9 +317,7 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
           SELECT
               KID,
               Cause_area_ID,
-              ROUND(
-                  SUM(CAO.Percentage_share) OVER (PARTITION BY CA.ID) * CA.Percentage_share / 100
-              ) AS CauseAreasOrgSum
+              SUM(CAO.Percentage_share) OVER (PARTITION BY CA.ID) * CA.Percentage_share / 100 AS CauseAreasOrgSum
           FROM 
               Distributions AS D
               LEFT JOIN Distribution_cause_areas AS CA ON CA.Distribution_KID = D.KID
@@ -334,9 +336,9 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
                             AND CA.Percentage_share = ${sqlString.escape(
                               causeArea.percentageShare,
                             )} 
-                            AND CA.Standard_split = ${
-                              sqlString.escape(causeArea.standardSplit) ? 1 : 0
-                            }
+                            AND CA.Standard_split = ${sqlString.escape(
+                              causeArea.standardSplit ? 1 : 0,
+                            )}
                             AND
                             (
                               ${causeArea.organizations
@@ -368,11 +370,11 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
     HAVING SUM(CauseAreasOrgSum) = 100;
   `;
 
-  console.log(query);
-
   const [res] = await DAO.query(query, [input.donorId, input.taxUnitId, input.taxUnitId]);
 
-  const filteredDistributions = res.filter((row) => row.KID.length > minKidLength);
+  const filteredDistributions = res.filter(
+    (row) => row.KID.length >= minKidLength && row.KID.length <= maxKidLength,
+  );
 
   if (filteredDistributions.length > 0) {
     return filteredDistributions[0].KID;
@@ -387,16 +389,21 @@ async function getKIDbySplit(input: DistributionInput, minKidLength = 0): Promis
  * @returns {Distribution} A distributions, throws error if not found
  */
 async function getSplitByKID(KID: string): Promise<Distribution> {
-  let [result] = await DAO.query<
-    (Distributions & Distribution_cause_areas & Distribution_cause_area_organizations)[]
-  >(
+  let [result] = await DAO.query<DistributionDbResult>(
     `
-        SELECT *
+        SELECT *,
+          CAO.Percentage_share AS Organization_percentage_share,
+          CA.Percentage_share AS Cause_area_percentage_share,
+          C.name AS Cause_area_name,
+          O.full_name AS Organization_name,
+          O.widget_display_name AS Organization_widget_display_name
 
         FROM 
           Distributions AS D
           LEFT JOIN Distribution_cause_areas AS CA ON CA.Distribution_KID = D.KID
           LEFT JOIN Distribution_cause_area_organizations AS CAO ON CAO.Distribution_cause_area_ID = CA.ID
+          INNER JOIN Cause_areas AS C ON C.ID = CA.Cause_area_ID
+          INNER JOIN Organizations AS O ON O.ID = CAO.Organization_ID
         
         WHERE 
             D.KID = ?`,
@@ -405,34 +412,7 @@ async function getSplitByKID(KID: string): Promise<Distribution> {
 
   if (result.length == 0) throw new Error("NOT FOUND | No distribution with the KID " + KID);
 
-  const distribution: Distribution = {
-    kid: result[0].KID,
-    donorId: result[0].Donor_ID,
-    taxUnitId: result[0].Tax_unit_ID,
-    causeAreas: result.reduce((acc: DistributionCauseArea[], row) => {
-      const existingCauseArea = acc.find((item) => item.id === row.Cause_area_ID);
-
-      const organization: DistributionCauseAreaOrganization = {
-        id: row.Organization_ID,
-        percentageShare: row.Percentage_share,
-      };
-
-      if (existingCauseArea) {
-        existingCauseArea.organizations.push(organization);
-      } else {
-        acc.push({
-          id: row.Cause_area_ID,
-          percentageShare: row.Percentage_share,
-          standardSplit: row.Standard_split === 1,
-          organizations: [organization],
-        });
-      }
-
-      return acc;
-    }, []),
-  };
-
-  return distribution;
+  return mapDbDistributionToDistribution(result);
 }
 
 /**
@@ -444,12 +424,11 @@ async function getSplitByKID(KID: string): Promise<Distribution> {
 async function getStandardDistributionByCauseAreaID(
   causeAreaID: number,
 ): Promise<DistributionCauseAreaOrganization[]> {
-  console.log(causeAreaID);
-
   let [result] = await DAO.query<Organizations[]>(
     `
         SELECT
             ID,
+            full_name,
             std_percentage_share
 
         FROM Organizations
@@ -482,6 +461,7 @@ async function getStandardDistributionByCauseAreaID(
 
   return result.map((row) => ({
     id: row.ID,
+    name: row.full_name,
     percentageShare: row.std_percentage_share.toString(),
   }));
 }
@@ -513,6 +493,19 @@ async function getHistoricPaypalSubscriptionKIDS(
 
   return mapping;
 }
+
+/**
+ * Returns all KIDs that start with a given prefix
+ * @param prefix
+ * @returns
+ */
+async function getKIDsByPrefix(prefix: string): Promise<string[]> {
+  let [res] = await DAO.query<{ KID: string }[]>(`SELECT KID FROM Distributions WHERE KID LIKE ?`, [
+    prefix + "%",
+  ]);
+
+  return res.map((row) => row.KID);
+}
 //endregion
 
 //region add
@@ -525,22 +518,19 @@ async function getHistoricPaypalSubscriptionKIDS(
 async function add(
   distribution: Distribution,
   metaOwnerID: number | null = null,
+  suppliedTransaction?: PoolConnection,
 ): Promise<boolean> {
   try {
-    var transaction = await DAO.startTransaction();
+    var transaction = suppliedTransaction ?? (await DAO.startTransaction());
 
     if (metaOwnerID == null) {
       metaOwnerID = await DAO.meta.getDefaultOwnerID();
     }
 
-    console.log(distribution);
-
     const [distributionResult] = await transaction.query<ResultSetHeader>(
       `INSERT INTO Distributions (KID, Donor_ID, Tax_unit_ID, Meta_Owner_ID) VALUES (?, ?, ?, ?);`,
       [distribution.kid, distribution.donorId, distribution.taxUnitId, metaOwnerID],
     );
-
-    console.log(distributionResult);
 
     if (distributionResult.affectedRows !== 1) {
       throw new Error("Could not add distribution");
@@ -571,8 +561,6 @@ async function add(
       ),
     );
 
-    console.log(distributionCauseAreaInserts);
-
     const distributionCauseAreaOrganizationInsertsRowValues = [];
     for (const causeAreaInsert of distributionCauseAreaInserts) {
       const causeArea = distribution.causeAreas.find(
@@ -581,13 +569,24 @@ async function add(
       if (!causeArea) {
         throw new Error("Could not find cause area");
       }
-      const orgs = causeArea.organizations;
-      for (const org of orgs) {
-        distributionCauseAreaOrganizationInsertsRowValues.push([
-          causeAreaInsert.distributionCauseAreaId,
-          org.id,
-          org.percentageShare,
-        ]);
+      if (!causeArea.standardSplit) {
+        const orgs = causeArea.organizations;
+        for (const org of orgs) {
+          distributionCauseAreaOrganizationInsertsRowValues.push([
+            causeAreaInsert.distributionCauseAreaId,
+            org.id,
+            org.percentageShare,
+          ]);
+        }
+      } else {
+        const orgs = await getStandardDistributionByCauseAreaID(causeArea.id);
+        for (const org of orgs) {
+          distributionCauseAreaOrganizationInsertsRowValues.push([
+            causeAreaInsert.distributionCauseAreaId,
+            org.id,
+            org.percentageShare,
+          ]);
+        }
       }
     }
 
@@ -596,16 +595,147 @@ async function add(
       [distributionCauseAreaOrganizationInsertsRowValues],
     );
 
-    console.log(distributionCauseAreaOrganizationInsert);
-
-    await DAO.commitTransaction(transaction);
+    if (!suppliedTransaction) await DAO.commitTransaction(transaction);
     return true;
   } catch (ex) {
-    await DAO.rollbackTransaction(transaction);
+    if (!suppliedTransaction) await DAO.rollbackTransaction(transaction);
     throw ex;
   }
 }
 //endregion
+
+//region modify
+async function setTaxUnit(KID: string, taxUnitId: number) {
+  const [donations] = await DAO.query(`SELECT * FROM Donations WHERE KID_fordeling = ?`, [KID]);
+
+  if (donations.length > 0)
+    throw new Error("KID is already associated with donations, cannot add tax unit");
+  await DAO.query("UPDATE Distributions SET Tax_unit_ID = ? WHERE KID = ?", [taxUnitId, KID]);
+}
+
+/**
+ * Sets a tax unit for all donations for a given donor
+ * Note that this is not to be used outside of the tax module
+ * This is because we need to make sure that donations with a distribution
+ * given before the current year are then connected to a replacement
+ * KID with no tax unit, since the donations are already reported to the
+ * tax authorities.
+ * @param donorId
+ * @param taxUnitId
+ */
+async function connectFirstTaxUnit(donorId: number, taxUnitId: number) {
+  const [res] = await DAO.query(
+    `
+    UPDATE Distributions
+    SET Tax_unit_ID = ?
+    WHERE Donor_ID = ?`,
+    [taxUnitId, donorId],
+  );
+}
+
+/**
+ * CAUTION: Should only be used when we've made sure that the donations
+ * for the given KID are not reported to the tax authorities
+ * Sets a tax unit ID on a distribution
+ * @param kid string
+ * @param taxUnitId
+ */
+async function addTaxUnitToDistribution(kid: string, taxUnitId: number) {
+  const [res] = await DAO.query(
+    `
+    UPDATE Distributions
+    SET Tax_unit_ID = ?
+    WHERE KID = ?`,
+    [taxUnitId, kid],
+  );
+}
+
+export type DistributionDbResultRow = Distributions &
+  Omit<Distribution_cause_areas, "Percentage_share"> &
+  Omit<Distribution_cause_area_organizations, "Percentage_share"> & {
+    Cause_area_percentage_share: Prisma.Decimal;
+    Organization_percentage_share: Prisma.Decimal;
+    Cause_area_name: string;
+    Organization_name: string;
+    Organization_widget_display_name: string;
+  };
+export type DistributionDbResult = DistributionDbResultRow[];
+
+const mapDbDistributionsToDistributions = (
+  result: SqlResult<DistributionDbResult>,
+): Distribution[] => {
+  /**
+   * First we map the result to a map of KID -> DistributionDbResult
+   * Such that we have a map of all the rows for a given KID
+   */
+  const map = new Map<string, SqlResult<DistributionDbResult>>();
+
+  result.forEach((row) => {
+    if (!map.has(row.KID)) {
+      map.set(row.KID, []);
+    }
+
+    map.get(row.KID)?.push(row);
+  });
+
+  /**
+   * Then we map each of the rows for a given KID to a Distribution
+   */
+  const distributions: Distribution[] = [];
+  map.forEach((rows) => {
+    distributions.push(mapDbDistributionToDistribution(rows));
+  });
+
+  return distributions;
+};
+
+/**
+ * An important assumption here is that all the rows in the result have the same KID
+ * If you have multiple distributions returned from DB, use mapDbDistributionsToDistributions
+ */
+const mapDbDistributionToDistribution = (result: SqlResult<DistributionDbResult>): Distribution => {
+  if (result.length === 0) {
+    throw new Error("No rows in result");
+  }
+
+  // Validate that all rows have the same KID
+  const KIDsSet = new Set(result.map((row) => row.KID));
+  if (KIDsSet.size !== 1) {
+    throw new Error("Rows in result have different KIDs, multiple distributions found");
+  }
+
+  const distribution: Distribution = {
+    kid: result[0].KID,
+    donorId: result[0].Donor_ID,
+    taxUnitId: result[0].Tax_unit_ID,
+    causeAreas: result.reduce((acc: DistributionCauseArea[], row) => {
+      const existingCauseArea = acc.find((item) => item.id === row.Cause_area_ID);
+
+      const organization: DistributionCauseAreaOrganization = {
+        id: row.Organization_ID,
+        name: row.Organization_name,
+        widgetDisplayName: row.Organization_widget_display_name,
+        percentageShare: row.Organization_percentage_share,
+      };
+
+      if (existingCauseArea) {
+        existingCauseArea.organizations.push(organization);
+      } else {
+        acc.push({
+          id: row.Cause_area_ID,
+          name: row.Cause_area_name,
+          percentageShare: row.Cause_area_percentage_share,
+          standardSplit: row.Standard_split === 1,
+          organizations: [organization],
+        });
+      }
+
+      return acc;
+    }, []),
+  };
+
+  return distribution;
+};
 
 export const distributions = {
   KIDexists,
@@ -616,5 +746,9 @@ export const distributions = {
   getAll,
   getAllByDonor,
   getByDonorId,
+  getKIDsByPrefix,
   add,
+  setTaxUnit,
+  addTaxUnitToDistribution,
+  connectFirstTaxUnit,
 };

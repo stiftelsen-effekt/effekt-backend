@@ -16,5 +16,14 @@
     "info_url": "https://www.charitynavigator.org/index.cfm?bay=content.view&cpid=50",
     "is_active": 1,
     "ordering": 3
+  },
+  {
+    "ID": 4,
+    "name": "Other",
+    "short_desc": "Other",
+    "long_desc": "Other",
+    "info_url": "https://www.charitynavigator.org/index.cfm?bay=content.view&cpid=51",
+    "is_active": 1,
+    "ordering": 4
   }
 ]

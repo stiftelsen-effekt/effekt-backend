@@ -43,11 +43,14 @@ components:
                 type: integer
                 description: The year the tax deduction is for
               sumDonations:
-                type: string
+                type: number
                 description: The sum of all donations for the tax unit for the year
-              taxDeduction:
+              deduction:
                 type: number
                 description: The tax deduction for the tax unit for the year
+              benefit:
+                type: number
+                description: The tax benefit for the tax unit for the year
           description: The tax deductions for the tax unit
       example:
         id: 984
@@ -61,13 +64,13 @@ components:
         taxDeductions:
           - year: 2019
             sumDonations: 100000
-            taxDeduction: 25000
+            deduction: 25000
           - year: 2018
             sumDonations: 100000
-            taxDeduction: 25000
+            deduction: 25000
           - year: 2017
             sumDonations: 100000
-            taxDeduction: 25000
+            deduction: 25000
           - year: 2016
             sumDonations: 100000
-            taxDeduction: 25000
+            deduction: 25000

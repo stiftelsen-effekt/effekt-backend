@@ -2,6 +2,9 @@ import { OkPacket, Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { TaxUnit } from "../../schemas/types";
 import { DAO } from "../DAO";
 import { donationHelpers } from "../donationHelpers";
+import { getTaxUnitsWithDeductions } from "../taxdeductions";
+import { Distributions, Tax_unit } from "@prisma/client";
+import { RequestLocale } from "../../middleware/locale";
 
 //region Get
 /**
@@ -28,81 +31,55 @@ async function getById(id: number): Promise<TaxUnit | null> {
  * @param {number} donorId The if of the donor
  * @returns {TaxUnit | null} A tax unit if found
  */
-async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
-  const [result] = await DAO.execute<RowDataPacket[]>(
-    `SELECT T.ID, T.Donor_ID, T.full_name, T.registered, T.ssn, T.archived,
-        (SELECT COUNT(D.ID) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
-        as num_donations,
-        (SELECT SUM(D.sum_confirmed) FROM Donations as D WHERE KID_fordeling IN (SELECT KID FROM Combining_table AS C WHERE C.Tax_unit_ID = T.ID))
-        as sum_donations
-          
+async function getByDonorId(donorId: number, locale: RequestLocale): Promise<Array<TaxUnit>> {
+  const [taxUnits] = await DAO.query<Tax_unit[]>(
+    `SELECT *          
           FROM Tax_unit as T
         
-          WHERE T.Donor_ID = ?
-          
-          GROUP BY T.ID, T.full_name, T.registered`,
+          WHERE T.Donor_ID = ?`,
     [donorId],
   );
 
-  // Get sum of donations for tax unit grouped by year
-  const [aggregateYearlyDonations] = await DAO.execute<RowDataPacket[]>(
-    `SELECT T.ID, YEAR(D.timestamp_confirmed) as year, SUM(D.sum_confirmed) as sum_donations
-          FROM Tax_unit as T
-          INNER JOIN (SELECT KID, Tax_unit_ID FROM Combining_table GROUP BY KID, Tax_unit_ID) C ON C.Tax_unit_ID = T.ID
-          INNER JOIN Donations as D ON D.KID_fordeling = C.KID
-          WHERE T.Donor_ID = ? AND D.Payment_ID <> 10
-          GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
-    [donorId],
-  );
-
-  const taxDeductionRules = {
-    "2016": (sum: number) => {
-      return 0;
-    },
-    "2017": (sum: number) => {
-      return 0;
-    },
-    "2018": (sum: number) => {
-      return 0;
-    },
-    "2019": (sum: number) => {
-      return sum >= 500 ? Math.min(sum, 50000) : 0;
-    },
-    "2020": (sum: number) => {
-      return sum >= 500 ? Math.min(sum, 50000) : 0;
-    },
-    "2021": (sum: number) => {
-      return sum >= 500 ? Math.min(sum, 50000) : 0;
-    },
-    "2022": (sum: number) => {
-      return sum >= 500 ? Math.min(sum, 25000) : 0;
-    },
-    "2023": (sum: number) => {
-      return sum >= 500 ? Math.min(sum, 25000) : 0;
-    },
+  const eligbleCauseAreasByLocale = {
+    [RequestLocale.NO]: [1],
+    [RequestLocale.SV]: [1],
   };
 
-  const units: Array<TaxUnit> = (result as Array<any>).map(
-    (res): TaxUnit => ({
-      id: res.ID,
-      donorId: res.Donor_ID,
-      name: res.full_name,
-      ssn: res.ssn,
-      numDonations: res.num_donations,
-      sumDonations: res.sum_donations,
-      registered: res.registered,
-      archived: res.archived,
-      taxDeductions: aggregateYearlyDonations
-        .filter((ag) => ag.ID === res.ID)
-        .map((ag) => ({
-          year: ag.year,
-          sumDonations: ag.sum_donations,
-          taxDeduction: taxDeductionRules[ag.year](ag.sum_donations),
-        })),
-    }),
+  // Get all donations for the donor with attached tax unit id
+  const [donations] = await DAO.query<{ year: number; sum: string; taxUnitId: number }[]>(
+    `SELECT 
+      YEAR(Donations.timestamp_confirmed) as year,
+      ROUND(COALESCE((SELECT SUM(DA.Percentage_share) as prct FROM Distribution_cause_areas as DA WHERE Distribution_KID = Donations.KID_fordeling AND Cause_area_ID IN (?)),0)/100 * Donations.sum_confirmed) as sum,
+      Tax_unit.ID as taxUnitId
+        
+        FROM Donations
+        INNER JOIN Distributions ON Distributions.KID = Donations.KID_fordeling
+        INNER JOIN Tax_unit ON Tax_unit.ID = Distributions.Tax_unit_ID
+        WHERE Tax_unit.Donor_ID = ?`,
+    [eligbleCauseAreasByLocale[locale], donorId],
   );
 
-  return units;
+  const calculatedUnits = getTaxUnitsWithDeductions({
+    taxUnits,
+    donations: donations.map((d) => ({ ...d, sum: parseFloat(d.sum) })),
+    locale,
+  });
+
+  return calculatedUnits;
+}
+
+/**
+ * Gets active tax unit IDs by donor ID
+ * @param {number} donorId The if of the donor
+ * @returns {{id: number}[]} A tax unit if found
+ */
+async function getActiveTaxUnitIdsByDonorId(donorId: number): Promise<{ id: number }[]> {
+  const [result] = await DAO.execute<{ id: number }[]>(
+    `SELECT ID as id FROM Tax_unit WHERE Donor_ID = ? AND archived IS NULL`,
+    [donorId],
+  );
+
+  return result;
 }
 
 /**
@@ -110,76 +87,43 @@ async function getByDonorId(donorId: number): Promise<Array<TaxUnit>> {
  * @param {number} id The id of the tax unit
  * @returns {TaxUnit | null} A tax unit if found
  */
-async function getByKID(KID: string): Promise<TaxUnit | null> {
-  const [idResult] = await DAO.execute<RowDataPacket[]>(
-    `SELECT Tax_unit_ID FROM Combining_table WHERE KID = ?
-        GROUP BY Tax_unit_ID;`,
+async function getByKID(KID: string, locale: RequestLocale): Promise<TaxUnit | null> {
+  const [idResult] = await DAO.query<Pick<Distributions, "Tax_unit_ID">[]>(
+    `SELECT Tax_unit_ID FROM Distributions WHERE KID = ?;`,
     [KID],
   );
 
-  if (idResult.length > 0 && idResult[0].Tax_unit_ID) {
-    const [result] = await DAO.execute<RowDataPacket[]>(`SELECT * FROM Tax_unit where ID = ?`, [
-      idResult[0].Tax_unit_ID,
-    ]);
+  // The KID might not exist, or the KID might not be associated with a tax unit
+  if (idResult.length === 0 || !idResult[0].Tax_unit_ID) return null;
 
-    const donor = await DAO.donors.getByKID(KID);
+  const [taxUnits] = await DAO.query<Tax_unit[]>(`SELECT * FROM Tax_unit where ID = ?`, [
+    idResult[0].Tax_unit_ID,
+  ]);
 
-    // Get sum of donations for tax unit grouped by year
-    const [aggregateYearlyDonations] = await DAO.execute<RowDataPacket[]>(
-      `SELECT T.ID, YEAR(D.timestamp_confirmed) as year, SUM(D.sum_confirmed) as sum_donations
-              FROM Tax_unit as T
-              INNER JOIN (SELECT KID, Tax_unit_ID FROM Combining_table GROUP BY KID, Tax_unit_ID) as C ON C.Tax_unit_ID = T.ID
-              INNER JOIN Donations as D ON D.KID_fordeling = C.KID
-              WHERE T.Donor_ID = ? AND D.Payment_ID <> 10
-              GROUP BY T.ID, YEAR(D.timestamp_confirmed)`,
-      [donor.id],
-    );
+  if (taxUnits.length === 0) return null;
+  if (taxUnits.length > 1) throw new Error("Multiple tax units with same ID");
 
-    const taxDeductionRules = {
-      "2016": (sum: number) => {
-        return 0;
-      },
-      "2017": (sum: number) => {
-        return 0;
-      },
-      "2018": (sum: number) => {
-        return 0;
-      },
-      "2019": (sum: number) => {
-        return sum >= 500 ? Math.min(sum, 50000) : 0;
-      },
-      "2020": (sum: number) => {
-        return sum >= 500 ? Math.min(sum, 50000) : 0;
-      },
-      "2021": (sum: number) => {
-        return sum >= 500 ? Math.min(sum, 50000) : 0;
-      },
-      "2022": (sum: number) => {
-        return sum >= 500 ? Math.min(sum, 25000) : 0;
-      },
-      "2023": (sum: number) => {
-        return sum >= 500 ? Math.min(sum, 25000) : 0;
-      },
-    };
+  const donor = await DAO.donors.getByKID(KID);
 
-    if (result.length > 0) {
-      const mapped: any = {
-        id: result[0].ID as number,
-        donorId: result[0].Donor_ID as number,
-        name: result[0].full_name as string,
-        ssn: result[0].ssn as string,
-        archived: result[0].archived as string,
-        taxDeductions: aggregateYearlyDonations
-          .filter((ag) => ag.ID === result[0].ID)
-          .map((ag) => ({
-            year: ag.year,
-            sumDonations: ag.sum_donations,
-            taxDeduction: taxDeductionRules[ag.year](ag.sum_donations),
-          })),
-      };
-      return mapped;
-    } else return null;
-  } else return null;
+  if (!donor) return null;
+
+  // Get all donations for the donor with attached tax unit id
+  const [donations] = await DAO.query<{ year: number; sum: string; taxUnitId: number }[]>(
+    `SELECT YEAR(Donations.timestamp_confirmed) as year, Donations.sum_confirmed as sum, Tax_unit.ID as taxUnitId
+      FROM Donations
+      INNER JOIN Distributions ON Distributions.KID = Donations.KID_fordeling
+      INNER JOIN Tax_unit ON Tax_unit.ID = Distributions.Tax_unit_ID
+      WHERE Tax_unit.Donor_ID = ?`,
+    [donor.id],
+  );
+
+  const calculatedUnits = getTaxUnitsWithDeductions({
+    taxUnits,
+    donations: donations.map((d) => ({ ...d, sum: parseFloat(d.sum) })),
+    locale,
+  });
+
+  return calculatedUnits[0];
 }
 
 /**
@@ -214,7 +158,6 @@ export type EmailTaxUnitReport = {
 async function getReportsWithUserOnProfilePage(): Promise<EmailTaxUnitReport[]> {
   const [result] = await DAO.execute<RowDataPacket[]>(`
     SELECT TaxUnitName, \`SUM(sum_confirmed)\` as DonationsSum, DonorUserEmail, DonorUserName FROM v_Tax_deductions
-      WHERE (SELECT COUNT(*) FROM Auth0_users WHERE Email = DonorUserEmail) = 1
   `);
 
   const mapped: EmailTaxUnitReport[] = [];
@@ -258,6 +201,96 @@ async function getReportsWithoutUserOnProfilePage(): Promise<EmailTaxUnitReport[
 
   return mapped;
 }
+
+async function getDonorsEligableForDeductionInYear(
+  year: number,
+  minSum: number,
+  excludedEmails: string[],
+) {
+  const [result] = await DAO.query<
+    {
+      donationsSum: number;
+      email: string;
+      full_name: string;
+      unitCount: number;
+    }[]
+  >(
+    `
+    SELECT 
+      SUM(sum_confirmed) as donationsSum,
+      Donors.email,
+      Donors.full_name,
+      (SELECT COUNT(*) FROM Tax_unit WHERE Donor_ID = Donors.ID) as unitCount
+    
+  
+    FROM Donations as D
+      
+    INNER JOIN Distributions as DI
+      ON DI.KID = D.KID_fordeling
+    INNER JOIN Donors
+      ON Donors.ID = D.Donor_ID
+      
+    WHERE 
+      DI.Tax_unit_ID IS NULL
+      AND YEAR (D.timestamp_confirmed) = ?
+      AND (Donors.trash = 0 OR Donors.trash IS NULL)
+      AND (Donors.email NOT LIKE '%auksjon%')
+      AND (Donors.email NOT LIKE '%gieffektivt.no')
+      AND (Donors.email NOT LIKE '%gieffektiv.no')
+      AND (Donors.email NOT IN (?))
+      AND (SELECT COUNT(*) FROM Tax_unit WHERE Donor_ID = Donors.ID) = 0
+      
+    GROUP BY
+      Donors.email,
+      Donors.full_name
+      
+      HAVING SUM(sum_confirmed) >= ?
+      
+      ORDER BY SUM(sum_confirmed) DESC
+  `,
+    [year, excludedEmails, minSum],
+  );
+
+  return result;
+}
+
+async function getTaxXMLReportUnits(year: number) {
+  const [result] = await DAO.query<
+    {
+      donationsSum: string;
+      ssn: string;
+      full_name: string;
+    }[]
+  >(
+    `
+    SELECT 
+      SUM(sum_confirmed) as donationsSum,
+      Tax_unit.ssn,
+      Tax_unit.full_name
+
+      FROM Donations as D
+
+      INNER JOIN Distributions as DI
+        ON DI.KID = D.KID_fordeling
+
+      INNER JOIN Tax_unit
+        ON Tax_unit.ID = DI.Tax_unit_ID
+
+      WHERE 
+        DI.Tax_unit_ID IS NOT NULL
+        AND YEAR (D.timestamp_confirmed) = ?
+
+      GROUP BY
+        Tax_unit.ssn,
+        Tax_unit.full_name
+
+      ORDER BY SUM(sum_confirmed) DESC
+  `,
+    [year],
+  );
+
+  return result;
+}
 //endregion
 
 //region Modify
@@ -292,25 +325,6 @@ async function updateTaxUnit(id: number, taxUnit: TaxUnit): Promise<number> {
   return result.affectedRows;
 }
 
-/**
- *  Updates all KID numbers missing a tax unit for a single donor
- * @param {number} taxUnitID The id of the tax unit
- * @param {TaxUnit} donorID The donor ID
- * @returns {number} The number of rows affected
- */
-async function updateKIDsMissingTaxUnit(taxUnitID: number, donorID: number): Promise<boolean> {
-  const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
-    `
-      UPDATE Combining_table
-      SET Tax_unit_ID = ?
-      WHERE Tax_unit_ID IS NULL
-      AND Donor_ID = ?
-    `,
-    [taxUnitID, donorID],
-  );
-
-  return true;
-}
 //endregion
 
 //region Delete
@@ -472,9 +486,11 @@ export const tax = {
   getByDonorId,
   getByKID,
   getByDonorIdAndSsn,
+  getActiveTaxUnitIdsByDonorId,
   getReportsWithUserOnProfilePage,
   getReportsWithoutUserOnProfilePage,
-  updateKIDsMissingTaxUnit,
+  getTaxXMLReportUnits,
+  getDonorsEligableForDeductionInYear,
   addTaxUnit,
   updateTaxUnit,
   deleteById,

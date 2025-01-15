@@ -7,10 +7,14 @@ import permissions from "../enums/authorizationPermissions";
 import express from "express";
 const router = express.Router();
 import bodyParser from "body-parser";
+import {
+  findGlobalHealthCauseAreaOrThrow,
+  validateDistribution,
+} from "../custom_modules/distribution";
+import { DistributionInput } from "../schemas/types";
 const jsonBody = bodyParser.json();
 const dns = require("dns").promises;
 const config = require("../config");
-const rounding = require("../custom_modules/rounding");
 const vipps = require("../custom_modules/vipps");
 
 const vippsCallbackProdServers = [
@@ -38,11 +42,6 @@ const vippsCallbackDevServers = [
  *   - name: Vipps
  *     description: Vipps agreements in the database.
  */
-
-router.get("/token", async (req, res, next) => {
-  let token = await vipps.fetchToken();
-  res.json(token);
-});
 
 router.get("/initiate/:phonenumber", async (req, res, next) => {
   let token = await vipps.fetchToken();
@@ -118,7 +117,12 @@ router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
 
     const distribution = await DAO.distributions.getSplitByKID(KID);
 
-    res.status(200).json({ content: { agreement, distribution } });
+    res.status(200).json({
+      content: {
+        agreement,
+        distribution,
+      },
+    });
   } catch (ex) {
     next({ ex });
   }
@@ -173,7 +177,7 @@ router.get("/histogram/charges", async (req, res, next) => {
   }
 });
 
-router.get("/agreements/report", authMiddleware.auth(permissions.admin), async (req, res, next) => {
+router.get("/agreements/report", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     let content = await DAO.vipps.getAgreementReport();
 
@@ -186,7 +190,7 @@ router.get("/agreements/report", authMiddleware.auth(permissions.admin), async (
   }
 });
 
-router.post("/agreements", authMiddleware.auth(permissions.admin), async (req, res, next) => {
+router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     var results = await DAO.vipps.getAgreements(
       req.body.sort,
@@ -194,25 +198,20 @@ router.post("/agreements", authMiddleware.auth(permissions.admin), async (req, r
       req.body.limit,
       req.body.filter,
     );
-    if (results !== false) {
-      return res.json({
-        status: 200,
-        content: {
-          pages: results.pages,
-          rows: results.rows,
-        },
-      });
-    } else {
-      let err = new Error("Could not fetch agreements");
-      (err as any).status = 500;
-      return next(err);
-    }
+    return res.json({
+      status: 200,
+      content: {
+        pages: results.pages,
+        rows: results.rows,
+        statistics: results.statistics,
+      },
+    });
   } catch (ex) {
     next(ex);
   }
 });
 
-router.post("/charges", authMiddleware.auth(permissions.admin), async (req, res, next) => {
+router.post("/charges", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     var results = await DAO.vipps.getCharges(
       req.body.sort,
@@ -220,19 +219,14 @@ router.post("/charges", authMiddleware.auth(permissions.admin), async (req, res,
       req.body.limit,
       req.body.filter,
     );
-    if (results !== false) {
-      return res.json({
-        status: 200,
-        content: {
-          pages: results.pages,
-          rows: results.rows,
-        },
-      });
-    } else {
-      let err = new Error("Could not fetch charges");
-      (err as any).status = 500;
-      return next(err);
-    }
+    return res.json({
+      status: 200,
+      content: {
+        pages: results.pages,
+        rows: results.rows,
+        statistics: results.statistics,
+      },
+    });
   } catch (ex) {
     next(ex);
   }
@@ -256,15 +250,29 @@ router.put("/agreement/:urlcode/cancel", async (req, res, next) => {
   try {
     const agreementCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
     const response = await vipps.updateAgreementStatus(agreementId, "STOPPED");
 
     if (response) {
       await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED");
       await DAO.vipps.updateAgreementCancellationDate(agreementId);
+      await sendVippsAgreementChange(agreementCode, "STOPPED");
+    } else {
+      res.status(500).json({
+        status: 500,
+        content: "Could not cancel agreement",
+      });
     }
 
-    await sendVippsAgreementChange(agreementCode, "STOPPED");
-    res.send(response);
+    res.status(200).json({
+      status: 200,
+      content: response,
+    });
   } catch (ex) {
     next({ ex });
   }
@@ -301,15 +309,29 @@ router.put("/agreement/:urlcode/price", jsonBody, async (req, res, next) => {
     const price = req.body.price;
     const agreementCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
     const response = await vipps.updateAgreementPrice(agreementId, price);
 
     // Only update database if Vipps update was successful
     if (response) {
       await DAO.vipps.updateAgreementPrice(agreementId, price / 100);
       await sendVippsAgreementChange(agreementCode, "AMOUNT", price / 100);
+    } else {
+      res.status(500).json({
+        status: 500,
+        content: "Could not update agreement price",
+      });
     }
 
-    res.send();
+    res.status(200).json({
+      status: 200,
+      content: response,
+    });
   } catch (ex) {
     next({ ex });
   }
@@ -320,6 +342,12 @@ router.put("/agreement/:urlcode/pause", jsonBody, async (req, res, next) => {
     const pausedUntilDateString = req.body.pausedUntilDate;
     const agreementCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
 
     const dayMs = 86400000;
     const pausedUntilDate = new Date(pausedUntilDateString);
@@ -350,6 +378,12 @@ router.put("/agreement/:urlcode/pause/end", jsonBody, async (req, res, next) => 
   try {
     const agreementCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
     const response = await DAO.vipps.updateAgreementPauseDate(agreementId, null);
 
     if (response) await sendVippsAgreementChange(agreementCode, "UNPAUSED");
@@ -404,6 +438,12 @@ router.put("/agreement/:urlcode/chargeday", jsonBody, async (req, res, next) => 
     const agreementCode = req.params.urlcode;
     const chargeDay = req.body.chargeDay;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
 
     // 0 means last day of each month
     if (chargeDay < 0 || chargeDay > 28) {
@@ -426,6 +466,12 @@ router.put("/agreement/:urlcode/forcedcharge", jsonBody, async (req, res, next) 
     const agreementCode = req.params.urlcode;
     const forcedChargeDate = req.body.forcedChargeDate;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
 
     const response = await DAO.vipps.updateAgreementForcedCharge(agreementId, forcedChargeDate);
 
@@ -492,71 +538,38 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
     }
 
     const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
-    const standardDistribution = req.body.distribution.standardDistribution;
-    let taxUnitId: number | undefined = req.body.distribution.taxUnit?.id;
 
-    const shares = req.body.distribution.shares;
-
-    throw new Error("Not implemented");
-
-    // !!! === CAUSE AREAS TODO === !!!
-    /*
-    const split = standardDistribution
-      ? await DAO.organizations.getStandardSplit()
-      : shares
-          .map((org) => {
-            return { id: org.id, share: org.share };
-          })
-          .filter((org) => parseFloat(org.share) !== 0);
-
-    const metaOwnerID = 3;
-
-    if (split.length === 0) {
-      let err = new Error("Empty distribution array provided");
-      (err as any).status = 400;
-      return next(err);
+    const distributionInput = req.body.distribution as DistributionInput;
+    let validatedDistribution: DistributionInput | null = null;
+    try {
+      validatedDistribution = validateDistribution(distributionInput);
+    } catch (ex) {
+      return res.status(400).json({
+        status: 400,
+        content: ex.message,
+      });
     }
 
-    if (rounding.sumWithPrecision(split.map((split) => split.share)) !== "100") {
-      let err = new Error("Distribution does not sum to 100");
-      (err as any).status = 400;
-      return next(err);
+    if (validatedDistribution.donorId !== donorId) {
+      return res.status(400).json({
+        status: 400,
+        content: "Donor ID mismatch",
+      });
     }
 
-    if (!taxUnitId) {
-      const existingTaxUnit = await DAO.tax.getByKID(existingAgreement.KID);
-      if (existingTaxUnit) {
-        taxUnitId = existingTaxUnit.id;
-      }
-    }
-    */
+    let KID: string;
 
-    //Check for existing distribution with that KID
+    /**
+     * Check for existing distribution
+     */
+    const existingDistributionKID = await DAO.distributions.getKIDbySplit(validatedDistribution);
 
-    /*
-    !!! === CAUSE AREAS TODO === !!!
-    let KID = await DAO.distributions.getKIDbySplit(
-      split,
-      donorId,
-      standardDistribution,
-      taxUnitId,
-    );
-
-    
-
-    if (!KID) {
+    if (existingDistributionKID) {
+      KID = existingDistributionKID;
+    } else {
       KID = await donationHelpers.createKID();
-      await DAO.distributions.add(
-        split,
-        KID,
-        donorId,
-        taxUnitId,
-        standardDistribution,
-        metaOwnerID,
-      );
+      await DAO.distributions.add({ ...validatedDistribution, kid: KID });
     }
-    */
-    let KID = null;
 
     const response = await DAO.vipps.updateAgreementKID(agreementId, KID);
     if (response) await sendVippsAgreementChange(agreementCode, "SHARES", KID);
@@ -613,22 +626,28 @@ router.get("/agreementredirect/:urlcode", async (req, res, next) => {
 
     let retry = async (retries) => {
       const agreementId = await DAO.vipps.getAgreementIdByUrlCode(urlcode);
+      if (!agreementId) {
+        return res.status(404).json({
+          status: 404,
+          content: "Agreement not found",
+        });
+      }
       const agreement = await DAO.vipps.getAgreement(agreementId);
 
-      console.log(agreement, retries);
-
       if (retries >= 20) {
-        res.redirect("https://gieffektivt.no/donasjon-feilet");
+        res.redirect("https://gieffektivt.no/avtale-feilet");
         return false;
       }
 
       if (agreement) {
         if (agreement.status === "ACTIVE") {
-          res.redirect("https://gieffektivt.no/opprettet");
+          res.redirect(
+            `https://gieffektivt.no/opprettet?revenue=${agreement.amount}&kid=${agreement.KID}&method=vipps&recurring=true`,
+          );
           return true;
         }
         if (agreement.status === "STOPPED" || agreement.status === "EXPIRED") {
-          res.redirect("https://gieffektivt.no/donasjon-feilet");
+          res.redirect("https://gieffektivt.no/avtale-feilet");
           return false;
         }
       }
@@ -683,6 +702,12 @@ router.post("/agreement/:urlcode/charges/cancel", jsonBody, async (req, res, nex
   try {
     const agreementCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
+    if (!agreementId) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
     const charges = await vipps.getCharges(agreementId);
 
     // Cancel all pending or due charges
@@ -827,7 +852,11 @@ router.get("/redirect/:orderId", async (req, res, next) => {
       let order = await DAO.vipps.getOrder(orderId);
 
       if (order && order.donationID != null) {
-        res.redirect("https://gieffektivt.no/donasjon-mottatt");
+        const donation = await DAO.donations.getByID(order.donationID);
+
+        res.redirect(
+          `https://gieffektivt.no/donasjon-mottatt?revenue=${donation.sum}&kid=${order.KID}&method=vipps&recurring=false`,
+        );
         return true;
       } else if (retries >= 20) {
         res.redirect("https://gieffektivt.no/donasjon-feilet");
@@ -857,11 +886,15 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
   try {
     let order = await DAO.vipps.getRecentOrder();
 
-    console.log(order);
+    if (!order) {
+      res.status(404).json({
+        status: 404,
+        content: "No recent order found",
+      });
+      return false;
+    }
 
     let approved = await vipps.approveOrder(order.orderID, req.params.linkToken);
-
-    console.log("Approved", approved);
 
     if (!approved) throw new Error("Could not approve recent order");
 
@@ -869,14 +902,16 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
     for (let i = 0; i < 5; i++) {
       console.log("Wait 1000");
       await delay(1000);
+      if (!order) {
+        continue;
+      }
       order = await DAO.vipps.getOrder(order.orderID);
       console.log(order);
-      if (order.donationID != null) {
+      if (order && order.donationID != null) {
         res.json({ status: 200, content: "Donation registered successfully" });
         return true;
       }
     }
-    console.log("Timeout");
     throw new Error("Timed out when attempting to verify integration");
   } catch (ex) {
     console.warn(ex);

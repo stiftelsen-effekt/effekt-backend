@@ -23,22 +23,22 @@ export interface components {
      *     {
      *       "year": 2019,
      *       "sumDonations": 100000,
-     *       "taxDeduction": 25000
+     *       "deduction": 25000
      *     },
      *     {
      *       "year": 2018,
      *       "sumDonations": 100000,
-     *       "taxDeduction": 25000
+     *       "deduction": 25000
      *     },
      *     {
      *       "year": 2017,
      *       "sumDonations": 100000,
-     *       "taxDeduction": 25000
+     *       "deduction": 25000
      *     },
      *     {
      *       "year": 2016,
      *       "sumDonations": 100000,
-     *       "taxDeduction": 25000
+     *       "deduction": 25000
      *     }
      *   ]
      * }
@@ -71,9 +71,11 @@ export interface components {
         /** @description The year the tax deduction is for */
         year?: number;
         /** @description The sum of all donations for the tax unit for the year */
-        sumDonations?: string;
+        sumDonations?: number;
         /** @description The tax deduction for the tax unit for the year */
-        taxDeduction?: number;
+        deduction?: number;
+        /** @description The tax benefit for the tax unit for the year */
+        benefit?: number;
       }[];
     };
   };
@@ -83,6 +85,8 @@ export interface components {
   headers: never;
   pathItems: never;
 }
+
+export type $defs = Record<string, never>;
 
 export type external = Record<string, never>;
 

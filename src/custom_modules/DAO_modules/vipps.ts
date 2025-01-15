@@ -1,6 +1,8 @@
 import { distributions } from "./distributions";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
+import { Vipps_agreements, Vipps_order_transaction_statuses, Vipps_orders } from "@prisma/client";
+import { AgreementReport } from "./avtalegiroagreements";
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = [
@@ -43,6 +45,7 @@ export type VippsAgreement = {
   amount: number;
   status: "ACTIVE" | "PENDING" | "EXPIRED" | "STOPPED";
   monthly_charge_day: number;
+  timestamp_created: string;
   agreement_url_code: string;
   paused_until_date: string;
   force_charge_date: string;
@@ -96,7 +99,7 @@ async function getLatestToken() {
  * @return {VippsOrder | false}
  */
 async function getOrder(orderID) {
-  let [res] = await DAO.query(
+  let [res] = await DAO.query<Vipps_orders[]>(
     `
         SELECT * FROM Vipps_orders
             WHERE
@@ -109,12 +112,31 @@ async function getOrder(orderID) {
   else return res[0];
 }
 
+/** Fetches vipps transaction statuses for a given orderID
+ * @param {string} orderId
+ * @return {Vipps_order_transaction_statuses[] | false} Array of transaction statuses ordered descendingly by timestamp, false if no statuses found
+ * */
+async function getOrderTransactionStatusHistory(orderId) {
+  let [res] = await DAO.query<Vipps_order_transaction_statuses[]>(
+    `
+        SELECT * FROM Vipps_order_transaction_statuses
+            WHERE
+                orderID = ?
+            ORDER BY timestamp DESC
+        `,
+    [orderId],
+  );
+
+  if (res.length === 0) return false;
+  else return res;
+}
+
 /**
  * Fetches the most recent vipps order
  * @return {VippsOrder | false}
  */
 async function getRecentOrder() {
-  let [res] = await DAO.query(`
+  let [res] = await DAO.query<Vipps_orders[]>(`
         SELECT * FROM Vipps_orders
             ORDER BY 
                 registered DESC
@@ -147,9 +169,7 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
 
   let agreement = res[0];
 
-  const distribution = await distributions.getSplitByKID(agreement.KID);
-
-  agreement.distribution = distribution.causeAreas;
+  agreement.distribution = await distributions.getSplitByKID(agreement.KID);
 
   return agreement;
 }
@@ -162,7 +182,20 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
  * @param {object} filter Filtering object
  * @return {Agreement[]} Array of agreements
  */
-async function getAgreements(sort, page, limit, filter) {
+async function getAgreements(
+  sort,
+  page,
+  limit,
+  filter,
+): Promise<{
+  pages: number;
+  rows: Array<any>;
+  statistics: {
+    numAgreements: number;
+    sumAgreements: string;
+    avgAgreement: string;
+  };
+}> {
   const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
   const sortDirection = sort.desc ? "DESC" : "ASC";
   const offset = page * limit;
@@ -189,43 +222,83 @@ async function getAgreements(sort, page, limit, filter) {
     if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
     if (filter.donor)
       where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
-    if (filter.statuses.length > 0)
+    if (filter.statuses) {
+      if (filter.statuses.length == 0) {
+        return {
+          pages: 0,
+          rows: [],
+          statistics: {
+            numAgreements: 0,
+            sumAgreements: "0",
+            avgAgreement: "0",
+          },
+        };
+      }
       where.push(` status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `);
+    }
   }
+
+  const columns = `
+    VA.ID,
+    VA.status,
+    VA.amount,
+    VA.KID,
+    VA.monthly_charge_day,
+    VA.timestamp_created,
+    VA.agreement_url_code,
+    Donors.full_name 
+  `;
 
   const [agreements] = await DAO.query(
     `
         SELECT
-            VA.ID,
-            VA.status,
-            VA.amount,
-            VA.KID,
-            VA.monthly_charge_day,
-            VA.timestamp_created,
-            VA.agreement_url_code,
-            Donors.full_name 
+          count(*) OVER() AS full_count,
+          sum(amount) OVER() AS full_sum,
+          avg(amount) OVER() AS full_avg,
+          ${columns}
         FROM Vipps_agreements as VA
         INNER JOIN Donors 
             ON VA.donorID = Donors.ID
         WHERE
             ${where.length !== 0 ? where.join(" AND ") : "1"}
 
+        GROUP BY 
+          ${columns}
+
         ORDER BY ${sortColumn} ${sortDirection}
+        
         LIMIT ? OFFSET ?
         `,
     [limit, offset],
   );
 
-  const [counter] = await DAO.query(`
-        SELECT COUNT(*) as count FROM Vipps_agreements
-    `);
+  const numAgreements = agreements.length > 0 ? agreements[0]["full_count"] : 0;
+  const sumAgreements = agreements.length > 0 ? agreements[0]["full_sum"] : 0;
+  const avgAgreement = agreements.length > 0 ? agreements[0]["full_avg"] : 0;
 
-  if (agreements.length === 0) return false;
-  else
+  const pages = Math.ceil(numAgreements / limit);
+
+  if (agreements.length === 0) {
     return {
-      pages: Math.ceil(counter[0].count / limit),
-      rows: agreements,
+      rows: [],
+      pages: 0,
+      statistics: {
+        numAgreements: 0,
+        sumAgreements: "0",
+        avgAgreement: "0",
+      },
     };
+  } else {
+    return {
+      rows: agreements,
+      pages,
+      statistics: {
+        numAgreements,
+        sumAgreements,
+        avgAgreement,
+      },
+    };
+  }
 }
 
 /**
@@ -270,7 +343,20 @@ async function getAgreementsByDonorId(donorId): Promise<VippsAgreement[]> {
  * @param {object} filter Filtering object
  * @return {Agreement[]} Array of agreements
  */
-async function getCharges(sort, page, limit, filter) {
+async function getCharges(
+  sort,
+  page,
+  limit,
+  filter,
+): Promise<{
+  pages: number;
+  rows: Array<any>;
+  statistics: {
+    numCharges: number;
+    sumCharges: string;
+    avgCharge: string;
+  };
+}> {
   const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
   const sortDirection = sort.desc ? "DESC" : "ASC";
   const offset = page * limit;
@@ -288,9 +374,9 @@ async function getCharges(sort, page, limit, filter) {
     }
 
     if (filter.timestamp) {
-      if (filter.dueDate.from)
+      if (filter.timestamp.from)
         where.push(`timestamp_created >= ${sqlString.escape(filter.dueDate.from)} `);
-      if (filter.dueDate.to)
+      if (filter.timestamp.to)
         where.push(`timestamp_created <= ${sqlString.escape(filter.dueDate.to)} `);
     }
 
@@ -298,22 +384,42 @@ async function getCharges(sort, page, limit, filter) {
       where.push(` CAST(VC.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
     if (filter.donor)
       where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
-    if (filter.statuses.length > 0)
+    if (filter.statuses) {
+      if (filter.statuses.length == 0) {
+        return {
+          pages: 0,
+          rows: [],
+          statistics: {
+            numCharges: 0,
+            sumCharges: "0",
+            avgCharge: "0",
+          },
+        };
+      }
       where.push(` VC.status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `);
+    }
   }
+
+  const columns = `
+    VC.chargeID,
+    VC.agreementID,
+    VC.status,
+    VC.type,
+    VC.amountNOK,
+    VC.KID,
+    VC.timestamp_created,
+    VC.dueDate,
+    Donors.full_name
+  `;
 
   const [charges] = await DAO.query(
     `
         SELECT
-            VC.chargeID,
-            VC.agreementID,
-            VC.status,
-            VC.type,
-            VC.amountNOK,
-            VC.KID,
-            VC.timestamp_created,
-            VC.dueDate,
-            Donors.full_name
+          count(*) OVER() AS full_count,
+          sum(amountNOK) OVER() AS full_sum,
+          avg(amountNOK) OVER() AS full_avg,
+          ${columns}
+
         FROM Vipps_agreement_charges as VC
         INNER JOIN Vipps_agreements as VA
             ON VA.ID = VC.agreementID
@@ -322,22 +428,40 @@ async function getCharges(sort, page, limit, filter) {
         WHERE
             ${where.length !== 0 ? where.join(" AND ") : "1"}
 
+        GROUP BY
+          ${columns}
+
         ORDER BY ${sortColumn} ${sortDirection}
         LIMIT ? OFFSET ?
         `,
     [limit, offset],
   );
 
-  const [counter] = await DAO.query(`
-        SELECT COUNT(*) as count FROM Vipps_agreement_charges
-    `);
+  const numCharges = charges.length > 0 ? charges[0]["full_count"] : 0;
+  const sumCharges = charges.length > 0 ? charges[0]["full_sum"] : 0;
+  const avgCharge = charges.length > 0 ? charges[0]["full_avg"] : 0;
 
-  if (charges.length === 0) return false;
-  else
+  if (charges.length === 0) {
     return {
-      pages: Math.ceil(counter[0].count / limit),
-      rows: charges,
+      pages: 0,
+      rows: [],
+      statistics: {
+        numCharges: 0,
+        sumCharges: "0",
+        avgCharge: "0",
+      },
     };
+  } else {
+    return {
+      pages: Math.ceil(numCharges / limit),
+      rows: charges,
+      statistics: {
+        numCharges,
+        sumCharges,
+        avgCharge,
+      },
+    };
+  }
 }
 
 /**
@@ -405,7 +529,7 @@ async function getInitialCharge(agreementID) {
  * @property {number} monthly_charge_day
  * @return {[VippsAgreement]}
  */
-async function getActiveAgreements() {
+async function getActiveAgreements(): Promise<VippsAgreement[] | false> {
   let [res] = await DAO.query(`
         SELECT * FROM 
             Vipps_agreements 
@@ -422,7 +546,7 @@ async function getActiveAgreements() {
  * @return {Object}
  */
 async function getAgreementReport() {
-  let [res] = await DAO.query(`
+  let [res] = await DAO.query<AgreementReport[]>(`
     SELECT 
         count(ID) as activeAgreementCount,
         round(avg(amount), 0) as averageAgreementSum,
@@ -493,7 +617,7 @@ async function getAgreementReport() {
         `);
 
   if (res.length === 0) return false;
-  else return res;
+  else return res[0];
 }
 
 /**
@@ -531,6 +655,47 @@ async function getChargeSumHistogram() {
             FROM Vipps_agreement_charges
             GROUP BY 1
             ORDER BY 1;
+        `);
+
+  return results;
+}
+
+/**
+ * A list of all missing charges for the last 2 months
+ * Calculated by looking at agreements where there is no charge corresponding to the monthly_charge_day
+ * @returns {Array<Object>} Returns an array of missing charges
+ */
+async function getMissingCharges() {
+  let [results] = await DAO.query<
+    {
+      agreementID: string;
+      KID: string;
+      amount: number;
+      monthly_charge_day: number;
+      missing_charge_date: string;
+      timestamp_created: string;
+      full_name: string;
+      vipps_recurring_donations_last_2months: number;
+    }[]
+  >(`
+        SELECT 
+          MI.*, 
+          D.full_name,
+          (
+              SELECT COUNT(*)
+              FROM Donations d
+              WHERE d.Donor_ID = D.ID
+              AND d.Payment_ID = 7
+              AND d.timestamp_confirmed >= DATE_SUB(CURRENT_DATE, INTERVAL 2 MONTH)
+          ) as vipps_recurring_donations_last_2months
+          
+          FROM EffektDonasjonDB.v_Missing_vipps_charges as MI
+          INNER JOIN Distributions as DIST
+            ON MI.KID = DIST.KID
+          INNER JOIN Donors as D
+            ON DIST.Donor_ID = D.ID
+        
+          WHERE D.ID != 1464
         `);
 
   return results;
@@ -712,7 +877,7 @@ async function updateVippsOrderDonation(orderID, donationID) {
 /**
  * Updates price of a recurring agreement
  * @param {string} agreementId The agreement ID
- * @param {number} price
+ * @param {number} price In NOK
  * @return {boolean} Success
  */
 async function updateAgreementPrice(agreementId, price) {
@@ -892,6 +1057,7 @@ export const vipps = {
   getLatestToken,
   getOrder,
   getRecentOrder,
+  getOrderTransactionStatusHistory,
   getAgreement,
   getAgreements,
   getAgreementsByDonorId,
@@ -903,6 +1069,7 @@ export const vipps = {
   getChargeSumHistogram,
   getActiveAgreements,
   getAgreementReport,
+  getMissingCharges,
   addToken,
   addOrder,
   addAgreement,

@@ -98,6 +98,27 @@ async function get(id) {
   if (res.length > 0) return res[0];
   else return null;
 }
+
+/**
+ * Fetches the file contents of an AutoGiro shipment
+ * @param id
+ * @returns
+ */
+async function getAutoGiroShipmentFile(id: number) {
+  let [res] = await DAO.query(
+    `
+    SELECT 
+      JSON_EXTRACT(result, '$.file') as fileContents,
+      JSON_EXTRACT(result, '$.filename') as filename
+      
+    FROM Import_logs
+    WHERE label = "AutoGiro" AND JSON_EXTRACT(result, '$.shipmentID') = ?`,
+    [id],
+  );
+
+  if (res.length > 0) return res[0];
+  else return null;
+}
 //endregion
 
 //region Add
@@ -133,4 +154,5 @@ export const logging = {
   add,
   get,
   getEntries,
+  getAutoGiroShipmentFile,
 };

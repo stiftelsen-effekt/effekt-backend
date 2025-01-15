@@ -26,7 +26,10 @@ async function getDataOwners() {
  * @returns {Number} The default owner ID
  */
 async function getDefaultOwnerID() {
-  var [res] = await DAO.query("SELECT ID FROM Data_owner WHERE `default` = 1");
+  var [res] = await DAO.query<{ ID: number }[]>("SELECT ID FROM Data_owner WHERE `default` = 1");
+  if (res.length == 0) {
+    throw new Error("No default owner found");
+  }
   return res[0].ID;
 }
 

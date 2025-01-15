@@ -6,6 +6,9 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { TaxReport, TaxYearlyReportUnit } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import bodyParser from "body-parser";
+import { LocaleRequest, localeMiddleware } from "../middleware/locale";
+import { TaxDeductionDonation, getYearlyMapping } from "../custom_modules/taxdeductions";
+import { connectDonationsForFirstTaxUnit } from "../custom_modules/tax";
 
 const router = express.Router();
 
@@ -352,9 +355,19 @@ router.get(
   (req, res, next) => {
     checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
-  async (req, res, next) => {
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
     try {
-      var taxUnits = await DAO.tax.getByDonorId(req.params.id);
+      const donorId = parseInt(req.params.id);
+
+      if (isNaN(donorId)) {
+        return res.status(400).json({
+          status: 400,
+          content: "Invalid donor ID",
+        });
+      }
+
+      var taxUnits = await DAO.tax.getByDonorId(donorId, req.locale);
 
       if (taxUnits) {
         return res.json({
@@ -415,82 +428,102 @@ router.get(
   (req, res, next) => {
     checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
-  async (req, res, next) => {
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
     try {
-      if (isNaN(parseInt(req.params.id))) {
+      const donorId = parseInt(req.params.id);
+
+      if (isNaN(donorId)) {
         return res.status(400).json({
           status: 400,
           content: "Invalid donor ID",
         });
       }
 
-      let taxUnits = await DAO.tax.getByDonorId(parseInt(req.params.id));
+      let taxUnits = await DAO.tax.getByDonorId(donorId, req.locale);
       taxUnits = taxUnits.filter((tu) => tu.archived === null);
 
-      let donations = await DAO.donations.getByDonorId(parseInt(req.params.id));
-      let eaFundsDonations = await DAO.donations.getEAFundsDonations(parseInt(req.params.id));
+      let donations = await DAO.donations.getByDonorId(donorId);
+      let eaFundsDonations = await DAO.donations.getEAFundsDonations(donorId);
 
-      /**
-       * TODO: This is hard coded to only include 2022 for now, but should be
-       * changed to include all years in the future.
-       */
-      const year = 2022;
+      // Previous year down to 2022
+      const years = Array.from(
+        { length: new Date().getFullYear() - 1 - 2021 },
+        (_, i) => 2022 + i,
+      ).reverse();
+      const reports: Array<TaxReport> = [];
 
-      const yearlyreportunits = taxUnits.map((tu): TaxYearlyReportUnit => {
-        const fundsSumForUnit = eaFundsDonations
-          .filter((d) => new Date(d.timestamp).getFullYear() === year && d.taxUnitId === tu.id)
+      for (const year of years) {
+        const yearlyreportunits = taxUnits.map((tu): TaxYearlyReportUnit => {
+          const fundsDonations: TaxDeductionDonation[] = eaFundsDonations
+            .filter((d) => new Date(d.timestamp).getFullYear() === year && d.taxUnitId === tu.id)
+            .map((d) => ({
+              year: year,
+              sum: parseFloat(d.sum),
+              taxUnitId: tu.id,
+            }));
+          const fundsSum = fundsDonations.reduce((a, b) => a + b.sum, 0);
+
+          const geDonations: TaxDeductionDonation[] = donations
+            .filter((d) => new Date(d.timestamp).getFullYear() === year && d.taxUnitId === tu.id)
+            .map((d) => ({
+              year: year,
+              sum: parseFloat(d.sum),
+              taxUnitId: tu.id,
+            }));
+          const geSum = geDonations.reduce((a, b) => a + b.sum, 0);
+
+          const deductionRules = getYearlyMapping(req.locale);
+
+          if (!(year in deductionRules)) {
+            throw new Error(`Missing yearly mapping for year ${year}`);
+          }
+
+          const completeDeduction = deductionRules[year]([...geDonations, ...fundsDonations]);
+
+          let reportUnit: TaxYearlyReportUnit = {
+            id: tu.id,
+            name: tu.name,
+            ssn: tu.ssn,
+            sumDonations: geSum + fundsSum,
+            taxDeduction: completeDeduction.deduction,
+            channels: [],
+          };
+
+          if (parseFloat(tu.sumDonations) > 0) {
+            reportUnit.channels.push({
+              channel: "Gi Effektivt",
+              sumDonations: geSum,
+            });
+          }
+
+          if (fundsSum > 0) {
+            reportUnit.channels.push({
+              channel: "EAN Giverportal",
+              sumDonations: fundsSum,
+            });
+          }
+
+          return reportUnit;
+        });
+
+        const cryptoDonationsInYear = donations.filter((d) => {
+          return new Date(d.timestamp).getFullYear() === year && d.paymentMethod === "Crypto";
+        });
+
+        const sumGeDonationsWithoutTaxUnit = donations
+          .filter((d) => {
+            return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
+          })
           .reduce((acc, item) => acc + parseFloat(item.sum), 0);
 
-        const geSumForYear = tu.taxDeductions.find((d) => d.year === year)?.sumDonations
-          ? parseFloat(tu.taxDeductions.find((d) => d.year === year)?.sumDonations ?? "0")
-          : 0;
+        const sumEanDOnationsWithoutTaxUnit = eaFundsDonations
+          .filter((d) => {
+            return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
+          })
+          .reduce((acc, item) => acc + parseFloat(item.sum), 0);
 
-        const completeSum = geSumForYear + fundsSumForUnit;
-
-        let reportUnit: TaxYearlyReportUnit = {
-          id: tu.id,
-          name: tu.name,
-          ssn: tu.ssn,
-          sumDonations: completeSum,
-          taxDeduction: Math.min(completeSum, 25000),
-          channels: [],
-        };
-
-        if (parseFloat(tu.sumDonations) > 0) {
-          reportUnit.channels.push({
-            channel: "Gi Effektivt",
-            sumDonations: geSumForYear,
-          });
-        }
-
-        if (fundsSumForUnit > 0) {
-          reportUnit.channels.push({
-            channel: "EAN Giverportal",
-            sumDonations: fundsSumForUnit,
-          });
-        }
-
-        return reportUnit;
-      });
-
-      const cryptoDonationsInYear = donations.filter((d) => {
-        return new Date(d.timestamp).getFullYear() === year && d.paymentMethod === "Crypto";
-      });
-
-      const sumGeDonationsWithoutTaxUnit = donations
-        .filter((d) => {
-          return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
-        })
-        .reduce((acc, item) => acc + parseFloat(item.sum), 0);
-
-      const sumEanDOnationsWithoutTaxUnit = eaFundsDonations
-        .filter((d) => {
-          return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
-        })
-        .reduce((acc, item) => acc + parseFloat(item.sum), 0);
-
-      const reports: Array<TaxReport> = [
-        {
+        reports.push({
           year: year,
           units: yearlyreportunits,
           sumDonations: yearlyreportunits.reduce((a, b) => a + b.sumDonations, 0),
@@ -519,8 +552,8 @@ router.get(
                   },
                 ]
               : [],
-        },
-      ];
+        });
+      }
 
       return res.json({
         status: 200,
@@ -577,7 +610,8 @@ router.post(
   (req, res, next) => {
     checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
   },
-  async (req, res, next) => {
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
     try {
       const { name, ssn } = req.body;
 
@@ -600,6 +634,8 @@ router.post(
       } else if (ssn.length === 9) {
         // Organization number is 9 digits
         // No validatino performed
+      } else if (ssn.length === 13) {
+        // Temp no validation for SE numbers
       } else {
         return res.status(400).json({
           status: 400,
@@ -620,12 +656,12 @@ router.post(
 
       // If successfully created tax unit
       if (taxUnit) {
-        const taxUnits = await DAO.tax.getByDonorId(donor.id);
+        const taxUnits = await DAO.tax.getByDonorId(donor.id, req.locale);
 
         // if this is the first tax unit created for the donor (also counts archived tax units)
         if (taxUnits.length === 1) {
           // Update the donor's KID numbers missing a tax unit
-          await DAO.tax.updateKIDsMissingTaxUnit(taxUnitId, donor.id);
+          await connectDonationsForFirstTaxUnit(donor.id, taxUnit.id);
         }
 
         return res.json({
@@ -774,72 +810,79 @@ router.delete(
  *      404:
  *        description: Tax unit with given id not found
  */
-router.put("/:id/taxunits/:taxunitid", async (req, res, next) => {
-  try {
-    const id = req.params.id;
-    const taxUnitId = parseInt(req.params.taxunitid);
-    const taxUnit = req.body.taxUnit;
-    const ssn = taxUnit.ssn;
+router.put(
+  "/:id/taxunits/:taxunitid",
+  authMiddleware.auth(permissions.write_profile),
+  (req, res, next) => {
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const id = req.params.id;
+      const taxUnitId = parseInt(req.params.taxunitid);
+      const taxUnit = req.body.taxUnit;
+      const ssn = taxUnit.ssn;
 
-    if (!id || !taxUnitId || !taxUnit) {
-      res.status(400).json({
-        status: 400,
-        content: "Missing parameters id or taxUnitid or taxUnit in json body",
-      });
-      return;
-    }
+      if (!id || !taxUnitId || !taxUnit) {
+        res.status(400).json({
+          status: 400,
+          content: "Missing parameters id or taxUnitid or taxUnit in json body",
+        });
+        return;
+      }
 
-    if (!taxUnit.name || !taxUnit.ssn) {
-      res.status(400).json({
-        status: 400,
-        content: "Missing parameters name or ssn on tax unit",
-      });
-      return;
-    }
+      if (!taxUnit.name || !taxUnit.ssn) {
+        res.status(400).json({
+          status: 400,
+          content: "Missing parameters name or ssn on tax unit",
+        });
+        return;
+      }
 
-    if (ssn.length === 11) {
-      // Birth number is 11 digits
-      const validation = fnr(ssn);
-      if (validation.status !== "valid") {
+      if (ssn.length === 11) {
+        // Birth number is 11 digits
+        const validation = fnr(ssn);
+        if (validation.status !== "valid") {
+          return res.status(400).json({
+            status: 400,
+            content: "Invalid ssn (failed fnr validation) " + validation.reasons.join(", "),
+          });
+        }
+      } else if (ssn.length === 9) {
+        // Organization number is 9 digits
+        // No validatino performed
+      } else {
         return res.status(400).json({
           status: 400,
-          content: "Invalid ssn (failed fnr validation) " + validation.reasons.join(", "),
+          content: "Invalid ssn (length is not 9 or 11)",
         });
       }
-    } else if (ssn.length === 9) {
-      // Organization number is 9 digits
-      // No validatino performed
-    } else {
-      return res.status(400).json({
-        status: 400,
-        content: "Invalid ssn (length is not 9 or 11)",
-      });
-    }
 
-    const donor = await DAO.donors.getByID(req.params.id);
-    if (!donor) {
-      return res.status(404).json({
-        status: 404,
-        content: "No donor found with ID " + req.params.id,
-      });
-    }
+      const donor = await DAO.donors.getByID(req.params.id);
+      if (!donor) {
+        return res.status(404).json({
+          status: 404,
+          content: "No donor found with ID " + req.params.id,
+        });
+      }
 
-    const changed = await DAO.tax.updateTaxUnit(taxUnitId, taxUnit);
-    if (changed) {
-      res.json({
-        status: 200,
-        content: taxUnit,
-      });
-    } else {
-      res.json({
-        status: 500,
-        content: "Could not update tax unit",
-      });
+      const changed = await DAO.tax.updateTaxUnit(taxUnitId, taxUnit);
+      if (changed) {
+        res.json({
+          status: 200,
+          content: taxUnit,
+        });
+      } else {
+        res.json({
+          status: 500,
+          content: "Could not update tax unit",
+        });
+      }
+    } catch (ex) {
+      next(ex);
     }
-  } catch (ex) {
-    next(ex);
-  }
-});
+  },
+);
 
 /**
  * @openapi
@@ -1001,6 +1044,26 @@ router.get(
   async (req, res, next) => {
     try {
       const agreements = await DAO.avtalegiroagreements.getByDonorId(req.params.id);
+
+      return res.json({
+        status: 200,
+        content: agreements,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
+
+router.get(
+  "/:id/recurring/autogiro",
+  authMiddleware.auth(permissions.read_donations),
+  (req, res, next) => {
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
+  },
+  async (req, res, next) => {
+    try {
+      const agreements = await DAO.autogiroagreements.getAgreementsByDonorId(req.params.id);
 
       return res.json({
         status: 200,
@@ -1174,26 +1237,14 @@ router.get(
   async (req, res, next) => {
     try {
       const result = await DAO.distributions.getAllByDonor(req.params.id);
+
       let distributions = result.distributions;
 
-      if (req.query.kids) {
+      if (typeof req.query.kids !== undefined) {
         const kidSet = new Set<string>();
         req.query.kids.split(",").map((kid) => kidSet.add(kid));
 
         distributions = distributions.filter((dist) => kidSet.has(dist.kid));
-      }
-
-      const requests = [];
-      for (let i = 0; i < distributions.length; i++) {
-        const dist = distributions[i];
-        requests.push(getDistributionTaxUnitAndStandardDistribution(i, dist.kid));
-      }
-
-      const results = await Promise.all(requests);
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        distributions[result.index].taxUnit = result.taxUnit;
-        distributions[result.index].standardDistribution = result.standardDistribution;
       }
 
       return res.json({
@@ -1205,20 +1256,6 @@ router.get(
     }
   },
 );
-
-async function getDistributionTaxUnitAndStandardDistribution(index, kid) {
-  // !!! === CAUSE AREAS TODO === !!!
-  throw new Error("Not implemented");
-  /*
-  const taxUnit = await DAO.tax.getByKID(kid);
-  const standardDistribution = await DAO.distributions.isStandardDistribution(kid);
-  return {
-    index: index,
-    taxUnit: taxUnit,
-    standardDistribution: standardDistribution,
-  };
-  */
-}
 
 /**
  * @openapi
@@ -1350,6 +1387,39 @@ router.get(
   },
 );
 
+router.post("/:originId/merge/:destinationId", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const originId = parseInt(req.params.originId);
+    const destinationId = parseInt(req.params.destinationId);
+
+    if (isNaN(originId) || isNaN(destinationId)) {
+      return res.status(400).json({
+        status: 400,
+        content: "Invalid donor ID",
+      });
+    }
+
+    const donorOrigin = await DAO.donors.getByID(originId);
+    const donorDestination = await DAO.donors.getByID(destinationId);
+
+    if (!donorOrigin || !donorDestination) {
+      return res.status(404).json({
+        status: 404,
+        content: "Donor not found",
+      });
+    }
+
+    await DAO.donors.mergeDonors(originId, destinationId);
+
+    return res.json({
+      status: 200,
+      content: true,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 /**
  * @openapi
  * /donors/{id}:
@@ -1428,9 +1498,27 @@ router.put(
           });
         }
       }
+
+      let email;
+      // Check for email
+      if (req.body.email) {
+        if (typeof req.body.email !== "string") {
+          return res.status(400).json({
+            status: 400,
+            content: "The email must be a string",
+          });
+        } else {
+          email = req.body.email;
+        }
+      } else {
+        // If no email is provided, use the existing email
+        email = donor.email;
+      }
+
       const updated = await DAO.donors.update(
         req.params.id,
         req.body.name,
+        email,
         req.body.newsletter,
         req.body.trash,
       );

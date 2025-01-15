@@ -1,4 +1,7 @@
 import {
+  AutoGiro_agreements,
+  AutoGiro_mandates,
+  Avtalegiro_agreements,
   Cause_areas,
   Data_owner,
   Distribution_cause_area_organizations,
@@ -12,6 +15,7 @@ import {
   PrismaClient,
   Referral_types,
   Tax_unit,
+  Vipps_agreements,
 } from "@prisma/client";
 import fs from "fs";
 import path from "path";
@@ -35,6 +39,16 @@ async function main() {
     readAndParseJsonFile("/fakeDistributionCauseAreaOrganizations.json");
   const fakeReferralTypes: Referral_types[] = readAndParseJsonFile("/fakeReferralTypes.json");
   const fakeDataOwner: Data_owner[] = readAndParseJsonFile("/fakeDataOwner.json");
+  const fakeAvtalegiroAgreements: Avtalegiro_agreements[] = readAndParseJsonFile(
+    "/fakeAvtalegiroAgreements.json",
+  );
+  const fakeVippsAgreements: Vipps_agreements[] = readAndParseJsonFile("/fakeVippsAgreements.json");
+  const fakeAutoGiroMandates: AutoGiro_mandates[] = readAndParseJsonFile(
+    "/fakeAutoGiroMandates.json",
+  );
+  const fakeAutoGiroAgreements: AutoGiro_agreements[] = readAndParseJsonFile(
+    "/fakeAutoGiroAgreements.json",
+  );
 
   await prisma.data_owner.createMany({ data: fakeDataOwner });
   await prisma.payment.createMany({ data: fakePayments });
@@ -47,6 +61,10 @@ async function main() {
   await prisma.distribution_cause_area_organizations.createMany({
     data: fakeDistributionCauseAreaOrganizations,
   });
+  await prisma.avtalegiro_agreements.createMany({ data: fakeAvtalegiroAgreements });
+  await prisma.vipps_agreements.createMany({ data: fakeVippsAgreements });
+  await prisma.autoGiro_mandates.createMany({ data: fakeAutoGiroMandates });
+  await prisma.autoGiro_agreements.createMany({ data: fakeAutoGiroAgreements });
   await prisma.donations.createMany({ data: fakeDonations });
   await prisma.payment_intent.createMany({ data: fakePaymentIntents });
   await prisma.referral_types.createMany({ data: fakeReferralTypes });

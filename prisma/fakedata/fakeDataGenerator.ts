@@ -43,29 +43,28 @@ export function generateFakeDonor(donorID: number): Donors {
     ID: donorID,
     email: email,
     full_name: `${firstName} ${lastName}`,
-    password_hash: null,
-    password_salt: null,
     newsletter: faker.helpers.maybe(() => faker.datatype.boolean()) ?? null,
     trash: faker.helpers.maybe(() => faker.number.int({ min: 0, max: 1 })) ?? null,
     Meta_owner_ID: 3,
     date_registered: faker.date.past({ years: 3 }),
-    ssn: null,
   };
 }
 
 export function generateFakeDonation(
   donor: Donors,
   donationID: number,
-  payments: Payment[],
+  fakeKID: string,
+  payment: Payment,
+  forcedAmount?: number,
+  forcedDate?: Date,
 ): Donations {
-  const payment = faker.helpers.arrayElement(payments);
-  const donationSum = faker.number.int({ min: 0, max: 10000 });
+  const donationSum = forcedAmount ?? faker.number.int({ min: 0, max: 10000 });
   const percentageFee: number = Number(payment.percentage_fee) ?? 0;
   const flatFee: number = Number(payment.flat_fee) ?? 0;
   const donationTransactionCost = donationSum * (percentageFee / 100) + flatFee;
 
-  const dateConfirmed: Date = faker.date.between({ from: donor.date_registered, to: new Date() });
-  const fakeKID: string = KID.generate(15, donor.ID as any);
+  const dateConfirmed: Date =
+    forcedDate ?? faker.date.between({ from: donor.date_registered, to: new Date() });
 
   return {
     ID: donationID,
@@ -182,8 +181,6 @@ export function generateFakeDistribution(
     }
   }
 
-  console.log(distributionCauseAreaOrganizations.map((d) => d.ID));
-
   return { distribution, distributionCauseAreas, distributionCauseAreaOrganizations };
 }
 
@@ -202,7 +199,8 @@ export function generateFakePaymentIntent(ID: number, donation: Donations): Paym
   return {
     Id: ID,
     KID_fordeling: donation.KID_fordeling,
-    Payment_method: donation.Payment_ID.toString(),
-    timetamp: donation.inserted,
+    Payment_method: donation.Payment_ID,
+    Payment_amount: donation.sum_confirmed,
+    timestamp: donation.inserted,
   };
 }

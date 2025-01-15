@@ -72,7 +72,7 @@ async function getByKID(KID) {
             
             FROM Donors 
             
-            INNER JOIN Combining_table 
+            INNER JOIN Distributions 
                 ON Donor_ID = Donors.ID 
                 
             WHERE KID = ? 
@@ -146,25 +146,48 @@ async function getIDByMatchedNameFB(name) {
 }
 
 /**
- * Gets all donor ID's with only one tax unit
+ * Gets all the distributions that belong to a donor with only one active tax unit and at least one donation
+ * after the provided year
  * @return {Array<{number, number}>} Array of all donor ID and tax unit pairs
  */
-async function getIDsWithOneTaxUnit() {
-  let [res] = await DAO.query(
+async function getKIDsWithOneTaxUnit(year: number) {
+  let [res] = await DAO.query<{ KID: string; Donor_ID: number; Tax_unit_ID: number }[]>(
     `
-    select Donor_ID, ID from Tax_unit where
-    Donor_ID in 
-      (select DonorID from (
-      SELECT TU.Donor_ID as DonorID, count(TU.ID) as TaxUnitCount, count(DN.ID) as DonationsCount FROM Tax_unit as TU
-      inner join Donors as D on D.ID = TU.Donor_ID
-      inner join Donations as DN on DN.Donor_ID = D.ID
-      group by TU.Donor_ID) as Data
-    where TaxUnitCount = 1 and DonationsCount > 0)
+    SELECT 
+      DI.KID, 
+      DI.Donor_ID, 
+      (SELECT ID FROM Tax_unit WHERE Donor_ID = DI.Donor_ID AND Archived IS NULL) as Tax_unit_ID
+      -- SUM(sum_confirmed), -- Used for debugging
+      -- COUNT(D.ID) -- Used for debugging
+      
+      FROM Donations as D 
+    INNER JOIN Distributions as DI
+      ON D.KID_fordeling = DI.KID
+      
+      WHERE D.Donor_ID IN (
+      -- Donors with exactly one (active) unit
+      SELECT * FROM (
+        SELECT Donor_ID AS unitCount
+          FROM Tax_unit as T WHERE
+          
+          T.archived IS NULL
+          
+          GROUP BY Donor_ID
+          
+          HAVING COUNT(*) = 1
+      ) ids
+    )
+      -- Donations where year is less than or equal
+      AND YEAR(D.timestamp_confirmed) >= ?
+      -- And is missing tax unit
+      AND DI.Tax_unit_ID IS NULL
+      
+      GROUP BY DI.Donor_ID, DI.KID, DI.Tax_unit_ID
     `,
+    [year],
   );
 
-  if (res.length === 0) return false;
-  else return res;
+  return res;
 }
 
 /**
@@ -202,7 +225,9 @@ async function search(filter): Promise<Array<Donor>> {
   var havings = [];
   var params = [];
   if (filter.query !== undefined && filter.query.length >= 1) {
-    params.push(filter.query);
+    // Remove @ from query att all locations
+    const matchSanitized = filter.query.replace(/@/g, " ");
+    params.push(matchSanitized);
     if (filter.query.match("^[0-9]+$")) wheres.push("Donors.ID = ?");
     else wheres.push("MATCH (full_name, email) AGAINST (? IN BOOLEAN MODE)");
   }
@@ -247,6 +272,15 @@ async function search(filter): Promise<Array<Donor>> {
       total_donations: Number(donor.total_donations),
     };
   });
+}
+
+async function getNumberOfDonationsByDonorID(donorID: number) {
+  let [res] = await DAO.query<{ count: number }>(
+    `SELECT COUNT(*) as count FROM Donations WHERE Donor_ID = ?`,
+    [donorID],
+  );
+
+  return parseInt(res[0].count);
 }
 //endregion
 
@@ -302,19 +336,23 @@ async function updateName(donorID, name) {
  * @param {boolean} newsletter
  * @returns {boolean}
  */
-async function update(donorID, name, newsletter, trash?: boolean) {
+async function update(donorID, name, email, newsletter, trash?: boolean) {
   let isTrash = trash;
   if (typeof trash === "undefined") isTrash = (await getByID(donorID)).trash;
 
   let [res] = await DAO.query(
-    `UPDATE Donors SET full_name = ?, newsletter = ?, trash = ? where ID = ?`,
-    [name, newsletter, isTrash, donorID],
+    `UPDATE Donors SET full_name = ?, email = ?, newsletter = ?, trash = ? where ID = ?`,
+    [name, email, newsletter, isTrash, donorID],
   );
 
   if (res.affectedRows === 1) {
     return true;
   }
   return false;
+}
+
+async function mergeDonors(originDonorId: number, destinationDonorId: number) {
+  await DAO.query(`CALL merge_donors(?, ?)`, [originDonorId, destinationDonorId]);
 }
 //endregion
 
@@ -337,12 +375,14 @@ export const donors = {
   getByKID,
   getByFacebookPayment,
   getIDByMatchedNameFB,
-  getIDsWithOneTaxUnit,
+  getKIDsWithOneTaxUnit,
   getIDByAgreementCode,
+  getNumberOfDonationsByDonorID,
   search,
   add,
   updateNewsletter,
   updateName,
   update,
+  mergeDonors,
   deleteById,
 };

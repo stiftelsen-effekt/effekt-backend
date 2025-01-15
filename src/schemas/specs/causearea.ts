@@ -25,6 +25,12 @@ export interface components {
       id: number;
       /** @description The cause area name */
       name: string;
+      /** @description The cause area widget display name */
+      widgetDisplayName?: string;
+      /** @description The cause area widget context */
+      widgetContext?: string;
+      /** @description The cause area standard percentage share */
+      standardPercentageShare?: number;
       /** @description The cause area short description */
       shortDescription: string;
       /** @description The cause area long description */
@@ -43,6 +49,8 @@ export interface components {
   headers: never;
   pathItems: never;
 }
+
+export type $defs = Record<string, never>;
 
 export type external = Record<string, never>;
 

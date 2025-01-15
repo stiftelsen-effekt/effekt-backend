@@ -21,6 +21,14 @@ import rateLimit from "express-rate-limit";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import qs from "qs";
+import errorHandler from "./handlers/errorHandler";
+import { importRouter } from "./routes/import";
+import { resultsRouter } from "./routes/results";
+import { tidbytRouter } from "./routes/tidbyt";
+import { inflationRouter } from "./routes/inflation";
+import { agreementfeedbackRouter } from "./routes/agreementfeedback";
+import { fundraisersRouter } from "./routes/fundraisers";
+import { ltvRouter } from "./routes/ltv";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -30,8 +38,6 @@ console.log("Top level dependencies loaded");
 //If unsucsessfull, quit app
 DAO.connect(() => {
   console.log("DAO setup complete");
-
-  const errorHandler = require("./handlers/errorHandler.js");
 
   //Setup express
   const app = express();
@@ -83,10 +89,12 @@ DAO.connect(() => {
 
   //Rate limiting
   app.use(
-    new rateLimit({
+    rateLimit({
       windowMs: 60 * 1000, // 1 minute
       max: 1000, //limit each IP to 50 requests per minute
-      delayMs: 0, // disable delaying - full speed until the max limit is reached
+      validate: {
+        trustProxy: false,
+      },
     }),
   );
 
@@ -145,7 +153,13 @@ DAO.connect(() => {
   const loggingRoute = require("./routes/logging");
   const mailRoute = require("./routes/mail");
   const avtaleGiroRoute = require("./routes/avtalegiro");
+  const autoGiroRoute = require("./routes/autogiro");
   const taxRoute = require("./routes/tax");
+  const tidbytRoute = tidbytRouter;
+  const inflationRoute = inflationRouter;
+  const agreementfeedbackRoute = agreementfeedbackRouter;
+  const fundraisersRoute = fundraisersRouter;
+  const ltvRoute = ltvRouter;
 
   app.use("/donors", donorsRoute);
   app.use("/donations", donationsRoute);
@@ -164,7 +178,15 @@ DAO.connect(() => {
   app.use("/logging", loggingRoute);
   app.use("/mail", mailRoute);
   app.use("/avtalegiro", avtaleGiroRoute);
+  app.use("/autogiro", autoGiroRoute);
+  app.use("/fundraisers", fundraisersRoute);
   app.use("/tax", taxRoute);
+  app.use("/import", importRouter);
+  app.use("/results", resultsRouter);
+  app.use("/tidbyt", tidbytRoute);
+  app.use("/inflation", inflationRoute);
+  app.use("/agreementfeedback", agreementfeedbackRoute);
+  app.use("/ltv", ltvRoute);
 
   app.use("/static", express.static(__dirname + "/static"));
   app.use("/style", express.static(__dirname + "/views/style"));
@@ -172,6 +194,13 @@ DAO.connect(() => {
 
   //Error handling
   app.use(errorHandler);
+
+  app.use((req, res, next) => {
+    res.status(404).json({
+      status: 404,
+      content: "Not found",
+    });
+  });
 
   mainServer.listen(parseInt(config.port), config.host, () => {
     console.log("Main http server listening on http://" + config.host + ":" + config.port + " 📞");

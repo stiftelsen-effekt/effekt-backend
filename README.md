@@ -48,6 +48,7 @@ The API is also responsible for handling payment processing.
   - [Vipps](#vipps)
   - [PayPal](#paypal)
   - [Facebook](#facebook)
+  - [Swish](#swish)
 
 ---
 
@@ -599,7 +600,9 @@ gcloud run jobs create <SERVICE_NAME>-db-migrate \
 
 ### Bank
 
-### Vipps 🇳🇴
+### Vipps
+
+🇳🇴
 
 > ❗ **NOK only**
 
@@ -607,7 +610,9 @@ gcloud run jobs create <SERVICE_NAME>-db-migrate \
 
 ### Facebook
 
-### Swish 🇸🇪
+### Swish
+
+🇸🇪
 
 > ❗ **SEK only**
 

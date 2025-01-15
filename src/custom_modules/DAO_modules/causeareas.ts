@@ -1,4 +1,4 @@
-import { Cause_areas, Donations, Organizations, Swish_order } from "@prisma/client";
+import { Cause_areas, Organizations } from "@prisma/client";
 import { DAO } from "../DAO";
 import { CauseArea, Organization } from "../../schemas/types";
 import { mapOrganization } from "./organizations";
@@ -90,12 +90,17 @@ export const causeareas = {
         SELECT
           Cause_areas.ID as CA_ID,
           Cause_areas.name as CA_name,
+          Cause_areas.widget_display_name as CA_widget_display_name,
+          Cause_areas.widget_context as CA_widget_context,
           Cause_areas.short_desc as CA_short_desc,
           Cause_areas.long_desc as CA_long_desc,
           Cause_areas.is_active as CA_is_active,
           Cause_areas.info_url as CA_info_url,
           Cause_areas.ordering as CA_ordering,
+          Cause_areas.std_percentage_share as CA_std_percentage_share,
           Organizations.ID AS O_ID,
+          Organizations.widget_display_name AS O_widget_display_name,
+          Organizations.widget_context AS O_widget_context,
           Organizations.full_name AS O_full_name,
           Organizations.abbriv AS O_abbriv,
           Organizations.short_desc AS O_short_desc,
@@ -118,15 +123,20 @@ export const causeareas = {
       const causeArea = mapCauseArea({
         ID: row.CA_ID,
         name: row.CA_name,
+        widget_display_name: row.CA_widget_display_name,
+        widget_context: row.CA_widget_context,
         short_desc: row.CA_short_desc,
         long_desc: row.CA_long_desc,
         is_active: row.CA_is_active,
         info_url: row.CA_info_url,
         ordering: row.CA_ordering,
+        std_percentage_share: row.CA_std_percentage_share,
       });
       const organization = mapOrganization({
         ID: row.O_ID,
         full_name: row.O_full_name,
+        widget_display_name: row.O_widget_display_name,
+        widget_context: row.O_widget_context,
         abbriv: row.O_abbriv,
         short_desc: row.O_short_desc,
         long_desc: row.O_long_desc,
@@ -151,9 +161,12 @@ export const causeareas = {
 export const mapCauseArea = (c: Cause_areas): CauseArea => ({
   id: c.ID,
   name: c.name,
+  widgetDisplayName: c.widget_display_name,
+  widgetContext: c.widget_context,
   shortDescription: c.short_desc,
   longDescription: c.long_desc,
   informationUrl: c.info_url,
   isActive: c.is_active == 1,
   ordering: c.ordering,
+  standardPercentageShare: c.std_percentage_share,
 });

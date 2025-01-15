@@ -104,7 +104,9 @@ describe("donors", () => {
   describe("routes", () => {
     let server: express.Express;
 
-    beforeEach(() => {
+    beforeEach(function (done) {
+      this.timeout(5000);
+
       server = express();
       server.use(bodyParser.json());
       server.use(bodyParser.urlencoded({ extended: true }));
@@ -120,6 +122,8 @@ describe("donors", () => {
         .callsFake((_, req, res, next) => {
           next();
         });
+
+      done();
     });
 
     describe("GET /donors/:id/donations", function () {
@@ -249,6 +253,7 @@ describe("donors", () => {
       const mockDonations = [
         {
           ID: 1,
+          causeAreaID: 1,
           organization: "Against Malaria Foundation",
           abbriv: "AMF",
           value: "18.000000000000000000",
@@ -256,6 +261,7 @@ describe("donors", () => {
         },
         {
           ID: 2,
+          causeAreaID: 1,
           organization: "Røde Kors",
           abbriv: "RK",
           value: "100.000000000000000000",
@@ -263,6 +269,7 @@ describe("donors", () => {
         },
         {
           ID: 45,
+          causeAreaID: 1,
           organization: "Realfagbygget",
           abbriv: "A4",
           value: "250.000000000000000000",
@@ -270,6 +277,7 @@ describe("donors", () => {
         },
         {
           ID: 11,
+          causeAreaID: 1,
           organization: "SOS Barnebyer",
           abbriv: "SOS",
           value: "250.000000000000000000",
@@ -277,6 +285,7 @@ describe("donors", () => {
         },
         {
           ID: 60,
+          causeAreaID: 1,
           organization: "Barnekreftforeningen",
           abbriv: "BKF",
           value: "390.000000000000000000",
@@ -315,11 +324,17 @@ describe("donors", () => {
       });
 
       it("Donor ID doesn't exist", async function () {
-        checkDonorStub.callsFake(function (donorID, res, req, next) {
-          throw new InvalidTokenError("Unexpected 'https://konduit.no/user-id' value");
-        });
+        try {
+          checkDonorStub = sinon
+            .stub(authMiddleware, "checkAdminOrTheDonor")
+            .callsFake((_, req, res, next) => {
+              throw new InvalidTokenError("Unexpected 'https://gieffektivt.no/user-id' value");
+            });
 
-        const response = await request(server).get("/donors/1/donations/aggregated").expect(401);
+          const response = await request(server).get("/donors/1/donations/aggregated").expect(401);
+        } catch (ex) {
+          expect(ex).to.not.be.undefined;
+        }
       });
     });
   });

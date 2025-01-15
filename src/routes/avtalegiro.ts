@@ -1,15 +1,19 @@
 import * as express from "express";
-import { checkAvtaleGiroAgreement } from "../custom_modules/authorization/authMiddleware";
+import { checkDonorOwnsDistribution } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendAvtaleGiroChange, sendAvtalegiroRegistered } from "../custom_modules/mail";
 import { donationHelpers } from "../custom_modules/donationHelpers";
-import { Donor } from "../schemas/types";
+import { DistributionInput } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import moment from "moment";
+import {
+  findGlobalHealthCauseAreaOrThrow,
+  validateDistribution,
+} from "../custom_modules/distribution";
+import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 
 const router = express.Router();
-const rounding = require("../custom_modules/rounding");
 
 /**
  * @openapi
@@ -46,20 +50,14 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
       req.body.limit,
       req.body.filter,
     );
-    if (results) {
-      return res.json({
-        status: 200,
-        content: {
-          pages: results.pages,
-          rows: results.rows,
-        },
-      });
-    } else {
-      return res.status(500).json({
-        status: 500,
-        content: "Error getting agreements",
-      });
-    }
+    return res.json({
+      status: 200,
+      content: {
+        pages: results.pages,
+        rows: results.rows,
+        statistics: results.statistics,
+      },
+    });
   } catch (ex) {
     next(ex);
   }
@@ -98,27 +96,30 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
  *      401:
  *        description: User not authorized to view resource
  */
-router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    const agreement = await DAO.avtalegiroagreements.getAgreement(req.params.id);
+router.get(
+  "/agreement/:id",
+  authMiddleware.isAdmin,
+  localeMiddleware,
+  async (req: LocaleRequest, res, next) => {
+    try {
+      const agreement = await DAO.avtalegiroagreements.getAgreement(req.params.id);
 
-    const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
-    const taxUnit = await DAO.tax.getByKID(agreement.KID);
-    const donor = await DAO.donors.getByKID(agreement.KID);
+      if (!agreement) return res.sendStatus(404);
 
-    return res.json({
-      status: 200,
-      content: {
-        ...agreement,
-        distribution,
-        donor,
-        taxUnit,
-      },
-    });
-  } catch (ex) {
-    next(ex);
-  }
-});
+      const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
+
+      return res.json({
+        status: 200,
+        content: {
+          ...agreement,
+          distribution,
+        },
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
 
 router.get("/histogram", async (req, res, next) => {
   try {
@@ -238,7 +239,11 @@ router.get("/:KID/redirect", async (req, res, next) => {
       const agreement = await DAO.avtalegiroagreements.getByKID(req.params.KID);
       await sendAvtalegiroRegistered(agreement);
 
-      res.redirect("https://gieffektivt.no/opprettet");
+      res.redirect(
+        `https://gieffektivt.no/opprettet?revenue=${Math.round(agreement.amount / 100)}&kid=${
+          req.params.KID
+        }&method=avtalegiro&recurring=true`,
+      );
     } else res.redirect("https://gieffektivt.no/avtale-feilet");
   } catch (ex) {
     next({ ex });
@@ -296,68 +301,48 @@ router.post(
   "/:KID/distribution",
   authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
-    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
+    checkDonorOwnsDistribution(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {
       if (!req.body) return res.sendStatus(400);
+      if (!req.body.distribution)
+        return res.status(400).json({ status: 400, content: "Missing distribution object" });
       const originalKID: string = req.params.KID;
-      const parsedData = req.body;
-      const shares = parsedData.distribution.shares;
-      const standardDistribution: boolean = parsedData.distribution.standardDistribution;
-      const taxUnitId: number | null = parsedData.distribution.taxUnit.id || null;
-      const donor: Donor = await DAO.donors.getByKID(originalKID);
+      const distributionInput = req.body.distribution as DistributionInput;
 
-      if (!donor) {
-        throw new Error(`Donor with KID: ${originalKID} not found.`);
-      }
-      const donorId: number = donor.id;
-
-      throw new Error("Not implemented");
-
-      // !!! === CAUSE AREAS TODO === !!!
-
-      /*
-      const split = standardDistribution
-        ? await DAO.organizations.getStandardSplit()
-        : shares
-            .map((org) => {
-              return { id: org.id, share: org.share };
-            })
-            .filter((org) => parseFloat(org.share) !== 0);
-      const metaOwnerID = 3;
-
-      if (split.length === 0) {
-        let err = new Error("Empty distribution array provided");
-        (err as any).status = 400;
-        return next(err);
+      let validatedDistribtion: DistributionInput | null = null;
+      try {
+        validatedDistribtion = validateDistribution(distributionInput);
+      } catch (ex) {
+        return res.status(400).json({
+          status: 400,
+          content: ex.message,
+        });
       }
 
-      if (rounding.sumWithPrecision(split.map((split) => split.share)) !== "100") {
-        let err = new Error("Distribution does not sum to 100");
-        (err as any).status = 400;
-        return next(err);
+      if (validatedDistribtion) {
+        const originalDistribution = await DAO.distributions.getSplitByKID(originalKID);
+        const newKid = await donationHelpers.createAvtaleGiroKID();
+        await DAO.avtalegiroagreements.replaceDistribution(
+          originalDistribution,
+          newKid,
+          validatedDistribtion,
+        );
+        await sendAvtaleGiroChange(originalKID, "SHARES");
+
+        res.json({
+          status: 200,
+          content: "OK",
+        });
+      } else {
+        res.status(400).json({
+          status: 400,
+          content: "Invalid distribution",
+        });
       }
-
-      // Create new KID for the old replaced distribution
-      const replacementKID = await donationHelpers.createKID(15, donorId);
-
-      // Replace distribution
-      const response = await DAO.avtalegiroagreements.replaceDistribution(
-        replacementKID,
-        originalKID,
-        split,
-        donorId,
-        metaOwnerID,
-        taxUnitId,
-        standardDistribution,
-      );
-
-      await sendAvtaleGiroChange(originalKID, "SHARES", split);
-      res.send(response);
-      */
     } catch (ex) {
-      next({ ex });
+      next(ex);
     }
   },
 );
@@ -390,7 +375,7 @@ router.post(
   "/:KID/status",
   authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
-    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
+    checkDonorOwnsDistribution(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -435,7 +420,7 @@ router.post(
   "/:KID/amount",
   authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
-    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
+    checkDonorOwnsDistribution(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {
@@ -484,7 +469,7 @@ router.post(
   "/:KID/paymentdate",
   authMiddleware.auth(permissions.write_agreements),
   (req, res, next) => {
-    checkAvtaleGiroAgreement(req.params.KID, req, res, next);
+    checkDonorOwnsDistribution(req.params.KID, req, res, next);
   },
   async (req, res, next) => {
     try {

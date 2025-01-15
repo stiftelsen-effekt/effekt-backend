@@ -174,8 +174,36 @@ CALL DropForeignKeyIfExist();
 DROP PROCEDURE DropForeignKeyIfExist;
 
 -- AlterTable
-ALTER TABLE `Referral_records` DROP COLUMN `UserID`,
-    ADD COLUMN `DonorID` INTEGER NULL;
+-- Remove DonorID column, set all DonorID = UserID, drop UserID column
+-- Update fk_referral_record_donor_id to reference DonorID instead of UserID
+ALTER TABLE `Referral_records` ADD COLUMN `DonorID` INTEGER NULL;
+UPDATE `Referral_records` SET `DonorID` = `UserID`;
+
+-- 1. Create the procedure
+CREATE PROCEDURE UpdateReferralFK()
+BEGIN
+    DECLARE _foreignKeyExists INT DEFAULT 0;
+
+    SELECT COUNT(*) INTO _foreignKeyExists
+    FROM information_schema.KEY_COLUMN_USAGE
+    WHERE table_name = 'Referral_records'
+    AND constraint_name = 'fk_referral_record_donor_id'
+    AND table_schema = DATABASE();
+
+    IF _foreignKeyExists > 0 THEN
+        ALTER TABLE `Referral_records` DROP FOREIGN KEY `fk_referral_record_donor_id`;
+    END IF;
+
+    ALTER TABLE `Referral_records` ADD CONSTRAINT `fk_referral_record_donor_id` FOREIGN KEY (`DonorID`) REFERENCES `Donors`(`ID`) ON DELETE SET NULL ON UPDATE CASCADE;
+END;
+
+-- 2. Call the procedure
+CALL UpdateReferralFK();
+
+-- 3. Drop the procedure
+DROP PROCEDURE UpdateReferralFK;
+
+ALTER TABLE `Referral_records` DROP COLUMN `UserID`;
 
 -- DropTable
 DROP TABLE `Auth0_users`;
@@ -373,11 +401,50 @@ ALTER TABLE `Referral_records` ADD CONSTRAINT `fk_Referral_records_to_Donors_idx
 -- AddForeignKey
 ALTER TABLE `Referral_records` ADD CONSTRAINT `referral_type` FOREIGN KEY (`ReferralID`) REFERENCES `Referral_types`(`ID`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
--- Set characterset to utf8mb4 and collation to utf8mb4_unicode_ci for columns "KID" in table "Swish_order"
-ALTER TABLE `Swish_order` MODIFY `KID` VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;
 
--- AddForeignKey
-ALTER TABLE `Swish_order` ADD CONSTRAINT `Swish_order_KID_fkey` FOREIGN KEY (`KID`) REFERENCES `Distributions`(`KID`) ON DELETE CASCADE ON UPDATE CASCADE;
+-- Some tom-foolery is required for the Swish_order table because of the migration being way out of date
+-- At some point they were renamed to Swish_orders by migration 20230801082512_swish_rename_table in the production
+-- database. However, this migration was created after this one, and was run on the production database before this one.
+-- Therefore, depending on whether you are setting up a new dev database, or we're running this migration on the production
+-- database, we need to handle this differently. I've added a check for the table name, and if it's Swish_order we modify
+-- that table, otherwise we modify Swish_orders. We use the same trick with the stored procedure as before to handle
+-- the conditional modification of the table.
+
+-- 1. Create the procedure
+CREATE PROCEDURE ModifySwishTable()
+
+BEGIN
+    DECLARE _tableName VARCHAR(45) DEFAULT '';
+    DECLARE _tableExists INT DEFAULT 0;
+
+    SELECT COUNT(*) INTO _tableExists
+    FROM information_schema.TABLES
+    WHERE table_name = 'Swish_order'
+    AND table_schema = DATABASE();
+
+    IF _tableExists > 0 THEN
+        SET _tableName = 'Swish_order';
+    ELSE
+        SET _tableName = 'Swish_orders';
+    END IF;
+
+    SET @sql = CONCAT('ALTER TABLE ', _tableName, ' MODIFY `KID` VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;');
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    -- FK name Swish_order_KID_fkey
+    SET @sql = CONCAT('ALTER TABLE ', _tableName, ' ADD CONSTRAINT `', _tableName,'_KID_fkey` FOREIGN KEY (`KID`) REFERENCES `Distributions`(`KID`) ON DELETE CASCADE ON UPDATE CASCADE;');
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+END;
+
+-- 2. Call the procedure
+CALL ModifySwishTable();
+
+-- 3. Drop the procedure
+DROP PROCEDURE ModifySwishTable;
 
 -- Set characterset to utf8mb4 and collation to utf8mb4_unicode_ci for columns "KID" in table "Vipps_agreement_charges"
 ALTER TABLE `Vipps_agreement_charges` MODIFY `KID` VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;
