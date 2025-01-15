@@ -31,7 +31,7 @@ export const adoveo = {
   },
   getFundraiserDonationSumsByIDs: async function (ids: Adoveo_fundraiser["ID"][]) {
     const unionClauses = ids
-      .map(escape)
+      .map((id) => escape(id))
       .map((id) => `SELECT ${id} as Fundraiser_ID`)
       .join(" UNION ALL ");
 
