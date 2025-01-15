@@ -291,6 +291,55 @@ async function getTaxXMLReportUnits(year: number) {
 
   return result;
 }
+
+/**
+ * A function to get donors close to the deduction limit
+ * @param year The year to check for
+ * @param min A minimum value, so we don't contact donors very far from the limit
+ * @param max The threshold for the deduction to kick in
+ */
+async function getDonorsCloseToDeductionLimit(year: number, min: number, max: number) {
+  const [result] = await DAO.query<
+    {
+      Donor_ID: number;
+      total_donations: number;
+      num_donations: number;
+      num_tax_units: number;
+    }[]
+  >(
+    `
+    WITH donor_totals AS (
+    SELECT 
+        Donor_ID,
+        SUM(sum_confirmed) as total_donations,
+        COUNT(ID) as num_donations
+    FROM Donations
+    WHERE EXTRACT(YEAR FROM timestamp_confirmed) = ?
+    GROUP BY Donor_ID
+    HAVING SUM(sum_confirmed) BETWEEN ? AND ?
+  ),
+  tax_unit_counts AS (
+      SELECT 
+          Donor_ID,
+          COUNT(ID) as num_tax_units
+      FROM Tax_unit
+      WHERE archived IS NULL
+      GROUP BY Donor_ID
+  )
+  SELECT 
+      dt.Donor_ID,
+      dt.total_donations,
+      dt.num_donations,
+      COALESCE(tuc.num_tax_units, 0) as num_tax_units
+  FROM donor_totals dt
+  LEFT JOIN tax_unit_counts tuc ON dt.Donor_ID = tuc.Donor_ID
+  ORDER BY dt.total_donations DESC;
+    `,
+    [year, min, max],
+  );
+
+  return result;
+}
 //endregion
 
 //region Modify
@@ -491,6 +540,7 @@ export const tax = {
   getReportsWithoutUserOnProfilePage,
   getTaxXMLReportUnits,
   getDonorsEligableForDeductionInYear,
+  getDonorsCloseToDeductionLimit,
   addTaxUnit,
   updateTaxUnit,
   deleteById,

@@ -50,6 +50,9 @@ module.exports = {
     process.env.MAILERSEND_INFLATION_ADJUSTMENT_TEMPLATE_ID,
   mailersend_password_reset_no_user_template_id:
     process.env.MAILERSEND_PASSWORD_RESET_NO_USER_TEMPLATE_ID,
+  mailersend_100_million_template_id: process.env.MAILERSEND_100_MILLION_TEMPLATE_ID,
+  mailersend_donors_close_to_tax_deduction_template_id:
+    process.env.MAILERSEND_DONORS_CLOSE_TO_TAX_DEDUCTION_TEMPLATE_ID,
 
   mailersend_security_recipients: getMailersendSecurityRecipients(),
 

@@ -8,6 +8,8 @@ import {
   sendTaxYearlyReportNoticeWithUser,
   sendDonorMissingTaxUnitNotice,
   sendSanitySecurityNotice,
+  send100millionsolicitation,
+  sendDonorCloseToTaxDeductionTreshold,
 } from "../custom_modules/mail";
 
 import express from "express";
@@ -72,65 +74,68 @@ router.post("/facebook/tax/confirmation", authMiddleware.isAdmin, async (req, re
   }
 });
 
-router.post("/taxreport/notice", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    const reportsWithUserOnProfilePage = await DAO.tax.getReportsWithUserOnProfilePage();
-    const reportsWithoutUserOnProfilePage = []; //await DAO.tax.getReportsWithoutUserOnProfilePage();
+router.post(
+  "/taxreport/notice",
+  /*authMiddleware.isAdmin, */ async (req, res, next) => {
+    try {
+      const reportsWithUserOnProfilePage = await DAO.tax.getReportsWithUserOnProfilePage();
+      const reportsWithoutUserOnProfilePage = []; //await DAO.tax.getReportsWithoutUserOnProfilePage();
 
-    let successfullySent = 0;
-    let failedToSend = 0;
+      let successfullySent = 0;
+      let failedToSend = 0;
 
-    // Batch send to all users with profile page, maximum 10 at a time
-    // Using Promise.all to send all at once
-    let results = [];
-    const totalEmails =
-      reportsWithUserOnProfilePage.length + reportsWithoutUserOnProfilePage.length;
-    while (successfullySent + failedToSend < totalEmails) {
-      const promises = [];
-      const MAX_CONCURRENT = 10;
+      // Batch send to all users with profile page, maximum 10 at a time
+      // Using Promise.all to send all at once
+      let results = [];
+      const totalEmails =
+        reportsWithUserOnProfilePage.length + reportsWithoutUserOnProfilePage.length;
+      while (successfullySent + failedToSend < totalEmails) {
+        const promises = [];
+        const MAX_CONCURRENT = 10;
 
-      console.log(
-        `Batch sending ${MAX_CONCURRENT} reports (total: ${
-          successfullySent + failedToSend
-        }) (success: ${successfullySent}) (failed: ${failedToSend})...`,
-      );
+        console.log(
+          `Batch sending ${MAX_CONCURRENT} reports (total: ${
+            successfullySent + failedToSend
+          }) (success: ${successfullySent}) (failed: ${failedToSend})...`,
+        );
 
-      for (let i = 0; i < MAX_CONCURRENT; i++) {
-        if (reportsWithUserOnProfilePage.length > 0) {
-          const report = reportsWithUserOnProfilePage.pop();
-          promises.push(sendTaxYearlyReportNoticeWithUser(report));
-        } else if (reportsWithoutUserOnProfilePage.length > 0) {
-          const report = reportsWithoutUserOnProfilePage.pop();
-          promises.push(sendTaxYearlyReportNoticeNoUser(report));
-        } else {
-          break;
+        for (let i = 0; i < MAX_CONCURRENT; i++) {
+          if (reportsWithUserOnProfilePage.length > 0) {
+            const report = reportsWithUserOnProfilePage.pop();
+            promises.push(sendTaxYearlyReportNoticeWithUser(report));
+          } else if (reportsWithoutUserOnProfilePage.length > 0) {
+            const report = reportsWithoutUserOnProfilePage.pop();
+            promises.push(sendTaxYearlyReportNoticeNoUser(report));
+          } else {
+            break;
+          }
         }
+
+        const results = await Promise.allSettled(promises);
+        results.forEach((result) => {
+          results.push(result);
+          if (result.status === "fulfilled") {
+            successfullySent++;
+          } else {
+            console.error("Failed to send", result.reason);
+            failedToSend++;
+          }
+        });
       }
 
-      const results = await Promise.allSettled(promises);
-      results.forEach((result) => {
-        results.push(result);
-        if (result.status === "fulfilled") {
-          successfullySent++;
-        } else {
-          console.error("Failed to send", result.reason);
-          failedToSend++;
-        }
+      res.json({
+        status: 200,
+        content: {
+          success: successfullySent,
+          failed: failedToSend,
+          results: results,
+        },
       });
+    } catch (ex) {
+      next(ex);
     }
-
-    res.json({
-      status: 200,
-      content: {
-        success: successfullySent,
-        failed: failedToSend,
-        results: results,
-      },
-    });
-  } catch (ex) {
-    next(ex);
-  }
-});
+  },
+);
 
 /**
  * Sends a notice to all donors that are eligible for tax deduction in the given year
@@ -200,6 +205,24 @@ router.post("/notice/missingtaxunit", authMiddleware.isAdmin, async (req, res, n
     },
   });
 });
+
+router.post(
+  "/solicitation/100million",
+  /* authMiddleware.isAdmin ,*/ async (req, res, next) => {
+    try {
+      const email = req.body.email;
+
+      if (email) await send100millionsolicitation(email);
+
+      res.json({
+        status: 200,
+        content: "OK",
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
 
 router.post("/mailersend/survey/response", async (req, res, next) => {
   try {
@@ -306,6 +329,77 @@ router.post("/mailersend/security/sanitynotification", async (req, res, next) =>
   } catch (ex) {
     next(ex);
   }
+});
+
+router.get("/taxdeduction/close", authMiddleware.isAdmin, async (req, res, next) => {
+  return res.status(403).json({
+    status: 403,
+    content:
+      "Temporarily disabled, main pitfall is that we don't track if we've already sent the email to the donors.",
+  });
+
+  if (!req.query.year) {
+    res.status(400).json({
+      status: 400,
+      content: "Missing year query parameter",
+    });
+    return;
+  }
+  if (!req.query.min) {
+    res.status(400).json({
+      status: 400,
+      content: "Missing min query parameter",
+    });
+    return;
+  }
+  if (!req.query.max) {
+    res.status(400).json({
+      status: 400,
+      content: "Missing max query parameter",
+    });
+    return;
+  }
+  const { year, min, max } = req.query;
+
+  if (typeof year !== "string" || isNaN(parseInt(year as string))) {
+    res.status(400).json({
+      status: 400,
+      content: "Year must be a number",
+    });
+    return;
+  }
+  if (typeof min !== "string" || isNaN(parseInt(min as string))) {
+    res.status(400).json({
+      status: 400,
+      content: "Min must be a number",
+    });
+    return;
+  }
+  if (typeof max !== "string" || isNaN(parseInt(max as string))) {
+    res.status(400).json({
+      status: 400,
+      content: "Max must be a number",
+    });
+    return;
+  }
+
+  const closeToLimit = await DAO.tax.getDonorsCloseToDeductionLimit(
+    parseInt(year as string),
+    parseInt(min as string),
+    parseInt(max as string),
+  );
+
+  /*
+  for (const donor of closeToLimit) {
+    // Note that 500 is the minimum sum for tax deduction in 2024, this may change in the future
+    await sendDonorCloseToTaxDeductionTreshold(donor.Donor_ID, donor.total_donations, 500, donor.num_tax_units);
+  }
+  */
+
+  return res.json({
+    status: 200,
+    content: closeToLimit,
+  });
 });
 
 module.exports = router;

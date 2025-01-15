@@ -11,7 +11,7 @@ import fs from "fs-extra";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
 import { APIResponse } from "mailersend/lib/services/request.service";
-import { Distribution, DistributionCauseAreaOrganization, Donor } from "../schemas/types";
+import { Distribution, DistributionCauseAreaOrganization, Donation, Donor } from "../schemas/types";
 import {
   getImpactEstimatesForDonation,
   getImpactEstimatesForDonationByOrg,
@@ -322,6 +322,150 @@ export async function sendFirstDonationReceipt(donation, reciever = null) {
   }
 }
 
+/**
+ * Sends a donation reciept
+ * @param {Donation} donation
+ * @param {string} reciever Reciever email
+ */
+export async function send100millionsolicitation(email: string) {
+  console.log("Sending 100 million solicitation to", email);
+
+  const donorId = await DAO.donors.getIDbyEmail(email);
+  const donor = await DAO.donors.getByID(donorId);
+  const donations = await DAO.donations.getByDonorId(donorId);
+
+  const firstDonation = donations.sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  )[0];
+  const formattedFirstDonationYear = new Date(firstDonation.timestamp).getFullYear();
+
+  // Get impact estimates for all donations
+  let { formattedOrganizations, totalDonationSum, hasGiveWellTopCharitiesFund } =
+    await getImpactEstimatesForDonations(donations);
+
+  formattedOrganizations = formattedOrganizations.sort((a, b) => {
+    const aHasOutputs = a.outputs.length > 0;
+    const bHasOutputs = b.outputs.length > 0;
+
+    // First criterion: does it have outputs?
+    // If a has outputs and b does not, a should come first => return -1
+    // If b has outputs and a does not, b should come first => return 1
+    if (aHasOutputs && !bHasOutputs) {
+      return -1;
+    } else if (!aHasOutputs && bHasOutputs) {
+      return 1;
+    }
+
+    // Second criterion: if they both either have outputs or both don't, sort by amount
+    return b.amount - a.amount;
+  });
+
+  const taxUnits = await DAO.tax.getByDonorId(donorId, RequestLocale.NO);
+
+  // Just pick the first tax unit for now
+  const taxUnit = taxUnits[0];
+  const taxInformation = getRecieptTaxUnitInformation(taxUnit, new Date().getFullYear());
+
+  const numberOfDonors = await DAO.results.getNumberOfDonors();
+
+  const mailResult = await sendTemplate({
+    to: donor.email,
+    bcc: "hakon.harnes@effektivaltruisme.no",
+    templateId: config.mailersend_100_million_template_id,
+    personalization: {
+      name: donor.name.split(" ")[0],
+      organizations: formattedOrganizations,
+      ...taxInformation,
+      totalDonationSum: formatCurrency(totalDonationSum) + " kr",
+      firstDonation: formattedFirstDonationYear,
+      hasGiveWellTopCharitiesFund,
+      numberOfDonors: numberOfDonors,
+      donorEmail: donor.email,
+    },
+  });
+
+  /**
+   * HTTP 202 is the status code for accepted
+   * If the mail was not accepted, log the error and return false
+   * If the mail was accepted, return true
+   * Accepted means that the mail was sent to the mail server, not that it was delivered
+   * It is scheduled for delivery
+   */
+  if (mailResult === false) {
+    return false;
+  } else if (mailResult.statusCode !== 202) {
+    console.error("Failed to send donation reciept");
+    console.error(mailResult);
+    return mailResult.statusCode;
+  } else {
+    return true;
+  }
+}
+
+export async function sendDonorCloseToTaxDeductionTreshold(
+  donorId: number,
+  totalDonations: number,
+  treshold: number,
+  taxUnitCount: number,
+) {
+  const donor = await DAO.donors.getByID(donorId);
+
+  const taxDeductionLabel = `${formatCurrency(totalDonations)} kr av ${formatCurrency(
+    treshold,
+  )} kr minstegrense`;
+  const taxDeductionBarWidth = (totalDonations / treshold) * 100 + "%";
+  const taxDeductionBarRemainingWidth = ((treshold - totalDonations) / treshold) * 100 + "%";
+
+  const missingTaxUnitLabel =
+    taxUnitCount === 0
+      ? `Vi mangler fødselsnummer eller organisasjonsnummer for deg. Du kan oppgi dette når du donerer, eller administrere dine skatteenheter på <a style="color: black" href="https://gieffektivt.no/min-side">Min side</a>.`
+      : "";
+
+  // If the difference between the total donations and the treshold is less than 22% of the treshold
+  // the donor will actually make more money by donating up to the treshold
+  const missingSum = treshold - totalDonations;
+  const gainMessage =
+    missingSum < treshold * 0.22
+      ? `Om du donerer ${missingSum} kroner <strong>tjener</strong> du ${
+          treshold * 0.22 - missingSum
+        } kroner.`
+      : "";
+
+  let subject;
+  if (gainMessage !== "") {
+    subject = `Du kan tjene ${
+      treshold * 0.22 - missingSum
+    } kr ved å donere til Gi Effektivt før nyttår`;
+  } else {
+    subject = `Du kan få tilbake 110 kroner eller mer på skatten ved å donere til Gi Effektivt før nyttår`;
+  }
+
+  const mailResult = await sendTemplate({
+    to: donor.email,
+    // bcc: "gieffektivt@gmail.com",
+    subject: subject,
+    templateId: config.mailersend_donors_close_to_tax_deduction_template_id,
+    personalization: {
+      taxDeductionLabel,
+      taxDeductionBarWidth,
+      taxDeductionBarRemainingWidth,
+      missingTaxUnitLabel,
+      gainMessage,
+      missingSum: formatCurrency(missingSum),
+    },
+  });
+
+  if (mailResult === false) {
+    return false;
+  } else if (mailResult.statusCode !== 202) {
+    console.error("Failed to send donor close to tax deduction email");
+    console.error(mailResult);
+    return mailResult.statusCode;
+  } else {
+    return true;
+  }
+}
+
 const getSplitFromDistribution = (distribution: Distribution) => {
   return distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>((acc, causeArea) => {
     causeArea.organizations.forEach((org) => {
@@ -370,10 +514,19 @@ const getReceiptTaxInformation = async (donation, distribution: Distribution) =>
   const donationYear = new Date(donation.timestamp).getFullYear();
   const taxUnits = await DAO.tax.getByDonorId(distribution.donorId, RequestLocale.NO);
   const taxUnit = taxUnits.find((tu) => tu.id === distribution.taxUnitId);
-  const limits = norwegianTaxDeductionLimits[donationYear];
+
+  taxInformation = getRecieptTaxUnitInformation(taxUnit, donationYear);
+
+  return taxInformation;
+};
+
+const getRecieptTaxUnitInformation = (taxUnit, year) => {
+  let taxInformation = null;
+
+  const limits = norwegianTaxDeductionLimits[year];
 
   if (taxUnit && taxUnit.taxDeductions && limits) {
-    const taxUnitYear = taxUnit.taxDeductions.find((td) => td.year === donationYear);
+    const taxUnitYear = taxUnit.taxDeductions.find((td) => td.year === year);
 
     if (taxUnitYear) {
       const taxDeduction = taxUnitYear.deduction;
@@ -416,7 +569,6 @@ const getReceiptTaxInformation = async (donation, distribution: Distribution) =>
       }
     }
   }
-
   return taxInformation;
 };
 
@@ -1102,72 +1254,8 @@ export async function sendAgreementInflationAdjustment(
         d.paymentMethod &&
         d.paymentMethod.toLowerCase().startsWith(adjustment.agreement_type.toLowerCase()),
     );
-    const totalDonationSum = donations.reduce((acc, d) => acc + parseFloat(d.sum), 0);
-
-    /* We now look at all the donations for the agreement and sum up the distribution and the impact estimates */
-    /* When looping over all the donations, we use a key value approach where we store the sum to the organization and the impact estimates on the org id key, keeping a running count */
-    let organizations: {
-      [orgId: number]: { name: string; sum: number; impactEstimate: OrganizationImpactEstimate };
-    } = {};
-    let hasGiveWellTopCharitiesFund = false;
-    for (let donation of donations) {
-      let distribution = await DAO.distributions.getSplitByKID(donation.KID);
-      if (
-        !hasGiveWellTopCharitiesFund &&
-        distribution.causeAreas.flatMap((c) => c.organizations).find((o) => o.id === 12)
-      ) {
-        hasGiveWellTopCharitiesFund = true;
-      }
-      let impactEstimates = await getImpactEstimatesForDonationByOrg(
-        new Date(donation.timestamp),
-        parseFloat(donation.sum),
-        distribution,
-      );
-
-      distribution.causeAreas.forEach((causeArea) => {
-        causeArea.organizations.forEach((org) => {
-          let amount =
-            parseFloat(donation.sum) *
-            (parseFloat(org.percentageShare) / 100) *
-            (parseFloat(causeArea.percentageShare) / 100);
-          let impactEstimate = impactEstimates.find((estimate) => estimate.orgId === org.id);
-
-          if (organizations[org.id]) {
-            organizations[org.id].sum += amount;
-            let existingOutputs = organizations[org.id].impactEstimate.outputs;
-            for (let output of impactEstimate.outputs) {
-              let existingOutput = existingOutputs.find((o) => o.output === output.output);
-              if (existingOutput) {
-                existingOutput.numberOfOutputs += output.numberOfOutputs;
-              } else {
-                existingOutputs.push(output);
-              }
-            }
-          } else {
-            organizations[org.id] = {
-              name: org.widgetDisplayName || org.name || "Unknown",
-              sum: amount,
-              impactEstimate: impactEstimate,
-            };
-          }
-        });
-      });
-    }
-
-    /* We now format the organizations to be used in the email template */
-    let formattedOrganizations = Object.entries(organizations).map(([orgId, orgData]) => {
-      let outputs =
-        orgData.impactEstimate.outputs.map((o) => `${Math.round(o.numberOfOutputs)} ${o.output}`) ??
-        [];
-
-      return {
-        name: orgId === "12" ? `${orgData.name} ⓘ` : orgData.name,
-        sum: formatCurrency(orgData.sum) + " kr",
-        amount: orgData.sum,
-        percentage: "100%",
-        outputs,
-      };
-    });
+    const { formattedOrganizations, totalDonationSum, hasGiveWellTopCharitiesFund } =
+      await getImpactEstimatesForDonations(donations);
 
     await sendTemplate({
       to: donor.email,
@@ -1199,6 +1287,80 @@ export async function sendAgreementInflationAdjustment(
   }
 }
 
+const getImpactEstimatesForDonations = async (donations: Donation[]) => {
+  const totalDonationSum = donations.reduce((acc, d) => acc + parseFloat(d.sum), 0);
+
+  /* We now look at all the donations for the agreement and sum up the distribution and the impact estimates */
+  /* When looping over all the donations, we use a key value approach where we store the sum to the organization and the impact estimates on the org id key, keeping a running count */
+  let organizations: {
+    [orgId: number]: { name: string; sum: number; impactEstimate: OrganizationImpactEstimate };
+  } = {};
+  let hasGiveWellTopCharitiesFund = false;
+  for (let donation of donations) {
+    console.log(
+      `Getting impact estimates for donation with KID ${donation.KID} on ${donation.timestamp}`,
+    );
+    let distribution = await DAO.distributions.getSplitByKID(donation.KID);
+    if (
+      !hasGiveWellTopCharitiesFund &&
+      distribution.causeAreas.flatMap((c) => c.organizations).find((o) => o.id === 12)
+    ) {
+      hasGiveWellTopCharitiesFund = true;
+    }
+    let impactEstimates = await getImpactEstimatesForDonationByOrg(
+      new Date(donation.timestamp),
+      parseFloat(donation.sum),
+      distribution,
+    );
+
+    distribution.causeAreas.forEach((causeArea) => {
+      causeArea.organizations.forEach((org) => {
+        let amount =
+          parseFloat(donation.sum) *
+          (parseFloat(org.percentageShare) / 100) *
+          (parseFloat(causeArea.percentageShare) / 100);
+        let impactEstimate = impactEstimates.find((estimate) => estimate.orgId === org.id);
+
+        if (organizations[org.id]) {
+          organizations[org.id].sum += amount;
+          let existingOutputs = organizations[org.id].impactEstimate.outputs;
+          for (let output of impactEstimate.outputs) {
+            let existingOutput = existingOutputs.find((o) => o.output === output.output);
+            if (existingOutput) {
+              existingOutput.numberOfOutputs += output.numberOfOutputs;
+            } else {
+              existingOutputs.push(output);
+            }
+          }
+        } else {
+          organizations[org.id] = {
+            name: org.widgetDisplayName || org.name || "Unknown",
+            sum: amount,
+            impactEstimate: impactEstimate,
+          };
+        }
+      });
+    });
+  }
+
+  /* We now format the organizations to be used in the email template */
+  let formattedOrganizations = Object.entries(organizations).map(([orgId, orgData]) => {
+    let outputs =
+      orgData.impactEstimate.outputs.map((o) => `${Math.round(o.numberOfOutputs)} ${o.output}`) ??
+      [];
+
+    return {
+      name: orgId === "12" ? `${orgData.name} ⓘ` : orgData.name,
+      sum: formatCurrency(Math.round(orgData.sum)) + " kr",
+      amount: orgData.sum,
+      percentage: "100%",
+      outputs,
+    };
+  });
+
+  return { formattedOrganizations, totalDonationSum, hasGiveWellTopCharitiesFund };
+};
+
 export async function sendTaxYearlyReportNoticeWithUser(report: EmailTaxUnitReport) {
   const formattedUnits = report.units.map((u) => {
     return {
@@ -1210,11 +1372,11 @@ export async function sendTaxYearlyReportNoticeWithUser(report: EmailTaxUnitRepo
   try {
     await send({
       reciever: report.email,
-      subject: `Gi Effektivt - Årsoppgave for 2023`,
+      subject: `Gi Effektivt - Årsoppgave for 2024`,
       templateName: "taxDeductionUser",
       templateData: {
         header: "Hei" + (report.name && report.name.length > 0 ? " " + report.name : "") + ",",
-        year: 2023,
+        year: 2024,
         units: formattedUnits,
         donorEmail: report.email,
         reusableHTML,
@@ -1431,6 +1593,7 @@ export const sendSanitySecurityNotice = async (data: SanitySecurityNoticeVariabl
 type SendTemplateParameters = {
   to: string;
   bcc?: string | string[];
+  subject?: string;
   templateId: string;
   personalization?: any;
 };
@@ -1442,6 +1605,10 @@ async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse
   const recipients = [new Recipient(params.to)];
 
   const email = new EmailParams().setTo(recipients).setTemplateId(params.templateId);
+
+  if (params.subject) {
+    email.setSubject(params.subject);
+  }
 
   if (params.personalization) {
     email.setPersonalization([
