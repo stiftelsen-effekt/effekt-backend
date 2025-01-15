@@ -815,17 +815,25 @@ module.exports = {
    * @param {string} agreementId The agreement id
    * @param {number} amountKroner The amount to charge in kroner, not øre
    * @param {number} daysInAdvance How many days in advance of the due date
+   * @param {Date} dueDate Optional due date, by default 3 days from current date
    * @return {boolean} Success
    */
-  async createCharge(agreementId, amountKroner, daysInAdvance = 3) {
+  async createCharge(
+    agreementId,
+    amountKroner,
+    daysInAdvance = 3,
+    dueDate?: Date,
+  ): Promise<boolean | string> {
     if (daysInAdvance <= 2) {
       console.error("Today must be more than 2 days in advance of the due date");
       return false;
     }
 
-    const timeNow = new Date().getTime();
-    const dueDateTime = new Date(timeNow + 1000 * 60 * 60 * 24 * daysInAdvance);
-    const dueDate = new Date(dueDateTime);
+    if (!dueDate) {
+      const timeNow = new Date().getTime();
+      const dueDateTime = new Date(timeNow + 1000 * 60 * 60 * 24 * daysInAdvance);
+      dueDate = new Date(dueDateTime);
+    }
 
     // This is the date format that Vipps accepts
     const formattedDueDate = moment(dueDate).format("YYYY-MM-DD");
