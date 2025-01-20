@@ -545,7 +545,7 @@ async function getByDonorId(donorId: number | string, from?: Date): Promise<Arra
 
     WHERE 
         Donation.Donor_ID = ?
-        ${from ? "AND Donation.timestamp_confirmed >= ?" : ""}
+        ${from ? "AND DATE(Donation.timestamp_confirmed) >= DATE(?)" : ""}
         `,
     from ? [donorId, from] : [donorId],
   );
