@@ -59,7 +59,7 @@ export const parseEanTaxUnits = (report): EANTaxUnitsRow[] => {
 
   data = data.filter((row) => row.ssn !== "");
 
-  const requiredFields = ["ssn", "sum", "gieffektivt"];
+  const requiredFields = ["name", "ssn", "sum", "gieffektivt"];
   for (let row of data) {
     for (let field of requiredFields) {
       if (!row[field]) {

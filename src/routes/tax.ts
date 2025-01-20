@@ -131,7 +131,7 @@ router.post("/skatteetaten/xmlreport", authMiddleware.isAdmin, async (req, res, 
     }
 
     const xmlDoc = await createXMLReportToTaxAuthorities(
-      2023,
+      2024,
       500,
       report.data,
       contactInformation,
