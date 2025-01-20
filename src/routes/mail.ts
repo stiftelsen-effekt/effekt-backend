@@ -212,11 +212,21 @@ router.post(
     try {
       const email = req.body.email;
 
-      if (email) await send100millionsolicitation(email);
+      const donors = await DAO.donors.getDonorsWithDonationsBeforeYearButNotAfter(2024);
+
+      const donorSubset = donors.slice(0, 100);
+
+      /*
+      for (const donor of donorSubset) {
+        // Sleep for 200ms to avoid rate limiting
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        await send100millionsolicitation(donor.email);
+      }
+      */
 
       res.json({
         status: 200,
-        content: "OK",
+        content: donorSubset,
       });
     } catch (ex) {
       next(ex);

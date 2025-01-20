@@ -260,6 +260,47 @@ async function getNumberOfDonationsByDonorID(donorID: number) {
 
   return parseInt(res[0].count);
 }
+
+async function getDonorsWithDonationsBeforeYearButNotAfter(year: number) {
+  let [res] = await DAO.query<
+    {
+      ID: number;
+      email: string;
+      full_name: string;
+      first_donation: Date;
+      last_donation: Date;
+      total_donations: number;
+    }[]
+  >(
+    `WITH donor_stats AS (
+        SELECT 
+            d.Donor_ID,
+            MIN(d.timestamp_confirmed) as first_donation,
+            MAX(d.timestamp_confirmed) as last_donation,
+            COUNT(*) as total_donations,
+            SUM(CASE WHEN YEAR(d.timestamp_confirmed) >= ? THEN 1 ELSE 0 END) as donations_year_or_later
+        FROM Donations d
+        GROUP BY d.Donor_ID
+    )
+    SELECT DISTINCT 
+        don.ID,
+        don.email,
+        don.full_name,
+        ds.first_donation,
+        ds.last_donation,
+        ds.total_donations
+    FROM Donors don
+    JOIN donor_stats ds ON ds.Donor_ID = don.ID
+    WHERE 
+        don.email NOT LIKE '%@gieffektivt.no'
+        AND YEAR(ds.first_donation) < ?
+        AND ds.donations_year_or_later = 0
+    ORDER BY RAND();`,
+    [year, year],
+  );
+
+  return res;
+}
 //endregion
 
 //region Add
@@ -356,6 +397,7 @@ export const donors = {
   getIDByAgreementCode,
   getNumberOfDonationsByDonorID,
   search,
+  getDonorsWithDonationsBeforeYearButNotAfter,
   add,
   updateNewsletter,
   updateName,
