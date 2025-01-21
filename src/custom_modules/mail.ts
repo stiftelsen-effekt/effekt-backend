@@ -370,10 +370,10 @@ export async function send100millionsolicitation(email: string) {
 
   const mailResult = await sendTemplate({
     to: donor.email,
-    bcc: "hakon.harnes@effektivaltruisme.no",
+    // bcc: "hakon.harnes@effektivaltruisme.no",
     templateId: config.mailersend_100_million_template_id,
     personalization: {
-      name: donor.name.split(" ")[0],
+      name: donor.name ? donor.name.split(" ")[0] : "",
       organizations: formattedOrganizations,
       ...taxInformation,
       totalDonationSum: formatCurrency(totalDonationSum) + " kr",
