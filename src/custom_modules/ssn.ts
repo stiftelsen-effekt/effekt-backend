@@ -5,9 +5,10 @@ export interface ParsedSSN {
   serialNumber: string;
   isValid: boolean;
   formatted: string; // YYYYMMDDNNNN format
+  isBusiness: boolean;
 }
 
-export function parseSwedishSSN(ssn: string, currentYear: number = 2025): ParsedSSN {
+export function parseSwedishSSN(ssn: string, currentYear: number): ParsedSSN {
   // Remove any whitespace
   ssn = ssn.trim();
 
@@ -29,15 +30,27 @@ export function parseSwedishSSN(ssn: string, currentYear: number = 2025): Parsed
   // For SSNs without separator, we'll determine if they're over 100 based on the year only
   const separator = hasSeparator ? ssn.charAt(ssn.length - 5) : "-";
 
+  const monthNum = parseInt(month);
+  const isBusiness = monthNum >= 20;
+
+  console.log(isBusiness, monthNum);
+
   // Validate month and day
-  if (parseInt(month) < 1 || parseInt(month) > 12 || parseInt(day) < 1 || parseInt(day) > 31) {
+  if (!isBusiness && (monthNum < 1 || monthNum > 12 || parseInt(day) < 1 || parseInt(day) > 31)) {
     return createInvalidResult();
   }
 
   let fullYear: number;
 
-  // Handle 2-digit years
-  if (yearPart.length === 2) {
+  // For business numbers, always use 16 as prefix
+  if (isBusiness) {
+    if (yearPart.length === 4) {
+      fullYear = parseInt(`16${yearPart.substring(2)}`);
+    } else {
+      fullYear = parseInt(`16${yearPart}`);
+    }
+  } else if (yearPart.length === 2) {
+    // Handle 2-digit years for personal numbers
     const currentCentury = Math.floor(currentYear / 100) * 100;
     const twoDigitYear = parseInt(yearPart);
     const possibleYear = currentCentury + twoDigitYear;
@@ -68,6 +81,7 @@ export function parseSwedishSSN(ssn: string, currentYear: number = 2025): Parsed
     serialNumber,
     isValid: true,
     formatted: `${fullYear}${month}${day}${serialNumber}`,
+    isBusiness,
   };
 }
 
@@ -79,5 +93,6 @@ function createInvalidResult(): ParsedSSN {
     serialNumber: "",
     isValid: false,
     formatted: "",
+    isBusiness: false,
   };
 }

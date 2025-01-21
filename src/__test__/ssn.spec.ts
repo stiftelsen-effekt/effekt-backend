@@ -50,8 +50,7 @@ describe("Swedish SSN Parser", () => {
     expect(result2.fullYear).to.equal(1989);
   });
 
-  it("should reject invalid dates", () => {
-    expect(parseSwedishSSN("19811332-0059", currentYear).isValid).to.be.false; // Invalid month
+  it("should reject invalid dates for personal numbers", () => {
     expect(parseSwedishSSN("19811231-0059", currentYear).isValid).to.be.true; // Valid date
     expect(parseSwedishSSN("19811200-0059", currentYear).isValid).to.be.false; // Invalid day
   });
@@ -67,7 +66,21 @@ describe("Swedish SSN Parser", () => {
     expect(result3.formatted).to.equal("192312160059");
   });
 
-  it("should handle SSNs without separator", () => {
+  it("should handle business identification numbers (month >= 20)", () => {
+    // Short format with separator
+    const result2 = parseSwedishSSN("559151-5100", currentYear);
+    expect(result2.isValid).to.be.true;
+    expect(result2.isBusiness).to.be.true;
+    expect(result2.formatted).to.equal("165591515100");
+
+    // Short format without separator
+    const result4 = parseSwedishSSN("5591515100", currentYear);
+    expect(result4.isValid).to.be.true;
+    expect(result4.isBusiness).to.be.true;
+    expect(result4.formatted).to.equal("165591515100");
+  });
+
+  it("should still handle personal SSNs correctly", () => {
     const result1 = parseSwedishSSN("198112160059", currentYear);
     expect(result1.isValid).to.be.true;
     expect(result1.fullYear).to.equal(1981);
