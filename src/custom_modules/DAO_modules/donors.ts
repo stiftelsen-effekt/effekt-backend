@@ -301,6 +301,81 @@ async function getDonorsWithDonationsBeforeYearButNotAfter(year: number) {
 
   return res;
 }
+
+/**
+ * Gets donors who donated for the first time in December of the given year, excluding donors with active agreements
+ * @param year
+ * @returns
+ */
+async function getDecemberFirstTimeDonors2024() {
+  let [res] = await DAO.query<
+    {
+      ID: number;
+      email: string;
+      full_name: string;
+      first_donation: Date;
+      last_donation: Date;
+      total_donations: number;
+    }[]
+  >(`
+    WITH DecemberFirstTimeDonors AS (
+      SELECT DISTINCT d.ID as donor_id
+      FROM Donors d
+      JOIN Distributions dist ON d.ID = dist.Donor_ID
+      JOIN Donations don ON dist.KID = don.KID_fordeling
+      WHERE MONTH(don.timestamp_confirmed) = 12 
+      AND YEAR(don.timestamp_confirmed) = 2024
+      AND NOT EXISTS (
+          SELECT 1 
+          FROM Distributions dist2
+          JOIN Donations don2 ON don2.KID_fordeling = dist2.KID
+          WHERE dist2.Donor_ID = d.ID
+          AND don2.timestamp_confirmed < '2024-12-01'
+      )
+    ),
+    NoAgreements AS (
+      SELECT dfd.donor_id
+      FROM DecemberFirstTimeDonors dfd
+      WHERE NOT EXISTS (
+          SELECT 1 FROM Vipps_agreements va 
+          WHERE dfd.donor_id = va.donorID 
+          AND va.status = 'ACTIVE' 
+          AND va.cancellation_date IS NULL
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM Avtalegiro_agreements aa 
+          WHERE aa.KID IN (
+              SELECT KID FROM Distributions WHERE Donor_ID = dfd.donor_id
+          )
+          AND aa.active = 1 
+          AND aa.cancelled IS NULL
+      )
+    ),
+    DonorStats AS (
+      SELECT 
+          d.Donor_ID,
+          MIN(d.timestamp_confirmed) as first_donation,
+          MAX(d.timestamp_confirmed) as last_donation,
+          COUNT(*) as total_donations
+      FROM Donations d
+      GROUP BY d.Donor_ID
+    )
+    SELECT DISTINCT
+      d.ID,
+      d.email,
+      d.full_name,
+      ds.first_donation,
+      ds.last_donation,
+      ds.total_donations
+    FROM NoAgreements na
+    JOIN Donors d ON na.donor_id = d.ID
+    JOIN DonorStats ds ON ds.Donor_ID = d.ID
+    WHERE d.email NOT LIKE '%@gieffektivt.no'
+    ORDER BY ds.first_donation;
+  `);
+
+  return res;
+}
 //endregion
 
 //region Add
@@ -398,6 +473,7 @@ export const donors = {
   getNumberOfDonationsByDonorID,
   search,
   getDonorsWithDonationsBeforeYearButNotAfter,
+  getDecemberFirstTimeDonors2024,
   add,
   updateNewsletter,
   updateName,

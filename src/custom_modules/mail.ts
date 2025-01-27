@@ -1343,11 +1343,17 @@ const getImpactEstimatesForDonations = async (donations: Donation[]) => {
     });
   }
 
+  // Helper function that rounds a number to the nearest whole number if it is above 1, rounds to nearest tenth if below 1
+  const roundToNearest = (num: number): string => {
+    return (num > 0.5 ? Math.round(num) : Math.round(num * 10) / 10).toString().replace(".", ",");
+  };
+
   /* We now format the organizations to be used in the email template */
   let formattedOrganizations = Object.entries(organizations).map(([orgId, orgData]) => {
     let outputs =
-      orgData.impactEstimate.outputs.map((o) => `${Math.round(o.numberOfOutputs)} ${o.output}`) ??
-      [];
+      orgData.impactEstimate.outputs.map(
+        (o) => `${roundToNearest(o.numberOfOutputs)} ${o.output}`,
+      ) ?? [];
 
     return {
       name: orgId === "12" ? `${orgData.name} ⓘ` : orgData.name,
