@@ -86,7 +86,6 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
     for (let field of requiredFields) {
       if (field === "senderEmail" && (row[field] == "null" || row[field] == "" || !row[field])) {
         row[field] = "adoveo+unknown@gieffektivt.no";
-        continue;
       }
 
       if (!row[field]) {
@@ -201,16 +200,16 @@ export const parseGiftCardsReport = (report): AdoveoGiftCardsTransactionReportRo
 
   for (let row of data) {
     for (let field of requiredFields) {
+      if (field === "senderEmail" && (row[field] == "null" || row[field] == "" || !row[field])) {
+        row[field] = "adoveo+unknown@gieffektivt.no";
+      }
+      if ((field === "receiverEmail" && row[field] == "null") || row[field] == "" || !row[field]) {
+        row[field] = "adoveo+unknown@gieffektivt.no";
+      }
+
       if (!row[field]) {
         console.error("Parsing adoveo gift card transactions failed. Missing field " + field);
         throw new Error("Parsing adoveo gift card transactions failed. Missing field " + field);
-      }
-
-      if (field === "senderEmail" && row[field] == "null") {
-        row[field] = "adoveo+unknown@gieffektivt.no";
-      }
-      if (field === "receiverEmail" && row[field] == "null") {
-        row[field] = "adoveo+unknown@gieffektivt.no";
       }
     }
     if (row.status !== "SALE" && row.status !== "RESERVED" && row.status !== "PAID") {
