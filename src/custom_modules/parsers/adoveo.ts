@@ -86,6 +86,7 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
     for (let field of requiredFields) {
       if (field === "senderEmail" && (row[field] == "null" || row[field] == "" || !row[field])) {
         row[field] = "adoveo+unknown@gieffektivt.no";
+        continue;
       }
 
       if (!row[field]) {
