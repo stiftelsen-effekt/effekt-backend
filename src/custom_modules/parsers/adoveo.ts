@@ -84,13 +84,13 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
   ];
   for (let row of data) {
     for (let field of requiredFields) {
+      if (field === "senderEmail" && (row[field] == "null" || row[field] == "" || !row[field])) {
+        row[field] = "adoveo+unknown@gieffektivt.no";
+      }
+
       if (!row[field]) {
         console.error("Parsing adoveo transactions failed. Missing field " + field);
         throw new Error("Parsing adoveo transactions failed. Missing field " + field);
-      }
-
-      if (field === "senderEmail" && row[field] == "null") {
-        row[field] = "adoveo+unknown@gieffektivt.no";
       }
     }
     if (row.status !== "SALE" && row.status !== "RESERVED" && row.status !== "PAID") {
