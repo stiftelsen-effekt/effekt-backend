@@ -88,6 +88,10 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
         row[field] = "adoveo+unknown@gieffektivt.no";
       }
 
+      if (field === "senderName" && (row[field] == "null" || row[field] == "" || !row[field])) {
+        row[field] = "Adoveo Unknown";
+      }
+
       if (!row[field]) {
         console.error("Parsing adoveo transactions failed. Missing field " + field);
         throw new Error("Parsing adoveo transactions failed. Missing field " + field);
@@ -205,6 +209,12 @@ export const parseGiftCardsReport = (report): AdoveoGiftCardsTransactionReportRo
       }
       if ((field === "receiverEmail" && row[field] == "null") || row[field] == "" || !row[field]) {
         row[field] = "adoveo+unknown@gieffektivt.no";
+      }
+      if (field === "senderName" && (row[field] == "null" || row[field] == "" || !row[field])) {
+        row[field] = "Adoveo Unknown";
+      }
+      if ((field === "receiverName" && row[field] == "null") || row[field] == "" || !row[field]) {
+        row[field] = "Adoveo Unknown";
       }
 
       if (!row[field]) {
