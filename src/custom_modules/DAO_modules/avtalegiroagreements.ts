@@ -429,7 +429,7 @@ async function getAgreement(id: string) {
 }
 
 async function getByDonorId(donorId) {
-  let [agreements] = await DAO.query<Avtalegiro_agreements & { full_name: string }>(
+  let [agreements] = await DAO.query<(Avtalegiro_agreements & { full_name: string })[]>(
     `
             SELECT DISTINCT
                 AG.ID,

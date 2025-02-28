@@ -285,10 +285,32 @@ export async function sendFirstDonationReceipt(donation, reciever = null) {
   const numberOfDonors = await DAO.results.getNumberOfDonors();
   const donor = await DAO.donors.getByID(donation.donorId);
 
+  /* A/B Test configuration */
+  let template = config.mailersend_first_donation_receipt_template_id;
+  // Check if templates are configured
+  if (
+    config.mailersend_test_welcome_receipt_template_a &&
+    config.mailersend_test_welcome_receipt_template_b
+  ) {
+    // check if they have an active agreement (either avtalegiro or vipps)
+    const vippsAgreement = await DAO.vipps.getAgreementsByDonorId(donation.donorId);
+    const avtaleGiroAgreement = await DAO.avtalegiroagreements.getByDonorId(donation.donorId);
+    const hasAgreement =
+      vippsAgreement.some((agreement) => agreement.status === "ACTIVE") ||
+      avtaleGiroAgreement.some((agreement) => agreement.active === 1);
+
+    if (!hasAgreement) {
+      if (donor.id % 2 === 0) {
+        template = config.mailersend_test_welcome_receipt_template_a;
+      } else {
+        template = config.mailersend_test_welcome_receipt_template_b;
+      }
+    }
+  }
   const mailResult = await sendTemplate({
     to: reciever || donation.email,
     bcc: "gieffektivt@gmail.com",
-    templateId: config.mailersend_first_donation_receipt_template_id,
+    templateId: template,
     personalization: {
       name: typeof donation.donor === "string" ? donation.donor.split(" ")[0] : "",
       organizations,
