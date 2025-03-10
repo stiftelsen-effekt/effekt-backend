@@ -3,47 +3,43 @@ import { DAO } from "../custom_modules/DAO";
 
 export const fundraisersRouter = Router();
 
-fundraisersRouter.get("/donationsums", async (req, res) => {
-  const idsQuery = req.query.ids;
-
-  if (typeof idsQuery !== "string") {
-    return res.status(400).json({
-      status: 400,
-      content: "ids query parameter must be a comma separated list of integers",
+fundraisersRouter.get("/list", async (req, res, next) => {
+  try {
+    const fundraisers = await DAO.fundraisers.getList();
+    return res.json({
+      status: 200,
+      content: fundraisers,
     });
+  } catch (ex) {
+    next(ex);
   }
-
-  const ids = idsQuery.split(",").map((id) => parseInt(id));
-
-  if (ids.some((id) => isNaN(id))) {
-    return res.status(400).json({
-      status: 400,
-      content: "ids query parameter must be a comma separated list of integers",
-    });
-  }
-
-  const donationSums = await DAO.adoveo.getFundraiserDonationSumsByIDs(ids);
-
-  return res.json({
-    status: 200,
-    content: donationSums,
-  });
 });
 
-fundraisersRouter.get("/:id/vippsnumber", async (req, res) => {
-  const id = parseInt(req.params.id);
-
-  if (isNaN(id)) {
-    return res.status(400).json({
-      status: 400,
-      content: "id must be an integer",
-    });
+fundraisersRouter.get("/:id", async (req, res, next) => {
+  if (!req.params.id) {
+    res.status(400).json({ error: "No ID provided" });
+    return;
   }
+  if (isNaN(parseInt(req.params.id))) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+  const fundraiserId = parseInt(req.params.id);
 
-  const vippsNumberSum = await DAO.adoveo.getFundraiserVippsNumberLocationSum(id);
-
-  return res.json({
-    status: 200,
-    content: vippsNumberSum,
-  });
+  try {
+    const fundraiser = await DAO.fundraisers.getFundraiserByID(fundraiserId);
+    if (fundraiser) {
+      return res.json({
+        status: 200,
+        content: fundraiser,
+      });
+    } else {
+      return res.status(404).json({
+        status: 404,
+        content: "Fundraiser not found",
+      });
+    }
+  } catch (ex) {
+    next(ex);
+  }
 });

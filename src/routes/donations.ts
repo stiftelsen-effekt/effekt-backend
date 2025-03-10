@@ -60,13 +60,30 @@ router.post("/register", async (req, res, next) => {
     method: number;
     recurring: boolean;
     amount: string | number;
+    fundraiser?: {
+      id: number;
+      message?: string;
+      showName: boolean;
+    };
   };
 
-  if (!parsedData || Object.entries(parsedData).length === 0) return res.sendStatus(400);
+  // Validate input
+  if (!parsedData.distributionCauseAreas || parsedData.distributionCauseAreas.length === 0)
+    return res.status(400).send("No cause areas provided");
+  if (parsedData.donor && (!parsedData.donor.email || !parsedData.donor.name))
+    return res.status(400).send("Invalid donor data");
+  if (!parsedData.method) return res.status(400).send("No payment method provided");
+  if (!parsedData.amount) return res.status(400).send("No amount provided");
 
   if (parsedData.method === methods.SWISH) {
     if (parsedData.recurring)
       return res.status(400).send("Recurring donations not supported with Swish");
+  }
+
+  if (parsedData.fundraiser) {
+    if (!parsedData.fundraiser.id) return res.status(400).send("No fundraiser ID provided");
+    if (typeof parsedData.fundraiser.showName === "undefined")
+      return res.status(400).send("No showName provided");
   }
 
   let donor = parsedData.donor;
@@ -74,12 +91,14 @@ router.post("/register", async (req, res, next) => {
   let swishOrderID = null;
   let swishPaymentRequestToken = null;
   let recurring = parsedData.recurring;
+  const fundraiser = parsedData.fundraiser;
 
   try {
     var donationObject: Pick<typeof parsedData, "amount" | "method" | "recurring"> & {
       KID: string;
       donorID: number | null;
       taxUnitId: number;
+      fundraiserTransactionId: number | null;
     } = {
       amount: parsedData.amount,
       method: parsedData.method,
@@ -87,6 +106,7 @@ router.post("/register", async (req, res, next) => {
       KID: null, //Set later in code
       donorID: null, //Set later in code
       taxUnitId: null, //Set later in code
+      fundraiserTransactionId: null,
     };
 
     //Check if existing donor
@@ -162,6 +182,10 @@ router.post("/register", async (req, res, next) => {
 
     /** Use new KID for avtalegiro */
     if (donationObject.method == methods.AVTALEGIRO) {
+      if (fundraiser) {
+        return res.status(400).send("Fundraisers are not supported with AvtaleGiro");
+      }
+
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
       donationObject.KID = await donationHelpers.createAvtaleGiroKID();
       await DAO.distributions.add({
@@ -169,6 +193,10 @@ router.post("/register", async (req, res, next) => {
         kid: donationObject.KID,
       });
     } else if (donationObject.method == methods.AUTOGIRO) {
+      if (fundraiser) {
+        return res.status(400).send("Fundraisers are not supported with AutoGiro");
+      }
+
       donationObject.KID = await donationHelpers.createKID(8);
       await DAO.distributions.add({
         ...draftDistribution,
@@ -191,23 +219,36 @@ router.post("/register", async (req, res, next) => {
         console.error(`Failed to send AutoGiro registered email for KID ${donationObject.KID}`);
       }
     } else {
-      //Try to get existing KID
-      donationObject.KID = await DAO.distributions.getKIDbySplit(
-        {
-          donorId: donationObject.donorID,
-          taxUnitId: donationObject.taxUnitId,
-          causeAreas: draftDistribution.causeAreas,
-        },
-        0,
-        8,
-      );
+      //Try to get existing KID if not a fundraiser
+      // For fundraisers, we always create a new KID to store the message and fundraiser ID
+      if (!fundraiser) {
+        donationObject.KID = await DAO.distributions.getKIDbySplit(
+          {
+            donorId: donationObject.donorID,
+            taxUnitId: donationObject.taxUnitId,
+            causeAreas: draftDistribution.causeAreas,
+          },
+          0,
+          8,
+        );
+      }
 
       //Split does not exist create new KID and split
       if (donationObject.KID == null) {
+        if (fundraiser) {
+          // Add a fundraiser transaction ID to store the fundraiser ID and message
+          donationObject.fundraiserTransactionId = await DAO.fundraisers.addFundraiserTransaction({
+            fundraiserId: fundraiser.id,
+            message: fundraiser.message,
+            showName: fundraiser.showName,
+          });
+        }
+
         donationObject.KID = await donationHelpers.createKID();
 
-        const distribution: Distribution = {
+        let distribution: Distribution = {
           kid: donationObject.KID,
+          fundraiserTransactionId: donationObject.fundraiserTransactionId ?? null,
           ...draftDistribution,
         };
 

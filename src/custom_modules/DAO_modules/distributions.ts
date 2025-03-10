@@ -325,6 +325,7 @@ async function getKIDbySplit(
           WHERE 
               D.Donor_ID = ? 
               AND (D.Tax_unit_ID = ? OR (D.Tax_unit_ID IS NULL AND ? IS NULL))
+              AND Fundraiser_transaction_ID IS NULL
               AND 
               (
                   -- Map out the cause area distribution
@@ -527,9 +528,17 @@ async function add(
       metaOwnerID = await DAO.meta.getDefaultOwnerID();
     }
 
+    console.log(distribution.fundraiserTransactionId);
+
     const [distributionResult] = await transaction.query<ResultSetHeader>(
-      `INSERT INTO Distributions (KID, Donor_ID, Tax_unit_ID, Meta_Owner_ID) VALUES (?, ?, ?, ?);`,
-      [distribution.kid, distribution.donorId, distribution.taxUnitId, metaOwnerID],
+      `INSERT INTO Distributions (KID, Donor_ID, Tax_unit_ID, Fundraiser_transaction_ID, Meta_Owner_ID) VALUES (?, ?, ?, ?, ?);`,
+      [
+        distribution.kid,
+        distribution.donorId,
+        distribution.taxUnitId,
+        distribution.fundraiserTransactionId ?? null,
+        metaOwnerID,
+      ],
     );
 
     if (distributionResult.affectedRows !== 1) {
