@@ -467,7 +467,8 @@ async function getByID(donationID) {
                 Donor.ID as donorId,
                 Donor.full_name,
                 Donor.email,
-                Payment.payment_name
+                Payment.payment_name,
+                Fundraiser_transactions.Fundraiser_ID
             
             FROM Donations as Donation
                 INNER JOIN Donors as Donor
@@ -475,6 +476,12 @@ async function getByID(donationID) {
 
                 INNER JOIN Payment
                     ON Donation.Payment_ID = Payment.ID
+
+                INNER JOIN Distributions
+                    ON Donation.KID_fordeling = Distributions.KID
+
+                LEFT JOIN Fundraiser_transactions
+                    ON Distributions.Fundraiser_transaction_ID = Fundraiser_transactions.ID
             
             WHERE 
                 Donation.ID = ?`,
@@ -501,6 +508,7 @@ async function getByID(donationID) {
     paymentMethod: dbDonation.payment_name,
     KID: dbDonation.KID_fordeling,
     metaOwnerId: dbDonation.Meta_owner_ID,
+    fundraiserId: dbDonation.Fundraiser_ID,
   };
 
   const distribution = await distributions.getSplitByKID(donation.KID);

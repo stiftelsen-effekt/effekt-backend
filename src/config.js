@@ -19,6 +19,7 @@ module.exports = {
   api_url: process.env.EFFEKT_API_URL,
   minside_url: process.env.MIN_SIDE_URL,
   frontend_url: process.env.FRONTEND_URL,
+  revalidate_token: process.env.REVALIDATE_TOKEN,
 
   //Insert db connection values
   db_host: process.env.DB_HOST,
