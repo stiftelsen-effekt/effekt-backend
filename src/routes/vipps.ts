@@ -12,6 +12,7 @@ import {
   validateDistribution,
 } from "../custom_modules/distribution";
 import { DistributionInput } from "../schemas/types";
+import { encodePlausibleData } from "../custom_modules/plausible";
 const jsonBody = bodyParser.json();
 const dns = require("dns").promises;
 const config = require("../config");
@@ -642,7 +643,12 @@ router.get("/agreementredirect/:urlcode", async (req, res, next) => {
       if (agreement) {
         if (agreement.status === "ACTIVE") {
           res.redirect(
-            `https://gieffektivt.no/opprettet?revenue=${agreement.amount}&kid=${agreement.KID}&method=vipps&recurring=true`,
+            `https://gieffektivt.no/opprettet?plausible=${encodePlausibleData({
+              revenue: Math.round(agreement.amount).toString(),
+              method: "vipps",
+              recurring: true,
+              kid: agreement.KID,
+            })}`,
           );
           return true;
         }
@@ -855,7 +861,12 @@ router.get("/redirect/:orderId", async (req, res, next) => {
         const donation = await DAO.donations.getByID(order.donationID);
 
         res.redirect(
-          `https://gieffektivt.no/donasjon-mottatt?revenue=${donation.sum}&kid=${order.KID}&method=vipps&recurring=false`,
+          `https://gieffektivt.no/donasjon-mottatt?plausible=${encodePlausibleData({
+            revenue: donation.sum.toString(),
+            method: "vipps",
+            recurring: false,
+            kid: order.KID,
+          })}`,
         );
         return true;
       } else if (retries >= 20) {
