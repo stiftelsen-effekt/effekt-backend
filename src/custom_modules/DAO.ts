@@ -23,6 +23,7 @@ import { results } from "./DAO_modules/results";
 import { mail } from "./DAO_modules/mail";
 import { inflationadjustments } from "./DAO_modules/inflationadjustment";
 import { agreementfeedback } from "./DAO_modules/agreementfeedback";
+import { fundraisers } from "./DAO_modules/fundraisers";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -71,6 +72,7 @@ export const DAO = {
   mail: mail,
   inflationadjustments: inflationadjustments,
   agreementfeedback: agreementfeedback,
+  fundraisers: fundraisers,
 
   dbPool: undefined as mysql.Pool | undefined,
 

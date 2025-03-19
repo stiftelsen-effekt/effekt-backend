@@ -180,14 +180,16 @@ model Distributions {
   KID                        String    @id @db.VarChar(16)
   Donor_ID                   Int
   Tax_unit_ID                Int?      @default(0)
+  Fundraiser_transaction_ID  Int?      @db.Int
   Meta_owner_ID              Int       @default(3)
   Replaced_old_organizations Boolean?  @default(false)
   inserted                   DateTime? @default(now()) @db.DateTime(0)
   last_updated               DateTime? @default(now()) @db.DateTime(0)
 
-  Donors     Donors     @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Distributions_to_Donors_idx")
-  Tax_unit   Tax_unit?  @relation(fields: [Tax_unit_ID], references: [ID], onDelete: SetNull, map: "fk_Distributions_to_Tax_unit_idx")
-  Data_owner Data_owner @relation(fields: [Meta_owner_ID], references: [ID], onDelete: Restrict, map: "fk_Distributions_to_Data_owner_idx")
+  Donors                 Donors                   @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "fk_Distributions_to_Donors_idx")
+  Tax_unit               Tax_unit?                @relation(fields: [Tax_unit_ID], references: [ID], onDelete: SetNull, map: "fk_Distributions_to_Tax_unit_idx")
+  Data_owner             Data_owner               @relation(fields: [Meta_owner_ID], references: [ID], onDelete: Restrict, map: "fk_Distributions_to_Data_owner_idx")
+  Fundraiser_transaction Fundraiser_transactions? @relation(fields: [Fundraiser_transaction_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Distributions_to_Fundraiser_transactions_idx")
 
   Avtalgiro_agreements                          Avtalegiro_agreements[]
   AvtaleGiro_replaced_distributions_original    AvtaleGiro_replaced_distributions[] @relation(name: "Original")
@@ -296,6 +298,7 @@ model Donors {
   Adoveo_fundraiser                     Adoveo_fundraiser[]
   Adoveo_giftcard_transactions_sender   Adoveo_giftcard_transactions[] @relation(name: "senderDonor")
   Adoveo_giftcard_transactions_receiver Adoveo_giftcard_transactions[] @relation(name: "receiverDonor")
+  Fundraisers                           Fundraisers[]
 
   @@index([full_name(length: 63)], map: "full_name")
   @@index([email(length: 63), full_name(length: 63)], map: "search")
@@ -447,6 +450,30 @@ model Adoveo_giftcard_transactions {
   Adoveo_giftcard Adoveo_giftcard @relation(fields: [Giftcard_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "FK_Adoveo_giftcard_transactions_giftcardid")
   SenderDonor     Donors?         @relation(name: "senderDonor", fields: [Sender_donor_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_giftcard_transactions_sender_donorid")
   ReceiverDonor   Donors?         @relation(name: "receiverDonor", fields: [Receiver_donor_ID], references: [ID], onDelete: SetNull, map: "FK_Adoveo_giftcard_transactions_receiver_donorid")
+}
+
+model Fundraisers {
+  ID           Int      @id @default(autoincrement())
+  Donor_ID     Int
+  Inserted     DateTime @default(now()) @db.DateTime(0)
+  Last_updated DateTime @default(now()) @db.DateTime(0)
+
+  Donors Donors @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Fundraiser_to_Donors_idx")
+
+  Fundraiser_transactions Fundraiser_transactions[]
+}
+
+model Fundraiser_transactions {
+  ID            Int      @id @default(autoincrement())
+  Fundraiser_ID Int
+  Message       String   @db.Text
+  Show_name     Boolean
+  Inserted      DateTime @default(now()) @db.DateTime(0)
+  Last_updated  DateTime @default(now()) @db.DateTime(0)
+
+  Fundraisers Fundraisers @relation(fields: [Fundraiser_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Fundraiser_transactions_to_Fundraiser_idx")
+
+  Distributions Distributions[]
 }
 
 model Funds_donations {

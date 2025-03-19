@@ -12,7 +12,6 @@ import {
   Tax_unit,
   Cause_areas,
 } from "@prisma/client";
-import { KID } from "../../src/custom_modules/KID";
 
 const getRandomArrayThatSumsTo100 = (elements: number): number[] => {
   const arrayOfNumbers: number[] = [];
@@ -103,6 +102,7 @@ export function generateFakeDistribution(
   const distribution: Distributions = {
     Donor_ID: donorId,
     Tax_unit_ID: taxUnitId,
+    Fundraiser_transaction_ID: null,
     KID: donation.KID_fordeling,
     inserted: donation.timestamp_confirmed,
     last_updated: donation.timestamp_confirmed,

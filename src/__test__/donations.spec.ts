@@ -8,6 +8,7 @@ import { donationHelpers } from "../custom_modules/donationHelpers";
 import * as swish from "../custom_modules/swish";
 import methods from "../enums/methods";
 import donationsRouter from "../routes/donations";
+import { organizations } from "../custom_modules/DAO_modules/organizations";
 
 describe("donations", () => {
   describe("routes", () => {
@@ -90,12 +91,26 @@ describe("donations", () => {
 
       it("should add a new donor if donor does not exist", async () => {
         const body = {
-          distributionCauseAreas: [],
+          distributionCauseAreas: [
+            {
+              causeAreaID: 1,
+              percentageShare: 100,
+              organizations: [
+                {
+                  id: 1,
+                  percentageShare: 100,
+                },
+              ],
+            },
+          ],
           donor: {
             email: "test@example.com",
             name: "Test Testsson",
             newsletter: true,
           },
+          method: methods.BANK,
+          amount: 100,
+          recurring: false,
         };
         const response = await request(server).post("/donations/register").send(body).expect(200);
 
@@ -122,11 +137,26 @@ describe("donations", () => {
         donorsAddStub.resolves(donorId);
 
         const body = {
-          distributionCauseAreas: [],
+          distributionCauseAreas: [
+            {
+              causeAreaID: 1,
+              percentageShare: 100,
+              organizations: [
+                {
+                  id: 1,
+                  percentageShare: 100,
+                },
+              ],
+            },
+          ],
           donor: {
             name: "Test Testsson",
+            email: "test@testeson.no",
             ssn: "1234567890",
           },
+          method: methods.BANK,
+          amount: 100,
+          recurring: false,
         };
         await request(server).post("/donations/register").send(body).expect(200);
 
@@ -141,11 +171,26 @@ describe("donations", () => {
         withDonor({ id: 123 });
 
         const body = {
-          distributionCauseAreas: [],
+          distributionCauseAreas: [
+            {
+              causeAreaID: 1,
+              percentageShare: 100,
+              organizations: [
+                {
+                  id: 1,
+                  percentageShare: 100,
+                },
+              ],
+            },
+          ],
           donor: {
             name: "Test Testsson",
+            email: "test@testesen.no",
             ssn: "1234567890",
           },
+          method: methods.BANK,
+          amount: 100,
+          recurring: false,
         };
         await request(server).post("/donations/register").send(body).expect(200);
 
@@ -161,11 +206,26 @@ describe("donations", () => {
         stub.resolves({ orderID, paymentRequestToken });
 
         const body = {
-          distributionCauseAreas: [],
+          distributionCauseAreas: [
+            {
+              causeAreaID: 1,
+              percentageShare: 100,
+              organizations: [
+                {
+                  id: 1,
+                  percentageShare: 100,
+                },
+              ],
+            },
+          ],
           method: methods.SWISH,
           amount: 100,
           recurring: false,
-          donor: {},
+          donor: {
+            email: "test@testesen.no",
+            name: "Test Testesen",
+            newsletter: false,
+          },
         };
         const response = await request(server).post("/donations/register").send(body).expect(200);
 

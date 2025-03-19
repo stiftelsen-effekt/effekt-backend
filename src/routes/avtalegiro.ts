@@ -7,11 +7,9 @@ import { donationHelpers } from "../custom_modules/donationHelpers";
 import { DistributionInput } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import moment from "moment";
-import {
-  findGlobalHealthCauseAreaOrThrow,
-  validateDistribution,
-} from "../custom_modules/distribution";
+import { validateDistribution } from "../custom_modules/distribution";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
+import { encodePlausibleData } from "../custom_modules/plausible";
 
 const router = express.Router();
 
@@ -240,9 +238,12 @@ router.get("/:KID/redirect", async (req, res, next) => {
       await sendAvtalegiroRegistered(agreement);
 
       res.redirect(
-        `https://gieffektivt.no/opprettet?revenue=${Math.round(agreement.amount / 100)}&kid=${
-          req.params.KID
-        }&method=avtalegiro&recurring=true`,
+        `https://gieffektivt.no/opprettet?plausible=${encodePlausibleData({
+          revenue: Math.round(agreement.amount / 100).toString(),
+          method: "avtalegiro",
+          recurring: true,
+          kid: req.params.KID,
+        })}`,
       );
     } else res.redirect("https://gieffektivt.no/avtale-feilet");
   } catch (ex) {

@@ -19,6 +19,7 @@ module.exports = {
   api_url: process.env.EFFEKT_API_URL,
   minside_url: process.env.MIN_SIDE_URL,
   frontend_url: process.env.FRONTEND_URL,
+  revalidate_token: process.env.REVALIDATE_TOKEN,
 
   //Insert db connection values
   db_host: process.env.DB_HOST,
@@ -51,6 +52,10 @@ module.exports = {
     process.env.MAILERSEND_INFLATION_ADJUSTMENT_TEMPLATE_ID,
   mailersend_password_reset_no_user_template_id:
     process.env.MAILERSEND_PASSWORD_RESET_NO_USER_TEMPLATE_ID,
+  mailersend_test_welcome_receipt_template_a:
+    process.env.MAILERSEND_TEST_WELCOME_RECEIPT_TEMPLATE_A,
+  mailersend_test_welcome_receipt_template_b:
+    process.env.MAILERSEND_TEST_WELCOME_RECEIPT_TEMPLATE_B,
 
   mailersend_security_recipients: getMailersendSecurityRecipients(),
 

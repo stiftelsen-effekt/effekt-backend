@@ -9,6 +9,7 @@ import {
   Distributions,
   Donations,
   Donors,
+  Fundraisers,
   Organizations,
   Payment,
   Payment_intent,
@@ -49,6 +50,7 @@ async function main() {
   const fakeAutoGiroAgreements: AutoGiro_agreements[] = readAndParseJsonFile(
     "/fakeAutoGiroAgreements.json",
   );
+  const fakeFundraisers: Fundraisers[] = readAndParseJsonFile("/fakeFundraisers.json");
 
   await prisma.data_owner.createMany({ data: fakeDataOwner });
   await prisma.payment.createMany({ data: fakePayments });
@@ -68,6 +70,7 @@ async function main() {
   await prisma.donations.createMany({ data: fakeDonations });
   await prisma.payment_intent.createMany({ data: fakePaymentIntents });
   await prisma.referral_types.createMany({ data: fakeReferralTypes });
+  await prisma.fundraisers.createMany({ data: fakeFundraisers });
 }
 
 function readAndParseJsonFile(path: string) {
