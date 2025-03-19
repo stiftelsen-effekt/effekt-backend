@@ -450,70 +450,81 @@ router.post(
       // Go through db donors and update mailchimp status
       offset = 0;
 
+      const subscibersToAdd = Math.max(Math.round(Math.random() * 4 - 1), 0);
+      console.log("Adding max", subscibersToAdd, "subscribers to mailchimp");
+
+      let donors = [];
       while (true) {
-        const donors = await DAO.donors.getAll(count, offset);
-        for (let donor of donors) {
-          const email = donor.email.toLowerCase().trim();
-          if (donor.newsletter) {
-            if (email in membersMap) {
-              if (membersMap[email] == "unsubscribed") {
-                // Donor has newsletter set to true in DB
-                // but mailchimp says they have actively unsubscribed
-                // Set DB donor newsletter to false
-                console.log("Found member", donor.email, "with status", membersMap[email]);
-                removedFromDonor++;
-                // TODO - Uncomment when ready
-                // await DAO.donors.updateNewsletter(donor.id, false);
-              } else {
-                // Newsletter on DB donor is true and status in mailchimp is
-                // either pending or cleaned. Do nothing.
-              }
-              continue;
-            } else {
-              // Donor has newsletter set to true on their DB donor, but are not subscribed in mailchimp
-              // add them
-              console.log("Adding", donor.email, "to mailchimp");
-              try {
-                // TODO - Uncomment when ready
-                /*await mailchimp.lists.addListMember("4c98331f9d", {
-                email_address: email,
-                status: "subscribed",
-              });*/
-                addedToMailchimp++;
-              } catch (ex) {
-                const parsedError = JSON.parse(ex.response.text);
-                if (parsedError.detail.match(/.*looks fake or invalid.*/)) {
-                  console.log("Failed to add", donor.email, "to mailchimp. Looks fake or invalid");
-                  continue;
-                } else {
-                  failedAddedToMailchimp++;
-                  failures.push(ex);
-                }
-              }
-              continue;
-            }
-          } else {
-            if (email in membersMap) {
-              if (membersMap[email] === "subscribed") {
-                // Donor has newsletter set to false, but is marked as subscribed in mailchimp
-                // They could for example have started subscribing at a later date (after donating)
-                console.log("Updating newsletter status to true for ", donor.email);
-                // TODO - Uncomment when ready
-                // await DAO.donors.updateNewsletter(donor.id, true);
-                addedToDonor++;
-              } else {
-                // Newsletter is either pending, cleaned or they have unsubscribed according to malichimp,
-                // and the db donor has newsletter set as false. Do nothing.
-              }
-              continue;
-            } else {
-              // Donor email not in mailchimp and newsleter in DB is false. Do nothing.
-              continue;
-            }
-          }
-        }
+        const newDonors = await DAO.donors.getAll(count, offset);
+        if (newDonors.length === 0) break;
+        donors = donors.concat(newDonors);
         if (donors.length < count) break;
         else offset += count;
+      }
+
+      donors = donors.sort((a, b) => b.registered - a.registered);
+
+      for (let donor of donors) {
+        const email = donor.email.toLowerCase().trim();
+        if (donor.newsletter) {
+          if (email in membersMap) {
+            if (membersMap[email] == "unsubscribed") {
+              // Donor has newsletter set to true in DB
+              // but mailchimp says they have actively unsubscribed
+              // Set DB donor newsletter to false
+              console.log("Found member", donor.email, "with status", membersMap[email]);
+              removedFromDonor++;
+              await DAO.donors.updateNewsletter(donor.id, false);
+            } else {
+              // Newsletter on DB donor is true and status in mailchimp is
+              // either pending or cleaned. Do nothing.
+            }
+            continue;
+          } else {
+            // Donor has newsletter set to true on their DB donor, but are not subscribed in mailchimp
+            // add them
+            if (subscibersToAdd <= addedToMailchimp) {
+              console.log("Added max subscribers to mailchimp");
+              continue;
+            }
+
+            console.log("Adding", donor.email, "to mailchimp");
+            try {
+              await mailchimp.lists.addListMember("4c98331f9d", {
+                email_address: email,
+                status: "subscribed",
+              });
+              addedToMailchimp++;
+            } catch (ex) {
+              const parsedError = JSON.parse(ex.response.text);
+              if (parsedError.detail.match(/.*looks fake or invalid.*/)) {
+                console.log("Failed to add", donor.email, "to mailchimp. Looks fake or invalid");
+                continue;
+              } else {
+                failedAddedToMailchimp++;
+                failures.push(ex);
+              }
+            }
+            continue;
+          }
+        } else {
+          if (email in membersMap) {
+            if (membersMap[email] === "subscribed") {
+              // Donor has newsletter set to false, but is marked as subscribed in mailchimp
+              // They could for example have started subscribing at a later date (after donating)
+              console.log("Updating newsletter status to true for ", donor.email);
+              await DAO.donors.updateNewsletter(donor.id, true);
+              addedToDonor++;
+            } else {
+              // Newsletter is either pending, cleaned or they have unsubscribed according to malichimp,
+              // and the db donor has newsletter set as false. Do nothing.
+            }
+            continue;
+          } else {
+            // Donor email not in mailchimp and newsleter in DB is false. Do nothing.
+            continue;
+          }
+        }
       }
 
       await DAO.logging.add("MailChimp sync", {
