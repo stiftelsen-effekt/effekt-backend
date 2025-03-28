@@ -16,7 +16,7 @@ export const fundraisers = {
     const [res] = await DAO.query(
       `
         INSERT INTO Fundraiser_transactions (Fundraiser_ID, Message, Message_sender_name, Show_name)
-        VALUES (?, ?, ?);
+        VALUES (?, ?, ?, ?);
       `,
       [fundraiserId, message, messageSenderName, showName ? 1 : 0],
     );
