@@ -46,8 +46,7 @@ export const fundraisers = {
         donation_id: number;
         donation_amount: string;
         donation_date: Date;
-        donor_email: string;
-        donor_name: string;
+        name: string;
       }[]
     >(
       `
@@ -112,7 +111,7 @@ export const fundraisers = {
       totalSum: parseFloat(aggregated[0].total_donation_amount),
       donationCount: aggregated[0].donation_count,
       transactions: transactions.map((transaction) => ({
-        name: transaction.show_name === 1 ? transaction.donor_name : null,
+        name: transaction.show_name === 1 ? transaction.name : null,
         message: transaction.message,
         amount: parseFloat(transaction.donation_amount),
         date: transaction.donation_date,
