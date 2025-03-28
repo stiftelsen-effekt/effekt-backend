@@ -63,6 +63,7 @@ router.post("/register", async (req, res, next) => {
     fundraiser?: {
       id: number;
       message?: string;
+      messageSenderName?: string;
       showName: boolean;
     };
   };
@@ -240,6 +241,7 @@ router.post("/register", async (req, res, next) => {
           donationObject.fundraiserTransactionId = await DAO.fundraisers.addFundraiserTransaction({
             fundraiserId: fundraiser.id,
             message: fundraiser.message,
+            messageSenderName: fundraiser.messageSenderName,
             showName: fundraiser.showName,
           });
         }

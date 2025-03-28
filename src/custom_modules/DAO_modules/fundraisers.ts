@@ -5,18 +5,20 @@ export const fundraisers = {
   addFundraiserTransaction: async function ({
     fundraiserId,
     message,
+    messageSenderName,
     showName,
   }: {
     fundraiserId: Fundraisers["ID"];
     message: string | null;
+    messageSenderName: string | null;
     showName: boolean;
   }): Promise<number> {
     const [res] = await DAO.query(
       `
-        INSERT INTO Fundraiser_transactions (Fundraiser_ID, Message, Show_name)
+        INSERT INTO Fundraiser_transactions (Fundraiser_ID, Message, Message_sender_name, Show_name)
         VALUES (?, ?, ?);
       `,
-      [fundraiserId, message, showName ? 1 : 0],
+      [fundraiserId, message, messageSenderName, showName ? 1 : 0],
     );
     if (res.affectedRows === 0) {
       throw new Error("Failed to add fundraiser transaction");
@@ -52,14 +54,13 @@ export const fundraisers = {
         SELECT 
             ft.ID AS transaction_id,
             ft.Message AS message,
+            ft.Message_sender_name AS name,
             ft.Show_name AS show_name,
             f.Donor_ID AS fundraiser_owner_id,
             d.KID AS distribution_kid,
             don.ID AS donation_id,
             don.sum_confirmed AS donation_amount,
-            don.timestamp_confirmed AS donation_date,
-            dr.email AS donor_email,
-            dr.full_name AS donor_name
+            don.timestamp_confirmed AS donation_date
         FROM 
             Fundraiser_transactions ft
         JOIN 
@@ -68,8 +69,6 @@ export const fundraisers = {
             Distributions d ON d.Fundraiser_transaction_ID = ft.ID
         JOIN 
             Donations don ON don.KID_fordeling = d.KID
-        JOIN
-            Donors dr ON don.Donor_ID = dr.ID
         WHERE 
             ft.Fundraiser_ID = ?
         ORDER BY 

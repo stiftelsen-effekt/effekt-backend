@@ -464,12 +464,13 @@ model Fundraisers {
 }
 
 model Fundraiser_transactions {
-  ID            Int      @id @default(autoincrement())
-  Fundraiser_ID Int
-  Message       String   @db.Text
-  Show_name     Boolean
-  Inserted      DateTime @default(now()) @db.DateTime(0)
-  Last_updated  DateTime @default(now()) @db.DateTime(0)
+  ID                  Int      @id @default(autoincrement())
+  Fundraiser_ID       Int
+  Message             String   @db.Text
+  Message_sender_name String?  @db.VarChar(45)
+  Show_name           Boolean
+  Inserted            DateTime @default(now()) @db.DateTime(0)
+  Last_updated        DateTime @default(now()) @db.DateTime(0)
 
   Fundraisers Fundraisers @relation(fields: [Fundraiser_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Fundraiser_transactions_to_Fundraiser_idx")
 
