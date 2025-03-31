@@ -71,7 +71,7 @@ router.post("/register", async (req, res, next) => {
   // Validate input
   if (!parsedData.distributionCauseAreas || parsedData.distributionCauseAreas.length === 0)
     return res.status(400).send("No cause areas provided");
-  if (parsedData.donor && (!parsedData.donor.email || !parsedData.donor.name))
+  if (parsedData.donor && !parsedData.donor.email)
     return res.status(400).send("Invalid donor data");
   if (!parsedData.method) return res.status(400).send("No payment method provided");
   if (!parsedData.amount) return res.status(400).send("No amount provided");
