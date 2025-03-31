@@ -863,7 +863,7 @@ router.get("/redirect/:orderId", async (req, res, next) => {
         if (donation.fundraiserId) {
           // Temp hardcoded to preview frontend, should be changed to production frontend (${config.frontend_url}/)
           res.redirect(
-            `https://main-site-git-fundraisers-effective-altruism-norway.vercel.app/api/fundraiser/redirect?fundraiserId=${
+            `https://gieffektivt.no/api/fundraiser/redirect?fundraiserId=${
               donation.fundraiserId
             }&secret=${config.revalidate_token}&plausible=${encodePlausibleData({
               revenue: donation.sum.toString(),
