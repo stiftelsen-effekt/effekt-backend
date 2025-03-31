@@ -97,7 +97,7 @@ export const fundraisers = {
         LEFT JOIN 
             Donations don ON don.KID_fordeling = d.KID
         WHERE 
-            f.ID = 1
+            f.ID = ?
         GROUP BY 
             f.ID;
       `,
