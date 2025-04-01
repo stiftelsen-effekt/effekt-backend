@@ -111,6 +111,7 @@ export const fundraisers = {
       totalSum: parseFloat(aggregated[0].total_donation_amount),
       donationCount: aggregated[0].donation_count,
       transactions: transactions.map((transaction) => ({
+        id: transaction.transaction_id,
         name: transaction.show_name === 1 ? transaction.name : null,
         message: transaction.message,
         amount: parseFloat(transaction.donation_amount),
