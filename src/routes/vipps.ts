@@ -844,6 +844,13 @@ router.post("/v2/payments/:orderId", jsonBody, async (req, res, next) => {
   res.sendStatus(200);
 });
 
+router.post("/fundraiser/:id/webhook", jsonBody, async (req, res, next) => {
+  console.log("Webhook received for fundraiser", req.params.id);
+  console.log(req.body);
+
+  return res.sendStatus(200);
+});
+
 router.get("/redirect/:orderId", async (req, res, next) => {
   try {
     let orderId = req.params.orderId;
