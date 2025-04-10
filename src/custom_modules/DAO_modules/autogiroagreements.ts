@@ -438,7 +438,7 @@ export const autogiroagreements = {
 
         LEFT JOIN (SELECT * FROM AutoGiro_agreement_charges 
           WHERE MONTH(AutoGiro_agreement_charges.claim_date) = MONTH(current_time())
-                YEAR(AutoGiro_agreement_charges.claim_date) = YEAR(current_time())  
+                AND YEAR(AutoGiro_agreement_charges.claim_date) = YEAR(current_time())
         ) as CH
           ON CH.agreementID = AG.ID
       
