@@ -60,6 +60,7 @@ async function getAll(
     taxUnitTypes?: Array<TaxUnitType | null>;
     donor?: string;
     id?: string;
+    fundraiserId?: string;
     organizationIDs?: Array<number>;
   } = null,
   locale: RequestLocale,
@@ -129,6 +130,12 @@ async function getAll(
 
       if (filter.id) where.push(` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `);
 
+      if (filter.fundraiserId) {
+        // Ensure the join happens below if filter.fundraiserId is present
+        // Using FT as alias for Fundraiser_transactions table
+        where.push(` FT.Fundraiser_ID = ${sqlString.escape(filter.fundraiserId)} `);
+      }
+
       if (filter.taxUnitTypes) {
         if (filter.taxUnitTypes.length == 0) {
           return {
@@ -188,6 +195,12 @@ async function getAll(
           ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID`
       : "";
 
+    const fundraiserJoin = filter.fundraiserId
+      ? `
+        LEFT JOIN Fundraiser_transactions FT
+          ON Distributions.Fundraiser_transaction_ID = FT.ID`
+      : "";
+
     const query = `
         WITH filtered_donations AS (
           SELECT DISTINCT
@@ -209,6 +222,7 @@ async function getAll(
           LEFT JOIN Tax_unit
             ON Distributions.Tax_unit_ID = Tax_unit.ID
           ${organizationJoin}
+          ${fundraiserJoin}
           WHERE ${where.length !== 0 ? where.join(" AND ") : "1"}
         ),
         statistics AS (
