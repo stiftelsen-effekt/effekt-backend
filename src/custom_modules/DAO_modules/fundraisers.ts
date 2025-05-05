@@ -176,6 +176,82 @@ export const fundraisers = {
       })),
     };
   },
+  getFundraiserTransactionsBySecret: async function (
+    secret: Fundraisers["Secret"],
+    viewLevel: "public" | "owner" | "admin",
+  ): Promise<
+    {
+      id: number;
+      message: string | null;
+      name: string | null;
+      amount: number;
+      date: Date;
+      donorName: string;
+      donorEmail: string;
+    }[]
+  > {
+    const [transactions] = await DAO.query<
+      {
+        transaction_id: number;
+        message: string;
+        show_name: number;
+        name: string;
+        donation_amount: string;
+        donation_date: Date;
+        donor_name: string;
+        donor_email: string;
+      }[]
+    >(
+      `
+        SELECT 
+            ft.ID AS transaction_id,
+            ft.Message AS message,
+            ft.Message_sender_name AS name,
+            ft.Show_name AS show_name,
+            don.sum_confirmed AS donation_amount,
+            don.timestamp_confirmed AS donation_date,
+            donors.full_name AS donor_name,
+            donors.email AS donor_email
+        FROM 
+            Fundraiser_transactions ft
+        JOIN 
+            Fundraisers f ON ft.Fundraiser_ID = f.ID
+        JOIN 
+            Distributions d ON d.Fundraiser_transaction_ID = ft.ID
+        JOIN 
+            Donations don ON don.KID_fordeling = d.KID
+        JOIN
+            Donors donors ON d.Donor_ID = donors.ID
+        WHERE 
+            f.Secret = ?
+        ORDER BY 
+            don.timestamp_confirmed DESC;
+      `,
+      [secret],
+    );
+
+    return transactions.map((transaction) => {
+      let name = null;
+      if (viewLevel === "admin") {
+        name = transaction.name;
+      } else if (viewLevel === "owner") {
+        // TODO: If we add a checkbox for sharing with the owner, we can use that here
+        // For now, we assume the owner can see all names
+        name = transaction.name;
+      } else if (viewLevel === "public") {
+        name = transaction.show_name === 1 ? transaction.name : null;
+      }
+      return {
+        id: transaction.transaction_id,
+        name: name,
+        message: transaction.message,
+        amount: parseFloat(transaction.donation_amount),
+        date: transaction.donation_date,
+        donorName: transaction.donor_name,
+        donorEmail: transaction.donor_email,
+      };
+    });
+  },
   getList: async function (
     page: number,
     limit: number = 10,
