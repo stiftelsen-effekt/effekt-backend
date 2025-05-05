@@ -455,6 +455,7 @@ model Adoveo_giftcard_transactions {
 model Fundraisers {
   ID           Int      @id @default(autoincrement())
   Donor_ID     Int
+  Secret       String?  @db.VarChar(32) // A random secret key used to share the fundraiser info with the owner
   Inserted     DateTime @default(now()) @db.DateTime(0)
   Last_updated DateTime @default(now()) @db.DateTime(0)
 
