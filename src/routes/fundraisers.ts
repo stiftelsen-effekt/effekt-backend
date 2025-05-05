@@ -5,7 +5,24 @@ export const fundraisersRouter = Router();
 
 fundraisersRouter.get("/list", async (req, res, next) => {
   try {
-    const fundraisers = await DAO.fundraisers.getList();
+    const fundraisers = await DAO.fundraisers.getList(0, Number.MAX_SAFE_INTEGER);
+    return res.json({
+      status: 200,
+      content: fundraisers.rows,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+fundraisersRouter.post("/list", async (req, res, next) => {
+  try {
+    const fundraisers = await DAO.fundraisers.getList(
+      req.body.pagination.page,
+      req.body.pagination.limit,
+      req.body.filter,
+      req.body.pagination.sort,
+    );
     return res.json({
       status: 200,
       content: fundraisers,
