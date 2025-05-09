@@ -1,28 +1,313 @@
 import { Donors } from "@prisma/client";
 import { Donor } from "../../schemas/types";
 import { DAO } from "../DAO";
+import * as sqlString from "sqlstring";
+import { RequestLocale } from "../../middleware/locale";
 
 //region Get
 
-/**
- * Gets all donors from the database with a limit and offset
- * @param limit How many donors to get
- * @param offset How many donors to skip
- * @returns {Donor[]}
- */
-async function getAll(limit: number, offset: number): Promise<Donor[]> {
-  var [result] = await DAO.query(`SELECT * FROM Donors LIMIT ? OFFSET ?`, [limit, offset]);
+interface DonorFilters {
+  donorId?: number;
+  name?: string; // Fulltext search
+  email?: string; // Fulltext search
+  registeredDate?: { from?: Date; to?: Date };
+  donationsDateRange?: { from?: Date; to?: Date };
+  lastDonationDate?: { from?: Date; to?: Date };
+  donationsCount?: { from?: number; to?: number };
+  donationsSum?: { from?: number; to?: number };
+  referralTypeIDs?: Array<number>; // List of Referral_types.ID
+  recipientOrgIDs?: Array<number>; // List of Organizations.ID
+}
 
-  return result.map((donor) => {
-    return {
-      id: donor.ID,
-      name: donor.full_name,
-      email: donor.email,
-      registered: donor.date_registered,
-      newsletter: donor.newsletter === 1,
-      trash: donor.trash,
-    };
-  });
+interface DonorRow {
+  id: number;
+  name: string | null;
+  email: string;
+  registered: Date;
+  lastDonation: Date | null;
+  donationsCount: number;
+  donationsSum: number;
+  // Add any other fields you want to return for each donor
+}
+
+interface DonorStatistics {
+  totalDonors: number;
+  totalDonationSum: number;
+  totalDonationCount: number;
+}
+
+// Mapping for sort fields from JS name to DB column/alias
+const jsToDbDonorMapping: Array<[string, string]> = [
+  ["id", "FD.ID"],
+  ["name", "FD.full_name"],
+  ["email", "FD.email"],
+  ["registeredDate", "FD.date_registered"],
+  ["lastDonationDate", "FD.last_donation_date"],
+  ["donationsCount", "FD.donations_count"],
+  ["donationsSum", "FD.donations_sum"],
+];
+
+async function getAll(
+  sort: {
+    id: string; // Corresponds to keys in jsToDbDonorMapping
+    desc: boolean;
+  } | null = {
+    id: "id",
+    desc: true, // Default to descending order
+  },
+  page: number,
+  limit: number = 10,
+  filter: DonorFilters | null = null,
+  locale: RequestLocale, // Include if needed for any donor-specific localized data
+): Promise<{
+  rows: Array<DonorRow>;
+  statistics: DonorStatistics;
+  pages: number;
+}> {
+  if (!sort) {
+    throw new Error("No sort provided for getAllDonors");
+  }
+
+  const sortColumnEntry = jsToDbDonorMapping.find((map) => map[0] === sort.id);
+  if (!sortColumnEntry) {
+    throw new Error(`Invalid sort column: ${sort.id}`);
+  }
+  const sortColumn = sortColumnEntry[1];
+
+  let whereClauses: string[] = [];
+  let joins: string[] = [];
+  let donationDateFilterSqlForCTE = ""; // For filtering donations within the CTE
+  let donationDateFilterSqlForSubqueries = ""; // For filtering donations within subqueries
+
+  // NEW: Prepare donation consideration date range filters
+  if (filter?.donationsDateRange) {
+    const from = filter.donationsDateRange.from;
+    const to = filter.donationsDateRange.to;
+    let cteConditions: string[] = [];
+    let subqueryConditions: string[] = [];
+
+    if (from) {
+      cteConditions.push(`Dons.timestamp_confirmed >= ${sqlString.escape(from)}`);
+      subqueryConditions.push(`D_rec.timestamp_confirmed >= ${sqlString.escape(from)}`); // Assuming D_rec alias in subqueries
+    }
+    if (to) {
+      const toDate = new Date(to);
+      toDate.setDate(toDate.getDate() + 1); // Make it inclusive of the whole 'to' day
+      const toDateStr = sqlString.escape(toDate);
+      cteConditions.push(`Dons.timestamp_confirmed < ${toDateStr}`);
+      subqueryConditions.push(`D_rec.timestamp_confirmed < ${toDateStr}`);
+    }
+    if (cteConditions.length > 0) {
+      donationDateFilterSqlForCTE = `AND ${cteConditions.join(" AND ")}`;
+    }
+    if (subqueryConditions.length > 0) {
+      donationDateFilterSqlForSubqueries = `AND ${subqueryConditions.join(" AND ")}`;
+    }
+  }
+
+  // CTE for donor aggregates (last donation, count, sum)
+  // MODIFIED: Added donationDateFilterSqlForCTE
+  const donorAggregatesCTE = `
+    DonorAggregates AS (
+      SELECT
+        Donors.ID as donor_id_agg,
+        MAX(Dons.timestamp_confirmed) as last_donation_date,
+        COUNT(DISTINCT Dons.ID) as donations_count,
+        COALESCE(SUM(Dons.sum_confirmed), 0) as donations_sum
+      FROM Donors
+      LEFT JOIN Donations Dons ON Donors.ID = Dons.Donor_ID ${donationDateFilterSqlForCTE} -- Applied here
+      GROUP BY Donors.ID
+    )
+  `;
+  // Always join with aggregates CTE
+  joins.push(`LEFT JOIN DonorAggregates Aggregates ON Donors.ID = Aggregates.donor_id_agg`);
+
+  if (filter) {
+    // Donor ID (exact match)
+    if (filter.donorId !== undefined) {
+      whereClauses.push(`Donors.ID = ${sqlString.escape(filter.donorId)}`);
+    }
+
+    // Donor name (fulltext search)
+    if (filter.name && filter.name.length > 0) {
+      whereClauses.push(`Donors.full_name LIKE ${sqlString.escape(`%${filter.name}%`)}`);
+    }
+
+    // Donor email (fulltext search)
+    if (filter.email && filter.email.length > 0) {
+      whereClauses.push(`Donors.email LIKE ${sqlString.escape(`%${filter.email}%`)}`);
+    }
+
+    // Donor registered date (from to range)
+    if (filter.registeredDate) {
+      if (filter.registeredDate.from) {
+        whereClauses.push(
+          `Donors.date_registered >= ${sqlString.escape(filter.registeredDate.from)}`,
+        );
+      }
+      if (filter.registeredDate.to) {
+        const toDate = new Date(filter.registeredDate.to);
+        toDate.setDate(toDate.getDate() + 1);
+        whereClauses.push(`Donors.date_registered < ${sqlString.escape(toDate)}`);
+      }
+    }
+
+    // Last donation date (from to range) - uses Aggregates CTE
+    // This will now use the potentially filtered last_donation_date from the CTE
+    if (filter.lastDonationDate) {
+      if (filter.lastDonationDate.from) {
+        whereClauses.push(
+          `Aggregates.last_donation_date >= ${sqlString.escape(filter.lastDonationDate.from)}`,
+        );
+      }
+      if (filter.lastDonationDate.to) {
+        const toDate = new Date(filter.lastDonationDate.to);
+        toDate.setDate(toDate.getDate() + 1);
+        whereClauses.push(`Aggregates.last_donation_date < ${sqlString.escape(toDate)}`);
+      }
+    }
+
+    // Donations count (from to range) - uses Aggregates CTE
+    // This will now use the potentially filtered donations_count
+    if (filter.donationsCount) {
+      if (filter.donationsCount.from) {
+        whereClauses.push(
+          `Aggregates.donations_count >= ${sqlString.escape(filter.donationsCount.from)}`,
+        );
+      }
+      if (filter.donationsCount.to) {
+        whereClauses.push(
+          `Aggregates.donations_count <= ${sqlString.escape(filter.donationsCount.to)}`,
+        );
+      }
+    }
+
+    // Donations sum (from to range) - uses Aggregates CTE
+    // This will now use the potentially filtered donations_sum
+    if (filter.donationsSum) {
+      if (filter.donationsSum.from) {
+        whereClauses.push(
+          `Aggregates.donations_sum >= ${sqlString.escape(filter.donationsSum.from)}`,
+        );
+      }
+      if (filter.donationsSum.to) {
+        whereClauses.push(
+          `Aggregates.donations_sum <= ${sqlString.escape(filter.donationsSum.to)}`,
+        );
+      }
+    }
+
+    // Donor referral (a list of integers, matching any is fine for inclusion)
+    if (filter.referralTypeIDs) {
+      if (filter.referralTypeIDs.length === 0) {
+        // No donor can match an empty set of referral IDs if the filter is meant to be inclusive
+        return {
+          rows: [],
+          statistics: { totalDonors: 0, totalDonationCount: 0, totalDonationSum: 0 },
+          pages: 0,
+        };
+      }
+      joins.push(`LEFT JOIN Referral_records RR ON Donors.ID = RR.DonorID`);
+      whereClauses.push(
+        `RR.ReferralID IN (${filter.referralTypeIDs.map((id) => sqlString.escape(id)).join(",")})`,
+      );
+    }
+
+    // Donation recipient (a list of integers, having any donation with a distribution to any of the orgs is fine for inclusion)
+    // MODIFIED: Added donationDateFilterSqlForSubqueries
+    if (filter.recipientOrgIDs) {
+      if (filter.recipientOrgIDs.length === 0) {
+        // No donor can match an empty set of org IDs if the filter is meant to be inclusive
+        return {
+          rows: [],
+          statistics: { totalDonors: 0, totalDonationCount: 0, totalDonationSum: 0 },
+          pages: 0,
+        };
+      }
+      const recipientSubquery = `
+        EXISTS (
+          SELECT 1
+          FROM Donations D_rec
+          JOIN Distributions DIST_rec ON D_rec.KID_fordeling = DIST_rec.KID
+          JOIN Distribution_cause_areas DCA_rec ON DIST_rec.KID = DCA_rec.Distribution_KID
+          JOIN Distribution_cause_area_organizations DCAO_rec ON DCA_rec.ID = DCAO_rec.Distribution_cause_area_ID
+          WHERE D_rec.Donor_ID = Donors.ID AND DCAO_rec.Organization_ID IN (${filter.recipientOrgIDs
+            .map((id) => sqlString.escape(id))
+            .join(",")})
+          ${donationDateFilterSqlForSubqueries} -- Applied here
+        )
+      `;
+      whereClauses.push(recipientSubquery);
+    }
+  }
+
+  const whereStatement =
+    whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "WHERE 1";
+  const joinStatement = joins.join(" \n ");
+
+  const query = `
+    WITH ${donorAggregatesCTE},
+    FilteredDonors AS (
+      SELECT DISTINCT
+        Donors.ID,
+        Donors.full_name,
+        Donors.email,
+        Donors.date_registered,
+        Aggregates.last_donation_date,
+        Aggregates.donations_count,
+        Aggregates.donations_sum
+      FROM Donors
+      ${joinStatement}
+      ${whereStatement}
+    ),
+    TotalCount AS (
+      SELECT COUNT(*) as total_donors_count FROM FilteredDonors
+      
+    ),
+    TotalSum AS (
+      SELECT 
+        SUM(donations_sum) as total_donations_sum,
+        SUM(donations_count) as total_donations_count
+      FROM FilteredDonors
+    )
+    SELECT 
+      FD.*,
+      TC.total_donors_count,
+      TS.total_donations_sum,
+      TS.total_donations_count
+    FROM FilteredDonors FD
+    CROSS JOIN TotalCount TC
+    CROSS JOIN TotalSum TS
+    ORDER BY ${sortColumn} ${sort.desc ? "DESC" : "ASC"}
+    LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(page * limit)};
+  `;
+
+  const [resultRows]: [any[], any] = await DAO.query(query, []);
+
+  const totalDonors = resultRows.length > 0 ? resultRows[0]["total_donors_count"] : 0;
+  const totalDonationSum = resultRows.length > 0 ? resultRows[0]["total_donations_sum"] : 0;
+  const totalDonationCount = resultRows.length > 0 ? resultRows[0]["total_donations_count"] : 0;
+  const pages = Math.ceil(totalDonors / limit);
+
+  const mappedRows: DonorRow[] = resultRows.map((row) => ({
+    id: row.ID,
+    name: row.full_name,
+    email: row.email,
+    registered: row.date_registered,
+    lastDonation: row.last_donation_date ? new Date(row.last_donation_date) : null, // Ensure Date object or null
+    donationsCount: parseInt(row.donations_count, 10) || 0, // Ensure integer, default to 0 if null/undefined
+    donationsSum: parseFloat(row.donations_sum) || 0.0, // Ensure float, default to 0.0 if null/undefined
+  }));
+
+  return {
+    rows: mappedRows,
+    statistics: {
+      totalDonors,
+      totalDonationSum,
+      totalDonationCount,
+    },
+    pages,
+  };
 }
 
 /**

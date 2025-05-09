@@ -149,42 +149,23 @@ router.post("/auth0/register", async (req, res, next) => {
   }
 });
 
-/**
- * @openapi
- * /donors/search:
- *   get:
- *    tags: [Donors]
- *    description: Search for donors in the database
- *    security:
- *       - auth0_jwt: [admin]
- *    parameters:
- *      - in: query
- *        name: q
- *        required: true
- *        description: A search string which fuzzy matches on name and email
- *        schema:
- *          type: string
- *    responses:
- *      200:
- *        description: Returns a list of donors
- *      401:
- *        description: User not authorized to view resource
- */
-router.post("/search/", authMiddleware.isAdmin, async (req, res, next) => {
+router.post("/list/", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    var donors = await DAO.donors.search(req.body);
-
-    if (donors) {
-      return res.json({
-        status: 200,
-        content: donors,
-      });
-    } else {
-      return res.status(404).json({
-        status: 404,
-        content: "No donors found matching query",
-      });
-    }
+    var results = await DAO.donors.getAll(
+      req.body.sort,
+      req.body.page,
+      req.body.limit,
+      req.body.filter,
+      req.locale,
+    );
+    return res.json({
+      status: 200,
+      content: {
+        rows: results.rows,
+        pages: results.pages,
+        statistics: results.statistics,
+      },
+    });
   } catch (ex) {
     next(ex);
   }

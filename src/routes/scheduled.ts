@@ -18,6 +18,7 @@ import paymentMethods from "../enums/paymentMethods";
 import { AutoGiro_agreements, Payment_follow_up, Payment_intent } from "@prisma/client";
 import { getAllInflationEligibleAgreements } from "../custom_modules/inflationadjustment";
 import { processFundraisingCrawler } from "../custom_modules/adoveo";
+import { RequestLocale } from "../middleware/locale";
 
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
@@ -445,18 +446,18 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
     }, {});
 
     // Go through db donors and update mailchimp status
-    offset = 0;
-
     const subscibersToAdd = Math.max(Math.round(Math.random() * 4 - 1), 0);
     console.log("Adding max", subscibersToAdd, "subscribers to mailchimp");
 
     let donors = [];
+    let page = 0;
     while (true) {
-      const newDonors = await DAO.donors.getAll(count, offset);
-      if (newDonors.length === 0) break;
-      donors = donors.concat(newDonors);
+      const newDonors = await DAO.donors.getAll(null, page, count, null, RequestLocale.NO);
+      if (newDonors.rows.length === 0) break;
+      donors = donors.concat(newDonors.rows);
       if (donors.length < count) break;
-      else offset += count;
+
+      page++;
     }
 
     donors = donors.sort((a, b) => b.registered - a.registered);

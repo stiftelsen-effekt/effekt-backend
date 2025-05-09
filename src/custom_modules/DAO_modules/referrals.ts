@@ -17,13 +17,29 @@ import { DAO } from "../DAO";
  */
 
 /**
- * Gets all referral types
+ * Gets active referral types
  * @returns {Array<ReferralType>} An array of payment method objects
  */
 async function getTypes() {
   let [types] = await DAO.query<Referral_types[]>(`
         SELECT * FROM Referral_types 
             WHERE is_active = 1
+            ORDER BY ordering`);
+
+  return types.map((type) => ({
+    id: type.ID,
+    name: type.name,
+    ordering: type.ordering,
+  }));
+}
+
+/**
+ * Gets all referral types
+ * @returns {Array<ReferralType>} An array of payment method objects
+ */
+async function getAllTypes() {
+  let [types] = await DAO.query<Referral_types[]>(`
+        SELECT * FROM Referral_types 
             ORDER BY ordering`);
 
   return types.map((type) => ({
@@ -176,6 +192,7 @@ async function deleteRecord(referralTypeID, donorID, session) {
 //Helpers
 export const referrals = {
   getTypes,
+  getAllTypes,
   getAggregate,
   getDonorAnswered,
   getDonorAnswers,

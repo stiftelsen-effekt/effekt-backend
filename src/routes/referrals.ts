@@ -2,13 +2,23 @@ import { DAO } from "../custom_modules/DAO";
 
 import express from "express";
 const router = express.Router();
-import bodyParser from "body-parser";
-const urlEncodeParser = bodyParser.urlencoded({ extended: false });
 
 router.get("/types", async (req, res, next) => {
   try {
     let types = await DAO.referrals.getTypes();
 
+    res.json({
+      status: 200,
+      content: types,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+router.get("/types/all", async (req, res, next) => {
+  try {
+    let types = await DAO.referrals.getAllTypes();
     res.json({
       status: 200,
       content: types,
