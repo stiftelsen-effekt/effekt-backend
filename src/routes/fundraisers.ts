@@ -265,8 +265,8 @@ function generateTransactionsTable(
   // Headers
   let table = `
 ╔═════════════════════════════ TRANSACTIONS ═══════════════════════════════════════════════════════════════════════════════════════════════════────────
-║ Date        │ Amount        │ Name                          │ Donor name                    │ Donor email                   │ Message      
-║─────────────┼───────────────┼───────────────────────────────┼───────────────────────────────┼───────────────────────────────┼──────────────
+║ Date        │ Amount        │ Name                          │ Message      
+║─────────────┼───────────────┼───────────────────────────────┼──────────────
 `;
 
   // Rows
@@ -275,11 +275,9 @@ function generateTransactionsTable(
     const date = DateTime.fromJSDate(new Date(t.date)).toFormat("dd.MM yyyy").padEnd(12);
     const amount = formatCurrency(t.amount).padStart(14);
     const name = (t.name || "Anonymous").slice(0, 29).padEnd(30);
-    const donorName = (t.donorName || "Anonymous").slice(0, 29).padEnd(30);
-    const donorEmail = (t.donorEmail || "Anonymous").slice(0, 29).padEnd(30);
     const message = t.message || "";
 
-    table += `║ ${date}│ ${amount}│ ${name}│ ${donorName}│ ${donorEmail}│ ${message} \n`;
+    table += `║ ${date}│ ${amount}│ ${name}│ ${message} \n`;
   });
 
   table += `╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════────────`;
