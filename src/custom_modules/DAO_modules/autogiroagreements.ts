@@ -443,6 +443,7 @@ export const autogiroagreements = {
           ON CH.agreementID = AG.ID
       
       WHERE \`active\` = 1 
+      AND NOT (MONTH(current_time()) = MONTH(AG.created) AND DAY(current_time()) > AG.payment_date)
       AND CH.ID IS NULL
       ORDER BY AG.payment_date ASC`);
 
