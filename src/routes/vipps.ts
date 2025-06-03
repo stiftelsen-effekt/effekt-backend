@@ -152,6 +152,90 @@ router.get(
   },
 );
 
+router.get("/matchingrules", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const matchingRules = await DAO.vipps.getMatchingRules();
+    res.json({
+      status: 200,
+      content: matchingRules,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+router.post("/matchingrules", authMiddleware.isAdmin, jsonBody, async (req, res, next) => {
+  try {
+    const matchingRule = req.body;
+
+    if (!matchingRule.resolveKID) {
+      return res.status(400).json({
+        status: 400,
+        content: "Missing resolveKID",
+      });
+    }
+
+    if (!matchingRule.periodFrom || !matchingRule.periodTo) {
+      return res.status(400).json({
+        status: 400,
+        content: "Missing periodFrom or periodTo",
+      });
+    }
+
+    if (matchingRule.periodFrom >= matchingRule.periodTo) {
+      return res.status(400).json({
+        status: 400,
+        content: "periodFrom must be before periodTo",
+      });
+    }
+
+    // Validate resolveKID
+    const exists = await DAO.distributions.KIDexists(matchingRule.resolveKID);
+    if (!exists) {
+      return res.status(400).json({
+        status: 400,
+        content: `Distribution with KID ${matchingRule.resolveKID} does not exist`,
+      });
+    }
+
+    const result = await DAO.vipps.addMatchingRule(matchingRule);
+    res.json({
+      status: 200,
+      content: result,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+router.delete("/matchingrules/:id", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const id = req.params.id;
+
+    if (isNaN(parseInt(id))) {
+      return res.status(400).json({
+        status: 400,
+        content: "Invalid ID",
+      });
+    }
+
+    const result = await DAO.vipps.deleteMatchingRule(parseInt(id));
+    if (!result) {
+      return res.status(404).json({
+        status: 404,
+        content: "Matching rule not found",
+      });
+    } else {
+      res.json({
+        status: 200,
+        content: "Matching rule deleted successfully",
+      });
+    }
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 router.get("/histogram/agreements", async (req, res, next) => {
   try {
     let buckets = await DAO.vipps.getAgreementSumHistogram();

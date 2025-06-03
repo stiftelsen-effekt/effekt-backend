@@ -701,6 +701,42 @@ async function getMissingCharges() {
   return results;
 }
 
+async function getMatchingRules(): Promise<
+  {
+    id: number;
+    salesLocation: string | null;
+    message: string | null;
+    periodFrom: Date;
+    periodTo: Date;
+    resolveKID: string;
+    resolveAdoveoFundraiserID: number | null;
+    precedence: number | null;
+  }[]
+> {
+  let [results] = await DAO.query(`
+        SELECT 
+            ID, 
+            SalesLocation, 
+            Message, 
+            PeriodFrom, 
+            PeriodTo, 
+            ResolveKID, 
+            ResolveAdoveoFundraiserID, 
+            precedence
+        FROM Vipps_matching_rules
+    `);
+
+  return results.map((row) => ({
+    id: row.ID,
+    salesLocation: row.SalesLocation,
+    message: row.Message,
+    periodFrom: row.PeriodFrom,
+    periodTo: row.PeriodTo,
+    resolveKID: row.ResolveKID,
+    resolveAdoveoFundraiserID: row.ResolveAdoveoFundraiserID,
+    precedence: row.precedence,
+  }));
+}
 //endregion
 
 //region Add
@@ -806,6 +842,40 @@ async function addCharge(chargeID, agreementID, amountNOK, KID, dueDate, status,
     return true;
   } catch (ex) {
     console.error("Error inserting charge");
+    return false;
+  }
+}
+
+async function addMatchingRule({
+  salesLocation,
+  message,
+  periodFrom,
+  periodTo,
+  resolveKID,
+  resolveAdoveoFundraiserID,
+  precedence,
+}) {
+  try {
+    const [result] = await DAO.query(
+      `
+            INSERT INTO Vipps_matching_rules
+                (SalesLocation, Message, PeriodFrom, PeriodTo, ResolveKID, ResolveAdoveoFundraiserID, precedence)
+            VALUES
+                (?,?,?,?,?,?,?)`,
+      [
+        salesLocation,
+        message,
+        periodFrom,
+        periodTo,
+        resolveKID,
+        resolveAdoveoFundraiserID,
+        precedence,
+      ],
+    );
+
+    return result.insertId;
+  } catch (ex) {
+    console.error("Error inserting matching rule", ex);
     return false;
   }
 }
@@ -1035,7 +1105,26 @@ async function updateChargeStatus(newStatus, agreementID, chargeID) {
 //endregion
 
 //region Delete
+async function deleteMatchingRule(id: number): Promise<boolean> {
+  try {
+    const [res] = await DAO.query(
+      `
+            DELETE FROM Vipps_matching_rules
+            WHERE ID = ?
+        `,
+      [id],
+    );
 
+    if (res.affectedRows === 0) {
+      console.error(`No matching rule found with ID ${id}`);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error(`Error deleting matching rule with ID ${id}:`, error);
+    return false;
+  }
+}
 //endregion
 
 //Helpers
@@ -1070,10 +1159,12 @@ export const vipps = {
   getActiveAgreements,
   getAgreementReport,
   getMissingCharges,
+  getMatchingRules,
   addToken,
   addOrder,
   addAgreement,
   addCharge,
+  addMatchingRule,
   updateOrderTransactionStatusHistory,
   updateVippsOrderDonation,
   updateAgreementPrice,
@@ -1084,4 +1175,5 @@ export const vipps = {
   updateAgreementForcedCharge,
   updateChargeStatus,
   updateAgreementCancellationDate,
+  deleteMatchingRule,
 };
