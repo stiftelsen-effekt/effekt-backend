@@ -151,6 +151,13 @@ router.post("/auth0/register", async (req, res, next) => {
 
 router.post("/list/", authMiddleware.isAdmin, async (req, res, next) => {
   try {
+    if (typeof req.body.page === "undefined" || typeof req.body.limit === "undefined") {
+      return res.status(400).json({
+        status: 400,
+        content: "Missing required fields: page, limit",
+      });
+    }
+
     var results = await DAO.donors.getAll(
       req.body.sort,
       req.body.page,

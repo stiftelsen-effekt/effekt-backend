@@ -7,9 +7,10 @@ import { RequestLocale } from "../../middleware/locale";
 //region Get
 
 interface DonorFilters {
-  donorId?: number;
-  name?: string; // Fulltext search
-  email?: string; // Fulltext search
+  donorId: number | null;
+  name?: string;
+  email?: string;
+  query?: string; // For fulltext search over name and email
   registeredDate?: { from?: Date; to?: Date };
   donationsDateRange?: { from?: Date; to?: Date };
   lastDonationDate?: { from?: Date; to?: Date };
@@ -124,18 +125,33 @@ async function getAll(
 
   if (filter) {
     // Donor ID (exact match)
-    if (filter.donorId !== undefined) {
+    if (filter.donorId !== null) {
       whereClauses.push(`Donors.ID = ${sqlString.escape(filter.donorId)}`);
     }
 
-    // Donor name (fulltext search)
+    // Donor name
     if (filter.name && filter.name.length > 0) {
       whereClauses.push(`Donors.full_name LIKE ${sqlString.escape(`%${filter.name}%`)}`);
     }
 
-    // Donor email (fulltext search)
+    // Donor email
     if (filter.email && filter.email.length > 0) {
       whereClauses.push(`Donors.email LIKE ${sqlString.escape(`%${filter.email}%`)}`);
+    }
+
+    // Fulltext search query (matches both name and email)
+    if (filter.query && filter.query.length > 0) {
+      // Remove @ from query at all locations
+      const matchSanitized = filter.query.replace(/@/g, " ");
+      if (filter.query.match("^[0-9]+$")) {
+        whereClauses.push(`Donors.ID = ${sqlString.escape(matchSanitized)}`);
+      } else {
+        whereClauses.push(
+          `MATCH (Donors.full_name, Donors.email) AGAINST (${sqlString.escape(
+            matchSanitized,
+          )} IN BOOLEAN MODE)`,
+        );
+      }
     }
 
     // Donor registered date (from to range)
