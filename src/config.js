@@ -28,7 +28,6 @@ module.exports = {
   db_name: process.env.DB_NAME,
 
   //API keys
-  mailgun_api_key: process.env.MAILGUN_API_KEY,
   mailersend_api_key: process.env.MAILERSEND_API_KEY,
   mailchimp_api_key: process.env.MAILCHIMP_API_KEY,
   mailchimp_audience_id: process.env.MAILCHIMP_AUDIENCE_ID,

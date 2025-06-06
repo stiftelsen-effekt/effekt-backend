@@ -1,9 +1,5 @@
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import {
-  sendOcrBackup,
-  sendPaymentIntentFollowUp,
-  sendPlaintextErrorMail,
-} from "../custom_modules/mail";
+import { sendPaymentIntentFollowUp } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
 import { getDueDates } from "../custom_modules/avtalegiro";
 import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_modules/nets";
@@ -74,7 +70,6 @@ router.post("/ocr", authMiddleware.isAdmin, async (req, res, next) => {
     };
 
     await DAO.logging.add("OCR", result);
-    await sendOcrBackup(JSON.stringify(result, null, 2));
     res.json(result);
   } catch (ex) {
     next({ ex });
@@ -157,7 +152,6 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
       }
 
       await DAO.logging.add("AvtaleGiro", result);
-      await sendOcrBackup(JSON.stringify(result, null, 2));
     }
     res.send("OK");
   } catch (ex) {
@@ -258,7 +252,6 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
       }
 
       await DAO.logging.add("AvtaleGiro - Retry", result);
-      await sendOcrBackup(JSON.stringify(result, null, 2));
     }
     res.send("OK");
   } catch (ex) {
@@ -715,14 +708,6 @@ router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next
   };
 
   await DAO.logging.add("Auth0 check", result);
-
-  if (mismatchedUsers.length > 0) {
-    await sendPlaintextErrorMail(
-      JSON.stringify(mismatchedUsers, null, 2),
-      "Mismatched users",
-      "Mismatched users",
-    );
-  }
 
   res.json({
     status: 200,

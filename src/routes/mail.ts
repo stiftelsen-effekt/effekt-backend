@@ -4,9 +4,6 @@ import {
   sendDonationRegistered,
   sendAvtalegiroNotification,
   sendFacebookTaxConfirmation,
-  sendTaxYearlyReportNoticeNoUser,
-  sendTaxYearlyReportNoticeWithUser,
-  sendDonorMissingTaxUnitNotice,
   sendSanitySecurityNotice,
 } from "../custom_modules/mail";
 
@@ -73,6 +70,11 @@ router.post("/facebook/tax/confirmation", authMiddleware.isAdmin, async (req, re
 });
 
 router.post("/taxreport/notice", authMiddleware.isAdmin, async (req, res, next) => {
+  return res.status(501).json({
+    status: 501,
+    content: "Not implemented",
+  });
+
   try {
     const reportsWithUserOnProfilePage = await DAO.tax.getReportsWithUserOnProfilePage();
     const reportsWithoutUserOnProfilePage = []; //await DAO.tax.getReportsWithoutUserOnProfilePage();
@@ -98,10 +100,12 @@ router.post("/taxreport/notice", authMiddleware.isAdmin, async (req, res, next) 
       for (let i = 0; i < MAX_CONCURRENT; i++) {
         if (reportsWithUserOnProfilePage.length > 0) {
           const report = reportsWithUserOnProfilePage.pop();
-          promises.push(sendTaxYearlyReportNoticeWithUser(report));
+          // TODO: Replace with new mailersend template
+          // promises.push(sendTaxYearlyReportNoticeWithUser(report));
         } else if (reportsWithoutUserOnProfilePage.length > 0) {
           const report = reportsWithoutUserOnProfilePage.pop();
-          promises.push(sendTaxYearlyReportNoticeNoUser(report));
+          // TODO: Replace with new mailersend template
+          // romises.push(sendTaxYearlyReportNoticeNoUser(report));
         } else {
           break;
         }
@@ -138,6 +142,11 @@ router.post("/taxreport/notice", authMiddleware.isAdmin, async (req, res, next) 
  * and a minimum sum for the donations in the given year to qualify for tax deduction (500 for 2023 f.ex.)
  */
 router.post("/notice/missingtaxunit", authMiddleware.isAdmin, async (req, res, next) => {
+  return res.status(501).json({
+    status: 501,
+    content: "Not implemented",
+  });
+
   const { excludedEmails, year, minSum } = req.body;
   if (!year || !minSum) {
     res.status(400).json({
@@ -173,7 +182,8 @@ router.post("/notice/missingtaxunit", authMiddleware.isAdmin, async (req, res, n
     for (let i = 0; i < MAX_CONCURRENT; i++) {
       if (donorsWithDonationsMissingTaxUnit.length > 0) {
         const donor = donorsWithDonationsMissingTaxUnit.pop();
-        promises.push(sendDonorMissingTaxUnitNotice(donor, year));
+        // Replace with new mailersend template
+        // promises.push(sendDonorMissingTaxUnitNotice(donor, year));
       } else {
         break;
       }

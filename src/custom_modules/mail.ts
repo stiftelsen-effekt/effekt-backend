@@ -693,6 +693,10 @@ export async function sendPaymentIntentFollowUp(
  * @param {string} email
  */
 export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
+  console.warn("Deprecated mailgun facebook tax confirmation email, use mailersend instead");
+  return true; // TODO: Remove this when we have migrated all facebook emails to mailersend
+
+  /*
   try {
     await send({
       subject: "Gi Effektivt - Facebook-donasjoner registrert for skattefradrag",
@@ -711,6 +715,7 @@ export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
     console.error(ex);
     return ex.statusCode;
   }
+  */
 }
 
 /**
@@ -719,6 +724,10 @@ export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
  * @param {string} newValue New value of what was changed (if applicable)
  */
 export async function sendVippsAgreementChange(agreementCode, change, newValue = null) {
+  console.warn("Deprecated mailgun vipps agreement change email, use mailersend instead");
+  return true; // TODO: Remove this when we have migrated all vipps emails to mailersend
+
+  /*
   try {
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
     const agreement = await DAO.vipps.getAgreement(agreementId);
@@ -773,6 +782,7 @@ export async function sendVippsAgreementChange(agreementCode, change, newValue =
     console.error(ex);
     return ex.statusCode;
   }
+  */
 }
 
 /**
@@ -781,6 +791,10 @@ export async function sendVippsAgreementChange(agreementCode, change, newValue =
  * @param {string} inputData The input data while the error happened
  */
 export async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
+  console.warn("Deprecated mailgun vipps problem report email, use mailersend instead");
+  return true; // TODO: Remove this when we have migrated all vipps emails to mailersend
+
+  /*
   try {
     const timestamp = formatTimestamp(new Date());
 
@@ -815,6 +829,7 @@ export async function sendVippsErrorWarning(errorType, errorMessage, inputData) 
     console.error(ex);
     return ex.statusCode;
   }
+  */
 }
 
 /**
@@ -824,6 +839,10 @@ export async function sendVippsErrorWarning(errorType, errorMessage, inputData) 
  * @param {VippsAgreement} agreement Vipps agreement data
  */
 export async function sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agreement) {
+  console.warn("Deprecated mailgun vipps problem report email, use mailersend instead");
+  return true; // TODO: Remove this when we have migrated all vipps emails to mailersend
+
+  /*
   try {
     const timestamp = formatTimestamp(new Date());
 
@@ -855,36 +874,7 @@ export async function sendVippsProblemReport(senderUrl, senderEmail, donorMessag
     console.error(ex);
     return ex.statusCode;
   }
-}
-
-/**
- * Sends donors confirmation of their tax deductible donation for a given year
- * @param {TaxDeductionRecord} taxDeductionRecord
- * @param {number} year The year the tax deductions are counted for
- */
-export async function sendTaxDeductions(taxDeductionRecord, year) {
-  try {
-    await send({
-      reciever: taxDeductionRecord.email,
-      subject: `Gi Effektivt - Årsoppgave, skattefradrag donasjoner ${year}`,
-      templateName: "taxDeduction",
-      templateData: {
-        header: "Hei " + taxDeductionRecord.firstname + ",",
-        donationSum: formatCurrency(taxDeductionRecord.amount),
-        fullname: taxDeductionRecord.fullname,
-        ssn: taxDeductionRecord.ssn,
-        year: year.toString(),
-        nextYear: (year + 1).toString(),
-        reusableHTML,
-      },
-    });
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to tax deduction mail");
-    console.error(ex);
-    return ex.statusCode;
-  }
+  */
 }
 
 /**
@@ -897,6 +887,9 @@ export async function sendAvtaleGiroChange(
   change: "CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES",
   newValue: string | number = "",
 ) {
+  console.warn("Deprecated mailgun avtalegiro change email, use mailersend instead");
+  return true; // TODO: Remove this when we have migrated all avtalegiro emails to mailersend
+  /*
   try {
     const agreement = await DAO.avtalegiroagreements.getByKID(KID);
     const donor = await DAO.donors.getByKID(KID);
@@ -942,6 +935,7 @@ export async function sendAvtaleGiroChange(
     console.error(ex);
     return ex.statusCode;
   }
+  */
 }
 
 /**
@@ -1007,6 +1001,10 @@ export async function sendAvtalegiroNotification(
  * @returns {true | number} True if successfull, or an error code if failed
  */
 export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
+  console.warn("Deprecated mailgun avtalegiro registered email, use mailersend instead");
+  return true; // TODO: Remove this when we have migrated all avtalegiro emails to mailersend
+
+  /*
   let donor;
   let split: {
     causeAreas: {
@@ -1081,6 +1079,7 @@ export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
     console.error(ex);
     return ex.statusCode;
   }
+  */
 }
 
 /**
@@ -1221,6 +1220,9 @@ export async function sendAgreementInflationAdjustment(
   }
 }
 
+/*
+Deprecated mailgun functionality, replaced by MailerSend
+
 export async function sendTaxYearlyReportNoticeWithUser(report: EmailTaxUnitReport) {
   const formattedUnits = report.units.map((u) => {
     return {
@@ -1313,6 +1315,7 @@ export async function sendDonorMissingTaxUnitNotice(
     return ex.statusCode;
   }
 }
+*/
 
 /**
  * When a user requests a password reset, they might never have registered in the first place
@@ -1335,99 +1338,12 @@ export async function sendPasswordResetNoUserEmail(email: string) {
 }
 
 /**
- * Sends OCR file for backup
- * @param {Buffer} fileContents
- */
-export async function sendOcrBackup(fileContents) {
-  var data = {
-    from: "Gi Effektivt <donasjon@gieffektivt.no>",
-    to: "hakon.harnes@effektivaltruisme.no",
-    bcc: "kopi@gieffektivt.no",
-    subject: "OCR backup",
-    text: fileContents.toString(),
-    inline: [],
-  };
-
-  let result = await request.post({
-    url: "https://api.eu.mailgun.net/v3/mg.gieffektivt.no/messages",
-    auth: {
-      user: "api",
-      password: config.mailgun_api_key,
-    },
-    formData: data,
-    resolveWithFullResponse: true,
-  });
-  if (result.statusCode === 200) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-/**
  * @typedef MailOptions
  * @prop {string} reciever
  * @prop {string} subject
  * @prop {string} templateName Name of html template, found in views folder
  * @prop {object} templateData Object with template data on the form {key: value, key2: value2 ...}
  */
-
-/**
- * Sends a mail to
- * @param {MailOptions} options
- * @returns {boolean | number} True if success, status code else
- */
-async function send(options: {
-  reciever: string;
-  subject: string;
-  templateName: string;
-  templateData: Record<string, any>;
-}) {
-  if (!config.mailgun_api_key && config.env === "development") {
-    console.log(
-      `Missing mailgun API key not set, not sending email to ${options.reciever}: ${options.subject}`,
-    );
-    return true;
-  }
-
-  const templateRoot = `./${process.env.NODEMON ? "src" : "dist"}/views/mail/${
-    options.templateName
-  }`;
-
-  var templateRawHTML = await fs.readFile(templateRoot + "/index.html", "utf8");
-  var templateHTML = template(templateRawHTML, options.templateData);
-
-  var data = {
-    from: "Gi Effektivt <donasjon@gieffektivt.no>",
-    to: options.reciever,
-    bcc: "kopi@gieffektivt.no",
-    subject: options.subject,
-    text: "Your mail client does not support HTML email",
-    html: templateHTML,
-    inline: [],
-  };
-
-  var filesInDir = await fs.readdir(templateRoot + "/images/");
-  for (var i = 0; i < filesInDir.length; i++) {
-    data.inline.push(fs.createReadStream(templateRoot + "/images/" + filesInDir[i]));
-  }
-
-  //Exceptions bubble up
-  let result = await request.post({
-    url: "https://api.eu.mailgun.net/v3/mg.gieffektivt.no/messages",
-    auth: {
-      user: "api",
-      password: config.mailgun_api_key,
-    },
-    formData: data,
-    resolveWithFullResponse: true,
-  });
-  if (result.statusCode === 200) {
-    return true;
-  } else {
-    return false;
-  }
-}
 
 export const sendSanitySecurityNotice = async (data: SanitySecurityNoticeVariables) => {
   try {
@@ -1488,35 +1404,6 @@ async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse
   } catch (ex) {
     console.error("Failed to send mailersend email");
     console.error(ex);
-    return false;
-  }
-}
-
-export async function sendPlaintextErrorMail(
-  errorMessage: string,
-  errorType: string,
-  errorContext: string,
-) {
-  const data = {
-    from: "Gi Effektivt <donasjon@gieffektivt.no>",
-    to: "hakon.harnes@effektivaltruisme.no",
-    subject: `Error: ${errorType}`,
-    text: `Error: ${errorType}\nContext: ${errorContext}\n\n${errorMessage}`,
-  };
-
-  const result = await request.post({
-    url: "https://api.eu.mailgun.net/v3/mg.gieffektivt.no/messages",
-    auth: {
-      user: "api",
-      password: config.mailgun_api_key,
-    },
-    formData: data,
-    resolveWithFullResponse: true,
-  });
-
-  if (result.statusCode === 200) {
-    return true;
-  } else {
     return false;
   }
 }

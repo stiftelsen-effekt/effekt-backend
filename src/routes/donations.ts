@@ -741,7 +741,7 @@ router.delete("/:id", authMiddleware.isAdmin, async (req, res, next) => {
  *      404:
  *        description: Donation with given id not found
  *      500:
- *        description: Failed to send donation reciept. Returns the error code from the request to mailgun (our email service).
+ *        description: Failed to send donation reciept. Returns the error code from the request to mailersend (our email service).
  *        content:
  *           application/json:
  *             schema:

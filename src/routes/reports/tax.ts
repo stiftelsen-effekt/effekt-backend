@@ -1,4 +1,3 @@
-import { sendTaxDeductions } from "../../custom_modules/mail";
 import { parseReport } from "../../custom_modules/parsers/tax";
 
 module.exports = async (req, res, next) => {
@@ -18,9 +17,15 @@ module.exports = async (req, res, next) => {
     for (let i = 0; i < records.length; i++) {
       const record = records[i];
 
+      throw new Error(
+        "This endpoint is deprecated and no longer in use. Please use the new mailersend template for sending tax deduction emails.",
+      );
+      // Replace with new mailersend template
+      /*
       let result = await sendTaxDeductions(record, year);
       if (result === true) success++;
       else failed++;
+      */
     }
 
     res.json({

@@ -1,4 +1,3 @@
-import { sendOcrBackup } from "./mail";
 import { getConnection } from "./sftp";
 
 /**
@@ -22,8 +21,6 @@ export async function getOCRFile(name) {
   const buffer = await connection.get(`/Outbound/${name}`);
   connection.end();
 
-  await sendOcrBackup(buffer);
-
   return buffer;
 }
 
@@ -44,8 +41,6 @@ export async function getLatestOCRFile() {
 
   const buffer = await connection.get(`/Outbound/${latest.name}`);
   connection.end();
-
-  await sendOcrBackup(buffer);
 
   return buffer;
 }
