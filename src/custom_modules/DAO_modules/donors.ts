@@ -11,6 +11,7 @@ interface DonorFilters {
   name?: string;
   email?: string;
   query?: string; // For fulltext search over name and email
+  newsletter?: boolean; // Filter by newsletter subscription status
   registeredDate?: { from?: Date; to?: Date };
   donationsDateRange?: { from?: Date; to?: Date };
   lastDonationDate?: { from?: Date; to?: Date };
@@ -80,7 +81,6 @@ async function getAll(
   let donationDateFilterSqlForCTE = ""; // For filtering donations within the CTE
   let donationDateFilterSqlForSubqueries = ""; // For filtering donations within subqueries
 
-  // NEW: Prepare donation consideration date range filters
   if (filter?.donationsDateRange) {
     const from = filter.donationsDateRange.from;
     const to = filter.donationsDateRange.to;
@@ -106,8 +106,6 @@ async function getAll(
     }
   }
 
-  // CTE for donor aggregates (last donation, count, sum)
-  // MODIFIED: Added donationDateFilterSqlForCTE
   const donorAggregatesCTE = `
     DonorAggregates AS (
       SELECT
@@ -120,21 +118,17 @@ async function getAll(
       GROUP BY Donors.ID
     )
   `;
-  // Always join with aggregates CTE
   joins.push(`LEFT JOIN DonorAggregates Aggregates ON Donors.ID = Aggregates.donor_id_agg`);
 
   if (filter) {
-    // Donor ID (exact match)
     if (filter.donorId !== null) {
       whereClauses.push(`Donors.ID = ${sqlString.escape(filter.donorId)}`);
     }
 
-    // Donor name
     if (filter.name && filter.name.length > 0) {
       whereClauses.push(`Donors.full_name LIKE ${sqlString.escape(`%${filter.name}%`)}`);
     }
 
-    // Donor email
     if (filter.email && filter.email.length > 0) {
       whereClauses.push(`Donors.email LIKE ${sqlString.escape(`%${filter.email}%`)}`);
     }
@@ -154,7 +148,10 @@ async function getAll(
       }
     }
 
-    // Donor registered date (from to range)
+    if (filter.newsletter !== undefined) {
+      whereClauses.push(`Donors.newsletter = ${filter.newsletter ? 1 : 0}`);
+    }
+
     if (filter.registeredDate) {
       if (filter.registeredDate.from) {
         whereClauses.push(
@@ -168,8 +165,6 @@ async function getAll(
       }
     }
 
-    // Last donation date (from to range) - uses Aggregates CTE
-    // This will now use the potentially filtered last_donation_date from the CTE
     if (filter.lastDonationDate) {
       if (filter.lastDonationDate.from) {
         whereClauses.push(
@@ -183,8 +178,6 @@ async function getAll(
       }
     }
 
-    // Donations count (from to range) - uses Aggregates CTE
-    // This will now use the potentially filtered donations_count
     if (filter.donationsCount) {
       if (filter.donationsCount.from) {
         whereClauses.push(
@@ -198,8 +191,6 @@ async function getAll(
       }
     }
 
-    // Donations sum (from to range) - uses Aggregates CTE
-    // This will now use the potentially filtered donations_sum
     if (filter.donationsSum) {
       if (filter.donationsSum.from) {
         whereClauses.push(
@@ -230,7 +221,6 @@ async function getAll(
     }
 
     // Donation recipient (a list of integers, having any donation with a distribution to any of the orgs is fine for inclusion)
-    // MODIFIED: Added donationDateFilterSqlForSubqueries
     if (filter.recipientOrgIDs) {
       if (filter.recipientOrgIDs.length === 0) {
         // No donor can match an empty set of org IDs if the filter is meant to be inclusive
@@ -269,6 +259,7 @@ async function getAll(
         Donors.full_name,
         Donors.email,
         Donors.date_registered,
+        Donors.newsletter,
         Aggregates.last_donation_date,
         Aggregates.donations_count,
         Aggregates.donations_sum
@@ -310,9 +301,10 @@ async function getAll(
     name: row.full_name,
     email: row.email,
     registered: row.date_registered,
-    lastDonation: row.last_donation_date ? new Date(row.last_donation_date) : null, // Ensure Date object or null
-    donationsCount: parseInt(row.donations_count, 10) || 0, // Ensure integer, default to 0 if null/undefined
-    donationsSum: parseFloat(row.donations_sum) || 0.0, // Ensure float, default to 0.0 if null/undefined
+    lastDonation: row.last_donation_date ? new Date(row.last_donation_date) : null,
+    donationsCount: parseInt(row.donations_count, 10) || 0,
+    donationsSum: parseFloat(row.donations_sum) || 0.0,
+    newsletter: row.newsletter === 1,
   }));
 
   return {
