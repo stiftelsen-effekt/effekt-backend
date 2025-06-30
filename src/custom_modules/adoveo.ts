@@ -569,7 +569,7 @@ async function fetchAdoveoTransactions(token: string, adoveoId: number, lastImpo
       (transaction) => statusCompleted(transaction.Status) || transaction.Status === "RESERVED",
     )
     .map<AdoveoFundraiserTransactionReportRow>((transaction) => ({
-      date: transaction.Created,
+      created: transaction.Created,
       senderName: transaction.Name || "",
       senderEmail: transaction.Email || "adoveo+unknown@gieffektivt.no",
       senderPhone: transaction.Telephone,
@@ -661,7 +661,7 @@ async function addDonation(
 }
 
 function getTimestamp(row: AdoveoFundraiserTransactionReportRow) {
-  const formattedTimestamp = DateTime.fromFormat(row.date, "yyyy-MM-dd HH:mm:ss");
+  const formattedTimestamp = DateTime.fromFormat(row.created, "yyyy-MM-dd HH:mm:ss");
   if (!formattedTimestamp.isValid) {
     throw new Error("Invalid date format");
   }
@@ -671,7 +671,7 @@ function getTimestamp(row: AdoveoFundraiserTransactionReportRow) {
 function getFundraiserRowHash(row: AdoveoFundraiserTransactionReportRow, fundraiserId: number) {
   const hash = createHash("md5");
   hash.update(`fundraiser-${fundraiserId}`);
-  hash.update(row.date);
+  hash.update(row.created);
   hash.update(row.senderName);
   hash.update(row.senderEmail);
   hash.update(row.senderPhone);
@@ -682,7 +682,7 @@ function getFundraiserRowHash(row: AdoveoFundraiserTransactionReportRow, fundrai
 function getGiftcardRowHash(row: AdoveoGiftCardsTransactionReportRow) {
   const hash = createHash("md5");
   hash.update(`giftcard`);
-  hash.update(row.date);
+  hash.update(row.created);
   hash.update(row.senderName);
   hash.update(row.senderEmail);
   hash.update(row.senderPhone);

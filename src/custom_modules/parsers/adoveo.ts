@@ -1,7 +1,7 @@
 import { parse } from "csv-parse/sync";
 
 export type AdoveoFundraiserTransactionReportRow = {
-  date: string;
+  created: string;
   senderName: string;
   senderEmail: string;
   senderPhone: string;
@@ -63,7 +63,7 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
   /**
    * Verify that the parsed data conforms to the following format:
    * {
-   *  date: '2023-11-12 13:21:56',
+   *  created: '2023-11-12 13:21:56',
    *  senderName: 'John Doe',
    *  senderEmail: 'john-doe@example.com',
    *  senderPhone: '00123456789',
@@ -74,7 +74,7 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
    */
 
   const requiredFields = [
-    "date",
+    "created",
     "senderName",
     "senderEmail",
     "senderPhone",
@@ -107,7 +107,7 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
 };
 
 export type AdoveoGiftCardsTransactionReportRow = {
-  date: string;
+  created: string;
   senderName: string;
   senderEmail: string;
   senderPhone: string;
@@ -174,7 +174,7 @@ export const parseGiftCardsReport = (report): AdoveoGiftCardsTransactionReportRo
   /**
    * Verify that the parsed data conforms to the following format:
    * {
-   *  date: '2023-11-12 13:21:56',
+   *  created: '2023-11-12 13:21:56',
    *  senderName: 'John Doe',
    *  senderEmail: 'john-doe@example.com',
    *  senderPhone: '00123456789',
@@ -189,7 +189,7 @@ export const parseGiftCardsReport = (report): AdoveoGiftCardsTransactionReportRo
    * */
 
   const requiredFields = [
-    "date",
+    "created",
     "senderName",
     "senderEmail",
     "senderPhone",
