@@ -80,7 +80,6 @@ export const parseFundraiserReport = (report): AdoveoFundraiserTransactionReport
     "senderPhone",
     "amount",
     "status",
-    "location",
   ];
   for (let row of data) {
     for (let field of requiredFields) {
@@ -198,7 +197,6 @@ export const parseGiftCardsReport = (report): AdoveoGiftCardsTransactionReportRo
     "message",
     "amount",
     "status",
-    "location",
     "couponSend",
   ];
 
