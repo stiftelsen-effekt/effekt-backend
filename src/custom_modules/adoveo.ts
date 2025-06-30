@@ -174,7 +174,7 @@ async function addFundraiserRecord({
         Sender_email: row.senderEmail,
         Sender_phone: row.senderPhone,
         Status: row.status,
-        Location: row.location,
+        Location: row.location || "",
         Hash: hashString,
       };
 
