@@ -46,6 +46,7 @@ async function getAllTypes() {
     id: type.ID,
     name: type.name,
     ordering: type.ordering,
+    is_active: type.is_active,
   }));
 }
 
@@ -189,6 +190,105 @@ async function deleteRecord(referralTypeID, donorID, session) {
 
 //endregion
 
+//region Referral Types CRUD
+
+/**
+ * Creates a new referral type
+ * @param {string} name - The name of the referral type
+ * @param {number} ordering - The display order
+ * @returns {object} The created referral type
+ */
+async function createType(name: string, ordering: number) {
+  const result = await DAO.query(
+    `INSERT INTO Referral_types (name, ordering, is_active) VALUES (?, ?, ?)`,
+    [name, ordering, true],
+  );
+
+  if (result[0].affectedRows > 0) {
+    return {
+      id: result[0].insertId,
+      name,
+      ordering,
+      is_active: true,
+    };
+  }
+  throw new Error("Failed to create referral type");
+}
+
+/**
+ * Updates an existing referral type
+ * @param {number} id - The ID of the referral type
+ * @param {object} data - The data to update
+ * @returns {boolean} Indicates whether the update was successful
+ */
+async function updateType(
+  id: number,
+  data: { name?: string; ordering?: number; is_active?: boolean },
+) {
+  const fields = [];
+  const values = [];
+
+  if (data.name !== undefined) {
+    fields.push("name = ?");
+    values.push(data.name);
+  }
+  if (data.ordering !== undefined) {
+    fields.push("ordering = ?");
+    values.push(data.ordering);
+  }
+  if (data.is_active !== undefined) {
+    fields.push("is_active = ?");
+    values.push(data.is_active);
+  }
+
+  if (fields.length === 0) return false;
+
+  values.push(id);
+  const result = await DAO.query(
+    `UPDATE Referral_types SET ${fields.join(", ")} WHERE ID = ?`,
+    values,
+  );
+
+  return result[0].affectedRows > 0;
+}
+
+/**
+ * Toggles the active status of a referral type
+ * @param {number} id - The ID of the referral type
+ * @returns {boolean} Indicates whether the toggle was successful
+ */
+async function toggleTypeActive(id: number) {
+  const result = await DAO.query(
+    `UPDATE Referral_types SET is_active = NOT is_active WHERE ID = ?`,
+    [id],
+  );
+
+  return result[0].affectedRows > 0;
+}
+
+/**
+ * Gets a single referral type by ID
+ * @param {number} id - The ID of the referral type
+ * @returns {object|null} The referral type or null if not found
+ */
+async function getTypeById(id: number) {
+  const [types] = await DAO.query<Referral_types[]>(`SELECT * FROM Referral_types WHERE ID = ?`, [
+    id,
+  ]);
+
+  if (types.length > 0) {
+    return {
+      id: types[0].ID,
+      name: types[0].name,
+      ordering: types[0].ordering,
+      is_active: types[0].is_active,
+    };
+  }
+  return null;
+}
+
+//endregion
+
 //Helpers
 export const referrals = {
   getTypes,
@@ -200,4 +300,8 @@ export const referrals = {
   updateRecordComment,
   checkRecordExist,
   deleteRecord,
+  createType,
+  updateType,
+  toggleTypeActive,
+  getTypeById,
 };
