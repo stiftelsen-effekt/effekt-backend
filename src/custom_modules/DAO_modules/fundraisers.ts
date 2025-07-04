@@ -1,5 +1,6 @@
 import { Donors, Fundraisers, Organizations } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
+import * as crypto from "crypto";
 
 // Define the filter type (remains the same)
 type FundraiserListFilter = {
@@ -16,6 +17,7 @@ type FundraiserStatsRow = {
   fundraiser_id: number;
   fundraiser_registered: Date;
   fundraiser_last_updated: Date;
+  fundraiser_secret?: string | null;
   donor_id: number;
   donor_name: string | null;
   total_donation_sum: number | string;
@@ -40,6 +42,7 @@ type PaginatedFundraiserList = {
     id: Fundraisers["ID"];
     registered: Fundraisers["Inserted"];
     lastUpdated: Fundraisers["Last_updated"];
+    secret?: string | null;
     donor: {
       id: Donors["ID"];
       name: Donors["full_name"];
@@ -260,6 +263,7 @@ export const fundraisers = {
       id: string;
       desc: boolean;
     } | null,
+    includeSecrets: boolean = false,
   ): Promise<PaginatedFundraiserList> {
     const parameters: any[] = [];
     const whereConditions: string[] = [];
@@ -362,6 +366,7 @@ export const fundraisers = {
             f.ID AS fundraiser_id,
             f.Inserted AS fundraiser_registered,
             f.Last_updated AS fundraiser_last_updated,
+            ${includeSecrets ? "f.Secret AS fundraiser_secret," : ""}
             d.ID AS donor_id,
             d.full_name AS donor_name,
             COALESCE(SUM(dn.sum_confirmed), 0) AS total_donation_sum, -- Sum per fundraiser
@@ -425,7 +430,7 @@ export const fundraisers = {
         const fundraiserDonationCount = Number(row.total_donation_count);
         const fundraiserAverageDonation = Number(row.average_donation_sum) || 0;
 
-        return {
+        const result: any = {
           id: row.fundraiser_id,
           registered: row.fundraiser_registered,
           lastUpdated: row.fundraiser_last_updated,
@@ -440,6 +445,12 @@ export const fundraisers = {
             averageDonation: fundraiserAverageDonation, // Per-fundraiser average
           },
         };
+
+        if (includeSecrets && row.fundraiser_secret !== undefined) {
+          result.secret = row.fundraiser_secret;
+        }
+
+        return result;
       });
 
       // Return the paginated structure with TRUE OVERALL statistics
@@ -456,6 +467,66 @@ export const fundraisers = {
       console.error("SQL Error in getList:", error);
       throw error; // Re-throw the error after logging
     }
+  },
+
+  /**
+   * Creates a new fundraiser with a generated secret
+   */
+  createFundraiser: async function (
+    donorId: Donors["ID"],
+  ): Promise<{ id: number; secret: string }> {
+    // Generate a cryptographically secure 32-character random secret
+    // Using base64url encoding to ensure URL-safe characters
+    const randomBytes = crypto.randomBytes(24); // 24 bytes = 32 base64 characters
+    const secret = randomBytes.toString("base64url");
+
+    const [result] = await DAO.query(`INSERT INTO Fundraisers (Donor_ID, Secret) VALUES (?, ?)`, [
+      donorId,
+      secret,
+    ]);
+
+    if (result.affectedRows === 0) {
+      throw new Error("Failed to create fundraiser");
+    }
+
+    return {
+      id: result.insertId,
+      secret: secret,
+    };
+  },
+
+  /**
+   * Get fundraiser including secret by ID (admin only)
+   */
+  getFundraiserWithSecret: async function (id: Fundraisers["ID"]): Promise<{
+    id: number;
+    donorId: number;
+    secret: string | null;
+    registered: Date;
+    lastUpdated: Date;
+  } | null> {
+    const [rows] = await DAO.query<
+      {
+        ID: number;
+        Donor_ID: number;
+        Secret: string | null;
+        Inserted: Date;
+        Last_updated: Date;
+      }[]
+    >(`SELECT ID, Donor_ID, Secret, Inserted, Last_updated FROM Fundraisers WHERE ID = ?`, [id]);
+
+    if (rows.length === 0) {
+      return null;
+    }
+
+    const row = rows[0];
+    return {
+      id: row.ID,
+      donorId: row.Donor_ID,
+      secret: row.Secret,
+      registered: row.Inserted,
+      lastUpdated: row.Last_updated,
+    };
   },
 };
 

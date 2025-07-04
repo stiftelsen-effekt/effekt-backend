@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { DAO } from "../custom_modules/DAO";
 import { DateTime } from "luxon";
+import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 
 export const fundraisersRouter = Router();
 
@@ -76,6 +77,24 @@ fundraisersRouter.post("/list", async (req, res, next) => {
   }
 });
 
+fundraisersRouter.post("/list/admin", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const fundraisers = await DAO.fundraisers.getList(
+      req.body.pagination.page,
+      req.body.pagination.limit,
+      req.body.filter,
+      req.body.pagination.sort,
+      true,
+    );
+    return res.json({
+      status: 200,
+      content: fundraisers,
+    });
+  } catch (ex) {
+    next(ex);
+  }
+});
+
 fundraisersRouter.get("/:id", async (req, res, next) => {
   if (!req.params.id) {
     res.status(400).json({ error: "No ID provided" });
@@ -100,6 +119,34 @@ fundraisersRouter.get("/:id", async (req, res, next) => {
         content: "Fundraiser not found",
       });
     }
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+/**
+ * Create a new fundraiser
+ */
+fundraisersRouter.post("/", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const { donorId } = req.body;
+
+    if (!donorId) {
+      return res.status(400).json({
+        status: 400,
+        content: "Donor ID is required",
+      });
+    }
+
+    const result = await DAO.fundraisers.createFundraiser(donorId);
+
+    // Get the full fundraiser data
+    const fundraiser = await DAO.fundraisers.getFundraiserWithSecret(result.id);
+
+    return res.json({
+      status: 200,
+      content: fundraiser,
+    });
   } catch (ex) {
     next(ex);
   }
