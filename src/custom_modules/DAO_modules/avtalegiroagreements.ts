@@ -5,6 +5,7 @@ import sqlString from "sqlstring";
 import { OkPacket, ResultSetHeader } from "mysql2/promise";
 import { Avtalegiro_agreements } from "@prisma/client";
 import { Distribution, DistributionInput } from "../../schemas/types";
+import { RequestLocale } from "../../middleware/locale";
 
 export type AvtaleGiroAgreement = {
   id: number;
@@ -276,118 +277,192 @@ async function exists(KID) {
   else return false;
 }
 
-/**
- * Fetches all agreements with sorting and filtering
- * @param {column: string, desc: boolean} sort Sort object
- * @param {string | number | Date} page Used for pagination
- * @param {number=10} limit Agreement count limit per page, defaults to 10
- * @param {object} filter Filtering object
- * @return {[AvtaleGiro]} Array of AvtaleGiro agreements
- */
-async function getAgreements(
-  sort,
-  page,
-  limit,
-  filter,
-): Promise<{
-  pages: number;
-  rows: Avtalegiro_agreements[];
-  statistics: {
-    numAgreements: number;
-    sumAgreements: number;
-    avgAgreement: number;
-  };
-}> {
-  const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
-  const sortDirection = sort.desc ? "DESC" : "ASC";
-  const offset = page * limit;
+interface AvtaleGiroFilters {
+  amount?: { from?: number; to?: number };
+  KID?: string;
+  paymentDate?: { from?: number; to?: number };
+  created?: { from?: Date; to?: Date };
+  donor?: string;
+  statuses?: Array<number>;
+}
 
-  let where = [];
+interface AvtaleGiroRow {
+  ID: number;
+  active: number;
+  KID: string;
+  payment_date: number;
+  created: Date;
+  cancelled: Date | null;
+  last_updated: Date;
+  notice: string | null;
+  full_name: string;
+  amount: number;
+}
+
+interface AvtaleGiroStatistics {
+  numAgreements: number;
+  sumAgreements: number;
+  avgAgreement: number;
+}
+
+async function getAgreements(
+  sort: {
+    id: string; // Corresponds to keys in jsToDbAvtaleGiroMapping
+    desc: boolean;
+  } | null = {
+    id: "id",
+    desc: true, // Default to descending order
+  },
+  page: number,
+  limit: number = 10,
+  filter: AvtaleGiroFilters | null = null,
+  locale: RequestLocale, // Include if needed for any agreement-specific localized data
+): Promise<{
+  rows: Array<AvtaleGiroRow>;
+  statistics: AvtaleGiroStatistics;
+  pages: number;
+}> {
+  if (!sort) {
+    throw new Error("No sort provided for getAgreements");
+  }
+
+  const sortColumnEntry = jsDBmapping.find((map) => map[0] === sort.id);
+  if (!sortColumnEntry) {
+    throw new Error(`Invalid sort column: ${sort.id}`);
+  }
+  const sortColumn = sortColumnEntry[1];
+
+  let whereClauses: string[] = [];
+  let joins: string[] = [
+    `INNER JOIN Distributions D ON AG.KID = D.KID`,
+    `INNER JOIN Donors ON D.Donor_ID = Donors.ID`,
+  ];
+
   if (filter) {
     if (filter.amount) {
-      if (filter.amount.from)
-        where.push(`amount >= ${sqlString.escape(filter.amount.from * 100)} `);
-      if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to * 100)} `);
-    }
-    if (filter.paymentDate) {
-      if (filter.paymentDate.from !== undefined)
-        where.push(`AG.payment_date >= ${sqlString.escape(filter.paymentDate.from)} `);
-      if (filter.paymentDate.to !== undefined)
-        where.push(`AG.payment_date <= ${sqlString.escape(filter.paymentDate.to)} `);
-    }
-    if (filter.created) {
-      if (filter.created.from)
-        where.push(`AG.created >= ${sqlString.escape(filter.created.from)} `);
-      if (filter.created.to) where.push(`AG.created <= ${sqlString.escape(filter.created.to)} `);
+      if (filter.amount.from !== undefined) {
+        whereClauses.push(`AG.amount >= ${sqlString.escape(filter.amount.from * 100)}`);
+      }
+      if (filter.amount.to !== undefined) {
+        whereClauses.push(`AG.amount <= ${sqlString.escape(filter.amount.to * 100)}`);
+      }
     }
 
-    if (filter.KID) where.push(` CAST(D.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
-    if (filter.donor)
-      where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
+    if (filter.paymentDate) {
+      if (filter.paymentDate.from !== undefined) {
+        whereClauses.push(`AG.payment_date >= ${sqlString.escape(filter.paymentDate.from)}`);
+      }
+      if (filter.paymentDate.to !== undefined) {
+        whereClauses.push(`AG.payment_date <= ${sqlString.escape(filter.paymentDate.to)}`);
+      }
+    }
+
+    if (filter.created) {
+      if (filter.created.from) {
+        whereClauses.push(`AG.created >= ${sqlString.escape(filter.created.from)}`);
+      }
+      if (filter.created.to) {
+        const toDate = new Date(filter.created.to);
+        toDate.setDate(toDate.getDate() + 1); // Make it inclusive of the whole 'to' day
+        whereClauses.push(`AG.created < ${sqlString.escape(toDate)}`);
+      }
+    }
+
+    if (filter.KID && filter.KID.length > 0) {
+      whereClauses.push(`CAST(AG.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)}`);
+    }
+
+    if (filter.donor && filter.donor.length > 0) {
+      whereClauses.push(`Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}`);
+    }
+
     if (filter.statuses) {
       if (filter.statuses.length === 0) {
+        // No agreement can match an empty set of statuses if the filter is meant to be inclusive
         return {
-          pages: 0,
           rows: [],
-          statistics: {
-            numAgreements: 0,
-            sumAgreements: 0,
-            avgAgreement: 0,
-          },
+          statistics: { numAgreements: 0, sumAgreements: 0, avgAgreement: 0 },
+          pages: 0,
         };
       }
-      where.push(` AG.active IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `);
+      whereClauses.push(
+        `AG.active IN (${filter.statuses.map((id) => sqlString.escape(id)).join(",")})`,
+      );
     }
   }
 
-  const columns = `
-    AG.ID,
-    AG.active,
-    AG.KID,
-    AG.payment_date,
-    AG.created,
-    AG.cancelled,
-    AG.last_updated,
-    AG.notice,
-    Donors.full_name 
-  `;
+  const whereStatement =
+    whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "WHERE 1";
+  const joinStatement = joins.join(" \n ");
 
   const query = `
-    SELECT
-      count(*) OVER() AS full_count,
-      ROUND(sum(AG.amount) OVER() / 100, 0) AS full_sum,
-      ROUND(avg(AG.amount) OVER() / 100, 0) AS full_avg,
-      ROUND(AG.amount / 100, 0) as amount,
-      ${columns}
-    FROM Avtalegiro_agreements as AG
-    INNER JOIN Distributions as D
-        ON AG.KID = D.KID
-    INNER JOIN Donors 
-        ON D.Donor_ID = Donors.ID
-    WHERE
-        ${where.length !== 0 ? where.join(" AND ") : "1"}
-
-    GROUP BY
-      ${columns}
-
-    ORDER BY ${sortColumn} ${sortDirection}
-    LIMIT ? OFFSET ?
+    WITH FilteredAgreements AS (
+      SELECT DISTINCT
+        AG.ID,
+        AG.active,
+        AG.KID,
+        AG.payment_date,
+        AG.created,
+        AG.cancelled,
+        AG.last_updated,
+        AG.notice,
+        Donors.full_name as full_name,
+        AG.amount
+      FROM Avtalegiro_agreements AG
+      ${joinStatement}
+      ${whereStatement}
+    ),
+    TotalCount AS (
+      SELECT COUNT(*) as total_agreements_count FROM FilteredAgreements
+    ),
+    TotalStats AS (
+      SELECT 
+        SUM(amount) as total_agreements_sum,
+        AVG(amount) as avg_agreement_amount
+      FROM FilteredAgreements
+    )
+    SELECT 
+      FA.*,
+      TC.total_agreements_count,
+      TS.total_agreements_sum,
+      TS.avg_agreement_amount
+    FROM FilteredAgreements FA
+    CROSS JOIN TotalCount TC
+    CROSS JOIN TotalStats TS
+    ORDER BY ${sortColumn} ${sort.desc ? "DESC" : "ASC"}
+    LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(page * limit)};
   `;
 
-  const [agreements] = await DAO.query(query, [limit, offset]);
+  const [resultRows]: [any[], any] = await DAO.query(query, []);
 
-  const numAgreements = agreements.length > 0 ? agreements[0].full_count : 0;
-  const sumAgreements = agreements.length > 0 ? agreements[0].full_sum : 0;
-  const avgAgreement = agreements.length > 0 ? agreements[0].full_avg : 0;
+  const numAgreements = resultRows.length > 0 ? resultRows[0]["total_agreements_count"] : 0;
+  const sumAgreements =
+    resultRows.length > 0 ? Math.round((resultRows[0]["total_agreements_sum"] || 0) / 100) : 0;
+  const avgAgreement =
+    resultRows.length > 0 ? Math.round((resultRows[0]["avg_agreement_amount"] || 0) / 100) : 0;
+  const pages = Math.ceil(numAgreements / limit);
+
+  const mappedRows: AvtaleGiroRow[] = resultRows.map((row) => ({
+    ID: row.ID,
+    full_name: row.full_name,
+    active: row.active,
+    amount: Math.round(row.amount / 100), // Convert from øre to kroner
+    payment_date: row.payment_date,
+    KID: row.KID,
+    created: new Date(row.created),
+    last_updated: new Date(row.last_updated),
+    cancelled: row.cancelled ? new Date(row.cancelled) : null,
+    notice: row.notice,
+  }));
 
   return {
-    pages: Math.ceil(numAgreements / limit),
-    rows: agreements,
+    rows: mappedRows,
     statistics: {
       numAgreements,
       sumAgreements,
       avgAgreement,
     },
+    pages,
   };
 }
 
@@ -771,20 +846,17 @@ const mapDbAgreementToJs = (
   };
 };
 
-const jsDBmapping = [
-  ["id", "ID"],
-  ["full_name", "full_name"],
-  ["kid", "KID"],
-  ["amount", "amount"],
-  ["paymentDate", "payment_date"],
-  ["notice", "notice"],
-  ["active", "active"],
-  ["created", "created"],
-  ["lastUpdated", "last_updated"],
-  ["sum", "sum_confirmed"],
-  ["confirmed", "timestamp_confirmed"],
-  ["kidFordeling", "KID_fordeling"],
-  ["cancelled", "cancelled"],
+const jsDBmapping: Array<[string, string]> = [
+  ["id", "FA.ID"],
+  ["active", "FA.active"],
+  ["kid", "FA.KID"],
+  ["paymentDate", "FA.payment_date"],
+  ["created", "FA.created"],
+  ["cancelled", "FA.cancelled"],
+  ["lastUpdated", "FA.last_updated"],
+  ["notice", "FA.notice"],
+  ["full_name", "FA.full_name"],
+  ["amount", "FA.amount"],
 ];
 
 export const avtalegiroagreements = {

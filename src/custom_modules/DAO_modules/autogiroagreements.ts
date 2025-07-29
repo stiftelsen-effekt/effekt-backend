@@ -60,7 +60,7 @@ export const autogiroagreements = {
     filter: any,
   ): Promise<{
     pages: number;
-    rows: AutoGiro_agreements[];
+    rows: (AutoGiro_agreements & { full_name: string })[];
     statistics: {
       numAgreements: number;
       sumAgreements: string;
@@ -121,6 +121,7 @@ export const autogiroagreements = {
       AG.cancelled,
       AG.last_updated,
       AG.notice,
+      AG.mandateID,
       Donors.full_name 
     `;
 
@@ -152,9 +153,27 @@ export const autogiroagreements = {
     const sumAgreements = agreements.length > 0 ? agreements[0]["full_sum"] : 0;
     const avgAgreement = agreements.length > 0 ? agreements[0]["full_avg"] : 0;
 
+    const rows = agreements
+      .map(mapAgreementType)
+      .map((agreement): AutoGiro_agreements & { full_name: string } => {
+        return {
+          ID: agreement.ID,
+          full_name: agreement.full_name,
+          active: agreement.active,
+          amount: agreement.amount,
+          payment_date: agreement.payment_date,
+          KID: agreement.KID,
+          created: agreement.created,
+          last_updated: agreement.last_updated,
+          cancelled: agreement.cancelled,
+          notice: agreement.notice,
+          mandateID: agreement.mandateID,
+        };
+      });
+
     return {
       pages: Math.ceil(numAgreements / limit),
-      rows: agreements,
+      rows,
       statistics: {
         numAgreements,
         sumAgreements,

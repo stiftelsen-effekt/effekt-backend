@@ -14,6 +14,7 @@ import apicache from "apicache";
 import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
 import { validateDistribution } from "../custom_modules/distribution";
 import { localeMiddleware, LocaleRequest } from "../middleware/locale";
+import { exportCsv } from "../custom_modules/csvexport";
 
 const config = require("../config");
 
@@ -513,6 +514,25 @@ router.post(
   localeMiddleware,
   async (req: LocaleRequest, res, next) => {
     try {
+      if (req.body.export === true) {
+        const results = await DAO.donations.getAll(
+          req.body.sort,
+          0,
+          Number.MAX_SAFE_INTEGER,
+          req.body.filter,
+          req.locale,
+        );
+
+        return exportCsv(res, results.rows, `donations-${new Date().toISOString()}.csv`);
+      }
+
+      if (typeof req.body.page === "undefined" || typeof req.body.limit === "undefined") {
+        return res.status(400).json({
+          status: 400,
+          content: "Missing required fields: page, limit",
+        });
+      }
+
       var results = await DAO.donations.getAll(
         req.body.sort,
         req.body.page,

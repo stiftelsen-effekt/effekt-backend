@@ -13,6 +13,7 @@ import {
 } from "../custom_modules/distribution";
 import { DistributionInput } from "../schemas/types";
 import { encodePlausibleData } from "../custom_modules/plausible";
+import { exportCsv } from "../custom_modules/csvexport";
 const jsonBody = bodyParser.json();
 const dns = require("dns").promises;
 const config = require("../config");
@@ -277,6 +278,25 @@ router.get("/agreements/report", authMiddleware.isAdmin, async (req, res, next) 
 
 router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
   try {
+    if (req.body.export === true) {
+      const results = await DAO.vipps.getAgreements(
+        req.body.sort,
+        0,
+        Number.MAX_SAFE_INTEGER,
+        req.body.filter,
+        req.locale,
+      );
+
+      return exportCsv(res, results.rows, `vipps-agreements-${new Date().toISOString()}.csv`);
+    }
+
+    if (typeof req.body.page === "undefined" || typeof req.body.limit === "undefined") {
+      return res.status(400).json({
+        status: 400,
+        content: "Missing required fields: page, limit",
+      });
+    }
+
     var results = await DAO.vipps.getAgreements(
       req.body.sort,
       req.body.page,

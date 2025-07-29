@@ -9,6 +9,7 @@ import bodyParser from "body-parser";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { TaxDeductionDonation, getYearlyMapping } from "../custom_modules/taxdeductions";
 import { connectDonationsForFirstTaxUnit } from "../custom_modules/tax";
+import { exportCsv } from "../custom_modules/csvexport";
 
 const router = express.Router();
 
@@ -151,6 +152,18 @@ router.post("/auth0/register", async (req, res, next) => {
 
 router.post("/list/", authMiddleware.isAdmin, async (req, res, next) => {
   try {
+    if (req.body.export === true) {
+      const results = await DAO.donors.getAll(
+        req.body.sort,
+        0,
+        Number.MAX_SAFE_INTEGER,
+        req.body.filter,
+        req.locale,
+      );
+
+      return exportCsv(res, results.rows, `donors-${new Date().toISOString()}.csv`);
+    }
+
     if (typeof req.body.page === "undefined" || typeof req.body.limit === "undefined") {
       return res.status(400).json({
         status: 400,

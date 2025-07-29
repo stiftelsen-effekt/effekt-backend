@@ -10,6 +10,7 @@ import moment from "moment";
 import { validateDistribution } from "../custom_modules/distribution";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { encodePlausibleData } from "../custom_modules/plausible";
+import { exportCsv } from "../custom_modules/csvexport";
 
 const router = express.Router();
 
@@ -42,11 +43,31 @@ router.post("/draft", async (req, res, next) => {
 
 router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
   try {
+    if (req.body.export === true) {
+      const results = await DAO.avtalegiroagreements.getAgreements(
+        req.body.sort,
+        0,
+        Number.MAX_SAFE_INTEGER,
+        req.body.filter,
+        req.locale,
+      );
+
+      return exportCsv(res, results.rows, `avtalegiro-agreements-${new Date().toISOString()}.csv`);
+    }
+
+    if (typeof req.body.page === "undefined" || typeof req.body.limit === "undefined") {
+      return res.status(400).json({
+        status: 400,
+        content: "Missing required fields: page, limit",
+      });
+    }
+
     var results = await DAO.avtalegiroagreements.getAgreements(
       req.body.sort,
       req.body.page,
       req.body.limit,
       req.body.filter,
+      req.locale,
     );
     return res.json({
       status: 200,

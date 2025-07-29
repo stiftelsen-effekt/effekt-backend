@@ -7,6 +7,7 @@ import { validateDistribution } from "../custom_modules/distribution";
 import { sumWithPrecision } from "../custom_modules/rounding";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { DistributionInput } from "../schemas/types";
+import { exportCsv } from "../custom_modules/csvexport";
 const router = express.Router();
 
 router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
@@ -48,12 +49,30 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
 
 router.post("/search", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    let limit = req.body.limit,
-      page = req.body.page,
-      filter = req.body.filter,
-      sort = req.body.sort;
+    if (req.body.export === true) {
+      const results = await DAO.distributions.getAll(
+        0,
+        Number.MAX_SAFE_INTEGER,
+        req.body.sort,
+        req.body.filter,
+      );
 
-    let distributions = await DAO.distributions.getAll(page, limit, sort, filter);
+      return exportCsv(res, results.rows, `distributions-${new Date().toISOString()}.csv`);
+    }
+
+    if (typeof req.body.page === "undefined" || typeof req.body.limit === "undefined") {
+      return res.status(400).json({
+        status: 400,
+        content: "Missing required fields: page, limit",
+      });
+    }
+
+    let distributions = await DAO.distributions.getAll(
+      req.body.page,
+      req.body.limit,
+      req.body.sort,
+      req.body.filter,
+    );
 
     res.json({
       status: 200,

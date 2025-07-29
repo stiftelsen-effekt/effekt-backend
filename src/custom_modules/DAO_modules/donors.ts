@@ -29,7 +29,7 @@ interface DonorRow {
   lastDonation: Date | null;
   donationsCount: number;
   donationsSum: number;
-  // Add any other fields you want to return for each donor
+  newsletter: boolean;
 }
 
 interface DonorStatistics {

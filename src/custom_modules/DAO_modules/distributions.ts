@@ -19,85 +19,190 @@ import {
 import { PoolConnection } from "mysql2/promise";
 import { sumWithPrecision } from "../rounding";
 
-export type DistributionsListFilter = {
+//region GET
+export interface DistributionFilters {
   KID?: string;
   donor?: string;
-  email?: string;
-};
-//region GET
-async function getAll(
-  page = 0,
-  limit = 10,
-  sort: { id: string; desc?: boolean },
-  filter: null | DistributionsListFilter = null,
-) {
-  let where = [];
+}
+
+/**
+ * Represents a distribution row. It includes fixed properties and
+ * dynamic properties for each organization's share, where the key
+ * is the organization's abbreviation (e.g., 'EFF').
+ */
+export interface DistributionRow {
+  KID: string;
+  full_name: string;
+  email: string;
+  donation_sum: number;
+  donation_count: number;
+  // Index signature to allow for dynamic organization share properties
+  [org_abbriv: string]: number | string;
+}
+
+export interface DistributionStatistics {
+  numDistributions: number;
+}
+
+const jsDBmapping = [
+  ["KID", "D.KID"],
+  ["full_name", "Donors.full_name"],
+  ["email", "Donors.email"],
+  ["sum", "donation_sum"],
+  ["count", "donation_count"],
+];
+
+/**
+ * Fetches all distributions with sorting, filtering, and pagination.
+ * This function dynamically includes columns for each active organization's share
+ * in a given distribution.
+ *
+ * @param page - The current page number for pagination (0-indexed).
+ * @param limit - The number of distributions per page.
+ * @param sort - The sorting object, e.g., { id: 'sum', desc: true }.
+ * @param filter - The filter object for querying distributions.
+ * @returns A promise that resolves to an object containing the distribution rows, statistics, and total page count.
+ */
+export async function getAll(
+  page: number = 0,
+  limit: number = 10,
+  sort: { id: string; desc?: boolean } | null = { id: "kid", desc: true },
+  filter: DistributionFilters | null = null,
+): Promise<{
+  rows: Array<DistributionRow>;
+  statistics: DistributionStatistics;
+  pages: number;
+}> {
+  if (!sort) {
+    throw new Error("No sort provided for getDistributions");
+  }
+  const sortColumnEntry = jsDBmapping.find((map) => map[0] === sort.id);
+  if (!sortColumnEntry) {
+    throw new Error(`Invalid sort column: ${sort.id}`);
+  }
+  const sortColumn = sortColumnEntry[1];
+  const sortDirection = sort.desc ? "DESC" : "ASC";
+
+  // 1. Dynamically fetch active organizations to build the pivot columns
+  const [activeOrgs] = await DAO.query<{ abbriv: string }[]>(
+    "SELECT abbriv FROM Organizations WHERE is_active = 1 ORDER BY ordering",
+  );
+  const pivotSelects = activeOrgs
+    .map(
+      (org) =>
+        // The resulting column name will be, e.g., "EFF"
+        `SUM(CASE WHEN O.abbriv = ${sqlString.escape(
+          org.abbriv,
+        )} THEN (DCA.Percentage_share * DCAO.Percentage_share / 100.0) ELSE 0 END) AS ${sqlString.escapeId(
+          org.abbriv,
+        )}`,
+    )
+    .join(",\n");
+
+  // 2. Build WHERE clauses from the filter object
+  const whereClauses: string[] = [];
   if (filter) {
-    if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
-    if (filter.donor)
-      where.push(
-        ` (full_name LIKE ${sqlString.escape(`%${filter.donor}%`)} or email LIKE ${sqlString.escape(
-          `%${filter.donor}%`,
-        )}) `,
+    if (filter.KID) {
+      whereClauses.push(`D.KID LIKE ${sqlString.escape(`%${filter.KID}%`)}`);
+    }
+    if (filter.donor) {
+      const donorFilter = sqlString.escape(`%${filter.donor}%`);
+      whereClauses.push(
+        `(Donors.full_name LIKE ${donorFilter} OR Donors.email LIKE ${donorFilter})`,
       );
+    }
+  }
+  const whereStatement = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+  // 3. Construct the main query using Common Table Expressions (CTEs)
+  const query = `
+    -- CTE to aggregate donation data per distribution (KID)
+    WITH DonationStats AS (
+      SELECT
+        KID_fordeling,
+        SUM(sum_confirmed) as sum,
+        COUNT(*) as count
+      FROM Donations
+      GROUP BY KID_fordeling
+    ),
+    -- CTE to calculate and pivot the organization shares for each distribution
+    PivotedOrgShares AS (
+      SELECT
+        DCA.Distribution_KID,
+        ${pivotSelects}
+      FROM Distribution_cause_areas DCA
+      JOIN Distribution_cause_area_organizations DCAO ON DCA.ID = DCAO.Distribution_cause_area_ID
+      JOIN Organizations O ON DCAO.Organization_ID = O.ID
+      WHERE O.is_active = 1
+      GROUP BY DCA.Distribution_KID
+    ),
+    -- CTE to filter the main distributions table and join all data together
+    FilteredDistributions AS (
+      SELECT
+        D.KID,
+        Donors.full_name,
+        Donors.email,
+        IFNULL(DS.sum, 0) as donation_sum,
+        IFNULL(DS.count, 0) as donation_count,
+        POS.* -- Selects all the pivoted organization share columns
+      FROM Distributions D
+      INNER JOIN Donors ON D.Donor_ID = Donors.ID
+      LEFT JOIN DonationStats DS ON D.KID = DS.KID_fordeling
+      LEFT JOIN PivotedOrgShares POS ON D.KID = POS.Distribution_KID
+      ${whereStatement}
+    ),
+    -- CTE to get the total count for pagination
+    TotalCount AS (
+        SELECT COUNT(*) as total_rows FROM FilteredDistributions
+    )
+    -- Final SELECT to combine data, sort, and paginate
+    SELECT
+      FD.*,
+      TC.total_rows
+    FROM FilteredDistributions FD
+    CROSS JOIN TotalCount TC
+    ORDER BY ${sortColumn} ${sortDirection}
+    LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit * page)};
+  `;
+
+  const [resultRows]: [any[], any] = await DAO.query(query);
+
+  if (resultRows.length === 0) {
+    return {
+      rows: [],
+      statistics: { numDistributions: 0 },
+      pages: 0,
+    };
   }
 
-  const queryFrom = `
-    FROM Distributions
+  const numDistributions = resultRows[0]["total_rows"] || 0;
+  const pages = Math.ceil(numDistributions / limit);
 
-    LEFT JOIN (SELECT sum(sum_confirmed) as sum, count(*) as count, KID_fordeling FROM Donations GROUP BY KID_fordeling) as Donations
-        ON Donations.KID_fordeling = Distributions.KID
+  // 4. Map the raw SQL result to the strongly-typed DistributionRow array
+  // The row from the DB is already flat, so we just need to parse numbers
+  const mappedRows: DistributionRow[] = resultRows.map((row) => {
+    const mappedRow: DistributionRow = {
+      KID: row.KID,
+      full_name: row.full_name,
+      email: row.email,
+      donation_sum: row.donation_sum,
+      donation_count: row.donation_count,
+    };
 
-    INNER JOIN Donors
-        ON Distributions.Donor_ID = Donors.ID
-  `;
+    for (const org of activeOrgs) {
+      // The key is the org abbreviation (e.g., "EFF")
+      // The value is the share, parsed from a decimal string to a number
+      mappedRow[org.abbriv] = parseFloat(row[org.abbriv] || "0");
+    }
 
-  const queryGroupBy = `
-    GROUP BY Distributions.KID, Donors.full_name, Donors.email
-  `;
-
-  const queryWhere = where.length > 0 ? "WHERE " + where.join(" AND ") : "";
-
-  const querySelectList = `
-    Distributions.KID,
-    IFNULL(Donations.sum, 0) as sum,
-    IFNULL(Donations.count, 0) as count,
-    Donors.full_name,
-    Donors.email
-  `;
-
-  const queryString = `
-        SELECT
-            ${querySelectList}
-
-            ${queryFrom}
-            ${queryWhere}
-            ${queryGroupBy}
-
-            ORDER BY ${sort.id} ${sort.desc ? "DESC" : ""}
-
-            LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit * page)}`;
-
-  const [rows] = await DAO.query<
-    (Pick<Distributions, "KID"> & { sum: number; count: number } & Pick<
-        Donors,
-        "full_name" | "email"
-      >)[]
-  >(queryString);
-
-  const counterQueryString = `
-  SELECT COUNT(*) as count FROM (SELECT 
-      ${querySelectList}
-      ${queryFrom}
-      ${queryWhere}
-      ${queryGroupBy}) as sub`;
-
-  const [counter] = await DAO.query<{ count: number }[]>(counterQueryString);
-
-  const pages = Math.ceil(counter[0].count / limit);
+    return mappedRow;
+  });
 
   return {
-    rows,
+    rows: mappedRows,
+    statistics: {
+      numDistributions,
+    },
     pages,
   };
 }

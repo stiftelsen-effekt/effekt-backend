@@ -174,131 +174,179 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
   return agreement;
 }
 
-/**
- * Fetches all agreements with sorting and filtering
- * @param {column: string, desc: boolean} sort Sort object
- * @param {string | number | Date} page Used for pagination
- * @param {number=10} limit Agreement count limit per page, defaults to 10
- * @param {object} filter Filtering object
- * @return {Agreement[]} Array of agreements
- */
-async function getAgreements(
-  sort,
-  page,
-  limit,
-  filter,
-): Promise<{
-  pages: number;
-  rows: Array<any>;
-  statistics: {
-    numAgreements: number;
-    sumAgreements: string;
-    avgAgreement: string;
-  };
-}> {
-  const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
-  const sortDirection = sort.desc ? "DESC" : "ASC";
-  const offset = page * limit;
+interface VippsAgreementFilters {
+  amount?: { from?: number; to?: number };
+  created?: { from?: Date | null; to?: Date | null };
+  chargeDay?: { from?: number; to?: number };
+  KID?: string;
+  donor?: string;
+  statuses?: Array<string>;
+}
 
-  let where = [];
+interface VippsAgreementRow {
+  ID: number;
+  status: string;
+  amount: number;
+  KID: string;
+  monthly_charge_day: number;
+  timestamp_created: Date;
+  agreement_url_code: string;
+  full_name: string;
+}
+
+interface VippsAgreementStatistics {
+  numAgreements: number;
+  sumAgreements: number;
+  avgAgreement: number;
+}
+
+/**
+ * Fetches all Vipps agreements with sorting, filtering, and pagination.
+ * @param sort - The sorting object { id: string, desc: boolean }.
+ * @param page - The current page number for pagination.
+ * @param limit - The number of agreements per page.
+ * @param filter - The filter object for querying agreements.
+ * @returns A promise that resolves to an object containing the agreement rows, statistics, and total page count.
+ */
+export async function getAgreements(
+  sort: { id: string; desc: boolean } | null = { id: "id", desc: true },
+  page: number,
+  limit: number = 10,
+  filter: VippsAgreementFilters | null = null,
+  locale?: string,
+): Promise<{
+  rows: Array<VippsAgreementRow>;
+  statistics: VippsAgreementStatistics;
+  pages: number;
+}> {
+  if (!sort) {
+    throw new Error("No sort provided for getVippsAgreements");
+  }
+
+  const sortColumnEntry = jsDBmapping.find((map) => map[0] === sort.id);
+  if (!sortColumnEntry) {
+    throw new Error(`Invalid sort column: ${sort.id}`);
+  }
+  const sortColumn = sortColumnEntry[1];
+  const sortDirection = sort.desc ? "DESC" : "ASC";
+
+  const whereClauses: string[] = [];
+  const joins: string[] = [`INNER JOIN Donors ON VA.donorID = Donors.ID`];
+
   if (filter) {
     if (filter.amount) {
-      if (filter.amount.from) where.push(`amount >= ${sqlString.escape(filter.amount.from)} `);
-      if (filter.amount.to) where.push(`amount <= ${sqlString.escape(filter.amount.to)} `);
+      if (filter.amount.from !== undefined)
+        whereClauses.push(`VA.amount >= ${sqlString.escape(filter.amount.from)}`);
+      if (filter.amount.to !== undefined)
+        whereClauses.push(`VA.amount <= ${sqlString.escape(filter.amount.to)}`);
     }
     if (filter.created) {
       if (filter.created.from)
-        where.push(`VA.timestamp_created >= ${sqlString.escape(filter.created.from)} `);
-      if (filter.created.to)
-        where.push(`VA.timestamp_created <= ${sqlString.escape(filter.created.to)} `);
+        whereClauses.push(`VA.timestamp_created >= ${sqlString.escape(filter.created.from)}`);
+      if (filter.created.to) {
+        const toDate = new Date(filter.created.to);
+        toDate.setDate(toDate.getDate() + 1); // Make it inclusive of the whole 'to' day
+        whereClauses.push(`VA.timestamp_created < ${sqlString.escape(toDate)}`);
+      }
     }
     if (filter.chargeDay) {
       if (filter.chargeDay.from !== undefined)
-        where.push(`VA.monthly_charge_day >= ${sqlString.escape(filter.chargeDay.from)} `);
+        whereClauses.push(`VA.monthly_charge_day >= ${sqlString.escape(filter.chargeDay.from)}`);
       if (filter.chargeDay.to !== undefined)
-        where.push(`VA.monthly_charge_day <= ${sqlString.escape(filter.chargeDay.to)} `);
+        whereClauses.push(`VA.monthly_charge_day <= ${sqlString.escape(filter.chargeDay.to)}`);
     }
-
-    if (filter.KID) where.push(` CAST(KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
-    if (filter.donor)
-      where.push(` (Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}) `);
+    if (filter.KID && filter.KID.length > 0) {
+      whereClauses.push(`CAST(VA.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)}`);
+    }
+    if (filter.donor && filter.donor.length > 0) {
+      whereClauses.push(`Donors.full_name LIKE ${sqlString.escape(`%${filter.donor}%`)}`);
+    }
     if (filter.statuses) {
-      if (filter.statuses.length == 0) {
+      if (filter.statuses.length === 0) {
         return {
-          pages: 0,
           rows: [],
-          statistics: {
-            numAgreements: 0,
-            sumAgreements: "0",
-            avgAgreement: "0",
-          },
+          statistics: { numAgreements: 0, sumAgreements: 0, avgAgreement: 0 },
+          pages: 0,
         };
       }
-      where.push(` status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `);
+      whereClauses.push(
+        `VA.status IN (${filter.statuses.map((status) => sqlString.escape(status)).join(",")})`,
+      );
     }
   }
 
-  const columns = `
-    VA.ID,
-    VA.status,
-    VA.amount,
-    VA.KID,
-    VA.monthly_charge_day,
-    VA.timestamp_created,
-    VA.agreement_url_code,
-    Donors.full_name 
+  const whereStatement =
+    whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "WHERE 1";
+  const joinStatement = joins.join(" \n ");
+
+  const query = `
+    WITH FilteredAgreements AS (
+      SELECT DISTINCT
+        VA.ID,
+        VA.status,
+        VA.amount,
+        VA.KID,
+        VA.monthly_charge_day,
+        VA.timestamp_created,
+        VA.agreement_url_code,
+        Donors.full_name
+      FROM Vipps_agreements as VA
+      ${joinStatement}
+      ${whereStatement}
+    ),
+    TotalStats AS (
+      SELECT 
+        COUNT(*) as total_count,
+        SUM(amount) as total_sum,
+        AVG(amount) as total_avg
+      FROM FilteredAgreements
+    )
+    SELECT 
+      FA.*,
+      TS.total_count,
+      TS.total_sum,
+      TS.total_avg
+    FROM FilteredAgreements FA
+    CROSS JOIN TotalStats TS
+    ORDER BY ${sortColumn} ${sortDirection}
+    LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(page * limit)};
   `;
 
-  const [agreements] = await DAO.query(
-    `
-        SELECT
-          count(*) OVER() AS full_count,
-          sum(amount) OVER() AS full_sum,
-          avg(amount) OVER() AS full_avg,
-          ${columns}
-        FROM Vipps_agreements as VA
-        INNER JOIN Donors 
-            ON VA.donorID = Donors.ID
-        WHERE
-            ${where.length !== 0 ? where.join(" AND ") : "1"}
+  const [resultRows]: [any[], any] = await DAO.query(query);
 
-        GROUP BY 
-          ${columns}
-
-        ORDER BY ${sortColumn} ${sortDirection}
-        
-        LIMIT ? OFFSET ?
-        `,
-    [limit, offset],
-  );
-
-  const numAgreements = agreements.length > 0 ? agreements[0]["full_count"] : 0;
-  const sumAgreements = agreements.length > 0 ? agreements[0]["full_sum"] : 0;
-  const avgAgreement = agreements.length > 0 ? agreements[0]["full_avg"] : 0;
-
-  const pages = Math.ceil(numAgreements / limit);
-
-  if (agreements.length === 0) {
+  if (resultRows.length === 0) {
     return {
       rows: [],
+      statistics: { numAgreements: 0, sumAgreements: 0, avgAgreement: 0 },
       pages: 0,
-      statistics: {
-        numAgreements: 0,
-        sumAgreements: "0",
-        avgAgreement: "0",
-      },
-    };
-  } else {
-    return {
-      rows: agreements,
-      pages,
-      statistics: {
-        numAgreements,
-        sumAgreements,
-        avgAgreement,
-      },
     };
   }
+
+  const numAgreements = resultRows[0]["total_count"] || 0;
+  const sumAgreements = resultRows[0]["total_sum"] || 0;
+  const avgAgreement = resultRows[0]["total_avg"] || 0;
+  const pages = Math.ceil(numAgreements / limit);
+
+  const mappedRows: VippsAgreementRow[] = resultRows.map((row) => ({
+    ID: row.ID,
+    full_name: row.full_name,
+    status: row.status,
+    amount: row.amount,
+    monthly_charge_day: row.monthly_charge_day,
+    KID: row.KID,
+    timestamp_created: new Date(row.timestamp_created),
+    agreement_url_code: row.agreement_url_code,
+  }));
+
+  return {
+    rows: mappedRows,
+    statistics: {
+      numAgreements: Number(numAgreements),
+      sumAgreements: Number(sumAgreements),
+      avgAgreement: Number(avgAgreement),
+    },
+    pages,
+  };
 }
 
 /**
