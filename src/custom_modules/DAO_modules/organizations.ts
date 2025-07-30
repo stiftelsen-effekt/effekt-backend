@@ -60,12 +60,88 @@ async function getAll() {
 //endregion
 
 //region Add
+/**
+ * Adds a new organization
+ * @param {Organization} organization The organization object to add
+ * @returns {Promise<boolean>} Whether the operation was successful
+ */
+async function add(organization: {
+  name: string;
+  abbreviation: string;
+  shortDescription?: string;
+  longDescription?: string;
+  informationUrl?: string;
+  isActive: boolean;
+  ordering: number;
+  standardShare: number;
+  causeAreaId: number;
+}) {
+  await DAO.query(
+    `INSERT INTO Organizations (full_name, abbriv, short_desc, long_desc, info_url, is_active, ordering, std_percentage_share, cause_area_ID)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      organization.name,
+      organization.abbreviation,
+      organization.shortDescription,
+      organization.longDescription,
+      organization.informationUrl,
+      organization.isActive ? 1 : 0,
+      organization.ordering,
+      organization.standardShare,
+      organization.causeAreaId,
+    ],
+  );
+}
 //endregion
 
 //region Modify
+/**
+ * Updates an organization by ID
+ * @param {Organization} organization The organization object with updated values
+ * @returns {Promise<void>}
+ */
+async function updateById(organization: {
+  id: number;
+  name: string;
+  abbreviation: string;
+  shortDescription?: string;
+  longDescription?: string;
+  informationUrl?: string;
+  isActive: boolean;
+  ordering: number;
+  standardShare: number;
+  causeAreaId: number;
+}) {
+  await DAO.query(
+    `UPDATE Organizations SET 
+     full_name = ?, abbriv = ?, short_desc = ?, long_desc = ?, info_url = ?, 
+     is_active = ?, ordering = ?, std_percentage_share = ?, cause_area_ID = ?
+     WHERE ID = ?`,
+    [
+      organization.name,
+      organization.abbreviation,
+      organization.shortDescription,
+      organization.longDescription,
+      organization.informationUrl,
+      organization.isActive ? 1 : 0,
+      organization.ordering,
+      organization.standardShare,
+      organization.causeAreaId,
+      organization.id,
+    ],
+  );
+}
 //endregion
 
 //region Delete
+/**
+ * Deletes an organization by ID
+ * @param {number} id The organization ID
+ * @returns {Promise<void>}
+ */
+async function deleteById(id: number) {
+  await DAO.query(`DELETE FROM Organizations WHERE ID = ?`, [id]);
+}
 //endregion
 
 //region Helpers
@@ -96,4 +172,7 @@ export const organizations = {
   getByID,
   getActive,
   getAll,
+  add,
+  updateById,
+  deleteById,
 };

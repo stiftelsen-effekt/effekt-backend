@@ -29,6 +29,8 @@ import { inflationRouter } from "./routes/inflation";
 import { agreementfeedbackRouter } from "./routes/agreementfeedback";
 import { fundraisersRouter } from "./routes/fundraisers";
 import { ltvRouter } from "./routes/ltv";
+import { organizationsRouter } from "./routes/organizations";
+import { causeAreasRouter } from "./routes/causeareas";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -139,8 +141,8 @@ DAO.connect(() => {
   const donorsRoute = require("./routes/donors");
   const donationsRoute = require("./routes/donations").default;
   const distributionsRoute = require("./routes/distributions");
-  const causeareasRoute = require("./routes/causeareas");
-  const organizationsRoute = require("./routes/organizations");
+  const causeareasRoute = causeAreasRouter;
+  const organizationsRoute = organizationsRouter;
   const reportsRoute = require("./routes/reports");
   const paypalRoute = require("./routes/paypal");
   const vippsRoute = require("./routes/vipps");

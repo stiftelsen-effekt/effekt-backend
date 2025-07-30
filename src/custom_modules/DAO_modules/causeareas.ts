@@ -19,30 +19,32 @@ export const causeareas = {
   updateById: async function (causeArea: CauseArea) {
     await DAO.query(
       `
-        UPDATE Cause_areas SET name = ?, short_desc = ?, long_desc = ?, is_active = ?, ordering = ? WHERE ID = ?
+        UPDATE Cause_areas SET name = ?, short_desc = ?, long_desc = ?, is_active = ?, ordering = ?, std_percentage_share = ? WHERE ID = ?
       `,
       [
         causeArea.name,
         causeArea.shortDescription,
         causeArea.longDescription,
-        causeArea.isActive,
+        causeArea.isActive ? 1 : 0,
         causeArea.ordering,
+        causeArea.standardPercentageShare || 0,
         causeArea.id,
       ],
     );
   },
-  add: async function (causeArea: CauseArea) {
+  add: async function (causeArea: Omit<CauseArea, "id">) {
     await DAO.query(
       `
-        INSERT INTO Cause_areas (name, short_desc, long_desc, is_active, ordering)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO Cause_areas (name, short_desc, long_desc, is_active, ordering, std_percentage_share)
+        VALUES (?, ?, ?, ?, ?, ?)
       `,
       [
         causeArea.name,
         causeArea.shortDescription,
         causeArea.longDescription,
-        causeArea.isActive,
+        causeArea.isActive ? 1 : 0,
         causeArea.ordering,
+        causeArea.standardPercentageShare || 0,
       ],
     );
   },
