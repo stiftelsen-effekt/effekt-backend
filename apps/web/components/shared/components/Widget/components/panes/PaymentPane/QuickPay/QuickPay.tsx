@@ -15,8 +15,6 @@ export const QuickPayPane: React.FC<{
   config: QuickPayCardPaymentMethod | QuickPayMobilePayPaymentMethod;
   referrals: WidgetPane3ReferralsProps;
 }> = ({ config, referrals }) => {
-  const plausible = usePlausible();
-
   const donation = useSelector((state: State) => state.donation);
   const { paymentProviderURL, recurring } = donation;
 
