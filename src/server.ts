@@ -104,11 +104,15 @@ DAO.connect(() => {
   app.use(function (req, res, next) {
     if (config.env === "production") {
       const remoteOrigin = req.get("Origin");
-      if (
-        config.allowedProductionOrigins.some((allowedOrigin) => allowedOrigin === remoteOrigin) ||
-        (remoteOrigin &&
-          remoteOrigin.match(/https:\/\/main-site-(.*)-effective-altruism-norway.vercel.app/)[0])
-      ) {
+      const previewOriginRe =
+        /^https:\/\/main-site-.*-effective-altruism-norway\.vercel\.app$/;
+  
+      const allowed =
+        !!remoteOrigin &&
+        (config.allowedProductionOrigins.includes(remoteOrigin) ||
+          previewOriginRe.test(remoteOrigin));
+  
+      if (allowed) {
         res.setHeader("Access-Control-Allow-Origin", remoteOrigin);
         res.setHeader("Vary", "Origin");
       }
