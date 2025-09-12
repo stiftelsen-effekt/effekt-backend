@@ -12,7 +12,7 @@ interface DonorFilters {
   email?: string;
   query?: string; // For fulltext search over name and email
   newsletter?: boolean; // Filter by newsletter subscription status
-  registeredDate?: { from?: Date; to?: Date };
+  registered?: { from?: Date; to?: Date };
   donationsDateRange?: { from?: Date; to?: Date };
   lastDonationDate?: { from?: Date; to?: Date };
   donationsCount?: { from?: number; to?: number };
@@ -43,7 +43,7 @@ const jsToDbDonorMapping: Array<[string, string]> = [
   ["id", "FD.ID"],
   ["name", "FD.full_name"],
   ["email", "FD.email"],
-  ["registeredDate", "FD.date_registered"],
+  ["registered", "FD.date_registered"],
   ["lastDonationDate", "FD.last_donation_date"],
   ["donationsCount", "FD.donations_count"],
   ["donationsSum", "FD.donations_sum"],
@@ -152,14 +152,14 @@ async function getAll(
       whereClauses.push(`Donors.newsletter = ${filter.newsletter ? 1 : 0}`);
     }
 
-    if (filter.registeredDate) {
-      if (filter.registeredDate.from) {
+    if (filter.registered) {
+      if (filter.registered.from) {
         whereClauses.push(
-          `Donors.date_registered >= ${sqlString.escape(filter.registeredDate.from)}`,
+          `Donors.date_registered >= ${sqlString.escape(filter.registered.from)}`,
         );
       }
-      if (filter.registeredDate.to) {
-        const toDate = new Date(filter.registeredDate.to);
+      if (filter.registered.to) {
+        const toDate = new Date(filter.registered.to);
         toDate.setDate(toDate.getDate() + 1);
         whereClauses.push(`Donors.date_registered < ${sqlString.escape(toDate)}`);
       }
