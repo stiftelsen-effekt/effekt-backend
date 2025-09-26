@@ -912,7 +912,7 @@ async function addMatchingRule({
                 (?,?,?,?,?,?,?)`,
       [
         salesLocation,
-        message,
+        typeof message === "string" && message.length > 0 ? message : null,
         periodFrom,
         periodTo,
         resolveKID,
