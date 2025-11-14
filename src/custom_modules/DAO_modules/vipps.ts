@@ -181,6 +181,7 @@ interface VippsAgreementFilters {
   KID?: string;
   donor?: string;
   statuses?: Array<string>;
+  agreementID?: string;
 }
 
 interface VippsAgreementRow {
@@ -272,6 +273,9 @@ export async function getAgreements(
       whereClauses.push(
         `VA.status IN (${filter.statuses.map((status) => sqlString.escape(status)).join(",")})`,
       );
+    }
+    if (filter.agreementID && filter.agreementID.length > 0) {
+      whereClauses.push(`VA.ID LIKE ${sqlString.escape(`%${filter.agreementID}%`)}`);
     }
   }
 
@@ -445,6 +449,12 @@ async function getCharges(
         };
       }
       where.push(` VC.status IN (${filter.statuses.map((ID) => sqlString.escape(ID)).join(",")}) `);
+    }
+    if (filter.agreementID && filter.agreementID.length > 0) {
+      where.push(` VC.agreementID LIKE ${sqlString.escape(`%${filter.agreementID}%`)} `);
+    }
+    if (filter.chargeID && filter.chargeID.length > 0) {
+      where.push(` VC.chargeID LIKE ${sqlString.escape(`%${filter.chargeID}%`)} `);
     }
   }
 
