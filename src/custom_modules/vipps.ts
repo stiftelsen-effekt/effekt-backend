@@ -687,16 +687,33 @@ module.exports = {
     let token = await this.fetchToken();
     if (token === false) return false;
 
+    const pageSize = 500;
+    let page = 1;
+    let agreements = [];
+
     try {
-      let agreementRequest = await request.get({
-        uri: `https://${config.vipps_api_url}/recurring/v3/agreements?status=${status}`,
-        headers: this.getVippsHeaders(token),
-      });
+      while (true) {
+        // Wait 15 seconds to respect rate limit of 5 requests per minute
+        await new Promise((resolve) => setTimeout(resolve, 15000));
 
-      /** @type {[VippsRecurringAgreement]} */
-      let response = JSON.parse(agreementRequest);
+        let agreementRequest = await request.get({
+          uri: `https://${config.vipps_api_url}/recurring/v3/agreements?status=${status}&pageSize=${pageSize}&pageNumber=${page}`,
+          headers: this.getVippsHeaders(token),
+        });
 
-      return response;
+        /** @type {[VippsRecurringAgreement]} */
+        let response = JSON.parse(agreementRequest);
+
+        agreements = agreements.concat(response);
+
+        if (response.length < pageSize) {
+          break;
+        }
+
+        page++;
+      }
+
+      return agreements;
     } catch (ex) {
       console.error(ex);
       return false;
