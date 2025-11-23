@@ -2,7 +2,6 @@ import { Donors, Fundraisers, Organizations } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
 import * as crypto from "crypto";
 
-// Define the filter type (remains the same)
 type FundraiserListFilter = {
   registrationDate?: { from?: Date; to?: Date };
   fundraiserId?: Fundraisers["ID"];
@@ -12,7 +11,6 @@ type FundraiserListFilter = {
   organizationIDs?: Organizations["ID"][];
 } | null;
 
-// Define the shape of the raw SQL result row, now including total_count
 type FundraiserStatsRow = {
   fundraiser_id: number;
   fundraiser_registered: Date;
@@ -23,20 +21,18 @@ type FundraiserStatsRow = {
   total_donation_sum: number | string;
   total_donation_count: number | string;
   average_donation_sum: number | string | null;
-  total_count: number | string; // Total matching fundraisers before pagination
+  total_count: number | string;
 };
 
 interface OverallStatsRow {
-  total_fundraiser_count: number | string; // Depending on DB driver, might be string
+  total_fundraiser_count: number | string;
   overall_total_sum: number | string;
   overall_total_donation_count: number | string;
   overall_avg_donation: number | string | null;
 }
 
-// Adjust the main result type combining per-row data and overall stats
 type FundraiserStatsRowWithOverall = FundraiserStatsRow & OverallStatsRow;
 
-// Define the final return structure including pagination
 type PaginatedFundraiserList = {
   rows: {
     id: Fundraisers["ID"];
@@ -58,7 +54,7 @@ type PaginatedFundraiserList = {
     totalSum: number;
     avgDonation: number;
   };
-  pages: number; // Total number of pages
+  pages: number;
 };
 
 export const fundraisers = {
@@ -297,8 +293,6 @@ export const fundraisers = {
       return { rows: [], statistics: { totalCount: 0, totalSum: 0, avgDonation: 0 }, pages: 0 };
     }
 
-    // --- Build WHERE conditions ---
-    // (Keep your existing WHERE logic - ensure parameters are pushed)
     if (filter?.fundraiserId) {
       whereConditions.push(`f.ID = ?`);
       parameters.push(filter.fundraiserId);
@@ -320,8 +314,6 @@ export const fundraisers = {
       parameters.push(`%${filter.donor}%`);
     }
 
-    // --- Build HAVING conditions ---
-    // (Keep your existing HAVING logic - ensure parameters are pushed)
     if (filter?.donationCount) {
       if (filter.donationCount.from !== undefined) {
         havingConditions.push(`total_donation_count >= ?`);
@@ -343,22 +335,18 @@ export const fundraisers = {
       }
     }
 
-    // --- Construct Final Query with Pagination ---
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
     const havingClause =
       havingConditions.length > 0 ? `HAVING ${havingConditions.join(" AND ")}` : "";
 
-    // Add LIMIT and OFFSET parameters *last*
     const offset = page * limit;
-    parameters.push(limit); // LIMIT value
-    parameters.push(offset); // OFFSET value
+    parameters.push(limit);
+    parameters.push(offset);
 
-    // Determine the keyword for the second CTE
     const secondCTEKeyword = organizationCTE ? "," : "WITH";
 
-    // Assemble the full SQL query string
     const query = `
-    ${organizationCTE} -- Optional: WITH RelevantFundraisers AS (...)
+    ${organizationCTE}
 
     ${secondCTEKeyword} FilteredGroupedFundraisers AS ( -- Use ',' or 'WITH'
         -- This CTE calculates per-fundraiser stats and applies filters
@@ -413,10 +401,7 @@ export const fundraisers = {
   `;
 
     try {
-      // Update the expected result type for DAO.query
       const [res] = await DAO.query<SqlResult<FundraiserStatsRowWithOverall>[]>(query, parameters);
-
-      // --- Process Results ---
 
       const totalCount = Number(res[0]?.total_fundraiser_count) || 0;
       const totalSum = Number(res[0]?.overall_total_sum) || 0;
@@ -453,19 +438,18 @@ export const fundraisers = {
         return result;
       });
 
-      // Return the paginated structure with TRUE OVERALL statistics
       return {
-        rows: rows, // The fundraisers for the current page
+        rows: rows,
         statistics: {
-          totalCount: totalCount, // Total fundraisers matching filter
-          totalSum: totalSum, // Sum across ALL matching fundraisers
-          avgDonation: totalAvgDonation, // Average across ALL matching fundraisers/donations
+          totalCount: totalCount,
+          totalSum: totalSum,
+          avgDonation: totalAvgDonation,
         },
-        pages: pages, // Total number of pages
+        pages: pages,
       };
     } catch (error) {
       console.error("SQL Error in getList:", error);
-      throw error; // Re-throw the error after logging
+      throw error;
     }
   },
 
@@ -475,9 +459,7 @@ export const fundraisers = {
   createFundraiser: async function (
     donorId: Donors["ID"],
   ): Promise<{ id: number; secret: string }> {
-    // Generate a cryptographically secure 32-character random secret
-    // Using base64url encoding to ensure URL-safe characters
-    const randomBytes = crypto.randomBytes(24); // 24 bytes = 32 base64 characters
+    const randomBytes = crypto.randomBytes(24);
     const secret = randomBytes.toString("base64url");
 
     const [result] = await DAO.query(`INSERT INTO Fundraisers (Donor_ID, Secret) VALUES (?, ?)`, [
