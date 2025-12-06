@@ -31,6 +31,7 @@ import { fundraisersRouter } from "./routes/fundraisers";
 import { ltvRouter } from "./routes/ltv";
 import { organizationsRouter } from "./routes/organizations";
 import { causeAreasRouter } from "./routes/causeareas";
+import { startWebSocketServer } from "./websocket";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -104,14 +105,13 @@ DAO.connect(() => {
   app.use(function (req, res, next) {
     if (config.env === "production") {
       const remoteOrigin = req.get("Origin");
-      const previewOriginRe =
-        /^https:\/\/main-site-.*-effective-altruism-norway\.vercel\.app$/;
-  
+      const previewOriginRe = /^https:\/\/main-site-.*-effective-altruism-norway\.vercel\.app$/;
+
       const allowed =
         !!remoteOrigin &&
         (config.allowedProductionOrigins.includes(remoteOrigin) ||
           previewOriginRe.test(remoteOrigin));
-  
+
       if (allowed) {
         res.setHeader("Access-Control-Allow-Origin", remoteOrigin);
         res.setHeader("Vary", "Origin");
@@ -210,6 +210,8 @@ DAO.connect(() => {
 
   mainServer.listen(parseInt(config.port), config.host, () => {
     console.log("Main http server listening on http://" + config.host + ":" + config.port + " 📞");
+
+    startWebSocketServer(mainServer);
 
     console.log("Don't Panic. 🐬");
     console.log("---");

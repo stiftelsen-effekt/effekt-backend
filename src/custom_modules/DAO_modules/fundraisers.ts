@@ -510,6 +510,41 @@ export const fundraisers = {
       lastUpdated: row.Last_updated,
     };
   },
+
+  getFundraiserTransactionByKID: async function (kid: string): Promise<{
+    fundraiserId: number;
+    transactionId: number;
+    message: string | null;
+    name: string | null;
+    showName: boolean;
+  } | null> {
+    const [rows] = await DAO.query<
+      {
+        Fundraiser_ID: number;
+        Transaction_ID: number;
+        Message: string | null;
+        Message_sender_name: string | null;
+        Show_name: number;
+      }[]
+    >(
+      `SELECT ft.Fundraiser_ID, ft.ID as Transaction_ID, ft.Message, ft.Message_sender_name, ft.Show_name
+       FROM Distributions d
+       JOIN Fundraiser_transactions ft ON d.Fundraiser_transaction_ID = ft.ID
+       WHERE d.KID = ?`,
+      [kid],
+    );
+
+    if (rows.length === 0) return null;
+
+    const row = rows[0];
+    return {
+      fundraiserId: row.Fundraiser_ID,
+      transactionId: row.Transaction_ID,
+      message: row.Message,
+      name: row.Show_name === 1 ? row.Message_sender_name : null,
+      showName: row.Show_name === 1,
+    };
+  },
 };
 
 const jsDBmapping = [

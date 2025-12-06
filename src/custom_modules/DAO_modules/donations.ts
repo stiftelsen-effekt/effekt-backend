@@ -6,7 +6,7 @@ import sqlString from "sqlstring";
 import { DateTime } from "luxon";
 import { Donations, Prisma } from "@prisma/client";
 import { RequestLocale } from "../../middleware/locale";
-import { get } from "request";
+import { publishEvent } from "../daoEvents";
 
 /** @typedef Donation
  * @prop {number} id
@@ -1030,6 +1030,14 @@ async function add(
     "INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling, Meta_owner_ID) VALUES (?,?,?,?,?,?,?)",
     [donorID, paymentMethodID, externalPaymentID, sum, registeredDate, KID, metaOwnerID],
   );
+
+  publishEvent("donation:confirmed", {
+    donationId: addDonationQuery.insertId,
+    KID,
+    amount: sum,
+    timestamp: registeredDate,
+    donorId: donorID,
+  });
 
   return addDonationQuery.insertId;
 }
