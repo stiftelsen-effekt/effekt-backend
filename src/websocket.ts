@@ -41,7 +41,10 @@ export function startWebSocketServer(server: Server) {
         name: fundraiserInfo.name,
         message: fundraiserInfo.message,
         amount: data.amount,
-        date: data.timestamp?.toISOString() || new Date().toISOString(),
+        date:
+          data.timestamp instanceof Date
+            ? data.timestamp.toISOString()
+            : data.timestamp || new Date().toISOString(),
       },
     });
 
