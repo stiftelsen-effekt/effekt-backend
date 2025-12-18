@@ -7,6 +7,7 @@ import { DateTime } from "luxon";
 import { Donations, Prisma } from "@prisma/client";
 import { RequestLocale } from "../../middleware/locale";
 import { publishEvent } from "../daoEvents";
+import { enqueueTidbytDonationConfirmed } from "../../tidbyt/tidbytWorkerEnqueue";
 
 /** @typedef Donation
  * @prop {number} id
@@ -1037,6 +1038,12 @@ async function add(
     amount: sum,
     timestamp: registeredDate,
     donorId: donorID,
+  });
+
+  enqueueTidbytDonationConfirmed({
+    donationId: addDonationQuery.insertId,
+    amount: sum,
+    timestamp: (registeredDate || new Date()).toISOString(),
   });
 
   return addDonationQuery.insertId;

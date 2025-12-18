@@ -136,4 +136,10 @@ module.exports = {
 
   //Prod allowed origins
   allowedProductionOrigins: getAllowedProductionOrigins(),
+
+  // Tidbyt (optional)
+  // API -> worker
+  tidbyt_push_enabled: process.env.TIDBYT_PUSH_ENABLED === "true",
+  tidbyt_worker_url: process.env.TIDBYT_WORKER_URL,
+  tidbyt_worker_auth_token: process.env.TIDBYT_WORKER_AUTH_TOKEN,
 };
