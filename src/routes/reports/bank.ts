@@ -379,18 +379,20 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
   res.json({
     status: 200,
     content: {
-      dryRun,
-      fileFormat,
-      postingDate: postingDate?.toISODate(),
-      summary: {
+      // Required fields for admin panel compatibility
+      valid,
+      invalid,
+      invalidTransactions,
+      // Additional dry run info
+      ...(dryRun && {
+        dryRun: true,
+        fileFormat,
+        postingDate: postingDate?.toISODate(),
         totalParsed: payments.length,
-        valid,
-        invalid,
         skippedSwish,
         skippedDuplicate,
-      },
-      validTransactions: dryRun ? validTransactions : undefined,
-      invalidTransactions,
+        validTransactions,
+      }),
     },
   });
 });
