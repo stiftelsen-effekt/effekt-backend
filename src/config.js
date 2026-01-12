@@ -55,6 +55,8 @@ module.exports = {
     process.env.MAILERSEND_TEST_WELCOME_RECEIPT_TEMPLATE_A,
   mailersend_test_welcome_receipt_template_b:
     process.env.MAILERSEND_TEST_WELCOME_RECEIPT_TEMPLATE_B,
+  mailersend_missing_tax_unit_notice_template_id:
+    process.env.MAILERSEND_MISSING_TAX_UNIT_NOTICE_TEMPLATE_ID,
 
   mailersend_security_recipients: getMailersendSecurityRecipients(),
 
