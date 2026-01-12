@@ -5,6 +5,7 @@ import {
   sendAvtalegiroNotification,
   sendFacebookTaxConfirmation,
   sendSanitySecurityNotice,
+  sendMissingTaxUnitNotice,
 } from "../custom_modules/mail";
 
 import express from "express";
@@ -140,75 +141,107 @@ router.post("/taxreport/notice", authMiddleware.isAdmin, async (req, res, next) 
  * Sends a notice to all donors that are eligible for tax deduction in the given year
  * Specify a list of emails to exclude from the notice, a tax year (usually the year before the current year)
  * and a minimum sum for the donations in the given year to qualify for tax deduction (500 for 2023 f.ex.)
+ *
+ * Optional test parameters:
+ * - testEmail: Override recipient email (sends all emails to this address instead)
+ * - testLimit: Only send to the first N donors (useful for testing)
  */
 router.post("/notice/missingtaxunit", authMiddleware.isAdmin, async (req, res, next) => {
-  return res.status(501).json({
-    status: 501,
-    content: "Not implemented",
-  });
-
-  const { excludedEmails, year, minSum } = req.body;
-  if (!year || !minSum) {
-    res.status(400).json({
-      status: 400,
-      content: "Missing parameters year or minSum",
-    });
-    return;
-  }
-
-  const donorsWithDonationsMissingTaxUnit = await DAO.tax.getDonorsEligableForDeductionInYear(
-    year,
-    minSum,
-    excludedEmails,
-  );
-
-  let successfullySent = 0;
-  let failedToSend = 0;
-  const totalEmails = donorsWithDonationsMissingTaxUnit.length;
-
-  // Batch send to all donors, maximum 10 at a time
-  // Using Promise.all to send all at once
-  let results = [];
-  while (successfullySent + failedToSend < totalEmails) {
-    const promises = [];
-    const MAX_CONCURRENT = 10;
-
-    console.log(
-      `Batch sending ${MAX_CONCURRENT} reports (total: ${
-        successfullySent + failedToSend
-      }) (success: ${successfullySent}) (failed: ${failedToSend})...`,
-    );
-
-    for (let i = 0; i < MAX_CONCURRENT; i++) {
-      if (donorsWithDonationsMissingTaxUnit.length > 0) {
-        const donor = donorsWithDonationsMissingTaxUnit.pop();
-        // Replace with new mailersend template
-        // promises.push(sendDonorMissingTaxUnitNotice(donor, year));
-      } else {
-        break;
-      }
+  try {
+    const { excludedEmails = [], year, minSum, testEmail, testLimit } = req.body;
+    if (!year || !minSum) {
+      res.status(400).json({
+        status: 400,
+        content: "Missing parameters year or minSum",
+      });
+      return;
     }
 
-    const results = await Promise.allSettled(promises);
-    results.forEach((result) => {
-      results.push(result);
-      if (result.status === "fulfilled") {
-        successfullySent++;
-      } else {
-        console.error("Failed to send", result.reason);
-        failedToSend++;
-      }
-    });
-  }
+    let donorsWithDonationsMissingTaxUnit = await DAO.tax.getDonorsEligableForDeductionInYear(
+      year,
+      minSum,
+      excludedEmails,
+    );
 
-  res.json({
-    status: 200,
-    content: {
-      success: successfullySent,
-      failed: failedToSend,
-      results: results,
-    },
-  });
+    console.log(
+      `Donors with donations missing tax unit (first 10): ${JSON.stringify(
+        donorsWithDonationsMissingTaxUnit.slice(0, 10),
+      )}`,
+    );
+
+    // Apply test limit if specified
+    if (testLimit && typeof testLimit === "number" && testLimit > 0) {
+      donorsWithDonationsMissingTaxUnit = donorsWithDonationsMissingTaxUnit.slice(0, testLimit);
+      console.log(`TEST MODE: Limited to first ${testLimit} donors`);
+    }
+
+    // Log test email override if specified
+    if (testEmail) {
+      console.log(`TEST MODE: All emails will be sent to ${testEmail}`);
+    }
+
+    let successfullySent = 0;
+    let failedToSend = 0;
+    const totalEmails = donorsWithDonationsMissingTaxUnit.length;
+    const allResults: PromiseSettledResult<boolean | number>[] = [];
+
+    console.log(
+      `Starting to send missing tax unit notices to ${totalEmails} donors for year ${year}`,
+    );
+
+    // Batch send to all donors, maximum 10 at a time
+    const MAX_CONCURRENT = 10;
+    const donorsQueue = [...donorsWithDonationsMissingTaxUnit];
+
+    while (donorsQueue.length > 0) {
+      // Wait 1 second between batches
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const batch = donorsQueue.splice(0, MAX_CONCURRENT);
+
+      console.log(
+        `Batch sending ${batch.length} notices (progress: ${
+          successfullySent + failedToSend
+        }/${totalEmails}) (success: ${successfullySent}) (failed: ${failedToSend})...`,
+      );
+
+      const promises = batch.map((donor) => {
+        // If testEmail is provided, override the donor's email for testing
+        return sendMissingTaxUnitNotice(donor, year, testEmail || donor.email);
+      });
+      const batchResults = await Promise.allSettled(promises);
+
+      batchResults.forEach((result) => {
+        allResults.push(result);
+        if (result.status === "fulfilled" && result.value === true) {
+          successfullySent++;
+        } else {
+          failedToSend++;
+          if (result.status === "rejected") {
+            console.error("Failed to send", result.reason);
+          } else {
+            console.error("Failed to send, returned:", result.value);
+          }
+        }
+      });
+    }
+
+    console.log(
+      `Finished sending missing tax unit notices. Success: ${successfullySent}, Failed: ${failedToSend}`,
+    );
+
+    res.json({
+      status: 200,
+      content: {
+        total: totalEmails,
+        success: successfullySent,
+        failed: failedToSend,
+        testMode: !!(testEmail || testLimit),
+      },
+    });
+  } catch (ex) {
+    next(ex);
+  }
 });
 
 router.post("/mailersend/survey/response", async (req, res, next) => {

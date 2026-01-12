@@ -27,6 +27,7 @@ import {
 } from "@prisma/client";
 import { agreementType } from "./inflationadjustment";
 import { VippsAgreement } from "./DAO_modules/vipps";
+import { isUserRegisteredInAuth0, getProfilePageLink } from "./auth0";
 
 /**
  * @typedef VippsAgreement
@@ -1316,6 +1317,185 @@ export async function sendDonorMissingTaxUnitNotice(
   }
 }
 */
+
+/**
+ * Type for donor data from getDonorsEligableForDeductionInYear
+ */
+export type EligibleDonor = {
+  donationsSum: number;
+  email: string;
+  full_name: string;
+  unitCount: number;
+};
+
+/**
+ * Sends a notice to a donor who is eligible for tax deduction but has not registered a tax unit
+ * @param donor Donor data including email, name, and donation sum
+ * @param year The tax year
+ * @returns True if successful, error code if failed
+ */
+export async function sendMissingTaxUnitNotice(
+  donor: EligibleDonor,
+  year: number,
+  recipientEmail: string,
+): Promise<boolean | number> {
+  try {
+    console.log(`Sending missing tax unit notice to ${recipientEmail || donor.email}`);
+
+    // Get the tax deduction limits for the year
+    const limits = norwegianTaxDeductionLimits[year];
+    if (!limits) {
+      console.error(`No tax deduction limits found for year ${year}`);
+      return false;
+    }
+
+    // Check if donor is registered in Auth0
+    const isRegistered = await isUserRegisteredInAuth0(donor.email);
+    const profilePageLink = getProfilePageLink(donor.email, isRegistered);
+
+    console.log(`Profile page link: ${profilePageLink.url}`);
+
+    // Get donor ID to fetch donations
+    const donorId = await DAO.donors.getIDbyEmail(donor.email);
+    if (!donorId) {
+      console.error(`Could not find donor ID for email ${donor.email}`);
+      return false;
+    }
+
+    console.log(`Donor ID: ${donorId}`);
+
+    // Get all donations for the donor and filter to the target year
+    const allDonations = await DAO.donations.getByDonorId(donorId);
+    const yearDonations = allDonations.filter((d) => new Date(d.timestamp).getFullYear() === year);
+
+    // Aggregate donations by organization with impact estimates
+    const organizationsData: {
+      [orgId: number]: {
+        name: string;
+        sum: number;
+        impactEstimate: OrganizationImpactEstimate | null;
+      };
+    } = {};
+
+    let totalSum = 0;
+
+    for (const donation of yearDonations) {
+      const distribution = await DAO.distributions.getSplitByKID(donation.KID);
+
+      // Calculate impact estimates for this donation
+      let impactEstimates: OrganizationImpactEstimate[] = [];
+      try {
+        console.log(`Getting impact estimates for donation ${donation.id}`);
+        impactEstimates = await getImpactEstimatesForDonationByOrg(
+          new Date(donation.timestamp),
+          parseFloat(donation.sum),
+          distribution,
+        );
+      } catch (err) {
+        // Impact estimates may fail for some orgs, continue without them
+        console.warn(`Could not get impact estimates for donation ${donation.id}:`, err);
+      }
+
+      // Aggregate by organization
+      distribution.causeAreas.forEach((causeArea) => {
+        causeArea.organizations.forEach((org) => {
+          const amount =
+            parseFloat(donation.sum) *
+            (parseFloat(org.percentageShare) / 100) *
+            (parseFloat(causeArea.percentageShare) / 100);
+
+          totalSum += amount;
+
+          const impactEstimate = impactEstimates.find((e) => e.orgId === org.id);
+
+          if (organizationsData[org.id]) {
+            organizationsData[org.id].sum += amount;
+            // Aggregate impact outputs
+            if (impactEstimate && organizationsData[org.id].impactEstimate) {
+              for (const output of impactEstimate.outputs) {
+                const existingOutput = organizationsData[org.id].impactEstimate.outputs.find(
+                  (o) => o.output === output.output,
+                );
+                if (existingOutput) {
+                  existingOutput.numberOfOutputs += output.numberOfOutputs;
+                } else {
+                  organizationsData[org.id].impactEstimate.outputs.push({ ...output });
+                }
+              }
+            } else if (impactEstimate) {
+              organizationsData[org.id].impactEstimate = impactEstimate;
+            }
+          } else {
+            organizationsData[org.id] = {
+              name: org.widgetDisplayName || org.name || "Unknown",
+              sum: amount,
+              impactEstimate: impactEstimate || null,
+            };
+          }
+        });
+      });
+    }
+
+    console.log(`Organizations data: ${JSON.stringify(organizationsData)}`);
+
+    // Format organizations for template (similar to formatOrganizationsFromSplit but for aggregated data)
+    const organizations = Object.entries(organizationsData).map(([orgId, orgData]) => {
+      const outputs =
+        orgData.impactEstimate?.outputs.map((o) => {
+          // Round outputs similar to how formatOrganizationsFromSplit does it
+          const rounded = o.roundedNumberOfOutputs || Math.round(o.numberOfOutputs).toString();
+          return `${rounded} ${o.output}`;
+        }) ?? [];
+
+      return {
+        name: orgData.name,
+        sum: formatCurrency(orgData.sum) + " kr",
+        percentage: totalSum > 0 ? Math.round((orgData.sum / totalSum) * 100) + "%" : "0%",
+        outputs,
+      };
+    });
+
+    console.log(`Organizations: ${JSON.stringify(organizations)}`);
+
+    // Extract first name
+    const firstName = donor.full_name ? donor.full_name.split(" ")[0] : "";
+
+    // Tax deduction percentage (standard Norwegian rate)
+    const deductionPercentage = "22%";
+
+    const mailResult = await sendTemplate({
+      to: recipientEmail || donor.email,
+      templateId: config.mailersend_missing_tax_unit_notice_template_id,
+      personalization: {
+        name: firstName,
+        year: year.toString(),
+        taxUnits: [], // Empty since they don't have any tax units registered
+        maxDeduction: formatCurrency(limits.maximumDeductionLimit) + " kr",
+        organizations,
+        profilePageUrl: profilePageLink.url,
+        donationTotalSum: formatCurrency(donor.donationsSum) + " kr",
+        deductionPercentage,
+        profilePageLinkTitle: profilePageLink.title,
+      },
+    });
+
+    console.log(`Mail result: ${JSON.stringify(mailResult)}`);
+
+    if (mailResult === false) {
+      return false;
+    } else if ((mailResult as APIResponse).statusCode !== 202) {
+      console.error("Failed to send missing tax unit notice");
+      console.error(mailResult);
+      return (mailResult as APIResponse).statusCode;
+    }
+
+    return true;
+  } catch (ex) {
+    console.error("Failed to send missing tax unit notice");
+    console.error(ex);
+    return ex.statusCode || false;
+  }
+}
 
 /**
  * When a user requests a password reset, they might never have registered in the first place
