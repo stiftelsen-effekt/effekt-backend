@@ -852,6 +852,84 @@ const mapDbDistributionToDistribution = (result: SqlResult<DistributionDbResult>
   return distribution;
 };
 
+/**
+ * Updates the cause areas of an existing distribution while keeping the same KID.
+ * This is useful for fundraiser distributions where the KID must remain unique.
+ * Deletes existing cause areas and adds new ones in a transaction.
+ * @param {string} kid The distribution KID to update
+ * @param {DistributionCauseArea[]} causeAreas The new cause areas
+ */
+async function updateCauseAreas(kid: string, causeAreas: DistributionCauseArea[]): Promise<void> {
+  const transaction = await DAO.startTransaction();
+  try {
+    // Delete existing cause areas (will cascade delete cause area organizations)
+    await transaction.query(`DELETE FROM Distribution_cause_areas WHERE Distribution_KID = ?`, [
+      kid,
+    ]);
+
+    // Add new cause areas
+    const distributionCauseAreaInserts = await Promise.all(
+      causeAreas.map((causeArea) =>
+        (async () => {
+          const [result] = await transaction.query<ResultSetHeader>(
+            `INSERT INTO Distribution_cause_areas (Distribution_KID, Cause_area_ID, Percentage_share, Standard_split) VALUES (?, ?, ?, ?);`,
+            [kid, causeArea.id, causeArea.percentageShare, causeArea.standardSplit ? 1 : 0],
+          );
+
+          if (result.affectedRows !== 1) {
+            throw new Error("Could not add distribution cause area");
+          }
+
+          return {
+            causeAreaId: causeArea.id,
+            distributionCauseAreaId: result.insertId,
+          };
+        })(),
+      ),
+    );
+
+    // Add cause area organizations
+    const distributionCauseAreaOrganizationInsertsRowValues = [];
+    for (const causeAreaInsert of distributionCauseAreaInserts) {
+      const causeArea = causeAreas.find((item) => item.id === causeAreaInsert.causeAreaId);
+      if (!causeArea) {
+        throw new Error("Could not find cause area");
+      }
+      if (!causeArea.standardSplit) {
+        const orgs = causeArea.organizations;
+        for (const org of orgs) {
+          distributionCauseAreaOrganizationInsertsRowValues.push([
+            causeAreaInsert.distributionCauseAreaId,
+            org.id,
+            org.percentageShare,
+          ]);
+        }
+      } else {
+        const orgs = await getStandardDistributionByCauseAreaID(causeArea.id);
+        for (const org of orgs) {
+          distributionCauseAreaOrganizationInsertsRowValues.push([
+            causeAreaInsert.distributionCauseAreaId,
+            org.id,
+            org.percentageShare,
+          ]);
+        }
+      }
+    }
+
+    if (distributionCauseAreaOrganizationInsertsRowValues.length > 0) {
+      await transaction.query<ResultSetHeader>(
+        `INSERT INTO Distribution_cause_area_organizations (Distribution_cause_area_ID, Organization_ID, Percentage_share) VALUES ?;`,
+        [distributionCauseAreaOrganizationInsertsRowValues],
+      );
+    }
+
+    await DAO.commitTransaction(transaction);
+  } catch (ex) {
+    await DAO.rollbackTransaction(transaction);
+    throw ex;
+  }
+}
+
 export const distributions = {
   KIDexists,
   getKIDbySplit,
@@ -866,4 +944,5 @@ export const distributions = {
   setTaxUnit,
   addTaxUnitToDistribution,
   connectFirstTaxUnit,
+  updateCauseAreas,
 };

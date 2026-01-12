@@ -346,22 +346,35 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
         throw new Error("Distribution does not have a KID");
       }
 
-      const existingBySplitKID = await DAO.distributions.getKIDbySplit(validatedDistribution);
+      // Check if the existing donation has a fundraiser distribution
+      const existingDistribution = await DAO.distributions.getSplitByKID(existingDonation.KID);
 
-      if (existingBySplitKID != null && existingBySplitKID === validatedDistribution.kid) {
-        // No change
-      } else if (existingBySplitKID != null) {
-        // Use an existing KID for a distribution matching the split
-        await DAO.donations.updateKIDById(req.params.id, existingBySplitKID);
+      if (existingDistribution?.fundraiserTransactionId) {
+        // For fundraiser donations, keep the same KID but update the cause areas
+        // Fundraiser KIDs are unique per donation and linked to a specific fundraiser transaction
+        await DAO.distributions.updateCauseAreas(
+          existingDonation.KID,
+          validatedDistribution.causeAreas,
+        );
       } else {
-        // Create a new KID and distribution
-        const newKid = await donationHelpers.createKID();
-        await DAO.distributions.add({
-          ...validatedDistribution,
-          // Overwrite the KID with the new one
-          kid: newKid,
-        });
-        await DAO.donations.updateKIDById(req.params.id, newKid);
+        // For non-fundraiser donations, use the existing KID consolidation logic
+        const existingBySplitKID = await DAO.distributions.getKIDbySplit(validatedDistribution);
+
+        if (existingBySplitKID != null && existingBySplitKID === validatedDistribution.kid) {
+          // No change
+        } else if (existingBySplitKID != null) {
+          // Use an existing KID for a distribution matching the split
+          await DAO.donations.updateKIDById(req.params.id, existingBySplitKID);
+        } else {
+          // Create a new KID and distribution
+          const newKid = await donationHelpers.createKID();
+          await DAO.distributions.add({
+            ...validatedDistribution,
+            // Overwrite the KID with the new one
+            kid: newKid,
+          });
+          await DAO.donations.updateKIDById(req.params.id, newKid);
+        }
       }
 
       if (validatedDistribution.donorId !== existingDonation.donorId) {
