@@ -822,6 +822,7 @@ const mapDbDistributionToDistribution = (result: SqlResult<DistributionDbResult>
     kid: result[0].KID,
     donorId: result[0].Donor_ID,
     taxUnitId: result[0].Tax_unit_ID,
+    fundraiserTransactionId: result[0].Fundraiser_transaction_ID ?? undefined,
     causeAreas: result.reduce((acc: DistributionCauseArea[], row) => {
       const existingCauseArea = acc.find((item) => item.id === row.Cause_area_ID);
 

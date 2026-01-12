@@ -31,12 +31,19 @@ export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId
   );
 
   for (const KID of distributionsNeedingReplacement) {
+    const oldDistribution = distributions.find((distribution) => distribution.kid === KID);
+
+    // Skip fundraiser distributions - they have unique KIDs that should not be replaced
+    // Each fundraiser donation has its own KID linked to a specific fundraiser transaction
+    if (oldDistribution?.fundraiserTransactionId) {
+      continue;
+    }
+
     /**
      * First we make a copy of the old distribution (without a tax unit)
      * and add it with a new KID
      */
     const replacementKID = await donationHelpers.createKID(15, donorId);
-    const oldDistribution = distributions.find((distribution) => distribution.kid === KID);
 
     const newDistribution = {
       ...oldDistribution,
@@ -63,6 +70,13 @@ export async function setTaxUnitOnDistribution(kid: string, taxUnitId: number) {
 
   if (distribution.taxUnitId) {
     throw new Error("Distribution already has a tax unit");
+  }
+
+  // Fundraiser distributions have unique KIDs that should not be replaced
+  // Just set the tax unit directly without creating a duplicate
+  if (distribution.fundraiserTransactionId) {
+    await DAO.distributions.addTaxUnitToDistribution(kid, taxUnitId);
+    return;
   }
 
   // Create a duplicate of the distribution
