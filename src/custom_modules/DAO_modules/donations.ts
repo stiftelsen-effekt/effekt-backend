@@ -829,7 +829,7 @@ async function getYearlyAggregateByDonorId(donorId) {
     O.full_name as organization,
     O.abbriv,
     O.Cause_area_ID as causeAreaID,
-    SUM(Donations.sum_confirmed * (CA.percentage_share / 100) * (CAO.percentage_share / 100)) as value, 
+    SUM(Donations.sum_confirmed * (CA.percentage_share / 100) * (CAO.percentage_share / 100)) as value,
     YEAR(Donations.timestamp_confirmed) as \`year\`
 
     FROM Donations
@@ -841,14 +841,66 @@ async function getYearlyAggregateByDonorId(donorId) {
             ON CAO.Distribution_cause_area_ID = CA.ID
     LEFT JOIN Organizations as O
     ON O.ID = CAO.Organization_ID
-    WHERE 
+    WHERE
         Donations.Donor_ID = ?
-        
+
     GROUP BY O.ID, \`year\``,
     [donorId],
   );
 
   return res;
+}
+
+/**
+ * Gets monthly aggregate donations by organization for Google Sheets export
+ * Excludes Payment_ID 15 and Organization_ID 11
+ * @returns {Array<{Year: number, Month: number, Charity: string, AmountNOK: number, Cause: string}>}
+ */
+async function getMonthlyAggregateByOrganization(): Promise<
+  Array<{
+    Year: number;
+    Month: number;
+    Charity: string;
+    AmountNOK: number;
+    Cause: string;
+  }>
+> {
+  const [res] = await DAO.query(
+    `
+    SELECT
+      YEAR(d.timestamp_confirmed) AS Year,
+      MONTH(d.timestamp_confirmed) AS Month,
+      o.full_name AS Charity,
+      ROUND(SUM(d.sum_confirmed * (dca.Percentage_share / 100) * (dcao.Percentage_share / 100)), 2) AS AmountNOK,
+      ca.name AS Cause
+    FROM Donations d
+    JOIN Distributions dist ON d.KID_fordeling = dist.KID
+    JOIN Distribution_cause_areas dca ON dist.KID = dca.Distribution_KID
+    JOIN Distribution_cause_area_organizations dcao ON dca.ID = dcao.Distribution_cause_area_ID
+    JOIN Organizations o ON dcao.Organization_ID = o.ID
+    JOIN Cause_areas ca ON o.Cause_area_ID = ca.ID
+    WHERE d.Payment_ID != 15
+      AND o.ID != 11
+    GROUP BY
+      YEAR(d.timestamp_confirmed),
+      MONTH(d.timestamp_confirmed),
+      o.full_name,
+      ca.name
+    ORDER BY
+      o.full_name,
+      YEAR(d.timestamp_confirmed),
+      MONTH(d.timestamp_confirmed)
+    LIMIT 10000
+    `,
+  );
+
+  return res.map((row) => ({
+    Year: row.Year,
+    Month: row.Month,
+    Charity: row.Charity,
+    AmountNOK: parseFloat(row.AmountNOK),
+    Cause: row.Cause,
+  }));
 }
 
 /**
@@ -1257,6 +1309,7 @@ export const donations = {
   getHistory,
   getTransactionCostsReport,
   getYearlyAggregateByDonorId,
+  getMonthlyAggregateByOrganization,
   getByDonorId,
   getLatestByKID,
   getByExternalPaymentID,

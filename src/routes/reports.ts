@@ -7,6 +7,7 @@ import bodyParser from "body-parser";
 import { adoveoReportRouter } from "./reports/adoveo";
 import { bankReportRouter } from "./reports/bank";
 import { amfReportRouter } from "./reports/amf";
+import { donationsByOrgRouter } from "./reports/donationsbyorg";
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
 
 router.post("/ocr", isAdmin, require("./reports/ocr"));
@@ -19,5 +20,6 @@ router.post("/taxdeductions", urlEncodeParser, isAdmin, require("./reports/tax")
 router.post("/autogiro", isAdmin, require("./reports/autogiro"));
 router.use("/adoveo", adoveoReportRouter);
 router.use("/amf", amfReportRouter);
+router.use("/donationsbyorg", donationsByOrgRouter);
 
 module.exports = router;
