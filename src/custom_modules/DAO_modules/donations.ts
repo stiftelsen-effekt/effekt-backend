@@ -854,14 +854,14 @@ async function getYearlyAggregateByDonorId(donorId) {
 /**
  * Gets monthly aggregate donations by organization for Google Sheets export
  * Excludes Payment_ID 15 and Organization_ID 11
- * @returns {Array<{Year: number, Month: number, Charity: string, AmountNOK: number, Cause: string}>}
+ * @returns {Array<{Year: number, Month: number, Charity: string, Amount: number, Cause: string}>}
  */
 async function getMonthlyAggregateByOrganization(): Promise<
   Array<{
     Year: number;
     Month: number;
     Charity: string;
-    AmountNOK: number;
+    Amount: number;
     Cause: string;
   }>
 > {
@@ -871,7 +871,7 @@ async function getMonthlyAggregateByOrganization(): Promise<
       YEAR(d.timestamp_confirmed) AS Year,
       MONTH(d.timestamp_confirmed) AS Month,
       o.full_name AS Charity,
-      ROUND(SUM(d.sum_confirmed * (dca.Percentage_share / 100) * (dcao.Percentage_share / 100)), 2) AS AmountNOK,
+      ROUND(SUM(d.sum_confirmed * (dca.Percentage_share / 100) * (dcao.Percentage_share / 100)), 2) AS Amount,
       ca.name AS Cause
     FROM Donations d
     JOIN Distributions dist ON d.KID_fordeling = dist.KID
@@ -879,8 +879,8 @@ async function getMonthlyAggregateByOrganization(): Promise<
     JOIN Distribution_cause_area_organizations dcao ON dca.ID = dcao.Distribution_cause_area_ID
     JOIN Organizations o ON dcao.Organization_ID = o.ID
     JOIN Cause_areas ca ON o.Cause_area_ID = ca.ID
-    WHERE d.Payment_ID != 15
-      AND o.ID != 11
+    WHERE d.Payment_ID != 15 # Exclude influenced donations (not going through our accounts, to avoid double counting)
+      AND o.full_name NOT IN ('Drift', 'Drift av Gi Effektivt')
     GROUP BY
       YEAR(d.timestamp_confirmed),
       MONTH(d.timestamp_confirmed),
