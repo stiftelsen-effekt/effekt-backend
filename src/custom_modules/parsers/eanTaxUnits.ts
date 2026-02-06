@@ -68,8 +68,8 @@ export const parseEanTaxUnits = (report): EANTaxUnitsRow[] => {
       }
 
       if (field === "gieffektivt") {
-        if (row[field] === "ja") row[field] = true;
-        else if (row[field] === "nei") row[field] = false;
+        if (row[field] === "TRUE") row[field] = true;
+        else if (row[field] === "FALSE") row[field] = false;
         else {
           console.error(
             "Parsing ean tax units failed. Invalid value for field " + field + ": " + row[field],

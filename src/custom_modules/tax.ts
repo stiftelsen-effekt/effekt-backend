@@ -118,6 +118,11 @@ export async function createXMLReportToTaxAuthorities(
   const eanTaxUnits = await parseEanTaxUnits(eanUnitsCsv);
 
   for (const unit of eanTaxUnits) {
+    if (unit.ssn.length !== 11 && unit.ssn.length !== 9) {
+      console.warn(`Skipping unit ${unit.ssn} because it has an invalid SSN length`);
+      continue;
+    }
+
     if (unit.gieffektivt && !taxUnitsMap.has(unit.ssn)) {
       throw new Error(
         `Report says that tax unit ${unit.ssn} has donated to GE, but we don't have any donations for the unit in the database`,
@@ -196,6 +201,14 @@ const writeXMLTaxReport = (
   leveranse.node("leveransetype", "ordinaer");
 
   giftEntities.forEach((entity) => {
+    // Skip entities with invalid SSN lengths
+    if (entity.identificationNumber.length !== 11 && entity.identificationNumber.length !== 9) {
+      console.warn(
+        `Skipping entity ${entity.identificationNumber} because it has an invalid SSN length`,
+      );
+      return;
+    }
+
     const oppgave = leveranse.node("oppgave");
     const oppgaveeier = oppgave.node("oppgaveeier");
     if (entity.identificationNumber.length === 11) {
@@ -203,7 +216,11 @@ const writeXMLTaxReport = (
     } else if (entity.identificationNumber.length === 9) {
       oppgaveeier.node("organisasjonsnummer", entity.identificationNumber);
     }
-    oppgaveeier.node("navn", entity.name); // Replace with actual name
+    if (entity.name && entity.name.length > 0) {
+      oppgaveeier.node("navn", entity.name); // Replace with actual name
+    } else {
+      oppgaveeier.node("navn", "Ukjent navn");
+    }
     oppgave.node("beloep", Math.round(entity.amount).toFixed(0));
   });
 

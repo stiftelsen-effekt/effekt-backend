@@ -260,13 +260,15 @@ async function getTaxXMLReportUnits(year: number) {
       donationsSum: string;
       ssn: string;
       full_name: string;
+      donorId: number;
     }[]
   >(
     `
     SELECT 
       SUM(sum_confirmed) as donationsSum,
       Tax_unit.ssn,
-      Tax_unit.full_name
+      Tax_unit.full_name,
+      Tax_unit.Donor_ID as donorId
 
       FROM Donations as D
 
@@ -282,8 +284,9 @@ async function getTaxXMLReportUnits(year: number) {
 
       GROUP BY
         Tax_unit.ssn,
-        Tax_unit.full_name
-
+        Tax_unit.full_name,
+        Tax_unit.Donor_ID
+        
       ORDER BY SUM(sum_confirmed) DESC
   `,
     [year],
