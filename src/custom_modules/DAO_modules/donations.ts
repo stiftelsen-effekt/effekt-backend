@@ -898,7 +898,7 @@ async function getMonthlyAggregateByOrganization(): Promise<
     Year: row.Year,
     Month: row.Month,
     Charity: row.Charity,
-    AmountNOK: parseFloat(row.AmountNOK),
+    Amount: parseFloat(row.Amount),
     Cause: row.Cause,
   }));
 }

@@ -21,7 +21,7 @@ donationsByOrgRouter.get("/", cache("1 hour"), async (req, res, next) => {
     // Build CSV content
     const headers = ["Year", "Month", "Charity", "Amount (NOK)", "Cause"];
     const rows = data.map((row) =>
-      [row.Year, row.Month, escapeCsvValue(row.Charity), row.AmountNOK, row.Cause].join(","),
+      [row.Year, row.Month, escapeCsvValue(row.Charity), row.Amount, row.Cause].join(","),
     );
 
     const csv = [headers.join(","), ...rows].join("\n");

@@ -6,6 +6,9 @@ import { RequestLocale } from "../../middleware/locale";
 
 //region Get
 
+type DonorFundraiserGiving = "only" | "atLeastOnce" | "never";
+type DonorFundraiserType = "facebook" | "adoveo" | "homebrew";
+
 interface DonorFilters {
   donorId: number | null;
   name?: string;
@@ -13,10 +16,13 @@ interface DonorFilters {
   query?: string; // For fulltext search over name and email
   newsletter?: boolean; // Filter by newsletter subscription status
   registered?: { from?: Date; to?: Date };
+  registeredDate?: { from?: Date; to?: Date };
   donationsDateRange?: { from?: Date; to?: Date };
   lastDonationDate?: { from?: Date; to?: Date };
   donationsCount?: { from?: number; to?: number };
   donationsSum?: { from?: number; to?: number };
+  fundraiserGiving?: DonorFundraiserGiving;
+  fundraiserTypes?: Array<DonorFundraiserType>;
   referralTypeIDs?: Array<number>; // List of Referral_types.ID
   recipientOrgIDs?: Array<number>; // List of Organizations.ID
 }
@@ -48,6 +54,46 @@ const jsToDbDonorMapping: Array<[string, string]> = [
   ["donationsCount", "FD.donations_count"],
   ["donationsSum", "FD.donations_sum"],
 ];
+
+const allFundraiserTypes: Array<DonorFundraiserType> = ["facebook", "adoveo", "homebrew"];
+
+function fundraiserMatchClause(
+  donationAlias: string,
+  fundraiserTypes: Array<DonorFundraiserType>,
+): string {
+  const clauses: string[] = [];
+
+  if (fundraiserTypes.includes("facebook")) {
+    clauses.push(`${donationAlias}.Payment_ID = 9`);
+  }
+
+  if (fundraiserTypes.includes("adoveo")) {
+    clauses.push(`(
+      ${donationAlias}.Payment_ID = 13
+      AND EXISTS (
+        SELECT 1
+        FROM Adoveo_fundraiser_transactions AFT
+        WHERE AFT.Donation_ID = ${donationAlias}.ID
+          AND AFT.Status = 'SALE'
+      )
+    )`);
+  }
+
+  if (fundraiserTypes.includes("homebrew")) {
+    clauses.push(`EXISTS (
+      SELECT 1
+      FROM Distributions DIST_HB
+      WHERE DIST_HB.KID = ${donationAlias}.KID_fordeling
+        AND DIST_HB.Fundraiser_transaction_ID IS NOT NULL
+    )`);
+  }
+
+  if (clauses.length === 0) {
+    return "1 = 0";
+  }
+
+  return clauses.length === 1 ? clauses[0] : `(${clauses.join(" OR ")})`;
+}
 
 async function getAll(
   sort: {
@@ -152,14 +198,13 @@ async function getAll(
       whereClauses.push(`Donors.newsletter = ${filter.newsletter ? 1 : 0}`);
     }
 
-    if (filter.registered) {
-      if (filter.registered.from) {
-        whereClauses.push(
-          `Donors.date_registered >= ${sqlString.escape(filter.registered.from)}`,
-        );
+    const registeredFilter = filter.registeredDate ?? filter.registered;
+    if (registeredFilter) {
+      if (registeredFilter.from) {
+        whereClauses.push(`Donors.date_registered >= ${sqlString.escape(registeredFilter.from)}`);
       }
-      if (filter.registered.to) {
-        const toDate = new Date(filter.registered.to);
+      if (registeredFilter.to) {
+        const toDate = new Date(registeredFilter.to);
         toDate.setDate(toDate.getDate() + 1);
         whereClauses.push(`Donors.date_registered < ${sqlString.escape(toDate)}`);
       }
@@ -244,6 +289,46 @@ async function getAll(
         )
       `;
       whereClauses.push(recipientSubquery);
+    }
+
+    if (filter.fundraiserGiving) {
+      const fundraiserTypes = filter.fundraiserTypes ?? allFundraiserTypes;
+      if (fundraiserTypes.length === 0) {
+        return {
+          rows: [],
+          statistics: { totalDonors: 0, totalDonationCount: 0, totalDonationSum: 0 },
+          pages: 0,
+        };
+      }
+
+      const fundraiserClause = fundraiserMatchClause("D_rec", fundraiserTypes);
+      const hasFundraiserDonationsSubquery = `
+        EXISTS (
+          SELECT 1
+          FROM Donations D_rec
+          WHERE D_rec.Donor_ID = Donors.ID
+          ${donationDateFilterSqlForSubqueries}
+          AND ${fundraiserClause}
+        )
+      `;
+      const hasNonFundraiserDonationsSubquery = `
+        EXISTS (
+          SELECT 1
+          FROM Donations D_rec
+          WHERE D_rec.Donor_ID = Donors.ID
+          ${donationDateFilterSqlForSubqueries}
+          AND NOT (${fundraiserClause})
+        )
+      `;
+
+      if (filter.fundraiserGiving === "atLeastOnce") {
+        whereClauses.push(hasFundraiserDonationsSubquery);
+      } else if (filter.fundraiserGiving === "never") {
+        whereClauses.push(`NOT ${hasFundraiserDonationsSubquery}`);
+      } else if (filter.fundraiserGiving === "only") {
+        whereClauses.push(hasFundraiserDonationsSubquery);
+        whereClauses.push(`NOT ${hasNonFundraiserDonationsSubquery}`);
+      }
     }
   }
 
