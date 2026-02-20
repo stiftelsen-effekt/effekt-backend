@@ -390,7 +390,8 @@ export const fundraisers = {
         fgf.*, -- Select all columns from the filtered/grouped data (for the current page)
         os.total_fundraiser_count,
         os.overall_total_sum,
-        os.overall_total_donation_count
+        os.overall_total_donation_count,
+        os.overall_avg_donation
     FROM
         FilteredGroupedFundraisers fgf
     CROSS JOIN -- Attach the single row of overall stats to each paginated row
