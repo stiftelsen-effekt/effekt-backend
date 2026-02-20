@@ -28,6 +28,7 @@ import { tidbytRouter } from "./routes/tidbyt";
 import { inflationRouter } from "./routes/inflation";
 import { agreementfeedbackRouter } from "./routes/agreementfeedback";
 import { fundraisersRouter } from "./routes/fundraisers";
+import { adoveoRouter } from "./routes/adoveo";
 import { ltvRouter } from "./routes/ltv";
 import { organizationsRouter } from "./routes/organizations";
 import { causeAreasRouter } from "./routes/causeareas";
@@ -186,6 +187,7 @@ DAO.connect(() => {
   app.use("/avtalegiro", avtaleGiroRoute);
   app.use("/autogiro", autoGiroRoute);
   app.use("/fundraisers", fundraisersRoute);
+  app.use("/adoveo", adoveoRouter);
   app.use("/tax", taxRoute);
   app.use("/import", importRouter);
   app.use("/results", resultsRouter);
