@@ -131,8 +131,10 @@ export const importSwedishDonationsReport = async (report, medgivandeReport) => 
           KID = trimmedReferenceNumber;
 
           await DAO.distributions.add({
-            ...distributionInput,
-            kid: KID,
+            distribution: {
+              ...distributionInput,
+              kid: KID,
+            },
           });
           // console.log("Added distribution for KID", KID)
         } else {
@@ -149,8 +151,10 @@ export const importSwedishDonationsReport = async (report, medgivandeReport) => 
             const existing = await DAO.distributions.getSplitByKID(KID);
             if (!existing) {
               await DAO.distributions.add({
-                ...distributionInput,
-                kid: KID,
+                distribution: {
+                  ...distributionInput,
+                  kid: KID,
+                },
               });
               // console.log("Added distribution for KID", KID)
             }
@@ -169,8 +173,10 @@ export const importSwedishDonationsReport = async (report, medgivandeReport) => 
         // console.log(`Creating a new KID`)
         let newKID = await donationHelpers.createKID();
         await DAO.distributions.add({
-          ...distributionInput,
-          kid: newKID,
+          distribution: {
+            ...distributionInput,
+            kid: newKID,
+          },
         });
         KID = newKID;
       }

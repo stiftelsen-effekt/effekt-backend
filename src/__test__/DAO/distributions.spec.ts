@@ -4,123 +4,77 @@ import { DAO } from "../../custom_modules/DAO";
 
 describe("DAO Distributions", () => {
   describe("getAll", () => {
+    const mockActiveOrgs = [{ abbriv: "AMF" }, { abbriv: "GW" }];
+
+    const mockResultRows = [
+      {
+        KID: "123456789",
+        full_name: "Test Testesen",
+        email: "testæøå@test.com",
+        donation_sum: 100,
+        donation_count: 2,
+        total_rows: 2,
+        AMF: "50.000000",
+        GW: "50.000000",
+      },
+      {
+        KID: "987654321",
+        full_name: "Test Testesen",
+        email: "testæøå@test.com",
+        donation_sum: 200,
+        donation_count: 1,
+        total_rows: 2,
+        AMF: "100.000000",
+        GW: "0.000000",
+      },
+    ];
+
     it("Gets all distributions with no filter", async () => {
       const queryStub = sinon.stub(DAO, "query");
 
-      const mockQueryResponse = [
-        {
-          KID: "123456789",
-          sum: 100,
-          count: 2,
-          full_name: "Test Testesen",
-          email: "testæøå@test.com",
-        },
-        {
-          KID: "987654321",
-          sum: 200,
-          count: 1,
-          full_name: "Test Testesen",
-          email: "testæøå@test.com",
-        },
-      ];
+      // First call: active orgs query; second call: main query
+      queryStub.onFirstCall().resolves([mockActiveOrgs, []]);
+      queryStub.onSecondCall().resolves([mockResultRows, []]);
 
-      const mockCountQueryResponse = [
-        {
-          count: 2,
-        },
-      ];
-
-      queryStub.onFirstCall().resolves([mockQueryResponse, []]);
-      queryStub.onSecondCall().resolves([mockCountQueryResponse, []]);
-
-      const result = await DAO.distributions.getAll(0, 10, { id: "ID" }, null);
+      const result = await DAO.distributions.getAll(0, 10, { id: "KID" }, null);
 
       expect(queryStub.calledTwice).to.be.true;
-      expect(result).to.deep.equal({
-        rows: mockQueryResponse,
-        pages: 1,
-      });
-      expect(queryStub.firstCall.args[0]).to.not.contain("WHERE");
-      expect(queryStub.firstCall.args[0]).to.contain("LIMIT 10");
-      expect(queryStub.firstCall.args[0]).to.contain("OFFSET 0");
+      expect(result.rows).to.have.length(2);
+      expect(result.rows[0].KID).to.equal("123456789");
+      expect(result.pages).to.equal(1);
+      // No donor/KID filter in the FilteredDistributions CTE
+      expect(queryStub.secondCall.args[0]).to.not.contain("full_name LIKE");
+      expect(queryStub.secondCall.args[0]).to.contain("LIMIT 10");
+      expect(queryStub.secondCall.args[0]).to.contain("OFFSET 0");
     });
 
     it("Gets all distributions with filter", async () => {
       const queryStub = sinon.stub(DAO, "query");
 
-      const mockQueryResponse = [
-        {
-          KID: "123456789",
-          sum: 100,
-          count: 2,
-          full_name: "Test Testesen",
-          email: "testæøå@test.com",
-        },
-        {
-          KID: "987654321",
-          sum: 200,
-          count: 1,
-          full_name: "Test Testesen",
-          email: "testæøå@test.com",
-        },
-      ];
-
-      const mockCountQueryResponse = [
-        {
-          count: 2,
-        },
-      ];
-
-      queryStub.onFirstCall().resolves([mockQueryResponse, []]);
-      queryStub.onSecondCall().resolves([mockCountQueryResponse, []]);
+      queryStub.onFirstCall().resolves([mockActiveOrgs, []]);
+      queryStub.onSecondCall().resolves([mockResultRows, []]);
 
       const result = await DAO.distributions.getAll(
         0,
         10,
-        { id: "ID" },
+        { id: "KID" },
         { donor: "Test Testesen" },
       );
 
       expect(queryStub.calledTwice).to.be.true;
-      expect(result).to.deep.equal({
-        rows: mockQueryResponse,
-        pages: 1,
-      });
-      expect(queryStub.firstCall.args[0]).to.contain("WHERE");
-      expect(queryStub.firstCall.args[0]).to.contain("Test Testesen");
-      expect(queryStub.firstCall.args[0]).to.contain("LIKE");
-      expect(queryStub.firstCall.args[0]).to.contain("LIMIT 10");
-      expect(queryStub.firstCall.args[0]).to.contain("OFFSET 0");
+      expect(result.rows).to.have.length(2);
+      expect(queryStub.secondCall.args[0]).to.contain("WHERE");
+      expect(queryStub.secondCall.args[0]).to.contain("Test Testesen");
+      expect(queryStub.secondCall.args[0]).to.contain("LIKE");
+      expect(queryStub.secondCall.args[0]).to.contain("LIMIT 10");
+      expect(queryStub.secondCall.args[0]).to.contain("OFFSET 0");
     });
 
     it("Gets all distributions with filter and order", async () => {
       const queryStub = sinon.stub(DAO, "query");
 
-      const mockQueryResponse = [
-        {
-          KID: "123456789",
-          sum: 100,
-          count: 2,
-          full_name: "Test Testesen",
-          email: "testæøå@test.com",
-        },
-        {
-          KID: "987654321",
-          sum: 200,
-          count: 1,
-          full_name: "Test Testesen",
-          email: "testæøå@test.com",
-        },
-      ];
-
-      const mockCountQueryResponse = [
-        {
-          count: 2,
-        },
-      ];
-
-      queryStub.onFirstCall().resolves([mockQueryResponse, []]);
-      queryStub.onSecondCall().resolves([mockCountQueryResponse, []]);
+      queryStub.onFirstCall().resolves([mockActiveOrgs, []]);
+      queryStub.onSecondCall().resolves([mockResultRows, []]);
 
       const result = await DAO.distributions.getAll(
         0,
@@ -130,64 +84,55 @@ describe("DAO Distributions", () => {
       );
 
       expect(queryStub.calledTwice).to.be.true;
-      expect(result).to.deep.equal({
-        rows: mockQueryResponse,
-        pages: 1,
-      });
-      expect(queryStub.firstCall.args[0]).to.contain("WHERE");
-      expect(queryStub.firstCall.args[0]).to.contain("Test Testesen");
-      expect(queryStub.firstCall.args[0]).to.contain("LIKE");
-      expect(queryStub.firstCall.args[0]).to.contain("ORDER BY sum DESC");
-      expect(queryStub.firstCall.args[0]).to.contain("LIMIT 10");
-      expect(queryStub.firstCall.args[0]).to.contain("OFFSET 0");
+      expect(result.rows).to.have.length(2);
+      expect(queryStub.secondCall.args[0]).to.contain("WHERE");
+      expect(queryStub.secondCall.args[0]).to.contain("Test Testesen");
+      expect(queryStub.secondCall.args[0]).to.contain("LIKE");
+      expect(queryStub.secondCall.args[0]).to.contain("ORDER BY donation_sum DESC");
+      expect(queryStub.secondCall.args[0]).to.contain("LIMIT 10");
+      expect(queryStub.secondCall.args[0]).to.contain("OFFSET 0");
     });
 
     it("Gets all distributions with correct pages counter when there are more rows than the limit", async () => {
       const queryStub = sinon.stub(DAO, "query");
 
-      const mockQueryResponse = [
-        {
-          KID: "987654321",
-          sum: 200,
-          count: 1,
-          full_name: "Test Testesen",
-          email: "testæøå@test.com",
-        },
-        {
-          KID: "987654321",
-          sum: 200,
-          count: 1,
-          full_name: "Glor Gorgesen Testesen",
-          email: "asd@test.com",
-        },
-        {
-          KID: "987654321",
-          sum: 200,
-          count: 1,
-          full_name: "Test Testesen",
-          email: "testæøå@test.com",
-        },
+      const threeRowResult = [
+        { ...mockResultRows[0], total_rows: 3 },
+        { ...mockResultRows[1], total_rows: 3 },
+        { ...mockResultRows[0], KID: "111111111", total_rows: 3 },
       ];
 
-      const mockCountQueryResponse = [
-        {
-          count: 3,
-        },
-      ];
+      queryStub.onFirstCall().resolves([mockActiveOrgs, []]);
+      queryStub.onSecondCall().resolves([threeRowResult, []]);
 
-      queryStub.onFirstCall().resolves([mockQueryResponse, []]);
-      queryStub.onSecondCall().resolves([mockCountQueryResponse, []]);
-
-      const result = await DAO.distributions.getAll(0, 1, { id: "ID" }, null);
+      const result = await DAO.distributions.getAll(0, 1, { id: "KID" }, null);
 
       expect(queryStub.calledTwice).to.be.true;
-      expect(result).to.deep.equal({
-        rows: mockQueryResponse,
-        pages: 3,
-      });
-      expect(queryStub.firstCall.args[0]).to.not.contain("WHERE");
-      expect(queryStub.firstCall.args[0]).to.contain("LIMIT 1");
-      expect(queryStub.firstCall.args[0]).to.contain("OFFSET 0");
+      expect(result.pages).to.equal(3);
+      expect(queryStub.secondCall.args[0]).to.not.contain("full_name LIKE");
+      expect(queryStub.secondCall.args[0]).to.contain("LIMIT 1");
+      expect(queryStub.secondCall.args[0]).to.contain("OFFSET 0");
+    });
+
+    it("Throws error for invalid sort column", async () => {
+      try {
+        await DAO.distributions.getAll(0, 10, { id: "INVALID" }, null);
+        expect.fail("Should have thrown");
+      } catch (ex) {
+        expect(ex.message).to.contain("Invalid sort column");
+      }
+    });
+
+    it("Returns empty result when no rows match", async () => {
+      const queryStub = sinon.stub(DAO, "query");
+
+      queryStub.onFirstCall().resolves([mockActiveOrgs, []]);
+      queryStub.onSecondCall().resolves([[], []]);
+
+      const result = await DAO.distributions.getAll(0, 10, { id: "KID" }, null);
+
+      expect(result.rows).to.have.length(0);
+      expect(result.pages).to.equal(0);
     });
 
     afterEach(() => {
