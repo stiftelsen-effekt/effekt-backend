@@ -55,6 +55,7 @@ router.post("/search", authMiddleware.isAdmin, async (req, res, next) => {
         Number.MAX_SAFE_INTEGER,
         req.body.sort,
         req.body.filter,
+        true,
       );
 
       return exportCsv(res, results.rows, `distributions-${new Date().toISOString()}.csv`);
