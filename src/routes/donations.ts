@@ -191,8 +191,10 @@ router.post("/register", async (req, res, next) => {
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
       donationObject.KID = await donationHelpers.createAvtaleGiroKID();
       await DAO.distributions.add({
-        ...draftDistribution,
-        kid: donationObject.KID,
+        distribution: {
+          ...draftDistribution,
+          kid: donationObject.KID,
+        },
       });
     } else if (donationObject.method == methods.AUTOGIRO) {
       if (fundraiser) {
@@ -201,8 +203,10 @@ router.post("/register", async (req, res, next) => {
 
       donationObject.KID = await donationHelpers.createKID(8);
       await DAO.distributions.add({
-        ...draftDistribution,
-        kid: donationObject.KID,
+        distribution: {
+          ...draftDistribution,
+          kid: donationObject.KID,
+        },
       });
 
       // Draft AutoGiro
@@ -255,7 +259,7 @@ router.post("/register", async (req, res, next) => {
           ...draftDistribution,
         };
 
-        await DAO.distributions.add(distribution);
+        await DAO.distributions.add({ distribution });
       }
     }
 
@@ -369,9 +373,11 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
           // Create a new KID and distribution
           const newKid = await donationHelpers.createKID();
           await DAO.distributions.add({
-            ...validatedDistribution,
-            // Overwrite the KID with the new one
-            kid: newKid,
+            distribution: {
+              ...validatedDistribution,
+              // Overwrite the KID with the new one
+              kid: newKid,
+            },
           });
           await DAO.donations.updateKIDById(req.params.id, newKid);
         }

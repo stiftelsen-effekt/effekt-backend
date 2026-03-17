@@ -314,14 +314,14 @@ export const autogiroagreements = {
       ]);
 
       // Add new distribution using the original KID
-      await DAO.distributions.add(
-        {
+      await DAO.distributions.add({
+        distribution: {
           ...newDistributionInput,
           kid: originalDistribution.kid,
         },
         metaOwnerID,
         transaction,
-      );
+      });
 
       // Links the replacement KID to the original AutoGiro KID
       await transaction.query(

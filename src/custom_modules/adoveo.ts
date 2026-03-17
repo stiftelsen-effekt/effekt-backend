@@ -616,10 +616,12 @@ async function getKID(causeAreas: DistributionCauseArea[], donorId: number, taxU
     const newKID = await donationHelpers.createKID();
     console.log("New KID", newKID);
     await DAO.distributions.add({
-      kid: newKID,
-      donorId,
-      taxUnitId,
-      causeAreas,
+      distribution: {
+        kid: newKID,
+        donorId,
+        taxUnitId,
+        causeAreas,
+      },
     });
     KID = newKID;
   }

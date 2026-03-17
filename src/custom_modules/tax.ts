@@ -50,7 +50,7 @@ export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId
       kid: replacementKID,
     };
 
-    await DAO.distributions.add(newDistribution);
+    await DAO.distributions.add({ distribution: newDistribution, preserveOrganizations: true });
 
     /**
      * Then we update the donations from before the current year to use the new KID
@@ -88,7 +88,7 @@ export async function setTaxUnitOnDistribution(kid: string, taxUnitId: number) {
   newDistribution.kid = newKID;
 
   // Add the new distribution
-  await DAO.distributions.add(newDistribution);
+  await DAO.distributions.add({ distribution: newDistribution, preserveOrganizations: true });
 
   // Update the donations to use the new KID
   const previousYearStart = DateTime.now().minus({ years: 1 }).startOf("year");

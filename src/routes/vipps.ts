@@ -673,7 +673,7 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
       KID = existingDistributionKID;
     } else {
       KID = await donationHelpers.createKID();
-      await DAO.distributions.add({ ...validatedDistribution, kid: KID });
+      await DAO.distributions.add({ distribution: { ...validatedDistribution, kid: KID } });
     }
 
     const response = await DAO.vipps.updateAgreementKID(agreementId, KID);
