@@ -112,6 +112,8 @@ async function getAll(
   statistics: DonorStatistics;
   pages: number;
 }> {
+  const startedAt = Date.now();
+
   if (!sort) {
     throw new Error("No sort provided for getAllDonors");
   }
@@ -123,7 +125,6 @@ async function getAll(
   const sortColumn = sortColumnEntry[1];
 
   let whereClauses: string[] = [];
-  let joins: string[] = [];
   let donationDateFilterSqlForCTE = ""; // For filtering donations within the CTE
   let donationDateFilterSqlForSubqueries = ""; // For filtering donations within subqueries
 
@@ -153,18 +154,17 @@ async function getAll(
   }
 
   const donorAggregatesCTE = `
-    DonorAggregates AS (
+    DonationAggregates AS (
       SELECT
-        Donors.ID as donor_id_agg,
+        Dons.Donor_ID as donor_id_agg,
         MAX(Dons.timestamp_confirmed) as last_donation_date,
-        COUNT(DISTINCT Dons.ID) as donations_count,
+        COUNT(Dons.ID) as donations_count,
         COALESCE(SUM(Dons.sum_confirmed), 0) as donations_sum
-      FROM Donors
-      LEFT JOIN Donations Dons ON Donors.ID = Dons.Donor_ID ${donationDateFilterSqlForCTE} -- Applied here
-      GROUP BY Donors.ID
+      FROM Donations Dons
+      WHERE 1 ${donationDateFilterSqlForCTE}
+      GROUP BY Dons.Donor_ID
     )
   `;
-  joins.push(`LEFT JOIN DonorAggregates Aggregates ON Donors.ID = Aggregates.donor_id_agg`);
 
   if (filter) {
     if (filter.donorId !== null) {
@@ -224,12 +224,15 @@ async function getAll(
     }
 
     if (filter.donationsCount) {
-      if (filter.donationsCount.from) {
+      if (
+        filter.donationsCount.from !== null &&
+        typeof filter.donationsCount.from !== "undefined"
+      ) {
         whereClauses.push(
           `Aggregates.donations_count >= ${sqlString.escape(filter.donationsCount.from)}`,
         );
       }
-      if (filter.donationsCount.to) {
+      if (filter.donationsCount.to !== null && typeof filter.donationsCount.to !== "undefined") {
         whereClauses.push(
           `Aggregates.donations_count <= ${sqlString.escape(filter.donationsCount.to)}`,
         );
@@ -237,12 +240,12 @@ async function getAll(
     }
 
     if (filter.donationsSum) {
-      if (filter.donationsSum.from) {
+      if (filter.donationsSum.from !== null && typeof filter.donationsSum.from !== "undefined") {
         whereClauses.push(
           `Aggregates.donations_sum >= ${sqlString.escape(filter.donationsSum.from)}`,
         );
       }
-      if (filter.donationsSum.to) {
+      if (filter.donationsSum.to !== null && typeof filter.donationsSum.to !== "undefined") {
         whereClauses.push(
           `Aggregates.donations_sum <= ${sqlString.escape(filter.donationsSum.to)}`,
         );
@@ -259,9 +262,15 @@ async function getAll(
           pages: 0,
         };
       }
-      joins.push(`LEFT JOIN Referral_records RR ON Donors.ID = RR.DonorID`);
       whereClauses.push(
-        `RR.ReferralID IN (${filter.referralTypeIDs.map((id) => sqlString.escape(id)).join(",")})`,
+        `EXISTS (
+          SELECT 1
+          FROM Referral_records RR
+          WHERE RR.DonorID = Donors.ID
+            AND RR.ReferralID IN (${filter.referralTypeIDs
+              .map((id) => sqlString.escape(id))
+              .join(",")})
+        )`,
       );
     }
 
@@ -334,35 +343,32 @@ async function getAll(
 
   const whereStatement =
     whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "WHERE 1";
-  const joinStatement = joins.join(" \n ");
-
   const query = `
     WITH ${donorAggregatesCTE},
     FilteredDonors AS (
-      SELECT DISTINCT
+      SELECT
         Donors.ID,
         Donors.full_name,
         Donors.email,
         Donors.date_registered,
         Donors.newsletter,
         Aggregates.last_donation_date,
-        Aggregates.donations_count,
-        Aggregates.donations_sum
+        COALESCE(Aggregates.donations_count, 0) as donations_count,
+        COALESCE(Aggregates.donations_sum, 0) as donations_sum
       FROM Donors
-      ${joinStatement}
+      LEFT JOIN DonationAggregates Aggregates ON Donors.ID = Aggregates.donor_id_agg
       ${whereStatement}
     ),
     TotalCount AS (
       SELECT COUNT(*) as total_donors_count FROM FilteredDonors
-      
     ),
     TotalSum AS (
-      SELECT 
-        SUM(donations_sum) as total_donations_sum,
-        SUM(donations_count) as total_donations_count
+      SELECT
+        COALESCE(SUM(donations_sum), 0) as total_donations_sum,
+        COALESCE(SUM(donations_count), 0) as total_donations_count
       FROM FilteredDonors
     )
-    SELECT 
+    SELECT
       FD.*,
       TC.total_donors_count,
       TS.total_donations_sum,
@@ -374,13 +380,16 @@ async function getAll(
     LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(page * limit)};
   `;
 
+  const queryStartedAt = Date.now();
   const [resultRows]: [any[], any] = await DAO.query(query, []);
+  const queryMs = Date.now() - queryStartedAt;
 
   const totalDonors = resultRows.length > 0 ? resultRows[0]["total_donors_count"] : 0;
   const totalDonationSum = resultRows.length > 0 ? resultRows[0]["total_donations_sum"] : 0;
   const totalDonationCount = resultRows.length > 0 ? resultRows[0]["total_donations_count"] : 0;
   const pages = Math.ceil(totalDonors / limit);
 
+  const mapStartedAt = Date.now();
   const mappedRows: DonorRow[] = resultRows.map((row) => ({
     id: row.ID,
     name: row.full_name,
@@ -391,6 +400,15 @@ async function getAll(
     donationsSum: parseFloat(row.donations_sum) || 0.0,
     newsletter: row.newsletter === 1,
   }));
+  const mapMs = Date.now() - mapStartedAt;
+
+  console.log(
+    `[DAO.donors.getAll] totalMs=${Date.now() - startedAt} queryMs=${queryMs} mapMs=${mapMs} rows=${
+      mappedRows.length
+    } totalDonors=${totalDonors} sort=${sort.id}:${
+      sort.desc ? "desc" : "asc"
+    } page=${page} limit=${limit}`,
+  );
 
   return {
     rows: mappedRows,

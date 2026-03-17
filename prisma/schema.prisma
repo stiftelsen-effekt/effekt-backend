@@ -133,6 +133,8 @@ model AutoGiro_agreement_charges {
 
   donation Donations?         @relation(fields: [donationID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
   shipment AutoGiro_shipments @relation(fields: [shipmentID], references: [ID], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([shipmentID], map: "AutoGiro_agreement_charges_shipmentID_fkey")
 }
 
 model AutoGiro_mandates {
@@ -270,8 +272,13 @@ model Donations {
 
   @@index([KID_fordeling, timestamp_confirmed], map: "KidAndTimestamp")
   @@index([timestamp_confirmed], map: "Timestamp")
+  @@index([timestamp_confirmed], map: "idx_timestamp_confirmed")
+  @@index([timestamp_confirmed, sum_confirmed], map: "idx_donations_ts_sum")
   @@index([Donor_ID], map: "fk_Donations_Donors_KID_idx")
+  @@index([Donor_ID, timestamp_confirmed, sum_confirmed], map: "idx_donor_time_sum")
   @@index([Payment_ID], map: "fk_Donations_to_Donors_idx")
+  @@index([Payment_ID, timestamp_confirmed], map: "idx_donations_vipps_recent")
+  @@index([KID_fordeling, timestamp_confirmed, sum_confirmed], map: "idx_kid_time_sum")
 }
 
 model Donors {
@@ -733,8 +740,8 @@ model Agreement_inflation_adjustments {
   updated              DateTime? @db.DateTime(0)
   expires              DateTime  @db.DateTime(0)
 
-  @@index([agreement_ID, agreement_type])
-  @@index([status])
-  @@index([expires])
+  @@index([agreement_ID, agreement_type], map: "Agreement_inflation_adjustments_agreement_ID_agreement_type_idx")
+  @@index([status], map: "Agreement_inflation_adjustments_status_idx")
+  @@index([expires], map: "Agreement_inflation_adjustments_expires_idx")
   @@map("Agreement_inflation_adjustments")
 }

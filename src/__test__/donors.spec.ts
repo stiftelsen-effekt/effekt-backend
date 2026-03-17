@@ -104,7 +104,7 @@ describe("donors", () => {
   describe("routes", () => {
     let server: express.Express;
 
-    beforeEach(function (done) {
+    beforeEach(function () {
       this.timeout(5000);
 
       server = express();
@@ -113,17 +113,15 @@ describe("donors", () => {
 
       // This must be stubbed before importing the routes
       sinon.stub(authMiddleware, "auth").returns([]);
-
-      const donorsRouter = require("../routes/donors");
-      server.use("/donors", donorsRouter);
-
       checkDonorStub = sinon
         .stub(authMiddleware, "checkAdminOrTheDonor")
         .callsFake((_, req, res, next) => {
           next();
         });
 
-      done();
+      delete require.cache[require.resolve("../routes/donors")];
+      const donorsRouter = require("../routes/donors");
+      server.use("/donors", donorsRouter);
     });
 
     describe("GET /donors/:id/donations", function () {
