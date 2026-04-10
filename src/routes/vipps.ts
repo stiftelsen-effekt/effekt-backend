@@ -14,7 +14,13 @@ import {
 import { DistributionInput } from "../schemas/types";
 import { encodePlausibleData } from "../custom_modules/plausible";
 import { exportCsv } from "../custom_modules/csvexport";
+import { verifyVippsWebhookSignature } from "../custom_modules/vippsWebhookAuth";
 const jsonBody = bodyParser.json();
+const webhookJsonBody = bodyParser.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf.toString();
+  },
+});
 const dns = require("dns").promises;
 const config = require("../config");
 const vipps = require("../custom_modules/vipps");
@@ -959,6 +965,44 @@ router.post("/fundraiser/:id/webhook", jsonBody, async (req, res, next) => {
   console.log(req.body);
 
   return res.sendStatus(200);
+});
+
+/**
+ * Vipps Webhooks API endpoint for recurring agreement events.
+ * Registered via POST https://api.vipps.no/webhooks/v1/webhooks with event "recurring.agreement-stopped.v1".
+ * The registration response secret must be stored as VIPPS_RECURRING_WEBHOOK_SECRET.
+ */
+router.post("/webhooks/v1/recurring", webhookJsonBody, async (req: any, res, next) => {
+  try {
+    const isValid = verifyVippsWebhookSignature(
+      req.method,
+      req.originalUrl,
+      {
+        "x-ms-date": req.headers["x-ms-date"],
+        "x-ms-content-sha256": req.headers["x-ms-content-sha256"],
+        host: req.headers["host"],
+        authorization: req.headers["authorization"],
+      },
+      req.rawBody,
+    );
+
+    if (!isValid) {
+      return res.status(401).json({ status: 401, content: "Invalid webhook signature" });
+    }
+
+    const { eventType, agreementId, actor } = req.body;
+
+    if (eventType === "recurring.agreement-stopped.v1") {
+      console.log(`Vipps agreement ${agreementId} stopped by ${actor ?? "unknown"}`);
+
+      await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED");
+      await DAO.vipps.updateAgreementCancellationDate(agreementId);
+    }
+
+    return res.sendStatus(200);
+  } catch (ex) {
+    next(ex);
+  }
 });
 
 router.get("/redirect/:orderId", async (req, res, next) => {
