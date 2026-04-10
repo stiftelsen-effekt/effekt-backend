@@ -16,11 +16,6 @@ import { encodePlausibleData } from "../custom_modules/plausible";
 import { exportCsv } from "../custom_modules/csvexport";
 import { verifyVippsWebhookSignature } from "../custom_modules/vippsWebhookAuth";
 const jsonBody = bodyParser.json();
-const webhookJsonBody = bodyParser.json({
-  verify: (req: any, _res, buf) => {
-    req.rawBody = buf.toString();
-  },
-});
 const dns = require("dns").promises;
 const config = require("../config");
 const vipps = require("../custom_modules/vipps");
@@ -972,7 +967,7 @@ router.post("/fundraiser/:id/webhook", jsonBody, async (req, res, next) => {
  * Registered via POST https://api.vipps.no/webhooks/v1/webhooks with event "recurring.agreement-stopped.v1".
  * The registration response secret must be stored as VIPPS_RECURRING_WEBHOOK_SECRET.
  */
-router.post("/webhooks/v1/recurring", webhookJsonBody, async (req: any, res, next) => {
+router.post("/webhooks/v1/recurring", async (req: any, res, next) => {
   try {
     const isValid = verifyVippsWebhookSignature(
       req.method,

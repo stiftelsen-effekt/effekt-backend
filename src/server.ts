@@ -58,8 +58,14 @@ DAO.connect(() => {
     res.redirect("/api-docs/");
   });
 
-  //Parse post body
-  app.use(express.json());
+  //Parse post body, capturing raw body for webhook signature verification
+  app.use(
+    express.json({
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf.toString();
+      },
+    }),
+  );
 
   //Pretty printing of JSON
   app.use(
