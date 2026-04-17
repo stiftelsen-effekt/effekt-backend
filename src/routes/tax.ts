@@ -3,6 +3,7 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 
 import express from "express";
 import { createXMLReportToTaxAuthorities, setTaxUnitOnDistribution } from "../custom_modules/tax";
+import { buildKu65Report } from "../custom_modules/ku65";
 const router = express.Router();
 
 // A route that updates a tax unit name and ssn
@@ -141,6 +142,37 @@ router.post("/skatteetaten/xmlreport", authMiddleware.isAdmin, async (req, res, 
 
     res.set("Content-Type", "application/xml");
     res.send(xmlDoc.toString());
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+router.post("/skatteverket/ku65", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const report = req.files?.report;
+
+    if (!report) {
+      throw new Error("Missing report file");
+    }
+
+    if ("length" in report) {
+      throw new Error("Multiple files not allowed");
+    }
+
+    if (report.mimetype !== "text/csv") {
+      throw new Error("Invalid file type, must be CSV");
+    }
+
+    const year = parseInt(req.body.year, 10);
+    if (!Number.isFinite(year) || year < 2000 || year > 2100) {
+      throw new Error("Invalid year");
+    }
+
+    const xml = buildKu65Report(report.data.toString("utf8"), year);
+
+    res.set("Content-Type", "application/xml");
+    res.set("Content-Disposition", `attachment; filename="ku65_${year}.xml"`);
+    res.send(xml);
   } catch (ex) {
     next(ex);
   }
