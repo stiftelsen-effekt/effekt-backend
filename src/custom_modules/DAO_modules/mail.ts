@@ -19,11 +19,9 @@ export const mail = {
       ],
     );
   },
-  getAllMailerSendSurveyResponses: async (): Promise<Mailersend_survey_responses[]> => {
+  getAllMailerSendSurveyResponses: async (): Promise<Record<string, any>[]> => {
     const [results] = await DAO.query(
-      `SELECT ID, surveyID, questionID, DonorID, answer, answerID, timestamp
-       FROM Mailersend_survey_responses
-       ORDER BY ID ASC`,
+      `SELECT * FROM EffektAnalysisDB.v_Mailersend_survey_responses_raw_enriched`,
     );
     return results;
   },
