@@ -14,6 +14,7 @@ import {
   AutogiroMandateFailedCommentaryCodes,
 } from "./parsers/autogiro/mandates";
 import { RequestLocale } from "../middleware/locale";
+import { sendDonationReceipt } from "./mail";
 import { isSwedishWorkingDay } from "./swedish-workdays";
 import {
   AutoGiroIncomingPaymentRecord,
@@ -558,7 +559,13 @@ const processAutogiroDeposit = async (
     let date = DateTime.fromFormat(payment.paymentDate, "yyyyMMdd").toJSDate();
 
     try {
-      await DAO.donations.add(KID, paymentMethods.autoGiro, payment.amount / 100, date, reference);
+      const donationID = await DAO.donations.add(
+        KID,
+        paymentMethods.autoGiro,
+        payment.amount / 100,
+        date,
+        reference,
+      );
       const chargeId = payment.paymentReference.trim();
       try {
         await DAO.autogiroagreements.setAgreementChargeCompleted(chargeId);
@@ -566,6 +573,16 @@ const processAutogiroDeposit = async (
         console.error(ex);
         console.log(`Failed to update charge with ID ${chargeId} to COMPLETED`);
       }
+
+      try {
+        if (config.env === "production") {
+          await sendDonationReceipt(donationID);
+        }
+      } catch (ex) {
+        console.error("Failed to send donation reciept");
+        console.error(ex);
+      }
+
       return {
         valid: true,
       };

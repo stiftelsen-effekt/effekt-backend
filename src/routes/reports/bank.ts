@@ -349,13 +349,22 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
         console.log(
           `Adding donation for KID: ${payment.KID} with amount: ${payment.amount} and externalReference: ${payment.externalReference}`,
         );
-        await DAO.donations.add(
+        const donationID = await DAO.donations.add(
           payment.KID,
           BANK_SE_PAYMENT_ID,
           payment.amount / 100,
           postingDate.toJSDate(),
           payment.externalReference,
         );
+
+        try {
+          if (config.env === "production") {
+            await sendDonationReceipt(donationID);
+          }
+        } catch (ex) {
+          console.error("Failed to send donation reciept");
+          console.error(ex);
+        }
       }
       valid++;
     } catch (ex) {
