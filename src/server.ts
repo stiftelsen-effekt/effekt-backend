@@ -32,6 +32,7 @@ import { adoveoRouter } from "./routes/adoveo";
 import { ltvRouter } from "./routes/ltv";
 import { organizationsRouter } from "./routes/organizations";
 import { causeAreasRouter } from "./routes/causeareas";
+import { surveyRouter } from "./routes/survey";
 import { startWebSocketServer } from "./websocket";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
@@ -201,6 +202,7 @@ DAO.connect(() => {
   app.use("/inflation", inflationRoute);
   app.use("/agreementfeedback", agreementfeedbackRoute);
   app.use("/ltv", ltvRoute);
+  app.use("/survey", surveyRouter);
 
   app.use("/static", express.static(__dirname + "/static"));
   app.use("/style", express.static(__dirname + "/views/style"));

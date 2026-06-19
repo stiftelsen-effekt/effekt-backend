@@ -60,6 +60,9 @@ module.exports = {
 
   mailersend_security_recipients: getMailersendSecurityRecipients(),
 
+  //Secret token guarding the raw survey response export endpoint
+  survey_export_secret: process.env.SURVEY_EXPORT_SECRET,
+
   mail_sender_from: process.env.MAIL_SENDER_FROM,
 
   vipps_client_id: process.env.VIPPS_CLIENT_ID,

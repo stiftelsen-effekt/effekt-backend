@@ -19,4 +19,12 @@ export const mail = {
       ],
     );
   },
+  getAllMailerSendSurveyResponses: async (): Promise<Mailersend_survey_responses[]> => {
+    const [results] = await DAO.query(
+      `SELECT ID, surveyID, questionID, DonorID, answer, answerID, timestamp
+       FROM Mailersend_survey_responses
+       ORDER BY ID ASC`,
+    );
+    return results;
+  },
 };
