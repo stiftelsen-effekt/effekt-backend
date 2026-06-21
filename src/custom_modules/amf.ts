@@ -81,10 +81,10 @@ export const processAmfDonations = async (report: Buffer) => {
     let donationKID = await DAO.distributions.getKIDbySplit(distributionInput);
     if (!donationKID) {
       donationKID = await KID.generate();
-      const success = await DAO.distributions.add(
-        { ...distributionInput, kid: donationKID },
-        EFFEKT_FOUNDATION_META_OWNER_ID,
-      );
+      const success = await DAO.distributions.add({
+        distribution: { ...distributionInput, kid: donationKID },
+        metaOwnerID: EFFEKT_FOUNDATION_META_OWNER_ID,
+      });
       if (!success) {
         console.error(
           `Failed to add distribution for transaction ${transaction.number} with KID ${donationKID}`,

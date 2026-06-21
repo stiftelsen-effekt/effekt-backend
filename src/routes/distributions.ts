@@ -31,8 +31,10 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
     const KID = await donationHelpers.createKID();
 
     await DAO.distributions.add({
-      kid: KID,
-      ...validatedDistribution,
+      distribution: {
+        kid: KID,
+        ...validatedDistribution,
+      },
     });
 
     res.json({

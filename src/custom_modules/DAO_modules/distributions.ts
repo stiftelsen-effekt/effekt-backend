@@ -621,13 +621,17 @@ async function getKIDsByPrefix(prefix: string): Promise<string[]> {
  * @param {number} metaOwnerID Optional meta owner ID, specifies who is the owner of the data
  * @return {boolean} Returns true if the distribution was added successfully, throws if fails
  */
-async function add(
-  distribution: Distribution,
-  metaOwnerID: number | null = null,
-  suppliedTransaction?: PoolConnection,
-): Promise<boolean> {
+async function add(args: {
+  distribution: Distribution;
+  metaOwnerID?: number | null;
+  transaction?: PoolConnection;
+  preserveOrganizations?: boolean;
+}): Promise<boolean> {
+  const { distribution, transaction: suppliedTransaction, preserveOrganizations = false } = args;
+
   try {
     var transaction = suppliedTransaction ?? (await DAO.startTransaction());
+    var metaOwnerID = args.metaOwnerID ?? null;
 
     if (metaOwnerID == null) {
       metaOwnerID = await DAO.meta.getDefaultOwnerID();
@@ -683,7 +687,7 @@ async function add(
       if (!causeArea) {
         throw new Error("Could not find cause area");
       }
-      if (!causeArea.standardSplit) {
+      if (!causeArea.standardSplit || preserveOrganizations) {
         const orgs = causeArea.organizations;
         for (const org of orgs) {
           distributionCauseAreaOrganizationInsertsRowValues.push([
