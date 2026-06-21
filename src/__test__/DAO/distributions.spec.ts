@@ -10,39 +10,57 @@ describe("DAO Distributions", () => {
       const mockQueryResponse = [
         {
           KID: "123456789",
-          sum: 100,
-          count: 2,
+          donation_sum: 100,
+          donation_count: 2,
           full_name: "Test Testesen",
           email: "testæøå@test.com",
+          tax_unit_type: "none",
         },
         {
           KID: "987654321",
-          sum: 200,
-          count: 1,
+          donation_sum: 200,
+          donation_count: 1,
           full_name: "Test Testesen",
           email: "testæøå@test.com",
+          tax_unit_type: "person",
         },
       ];
 
       const mockCountQueryResponse = [
         {
-          count: 2,
+          total_rows: 2,
         },
       ];
 
       queryStub.onFirstCall().resolves([mockQueryResponse, []]);
       queryStub.onSecondCall().resolves([mockCountQueryResponse, []]);
+      queryStub.onThirdCall().resolves([[], []]);
 
-      const result = await DAO.distributions.getAll(0, 10, { id: "ID" }, null);
+      const result = await DAO.distributions.getAll(0, 10, { id: "KID" }, null);
 
-      expect(queryStub.calledTwice).to.be.true;
+      expect(queryStub.calledThrice).to.be.true;
       expect(result).to.deep.equal({
-        rows: mockQueryResponse,
+        rows: [
+          {
+            ...mockQueryResponse[0],
+            causeAreas: [],
+          },
+          {
+            ...mockQueryResponse[1],
+            causeAreas: [],
+          },
+        ],
+        statistics: {
+          numDistributions: 2,
+        },
         pages: 1,
       });
-      expect(queryStub.firstCall.args[0]).to.not.contain("WHERE");
+      expect(queryStub.firstCall.args[0]).to.not.contain("D.KID LIKE");
+      expect(queryStub.firstCall.args[0]).to.not.contain("Donors.full_name LIKE");
       expect(queryStub.firstCall.args[0]).to.contain("LIMIT 10");
       expect(queryStub.firstCall.args[0]).to.contain("OFFSET 0");
+      expect(queryStub.secondCall.args[0]).to.contain("COUNT(*) as total_rows");
+      expect(queryStub.thirdCall.args[0]).to.contain("D.KID IN ('123456789', '987654321')");
     });
 
     it("Gets all distributions with filter", async () => {
@@ -51,39 +69,54 @@ describe("DAO Distributions", () => {
       const mockQueryResponse = [
         {
           KID: "123456789",
-          sum: 100,
-          count: 2,
+          donation_sum: 100,
+          donation_count: 2,
           full_name: "Test Testesen",
           email: "testæøå@test.com",
+          tax_unit_type: "none",
         },
         {
           KID: "987654321",
-          sum: 200,
-          count: 1,
+          donation_sum: 200,
+          donation_count: 1,
           full_name: "Test Testesen",
           email: "testæøå@test.com",
+          tax_unit_type: "business",
         },
       ];
 
       const mockCountQueryResponse = [
         {
-          count: 2,
+          total_rows: 2,
         },
       ];
 
       queryStub.onFirstCall().resolves([mockQueryResponse, []]);
       queryStub.onSecondCall().resolves([mockCountQueryResponse, []]);
+      queryStub.onThirdCall().resolves([[], []]);
 
       const result = await DAO.distributions.getAll(
         0,
         10,
-        { id: "ID" },
+        { id: "KID" },
         { donor: "Test Testesen" },
       );
 
-      expect(queryStub.calledTwice).to.be.true;
+      expect(queryStub.calledThrice).to.be.true;
       expect(result).to.deep.equal({
-        rows: mockQueryResponse,
+        rows: [
+          {
+            ...mockQueryResponse[0],
+            causeAreas: [],
+          },
+          {
+            ...mockQueryResponse[1],
+            causeAreas: [],
+          },
+        ],
+        statistics: {
+          numDistributions: 2,
+        },
         pages: 1,
       });
       expect(queryStub.firstCall.args[0]).to.contain("WHERE");
@@ -99,28 +132,31 @@ describe("DAO Distributions", () => {
       const mockQueryResponse = [
         {
           KID: "123456789",
-          sum: 100,
-          count: 2,
+          donation_sum: 100,
+          donation_count: 2,
           full_name: "Test Testesen",
           email: "testæøå@test.com",
+          tax_unit_type: "none",
         },
         {
           KID: "987654321",
-          sum: 200,
-          count: 1,
+          donation_sum: 200,
+          donation_count: 1,
           full_name: "Test Testesen",
           email: "testæøå@test.com",
+          tax_unit_type: "business",
         },
       ];
 
       const mockCountQueryResponse = [
         {
-          count: 2,
+          total_rows: 2,
         },
       ];
 
       queryStub.onFirstCall().resolves([mockQueryResponse, []]);
       queryStub.onSecondCall().resolves([mockCountQueryResponse, []]);
+      queryStub.onThirdCall().resolves([[], []]);
 
       const result = await DAO.distributions.getAll(
         0,
@@ -129,15 +165,27 @@ describe("DAO Distributions", () => {
         { donor: "Test Testesen" },
       );
 
-      expect(queryStub.calledTwice).to.be.true;
+      expect(queryStub.calledThrice).to.be.true;
       expect(result).to.deep.equal({
-        rows: mockQueryResponse,
+        rows: [
+          {
+            ...mockQueryResponse[0],
+            causeAreas: [],
+          },
+          {
+            ...mockQueryResponse[1],
+            causeAreas: [],
+          },
+        ],
+        statistics: {
+          numDistributions: 2,
+        },
         pages: 1,
       });
       expect(queryStub.firstCall.args[0]).to.contain("WHERE");
       expect(queryStub.firstCall.args[0]).to.contain("Test Testesen");
       expect(queryStub.firstCall.args[0]).to.contain("LIKE");
-      expect(queryStub.firstCall.args[0]).to.contain("ORDER BY sum DESC");
+      expect(queryStub.firstCall.args[0]).to.contain("ORDER BY donation_sum DESC");
       expect(queryStub.firstCall.args[0]).to.contain("LIMIT 10");
       expect(queryStub.firstCall.args[0]).to.contain("OFFSET 0");
     });
@@ -148,44 +196,65 @@ describe("DAO Distributions", () => {
       const mockQueryResponse = [
         {
           KID: "987654321",
-          sum: 200,
-          count: 1,
+          donation_sum: 200,
+          donation_count: 1,
           full_name: "Test Testesen",
           email: "testæøå@test.com",
+          tax_unit_type: "none",
         },
         {
           KID: "987654321",
-          sum: 200,
-          count: 1,
+          donation_sum: 200,
+          donation_count: 1,
           full_name: "Glor Gorgesen Testesen",
           email: "asd@test.com",
+          tax_unit_type: "none",
         },
         {
           KID: "987654321",
-          sum: 200,
-          count: 1,
+          donation_sum: 200,
+          donation_count: 1,
           full_name: "Test Testesen",
           email: "testæøå@test.com",
+          tax_unit_type: "none",
         },
       ];
 
       const mockCountQueryResponse = [
         {
-          count: 3,
+          total_rows: 3,
         },
       ];
 
       queryStub.onFirstCall().resolves([mockQueryResponse, []]);
       queryStub.onSecondCall().resolves([mockCountQueryResponse, []]);
+      queryStub.onThirdCall().resolves([[], []]);
 
-      const result = await DAO.distributions.getAll(0, 1, { id: "ID" }, null);
+      const result = await DAO.distributions.getAll(0, 1, { id: "KID" }, null);
 
-      expect(queryStub.calledTwice).to.be.true;
+      expect(queryStub.calledThrice).to.be.true;
       expect(result).to.deep.equal({
-        rows: mockQueryResponse,
+        rows: [
+          {
+            ...mockQueryResponse[0],
+            causeAreas: [],
+          },
+          {
+            ...mockQueryResponse[1],
+            causeAreas: [],
+          },
+          {
+            ...mockQueryResponse[2],
+            causeAreas: [],
+          },
+        ],
+        statistics: {
+          numDistributions: 3,
+        },
         pages: 3,
       });
-      expect(queryStub.firstCall.args[0]).to.not.contain("WHERE");
+      expect(queryStub.firstCall.args[0]).to.not.contain("D.KID LIKE");
+      expect(queryStub.firstCall.args[0]).to.not.contain("Donors.full_name LIKE");
       expect(queryStub.firstCall.args[0]).to.contain("LIMIT 1");
       expect(queryStub.firstCall.args[0]).to.contain("OFFSET 0");
     });

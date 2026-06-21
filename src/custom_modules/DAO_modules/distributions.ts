@@ -26,9 +26,7 @@ export interface DistributionFilters {
 }
 
 /**
- * Represents a distribution row. It includes fixed properties and
- * dynamic properties for each organization's share, where the key
- * is the organization's abbreviation (e.g., 'EFF').
+ * Represents a distribution row in the JSON API.
  */
 export interface DistributionRow {
   KID: string;
@@ -36,13 +34,35 @@ export interface DistributionRow {
   email: string;
   donation_sum: number;
   donation_count: number;
-  // Index signature to allow for dynamic organization share properties
+  tax_unit_type: "person" | "business" | "none";
+  causeAreas: DistributionCauseArea[];
+}
+
+/**
+ * CSV export keeps a flat shape so each active organization's share can become its own column.
+ */
+export interface DistributionExportRow {
+  KID: string;
+  full_name: string;
+  email: string;
+  donation_sum: number;
+  donation_count: number;
+  tax_unit_type: "person" | "business" | "none";
   [org_abbriv: string]: number | string;
 }
 
 export interface DistributionStatistics {
   numDistributions: number;
 }
+
+type DistributionListRowDb = {
+  KID: string;
+  full_name: string;
+  email: string;
+  donation_sum: number | string;
+  donation_count: number | string;
+  tax_unit_type: "person" | "business" | "none";
+};
 
 const jsDBmapping = [
   ["KID", "D.KID"],
@@ -64,12 +84,35 @@ const jsDBmapping = [
  * @returns A promise that resolves to an object containing the distribution rows, statistics, and total page count.
  */
 export async function getAll(
+  page: number,
+  limit: number,
+  sort: { id: string; desc?: boolean } | null,
+  filter: DistributionFilters | null,
+  exportAll: true,
+): Promise<{
+  rows: Array<DistributionExportRow>;
+  statistics: DistributionStatistics;
+  pages: number;
+}>;
+export async function getAll(
+  page?: number,
+  limit?: number,
+  sort?: { id: string; desc?: boolean } | null,
+  filter?: DistributionFilters | null,
+  exportAll?: false,
+): Promise<{
+  rows: Array<DistributionRow>;
+  statistics: DistributionStatistics;
+  pages: number;
+}>;
+export async function getAll(
   page: number = 0,
   limit: number = 10,
   sort: { id: string; desc?: boolean } | null = { id: "kid", desc: true },
   filter: DistributionFilters | null = null,
+  exportAll = false,
 ): Promise<{
-  rows: Array<DistributionRow>;
+  rows: Array<DistributionRow | DistributionExportRow>;
   statistics: DistributionStatistics;
   pages: number;
 }> {
@@ -82,15 +125,18 @@ export async function getAll(
   }
   const sortColumn = sortColumnEntry[1];
   const sortDirection = sort.desc ? "DESC" : "ASC";
+  const isPageFirstSort = ["KID", "full_name", "email"].includes(sort.id);
+  let activeOrgs: { abbriv: string }[] = [];
 
-  // 1. Dynamically fetch active organizations to build the pivot columns
-  const [activeOrgs] = await DAO.query<{ abbriv: string }[]>(
-    "SELECT abbriv FROM Organizations WHERE is_active = 1 ORDER BY ordering",
-  );
+  if (exportAll) {
+    [activeOrgs] = await DAO.query<{ abbriv: string }[]>(
+      "SELECT abbriv FROM Organizations WHERE is_active = 1 ORDER BY ordering",
+    );
+  }
+
   const pivotSelects = activeOrgs
     .map(
       (org) =>
-        // The resulting column name will be, e.g., "EFF"
         `SUM(CASE WHEN O.abbriv = ${sqlString.escape(
           org.abbriv,
         )} THEN (DCA.Percentage_share * DCAO.Percentage_share / 100.0) ELSE 0 END) AS ${sqlString.escapeId(
@@ -113,10 +159,23 @@ export async function getAll(
     }
   }
   const whereStatement = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+  const orderByClause = `ORDER BY ${sortColumn} ${sortDirection}`;
+  const taxUnitTypeSql = `
+    CASE
+      WHEN Tax_unit.ID IS NULL THEN 'none'
+      WHEN LENGTH(Tax_unit.ssn) = 9 THEN 'business'
+      ELSE 'person'
+    END as tax_unit_type
+  `;
 
-  // 3. Construct the main query using Common Table Expressions (CTEs)
-  const query = `
-    -- CTE to aggregate donation data per distribution (KID)
+  const countQuery = `
+    SELECT COUNT(*) as total_rows
+    FROM Distributions D
+    INNER JOIN Donors ON D.Donor_ID = Donors.ID
+    ${whereStatement}
+  `;
+
+  const exportRowsQuery = `
     WITH DonationStats AS (
       SELECT
         KID_fordeling,
@@ -125,7 +184,6 @@ export async function getAll(
       FROM Donations
       GROUP BY KID_fordeling
     ),
-    -- CTE to calculate and pivot the organization shares for each distribution
     PivotedOrgShares AS (
       SELECT
         DCA.Distribution_KID,
@@ -135,37 +193,99 @@ export async function getAll(
       JOIN Organizations O ON DCAO.Organization_ID = O.ID
       WHERE O.is_active = 1
       GROUP BY DCA.Distribution_KID
-    ),
-    -- CTE to filter the main distributions table and join all data together
-    FilteredDistributions AS (
-      SELECT
-        D.KID,
-        Donors.full_name,
-        Donors.email,
-        IFNULL(DS.sum, 0) as donation_sum,
-        IFNULL(DS.count, 0) as donation_count,
-        POS.* -- Selects all the pivoted organization share columns
-      FROM Distributions D
-      INNER JOIN Donors ON D.Donor_ID = Donors.ID
-      LEFT JOIN DonationStats DS ON D.KID = DS.KID_fordeling
-      LEFT JOIN PivotedOrgShares POS ON D.KID = POS.Distribution_KID
-      ${whereStatement}
-    ),
-    -- CTE to get the total count for pagination
-    TotalCount AS (
-        SELECT COUNT(*) as total_rows FROM FilteredDistributions
     )
-    -- Final SELECT to combine data, sort, and paginate
     SELECT
-      FD.*,
-      TC.total_rows
-    FROM FilteredDistributions FD
-    CROSS JOIN TotalCount TC
-    ORDER BY ${sortColumn} ${sortDirection}
-    LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit * page)};
+      D.KID,
+      Donors.full_name,
+      Donors.email,
+      IFNULL(DS.sum, 0) as donation_sum,
+      IFNULL(DS.count, 0) as donation_count,
+      ${taxUnitTypeSql},
+      POS.*
+    FROM Distributions D
+    INNER JOIN Donors ON D.Donor_ID = Donors.ID
+    LEFT JOIN DonationStats DS ON D.KID = DS.KID_fordeling
+    LEFT JOIN PivotedOrgShares POS ON D.KID = POS.Distribution_KID
+    LEFT JOIN Tax_unit ON D.Tax_unit_ID = Tax_unit.ID
+    ${whereStatement}
+    ${orderByClause}
   `;
 
-  const [resultRows]: [any[], any] = await DAO.query(query);
+  const fullRowsQuery = `
+    WITH DonationStats AS (
+      SELECT
+        KID_fordeling,
+        SUM(sum_confirmed) as donation_sum,
+        COUNT(*) as donation_count
+      FROM Donations
+      GROUP BY KID_fordeling
+    )
+    SELECT
+      D.KID,
+      Donors.full_name,
+      Donors.email,
+      IFNULL(DS.donation_sum, 0) as donation_sum,
+      IFNULL(DS.donation_count, 0) as donation_count,
+      ${taxUnitTypeSql}
+    FROM Distributions D
+    INNER JOIN Donors ON D.Donor_ID = Donors.ID
+    LEFT JOIN DonationStats DS ON D.KID = DS.KID_fordeling
+    LEFT JOIN Tax_unit ON D.Tax_unit_ID = Tax_unit.ID
+    ${whereStatement}
+    ${orderByClause}
+    LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit * page)}
+  `;
+
+  const pageFirstRowsQuery = `
+    WITH PageDistributions AS (
+      SELECT
+        D.KID,
+        D.Donor_ID,
+        D.Tax_unit_ID
+      FROM Distributions D
+      INNER JOIN Donors ON D.Donor_ID = Donors.ID
+      ${whereStatement}
+      ${orderByClause}
+      LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit * page)}
+    ),
+    DonationStats AS (
+      SELECT
+        Donations.KID_fordeling,
+        SUM(Donations.sum_confirmed) as donation_sum,
+        COUNT(*) as donation_count
+      FROM Donations
+      INNER JOIN PageDistributions PD ON Donations.KID_fordeling = PD.KID
+      GROUP BY Donations.KID_fordeling
+    )
+    SELECT
+      PD.KID,
+      Donors.full_name,
+      Donors.email,
+      IFNULL(DS.donation_sum, 0) as donation_sum,
+      IFNULL(DS.donation_count, 0) as donation_count,
+      CASE
+        WHEN Tax_unit.ID IS NULL THEN 'none'
+        WHEN LENGTH(Tax_unit.ssn) = 9 THEN 'business'
+        ELSE 'person'
+      END as tax_unit_type
+    FROM PageDistributions PD
+    INNER JOIN Donors ON PD.Donor_ID = Donors.ID
+    LEFT JOIN DonationStats DS ON PD.KID = DS.KID_fordeling
+    LEFT JOIN Tax_unit ON PD.Tax_unit_ID = Tax_unit.ID
+    ${orderByClause.replace("D.KID", "PD.KID")}
+  `;
+
+  const [resultRows, numDistributions] = exportAll
+    ? [(await DAO.query<DistributionExportRow[]>(exportRowsQuery))[0], 0]
+    : isPageFirstSort
+    ? await Promise.all([
+        DAO.query<DistributionListRowDb[]>(pageFirstRowsQuery).then(([rows]) => rows),
+        DAO.query<{ total_rows: number }[]>(countQuery).then(([rows]) => rows[0]?.total_rows || 0),
+      ])
+    : await Promise.all([
+        DAO.query<DistributionListRowDb[]>(fullRowsQuery).then(([rows]) => rows),
+        DAO.query<{ total_rows: number }[]>(countQuery).then(([rows]) => rows[0]?.total_rows || 0),
+      ]);
 
   if (resultRows.length === 0) {
     return {
@@ -175,23 +295,37 @@ export async function getAll(
     };
   }
 
-  const numDistributions = resultRows[0]["total_rows"] || 0;
-  const pages = Math.ceil(numDistributions / limit);
+  const totalDistributions = exportAll ? resultRows.length : numDistributions;
+  const pages = Math.ceil(totalDistributions / limit);
+  const distributionsByKID = exportAll
+    ? new Map<string, Distribution>()
+    : await getDistributionsByKIDs(resultRows.map((row) => row.KID));
 
-  // 4. Map the raw SQL result to the strongly-typed DistributionRow array
-  // The row from the DB is already flat, so we just need to parse numbers
-  const mappedRows: DistributionRow[] = resultRows.map((row) => {
-    const mappedRow: DistributionRow = {
+  const mappedRows = resultRows.map((row) => {
+    if (!exportAll) {
+      const mappedRow: DistributionRow = {
+        KID: row.KID,
+        full_name: row.full_name,
+        email: row.email,
+        donation_sum: Number(row.donation_sum) || 0,
+        donation_count: Number(row.donation_count) || 0,
+        tax_unit_type: row.tax_unit_type,
+        causeAreas: distributionsByKID.get(row.KID)?.causeAreas || [],
+      };
+
+      return mappedRow;
+    }
+
+    const mappedRow: DistributionExportRow = {
       KID: row.KID,
       full_name: row.full_name,
       email: row.email,
-      donation_sum: row.donation_sum,
-      donation_count: row.donation_count,
+      donation_sum: Number(row.donation_sum) || 0,
+      donation_count: Number(row.donation_count) || 0,
+      tax_unit_type: row.tax_unit_type,
     };
 
     for (const org of activeOrgs) {
-      // The key is the org abbreviation (e.g., "EFF")
-      // The value is the share, parsed from a decimal string to a number
       mappedRow[org.abbriv] = parseFloat(row[org.abbriv] || "0");
     }
 
@@ -201,7 +335,7 @@ export async function getAll(
   return {
     rows: mappedRows,
     statistics: {
-      numDistributions,
+      numDistributions: totalDistributions,
     },
     pages,
   };
@@ -519,6 +653,40 @@ async function getSplitByKID(KID: string): Promise<Distribution> {
   if (result.length == 0) throw new Error("NOT FOUND | No distribution with the KID " + KID);
 
   return mapDbDistributionToDistribution(result);
+}
+
+async function getDistributionsByKIDs(KIDs: string[]): Promise<Map<string, Distribution>> {
+  if (KIDs.length === 0) {
+    return new Map();
+  }
+
+  const [result] = await DAO.query<DistributionDbResult>(
+    `
+        SELECT *,
+          CAO.Percentage_share AS Organization_percentage_share,
+          CA.Percentage_share AS Cause_area_percentage_share,
+          C.name AS Cause_area_name,
+          O.full_name AS Organization_name,
+          O.widget_display_name AS Organization_widget_display_name
+
+        FROM 
+          Distributions AS D
+          LEFT JOIN Distribution_cause_areas AS CA ON CA.Distribution_KID = D.KID
+          LEFT JOIN Distribution_cause_area_organizations AS CAO ON CAO.Distribution_cause_area_ID = CA.ID
+          INNER JOIN Cause_areas AS C ON C.ID = CA.Cause_area_ID
+          INNER JOIN Organizations AS O ON O.ID = CAO.Organization_ID
+        
+        WHERE 
+            D.KID IN (${KIDs.map((kid) => sqlString.escape(kid)).join(", ")})
+        ORDER BY D.KID`,
+  );
+
+  return new Map(
+    mapDbDistributionsToDistributions(result).map((distribution) => [
+      distribution.kid,
+      distribution,
+    ]),
+  );
 }
 
 /**
@@ -934,6 +1102,7 @@ export const distributions = {
   KIDexists,
   getKIDbySplit,
   getSplitByKID,
+  getDistributionsByKIDs,
   getStandardDistributionByCauseAreaID,
   getHistoricPaypalSubscriptionKIDS,
   getAll,

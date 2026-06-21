@@ -151,6 +151,7 @@ router.post("/auth0/register", async (req, res, next) => {
 });
 
 router.post("/list/", authMiddleware.isAdmin, async (req, res, next) => {
+  const startedAt = Date.now();
   try {
     if (req.body.export === true) {
       const results = await DAO.donors.getAll(
@@ -161,6 +162,11 @@ router.post("/list/", authMiddleware.isAdmin, async (req, res, next) => {
         req.locale,
       );
 
+      console.log(
+        `[routes/donors/list] export handlerMs=${Date.now() - startedAt} rows=${
+          results.rows.length
+        }`,
+      );
       return exportCsv(res, results.rows, `donors-${new Date().toISOString()}.csv`);
     }
 
@@ -178,6 +184,13 @@ router.post("/list/", authMiddleware.isAdmin, async (req, res, next) => {
       req.body.filter,
       req.locale,
     );
+
+    console.log(
+      `[routes/donors/list] handlerMs=${Date.now() - startedAt} rows=${results.rows.length} pages=${
+        results.pages
+      }`,
+    );
+
     return res.json({
       status: 200,
       content: {

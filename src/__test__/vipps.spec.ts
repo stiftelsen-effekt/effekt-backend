@@ -172,6 +172,7 @@ describe("POST /scheduled/vipps", function () {
 
     donationRecieptStub = sinon.stub(mail, "sendDonationReceipt");
 
+    delete require.cache[require.resolve("../routes/scheduled")];
     const scheduledRoute = require("../routes/scheduled");
     server = express();
     server.use("/scheduled", scheduledRoute);

@@ -61,7 +61,6 @@ describe("POST /scheduled/avtalegiro/retry", function () {
   let loggingStub;
   let sendFileStub;
   let getShipmentIdsStub;
-  let sendMailBackupStub;
   let authStub;
   let dueDateStub;
   let getConnectionStub;
@@ -96,8 +95,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
     sendFileStub = sinon.stub(nets, "sendFile");
 
-    sendMailBackupStub = sinon.stub(mail, "sendOcrBackup");
-
+    delete require.cache[require.resolve("../routes/scheduled")];
     const scheduledRoute = require("../routes/scheduled");
     server = express();
     server.use("/scheduled", scheduledRoute);

@@ -1,6 +1,6 @@
 import { distributions } from "./distributions";
 import { DAO } from "../DAO";
-import { Donation } from "../../schemas/types";
+import { DistributionCauseArea, Donation } from "../../schemas/types";
 
 import sqlString from "sqlstring";
 import { DateTime } from "luxon";
@@ -65,6 +65,7 @@ async function getAll(
     organizationIDs?: Array<number>;
   } = null,
   locale: RequestLocale,
+  exportAll = false,
 ): Promise<{
   rows: Array<{
     id: number;
@@ -74,6 +75,8 @@ async function getAll(
     transactionCost: number;
     kid: string;
     timestamp: Date;
+    taxUnitType: string | null;
+    causeAreas?: DistributionCauseArea[];
   }>;
   statistics: {
     numDonations: number;
@@ -82,187 +85,276 @@ async function getAll(
   };
   pages: number;
 }> {
-  if (sort) {
-    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
-
-    const taxUnitTypeFildDefinition = getTaxUnitTypeFieldDefinition(locale);
-
-    let where = [];
-    if (filter) {
-      if (filter.sum) {
-        if (filter.sum.from) where.push(`sum_confirmed >= ${sqlString.escape(filter.sum.from)} `);
-        if (filter.sum.to) where.push(`sum_confirmed <= ${sqlString.escape(filter.sum.to)} `);
-      }
-
-      if (filter.date) {
-        if (filter.date.from)
-          where.push(`timestamp_confirmed >= ${sqlString.escape(filter.date.from)} `);
-        if (filter.date.to)
-          where.push(`timestamp_confirmed <= ${sqlString.escape(filter.date.to)} `);
-      }
-
-      if (filter.KID)
-        where.push(` CAST(KID_fordeling as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
-      if (filter.paymentMethodIDs) {
-        if (filter.paymentMethodIDs.length == 0) {
-          return {
-            rows: [],
-            statistics: {
-              numDonations: 0,
-              sumDonations: 0,
-              avgDonation: 0,
-            },
-            pages: 0,
-          };
-        }
-        where.push(
-          ` Payment_ID IN (${filter.paymentMethodIDs
-            .map((ID) => sqlString.escape(ID))
-            .join(",")}) `,
-        );
-      }
-
-      if (filter.donor)
-        where.push(
-          ` (Donors.full_name LIKE ${sqlString.escape(
-            `%${filter.donor}%`,
-          )} OR Donors.email LIKE ${sqlString.escape(`%${filter.donor}%`)}) `,
-        );
-
-      if (filter.id) where.push(` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `);
-
-      if (filter.fundraiserId) {
-        // Ensure the join happens below if filter.fundraiserId is present
-        // Using FT as alias for Fundraiser_transactions table
-        where.push(` FT.Fundraiser_ID = ${sqlString.escape(filter.fundraiserId)} `);
-      }
-
-      if (filter.taxUnitTypes) {
-        if (filter.taxUnitTypes.length == 0) {
-          return {
-            rows: [],
-            statistics: {
-              numDonations: 0,
-              sumDonations: 0,
-              avgDonation: 0,
-            },
-            pages: 0,
-          };
-        }
-        const types = filter.taxUnitTypes
-          .filter((type) => type)
-          .map((type) => sqlString.escape(type));
-        const hasTypes = types.length > 0;
-        const includeUnknown = filter.taxUnitTypes.includes(null);
-        const or = hasTypes && includeUnknown ? " OR " : "";
-
-        const typesQuery = hasTypes ? `${taxUnitTypeFildDefinition} IN (${types.join(",")})` : "";
-        const unknownQuery = includeUnknown ? `${or} Tax_unit.ID IS NULL` : "";
-
-        where.push(
-          ` (
-            ${typesQuery}
-            ${unknownQuery}
-          ) `,
-        );
-      }
-
-      if (filter.organizationIDs) {
-        if (filter.organizationIDs.length == 0) {
-          return {
-            rows: [],
-            statistics: {
-              numDonations: 0,
-              sumDonations: 0,
-              avgDonation: 0,
-            },
-            pages: 0,
-          };
-        }
-        where.push(
-          ` Distribution_cause_area_organizations.Organization_ID IN (${filter.organizationIDs
-            .map(sqlString.escape)
-            .join(",")}) `,
-        );
-      }
-    }
-
-    // Only apply this join when filtering by organizationIDs.
-    const organizationJoin = filter?.organizationIDs
-      ? `
-        LEFT JOIN Distribution_cause_areas
-          ON Distributions.KID = Distribution_cause_areas.Distribution_KID
-        LEFT JOIN Distribution_cause_area_organizations
-          ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID`
-      : "";
-
-    const fundraiserJoin = filter.fundraiserId
-      ? `
-        LEFT JOIN Fundraiser_transactions FT
-          ON Distributions.Fundraiser_transaction_ID = FT.ID`
-      : "";
-
-    const query = `
-        WITH filtered_donations AS (
-          SELECT DISTINCT
-            Donations.ID,
-            Donors.full_name,
-            Payment.abbriv as payment_name,
-            Donations.sum_confirmed,
-            Donations.transaction_cost,
-            Donations.KID_fordeling,
-            Donations.timestamp_confirmed,
-            ${taxUnitTypeFildDefinition} as tax_unit_type
-          FROM Donations
-          INNER JOIN Donors
-            ON Donations.Donor_ID = Donors.ID
-          INNER JOIN Payment
-            ON Donations.Payment_ID = Payment.ID  
-          INNER JOIN Distributions
-            ON Donations.KID_fordeling = Distributions.KID
-          LEFT JOIN Tax_unit
-            ON Distributions.Tax_unit_ID = Tax_unit.ID
-          ${organizationJoin}
-          ${fundraiserJoin}
-          WHERE ${where.length !== 0 ? where.join(" AND ") : "1"}
-        ),
-        statistics AS (
-          SELECT 
-            COUNT(*) as full_count,
-            SUM(sum_confirmed) as full_sum,
-            AVG(sum_confirmed) as full_avg
-          FROM filtered_donations
-        )
-        SELECT 
-          d.*,
-          s.full_count,
-          s.full_sum,
-          s.full_avg
-        FROM filtered_donations d
-        CROSS JOIN statistics s
-        ORDER BY ${sortColumn} ${sort.desc ? "DESC" : ""} 
-        LIMIT ? OFFSET ?`;
-
-    const [donations] = await DAO.query(query, [limit, page * limit]);
-
-    const numDonations = donations.length > 0 ? donations[0]["full_count"] : 0;
-    const sumDonations = donations.length > 0 ? donations[0]["full_sum"] : 0;
-    const avgDonation = donations.length > 0 ? donations[0]["full_avg"] : 0;
-
-    const pages = Math.ceil(numDonations / limit);
-
-    return {
-      rows: mapToJS(donations),
-      statistics: {
-        numDonations,
-        sumDonations,
-        avgDonation,
-      },
-      pages,
-    };
-  } else {
+  if (!sort) {
     throw new Error("No sort provided");
   }
+
+  const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
+  const taxUnitTypeFildDefinition = getTaxUnitTypeFieldDefinition(locale);
+  const donationConditions = [];
+  const joinedConditions = [];
+  const hasOrganizationFilter = Boolean(filter?.organizationIDs?.length);
+  const hasDonorFilter = Boolean(filter?.donor);
+  const hasFundraiserFilter = Boolean(filter?.fundraiserId);
+  const hasTaxUnitTypeFilter = Boolean(filter?.taxUnitTypes);
+
+  if (filter) {
+    if (filter.sum) {
+      if (filter.sum.from != null)
+        donationConditions.push(`Donations.sum_confirmed >= ${sqlString.escape(filter.sum.from)} `);
+      if (filter.sum.to != null)
+        donationConditions.push(`Donations.sum_confirmed <= ${sqlString.escape(filter.sum.to)} `);
+    }
+
+    if (filter.date) {
+      if (filter.date.from != null)
+        donationConditions.push(
+          `Donations.timestamp_confirmed >= ${sqlString.escape(filter.date.from)} `,
+        );
+      if (filter.date.to != null)
+        donationConditions.push(
+          `Donations.timestamp_confirmed <= ${sqlString.escape(filter.date.to)} `,
+        );
+    }
+
+    if (filter.KID)
+      donationConditions.push(
+        `CAST(Donations.KID_fordeling as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `,
+      );
+
+    if (filter.paymentMethodIDs) {
+      if (filter.paymentMethodIDs.length == 0) {
+        return {
+          rows: [],
+          statistics: {
+            numDonations: 0,
+            sumDonations: 0,
+            avgDonation: 0,
+          },
+          pages: 0,
+        };
+      }
+      donationConditions.push(
+        `Donations.Payment_ID IN (${filter.paymentMethodIDs
+          .map((ID) => sqlString.escape(ID))
+          .join(",")}) `,
+      );
+    }
+
+    if (filter.donor)
+      joinedConditions.push(
+        `(Donors.full_name LIKE ${sqlString.escape(
+          `%${filter.donor}%`,
+        )} OR Donors.email LIKE ${sqlString.escape(`%${filter.donor}%`)}) `,
+      );
+
+    if (filter.id)
+      donationConditions.push(`Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `);
+
+    if (filter.fundraiserId) {
+      joinedConditions.push(`FT.Fundraiser_ID = ${sqlString.escape(filter.fundraiserId)} `);
+    }
+
+    if (filter.taxUnitTypes) {
+      if (filter.taxUnitTypes.length == 0) {
+        return {
+          rows: [],
+          statistics: {
+            numDonations: 0,
+            sumDonations: 0,
+            avgDonation: 0,
+          },
+          pages: 0,
+        };
+      }
+
+      const types = filter.taxUnitTypes
+        .filter((type) => type)
+        .map((type) => sqlString.escape(type));
+      const hasTypes = types.length > 0;
+      const includeUnknown = filter.taxUnitTypes.includes(null);
+      const or = hasTypes && includeUnknown ? " OR " : "";
+
+      const typesQuery = hasTypes ? `${taxUnitTypeFildDefinition} IN (${types.join(",")})` : "";
+      const unknownQuery = includeUnknown ? `${or} Tax_unit.ID IS NULL` : "";
+
+      joinedConditions.push(
+        `(
+          ${typesQuery}
+          ${unknownQuery}
+        ) `,
+      );
+    }
+
+    if (filter.organizationIDs) {
+      if (filter.organizationIDs.length == 0) {
+        return {
+          rows: [],
+          statistics: {
+            numDonations: 0,
+            sumDonations: 0,
+            avgDonation: 0,
+          },
+          pages: 0,
+        };
+      }
+      joinedConditions.push(
+        `Distribution_cause_area_organizations.Organization_ID IN (${filter.organizationIDs
+          .map(sqlString.escape)
+          .join(",")}) `,
+      );
+    }
+  }
+
+  const organizationJoin = hasOrganizationFilter
+    ? `
+      LEFT JOIN Distribution_cause_areas
+        ON Distributions.KID = Distribution_cause_areas.Distribution_KID
+      LEFT JOIN Distribution_cause_area_organizations
+        ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID`
+    : "";
+
+  const fundraiserJoin = hasFundraiserFilter
+    ? `
+      LEFT JOIN Fundraiser_transactions FT
+        ON Distributions.Fundraiser_transaction_ID = FT.ID`
+    : "";
+
+  const rowWhere = [...donationConditions, ...joinedConditions];
+  const statsWhere = hasOrganizationFilter
+    ? [
+        ...donationConditions,
+        ...joinedConditions.filter(
+          (condition) =>
+            !condition.includes("Distribution_cause_area_organizations.Organization_ID"),
+        ),
+      ]
+    : [...donationConditions, ...joinedConditions];
+
+  const rowQuery = `
+      SELECT ${hasOrganizationFilter ? "DISTINCT" : ""}
+        Donations.ID,
+        Donors.full_name,
+        Payment.abbriv as payment_name,
+        Donations.sum_confirmed,
+        Donations.transaction_cost,
+        Donations.KID_fordeling,
+        Donations.timestamp_confirmed,
+        ${taxUnitTypeFildDefinition} as tax_unit_type
+      FROM Donations
+      INNER JOIN Donors
+        ON Donations.Donor_ID = Donors.ID
+      INNER JOIN Payment
+        ON Donations.Payment_ID = Payment.ID
+      INNER JOIN Distributions
+        ON Donations.KID_fordeling = Distributions.KID
+      LEFT JOIN Tax_unit
+        ON Distributions.Tax_unit_ID = Tax_unit.ID
+      ${organizationJoin}
+      ${fundraiserJoin}
+      WHERE ${rowWhere.length !== 0 ? rowWhere.join(" AND ") : "1"}
+      ORDER BY ${sortColumn} ${sort.desc ? "DESC" : ""}
+      LIMIT ? OFFSET ?`;
+
+  const statsDonorJoin = hasDonorFilter
+    ? `
+      INNER JOIN Donors
+        ON Donations.Donor_ID = Donors.ID`
+    : "";
+  const statsDistributionsJoin =
+    hasTaxUnitTypeFilter || hasFundraiserFilter
+      ? `
+      INNER JOIN Distributions
+        ON Donations.KID_fordeling = Distributions.KID`
+      : "";
+  const statsTaxUnitJoin = hasTaxUnitTypeFilter
+    ? `
+      LEFT JOIN Tax_unit
+        ON Distributions.Tax_unit_ID = Tax_unit.ID`
+    : "";
+  const statsFundraiserJoin = hasFundraiserFilter
+    ? `
+      LEFT JOIN Fundraiser_transactions FT
+        ON Distributions.Fundraiser_transaction_ID = FT.ID`
+    : "";
+
+  const statsQuery = hasOrganizationFilter
+    ? `
+      WITH eligible_kids AS (
+        SELECT DISTINCT
+          Distribution_cause_areas.Distribution_KID
+        FROM Distribution_cause_areas
+        INNER JOIN Distribution_cause_area_organizations
+          ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID
+        WHERE Distribution_cause_area_organizations.Organization_ID IN (${filter.organizationIDs
+          .map(sqlString.escape)
+          .join(",")})
+      )
+      SELECT
+        COUNT(*) as full_count,
+        SUM(Donations.sum_confirmed) as full_sum,
+        AVG(Donations.sum_confirmed) as full_avg
+      FROM eligible_kids
+      STRAIGHT_JOIN Donations
+        ON Donations.KID_fordeling = eligible_kids.Distribution_KID
+      ${statsDonorJoin}
+      ${statsDistributionsJoin}
+      ${statsTaxUnitJoin}
+      ${statsFundraiserJoin}
+      WHERE ${statsWhere.length !== 0 ? statsWhere.join(" AND ") : "1"}`
+    : `
+      SELECT
+        COUNT(*) as full_count,
+        SUM(Donations.sum_confirmed) as full_sum,
+        AVG(Donations.sum_confirmed) as full_avg
+      FROM Donations
+      ${statsDonorJoin}
+      ${statsDistributionsJoin}
+      ${statsTaxUnitJoin}
+      ${statsFundraiserJoin}
+      WHERE ${statsWhere.length !== 0 ? statsWhere.join(" AND ") : "1"}`;
+
+  const [[donations], [statisticsRows]] = await Promise.all([
+    DAO.query(rowQuery, [limit, page * limit]),
+    DAO.query<{ full_count: number; full_sum: number; full_avg: number }[]>(statsQuery),
+  ]);
+
+  const numDonations = statisticsRows.length > 0 ? statisticsRows[0].full_count : 0;
+  const sumDonations = statisticsRows.length > 0 ? statisticsRows[0].full_sum : 0;
+  const avgDonation = statisticsRows.length > 0 ? statisticsRows[0].full_avg : 0;
+  const pages = Math.ceil(numDonations / limit);
+  const mappedDonations = mapToJS(donations) as Array<{
+    id: number;
+    donor: string;
+    paymentMethod: string;
+    sum: number;
+    transactionCost: number;
+    kid: string;
+    timestamp: Date;
+    taxUnitType: string | null;
+  }>;
+  const distributionDetailsByKID = exportAll
+    ? new Map<string, any>()
+    : await distributions.getDistributionsByKIDs([
+        ...new Set(mappedDonations.map((donation) => donation.kid)),
+      ]);
+
+  return {
+    rows: mappedDonations.map((donation) =>
+      exportAll
+        ? donation
+        : {
+            ...donation,
+            causeAreas: distributionDetailsByKID.get(donation.kid)?.causeAreas || [],
+          },
+    ),
+    statistics: {
+      numDonations,
+      sumDonations,
+      avgDonation,
+    },
+    pages,
+  };
 }
 
 async function getTransactionCostsReport() {

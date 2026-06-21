@@ -534,6 +534,7 @@ router.post(
           Number.MAX_SAFE_INTEGER,
           req.body.filter,
           req.locale,
+          true,
         );
 
         return exportCsv(res, results.rows, `donations-${new Date().toISOString()}.csv`);
