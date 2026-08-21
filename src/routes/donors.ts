@@ -1400,6 +1400,18 @@ router.post("/:originId/merge/:destinationId", authMiddleware.isAdmin, async (re
       });
     }
 
+    /**
+     * merge_donors moves the origin donor's rows over and then deletes the
+     * origin donor. With the same id on both sides that is a plain delete, and
+     * everything hanging off the donor goes with it via cascade.
+     */
+    if (originId === destinationId) {
+      return res.status(400).json({
+        status: 400,
+        content: "Cannot merge a donor into itself",
+      });
+    }
+
     const donorOrigin = await DAO.donors.getByID(originId);
     const donorDestination = await DAO.donors.getByID(destinationId);
 
