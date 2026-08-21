@@ -701,13 +701,6 @@ function unsentDeprecatedEmail(emailName: string): false {
 }
 
 /**
- * @param {string} email
- */
-export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
-  return unsentDeprecatedEmail("sendFacebookTaxConfirmation");
-}
-
-/**
  * @param {string} agreementCode
  * @param {"PAUSED" | "UNPAUSED" | "STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)

@@ -5,7 +5,6 @@ import e from "express";
 import express from "express";
 const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { sendFacebookTaxConfirmation } from "../custom_modules/mail";
 import { fetchToken } from "../custom_modules/facebook";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 
@@ -78,8 +77,6 @@ router.post("/register/payment", async (req, res, next) => {
         await DAO.donations.transferDonationsFromDummy(donorID, dummyDonor.ID, taxUnitID);
       }
     }
-
-    await sendFacebookTaxConfirmation(email, full_name, paymentID);
 
     res.json({
       status: 200,

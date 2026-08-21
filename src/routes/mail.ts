@@ -3,7 +3,6 @@ import { DAO } from "../custom_modules/DAO";
 import {
   sendDonationRegistered,
   sendAvtalegiroNotification,
-  sendFacebookTaxConfirmation,
   sendSanitySecurityNotice,
   sendMissingTaxUnitNotice,
 } from "../custom_modules/mail";
@@ -43,23 +42,6 @@ router.post("/avtalegiro/notice", authMiddleware.isAdmin, async (req, res, next)
     }
 
     await sendAvtalegiroNotification(agreement, claimDate);
-
-    res.json({
-      status: 200,
-      content: "OK",
-    });
-  } catch (ex) {
-    next(ex);
-  }
-});
-
-router.post("/facebook/tax/confirmation", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    const recipient = req.body.recipient;
-    const name = req.body.name;
-    const paymentID = req.body.paymentID;
-
-    await sendFacebookTaxConfirmation(recipient, name, paymentID);
 
     res.json({
       status: 200,
