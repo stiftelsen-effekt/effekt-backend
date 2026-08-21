@@ -1,4 +1,4 @@
 module.exports = {
-  ocr: 09,
+  ocr: 9,
   avtaleGiro: 21,
 };
