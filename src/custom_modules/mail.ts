@@ -600,11 +600,33 @@ export async function sendPaymentIntentFollowUp(
 }
 
 /**
+ * These six emails were sent through mailgun until it was deprecated. No
+ * MailerSend template was ever created to replace them - confirmed against the
+ * MailerSend template list - so they cannot be sent at all.
+ *
+ * They used to log a warning and return true, which all 17 call sites read as
+ * "sent". An AvtaleGiro registration confirmation, a Vipps agreement change
+ * notice and a donor-reported Vipps problem have therefore been disappearing
+ * silently. Report the failure instead, so it shows up in logs and so callers
+ * that pass the result on are telling the truth.
+ *
+ * Deliberately does not throw: several call sites sit directly after a payment
+ * agreement has been created or changed, and failing to send a notification
+ * must not roll that back.
+ */
+function unsentDeprecatedEmail(emailName: string): false {
+  console.error(
+    `[unsent-email] ${emailName} was not sent: the mailgun implementation was ` +
+      `removed and no MailerSend template replaced it.`,
+  );
+  return false;
+}
+
+/**
  * @param {string} email
  */
 export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
-  console.warn("Deprecated mailgun facebook tax confirmation email, use mailersend instead");
-  return true; // TODO: Remove this when we have migrated all facebook emails to mailersend
+  return unsentDeprecatedEmail("sendFacebookTaxConfirmation");
 }
 
 /**
@@ -613,8 +635,7 @@ export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
  * @param {string} newValue New value of what was changed (if applicable)
  */
 export async function sendVippsAgreementChange(agreementCode, change, newValue = null) {
-  console.warn("Deprecated mailgun vipps agreement change email, use mailersend instead");
-  return true; // TODO: Remove this when we have migrated all vipps emails to mailersend
+  return unsentDeprecatedEmail("sendVippsAgreementChange");
 }
 
 /**
@@ -623,8 +644,7 @@ export async function sendVippsAgreementChange(agreementCode, change, newValue =
  * @param {string} inputData The input data while the error happened
  */
 export async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
-  console.warn("Deprecated mailgun vipps problem report email, use mailersend instead");
-  return true; // TODO: Remove this when we have migrated all vipps emails to mailersend
+  return unsentDeprecatedEmail("sendVippsErrorWarning");
 }
 
 /**
@@ -634,8 +654,7 @@ export async function sendVippsErrorWarning(errorType, errorMessage, inputData) 
  * @param {VippsAgreement} agreement Vipps agreement data
  */
 export async function sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agreement) {
-  console.warn("Deprecated mailgun vipps problem report email, use mailersend instead");
-  return true; // TODO: Remove this when we have migrated all vipps emails to mailersend
+  return unsentDeprecatedEmail("sendVippsProblemReport");
 }
 
 /**
@@ -648,14 +667,13 @@ export async function sendAvtaleGiroChange(
   change: "CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES",
   newValue: string | number = "",
 ) {
-  console.warn("Deprecated mailgun avtalegiro change email, use mailersend instead");
-  return true; // TODO: Remove this when we have migrated all avtalegiro emails to mailersend
+  return unsentDeprecatedEmail("sendAvtaleGiroChange");
 }
 
 /**
  * Sends donors with avtalegiro agreement a notification of an upcomming claim
  * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement
- * @returns {true | number} True if successfull, or an error code if failed
+ * @returns {false} Always false: this email has no MailerSend template yet
  */
 export async function sendAvtalegiroNotification(
   agreement: AvtaleGiroAgreement,
@@ -712,11 +730,10 @@ export async function sendAvtalegiroNotification(
 /**
  * Sends donors with who just registered an AvtaleGiro an email confirming it
  * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement
- * @returns {true | number} True if successfull, or an error code if failed
+ * @returns {false} Always false: this email has no MailerSend template yet
  */
 export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
-  console.warn("Deprecated mailgun avtalegiro registered email, use mailersend instead");
-  return true; // TODO: Remove this when we have migrated all avtalegiro emails to mailersend
+  return unsentDeprecatedEmail("sendAvtalegiroRegistered");
 }
 
 /**
