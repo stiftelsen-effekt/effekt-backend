@@ -3,6 +3,7 @@ import { Donor } from "../../schemas/types";
 import { DAO } from "../DAO";
 import * as sqlString from "sqlstring";
 import { RequestLocale } from "../../middleware/locale";
+import { normalizeDonorEmail } from "../donorEmail";
 
 //region Get
 
@@ -409,7 +410,9 @@ async function getAll(
  * @returns {Number} An ID
  */
 async function getIDbyEmail(email): Promise<number | null> {
-  var [result] = await DAO.execute(`SELECT ID FROM Donors where email = ?`, [email]);
+  var [result] = await DAO.execute(`SELECT ID FROM Donors where email = ?`, [
+    normalizeDonorEmail(email),
+  ]);
 
   if (result.length > 0) return result[0].ID;
   else return null;
@@ -676,7 +679,7 @@ async function add(
         full_name, 
         newsletter
     ) VALUES (?,?,?)`,
-    [data.email, data.full_name || null, data.newsletter || false],
+    [normalizeDonorEmail(data.email), data.full_name || null, data.newsletter || false],
   );
 
   return res[0].insertId;
@@ -720,7 +723,7 @@ async function update(donorID, name, email, newsletter, trash?: boolean) {
 
   let [res] = await DAO.query(
     `UPDATE Donors SET full_name = ?, email = ?, newsletter = ?, trash = ? where ID = ?`,
-    [name, email, newsletter, isTrash, donorID],
+    [name, normalizeDonorEmail(email), newsletter, isTrash, donorID],
   );
 
   if (res.affectedRows === 1) {

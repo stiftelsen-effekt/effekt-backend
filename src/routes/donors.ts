@@ -129,7 +129,7 @@ router.post("/", authMiddleware.isAdmin, urlEncodeParser, async (req, res, next)
 router.post("/auth0/register", async (req, res, next) => {
   try {
     if (!req.body.email) {
-      res.status(400).json({
+      return res.status(400).json({
         status: 400,
         content: "email is missing in request body",
       });
