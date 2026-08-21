@@ -3,7 +3,7 @@ import sinon from "sinon";
 import * as mail from "../custom_modules/mail";
 
 /**
- * These four emails lost their mailgun implementation and never gained a
+ * These three emails lost their mailgun implementation and never gained a
  * MailerSend template. They used to return true, so all 17 call sites believed
  * the mail had gone out. These tests pin the opposite: they must report failure
  * and say so in the log, until someone rebuilds them.
@@ -24,7 +24,6 @@ describe("emails with no MailerSend template", function () {
   });
 
   const cases: Array<[string, () => Promise<unknown>]> = [
-    ["sendFacebookTaxConfirmation", () => mail.sendFacebookTaxConfirmation("a@b.no", "A B", "1")],
     ["sendVippsAgreementChange", () => mail.sendVippsAgreementChange("code", "STOPPED")],
     ["sendAvtaleGiroChange", () => mail.sendAvtaleGiroChange("123", "AMOUNT", "500")],
     ["sendAvtalegiroRegistered", () => mail.sendAvtalegiroRegistered(null)],
