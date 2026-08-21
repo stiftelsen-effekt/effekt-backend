@@ -6,7 +6,6 @@ import moment from "moment";
 import { DateTime } from "luxon";
 const template = require("./template");
 
-import request from "request-promise-native";
 import fs from "fs-extra";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
