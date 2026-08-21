@@ -12,7 +12,6 @@ console.log("--------------------------------------------------");
 import bearerToken from "express-bearer-token";
 import express from "express";
 import fileUpload from "express-fileupload";
-import hogan from "hogan-express";
 import honeypot from "honeypot";
 import http from "http";
 import logging from "./handlers/loggingHandler.js";
@@ -140,12 +139,6 @@ DAO.connect(() => {
   //Look for bearer tokens
   app.use(bearerToken());
 
-  //Render engine for served views
-  app.set("view engine", "mustache");
-  app.set("layout", __dirname + "/views/layout.mustache");
-
-  app.engine("mustache", hogan);
-
   //Server
   const mainServer = http.createServer(app);
 
@@ -205,7 +198,6 @@ DAO.connect(() => {
   app.use("/survey", surveyRouter);
 
   app.use("/static", express.static(__dirname + "/static"));
-  app.use("/style", express.static(__dirname + "/views/style"));
   app.use("/img", express.static(__dirname + "/views/img"));
 
   //Error handling

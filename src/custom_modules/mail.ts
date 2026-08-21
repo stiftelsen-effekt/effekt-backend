@@ -4,9 +4,7 @@ import { EmailTaxUnitReport } from "./DAO_modules/tax";
 const config = require("../config.js");
 import moment from "moment";
 import { DateTime } from "luxon";
-const template = require("./template");
 
-import fs from "fs-extra";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
 import { APIResponse } from "mailersend/lib/services/request.service";
@@ -60,94 +58,6 @@ function formatDateText(date) {
 export function formatCurrency(currencyString) {
   return new Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 }).format(currencyString);
 }
-
-// Reusable HTML elements
-const sciChanges =
-  "<strong>MERK:</strong> Din fordeling ble endret av oss 18.08.2022." +
-  'Fra denne datoen støtter vi ikke lenger donasjoner til SCI Foundation. Les mer om denne endringen på <a href="https://gieffektivt.no/articles/nye-evalueringskriterier-for-topplista" style="color: #000000;">våre nettsider</a>.' +
-  "<br/><br/>" +
-  'Påvirkede donasjoner følger nå i stedet <a href="https://gieffektivt.no/smart-fordeling" style="color: #000000;">Smart fordeling</a>. ' +
-  'Om du vil endre dette kan du gå inn på <a href="https://gieffektivt.no/profile" style="color: #000000;">Min Side</a> og oppdatere fordeling på din faste donasjon, eller fylle ut donasjonsskjemaet for en ny donasjon. Ta kontakt om du har spørsmål.' +
-  "<br/><br/>";
-
-const replacedOrgsInfo =
-  "<strong>MERK</strong>: Din fordeling har blitt endret av oss." +
-  "<br/>" +
-  "<br/>" +
-  "Fra <strong>01.01.2021</strong> støtter vi ikke lenger donasjoner til Deworm the World, The END Fund, Sightsavers og Project Healthy Children." +
-  "<br/>" +
-  'Fra <strong>18.08.2022</strong> støtter vi ikke lenger donasjoner til SCI Foundation. Les mer om denne endringen på <a href="https://gieffektivt.no/articles/nye-evalueringskriterier-for-topplista" style="color: #000000;">våre nettsider</a>.<br/> ' +
-  'Påvirkede donasjoner følger nå i stedet <a href="https://gieffektivt.no/smart-fordeling" style="color: #000000;">Smart fordeling</a>. ' +
-  'Om du vil endre dette kan du gå inn på <a href="https://gieffektivt.no/profile" style="color: #000000;">Min Side</a> og oppdatere fordeling på din faste donasjon, eller fylle ut donasjonsskjemaet for en ny donasjon. Ta kontakt om du har spørsmål.' +
-  "<br/><br/>";
-
-const taxDeductionInfo =
-  "Donasjoner til oss som summerer til kr 500-25 000 i kalenderåret kvalifiserer til skattefradrag. Dersom du har oppgitt fødselsnummer eller organisasjonsnummer registrerer vi dette automatisk på neste års skattemelding. " +
-  'Les mer <a href= "https://gieffektivt.no/skattefradrag" style="color: #000000;">her</a>.' +
-  "<br/><br/>";
-
-const greeting = "<b>Vennlig hilsen</b><br/>" + "oss i Gi Effektivt" + "<br/><br/>";
-
-const feedback =
-  "<span> Hvordan synes du det gikk å donere i dag? </span><br />" +
-  "<span>Gi oss tilbakemelding ved å svare på </span>" +
-  '<a href="https://forms.gle/P3MwoP7hn9sAQ65VA" style="color: #000000">denne undersøkelsen</a>.' +
-  "<span> (4 min)</span>" +
-  "<br /><br />";
-
-const footer =
-  '<hr color="000" width="100%">' +
-  "<br />" +
-  '<div style="padding: 0 30px 0 30px;">Vi vil aldri be deg om personlige opplysninger slik som personnummer, kontonummer, kort-informasjon eller passord på e-post.</div>' +
-  "<br/><br/>" +
-  '<table class="footer" bgcolor="#000" width="100%" border="0" cellspacing="0" cellpadding="0">' +
-  "<tr>" +
-  '<td align="center" class="footercopy">' +
-  '<table width="194" align="left" border="0" cellpadding="0" cellspacing="0">' +
-  "<tr>" +
-  '<td style="color: #ffffff; font-family: Arial, sans-serif; font-size: 14px;">' +
-  "Stiftelsen Gi Effektivt" +
-  "<br />" +
-  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">donasjon@gieffektivt.no</a><br/>' +
-  "<span>Orgnr. 916 625 308</span><br/><br/>" +
-  "Effektiv Altruisme Norge" +
-  "<br />" +
-  '<a href= "mailto:donasjon@gieffektivt.no" style="color: #ffffff;"><font color="#ffffff">post@effektivaltruisme.no</a><br/>' +
-  "<span>Orgnr. 919 809 140</span><br/><br/>" +
-  "</td>" +
-  "</tr>" +
-  "</table>" +
-  "<!--[if (gte mso 9)|(IE)]>" +
-  '<table width="380" align="left" cellpadding="0" cellspacing="0" border="0">' +
-  "<tr>" +
-  "<td>" +
-  "<![endif]-->" +
-  '<table width="75" align="right" border="0" cellpadding="0" cellspacing="0">' +
-  "<tr>" +
-  "<td>" +
-  '<a href="https://gieffektivt.no/">' +
-  '<img src="cid:gieffektivt.png" alt="gieffektivt" width="75" height="75" style="display: block;" border="0" />' +
-  "</a>" +
-  "</td>" +
-  "</tr>" +
-  "</table>" +
-  "<!--[if (gte mso 9)|(IE)]>" +
-  '<table width="380" align="left" cellpadding="0" cellspacing="0" border="0">' +
-  "<tr>" +
-  "<td>" +
-  "<![endif]-->" +
-  "</td>" +
-  "</tr>" +
-  "</table>";
-
-const reusableHTML = {
-  sciChanges,
-  replacedOrgsInfo,
-  greeting,
-  taxDeductionInfo,
-  feedback,
-  footer,
-};
 
 /**
  * Sends a donation reciept
@@ -695,27 +605,6 @@ export async function sendPaymentIntentFollowUp(
 export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
   console.warn("Deprecated mailgun facebook tax confirmation email, use mailersend instead");
   return true; // TODO: Remove this when we have migrated all facebook emails to mailersend
-
-  /*
-  try {
-    await send({
-      subject: "Gi Effektivt - Facebook-donasjoner registrert for skattefradrag",
-      reciever: email,
-      templateName: "facebookTaxConfirmation",
-      templateData: {
-        header: "Hei, " + fullName,
-        paymentID,
-        reusableHTML,
-      },
-    });
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to send facebook tax confirmation email");
-    console.error(ex);
-    return ex.statusCode;
-  }
-  */
 }
 
 /**
@@ -726,63 +615,6 @@ export async function sendFacebookTaxConfirmation(email, fullName, paymentID) {
 export async function sendVippsAgreementChange(agreementCode, change, newValue = null) {
   console.warn("Deprecated mailgun vipps agreement change email, use mailersend instead");
   return true; // TODO: Remove this when we have migrated all vipps emails to mailersend
-
-  /*
-  try {
-    const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementCode);
-    const agreement = await DAO.vipps.getAgreement(agreementId);
-    if (!agreement) throw new Error(`Agreement with id ${agreementId} not found`);
-
-    const donor = await DAO.donors.getByID(agreement.donorID);
-    const email = donor.email;
-
-    const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
-    const organizations = distribution.causeAreas.reduce((acc, causeArea) => {
-      causeArea.organizations.forEach((org) => {
-        acc.push({
-          // !!! === CAUSE AREAS TODO === !!!
-          // Need to get name
-          name: org.id.toString(),
-          // Round to nearest 2 decimals
-          percentage: Math.round(parseFloat(org.percentageShare) * 100) / 100,
-        });
-      });
-      return acc;
-    }, []);
-
-    if (agreement.status !== "ACTIVE") return false;
-
-    let changeDesc = "endret";
-    if (change === "CANCELLED") changeDesc = "avsluttet";
-    if (change === "PAUSED") changeDesc = "satt på pause";
-    if (change === "UNPAUSED") changeDesc = "gjenstartet";
-    const subject = `Gi Effektivt - Din betalingsavtale via Vipps har blitt ${changeDesc}`;
-
-    if (change === "PAUSED") newValue = formatDate(newValue);
-    if (change === "AMOUNT") newValue = formatCurrency(newValue);
-
-    await send({
-      subject,
-      reciever: email,
-      templateName: "vippsAgreementChange",
-      templateData: {
-        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
-        change,
-        newValue,
-        organizations,
-        agreement,
-        sum: formatCurrency(agreement.amount),
-        reusableHTML,
-      },
-    });
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to send vipps agreement change email");
-    console.error(ex);
-    return ex.statusCode;
-  }
-  */
 }
 
 /**
@@ -793,43 +625,6 @@ export async function sendVippsAgreementChange(agreementCode, change, newValue =
 export async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
   console.warn("Deprecated mailgun vipps problem report email, use mailersend instead");
   return true; // TODO: Remove this when we have migrated all vipps emails to mailersend
-
-  /*
-  try {
-    const timestamp = formatTimestamp(new Date());
-
-    let errorDesc = "";
-    if (errorType === "DRAFT") errorDesc = "Oppretting av Vipps betalingsavtale feilet";
-    if (errorType === "CHARGE") errorDesc = "Trekk av Vipps betalingsavtale feilet";
-    const subject = `Varsling om systemfeil - ${errorDesc}`;
-
-    const recipients = [
-      "philip.andersen@effektivaltruisme.no",
-      "hakon.harnes@effektivaltruisme.no",
-    ];
-
-    for (let i = 0; i < recipients.length; i++) {
-      await send({
-        subject,
-        reciever: recipients[i],
-        templateName: "vippsErrorWarning",
-        templateData: {
-          header: errorDesc,
-          timestamp,
-          errorMessage,
-          inputData,
-          reusableHTML,
-        },
-      });
-    }
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to send Vipps agreement error email");
-    console.error(ex);
-    return ex.statusCode;
-  }
-  */
 }
 
 /**
@@ -841,40 +636,6 @@ export async function sendVippsErrorWarning(errorType, errorMessage, inputData) 
 export async function sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agreement) {
   console.warn("Deprecated mailgun vipps problem report email, use mailersend instead");
   return true; // TODO: Remove this when we have migrated all vipps emails to mailersend
-
-  /*
-  try {
-    const timestamp = formatTimestamp(new Date());
-
-    const recipients = [
-      "philip.andersen@effektivaltruisme.no",
-      "hakon.harnes@effektivaltruisme.no",
-    ];
-
-    for (let i = 0; i < recipients.length; i++) {
-      await send({
-        subject: "En donor har rapportert et problem med Vipps",
-        reciever: recipients[i],
-        templateName: "vippsProblemReport",
-        templateData: {
-          header: "Problem med Vipps betalingsavtale",
-          timestamp,
-          senderUrl,
-          senderEmail,
-          donorMessage,
-          agreement,
-          reusableHTML,
-        },
-      });
-    }
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to send Vipps agreement error email");
-    console.error(ex);
-    return ex.statusCode;
-  }
-  */
 }
 
 /**
@@ -889,53 +650,6 @@ export async function sendAvtaleGiroChange(
 ) {
   console.warn("Deprecated mailgun avtalegiro change email, use mailersend instead");
   return true; // TODO: Remove this when we have migrated all avtalegiro emails to mailersend
-  /*
-  try {
-    const agreement = await DAO.avtalegiroagreements.getByKID(KID);
-    const donor = await DAO.donors.getByKID(KID);
-    const email = donor.email;
-
-    const distribution = await DAO.distributions.getSplitByKID(KID);
-    const organizations = distribution.causeAreas.reduce((acc, causeArea) => {
-      causeArea.organizations.forEach((org) => {
-        acc.push({
-          name: org.name.toString(),
-          percentage: Math.round(parseFloat(org.percentageShare) * 100) / 100,
-        });
-      });
-      return acc;
-    }, []);
-
-    console.log(organizations);
-
-    let changeDesc = "endret";
-    if (change === "CANCELLED") changeDesc = "avsluttet";
-    const subject = `Gi Effektivt - Din AvtaleGiro har blitt ${changeDesc}`;
-
-    if (change === "AMOUNT") newValue = formatCurrency(newValue);
-
-    await send({
-      subject,
-      reciever: email,
-      templateName: "avtaleGiroChange",
-      templateData: {
-        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
-        change,
-        newValue,
-        organizations,
-        agreement,
-        sum: formatCurrency(agreement.amount / 100),
-        reusableHTML,
-      },
-    });
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to send AvtaleGiro change email");
-    console.error(ex);
-    return ex.statusCode;
-  }
-  */
 }
 
 /**
@@ -1003,83 +717,6 @@ export async function sendAvtalegiroNotification(
 export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
   console.warn("Deprecated mailgun avtalegiro registered email, use mailersend instead");
   return true; // TODO: Remove this when we have migrated all avtalegiro emails to mailersend
-
-  /*
-  let donor;
-  let split: {
-    causeAreas: {
-      id: number;
-      percentageShare: string;
-      organizations: DistributionCauseAreaOrganization[];
-    }[];
-  };
-  let organizations: { name: string; sum: string; percentage: string }[];
-
-  try {
-    donor = await DAO.donors.getByKID(agreement.KID);
-  } catch (ex) {
-    console.error(
-      `Failed to send mail AvtaleGiro registered, could not get donor form KID ${agreement.KID}`,
-    );
-    console.error(ex);
-    return false;
-  }
-
-  try {
-    split = await DAO.distributions.getSplitByKID(agreement.KID);
-  } catch (ex) {
-    console.error(
-      `Failed to send mail AvtaleGiro registered, could not get donation split by KID ${agreement.KID}`,
-    );
-    console.error(ex);
-    return false;
-  }
-
-  const reducedSplit = split.causeAreas.reduce(
-    (acc: { name: string; id: number; percentageShare: string }[], causeArea) => {
-      causeArea.organizations.forEach((org) => {
-        acc.push({
-          name: org.name.toString(),
-          id: org.id,
-          percentageShare: Math.round(
-            (parseFloat(org.percentageShare) / 100) *
-              (parseFloat(causeArea.percentageShare) / 100) *
-              100,
-          ).toString(),
-        });
-      });
-      return acc;
-    },
-    [],
-  );
-
-  // Agreement amount is stored in øre
-  organizations = formatOrganizationsFromSplit(reducedSplit, agreement.amount / 100);
-
-  try {
-    await send({
-      reciever: donor.email,
-      subject: `Gi Effektivt - AvtaleGiro opprettet`,
-      templateName: "avtaleGiroRegistered",
-      templateData: {
-        header: "Hei" + (donor.name && donor.name.length > 0 ? " " + donor.name : "") + ",",
-        agreementSum: formatCurrency(agreement.amount / 100),
-        agreementDate:
-          agreement.paymentDate == 0
-            ? "siste dagen i hver måned"
-            : `${agreement.paymentDate}. hver måned`,
-        organizations: organizations,
-        reusableHTML,
-      },
-    });
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to send AvtaleGiro registered");
-    console.error(ex);
-    return ex.statusCode;
-  }
-  */
 }
 
 /**
@@ -1219,103 +856,6 @@ export async function sendAgreementInflationAdjustment(
     return ex.statusCode;
   }
 }
-
-/*
-Deprecated mailgun functionality, replaced by MailerSend
-
-export async function sendTaxYearlyReportNoticeWithUser(report: EmailTaxUnitReport) {
-  const formattedUnits = report.units.map((u) => {
-    return {
-      ...u,
-      sum: formatCurrency(u.sum),
-    };
-  });
-
-  try {
-    await send({
-      reciever: report.email,
-      subject: `Gi Effektivt - Årsoppgave for 2023`,
-      templateName: "taxDeductionUser",
-      templateData: {
-        header: "Hei" + (report.name && report.name.length > 0 ? " " + report.name : "") + ",",
-        year: 2023,
-        units: formattedUnits,
-        donorEmail: report.email,
-        reusableHTML,
-      },
-    });
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to send tax yearly report notice");
-    console.error(ex);
-    return ex.statusCode;
-  }
-}
-
-export async function sendTaxYearlyReportNoticeNoUser(report: EmailTaxUnitReport) {
-  return false;
-
-  const formattedUnits = report.units.map((u) => {
-    return {
-      ...u,
-      sum: formatCurrency(u.sum),
-    };
-  });
-
-  try {
-    await send({
-      reciever: report.email,
-      subject: `Gi Effektivt - Årsoppgave for 2022`,
-      templateName: "taxDeductionNoUser",
-      templateData: {
-        header: "Hei" + (report.name && report.name.length > 0 ? " " + report.name : "") + ",",
-        year: 2022,
-        units: formattedUnits,
-        donorEmail: report.email,
-        reusableHTML,
-      },
-    });
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to send tax yearly report notice");
-    console.error(ex);
-    return ex.statusCode;
-  }
-}
-
-export async function sendDonorMissingTaxUnitNotice(
-  donor: { email: string; full_name: string; donationsSum: number },
-  year: number,
-) {
-  console.log(`Sending donor missing tax unit notice to ${donor.email}`);
-
-  try {
-    await send({
-      reciever: donor.email,
-      subject: `[Rettelse] Gi Effektivt - Donasjonene dine kvalifiserer til skattefradrag`,
-      templateName: "taxDeductionEligibleNotice",
-      templateData: {
-        header:
-          "Hei" +
-          (donor.full_name && donor.full_name.length > 0 ? " " + donor.full_name : "") +
-          ",",
-        year: year,
-        donorEmail: donor.email,
-        sumDonations: formatCurrency(donor.donationsSum),
-        reusableHTML,
-      },
-    });
-
-    return true;
-  } catch (ex) {
-    console.error("Failed to send DonorMissingTaxUnitNotice");
-    console.error(ex);
-    return ex.statusCode;
-  }
-}
-*/
 
 /**
  * Type for donor data from getDonorsEligableForDeductionInYear
