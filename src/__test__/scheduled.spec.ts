@@ -54,8 +54,6 @@ describe("POST /scheduled/avtalegiro", function () {
   let authStub;
 
   before(function () {
-    this.timeout(5000);
-
     authStub = sinon.replace(authMiddleware, "isAdmin", []);
 
     avtalegiroFileStub = sinon
@@ -179,8 +177,6 @@ describe("POST /initiate-follow-ups", function () {
   let donorDonationsStub;
 
   before(function () {
-    this.timeout(5000);
-
     server = express();
     const scheduledRoute = require("../routes/scheduled");
     server = express();
