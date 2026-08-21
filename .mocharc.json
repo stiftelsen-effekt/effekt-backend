@@ -1,5 +1,7 @@
 {
   "extension": ["ts"],
   "spec": "src/**/*.spec.ts",
-  "require": "ts-node/register"
+  "require": "ts-node/register",
+  "node-option": ["no-experimental-strip-types"],
+  "timeout": 5000
 }

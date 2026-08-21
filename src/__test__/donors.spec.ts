@@ -105,8 +105,6 @@ describe("donors", () => {
     let server: express.Express;
 
     beforeEach(function (done) {
-      this.timeout(5000);
-
       server = express();
       server.use(bodyParser.json());
       server.use(bodyParser.urlencoded({ extended: true }));

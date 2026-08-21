@@ -1,13 +1,17 @@
 steps:
-  - name: "gcr.io/cloud-builders/npm:lts"
+  - name: "node:22"
+    entrypoint: npm
     id: install
     args: ["install"]
-  - name: "gcr.io/cloud-builders/npm:lts"
+  - name: "node:22"
+    entrypoint: npm
     waitFor: ["install"]
     args: ["run", "test"]
-  - name: "gcr.io/cloud-builders/npm:lts"
+  - name: "node:22"
+    entrypoint: npm
     waitFor: ["install"]
     args: ["run", "typecheck"]
-  - name: "gcr.io/cloud-builders/npm:lts"
+  - name: "node:22"
+    entrypoint: npm
     waitFor: ["install"]
     args: ["run", "format:check"]

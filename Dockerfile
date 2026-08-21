@@ -1,5 +1,5 @@
 # ---- Build ----
-FROM node:18 AS build
+FROM node:22 AS build
 
 # Install build dependencies for native modules
 RUN apt-get update && apt-get install -y \
@@ -23,7 +23,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # ---- Release ----
-FROM node:18
+FROM node:22
 
 # Install build dependencies for native modules
 RUN apt-get update && apt-get install -y \
