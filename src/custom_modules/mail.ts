@@ -600,6 +600,84 @@ export async function sendPaymentIntentFollowUp(
 }
 
 /**
+ * Renders an internal alert as both plain text and minimal HTML. Kept pure so
+ * the formatting can be tested without touching MailerSend.
+ */
+export function formatInternalAlert(
+  title: string,
+  rows: Array<[string, string]>,
+): { text: string; html: string } {
+  const text = [title, "", ...rows.map(([label, value]) => `${label}: ${value}`)].join("\n");
+  const html =
+    `<p><strong>${escapeHtml(title)}</strong></p>` +
+    "<ul>" +
+    rows
+      .map(
+        ([label, value]) => `<li><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</li>`,
+      )
+      .join("") +
+    "</ul>";
+  return { text, html };
+}
+
+function escapeHtml(value: string): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Shared inbox for technical alerts, as used by sendSanitySecurityNotice. */
+const TECHNICAL_INBOX = "teknisk@gieffektivt.no";
+
+/**
+ * Sends an alert to the team without a MailerSend template. These go to staff
+ * rather than donors, so there is nothing to design - a subject and a list of
+ * fields is the whole requirement, and MailerSend accepts html/text directly.
+ *
+ * Sent from and to the technical inbox, the same destination
+ * sendSanitySecurityNotice uses. gieffektivt.no is a verified sending domain,
+ * and a plain send has to name a sender - unlike the template sends, which
+ * inherit one from the template.
+ *
+ * The api key is checked rather than assumed, so a misconfigured environment
+ * reports the alert as unsent instead of failing somewhere inside the SDK. It
+ * also keeps the tests off the network.
+ */
+async function sendInternalAlert(params: {
+  alertName: string;
+  subject: string;
+  text: string;
+  html: string;
+}): Promise<boolean> {
+  if (!config.mailersend_api_key) {
+    console.error(
+      `[unsent-email] ${params.alertName} was not sent: MAILERSEND_API_KEY is not configured.`,
+    );
+    return false;
+  }
+
+  const mailersend = new MailerSend({ apiKey: config.mailersend_api_key });
+
+  const email = new EmailParams()
+    .setFrom(new Sender(TECHNICAL_INBOX, "Gi Effektivt"))
+    .setTo([new Recipient(TECHNICAL_INBOX)])
+    .setSubject(params.subject)
+    .setText(params.text)
+    .setHtml(params.html);
+
+  try {
+    await mailersend.email.send(email);
+    return true;
+  } catch (ex) {
+    console.error(`[unsent-email] ${params.alertName} failed to send`);
+    console.error(ex);
+    return false;
+  }
+}
+
+/**
  * These six emails were sent through mailgun until it was deprecated. No
  * MailerSend template was ever created to replace them - confirmed against the
  * MailerSend template list - so they cannot be sent at all.
@@ -644,7 +722,26 @@ export async function sendVippsAgreementChange(agreementCode, change, newValue =
  * @param {string} inputData The input data while the error happened
  */
 export async function sendVippsErrorWarning(errorType, errorMessage, inputData) {
-  return unsentDeprecatedEmail("sendVippsErrorWarning");
+  const errorDesc =
+    errorType === "DRAFT"
+      ? "Oppretting av Vipps betalingsavtale feilet"
+      : errorType === "CHARGE"
+      ? "Trekk av Vipps betalingsavtale feilet"
+      : `Ukjent Vipps-feil (${errorType})`;
+
+  const { text, html } = formatInternalAlert(errorDesc, [
+    ["Tidspunkt", formatTimestamp(new Date())],
+    ["Feiltype", String(errorType)],
+    ["Feilmelding", typeof errorMessage === "string" ? errorMessage : JSON.stringify(errorMessage)],
+    ["Inndata", JSON.stringify(inputData)],
+  ]);
+
+  return await sendInternalAlert({
+    alertName: "sendVippsErrorWarning",
+    subject: `Varsling om systemfeil - ${errorDesc}`,
+    text,
+    html,
+  });
 }
 
 /**
@@ -654,7 +751,20 @@ export async function sendVippsErrorWarning(errorType, errorMessage, inputData) 
  * @param {VippsAgreement} agreement Vipps agreement data
  */
 export async function sendVippsProblemReport(senderUrl, senderEmail, donorMessage, agreement) {
-  return unsentDeprecatedEmail("sendVippsProblemReport");
+  const { text, html } = formatInternalAlert("Problem med Vipps betalingsavtale", [
+    ["Tidspunkt", formatTimestamp(new Date())],
+    ["Donor", String(senderEmail)],
+    ["Melding", String(donorMessage)],
+    ["Side", String(senderUrl)],
+    ["Avtale", JSON.stringify(agreement)],
+  ]);
+
+  return await sendInternalAlert({
+    alertName: "sendVippsProblemReport",
+    subject: "En donor har rapportert et problem med Vipps",
+    text,
+    html,
+  });
 }
 
 /**
