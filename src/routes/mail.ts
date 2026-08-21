@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import { DAO } from "../custom_modules/DAO";
+import { parseSurveySubmission } from "../custom_modules/mailersendWebhook";
 import {
   sendDonationRegistered,
   sendAvtalegiroNotification,
@@ -246,15 +247,26 @@ router.post("/notice/missingtaxunit", authMiddleware.isAdmin, async (req, res, n
 
 router.post("/mailersend/survey/response", async (req, res, next) => {
   try {
-    const surveyResponse = req.body.data as SurveyEmail;
+    const { recipientEmail, answers } = parseSurveySubmission(req.body?.data);
 
-    let DonorID = await DAO.donors.getIDbyEmail(surveyResponse.email.recipient.email);
+    let DonorID = recipientEmail ? await DAO.donors.getIDbyEmail(recipientEmail) : null;
 
     if (!DonorID) {
       DonorID = 1464; // Anonymous donor
     }
 
-    if (!surveyResponse.surveys) {
+    if (answers.length === 0) {
+      /**
+       * A survey_submitted delivery with no parseable answers means the payload
+       * is not the shape expected. Log what did arrive - the previous handler
+       * hit this branch for every version 2 delivery and reported success,
+       * which is exactly how a format change goes unnoticed.
+       */
+      console.error(
+        "MailerSend survey webhook produced no answers. data keys: " +
+          `[${Object.keys(req.body?.data ?? {}).join(", ")}], ` +
+          `data.meta keys: [${Object.keys(req.body?.data?.meta ?? {}).join(", ")}]`,
+      );
       res.json({
         status: 200,
         content: "No surveys found in email",
@@ -262,16 +274,14 @@ router.post("/mailersend/survey/response", async (req, res, next) => {
       return;
     }
 
-    for (let survey of surveyResponse.surveys) {
-      for (let answer of survey.answers) {
-        await DAO.mail.saveMailerSendSurveyResponse({
-          surveyID: parseInt(survey.survey_id),
-          questionID: parseInt(survey.question_id),
-          DonorID: DonorID,
-          answer: answer.answer,
-          answerID: answer.answer_id,
-        });
-      }
+    for (const answer of answers) {
+      await DAO.mail.saveMailerSendSurveyResponse({
+        surveyID: answer.surveyID,
+        questionID: answer.questionID,
+        DonorID: DonorID,
+        answer: answer.answer,
+        answerID: answer.answerID,
+      });
     }
 
     res.json({
