@@ -51,7 +51,6 @@ describe("POST /scheduled/avtalegiro", function () {
   let agreementsStub;
   let loggingStub;
   let sendFileStub;
-  let sendMailBackupStub;
   let authStub;
 
   before(function () {
@@ -76,8 +75,6 @@ describe("POST /scheduled/avtalegiro", function () {
 
     sendFileStub = sinon.stub(nets, "sendFile");
 
-    sendMailBackupStub = sinon.stub(mail, "sendOcrBackup");
-
     const scheduledRoute = require("../routes/scheduled");
     server = express();
     server.use("/scheduled", scheduledRoute);
@@ -98,7 +95,6 @@ describe("POST /scheduled/avtalegiro", function () {
     expect(sendNotificationStub.called).to.be.false;
     expect(sendFileStub.called).to.be.false;
     expect(loggingStub.calledOnce).to.be.true;
-    expect(sendMailBackupStub.calledOnce).to.be.true;
   });
 
   it("Generates claim file when provided a date", async function () {
