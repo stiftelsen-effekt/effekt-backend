@@ -23,6 +23,8 @@ export const auth = (permission: any) => {
 
 export const isAdmin = auth(authorizationPermissions.admin);
 
+export const isAnalysisMcp = auth(authorizationPermissions.analysis_mcp);
+
 const userIsAdmin = (jwtPayload: JWTPayload) => {
   const permissionJwtPayload = jwtPayload.permissions;
   if (!Array.isArray(permissionJwtPayload)) return false;
