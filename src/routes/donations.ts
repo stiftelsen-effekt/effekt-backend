@@ -15,6 +15,7 @@ import { Distribution, DistributionCauseArea, DistributionInput } from "../schem
 import { validateDistribution } from "../custom_modules/distribution";
 import { localeMiddleware, LocaleRequest } from "../middleware/locale";
 import { exportCsv } from "../custom_modules/csvexport";
+import { MAX_REFERRAL_CODE_LENGTH, normalizeReferralCode } from "../custom_modules/referralCode";
 
 const config = require("../config");
 
@@ -67,6 +68,7 @@ router.post("/register", async (req, res, next) => {
       messageSenderName?: string;
       showName: boolean;
     };
+    referralCode?: string;
   };
 
   // Validate input
@@ -86,6 +88,15 @@ router.post("/register", async (req, res, next) => {
     if (!parsedData.fundraiser.id) return res.status(400).send("No fundraiser ID provided");
     if (typeof parsedData.fundraiser.showName === "undefined")
       return res.status(400).send("No showName provided");
+  }
+
+  if (parsedData.referralCode != null && parsedData.referralCode !== "") {
+    if (typeof parsedData.referralCode !== "string") {
+      return res.status(400).send("Invalid referral code");
+    }
+    if (parsedData.referralCode.trim().length > MAX_REFERRAL_CODE_LENGTH) {
+      return res.status(400).send("Referral code is too long");
+    }
   }
 
   let donor = parsedData.donor;
@@ -293,6 +304,15 @@ router.post("/register", async (req, res, next) => {
       );
     } catch (error) {
       console.error(error);
+    }
+
+    const referralCode = normalizeReferralCode(parsedData.referralCode);
+    if (referralCode && donationObject.KID) {
+      try {
+        await DAO.donationReferralCodes.add(donationObject.KID, referralCode);
+      } catch (error) {
+        console.error(`Failed to store referral code for KID ${donationObject.KID}:`, error);
+      }
     }
   } catch (ex) {
     return next(ex);
