@@ -5,14 +5,18 @@ import config from "../config";
 import { handleJsonRpcMessage } from "../custom_modules/mcp/analysisMcpServer";
 import { isAnalysisDbConfigured } from "../custom_modules/analysisDbPool";
 import { isAnalysisMcp } from "../custom_modules/authorization/authMiddleware";
+import { sendMcpAuthChallenge } from "../custom_modules/mcp/oauthProtectedResource";
 
 /**
  * Remote MCP endpoint for Claude Tag / Claude custom connectors.
  *
  * Auth (either is enough):
- * - Auth0 JWT with the analysis_mcp permission (the intended production path
- *   for Claude Tag — a dedicated M2M app / role, not admin).
+ * - Auth0 JWT with the analysis_mcp permission (user-login connector OAuth
+ *   or the dedicated M2M app — not admin).
  * - Optional MCP_SECRET as Authorization: Bearer, for local testing only.
+ *
+ * Unauthenticated requests return 401 with WWW-Authenticate pointing at
+ * RFC 9728 protected-resource metadata so Claude can start Auth0 login.
  *
  * Transport: MCP Streamable HTTP. Requests are answered with a single
  * application/json JSON-RPC response; notifications get 202 with no body.
@@ -60,10 +64,18 @@ function requireMcpAuth(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
+  // No Bearer token: challenge so Claude discovers Auth0 via PRM.
+  if (!token) {
+    return sendMcpAuthChallenge(res);
+  }
+
   const [checkJwt, checkPermission] = isAnalysisMcp;
   checkJwt(req, res, (err?: any) => {
-    if (err) return next(err);
-    checkPermission(req, res, next);
+    if (err) return sendMcpAuthChallenge(res);
+    checkPermission(req, res, (permErr?: any) => {
+      if (permErr) return sendMcpAuthChallenge(res, "insufficient_scope");
+      next();
+    });
   });
 }
 
