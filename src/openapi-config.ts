@@ -20,6 +20,7 @@ export const openAPIOptions = {
                 "write:profile": "mutate profile",
                 "read:agreements": "read recurruing agreements",
                 "write:agreements": "mutate recurruing agreements",
+                analysis_mcp: "read-only SQL access to the anonymized analysis database via MCP",
               },
             },
           },

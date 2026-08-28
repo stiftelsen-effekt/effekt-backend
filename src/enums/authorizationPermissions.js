@@ -10,4 +10,7 @@ export default {
   read_vipps_api: "read:vipps_api",
   write_vipps_api: "write:vipps_api",
   admin: "admin",
+  // Dedicated grant for the analysis MCP. Do not reuse admin for Claude Tag —
+  // that token must not be able to call admin API routes.
+  analysis_mcp: "analysis_mcp",
 };

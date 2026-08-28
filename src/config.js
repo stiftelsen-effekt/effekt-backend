@@ -27,6 +27,13 @@ module.exports = {
   db_password: process.env.DB_PASS,
   db_name: process.env.DB_NAME,
 
+  //MCP server: dedicated read-only user scoped to the anonymized analysis DB.
+  //Kept separate from the db_* credentials above (which can write to production).
+  mcp_secret: process.env.MCP_SECRET,
+  mcp_db_username: process.env.MCP_DB_USER,
+  mcp_db_password: process.env.MCP_DB_PASS,
+  mcp_db_name: process.env.MCP_DB_NAME,
+
   //API keys
   mailersend_api_key: process.env.MAILERSEND_API_KEY,
   mailchimp_api_key: process.env.MAILCHIMP_API_KEY,

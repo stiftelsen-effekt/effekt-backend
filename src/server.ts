@@ -32,6 +32,7 @@ import { ltvRouter } from "./routes/ltv";
 import { organizationsRouter } from "./routes/organizations";
 import { causeAreasRouter } from "./routes/causeareas";
 import { surveyRouter } from "./routes/survey";
+import { mcpRouter } from "./routes/mcp";
 import { startWebSocketServer } from "./websocket";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
@@ -66,6 +67,11 @@ DAO.connect(() => {
       },
     }),
   );
+
+  //MCP server for Claude Tag (read-only analysis DB). Auth is an Auth0 JWT
+  //with the analysis_mcp permission, not admin. Mounted before honeypot /
+  //rate-limit / CORS so Anthropic server-to-server calls are not blocked.
+  app.use("/mcp", mcpRouter);
 
   //Pretty printing of JSON
   app.use(
