@@ -142,6 +142,9 @@ export function validateSelectQuery(rawQuery: string): string {
   let query = rawQuery.trim();
   // Allow a single trailing semicolon; reject any other semicolons (no stacking).
   query = query.replace(/;\s*$/, "");
+  if (/\/\*|--+|#/.test(query)) {
+    throw new QueryRejected("SQL comments are not allowed.");
+  }
   const stripped = stripComments(query);
 
   if (stripped.includes(";")) {

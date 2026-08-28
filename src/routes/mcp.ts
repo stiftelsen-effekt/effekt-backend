@@ -60,7 +60,7 @@ function requireMcpAuth(req: Request, res: Response, next: NextFunction) {
   }
 
   const token = getBearerToken(req);
-  if (config.mcp_secret && token && secretMatches(token)) {
+  if (config.env !== "production" && config.mcp_secret && token && secretMatches(token)) {
     return next();
   }
 
