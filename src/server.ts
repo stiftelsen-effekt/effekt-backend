@@ -33,6 +33,7 @@ import { organizationsRouter } from "./routes/organizations";
 import { causeAreasRouter } from "./routes/causeareas";
 import { surveyRouter } from "./routes/survey";
 import { mcpRouter } from "./routes/mcp";
+import { getProtectedResourceMetadata } from "./custom_modules/mcp/oauthProtectedResource";
 import { startWebSocketServer } from "./websocket";
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
@@ -67,6 +68,15 @@ DAO.connect(() => {
       },
     }),
   );
+
+  // MCP OAuth discovery (RFC 9728). Claude Tag fetches these before login.
+  // Must be unauthenticated and reachable from Anthropic's egress.
+  const sendProtectedResourceMetadata = (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.json(getProtectedResourceMetadata());
+  };
+  app.get("/.well-known/oauth-protected-resource", sendProtectedResourceMetadata);
+  app.get("/.well-known/oauth-protected-resource/mcp", sendProtectedResourceMetadata);
 
   //MCP server for Claude Tag (read-only analysis DB). Auth is an Auth0 JWT
   //with the analysis_mcp permission, not admin. Mounted before honeypot /

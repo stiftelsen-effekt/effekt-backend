@@ -1,11 +1,20 @@
 import { DAO } from "../DAO";
 import { auth as auth0, claimCheck, JWTPayload, claimIncludes } from "express-oauth2-jwt-bearer";
-import { authAudience, authIssuerBaseURL, authUserIdClaim } from "../../config";
+import { authAudience, authIssuerBaseURL, authMcpAudience, authUserIdClaim } from "../../config";
 import authorizationPermissions from "../../enums/authorizationPermissions";
 
 // Defaulting to "default" to enable tests to run
 const checkJwt = auth0({
   audience: authAudience || "default",
+  issuerBaseURL: authIssuerBaseURL || "default",
+});
+
+// Claude Tag user-login tokens are issued for the MCP resource URL (…/mcp).
+// M2M client-credentials tokens still use AUTH_AUDIENCE. Accept either here
+// so both connector OAuth and the existing M2M app work on /mcp.
+const mcpAudiences = [authAudience, authMcpAudience].filter(Boolean) as string[];
+const checkMcpJwt = auth0({
+  audience: mcpAudiences.length > 0 ? mcpAudiences : "default",
   issuerBaseURL: authIssuerBaseURL || "default",
 });
 
@@ -23,7 +32,10 @@ export const auth = (permission: any) => {
 
 export const isAdmin = auth(authorizationPermissions.admin);
 
-export const isAnalysisMcp = auth(authorizationPermissions.analysis_mcp);
+export const isAnalysisMcp = [
+  checkMcpJwt,
+  claimIncludes("permissions", authorizationPermissions.analysis_mcp),
+];
 
 const userIsAdmin = (jwtPayload: JWTPayload) => {
   const permissionJwtPayload = jwtPayload.permissions;
