@@ -79,7 +79,6 @@ DAO.connect(() => {
   app.get("/.well-known/oauth-protected-resource", sendProtectedResourceMetadata);
   app.get("/.well-known/oauth-protected-resource/mcp", sendProtectedResourceMetadata);
   app.get("/.well-known/oauth-authorization-server", sendAuthorizationServerMetadata);
-  app.get("/.well-known/openid-configuration", sendAuthorizationServerMetadata);
 
   // MCP OAuth (DCR + authorize/token). Claude registers here; we federate login to Auth0.
   app.use("/oauth", oauthRouter);

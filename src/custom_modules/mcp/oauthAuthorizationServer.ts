@@ -35,7 +35,7 @@ export function handleRegister(req: Request, res: Response) {
     return oauthError(res, 400, "invalid_redirect_uri");
   }
   try {
-    const clientId = seal({ redirect_uris: redirectUris }, 30 * 24 * 60 * 60);
+    const clientId = seal({ typ: "client", redirect_uris: redirectUris }, 30 * 24 * 60 * 60);
     return res.status(201).json({
       client_id: clientId,
       client_id_issued_at: Math.floor(Date.now() / 1000),
@@ -72,12 +72,15 @@ export function handleAuthorize(req: Request, res: Response) {
   }
 
   try {
-    const client = open<{ redirect_uris?: string[] }>(clientId);
-    if (Array.isArray(client.redirect_uris) && !client.redirect_uris.includes(redirectUri)) {
+    const client = open<{ typ?: string; redirect_uris?: string[] }>(clientId);
+    if (client.typ !== "client" || !Array.isArray(client.redirect_uris)) {
+      return oauthError(res, 400, "invalid_client");
+    }
+    if (!client.redirect_uris.includes(redirectUri)) {
       return oauthError(res, 400, "invalid_request", "redirect_uri does not match registration");
     }
   } catch {
-    // Claude may retry with a client_id we didn't issue; allowlisted redirect is enough.
+    return oauthError(res, 400, "invalid_client");
   }
 
   if (!config.auth0_mcp_client_id || !config.auth0_mcp_client_secret) {
@@ -88,6 +91,7 @@ export function handleAuthorize(req: Request, res: Response) {
   try {
     proxyState = seal(
       {
+        typ: "state",
         redirect_uri: redirectUri,
         state,
         code_challenge: codeChallenge,
@@ -116,10 +120,13 @@ export async function handleCallback(req: Request, res: Response) {
   const proxyState = String(req.query.state || "");
   const auth0Error = req.query.error ? String(req.query.error) : undefined;
 
-  let unpacked: { redirect_uri: string; state: string; code_challenge: string };
+  let unpacked: { typ?: string; redirect_uri: string; state: string; code_challenge: string };
   try {
     unpacked = open(proxyState);
   } catch {
+    return oauthError(res, 400, "invalid_request", "state is invalid or expired");
+  }
+  if (unpacked.typ !== "state") {
     return oauthError(res, 400, "invalid_request", "state is invalid or expired");
   }
 
@@ -150,6 +157,7 @@ export async function handleCallback(req: Request, res: Response) {
 
   const code = seal(
     {
+      typ: "code",
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       expires_in: tokens.expires_in,
@@ -182,6 +190,7 @@ function handleAuthorizationCode(req: Request, res: Response) {
   const verifier = String(req.body?.code_verifier || "");
 
   let payload: {
+    typ?: string;
     access_token: string;
     refresh_token?: string;
     expires_in?: number;
@@ -193,6 +202,9 @@ function handleAuthorizationCode(req: Request, res: Response) {
   } catch {
     return oauthError(res, 400, "invalid_grant", "code is invalid or expired");
   }
+  if (payload.typ !== "code") {
+    return oauthError(res, 400, "invalid_grant", "code is invalid or expired");
+  }
 
   if (payload.redirect_uri !== redirectUri) {
     return oauthError(res, 400, "invalid_grant", "redirect_uri mismatch");
@@ -201,20 +213,34 @@ function handleAuthorizationCode(req: Request, res: Response) {
     return oauthError(res, 400, "invalid_grant", "PKCE verification failed");
   }
 
+  res.setHeader("Cache-Control", "no-store");
   return res.json({
     access_token: payload.access_token,
     token_type: "Bearer",
     expires_in: payload.expires_in || 86400,
-    refresh_token: payload.refresh_token,
+    refresh_token: payload.refresh_token
+      ? seal({ typ: "rt", refresh_token: payload.refresh_token }, 30 * 24 * 60 * 60)
+      : undefined,
     scope: authorizationPermissions.analysis_mcp,
   });
 }
 
 async function handleRefreshToken(req: Request, res: Response) {
-  const refreshToken = String(req.body?.refresh_token || "");
-  if (!refreshToken) return oauthError(res, 400, "invalid_request", "refresh_token is required");
+  const sealed = String(req.body?.refresh_token || "");
+  if (!sealed) return oauthError(res, 400, "invalid_request", "refresh_token is required");
   if (!config.auth0_mcp_client_id || !config.auth0_mcp_client_secret) {
     return oauthError(res, 503, "temporarily_unavailable");
+  }
+
+  let refreshToken: string;
+  try {
+    const opened = open<{ typ?: string; refresh_token?: string }>(sealed);
+    if (opened.typ !== "rt" || !opened.refresh_token) {
+      return oauthError(res, 400, "invalid_grant");
+    }
+    refreshToken = opened.refresh_token;
+  } catch {
+    return oauthError(res, 400, "invalid_grant");
   }
 
   try {
@@ -225,11 +251,15 @@ async function handleRefreshToken(req: Request, res: Response) {
     if (!tokens.access_token) {
       return oauthError(res, 400, "invalid_grant");
     }
+    res.setHeader("Cache-Control", "no-store");
     return res.json({
       access_token: tokens.access_token,
       token_type: "Bearer",
       expires_in: tokens.expires_in || 86400,
-      refresh_token: tokens.refresh_token || refreshToken,
+      refresh_token: seal(
+        { typ: "rt", refresh_token: tokens.refresh_token || refreshToken },
+        30 * 24 * 60 * 60,
+      ),
       scope: authorizationPermissions.analysis_mcp,
     });
   } catch (ex: any) {
