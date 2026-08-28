@@ -33,6 +33,7 @@ import { organizationsRouter } from "./routes/organizations";
 import { causeAreasRouter } from "./routes/causeareas";
 import { surveyRouter } from "./routes/survey";
 import { mcpRouter } from "./routes/mcp";
+import { oauthRouter, sendAuthorizationServerMetadata } from "./routes/oauth";
 import { getProtectedResourceMetadata } from "./custom_modules/mcp/oauthProtectedResource";
 import { startWebSocketServer } from "./websocket";
 
@@ -77,6 +78,11 @@ DAO.connect(() => {
   };
   app.get("/.well-known/oauth-protected-resource", sendProtectedResourceMetadata);
   app.get("/.well-known/oauth-protected-resource/mcp", sendProtectedResourceMetadata);
+  app.get("/.well-known/oauth-authorization-server", sendAuthorizationServerMetadata);
+  app.get("/.well-known/openid-configuration", sendAuthorizationServerMetadata);
+
+  // MCP OAuth (DCR + authorize/token). Claude registers here; we federate login to Auth0.
+  app.use("/oauth", oauthRouter);
 
   //MCP server for Claude Tag (read-only analysis DB). Auth is an Auth0 JWT
   //with the analysis_mcp permission, not admin. Mounted before honeypot /

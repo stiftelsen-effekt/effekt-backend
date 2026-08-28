@@ -10,8 +10,17 @@ export function getMcpResourceUrl(): string {
   return api ? `${api}/mcp` : "https://data.gieffektivt.no/mcp";
 }
 
+/** Public origin we advertise as the MCP authorization server (DCR lives here). */
+export function getMcpIssuer(): string {
+  try {
+    return new URL(getMcpResourceUrl()).origin;
+  } catch {
+    return "https://data.gieffektivt.no";
+  }
+}
+
 /** Auth0 issuer, with trailing slash to match the token `iss` claim. */
-export function getMcpAuthorizationServer(): string {
+export function getAuth0Issuer(): string {
   const iss = String(config.authIssuerBaseURL || "https://gieffektivt.eu.auth0.com/");
   return iss.endsWith("/") ? iss : `${iss}/`;
 }
@@ -30,15 +39,15 @@ export function getResourceMetadataUrl(): string {
 export function getProtectedResourceMetadata() {
   return {
     resource: getMcpResourceUrl(),
-    authorization_servers: [getMcpAuthorizationServer()],
+    authorization_servers: [getMcpIssuer()],
     bearer_methods_supported: ["header"],
     scopes_supported: [authorizationPermissions.analysis_mcp],
   };
 }
 
 /**
- * 401 + WWW-Authenticate so Claude can discover Auth0 instead of treating
- * data.gieffektivt.no as the authorization server.
+ * 401 + WWW-Authenticate so Claude discovers our DCR endpoints, then we
+ * federate the user login to Auth0.
  */
 export function sendMcpAuthChallenge(res: Response, error = "invalid_token") {
   const metadataUrl = getResourceMetadataUrl();

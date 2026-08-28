@@ -43,6 +43,9 @@ module.exports = {
     (process.env.AUTH_AUDIENCE
       ? `${String(process.env.AUTH_AUDIENCE).replace(/\/$/, "")}/mcp`
       : undefined),
+  // Confidential Auth0 app used by the MCP OAuth proxy (DCR + user login).
+  auth0_mcp_client_id: process.env.AUTH0_MCP_CLIENT_ID || "Ay2k4zYnZACqR45oXEvP61aAJokwxLw0",
+  auth0_mcp_client_secret: process.env.AUTH0_MCP_CLIENT_SECRET,
 
   //API keys
   mailersend_api_key: process.env.MAILERSEND_API_KEY,
