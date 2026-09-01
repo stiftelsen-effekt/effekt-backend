@@ -206,6 +206,7 @@ model Distributions {
   Vipps_orders                                  Vipps_orders[]
   Swish_orders                                  Swish_orders[]
   Vipps_matching_rules                          Vipps_matching_rules[]
+  Donation_referral_codes                       Donation_referral_codes[]
 }
 
 model Distribution_cause_areas {
@@ -566,6 +567,22 @@ model Referral_types {
   is_active        Boolean            @default(true)
   ordering         Int?
   Referral_records Referral_records[]
+}
+
+/// Campaign / matching referral codes from the widget (not "how did you hear about us").
+/// Stored separately from Distributions because the same KID is reused for later
+/// donations with the same split — a column on the KID row would bleed onto those.
+model Donation_referral_codes {
+  ID            Int      @id @default(autoincrement())
+  KID           String?  @db.VarChar(32)
+  Referral_code String   @db.VarChar(128)
+  Timestamp     DateTime @default(now()) @db.DateTime(0)
+
+  // Keep the row for campaign history if the distribution is removed.
+  Distributions Distributions? @relation(fields: [KID], references: [KID], onDelete: SetNull, map: "fk_Donation_referral_codes_to_Distributions_idx")
+
+  @@index([KID], map: "KID_idx")
+  @@index([Referral_code], map: "Referral_code_idx")
 }
 
 model Mailersend_survey_responses {

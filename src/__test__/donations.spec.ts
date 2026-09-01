@@ -33,6 +33,7 @@ describe("donations", () => {
       let distributionsAddStub: sinon.SinonStub;
       let addPaymentIntentStub: sinon.SinonStub;
       let referralsGetDonorAnsweredStub: sinon.SinonStub;
+      let addReferralCodeStub: sinon.SinonStub;
 
       function withDonor(
         donor: Partial<Awaited<ReturnType<typeof DAO.donors.getByID>>> | null,
@@ -82,6 +83,7 @@ describe("donations", () => {
         addPaymentIntentStub = sinon.stub(DAO.initialpaymentmethod, "addPaymentIntent");
         referralsGetDonorAnsweredStub = sinon.stub(DAO.referrals, "getDonorAnswered");
         taxGetByDonorIdAndSsnStub = sinon.stub(DAO.tax, "getByDonorIdAndSsn");
+        addReferralCodeStub = sinon.stub(DAO.donationReferralCodes, "add");
 
         withDonor(null);
         withCauseAreaStandardDistribution([]);
@@ -253,6 +255,95 @@ describe("donations", () => {
           .send({
             method: methods.SWISH,
             recurring: true,
+          })
+          .expect(400);
+      });
+
+      it("should store a referral code against the KID", async () => {
+        const KID = "87397824";
+        withCreatedKID(KID);
+
+        const body = {
+          distributionCauseAreas: [
+            {
+              causeAreaID: 1,
+              percentageShare: 100,
+              organizations: [
+                {
+                  id: 1,
+                  percentageShare: 100,
+                },
+              ],
+            },
+          ],
+          donor: {
+            email: "test@example.com",
+            name: "Test Testsson",
+            newsletter: false,
+          },
+          method: methods.BANK,
+          amount: 100,
+          recurring: false,
+          referralCode: "  match-2026  ",
+        };
+
+        await request(server).post("/donations/register").send(body).expect(200);
+
+        expect(addReferralCodeStub.calledOnce).to.be.true;
+        expect(addReferralCodeStub.firstCall.args).to.deep.equal([KID, "match-2026"]);
+      });
+
+      it("should not store a referral code when it is missing", async () => {
+        withCreatedKID("87397824");
+
+        const body = {
+          distributionCauseAreas: [
+            {
+              causeAreaID: 1,
+              percentageShare: 100,
+              organizations: [
+                {
+                  id: 1,
+                  percentageShare: 100,
+                },
+              ],
+            },
+          ],
+          donor: {
+            email: "test@example.com",
+            name: "Test Testsson",
+            newsletter: false,
+          },
+          method: methods.BANK,
+          amount: 100,
+          recurring: false,
+        };
+
+        await request(server).post("/donations/register").send(body).expect(200);
+
+        expect(addReferralCodeStub.called).to.be.false;
+      });
+
+      it("should return 400 if the referral code is too long", async () => {
+        await request(server)
+          .post("/donations/register")
+          .send({
+            distributionCauseAreas: [
+              {
+                causeAreaID: 1,
+                percentageShare: 100,
+                organizations: [{ id: 1, percentageShare: 100 }],
+              },
+            ],
+            donor: {
+              email: "test@example.com",
+              name: "Test Testsson",
+              newsletter: false,
+            },
+            method: methods.BANK,
+            amount: 100,
+            recurring: false,
+            referralCode: "x".repeat(129),
           })
           .expect(400);
       });
