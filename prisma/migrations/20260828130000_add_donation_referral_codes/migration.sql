@@ -10,8 +10,8 @@ CREATE TABLE `Donation_referral_codes` (
     PRIMARY KEY (`ID`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Distributions.KID is not utf8mb4_unicode_ci on all environments (Norway is
--- still utf8 / utf8_general_ci). MySQL 3780 rejects the FK unless the columns match.
+-- Distributions.KID is utf8mb4 / utf8mb4_0900_ai_ci in production. Prisma creates
+-- this table as utf8mb4_unicode_ci, so MySQL 3780 rejects the FK unless we align.
 CREATE PROCEDURE AlignDonationReferralCodesKidWithDistributions()
 BEGIN
     DECLARE kid_charset VARCHAR(64);
