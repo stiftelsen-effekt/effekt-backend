@@ -153,19 +153,62 @@ async function getAll(
     }
   }
 
+  if (filter?.recipientOrgIDs && filter.recipientOrgIDs.length === 0) {
+    return {
+      rows: [],
+      statistics: { totalDonors: 0, totalDonationCount: 0, totalDonationSum: 0 },
+      pages: 0,
+    };
+  }
+
+  const hasOrganizationFilter = Boolean(filter?.recipientOrgIDs?.length);
+  // Shares are stored as 1-100. Pre-aggregate per KID so donor sums and stats
+  // use the amount to the selected orgs instead of the full donation.
+  const selectedOrgSharesCte = hasOrganizationFilter
+    ? `selected_org_shares AS (
+        SELECT
+          Distribution_cause_areas.Distribution_KID,
+          SUM(
+            Distribution_cause_areas.Percentage_share / 100 *
+            Distribution_cause_area_organizations.Percentage_share / 100
+          ) AS selected_share
+        FROM Distribution_cause_areas
+        INNER JOIN Distribution_cause_area_organizations
+          ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID
+        WHERE Distribution_cause_area_organizations.Organization_ID IN (${filter.recipientOrgIDs
+          .map((id) => sqlString.escape(id))
+          .join(",")})
+        GROUP BY Distribution_cause_areas.Distribution_KID
+      ),
+      `
+    : "";
+
+  const donationJoin = hasOrganizationFilter
+    ? `INNER JOIN Donations Dons ON Donors.ID = Dons.Donor_ID ${donationDateFilterSqlForCTE}
+      INNER JOIN selected_org_shares ON Dons.KID_fordeling = selected_org_shares.Distribution_KID`
+    : `LEFT JOIN Donations Dons ON Donors.ID = Dons.Donor_ID ${donationDateFilterSqlForCTE} -- Applied here`;
+
+  const donationsSumExpression = hasOrganizationFilter
+    ? `COALESCE(SUM(ROUND(Dons.sum_confirmed * selected_org_shares.selected_share, 2)), 0)`
+    : `COALESCE(SUM(Dons.sum_confirmed), 0)`;
+
   const donorAggregatesCTE = `
-    DonorAggregates AS (
+    ${selectedOrgSharesCte}DonorAggregates AS (
       SELECT
         Donors.ID as donor_id_agg,
         MAX(Dons.timestamp_confirmed) as last_donation_date,
         COUNT(DISTINCT Dons.ID) as donations_count,
-        COALESCE(SUM(Dons.sum_confirmed), 0) as donations_sum
+        ${donationsSumExpression} as donations_sum
       FROM Donors
-      LEFT JOIN Donations Dons ON Donors.ID = Dons.Donor_ID ${donationDateFilterSqlForCTE} -- Applied here
+      ${donationJoin}
       GROUP BY Donors.ID
     )
   `;
-  joins.push(`LEFT JOIN DonorAggregates Aggregates ON Donors.ID = Aggregates.donor_id_agg`);
+  joins.push(
+    `${
+      hasOrganizationFilter ? "INNER" : "LEFT"
+    } JOIN DonorAggregates Aggregates ON Donors.ID = Aggregates.donor_id_agg`,
+  );
 
   if (filter) {
     if (filter.donorId !== null) {
@@ -264,32 +307,6 @@ async function getAll(
       whereClauses.push(
         `RR.ReferralID IN (${filter.referralTypeIDs.map((id) => sqlString.escape(id)).join(",")})`,
       );
-    }
-
-    // Donation recipient (a list of integers, having any donation with a distribution to any of the orgs is fine for inclusion)
-    if (filter.recipientOrgIDs) {
-      if (filter.recipientOrgIDs.length === 0) {
-        // No donor can match an empty set of org IDs if the filter is meant to be inclusive
-        return {
-          rows: [],
-          statistics: { totalDonors: 0, totalDonationCount: 0, totalDonationSum: 0 },
-          pages: 0,
-        };
-      }
-      const recipientSubquery = `
-        EXISTS (
-          SELECT 1
-          FROM Donations D_rec
-          JOIN Distributions DIST_rec ON D_rec.KID_fordeling = DIST_rec.KID
-          JOIN Distribution_cause_areas DCA_rec ON DIST_rec.KID = DCA_rec.Distribution_KID
-          JOIN Distribution_cause_area_organizations DCAO_rec ON DCA_rec.ID = DCAO_rec.Distribution_cause_area_ID
-          WHERE D_rec.Donor_ID = Donors.ID AND DCAO_rec.Organization_ID IN (${filter.recipientOrgIDs
-            .map((id) => sqlString.escape(id))
-            .join(",")})
-          ${donationDateFilterSqlForSubqueries} -- Applied here
-        )
-      `;
-      whereClauses.push(recipientSubquery);
     }
 
     if (filter.fundraiserGiving) {
