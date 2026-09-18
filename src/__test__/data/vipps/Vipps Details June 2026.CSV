@@ -1,0 +1,7 @@
+Salgssted,MSN/Vippsnummer,Land,Betalingsløsning,Tidspunkt,Bokføringsdato,Type,Beløp,Balanse,Gebyr,Nettobeløp,Valuta,Kundens navn,Kundens telefonnummer,Melding,Kategori,PSP-referanse,Ordre-ID/Referanse,Utbetalingsnummer,Bankkonto for utbetaling,Planlagt utbetalingsdato
+Gi Effektivt.,576742,Norge,Valgfritt beløp,2026-06-17 09:26:11,2026-06-17,Belastning,15.00,1689.50,-0.23,14.77,NOK,Ada Lovelace,+47 xxxx 1111,,,36173222624,13708698584,,,
+Gi Effektivt.,576742,Norge,Valgfritt beløp,2026-06-17 09:31:20,2026-06-17,Belastning,50.00,1739.50,-0.75,49.25,NOK,Grace Hopper,+47 xxxx 2222,KID: 62354782,,36368222667,13708744805,,,
+Gi Effektivt.,576742,Norge,Valgfritt beløp,2026-06-17 10:14:28,2026-06-17,Belastning,30.00,2226.50,-0.45,29.55,NOK,Alan Turing,+47 xxxx 3333,Elvebakken innsamling,,36296222806,13708974323,,,
+Gi Effektivt.,576742,Norge,Valgfritt beløp,2026-06-17 11:23:13,2026-06-17,Belastning,200.00,2541.50,-3.00,197.00,NOK,Katherine Johnson,+47 xxxx 4444,,,36171223121,13709391352,,,
+Gi Effektivt.,576742,Norge,,2026-06-18 00:25:59,2026-06-17,Gebyrer fratrukket,-33.97,3902.53,,,NOK,,,,,488759-20260617,,,,
+Gi Effektivt.,576742,Norge,Valgfritt beløp,2026-06-17 12:12:58,2026-06-17,Refusjon,-30.00,3461.50,0.45,-29.55,NOK,Alan Turing,+47 xxxx 3333,,,36669223350,13709752432,,,

@@ -101,6 +101,23 @@ describe("Vipps route handles report correctly", () => {
     expect(addStub.callCount).to.be.equal(13);
   });
 
+  it("Adds donations from the new Vipps details settlement CSV", async () => {
+    parsingRulesStub.resolves([
+      {
+        salesLocation: "Gi Effektivt.",
+        message: null,
+        resolveKID: 12345678,
+      },
+    ]);
+
+    await runVipps("Vipps Details June 2026");
+
+    expect(addStub.callCount).to.be.equal(4);
+    expect(addStub.firstCall.args[0]).to.equal(12345678);
+    expect(addStub.secondCall.args[0]).to.equal(62354782);
+    expect(addStub.thirdCall.args[2]).to.equal(30);
+  });
+
   after(() => {
     sinon.restore();
   });
