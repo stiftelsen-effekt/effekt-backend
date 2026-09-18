@@ -10,6 +10,7 @@ import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { TaxDeductionDonation, getYearlyMapping } from "../custom_modules/taxdeductions";
 import { connectDonationsForFirstTaxUnit } from "../custom_modules/tax";
 import { exportCsv } from "../custom_modules/csvexport";
+import * as auth0 from "../custom_modules/auth0";
 
 const router = express.Router();
 
@@ -1420,6 +1421,14 @@ router.post("/:originId/merge/:destinationId", authMiddleware.isAdmin, async (re
         status: 404,
         content: "Donor not found",
       });
+    }
+
+    // Origin is deleted by merge_donors, so capture its email first. Auth0
+    // failures must not block the merge.
+    try {
+      await auth0.repointAuth0DonorIdOnMerge(originId, destinationId, donorOrigin.email);
+    } catch (error) {
+      console.error("Failed to re-point Auth0 donor ID on merge:", error);
     }
 
     await DAO.donors.mergeDonors(originId, destinationId);
