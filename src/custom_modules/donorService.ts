@@ -1,6 +1,7 @@
 import { fnr } from "@navikt/fnrvalidator";
 import { RequestLocale } from "../middleware/locale";
 import { TaxUnit } from "../schemas/types";
+import * as auth0 from "./auth0";
 import { DAO } from "./DAO";
 import { isValidPersonnummer } from "./ku65/ku65_lib";
 import { connectDonationsForFirstTaxUnit } from "./tax";
@@ -44,7 +45,9 @@ export async function createDonor(email: string, name: string): Promise<number> 
 
 /**
  * Merges the origin donor into the destination donor. merge_donors moves the origin
- * donor's rows over and then deletes the origin donor.
+ * donor's rows over and then deletes the origin donor. Before that, Auth0 users whose
+ * user_metadata points at the origin donor are re-pointed to the destination, so a
+ * Min side login keeps working after the merge.
  */
 export async function mergeDonors(originId: number, destinationId: number): Promise<void> {
   /**
@@ -60,6 +63,14 @@ export async function mergeDonors(originId: number, destinationId: number): Prom
 
   if (!donorOrigin || !donorDestination) {
     throw new DonorServiceError("NOT_FOUND", "Donor not found");
+  }
+
+  // The origin donor is deleted by merge_donors, so its email is read first.
+  // Auth0 failures are logged and must not block the merge.
+  try {
+    await auth0.repointAuth0DonorIdOnMerge(originId, destinationId, donorOrigin.email);
+  } catch (error) {
+    console.error("Failed to re-point Auth0 donor ID on merge:", error);
   }
 
   await DAO.donors.mergeDonors(originId, destinationId);
