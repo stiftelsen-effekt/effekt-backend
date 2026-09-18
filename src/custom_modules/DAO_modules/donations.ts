@@ -90,19 +90,23 @@ async function getAll(
     let where = [];
     if (filter) {
       if (filter.sum) {
-        if (filter.sum.from) where.push(`sum_confirmed >= ${sqlString.escape(filter.sum.from)} `);
-        if (filter.sum.to) where.push(`sum_confirmed <= ${sqlString.escape(filter.sum.to)} `);
+        if (filter.sum.from)
+          where.push(`Donations.sum_confirmed >= ${sqlString.escape(filter.sum.from)} `);
+        if (filter.sum.to)
+          where.push(`Donations.sum_confirmed <= ${sqlString.escape(filter.sum.to)} `);
       }
 
       if (filter.date) {
         if (filter.date.from)
-          where.push(`timestamp_confirmed >= ${sqlString.escape(filter.date.from)} `);
+          where.push(`Donations.timestamp_confirmed >= ${sqlString.escape(filter.date.from)} `);
         if (filter.date.to)
-          where.push(`timestamp_confirmed <= ${sqlString.escape(filter.date.to)} `);
+          where.push(`Donations.timestamp_confirmed <= ${sqlString.escape(filter.date.to)} `);
       }
 
       if (filter.KID)
-        where.push(` CAST(KID_fordeling as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
+        where.push(
+          ` CAST(Donations.KID_fordeling as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `,
+        );
       if (filter.paymentMethodIDs) {
         if (filter.paymentMethodIDs.length == 0) {
           return {
@@ -116,7 +120,7 @@ async function getAll(
           };
         }
         where.push(
-          ` Payment_ID IN (${filter.paymentMethodIDs
+          ` Donations.Payment_ID IN (${filter.paymentMethodIDs
             .map((ID) => sqlString.escape(ID))
             .join(",")}) `,
         );
@@ -167,34 +171,50 @@ async function getAll(
         );
       }
 
-      if (filter.organizationIDs) {
-        if (filter.organizationIDs.length == 0) {
-          return {
-            rows: [],
-            statistics: {
-              numDonations: 0,
-              sumDonations: 0,
-              avgDonation: 0,
-            },
-            pages: 0,
-          };
-        }
-        where.push(
-          ` Distribution_cause_area_organizations.Organization_ID IN (${filter.organizationIDs
-            .map(sqlString.escape)
-            .join(",")}) `,
-        );
+      if (filter.organizationIDs && filter.organizationIDs.length == 0) {
+        return {
+          rows: [],
+          statistics: {
+            numDonations: 0,
+            sumDonations: 0,
+            avgDonation: 0,
+          },
+          pages: 0,
+        };
       }
     }
 
-    // Only apply this join when filtering by organizationIDs.
-    const organizationJoin = filter?.organizationIDs
-      ? `
-        LEFT JOIN Distribution_cause_areas
-          ON Distributions.KID = Distribution_cause_areas.Distribution_KID
-        LEFT JOIN Distribution_cause_area_organizations
-          ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID`
+    const hasOrganizationFilter = Boolean(filter?.organizationIDs?.length);
+    // Shares are stored as 1-100. Pre-aggregate per KID so donations are not exploded
+    // by org rows and both the table and stats use the amount to the selected orgs.
+    const selectedOrgSharesCte = hasOrganizationFilter
+      ? `selected_org_shares AS (
+          SELECT
+            Distribution_cause_areas.Distribution_KID,
+            SUM(
+              Distribution_cause_areas.Percentage_share / 100 *
+              Distribution_cause_area_organizations.Percentage_share / 100
+            ) AS selected_share
+          FROM Distribution_cause_areas
+          INNER JOIN Distribution_cause_area_organizations
+            ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID
+          WHERE Distribution_cause_area_organizations.Organization_ID IN (${filter.organizationIDs
+            .map(sqlString.escape)
+            .join(",")})
+          GROUP BY Distribution_cause_areas.Distribution_KID
+        ),
+        `
       : "";
+
+    const organizationJoin = hasOrganizationFilter
+      ? `
+        INNER JOIN selected_org_shares
+          ON Distributions.KID = selected_org_shares.Distribution_KID`
+      : "";
+
+    const sumExpression = hasOrganizationFilter
+      ? `ROUND(Donations.sum_confirmed * selected_org_shares.selected_share, 2)`
+      : `Donations.sum_confirmed`;
 
     const fundraiserJoin = filter.fundraiserId
       ? `
@@ -203,12 +223,12 @@ async function getAll(
       : "";
 
     const query = `
-        WITH filtered_donations AS (
-          SELECT DISTINCT
+        WITH ${selectedOrgSharesCte}filtered_donations AS (
+          SELECT
             Donations.ID,
             Donors.full_name,
             Payment.abbriv as payment_name,
-            Donations.sum_confirmed,
+            ${sumExpression} as sum_confirmed,
             Donations.transaction_cost,
             Donations.KID_fordeling,
             Donations.timestamp_confirmed,
