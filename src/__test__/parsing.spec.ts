@@ -65,6 +65,29 @@ describe("Vipps CSV", () => {
     const data = vippsParseReport(sample);
     expect(data.transactions).to.be.length(15);
   });
+
+  it("Parses the new Vipps details settlement CSV", () => {
+    const sample = readCSV(reportType.vipps, "Vipps Details June 2026");
+
+    const data = vippsParseReport(sample);
+    expect(data.transactions).to.be.length(4);
+    expect(data.minDate.getTime()).to.equal(moment.utc("2026-06-17").valueOf());
+    expect(data.maxDate.getTime()).to.equal(moment.utc("2026-06-17").valueOf());
+
+    expect(data.transactions[0]).to.include({
+      location: "Gi Effektivt.",
+      transactionID: "36173222624",
+      amount: 15,
+      name: "Ada Lovelace",
+      message: "",
+    });
+    expect(data.transactions[0].date.isSame(moment.utc("2026-06-17"))).to.equal(true);
+    expect(data.transactions[0].KID).to.equal(null);
+
+    expect(data.transactions[1].KID).to.equal(62354782);
+    expect(data.transactions[2].message).to.equal("Elvebakken innsamling");
+    expect(data.transactions.some((transaction) => transaction.amount < 0)).to.equal(false);
+  });
 });
 
 describe("Bank CSV", () => {
