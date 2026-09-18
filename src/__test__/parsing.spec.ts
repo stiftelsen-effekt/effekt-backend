@@ -71,8 +71,8 @@ describe("Vipps CSV", () => {
 
     const data = vippsParseReport(sample);
     expect(data.transactions).to.be.length(4);
-    expect(data.minDate).to.equalTime(moment.utc("2026-06-17").toDate());
-    expect(data.maxDate).to.equalTime(moment.utc("2026-06-17").toDate());
+    expect(data.minDate.getTime()).to.equal(moment.utc("2026-06-17").valueOf());
+    expect(data.maxDate.getTime()).to.equal(moment.utc("2026-06-17").valueOf());
 
     expect(data.transactions[0]).to.include({
       location: "Gi Effektivt.",
