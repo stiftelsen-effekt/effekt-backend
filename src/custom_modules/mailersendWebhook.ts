@@ -1,18 +1,19 @@
 /**
- * Parses the survey answers out of a MailerSend webhook version 2 payload.
+ * Parses the survey answers out of a MailerSend activity.survey_submitted
+ * webhook payload.
  *
- * Version 1 is legacy and stops working on 2026-12-01. It disagreed with
- * version 2 about all three fields this handler reads:
+ * Version 1 is legacy and stops working on 2026-12-01. It differs from
+ * version 2 only in where the two containers sit - the answer objects
+ * themselves are identical in both:
  *
- *   recipient   v1: data.email.recipient.email (nested)   v2: data.email (string)
- *   surveys     v1: data.surveys                          v2: data.meta.surveys
- *   answers     v1: survey.answers[] of {answer, answer_id}
- *               v2: survey.answer, a single string, with no answer id
+ *   recipient   v1: data.email.recipient.email   v2: data.recipient (string)
+ *   surveys     v1: data.surveys                 v2: data.meta.surveys
+ *   answers     both: survey.answers[] of {answer, answer_id}
  *
- * Nothing overlaps, so the version 1 reader this replaces would have silently
- * dropped every version 2 delivery - it found no `surveys` key and returned
- * success. The webhook is still on version 1 and must be switched to 2 after
- * this deploys; survey answers delivered in between are lost.
+ * Both are read here. The webhook is configured for version 2, but a reader
+ * that only understands the configured version turns any future format switch
+ * into silent data loss, which is exactly how the previous two outages
+ * happened.
  */
 
 export type SurveyAnswerRow = {
@@ -25,19 +26,23 @@ export type SurveyAnswerRow = {
 const asString = (value: unknown): string =>
   value === undefined || value === null ? "" : String(value);
 
-/**
- * Version 2 does not send an answer id, and the column is NOT NULL. Written as
- * a sentinel rather than an empty string so a row that never had one is
- * distinguishable from one that arrived blank. Nothing consumes this column.
- */
-const NO_ANSWER_ID = "-1";
-
 export function parseSurveySubmission(data: any): {
   recipientEmail: string | null;
   answers: SurveyAnswerRow[];
 } {
-  const recipientEmail = typeof data?.email === "string" ? data.email : null;
-  const surveys = Array.isArray(data?.meta?.surveys) ? data.meta.surveys : [];
+  // v2 sends a plain string; v1 nests it under the email object.
+  const recipient =
+    typeof data?.recipient === "string"
+      ? data.recipient
+      : typeof data?.email?.recipient?.email === "string"
+      ? data.email.recipient.email
+      : null;
+
+  const surveys = Array.isArray(data?.meta?.surveys)
+    ? data.meta.surveys
+    : Array.isArray(data?.surveys)
+    ? data.surveys
+    : [];
 
   const answers: SurveyAnswerRow[] = [];
 
@@ -45,21 +50,22 @@ export function parseSurveySubmission(data: any): {
     const surveyID = Number(survey?.survey_id);
     const questionID = Number(survey?.question_id);
 
-    // Ids arrive as integers in version 2, but guard anyway - NaN would be
-    // written straight into the database
+    // v2 sends these as integers and v1 as strings, so both go through Number.
+    // Guard anyway - NaN would be written straight into the database.
     if (!Number.isFinite(surveyID) || !Number.isFinite(questionID)) continue;
-    if (survey?.answer === undefined) continue;
+    if (!Array.isArray(survey?.answers)) continue;
 
-    answers.push({
-      surveyID,
-      questionID,
-      answer: asString(survey.answer),
-      answerID:
-        survey.answer_id === undefined || survey.answer_id === null
-          ? NO_ANSWER_ID
-          : String(survey.answer_id),
-    });
+    for (const answer of survey.answers) {
+      if (answer?.answer === undefined || answer?.answer === null) continue;
+
+      answers.push({
+        surveyID,
+        questionID,
+        answer: asString(answer.answer),
+        answerID: asString(answer.answer_id),
+      });
+    }
   }
 
-  return { recipientEmail, answers };
+  return { recipientEmail: recipient, answers };
 }
