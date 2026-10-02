@@ -15,6 +15,11 @@ import { exportCsv } from "../custom_modules/csvexport";
 
 const router = express.Router();
 
+/**
+ * All AutoGiro agreements are claimed on the 27th of the month
+ */
+const AUTOGIRO_PAYMENT_DATE = 27;
+
 router.get("/shipments", isAdmin, async (req, res, next) => {
   try {
     const shipments = await DAO.autogiroagreements.getAllShipments();
@@ -223,10 +228,10 @@ router.put(
 
       // Validate and update payment date
       if (paymentDate !== null && paymentDate !== undefined) {
-        if (!Number.isInteger(paymentDate) || paymentDate < 0 || paymentDate > 28) {
+        if (paymentDate !== AUTOGIRO_PAYMENT_DATE) {
           return res.status(400).json({
             status: 400,
-            content: "Invalid payment date: must be an integer between 0 and 28",
+            content: `Invalid payment date: must be ${AUTOGIRO_PAYMENT_DATE}`,
           });
         }
         await DAO.autogiroagreements.setAgreementPaymentDateByKID(KID, paymentDate);
@@ -263,10 +268,10 @@ router.post("/:KID/paymentdate", authMiddleware.isAdmin, async (req, res, next) 
         content: "Invalid payment date",
       });
     }
-    if (paymentDate < 0 || paymentDate > 28) {
+    if (paymentDate !== AUTOGIRO_PAYMENT_DATE) {
       return res.status(400).json({
         status: 400,
-        content: "Invalid payment date (must be between 0 and 28)",
+        content: `Invalid payment date (must be ${AUTOGIRO_PAYMENT_DATE})`,
       });
     }
 
@@ -371,10 +376,10 @@ router.put("/:KID/drafted/paymentdate", async (req, res, next) => {
         content: "Invalid payment date",
       });
     }
-    if (paymentDate < 0 || paymentDate > 28) {
+    if (paymentDate !== AUTOGIRO_PAYMENT_DATE) {
       return res.status(400).json({
         status: 400,
-        content: "Invalid payment date (must be between 0 and 28)",
+        content: `Invalid payment date (must be ${AUTOGIRO_PAYMENT_DATE})`,
       });
     }
 
