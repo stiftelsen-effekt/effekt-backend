@@ -6,6 +6,7 @@ import sinon from "sinon";
 import request from "supertest";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
+import * as auth0 from "../custom_modules/auth0";
 
 let donorUpdateStub: sinon.SinonStub;
 let agreementStub: sinon.SinonStub;
@@ -111,6 +112,7 @@ describe("donors", () => {
 
       // This must be stubbed before importing the routes
       sinon.stub(authMiddleware, "auth").returns([]);
+      sinon.replace(authMiddleware, "isAdmin", [] as any);
 
       const donorsRouter = require("../routes/donors");
       server.use("/donors", donorsRouter);
@@ -333,6 +335,75 @@ describe("donors", () => {
         } catch (ex) {
           expect(ex).to.not.be.undefined;
         }
+      });
+    });
+
+    describe("POST /donors/:originId/merge/:destinationId", function () {
+      const origin = {
+        id: 100,
+        name: "Origin Donor",
+        email: "origin@overlookhotel.com",
+        newsletter: false,
+        trash: false,
+        registered: "1921-07-04T23:00:00.000Z",
+      };
+      const destination = {
+        id: 200,
+        name: "Destination Donor",
+        email: "destination@overlookhotel.com",
+        newsletter: false,
+        trash: false,
+        registered: "1921-07-04T23:00:00.000Z",
+      };
+
+      let getByIDStub: sinon.SinonStub;
+      let mergeStub: sinon.SinonStub;
+      let repointStub: sinon.SinonStub;
+
+      beforeEach(function () {
+        getByIDStub = sinon.stub(DAO.donors, "getByID");
+        getByIDStub.withArgs(100).resolves(origin);
+        getByIDStub.withArgs(200).resolves(destination);
+        mergeStub = sinon.stub(DAO.donors, "mergeDonors").resolves();
+        repointStub = sinon.stub(auth0, "repointAuth0DonorIdOnMerge").resolves({
+          updated: [],
+          skipped: [],
+        });
+      });
+
+      it("re-points Auth0 before merging the donors", async function () {
+        const response = await request(server).post("/donors/100/merge/200").expect(200);
+
+        expect(response.body.content).to.equal(true);
+        expect(repointStub.calledOnceWithExactly(100, 200, origin.email)).to.equal(true);
+        expect(mergeStub.calledOnceWithExactly(100, 200)).to.equal(true);
+        expect(repointStub.calledBefore(mergeStub)).to.equal(true);
+      });
+
+      it("still merges when Auth0 re-pointing fails", async function () {
+        sinon.stub(console, "error");
+        repointStub.rejects(new Error("Auth0 unavailable"));
+
+        const response = await request(server).post("/donors/100/merge/200").expect(200);
+
+        expect(response.body.content).to.equal(true);
+        expect(mergeStub.calledOnce).to.equal(true);
+      });
+
+      it("returns 400 when merging a donor into itself", async function () {
+        const response = await request(server).post("/donors/100/merge/100").expect(400);
+
+        expect(mergeStub.called).to.equal(false);
+        expect(repointStub.called).to.equal(false);
+      });
+
+      it("returns 404 when a donor is missing", async function () {
+        getByIDStub.withArgs(200).resolves(null);
+
+        await request(server).post("/donors/100/merge/200").expect(404);
+
+        expect(mergeStub.called).to.equal(false);
+        expect(repointStub.called).to.equal(false);
       });
     });
   });
