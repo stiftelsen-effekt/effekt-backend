@@ -1,5 +1,8 @@
+import { DateTime } from "luxon";
 import { DAO } from "./DAO";
 import { sendDonationReceipt } from "./mail";
+import paymentMethods from "../enums/paymentMethods";
+import { findChargeForPayment } from "./avtalegiro/charges";
 const config = require("../config");
 
 module.exports = {
@@ -71,6 +74,11 @@ module.exports = {
         transaction.transactionID,
         metaOwnerID,
       );
+
+      if (transaction.paymentMethod === paymentMethods.avtalegiro) {
+        await this.linkAvtaleGiroCharge(transaction, donationID);
+      }
+
       return donationID;
     } catch (ex) {
       //Only return a failed if it failed because the donation exists
@@ -83,6 +91,33 @@ module.exports = {
         console.log(`Attempted to add existing donation with KID ${transaction.KID}`);
         return -1;
       }
+    }
+  },
+
+  /**
+   * Links an AvtaleGiro payment to the charge it pays. Failing to link must not fail the import,
+   * since the donation is already stored.
+   * @param {import('./parsers/OCR.js').OCRTransaction} transaction
+   * @param {number} donationID
+   * @returns {Promise<number | null>} The linked charge ID, or null if none matched
+   */
+  async linkAvtaleGiroCharge(transaction, donationID) {
+    try {
+      const openCharges = await DAO.avtalegirocharges.getOpenChargesByKID(transaction.KID);
+      // OCR dates are UTC midnight on the settlement day
+      const paymentDate = DateTime.fromJSDate(transaction.date, { zone: "utc" });
+      const charge = findChargeForPayment(openCharges, paymentDate);
+
+      if (charge === null) {
+        console.log(`No AvtaleGiro charge to link for KID ${transaction.KID}`);
+        return null;
+      }
+
+      await DAO.avtalegirocharges.markCompleted(charge.id, donationID);
+      return charge.id;
+    } catch (ex) {
+      console.error(`Failed to link AvtaleGiro charge for donation ${donationID}`, ex);
+      return null;
     }
   },
 

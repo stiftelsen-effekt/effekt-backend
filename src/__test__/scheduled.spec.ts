@@ -52,9 +52,14 @@ describe("POST /scheduled/avtalegiro", function () {
   let loggingStub;
   let sendFileStub;
   let authStub;
+  let claimedKIDsStub;
+  let addChargesStub;
 
   before(function () {
     authStub = sinon.replace(authMiddleware, "isAdmin", []);
+
+    claimedKIDsStub = sinon.stub(DAO.avtalegirocharges, "getClaimedKIDsForMonth");
+    addChargesStub = sinon.stub(DAO.avtalegirocharges, "addCharges").resolves();
 
     avtalegiroFileStub = sinon
       .stub(avtalegiro, "generateAvtaleGiroFile")
@@ -80,6 +85,7 @@ describe("POST /scheduled/avtalegiro", function () {
 
   beforeEach(function () {
     sinon.resetHistory();
+    claimedKIDsStub.resolves(new Set());
   });
 
   it("Does nothing with no agreements", async function () {
@@ -151,6 +157,16 @@ describe("POST /scheduled/avtalegiro", function () {
   });
 
   it("Includes the 28th when the 28th is last day of month", async function () {
+    // Agreements on day 0 (last day of month) are different agreements from those on the 28th
+    const lastDayAgreements = mockAgreements.map((agreement, i) => ({
+      ...agreement,
+      id: 10 + i,
+      KID: `99${agreement.KID.substring(2)}`,
+      paymentDate: 0,
+    }));
+    agreementsStub.withArgs(0).resolves(lastDayAgreements);
+    agreementsStub.withArgs(28).resolves(mockAgreements);
+
     const respnse = await request(server)
       .post("/scheduled/avtalegiro/?date=2022-02-22&notify=true")
       .set("Authorization", "Bearer abc")
@@ -160,6 +176,103 @@ describe("POST /scheduled/avtalegiro", function () {
     sinon.assert.calledWithExactly(agreementsStub, 28);
     // Should have 2x mock agreements, one x for the last of the month, one x for the 28th
     sinon.assert.calledWithExactly(shipmentStub, mockAgreements.length * 2);
+  });
+
+  describe("charge tracking", function () {
+    beforeEach(function () {
+      agreementsStub.resolves(mockAgreements);
+    });
+
+    it("Records a charge for every claimed agreement", async function () {
+      await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
+
+      expect(addChargesStub.calledOnce).to.be.true;
+      const [shipmentID, agreements, dueDate] = addChargesStub.firstCall.args;
+      expect(shipmentID).to.equal(42);
+      expect(agreements.map((a) => a.KID)).to.deep.equal(mockAgreements.map((a) => a.KID));
+      expect(dueDate.toISODate()).to.equal("2021-10-08");
+    });
+
+    it("Looks up claims for the due date's month", async function () {
+      await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
+
+      expect(claimedKIDsStub.calledOnce).to.be.true;
+      expect(claimedKIDsStub.firstCall.args[0].toISODate()).to.equal("2021-10-08");
+    });
+
+    it("Records the charges before sending the file", async function () {
+      await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
+
+      expect(addChargesStub.calledBefore(avtalegiroFileStub)).to.be.true;
+      expect(addChargesStub.calledBefore(sendFileStub)).to.be.true;
+    });
+
+    it("Does not send the file if recording the charges fails", async function () {
+      addChargesStub.rejects(new Error("Database is down"));
+
+      await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(500);
+
+      expect(sendFileStub.called).to.be.false;
+      addChargesStub.resolves();
+    });
+
+    it("Skips agreements already claimed this month", async function () {
+      claimedKIDsStub.resolves(new Set([mockAgreements[1].KID]));
+
+      await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
+
+      const expectedKIDs = [mockAgreements[0].KID, mockAgreements[2].KID];
+      sinon.assert.calledWithExactly(shipmentStub, 2);
+      expect(addChargesStub.firstCall.args[1].map((a) => a.KID)).to.deep.equal(expectedKIDs);
+      expect(avtalegiroFileStub.firstCall.args[1].map((a) => a.KID)).to.deep.equal(expectedKIDs);
+      expect(sendFileStub.calledOnce).to.be.true;
+    });
+
+    it("Logs which agreements were skipped", async function () {
+      claimedKIDsStub.resolves(new Set([mockAgreements[1].KID]));
+
+      await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
+
+      const [, result] = loggingStub.firstCall.args;
+      expect(result.alreadyClaimedKIDs).to.deep.equal([mockAgreements[1].KID]);
+    });
+
+    it("Sends nothing when every agreement is already claimed", async function () {
+      claimedKIDsStub.resolves(new Set(mockAgreements.map((a) => a.KID)));
+
+      await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
+
+      expect(shipmentStub.called).to.be.false;
+      expect(addChargesStub.called).to.be.false;
+      expect(sendFileStub.called).to.be.false;
+      expect(loggingStub.calledOnce).to.be.true;
+    });
+
+    it("Only notifies agreements that are claimed", async function () {
+      // The first agreement asked for notice, but was already claimed this month
+      claimedKIDsStub.resolves(new Set([mockAgreements[0].KID]));
+
+      let tempEnv = config.env;
+      config.env = "production";
+
+      await request(server).post("/scheduled/avtalegiro/?date=2021-10-04&notify=true").expect(200);
+
+      config.env = tempEnv;
+
+      expect(sendNotificationStub.callCount).to.equal(1);
+      expect(sendNotificationStub.firstCall.args[0].KID).to.equal(mockAgreements[2].KID);
+    });
+
+    it("Does not claim agreements without an amount", async function () {
+      agreementsStub.resolves([
+        ...mockAgreements,
+        { ...mockAgreements[0], id: 4, KID: "4", amount: 0 },
+      ]);
+
+      await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
+
+      expect(addChargesStub.firstCall.args[1]).to.have.length(mockAgreements.length);
+    });
   });
 
   after(function () {
