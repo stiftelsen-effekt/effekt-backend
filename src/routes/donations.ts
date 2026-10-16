@@ -196,7 +196,13 @@ router.post("/register", async (req, res, next) => {
     /** Use new KID for avtalegiro */
     if (donationObject.method == methods.AVTALEGIRO) {
       if (fundraiser) {
-        return res.status(400).send("Fundraisers are not supported with AvtaleGiro");
+        // Every charge on the agreement uses this KID, so they all count towards the fundraiser
+        donationObject.fundraiserTransactionId = await DAO.fundraisers.addFundraiserTransaction({
+          fundraiserId: fundraiser.id,
+          message: fundraiser.message,
+          messageSenderName: fundraiser.messageSenderName,
+          showName: fundraiser.showName,
+        });
       }
 
       //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
@@ -204,6 +210,7 @@ router.post("/register", async (req, res, next) => {
       await DAO.distributions.add({
         ...draftDistribution,
         kid: donationObject.KID,
+        fundraiserTransactionId: donationObject.fundraiserTransactionId ?? null,
       });
     } else if (donationObject.method == methods.AUTOGIRO) {
       if (fundraiser) {

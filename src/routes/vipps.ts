@@ -747,14 +747,24 @@ router.get("/agreementredirect/:urlcode", async (req, res, next) => {
 
       if (agreement) {
         if (agreement.status === "ACTIVE") {
-          res.redirect(
-            `https://gieffektivt.no/opprettet?plausible=${encodePlausibleData({
-              revenue: Math.round(agreement.amount).toString(),
-              method: "vipps",
-              recurring: true,
-              kid: agreement.KID,
-            })}`,
+          const plausible = encodePlausibleData({
+            revenue: Math.round(agreement.amount).toString(),
+            method: "vipps",
+            recurring: true,
+            kid: agreement.KID,
+          });
+          const fundraiserTransaction = await DAO.fundraisers.getFundraiserTransactionByKID(
+            agreement.KID,
           );
+
+          if (fundraiserTransaction) {
+            res.redirect(
+              `https://gieffektivt.no/api/fundraiser/redirect?fundraiserId=${fundraiserTransaction.fundraiserId}&secret=${config.revalidate_token}&plausible=${plausible}`,
+            );
+            return true;
+          }
+
+          res.redirect(`https://gieffektivt.no/opprettet?plausible=${plausible}`);
           return true;
         }
         if (agreement.status === "STOPPED" || agreement.status === "EXPIRED") {
