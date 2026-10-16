@@ -12,6 +12,8 @@ import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { encodePlausibleData } from "../custom_modules/plausible";
 import { exportCsv } from "../custom_modules/csvexport";
 
+const config = require("../config");
+
 const router = express.Router();
 
 /**
@@ -258,14 +260,23 @@ router.get("/:KID/redirect", async (req, res, next) => {
       const agreement = await DAO.avtalegiroagreements.getByKID(req.params.KID);
       await sendAvtalegiroRegistered(agreement);
 
-      res.redirect(
-        `https://gieffektivt.no/opprettet?plausible=${encodePlausibleData({
-          revenue: Math.round(agreement.amount / 100).toString(),
-          method: "avtalegiro",
-          recurring: true,
-          kid: req.params.KID,
-        })}`,
+      const plausible = encodePlausibleData({
+        revenue: Math.round(agreement.amount / 100).toString(),
+        method: "avtalegiro",
+        recurring: true,
+        kid: req.params.KID,
+      });
+      const fundraiserTransaction = await DAO.fundraisers.getFundraiserTransactionByKID(
+        req.params.KID,
       );
+
+      if (fundraiserTransaction) {
+        return res.redirect(
+          `https://gieffektivt.no/api/fundraiser/redirect?fundraiserId=${fundraiserTransaction.fundraiserId}&secret=${config.revalidate_token}&plausible=${plausible}`,
+        );
+      }
+
+      res.redirect(`https://gieffektivt.no/opprettet?plausible=${plausible}`);
     } else res.redirect("https://gieffektivt.no/avtale-feilet");
   } catch (ex) {
     next({ ex });
