@@ -71,7 +71,8 @@ module.exports = {
       donor.name ? donor.name.toUpperCase().substr(0, 10).replace(/\s+/g, "") : ""
     ).padStart(10, " ");
 
-    var secondLine = `NY210231${transactionNumber.toString().padStart(7, "0")}${shortname}`;
+    // Same transaction type as the first line: 02 for claims, 93 for deletion requests
+    var secondLine = `NY21${type}31${transactionNumber.toString().padStart(7, "0")}${shortname}`;
 
     secondLine = secondLine.padEnd(75, " ");
     secondLine = secondLine.padEnd(80, "0");
@@ -117,11 +118,21 @@ module.exports = {
     return line;
   },
 
-  startRecordDeletionRequest: function () {
+  /**
+   * Start of an assignment with deletion requests (oppdragstype 36)
+   * @param {number} number Assignment number within the shipment
+   * @param {number} shipmentID
+   * @returns {string}
+   */
+  startRecordDeletionRequest: function (number, shipmentID) {
     var line = `NY213620`;
     line = line.padEnd(17, "0");
-    // Oppdragsnr.
-    line += "2".padStart(7, "0");
+
+    if (number > 9999) throw new Error("Cannot handle more than 9999 assignments per file");
+
+    // Oppdragsnr., numbered like payment assignments so it is unique across shipments
+    const assignmentStart = shipmentID % 366;
+    line += `${assignmentStart.toString().padStart(3, "0")}${number.toString().padStart(4, "0")}`;
     // Accountnr.
     line += "15062995960";
     line = line.padEnd(80, "0");
@@ -130,25 +141,33 @@ module.exports = {
     return line;
   },
 
-  endRecordDeletionRequest: function (dueDate) {
+  /**
+   * End of an assignment with deletion requests
+   * @param {Array<{ amount: number }>} deletions Deletion requests in the assignment
+   * @param {DateTime} minDate Earliest due date in the assignment
+   * @param {DateTime} maxDate Latest due date in the assignment
+   * @returns {string}
+   */
+  endRecordDeletionRequest: function (deletions, minDate, maxDate) {
     var line = `NY213688`;
 
     //Number of transactions
-    line += "0".padStart(8, "0");
+    line += deletions.length.toString().padStart(8, "0");
 
     //Number of records, including start and end record
-    line += "2".padStart(8, "0");
+    line += (deletions.length * 2 + 2).toString().padStart(8, "0");
 
     //Sum of deletion requests amount
-    line += "0".padStart(17, "0");
-
-    const minMaxDate = dueDate.toFormat("ddLLyy");
+    line += deletions
+      .reduce((acc, deletion) => (acc += deletion.amount), 0)
+      .toString()
+      .padStart(17, "0");
 
     //Min day
-    line += minMaxDate;
+    line += minDate.toFormat("ddLLyy");
 
     //Max day
-    line += minMaxDate;
+    line += maxDate.toFormat("ddLLyy");
 
     line = line.padEnd(80, "0");
     line += "\n";

@@ -47,7 +47,7 @@ describe("DAO avtalegirocharges", () => {
   });
 
   describe("getClaimedKIDsForMonth", () => {
-    it("queries the whole month and leaves out superseded claims", async () => {
+    it("queries the whole month, counting only claims that are or will be charged", async () => {
       queryStub.resolves([[{ KID: "111" }, { KID: "222" }], []]);
 
       const claimed = await avtalegirocharges.getClaimedKIDsForMonth(
@@ -57,7 +57,7 @@ describe("DAO avtalegirocharges", () => {
       expect(claimed).to.deep.equal(new Set(["111", "222"]));
       const [sql, params] = queryStub.firstCall.args;
       expect(sql).to.contain("due_date BETWEEN ? AND ?");
-      expect(params).to.deep.equal(["2026-10-01", "2026-10-31", "SUPERSEDED"]);
+      expect(params).to.deep.equal(["2026-10-01", "2026-10-31", ["CLAIMED", "COMPLETED"]]);
     });
 
     it("returns an empty set when nothing is claimed", async () => {
@@ -68,7 +68,11 @@ describe("DAO avtalegirocharges", () => {
       );
 
       expect(claimed.size).to.equal(0);
-      expect(queryStub.firstCall.args[1]).to.deep.equal(["2026-02-01", "2026-02-28", "SUPERSEDED"]);
+      expect(queryStub.firstCall.args[1]).to.deep.equal([
+        "2026-02-01",
+        "2026-02-28",
+        ["CLAIMED", "COMPLETED"],
+      ]);
     });
   });
 
@@ -107,7 +111,7 @@ describe("DAO avtalegirocharges", () => {
   });
 
   describe("getOpenChargesByKID", () => {
-    it("maps claimed charges without a payment", async () => {
+    it("maps payable charges without a payment, including deleted ones", async () => {
       queryStub.resolves([
         [
           { ID: 7, due_date: "2026-09-27" },
@@ -124,7 +128,10 @@ describe("DAO avtalegirocharges", () => {
       ]);
       const [sql, params] = queryStub.firstCall.args;
       expect(sql).to.contain("donationID IS NULL");
-      expect(params).to.deep.equal(["111", "CLAIMED"]);
+      expect(params).to.deep.equal([
+        "111",
+        ["CLAIMED", "DELETION_REQUESTED", "DELETION_SENT", "DELETED"],
+      ]);
     });
   });
 
@@ -135,13 +142,153 @@ describe("DAO avtalegirocharges", () => {
       const updated = await avtalegirocharges.markCompleted(9, 1234);
 
       expect(updated).to.be.true;
-      expect(queryStub.firstCall.args[1]).to.deep.equal(["COMPLETED", 1234, 9, "CLAIMED"]);
+      expect(queryStub.firstCall.args[1]).to.deep.equal([
+        "COMPLETED",
+        1234,
+        9,
+        ["CLAIMED", "DELETION_REQUESTED", "DELETION_SENT", "DELETED"],
+      ]);
     });
 
     it("reports when the charge was already completed", async () => {
       queryStub.resolves([{ affectedRows: 0 }, []]);
 
       expect(await avtalegirocharges.markCompleted(9, 1234)).to.be.false;
+    });
+  });
+
+  describe("getUpcomingChargesByKID", () => {
+    it("gets claimed charges due from the given day", async () => {
+      queryStub.resolves([[{ ID: 9, KID: "111", amount: 50000, due_date: "2026-10-27" }], []]);
+
+      const charges = await avtalegirocharges.getUpcomingChargesByKID(
+        "111",
+        DateTime.fromISO("2026-10-22T15:30:00", { zone: "Europe/Oslo" }),
+      );
+
+      expect(charges).to.deep.equal([{ id: 9, KID: "111", amount: 50000, dueDate: "2026-10-27" }]);
+      const [sql, params] = queryStub.firstCall.args;
+      expect(sql).to.contain("due_date >= ?");
+      expect(params).to.deep.equal(["111", "CLAIMED", "2026-10-22"]);
+    });
+  });
+
+  describe("requestDeletions", () => {
+    it("moves claimed charges to deletion requested", async () => {
+      queryStub.resolves([{ affectedRows: 2 }, []]);
+
+      await avtalegirocharges.requestDeletions([9, 10]);
+
+      expect(queryStub.firstCall.args[1]).to.deep.equal(["DELETION_REQUESTED", [9, 10], "CLAIMED"]);
+    });
+
+    it("does nothing without charges", async () => {
+      await avtalegirocharges.requestDeletions([]);
+
+      expect(queryStub.called).to.be.false;
+    });
+  });
+
+  describe("getDeletionRequests", () => {
+    it("gets the requested deletions in due date order", async () => {
+      queryStub.resolves([
+        [
+          { ID: 9, KID: "111", amount: 50000, due_date: "2026-10-27" },
+          { ID: 12, KID: "222", amount: 20000, due_date: "2026-10-28" },
+        ],
+        [],
+      ]);
+
+      const requests = await avtalegirocharges.getDeletionRequests();
+
+      expect(requests.map((request) => request.id)).to.deep.equal([9, 12]);
+      expect(requests[1]).to.deep.equal({
+        id: 12,
+        KID: "222",
+        amount: 20000,
+        dueDate: "2026-10-28",
+      });
+      const [sql, params] = queryStub.firstCall.args;
+      expect(sql).to.contain("ORDER BY due_date");
+      expect(params).to.deep.equal(["DELETION_REQUESTED"]);
+    });
+  });
+
+  describe("restoreDeletionRequests", () => {
+    it("moves unsent deletion requests back to claimed", async () => {
+      queryStub.resolves([{ affectedRows: 1 }, []]);
+
+      await avtalegirocharges.restoreDeletionRequests([9]);
+
+      expect(queryStub.firstCall.args[1]).to.deep.equal(["CLAIMED", [9], "DELETION_REQUESTED"]);
+    });
+
+    it("does nothing without charges", async () => {
+      await avtalegirocharges.restoreDeletionRequests([]);
+
+      expect(queryStub.called).to.be.false;
+    });
+  });
+
+  describe("restoreDeletionRequestsByKID", () => {
+    it("moves a KID's unsent deletion requests back to claimed", async () => {
+      queryStub.resolves([{ affectedRows: 1 }, []]);
+
+      await avtalegirocharges.restoreDeletionRequestsByKID("111");
+
+      expect(queryStub.firstCall.args[1]).to.deep.equal(["CLAIMED", "111", "DELETION_REQUESTED"]);
+    });
+  });
+
+  describe("markDeletionsSent", () => {
+    it("records the deletion shipment", async () => {
+      queryStub.resolves([{ affectedRows: 2 }, []]);
+
+      await avtalegirocharges.markDeletionsSent([9, 12], 800);
+
+      expect(queryStub.firstCall.args[1]).to.deep.equal([
+        "DELETION_SENT",
+        800,
+        [9, 12],
+        "DELETION_REQUESTED",
+      ]);
+    });
+
+    it("does nothing without charges", async () => {
+      await avtalegirocharges.markDeletionsSent([], 800);
+
+      expect(queryStub.called).to.be.false;
+    });
+  });
+
+  describe("getSentDeletionShipmentIDs", () => {
+    it("gets the deletion shipments waiting for a receipt", async () => {
+      queryStub.resolves([[{ deletion_shipmentID: 800 }, { deletion_shipmentID: 801 }], []]);
+
+      expect(await avtalegirocharges.getSentDeletionShipmentIDs()).to.deep.equal([800, 801]);
+      expect(queryStub.firstCall.args[1]).to.deep.equal(["DELETION_SENT"]);
+    });
+  });
+
+  describe("confirmDeletionShipment", () => {
+    it("marks the shipment's deletions as deleted", async () => {
+      queryStub.resolves([{ affectedRows: 2 }, []]);
+
+      await avtalegirocharges.confirmDeletionShipment(800);
+
+      expect(queryStub.firstCall.args[1]).to.deep.equal(["DELETED", 800, "DELETION_SENT"]);
+    });
+  });
+
+  describe("requeueDeletionShipment", () => {
+    it("puts the shipment's deletions back in the queue", async () => {
+      queryStub.resolves([{ affectedRows: 2 }, []]);
+
+      await avtalegirocharges.requeueDeletionShipment(800);
+
+      const [sql, params] = queryStub.firstCall.args;
+      expect(sql).to.contain("deletion_shipmentID = NULL");
+      expect(params).to.deep.equal(["DELETION_REQUESTED", 800, "DELETION_SENT"]);
     });
   });
 });
