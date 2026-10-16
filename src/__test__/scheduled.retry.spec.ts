@@ -7,6 +7,7 @@ import express from "express";
 import { expect } from "chai";
 import request from "supertest";
 import { DateTime } from "luxon";
+import * as avtalegiroDeletions from "../custom_modules/avtalegiro/deletions";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 const mail = require("../custom_modules/mail");
@@ -57,6 +58,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
   let supersedeStub;
   let claimedKIDsStub;
   let addChargesStub;
+  let deletionsStub;
 
   const receiptsOnServer = (shipmentIDs: number[]) => {
     getConnectionStub.resolves({
@@ -67,6 +69,8 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
   before(function () {
     sinon.replace(authMiddleware, "isAdmin", []);
+
+    deletionsStub = sinon.stub(avtalegiroDeletions, "processAvtaleGiroDeletions").resolves({});
 
     avtalegiroFileStub = sinon
       .stub(avtalegiro, "generateAvtaleGiroFile")
@@ -221,7 +225,16 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
     expect(sendFileStub.calledOnce).to.be.true;
     expect(sendFileStub.firstCall.args[1]).to.equal("DIRREM100523.170523.700");
-    expect(loggingStub.callCount).to.equal(2);
+    expect(loggingStub.withArgs("AvtaleGiro - Retry").callCount).to.equal(2);
+  });
+
+  it("Processes deletions and sends unaccepted deletion files again", async () => {
+    dueDateStub.returns([]);
+
+    await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-10").expect(200);
+
+    expect(deletionsStub.calledOnce).to.be.true;
+    expect(deletionsStub.firstCall.args[1]).to.be.true;
   });
 
   it("Does not notify donors again", async () => {

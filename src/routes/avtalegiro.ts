@@ -11,6 +11,8 @@ import { validateDistribution } from "../custom_modules/distribution";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { encodePlausibleData } from "../custom_modules/plausible";
 import { exportCsv } from "../custom_modules/csvexport";
+import { requestDeletionOfUpcomingCharges } from "../custom_modules/avtalegiro/deletions";
+import { DateTime } from "luxon";
 
 const config = require("../config");
 
@@ -417,7 +419,28 @@ router.post(
 
       const response = await DAO.avtalegiroagreements.setActive(KID, active);
 
-      if (active === 0) await sendAvtaleGiroChange(KID, "CANCELLED");
+      if (active === 0 || active === false) {
+        // Stop claims already sent to MPS, where there's still time
+        try {
+          const { deletable, tooLate } = await requestDeletionOfUpcomingCharges(
+            KID,
+            DateTime.now(),
+          );
+          if (deletable.length > 0 || tooLate.length > 0) {
+            console.log(
+              `AvtaleGiro ${KID} cancelled: deleting claims due ${deletable
+                .map((charge) => charge.dueDate)
+                .join(", ")}; too late for ${tooLate.map((charge) => charge.dueDate).join(", ")}`,
+            );
+          }
+        } catch (ex) {
+          console.error(`Failed to request deletion of AvtaleGiro claims for ${KID}`, ex);
+        }
+        await sendAvtaleGiroChange(KID, "CANCELLED");
+      } else if (active === 1 || active === true) {
+        // Deletions not yet sent are no longer wanted
+        await DAO.avtalegirocharges.restoreDeletionRequestsByKID(KID);
+      }
       res.send(response);
     } catch (ex) {
       next({ ex });

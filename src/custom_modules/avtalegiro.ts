@@ -62,6 +62,39 @@ export async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
 }
 
 /**
+ * Generates a file with deletion requests for claims we have already sent. A deletion request is the
+ * original claim with transaction type 93 instead of 02, so it identifies the claim by KID, amount
+ * and due date. Each deletion gets its own assignment, like the claims do.
+ * @param shipmentID A shipment ID from the database
+ * @param deletions The claims to delete, with amounts in øre
+ * @returns The file buffer
+ */
+export async function generateAvtaleGiroDeletionFile(
+  shipmentID: number,
+  deletions: Array<{ KID: string; amount: number; dueDate: DateTime }>,
+): Promise<Buffer> {
+  if (deletions.length === 0) throw new Error("Cannot generate a deletion file without deletions");
+
+  let fileContents = "";
+  fileContents += writer.startRecordTransmission(shipmentID);
+
+  for (let i = 0; i < deletions.length; i++) {
+    const deletion = deletions[i];
+    fileContents += writer.startRecordDeletionRequest(i, shipmentID);
+
+    const donor = await DAO.donors.getByKID(deletion.KID);
+    fileContents += writer.firstAndSecondLine(deletion, donor, "93", 1, deletion.dueDate);
+
+    fileContents += writer.endRecordDeletionRequest([deletion], deletion.dueDate, deletion.dueDate);
+  }
+
+  const earliestDueDate = DateTime.min(...deletions.map((deletion) => deletion.dueDate));
+  fileContents += writer.endRecordTransmission([], deletions, earliestDueDate);
+
+  return Buffer.from(fileContents, "utf8");
+}
+
+/**
  * @typedef NotifyAgreementsResult
  * @property {number} success
  * @property {number} failed
