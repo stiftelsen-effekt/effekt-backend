@@ -46,7 +46,7 @@ const router = express.Router();
  *      404:
  *        description: Tax unit with given id not found
  */
-router.put("/:id", async (req, res, next) => {
+router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const id = req.params.id;
     const taxUnit = req.body.taxUnit;
