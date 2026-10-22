@@ -46,7 +46,6 @@ The API is also responsible for handling payment processing.
 - [Payment processing](#payment-processing)
   - [Bank](#bank)
   - [Vipps](#vipps)
-  - [PayPal](#paypal)
   - [Facebook](#facebook)
   - [Swish](#swish)
 
@@ -399,7 +398,6 @@ At a high level, here's what the subpaths do:
 - `/organizations`: CRUD endpoints for organization objects (example: Against Malaria Foundation)
 - `/payment`: CRUD endpoints for metadata (example: fees) about payment methods
 - `/referrals`: CRUD endpoints for donor referrals
-- `/paypal`: endpoints for Paypal payments
 - `/vipps`: endpoints for Vipps payments and payment agreements
 - `/avtalegiro`: endpoints for Avtalegiro payments and payment agreements
 - `/facebook`: endpoints for Facebook payments
@@ -605,8 +603,6 @@ gcloud run jobs create <SERVICE_NAME>-db-migrate \
 🇳🇴
 
 > ❗ **NOK only**
-
-### PayPal
 
 ### Facebook
 
