@@ -73,7 +73,7 @@ import { sendPasswordResetNoUserEmail } from "../custom_modules/mail";
  *      500:
  *        description: Internal server error
  */
-router.post("/", async (req, res, next) => {
+router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const limit = parseInt(req.body.limit);
     const offset = parseInt(req.body.page) * limit;
