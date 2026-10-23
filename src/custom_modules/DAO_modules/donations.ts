@@ -63,6 +63,7 @@ async function getAll(
     id?: string;
     fundraiserId?: string;
     organizationIDs?: Array<number>;
+    dataOwnerIDs?: Array<number>;
   } = null,
   locale: RequestLocale,
 ): Promise<{
@@ -121,6 +122,25 @@ async function getAll(
         }
         where.push(
           ` Donations.Payment_ID IN (${filter.paymentMethodIDs
+            .map((ID) => sqlString.escape(ID))
+            .join(",")}) `,
+        );
+      }
+
+      if (filter.dataOwnerIDs) {
+        if (filter.dataOwnerIDs.length == 0) {
+          return {
+            rows: [],
+            statistics: {
+              numDonations: 0,
+              sumDonations: 0,
+              avgDonation: 0,
+            },
+            pages: 0,
+          };
+        }
+        where.push(
+          ` Donations.Meta_owner_ID IN (${filter.dataOwnerIDs
             .map((ID) => sqlString.escape(ID))
             .join(",")}) `,
         );

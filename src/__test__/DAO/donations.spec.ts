@@ -118,5 +118,38 @@ describe("DAO donations", () => {
         pages: 0,
       });
     });
+
+    it("filters on the donation data owner when data owners are selected", async () => {
+      const queryStub = sinon.stub(DAO, "query").resolves([[], []]);
+
+      await DAO.donations.getAll(sort, 0, 10, { dataOwnerIDs: [1, 3] }, RequestLocale.NO);
+
+      expect(queryStub.calledOnce).to.be.true;
+      const sql = queryStub.firstCall.args[0] as string;
+      expect(sql).to.contain("Donations.Meta_owner_ID IN (1,3)");
+    });
+
+    it("returns empty statistics without querying when no data owners are selected", async () => {
+      const queryStub = sinon.stub(DAO, "query");
+
+      const result = await DAO.donations.getAll(
+        sort,
+        0,
+        10,
+        { dataOwnerIDs: [] },
+        RequestLocale.NO,
+      );
+
+      expect(queryStub.called).to.be.false;
+      expect(result).to.deep.equal({
+        rows: [],
+        statistics: {
+          numDonations: 0,
+          sumDonations: 0,
+          avgDonation: 0,
+        },
+        pages: 0,
+      });
+    });
   });
 });
