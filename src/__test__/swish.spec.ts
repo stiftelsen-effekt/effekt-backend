@@ -203,6 +203,101 @@ describe("swish", () => {
     });
   });
 
+  describe("handleCallback()", () => {
+    const instructionUUID = "11A86BE70EA346E4B1C39C874173F088";
+    let fetchStub: sinon.SinonStub;
+    let getOrderByInstructionUUIDStub: sinon.SinonStub;
+    let updateOrderStatusStub: sinon.SinonStub;
+    let addDonationStub: sinon.SinonStub;
+    let sendDonationReceiptStub: sinon.SinonStub;
+
+    beforeEach(() => {
+      fetchStub = sinon.stub(fetch, "default");
+      getOrderByInstructionUUIDStub = sinon.stub(DAO.swish, "getOrderByInstructionUUID");
+      updateOrderStatusStub = sinon.stub(DAO.swish, "updateOrderStatus");
+      sinon.stub(DAO.swish, "updateOrderDonationId");
+      sendDonationReceiptStub = sinon.stub(mail, "sendDonationReceipt");
+      addDonationStub = sinon.stub(DAO.donations, "add").resolves(456);
+    });
+
+    function withOrder(order: any) {
+      getOrderByInstructionUUIDStub.resolves(order);
+    }
+
+    function withSwishPaymentRequest(paymentRequest: any) {
+      fetchStub.resolves({ json: () => Promise.resolve(paymentRequest) } as any);
+    }
+
+    const order = {
+      ID: 123,
+      KID: "1234567890",
+      status: "CREATED",
+      registered: new Date("2026-01-01T00:00:00.000Z"),
+      reference: "26010112345",
+    };
+
+    it("records the donation with the amount reported by Swish for a genuine callback", async () => {
+      withOrder(order);
+      withSwishPaymentRequest({ status: "PAID", amount: 250 });
+
+      await swish.handleCallback(instructionUUID);
+
+      expect(fetchStub.calledOnce).to.be.true;
+      expect(String(fetchStub.args[0][0])).to.include(`/paymentrequests/${instructionUUID}`);
+      expect(addDonationStub.calledOnce).to.be.true;
+      expect(addDonationStub.args[0][0]).to.equal(order.KID);
+      expect(addDonationStub.args[0][2]).to.equal(250);
+      expect(sendDonationReceiptStub.calledOnceWith(456)).to.be.true;
+    });
+
+    it("does not record a donation when Swish does not report the payment as paid", async () => {
+      // A forged callback claiming PAID: Swish still reports the request as CREATED
+      withOrder(order);
+      withSwishPaymentRequest({ status: "CREATED", amount: 250 });
+
+      await swish.handleCallback(instructionUUID);
+
+      expect(addDonationStub.called).to.be.false;
+      expect(updateOrderStatusStub.called).to.be.false;
+    });
+
+    it("does not update the order when Swish returns an error", async () => {
+      withOrder(order);
+      withSwishPaymentRequest([{ errorCode: "RP04", errorMessage: "Not found" }]);
+
+      let error: unknown;
+      try {
+        await swish.handleCallback(instructionUUID);
+      } catch (ex) {
+        error = ex;
+      }
+
+      expect(error).to.be.instanceOf(Error);
+      expect(updateOrderStatusStub.called).to.be.false;
+      expect(addDonationStub.called).to.be.false;
+    });
+
+    it("does not call Swish for orders already in a final state (idempotent)", async () => {
+      withOrder({ ...order, status: "PAID" });
+
+      await swish.handleCallback(instructionUUID);
+
+      expect(fetchStub.called).to.be.false;
+      expect(addDonationStub.called).to.be.false;
+    });
+
+    it("ignores callbacks with an invalid or unknown id", async () => {
+      await swish.handleCallback(undefined);
+      await swish.handleCallback({ $ne: 1 });
+      expect(getOrderByInstructionUUIDStub.called).to.be.false;
+
+      withOrder(null);
+      await swish.handleCallback(instructionUUID);
+      expect(fetchStub.called).to.be.false;
+      expect(addDonationStub.called).to.be.false;
+    });
+  });
+
   describe("getSwishOrder()", () => {
     let getOrderByIDStub: sinon.SinonStub;
     let fetchStub: sinon.SinonStub;
@@ -305,7 +400,7 @@ describe("swish", () => {
       let handleOrderStatusUpdateStub: sinon.SinonStub;
 
       beforeEach(() => {
-        handleOrderStatusUpdateStub = sinon.stub(swish, "handleOrderStatusUpdate");
+        handleOrderStatusUpdateStub = sinon.stub(swish, "handleCallback");
       });
 
       function withWhitelistedIp(ip?: string) {
@@ -330,10 +425,8 @@ describe("swish", () => {
 
         expect(handleOrderStatusUpdateStub.called).to.be.true;
         expect(handleOrderStatusUpdateStub.args[0][0]).to.equal(body.id);
-        expect(handleOrderStatusUpdateStub.args[0][1]).to.deep.equal({
-          status: body.status,
-          amount: body.amount,
-        });
+        // Status and amount from the (unauthenticated) body must not be passed on
+        expect(handleOrderStatusUpdateStub.args[0]).to.have.length(1);
       });
 
       it("should return 403 if invalid ip", async () => {

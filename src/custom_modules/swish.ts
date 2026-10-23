@@ -188,6 +188,41 @@ export async function handleOrderStatusUpdate(
 }
 
 /**
+ * Handles a Swish payment request callback.
+ *
+ * The callback body is not authenticated (Swish does not sign callbacks), so it is only used
+ * to identify which payment request changed. The status and amount are fetched from the
+ * Swish API over mTLS, the same way the status polling in getSwishOrder does.
+ */
+export async function handleCallback(instructionUUID: unknown) {
+  if (typeof instructionUUID !== "string" || !/^[0-9A-F]{32}$/.test(instructionUUID)) {
+    console.warn("Swish callback with invalid payment request id");
+    return;
+  }
+
+  const order = await DAO.swish.getOrderByInstructionUUID(instructionUUID);
+  if (!order) {
+    console.error(`Could not find order with instructionUUID: ${instructionUUID}`);
+    return;
+  }
+
+  if (isFinalSwishOrderStatus(order.status)) {
+    console.info(`Order status already final, skipping update. Status: ${order.status}`);
+    return;
+  }
+
+  const swishRequest = await retrievePaymentRequest(instructionUUID);
+  if (typeof swishRequest?.status !== "string" || typeof swishRequest?.amount !== "number") {
+    throw new Error(`Could not retrieve Swish payment request ${instructionUUID}`);
+  }
+
+  await handleOrderStatusUpdate(instructionUUID, {
+    status: swishRequest.status,
+    amount: swishRequest.amount,
+  });
+}
+
+/**
  * Swish expects exactly this format
  *
  * @see https://developer.swish.nu/documentation/guidelines#uuid-description
