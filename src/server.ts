@@ -170,7 +170,6 @@ DAO.connect(() => {
   const causeareasRoute = causeAreasRouter;
   const organizationsRoute = organizationsRouter;
   const reportsRoute = require("./routes/reports");
-  const paypalRoute = require("./routes/paypal");
   const vippsRoute = require("./routes/vipps");
   const swishRoute = require("./routes/swish").default;
   const paymentRoute = require("./routes/payment");
@@ -195,7 +194,6 @@ DAO.connect(() => {
   app.use("/causeareas", causeareasRoute);
   app.use("/organizations", organizationsRoute);
   app.use("/reports", reportsRoute);
-  app.use("/paypal", paypalRoute);
   app.use("/vipps", vippsRoute);
   app.use("/swish", swishRoute);
   app.use("/payment", paymentRoute);

@@ -2,7 +2,6 @@ import * as chai from "chai";
 import chaiDatetime from "chai-datetime";
 import * as fs from "fs";
 import moment from "moment";
-import { parseReport as paypalParseReport } from "../custom_modules/parsers/paypal";
 import { parseReport as vippsParseReport } from "../custom_modules/parsers/vipps";
 import { parseReport as bankParseReport } from "../custom_modules/parsers/bank";
 
@@ -11,52 +10,7 @@ chai.use(chaiDatetime);
 
 const reportType = {
   vipps: "vipps",
-  paypal: "paypal",
 };
-
-describe("Paypal CSV", () => {
-  it('Parses paypal CSV with comma seperation and "', () => {
-    const sample = readCSV(reportType.paypal, "Paypal April 2019");
-
-    let transactions = paypalParseReport(sample);
-    expect(transactions).to.be.length(9);
-  });
-
-  it('Parses paypal CSV with semicolon seperation and "', () => {
-    const sample = readCSV(reportType.paypal, "Paypal April 2019 - Semicolon");
-
-    let transactions = paypalParseReport(sample);
-    expect(transactions).to.be.length(9);
-  });
-
-  it('Parses paypal CSV with semicolon seperation and without "', () => {
-    const sample = readCSV(reportType.paypal, "Paypal April 2019 - Semicolon Stripped");
-
-    let transactions = paypalParseReport(sample);
-    expect(transactions).to.be.length(9);
-  });
-
-  it('Parses paypal CSV with semicolon seperation and without " with . comma seperator', () => {
-    const sample = readCSV(reportType.paypal, "Paypal April 2019 - Semicolon Stripped Dot");
-
-    let transactions = paypalParseReport(sample);
-    expect(transactions).to.be.length(9);
-  });
-
-  it("Parses problematic paypal CSV for september", () => {
-    const sample = readCSV(reportType.paypal, "Paypal Special");
-
-    let transactions = paypalParseReport(sample);
-    expect(transactions).to.be.length(6);
-  });
-
-  it("Parses problematic paypal CSV for october", () => {
-    const sample = readCSV(reportType.paypal, "Effekt PayPal oktober");
-
-    let transactions = paypalParseReport(sample);
-    expect(transactions).to.be.length(2);
-  });
-});
 
 describe("Vipps CSV", () => {
   it("Parses vipps CSV with semicolon seperation", () => {

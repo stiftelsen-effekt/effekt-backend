@@ -573,34 +573,6 @@ async function getStandardDistributionByCauseAreaID(
 }
 
 /**
- * Gets KIDs from historic paypal donors, matching them against a ReferenceTransactionId
- * @param {Array} transactions A list of transactions that must have a ReferenceTransactionId
- * @returns {Object} Returns an object with referenceTransactionId's as keys and KIDs as values
- */
-async function getHistoricPaypalSubscriptionKIDS(
-  referenceIDs: string[],
-): Promise<{ [key: string]: string }> {
-  let [res] = await DAO.query(
-    `SELECT 
-            ReferenceTransactionNumber,
-            KID 
-            
-            FROM Paypal_historic_distributions 
-
-            WHERE 
-                ReferenceTransactionNumber IN (?);`,
-    [referenceIDs],
-  );
-
-  let mapping = res.reduce((acc, row) => {
-    acc[row.ReferenceTransactionNumber] = row.KID;
-    return acc;
-  }, {});
-
-  return mapping;
-}
-
-/**
  * Returns all KIDs that start with a given prefix
  * @param prefix
  * @returns
@@ -935,7 +907,6 @@ export const distributions = {
   getKIDbySplit,
   getSplitByKID,
   getStandardDistributionByCauseAreaID,
-  getHistoricPaypalSubscriptionKIDS,
   getAll,
   getAllByDonor,
   getByDonorId,

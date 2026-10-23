@@ -6,55 +6,12 @@ import * as mail from "../custom_modules/mail";
 
 const config = require("../config");
 
-const paypalroute = require("../routes/reports/paypal");
 const vippsRoute = require("../routes/reports/vipps");
 const ocrRoute = require("../routes/reports/ocr");
 
 let addStub;
 let mailStub;
-let historicStub;
 let parsingRulesStub;
-
-describe("PayPal report route handles correctly", () => {
-  before(() => {
-    addStub = sinon
-      .stub(DAO.donations, "add")
-      //Returns donation ID
-      .resolves(10);
-
-    mailStub = sinon.stub(mail, "sendDonationReceipt");
-
-    historicStub = sinon.stub(DAO.distributions, "getHistoricPaypalSubscriptionKIDS");
-
-    parsingRulesStub = sinon.stub(DAO.parsing, "getVippsParsingRules").resolves([]);
-  });
-
-  beforeEach(() => {
-    sinon.resetHistory();
-  });
-
-  it("adds donations to DB when historic matching exists", async () => {
-    historicStub.resolves({
-      "I-YE66CY1W4DPU": 23,
-    });
-
-    await runPaypal("Paypal April 2019");
-
-    expect(addStub.callCount).to.be.equal(1);
-  });
-
-  it("does not fail on 0 historic paypal matches", async () => {
-    historicStub.resolves([]);
-
-    await runPaypal("Paypal Special");
-
-    expect(addStub.callCount).to.be.equal(0);
-  });
-
-  after(() => {
-    sinon.restore();
-  });
-});
 
 describe("Vipps route handles report correctly", () => {
   before(() => {
@@ -64,8 +21,6 @@ describe("Vipps route handles report correctly", () => {
       .resolves(10);
 
     mailStub = sinon.stub(mail, "sendDonationReceipt");
-
-    historicStub = sinon.stub(DAO.distributions, "getHistoricPaypalSubscriptionKIDS");
 
     parsingRulesStub = sinon.stub(DAO.parsing, "getVippsParsingRules").resolves([]);
   });
@@ -122,28 +77,6 @@ describe("Vipps route handles report correctly", () => {
     sinon.restore();
   });
 });
-
-async function runPaypal(filename) {
-  var res = {
-    json: () => {},
-  };
-  const jsonStub = sinon.stub(res, "json");
-
-  var query = {
-    body: {
-      metaOwnerID: 3,
-    },
-    files: {
-      report: {
-        data: readReport("paypal", filename),
-      },
-    },
-  };
-
-  await paypalroute(query, res, (ex) => {
-    throw ex;
-  });
-}
 
 async function runVipps(filename) {
   let res = {
