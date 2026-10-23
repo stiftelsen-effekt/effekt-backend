@@ -10,6 +10,7 @@ import moment from "moment";
 import { validateDistribution } from "../custom_modules/distribution";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { encodePlausibleData } from "../custom_modules/plausible";
+import { getFundraiserRedirectUrl } from "../custom_modules/fundraiserRedirect";
 import { exportCsv } from "../custom_modules/csvexport";
 
 const config = require("../config");
@@ -272,7 +273,11 @@ router.get("/:KID/redirect", async (req, res, next) => {
 
       if (fundraiserTransaction) {
         return res.redirect(
-          `https://gieffektivt.no/api/fundraiser/redirect?fundraiserId=${fundraiserTransaction.fundraiserId}&secret=${config.revalidate_token}&plausible=${plausible}`,
+          await getFundraiserRedirectUrl(
+            fundraiserTransaction.fundraiserId,
+            plausible,
+            `https://gieffektivt.no/opprettet?plausible=${plausible}`,
+          ),
         );
       }
 

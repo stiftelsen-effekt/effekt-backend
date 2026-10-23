@@ -13,6 +13,7 @@ import {
 } from "../custom_modules/distribution";
 import { DistributionInput } from "../schemas/types";
 import { encodePlausibleData } from "../custom_modules/plausible";
+import { getFundraiserRedirectUrl } from "../custom_modules/fundraiserRedirect";
 import { exportCsv } from "../custom_modules/csvexport";
 import { verifyVippsWebhookSignature } from "../custom_modules/vippsWebhookAuth";
 const jsonBody = bodyParser.json();
@@ -753,7 +754,11 @@ router.get("/agreementredirect/:urlcode", async (req, res, next) => {
 
           if (fundraiserTransaction) {
             res.redirect(
-              `https://gieffektivt.no/api/fundraiser/redirect?fundraiserId=${fundraiserTransaction.fundraiserId}&secret=${config.revalidate_token}&plausible=${plausible}`,
+              await getFundraiserRedirectUrl(
+                fundraiserTransaction.fundraiserId,
+                plausible,
+                `https://gieffektivt.no/opprettet?plausible=${plausible}`,
+              ),
             );
             return true;
           }
@@ -1016,15 +1021,18 @@ router.get("/redirect/:orderId", async (req, res, next) => {
 
         if (donation.fundraiserId) {
           // Temp hardcoded to preview frontend, should be changed to production frontend (${config.frontend_url}/)
+          const plausible = encodePlausibleData({
+            revenue: donation.sum.toString(),
+            method: "vipps",
+            recurring: false,
+            kid: order.KID,
+          });
           res.redirect(
-            `https://gieffektivt.no/api/fundraiser/redirect?fundraiserId=${
-              donation.fundraiserId
-            }&secret=${config.revalidate_token}&plausible=${encodePlausibleData({
-              revenue: donation.sum.toString(),
-              method: "vipps",
-              recurring: false,
-              kid: order.KID,
-            })}`,
+            await getFundraiserRedirectUrl(
+              donation.fundraiserId,
+              plausible,
+              `https://gieffektivt.no/donasjon-mottatt?plausible=${plausible}`,
+            ),
           );
           return true;
         }
