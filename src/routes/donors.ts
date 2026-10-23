@@ -747,7 +747,7 @@ router.delete(
       }
 
       const taxUnit = await DAO.tax.getById(req.params.taxunitid);
-      if (!taxUnit) {
+      if (!taxUnit || taxUnit.donorId !== donor.id) {
         return res.status(404).json({
           status: 404,
           content: "No tax unit found with ID " + req.params.taxunitid,
@@ -864,6 +864,16 @@ router.put(
         return res.status(404).json({
           status: 404,
           content: "No donor found with ID " + req.params.id,
+        });
+      }
+
+      // Ensure the tax unit belongs to the donor in the path. checkAdminOrTheDonor only
+      // authorizes the caller against :id, not against :taxunitid.
+      const existingTaxUnit = await DAO.tax.getById(taxUnitId);
+      if (!existingTaxUnit || existingTaxUnit.donorId !== donor.id) {
+        return res.status(404).json({
+          status: 404,
+          content: "No tax unit found with ID " + taxUnitId + " for donor " + donor.id,
         });
       }
 

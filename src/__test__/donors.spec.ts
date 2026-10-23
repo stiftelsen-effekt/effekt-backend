@@ -213,6 +213,41 @@ describe("donors", () => {
       });
     });
 
+    describe("PUT /donors/:id/taxunits/:taxunitid", () => {
+      let taxGetByIdStub: sinon.SinonStub;
+      let updateTaxUnitStub: sinon.SinonStub;
+
+      beforeEach(function () {
+        donorStub = sinon.stub(DAO.donors, "getByID");
+        donorStub.withArgs("237").resolves(jack);
+        taxGetByIdStub = sinon.stub(DAO.tax, "getById");
+        updateTaxUnitStub = sinon.stub(DAO.tax, "updateTaxUnit").resolves(1);
+      });
+
+      const body = { taxUnit: { name: "Jack Torrance", ssn: "999999999" } };
+
+      it("Should update a tax unit owned by the donor", async function () {
+        taxGetByIdStub.withArgs(10).resolves({ id: 10, donorId: 237, name: "x", ssn: "1" });
+        const response = await request(server).put("/donors/237/taxunits/10").send(body);
+        expect(response.status).to.equal(200);
+        expect(updateTaxUnitStub.calledOnceWith(10)).to.be.true;
+      });
+
+      it("Should return 404 and not update a tax unit owned by another donor", async function () {
+        taxGetByIdStub.withArgs(11).resolves({ id: 11, donorId: 999, name: "x", ssn: "1" });
+        const response = await request(server).put("/donors/237/taxunits/11").send(body);
+        expect(response.status).to.equal(404);
+        expect(updateTaxUnitStub.called).to.be.false;
+      });
+
+      it("Should return 404 when the tax unit does not exist", async function () {
+        taxGetByIdStub.resolves(null);
+        const response = await request(server).put("/donors/237/taxunits/12").send(body);
+        expect(response.status).to.equal(404);
+        expect(updateTaxUnitStub.called).to.be.false;
+      });
+    });
+
     describe("GET /donors/:id/recurring/avtalegiro", function () {
       beforeEach(function () {
         agreementStub = sinon.stub(DAO.avtalegiroagreements, "getByDonorId");
