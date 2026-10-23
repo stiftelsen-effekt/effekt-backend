@@ -372,22 +372,22 @@ export type TransactionCostsReport = {
 async function getTransactionCostsReport(): Promise<TransactionCostsReport | false> {
   let [res] = await DAO.query<TransactionCostsReport[]>(`
     SELECT count(ID) as donationsCount,
-      (SELECT round(sum(transaction_cost)) FROM Donations
+      (SELECT round(sum(transaction_cost), 2) FROM Donations
         WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE)
         AND MONTH(timestamp_confirmed) = MONTH(CURRENT_DATE) - 1) as costPrevMonth,
-      (SELECT round(sum(transaction_cost)) FROM Donations
+      (SELECT round(sum(transaction_cost), 2) FROM Donations
         WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE) - 1
         AND MONTH(timestamp_confirmed) = MONTH(CURRENT_DATE) - 1) as costPrevMonthPrevYear,
-      (SELECT round(sum(transaction_cost)) FROM Donations
+      (SELECT round(sum(transaction_cost), 2) FROM Donations
         WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE)
         AND MONTH(timestamp_confirmed) = MONTH(CURRENT_DATE)) as costCurrentMonthToDate,
-      (SELECT round(sum(transaction_cost)) FROM Donations
+      (SELECT round(sum(transaction_cost), 2) FROM Donations
             WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE) - 1
             AND MONTH(timestamp_confirmed) = MONTH(CURRENT_DATE)
             AND DAYOFMONTH(timestamp_confirmed) <= DAYOFMONTH(CURRENT_DATE)) as costCurrentMonthToDatePrevYear,
-      (SELECT round(sum(transaction_cost)) FROM Donations
+      (SELECT round(sum(transaction_cost), 2) FROM Donations
             WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE)) as costYTD,
-      (SELECT round(sum(transaction_cost)) FROM Donations 
+      (SELECT round(sum(transaction_cost), 2) FROM Donations 
             WHERE 
               DATE(timestamp_confirmed) BETWEEN DATE(CONCAT(YEAR(CURRENT_TIMESTAMP) - 1, '-01-01')) 
             AND 
