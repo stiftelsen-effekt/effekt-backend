@@ -4,6 +4,8 @@ import { DAO } from "../custom_modules/DAO";
 const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendPasswordResetNoUserEmail } from "../custom_modules/mail";
+import { requireAuthorizationSecret } from "../custom_modules/webhookAuth";
+const config = require("../config");
 
 /**
  * @openapi
@@ -93,12 +95,22 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-router.post("/auth0", async (req, res, next) => {
+/**
+ * Receives events from the Auth0 custom webhook log stream. The log stream must be configured
+ * with AUTH0_LOG_STREAM_TOKEN as its "Authorization Token" (sent as the Authorization header).
+ */
+const requireAuth0LogStreamToken = requireAuthorizationSecret(
+  () => config.auth0_log_stream_token,
+  "AUTH0_LOG_STREAM_TOKEN",
+);
+
+router.post("/auth0", requireAuth0LogStreamToken, async (req, res, next) => {
   // Send an email to the user with the error message if the error is a user does not exist error (fcpr)
-  if (req.body.logs) {
+  if (Array.isArray(req.body?.logs)) {
     for (const log of req.body.logs) {
-      if (log.data.type === "fcpr") {
-        const email = log.data.details.body.email;
+      if (log?.data?.type === "fcpr") {
+        const email = log.data.details?.body?.email;
+        if (typeof email !== "string" || !email) continue;
         try {
           await sendPasswordResetNoUserEmail(email);
         } catch (ex) {
