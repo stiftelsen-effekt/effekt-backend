@@ -5,6 +5,19 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 
 export const fundraisersRouter = Router();
 
+/**
+ * Escapes text for safe inclusion in HTML. The fundraiser dashboard includes donor-supplied
+ * names and messages, which must be rendered as text.
+ */
+export function escapeHtml(value: string): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 fundraisersRouter.get("/list", async (req, res, next) => {
   try {
     const fundraisers = await DAO.fundraisers.getList(0, Number.MAX_SAFE_INTEGER);
@@ -35,7 +48,10 @@ fundraisersRouter.get("/dashboard/:secret", async (req, res, next) => {
     const dashboard = generateDashboard(transactions);
 
     // Set content type and send response
-    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    // The dashboard contains donor-supplied text; never allow scripts on the API origin
+    res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'");
+    res.setHeader("X-Content-Type-Options", "nosniff");
     res.send(`
 <!DOCTYPE html>
 <html>
@@ -50,7 +66,7 @@ fundraisersRouter.get("/dashboard/:secret", async (req, res, next) => {
     </style>
   </head>
   <body>
-    <pre>${dashboard}</pre>
+    <pre>${escapeHtml(dashboard)}</pre>
   </body>
 </html>
     `);
