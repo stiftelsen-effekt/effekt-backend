@@ -157,6 +157,11 @@ module.exports = {
   // Auth0
   authAudience: process.env.AUTH_AUDIENCE,
   authIssuerBaseURL: process.env.AUTH_BASE_URL,
+  // Comma separated custom domains of the same tenant, e.g. https://login.gieffektivt.no/
+  authAdditionalIssuers: (process.env.AUTH_ADDITIONAL_ISSUERS || "")
+    .split(",")
+    .map((issuer) => issuer.trim())
+    .filter(Boolean),
   authUserIdClaim: process.env.AUTH_USER_ID_CLAIM,
   authUserMetadataKey: process.env.AUTH_USER_METADATA_KEY,
 

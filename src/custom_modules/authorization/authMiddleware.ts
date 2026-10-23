@@ -1,22 +1,32 @@
 import { DAO } from "../DAO";
-import { auth as auth0, claimCheck, JWTPayload, claimIncludes } from "express-oauth2-jwt-bearer";
-import { authAudience, authIssuerBaseURL, authMcpAudience, authUserIdClaim } from "../../config";
+import { claimCheck, JWTPayload, claimIncludes } from "express-oauth2-jwt-bearer";
+import {
+  authAdditionalIssuers,
+  authAudience,
+  authIssuerBaseURL,
+  authMcpAudience,
+  authUserIdClaim,
+} from "../../config";
 import authorizationPermissions from "../../enums/authorizationPermissions";
+import { createJwtCheck } from "./jwtIssuers";
 
 // Defaulting to "default" to enable tests to run
-const checkJwt = auth0({
-  audience: authAudience || "default",
-  issuerBaseURL: authIssuerBaseURL || "default",
-});
+const additionalIssuers = authIssuerBaseURL ? authAdditionalIssuers : [];
+const checkJwt = createJwtCheck(
+  authAudience || "default",
+  authIssuerBaseURL || "default",
+  additionalIssuers,
+);
 
 // Claude Tag user-login tokens are issued for the MCP resource URL (…/mcp).
 // M2M client-credentials tokens still use AUTH_AUDIENCE. Accept either here
 // so both connector OAuth and the existing M2M app work on /mcp.
 const mcpAudiences = [authAudience, authMcpAudience].filter(Boolean) as string[];
-const checkMcpJwt = auth0({
-  audience: mcpAudiences.length > 0 ? mcpAudiences : "default",
-  issuerBaseURL: authIssuerBaseURL || "default",
-});
+const checkMcpJwt = createJwtCheck(
+  mcpAudiences.length > 0 ? mcpAudiences : "default",
+  authIssuerBaseURL || "default",
+  additionalIssuers,
+);
 
 const userIdClaim = authUserIdClaim;
 
