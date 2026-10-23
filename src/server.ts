@@ -10,6 +10,7 @@ console.log("| gieffektivt.no donation backend (╯°□°）╯︵ ┻━┻ |"
 console.log("--------------------------------------------------");
 
 import bearerToken from "express-bearer-token";
+import compression from "compression";
 import express from "express";
 // Patches Express 4 so that rejected promises from async route handlers are passed to
 // next(err) and reach the error handler instead of becoming unhandled rejections.
@@ -97,6 +98,9 @@ DAO.connect(() => {
   //with the analysis_mcp permission, not admin. Mounted before honeypot /
   //rate-limit / CORS so Anthropic server-to-server calls are not blocked.
   app.use("/mcp", mcpRouter);
+
+  //Compress responses (gzip/brotli). Mounted after /mcp so its streamed (SSE) responses are not buffered.
+  app.use(compression());
 
   //Pretty printing of JSON
   app.use(
