@@ -1,4 +1,5 @@
-import libxmljs, { XMLElement } from "libxmljs";
+import { DOMParser, onErrorStopParsing } from "@xmldom/xmldom";
+import * as xpath from "xpath";
 
 export interface CamtTransaction {
   amount: number; // In SEK (not cents)
@@ -15,13 +16,52 @@ export interface CamtParseResult {
 
 const CAMT_NAMESPACE = "urn:iso:std:iso:20022:tech:xsd:camt.053.001.02";
 
+// DOM node as returned by @xmldom/xmldom / xpath. We only rely on textContent.
+type XMLElement = Node;
+
+/**
+ * Parses an XML string into a DOM document.
+ *
+ * @xmldom/xmldom never resolves external entities or loads DTDs (no file or
+ * network access), so the parser is not vulnerable to XXE. References to
+ * entities other than the predefined XML ones are treated as errors. Any
+ * parse error aborts parsing with an exception.
+ */
+function parseXml(xmlContent: string): Document {
+  const doc = new DOMParser({ onError: onErrorStopParsing }).parseFromString(
+    // libxml2 accepted (and ignored) a leading byte order mark
+    xmlContent.replace(/^\uFEFF/, ""),
+    "text/xml",
+  );
+  return doc as unknown as Document;
+}
+
+/**
+ * Returns all nodes matching the XPath expression (namespace prefixes resolved from ns)
+ */
+function findAll(node: Node, expression: string, ns: Record<string, string>): XMLElement[] {
+  const result = xpath.useNamespaces(ns)(expression, node);
+  return xpath.isArrayOfNodes(result) ? result : [];
+}
+
+/**
+ * Returns the first node matching the XPath expression, or null
+ */
+function findFirst(node: Node, expression: string, ns: Record<string, string>): XMLElement | null {
+  return findAll(node, expression, ns)[0] ?? null;
+}
+
 /**
  * Helper function to get text content from an XPath result
  */
-function getElementText(element: XMLElement, xpath: string, ns: Record<string, string>): string {
-  const result = element.get(xpath, ns);
-  if (result && typeof result === "object" && "text" in result) {
-    return (result as XMLElement).text() || "";
+function getElementText(
+  element: XMLElement,
+  expression: string,
+  ns: Record<string, string>,
+): string {
+  const result = findFirst(element, expression, ns);
+  if (result) {
+    return result.textContent || "";
   }
   return "";
 }
@@ -32,19 +72,19 @@ function getElementText(element: XMLElement, xpath: string, ns: Record<string, s
  * @returns Parsed transactions and posting date
  */
 export function parseCamtFile(xmlContent: string): CamtParseResult {
-  const doc = libxmljs.parseXml(xmlContent);
+  const doc = parseXml(xmlContent);
   const ns = { camt: CAMT_NAMESPACE };
 
   const transactions: CamtTransaction[] = [];
 
   // Get the statement
-  const stmt = doc.get("//camt:Stmt", ns);
+  const stmt = findFirst(doc, "//camt:Stmt", ns);
   if (!stmt) {
     throw new Error("No statement found in CAMT file");
   }
 
   // Get all entries (Ntry elements)
-  const entries = doc.find("//camt:Stmt/camt:Ntry", ns) as XMLElement[];
+  const entries = findAll(doc, "//camt:Stmt/camt:Ntry", ns);
 
   for (const entry of entries) {
     // Check if this is a credit entry (only process credits)
@@ -64,7 +104,7 @@ export function parseCamtFile(xmlContent: string): CamtParseResult {
     );
 
     // Get all transaction details within this entry (can be batched)
-    const txDetails = entry.find("camt:NtryDtls/camt:TxDtls", ns) as XMLElement[];
+    const txDetails = findAll(entry, "camt:NtryDtls/camt:TxDtls", ns);
 
     // If no TxDtls, use the entry-level data
     if (txDetails.length === 0) {
@@ -141,13 +181,9 @@ export function parseCamtFile(xmlContent: string): CamtParseResult {
     postingDate = transactions[0].bookingDate;
   } else {
     // Fallback to statement creation date
-    const creationDateResult = doc.get("//camt:Stmt/camt:CreDtTm", ns);
-    if (
-      creationDateResult &&
-      typeof creationDateResult === "object" &&
-      "text" in creationDateResult
-    ) {
-      const creationDate = (creationDateResult as XMLElement).text();
+    const creationDateResult = findFirst(doc, "//camt:Stmt/camt:CreDtTm", ns);
+    if (creationDateResult) {
+      const creationDate = creationDateResult.textContent;
       if (creationDate) {
         postingDate = creationDate.split("T")[0]; // Extract date part
       }
@@ -167,21 +203,18 @@ function extractMessagesFromTxDetail(txDetail: XMLElement, ns: Record<string, st
   const messages: string[] = [];
 
   // Get unstructured remittance info
-  const ustrdElements = txDetail.find("camt:RmtInf/camt:Ustrd", ns) as XMLElement[];
+  const ustrdElements = findAll(txDetail, "camt:RmtInf/camt:Ustrd", ns);
   for (const ustrd of ustrdElements) {
-    const text = ustrd.text()?.trim();
+    const text = ustrd.textContent?.trim();
     if (text) {
       messages.push(text);
     }
   }
 
   // Get structured remittance info (AddtlRmtInf)
-  const addtlRmtInfoElements = txDetail.find(
-    "camt:RmtInf/camt:Strd/camt:AddtlRmtInf",
-    ns,
-  ) as XMLElement[];
+  const addtlRmtInfoElements = findAll(txDetail, "camt:RmtInf/camt:Strd/camt:AddtlRmtInf", ns);
   for (const addtl of addtlRmtInfoElements) {
-    const text = addtl.text()?.trim();
+    const text = addtl.textContent?.trim();
     if (text) {
       messages.push(text);
     }
@@ -197,21 +230,22 @@ function extractMessagesFromEntry(entry: XMLElement, ns: Record<string, string>)
   const messages: string[] = [];
 
   // Get unstructured remittance info
-  const ustrdElements = entry.find("camt:NtryDtls/camt:RmtInf/camt:Ustrd", ns) as XMLElement[];
+  const ustrdElements = findAll(entry, "camt:NtryDtls/camt:RmtInf/camt:Ustrd", ns);
   for (const ustrd of ustrdElements) {
-    const text = ustrd.text()?.trim();
+    const text = ustrd.textContent?.trim();
     if (text) {
       messages.push(text);
     }
   }
 
   // Get structured remittance info
-  const addtlRmtInfoElements = entry.find(
+  const addtlRmtInfoElements = findAll(
+    entry,
     "camt:NtryDtls/camt:RmtInf/camt:Strd/camt:AddtlRmtInf",
     ns,
-  ) as XMLElement[];
+  );
   for (const addtl of addtlRmtInfoElements) {
-    const text = addtl.text()?.trim();
+    const text = addtl.textContent?.trim();
     if (text) {
       messages.push(text);
     }

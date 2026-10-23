@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <BkToCstmrStmt>
+    <GrpHdr>
+      <MsgId>TESTMSG0001</MsgId>
+      <CreDtTm>2025-03-04T06:12:00</CreDtTm>
+    </GrpHdr>
+    <Stmt>
+      <Id>STMT0001</Id>
+      <CreDtTm>2025-03-04T06:12:00</CreDtTm>
+      <Acct><Id><Othr><Id>0000000000</Id></Othr></Id><Ccy>SEK</Ccy></Acct>
+      <!-- 1: batched credit entry with two transactions, Ustrd + Strd messages -->
+      <Ntry>
+        <Amt Ccy="SEK">350.50</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2025-03-03</Dt></BookgDt>
+        <ValDt><Dt>2025-03-03</Dt></ValDt>
+        <AcctSvcrRef>ENTRYREF001</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>RCDT</Cd><SubFmlyCd>DMCT</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <NtryDtls>
+          <Btch><NbOfTxs>2</NbOfTxs></Btch>
+          <TxDtls>
+            <Refs><AcctSvcrRef>TXREF001</AcctSvcrRef></Refs>
+            <AmtDtls><TxAmt><Amt Ccy="SEK">100.00</Amt></TxAmt></AmtDtls>
+            <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>RCDT</Cd><SubFmlyCd>DMCT</SubFmlyCd></Fmly></Domn></BkTxCd>
+            <RltdPties><UltmtDbtr><Nm>Test Testsson</Nm></UltmtDbtr></RltdPties>
+            <RmtInf>
+              <Ustrd>  12345678  </Ustrd>
+              <Ustrd>Gåva till Ge Effektivt &amp; co</Ustrd>
+              <Ustrd>   </Ustrd>
+            </RmtInf>
+          </TxDtls>
+          <TxDtls>
+            <Refs><AcctSvcrRef>TXREF002</AcctSvcrRef></Refs>
+            <AmtDtls><TxAmt><Amt Ccy="SEK">250.5</Amt></TxAmt></AmtDtls>
+            <RmtInf>
+              <Strd><AddtlRmtInf>KID 87654321</AddtlRmtInf></Strd>
+              <Strd><AddtlRmtInf>Second &lt;line&gt;</AddtlRmtInf></Strd>
+            </RmtInf>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+      <!-- 2: debit entry, must be skipped -->
+      <Ntry>
+        <Amt Ccy="SEK">99.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <BookgDt><Dt>2025-03-03</Dt></BookgDt>
+        <AcctSvcrRef>DEBIT001</AcctSvcrRef>
+      </Ntry>
+      <!-- 3: entry without TxDtls, entry-level messages -->
+      <Ntry>
+        <Amt Ccy="SEK">500</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <BookgDt><Dt>2025-03-04</Dt></BookgDt>
+        <AcctSvcrRef>ENTRYREF003</AcctSvcrRef>
+        <NtryDtls>
+          <RmtInf>
+            <Ustrd>Donation 11112222</Ustrd>
+            <Strd><AddtlRmtInf> extra info </AddtlRmtInf></Strd>
+          </RmtInf>
+        </NtryDtls>
+      </Ntry>
+      <!-- 4: entry-level PMDD (Autogiro) without TxDtls, skipped -->
+      <Ntry>
+        <Amt Ccy="SEK">200</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <BookgDt><Dt>2025-03-04</Dt></BookgDt>
+        <AcctSvcrRef>ENTRYREF004</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>RDDT</Cd><SubFmlyCd>PMDD</SubFmlyCd></Fmly></Domn></BkTxCd>
+      </Ntry>
+      <!-- 5: entry-level PMDD with TxDtls, all skipped -->
+      <Ntry>
+        <Amt Ccy="SEK">300</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <BookgDt><Dt>2025-03-04</Dt></BookgDt>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>RDDT</Cd><SubFmlyCd>PMDD</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <NtryDtls>
+          <TxDtls>
+            <Refs><AcctSvcrRef>TXREF005</AcctSvcrRef></Refs>
+            <AmtDtls><TxAmt><Amt Ccy="SEK">300</Amt></TxAmt></AmtDtls>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+      <!-- 6: tx-level PMDD and AG Löpnr message, skipped; one normal tx without name/messages kept -->
+      <Ntry>
+        <Amt Ccy="SEK">900</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <BookgDt><Dt>2025-03-05</Dt></BookgDt>
+        <NtryDtls>
+          <TxDtls>
+            <Refs><AcctSvcrRef>TXREF006A</AcctSvcrRef></Refs>
+            <AmtDtls><TxAmt><Amt Ccy="SEK">100</Amt></TxAmt></AmtDtls>
+            <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>RDDT</Cd><SubFmlyCd>PMDD</SubFmlyCd></Fmly></Domn></BkTxCd>
+          </TxDtls>
+          <TxDtls>
+            <Refs><AcctSvcrRef>TXREF006B</AcctSvcrRef></Refs>
+            <AmtDtls><TxAmt><Amt Ccy="SEK">200</Amt></TxAmt></AmtDtls>
+            <RmtInf><Ustrd>AG Löpnr 000123</Ustrd></RmtInf>
+          </TxDtls>
+          <TxDtls>
+            <Refs><AcctSvcrRef>TXREF006C</AcctSvcrRef></Refs>
+            <AmtDtls><TxAmt><Amt Ccy="SEK">600.25</Amt></TxAmt></AmtDtls>
+            <RltdPties><UltmtDbtr><Nm></Nm></UltmtDbtr></RltdPties>
+          </TxDtls>
+          <TxDtls>
+            <Refs><AcctSvcrRef>TXREF006D</AcctSvcrRef></Refs>
+            <RmtInf><Ustrd><![CDATA[CDATA <msg> 33334444]]></Ustrd></RmtInf>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+      <!-- 7: entry-level AG Löpnr without TxDtls, skipped -->
+      <Ntry>
+        <Amt Ccy="SEK">150</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <BookgDt><Dt>2025-03-05</Dt></BookgDt>
+        <AcctSvcrRef>ENTRYREF007</AcctSvcrRef>
+        <NtryDtls><RmtInf><Ustrd>AG Löpnr 000999</Ustrd></RmtInf></NtryDtls>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>

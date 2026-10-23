@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Document [
+  <!ENTITY xxe SYSTEM "file:///etc/hostname">
+]>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+  <BkToCstmrStmt>
+    <Stmt>
+      <Id>XXE</Id>
+      <Ntry>
+        <Amt Ccy="SEK">1</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <BookgDt><Dt>2025-01-01</Dt></BookgDt>
+        <AcctSvcrRef>XXEREF</AcctSvcrRef>
+        <NtryDtls><RmtInf><Ustrd>before &xxe; after</Ustrd></RmtInf></NtryDtls>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>

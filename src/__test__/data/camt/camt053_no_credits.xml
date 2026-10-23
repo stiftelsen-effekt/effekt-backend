@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+  <BkToCstmrStmt>
+    <GrpHdr><MsgId>TESTMSG0002</MsgId><CreDtTm>2025-04-01T00:00:00</CreDtTm></GrpHdr>
+    <Stmt>
+      <Id>STMT0002</Id>
+      <CreDtTm>2025-04-02T07:30:00+02:00</CreDtTm>
+      <Ntry>
+        <Amt Ccy="SEK">10</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <BookgDt><Dt>2025-04-01</Dt></BookgDt>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>
