@@ -5,6 +5,7 @@ import e from "express";
 import express from "express";
 const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+import permissions from "../enums/authorizationPermissions";
 import { fetchToken } from "../custom_modules/facebook";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 
@@ -27,7 +28,14 @@ router.get("/payments/all", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-router.post("/register/payment", async (req, res, next) => {
+/**
+ * Called from the donor profile page (Min side) by a logged-in donor to claim a
+ * Facebook / Instagram payment for tax deduction. The caller must be authenticated and
+ * may only register payments for their own donor profile (or be an admin).
+ */
+const requireDonorToken = authMiddleware.auth(permissions.write_profile);
+
+router.post("/register/payment", requireDonorToken, async (req, res, next) => {
   try {
     const paymentID = req.body.paymentID;
     const email = req.body.email;
@@ -46,6 +54,18 @@ router.post("/register/payment", async (req, res, next) => {
 
     let donorID = await DAO.donors.getIDbyEmail(email);
     let taxUnitID: number | undefined = undefined;
+
+    // Only allow attaching the payment (and a tax unit) to the caller's own donor profile.
+    // Admins may register on behalf of any donor, including creating a new one.
+    if (
+      !authMiddleware.requestIsAdmin(req) &&
+      (!donorID || !authMiddleware.requestIsAdminOrTheDonor(req, donorID))
+    ) {
+      return res.status(403).json({
+        status: 403,
+        content: "Not allowed to register payments for this donor",
+      });
+    }
 
     // If donor does not exist, create new donor
     if (!donorID) {

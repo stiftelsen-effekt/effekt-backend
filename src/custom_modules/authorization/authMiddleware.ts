@@ -59,6 +59,24 @@ const userIsTheDonor = (jwtPayload: JWTPayload, donorId: number) =>
 const userIsAllowedToManageDonor = (jwtPayload: JWTPayload, donorId: number) =>
   userIsAdmin(jwtPayload) || userIsTheDonor(jwtPayload, donorId);
 
+/**
+ * Returns true if the verified JWT on the request (set by `auth(...)`) belongs to an admin
+ * or to the donor with the given id. Must only be used on routes guarded by `auth(...)`.
+ */
+/**
+ * Returns true if the verified JWT on the request (set by `auth(...)`) has the admin permission.
+ */
+export const requestIsAdmin = (req): boolean => {
+  const payload: JWTPayload | undefined = req.auth?.payload;
+  return !!payload && userIsAdmin(payload);
+};
+
+export const requestIsAdminOrTheDonor = (req, donorId: number): boolean => {
+  const payload: JWTPayload | undefined = req.auth?.payload;
+  if (!payload) return false;
+  return userIsAllowedToManageDonor(payload, donorId);
+};
+
 export const checkAdminOrTheDonor = (donorId: number, req, res, next) => {
   const handler = claimCheck((jwtPayload) => userIsAllowedToManageDonor(jwtPayload, donorId));
   handler(req, res, next);
