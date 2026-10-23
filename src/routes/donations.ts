@@ -426,7 +426,15 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
  *    description: Registers a pending bank donation (sends an email with a notice to pay)
  */
 router.post("/bank/pending", urlEncodeParser, async (req, res, next) => {
-  let parsedData = JSON.parse(req.body.data);
+  let parsedData;
+  try {
+    parsedData = JSON.parse(req.body?.data);
+  } catch (ex) {
+    parsedData = null;
+  }
+  if (!parsedData || typeof parsedData !== "object" || !parsedData.KID) {
+    return res.status(400).json({ status: 400, content: "Invalid data" });
+  }
 
   if (config.env === "production" || true)
     var success = await sendDonationRegistered(parsedData.KID, parsedData.sum);

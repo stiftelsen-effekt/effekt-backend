@@ -81,6 +81,50 @@ export const agreementfeedback = {
     );
     return result.length > 0;
   },
+  /**
+   * Checks that a stopped-agreement feedback record exists and belongs to an agreement with the given KID
+   */
+  async getStoppedAgreementReasonRecordExistsForKID(id: number, KID: string): Promise<boolean> {
+    const [result] = await DAO.query(
+      `
+      SELECT R.ID FROM Recurring_agreement_stopped R
+        LEFT JOIN Avtalegiro_agreements A ON R.avtalegiroAgreementID = A.ID
+        LEFT JOIN AutoGiro_agreements G ON R.autoGiroAgreementID = G.ID
+        LEFT JOIN Vipps_agreements V ON R.vippsAgreementID = V.ID
+      WHERE R.ID = ? AND (A.KID = ? OR G.KID = ? OR V.KID = ?)
+    `,
+      [id, KID, KID, KID],
+    );
+    return result.length > 0;
+  },
+  /**
+   * Checks that the given agreement (by type and id) has the given KID
+   */
+  async agreementBelongsToKID(
+    agreementType: string,
+    agreementId: string,
+    KID: string,
+  ): Promise<boolean> {
+    let table: string;
+    switch (agreementType) {
+      case "AvtaleGiro":
+        table = "Avtalegiro_agreements";
+        break;
+      case "AutoGiro":
+        table = "AutoGiro_agreements";
+        break;
+      case "Vipps":
+        table = "Vipps_agreements";
+        break;
+      default:
+        return false;
+    }
+    const [result] = await DAO.query(`SELECT ID FROM ${table} WHERE ID = ? AND KID = ?`, [
+      agreementId,
+      KID,
+    ]);
+    return result.length > 0;
+  },
   async getStoppedAgreementReasonRecordForAgreementWithin24Hours(
     agreementId: string,
     reasonId: number,

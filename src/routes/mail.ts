@@ -9,7 +9,9 @@ import {
 } from "../custom_modules/mail";
 
 import express from "express";
+import { requireMailerSendSignature } from "../custom_modules/webhookAuth";
 const router = express.Router();
+const config = require("../config");
 const authMiddleware = require("../custom_modules/authorization/authMiddleware");
 
 router.post("/donation/registered", authMiddleware.isAdmin, async (req, res, next) => {
@@ -227,7 +229,16 @@ router.post("/notice/missingtaxunit", authMiddleware.isAdmin, async (req, res, n
   }
 });
 
-router.post("/mailersend/survey/response", async (req, res, next) => {
+/**
+ * MailerSend survey_submitted webhook. Requests must be signed with the webhook's signing
+ * secret (MAILERSEND_SURVEY_WEBHOOK_SECRET).
+ */
+const verifySurveyWebhook = requireMailerSendSignature(
+  () => config.mailersend_survey_webhook_secret,
+  "MAILERSEND_SURVEY_WEBHOOK_SECRET",
+);
+
+router.post("/mailersend/survey/response", verifySurveyWebhook, async (req, res, next) => {
   try {
     const { recipientEmail, answers } = parseSurveySubmission(req.body?.data);
 

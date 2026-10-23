@@ -49,6 +49,20 @@ agreementfeedbackRouter.post(
           break;
       }
 
+      // The caller is authorized for :KID only, so the agreement must belong to that KID
+      if (
+        agreementId === undefined ||
+        agreementId === null ||
+        !(await DAO.agreementfeedback.agreementBelongsToKID(
+          agreementType,
+          String(agreementId),
+          req.params.KID,
+        ))
+      ) {
+        res.status(403).json({ status: 403, message: "Agreement does not belong to KID" });
+        return;
+      }
+
       const reason = await DAO.agreementfeedback.getStoppedAgreementReasonById(reasonId);
 
       if (!reason) {
@@ -108,7 +122,14 @@ agreementfeedbackRouter.delete(
       const id = parseInt(req.params.id);
       //throw new Error("Failed to delete record");
 
-      if (!(await DAO.agreementfeedback.getStoppedAgreementReasonRecordExists(id))) {
+      // The caller is authorized for :KID only, so the record must belong to an agreement with that KID
+      if (
+        Number.isNaN(id) ||
+        !(await DAO.agreementfeedback.getStoppedAgreementReasonRecordExistsForKID(
+          id,
+          req.params.KID,
+        ))
+      ) {
         res.status(404).json({
           status: 404,
           message: "Record not found",

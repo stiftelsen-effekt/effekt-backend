@@ -310,8 +310,8 @@ describe("swish", () => {
 
       function withWhitelistedIp(ip?: string) {
         sinon.stub(config, "swish_whitelist").value(ip ? [ip] : []);
-        // trust proxy is needed for X-Forwarded-For to be used
-        server.enable("trust proxy");
+        // Same setting as server.ts: trust exactly one proxy hop (Cloud Run front end)
+        server.set("trust proxy", 1);
       }
 
       it("should return 200 if valid ip", async () => {
@@ -334,6 +334,19 @@ describe("swish", () => {
           status: body.status,
           amount: body.amount,
         });
+      });
+
+      it("should return 403 if a whitelisted ip is spoofed in a client-supplied X-Forwarded-For", async () => {
+        const ip = "1.2.3.4";
+        withWhitelistedIp(ip);
+
+        // The proxy appends the real client address as the last entry; the earlier entry is
+        // client-controlled and must not be trusted
+        await request(server)
+          .post("/swish/callback")
+          .set("X-Forwarded-For", `${ip}, 5.6.7.8`)
+          .expect(403);
+        expect(handleOrderStatusUpdateStub.called).to.be.false;
       });
 
       it("should return 403 if invalid ip", async () => {

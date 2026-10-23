@@ -21,6 +21,12 @@ module.exports = {
   frontend_url: process.env.FRONTEND_URL,
   revalidate_token: process.env.REVALIDATE_TOKEN,
 
+  //Shared secrets for inbound webhooks (requests are rejected when unset)
+  //Value configured as the "Authorization Token" on the Auth0 custom webhook log stream
+  auth0_log_stream_token: process.env.AUTH0_LOG_STREAM_TOKEN,
+  //Signing secret of the MailerSend survey_submitted webhook
+  mailersend_survey_webhook_secret: process.env.MAILERSEND_SURVEY_WEBHOOK_SECRET,
+
   //Insert db connection values
   db_host: process.env.DB_HOST,
   db_username: process.env.DB_USER,
