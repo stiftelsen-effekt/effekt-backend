@@ -114,8 +114,10 @@ interface SwishCallbackRequestBody {
  */
 router.post("/callback", jsonBody, swishWhitelistMiddleware, async (req, res, next) => {
   try {
-    const { status, amount, id } = req.body as SwishCallbackRequestBody;
-    await swish.handleOrderStatusUpdate(id, { status, amount });
+    // Only the payment request id is taken from the callback. The status and amount are
+    // re-fetched from Swish, so a forged callback cannot mark an order as paid.
+    const { id } = (req.body ?? {}) as Partial<SwishCallbackRequestBody>;
+    await swish.handleCallback(id);
     res.sendStatus(200);
   } catch (err) {
     console.error("Error while processing Swish callback: ", err);

@@ -17,28 +17,9 @@ import { getFundraiserRedirectUrl } from "../custom_modules/fundraiserRedirect";
 import { exportCsv } from "../custom_modules/csvexport";
 import { verifyVippsWebhookSignature } from "../custom_modules/vippsWebhookAuth";
 const jsonBody = bodyParser.json();
-const dns = require("dns").promises;
+import crypto from "crypto";
 const config = require("../config");
 const vipps = require("../custom_modules/vipps");
-
-const vippsCallbackProdServers = [
-  "callback-1.vipps.no",
-  "callback-2.vipps.no",
-  "callback-3.vipps.no",
-  "callback-4.vipps.no",
-];
-const vippsCallbackDisasterServers = [
-  "callback-dr-1.vipps.no",
-  "callback-dr-2.vipps.no",
-  "callback-dr-3.vipps.no",
-  "callback-dr-4.vipps.no",
-];
-const vippsCallbackDevServers = [
-  "callback-mt-1.vipps.no",
-  "callback-mt-2.vipps.no",
-  "callback-mt-3.vipps.no",
-  "callback-mt-4.vipps.no",
-];
 
 /**
  * @openapi
@@ -910,59 +891,89 @@ router.post("/agreement/report/problem", jsonBody, async (req, res, next) => {
   }
 });
 
+/**
+ * Callback from the Vipps eCom v2 API for one-off payments (callbackPrefix set in
+ * vipps.initiateOrder). Vipps echoes the per-order authToken we registered when creating
+ * the payment in the Authorization header, which is how we know the callback is genuine.
+ * The callback body is only used as a trigger: the amount to capture is taken from the
+ * order details fetched from Vipps, never from the request body.
+ */
 router.post("/v2/payments/:orderId", jsonBody, async (req, res, next) => {
-  if (req.body.orderId !== req.params.orderId) {
-    res.sendStatus(400);
-    return false;
-  }
-  let orderId = req.body.orderId;
+  try {
+    const orderId = req.params.orderId;
+    if (req.body?.orderId !== orderId || typeof req.body?.transactionInfo !== "object") {
+      return res.sendStatus(400);
+    }
 
-  //Make sure the request actually came from the vipps callback servers
-  if (!(await whitelisted(req.ip))) {
-    console.warn(`Vipps callback host (${req.ip}) not whitelisted`);
-    res.status(401).json({ status: 401, content: "Host not whitelisted" });
-    return false;
-  }
+    const order = await DAO.vipps.getOrder(orderId);
+    if (!order) {
+      console.warn(`Vipps callback for unknown order ${orderId}`);
+      return res.sendStatus(404);
+    }
 
-  //TODO: Check whether order exists and, if captured, whether reserved before
-  let transactionInfo = {
-    orderId: orderId,
-    transactionId: req.body.transactionInfo.transactionId,
-    amount: req.body.transactionInfo.amount,
-    status: req.body.transactionInfo.status,
-    timestamp: new Date(req.body.transactionInfo.timeStamp),
-  };
+    if (!vippsCallbackAuthTokenMatches(order.token, req.get("authorization"))) {
+      console.warn(`Vipps callback for order ${orderId} with invalid authorization`);
+      return res.status(401).json({ status: 401, content: "Unauthorized" });
+    }
 
-  //Handle different transactions states
-  switch (transactionInfo.status) {
-    case "RESERVED":
-      try {
-        await vipps.captureOrder(orderId, transactionInfo);
-      } catch (ex) {
-        next(ex);
+    const status = req.body.transactionInfo.status;
+
+    //Handle different transactions states
+    switch (status) {
+      case "RESERVED": {
+        // Capture the amount Vipps reports as reserved, not the amount in the callback body
+        const orderDetails = await vipps.getOrderDetails(orderId);
+        const reserveLogItem = vipps.findTransactionLogItem(
+          orderDetails.transactionLogHistory,
+          "RESERVE",
+        );
+        if (reserveLogItem) {
+          await vipps.captureOrder(orderId, reserveLogItem);
+        } else {
+          console.warn(
+            `Vipps callback for order ${orderId} reported RESERVED, but Vipps has no reservation`,
+          );
+        }
+        break;
       }
-      break;
-    case "SALE":
-      //Not applicable POS sale
-      break;
-    case "SALE_FAILED":
-      //Not applicable POS sale
-      break;
-    case "CANCELLED":
-      //User cancelled in Vipps
-      //Perhaps send a follow up email?
-      break;
-    case "REJECTED":
-      //User did not act on the payment (timeout etc.)
-      //Perhaps send a follow-up email?
-      break;
-    default:
-      console.warn("Unknown vipps state", transactionInfo.status);
-      break;
-  }
+      case "SALE":
+        //Not applicable POS sale
+        break;
+      case "SALE_FAILED":
+        //Not applicable POS sale
+        break;
+      case "CANCELLED":
+        //User cancelled in Vipps
+        //Perhaps send a follow up email?
+        break;
+      case "REJECTED":
+        //User did not act on the payment (timeout etc.)
+        //Perhaps send a follow-up email?
+        break;
+      default:
+        console.warn("Unknown vipps state", status);
+        break;
+    }
 
-  res.sendStatus(200);
+    res.sendStatus(200);
+  } catch (ex) {
+    next(ex);
+  }
 });
+
+/**
+ * Constant-time check of the Authorization header of a Vipps eCom v2 callback against the
+ * authToken stored for the order. Orders without a stored token are rejected.
+ */
+function vippsCallbackAuthTokenMatches(
+  expected: string | null | undefined,
+  provided: string | undefined,
+): boolean {
+  if (!expected || !provided) return false;
+  const a = crypto.createHash("sha256").update(expected).digest();
+  const b = crypto.createHash("sha256").update(provided).digest();
+  return crypto.timingSafeEqual(a, b);
+}
 
 router.post("/fundraiser/:id/webhook", jsonBody, async (req, res, next) => {
   console.log("Webhook received for fundraiser", req.params.id);
@@ -1155,43 +1166,6 @@ router.put(
     }
   },
 );
-
-/**
- * Checks whether the provided IP is one of the vipps callback servers
- * @param {string} ip
- */
-async function whitelisted(ip) {
-  //Some weirdness going on here, implicitly trust
-  return true;
-
-  //ipv6 check
-  if (ip.substr(0, 7) == "::ffff:") {
-    ip = ip.substr(7);
-  }
-
-  let whitelistedHosts;
-  if (config.env === "production") {
-    whitelistedHosts = [...vippsCallbackProdServers, ...vippsCallbackDisasterServers];
-  } else {
-    whitelistedHosts = vippsCallbackDevServers;
-  }
-
-  let whitelisted = false;
-  try {
-    for (let i = 0; i < whitelistedHosts.length; i++) {
-      let ipv4s = await dns.resolve4(whitelistedHosts[i]);
-      console.log(ipv4s, ip);
-      //Should possibly also check for ipv6?
-      if (ipv4s.indexOf(ip) != -1) {
-        whitelisted = true;
-        break;
-      }
-    }
-  } catch (ex) {
-    console.warn("Checking for whitelisted IPs failed", ex);
-  }
-  return whitelisted;
-}
 
 //Helper for integration test
 function delay(t) {
