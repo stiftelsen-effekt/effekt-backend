@@ -4,7 +4,12 @@ const config = require("../config.js");
 
 const handler: ErrorRequestHandler = (err, req, res, next) => {
   if (res.headersSent) {
-    return next(err);
+    // Some handlers respond early and keep processing (e.g. provider callbacks).
+    // Log the error; only delegate to Express (which closes the connection) if the
+    // response is still in flight.
+    console.error(err);
+    if (!res.writableEnded) return next(err);
+    return;
   }
 
   console.error(err); //Log the error

@@ -11,6 +11,10 @@ console.log("--------------------------------------------------");
 
 import bearerToken from "express-bearer-token";
 import express from "express";
+// Patches Express 4 so that rejected promises from async route handlers are passed to
+// next(err) and reach the error handler instead of becoming unhandled rejections.
+// Must be imported before any routers are created.
+import "express-async-errors";
 import fileUpload from "express-fileupload";
 import honeypot from "honeypot";
 import http from "http";
@@ -36,6 +40,12 @@ import { mcpRouter } from "./routes/mcp";
 import { oauthRouter, sendAuthorizationServerMetadata } from "./routes/oauth";
 import { getProtectedResourceMetadata } from "./custom_modules/mcp/oauthProtectedResource";
 import { startWebSocketServer } from "./websocket";
+
+// Defence in depth: log stray rejections instead of letting Node's default
+// (--unhandled-rejections=throw) terminate the whole API process.
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled promise rejection", reason);
+});
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 

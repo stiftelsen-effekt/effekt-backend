@@ -46,12 +46,6 @@ const vippsCallbackDevServers = [
  *     description: Vipps agreements in the database.
  */
 
-router.get("/initiate/:phonenumber", async (req, res, next) => {
-  let token = await vipps.fetchToken();
-  let url = await vipps.initiateOrder(req.params.phonenumber, token);
-  res.json(url);
-});
-
 router.post("/agreement/draft", jsonBody, async (req, res, next) => {
   const body = req.body;
   const KID = body.KID;

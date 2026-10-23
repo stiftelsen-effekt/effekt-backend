@@ -9,6 +9,13 @@ export function startWebSocketServer(server: Server) {
   const wss = new WebSocketServer({ server });
 
   wss.on("connection", (ws) => {
+    // Without an error listener, a malformed frame from a client emits an unhandled
+    // 'error' event, which throws and terminates the process.
+    ws.on("error", (err) => {
+      console.warn("WebSocket client error", err?.message);
+      ws.terminate();
+    });
+
     ws.on("message", (data) => {
       try {
         const msg = JSON.parse(data.toString());
