@@ -15,3 +15,6 @@ steps:
     entrypoint: npm
     waitFor: ["install"]
     args: ["run", "format:check"]
+
+options:
+  logging: CLOUD_LOGGING_ONLY
