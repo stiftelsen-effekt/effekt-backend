@@ -1,0 +1,49 @@
+{
+  "typical": {
+    "year": 2025,
+    "contact": {
+      "name": "Kari Nordmann",
+      "phoneNumber": "+4712345678",
+      "email": "test@example.org",
+      "smsNumber": "+4712345678"
+    },
+    "entities": [
+      { "identificationNumber": "01010112345", "amount": 1234.4, "name": "Ola Nordmann" },
+      { "identificationNumber": "123456789", "amount": 500.5, "name": "Testfirma AS" },
+      { "identificationNumber": "02020254321", "amount": 25000, "name": "" }
+    ]
+  },
+  "escaping": {
+    "year": 2024,
+    "contact": {
+      "name": "Æ Ø & Å <test> \"q\" 'a'",
+      "phoneNumber": "123",
+      "email": "a&b@example.org",
+      "smsNumber": ""
+    },
+    "entities": [
+      {
+        "identificationNumber": "03030312345",
+        "amount": 600,
+        "name": "Bjørn & Søn <AS> \"x\" 'y' > ]]>"
+      },
+      { "identificationNumber": "1234", "amount": 999, "name": "Skipped short ssn" },
+      { "identificationNumber": "04040412345", "amount": 700.49, "name": "Tab\there\nnewline\r cr" }
+    ]
+  },
+  "empty": {
+    "year": 2023,
+    "contact": { "name": "N", "phoneNumber": "1", "email": "e", "smsNumber": "2" },
+    "entities": []
+  },
+  "invalid_long_name": {
+    "year": 2025,
+    "contact": {
+      "name": "N",
+      "phoneNumber": "123456789012345678901234",
+      "email": "e",
+      "smsNumber": "2"
+    },
+    "entities": [{ "identificationNumber": "0505051234X", "amount": 100, "name": "Navn" }]
+  }
+}

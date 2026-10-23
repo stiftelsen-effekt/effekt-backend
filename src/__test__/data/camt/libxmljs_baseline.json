@@ -1,0 +1,120 @@
+{
+  "camt053_malformed.xml": {
+    "error": "Premature end of data in tag Document line 2 (Line: 5, Column: 1)"
+  },
+  "camt053_mixed.xml": {
+    "result": {
+      "postingDate": "2025-03-03",
+      "transactions": [
+        {
+          "amount": 100,
+          "externalReference": "TXREF001",
+          "bookingDate": "2025-03-03",
+          "messages": ["12345678", "Gåva till Ge Effektivt & co"],
+          "donorName": "Test Testsson"
+        },
+        {
+          "amount": 250.5,
+          "externalReference": "TXREF002",
+          "bookingDate": "2025-03-03",
+          "messages": ["KID 87654321", "Second <line>"]
+        },
+        {
+          "amount": 500,
+          "externalReference": "ENTRYREF003",
+          "bookingDate": "2025-03-04",
+          "messages": ["Donation 11112222", "extra info"]
+        },
+        {
+          "amount": 600.25,
+          "externalReference": "TXREF006C",
+          "bookingDate": "2025-03-05",
+          "messages": []
+        },
+        {
+          "amount": 0,
+          "externalReference": "TXREF006D",
+          "bookingDate": "2025-03-05",
+          "messages": ["CDATA <msg> 33334444"]
+        }
+      ]
+    }
+  },
+  "camt053_mixed.xml#bom": {
+    "result": {
+      "postingDate": "2025-03-03",
+      "transactions": [
+        {
+          "amount": 100,
+          "externalReference": "TXREF001",
+          "bookingDate": "2025-03-03",
+          "messages": ["12345678", "Gåva till Ge Effektivt & co"],
+          "donorName": "Test Testsson"
+        },
+        {
+          "amount": 250.5,
+          "externalReference": "TXREF002",
+          "bookingDate": "2025-03-03",
+          "messages": ["KID 87654321", "Second <line>"]
+        },
+        {
+          "amount": 500,
+          "externalReference": "ENTRYREF003",
+          "bookingDate": "2025-03-04",
+          "messages": ["Donation 11112222", "extra info"]
+        },
+        {
+          "amount": 600.25,
+          "externalReference": "TXREF006C",
+          "bookingDate": "2025-03-05",
+          "messages": []
+        },
+        {
+          "amount": 0,
+          "externalReference": "TXREF006D",
+          "bookingDate": "2025-03-05",
+          "messages": ["CDATA <msg> 33334444"]
+        }
+      ]
+    }
+  },
+  "camt053_mixed.xml#leading-ws": {
+    "error": "XML declaration allowed only at the start of the document (Line: 2, Column: 8)"
+  },
+  "camt053_no_credits.xml": {
+    "result": {
+      "postingDate": "2025-04-02",
+      "transactions": []
+    }
+  },
+  "camt053_prefixed.xml": {
+    "result": {
+      "postingDate": "2025-05-05",
+      "transactions": [
+        {
+          "amount": 42,
+          "externalReference": "PREFTX1",
+          "bookingDate": "2025-05-05",
+          "messages": ["55556666 öå"],
+          "donorName": "Exempel Person"
+        }
+      ]
+    }
+  },
+  "camt053_wrong_namespace.xml": {
+    "error": "No statement found in CAMT file"
+  },
+  "camt053_xxe.xml": {
+    "result": {
+      "postingDate": "2025-01-01",
+      "transactions": [
+        {
+          "amount": 1,
+          "externalReference": "XXEREF",
+          "bookingDate": "2025-01-01",
+          "messages": ["before  after"]
+        }
+      ]
+    }
+  }
+}

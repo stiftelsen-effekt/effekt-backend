@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:Document xmlns:c="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+  <c:BkToCstmrStmt>
+    <c:Stmt>
+      <c:Id>STMT0003</c:Id>
+      <c:CreDtTm>2025-05-06T08:00:00</c:CreDtTm>
+      <c:Ntry>
+        <c:Amt Ccy="SEK">42.00</c:Amt>
+        <c:CdtDbtInd>CRDT</c:CdtDbtInd>
+        <c:BookgDt><c:Dt>2025-05-05</c:Dt></c:BookgDt>
+        <c:AcctSvcrRef>PREFREF1</c:AcctSvcrRef>
+        <c:NtryDtls>
+          <c:TxDtls>
+            <c:Refs><c:AcctSvcrRef>PREFTX1</c:AcctSvcrRef></c:Refs>
+            <c:AmtDtls><c:TxAmt><c:Amt Ccy="SEK">42.00</c:Amt></c:TxAmt></c:AmtDtls>
+            <c:RltdPties><c:UltmtDbtr><c:Nm>Exempel <!-- c -->Person</c:Nm></c:UltmtDbtr></c:RltdPties>
+            <c:RmtInf><c:Ustrd>55556666 &#246;&#x00E5;</c:Ustrd></c:RmtInf>
+          </c:TxDtls>
+        </c:NtryDtls>
+      </c:Ntry>
+    </c:Stmt>
+  </c:BkToCstmrStmt>
+</c:Document>

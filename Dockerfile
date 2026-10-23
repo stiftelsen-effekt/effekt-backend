@@ -1,36 +1,19 @@
 # ---- Build ----
-FROM node:22 AS build
-
-# Install build dependencies for native modules
-RUN apt-get update && apt-get install -y \
-    make \
-    g++ \
-    python3 \
-    libxml2-dev
+FROM node:24.22.1 AS build
 
 WORKDIR /usr/src/app
 COPY package*.json ./
 
 # --ignore-scripts to prevent prisma generate from running.
 # No use until we got the source code
-RUN npm install --ignore-script
-
-# After npm install
-RUN npm rebuild libxmljs
+RUN npm install --ignore-scripts
 
 COPY . .
 RUN npx prisma generate
 RUN npm run build
 
 # ---- Release ----
-FROM node:22
-
-# Install build dependencies for native modules
-RUN apt-get update && apt-get install -y \
-    make \
-    g++ \
-    python3 \
-    libxml2-dev
+FROM node:24.22.1
 
 WORKDIR /usr/src/app
 COPY --from=build /usr/src/app/dist ./dist
@@ -39,9 +22,6 @@ COPY package*.json ./
 
 # --ignore-scripts to avoid husky install from running
 RUN npm ci --omit=dev --ignore-scripts
-
-# After npm install
-RUN npm rebuild libxmljs
 
 EXPOSE 5050
 CMD [ "npm", "start" ]

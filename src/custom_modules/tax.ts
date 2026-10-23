@@ -1,7 +1,7 @@
 import { DateTime } from "luxon";
 import { DAO } from "./DAO";
 import { donationHelpers } from "./donationHelpers";
-import libxmljs, { XMLDocument, Document } from "libxmljs";
+import { validateXML } from "xmllint-wasm";
 import { parseEanTaxUnits } from "./parsers/eanTaxUnits";
 
 export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId: number) {
@@ -103,7 +103,7 @@ export async function createXMLReportToTaxAuthorities(
   minSum: number,
   eanUnitsCsv: Buffer,
   contactInformation: ContactInformation,
-): Promise<XMLDocument> {
+): Promise<string> {
   const geTaxUnits = await DAO.tax.getTaxXMLReportUnits(year);
 
   const taxUnitsMap = new Map<string, { name: string; sum: number }>();
@@ -160,24 +160,66 @@ export async function createXMLReportToTaxAuthorities(
     "https://www.skatteetaten.no/contentassets/3bcbe50b50924c4297c2b62eb89a38da/v2_0_3/gavefrivilligorganisasjon_v2_0.xsd",
   ).then((res) => res.text());
 
-  const valid = validateXml(doc, xsdContent);
+  const { valid, errors } = await validateXml(doc, xsdContent);
 
   if (!valid) {
+    // Not fatal (unchanged behaviour), but make validation errors visible in the logs
+    console.warn(`Tax report XML is invalid when validating against XSD:\n${errors.join("\n")}`);
     //throw new Error("XML is invalid when validating against XSD");
   }
 
   return doc;
 }
 
+/**
+ * Minimal XML element tree. Serialized exactly like libxml2 (used by the
+ * previous libxmljs implementation): two space indentation, text-only
+ * elements on a single line and empty elements self-closed.
+ */
+class XmlElement {
+  private readonly children: XmlElement[] = [];
+  private readonly attributes: [string, string][] = [];
+
+  constructor(private readonly name: string, private readonly text?: string) {}
+
+  attr(attributes: Record<string, string>): XmlElement {
+    this.attributes.push(...Object.entries(attributes));
+    return this;
+  }
+
+  node(name: string, text?: string): XmlElement {
+    const child = new XmlElement(name, text);
+    this.children.push(child);
+    return child;
+  }
+
+  serialize(indent = ""): string {
+    const attrs = this.attributes.map(([k, v]) => ` ${k}="${escapeXmlAttribute(v)}"`).join("");
+    if (this.children.length > 0) {
+      const inner = this.children.map((c) => c.serialize(indent + "  ")).join("");
+      return `${indent}<${this.name}${attrs}>\n${inner}${indent}</${this.name}>\n`;
+    }
+    if (this.text) {
+      return `${indent}<${this.name}${attrs}>${escapeXmlText(this.text)}</${this.name}>\n`;
+    }
+    return `${indent}<${this.name}${attrs}/>\n`;
+  }
+}
+
+const escapeXmlText = (value: string): string =>
+  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\r/g, "&#13;");
+
+const escapeXmlAttribute = (value: string): string =>
+  escapeXmlText(value).replace(/"/g, "&quot;").replace(/\n/g, "&#10;").replace(/\t/g, "&#9;");
+
 type GiftEntity = { name: string; identificationNumber: string; amount: number };
 type ContactInformation = { name: string; phoneNumber: string; email: string; smsNumber: string };
-const writeXMLTaxReport = (
+export const writeXMLTaxReport = (
   giftEntities: GiftEntity[],
   contactInformation: ContactInformation,
   year: number,
-) => {
-  const doc = Document();
-  const root = doc.node("melding").attr({
+): string => {
+  const root = new XmlElement("melding").attr({
     xmlns: "urn:ske:fastsetting:innsamling:gavefrivilligorganisasjon:v2",
     "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
     "xsi:schemaLocation":
@@ -231,12 +273,25 @@ const writeXMLTaxReport = (
     Math.round(giftEntities.reduce((acc, curr) => acc + curr.amount, 0)).toFixed(0),
   );
 
-  return doc;
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + root.serialize();
 };
 
-const validateXml = (doc: XMLDocument, xsdContent: string): boolean => {
-  const xsdDoc = libxmljs.parseXml(xsdContent);
-  const result = doc.validate(xsdDoc);
-  const errors = doc.validationErrors;
-  return false;
+/**
+ * Validates an XML document against an XSD schema with libxml2 compiled to
+ * WebAssembly (xmllint-wasm). xmllint runs on an isolated in-memory file
+ * system without network access, so no external entities or schemas are loaded.
+ */
+export const validateXml = async (
+  xml: string,
+  xsdContent: string,
+): Promise<{ valid: boolean; errors: string[] }> => {
+  const result = await validateXML({
+    xml: { fileName: "taxreport.xml", contents: xml },
+    schema: { fileName: "gavefrivilligorganisasjon_v2_0.xsd", contents: xsdContent },
+  });
+  return {
+    valid: result.valid,
+    // Strip xmllint's prefix so messages read like the libxmljs validationErrors did
+    errors: result.errors.map((e) => e.message.replace(/^Schemas validity error : /, "").trim()),
+  };
 };

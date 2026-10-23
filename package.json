@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Backend for stiftelsen gi effektivt sitt donasjonsystem",
   "engines": {
-    "node": "^22.0.0"
+    "node": "^24.0.0"
   },
   "scripts": {
     "test": "cross-env DOTENV_CONFIG_PATH=.env.test TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register --require dotenv/config",
@@ -41,6 +41,7 @@
     "@prisma/client": "^4.14.0",
     "@types/luxon": "^3.3.0",
     "@types/ssh2-sftp-client": "^9.0.0",
+    "@xmldom/xmldom": "^0.9.12",
     "apicache": "1.6.3",
     "basic-auth": "^1.1.0",
     "body-parser": "^1.19.0",
@@ -65,7 +66,6 @@
     "ioredis": "^5.8.2",
     "ip-range-check": "^0.2.0",
     "jsonfile": "^4.0.0",
-    "libxmljs": "^1.0.11",
     "luxon": "^1.25.0",
     "mailersend": "^2.2.0",
     "mime": "^2.4.6",
@@ -87,7 +87,9 @@
     "ts-node": "^10.4.0",
     "uuid": "^9.0.1",
     "validator": "^13.7.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "xmllint-wasm": "^5.3.0",
+    "xpath": "^0.0.35"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.0.2",
@@ -95,7 +97,7 @@
     "@types/express": "^4.17.13",
     "@types/express-fileupload": "1.4.1",
     "@types/mocha": "^10.0.1",
-    "@types/node": "^22.9.0",
+    "@types/node": "^24.19.2",
     "@types/node-fetch": "^2.6.4",
     "@types/request-promise-native": "^1.0.17",
     "@types/sinon": "^7.5.2",
