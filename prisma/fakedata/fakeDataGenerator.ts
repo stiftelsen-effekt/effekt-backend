@@ -69,7 +69,8 @@ export function generateFakeDonation(
     ID: donationID,
     Donor_ID: donor.ID,
     Payment_ID: payment.ID,
-    PaymentExternal_ID: faker.helpers.maybe(() => faker.string.numeric(8)) ?? null, //TODO: This value is perhaps needed for other parts of testdata
+    // Derived from the donation ID so the unique constraint never fails on random collisions
+    PaymentExternal_ID: faker.helpers.maybe(() => String(donationID).padStart(8, "0")) ?? null, //TODO: This value is perhaps needed for other parts of testdata
     sum_confirmed: new Prisma.Decimal(donationSum),
     timestamp_confirmed: dateConfirmed,
     transaction_cost: new Prisma.Decimal(donationTransactionCost),
@@ -113,8 +114,15 @@ export function generateFakeDistribution(
   const distributionCauseAreaOrganizations: Distribution_cause_area_organizations[] = [];
   const distributionCauseAreas: Distribution_cause_areas[] = [];
 
-  const numberOfCauseAreas = faker.number.int({ min: 1, max: Math.min(causeAreas.length, 10) });
-  const causeAreaIdsSet = new Set(causeAreas.map((causeArea) => causeArea.ID));
+  // Cause areas without organizations (e.g. "Other") cannot be given a distribution
+  const causeAreasWithOrganizations = causeAreas.filter((causeArea) =>
+    organizations.some((organization) => organization.cause_area_ID === causeArea.ID),
+  );
+  const numberOfCauseAreas = faker.number.int({
+    min: 1,
+    max: Math.min(causeAreasWithOrganizations.length, 10),
+  });
+  const causeAreaIdsSet = new Set(causeAreasWithOrganizations.map((causeArea) => causeArea.ID));
   const causeAreaPercentages = getRandomArrayThatSumsTo100(numberOfCauseAreas);
 
   for (let i = 0; i < numberOfCauseAreas; i++) {
