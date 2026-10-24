@@ -55,7 +55,10 @@ function classify(row) {
   if (selectors.includes("google")) return "Google Workspace";
   if (selectors.some((s) => s.startsWith("mlsend")) || spfDomains.includes("mta.gieffektivt.no"))
     return "MailerSend";
-  if (selectors.some((s) => /^hs[12]-/.test(s)) || spfDomains.some((d) => d.endsWith("hubspotemail.net")))
+  if (
+    selectors.some((s) => /^hs[12]-/.test(s)) ||
+    spfDomains.some((d) => d.endsWith("hubspotemail.net"))
+  )
     return "HubSpot";
   return "Other";
 }

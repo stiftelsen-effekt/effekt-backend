@@ -9,7 +9,11 @@ const record = (ip, count, dkim, spf, selector, spfDomain) => `
       <policy_evaluated><disposition>none</disposition><dkim>${dkim}</dkim><spf>${spf}</spf></policy_evaluated></row>
     <identifiers><header_from>gieffektivt.no</header_from></identifiers>
     <auth_results>
-      ${selector ? `<dkim><domain>gieffektivt.no</domain><selector>${selector}</selector><result>${dkim}</result></dkim>` : ""}
+      ${
+        selector
+          ? `<dkim><domain>gieffektivt.no</domain><selector>${selector}</selector><result>${dkim}</result></dkim>`
+          : ""
+      }
       <spf><domain>${spfDomain}</domain><result>${spf}</result></spf>
     </auth_results>
   </record>`;
@@ -26,13 +30,19 @@ const xml = `<?xml version="1.0"?>
 
 test("extracts XML from gzip, zip and plain attachments", () => {
   assert.deepEqual(extractXml(Buffer.from(gzipSync(strToU8(xml)))), [xml]);
-  assert.deepEqual(extractXml(Buffer.from(zipSync({ "report.xml": strToU8(xml), "readme.txt": strToU8("x") }))), [xml]);
+  assert.deepEqual(
+    extractXml(Buffer.from(zipSync({ "report.xml": strToU8(xml), "readme.txt": strToU8("x") }))),
+    [xml],
+  );
   assert.deepEqual(extractXml(Buffer.from(xml)), [xml]);
   assert.deepEqual(extractXml(Buffer.from("not a report")), []);
 });
 
 test("parses a single-record report", () => {
-  const single = xml.replace(/<record>[\s\S]*<\/record>/, record("209.85.220.41", 1, "pass", "pass", "google", "gieffektivt.no"));
+  const single = xml.replace(
+    /<record>[\s\S]*<\/record>/,
+    record("209.85.220.41", 1, "pass", "pass", "google", "gieffektivt.no"),
+  );
   const report = parseReport(single);
   assert.equal(report.rows.length, 1);
   assert.equal(report.rows[0].count, 1);

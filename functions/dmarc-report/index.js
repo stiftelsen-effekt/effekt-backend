@@ -99,7 +99,12 @@ async function ensureMailbox(client, path) {
 async function failureMessage(failures) {
   const byIp = new Map();
   for (const f of failures) {
-    const entry = byIp.get(f.ip) || { count: 0, sender: f.sender, from: new Set(), reporters: new Set() };
+    const entry = byIp.get(f.ip) || {
+      count: 0,
+      sender: f.sender,
+      from: new Set(),
+      reporters: new Set(),
+    };
     entry.count += f.count;
     entry.from.add(f.headerFrom);
     entry.reporters.add(f.reporter);
@@ -109,11 +114,15 @@ async function failureMessage(failures) {
   for (const [ip, e] of [...byIp].sort((a, b) => b[1].count - a[1].count).slice(0, 15)) {
     const host = await reverseDns(ip);
     lines.push(
-      `• ${e.count} from \`${ip}\`${host ? ` (${host})` : ""}: ${e.sender}, From ${[...e.from].join(", ")}, reported by ${[...e.reporters].join(", ")}`,
+      `• ${e.count} from \`${ip}\`${host ? ` (${host})` : ""}: ${e.sender}, From ${[...e.from].join(
+        ", ",
+      )}, reported by ${[...e.reporters].join(", ")}`,
     );
   }
   const total = failures.reduce((n, f) => n + f.count, 0);
-  return `:warning: *DMARC failures*: ${total} message(s) claiming our domains failed SPF and DKIM alignment.\n${lines.join("\n")}`;
+  return `:warning: *DMARC failures*: ${total} message(s) claiming our domains failed SPF and DKIM alignment.\n${lines.join(
+    "\n",
+  )}`;
 }
 
 function weeklyMessage(reports, since) {
@@ -122,17 +131,27 @@ function weeklyMessage(reports, since) {
   const domains = [...new Set(reports.map((r) => `${r.domain} (p=${r.policy})`))].join(", ");
   const lines = [...senders]
     .sort((a, b) => b[1].pass + b[1].fail - (a[1].pass + a[1].fail))
-    .map(([name, s]) => `${s.fail ? ":x:" : ":white_check_mark:"} ${name}: ${s.pass} passed${s.fail ? `, ${s.fail} failed` : ""}`);
+    .map(
+      ([name, s]) =>
+        `${s.fail ? ":x:" : ":white_check_mark:"} ${name}: ${s.pass} passed${
+          s.fail ? `, ${s.fail} failed` : ""
+        }`,
+    );
   const from = since.toISOString().slice(0, 10);
   const verdict = failures.length
     ? "Some mail failed DMARC; check the failures before tightening the policy."
     : "Everything passed DMARC.";
-  return `:email: *DMARC weekly* since ${from}: ${reports.length} reports for ${domains}\n${lines.join("\n")}\n${verdict}`;
+  return `:email: *DMARC weekly* since ${from}: ${
+    reports.length
+  } reports for ${domains}\n${lines.join("\n")}\n${verdict}`;
 }
 
 async function reverseDns(ip) {
   try {
-    const names = await Promise.race([dns.reverse(ip), new Promise((_, reject) => setTimeout(reject, 2000))]);
+    const names = await Promise.race([
+      dns.reverse(ip),
+      new Promise((_, reject) => setTimeout(reject, 2000)),
+    ]);
     return names[0];
   } catch {
     return null;
