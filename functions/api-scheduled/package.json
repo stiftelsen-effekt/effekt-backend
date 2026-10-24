@@ -6,7 +6,7 @@
   },
   "dependencies": {
     "node-fetch": "^2.6.1",
-    "puppeteer": "^22.6.5"
+    "puppeteer": "^25.16.0"
   },
   "private": true,
   "engines": {
