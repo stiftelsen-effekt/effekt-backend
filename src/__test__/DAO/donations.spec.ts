@@ -152,4 +152,31 @@ describe("DAO donations", () => {
       });
     });
   });
+
+  describe("getTransactionCostsReport", () => {
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    it("keeps two decimals on the transaction cost sums", async () => {
+      const report = {
+        donationsCount: 3,
+        costPrevMonth: "12.34",
+        costPrevMonthPrevYear: "5.67",
+        costCurrentMonthToDate: "8.90",
+        costCurrentMonthToDatePrevYear: "1.23",
+        costYTD: "45.60",
+        costYTDPrevYear: "78.09",
+      };
+      const queryStub = sinon.stub(DAO, "query").resolves([[report], []]);
+
+      const result = await DAO.donations.getTransactionCostsReport();
+
+      expect(queryStub.calledOnce).to.be.true;
+      const sql = queryStub.firstCall.args[0] as string;
+      expect(sql.match(/round\(sum\(transaction_cost\), 2\)/g)).to.have.lengthOf(6);
+      expect(sql).to.not.match(/round\(sum\(transaction_cost\)\)/);
+      expect(result).to.deep.equal(report);
+    });
+  });
 });
