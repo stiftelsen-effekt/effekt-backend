@@ -102,6 +102,13 @@ DAO.connect(() => {
   //Compress responses (gzip/brotli). Mounted after /mcp so its streamed (SSE) responses are not buffered.
   app.use(compression());
 
+  // Tell browsers to only use HTTPS for the API hosts. No includeSubDomains: it would also
+  // apply to every other *.gieffektivt.no host, which this service doesn't control.
+  app.use((req, res, next) => {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000");
+    next();
+  });
+
   //Pretty printing of JSON
   app.use(
     pretty({
