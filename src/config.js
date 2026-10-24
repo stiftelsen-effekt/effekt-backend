@@ -16,6 +16,9 @@ const getMailersendSecurityRecipients = () => {
 module.exports = {
   //Environment
   env: process.env.NODE_ENV || "development",
+
+  // Number of trusted reverse proxies in front of the app (see app.set("trust proxy") in server.ts)
+  trustProxyHops: parseInt(process.env.TRUST_PROXY_HOPS || "1", 10),
   api_url: process.env.EFFEKT_API_URL,
   minside_url: process.env.MIN_SIDE_URL,
   frontend_url: process.env.FRONTEND_URL,

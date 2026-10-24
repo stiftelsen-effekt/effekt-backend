@@ -118,7 +118,9 @@ DAO.connect(() => {
   // Exactly one trusted proxy hop: Cloud Run's Google Front End appends the real client IP
   // to X-Forwarded-For. Trusting more hops would let clients spoof req.ip (used by the
   // honeypot, rate limiter and the Swish callback IP allowlist) via their own XFF header.
-  app.set("trust proxy", 1);
+  // Behind the external HTTPS load balancer there is one more hop (client, LB), so the
+  // Norwegian service sets TRUST_PROXY_HOPS=2; the Swedish service is still on the domain mapping.
+  app.set("trust proxy", config.trustProxyHops);
 
   //Honeypot
   const pot = new honeypot(config.honeypot_api_key);
