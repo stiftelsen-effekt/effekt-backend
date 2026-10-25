@@ -10,6 +10,9 @@ import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { TaxDeductionDonation, getYearlyMapping } from "../custom_modules/taxdeductions";
 import { connectDonationsForFirstTaxUnit } from "../custom_modules/tax";
 import { exportCsv } from "../custom_modules/csvexport";
+import { requireAuthorizationSecret } from "../custom_modules/webhookAuth";
+
+const config = require("../config");
 
 const router = express.Router();
 
@@ -126,7 +129,17 @@ router.post("/", authMiddleware.isAdmin, urlEncodeParser, async (req, res, next)
  *                      status: 400
  *                      content: "email is missing in request body"
  */
-router.post("/auth0/register", async (req, res, next) => {
+/**
+ * Called by the Auth0 "Connect user id" pre-registration Action. The Action must send
+ * AUTH0_REGISTER_TOKEN (stored as an Action secret) in the Authorization header; otherwise anyone
+ * could look up donor IDs by email or create donors.
+ */
+const requireAuth0RegisterToken = requireAuthorizationSecret(
+  () => config.auth0_register_token,
+  "AUTH0_REGISTER_TOKEN",
+);
+
+router.post("/auth0/register", requireAuth0RegisterToken, async (req, res, next) => {
   try {
     if (!req.body.email) {
       return res.status(400).json({
