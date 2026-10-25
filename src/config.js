@@ -27,6 +27,7 @@ module.exports = {
   //Shared secrets for inbound webhooks (requests are rejected when unset)
   //Value configured as the "Authorization Token" on the Auth0 custom webhook log stream
   auth0_log_stream_token: process.env.AUTH0_LOG_STREAM_TOKEN,
+  auth0_register_token: process.env.AUTH0_REGISTER_TOKEN,
   //Signing secret of the MailerSend survey_submitted webhook
   mailersend_survey_webhook_secret: process.env.MAILERSEND_SURVEY_WEBHOOK_SECRET,
 
