@@ -114,7 +114,7 @@
     "expect": "^1.20.2",
     "husky": "^8.0.3",
     "lint-staged": "^13.2.2",
-    "mocha": "^10.2.0",
+    "mocha": "^12.0.3",
     "nodemon": "^2.0.15",
     "nyc": "^15.1.0",
     "openapi-typescript": "^6.2.6",
