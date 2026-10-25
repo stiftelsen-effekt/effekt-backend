@@ -88,15 +88,10 @@ describe("webhook authentication", () => {
       app = buildServer("/donors", "../routes/donors");
     });
 
-    it("rejects requests when the token is not configured", async () => {
+    it("allows requests when the token is not configured (Swedish API)", async () => {
       sinon.stub(config, "auth0_register_token").value(undefined);
-      await request(app)
-        .post("/donors/auth0/register")
-        .set("Authorization", "Bearer anything")
-        .send(body)
-        .expect(401);
-      expect(lookupStub.called).to.be.false;
-      expect(addStub.called).to.be.false;
+      await request(app).post("/donors/auth0/register").send(body).expect(200);
+      expect(lookupStub.calledOnce).to.be.true;
     });
 
     it("rejects requests without the correct token", async () => {

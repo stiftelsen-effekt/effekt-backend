@@ -133,11 +133,16 @@ router.post("/", authMiddleware.isAdmin, urlEncodeParser, async (req, res, next)
  * Called by the Auth0 "Connect user id" pre-registration Action. The Action must send
  * AUTH0_REGISTER_TOKEN (stored as an Action secret) in the Authorization header; otherwise anyone
  * could look up donor IDs by email or create donors.
+ *
+ * The Swedish API runs the same image but is called by a separate Auth0 tenant that doesn't send
+ * the token, so the check only applies where AUTH0_REGISTER_TOKEN is configured.
  */
-const requireAuth0RegisterToken = requireAuthorizationSecret(
+const checkAuth0RegisterToken = requireAuthorizationSecret(
   () => config.auth0_register_token,
   "AUTH0_REGISTER_TOKEN",
 );
+const requireAuth0RegisterToken: express.RequestHandler = (req, res, next) =>
+  config.auth0_register_token ? checkAuth0RegisterToken(req, res, next) : next();
 
 router.post("/auth0/register", requireAuth0RegisterToken, async (req, res, next) => {
   try {
