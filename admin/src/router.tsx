@@ -1,4 +1,4 @@
-import { createRouter } from "@tanstack/react-router";
+import { createRouter, parseSearchWith, stringifySearchWith } from "@tanstack/react-router";
 import type { AuthState } from "@/auth";
 import { ErrorState } from "@/components/domain/error-state";
 import { routeTree } from "./routeTree.gen";
@@ -11,6 +11,18 @@ export const router = createRouter({
   defaultPreload: "intent",
   defaultPreloadStaleTime: 0,
   scrollRestoration: true,
+  // Readable URLs: plain strings stay unquoted (?amount=100..500&method=4,8). Lists decode
+  // their params with codecs (components/filters/list-state.ts), so "4" vs 4 doesn't matter.
+  parseSearch: parseSearchWith((value) => {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }),
+  stringifySearch: stringifySearchWith((value) =>
+    typeof value === "string" ? value : JSON.stringify(value),
+  ),
   defaultErrorComponent: ({ error, reset }) => (
     <ErrorState error={error} onRetry={reset} className="m-8" />
   ),

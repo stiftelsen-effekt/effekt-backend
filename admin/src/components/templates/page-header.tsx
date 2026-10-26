@@ -38,7 +38,7 @@ export function PageHeader({
         className,
       )}
     >
-      <div className="grid min-w-0 flex-1 gap-1">
+      <div className="grid min-w-[min(100%,18rem)] flex-1 gap-1">
         {breadcrumbs && breadcrumbs.length > 0 && (
           <nav aria-label="Breadcrumb">
             <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">

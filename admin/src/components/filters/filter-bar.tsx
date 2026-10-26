@@ -221,7 +221,11 @@ function FilterShell({
 }) {
   if (slot.mode === "menu") {
     if (active) return null;
-    return <DropdownMenuItem onSelect={() => slot.setOpen(true)}>{label}</DropdownMenuItem>;
+    return (
+      <DropdownMenuItem onSelect={() => setTimeout(() => slot.setOpen(true), 0)}>
+        {label}
+      </DropdownMenuItem>
+    );
   }
   if (!active && !slot.open) return null;
   return (

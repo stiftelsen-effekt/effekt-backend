@@ -83,7 +83,7 @@ export function DateRangePicker({
             data-slot="date-range-trigger"
             className={cn(
               controlClasses,
-              "num flex h-8 items-center gap-2 px-2.5 text-left data-[state=open]:border-ring",
+              "num flex h-control items-center gap-2 px-2.5 text-left data-[state=open]:border-ring",
               hasValue ? "pr-8" : "text-muted-foreground",
             )}
           >

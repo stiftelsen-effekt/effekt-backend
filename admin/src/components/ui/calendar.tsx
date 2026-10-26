@@ -1,7 +1,7 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type * as React from "react";
 import { DayPicker, getDefaultClassNames } from "react-day-picker";
-import { appLocale } from "@/lib/locale";
+import { enGB } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "./button";
 
@@ -17,7 +17,8 @@ export function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      locale={appLocale.dateFns}
+      // English words (UI language), Monday-first weeks (both countries).
+      locale={enGB}
       weekStartsOn={1}
       className={cn("p-3 [--cell:--spacing(8)]", className)}
       classNames={{

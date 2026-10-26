@@ -9,6 +9,7 @@ import {
   CommandItem,
   CommandList,
 } from "./command";
+import { useFieldControl } from "./field";
 import { controlClasses } from "./input";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
@@ -39,6 +40,7 @@ export function Combobox({
   id,
   "aria-invalid": ariaInvalid,
 }: ComboboxProps) {
+  const field = useFieldControl();
   const [open, setOpen] = useState(false);
   const selected = options.find((option) => option.value === value);
 
@@ -46,17 +48,18 @@ export function Combobox({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          id={id}
+          id={id ?? field.id}
           type="button"
           role="combobox"
           aria-expanded={open}
-          aria-invalid={ariaInvalid}
+          aria-describedby={field["aria-describedby"]}
+          aria-invalid={ariaInvalid ?? field["aria-invalid"]}
           disabled={disabled}
           data-slot="combobox-trigger"
           className={cn(
             controlClasses,
-            "flex h-8 items-center justify-between gap-2 px-2.5 text-left data-[state=open]:border-ring",
-            !selected && "text-muted-foreground",
+            "flex h-control items-center justify-between gap-2 px-2.5 text-left data-[state=open]:border-ring",
+            !selected && "text-faint-foreground",
             className,
           )}
         >

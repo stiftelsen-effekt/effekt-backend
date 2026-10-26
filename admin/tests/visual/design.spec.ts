@@ -42,6 +42,17 @@ for (const theme of themes) {
       await expect(page).toHaveScreenshot(`state-filter-editor-${theme}.png`);
     });
 
+    test("add a filter from the menu", async ({ page }) => {
+      await openDesign(page, "/design/list", theme);
+      await page.getByRole("button", { name: "Add filter" }).click();
+      await page.getByRole("menuitem", { name: "Payment method" }).click();
+      const editor = page.getByRole("dialog", { name: "Payment method filter" });
+      await expect(editor).toBeVisible();
+      await editor.getByRole("checkbox").nth(2).click();
+      await expect(page).toHaveURL(/method=4/);
+      await expect(page).toHaveScreenshot(`state-add-filter-${theme}.png`);
+    });
+
     test("command palette", async ({ page }) => {
       await openDesign(page, "/design/list", theme);
       await page.keyboard.press("ControlOrMeta+k");

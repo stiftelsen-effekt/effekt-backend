@@ -29,8 +29,13 @@ export type Codec<T> = {
   encode: (value: T | undefined) => string | undefined;
 };
 
+/** URL values arrive as strings, or as numbers/booleans when they parse as JSON. */
 const str = (raw: unknown) =>
-  typeof raw === "string" ? raw : typeof raw === "number" ? String(raw) : undefined;
+  typeof raw === "string"
+    ? raw
+    : typeof raw === "number" || typeof raw === "boolean"
+    ? String(raw)
+    : undefined;
 
 const toNumber = (value: string | undefined) => {
   if (value === undefined || value.trim() === "") return undefined;

@@ -45,15 +45,13 @@ Vite, React 19, TanStack Router (file-based, typed search params for filters), T
 
 ### Design system
 
-Keep the spirit of the current admin — monochrome, typographic, square, tool-like — and make it
-consistent:
-
-- Tokens as CSS variables (light + dark): neutral scale replacing the dozen ad-hoc greys, one
-  accent, semantic success/warning/destructive, radius 0–2px, one shadow.
-- ES Klarheit Grotesk (body) and Kurrent (display) fonts, tabular numerals instead of Courier.
-- One button, input, select, combobox, date-range, badge, dialog and toast implementation.
-- Layout primitives: black sidebar, page header with the left bar, data table + filter sheet,
-  key-value "key info" panel, stat cards.
+See `admin/DESIGN.md` (principles, IA, templates, patterns, tokens, components) and the live
+reference at `/design`. In short: calm paper/ink neutrals with one accent and three state tones,
+light and dark, comfortable/compact density; IA grouped by job (Donors · Money in · Agreements ·
+Records · Settings) with a Home that lists what needs attention; ⌘K search; URL-backed filter
+bar with saved views; click-to-peek lists with keyboard navigation; one agreement model across
+Vipps/AvtaleGiro/AutoGiro; one distribution editor; a persistent review queue. Feature pages are
+built from the `ListPage`, `DetailPage`, `FlowPage` and `SettingsPage` templates.
 
 ## Phases
 

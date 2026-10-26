@@ -150,8 +150,10 @@ export function DistributionEditor({
   const statusId = useId();
   const tone = validation.valid ? "success" : validation.total > 100 ? "danger" : "warning";
   const status =
-    validation.error ??
-    (validation.valid ? "All 100 % placed" : "Organization shares don't add up");
+    validation.total === 0
+      ? "Nothing placed yet: give each cause area a share"
+      : validation.error ??
+        (validation.valid ? "All 100 % placed" : "Organization shares don't add up");
 
   return (
     <fieldset

@@ -68,7 +68,11 @@ export function PeekPanel({
   }
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="flex w-full max-w-md flex-col gap-0 p-0">
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        className="flex w-full max-w-md flex-col gap-0 p-0"
+      >
         <SheetTitle className="sr-only">{title}</SheetTitle>
         <SheetDescription className="sr-only">Preview</SheetDescription>
         {header}

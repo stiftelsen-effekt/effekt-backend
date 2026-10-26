@@ -92,7 +92,7 @@ export function JsonViewer({
     <div
       data-slot="json-viewer"
       className={cn(
-        "relative overflow-auto border border-border bg-muted p-3 font-mono text-xs leading-5",
+        "relative overflow-auto rounded-md border border-border bg-muted p-3 font-mono text-xs leading-5",
         className,
       )}
     >

@@ -14,6 +14,7 @@ import { useState } from "react";
 import { AttentionList } from "@/components/domain/attention-list";
 import { Callout } from "@/components/domain/callout";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
+import { JsonViewer } from "@/components/domain/json-viewer";
 import { CopyValue } from "@/components/domain/copy-value";
 import { DistributionEditor, DistributionSummary } from "@/components/domain/distribution-editor";
 import { EmptyState } from "@/components/domain/empty-state";
@@ -39,6 +40,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChoiceCards } from "@/components/ui/choice-cards";
+import { Combobox } from "@/components/ui/combobox";
+import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
 import {
   Dialog,
   DialogContent,
@@ -112,6 +115,8 @@ function Components() {
   const [mode, setMode] = useState<"kid" | "distribution">("kid");
   const [source, setSource] = useState<string | undefined>("ocr");
   const [name, setName] = useState("Elias Olsen");
+  const [owner, setOwner] = useState<string | null>(null);
+  const [range, setRange] = useState<DateRange | undefined>();
 
   return (
     <DocPage
@@ -194,6 +199,26 @@ function Components() {
                   ))}
                 </SelectContent>
               </Select>
+            </Field>
+            <Field label="Organization" hint="Combobox: searchable single choice from a long list.">
+              <Combobox
+                value={owner}
+                onValueChange={setOwner}
+                placeholder="Choose organization"
+                options={causeAreas.flatMap((area) =>
+                  area.organizations.map((org) => ({
+                    value: String(org.id),
+                    label: org.name,
+                    hint: area.name,
+                  })),
+                )}
+              />
+            </Field>
+            <Field
+              label="Period"
+              hint="DateRangePicker: for forms and reports; lists use the date filter chip."
+            >
+              <DateRangePicker value={range} onValueChange={setRange} />
             </Field>
             <Field label="Note" className="sm:col-span-2">
               <Textarea placeholder="Visible to the team only" />
@@ -457,7 +482,7 @@ function Components() {
       </DocSection>
 
       <DocSection id="states" title="Empty and loading">
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-2">
           <Example title="Empty" surfaceClassName="block p-0">
             <EmptyState
               icon={InboxIcon}
@@ -480,6 +505,21 @@ function Components() {
             <Skeleton data-static className="h-4 w-1/2" />
             <Skeleton data-static className="h-4 w-3/4" />
             <Skeleton data-static className="h-4 w-2/3" />
+          </Example>
+          <Example
+            title="JSON"
+            use="Raw API or log payloads (import log entries)."
+            surfaceClassName="block p-0 border-0"
+          >
+            <JsonViewer
+              data={{
+                file: "ocr-2026-10-23.txt",
+                valid: 412,
+                invalid: 4,
+                dryRun: false,
+                kids: ["77812094"],
+              }}
+            />
           </Example>
           <Example title="Attention list" surfaceClassName="block p-0 border-0">
             <AttentionList
