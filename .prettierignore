@@ -1,2 +1,4 @@
 dist/**/*
 *.html
+admin/src/routeTree.gen.ts
+admin/package-lock.json
