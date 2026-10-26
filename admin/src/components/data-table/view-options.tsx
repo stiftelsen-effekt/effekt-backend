@@ -21,9 +21,13 @@ export function DataTableViewOptions<TData extends RowData>({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Choose columns"
+          className="text-muted-foreground"
+        >
           <Columns3Icon />
-          Columns
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">

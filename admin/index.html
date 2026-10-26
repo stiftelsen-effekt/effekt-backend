@@ -6,13 +6,16 @@
     <meta name="color-scheme" content="light dark" />
     <title>Admin</title>
     <script>
+      // Apply stored preferences before first paint (see src/lib/preferences.ts).
       (function () {
-        var p = "system";
+        var p = {};
         try {
-          p = localStorage.getItem("effekt-admin-theme") || "system";
+          p = JSON.parse(localStorage.getItem("effekt-admin-preferences") || "{}");
         } catch (e) {}
-        var dark = p === "dark" || (p === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+        var t = p.theme || "system";
+        var dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
         if (dark) document.documentElement.classList.add("dark");
+        document.documentElement.dataset.density = p.density === "compact" ? "compact" : "comfortable";
       })();
     </script>
   </head>

@@ -1,19 +1,71 @@
 import { useEffect, useMemo, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { formatCompact, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Slider } from "@/components/ui/slider";
-import { FilterGroup } from "./filter-panel";
-import { NumberRangeInputs, type NumberRange } from "./fields";
+import type { NumberRange } from "./list-state";
 
 export type HistogramBin = { from: number; to: number; count: number };
 
 const VIEW_HEIGHT = 48;
 
+function parseNumber(value: string) {
+  if (value.trim() === "") return undefined;
+  const parsed = Number(value.replace(/[\s  ]/g, "").replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/** Min/max inputs that accept "1 000" and "1000,5" and commit on Enter or blur. */
+export function NumberRangeInputs({
+  value,
+  onChange,
+  unit,
+  label,
+}: {
+  value: NumberRange;
+  onChange: (value: NumberRange) => void;
+  unit?: string;
+  label: string;
+}) {
+  const [min, setMin] = useState(value.min?.toString() ?? "");
+  const [max, setMax] = useState(value.max?.toString() ?? "");
+  useEffect(() => setMin(value.min?.toString() ?? ""), [value.min]);
+  useEffect(() => setMax(value.max?.toString() ?? ""), [value.max]);
+
+  const commit = () => onChange({ min: parseNumber(min), max: parseNumber(max) });
+  const field = (which: "min" | "max") => (
+    <div className="relative">
+      <Input
+        inputMode="decimal"
+        aria-label={`${which === "min" ? "Minimum" : "Maximum"} ${label.toLowerCase()}`}
+        placeholder={which === "min" ? "Min" : "Max"}
+        value={which === "min" ? min : max}
+        className={cn("num", unit && "pr-8")}
+        onChange={(event) => (which === "min" ? setMin : setMax)(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => event.key === "Enter" && commit()}
+      />
+      {unit && (
+        <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-xs text-muted-foreground">
+          {unit}
+        </span>
+      )}
+    </div>
+  );
+  return (
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+      {field("min")}
+      <span className="text-muted-foreground">–</span>
+      {field("max")}
+    </div>
+  );
+}
+
 /**
- * Bars for a distribution plus a two-thumb slider snapping to bin edges.
- * Values outside the selection are dimmed. Typed inputs allow exact bounds.
+ * Distribution bars with a two-thumb slider snapping to bin edges, plus exact inputs.
+ * Used inside the amount filter so people see where the money is before picking bounds.
  */
-export function HistogramRangeFilter({
+export function HistogramRange({
   label,
   bins,
   value,
@@ -36,7 +88,6 @@ export function HistogramRangeFilter({
     const index = edges.findIndex((edge) => edge >= amount);
     return index === -1 ? lastIndex : index;
   };
-
   const [range, setRange] = useState<[number, number]>([
     toIndex(value.min, 0),
     toIndex(value.max, lastIndex),
@@ -47,17 +98,9 @@ export function HistogramRangeFilter({
 
   const maxCount = Math.max(1, ...bins.map((bin) => bin.count));
   const barWidth = 100 / Math.max(bins.length, 1);
-  const active = value.min !== undefined || value.max !== undefined;
-
-  function commit([lo, hi]: number[]) {
-    onChange({
-      min: lo === 0 ? undefined : edges[lo ?? 0],
-      max: hi === lastIndex ? undefined : edges[hi ?? lastIndex],
-    });
-  }
 
   return (
-    <FilterGroup label={label} onClear={active ? () => onChange({}) : undefined}>
+    <div className="grid gap-3">
       <div className="grid gap-1">
         <svg
           viewBox={`0 0 100 ${VIEW_HEIGHT}`}
@@ -76,10 +119,7 @@ export function HistogramRangeFilter({
                 width={barWidth * 0.84}
                 y={VIEW_HEIGHT - height}
                 height={height}
-                className={cn(
-                  "transition-colors",
-                  inRange ? "fill-foreground" : "fill-border-strong",
-                )}
+                className={cn("transition-colors", inRange ? "fill-accent" : "fill-border-strong")}
               >
                 <title>{`${formatNumber(bin.from)}–${formatNumber(bin.to)}: ${formatNumber(
                   bin.count,
@@ -95,20 +135,25 @@ export function HistogramRangeFilter({
           minStepsBetweenThumbs={1}
           value={range}
           onValueChange={(next) => setRange([next[0] ?? 0, next[1] ?? lastIndex])}
-          onValueCommit={commit}
+          onValueCommit={([lo, hi]) =>
+            onChange({
+              min: lo === 0 ? undefined : edges[lo ?? 0],
+              max: hi === lastIndex ? undefined : edges[hi ?? lastIndex],
+            })
+          }
           thumbLabels={[`Minimum ${label.toLowerCase()}`, `Maximum ${label.toLowerCase()}`]}
         />
-        <div className="num flex justify-between text-2xs text-muted-foreground">
+        <div className="num flex justify-between text-xs text-muted-foreground">
           <span>{formatCompact(edges[0] ?? 0)}</span>
           <span>{formatCompact(edges[lastIndex] ?? 0)}+</span>
         </div>
       </div>
-      <NumberRangeInputs value={value} onChange={onChange} unit={unit} />
-    </FilterGroup>
+      <NumberRangeInputs value={value} onChange={onChange} unit={unit} label={label} />
+    </div>
   );
 }
 
-/** Buckets raw values into bins with round, log-ish edges suited to donation amounts. */
+/** Buckets raw values into bins with the given edges; overflow goes in the last bin. */
 export function binValues(values: number[], edges: number[]): HistogramBin[] {
   const bins = edges.slice(0, -1).map((from, index) => ({ from, to: edges[index + 1]!, count: 0 }));
   for (const value of values) {

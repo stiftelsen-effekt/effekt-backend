@@ -52,7 +52,7 @@ export function AlertDialogTitle({
   return (
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
-      className={cn("font-display text-xl", className)}
+      className={cn("text-lg font-semibold", className)}
       {...props}
     />
   );
@@ -76,7 +76,7 @@ export function AlertDialogAction({
   variant = "primary",
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Action> & {
-  variant?: "primary" | "destructive";
+  variant?: "primary" | "danger";
 }) {
   return (
     <AlertDialogPrimitive.Action
@@ -92,7 +92,7 @@ export function AlertDialogCancel({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
   return (
     <AlertDialogPrimitive.Cancel
-      className={cn(buttonVariants({ variant: "outline" }), className)}
+      className={cn(buttonVariants({ variant: "secondary" }), className)}
       {...props}
     />
   );

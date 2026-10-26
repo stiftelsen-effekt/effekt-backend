@@ -68,7 +68,7 @@ export function FormLabel({
     <Label
       data-slot="form-label"
       data-error={!!error}
-      className={cn("data-[error=true]:text-destructive", className)}
+      className={cn("data-[error=true]:text-danger", className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -108,7 +108,7 @@ export function FormMessage({ className, children, ...props }: React.ComponentPr
     <p
       data-slot="form-message"
       id={formMessageId}
-      className={cn("text-xs text-destructive", className)}
+      className={cn("text-xs text-danger", className)}
       {...props}
     >
       {body}

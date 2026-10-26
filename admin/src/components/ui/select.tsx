@@ -77,7 +77,7 @@ export function SelectLabel({
   return (
     <SelectPrimitive.Label
       data-slot="select-label"
-      className={cn("px-2 pt-2 pb-1 label-caps text-muted-foreground", className)}
+      className={cn("px-2 pt-2 pb-1 text-xs font-semibold text-muted-foreground", className)}
       {...props}
     />
   );

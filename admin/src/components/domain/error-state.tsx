@@ -1,32 +1,32 @@
-import { CircleAlertIcon, LockIcon, RotateCwIcon, WifiOffIcon } from "lucide-react";
+import { CircleAlertIcon, LockIcon, RotateCwIcon, SearchXIcon, WifiOffIcon } from "lucide-react";
+import { strings } from "@/lib/strings";
 import { errorCode } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-function describe(error: unknown) {
+/** Maps any thrown error to plain-language copy. Used by ErrorState and notify.error. */
+export function describeError(error: unknown) {
   const code = errorCode(error);
+  const message = error instanceof Error ? error.message : String(error ?? "");
   if (code === "UNAUTHORIZED")
     return {
       icon: LockIcon,
-      title: "Not signed in",
-      hint: "Your session has expired. Sign in again.",
+      title: strings.errors.unauthorized,
+      hint: strings.errors.unauthorizedHint,
     };
   if (code === "FORBIDDEN")
-    return {
-      icon: LockIcon,
-      title: "No access",
-      hint: "Your account lacks the admin permission for this.",
-    };
-  const message = error instanceof Error ? error.message : String(error ?? "");
+    return { icon: LockIcon, title: strings.errors.forbidden, hint: strings.errors.forbiddenHint };
+  if (code === "NOT_FOUND")
+    return { icon: SearchXIcon, title: strings.errors.notFound, hint: strings.errors.notFoundHint };
+  if (code === "BAD_REQUEST" || code === "CONFLICT")
+    // Server validation messages are written for people; show them as the hint.
+    return { icon: CircleAlertIcon, title: "That didn't work", hint: message };
   if (/fetch|network|load failed/i.test(message))
-    return {
-      icon: WifiOffIcon,
-      title: "Can't reach the API",
-      hint: "Check that the backend is running and VITE_API_URL is correct.",
-    };
-  return { icon: CircleAlertIcon, title: "Something went wrong", hint: undefined };
+    return { icon: WifiOffIcon, title: strings.errors.network, hint: strings.errors.networkHint };
+  return { icon: CircleAlertIcon, title: strings.errors.generic, hint: strings.errors.genericHint };
 }
 
+/** A failed load, in place of the content that failed. Always offer a retry when possible. */
 export function ErrorState({
   error,
   title,
@@ -38,32 +38,29 @@ export function ErrorState({
   onRetry?: () => void;
   className?: string;
 }) {
-  const info = describe(error);
+  const info = describeError(error);
   const Icon = info.icon;
   const message = error instanceof Error ? error.message : undefined;
   return (
     <div
       role="alert"
       data-slot="error-state"
-      className={cn(
-        "flex items-start gap-3 border border-destructive/30 border-l-2 border-l-destructive bg-destructive-subtle p-4",
-        className,
-      )}
+      className={cn("flex items-start gap-3 rounded-md bg-danger-subtle p-4", className)}
     >
-      <Icon className="mt-0.5 size-4 shrink-0 text-destructive" />
+      <Icon className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
       <div className="grid min-w-0 flex-1 gap-1">
         <p className="font-semibold text-foreground">{title ?? info.title}</p>
         {info.hint && <p className="text-sm text-foreground/80">{info.hint}</p>}
-        {message && (
+        {message && message !== info.hint && (
           <p className="truncate font-mono text-xs text-muted-foreground" title={message}>
             {message}
           </p>
         )}
       </div>
       {onRetry && (
-        <Button variant="outline" size="sm" onClick={onRetry} className="bg-background">
+        <Button size="sm" onClick={onRetry}>
           <RotateCwIcon />
-          Retry
+          {strings.actions.retry}
         </Button>
       )}
     </div>

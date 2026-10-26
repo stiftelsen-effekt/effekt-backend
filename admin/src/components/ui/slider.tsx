@@ -36,7 +36,7 @@ export function Slider({
           key={index}
           aria-label={thumbLabels?.[index]}
           data-slot="slider-thumb"
-          className="block size-3.5 shrink-0 rounded-full border-2 border-foreground bg-background transition-shadow focus-ring hover:ring-4 hover:ring-subtle"
+          className="block size-3.5 shrink-0 rounded-full border-2 border-foreground bg-background transition-shadow focus-ring hover:ring-4 hover:ring-pressed"
         />
       ))}
     </SliderPrimitive.Root>

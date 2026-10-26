@@ -9,7 +9,7 @@ type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 function Primitive({ value }: { value: Json }) {
   if (value === null) return <span className="text-muted-foreground">null</span>;
   if (typeof value === "string") return <span className="text-success">"{value}"</span>;
-  if (typeof value === "number") return <span className="text-info">{value}</span>;
+  if (typeof value === "number") return <span className="text-accent">{value}</span>;
   if (typeof value === "boolean") return <span className="text-accent">{String(value)}</span>;
   return null;
 }
@@ -49,7 +49,7 @@ function Node({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-0.5 rounded-xs text-left focus-ring hover:bg-muted"
+        className="flex items-center gap-0.5 rounded-xs text-left focus-ring hover:bg-hover"
       >
         <ChevronRightIcon
           className={cn("size-3.5 text-muted-foreground transition-transform", open && "rotate-90")}

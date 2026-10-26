@@ -43,10 +43,10 @@ function RoutedApp() {
 
   if (auth.isLoading) {
     return (
-      <div className="flex min-h-dvh">
-        <div className="hidden w-60 bg-sidebar lg:block" />
-        <div className="flex-1 space-y-4 p-10">
-          <Skeleton className="h-9 w-64" />
+      <div className="flex min-h-dvh bg-canvas">
+        <div className="hidden w-60 lg:block" />
+        <div className="m-2 flex-1 space-y-4 rounded-lg border border-border bg-background p-6">
+          <Skeleton className="h-8 w-56" />
           <Skeleton className="h-4 w-96" />
         </div>
       </div>

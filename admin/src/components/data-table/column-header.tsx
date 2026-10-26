@@ -22,14 +22,17 @@ export function SortableHeader<TData extends RowData>({
       type="button"
       onClick={column.getToggleSortingHandler()}
       className={cn(
-        "-mx-1 inline-flex items-center gap-1 rounded-xs px-1 uppercase outline-none",
+        "group/sort -mx-1 inline-flex items-center gap-1 rounded-xs px-1 outline-none",
         "hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring",
         sorted && "text-foreground",
         numeric && "flex-row-reverse",
       )}
     >
       {children}
-      <Icon className={cn("size-3", !sorted && "opacity-40")} strokeWidth={2.25} />
+      <Icon
+        className={cn("size-3", !sorted && "opacity-0 group-hover/sort:opacity-60")}
+        strokeWidth={2.25}
+      />
     </button>
   );
 }

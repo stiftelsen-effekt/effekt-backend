@@ -124,7 +124,7 @@ export function DateRangePicker({
           type="button"
           aria-label="Clear dates"
           onClick={() => onValueChange(undefined)}
-          className="absolute top-1/2 right-1.5 grid size-5 -translate-y-1/2 place-content-center rounded-xs text-muted-foreground focus-ring hover:bg-muted hover:text-foreground"
+          className="absolute top-1/2 right-1.5 grid size-5 -translate-y-1/2 place-content-center rounded-xs text-muted-foreground focus-ring hover:bg-hover hover:text-foreground"
         >
           <XIcon className="size-3.5" />
         </button>

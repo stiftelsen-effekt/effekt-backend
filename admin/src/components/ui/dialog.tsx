@@ -46,7 +46,7 @@ export function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute top-4 right-4 grid size-7 place-content-center rounded-sm text-muted-foreground transition-colors focus-ring hover:bg-muted hover:text-foreground"
+            className="absolute top-4 right-4 grid size-7 place-content-center rounded-sm text-muted-foreground transition-colors focus-ring hover:bg-hover hover:text-foreground"
           >
             <XIcon className="size-4" />
             <span className="sr-only">Close</span>
@@ -80,7 +80,7 @@ export function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("font-display text-xl", className)}
+      className={cn("text-lg font-semibold", className)}
       {...props}
     />
   );

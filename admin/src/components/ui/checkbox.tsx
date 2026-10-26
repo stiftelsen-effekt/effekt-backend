@@ -11,11 +11,11 @@ export function Checkbox({
     <CheckboxPrimitive.Root
       data-slot="checkbox"
       className={cn(
-        "peer grid size-4 shrink-0 place-content-center rounded-xs border border-border-strong bg-background",
+        "peer grid size-4 shrink-0 place-content-center rounded-xs border border-input bg-surface",
         "transition-colors focus-ring hover:border-foreground",
         "data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
         "data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground",
-        "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-40",
+        "aria-invalid:border-danger disabled:cursor-not-allowed disabled:opacity-40",
         className,
       )}
       {...props}

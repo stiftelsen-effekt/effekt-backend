@@ -3,18 +3,19 @@ import type { TooltipContentProps } from "recharts";
 import { formatCompact, formatMoney, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export type ChartColor = "chart-1" | "chart-2" | "chart-3" | "chart-4";
+export type ChartColor = "chart-1" | "chart-2" | "chart-3" | "chart-4" | "chart-5";
 export type ValueFormat = "money" | "number";
 
 export type ChartSeries = { key: string; label: string; color?: ChartColor };
 
-export const chartColors: ChartColor[] = ["chart-1", "chart-2", "chart-3", "chart-4"];
+export const chartColors: ChartColor[] = ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5"];
 
 export const swatchClasses: Record<ChartColor, string> = {
   "chart-1": "bg-chart-1",
   "chart-2": "bg-chart-2",
   "chart-3": "bg-chart-3",
   "chart-4": "bg-chart-4",
+  "chart-5": "bg-chart-5",
 };
 
 export const colorVar = (color: ChartColor) => `var(--${color})`;

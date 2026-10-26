@@ -5,6 +5,7 @@ import {
   ChevronsRightIcon,
 } from "lucide-react";
 import { formatNumber } from "@/lib/format";
+import { strings } from "@/lib/strings";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -35,19 +36,18 @@ export function DataTablePagination({
     onPaginationChange({ pageSize, pageIndex: Math.min(Math.max(index, 0), pageCount - 1) });
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm">
+    <div className="flex flex-wrap items-center gap-4 text-sm">
       <p className="num text-muted-foreground" aria-live="polite">
-        {formatNumber(first)}–{formatNumber(last)} of{" "}
-        <span className="font-semibold text-foreground">{formatNumber(rowCount)}</span>
+        {strings.list.range(formatNumber(first), formatNumber(last), formatNumber(rowCount))}
       </p>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Rows</span>
+          <span className="text-muted-foreground max-sm:hidden">{strings.list.rowsPerPage}</span>
           <Select
             value={String(pageSize)}
             onValueChange={(value) => onPaginationChange({ pageIndex: 0, pageSize: Number(value) })}
           >
-            <SelectTrigger size="sm" className="num w-18" aria-label="Rows per page">
+            <SelectTrigger size="sm" className="num w-18" aria-label={strings.list.rowsPerPage}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -78,7 +78,7 @@ export function DataTablePagination({
           >
             <ChevronLeftIcon />
           </Button>
-          <span className="num min-w-16 text-center text-xs text-muted-foreground">
+          <span className="num min-w-14 text-center text-muted-foreground">
             {formatNumber(pageIndex + 1)} / {formatNumber(pageCount)}
           </span>
           <Button

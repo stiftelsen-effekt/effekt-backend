@@ -4,9 +4,10 @@ import { extendTailwindMerge } from "tailwind-merge";
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
-      text: ["2xs", "xs", "sm", "base", "md", "lg", "xl", "2xl", "3xl"],
-      shadow: ["raised", "overlay"],
+      text: ["xs", "sm", "base", "lg", "xl", "2xl", "3xl"],
+      shadow: ["overlay", "panel"],
       radius: ["none", "xs", "sm", "md", "lg", "full"],
+      spacing: ["row", "control", "cell"],
     },
   },
 });

@@ -1,13 +1,13 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
+/** Shared look for every text-like control (input, select trigger, date trigger, textarea). */
 export const controlClasses = [
-  "w-full min-w-0 rounded-sm border border-input bg-background text-sm text-foreground",
-  "transition-[color,border-color,box-shadow] outline-none",
-  "placeholder:text-muted-foreground",
-  "hover:border-border-strong",
+  "w-full min-w-0 rounded-sm border border-input bg-surface text-sm text-foreground",
+  "transition-[color,border-color,box-shadow] duration-(--duration-fast) outline-none",
+  "placeholder:text-faint-foreground",
   "focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring",
-  "aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive",
+  "aria-invalid:border-danger aria-invalid:focus-visible:ring-danger",
   "disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground",
 ];
 
@@ -18,7 +18,7 @@ export function Input({ className, type, ...props }: React.ComponentProps<"input
       data-slot="input"
       className={cn(
         controlClasses,
-        "h-8 px-2.5",
+        "h-control px-2.5",
         "file:mr-2 file:border-0 file:bg-transparent file:text-sm file:font-semibold",
         type === "number" && "num",
         className,

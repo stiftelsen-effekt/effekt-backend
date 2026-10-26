@@ -1,91 +1,206 @@
-import { Link, useRouterState, type LinkProps } from "@tanstack/react-router";
-import { LogInIcon, LogOutIcon, MenuIcon, MoonIcon, SunIcon } from "lucide-react";
-import { useState, type ReactNode } from "react";
-import { useAuth } from "@/auth";
-import { useTheme } from "@/hooks/use-theme";
-import { appLocale } from "@/lib/locale";
-import { cn } from "@/lib/utils";
+import { Link, useNavigate, useRouterState, type LinkProps } from "@tanstack/react-router";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { navGroups, type NavGroup, type NavItem } from "./nav";
+  ChevronsUpDownIcon,
+  KeyboardIcon,
+  LogInIcon,
+  LogOutIcon,
+  MenuIcon,
+  MoonIcon,
+  PaletteIcon,
+  Rows3Icon,
+  SearchIcon,
+  SunIcon,
+} from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+import { useAuth } from "@/auth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Kbd } from "@/components/ui/kbd";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { useOpenReviewCount } from "@/features/review-queue/store";
+import { useHotkey } from "@/hooks/use-hotkey";
+import { appLocale } from "@/lib/locale";
+import { usePreferences, type Density, type ThemePreference } from "@/lib/preferences";
+import { strings } from "@/lib/strings";
+import { cn } from "@/lib/utils";
+import { CommandPalette, type PaletteCommand } from "./command-palette";
+import { navFor, settingsItem, type NavGroup, type NavItem } from "./nav";
+import { ShortcutsDialog } from "./shortcuts-dialog";
 
-const sidebarItemClasses = [
-  "relative flex h-8 items-center justify-between gap-3 pr-6 pl-6 text-base text-sidebar-foreground/80",
-  "transition-colors outline-none hover:bg-sidebar-hover hover:text-sidebar-foreground",
-  "focus-visible:bg-sidebar-hover focus-visible:text-sidebar-foreground focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-sidebar-foreground",
-  "[&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-sidebar-muted",
+const designItem: NavItem = { to: "/design", label: "Design system", icon: PaletteIcon };
+
+const itemClasses = [
+  "group/nav flex h-8 items-center gap-2.5 rounded-sm px-2.5 text-sm text-muted-foreground",
+  "transition-colors duration-(--duration-fast) focus-ring-inset",
+  "hover:bg-hover hover:text-foreground",
+  "[&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-faint-foreground",
 ];
 
-function SidebarLink({
+const activeClasses = [
+  "data-[status=active]:bg-surface data-[status=active]:font-semibold data-[status=active]:text-foreground",
+  "data-[status=active]:shadow-[0_0_0_1px_var(--border),0_1px_2px_rgb(0_0_0/0.04)]",
+  "data-[status=active]:[&_svg]:text-accent",
+];
+
+function NavLink({
   item,
-  notch,
+  count,
   onNavigate,
 }: {
   item: NavItem;
-  notch: boolean;
+  count?: number;
   onNavigate?: () => void;
 }) {
   const Icon = item.icon;
-  // Nav targets are plain paths until every page exists as a typed route.
-  const to = item.to as LinkProps["to"];
   return (
     <Link
-      to={to}
+      // Nav targets are plain paths until every page exists as a typed route.
+      to={item.to as LinkProps["to"]}
       activeOptions={{ exact: item.exact ?? false }}
       onClick={onNavigate}
-      className={cn(
-        sidebarItemClasses,
-        "data-[status=active]:font-semibold data-[status=active]:text-sidebar-foreground data-[status=active]:[&_svg]:text-sidebar-foreground",
-        notch
-          ? [
-              "after:absolute after:top-1/2 after:right-0 after:h-4 after:w-2 after:-translate-y-1/2 after:bg-background",
-              "after:opacity-0 after:[clip-path:polygon(100%_0,0_50%,100%_100%)]",
-              "data-[status=active]:after:animate-notch-in data-[status=active]:after:opacity-100",
-            ]
-          : "data-[status=active]:bg-sidebar-hover",
-      )}
+      className={cn(itemClasses, activeClasses)}
     >
-      <span className="truncate">{item.label}</span>
       <Icon strokeWidth={1.75} />
+      <span className="flex-1 truncate">{item.label}</span>
+      {count ? (
+        <span className="num rounded-full bg-warning-subtle px-1.5 text-xs leading-5 font-semibold text-warning">
+          {count}
+          <span className="sr-only"> open</span>
+        </span>
+      ) : null}
     </Link>
   );
 }
 
-function SidebarContent({
+function UserMenu() {
+  const auth = useAuth();
+  const prefs = usePreferences();
+  const name = auth.user?.name ?? "Signed out";
+  const initials = name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(itemClasses, "h-10 w-full text-foreground data-[state=open]:bg-pressed")}
+      >
+        <span className="grid size-6 shrink-0 place-content-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+          {initials || "?"}
+        </span>
+        <span className="grid min-w-0 flex-1 text-left leading-tight">
+          <span className="truncate font-semibold">{name}</span>
+          {auth.user?.email && (
+            <span className="truncate text-xs text-muted-foreground">{auth.user.email}</span>
+          )}
+        </span>
+        <ChevronsUpDownIcon />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="start" className="w-56">
+        <DropdownMenuLabel>{strings.preferences.theme}</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={prefs.theme}
+          onValueChange={(value) => prefs.setTheme(value as ThemePreference)}
+        >
+          <DropdownMenuRadioItem value="light">{strings.preferences.light}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">{strings.preferences.dark}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">{strings.preferences.system}</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>{strings.preferences.density}</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={prefs.density}
+          onValueChange={(value) => prefs.setDensity(value as Density)}
+        >
+          <DropdownMenuRadioItem value="comfortable">
+            {strings.preferences.comfortable}
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="compact">
+            {strings.preferences.compact}
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        {auth.isAuthenticated ? (
+          <DropdownMenuItem onSelect={auth.logout}>
+            <LogOutIcon />
+            Log out
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem asChild>
+            <Link to="/login">
+              <LogInIcon />
+              Sign in
+            </Link>
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function Sidebar({
   groups,
-  notch,
+  showDesign,
+  onSearch,
   onNavigate,
 }: {
   groups: NavGroup[];
-  notch: boolean;
+  showDesign: boolean;
+  onSearch: () => void;
   onNavigate?: () => void;
 }) {
-  const auth = useAuth();
-  const { resolved, toggle } = useTheme();
-
+  const reviewCount = useOpenReviewCount();
   return (
-    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+    <div className="flex h-full flex-col gap-4 bg-canvas px-3 pt-4 pb-3">
       <Link
         to="/"
         onClick={onNavigate}
-        className="mx-6 mt-8 mb-8 block w-36 rounded-xs outline-none focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-sidebar-foreground"
+        className="mx-2.5 block w-28 rounded-xs focus-ring"
+        aria-label={`${appLocale.orgName} admin home`}
       >
-        <img src={appLocale.logo} alt={appLocale.orgName} className="w-full" />
+        <img src={appLocale.logo} alt="" className="w-full invert dark:invert-0" />
       </Link>
 
-      <nav aria-label="Main" className="flex-1 overflow-y-auto pb-6">
+      <button
+        type="button"
+        onClick={onSearch}
+        className={cn(
+          "flex h-8 items-center gap-2 rounded-sm border border-border-strong bg-surface px-2.5 text-sm text-muted-foreground",
+          "transition-colors hover:border-input hover:text-foreground focus-ring",
+        )}
+      >
+        <SearchIcon className="size-4" />
+        <span className="flex-1 text-left">Search</span>
+        <Kbd>⌘K</Kbd>
+      </button>
+
+      <nav aria-label="Main" className="-mx-1 flex-1 overflow-y-auto px-1">
         {groups.map((group, index) => (
-          <div key={group.label} className={cn(index > 0 && "mt-5")}>
-            <h2 className="mb-1 px-6 label-caps text-sidebar-muted">{group.label}</h2>
-            <ul>
+          <div key={group.label ?? index} className={cn(index > 0 && "mt-4")}>
+            {group.label && (
+              <h2 className="mb-1 px-2.5 text-xs font-semibold text-faint-foreground">
+                {group.label}
+              </h2>
+            )}
+            <ul className="grid gap-px">
               {group.items.map((item) => (
                 <li key={item.to}>
-                  <SidebarLink item={item} notch={notch} onNavigate={onNavigate} />
+                  <NavLink
+                    item={item}
+                    onNavigate={onNavigate}
+                    count={item.badge === "reviewQueue" ? reviewCount : undefined}
+                  />
                 </li>
               ))}
             </ul>
@@ -93,68 +208,135 @@ function SidebarContent({
         ))}
       </nav>
 
-      <div className="border-t border-sidebar-border py-3">
-        {auth.user && (
-          <p className="truncate px-6 pb-2 text-xs text-sidebar-muted" title={auth.user.email}>
-            {auth.user.email ?? auth.user.name}
-          </p>
-        )}
-        <button type="button" onClick={toggle} className={cn(sidebarItemClasses, "w-full")}>
-          <span>{resolved === "dark" ? "Light mode" : "Dark mode"}</span>
-          {resolved === "dark" ? <SunIcon strokeWidth={1.75} /> : <MoonIcon strokeWidth={1.75} />}
-        </button>
-        {auth.isAuthenticated ? (
-          <button type="button" onClick={auth.logout} className={cn(sidebarItemClasses, "w-full")}>
-            <span>Log out</span>
-            <LogOutIcon strokeWidth={1.75} />
-          </button>
-        ) : (
-          <Link to="/login" className={cn(sidebarItemClasses)}>
-            <span>Sign in</span>
-            <LogInIcon strokeWidth={1.75} />
-          </Link>
-        )}
+      <div className="grid gap-px">
+        <NavLink item={settingsItem} onNavigate={onNavigate} />
+        {showDesign && <NavLink item={designItem} onNavigate={onNavigate} />}
+        <div className="mt-2 border-t border-border pt-2">
+          <UserMenu />
+        </div>
       </div>
     </div>
   );
 }
 
+/**
+ * The frame around every page: quiet paper-coloured sidebar, white content sheet, ⌘K
+ * palette and global shortcuts. Pages render templates (ListPage, DetailPage, …) inside.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const navigate = useNavigate();
+  const prefs = usePreferences();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const groups = navGroups(appLocale.locale, {
-    includeDesign: import.meta.env.DEV || pathname.startsWith("/design"),
-  });
+  const showDesign = import.meta.env.DEV || pathname.startsWith("/design");
+  const groups = navFor(appLocale.locale);
+
+  useHotkey("mod+k", () => setPaletteOpen((open) => !open));
+  useHotkey("?", () => setShortcutsOpen(true));
+
+  const commands = useMemo<PaletteCommand[]>(() => {
+    const items = [...groups.flatMap((group) => group.items), settingsItem];
+    if (showDesign) items.push(designItem);
+    return [
+      ...items.map<PaletteCommand>((item) => ({
+        id: `nav:${item.to}`,
+        label: item.label,
+        group: "Go to",
+        icon: item.icon,
+        keywords: item.keywords,
+        run: () => void navigate({ to: item.to as LinkProps["to"] }),
+      })),
+      {
+        id: "action:shortcuts",
+        label: "Keyboard shortcuts",
+        group: "Actions",
+        icon: KeyboardIcon,
+        shortcut: "?",
+        run: () => setShortcutsOpen(true),
+      },
+      {
+        id: "pref:theme",
+        label: prefs.resolvedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme",
+        group: "Preferences",
+        icon: prefs.resolvedTheme === "dark" ? SunIcon : MoonIcon,
+        keywords: ["dark mode", "light mode", "theme"],
+        run: prefs.toggleTheme,
+      },
+      {
+        id: "pref:density",
+        label: prefs.density === "compact" ? "Use comfortable density" : "Use compact density",
+        group: "Preferences",
+        icon: Rows3Icon,
+        keywords: ["density", "compact", "rows"],
+        run: prefs.toggleDensity,
+      },
+    ];
+  }, [groups, showDesign, navigate, prefs]);
 
   return (
-    <div className="flex min-h-dvh">
+    <div className="flex min-h-dvh bg-canvas">
+      <a
+        href="#main"
+        className="sr-only z-50 rounded-sm bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+      >
+        Skip to content
+      </a>
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 lg:block">
-        <SidebarContent groups={groups} notch />
+        <Sidebar groups={groups} showDesign={showDesign} onSearch={() => setPaletteOpen(true)} />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-12 items-center gap-3 bg-sidebar px-3 text-sidebar-foreground lg:hidden">
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger className="grid size-8 place-content-center rounded-sm outline-none hover:bg-sidebar-hover focus-visible:outline-1 focus-visible:outline-sidebar-foreground">
-              <MenuIcon className="size-5" />
-              <span className="sr-only">Open menu</span>
-            </SheetTrigger>
-            <SheetContent
-              side="left"
-              className="w-64 border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
-            >
-              <SheetTitle className="sr-only">Navigation</SheetTitle>
-              <SheetDescription className="sr-only">Main navigation</SheetDescription>
-              <SidebarContent groups={groups} notch={false} onNavigate={() => setMenuOpen(false)} />
-            </SheetContent>
-          </Sheet>
-          <img src={appLocale.logo} alt={appLocale.orgName} className="h-5 w-auto" />
+      <div className="flex min-w-0 flex-1 flex-col lg:py-2 lg:pr-2">
+        <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-canvas px-2 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="grid size-9 place-content-center rounded-sm hover:bg-hover focus-ring"
+          >
+            <MenuIcon className="size-5" />
+            <span className="sr-only">Open menu</span>
+          </button>
+          <img
+            src={appLocale.logo}
+            alt={appLocale.orgName}
+            className="h-4 w-auto invert dark:invert-0"
+          />
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            className="ml-auto grid size-9 place-content-center rounded-sm hover:bg-hover focus-ring"
+          >
+            <SearchIcon className="size-5" />
+            <span className="sr-only">Search</span>
+          </button>
         </header>
+        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+          <SheetContent side="left" className="w-64 bg-canvas p-0">
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <SheetDescription className="sr-only">Main navigation</SheetDescription>
+            <Sidebar
+              groups={groups}
+              showDesign={showDesign}
+              onSearch={() => {
+                setMenuOpen(false);
+                setPaletteOpen(true);
+              }}
+              onNavigate={() => setMenuOpen(false)}
+            />
+          </SheetContent>
+        </Sheet>
 
-        <main id="main" className="min-w-0 flex-1">
+        <main
+          id="main"
+          className="flex min-h-0 min-w-0 flex-1 flex-col bg-background lg:h-[calc(100dvh-1rem)] lg:overflow-hidden lg:rounded-lg lg:border lg:border-border"
+        >
           {children}
         </main>
       </div>
+
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </div>
   );
 }

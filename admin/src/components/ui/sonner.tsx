@@ -6,20 +6,20 @@ import {
   TriangleAlertIcon,
 } from "lucide-react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
-import { useTheme } from "@/hooks/use-theme";
+import { usePreferences } from "@/lib/preferences";
 
 export function Toaster(props: ToasterProps) {
-  const { resolved } = useTheme();
+  const { resolvedTheme } = usePreferences();
   return (
     <Sonner
-      theme={resolved}
+      theme={resolvedTheme}
       position="bottom-right"
       gap={8}
       icons={{
         success: <CircleCheckIcon className="size-4 text-success" />,
-        info: <InfoIcon className="size-4 text-info" />,
+        info: <InfoIcon className="size-4 text-accent" />,
         warning: <TriangleAlertIcon className="size-4 text-warning" />,
-        error: <CircleAlertIcon className="size-4 text-destructive" />,
+        error: <CircleAlertIcon className="size-4 text-danger" />,
         loading: <LoaderIcon className="size-4 animate-spin text-muted-foreground" />,
       }}
       toastOptions={{
@@ -34,12 +34,12 @@ export function Toaster(props: ToasterProps) {
           actionButton:
             "ml-auto h-7 shrink-0 rounded-sm bg-primary px-2.5 text-xs font-semibold text-primary-foreground",
           cancelButton:
-            "h-7 shrink-0 rounded-sm bg-secondary px-2.5 text-xs font-semibold text-foreground",
+            "h-7 shrink-0 rounded-sm bg-muted px-2.5 text-xs font-semibold text-foreground",
           closeButton: "border-border bg-popover text-muted-foreground",
-          error: "border-l-2 border-l-destructive",
+          error: "border-l-2 border-l-danger",
           success: "border-l-2 border-l-success",
           warning: "border-l-2 border-l-warning",
-          info: "border-l-2 border-l-info",
+          info: "border-l-2 border-l-accent",
         },
       }}
       {...props}

@@ -17,7 +17,7 @@ export function TabsList({ className, ...props }: React.ComponentProps<typeof Ta
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "flex w-full items-end gap-5 overflow-x-auto border-b border-border",
+        "flex w-full items-end gap-6 overflow-x-auto border-b border-border",
         className,
       )}
       {...props}
@@ -38,7 +38,7 @@ export function TabsTrigger({
         "group relative -mb-px inline-flex h-9 shrink-0 items-center gap-1.5 border-b-2 border-transparent text-sm font-semibold whitespace-nowrap text-muted-foreground",
         "transition-colors outline-none hover:text-foreground",
         "focus-visible:rounded-xs focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
-        "data-[state=active]:border-foreground data-[state=active]:text-foreground",
+        "data-[state=active]:border-accent data-[state=active]:text-foreground",
         "disabled:pointer-events-none disabled:opacity-40",
         "[&_svg]:size-4 [&_svg]:shrink-0",
         className,
@@ -47,7 +47,7 @@ export function TabsTrigger({
     >
       {children}
       {count !== undefined && (
-        <span className="num min-w-5 rounded-sm bg-subtle px-1 text-center text-2xs leading-4 font-semibold text-muted-foreground group-data-[state=active]:bg-primary group-data-[state=active]:text-primary-foreground">
+        <span className="num min-w-5 rounded-sm bg-pressed px-1 text-center text-xs leading-4 font-semibold text-muted-foreground group-data-[state=active]:text-foreground">
           {count}
         </span>
       )}

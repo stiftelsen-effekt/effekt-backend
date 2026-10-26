@@ -23,3 +23,6 @@ globalThis.ResizeObserver ??= class {
   unobserve() {}
   disconnect() {}
 };
+
+// jsdom has no layout
+Element.prototype.scrollIntoView ??= function () {};

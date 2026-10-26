@@ -10,21 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
-import { Route as DesignRouteImport } from './routes/design'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
-import { Route as DesignIndexRouteImport } from './routes/design/index'
-import { Route as DesignDetailRouteImport } from './routes/design/detail'
-import { Route as DesignListRouteImport } from './routes/design/list'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DesignRoute = DesignRouteImport.update({
-  id: '/design',
-  path: '/design',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -42,77 +33,34 @@ const AppSplatRoute = AppSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => AppRoute,
 } as any)
-const DesignIndexRoute = DesignIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DesignRoute,
-} as any)
-const DesignDetailRoute = DesignDetailRouteImport.update({
-  id: '/detail',
-  path: '/detail',
-  getParentRoute: () => DesignRoute,
-} as any)
-const DesignListRoute = DesignListRouteImport.update({
-  id: '/list',
-  path: '/list',
-  getParentRoute: () => DesignRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
-  '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
-  '/design/detail': typeof DesignDetailRoute
-  '/design/list': typeof DesignListRoute
-  '/design/': typeof DesignIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
-  '/design/detail': typeof DesignDetailRoute
-  '/design/list': typeof DesignListRoute
   '/': typeof AppIndexRoute
-  '/design': typeof DesignIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
-  '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/$': typeof AppSplatRoute
-  '/design/detail': typeof DesignDetailRoute
-  '/design/list': typeof DesignListRoute
   '/_app/': typeof AppIndexRoute
-  '/design/': typeof DesignIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/design'
-    | '/login'
-    | '/$'
-    | '/design/detail'
-    | '/design/list'
-    | '/design/'
+  fullPaths: '/' | '/login' | '/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/$' | '/design/detail' | '/design/list' | '/' | '/design'
-  id:
-    | '__root__'
-    | '/_app'
-    | '/design'
-    | '/login'
-    | '/_app/$'
-    | '/design/detail'
-    | '/design/list'
-    | '/_app/'
-    | '/design/'
+  to: '/login' | '/$' | '/'
+  id: '__root__' | '/_app' | '/login' | '/_app/$' | '/_app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
-  DesignRoute: typeof DesignRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
 
@@ -123,13 +71,6 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/design': {
-      id: '/design'
-      path: '/design'
-      fullPath: '/design'
-      preLoaderRoute: typeof DesignRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -153,27 +94,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSplatRouteImport
       parentRoute: typeof AppRoute
     }
-    '/design/': {
-      id: '/design/'
-      path: '/'
-      fullPath: '/design/'
-      preLoaderRoute: typeof DesignIndexRouteImport
-      parentRoute: typeof DesignRoute
-    }
-    '/design/detail': {
-      id: '/design/detail'
-      path: '/detail'
-      fullPath: '/design/detail'
-      preLoaderRoute: typeof DesignDetailRouteImport
-      parentRoute: typeof DesignRoute
-    }
-    '/design/list': {
-      id: '/design/list'
-      path: '/list'
-      fullPath: '/design/list'
-      preLoaderRoute: typeof DesignListRouteImport
-      parentRoute: typeof DesignRoute
-    }
   }
 }
 
@@ -189,24 +109,8 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
-interface DesignRouteChildren {
-  DesignDetailRoute: typeof DesignDetailRoute
-  DesignListRoute: typeof DesignListRoute
-  DesignIndexRoute: typeof DesignIndexRoute
-}
-
-const DesignRouteChildren: DesignRouteChildren = {
-  DesignDetailRoute: DesignDetailRoute,
-  DesignListRoute: DesignListRoute,
-  DesignIndexRoute: DesignIndexRoute,
-}
-
-const DesignRouteWithChildren =
-  DesignRoute._addFileChildren(DesignRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
-  DesignRoute: DesignRouteWithChildren,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

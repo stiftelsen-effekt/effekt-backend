@@ -5,7 +5,10 @@ export function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
-      className={cn("flex flex-col border border-border bg-card text-card-foreground", className)}
+      className={cn(
+        "flex flex-col rounded-md border border-border bg-surface text-foreground",
+        className,
+      )}
       {...props}
     />
   );

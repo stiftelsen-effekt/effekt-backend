@@ -1,5 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/app-shell";
+import { useApiSearchProviders } from "@/features/search/api-providers";
+import { SearchProvidersProvider } from "@/features/search/providers";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: ({ context, location }) => {
@@ -7,9 +9,16 @@ export const Route = createFileRoute("/_app")({
       throw redirect({ to: "/login", search: { redirect: location.href } });
     }
   },
-  component: () => (
-    <AppShell>
-      <Outlet />
-    </AppShell>
-  ),
+  component: AppLayout,
 });
+
+function AppLayout() {
+  const providers = useApiSearchProviders();
+  return (
+    <SearchProvidersProvider value={providers}>
+      <AppShell>
+        <Outlet />
+      </AppShell>
+    </SearchProvidersProvider>
+  );
+}

@@ -46,21 +46,21 @@ export function Calendar({
         month_grid: "w-full border-collapse",
         weekdays: cn("flex", defaults.weekdays),
         weekday: cn(
-          "w-(--cell) text-2xs font-semibold text-muted-foreground uppercase select-none",
+          "w-(--cell) text-xs font-semibold text-muted-foreground uppercase select-none",
           defaults.weekday,
         ),
         week: cn("mt-1 flex w-full", defaults.week),
         day: cn("group/day relative size-(--cell) p-0 text-center select-none", defaults.day),
         day_button: cn(
           "num grid size-(--cell) place-content-center rounded-sm text-sm transition-colors outline-none",
-          "hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring",
+          "hover:bg-hover focus-visible:outline-2 focus-visible:outline-ring",
         ),
         selected:
           "[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary/85",
-        range_start: "rounded-l-sm bg-subtle",
+        range_start: "rounded-l-sm bg-pressed",
         range_middle:
-          "bg-subtle [&>button]:rounded-none [&>button]:bg-transparent! [&>button]:text-foreground! [&>button]:hover:bg-muted!",
-        range_end: "rounded-r-sm bg-subtle",
+          "bg-pressed [&>button]:rounded-none [&>button]:bg-transparent! [&>button]:text-foreground! [&>button]:hover:bg-hover!",
+        range_end: "rounded-r-sm bg-pressed",
         today: "[&>button]:underline [&>button]:decoration-2 [&>button]:underline-offset-4",
         outside: "text-muted-foreground opacity-60 aria-selected:opacity-100",
         disabled: "text-muted-foreground opacity-40",

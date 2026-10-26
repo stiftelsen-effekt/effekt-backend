@@ -12,7 +12,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       title="Page not found"
       description="The address doesn't match any page."
       action={
-        <Button variant="outline" asChild>
+        <Button asChild>
           <Link to="/">Go home</Link>
         </Button>
       }
