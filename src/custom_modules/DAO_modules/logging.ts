@@ -38,9 +38,11 @@ async function getEntries(
   offset = 0,
   filesearch: string | null = null,
 ): Promise<{ results: ImportLogSummary[]; pages: number }> {
-  /**
-   * TODO: Add filtering
-   */
+  const where =
+    filesearch !== null && filesearch !== ""
+      ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' + sqlString.escape("%" + filesearch + "%")
+      : "";
+
   let [res] = await DAO.query<ImportLogSummary[]>(
     `
       SELECT 
@@ -75,11 +77,7 @@ async function getEntries(
       
       FROM Import_logs 
 
-      ${
-        filesearch !== null && filesearch !== ""
-          ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' + sqlString.escape("%" + filesearch + "%")
-          : ""
-      }
+      ${where}
       
       ORDER BY timestamp DESC 
       LIMIT ? 
@@ -87,8 +85,9 @@ async function getEntries(
     [limit, offset],
   );
 
-  let [counter] = await DAO.query(`
-      SELECT COUNT(*) as count FROM Import_logs 
+  // Same filter as above, so the page count matches the filtered entries
+  let [counter] = await DAO.query<{ count: number }[]>(`
+      SELECT COUNT(*) as count FROM Import_logs ${where}
     `);
 
   const pages = Math.ceil(counter[0].count / limit);

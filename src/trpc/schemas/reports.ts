@@ -1,11 +1,10 @@
 import { z } from "zod";
 import { TRPC_MAX_BODY_SIZE } from "../reportsMultipart";
+import { idSchema as id, isoDateSchema, paginationFields, sortSchema } from "./common";
 
-export const id = z.number().int().positive();
+export const idInput = z.strictObject({ id });
 
-export const idInput = z.object({ id }).strict();
-
-export const donorIdInput = z.object({ donorId: id }).strict();
+export const donorIdInput = z.strictObject({ donorId: id });
 
 //region FormData uploads
 
@@ -34,8 +33,12 @@ export const formDataInput = <S extends z.ZodRawShape>(shape: S) =>
     .transform((formData): any => formDataToRecord(formData))
     .pipe(z.strictObject(shape));
 
-export const reportFile = z
-  .instanceof(File, { message: "Missing report file" })
+const singleFile = z
+  .unknown()
+  .refine((value) => !Array.isArray(value), "Upload one report file at a time")
+  .pipe(z.instanceof(File, { message: "Missing report file" }));
+
+export const reportFile = singleFile
   .refine((file) => file.size > 0, "Report file is empty")
   .refine((file) => file.size <= TRPC_MAX_BODY_SIZE, "Report file is larger than 10 MB");
 
@@ -45,13 +48,17 @@ const positiveIntField = z
   .regex(/^[1-9]\d*$/, "Expected a positive integer")
   .transform(Number);
 
+/** Data owner to register the donations under; the default owner when omitted */
+const metaOwnerIDField = positiveIntField.optional();
+
 export const reportUploadInput = formDataInput({
   report: reportFile,
-  metaOwnerID: positiveIntField,
+  metaOwnerID: metaOwnerIDField,
 });
 
 export const bankSeUploadInput = formDataInput({
   report: reportFile,
+  metaOwnerID: metaOwnerIDField,
   dryRun: z
     .enum(["true", "false"])
     .optional()
@@ -60,10 +67,18 @@ export const bankSeUploadInput = formDataInput({
 
 export const fileOnlyUploadInput = formDataInput({
   report: reportFile,
+  /** Accepted for consistency with the other uploads; validated, see the procedures */
+  metaOwnerID: metaOwnerIDField,
 });
 
+/** Windows browsers send .csv files as application/vnd.ms-excel or application/octet-stream */
+const isCsv = (file: File) =>
+  file.type === "text/csv" ||
+  (["application/vnd.ms-excel", "application/octet-stream", ""].includes(file.type) &&
+    file.name.toLowerCase().endsWith(".csv"));
+
 export const ku65Input = formDataInput({
-  report: reportFile.refine((file) => file.type === "text/csv", "Invalid file type, must be CSV"),
+  report: reportFile.refine(isCsv, "Invalid file type, must be CSV"),
   year: z
     .string()
     .regex(/^\d{4}$/, "Invalid year")
@@ -76,88 +91,78 @@ export const ku65Input = formDataInput({
 //region Transaction report
 
 export const transactionRangeInput = z
-  .object({
+  .strictObject({
     /** Inclusive */
-    fromDate: z.iso.date(),
+    fromDate: isoDateSchema,
     /** Inclusive */
-    toDate: z.iso.date(),
+    toDate: isoDateSchema,
     /** All payment methods when omitted */
     paymentMethodIDs: z.array(id).min(1).optional(),
   })
-  .strict();
+  .refine((input) => input.fromDate <= input.toDate, {
+    message: "fromDate must not be after toDate",
+    path: ["toDate"],
+  });
 
 //endregion
 
 //region Logs
 
-export const logsListInput = z
-  .object({
-    page: z.number().int().nonnegative(),
-    limit: z.number().int().positive().max(1000),
-    filter: z
-      .object({
-        /** Fuzzy match in the `file` field of the log entry's result JSON */
-        fileSearch: z.string().optional(),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict();
+export const logsListInput = z.strictObject({
+  ...paginationFields,
+  filter: z
+    .strictObject({
+      /** Fuzzy match in the `file` field of the log entry's result JSON */
+      fileSearch: z.string().optional(),
+    })
+    .optional(),
+});
 
 //endregion
 
 //region Fundraisers
 
-const dateRange = z
-  .object({
-    from: z.iso.date().optional(),
-    to: z.iso.date().optional(),
-  })
-  .strict();
+const dateRange = z.strictObject({
+  from: isoDateSchema.optional(),
+  to: isoDateSchema.optional(),
+});
 
-const countRange = z
-  .object({
-    from: z.number().int().nonnegative().optional(),
-    to: z.number().int().nonnegative().optional(),
-  })
-  .strict();
+const countRange = z.strictObject({
+  from: z.number().int().nonnegative().optional(),
+  to: z.number().int().nonnegative().optional(),
+});
 
-const sumRange = z
-  .object({
-    from: z.number().nonnegative().optional(),
-    to: z.number().nonnegative().optional(),
-  })
-  .strict();
+const sumRange = z.strictObject({
+  from: z.number().nonnegative().optional(),
+  to: z.number().nonnegative().optional(),
+});
 
 /** Mirrors FundraiserListFilter in DAO_modules/fundraisers.ts */
-export const fundraiserFilter = z
-  .object({
-    registrationDate: dateRange.optional(),
-    fundraiserId: id.optional(),
-    /** Fuzzy match on the fundraiser owner's name */
-    donor: z.string().optional(),
-    donationCount: countRange.optional(),
-    donationSum: sumRange.optional(),
-    /** Fundraisers with at least one donation to one of these organizations */
-    organizationIDs: z.array(id).optional(),
-  })
-  .strict();
+export const fundraiserFilter = z.strictObject({
+  registrationDate: dateRange.optional(),
+  fundraiserId: id.optional(),
+  /** Fuzzy match on the fundraiser owner's name */
+  donor: z.string().optional(),
+  donationCount: countRange.optional(),
+  donationSum: sumRange.optional(),
+  /** Fundraisers with at least one donation to one of these organizations */
+  organizationIDs: z.array(id).optional(),
+});
 
 /** Sortable columns, see jsDBmapping in DAO_modules/fundraisers.ts */
-export const fundraiserSort = z
-  .object({
-    id: z.enum(["id", "registered", "donor", "totalSum", "donationCount", "averageDonation"]),
-    desc: z.boolean(),
-  })
-  .strict();
+export const fundraiserSort = sortSchema([
+  "id",
+  "registered",
+  "donor",
+  "totalSum",
+  "donationCount",
+  "averageDonation",
+] as const);
 
-export const fundraisersListInput = z
-  .object({
-    page: z.number().int().nonnegative(),
-    limit: z.number().int().positive().max(1000),
-    sort: fundraiserSort.optional(),
-    filter: fundraiserFilter.optional(),
-  })
-  .strict();
+export const fundraisersListInput = z.strictObject({
+  ...paginationFields,
+  sort: fundraiserSort.optional(),
+  filter: fundraiserFilter.optional(),
+});
 
 //endregion

@@ -37,12 +37,13 @@ const uploadForm = (
   return formData;
 };
 
-const expectTrpcError = async (promise: Promise<unknown>, code: string) => {
+const expectTrpcError = async (promise: Promise<unknown>, code: string, message?: RegExp) => {
   try {
     await promise;
     expect.fail(`expected ${code}`);
   } catch (err: any) {
     expect(err.code).to.equal(code);
+    if (message) expect(err.message).to.match(message);
   }
 };
 
@@ -52,6 +53,10 @@ describe("tRPC reports router", () => {
   beforeEach(() => {
     addStub = sinon.stub(DAO.donations, "add").resolves(10);
     sinon.stub(mail, "sendDonationReceipt").resolves();
+    sinon.stub(DAO.meta, "getDataOwners").resolves([
+      { id: 1, name: "Default", default: true },
+      { id: 3, name: "Other", default: false },
+    ] as any);
   });
 
   afterEach(() => {
@@ -82,8 +87,8 @@ describe("tRPC reports router", () => {
     });
 
     it("rejects uploads without a valid file or meta owner", async () => {
-      const noOwner = uploadForm("ocr/TBOC2072.DAT", {});
-      await expectTrpcError(admin().uploads.ocr(noOwner), "BAD_REQUEST");
+      const unknownOwner = uploadForm("ocr/TBOC2072.DAT", { metaOwnerID: "99" });
+      await expectTrpcError(admin().uploads.ocr(unknownOwner), "BAD_REQUEST", /Data owner 99/);
 
       const badOwner = uploadForm("ocr/TBOC2072.DAT", { metaOwnerID: "3abc" });
       await expectTrpcError(admin().uploads.ocr(badOwner), "BAD_REQUEST");
@@ -94,13 +99,93 @@ describe("tRPC reports router", () => {
 
       const twoFiles = uploadForm("ocr/TBOC2072.DAT");
       twoFiles.append("report", new File(["x"], "second.DAT"));
-      await expectTrpcError(admin().uploads.ocr(twoFiles), "BAD_REQUEST");
+      await expectTrpcError(admin().uploads.ocr(twoFiles), "BAD_REQUEST", /one report file/);
 
       expect(addStub.called).to.be.false;
     });
   });
 
   describe("uploads", () => {
+    it("registers with the default owner when metaOwnerID is omitted", async () => {
+      await admin().uploads.ocr(uploadForm("ocr/TBOC2072.DAT", {}));
+      expect(addStub.called).to.be.true;
+      expect(addStub.firstCall.args[5]).to.equal(null);
+    });
+
+    it("accepts and validates metaOwnerID on every upload", async () => {
+      const bankSe = sinon
+        .stub(reportsService, "processBankSeReport")
+        .resolves({ valid: 0, invalid: 0, invalidTransactions: [] });
+      sinon.stub(reportsService, "processFacebookReport").resolves({ fbCampaigns: [] });
+      sinon
+        .stub(reportsService, "processAutogiroReport")
+        .resolves({ type: "eMandates", newMandates: 0 });
+
+      await admin().uploads.bankSe(uploadForm("camt/camt053_mixed.xml"));
+      expect(bankSe.firstCall.args[2]).to.equal(3);
+      await admin().uploads.facebook(uploadForm("bank/sampleReport.CSV"));
+      await admin().uploads.autogiro(uploadForm("autogiro/e-mandates.txt"));
+
+      for (const upload of [
+        admin().uploads.bankSe,
+        admin().uploads.facebook,
+        admin().uploads.autogiro,
+      ]) {
+        await expectTrpcError(
+          upload(uploadForm("bank/sampleReport.CSV", { metaOwnerID: "99" })),
+          "BAD_REQUEST",
+          /Data owner 99/,
+        );
+      }
+    });
+
+    it("rejects files that are not the expected report type, writing nothing", async () => {
+      sinon.stub(DAO.parsing, "getVippsParsingRules").resolves([]);
+      sinon.stub(DAO.donations, "getByExternalPaymentID").resolves(null as any);
+      const kidExists = sinon.stub(DAO.distributions, "KIDexists").resolves(true);
+
+      const cases: [Promise<unknown>, RegExp][] = [
+        [admin().uploads.vipps(uploadForm("bank/sampleReport.CSV")), /Not a Vipps settlement/],
+        [
+          admin().uploads.vipps(uploadForm("autogiro/e-mandates.txt")),
+          /Could not read the Vipps report/,
+        ],
+        [admin().uploads.bankSe(uploadForm("bank/sampleReport.CSV")), /Not a CAMT.053/],
+        [admin().uploads.bankSe(uploadForm("camt/camt053_malformed.xml")), /CAMT.053/],
+        [admin().uploads.bankSe(uploadForm("camt/camt053_wrong_namespace.xml")), /No statement/],
+        [admin().uploads.bankSe(uploadForm("camt/camt053_xxe.xml")), /entity/],
+        [admin().uploads.autogiro(uploadForm("bank/sampleReport.CSV")), /AutoGiro file/],
+      ];
+      for (const [promise, message] of cases) {
+        await expectTrpcError(promise, "BAD_REQUEST", message);
+      }
+      expect(addStub.called).to.be.false;
+      expect(kidExists.called).to.be.false;
+    });
+
+    it("rejects an unreadable xlsx sent as a Vipps report", async () => {
+      const formData = new FormData();
+      // A zip container (xlsx) with binary content
+      const xlsx = Buffer.concat([Buffer.from("PK\u0003\u0004"), Buffer.alloc(64, 0xff)]);
+      formData.append("report", new File([xlsx], "report.xlsx"));
+      await expectTrpcError(admin().uploads.vipps(formData), "BAD_REQUEST");
+      expect(addStub.called).to.be.false;
+    });
+
+    it("keeps stored Facebook reports when the file can't be parsed", async () => {
+      sinon.stub(console, "error");
+      const remove = sinon.stub(DAO.facebook, "removeAllFacebookReports").resolves();
+      const register = sinon.stub(DAO.facebook, "registerFacebookReport").resolves();
+
+      await expectTrpcError(
+        admin().uploads.facebook(uploadForm("ocr/TBOC2072.DAT", {})),
+        "BAD_REQUEST",
+        /Facebook payout report/,
+      );
+      expect(remove.called).to.be.false;
+      expect(register.called).to.be.false;
+    });
+
     it("ocr registers donations and lists failed ones for review", async () => {
       addStub.onCall(0).rejects(new Error("EXISTING_DONATION"));
       addStub.onCall(1).rejects(new Error("Invalid KID"));
@@ -192,7 +277,7 @@ describe("tRPC reports router", () => {
       expect(result).to.deep.equal({ fbCampaigns: campaigns });
     });
 
-    it("autogiro maps payment results for review", async () => {
+    it("autogiro maps payment results for review, with amounts in whole SEK", async () => {
       const date = new Date("2024-03-28T00:00:00.000Z");
       sinon.stub(reportsService, "processAutogiroReport").resolves({
         type: "payments",
@@ -214,7 +299,7 @@ describe("tRPC reports router", () => {
       if (result.type !== "payments") return;
       expect(result.invalidTransactions[0].transaction).to.deep.equal({
         KID: "123",
-        amount: 10000,
+        amount: 100,
         date: "2024-03-28T00:00:00.000Z",
         transactionID: "ag.1",
         paymentID: 12,
@@ -236,8 +321,19 @@ describe("tRPC reports router", () => {
   });
 
   describe("transactions", () => {
-    it("range returns the donations as a JSON file", async () => {
-      const rows = [{ ID: 1, sum: "100.00", split: [] }];
+    it("range returns the donations as rows", async () => {
+      const rows = [
+        {
+          ID: 1,
+          time: new Date("2024-01-02"),
+          name: "Ola",
+          donorID: 2,
+          sum: "100.00",
+          paymentMethod: "Bank",
+          transactionCost: null,
+          split: [],
+        },
+      ];
       const rangeStub = sinon.stub(DAO.donations, "getFromRange").resolves(rows);
 
       const file = await admin().transactions.range({
@@ -249,11 +345,16 @@ describe("tRPC reports router", () => {
       expect(rangeStub.firstCall.args[0]).to.deep.equal(new Date("2024-01-01"));
       expect(rangeStub.firstCall.args[1]).to.deep.equal(new Date("2024-01-31"));
       expect(rangeStub.firstCall.args[2]).to.deep.equal([2, 5]);
-      expect(file).to.deep.equal({
-        filename: "transactions_2024-01-01_2024-01-31.json",
-        contentType: "application/json",
-        content: JSON.stringify(rows),
-      });
+      expect(file).to.deep.equal({ filename: "transactions_2024-01-01_2024-01-31", rows });
+    });
+
+    it("range rejects a reversed date range", async () => {
+      const rangeStub = sinon.stub(DAO.donations, "getFromRange").resolves([]);
+      await expectTrpcError(
+        admin().transactions.range({ fromDate: "2024-02-01", toDate: "2024-01-31" }),
+        "BAD_REQUEST",
+      );
+      expect(rangeStub.called).to.be.false;
     });
 
     it("range passes null for all payment methods", async () => {
@@ -278,6 +379,23 @@ describe("tRPC reports router", () => {
       expect(file.contentType).to.equal("application/xml");
       expect(file.content).to.contain("<?xml");
       expect(file.content).to.contain("750");
+    });
+
+    it("ku65 accepts .csv files with the content types Windows browsers send", async () => {
+      for (const type of ["application/vnd.ms-excel", "application/octet-stream"]) {
+        const formData = new FormData();
+        formData.append("report", new File(["191212121212,500\n"], "KU65.CSV", { type }));
+        formData.append("year", "2025");
+        expect((await admin().tax.ku65(formData)).content).to.contain("500");
+      }
+
+      const notCsvName = new FormData();
+      notCsvName.append(
+        "report",
+        new File(["191212121212,500\n"], "ku65.xls", { type: "application/vnd.ms-excel" }),
+      );
+      notCsvName.append("year", "2025");
+      await expectTrpcError(admin().tax.ku65(notCsvName), "BAD_REQUEST");
     });
 
     it("ku65 rejects invalid personnummer and non-CSV files", async () => {
@@ -308,6 +426,19 @@ describe("tRPC reports router", () => {
 
       expect(getEntries.firstCall.args).to.deep.equal([25, 50, "002370000101"]);
       expect(result).to.deep.equal({ rows, pages: 3 });
+    });
+
+    it("counts pages with the file search filter applied", async () => {
+      const query = sinon.stub(DAO, "query");
+      query.onCall(0).resolves([[], []] as any);
+      query.onCall(1).resolves([[{ count: 30 }], []] as any);
+
+      const result = await DAO.logging.getEntries(25, 0, "0023");
+
+      expect(query.secondCall.args[0]).to.match(
+        /WHERE JSON_EXTRACT\(result, "\$\.file"\) LIKE '%0023%'/,
+      );
+      expect(result.pages).to.equal(2);
     });
 
     it("get returns an entry or NOT_FOUND", async () => {
@@ -364,7 +495,7 @@ describe("tRPC reports router", () => {
 
     it("get combines the fundraiser with its totals and transactions", async () => {
       sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(fundraiser);
-      const transactions = [{ name: null, message: "Go!", amount: 100, date: new Date() }];
+      const transactions = [{ id: 3, name: null, message: "Go!", amount: 100, date: new Date() }];
       sinon
         .stub(DAO.fundraisers, "getFundraiserByID")
         .resolves({ totalSum: 100, donationCount: 1, transactions });

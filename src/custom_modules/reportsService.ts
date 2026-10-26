@@ -11,6 +11,7 @@ import { createHash } from "crypto";
 import { DateTime } from "luxon";
 import type { Moment } from "moment";
 import { processAutogiroInputFile } from "./autogiro";
+import { AutoGiroParser } from "./parsers/autogiro";
 import { DAO } from "./DAO";
 import { VippsParsingRule } from "./DAO_modules/parsing";
 import { sendDonationReceipt } from "./mail";
@@ -33,6 +34,31 @@ const ocr = require("./ocr");
 const BANK_NO_KID_ID = 5;
 const BANK_SE_PAYMENT_ID = 2;
 const SWISH_PAYMENT_ID = 11;
+
+/**
+ * The uploaded file could not be read as the expected report type. Thrown before anything is
+ * written. Carries `status`/`msg` so the REST error handler answers 400 with the message.
+ */
+export class ReportParseError extends Error {
+  readonly status = 400;
+  readonly msg: string;
+
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "ReportParseError";
+    this.msg = message;
+  }
+}
+
+/** Runs a parser, turning any exception into a ReportParseError with the given prefix */
+function parseOrThrow<T>(description: string, parse: () => T): T {
+  try {
+    return parse();
+  } catch (ex) {
+    if (ex instanceof ReportParseError) throw ex;
+    throw new ReportParseError(`${description}: ${(ex as Error).message}`, { cause: ex });
+  }
+}
 
 export type InvalidTransaction<T> = { reason: string; transaction: T };
 
@@ -61,7 +87,7 @@ export type OcrTransaction = {
  */
 export async function processOcrReport(
   data: string,
-  metaOwnerID: number,
+  metaOwnerID: number | null,
 ): Promise<ReportUploadResult<OcrTransaction> & { ignored: number }> {
   const transactions: OcrTransaction[] = OCRparser.parse(data);
   return ocr.addDonations(transactions, metaOwnerID);
@@ -75,9 +101,11 @@ export type VippsReviewTransaction = VippsTransaction & { paymentID: number };
 
 export async function processVippsReport(
   report: Buffer,
-  metaOwnerID: number,
+  metaOwnerID: number | null,
 ): Promise<ReportUploadResult<VippsReviewTransaction>> {
-  const parsedReport = parseVippsReport(report);
+  const parsedReport = parseOrThrow("Could not read the Vipps report", () =>
+    parseVippsReport(report),
+  );
   const parsingRules = await DAO.parsing.getVippsParsingRules(
     parsedReport.minDate,
     parsedReport.maxDate,
@@ -237,9 +265,13 @@ export type BankNoTransaction = {
 
 export async function processBankNoReport(
   data: string,
-  metaOwnerID: number,
+  metaOwnerID: number | null,
 ): Promise<ReportUploadResult<BankNoTransaction>> {
-  const transactions: BankNoTransaction[] = parseBankReport(data);
+  const transactions: BankNoTransaction[] | false = parseOrThrow(
+    "Could not read the bank report",
+    () => parseBankReport(data),
+  );
+  if (!transactions) throw new ReportParseError("Could not read the bank report as CSV");
 
   let valid = 0;
   let invalid = 0;
@@ -347,6 +379,7 @@ export type BankSeReportResult = ReportUploadResult<BankSeTransaction> &
 export async function processBankSeReport(
   data: string,
   dryRun: boolean,
+  metaOwnerID: number | null = null,
 ): Promise<BankSeReportResult> {
   // Auto-detect format and parse
   let payments: {
@@ -362,7 +395,7 @@ export async function processBankSeReport(
   if (isCamtXml(data)) {
     fileFormat = "xml";
     // Parse ISO 20022 CAMT.053 XML format
-    const result = parseCamtFile(data);
+    const result = parseOrThrow("Could not read the CAMT.053 file", () => parseCamtFile(data));
     postingDate = DateTime.fromISO(result.postingDate);
     payments = result.transactions.map((tx) => ({
       amount: tx.amount * 100, // Convert to öre to match existing logic
@@ -374,6 +407,16 @@ export async function processBankSeReport(
     fileFormat = "totalin";
     // Parse fixed-width TotalIn format
     const records = parseTotalInFile(data);
+    const accountStart = records.find(
+      (record) => record.recordType === RecordType.AccountAndCurrencyStartRecord,
+    );
+    if (
+      !data.trimStart().startsWith(RecordType.OpeningRecord) ||
+      !accountStart ||
+      !DateTime.fromFormat(accountStart.postingDate, "yyyyMMdd").isValid
+    ) {
+      throw new ReportParseError("Not a CAMT.053 XML or TotalIn file");
+    }
     for (const record of records) {
       if (record.recordType === RecordType.AccountAndCurrencyStartRecord) {
         postingDate = DateTime.fromFormat(record.postingDate, "yyyyMMdd");
@@ -384,6 +427,9 @@ export async function processBankSeReport(
           messages: [],
         });
       } else if (record.recordType === RecordType.MessageRecord) {
+        if (payments.length === 0) {
+          throw new ReportParseError("Invalid TotalIn file: message record before any payment");
+        }
         // Add messages to last payment
         payments[payments.length - 1].messages.push(record.messages[0]);
         payments[payments.length - 1].messages.push(record.messages[1]);
@@ -578,6 +624,7 @@ export async function processBankSeReport(
           payment.amount / 100,
           postingDate!.toJSDate(),
           payment.externalReference,
+          metaOwnerID,
         );
 
         try {
@@ -644,8 +691,14 @@ export type FacebookCampaignMissingShares = {
 export async function processFacebookReport(
   report: Buffer,
 ): Promise<{ fbCampaigns: FacebookCampaignMissingShares[] }> {
-  await DAO.facebook.removeAllFacebookReports();
+  // Parse before removing the stored reports, so a broken file doesn't wipe them
   const donations = await parseFacebookReport(report);
+  if (!donations) {
+    throw new ReportParseError(
+      "Could not read the Facebook payout report (or fetch exchange rates from Norges Bank)",
+    );
+  }
+  await DAO.facebook.removeAllFacebookReports();
   await DAO.facebook.registerFacebookReport(JSON.stringify(donations));
 
   const campaigns = donations.reduce((acc, donation) => {
@@ -756,6 +809,10 @@ export type AutogiroReportResult =
 export async function processAutogiroReport(report: Buffer): Promise<AutogiroReportResult> {
   const encoding = chardet.detect(report);
   const data = report.toString(getNodeEncoding(encoding));
+
+  // processAutogiroInputFile parses again; this separates unreadable files from failures while
+  // processing
+  parseOrThrow("Could not read the AutoGiro file", () => AutoGiroParser.parse(data));
 
   const result = await processAutogiroInputFile(data);
   const fileType = result.openingRecord.fileContents;

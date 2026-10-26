@@ -44,7 +44,7 @@ export const parseReport = async (report) => {
     const allExchangeRates: { [currency: string]: { [date: string]: number } } = {};
 
     for (let i = 0; i < payoutCurrencies.length; i++) {
-      const exchangeRateURL = `https://data.norges-bank.no/api/data/EXR/B.${payoutCurrencies[i]}.NOK.SP?format=sdmx-json&locale=no${query}`;
+      const exchangeRateURL = `https://data.norges-bank.no/api/data/EXR/B.${payoutCurrencies[i]}.NOK.SP?format=sdmx-json&locale=no&${query}`;
       const exchangeRatesData = await fetch(exchangeRateURL).then((res) => res.json());
 
       const exchangeDates = exchangeRatesData.data.structure.dimensions.observation[0].values;

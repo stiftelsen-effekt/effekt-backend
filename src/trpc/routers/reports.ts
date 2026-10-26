@@ -10,6 +10,7 @@ import {
   processFacebookReport,
   processOcrReport,
   processVippsReport,
+  ReportParseError,
 } from "../../custom_modules/reportsService";
 import {
   bankSeUploadInput,
@@ -33,6 +34,7 @@ import { adminProcedure, router } from "../trpc";
  */
 export type ManualReviewTransaction = {
   KID: string | null;
+  /** In whole currency units (NOK/SEK), like the donation that would be registered */
   amount: number;
   /** ISO 8601 */
   date: string | null;
@@ -117,32 +119,61 @@ const toSummary = (result: {
 const readText = async (file: File) => Buffer.from(await file.arrayBuffer()).toString("utf8");
 const readBuffer = async (file: File) => Buffer.from(await file.arrayBuffer());
 
+/** Unreadable files (wrong type, malformed) are client errors; nothing has been written */
+async function processFile<T>(process: () => Promise<T>): Promise<T> {
+  try {
+    return await process();
+  } catch (ex) {
+    if (ex instanceof ReportParseError) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: ex.message, cause: ex });
+    }
+    throw ex;
+  }
+}
+
+/** Checks an optional metaOwnerID against the data owners; null means the default owner */
+async function checkedMetaOwner(metaOwnerID: number | undefined): Promise<number | null> {
+  if (metaOwnerID === undefined) return null;
+  const owners = await DAO.meta.getDataOwners();
+  if (!owners.some((owner) => owner.id === metaOwnerID)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Data owner ${metaOwnerID} does not exist`,
+    });
+  }
+  return metaOwnerID;
+}
+
 //endregion
 
 const uploadsRouter = router({
   /** Nets OCR file (AvtaleGiro and KID bank payments, NO) */
   ocr: adminProcedure.input(reportUploadInput).mutation(async ({ input }) => {
-    const result = await processOcrReport(await readText(input.report), input.metaOwnerID);
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
+    const data = await readText(input.report);
+    const result = await processFile(() => processOcrReport(data, metaOwnerID));
     return { ...toSummary(result), ignored: result.ignored };
   }),
 
   /** Vipps settlement report (CSV) */
-  vipps: adminProcedure
-    .input(reportUploadInput)
-    .mutation(async ({ input }) =>
-      toSummary(await processVippsReport(await readBuffer(input.report), input.metaOwnerID)),
-    ),
+  vipps: adminProcedure.input(reportUploadInput).mutation(async ({ input }) => {
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
+    const data = await readBuffer(input.report);
+    return toSummary(await processFile(() => processVippsReport(data, metaOwnerID)));
+  }),
 
   /** Norwegian bank export of payments without KID (CSV) */
-  bankNo: adminProcedure
-    .input(reportUploadInput)
-    .mutation(async ({ input }) =>
-      toSummary(await processBankNoReport(await readText(input.report), input.metaOwnerID)),
-    ),
+  bankNo: adminProcedure.input(reportUploadInput).mutation(async ({ input }) => {
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
+    const data = await readText(input.report);
+    return toSummary(await processFile(() => processBankNoReport(data, metaOwnerID)));
+  }),
 
   /** Swedish bank file (CAMT.053 XML or TotalIn). `dryRun` writes nothing. */
   bankSe: adminProcedure.input(bankSeUploadInput).mutation(async ({ input }) => {
-    const result = await processBankSeReport(await readText(input.report), input.dryRun);
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
+    const data = await readText(input.report);
+    const result = await processFile(() => processBankSeReport(data, input.dryRun, metaOwnerID));
     return {
       ...toSummary(result),
       dryRun:
@@ -169,36 +200,50 @@ const uploadsRouter = router({
   /**
    * Facebook payout report. Returns the campaigns that have no organization shares registered.
    * Registering shares and donations from Facebook reports is not implemented (see report).
+   * No donations are registered, so `metaOwnerID` is only validated.
    */
-  facebook: adminProcedure
-    .input(fileOnlyUploadInput)
-    .mutation(async ({ input }) => processFacebookReport(await readBuffer(input.report))),
+  facebook: adminProcedure.input(fileOnlyUploadInput).mutation(async ({ input }) => {
+    await checkedMetaOwner(input.metaOwnerID);
+    const data = await readBuffer(input.report);
+    return processFile(() => processFacebookReport(data));
+  }),
 
-  /** Bankgirot AutoGiro file (SE): payments, mandates, e-mandates or rejected charges */
+  /**
+   * Bankgirot AutoGiro file (SE): payments, mandates, e-mandates or rejected charges.
+   * `metaOwnerID` is only validated: AutoGiro donations are registered under the default data
+   * owner (custom_modules/autogiro.ts doesn't take an owner).
+   */
   autogiro: adminProcedure.input(fileOnlyUploadInput).mutation(async ({ input }) => {
-    const result = await processAutogiroReport(await readBuffer(input.report));
+    await checkedMetaOwner(input.metaOwnerID);
+    const data = await readBuffer(input.report);
+    const result = await processFile(() => processAutogiroReport(data));
     if (result.type === "payments") {
-      return { ...toSummary(result), type: result.type };
+      const summary = toSummary({
+        ...result,
+        // AutoGiro amounts are in öre; review items are in whole currency like other sources
+        invalidTransactions: result.invalidTransactions.map((item) => ({
+          ...item,
+          transaction: { ...item.transaction, amount: item.transaction.amount / 100 },
+        })),
+      });
+      return { ...summary, type: result.type };
     }
     return result;
   }),
 });
 
 const transactionsRouter = router({
-  /** Donations confirmed in an inclusive date range, with their split per organization */
+  /**
+   * Donations confirmed in an inclusive date range, with their split per organization. The
+   * client turns `rows` into a JSON or CSV download named `filename` (without extension).
+   */
   range: adminProcedure.input(transactionRangeInput).mutation(async ({ input }) => {
-    const donations = await DAO.donations.getFromRange(
+    const rows = await DAO.donations.getFromRange(
       new Date(input.fromDate),
       new Date(input.toDate),
-      // The DAO's untyped `= null` default makes TS infer `null` for this parameter
-      (input.paymentMethodIDs ?? null) as null,
+      input.paymentMethodIDs ?? null,
     );
-    const file: FilePayload = {
-      filename: `transactions_${input.fromDate}_${input.toDate}.json`,
-      contentType: "application/json",
-      content: JSON.stringify(donations),
-    };
-    return file;
+    return { filename: `transactions_${input.fromDate}_${input.toDate}`, rows };
   }),
 });
 

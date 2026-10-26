@@ -2,11 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { DateTime } from "luxon";
 import { z } from "zod";
 import { DAO } from "../../custom_modules/DAO";
-import { generateCsv } from "../../custom_modules/csvexport";
+import type { VippsChargeRow } from "../../custom_modules/DAO_modules/vipps";
 import * as vippsService from "../../custom_modules/vippsService";
+import { csvExport } from "../csv";
+import { assertDistributionReferences } from "../distributionChecks";
+import { distributionSplitSchema } from "../schemas/common";
 import { adminProcedure, router } from "../trpc";
 import {
-  agreementDistributionSchema,
   agreementExportInput,
   agreementFilterSchema,
   agreementIdSchema,
@@ -17,6 +19,7 @@ import {
   chargeListInput,
   defaultChargeSort,
   matchingRuleCreateInput,
+  matchingRuleIdInput,
   matchingRuleListInput,
 } from "../schemas/vipps";
 
@@ -47,7 +50,31 @@ async function getAgreementOrThrow(agreementId: string) {
   return agreement;
 }
 
-const exportFilename = (prefix: string) => `${prefix}_${new Date().toISOString()}.csv`;
+/** The upstream error is logged, not returned: it can contain Vipps internals */
+const vippsUnavailable = (action: string, cause?: unknown) => {
+  if (cause !== undefined) {
+    console.error(`Vipps request failed (${action}):`, (cause as Error)?.message ?? cause);
+  }
+  return new TRPCError({ code: "BAD_GATEWAY", message: `Vipps could not ${action}`, cause });
+};
+
+/**
+ * Runs a call that talks to the Vipps API. A `false` result (Vipps refused, or Vipps isn't
+ * configured) or an exception becomes BAD_GATEWAY with a generic message.
+ */
+async function callVipps<T>(action: string, call: () => Promise<T | false>): Promise<T> {
+  let result: T | false;
+  try {
+    result = await call();
+  } catch (ex) {
+    throw vippsUnavailable(action, ex);
+  }
+  if (result === false) throw vippsUnavailable(action);
+  return result;
+}
+
+/** Drops the window aggregates; their values are in `statistics` */
+const withoutAggregates = ({ full_count, full_sum, full_avg, ...row }: VippsChargeRow) => row;
 
 const agreementsRouter = router({
   list: adminProcedure
@@ -68,13 +95,13 @@ const agreementsRouter = router({
       Number.MAX_SAFE_INTEGER,
       toAgreementDaoFilter(input.filter),
     );
-    return { filename: exportFilename("vipps-agreements"), csv: generateCsv(results.rows) };
+    return csvExport("vipps-agreements", results.rows);
   }),
 
   /** Syncs status and price from Vipps into our DB, then returns Vipps' agreement merged with ours. */
-  get: adminProcedure.input(z.object({ id: agreementIdSchema })).query(async ({ input }) => {
+  get: adminProcedure.input(z.strictObject({ id: agreementIdSchema })).query(async ({ input }) => {
     await getAgreementOrThrow(input.id);
-    return vippsService.syncAndGetAgreement(input.id);
+    return callVipps("fetch the agreement", () => vippsService.syncAndGetAgreement(input.id));
   }),
 
   report: adminProcedure.query(() => DAO.vipps.getAgreementReport()),
@@ -83,41 +110,38 @@ const agreementsRouter = router({
 
   updatePrice: adminProcedure
     .input(
-      z.object({
+      z.strictObject({
         id: agreementIdSchema,
         /** New monthly amount in whole NOK (Vipps minimum is 1 NOK) */
-        amountNok: z.number().int().min(1),
+        amountNok: z.number().int().min(1).max(1_000_000),
       }),
     )
     .mutation(async ({ input }) => {
       const agreement = await getAgreementOrThrow(input.id);
-      const ok = await vippsService.updateAgreementPrice(
-        input.id,
-        agreement.agreement_url_code,
-        input.amountNok * 100,
+      await callVipps("update the agreement price", () =>
+        vippsService.updateAgreementPrice(
+          input.id,
+          agreement.agreement_url_code,
+          input.amountNok * 100,
+        ),
       );
-      if (!ok) {
-        throw new TRPCError({
-          code: "BAD_GATEWAY",
-          message: "Vipps did not accept the new agreement price",
-        });
-      }
     }),
 
-  cancel: adminProcedure.input(z.object({ id: agreementIdSchema })).mutation(async ({ input }) => {
-    const agreement = await getAgreementOrThrow(input.id);
-    const ok = await vippsService.cancelAgreement(input.id, agreement.agreement_url_code);
-    if (!ok) {
-      throw new TRPCError({
-        code: "BAD_GATEWAY",
-        message: "Vipps did not cancel the agreement (it may already be stopped)",
-      });
-    }
-  }),
+  cancel: adminProcedure
+    .input(z.strictObject({ id: agreementIdSchema }))
+    .mutation(async ({ input }) => {
+      const agreement = await getAgreementOrThrow(input.id);
+      if (agreement.status?.toUpperCase() === "STOPPED") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Agreement is already stopped" });
+      }
+      await callVipps("cancel the agreement", () =>
+        vippsService.cancelAgreement(input.id, agreement.agreement_url_code),
+      );
+    }),
 
   updateChargeDay: adminProcedure
     .input(
-      z.object({
+      z.strictObject({
         id: agreementIdSchema,
         /** 1–28, or 0 for the last day of the month */
         chargeDay: z.number().int().min(0).max(28),
@@ -134,9 +158,11 @@ const agreementsRouter = router({
 
   /** Points the agreement at a matching distribution (existing KID or a new one) */
   updateDistribution: adminProcedure
-    .input(z.object({ id: agreementIdSchema, distribution: agreementDistributionSchema }))
+    .input(z.strictObject({ id: agreementIdSchema, distribution: distributionSplitSchema }))
     .mutation(async ({ input }) => {
       const agreement = await getAgreementOrThrow(input.id);
+      // Checked here rather than in the service shared with REST, to keep REST responses as-is
+      await assertDistributionReferences({ ...input.distribution, donorId: agreement.donorID });
       const result = await vippsService.updateAgreementDistribution(
         input.id,
         agreement.agreement_url_code,
@@ -153,16 +179,15 @@ const agreementsRouter = router({
 });
 
 const chargesRouter = router({
-  list: adminProcedure
-    .input(chargeListInput)
-    .query(({ input }) =>
-      DAO.vipps.getCharges(
-        input.sort ?? defaultChargeSort,
-        input.page,
-        input.limit,
-        toChargeDaoFilter(input.filter),
-      ),
-    ),
+  list: adminProcedure.input(chargeListInput).query(async ({ input }) => {
+    const result = await DAO.vipps.getCharges(
+      input.sort ?? defaultChargeSort,
+      input.page,
+      input.limit,
+      toChargeDaoFilter(input.filter),
+    );
+    return { ...result, rows: result.rows.map(withoutAggregates) };
+  }),
 
   export: adminProcedure.input(chargeExportInput).mutation(async ({ input }) => {
     const results = await DAO.vipps.getCharges(
@@ -171,28 +196,39 @@ const chargesRouter = router({
       Number.MAX_SAFE_INTEGER,
       toChargeDaoFilter(input.filter),
     );
-    return {
-      filename: exportFilename("vipps-charges"),
-      csv: generateCsv(results.rows.map(({ full_count, full_sum, full_avg, ...row }) => row)),
-    };
+    return csvExport("vipps-charges", results.rows.map(withoutAggregates));
   }),
 
   histogram: adminProcedure.query(() => DAO.vipps.getChargeSumHistogram()),
 
   /** Refunds a CHARGED charge in full through Vipps and marks it REFUNDED */
   refund: adminProcedure
-    .input(z.object({ agreementId: agreementIdSchema, chargeId: chargeIdSchema }))
+    .input(z.strictObject({ agreementId: agreementIdSchema, chargeId: chargeIdSchema }))
     .mutation(async ({ input }) => {
-      const ok = await vippsService.refundCharge(input.agreementId, input.chargeId);
-      if (!ok) {
+      const charge: VippsChargeRow | false = await DAO.vipps.getCharge(
+        input.agreementId,
+        input.chargeId,
+      );
+      if (!charge) throw new TRPCError({ code: "NOT_FOUND", message: "Charge not found" });
+      if (charge.status !== "CHARGED") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Vipps did not refund the charge (only CHARGED charges can be refunded)",
+          message: `Only CHARGED charges can be refunded (this charge is ${charge.status})`,
         });
       }
+      await callVipps("refund the charge", () =>
+        vippsService.refundCharge(input.agreementId, input.chargeId),
+      );
     }),
 });
 
+/**
+ * Rules that resolve Vipps settlement transactions (by sales location and message) to a KID.
+ *
+ * Rules can also resolve to an Adoveo fundraiser (`resolveAdoveoFundraiserID`, used by the
+ * Vipps report import to register a fundraiser transaction). That is intentionally not
+ * supported here: `list` drops the field and `create` always sets it to null.
+ */
 const matchingRulesRouter = router({
   list: adminProcedure.input(matchingRuleListInput).query(async ({ input }) => {
     const rules = await DAO.vipps.getMatchingRules();
@@ -219,14 +255,12 @@ const matchingRulesRouter = router({
     return { id: created.result };
   }),
 
-  delete: adminProcedure
-    .input(z.object({ id: z.number().int().positive() }))
-    .mutation(async ({ input }) => {
-      const deleted = await DAO.vipps.deleteMatchingRule(input.id);
-      if (!deleted) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Matching rule not found" });
-      }
-    }),
+  delete: adminProcedure.input(matchingRuleIdInput).mutation(async ({ input }) => {
+    const deleted = await DAO.vipps.deleteMatchingRule(input.id);
+    if (!deleted) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Matching rule not found" });
+    }
+  }),
 });
 
 export const vippsRouter = router({

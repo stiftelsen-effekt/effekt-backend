@@ -51,9 +51,12 @@ const refineShares = (
   ctx: z.core.$RefinementCtx,
 ) => {
   try {
-    // validateDistribution mutates nested arrays, so validate a copy
+    // validateDistribution mutates nested arrays, so validate a copy. It also requires a donor
+    // id, which a split doesn't have; the placeholder is overridden when there is one.
     validateDistribution(
-      structuredClone(distribution) as Parameters<typeof validateDistribution>[0],
+      structuredClone({ donorId: 1, ...distribution }) as Parameters<
+        typeof validateDistribution
+      >[0],
     );
   } catch (ex) {
     ctx.addIssue({ code: "custom", message: (ex as Error).message });

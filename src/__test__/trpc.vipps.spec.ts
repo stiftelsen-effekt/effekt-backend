@@ -132,15 +132,15 @@ describe("tRPC vipps router", () => {
 
     it("exports agreements as CSV", async () => {
       sinon.stub(DAO.vipps, "getAgreements").resolves({
-        rows: [{ ID: 1, full_name: "Ola Nordmann", amount: 300 } as any],
+        rows: [{ ID: "agr_1", full_name: "Ola Nordmann", amount: 300 } as any],
         statistics: {} as any,
         pages: 1,
       });
 
       const res = await admin().vipps.agreements.export({});
 
-      expect(res.filename).to.match(/^vipps-agreements_.*\.csv$/);
-      expect(res.csv).to.equal("ID,full_name,amount\n1,Ola Nordmann,300");
+      expect(res.filename).to.match(/^vipps-agreements-.*\.csv$/);
+      expect(res.csv).to.equal("\uFEFFID,full_name,amount\nagr_1,Ola Nordmann,300");
     });
 
     it("gets an agreement synced with Vipps", async () => {
@@ -172,11 +172,22 @@ describe("tRPC vipps router", () => {
       sinon.stub(vipps, "getAgreement").resolves(false);
       const statusStub = sinon.stub(DAO.vipps, "updateAgreementStatus");
 
-      await expectTrpcError(
-        admin().vipps.agreements.get({ id: "agr_TEST1" }),
-        "INTERNAL_SERVER_ERROR",
-      );
+      await expectTrpcError(admin().vipps.agreements.get({ id: "agr_TEST1" }), "BAD_GATEWAY");
       expect(statusStub.called).to.be.false;
+    });
+
+    it("returns BAD_GATEWAY without the upstream error text when Vipps fails", async () => {
+      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
+      sinon.stub(console, "error");
+      sinon.stub(vipps, "getAgreement").rejects(new Error("401 client_secret=hunter2"));
+
+      try {
+        await admin().vipps.agreements.get({ id: "agr_TEST1" });
+        expect.fail("expected BAD_GATEWAY");
+      } catch (err: any) {
+        expect(err.code).to.equal("BAD_GATEWAY");
+        expect(err.message).to.equal("Vipps could not fetch the agreement");
+      }
     });
 
     it("returns the agreement report", async () => {
@@ -186,9 +197,10 @@ describe("tRPC vipps router", () => {
     });
 
     it("returns the agreement histogram", async () => {
-      sinon.stub(DAO.vipps, "getAgreementSumHistogram").resolves([{ bucket: 0, items: 2 }]);
+      const buckets = [{ bucket: 0, items: 2, bar: 69 }];
+      sinon.stub(DAO.vipps, "getAgreementSumHistogram").resolves(buckets);
       const res = await admin().vipps.agreements.histogram();
-      expect(res).to.deep.equal([{ bucket: 0, items: 2 }]);
+      expect(res).to.deep.equal(buckets);
     });
 
     it("updates the price in øre with Vipps and in NOK in the DB", async () => {
@@ -214,6 +226,34 @@ describe("tRPC vipps router", () => {
       );
       expect(dbStub.called).to.be.false;
       expect(changeMailStub.called).to.be.false;
+    });
+
+    it("returns BAD_GATEWAY when Vipps throws on a price update", async () => {
+      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
+      sinon.stub(console, "error");
+      sinon.stub(vipps, "updateAgreementPrice").rejects(new Error("Vipps is not configured"));
+
+      await expectTrpcError(
+        admin().vipps.agreements.updatePrice({ id: "agr_TEST1", amountNok: 250 }),
+        "BAD_GATEWAY",
+      );
+    });
+
+    it("rejects cancelling an agreement that is already stopped", async () => {
+      sinon.stub(DAO.vipps, "getAgreement").resolves({ ...dbAgreement, status: "STOPPED" });
+      const vippsStub = sinon.stub(vipps, "updateAgreementStatus");
+
+      await expectTrpcError(admin().vipps.agreements.cancel({ id: "agr_TEST1" }), "BAD_REQUEST");
+      expect(vippsStub.called).to.be.false;
+    });
+
+    it("returns BAD_GATEWAY when Vipps does not cancel", async () => {
+      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
+      sinon.stub(vipps, "updateAgreementStatus").resolves(false);
+      const statusStub = sinon.stub(DAO.vipps, "updateAgreementStatus");
+
+      await expectTrpcError(admin().vipps.agreements.cancel({ id: "agr_TEST1" }), "BAD_GATEWAY");
+      expect(statusStub.called).to.be.false;
     });
 
     it("cancels an agreement", async () => {
@@ -242,8 +282,17 @@ describe("tRPC vipps router", () => {
       expect(changeMailStub.calledWith("urlcode-abc", "CHARGEDAY", 0)).to.be.true;
     });
 
+    const stubReferences = () => {
+      sinon.stub(DAO.donors, "getByID").resolves({ id: 42 } as any);
+      sinon.stub(DAO.organizations, "getByIDs").resolves([
+        { ID: 5, cause_area_ID: 1 },
+        { ID: 6, cause_area_ID: 1 },
+      ] as any);
+    };
+
     it("updates the distribution, creating a new KID for the agreement's donor", async () => {
       sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
+      stubReferences();
       sinon.stub(DAO.donors, "getIDByAgreementCode").resolves(42);
       sinon.stub(DAO.distributions, "getKIDbySplit").resolves(null);
       sinon.stub(donationHelpers, "createKID").resolves("87654321");
@@ -259,6 +308,40 @@ describe("tRPC vipps router", () => {
       expect(addStub.firstCall.args[0]).to.include({ donorId: 42, kid: "87654321" });
       expect(kidStub.calledWith("agr_TEST1", "87654321")).to.be.true;
       expect(changeMailStub.calledWith("urlcode-abc", "SHARES", "87654321")).to.be.true;
+    });
+
+    it("rejects another donor's tax unit", async () => {
+      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
+      stubReferences();
+      sinon.stub(DAO.tax, "getById").resolves({ id: 9, donorId: 7, archived: null } as any);
+      const kidStub = sinon.stub(DAO.vipps, "updateAgreementKID");
+      const addStub = sinon.stub(DAO.distributions, "add");
+
+      await expectTrpcError(
+        admin().vipps.agreements.updateDistribution({
+          id: "agr_TEST1",
+          distribution: { ...distribution, taxUnitId: 9 },
+        }),
+        "BAD_REQUEST",
+      );
+      expect(kidStub.called).to.be.false;
+      expect(addStub.called).to.be.false;
+    });
+
+    it("rejects an organization outside its cause area", async () => {
+      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
+      sinon.stub(DAO.donors, "getByID").resolves({ id: 42 } as any);
+      sinon.stub(DAO.organizations, "getByIDs").resolves([
+        { ID: 5, cause_area_ID: 1 },
+        { ID: 6, cause_area_ID: 2 },
+      ] as any);
+      const kidStub = sinon.stub(DAO.vipps, "updateAgreementKID");
+
+      await expectTrpcError(
+        admin().vipps.agreements.updateDistribution({ id: "agr_TEST1", distribution }),
+        "BAD_REQUEST",
+      );
+      expect(kidStub.called).to.be.false;
     });
 
     it("rejects a distribution that does not sum to 100", async () => {
@@ -281,9 +364,18 @@ describe("tRPC vipps router", () => {
   });
 
   describe("charges", () => {
-    it("lists charges with the default sort", async () => {
-      const result = { rows: [], statistics: {}, pages: 0 } as any;
-      const stub = sinon.stub(DAO.vipps, "getCharges").resolves(result);
+    it("lists charges with the default sort, without the window aggregates", async () => {
+      const row = {
+        full_count: 1,
+        full_sum: "300",
+        full_avg: "300.0000",
+        chargeID: "chr1",
+        amountNOK: 300,
+      } as any;
+      const statistics = { numCharges: 1, sumCharges: "300", avgCharge: "300.0000" };
+      const stub = sinon
+        .stub(DAO.vipps, "getCharges")
+        .resolves({ rows: [row], statistics, pages: 1 });
 
       const res = await admin().vipps.charges.list({
         page: 0,
@@ -291,7 +383,11 @@ describe("tRPC vipps router", () => {
         filter: { dueDate: { from: "2026-01-01" }, statuses: ["CHARGED"] },
       });
 
-      expect(res).to.equal(result);
+      expect(res).to.deep.equal({
+        rows: [{ chargeID: "chr1", amountNOK: 300 }],
+        statistics,
+        pages: 1,
+      });
       expect(stub.firstCall.args).to.deep.equal([
         { id: "dueDate", desc: true },
         0,
@@ -302,24 +398,35 @@ describe("tRPC vipps router", () => {
 
     it("exports charges as CSV without the window aggregates", async () => {
       sinon.stub(DAO.vipps, "getCharges").resolves({
-        rows: [{ full_count: 1, full_sum: 300, full_avg: 300, chargeID: "chr1", amountNOK: 300 }],
+        rows: [
+          { full_count: 1, full_sum: "300", full_avg: "300", chargeID: "chr1", amountNOK: 300 },
+        ] as any,
         statistics: {} as any,
         pages: 1,
       });
 
       const res = await admin().vipps.charges.export({});
 
-      expect(res.filename).to.match(/^vipps-charges_.*\.csv$/);
-      expect(res.csv).to.equal("chargeID,amountNOK\nchr1,300");
+      expect(res.filename).to.match(/^vipps-charges-.*\.csv$/);
+      expect(res.csv).to.equal("\uFEFFchargeID,amountNOK\nchr1,300");
     });
 
     it("returns the charge histogram", async () => {
-      sinon.stub(DAO.vipps, "getChargeSumHistogram").resolves([{ bucket: 500, items: 1 }]);
+      const buckets = [{ bucket: 500, items: 1, bar: 0 }];
+      sinon.stub(DAO.vipps, "getChargeSumHistogram").resolves(buckets);
       const res = await admin().vipps.charges.histogram();
-      expect(res).to.deep.equal([{ bucket: 500, items: 1 }]);
+      expect(res).to.deep.equal(buckets);
+    });
+
+    const charge = (status: string) => ({
+      chargeID: "chr1",
+      agreementID: "agr_TEST1",
+      status,
+      amountNOK: 300,
     });
 
     it("refunds a charge and marks it REFUNDED", async () => {
+      sinon.stub(DAO.vipps, "getCharge").resolves(charge("CHARGED"));
       sinon.stub(vipps, "refundCharge").resolves(true);
       const statusStub = sinon.stub(DAO.vipps, "updateChargeStatus").resolves(true);
 
@@ -329,14 +436,37 @@ describe("tRPC vipps router", () => {
     });
 
     it("reports a refund Vipps refused", async () => {
+      sinon.stub(DAO.vipps, "getCharge").resolves(charge("CHARGED"));
       sinon.stub(vipps, "refundCharge").resolves(false);
       const statusStub = sinon.stub(DAO.vipps, "updateChargeStatus");
 
       await expectTrpcError(
         admin().vipps.charges.refund({ agreementId: "agr_TEST1", chargeId: "chr1" }),
-        "BAD_REQUEST",
+        "BAD_GATEWAY",
       );
       expect(statusStub.called).to.be.false;
+    });
+
+    it("returns NOT_FOUND for an unknown charge", async () => {
+      sinon.stub(DAO.vipps, "getCharge").resolves(false);
+      const refundStub = sinon.stub(vipps, "refundCharge");
+
+      await expectTrpcError(
+        admin().vipps.charges.refund({ agreementId: "agr_TEST1", chargeId: "chr1" }),
+        "NOT_FOUND",
+      );
+      expect(refundStub.called).to.be.false;
+    });
+
+    it("only refunds CHARGED charges", async () => {
+      sinon.stub(DAO.vipps, "getCharge").resolves(charge("PENDING"));
+      const refundStub = sinon.stub(vipps, "refundCharge");
+
+      await expectTrpcError(
+        admin().vipps.charges.refund({ agreementId: "agr_TEST1", chargeId: "chr1" }),
+        "BAD_REQUEST",
+      );
+      expect(refundStub.called).to.be.false;
     });
   });
 

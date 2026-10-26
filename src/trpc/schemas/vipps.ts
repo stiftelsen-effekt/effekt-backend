@@ -1,9 +1,10 @@
 import { z } from "zod";
+import { idSchema, isoDateSchema, paginationFields, sortSchema } from "./common";
 
 // Vipps agreement ids are strings like "agr_5kSeqz" (Vipps_agreements.ID is VARCHAR), as are
 // charge ids, so these are not numeric ids.
-export const agreementIdSchema = z.string().min(1);
-export const chargeIdSchema = z.string().min(1);
+export const agreementIdSchema = z.string().min(1).max(20);
+export const chargeIdSchema = z.string().min(1).max(11);
 
 export const agreementStatusSchema = z.enum(["ACTIVE", "PENDING", "EXPIRED", "STOPPED"]);
 
@@ -19,25 +20,25 @@ export const chargeStatusSchema = z.enum([
   "PROCESSING",
 ]);
 
-const numberRange = z.object({
+const numberRange = z.strictObject({
   from: z.number().optional(),
   to: z.number().optional(),
 });
 
 const chargeDaySchema = z.number().int().min(0).max(28);
 
-const dateRange = z.object({
-  from: z.iso.date().optional(),
-  to: z.iso.date().optional(),
+const dateRange = z.strictObject({
+  from: isoDateSchema.optional(),
+  to: isoDateSchema.optional(),
 });
 
 /** Mirrors VippsAgreementFilters in DAO_modules/vipps.ts. */
-export const agreementFilterSchema = z.object({
+export const agreementFilterSchema = z.strictObject({
   amount: numberRange.optional(),
   /** Draft (created) date range, inclusive of the whole `to` day */
   created: dateRange.optional(),
   chargeDay: z
-    .object({ from: chargeDaySchema.optional(), to: chargeDaySchema.optional() })
+    .strictObject({ from: chargeDaySchema.optional(), to: chargeDaySchema.optional() })
     .optional(),
   /** Partial match */
   KID: z.string().optional(),
@@ -53,7 +54,7 @@ export const agreementFilterSchema = z.object({
  * Mirrors the filter read by DAO.vipps.getCharges. The DAO's `timestamp` branch is left out on
  * purpose: it reads filter.dueDate instead of filter.timestamp.
  */
-export const chargeFilterSchema = z.object({
+export const chargeFilterSchema = z.strictObject({
   /** In NOK; 0 is ignored by the DAO */
   amount: numberRange.optional(),
   /** Inclusive. Vipps_agreement_charges.dueDate is a YYYY-MM-DD string column. */
@@ -71,78 +72,65 @@ export const chargeFilterSchema = z.object({
 });
 
 // Only columns present in each DAO query's select list are sortable.
-const agreementSortSchema = z.object({
-  id: z.enum(["id", "full_name", "kid", "amount", "chargeDay", "created", "status"]),
-  desc: z.boolean(),
-});
+const agreementSortSchema = sortSchema([
+  "id",
+  "full_name",
+  "kid",
+  "amount",
+  "chargeDay",
+  "created",
+  "status",
+] as const);
 
-const chargeSortSchema = z.object({
-  id: z.enum(["full_name", "kid", "created", "status", "amountNOK", "dueDate"]),
-  desc: z.boolean(),
-});
+const chargeSortSchema = sortSchema([
+  "full_name",
+  "kid",
+  "created",
+  "status",
+  "amountNOK",
+  "dueDate",
+] as const);
 
-const pagination = {
-  page: z.number().int().min(0),
-  limit: z.number().int().positive(),
-};
-
-export const agreementListInput = z.object({
-  ...pagination,
+export const agreementListInput = z.strictObject({
+  ...paginationFields,
   sort: agreementSortSchema.optional(),
   filter: agreementFilterSchema.optional(),
 });
 
-export const agreementExportInput = z.object({
+export const agreementExportInput = z.strictObject({
   sort: agreementSortSchema.optional(),
   filter: agreementFilterSchema.optional(),
 });
 
-export const chargeListInput = z.object({
-  ...pagination,
+export const chargeListInput = z.strictObject({
+  ...paginationFields,
   sort: chargeSortSchema.optional(),
   filter: chargeFilterSchema.optional(),
 });
 
-export const chargeExportInput = z.object({
+export const chargeExportInput = z.strictObject({
   sort: chargeSortSchema.optional(),
   filter: chargeFilterSchema.optional(),
 });
 
 export const defaultChargeSort = { id: "dueDate", desc: true } as const;
 
-const percentageShare = z.string().regex(/^\d{1,3}(\.\d+)?$/, "Must be a decimal percentage");
-
-/** A distribution for an agreement; the donor is always the agreement's donor. */
-export const agreementDistributionSchema = z.object({
-  taxUnitId: z.number().int().positive().nullable(),
-  causeAreas: z
-    .array(
-      z.object({
-        id: z.number().int().positive(),
-        standardSplit: z.boolean(),
-        percentageShare,
-        organizations: z
-          .array(z.object({ id: z.number().int().positive(), percentageShare }))
-          .min(1),
-      }),
-    )
-    .min(1),
-});
-
-export const matchingRuleCreateInput = z.object({
+export const matchingRuleCreateInput = z.strictObject({
   salesLocation: z.string().max(45).nullable(),
   message: z.string().max(45).nullable(),
   /** Inclusive first day of the period */
-  periodFrom: z.iso.date(),
+  periodFrom: isoDateSchema,
   /** Last day of the period, must be after periodFrom */
-  periodTo: z.iso.date(),
-  resolveKID: z.string().min(1),
+  periodTo: isoDateSchema,
+  resolveKID: z.string().min(1).max(32),
   precedence: z.number().int().nullable(),
 });
 
 export const matchingRuleListInput = z
-  .object({
+  .strictObject({
     /** Only rules whose period overlaps this one (inclusive) */
-    period: z.object({ from: z.iso.date(), to: z.iso.date() }),
+    period: z.strictObject({ from: isoDateSchema, to: isoDateSchema }),
   })
   .optional();
+
+export const matchingRuleIdInput = z.strictObject({ id: idSchema });

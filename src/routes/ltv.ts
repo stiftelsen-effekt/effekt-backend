@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { DAO } from "../custom_modules/DAO";
 import { AgreementReport } from "../custom_modules/DAO_modules/avtalegiroagreements";
+import type { VippsAgreementReport } from "../custom_modules/DAO_modules/vipps";
 
 export const ltvRouter = Router();
 
@@ -30,7 +31,7 @@ ltvRouter.get("/recentestimate", async (req, res, next) => {
 
 const getMedian: (
   avtaleGiroReport: AgreementReport | false,
-  vippsReport: AgreementReport | false,
+  vippsReport: VippsAgreementReport | false,
   label: string,
 ) => number | null = (avtaleGiroReport, vippsReport, label) => {
   if (label === "AvtaleGiro") {
@@ -42,7 +43,7 @@ const getMedian: (
     if (!vippsReport) {
       return null;
     }
-    return parseFloat(vippsReport.medianAgreementSum);
+    return parseFloat(vippsReport.medianAgreementSum ?? "");
   } else {
     return null;
   }

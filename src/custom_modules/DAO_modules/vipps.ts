@@ -2,7 +2,6 @@ import { distributions } from "./distributions";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
 import { Vipps_agreements, Vipps_order_transaction_statuses, Vipps_orders } from "@prisma/client";
-import { AgreementReport } from "./avtalegiroagreements";
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = [
@@ -47,8 +46,53 @@ export type VippsAgreement = {
   monthly_charge_day: number;
   timestamp_created: string;
   agreement_url_code: string;
-  paused_until_date: string;
-  force_charge_date: string;
+  /** YYYY-MM-DD, null when not paused */
+  paused_until_date: string | null;
+  /** YYYY-MM-DD, null when no forced charge is scheduled */
+  force_charge_date: string | null;
+};
+
+/** Key figures for Vipps agreements. Sums are DECIMAL strings, null when nothing matched. */
+export type VippsAgreementReport = {
+  activeAgreementCount: number;
+  averageAgreementSum: string | null;
+  totalAgreementSum: string | null;
+  medianAgreementSum: string | null;
+  activatedThisMonth: number;
+  sumActivatedThisMonth: string | null;
+  pendingThisMonth: number;
+  sumPendingThisMonth: string | null;
+  stoppedThisMonth: number;
+  sumStoppedThisMonth: string | null;
+  expiredThisMonth: number;
+  sumExpiredThisMonth: string | null;
+};
+
+/** A histogram bucket: amounts in [bucket, bucket + 500) NOK */
+export type VippsSumHistogramBucket = {
+  bucket: number;
+  items: number;
+  /** 100 * ln(items), for a logarithmic bar height */
+  bar: number;
+};
+
+export type VippsChargeRow = {
+  chargeID: string;
+  agreementID: string;
+  status: string;
+  type: string | null;
+  amountNOK: number;
+  KID: string;
+  timestamp_created: Date | null;
+  /** YYYY-MM-DD */
+  dueDate: string;
+  full_name: string | null;
+  /** Window aggregates over the whole filtered result */
+  full_count: number;
+  /** DECIMAL string */
+  full_sum: string;
+  /** DECIMAL string */
+  full_avg: string;
 };
 
 /**
@@ -185,7 +229,7 @@ interface VippsAgreementFilters {
 }
 
 interface VippsAgreementRow {
-  ID: number;
+  ID: string;
   status: string;
   amount: number;
   KID: string;
@@ -358,7 +402,9 @@ export async function getAgreements(
  * @property {number} donorId
  * @return {VippsAgreement}
  */
-async function getAgreementsByDonorId(donorId): Promise<VippsAgreement[]> {
+async function getAgreementsByDonorId(
+  donorId,
+): Promise<(VippsAgreement & { full_name: string | null })[]> {
   const [agreements] = await DAO.query(
     `
             SELECT Vipps_agreements.ID, 
@@ -402,7 +448,7 @@ async function getCharges(
   filter,
 ): Promise<{
   pages: number;
-  rows: Array<any>;
+  rows: VippsChargeRow[];
   statistics: {
     numCharges: number;
     sumCharges: string;
@@ -470,7 +516,7 @@ async function getCharges(
     Donors.full_name
   `;
 
-  const [charges] = await DAO.query(
+  const [charges] = await DAO.query<VippsChargeRow[]>(
     `
         SELECT
           count(*) OVER() AS full_count,
@@ -496,8 +542,8 @@ async function getCharges(
   );
 
   const numCharges = charges.length > 0 ? charges[0]["full_count"] : 0;
-  const sumCharges = charges.length > 0 ? charges[0]["full_sum"] : 0;
-  const avgCharge = charges.length > 0 ? charges[0]["full_avg"] : 0;
+  const sumCharges = charges.length > 0 ? charges[0]["full_sum"] : "0";
+  const avgCharge = charges.length > 0 ? charges[0]["full_avg"] : "0";
 
   if (charges.length === 0) {
     return {
@@ -604,7 +650,7 @@ async function getActiveAgreements(): Promise<VippsAgreement[] | false> {
  * @return {Object}
  */
 async function getAgreementReport() {
-  let [res] = await DAO.query<AgreementReport[]>(`
+  let [res] = await DAO.query<VippsAgreementReport[]>(`
     SELECT 
         count(ID) as activeAgreementCount,
         round(avg(amount), 0) as averageAgreementSum,
@@ -684,8 +730,8 @@ async function getAgreementReport() {
  * Skips empty buckets
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
-async function getAgreementSumHistogram() {
-  let [results] = await DAO.query(`
+async function getAgreementSumHistogram(): Promise<VippsSumHistogramBucket[]> {
+  let [results] = await DAO.query<VippsSumHistogramBucket[]>(`
             SELECT 
                 floor(amount/500)*500 	AS bucket, 
                 count(*) 						AS items,
@@ -704,8 +750,8 @@ async function getAgreementSumHistogram() {
  * Skips empty buckets
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
-async function getChargeSumHistogram() {
-  let [results] = await DAO.query(`
+async function getChargeSumHistogram(): Promise<VippsSumHistogramBucket[]> {
+  let [results] = await DAO.query<VippsSumHistogramBucket[]>(`
             SELECT 
                 floor(amountNOK/500)*500 	AS bucket, 
                 count(*) 						AS items,
