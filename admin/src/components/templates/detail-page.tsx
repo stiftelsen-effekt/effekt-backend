@@ -41,7 +41,7 @@ export function DetailPage({
   children: ReactNode;
 }) {
   return (
-    <div data-slot="detail-page" className="min-h-0 flex-1 overflow-y-auto">
+    <div data-page-scroll data-slot="detail-page" className="min-h-0 flex-1 overflow-y-auto">
       <PageHeader
         title={title}
         breadcrumbs={breadcrumbs}

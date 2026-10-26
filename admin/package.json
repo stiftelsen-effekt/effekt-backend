@@ -13,9 +13,14 @@
     "types:api": "npm --prefix .. run build:types",
     "typecheck": "npm run types:api && tsr generate && tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:visual": "playwright test --project=visual",
+    "test:visual:update": "playwright test --project=visual --update-snapshots",
+    "test:a11y": "playwright test --project=a11y"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.11.0",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/router-cli": "1.167.46",
     "@tanstack/router-plugin": "1.168.48",
@@ -57,5 +62,8 @@
     "sonner": "2.0.8",
     "tailwind-merge": "3.7.0",
     "zod": "4.6.7"
+  },
+  "overrides": {
+    "playwright-core": "1.63.0"
   }
 }

@@ -10,12 +10,27 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as DesignRouteImport } from './routes/design'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
+import { Route as DesignIndexRouteImport } from './routes/design/index'
+import { Route as DesignAgreementsRouteImport } from './routes/design/agreements'
+import { Route as DesignComponentsRouteImport } from './routes/design/components'
+import { Route as DesignDetailRouteImport } from './routes/design/detail'
+import { Route as DesignFlowRouteImport } from './routes/design/flow'
+import { Route as DesignHomeRouteImport } from './routes/design/home'
+import { Route as DesignListRouteImport } from './routes/design/list'
+import { Route as DesignPatternsRouteImport } from './routes/design/patterns'
+import { Route as DesignSettingsRouteImport } from './routes/design/settings'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignRoute = DesignRouteImport.update({
+  id: '/design',
+  path: '/design',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -33,34 +48,149 @@ const AppSplatRoute = AppSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => AppRoute,
 } as any)
+const DesignIndexRoute = DesignIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DesignRoute,
+} as any)
+const DesignAgreementsRoute = DesignAgreementsRouteImport.update({
+  id: '/agreements',
+  path: '/agreements',
+  getParentRoute: () => DesignRoute,
+} as any)
+const DesignComponentsRoute = DesignComponentsRouteImport.update({
+  id: '/components',
+  path: '/components',
+  getParentRoute: () => DesignRoute,
+} as any)
+const DesignDetailRoute = DesignDetailRouteImport.update({
+  id: '/detail',
+  path: '/detail',
+  getParentRoute: () => DesignRoute,
+} as any)
+const DesignFlowRoute = DesignFlowRouteImport.update({
+  id: '/flow',
+  path: '/flow',
+  getParentRoute: () => DesignRoute,
+} as any)
+const DesignHomeRoute = DesignHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => DesignRoute,
+} as any)
+const DesignListRoute = DesignListRouteImport.update({
+  id: '/list',
+  path: '/list',
+  getParentRoute: () => DesignRoute,
+} as any)
+const DesignPatternsRoute = DesignPatternsRouteImport.update({
+  id: '/patterns',
+  path: '/patterns',
+  getParentRoute: () => DesignRoute,
+} as any)
+const DesignSettingsRoute = DesignSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DesignRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/design/agreements': typeof DesignAgreementsRoute
+  '/design/components': typeof DesignComponentsRoute
+  '/design/detail': typeof DesignDetailRoute
+  '/design/flow': typeof DesignFlowRoute
+  '/design/home': typeof DesignHomeRoute
+  '/design/list': typeof DesignListRoute
+  '/design/patterns': typeof DesignPatternsRoute
+  '/design/settings': typeof DesignSettingsRoute
+  '/design/': typeof DesignIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/design/agreements': typeof DesignAgreementsRoute
+  '/design/components': typeof DesignComponentsRoute
+  '/design/detail': typeof DesignDetailRoute
+  '/design/flow': typeof DesignFlowRoute
+  '/design/home': typeof DesignHomeRoute
+  '/design/list': typeof DesignListRoute
+  '/design/patterns': typeof DesignPatternsRoute
+  '/design/settings': typeof DesignSettingsRoute
   '/': typeof AppIndexRoute
+  '/design': typeof DesignIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/$': typeof AppSplatRoute
+  '/design/agreements': typeof DesignAgreementsRoute
+  '/design/components': typeof DesignComponentsRoute
+  '/design/detail': typeof DesignDetailRoute
+  '/design/flow': typeof DesignFlowRoute
+  '/design/home': typeof DesignHomeRoute
+  '/design/list': typeof DesignListRoute
+  '/design/patterns': typeof DesignPatternsRoute
+  '/design/settings': typeof DesignSettingsRoute
   '/_app/': typeof AppIndexRoute
+  '/design/': typeof DesignIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/$'
+  fullPaths:
+    | '/'
+    | '/design'
+    | '/login'
+    | '/$'
+    | '/design/agreements'
+    | '/design/components'
+    | '/design/detail'
+    | '/design/flow'
+    | '/design/home'
+    | '/design/list'
+    | '/design/patterns'
+    | '/design/settings'
+    | '/design/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/$' | '/'
-  id: '__root__' | '/_app' | '/login' | '/_app/$' | '/_app/'
+  to:
+    | '/login'
+    | '/$'
+    | '/design/agreements'
+    | '/design/components'
+    | '/design/detail'
+    | '/design/flow'
+    | '/design/home'
+    | '/design/list'
+    | '/design/patterns'
+    | '/design/settings'
+    | '/'
+    | '/design'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/design'
+    | '/login'
+    | '/_app/$'
+    | '/design/agreements'
+    | '/design/components'
+    | '/design/detail'
+    | '/design/flow'
+    | '/design/home'
+    | '/design/list'
+    | '/design/patterns'
+    | '/design/settings'
+    | '/_app/'
+    | '/design/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  DesignRoute: typeof DesignRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
 
@@ -71,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design': {
+      id: '/design'
+      path: '/design'
+      fullPath: '/design'
+      preLoaderRoute: typeof DesignRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -94,6 +231,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSplatRouteImport
       parentRoute: typeof AppRoute
     }
+    '/design/': {
+      id: '/design/'
+      path: '/'
+      fullPath: '/design/'
+      preLoaderRoute: typeof DesignIndexRouteImport
+      parentRoute: typeof DesignRoute
+    }
+    '/design/agreements': {
+      id: '/design/agreements'
+      path: '/agreements'
+      fullPath: '/design/agreements'
+      preLoaderRoute: typeof DesignAgreementsRouteImport
+      parentRoute: typeof DesignRoute
+    }
+    '/design/components': {
+      id: '/design/components'
+      path: '/components'
+      fullPath: '/design/components'
+      preLoaderRoute: typeof DesignComponentsRouteImport
+      parentRoute: typeof DesignRoute
+    }
+    '/design/detail': {
+      id: '/design/detail'
+      path: '/detail'
+      fullPath: '/design/detail'
+      preLoaderRoute: typeof DesignDetailRouteImport
+      parentRoute: typeof DesignRoute
+    }
+    '/design/flow': {
+      id: '/design/flow'
+      path: '/flow'
+      fullPath: '/design/flow'
+      preLoaderRoute: typeof DesignFlowRouteImport
+      parentRoute: typeof DesignRoute
+    }
+    '/design/home': {
+      id: '/design/home'
+      path: '/home'
+      fullPath: '/design/home'
+      preLoaderRoute: typeof DesignHomeRouteImport
+      parentRoute: typeof DesignRoute
+    }
+    '/design/list': {
+      id: '/design/list'
+      path: '/list'
+      fullPath: '/design/list'
+      preLoaderRoute: typeof DesignListRouteImport
+      parentRoute: typeof DesignRoute
+    }
+    '/design/patterns': {
+      id: '/design/patterns'
+      path: '/patterns'
+      fullPath: '/design/patterns'
+      preLoaderRoute: typeof DesignPatternsRouteImport
+      parentRoute: typeof DesignRoute
+    }
+    '/design/settings': {
+      id: '/design/settings'
+      path: '/settings'
+      fullPath: '/design/settings'
+      preLoaderRoute: typeof DesignSettingsRouteImport
+      parentRoute: typeof DesignRoute
+    }
   }
 }
 
@@ -109,8 +309,36 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface DesignRouteChildren {
+  DesignAgreementsRoute: typeof DesignAgreementsRoute
+  DesignComponentsRoute: typeof DesignComponentsRoute
+  DesignDetailRoute: typeof DesignDetailRoute
+  DesignFlowRoute: typeof DesignFlowRoute
+  DesignHomeRoute: typeof DesignHomeRoute
+  DesignListRoute: typeof DesignListRoute
+  DesignPatternsRoute: typeof DesignPatternsRoute
+  DesignSettingsRoute: typeof DesignSettingsRoute
+  DesignIndexRoute: typeof DesignIndexRoute
+}
+
+const DesignRouteChildren: DesignRouteChildren = {
+  DesignAgreementsRoute: DesignAgreementsRoute,
+  DesignComponentsRoute: DesignComponentsRoute,
+  DesignDetailRoute: DesignDetailRoute,
+  DesignFlowRoute: DesignFlowRoute,
+  DesignHomeRoute: DesignHomeRoute,
+  DesignListRoute: DesignListRoute,
+  DesignPatternsRoute: DesignPatternsRoute,
+  DesignSettingsRoute: DesignSettingsRoute,
+  DesignIndexRoute: DesignIndexRoute,
+}
+
+const DesignRouteWithChildren =
+  DesignRoute._addFileChildren(DesignRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  DesignRoute: DesignRouteWithChildren,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

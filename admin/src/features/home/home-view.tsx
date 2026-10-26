@@ -37,7 +37,7 @@ export function HomeView({
   actions?: ReactNode;
 }) {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div data-page-scroll className="min-h-0 flex-1 overflow-y-auto">
       <PageHeader title={greeting} actions={actions} />
       <div className="grid gap-8 px-4 pb-10 sm:px-6">
         <PageSection title="Needs attention">

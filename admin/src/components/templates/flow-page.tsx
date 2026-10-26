@@ -47,7 +47,7 @@ export function FlowPage({
   );
   return (
     <div data-slot="flow-page" className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div data-page-scroll className="min-h-0 flex-1 overflow-y-auto">
         <PageHeader
           title={title}
           breadcrumbs={breadcrumbs}

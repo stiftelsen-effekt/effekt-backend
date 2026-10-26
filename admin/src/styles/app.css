@@ -229,8 +229,8 @@
   --popover: var(--color-paper-850);
   --foreground: var(--color-paper-100);
   --muted: var(--color-paper-900);
-  --muted-foreground: var(--color-paper-400);
-  --faint-foreground: #8a877e;
+  --muted-foreground: #a9a69c;
+  --faint-foreground: #8f8c83;
   --hover: rgb(255 250 235 / 0.05);
   --pressed: rgb(255 250 235 / 0.09);
   --border: var(--color-paper-850);

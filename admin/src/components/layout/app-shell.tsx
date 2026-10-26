@@ -287,7 +287,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Sidebar groups={groups} showDesign={showDesign} onSearch={() => setPaletteOpen(true)} />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col lg:py-2 lg:pr-2">
+      <div className="flex min-w-0 flex-1 flex-col lg:h-dvh lg:py-2 lg:pr-2">
         <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-canvas px-2 lg:hidden">
           <button
             type="button"
@@ -329,7 +329,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <main
           id="main"
-          className="flex min-h-0 min-w-0 flex-1 flex-col bg-background lg:h-[calc(100dvh-1rem)] lg:overflow-hidden lg:rounded-lg lg:border lg:border-border"
+          className="flex min-h-0 min-w-0 flex-1 flex-col bg-background lg:overflow-hidden lg:rounded-lg lg:border lg:border-border"
         >
           {children}
         </main>

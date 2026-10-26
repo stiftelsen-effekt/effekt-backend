@@ -65,3 +65,20 @@ export function createPersistentStore<T>(key: string, initial: T, version = 1): 
   };
   return store;
 }
+
+const keyedStores = new Map<string, PersistentStore<unknown>>();
+
+/**
+ * useState that survives reloads, for flow progress (current step, a half-filled form).
+ * Clear it when the flow completes.
+ */
+export function usePersistentState<T>(key: string, initial: T) {
+  let existing = keyedStores.get(key) as PersistentStore<T> | undefined;
+  if (!existing) {
+    existing = createPersistentStore<T>(`state:${key}`, initial);
+    keyedStores.set(key, existing as PersistentStore<unknown>);
+  }
+  const store = existing;
+  const value = store.use();
+  return [value, store.set, () => store.set(initial)] as const;
+}

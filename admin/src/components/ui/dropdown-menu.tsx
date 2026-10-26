@@ -55,7 +55,7 @@ export function DropdownMenuItem({
       className={cn(
         itemClasses,
         inset && "pl-8",
-        "data-[variant=destructive]:text-danger data-[variant=destructive]:focus:bg-danger-subtle data-[variant=destructive]:[&_svg]:text-danger",
+        "data-[variant=danger]:text-danger data-[variant=danger]:focus:bg-danger-subtle data-[variant=danger]:[&_svg]:text-danger",
         className,
       )}
       {...props}

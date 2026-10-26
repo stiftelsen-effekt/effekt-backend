@@ -26,7 +26,7 @@ export function SettingsPage({
   children: ReactNode;
 }) {
   return (
-    <div data-slot="settings-page" className="min-h-0 flex-1 overflow-y-auto">
+    <div data-page-scroll data-slot="settings-page" className="min-h-0 flex-1 overflow-y-auto">
       <PageHeader title={title} description={description} />
       <div className="grid gap-6 px-4 pb-10 sm:px-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
         <nav aria-label="Settings sections" className="lg:sticky lg:top-4 lg:self-start">

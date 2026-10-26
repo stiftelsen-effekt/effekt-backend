@@ -16,7 +16,7 @@ export const buttonVariants = cva(
   [
     "relative inline-flex shrink-0 items-center justify-center gap-1.5 rounded-sm font-semibold whitespace-nowrap",
     "transition-colors duration-(--duration-fast) select-none focus-ring",
-    "disabled:pointer-events-none disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45",
+    "disabled:pointer-events-none disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45 data-[pending]:opacity-100",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   ],
   {
@@ -70,7 +70,7 @@ export function Button({
     >
       {pending && !asChild ? (
         <>
-          <span className="invisible inline-flex items-center gap-1.5">{children}</span>
+          <span className="inline-flex items-center gap-1.5 opacity-0">{children}</span>
           <LoaderCircleIcon className="absolute animate-spin" aria-hidden />
         </>
       ) : (

@@ -413,13 +413,18 @@ export function DataTable<TData extends RowData>({
 }
 
 /** "1 240 donations · Sum 1 438 093 kr · Average 1 160 kr" for the table footer. */
-export function TableSummary({ items }: { items: { label?: string; value: ReactNode }[] }) {
+export function TableSummary({
+  items,
+}: {
+  items: { label?: string; value: ReactNode; suffix?: string }[];
+}) {
   return (
     <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
       {items.map((item, index) => (
         <li key={index} className="num whitespace-nowrap">
           {item.label && <span>{item.label} </span>}
           <span className="font-semibold text-foreground">{item.value}</span>
+          {item.suffix && <span> {item.suffix}</span>}
         </li>
       ))}
     </ul>

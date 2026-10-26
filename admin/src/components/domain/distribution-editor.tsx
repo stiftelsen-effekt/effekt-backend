@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 const swatches = ["bg-chart-1", "bg-chart-2", "bg-chart-3", "bg-chart-4", "bg-chart-5"];
 const swatch = (index: number) => swatches[index % swatches.length]!;
 
-const pct = (value: number) => `${formatNumber(value, { decimals: value % 1 ? 1 : 0 })} %`;
+const pct = (value: number) => `${formatNumber(value, { decimals: value % 1 ? 1 : 0 })}\u00a0%`;
 
 /** Stacked bar of cause area shares. Unplaced share shows as a hatched gap, overflow in red. */
 export function AllocationBar({
@@ -194,7 +194,10 @@ export function DistributionEditor({
           const areaValidation = validation.causeAreas[area.id];
           const used = area.share > 0;
           return (
-            <li key={area.id} className={cn("grid gap-2 px-4 py-2.5", !used && "bg-muted/50")}>
+            <li
+              key={area.id}
+              className={cn("group/area grid gap-2 px-4 py-2.5", !used && "bg-muted/50")}
+            >
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <span className={cn("size-2.5 shrink-0 rounded-full", swatch(index))} aria-hidden />
                 <span
@@ -209,7 +212,7 @@ export function DistributionEditor({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="num h-6 px-1.5 text-xs text-muted-foreground"
+                    className="num h-6 px-1.5 text-xs text-muted-foreground opacity-0 group-hover/area:opacity-100 focus-visible:opacity-100"
                     onClick={() => onChange(fillRemaining(value, area.id))}
                   >
                     + {pct(validation.remaining)}
@@ -220,7 +223,12 @@ export function DistributionEditor({
                   value={area.share}
                   onChange={(share) => onChange(setShare(value, area.id, share))}
                 />
-                <label className="flex w-36 items-center justify-end gap-2 text-sm text-muted-foreground max-sm:w-full max-sm:justify-start">
+                <label
+                  className={cn(
+                    "flex w-36 items-center justify-end gap-2 text-sm text-muted-foreground max-sm:w-full max-sm:justify-start",
+                    !used && "invisible",
+                  )}
+                >
                   Standard split
                   <Switch
                     checked={area.standardSplit}

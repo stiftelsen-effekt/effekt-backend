@@ -4,3 +4,5 @@ dist/
 .env.local
 .env.*.local
 *.tsbuildinfo
+test-results/
+playwright-report/

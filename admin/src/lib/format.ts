@@ -1,4 +1,5 @@
 import { format as formatDateFns, formatDistanceToNowStrict, isValid, parseISO } from "date-fns";
+import { enGB } from "date-fns/locale";
 import { appLocale, type LocaleSettings } from "./locale";
 
 export type DateInput = Date | string | number | null | undefined;
@@ -47,10 +48,14 @@ export function formatNumber(
   }).format(value);
 }
 
+/** Axis labels and slider ends: 1,8M / 450k, digits per locale, units language-neutral. */
 export function formatCompact(value: number, settings: LocaleSettings = appLocale) {
-  return numberFormat(settings.intl, { notation: "compact", maximumFractionDigits: 1 }).format(
-    value,
-  );
+  const abs = Math.abs(value);
+  if (abs >= 1e6)
+    return `${formatNumber(value / 1e6, { decimals: abs >= 1e7 ? 0 : 1, settings })}M`;
+  if (abs >= 1e3)
+    return `${formatNumber(value / 1e3, { decimals: abs >= 1e4 ? 0 : 1, settings })}k`;
+  return formatNumber(value, { settings });
 }
 
 export function formatPercent(
@@ -88,9 +93,10 @@ export function formatDate(
       return formatDateFns(date, `${settings.datePattern} HH:mm`, { locale });
     case "time":
       return formatDateFns(date, "HH:mm", { locale });
+    // Words follow the UI language (English); numeric patterns follow the country.
     case "month":
-      return formatDateFns(date, "LLL yyyy", { locale });
+      return formatDateFns(date, "LLL yyyy", { locale: enGB });
     case "relative":
-      return formatDistanceToNowStrict(date, { locale, addSuffix: true });
+      return formatDistanceToNowStrict(date, { locale: enGB, addSuffix: true });
   }
 }

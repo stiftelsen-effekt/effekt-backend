@@ -2,6 +2,7 @@ import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { Select as SelectPrimitive } from "radix-ui";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
+import { useFieldControl } from "./field";
 import { controlClasses } from "./input";
 import { floatingPanelClasses } from "./overlay";
 
@@ -15,14 +16,16 @@ export function SelectTrigger({
   children,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & { size?: "sm" | "md" }) {
+  const field = useFieldControl();
   return (
     <SelectPrimitive.Trigger
+      {...field}
       data-slot="select-trigger"
       data-size={size}
       className={cn(
         controlClasses,
         "flex w-full items-center justify-between gap-2 px-2.5 text-left whitespace-nowrap",
-        "data-[size=md]:h-8 data-[size=sm]:h-7 data-[size=sm]:text-xs",
+        "data-[size=md]:h-control data-[size=sm]:h-7 data-[size=sm]:text-xs",
         "data-[placeholder]:text-muted-foreground data-[state=open]:border-ring",
         "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0",

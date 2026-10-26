@@ -1,5 +1,6 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
+import { useFieldControl } from "./field";
 
 /** Shared look for every text-like control (input, select trigger, date trigger, textarea). */
 export const controlClasses = [
@@ -12,8 +13,10 @@ export const controlClasses = [
 ];
 
 export function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+  const field = useFieldControl();
   return (
     <input
+      {...field}
       type={type}
       data-slot="input"
       className={cn(

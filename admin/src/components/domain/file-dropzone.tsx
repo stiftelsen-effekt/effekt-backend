@@ -59,9 +59,9 @@ export function FileDropzone({
         data-dragging={dragging || undefined}
         data-disabled={disabled || undefined}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-border-strong bg-muted px-4 py-6 text-center transition-colors",
-          "hover:border-foreground has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring",
-          "data-[dragging]:border-foreground data-[dragging]:bg-pressed",
+          "flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-input bg-muted px-4 py-8 text-center transition-colors",
+          "hover:border-accent has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring",
+          "data-[dragging]:border-accent data-[dragging]:bg-accent-subtle",
           "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
         )}
       >
@@ -86,7 +86,7 @@ export function FileDropzone({
           {files.map((file, index) => (
             <li
               key={`${file.name}-${index}`}
-              className="flex items-center gap-2 border border-border px-2.5 py-1.5 text-sm"
+              className="flex items-center gap-2 rounded-sm border border-border px-2.5 py-1.5 text-sm"
             >
               <FileIcon className="size-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 flex-1 truncate">{file.name}</span>
