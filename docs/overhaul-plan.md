@@ -65,9 +65,11 @@ consistent:
    procedures share the same functions; REST contract tests guard the shapes.
 2. **Admin scaffold + design system** in `admin/`.
 3. **Admin feature pages** to parity with the old admin (checklist below), in parallel.
-4. **Cut-over**: deploy the new admin next to the old one, switch DNS, archive effekt-admin,
+4. **Local stack**: extend `compose.dev.yml` so one command runs backend, new admin and main-site
+   (Min Side) against seeded data and the local token issuer.
+5. **Cut-over**: deploy the new admin next to the old one, switch DNS, archive effekt-admin,
    remove REST routes that only the old admin used (none that main-site, DK or externals use).
-5. **main-site → tRPC**: donor-scoped procedures (Min Side, agreements, tax units) and public
+6. **main-site → tRPC**: donor-scoped procedures (Min Side, agreements, tax units) and public
    ones (widget registration, cause areas, results). Type sharing across repos via a published
    `@effekt/api` types package or by moving main-site into this repo (decide when we get there).
    Hand DK the procedure list to implement; remove main-site's DK REST path once they have.
