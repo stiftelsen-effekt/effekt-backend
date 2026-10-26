@@ -64,7 +64,7 @@ export function formatCurrency(currencyString) {
  * @param {number} donationID
  * @param {string} reciever Reciever email
  */
-export async function sendDonationReceipt(donationID, reciever = null) {
+export async function sendDonationReceipt(donationID, reciever: string | null = null) {
   try {
     var donation = await DAO.donations.getByID(donationID);
     if (!donation.email) {
@@ -103,7 +103,7 @@ export async function sendDonationReceipt(donationID, reciever = null) {
     console.warn("Failed to get impact estimates for donation");
   }
 
-  let taxInformation = null;
+  let taxInformation: Awaited<ReturnType<typeof getReceiptTaxInformation>> = null;
   if (distribution.taxUnitId) {
     taxInformation = await getReceiptTaxInformation(donation, distribution);
   }
@@ -160,7 +160,7 @@ export async function sendDonationReceipt(donationID, reciever = null) {
  * @param {Donation} donation
  * @param {string} reciever Reciever email
  */
-export async function sendFirstDonationReceipt(donation, reciever = null) {
+export async function sendFirstDonationReceipt(donation, reciever: string | null = null) {
   try {
     var distribution = await DAO.distributions.getSplitByKID(donation.KID);
   } catch (ex) {
@@ -179,7 +179,7 @@ export async function sendFirstDonationReceipt(donation, reciever = null) {
     console.warn("Failed to get impact estimates for donation");
   }
 
-  let taxInformation = null;
+  let taxInformation: Awaited<ReturnType<typeof getReceiptTaxInformation>> = null;
   if (distribution.taxUnitId) {
     taxInformation = await getReceiptTaxInformation(donation, distribution);
   }
@@ -210,7 +210,7 @@ export async function sendFirstDonationReceipt(donation, reciever = null) {
       avtaleGiroAgreement.some((agreement) => agreement.active === 1);
 
     if (!hasAgreement) {
-      if (donor.id % 2 === 0) {
+      if (donor!.id % 2 === 0) {
         template = config.mailersend_test_welcome_receipt_template_a;
       } else {
         template = config.mailersend_test_welcome_receipt_template_b;
@@ -232,7 +232,7 @@ export async function sendFirstDonationReceipt(donation, reciever = null) {
       donationTotalSum: formatCurrency(donation.sum) + " kr",
       hasGiveWellTopCharitiesFund,
       numberOfDonors: numberOfDonors,
-      donorEmail: donor.email,
+      donorEmail: donor!.email,
     },
   });
 
@@ -297,7 +297,11 @@ const getDonationYearSums = async (donorId) => {
 };
 
 const getReceiptTaxInformation = async (donation, distribution: Distribution) => {
-  let taxInformation = null;
+  let taxInformation: {
+    taxDeductionBarWidth: string;
+    taxDeductionBarRemainingWidth: string;
+    taxDeductionLabel: string;
+  } | null = null;
 
   const donationYear = new Date(donation.timestamp).getFullYear();
   const taxUnits = await DAO.tax.getByDonorId(distribution.donorId, RequestLocale.NO);
@@ -311,7 +315,7 @@ const getReceiptTaxInformation = async (donation, distribution: Distribution) =>
       const taxDeduction = taxUnitYear.deduction;
       const donationsInYear = taxUnitYear.sumDonations;
 
-      if (taxDeduction >= limits.minimumThreshold) {
+      if (taxDeduction !== undefined && taxDeduction >= limits.minimumThreshold) {
         const taxDeductionBarWidth = `${Math.min(
           100,
           (taxDeduction / limits.maximumDeductionLimit) * 100,
@@ -328,7 +332,7 @@ const getReceiptTaxInformation = async (donation, distribution: Distribution) =>
           taxDeductionBarRemainingWidth,
           taxDeductionLabel,
         };
-      } else if (donationsInYear > 0) {
+      } else if (donationsInYear !== undefined && donationsInYear > 0) {
         const taxDeductionBarWidth = `${Math.min(
           100,
           (donationsInYear / limits.minimumThreshold) * 100,
@@ -357,11 +361,11 @@ const getReceiptTaxInformation = async (donation, distribution: Distribution) =>
  * @param {number} agreementKid
  * @param {string} reciever Reciever email
  */
-export async function sendAutoGiroRegistered(agreementKid, reciever = null) {
+export async function sendAutoGiroRegistered(agreementKid, reciever: string | null = null) {
   try {
     var agreement = await DAO.autogiroagreements.getAgreementByKID(agreementKid);
     var donor = await DAO.donors.getByKID(agreementKid);
-    if (!donor.email) {
+    if (!donor!.email) {
       console.error("No email provided for agreement with KID " + agreementKid);
       return false;
     }
@@ -372,7 +376,7 @@ export async function sendAutoGiroRegistered(agreementKid, reciever = null) {
   }
 
   try {
-    var distribution = await DAO.distributions.getSplitByKID(agreement.KID);
+    var distribution = await DAO.distributions.getSplitByKID(agreement!.KID);
   } catch (ex) {
     console.error("Failed to send mail donation reciept, could not get donation split by KID");
     console.error(ex);
@@ -397,16 +401,16 @@ export async function sendAutoGiroRegistered(agreementKid, reciever = null) {
     [],
   );
 
-  const organizations = formatOrganizationsFromSplit(split, agreement.amount);
+  const organizations = formatOrganizationsFromSplit(split, agreement!.amount);
 
   const mailResult = await sendTemplate({
-    to: reciever || donor.email,
+    to: reciever || donor!.email,
     templateId: config.mailersend_autogiro_registered_template_id,
     personalization: {
-      donorName: donor.name,
-      donationKID: agreement.KID,
+      donorName: donor!.name,
+      donationKID: agreement!.KID,
       paymentMethod: decideUIPaymentMethod("AutoGiro"),
-      donationTotalSum: formatCurrency(agreement.amount) + " kr",
+      donationTotalSum: formatCurrency(agreement!.amount) + " kr",
       organizations,
     },
   });
@@ -438,7 +442,7 @@ function decideUIPaymentMethod(donationMethod) {
 }
 
 function formatOrganizationsFromSplit(
-  split: DistributionCauseAreaOrganization[],
+  split: { id?: number; name?: string; percentageShare: string }[],
   sum,
   impactEstimates: OrganizationImpactEstimate[] = [],
 ) {
@@ -448,7 +452,7 @@ function formatOrganizationsFromSplit(
 
     const impactEstimate = impactEstimates.find((estimate) => estimate.orgId === org.id);
 
-    let outputs = [];
+    let outputs: string[] = [];
     if (impactEstimate) {
       outputs = impactEstimate.outputs.map((output) => {
         return `${output.roundedNumberOfOutputs} ${output.output}`;
@@ -491,20 +495,23 @@ export async function sendDonationRegistered(KID, sum) {
       return false;
     }
 
-    const split = distribution.causeAreas.reduce((acc, causeArea) => {
-      causeArea.organizations.forEach((org) => {
-        acc.push({
-          // Need to get name
-          name: org.name ? org.name.toString() : org.id.toString(),
-          // Round to nearest 2 decimals
-          percentageShare: getOrganizationOverallPercentage(
-            org.percentageShare,
-            causeArea.percentageShare,
-          ).toString(),
+    const split = distribution.causeAreas.reduce<{ name: string; percentageShare: string }[]>(
+      (acc, causeArea) => {
+        causeArea.organizations.forEach((org) => {
+          acc.push({
+            // Need to get name
+            name: org.name ? org.name.toString() : org.id.toString(),
+            // Round to nearest 2 decimals
+            percentageShare: getOrganizationOverallPercentage(
+              org.percentageShare,
+              causeArea.percentageShare,
+            ).toString(),
+          });
         });
-      });
-      return acc;
-    }, []);
+        return acc;
+      },
+      [],
+    );
 
     const organizations = formatOrganizationsFromSplit(split, sum);
 
@@ -557,20 +564,23 @@ export async function sendPaymentIntentFollowUp(
       return false;
     }
 
-    const split = distribution.causeAreas.reduce((acc, causeArea) => {
-      causeArea.organizations.forEach((org) => {
-        acc.push({
-          // Need to get name
-          name: org.name ? org.name.toString() : org.id.toString(),
-          // Round to nearest 2 decimals
-          percentageShare: getOrganizationOverallPercentage(
-            org.percentageShare,
-            causeArea.percentageShare,
-          ).toString(),
+    const split = distribution.causeAreas.reduce<{ name: string; percentageShare: string }[]>(
+      (acc, causeArea) => {
+        causeArea.organizations.forEach((org) => {
+          acc.push({
+            // Need to get name
+            name: org.name ? org.name.toString() : org.id.toString(),
+            // Round to nearest 2 decimals
+            percentageShare: getOrganizationOverallPercentage(
+              org.percentageShare,
+              causeArea.percentageShare,
+            ).toString(),
+          });
         });
-      });
-      return acc;
-    }, []);
+        return acc;
+      },
+      [],
+    );
 
     const organizations = formatOrganizationsFromSplit(split, sum);
 
@@ -705,7 +715,7 @@ function unsentDeprecatedEmail(emailName: string): false {
  * @param {"PAUSED" | "UNPAUSED" | "STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
  */
-export async function sendVippsAgreementChange(agreementCode, change, newValue = null) {
+export async function sendVippsAgreementChange(agreementCode, change, newValue: any = null) {
   return unsentDeprecatedEmail("sendVippsAgreementChange");
 }
 
@@ -855,7 +865,7 @@ export async function sendAgreementInflationAdjustment(
       let avtalegiroAgreement = await DAO.avtalegiroagreements.getByID(agreementId);
       if (!avtalegiroAgreement) throw new Error("Agreement not found");
       agreement = avtalegiroAgreement;
-      agreementCreated = DateTime.fromJSDate(agreement.created);
+      agreementCreated = DateTime.fromJSDate(agreement.created!);
     } else if (adjustment.agreement_type === agreementType.vipps) {
       let agreementId = adjustment.agreement_ID;
       let vippsagreement = await DAO.vipps.getAgreement(agreementId);
@@ -867,7 +877,7 @@ export async function sendAgreementInflationAdjustment(
       let autogiroAgreement = await DAO.autogiroagreements.getAgreementById(agreementId);
       if (!autogiroAgreement) throw new Error("Agreement not found");
       agreement = autogiroAgreement;
-      agreementCreated = DateTime.fromJSDate(agreement.created);
+      agreementCreated = DateTime.fromJSDate(agreement.created!);
     } else {
       throw new Error("Unknown agreement type");
     }
@@ -897,7 +907,7 @@ export async function sendAgreementInflationAdjustment(
         hasGiveWellTopCharitiesFund = true;
       }
       let impactEstimates = await getImpactEstimatesForDonationByOrg(
-        new Date(donation.timestamp),
+        new Date(donation.timestamp!),
         parseFloat(donation.sum),
         distribution,
       );
@@ -913,7 +923,7 @@ export async function sendAgreementInflationAdjustment(
           if (organizations[org.id]) {
             organizations[org.id].sum += amount;
             let existingOutputs = organizations[org.id].impactEstimate.outputs;
-            for (let output of impactEstimate.outputs) {
+            for (let output of impactEstimate!.outputs) {
               let existingOutput = existingOutputs.find((o) => o.output === output.output);
               if (existingOutput) {
                 existingOutput.numberOfOutputs += output.numberOfOutputs;
@@ -925,7 +935,7 @@ export async function sendAgreementInflationAdjustment(
             organizations[org.id] = {
               name: org.widgetDisplayName || org.name || "Unknown",
               sum: amount,
-              impactEstimate: impactEstimate,
+              impactEstimate: impactEstimate!,
             };
           }
         });
@@ -948,11 +958,11 @@ export async function sendAgreementInflationAdjustment(
     });
 
     await sendTemplate({
-      to: donor.email,
+      to: donor!.email,
       bcc: "hakon.harnes@effektivaltruisme.no",
       templateId: config.mailersend_inflation_adjustment_template_id,
       personalization: {
-        firstName: donor.name.split(" ")[0] ?? "",
+        firstName: donor!.name!.split(" ")[0] ?? "",
         organizations: formattedOrganizations,
         totalDonated: formatCurrency(totalDonationSum) + " kr",
         // Format in local norwegian year and written out month
@@ -1025,7 +1035,7 @@ export async function sendMissingTaxUnitNotice(
 
     // Get all donations for the donor and filter to the target year
     const allDonations = await DAO.donations.getByDonorId(donorId);
-    const yearDonations = allDonations.filter((d) => new Date(d.timestamp).getFullYear() === year);
+    const yearDonations = allDonations.filter((d) => new Date(d.timestamp!).getFullYear() === year);
 
     // Aggregate donations by organization with impact estimates
     const organizationsData: {
@@ -1046,7 +1056,7 @@ export async function sendMissingTaxUnitNotice(
       try {
         console.log(`Getting impact estimates for donation ${donation.id}`);
         impactEstimates = await getImpactEstimatesForDonationByOrg(
-          new Date(donation.timestamp),
+          new Date(donation.timestamp!),
           parseFloat(donation.sum),
           distribution,
         );
@@ -1070,15 +1080,16 @@ export async function sendMissingTaxUnitNotice(
           if (organizationsData[org.id]) {
             organizationsData[org.id].sum += amount;
             // Aggregate impact outputs
-            if (impactEstimate && organizationsData[org.id].impactEstimate) {
+            const existingImpactEstimate = organizationsData[org.id].impactEstimate;
+            if (impactEstimate && existingImpactEstimate) {
               for (const output of impactEstimate.outputs) {
-                const existingOutput = organizationsData[org.id].impactEstimate.outputs.find(
+                const existingOutput = existingImpactEstimate.outputs.find(
                   (o) => o.output === output.output,
                 );
                 if (existingOutput) {
                   existingOutput.numberOfOutputs += output.numberOfOutputs;
                 } else {
-                  organizationsData[org.id].impactEstimate.outputs.push({ ...output });
+                  existingImpactEstimate.outputs.push({ ...output });
                 }
               }
             } else if (impactEstimate) {

@@ -39,8 +39,10 @@ enum FinalSwishOrderStatus {
   CANCELLED = "CANCELLED",
 }
 
-function isFinalSwishOrderStatus(status: string): status is keyof typeof FinalSwishOrderStatus {
-  return status in FinalSwishOrderStatus;
+function isFinalSwishOrderStatus(
+  status: string | null,
+): status is keyof typeof FinalSwishOrderStatus {
+  return status !== null && status in FinalSwishOrderStatus;
 }
 
 /**
@@ -249,7 +251,7 @@ export async function getSwishOrder(ID: Swish_orders["ID"]) {
   if (swishRequest.status === order.status) return order;
 
   await handleOrderStatusUpdate(order.instructionUUID, {
-    status: swishRequest.status,
+    status: swishRequest.status!,
     amount: swishRequest.amount,
   });
   return await DAO.swish.getOrderByID(ID);

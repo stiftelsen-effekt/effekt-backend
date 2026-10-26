@@ -279,8 +279,8 @@ async function exchangeAuth0Code(code: string) {
 async function auth0TokenRequest(params: Record<string, string>) {
   const body = new URLSearchParams({
     ...params,
-    client_id: config.auth0_mcp_client_id,
-    client_secret: config.auth0_mcp_client_secret,
+    client_id: config.auth0_mcp_client_id!,
+    client_secret: config.auth0_mcp_client_secret!,
   });
   const response = await fetch(`${getAuth0Issuer()}oauth/token`, {
     method: "POST",

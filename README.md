@@ -4,11 +4,36 @@ The Effect Foundation API is used by all our core application for data storage. 
 
 The API is also responsible for handling payment processing.
 
+## Local environment
+
+One command runs the API with a seeded MySQL and a local OIDC issuer in Docker. Nothing touches Auth0 or any staging/production resource, and all third-party integrations are blank ([`.env.docker`](.env.docker)). Requires Docker.
+
+```bash
+npm run dev:env:up       # build + start db, auth, migrate+seed, api; waits until healthy
+npm run -s dev:token     # admin access token (all permissions)
+npm run -s dev:token -- --donor 27   # non-admin token for donor 27
+npm run dev:env:logs     # follow API logs
+npm run dev:env:down     # stop (keeps the database)
+npm run dev:env:reset    # wipe the database, re-migrate and re-seed
+```
+
+```bash
+curl localhost:5050/causeareas/active
+curl -X POST localhost:5050/donors/list/ -H "Authorization: Bearer $(npm run -s dev:token)" \
+  -H 'content-type: application/json' -d '{"page":0,"limit":5,"filter":null}'
+```
+
+- API on `localhost:5050` (nodemon; edits under `src/` reload). MySQL on `localhost:3307` (`root` / `effekt-local`, database `EffektDonasjonDB_Local`). Issuer on `localhost:8090/effekt`. Override ports with `DEV_API_PORT`, `DEV_DB_PORT`, `DEV_AUTH_PORT`.
+- The seed loads the committed fake data in `prisma/fakedata/json` once (skipped if donors exist).
+- Token claims are configured in [`compose.dev.yml`](compose.dev.yml) (`auth` service). The issuer is taken from the `Host` header, so tokens must be requested with `Host: auth:8080`; [`scripts/dev-token.sh`](scripts/dev-token.sh) does this.
+- Changes to `package.json` or `prisma/schema.prisma` need a rebuild: run `npm run dev:env:up` again.
+
 ---
 
 **Table of contents**
 
 - [Effect Foundation API](#effect-foundation-api)
+- [Local environment](#local-environment)
 - [API endpoints](#api-endpoints)
 - [Get started developing](#get-started-developing)
   - [Clone repository](#clone-repository)

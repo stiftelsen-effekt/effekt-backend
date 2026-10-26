@@ -130,10 +130,10 @@ async function addPaymentFollowUp(paymentIntentId, followUpDate) {
 const mapPaymentIntent = (paymentIntent: SqlResult<Payment_intent>): Payment_intent => {
   return {
     Id: paymentIntent.Id,
-    Payment_amount: new Decimal(paymentIntent.Payment_amount),
+    Payment_amount: new Decimal(paymentIntent.Payment_amount!),
     Payment_method: paymentIntent.Payment_method,
     KID_fordeling: paymentIntent.KID_fordeling,
-    timestamp: new Date(paymentIntent.timestamp),
+    timestamp: new Date(paymentIntent.timestamp!),
   };
 };
 

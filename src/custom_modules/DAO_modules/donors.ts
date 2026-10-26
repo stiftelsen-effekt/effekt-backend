@@ -161,7 +161,8 @@ async function getAll(
     };
   }
 
-  const hasOrganizationFilter = Boolean(filter?.recipientOrgIDs?.length);
+  const recipientOrgIDs = filter?.recipientOrgIDs ?? [];
+  const hasOrganizationFilter = recipientOrgIDs.length > 0;
   // Shares are stored as 1-100. Pre-aggregate per KID so donor sums and stats
   // use the amount to the selected orgs instead of the full donation.
   const selectedOrgSharesCte = hasOrganizationFilter
@@ -175,7 +176,7 @@ async function getAll(
         FROM Distribution_cause_areas
         INNER JOIN Distribution_cause_area_organizations
           ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID
-        WHERE Distribution_cause_area_organizations.Organization_ID IN (${filter.recipientOrgIDs
+        WHERE Distribution_cause_area_organizations.Organization_ID IN (${recipientOrgIDs
           .map((id) => sqlString.escape(id))
           .join(",")})
         GROUP BY Distribution_cause_areas.Distribution_KID
@@ -619,9 +620,9 @@ async function getIDByAgreementCode(agreementUrlCode) {
  * @returns {Array<Donor>} An array of matching donor objects
  */
 async function search(filter): Promise<Array<Donor>> {
-  var wheres = [];
-  var havings = [];
-  var params = [];
+  var wheres: string[] = [];
+  var havings: string[] = [];
+  var params: any[] = [];
   if (filter.query !== undefined && filter.query.length >= 1) {
     // Remove @ from query att all locations
     const matchSanitized = filter.query.replace(/@/g, " ");
@@ -736,7 +737,7 @@ async function updateName(donorID, name) {
  */
 async function update(donorID, name, email, newsletter, trash?: boolean) {
   let isTrash = trash;
-  if (typeof trash === "undefined") isTrash = (await getByID(donorID)).trash;
+  if (typeof trash === "undefined") isTrash = (await getByID(donorID))!.trash;
 
   let [res] = await DAO.query(
     `UPDATE Donors SET full_name = ?, email = ?, newsletter = ?, trash = ? where ID = ?`,

@@ -25,7 +25,7 @@ export const autogiroagreements = {
       `,
       [ID],
     );
-    return shipment?.[0];
+    return shipment?.at(0);
   },
   addShipment: async function (numberOfCharges: number): Promise<number> {
     const [result] = await DAO.query(
@@ -71,7 +71,7 @@ export const autogiroagreements = {
     const sortDirection = sort.desc ? "DESC" : "ASC";
     const offset = page * limit;
 
-    let where = [];
+    let where: string[] = [];
     if (filter) {
       if (filter.amount) {
         if (filter.amount.from) where.push(`amount >= ${sqlString.escape(filter.amount.from)} `);
@@ -209,7 +209,7 @@ export const autogiroagreements = {
       `,
       [ID],
     );
-    return agreement.map(mapAgreementType)?.[0];
+    return agreement.map(mapAgreementType).at(0);
   },
   getAgreementByKID: async function (KID: string) {
     const [agreement] = await DAO.query<AutoGiro_agreements[]>(
@@ -218,7 +218,7 @@ export const autogiroagreements = {
       `,
       [KID],
     );
-    return agreement.map(mapAgreementType)?.[0];
+    return agreement.map(mapAgreementType).at(0);
   },
   /**
    * Get all agreements that have a given payment date
@@ -388,7 +388,7 @@ export const autogiroagreements = {
       `,
       [ID],
     );
-    return charge?.[0];
+    return charge?.at(0);
   },
   getAgreementChargesByAgreementId: async function (agreementId: number) {
     const [charges] = await DAO.query<AutoGiro_agreement_charges[]>(
@@ -415,7 +415,7 @@ export const autogiroagreements = {
       `,
       [donationId],
     );
-    return charge?.[0];
+    return charge?.at(0);
   },
   /**
    * Check if an agreement charge exists for a given KID and claim date (month and year, since we only charge once a month)
@@ -433,7 +433,7 @@ export const autogiroagreements = {
       `,
       [agreementId, claimDate.year, claimDate.month],
     );
-    return charge?.[0];
+    return charge?.at(0);
   },
   /**
    * Check if an agreement charge exists for a given KID and claim date (month and year, since we only charge once a month)
@@ -529,7 +529,7 @@ export const autogiroagreements = {
     const sortDirection = sort.desc ? "DESC" : "ASC";
     const offset = page * limit;
 
-    let where = [];
+    let where: string[] = [];
     if (filter) {
       if (filter.KID)
         where.push(` CAST(DI.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);

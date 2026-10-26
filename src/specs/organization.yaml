@@ -12,33 +12,39 @@ components:
           description: The cause area id the organization belongs to
         standardShare:
           type: number
+          nullable: true
           description: The standard share within the cause area
         name:
           type: string
           description: The organization name
         widgetDisplayName:
           type: string
+          nullable: true
           description: The organization widget display name
         widgetContext:
           type: string
+          nullable: true
           description: The organization widget context
         abbreviation:
           type: string
           description: The organization abbreviation
         shortDescription:
           type: string
+          nullable: true
           description: The organization short description
         longDescription:
           type: string
           description: The organization long description
         informationUrl:
           type: string
+          nullable: true
           description: The organization information url
         isActive:
           type: boolean
           description: Whether the organization is active or not
         ordering:
           type: number
+          nullable: true
           description: The ordering of the organization within the cause area (used for sorting frontend)
       required:
         - id

@@ -259,10 +259,10 @@ router.get("/:KID/redirect", async (req, res, next) => {
   try {
     if (req.query.status && (req.query.status as string).toUpperCase() === "OK") {
       const agreement = await DAO.avtalegiroagreements.getByKID(req.params.KID);
-      await sendAvtalegiroRegistered(agreement);
+      await sendAvtalegiroRegistered(agreement!);
 
       const plausible = encodePlausibleData({
-        revenue: Math.round(agreement.amount / 100).toString(),
+        revenue: Math.round(agreement!.amount / 100).toString(),
         method: "avtalegiro",
         recurring: true,
         kid: req.params.KID,

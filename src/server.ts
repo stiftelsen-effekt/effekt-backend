@@ -41,6 +41,7 @@ import { mcpRouter } from "./routes/mcp";
 import { oauthRouter, sendAuthorizationServerMetadata } from "./routes/oauth";
 import { getProtectedResourceMetadata } from "./custom_modules/mcp/oauthProtectedResource";
 import { startWebSocketServer } from "./websocket";
+import { mountTrpc } from "./trpc/express";
 
 // Defence in depth: log stray rejections instead of letting Node's default
 // (--unhandled-rejections=throw) terminate the whole API process.
@@ -177,7 +178,7 @@ DAO.connect(() => {
     res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, baggage, sentry-trace",
+      "Content-Type, Authorization, baggage, sentry-trace, trpc-accept",
     );
     res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH,OPTIONS");
     next();
@@ -213,6 +214,8 @@ DAO.connect(() => {
   const agreementfeedbackRoute = agreementfeedbackRouter;
   const fundraisersRoute = fundraisersRouter;
   const ltvRoute = ltvRouter;
+
+  mountTrpc(app);
 
   app.use("/donors", donorsRoute);
   app.use("/donations", donationsRoute);

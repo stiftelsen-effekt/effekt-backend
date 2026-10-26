@@ -58,7 +58,12 @@ module.exports = async (req, res, next) => {
   }
 
   // Check if campaign has stored shares and send to admin panel if not
-  const campaignsWithMissingShares = [];
+  const campaignsWithMissingShares: {
+    ID: any;
+    fundraiserTitle: any;
+    campaignOwnerName: any;
+    permalink: any;
+  }[] = [];
   for (let i = 0; i < campaigns.length; i++) {
     const campaign = campaigns[i];
     if ((await DAO.facebook.isCampaignRegistered(campaign.ID)) == false) {

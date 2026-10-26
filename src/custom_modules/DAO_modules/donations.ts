@@ -65,7 +65,7 @@ async function getAll(
     fundraiserId?: string;
     organizationIDs?: Array<number>;
     dataOwnerIDs?: Array<number>;
-  } = null,
+  } | null = null,
   locale: RequestLocale,
 ): Promise<{
   rows: Array<{
@@ -85,11 +85,11 @@ async function getAll(
   pages: number;
 }> {
   if (sort) {
-    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
+    const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)![1];
 
     const taxUnitTypeFildDefinition = getTaxUnitTypeFieldDefinition(locale);
 
-    let where = [];
+    let where: string[] = [];
     if (filter) {
       if (filter.sum) {
         if (filter.sum.from)
@@ -205,7 +205,8 @@ async function getAll(
       }
     }
 
-    const hasOrganizationFilter = Boolean(filter?.organizationIDs?.length);
+    const organizationIDs = filter?.organizationIDs ?? [];
+    const hasOrganizationFilter = organizationIDs.length > 0;
     // Shares are stored as 1-100. Pre-aggregate per KID so donations are not exploded
     // by org rows and both the table and stats use the amount to the selected orgs.
     const selectedOrgSharesCte = hasOrganizationFilter
@@ -219,7 +220,7 @@ async function getAll(
           FROM Distribution_cause_areas
           INNER JOIN Distribution_cause_area_organizations
             ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID
-          WHERE Distribution_cause_area_organizations.Organization_ID IN (${filter.organizationIDs
+          WHERE Distribution_cause_area_organizations.Organization_ID IN (${organizationIDs
             .map(sqlString.escape)
             .join(",")})
           GROUP BY Distribution_cause_areas.Distribution_KID
@@ -237,7 +238,7 @@ async function getAll(
       ? `ROUND(Donations.sum_confirmed * selected_org_shares.selected_share, 2)`
       : `Donations.sum_confirmed`;
 
-    const fundraiserJoin = filter.fundraiserId
+    const fundraiserJoin = filter?.fundraiserId
       ? `
         LEFT JOIN Fundraiser_transactions FT
           ON Distributions.Fundraiser_transaction_ID = FT.ID`
@@ -351,7 +352,7 @@ async function getAllByKID(KID): Promise<Array<Donation>> {
     [KID],
   );
 
-  let donations = [];
+  let donations: Donation[] = [];
 
   getDonationsByKIDQuery.forEach((donation) => {
     donations.push({
@@ -810,7 +811,7 @@ async function getSummary(donorID) {
     [donorID],
   );
 
-  const summary = [];
+  const summary: any[] = [];
   const map = new Map();
   for (const item of res) {
     if (!map.has(item.full_name)) {
@@ -974,7 +975,12 @@ async function getHistory(donorID) {
     [donorID],
   );
 
-  const history = [];
+  const history: Array<{
+    donationID: any;
+    donationSum: any;
+    date: any;
+    distributions: Array<{ organization: any; abbriv: any; sum: any }>;
+  }> = [];
   const map = new Map();
   for (const item of res) {
     if (!map.has(item.donation_id)) {
@@ -1011,7 +1017,7 @@ async function getEAFundsDonations(donorId: number): Promise<
   Array<{
     id: number;
     donorId: number;
-    taxUnitId: number;
+    taxUnitId: number | null;
     sum: string;
     timestamp: string;
     paymentExternalId: string;
@@ -1091,9 +1097,9 @@ async function add(
   KID,
   paymentMethodID,
   sum,
-  registeredDate = null,
-  externalPaymentID = null,
-  metaOwnerID = null,
+  registeredDate: Date | string | null = null,
+  externalPaymentID: string | null = null,
+  metaOwnerID: number | null = null,
 ): Promise<number> {
   var [donorIDQuery] = await DAO.query("SELECT Donor_ID FROM Distributions WHERE KID = ? LIMIT 1", [
     KID,

@@ -557,7 +557,7 @@ async function getStandardDistributionByCauseAreaID(
     );
 
   // Validate that they sum to 100
-  const sum = result.reduce((acc, row) => acc + row.std_percentage_share, 0);
+  const sum = result.reduce((acc, row) => acc + row.std_percentage_share!, 0);
   if (sum !== 100)
     throw new Error(
       "INVALID | The sum of the standard shares for cause area with ID " +
@@ -568,7 +568,7 @@ async function getStandardDistributionByCauseAreaID(
   return result.map((row) => ({
     id: row.ID,
     name: row.full_name,
-    percentageShare: row.std_percentage_share.toString(),
+    percentageShare: row.std_percentage_share!.toString(),
   }));
 }
 
@@ -598,9 +598,8 @@ async function add(
   metaOwnerID: number | null = null,
   suppliedTransaction?: PoolConnection,
 ): Promise<boolean> {
+  const transaction = suppliedTransaction ?? (await DAO.startTransaction());
   try {
-    var transaction = suppliedTransaction ?? (await DAO.startTransaction());
-
     if (metaOwnerID == null) {
       metaOwnerID = await DAO.meta.getDefaultOwnerID();
     }
@@ -647,7 +646,7 @@ async function add(
       ),
     );
 
-    const distributionCauseAreaOrganizationInsertsRowValues = [];
+    const distributionCauseAreaOrganizationInsertsRowValues: (string | number)[][] = [];
     for (const causeAreaInsert of distributionCauseAreaInserts) {
       const causeArea = distribution.causeAreas.find(
         (item) => item.id === causeAreaInsert.causeAreaId,
@@ -793,7 +792,7 @@ const mapDbDistributionToDistribution = (result: SqlResult<DistributionDbResult>
   const distribution: Distribution = {
     kid: result[0].KID,
     donorId: result[0].Donor_ID,
-    taxUnitId: result[0].Tax_unit_ID,
+    taxUnitId: result[0].Tax_unit_ID!,
     fundraiserTransactionId: result[0].Fundraiser_transaction_ID ?? undefined,
     causeAreas: result.reduce((acc: DistributionCauseArea[], row) => {
       const existingCauseArea = acc.find((item) => item.id === row.Cause_area_ID);
@@ -861,7 +860,7 @@ async function updateCauseAreas(kid: string, causeAreas: DistributionCauseArea[]
     );
 
     // Add cause area organizations
-    const distributionCauseAreaOrganizationInsertsRowValues = [];
+    const distributionCauseAreaOrganizationInsertsRowValues: (string | number)[][] = [];
     for (const causeAreaInsert of distributionCauseAreaInserts) {
       const causeArea = causeAreas.find((item) => item.id === causeAreaInsert.causeAreaId);
       if (!causeArea) {

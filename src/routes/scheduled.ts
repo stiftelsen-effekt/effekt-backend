@@ -283,7 +283,7 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
 
       if (
         agreement.payment_date <= today.day &&
-        agreement.created.getDate() < agreement.payment_date
+        agreement.created!.getDate() < agreement.payment_date
       ) {
         let skewedDate = DateTime.now().plus({ days: 1 });
         while (getSeBankingDaysBetweenDates(today, skewedDate) < 1) {
@@ -413,10 +413,10 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
   let addedToDonor = 0;
   let removedFromMailchimp = 0;
   let removedFromDonor = 0;
-  let failures = [];
+  let failures: any[] = [];
 
   try {
-    let members = [];
+    let members: any[] = [];
     let offset = 0;
     const count = 1000;
 
@@ -442,7 +442,7 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
     const subscibersToAdd = Math.max(Math.round(Math.random() * 4 - 1), 0);
     console.log("Adding max", subscibersToAdd, "subscribers to mailchimp");
 
-    let donors = [];
+    let donors: any[] = [];
     let page = 0;
     while (true) {
       const newDonors = await DAO.donors.getAll(null, page, count, null, RequestLocale.NO);
@@ -614,7 +614,7 @@ router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next
 
   const perPage = 100;
 
-  const users = [];
+  const users: any[] = [];
 
   const firstPage = await fetch(
     `https://gieffektivt.eu.auth0.com/api/v2/users?page=0&fields=email,user_metadata&include_totals=true&per_page=${perPage}`,
@@ -629,7 +629,7 @@ router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next
 
   const numberOfPages = Math.ceil(firstPage.total / perPage);
 
-  const promises = [];
+  const promises: Promise<any>[] = [];
   for (let i = 1; i < numberOfPages; i++) {
     promises.push(
       fetch(
@@ -657,7 +657,7 @@ router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next
    * Now we have all the users from Auth0
    * We need to check that the user_metadata.gieffektivt-user-id matches the id of the user in the database
    */
-  const mismatchedUsers = [];
+  const mismatchedUsers: { userId: any; email: string; reason: string }[] = [];
 
   for (const user of users) {
     const email = user.email;
@@ -767,21 +767,22 @@ function groupPaymentIntentsByKID(
   paymentIntents: Payment_intent[],
 ): Record<string, Payment_intent[]> {
   return paymentIntents.reduce((acc, intent) => {
-    if (!acc[intent.KID_fordeling]) {
-      acc[intent.KID_fordeling] = [];
+    const kid = intent.KID_fordeling!;
+    if (!acc[kid]) {
+      acc[kid] = [];
     }
-    acc[intent.KID_fordeling].push(intent);
+    acc[kid].push(intent);
     return acc;
   }, {} as Record<string, Payment_intent[]>);
 }
 
 function getMostRecentIntent(intents: Payment_intent[]): Payment_intent {
   return intents.reduce((latest, current) =>
-    current.timestamp > latest.timestamp ? current : latest,
+    current.timestamp! > latest.timestamp! ? current : latest,
   );
 }
 
-function getFollowUpConfig(paymentMethod: number, paymentAmount: number) {
+function getFollowUpConfig(paymentMethod: number | null, paymentAmount: number) {
   let config = { ...defaultFollowUpConfig };
   for (const conditionalConfig of conditionalFollowUpConfig) {
     if (
@@ -808,7 +809,7 @@ async function shouldSendFollowUp(
 ): Promise<boolean> {
   if (followUps.length >= config.maxFollowUps) return false;
 
-  if (!hasEnoughTimePassed(intent.timestamp, config.daysBeforeFollowUp)) return false;
+  if (!hasEnoughTimePassed(intent.timestamp!, config.daysBeforeFollowUp)) return false;
 
   if (followUps.length > 0) {
     const lastFollowUp = followUps.sort(
@@ -820,7 +821,7 @@ async function shouldSendFollowUp(
   // Check if we recieved any donation from the donor after the payment intent
   const donor = await DAO.donors.getByKID(intent.KID_fordeling);
 
-  const donations = await DAO.donations.getByDonorId(donor.id, intent.timestamp);
+  const donations = await DAO.donations.getByDonorId(donor!.id, intent.timestamp!);
 
   if (donations.length > 0) return false;
 
@@ -828,7 +829,7 @@ async function shouldSendFollowUp(
 }
 
 async function processPaymentIntent(intent: Payment_intent): Promise<Payment_intent | null> {
-  const paymentAmount = intent.Payment_amount.toNumber();
+  const paymentAmount = intent.Payment_amount!.toNumber();
   const config = getFollowUpConfig(intent.Payment_method, paymentAmount);
 
   const followUps = await initialpaymentmethod.getFollowUpsForPaymentIntent(intent.Id);
@@ -839,8 +840,8 @@ async function processPaymentIntent(intent: Payment_intent): Promise<Payment_int
     );
 
     const emailSent = await sendPaymentIntentFollowUp(
-      intent.KID_fordeling,
-      intent.Payment_amount.toNumber(),
+      intent.KID_fordeling!,
+      intent.Payment_amount!.toNumber(),
     );
 
     if (emailSent) {

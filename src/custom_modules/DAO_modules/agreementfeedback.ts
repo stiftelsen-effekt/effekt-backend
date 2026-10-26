@@ -129,7 +129,7 @@ export const agreementfeedback = {
     agreementId: string,
     reasonId: number,
     agreementType: string,
-  ): Promise<number | null> {
+  ): Promise<number | null | undefined> {
     if (agreementType === "Vipps") {
       const [result] = await DAO.query<SqlResult<Recurring_agreement_stopped_reasons>[]>(
         `

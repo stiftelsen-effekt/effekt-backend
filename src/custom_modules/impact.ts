@@ -21,12 +21,12 @@ export const getImpactEstimatesForDonation = async (
 
   const abbreviations = orgs.map((org) => org.abbriv).filter((abr) => abr !== "TCF");
 
-  let evaluationsResponse: ImpactEvaluationsResponse;
+  let evaluationsResponse: ImpactEvaluationsResponse | undefined;
   if (abbreviations.length > 0) {
     evaluationsResponse = await getEvaluation(abbreviations, donationDate);
   }
 
-  let grantResponse: ImpactGrantResponse;
+  let grantResponse: ImpactGrantResponse | undefined;
   if (orgs.some((org) => org.abbriv === "TCF")) {
     grantResponse = await getMaximumImpactGrant(donationDate);
   }
@@ -38,7 +38,7 @@ export const getImpactEstimatesForDonation = async (
 
   const allOrgsAndShares = distribution.causeAreas.flatMap((causeArea) =>
     causeArea.organizations.map((org) => ({
-      abbriv: orgs.find((o) => o.ID === org.id).abbriv,
+      abbriv: orgs.find((o) => o.ID === org.id)!.abbriv,
       share:
         (parseFloat(org.percentageShare) / 100) * (parseFloat(causeArea.percentageShare) / 100),
     })),
@@ -53,11 +53,11 @@ export const getImpactEstimatesForDonation = async (
 
   for (const { abbriv, share } of allOrgsAndShares) {
     if (abbriv === "TCF") {
-      const totalGrantSumInCents = grantResponse.max_impact_fund_grants[0].allotment_set.reduce(
+      const totalGrantSumInCents = grantResponse!.max_impact_fund_grants[0].allotment_set.reduce(
         (acc, curr) => acc + curr.sum_in_cents,
         0,
       );
-      for (const allotment of grantResponse.max_impact_fund_grants[0].allotment_set) {
+      for (const allotment of grantResponse!.max_impact_fund_grants[0].allotment_set) {
         const allotmentShare = allotment.sum_in_cents / totalGrantSumInCents;
 
         const existingResult = results.find(
@@ -85,7 +85,7 @@ export const getImpactEstimatesForDonation = async (
         numberOfOutputs: donationSum * share,
       });
     } else {
-      const evaluation = evaluationsResponse.evaluations.find(
+      const evaluation = evaluationsResponse!.evaluations.find(
         (evaluation) => evaluation.charity.abbreviation === abbriv,
       );
       if (evaluation) {
@@ -151,12 +151,12 @@ export const getImpactEstimatesForDonationByOrg = async (
 
   const abbreviations = orgs.map((org) => org.abbriv).filter((abr) => abr !== "TCF");
 
-  let evaluationsResponse: ImpactEvaluationsResponse;
+  let evaluationsResponse: ImpactEvaluationsResponse | undefined;
   if (abbreviations.length > 0) {
     evaluationsResponse = await getEvaluation(abbreviations, donationDate);
   }
 
-  let grantResponse: ImpactGrantResponse;
+  let grantResponse: ImpactGrantResponse | undefined;
   if (orgs.some((org) => org.abbriv === "TCF")) {
     grantResponse = await getMaximumImpactGrant(donationDate);
   }
@@ -173,7 +173,7 @@ export const getImpactEstimatesForDonationByOrg = async (
 
   const allOrgsAndShares = distribution.causeAreas.flatMap((causeArea) =>
     causeArea.organizations.map((org) => ({
-      abbriv: orgs.find((o) => o.ID === org.id).abbriv,
+      abbriv: orgs.find((o) => o.ID === org.id)!.abbriv,
       share:
         (parseFloat(org.percentageShare) / 100) * (parseFloat(causeArea.percentageShare) / 100),
     })),
@@ -192,18 +192,18 @@ export const getImpactEstimatesForDonationByOrg = async (
     if (!orgResult) {
       orgResult = {
         orgAbbriv: abbriv,
-        orgId: orgs.find((org) => org.abbriv === abbriv).ID,
+        orgId: orgs.find((org) => org.abbriv === abbriv)!.ID,
         outputs: [],
       };
       results.push(orgResult);
     }
 
     if (abbriv === "TCF") {
-      const totalGrantSumInCents = grantResponse.max_impact_fund_grants[0].allotment_set.reduce(
+      const totalGrantSumInCents = grantResponse!.max_impact_fund_grants[0].allotment_set.reduce(
         (acc, curr) => acc + curr.sum_in_cents,
         0,
       );
-      for (const allotment of grantResponse.max_impact_fund_grants[0].allotment_set) {
+      for (const allotment of grantResponse!.max_impact_fund_grants[0].allotment_set) {
         const allotmentShare = allotment.sum_in_cents / totalGrantSumInCents;
         const costPerOutputInCents = allotment.sum_in_cents / allotment.number_outputs_purchased;
 
@@ -222,7 +222,7 @@ export const getImpactEstimatesForDonationByOrg = async (
         roundedNumberOfOutputs: "",
       });
     } else {
-      const evaluation = evaluationsResponse.evaluations.find(
+      const evaluation = evaluationsResponse!.evaluations.find(
         (evaluation) => evaluation.charity.abbreviation === abbriv,
       );
       if (evaluation) {

@@ -33,14 +33,15 @@ export const importSwedishDonationsReport = async (report, medgivandeReport) => 
 
   for (const donor of data) {
     let donorId: number;
-    let taxUnitId: number;
+    let taxUnitId: number | undefined;
     const existing = await DAO.donors.getIDbyEmail(donor.email);
     if (existing) {
       donorId = existing;
       if (donor.ssn) {
         const units = await DAO.tax.getByDonorId(donorId, RequestLocale.SV);
-        if (units.some((unit) => unit.ssn === donor.ssn)) {
-          taxUnitId = units.find((unit) => unit.ssn === donor.ssn).id;
+        const matchingUnit = units.find((unit) => unit.ssn === donor.ssn);
+        if (matchingUnit) {
+          taxUnitId = matchingUnit.id;
         } else {
           taxUnitId = await DAO.tax.addTaxUnit(donorId, donor.ssn, donor.name);
         }
@@ -82,7 +83,7 @@ export const importSwedishDonationsReport = async (report, medgivandeReport) => 
       // Transform donation distribution to match the database
       const distributionInput = await getDistributionInput(donorId, taxUnitId, donation);
 
-      let KID: string;
+      let KID: string | null;
 
       let newAgreementId: number | undefined;
       if (donation.paymentMethod === "Autogiro") {
@@ -262,7 +263,7 @@ const querterlyCauseAreaKeys = {
 
 const getDistributionInput = async (
   donorId: number,
-  taxUnitId: number | null,
+  taxUnitId: number | null | undefined,
   donation: ExtractedDonorDonation,
 ) => {
   const parsedDate = DateTime.fromISO(donation.date, { locale: "sv-SE" });
@@ -384,7 +385,7 @@ const getDistributionInput = async (
 
   const distributionInput: DistributionInput = {
     donorId,
-    taxUnitId,
+    taxUnitId: taxUnitId ?? null,
     causeAreas,
   };
 

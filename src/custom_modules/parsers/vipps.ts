@@ -55,8 +55,8 @@ export type ParsedVippsReport = {
 export const parseReport = (report): ParsedVippsReport => {
   const data = parseCsvRows(report);
 
-  let currentMinDate = null;
-  let currentMaxDate = null;
+  let currentMinDate: Date | null = null;
+  let currentMaxDate: Date | null = null;
   let transactions: VippsTransaction[] = [];
 
   if (isDetailsReport(data)) {
@@ -87,8 +87,8 @@ export const parseReport = (report): ParsedVippsReport => {
   }
 
   return {
-    minDate: currentMinDate,
-    maxDate: currentMaxDate,
+    minDate: currentMinDate!,
+    maxDate: currentMaxDate!,
     transactions: transactions,
   };
 };

@@ -178,7 +178,7 @@ module.exports = {
     let orderId = `${KID}-${+new Date()}`;
     let order = {
       orderID: orderId,
-      donorID: donor.id,
+      donorID: donor!.id,
       KID: KID,
       token: crypto.randomBytes(16).toString("hex"),
     };
@@ -992,7 +992,7 @@ module.exports = {
    */
   async getPendingDueCharge(agreementId) {
     const charges = await this.getCharges(agreementId);
-    let dueCharges = [];
+    let dueCharges: any[] = [];
 
     try {
       charges.forEach((charge) => {
@@ -1178,7 +1178,7 @@ module.exports = {
    */
   async synchronizeVippsAgreementDatabase() {
     try {
-      let agreements = [];
+      let agreements: any[] = [];
 
       // Vipps does not allow fetching all statuses in a single request
       const active = await this.getAgreements("ACTIVE");

@@ -35,16 +35,16 @@ router.post("/avtalegiro/notice", authMiddleware.isAdmin, async (req, res, next)
     const KID = req.body.KID;
     const agreement = await DAO.avtalegiroagreements.getByKID(KID);
 
-    let claimDate: DateTime = null;
+    let claimDate: DateTime;
     const now = DateTime.local();
 
-    if (agreement.paymentDate > now.day) {
-      claimDate = DateTime.local(now.year, now.month, agreement.paymentDate);
+    if (agreement!.paymentDate > now.day) {
+      claimDate = DateTime.local(now.year, now.month, agreement!.paymentDate);
     } else {
-      claimDate = DateTime.local(now.year, now.month, agreement.paymentDate).plus({ month: 1 });
+      claimDate = DateTime.local(now.year, now.month, agreement!.paymentDate).plus({ month: 1 });
     }
 
-    await sendAvtalegiroNotification(agreement, claimDate);
+    await sendAvtalegiroNotification(agreement!, claimDate);
 
     res.json({
       status: 200,

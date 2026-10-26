@@ -185,7 +185,7 @@ describe("DAO donations", () => {
       const result = await DAO.donations.getEAFundsDonations(237);
 
       expect(queryStub.calledOnce).to.be.true;
-      const [sql, params] = queryStub.firstCall.args as [string, unknown[]];
+      const [sql, params] = queryStub.firstCall.args as unknown as [string, unknown[]];
       expect(sql).to.not.contain("Funds_donations");
       expect(sql).to.contain("FROM Donations");
       expect(sql).to.contain("Distributions.Tax_unit_ID");

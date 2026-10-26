@@ -108,7 +108,7 @@ module.exports = async (req, res, next) => {
               Donation_ID: donationId,
               Sum: transaction.amount as unknown as Prisma.Decimal,
               Timestamp: transaction.date.toDate(),
-              Sender_email: donor.email,
+              Sender_email: donor!.email,
               Sender_phone: "",
               Status: "SALE",
               Location: "VippsNumber",

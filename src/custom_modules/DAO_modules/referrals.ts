@@ -225,8 +225,8 @@ async function updateType(
   id: number,
   data: { name?: string; ordering?: number; is_active?: boolean },
 ) {
-  const fields = [];
-  const values = [];
+  const fields: string[] = [];
+  const values: (string | number | boolean)[] = [];
 
   if (data.name !== undefined) {
     fields.push("name = ?");

@@ -53,7 +53,7 @@ const formatBoolean = (value) => {
  * @param {Object} [formatters] - Optional object mapping field names to formatter functions
  * @returns {string} - Complete CSV content with headers
  */
-const generateCsv = (rows, headers = null, formatters = {}) => {
+const generateCsv = (rows, headers: string[] | null = null, formatters = {}) => {
   if (!rows || rows.length === 0) {
     return headers ? headers.join(",") : "";
   }
@@ -129,7 +129,13 @@ const sendCsvDownload = (res, csvContent, filename) => {
  * @param {Array<string>} [headers] - Optional custom headers
  * @param {Object} [formatters] - Optional field formatters
  */
-export const exportCsv = (res, rows, filename, headers = null, formatters = {}) => {
+export const exportCsv = (
+  res,
+  rows,
+  filename,
+  headers: string[] | null = null,
+  formatters = {},
+) => {
   const csvContent = generateCsv(rows, headers, formatters);
   return sendCsvDownload(res, csvContent, filename);
 };
