@@ -53,7 +53,7 @@ const formatBoolean = (value) => {
  * @param {Object} [formatters] - Optional object mapping field names to formatter functions
  * @returns {string} - Complete CSV content with headers
  */
-const generateCsv = (rows, headers: string[] | null = null, formatters = {}) => {
+export const generateCsv = (rows, headers: string[] | null = null, formatters = {}) => {
   if (!rows || rows.length === 0) {
     return headers ? headers.join(",") : "";
   }
