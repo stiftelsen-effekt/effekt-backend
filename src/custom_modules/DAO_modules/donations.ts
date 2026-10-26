@@ -1,4 +1,5 @@
 import { distributions } from "./distributions";
+import { EA_NORGE_META_OWNER_ID } from "./meta";
 import { DAO } from "../DAO";
 import { Donation } from "../../schemas/types";
 
@@ -1003,7 +1004,8 @@ async function getHistory(donorID) {
 }
 
 /**
- * Fetches all donations recieved by a specific donor to EA funds
+ * Fetches all donations recieved by a specific donor to EA funds, i.e. donations made
+ * through EA Giverportal (Meta_owner_ID = EA Norge)
  */
 async function getEAFundsDonations(donorId: number): Promise<
   Array<{
@@ -1017,19 +1019,30 @@ async function getEAFundsDonations(donorId: number): Promise<
 > {
   const [res] = await DAO.query(
     `
-  SELECT * FROM Funds_donations WHERE DonorID = ?
+  SELECT
+    Donations.ID,
+    Donations.Donor_ID,
+    Distributions.Tax_unit_ID,
+    Donations.sum_confirmed,
+    Donations.timestamp_confirmed,
+    Donations.PaymentExternal_ID
+
+    FROM Donations
+    INNER JOIN Distributions ON Distributions.KID = Donations.KID_fordeling
+
+    WHERE Donations.Donor_ID = ? AND Donations.Meta_owner_ID = ?
   `,
-    [donorId],
+    [donorId, EA_NORGE_META_OWNER_ID],
   );
 
   return res.map((row) => {
     return {
       id: row.ID,
-      donorId: row.DonorID,
-      taxUnitId: row.TaxUnitID,
-      sum: parseFloat(row.Sum),
-      timestamp: row.Timestamp,
-      paymentExternalId: row.PaymentExternalID,
+      donorId: row.Donor_ID,
+      taxUnitId: row.Tax_unit_ID,
+      sum: parseFloat(row.sum_confirmed),
+      timestamp: row.timestamp_confirmed,
+      paymentExternalId: row.PaymentExternal_ID,
     };
   });
 }

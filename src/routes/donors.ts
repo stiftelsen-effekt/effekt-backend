@@ -11,6 +11,7 @@ import { TaxDeductionDonation, getYearlyMapping } from "../custom_modules/taxded
 import { connectDonationsForFirstTaxUnit } from "../custom_modules/tax";
 import { exportCsv } from "../custom_modules/csvexport";
 import { requireAuthorizationSecret } from "../custom_modules/webhookAuth";
+import { EA_NORGE_META_OWNER_ID } from "../custom_modules/DAO_modules/meta";
 
 const config = require("../config");
 
@@ -463,6 +464,9 @@ router.get(
       taxUnits = taxUnits.filter((tu) => tu.archived === null);
 
       let donations = await DAO.donations.getByDonorId(donorId);
+      // Donations through EA Giverportal (EA Norge) are shown as EA funds donations,
+      // so they are left out of the Gi Effektivt donations to avoid counting them twice
+      const geOnlyDonations = donations.filter((d) => d.metaOwnerId !== EA_NORGE_META_OWNER_ID);
       let eaFundsDonations = await DAO.donations.getEAFundsDonations(donorId);
 
       // Previous year down to 2022
@@ -483,7 +487,7 @@ router.get(
             }));
           const fundsSum = fundsDonations.reduce((a, b) => a + b.sum, 0);
 
-          const geDonations: TaxDeductionDonation[] = donations
+          const geDonations: TaxDeductionDonation[] = geOnlyDonations
             .filter((d) => new Date(d.timestamp).getFullYear() === year && d.taxUnitId === tu.id)
             .map((d) => ({
               year: year,
@@ -530,7 +534,7 @@ router.get(
           return new Date(d.timestamp).getFullYear() === year && d.paymentMethod === "Crypto";
         });
 
-        const sumGeDonationsWithoutTaxUnit = donations
+        const sumGeDonationsWithoutTaxUnit = geOnlyDonations
           .filter((d) => {
             return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
           })
