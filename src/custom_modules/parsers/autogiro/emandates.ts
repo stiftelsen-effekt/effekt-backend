@@ -79,7 +79,7 @@ export const parseEMandates = (lines: string[], openingRecord: AutoGiroOpeningRe
   return result;
 };
 
-interface AutoGiroParsedEMandatesResult extends AutoGiroParsedResult {
+export interface AutoGiroParsedEMandatesResult extends AutoGiroParsedResult {
   reportContents: AutoGiroContent.E_MANDATES;
   emandates: AutoGiroParsedEMandate[];
 }
