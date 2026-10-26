@@ -1332,7 +1332,7 @@ const mapToJS = (obj) =>
     return returnObj;
   });
 
-enum TaxUnitType {
+export enum TaxUnitType {
   PERSON = "person",
   ORGANIZATION = "organization",
 }

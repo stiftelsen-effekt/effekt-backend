@@ -1,9 +1,8 @@
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { donationHelpers } from "../custom_modules/donationHelpers";
 
 import express from "express";
-import { validateDistribution } from "../custom_modules/distribution";
+import { createDistribution } from "../custom_modules/donationsService";
 import { sumWithPrecision } from "../custom_modules/rounding";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { DistributionInput } from "../schemas/types";
@@ -14,32 +13,13 @@ router.post("/", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     let distribution = req.body as DistributionInput;
 
-    const validatedDistribution = validateDistribution(distribution);
-
-    const existing = await DAO.distributions.getKIDbySplit(validatedDistribution);
-
-    if (existing) {
-      return res.json({
-        status: 200,
-        content: {
-          KID: existing,
-          newDistribution: false,
-        },
-      });
-    }
-
-    const KID = await donationHelpers.createKID();
-
-    await DAO.distributions.add({
-      kid: KID,
-      ...validatedDistribution,
-    });
+    const { KID, newDistribution } = await createDistribution(distribution);
 
     res.json({
       status: 200,
       content: {
         KID,
-        newDistribution: true,
+        newDistribution,
       },
     });
   } catch (ex) {
