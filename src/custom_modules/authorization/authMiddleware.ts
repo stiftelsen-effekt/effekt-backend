@@ -54,7 +54,7 @@ const userIsAdmin = (jwtPayload: JWTPayload) => {
 };
 
 const userIsTheDonor = (jwtPayload: JWTPayload, donorId: number) =>
-  jwtPayload[userIdClaim] === donorId;
+  jwtPayload[userIdClaim!] === donorId;
 
 const userIsAllowedToManageDonor = (jwtPayload: JWTPayload, donorId: number) =>
   userIsAdmin(jwtPayload) || userIsTheDonor(jwtPayload, donorId);
@@ -86,6 +86,7 @@ export const checkDonorOwnsDistribution = (KID, req, res, next) => {
   DAO.donors
     .getByKID(KID)
     .then((donor) => {
+      if (!donor) return next(new Error("Failed to verify ownershop of agreement"));
       const handler = claimCheck((jwtPayload) => userIsAllowedToManageDonor(jwtPayload, donor.id));
       handler(req, res, next);
     })

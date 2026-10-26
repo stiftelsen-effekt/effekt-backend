@@ -30,7 +30,7 @@ async function getDonationsByKID(KID) {
     [KID],
   );
 
-  let donations = [];
+  let donations: any[] = [];
 
   getDonationsByKIDQuery.forEach((donation) => {
     donations.push({
@@ -193,9 +193,8 @@ async function replaceDistribution(
 }
 
 async function setActive(KID, active) {
+  const transaction = await DAO.startTransaction();
   try {
-    var transaction = await DAO.startTransaction();
-
     let [res] = await transaction.query<ResultSetHeader | OkPacket>(
       `UPDATE Avtalegiro_agreements SET active = ? WHERE KID = ?`,
       [active, KID],
@@ -230,7 +229,7 @@ async function setActive(KID, active) {
 
     return true;
   } catch (ex) {
-    if (transaction) await DAO.rollbackTransaction(transaction);
+    await DAO.rollbackTransaction(transaction);
     throw ex;
   }
 }
@@ -532,7 +531,7 @@ async function getByDonorId(donorId) {
   return agreements;
 }
 
-async function getByKID(KID: string): Promise<AvtaleGiroAgreement> {
+async function getByKID(KID: string): Promise<AvtaleGiroAgreement | null> {
   let [agreement] = await DAO.query(
     `
             SELECT 
@@ -559,7 +558,7 @@ async function getByKID(KID: string): Promise<AvtaleGiroAgreement> {
   }
 }
 
-async function getByID(ID: number): Promise<Avtalegiro_agreements> {
+async function getByID(ID: number): Promise<Avtalegiro_agreements | null> {
   let [agreement] = await DAO.query<Avtalegiro_agreements[]>(
     `
             SELECT 

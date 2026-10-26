@@ -119,11 +119,11 @@ export const DAO = {
 
   query: async function <T = any>(
     query,
-    params = undefined,
+    params: any = undefined,
     retries = 0,
   ): Promise<[SqlResult<T>, mysql.FieldPacket[]]> {
     try {
-      return await (this as typeof DAO).dbPool.query<any>(query, params);
+      return await (this as typeof DAO).dbPool!.query<any>(query, params);
     } catch (ex) {
       if (retries < 7 && ex.code === "PROTOCOL_CONNECTION_LOST") {
         console.log("Retrying query");
@@ -138,11 +138,11 @@ export const DAO = {
 
   execute: async function <T = any>(
     query: string,
-    params = undefined,
+    params: any = undefined,
     retries = 0,
   ): Promise<[SqlResult<T>, mysql.FieldPacket[]]> {
     try {
-      return await DAO.dbPool.execute<any>(query, params);
+      return await DAO.dbPool!.execute<any>(query, params);
     } catch (ex) {
       if (retries < 7 && ex.code === "PROTOCOL_CONNECTION_LOST") {
         console.error(ex);

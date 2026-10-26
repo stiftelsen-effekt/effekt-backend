@@ -26,7 +26,7 @@ describe("emails with no MailerSend template", function () {
   const cases: Array<[string, () => Promise<unknown>]> = [
     ["sendVippsAgreementChange", () => mail.sendVippsAgreementChange("code", "STOPPED")],
     ["sendAvtaleGiroChange", () => mail.sendAvtaleGiroChange("123", "AMOUNT", "500")],
-    ["sendAvtalegiroRegistered", () => mail.sendAvtalegiroRegistered(null)],
+    ["sendAvtalegiroRegistered", () => mail.sendAvtalegiroRegistered(null as any)],
   ];
 
   cases.forEach(([name, invoke]) => {

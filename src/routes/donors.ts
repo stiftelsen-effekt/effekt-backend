@@ -488,7 +488,7 @@ router.get(
           const fundsSum = fundsDonations.reduce((a, b) => a + b.sum, 0);
 
           const geDonations: TaxDeductionDonation[] = geOnlyDonations
-            .filter((d) => new Date(d.timestamp).getFullYear() === year && d.taxUnitId === tu.id)
+            .filter((d) => new Date(d.timestamp!).getFullYear() === year && d.taxUnitId === tu.id)
             .map((d) => ({
               year: year,
               sum: parseFloat(d.sum),
@@ -507,13 +507,13 @@ router.get(
           let reportUnit: TaxYearlyReportUnit = {
             id: tu.id,
             name: tu.name,
-            ssn: tu.ssn,
+            ssn: tu.ssn!,
             sumDonations: geSum + fundsSum,
             taxDeduction: completeDeduction.deduction,
             channels: [],
           };
 
-          if (parseFloat(tu.sumDonations) > 0) {
+          if (parseFloat(tu.sumDonations!) > 0) {
             reportUnit.channels.push({
               channel: "Gi Effektivt",
               sumDonations: geSum,
@@ -531,12 +531,12 @@ router.get(
         });
 
         const cryptoDonationsInYear = donations.filter((d) => {
-          return new Date(d.timestamp).getFullYear() === year && d.paymentMethod === "Crypto";
+          return new Date(d.timestamp!).getFullYear() === year && d.paymentMethod === "Crypto";
         });
 
         const sumGeDonationsWithoutTaxUnit = geOnlyDonations
           .filter((d) => {
-            return new Date(d.timestamp).getFullYear() === year && d.taxUnitId === null;
+            return new Date(d.timestamp!).getFullYear() === year && d.taxUnitId === null;
           })
           .reduce((acc, item) => acc + parseFloat(item.sum), 0);
 

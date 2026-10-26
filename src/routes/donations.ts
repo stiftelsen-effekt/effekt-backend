@@ -64,8 +64,8 @@ router.post("/register", async (req, res, next) => {
     amount: string | number;
     fundraiser?: {
       id: number;
-      message?: string;
-      messageSenderName?: string;
+      message?: string | null;
+      messageSenderName?: string | null;
       showName: boolean;
     };
     referralCode?: string;
@@ -101,16 +101,16 @@ router.post("/register", async (req, res, next) => {
 
   let donor = parsedData.donor;
   let paymentProviderUrl = "";
-  let swishOrderID = null;
-  let swishPaymentRequestToken = null;
+  let swishOrderID: string | null = null;
+  let swishPaymentRequestToken: string | null = null;
   let recurring = parsedData.recurring;
   const fundraiser = parsedData.fundraiser;
 
   try {
     var donationObject: Pick<typeof parsedData, "amount" | "method" | "recurring"> & {
-      KID: string;
+      KID: string | null;
       donorID: number | null;
-      taxUnitId: number;
+      taxUnitId: number | null;
       fundraiserTransactionId: number | null;
     } = {
       amount: parsedData.amount,
@@ -159,14 +159,14 @@ router.post("/register", async (req, res, next) => {
 
       // Check that name is registered and update name if no name set
       const dbDonor = await DAO.donors.getByID(donationObject.donorID);
-      if (dbDonor.name === "" || dbDonor.name === null) {
+      if (dbDonor!.name === "" || dbDonor!.name === null) {
         await DAO.donors.updateName(donationObject.donorID, donor.name);
       }
 
       //Check if registered for newsletter
       if (typeof donor.newsletter !== "undefined" && donor.newsletter != null) {
         let dbDonor = await DAO.donors.getByID(donationObject.donorID);
-        if (!dbDonor.newsletter) {
+        if (!dbDonor!.newsletter) {
           //Not registered for newsletter, updating donor
           await DAO.donors.updateNewsletter(donationObject.donorID, donor.newsletter);
         }
@@ -199,8 +199,8 @@ router.post("/register", async (req, res, next) => {
         // Every charge on the agreement uses this KID, so they all count towards the fundraiser
         donationObject.fundraiserTransactionId = await DAO.fundraisers.addFundraiserTransaction({
           fundraiserId: fundraiser.id,
-          message: fundraiser.message,
-          messageSenderName: fundraiser.messageSenderName,
+          message: fundraiser.message ?? null,
+          messageSenderName: fundraiser.messageSenderName ?? null,
           showName: fundraiser.showName,
         });
       }
@@ -259,8 +259,8 @@ router.post("/register", async (req, res, next) => {
           // Add a fundraiser transaction ID to store the fundraiser ID and message
           donationObject.fundraiserTransactionId = await DAO.fundraisers.addFundraiserTransaction({
             fundraiserId: fundraiser.id,
-            message: fundraiser.message,
-            messageSenderName: fundraiser.messageSenderName,
+            message: fundraiser.message ?? null,
+            messageSenderName: fundraiser.messageSenderName ?? null,
             showName: fundraiser.showName,
           });
         }

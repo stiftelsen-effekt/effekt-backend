@@ -57,7 +57,9 @@ causeAreasRouter.get("/all", async (req, res, next) => {
     const causeAreas = await DAO.causeareas.getAll();
     const organizations = await DAO.organizations.getAll();
 
-    const causeAreasWithOrganizations = [];
+    const causeAreasWithOrganizations: Array<
+      (typeof causeAreas)[number] & { organizations: typeof organizations }
+    > = [];
     for (let causeArea of causeAreas) {
       causeAreasWithOrganizations.push({
         ...causeArea,

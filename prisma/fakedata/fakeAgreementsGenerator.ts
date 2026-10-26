@@ -171,7 +171,7 @@ function generateVippsAgreement(
 function generateAutoGiroMandate(
   id: number,
   kid: string,
-  taxUnit: Tax_unit | null,
+  taxUnit: Tax_unit | undefined,
 ): AutoGiro_mandates {
   return {
     ID: id,
@@ -179,7 +179,7 @@ function generateAutoGiroMandate(
     last_updated: faker.date.recent(),
     created: faker.date.past(),
     bank_account: faker.string.numeric(16),
-    special_information: faker.helpers.maybe(() => faker.lorem.sentence()),
+    special_information: faker.helpers.maybe(() => faker.lorem.sentence()) ?? null,
     name_and_address: taxUnit?.full_name ?? faker.person.fullName(),
     postal_code: faker.location.zipCode(),
     postal_label: faker.location.city(),

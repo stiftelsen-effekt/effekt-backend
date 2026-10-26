@@ -409,11 +409,11 @@ async function getCharges(
     avgCharge: string;
   };
 }> {
-  const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
+  const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)![1];
   const sortDirection = sort.desc ? "DESC" : "ASC";
   const offset = page * limit;
 
-  let where = [];
+  let where: string[] = [];
   if (filter) {
     if (filter.amount) {
       if (filter.amount.from) where.push(`amountNOK >= ${sqlString.escape(filter.amount.from)} `);

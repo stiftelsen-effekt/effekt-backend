@@ -27,7 +27,7 @@ module.exports = {
     /**
      * @type {Array<AddDonationResult>}
      */
-    const results = [];
+    const results: any[] = [];
 
     for (let i = 0; i < transactions.length; i++) {
       const transaction = transactions[i];

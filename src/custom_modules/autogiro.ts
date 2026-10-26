@@ -44,8 +44,8 @@ export async function generateAutogiroGiroFile(
 
   fileContents += writer.getOpeningRecord(
     today,
-    config.autogiro_customer_number,
-    config.autogiro_bankgiro_number,
+    config.autogiro_customer_number!,
+    config.autogiro_bankgiro_number!,
   );
   fileContents += "\n";
 
@@ -83,7 +83,7 @@ export async function generateAutogiroGiroFile(
     fileContents += writer.getWithdrawalRecord(
       agreementClaim.claimDate,
       agreementClaim.agreement.KID,
-      config.autogiro_bankgiro_number,
+      config.autogiro_bankgiro_number!,
       agreementClaim.agreement.amount * 100, // Agreement amount in øre
       chargeId.toString(),
     );
@@ -152,7 +152,7 @@ export async function generateAutogiroGiroFile(
       writer.getWithdrawalRecord(
         newClaimDate,
         chargeToBeAmended.KID,
-        config.autogiro_bankgiro_number,
+        config.autogiro_bankgiro_number!,
         chargeToBeAmended.agreementAmount * 100, // Agreement amount in øre
         newChargeId.toString(),
       ),
@@ -179,7 +179,7 @@ export async function generateAutogiroGiroFile(
       fileContents += writer.getMandateConfirmationRecord(
         mandate,
         taxUnit,
-        config.autogiro_bankgiro_number,
+        config.autogiro_bankgiro_number!,
       );
       fileContents += "\n";
     } catch (ex) {
@@ -205,7 +205,10 @@ export async function processAutogiroInputFile(fileContents: string) {
      */
     let valid = 0;
     let invalid = 0;
-    const invalidTransactions = [];
+    const invalidTransactions: {
+      reason: ProcessAutogiroPaymentResult["reason"];
+      transaction: NonNullable<ProcessAutogiroPaymentResult["transaction"]>;
+    }[] = [];
     const unapprovedPayments: AutoGiroIncomingPaymentRecord[] = [];
 
     for (const deposit of parsedFile.deposits) {
@@ -309,7 +312,8 @@ export async function processAutogiroInputFile(fileContents: string) {
         if (emandate.payerSsn && !taxUnit) {
           try {
             const donor = await DAO.donors.getByKID(validKID);
-            const taxUnitId = await DAO.tax.addTaxUnit(donor.id, emandate.payerSsn, donor.name);
+            if (!donor) throw new Error(`Could not find donor with KID ${validKID}`);
+            const taxUnitId = await DAO.tax.addTaxUnit(donor.id, emandate.payerSsn, donor.name!);
             await DAO.distributions.setTaxUnit(validKID, taxUnitId);
           } catch (ex) {
             console.log(ex);
@@ -377,7 +381,12 @@ export async function processAutogiroInputFile(fileContents: string) {
     let rejected = 0;
     let cancelled = 0;
     let invalid = 0;
-    const invalidMandates = [];
+    const invalidMandates: {
+      KID: string;
+      informationCode: AutoGiroMandateInformationCodes;
+      commentaryCode: AutoGiroMandateCommentaryCodes;
+      message: any;
+    }[] = [];
     for (const mandate of parsedFile.mandates) {
       try {
         const KID = await getValidatedKID(mandate.payerNumber);
@@ -386,12 +395,12 @@ export async function processAutogiroInputFile(fileContents: string) {
           // Mandate cancellation or deletion
           try {
             const dbMandate = await DAO.autogiroagreements.getMandateByKID(KID);
-            await DAO.autogiroagreements.cancelMandate(dbMandate.ID);
+            await DAO.autogiroagreements.cancelMandate(dbMandate!.ID);
             console.log(
               `Cancelled mandate with KID ${KID} with information code ${mandate.informationCode} and comment code ${mandate.commentaryCode}`,
             );
             // Set agreement status to stopped
-            await DAO.autogiroagreements.cancelAgreementByKID(dbMandate.KID);
+            await DAO.autogiroagreements.cancelAgreementByKID(dbMandate!.KID);
 
             cancelled++;
           } catch (ex) {
@@ -416,9 +425,9 @@ export async function processAutogiroInputFile(fileContents: string) {
             // New mandate accepted, either the bank confirms a mandate or we've successfully added a mandate
             try {
               const dbMandate = await DAO.autogiroagreements.getMandateByKID(KID);
-              await DAO.autogiroagreements.activateMandate(dbMandate.ID);
-              console.log(`Updated mandate with KID ${KID} and ID ${dbMandate.ID} to ACTIVE`);
-              await DAO.autogiroagreements.activateAgreementByKID(dbMandate.KID);
+              await DAO.autogiroagreements.activateMandate(dbMandate!.ID);
+              console.log(`Updated mandate with KID ${KID} and ID ${dbMandate!.ID} to ACTIVE`);
+              await DAO.autogiroagreements.activateAgreementByKID(dbMandate!.KID);
               console.log(`Updated agreement with KID ${KID} to ACTIVE`);
 
               confirmed++;
@@ -440,9 +449,11 @@ export async function processAutogiroInputFile(fileContents: string) {
             // Mandate addition failed
             try {
               const dbMandate = await DAO.autogiroagreements.getMandateByKID(KID);
-              await DAO.autogiroagreements.setMandateStatus(dbMandate.ID, "REJECTED");
+              await DAO.autogiroagreements.setMandateStatus(dbMandate!.ID, "REJECTED");
               console.log(
-                `Updated mandate with KID ${KID} and ID ${dbMandate.ID} to REJECTED with commentary code ${mandate.commentaryCode}`,
+                `Updated mandate with KID ${KID} and ID ${
+                  dbMandate!.ID
+                } to REJECTED with commentary code ${mandate.commentaryCode}`,
               );
               rejected++;
             } catch (ex) {
@@ -501,7 +512,7 @@ export async function processAutogiroInputFile(fileContents: string) {
           charge.paymentReference,
         );
 
-        if (dbCharge.status === "FAILED") {
+        if (dbCharge!.status === "FAILED") {
           // Ignore charges that are already marked as failed
           continue;
         }

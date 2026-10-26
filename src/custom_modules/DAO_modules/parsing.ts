@@ -2,10 +2,10 @@ import { Vipps_matching_rules } from "@prisma/client";
 import { DAO } from "../DAO";
 
 export type VippsParsingRule = {
-  salesLocation: string;
-  message: string;
+  salesLocation: string | null;
+  message: string | null;
   resolveKID: string;
-  resolveAdoveoFundraiserId?: number;
+  resolveAdoveoFundraiserId?: number | null;
 };
 
 /**

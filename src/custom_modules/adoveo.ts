@@ -81,18 +81,18 @@ export async function processFundraisingTransactions(
     addedTransactions: 0,
     updatedTransactions: 0,
     addedDonations: 0,
-    failedTransactions: [],
+    failedTransactions: [] as { row: AdoveoFundraiserTransactionReportRow; reason: string }[],
   };
 
   /**
    * For each transaction, add it to the database
    */
   for (let row of data) {
-    const result = await addFundraiserRecord({
+    const result = (await addFundraiserRecord({
       fundraiserId,
       row,
       causeAreas: causeAreasInput,
-    });
+    }))!;
 
     if (result.success) {
       processResult.addedTransactions += result.addedTransaction ? 1 : 0;
@@ -114,13 +114,16 @@ async function addFundraiserRecord({
   fundraiserId: number;
   row: AdoveoFundraiserTransactionReportRow;
   causeAreas: DistributionInput["causeAreas"];
-}): Promise<{
-  success: boolean;
-  addedTransaction: boolean;
-  updatedTransaction: boolean;
-  addedDonation: boolean;
-  failedReason: string;
-}> {
+}): Promise<
+  | {
+      success: boolean;
+      addedTransaction: boolean;
+      updatedTransaction: boolean;
+      addedDonation: boolean;
+      failedReason: string;
+    }
+  | undefined
+> {
   const result = {
     success: false,
     addedTransaction: false,
@@ -193,10 +196,10 @@ async function addFundraiserRecord({
         const donationId = await addDonation(
           row,
           causeAreas,
-          transaction.ID,
+          transaction!.ID,
           AdoveoPaymentTypes.FUNDRAISER,
         );
-        await DAO.adoveo.updateFundraiserTransactionDonationID(transaction.ID, donationId);
+        await DAO.adoveo.updateFundraiserTransactionDonationID(transaction!.ID, donationId);
         result.addedDonation = true;
         result.success = true;
         return result;
@@ -301,18 +304,18 @@ export async function processGiftCardsReport(report: Buffer, giftcardId: number)
     addedTransactions: 0,
     updatedTransactions: 0,
     addedDonations: 0,
-    failedTransactions: [],
+    failedTransactions: [] as { row: AdoveoGiftCardsTransactionReportRow; reason: string }[],
   };
 
   /**
    * For each transaction, add it to the database
    */
   for (let row of data) {
-    const result = await addGiftcardRecord({
+    const result = (await addGiftcardRecord({
       giftcardId,
       row,
       causeAreas: causeAreasInput,
-    });
+    }))!;
 
     if (result.success) {
       processResult.addedTransactions += result.addedTransaction ? 1 : 0;
@@ -334,13 +337,16 @@ async function addGiftcardRecord({
   giftcardId: number;
   row: AdoveoGiftCardsTransactionReportRow;
   causeAreas: DistributionInput["causeAreas"];
-}): Promise<{
-  success: boolean;
-  addedTransaction: boolean;
-  updatedTransaction: boolean;
-  addedDonation: boolean;
-  failedReason: string;
-}> {
+}): Promise<
+  | {
+      success: boolean;
+      addedTransaction: boolean;
+      updatedTransaction: boolean;
+      addedDonation: boolean;
+      failedReason: string;
+    }
+  | undefined
+> {
   const result = {
     success: false,
     addedTransaction: false,
@@ -408,10 +414,10 @@ async function addGiftcardRecord({
         const donationId = await addDonation(
           row,
           causeAreas,
-          transaction.ID,
+          transaction!.ID,
           AdoveoPaymentTypes.GIFTCARD,
         );
-        await DAO.adoveo.updateGiftcardTransactionDonationID(transaction.ID, donationId);
+        await DAO.adoveo.updateGiftcardTransactionDonationID(transaction!.ID, donationId);
         result.addedDonation = true;
         result.success = true;
         return result;
@@ -604,11 +610,15 @@ async function getDefaultTaxUnitId(donorId: number) {
   return taxUnitId;
 }
 
-async function getKID(causeAreas: DistributionCauseArea[], donorId: number, taxUnitId: number) {
+async function getKID(
+  causeAreas: DistributionCauseArea[],
+  donorId: number,
+  taxUnitId: number | undefined,
+) {
   let KID = await DAO.distributions.getKIDbySplit({
     causeAreas,
     donorId,
-    taxUnitId,
+    taxUnitId: taxUnitId ?? null,
   });
 
   if (!KID) {
@@ -618,7 +628,7 @@ async function getKID(causeAreas: DistributionCauseArea[], donorId: number, taxU
     await DAO.distributions.add({
       kid: newKID,
       donorId,
-      taxUnitId,
+      taxUnitId: taxUnitId ?? null,
       causeAreas,
     });
     KID = newKID;

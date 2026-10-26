@@ -12,27 +12,34 @@ components:
           description: The cause area name
         widgetDisplayName:
           type: string
+          nullable: true
           description: The cause area widget display name
         widgetContext:
           type: string
+          nullable: true
           description: The cause area widget context
         standardPercentageShare:
           type: number
+          nullable: true
           description: The cause area standard percentage share
         shortDescription:
           type: string
+          nullable: true
           description: The cause area short description
         longDescription:
           type: string
+          nullable: true
           description: The cause area long description
         informationUrl:
           type: string
+          nullable: true
           description: The cause area information url
         isActive:
           type: boolean
           description: Whether the cause area is active
         ordering:
           type: number
+          nullable: true
           description: The cause area ordering
       required:
         - id

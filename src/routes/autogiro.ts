@@ -201,7 +201,7 @@ router.put(
       let validatedDistribution: DistributionInput | null = null;
       if (distribution !== null) {
         try {
-          validatedDistribution = validateDistribution(distribution);
+          validatedDistribution = validateDistribution(distribution as DistributionInput);
         } catch (ex) {
           return res.status(400).json({
             status: 400,
@@ -380,7 +380,7 @@ router.put("/:KID/drafted/paymentdate", async (req, res, next) => {
 
     const agreement = await DAO.autogiroagreements.getAgreementByKID(req.params.KID);
 
-    if (agreement.active === false) {
+    if (agreement!.active === false) {
       await DAO.autogiroagreements.setAgreementPaymentDateByKID(req.params.KID, paymentDate);
     } else {
       return res.status(400).json({

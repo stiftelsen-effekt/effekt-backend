@@ -230,7 +230,7 @@ export const fundraisers = {
     );
 
     return transactions.map((transaction) => {
-      let name = null;
+      let name: string | null = null;
       if (viewLevel === "admin") {
         name = transaction.name;
       } else if (viewLevel === "owner") {

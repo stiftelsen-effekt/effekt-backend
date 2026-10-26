@@ -22,7 +22,7 @@ export const parseReport = async (report) => {
 
     let firstDate = data[0][chargeDateIndex];
     let lastDate = firstDate;
-    let payoutCurrencies = [];
+    let payoutCurrencies: any[] = [];
 
     data.forEach((donation) => {
       firstDate = firstDate < donation[chargeDateIndex] ? firstDate : donation[chargeDateIndex];
@@ -41,7 +41,7 @@ export const parseReport = async (report) => {
     });
     const query = params.toString();
 
-    const allExchangeRates = {};
+    const allExchangeRates: { [currency: string]: { [date: string]: number } } = {};
 
     for (let i = 0; i < payoutCurrencies.length; i++) {
       const exchangeRateURL = `https://data.norges-bank.no/api/data/EXR/B.${payoutCurrencies[i]}.NOK.SP?format=sdmx-json&locale=no${query}`;
@@ -84,7 +84,7 @@ export const parseReport = async (report) => {
 
       let exchangeDate = transaction["Charge date"];
 
-      let exchangeRate: number = undefined;
+      let exchangeRate: number | undefined = undefined;
       for (let i = 0; i < 10; i++) {
         exchangeRate = allExchangeRates[currency][exchangeDate];
         exchangeDate = incrementISODate(exchangeDate, -1);

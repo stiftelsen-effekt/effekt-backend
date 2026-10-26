@@ -28,7 +28,7 @@ bankReportRouter.post("/no", isAdmin, async (req, res, next) => {
 
   let valid = 0;
   let invalid = 0;
-  let invalidTransactions = [];
+  let invalidTransactions: any[] = [];
   for (let i = 0; i < transactions.length; i++) {
     let transaction = transactions[i];
     transaction.paymentID = BANK_NO_KID_ID;
@@ -129,7 +129,7 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
     KID?: string;
     donorName?: string;
   }[] = [];
-  let postingDate: DateTime;
+  let postingDate: DateTime | undefined;
   let fileFormat: "xml" | "totalin";
 
   try {
@@ -172,8 +172,8 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
   let invalid = 0;
   let skippedSwish = 0;
   let skippedDuplicate = 0;
-  let invalidTransactions = [];
-  let validTransactions = []; // For dry run reporting
+  let invalidTransactions: any[] = [];
+  let validTransactions: any[] = []; // For dry run reporting
 
   for (const payment of payments) {
     try {
@@ -353,7 +353,7 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
           payment.KID,
           BANK_SE_PAYMENT_ID,
           payment.amount / 100,
-          postingDate.toJSDate(),
+          postingDate!.toJSDate(),
           payment.externalReference,
         );
 

@@ -23,11 +23,11 @@ export async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
   /**
    * Claim requests
    */
-  let claims = [];
+  let claims: any[] = [];
   for (let i = 0; i < agreements.length; i++) {
     fileContents += writer.startRecordPaymentAssignment(i, shipmentID);
 
-    let assignmentClaims = [];
+    let assignmentClaims: any[] = [];
     /**
      * Right now, we only send one transaction
      * We are able to send claims up to 12 months ahead of time
@@ -120,7 +120,7 @@ export async function updateAgreements(agreements) {
     updated: 0,
     added: 0,
     terminated: 0,
-    failed: [],
+    failed: [] as any[],
   };
 
   for (let i = 0; i < agreements.length; i++) {

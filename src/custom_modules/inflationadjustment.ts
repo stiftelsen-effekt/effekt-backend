@@ -155,11 +155,12 @@ export async function getAllInflationEligibleAgreements() {
   // Process AvtaleGiro agreements
   for (const agreement of avtaleGiroAgreements) {
     let donor = await DAO.donors.getByKID(agreement.KID);
-    if (donor.id === ANON_DONOR_ID) continue; // Skip anonymous donors
+    if (donor!.id === ANON_DONOR_ID) continue; // Skip anonymous donors
     const eligible = await isEligibleForAdjustment(
       {
         ...agreement,
         amount: agreement.amount / 100,
+        last_updated: agreement.last_updated!,
         type: agreementType.avtaleGiro,
       },
       now,
@@ -172,11 +173,12 @@ export async function getAllInflationEligibleAgreements() {
   // Process AutoGiro agreements
   for (const agreement of autoGiroAgreements) {
     let donor = await DAO.donors.getByKID(agreement.KID);
-    if (donor.id === ANON_DONOR_ID) continue; // Skip anonymous donors
+    if (donor!.id === ANON_DONOR_ID) continue; // Skip anonymous donors
     const eligible = await isEligibleForAdjustment(
       {
         ...agreement,
         amount: agreement.amount / 100,
+        last_updated: agreement.last_updated!,
         type: agreementType.autoGiro,
       },
       now,

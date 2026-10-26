@@ -104,12 +104,12 @@ async function updateById(organization: {
   id: number;
   name: string;
   abbreviation: string;
-  shortDescription?: string;
-  longDescription?: string;
-  informationUrl?: string;
+  shortDescription?: string | null;
+  longDescription?: string | null;
+  informationUrl?: string | null;
   isActive: boolean;
-  ordering: number;
-  standardShare: number;
+  ordering: number | null;
+  standardShare: number | null;
   causeAreaId: number;
 }) {
   await DAO.query(

@@ -340,7 +340,7 @@ export const adoveo = {
         `,
       [id],
     );
-    return fundraiser?.[0];
+    return fundraiser?.at(0);
   },
   getFundraiserByAdoveoID: async function (adoveoId: Adoveo_fundraiser["Adoveo_ID"]) {
     const [fundraiser] = await DAO.query<Adoveo_fundraiser[]>(
@@ -349,7 +349,7 @@ export const adoveo = {
         `,
       [adoveoId],
     );
-    return fundraiser?.[0];
+    return fundraiser?.at(0);
   },
   getFundraiserDonationSumsByIDs: async function (ids: Adoveo_fundraiser["ID"][]) {
     const unionClauses = ids
@@ -426,7 +426,7 @@ export const adoveo = {
         `,
       [id],
     );
-    return transaction?.[0];
+    return transaction?.at(0);
   },
   getFundraiserTransactionByHash: async function (hash: Adoveo_fundraiser_transactions["Hash"]) {
     const [transaction] = await DAO.query<Adoveo_fundraiser_transactions[]>(
@@ -435,7 +435,7 @@ export const adoveo = {
         `,
       [hash],
     );
-    return transaction?.[0];
+    return transaction?.at(0);
   },
   addFundraiserTransaction: async function (
     transaction: Omit<Adoveo_fundraiser_transactions, "ID" | "Created" | "Last_updated">,
@@ -497,7 +497,7 @@ export const adoveo = {
         `,
       [id],
     );
-    return transaction?.[0];
+    return transaction?.at(0);
   },
   getGiftcardTransactionByHash: async function (hash: Adoveo_giftcard_transactions["Hash"]) {
     const [transaction] = await DAO.query<Adoveo_giftcard_transactions[]>(
@@ -506,7 +506,7 @@ export const adoveo = {
         `,
       [hash],
     );
-    return transaction?.[0];
+    return transaction?.at(0);
   },
   updateGiftcardTransactionStatus: async function (
     id: Adoveo_giftcard_transactions["ID"],
@@ -537,7 +537,7 @@ export const adoveo = {
         `,
       [id],
     );
-    return giftcard?.[0];
+    return giftcard?.at(0);
   },
 
   addGiftcard: async function (giftcard: Omit<Adoveo_giftcard, "ID" | "Created" | "Last_updated">) {

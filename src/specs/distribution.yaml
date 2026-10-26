@@ -12,9 +12,11 @@ components:
           description: The donor id
         taxUnitId:
           type: integer
+          nullable: true
           description: The tax unit id
         fundraiserTransactionId:
           type: integer
+          nullable: true
           description: Optional fundraiser transaction id, used to connect a donation to a fundraiser and a message to the fundraiser
         causeAreas:
           type: array
@@ -119,6 +121,7 @@ components:
           description: The donor id
         taxUnitId:
           type: integer
+          nullable: true
           description: The tax unit id
         fundraiserId:
           type: integer

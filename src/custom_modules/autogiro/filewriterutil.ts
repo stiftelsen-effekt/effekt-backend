@@ -108,7 +108,7 @@ export default {
     return `${AutoGiroMandateCodes.ADD_OR_CONFIRM}${bankGiroNumber.padStart(
       10,
       "0",
-    )}${mandate.KID.padStart(16, "0")}${mandate.bank_account.padStart(
+    )}${mandate.KID.padStart(16, "0")}${mandate.bank_account!.padStart(
       16,
       "0",
     )}${formattedSSN.padStart(12, "0")}${" ".padStart(20, " ")}    `;
@@ -120,10 +120,10 @@ export default {
      * The charge ID is used as a payment reference
      * Donor ID is the payer number
      */
-    const cancellationDate = DateTime.fromJSDate(charge.claim_date).toFormat("yyyyLLdd");
+    const cancellationDate = DateTime.fromJSDate(charge.claim_date!).toFormat("yyyyLLdd");
     return `${
       AutoGiroCancellationRecordCode.CANCEL_ALL_FOR_PAYMENT_DATE_AMOUNT_AND_REFERENCE
-    }${config.autogiro_bankgiro_number.padStart(10, "0")}${KID.padStart(
+    }${config.autogiro_bankgiro_number!.padStart(10, "0")}${KID.padStart(
       16,
       "0",
     )}${cancellationDate}${Math.round(parseInt(charge.amount) * 100)

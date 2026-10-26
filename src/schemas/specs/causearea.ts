@@ -26,21 +26,21 @@ export interface components {
       /** @description The cause area name */
       name: string;
       /** @description The cause area widget display name */
-      widgetDisplayName?: string;
+      widgetDisplayName?: string | null;
       /** @description The cause area widget context */
-      widgetContext?: string;
+      widgetContext?: string | null;
       /** @description The cause area standard percentage share */
-      standardPercentageShare?: number;
+      standardPercentageShare?: number | null;
       /** @description The cause area short description */
-      shortDescription: string;
+      shortDescription: string | null;
       /** @description The cause area long description */
-      longDescription: string;
+      longDescription: string | null;
       /** @description The cause area information url */
-      informationUrl: string;
+      informationUrl: string | null;
       /** @description Whether the cause area is active */
       isActive: boolean;
       /** @description The cause area ordering */
-      ordering: number;
+      ordering: number | null;
     };
   };
   responses: never;

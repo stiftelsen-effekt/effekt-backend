@@ -77,11 +77,11 @@ router.post("/register/payment", requireDonorToken, async (req, res, next) => {
     else if (donorID) {
       const donor = await DAO.donors.getByID(donorID);
 
-      const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(donor.id, ssn);
+      const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(donor!.id, ssn);
       if (existingTaxUnit) {
         taxUnitID = existingTaxUnit.id;
       } else {
-        taxUnitID = await DAO.tax.addTaxUnit(donor.id, ssn, full_name);
+        taxUnitID = await DAO.tax.addTaxUnit(donor!.id, ssn, full_name);
       }
 
       await DAO.facebook.registerPaymentFB(donorID, paymentID, taxUnitID);
@@ -135,7 +135,7 @@ router.post("/register/donations", authMiddleware.isAdmin, async (req, res, next
   let metaOwner = parseInt(req.body.metaOwnerID);
 
   let donations;
-  let invalidTransactions = [];
+  let invalidTransactions: { transaction: any; reason: string }[] = [];
   let valid = 0;
   let invalid = 0;
 
@@ -159,7 +159,7 @@ router.post("/register/donations", authMiddleware.isAdmin, async (req, res, next
     const donationInfo = {
       amount: donation.sumNOK,
       date: donation["Charge date"],
-      KID: undefined,
+      KID: undefined as string | undefined,
       paymentID: paymentMethods.facebook,
       transactionID: externalRef,
       metaOwnerID: metaOwner,
@@ -182,7 +182,7 @@ router.post("/register/donations", authMiddleware.isAdmin, async (req, res, next
        *    =========================
        */
 
-      let donorID: number;
+      let donorID: number | null | undefined;
 
       // Check if donation is registered for tax deduction
       const registeredDonation = await DAO.facebook.getRegisteredFacebookDonation(externalRef);
@@ -298,7 +298,7 @@ router.post("/register/donations", authMiddleware.isAdmin, async (req, res, next
        *    =========================
        */
 
-      let taxUnitID: number;
+      let taxUnitID: number | undefined;
       if (registeredDonation) {
         taxUnitID = registeredDonation.taxUnitID;
         console.log(`Found registered donation with taxUnitID ${taxUnitID}`);
@@ -340,7 +340,7 @@ router.post("/register/donations", authMiddleware.isAdmin, async (req, res, next
         taxUnitID ? taxUnitID : undefined,
       );
       */
-      let KID = null;
+      let KID: string | null = null;
 
       if (!KID) {
         KID = await donationHelpers.createKID(15, donorID);

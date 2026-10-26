@@ -3,8 +3,8 @@ import { Decimal } from "decimal.js";
 export function toPercent(input, total, decimals) {
   total = new Decimal(total);
 
-  var result = [];
-  var lastWithValue = undefined;
+  var result: any[] = [];
+  var lastWithValue: number | undefined = undefined;
 
   for (var i = 0; i < input.length; i++) {
     result[i] = new Decimal(input[i]);
@@ -35,8 +35,8 @@ export function toPercent(input, total, decimals) {
 export function toAbsolute(total, spread) {
   total = new Decimal(total);
 
-  var result = [];
-  var lastWithValue = undefined;
+  var result: any[] = [];
+  var lastWithValue: number | undefined = undefined;
   for (var i = 0; i < spread.length; i++) {
     var split = new Decimal(spread[i]).div(100);
 
