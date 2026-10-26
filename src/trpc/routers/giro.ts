@@ -8,30 +8,43 @@ import {
   updateAvtaleGiroPaymentDate,
 } from "../../custom_modules/avtalegiro";
 import { createAutoGiroShipment, replaceAutoGiroDistribution } from "../../custom_modules/autogiro";
-import { generateCsv } from "../../custom_modules/csvexport";
 import { validateDistribution } from "../../custom_modules/distribution";
 import { RequestLocale } from "../../middleware/locale";
 import { DistributionInput } from "../../schemas/types";
+import { csvExport } from "../csv";
+import { assertDistributionReferences } from "../distributionChecks";
+import { distributionSplitSchema, DistributionSplitInput, idSchema } from "../schemas/common";
 import {
+  AUTOGIRO_MAX_SEK,
+  AVTALEGIRO_MAX_NOK,
   autoGiroExportInput,
   autoGiroListInput,
   avtaleGiroExportInput,
   avtaleGiroListInput,
   chargeDay,
-  distributionInput,
   isoDate,
   mandateListInput,
   toLocalDate,
 } from "../schemas/giro";
 import { adminProcedure, router } from "../trpc";
 
-const id = z.object({ id: z.number().int().positive() });
-const byKID = z.object({ KID: z.string() });
-const forDate = z.object({ date: isoDate });
+const id = z.strictObject({ id: idSchema });
+const byKID = z.strictObject({ KID: z.string() });
+const forDate = z.strictObject({ date: isoDate });
 
 const DEFAULT_SORT = { id: "id", desc: true } as const;
 
-const validate = (distribution: z.infer<typeof distributionInput>): DistributionInput => {
+/**
+ * Checks a new agreement split against the database and returns it as a full distribution
+ * for the agreement's donor (agreements can't move between donors).
+ */
+const toAgreementDistribution = async (
+  KID: string,
+  split: DistributionSplitInput,
+): Promise<DistributionInput> => {
+  const { donorId } = await DAO.distributions.getSplitByKID(KID);
+  const distribution = { ...split, donorId };
+  await assertDistributionReferences(distribution);
   try {
     return validateDistribution(distribution);
   } catch (ex) {
@@ -51,41 +64,52 @@ const assertAutoGiroExists = async (KID: string) => {
     throw new TRPCError({ code: "NOT_FOUND" });
 };
 
+const getAvtaleGiroAgreements = async (
+  input: z.infer<typeof avtaleGiroExportInput>,
+  page: number,
+  limit: number,
+) => {
+  const result = await DAO.avtalegiroagreements.getAgreements(
+    input.sort ?? DEFAULT_SORT,
+    page,
+    limit,
+    input.filter ?? null,
+    RequestLocale.NO,
+  );
+  return {
+    ...result,
+    rows: result.rows.map((row) => ({
+      ...row,
+      active: row.active == 1,
+      notice: row.notice == 1,
+    })),
+  };
+};
+
 const avtalegiroRouter = router({
-  /** POST /avtalegiro/agreements */
+  /** POST /avtalegiro/agreements. Amounts in NOK. */
   list: adminProcedure
     .input(avtaleGiroListInput)
-    .query(({ input }) =>
-      DAO.avtalegiroagreements.getAgreements(
-        input.sort,
-        input.page,
-        input.limit,
-        input.filter ?? null,
-        RequestLocale.NO,
-      ),
-    ),
+    .query(({ input }) => getAvtaleGiroAgreements(input, input.page, input.limit)),
 
   /** POST /avtalegiro/agreements with export: true */
   export: adminProcedure.input(avtaleGiroExportInput).query(async ({ input }) => {
-    const { rows } = await DAO.avtalegiroagreements.getAgreements(
-      input.sort,
-      0,
-      Number.MAX_SAFE_INTEGER,
-      input.filter ?? null,
-      RequestLocale.NO,
-    );
-    return {
-      filename: `avtalegiro-agreements-${new Date().toISOString()}.csv`,
-      csv: generateCsv(rows),
-    };
+    const { rows } = await getAvtaleGiroAgreements(input, 0, Number.MAX_SAFE_INTEGER);
+    return csvExport("avtalegiro-agreements", rows);
   }),
 
-  /** GET /avtalegiro/agreement/:id */
+  /** GET /avtalegiro/agreement/:id. Amount in NOK. */
   get: adminProcedure.input(id).query(async ({ input }) => {
-    const agreement = await DAO.avtalegiroagreements.getAgreement(String(input.id));
+    const agreement = await DAO.avtalegiroagreements.getAgreement(input.id);
     if (!agreement) throw new TRPCError({ code: "NOT_FOUND" });
     const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
-    return { ...agreement, distribution };
+    return {
+      ...agreement,
+      amount: Number(agreement.amount),
+      active: agreement.active == 1,
+      notice: agreement.notice == 1,
+      distribution,
+    };
   }),
 
   /** GET /avtalegiro/donations/:kid */
@@ -93,7 +117,7 @@ const avtalegiroRouter = router({
     .input(byKID)
     .query(({ input }) => DAO.avtalegiroagreements.getDonationsByKID(input.KID)),
 
-  /** GET /avtalegiro/histogram */
+  /** GET /avtalegiro/histogram. Buckets in NOK. */
   histogram: adminProcedure.query(() => DAO.avtalegiroagreements.getAgreementSumHistogram()),
 
   /** GET /avtalegiro/report */
@@ -103,13 +127,14 @@ const avtalegiroRouter = router({
     return report;
   }),
 
-  /** GET /avtalegiro/validation */
+  /** GET /avtalegiro/validation. Sums in NOK. */
   validation: adminProcedure.query(() => DAO.avtalegiroagreements.getValidationTable()),
 
-  /** GET /avtalegiro/missing?date= */
-  missing: adminProcedure
-    .input(forDate)
-    .query(({ input }) => DAO.avtalegiroagreements.getMissingForDate(toLocalDate(input.date))),
+  /** GET /avtalegiro/missing?date=. Agreements charged on the date with no donation yet; amounts in NOK. */
+  missing: adminProcedure.input(forDate).query(async ({ input }) => {
+    const rows = await DAO.avtalegiroagreements.getMissingForDate(toLocalDate(input.date));
+    return rows.map((row) => ({ ...row, active: row.active == 1 }));
+  }),
 
   /** GET /avtalegiro/recieved?date= */
   received: adminProcedure
@@ -118,16 +143,31 @@ const avtalegiroRouter = router({
       DAO.avtalegiroagreements.getRecievedDonationsForDate(toLocalDate(input.date)),
     ),
 
-  /** GET /avtalegiro/expected?date= */
-  expected: adminProcedure
-    .input(forDate)
-    .query(({ input }) =>
-      DAO.avtalegiroagreements.getExpectedDonationsForDate(toLocalDate(input.date)),
-    ),
+  /**
+   * GET /avtalegiro/expected?date=. Agreements expected to be charged on the date. Unlike REST
+   * (øre in `amount`), the amount is in NOK like the other procedures.
+   */
+  expected: adminProcedure.input(forDate).query(async ({ input }) => {
+    const rows = await DAO.avtalegiroagreements.getExpectedDonationsForDate(
+      toLocalDate(input.date),
+    );
+    return rows.map(({ amount, ...row }) => ({
+      ...row,
+      /** NOK */
+      amount: amount / 100,
+      active: row.active == 1,
+      notice: row.notice == 1,
+    }));
+  }),
 
   /** POST /avtalegiro/:KID/amount. Amount in whole NOK (the REST route takes øre). */
   updateAmount: adminProcedure
-    .input(z.object({ KID: z.string(), amount: z.number().int().positive() }))
+    .input(
+      z.strictObject({
+        KID: z.string(),
+        amount: z.number().int().positive().max(AVTALEGIRO_MAX_NOK),
+      }),
+    )
     .mutation(async ({ input }) => {
       await assertAvtaleGiroExists(input.KID);
       return updateAvtaleGiroAmount(input.KID, input.amount * 100);
@@ -135,7 +175,7 @@ const avtalegiroRouter = router({
 
   /** POST /avtalegiro/:KID/status. Deactivating sends the cancellation notice, as REST does for active: 0. */
   updateStatus: adminProcedure
-    .input(z.object({ KID: z.string(), active: z.boolean() }))
+    .input(z.strictObject({ KID: z.string(), active: z.boolean() }))
     .mutation(async ({ input }) => {
       await assertAvtaleGiroExists(input.KID);
       return setAvtaleGiroStatus(input.KID, input.active ? 1 : 0);
@@ -143,19 +183,19 @@ const avtalegiroRouter = router({
 
   /** POST /avtalegiro/:KID/paymentdate */
   updatePaymentDate: adminProcedure
-    .input(z.object({ KID: z.string(), paymentDate: chargeDay }))
+    .input(z.strictObject({ KID: z.string(), paymentDate: chargeDay }))
     .mutation(async ({ input }) => {
       await assertAvtaleGiroExists(input.KID);
       return updateAvtaleGiroPaymentDate(input.KID, input.paymentDate);
     }),
 
-  /** POST /avtalegiro/:KID/distribution */
+  /** POST /avtalegiro/:KID/distribution. The split stays with the agreement's donor. */
   updateDistribution: adminProcedure
-    .input(z.object({ KID: z.string(), distribution: distributionInput }))
+    .input(z.strictObject({ KID: z.string(), distribution: distributionSplitSchema }))
     .mutation(async ({ input }) => {
-      const validated = validate(input.distribution);
       await assertAvtaleGiroExists(input.KID);
-      await replaceAvtaleGiroDistribution(input.KID, validated);
+      const distribution = await toAgreementDistribution(input.KID, input.distribution);
+      await replaceAvtaleGiroDistribution(input.KID, distribution);
       return true;
     }),
 });
@@ -181,10 +221,7 @@ const autogiroRouter = router({
       Number.MAX_SAFE_INTEGER,
       input.filter,
     );
-    return {
-      filename: `autogiro-agreements-${new Date().toISOString()}.csv`,
-      csv: generateCsv(rows),
-    };
+    return csvExport("autogiro-agreements", rows);
   }),
 
   /** GET /autogiro/agreement/:id */
@@ -201,9 +238,14 @@ const autogiroRouter = router({
   /** GET /autogiro/histogram */
   histogram: adminProcedure.query(() => DAO.autogiroagreements.getAgreementSumHistogram()),
 
-  /** Amount part of PUT /autogiro/:KID/. Amount in SEK. */
+  /** Amount part of PUT /autogiro/:KID/. Amount in whole SEK. */
   updateAmount: adminProcedure
-    .input(z.object({ KID: z.string(), amount: z.number().positive() }))
+    .input(
+      z.strictObject({
+        KID: z.string(),
+        amount: z.number().int().positive().max(AUTOGIRO_MAX_SEK),
+      }),
+    )
     .mutation(async ({ input }) => {
       await assertAutoGiroExists(input.KID);
       return DAO.autogiroagreements.setAgreementAmountByKID(input.KID, input.amount);
@@ -211,20 +253,20 @@ const autogiroRouter = router({
 
   /** Payment date part of PUT /autogiro/:KID/ (and POST /autogiro/:KID/paymentdate) */
   updatePaymentDate: adminProcedure
-    .input(z.object({ KID: z.string(), paymentDate: chargeDay }))
+    .input(z.strictObject({ KID: z.string(), paymentDate: chargeDay }))
     .mutation(async ({ input }) => {
       await assertAutoGiroExists(input.KID);
       await DAO.autogiroagreements.setAgreementPaymentDateByKID(input.KID, input.paymentDate);
       return true;
     }),
 
-  /** Distribution part of PUT /autogiro/:KID/ */
+  /** Distribution part of PUT /autogiro/:KID/. The split stays with the agreement's donor. */
   updateDistribution: adminProcedure
-    .input(z.object({ KID: z.string(), distribution: distributionInput }))
+    .input(z.strictObject({ KID: z.string(), distribution: distributionSplitSchema }))
     .mutation(async ({ input }) => {
-      const validated = validate(input.distribution);
       await assertAutoGiroExists(input.KID);
-      await replaceAutoGiroDistribution(input.KID, validated);
+      const distribution = await toAgreementDistribution(input.KID, input.distribution);
+      await replaceAutoGiroDistribution(input.KID, distribution);
       return true;
     }),
 
@@ -281,8 +323,18 @@ const autogiroRouter = router({
       };
     }),
 
-    /** POST /scheduled/autogiro: creates a shipment and generates its claims file */
-    create: adminProcedure.mutation(() => createAutoGiroShipment()),
+    /**
+     * POST /scheduled/autogiro: creates a shipment and generates its claims file. The empty
+     * result uses the same `numMandatesToBeConfirmed` key as a created shipment.
+     */
+    create: adminProcedure.mutation(async () => {
+      const result = await createAutoGiroShipment();
+      if (result.shipmentID === null) {
+        const { mandatesToBeConfirmed, ...rest } = result;
+        return { ...rest, numMandatesToBeConfirmed: mandatesToBeConfirmed };
+      }
+      return result;
+    }),
   }),
 });
 

@@ -27,8 +27,8 @@ const expectTRPCError = async (promise: Promise<unknown>, code: string) => {
   }
 };
 
+/** An agreement split: the donor is always the agreement's */
 const distribution = {
-  donorId: 12,
   taxUnitId: null,
   causeAreas: [
     {
@@ -39,6 +39,14 @@ const distribution = {
     },
   ],
 };
+
+/** Stubs the lookups assertDistributionReferences checks the split against */
+const stubReferences = () => ({
+  donor: sinon.stub(DAO.donors, "getByID").resolves({ id: 12 } as any),
+  organizations: sinon
+    .stub(DAO.organizations, "getByIDs")
+    .resolves([{ ID: 5, cause_area_ID: 1 }] as any),
+});
 
 describe("tRPC giro router", () => {
   afterEach(() => {
@@ -86,6 +94,30 @@ describe("tRPC giro router", () => {
         "BAD_REQUEST",
       );
       await expectTRPCError(admin().giro.avtalegiro.missing({ date: "2026-13-01" }), "BAD_REQUEST");
+      await expectTRPCError(
+        admin().giro.autogiro.list({ page: 0, limit: 10, unknown: true } as any),
+        "BAD_REQUEST",
+      );
+      await expectTRPCError(
+        admin().giro.avtalegiro.list({ page: 0, limit: 10, filter: { amont: {} } } as any),
+        "BAD_REQUEST",
+      );
+      await expectTRPCError(
+        admin().giro.avtalegiro.updateAmount({ KID: "123", amount: 100.5 }),
+        "BAD_REQUEST",
+      );
+      await expectTRPCError(
+        admin().giro.avtalegiro.updateAmount({ KID: "123", amount: 21_474_837 }),
+        "BAD_REQUEST",
+      );
+      await expectTRPCError(
+        admin().giro.autogiro.updateAmount({ KID: "123", amount: 10.5 }),
+        "BAD_REQUEST",
+      );
+      await expectTRPCError(
+        admin().giro.autogiro.updateAmount({ KID: "123", amount: 2_147_483_648 }),
+        "BAD_REQUEST",
+      );
       expect(agStub.called).to.be.false;
       expect(avStub.called).to.be.false;
     });
@@ -105,13 +137,23 @@ describe("tRPC giro router", () => {
       changeStub = sinon.stub(mail, "sendAvtaleGiroChange").resolves(false);
     });
 
-    it("lists agreements with converted filter dates", async () => {
-      const result = {
-        rows: [],
-        statistics: { numAgreements: 0, sumAgreements: 0, avgAgreement: 0 },
-        pages: 0,
+    it("lists agreements with converted filter dates and boolean flags", async () => {
+      const row = {
+        ID: 1,
+        active: 1 as const,
+        KID: "123",
+        payment_date: 5,
+        created: new Date(),
+        cancelled: null,
+        last_updated: new Date(),
+        notice: 0 as const,
+        full_name: "Ola",
+        amount: 500,
       };
-      const stub = sinon.stub(DAO.avtalegiroagreements, "getAgreements").resolves(result);
+      const statistics = { numAgreements: 1, sumAgreements: 500, avgAgreement: 500 };
+      const stub = sinon
+        .stub(DAO.avtalegiroagreements, "getAgreements")
+        .resolves({ rows: [row], statistics, pages: 1 });
       const res = await admin().giro.avtalegiro.list({
         page: 2,
         limit: 25,
@@ -123,7 +165,11 @@ describe("tRPC giro router", () => {
           donor: "Ola",
         },
       });
-      expect(res).to.deep.equal(result);
+      expect(res).to.deep.equal({
+        rows: [{ ...row, active: true, notice: false }],
+        statistics,
+        pages: 1,
+      });
       const [sort, page, limit, filter] = stub.firstCall.args;
       expect(sort).to.deep.equal({ id: "paymentDate", desc: false });
       expect(page).to.equal(2);
@@ -135,21 +181,48 @@ describe("tRPC giro router", () => {
 
     it("exports agreements as csv", async () => {
       const stub = sinon.stub(DAO.avtalegiroagreements, "getAgreements").resolves({
-        rows: [{ ID: 1, KID: "123", amount: 500, full_name: "Ola, Nordmann" } as any],
+        rows: [
+          {
+            ID: 1,
+            KID: "123",
+            amount: 500,
+            full_name: "Ola, Nordmann",
+            active: 1,
+            notice: 0,
+          } as any,
+        ],
         statistics: { numAgreements: 1, sumAgreements: 500, avgAgreement: 500 },
         pages: 1,
       });
       const res = await admin().giro.avtalegiro.export({});
       expect(stub.firstCall.args[2]).to.equal(Number.MAX_SAFE_INTEGER);
       expect(res.filename).to.match(/^avtalegiro-agreements-.*\.csv$/);
-      expect(res.csv).to.equal('ID,KID,amount,full_name\n1,123,500,"Ola, Nordmann"');
+      // Flags are booleans like the list (and the AutoGiro export)
+      expect(res.csv).to.equal(
+        '\uFEFFID,KID,amount,full_name,active,notice\n1,123,500,"Ola, Nordmann",Yes,No',
+      );
     });
 
-    it("gets an agreement with its distribution", async () => {
-      sinon.stub(DAO.avtalegiroagreements, "getAgreement").resolves({ ID: 7, KID: "123" } as any);
+    it("gets an agreement with its distribution, amount in NOK and boolean flags", async () => {
+      sinon.stub(DAO.avtalegiroagreements, "getAgreement").resolves({
+        ID: 7,
+        KID: "123",
+        amount: "500",
+        active: 1,
+        notice: 0,
+        donorId: 12,
+      } as any);
       sinon.stub(DAO.distributions, "getSplitByKID").resolves({ kid: "123" } as any);
       const res = await admin().giro.avtalegiro.get({ id: 7 });
-      expect(res).to.deep.include({ ID: 7, KID: "123", distribution: { kid: "123" } });
+      expect(res).to.deep.include({
+        ID: 7,
+        KID: "123",
+        amount: 500,
+        active: true,
+        notice: false,
+        donorId: 12,
+        distribution: { kid: "123" },
+      });
     });
 
     it("returns NOT_FOUND for a missing agreement", async () => {
@@ -158,32 +231,44 @@ describe("tRPC giro router", () => {
     });
 
     it("returns donations, histogram, report and validation", async () => {
+      const donation = { id: 1, KID: "123", sum: "1.00" } as any;
+      const bucket = { bucket: 0, items: 1, bar: 0 };
+      const validation = { date: 5, expected: "500", actual: "0", diff: "-500" };
       sinon
         .stub(DAO.avtalegiroagreements, "getDonationsByKID")
         .withArgs("123")
-        .resolves([{ id: 1 }]);
-      sinon.stub(DAO.avtalegiroagreements, "getAgreementSumHistogram").resolves([{ bucket: 0 }]);
+        .resolves([donation]);
+      sinon.stub(DAO.avtalegiroagreements, "getAgreementSumHistogram").resolves([bucket]);
       sinon
         .stub(DAO.avtalegiroagreements, "getAgreementReport")
         .resolves({ activeAgreementCount: 3 } as any);
-      sinon.stub(DAO.avtalegiroagreements, "getValidationTable").resolves([{ date: "x" }]);
-      expect(await admin().giro.avtalegiro.donations({ KID: "123" })).to.deep.equal([{ id: 1 }]);
-      expect(await admin().giro.avtalegiro.histogram()).to.deep.equal([{ bucket: 0 }]);
+      sinon.stub(DAO.avtalegiroagreements, "getValidationTable").resolves([validation]);
+      expect(await admin().giro.avtalegiro.donations({ KID: "123" })).to.deep.equal([donation]);
+      expect(await admin().giro.avtalegiro.histogram()).to.deep.equal([bucket]);
       expect(await admin().giro.avtalegiro.report()).to.deep.equal({ activeAgreementCount: 3 });
-      expect(await admin().giro.avtalegiro.validation()).to.deep.equal([{ date: "x" }]);
+      expect(await admin().giro.avtalegiro.validation()).to.deep.equal([validation]);
     });
 
     it("returns missing, received and expected for a date", async () => {
-      const missing = sinon.stub(DAO.avtalegiroagreements, "getMissingForDate").resolves(["m"]);
+      const missing = sinon
+        .stub(DAO.avtalegiroagreements, "getMissingForDate")
+        .resolves([{ ID: 1, amount: 500, active: 1 } as any]);
       const received = sinon
         .stub(DAO.avtalegiroagreements, "getRecievedDonationsForDate")
-        .resolves(["r"] as any);
+        .resolves([{ id: 2 } as any]);
       const expected = sinon
         .stub(DAO.avtalegiroagreements, "getExpectedDonationsForDate")
-        .resolves(["e"]);
-      expect(await admin().giro.avtalegiro.missing({ date: "2026-10-05" })).to.deep.equal(["m"]);
-      expect(await admin().giro.avtalegiro.received({ date: "2026-10-05" })).to.deep.equal(["r"]);
-      expect(await admin().giro.avtalegiro.expected({ date: "2026-10-05" })).to.deep.equal(["e"]);
+        .resolves([{ ID: 3, amount: 50050, active: 0, notice: 1 } as any]);
+      expect(await admin().giro.avtalegiro.missing({ date: "2026-10-05" })).to.deep.equal([
+        { ID: 1, amount: 500, active: true },
+      ]);
+      expect(await admin().giro.avtalegiro.received({ date: "2026-10-05" })).to.deep.equal([
+        { id: 2 },
+      ]);
+      // øre in the DAO, NOK out
+      expect(await admin().giro.avtalegiro.expected({ date: "2026-10-05" })).to.deep.equal([
+        { ID: 3, amount: 500.5, active: false, notice: true },
+      ]);
       for (const stub of [missing, received, expected]) {
         const date: Date = stub.firstCall.args[0];
         expect([date.getFullYear(), date.getMonth(), date.getDate()]).to.deep.equal([2026, 9, 5]);
@@ -232,16 +317,37 @@ describe("tRPC giro router", () => {
       expect(changeStub.calledWith("123", "CHARGEDAY", 0)).to.be.true;
     });
 
-    it("replaces the distribution under a new historic KID", async () => {
+    it("replaces the distribution under a new historic KID, keeping the donor", async () => {
+      stubReferences();
       sinon.stub(DAO.avtalegiroagreements, "getByKID").resolves(agreement);
-      sinon.stub(DAO.distributions, "getSplitByKID").resolves({ kid: "123" } as any);
+      sinon.stub(DAO.distributions, "getSplitByKID").resolves({ kid: "123", donorId: 12 } as any);
       sinon.stub(donationHelpers, "createAvtaleGiroKID").resolves("999");
       const stub = sinon.stub(DAO.avtalegiroagreements, "replaceDistribution").resolves(true);
       await admin().giro.avtalegiro.updateDistribution({ KID: "123", distribution });
-      expect(stub.firstCall.args[0]).to.deep.equal({ kid: "123" });
+      expect(stub.firstCall.args[0]).to.deep.equal({ kid: "123", donorId: 12 });
       expect(stub.firstCall.args[1]).to.equal("999");
       expect(stub.firstCall.args[2]).to.deep.include({ donorId: 12 });
       expect(changeStub.calledWith("123", "SHARES")).to.be.true;
+    });
+
+    it("rejects a split with an organization outside its cause area", async () => {
+      const refs = stubReferences();
+      refs.organizations.resolves([{ ID: 5, cause_area_ID: 2 }] as any);
+      sinon.stub(DAO.avtalegiroagreements, "getByKID").resolves(agreement);
+      sinon.stub(DAO.distributions, "getSplitByKID").resolves({ kid: "123", donorId: 12 } as any);
+      const stub = sinon.stub(DAO.avtalegiroagreements, "replaceDistribution");
+      await expectTRPCError(
+        admin().giro.avtalegiro.updateDistribution({ KID: "123", distribution }),
+        "BAD_REQUEST",
+      );
+      await expectTRPCError(
+        admin().giro.avtalegiro.updateDistribution({
+          KID: "123",
+          distribution: { ...distribution, donorId: 13 } as any,
+        }),
+        "BAD_REQUEST",
+      );
+      expect(stub.called).to.be.false;
     });
 
     it("rejects an invalid distribution with BAD_REQUEST", async () => {
@@ -291,7 +397,7 @@ describe("tRPC giro router", () => {
       });
       const res = await admin().giro.autogiro.export({ sort: { id: "created", desc: true } });
       expect(res.filename).to.match(/^autogiro-agreements-.*\.csv$/);
-      expect(res.csv).to.equal("ID,KID,active\n1,555,Yes");
+      expect(res.csv).to.equal("\uFEFFID,KID,active\n1,555,Yes");
     });
 
     it("gets an agreement with its distribution", async () => {
@@ -311,18 +417,20 @@ describe("tRPC giro router", () => {
         .stub(DAO.donations, "getAllByKID")
         .withArgs("555")
         .resolves([{ id: 1 }] as any);
-      sinon.stub(DAO.autogiroagreements, "getAgreementSumHistogram").resolves([{ bucket: 500 }]);
+      const bucket = { bucket: 500, items: 1, bar: 0 };
+      sinon.stub(DAO.autogiroagreements, "getAgreementSumHistogram").resolves([bucket]);
       expect(await admin().giro.autogiro.donations({ KID: "555" })).to.deep.equal([{ id: 1 }]);
-      expect(await admin().giro.autogiro.histogram()).to.deep.equal([{ bucket: 500 }]);
+      expect(await admin().giro.autogiro.histogram()).to.deep.equal([bucket]);
     });
 
     it("updates amount, payment date, status and distribution separately", async () => {
+      stubReferences();
       sinon.stub(DAO.autogiroagreements, "getAgreementByKID").resolves(agreement);
       const amount = sinon.stub(DAO.autogiroagreements, "setAgreementAmountByKID").resolves(true);
       const date = sinon.stub(DAO.autogiroagreements, "setAgreementPaymentDateByKID").resolves();
       const activate = sinon.stub(DAO.autogiroagreements, "activateAgreementByKID").resolves();
       const cancel = sinon.stub(DAO.autogiroagreements, "cancelAgreementByKID").resolves();
-      sinon.stub(DAO.distributions, "getSplitByKID").resolves({ kid: "555" } as any);
+      sinon.stub(DAO.distributions, "getSplitByKID").resolves({ kid: "555", donorId: 12 } as any);
       sinon.stub(donationHelpers, "createKID").resolves("777");
       const replace = sinon
         .stub(DAO.autogiroagreements, "replaceAgreementDistribution")
@@ -341,8 +449,9 @@ describe("tRPC giro router", () => {
       expect(cancel.calledWith("555")).to.be.true;
 
       await admin().giro.autogiro.updateDistribution({ KID: "555", distribution });
-      expect(replace.firstCall.args[0]).to.deep.equal({ kid: "555" });
+      expect(replace.firstCall.args[0]).to.deep.equal({ kid: "555", donorId: 12 });
       expect(replace.firstCall.args[1]).to.equal("777");
+      expect(replace.firstCall.args[2]).to.deep.include({ donorId: 12, taxUnitId: null });
     });
 
     it("returns NOT_FOUND when editing an unknown agreement", async () => {
@@ -355,7 +464,7 @@ describe("tRPC giro router", () => {
     it("lists mandates", async () => {
       const stub = sinon
         .stub(DAO.autogiroagreements, "getMandates")
-        .resolves({ pages: 1, rows: [{ ID: 1 }] });
+        .resolves({ pages: 1, rows: [{ ID: 1 } as any] });
       const res = await admin().giro.autogiro.mandates.list({
         page: 0,
         limit: 20,
@@ -398,12 +507,13 @@ describe("tRPC giro router", () => {
       expect(res).to.deep.equal({
         shipmentID: null,
         numCharges: 0,
-        mandatesToBeConfirmed: 0,
+        numMandatesToBeConfirmed: 0,
         file: null,
         filename: null,
       });
       expect(addShipment.called).to.be.false;
-      expect(log.calledWith("AutoGiro", res)).to.be.true;
+      // The log entry keeps the service's own shape
+      expect(log.firstCall.args[0]).to.equal("AutoGiro");
     });
   });
 });

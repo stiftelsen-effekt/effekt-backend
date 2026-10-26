@@ -49,8 +49,23 @@ const existingDonation = {
   id: 42,
   donorId: 7,
   KID: "12345678",
-  sum: 100,
+  sum: "100.00",
+  paymentExternalRef: null,
 };
+
+/** Stubs the lookups the procedures validate references against */
+const stubLookups = () => ({
+  methods: sinon.stub(DAO.payment, "getMethods").resolves([{ id: 5 }] as any),
+  owners: sinon
+    .stub(DAO.meta, "getDataOwners")
+    .resolves([{ id: 3, name: "Owner", default: true }] as any),
+  externalRefExists: sinon.stub(DAO.donations, "externalRefExists").resolves(false),
+  donor: sinon.stub(DAO.donors, "getByID").resolves({ id: 7 } as any),
+  organizations: sinon.stub(DAO.organizations, "getByIDs").resolves([
+    { ID: 2, cause_area_ID: 1 },
+    { ID: 3, cause_area_ID: 1 },
+  ] as any),
+});
 
 describe("tRPC donations router", () => {
   afterEach(() => {
@@ -117,8 +132,21 @@ describe("tRPC donations router", () => {
 
   describe("donations", () => {
     it("lists donations with converted filter, default sort and locale", async () => {
-      const result = { rows: [], pages: 0, statistics: {} } as any;
-      const getAll = sinon.stub(DAO.donations, "getAll").resolves(result);
+      const row = {
+        id: 1,
+        donor: "A",
+        paymentMethod: "Bank",
+        sum: "10.00",
+        transactionCost: null,
+        kid: "1",
+        timestamp: new Date(),
+        taxUnitType: "person",
+      };
+      const getAll = sinon.stub(DAO.donations, "getAll").resolves({
+        rows: [row],
+        pages: 1,
+        statistics: { numDonations: 1, sumDonations: "10.00", avgDonation: "10.000000" },
+      } as any);
 
       const res = await admin().donations.list({
         page: 2,
@@ -130,7 +158,11 @@ describe("tRPC donations router", () => {
         },
       });
 
-      expect(res).to.equal(result);
+      expect(res).to.deep.equal({
+        rows: [row],
+        pages: 1,
+        statistics: { numDonations: 1, sumDonations: "10.00", avgDonation: "10.000000" },
+      });
       const [sort, page, limit, filter, locale] = getAll.firstCall.args;
       expect(sort).to.deep.equal({ id: "timestamp", desc: true });
       expect(page).to.equal(2);
@@ -141,11 +173,25 @@ describe("tRPC donations router", () => {
       expect(locale).to.equal("NO");
     });
 
+    it("returns string statistics when the page is empty", async () => {
+      sinon.stub(DAO.donations, "getAll").resolves({
+        rows: [],
+        pages: 0,
+        statistics: { numDonations: 0, sumDonations: 0, avgDonation: 0 },
+      });
+      const res = await admin().donations.list({ page: 0, limit: 10 });
+      expect(res.statistics).to.deep.equal({
+        numDonations: 0,
+        sumDonations: "0",
+        avgDonation: "0",
+      });
+    });
+
     it("exports donations as csv", async () => {
       const getAll = sinon.stub(DAO.donations, "getAll").resolves({
         rows: [{ id: 1, donor: "A, B", sum: 10 }],
         pages: 1,
-        statistics: {},
+        statistics: { numDonations: 1, sumDonations: "10", avgDonation: "10" },
       } as any);
 
       const res = await admin().donations.export({ locale: "SV" as any });
@@ -166,6 +212,7 @@ describe("tRPC donations router", () => {
     });
 
     it("updates fields and moves the donation to a matching KID", async () => {
+      stubLookups();
       sinon.stub(DAO.donations, "getByID").resolves(existingDonation as any);
       const update = sinon.stub(DAO.donations, "update").resolves();
       sinon.stub(DAO.distributions, "getSplitByKID").resolves({} as any);
@@ -177,16 +224,45 @@ describe("tRPC donations router", () => {
         id: 42,
         sum: 200,
         timestamp: "2025-03-01T10:00:00Z",
+        transactionCost: 0,
         distribution: { ...distribution, donorId: 8 },
       });
 
-      expect(update.firstCall.args[0]).to.deep.include({ id: 42, sum: 200 });
+      expect(update.firstCall.args[0]).to.deep.include({ id: 42, sum: 200, transactionCost: 0 });
       expect(update.firstCall.args[0].timestamp!.toISOString()).to.equal(
         "2025-03-01T10:00:00.000Z",
       );
       expect(update.firstCall.args[0].paymentId).to.be.undefined;
       expect(updateKID.calledOnceWithExactly(42, "87654321")).to.be.true;
       expect(updateDonor.calledOnceWithExactly(42, 8)).to.be.true;
+    });
+
+    it("validates references and amounts before updating", async () => {
+      const lookups = stubLookups();
+      sinon.stub(DAO.donations, "getByID").resolves(existingDonation as any);
+      const update = sinon.stub(DAO.donations, "update").resolves();
+
+      await expectTrpcError(admin().donations.update({ id: 42, sum: 1.234 }), "BAD_REQUEST");
+      await expectTrpcError(admin().donations.update({ id: 42, sum: 0 }), "BAD_REQUEST");
+      await expectTrpcError(
+        admin().donations.update({ id: 42, paymentExternalRef: "x".repeat(33) }),
+        "BAD_REQUEST",
+      );
+      await expectTrpcError(admin().donations.update({ id: 42, paymentId: 6 }), "BAD_REQUEST");
+      await expectTrpcError(admin().donations.update({ id: 42, metaOwnerId: 4 }), "BAD_REQUEST");
+      // Organization 3 does not belong to cause area 1
+      lookups.organizations.resolves([
+        { ID: 2, cause_area_ID: 1 },
+        { ID: 3, cause_area_ID: 2 },
+      ] as any);
+      await expectTrpcError(admin().donations.update({ id: 42, distribution }), "BAD_REQUEST");
+
+      lookups.externalRefExists.withArgs("taken").resolves(true);
+      await expectTrpcError(
+        admin().donations.update({ id: 42, paymentExternalRef: "taken" }),
+        "CONFLICT",
+      );
+      expect(update.called).to.be.false;
     });
 
     it("deletes a donation", async () => {
@@ -199,6 +275,8 @@ describe("tRPC donations router", () => {
     });
 
     it("resends a receipt, optionally to another address", async () => {
+      const getByID = sinon.stub(DAO.donations, "getByID").resolves(existingDonation as any);
+      getByID.withArgs(43).rejects(new Error("Could not find donation with ID 43"));
       const send = sinon.stub(mail, "sendDonationReceipt").resolves(true);
 
       await admin().donations.resendReceipt({ id: 42 });
@@ -209,22 +287,30 @@ describe("tRPC donations router", () => {
 
       send.resolves(401 as any);
       await expectTrpcError(admin().donations.resendReceipt({ id: 42 }), "INTERNAL_SERVER_ERROR");
+
+      send.resetHistory();
+      await expectTrpcError(admin().donations.resendReceipt({ id: 43 }), "NOT_FOUND");
+      expect(send.called).to.be.false;
     });
 
     it("returns histogram, transaction cost report, totals and donations by KID", async () => {
-      sinon.stub(DAO.donations, "getHistogramBySum").resolves([{ bucket: 0 }]);
-      sinon.stub(DAO.donations, "getTransactionCostsReport").resolves({ costYTD: 1 });
-      const total = sinon.stub(DAO.donations, "getAggregateByTime").resolves([{ sum: 1 }]);
-      sinon.stub(DAO.donations, "getAggregateLastYearByMonth").resolves([{ month: 1 }]);
+      const bucket = { bucket: 0, items: 1, bar: 0 };
+      const report = { donationsCount: 1, costYTD: "1" } as any;
+      const aggregate = { id: 1, orgName: "Org", sum: "1.00" };
+      const month = { year: 2025, month: 1, sum: "1.00" };
+      sinon.stub(DAO.donations, "getHistogramBySum").resolves([bucket]);
+      sinon.stub(DAO.donations, "getTransactionCostsReport").resolves(report);
+      const total = sinon.stub(DAO.donations, "getAggregateByTime").resolves([aggregate]);
+      sinon.stub(DAO.donations, "getAggregateLastYearByMonth").resolves([month]);
       const byKid = sinon.stub(DAO.donations, "getAllByKID").resolves([{ id: 1 }] as any);
 
-      expect(await admin().donations.histogram()).to.deep.equal([{ bucket: 0 }]);
-      expect(await admin().donations.transactionCostsReport()).to.deep.equal({ costYTD: 1 });
+      expect(await admin().donations.histogram()).to.deep.equal([bucket]);
+      expect(await admin().donations.transactionCostsReport()).to.deep.equal(report);
       expect(
         await admin().donations.total({ fromDate: "2025-01-01", toDate: "2025-02-01" }),
-      ).to.deep.equal([{ sum: 1 }]);
+      ).to.deep.equal([aggregate]);
       expect(total.firstCall.args[0]).to.be.instanceOf(Date);
-      expect(await admin().donations.totalMonthly()).to.deep.equal([{ month: 1 }]);
+      expect(await admin().donations.totalMonthly()).to.deep.equal([month]);
       expect(await admin().donations.byKid({ kid: "123" })).to.deep.equal([{ id: 1 }]);
       expect(byKid.calledOnceWithExactly("123")).to.be.true;
     });
@@ -241,8 +327,11 @@ describe("tRPC donations router", () => {
     };
     let originalEnv: string;
 
+    let lookups: ReturnType<typeof stubLookups>;
+
     beforeEach(() => {
       originalEnv = config.env;
+      lookups = stubLookups();
     });
 
     afterEach(() => {
@@ -302,6 +391,32 @@ describe("tRPC donations router", () => {
       expect(add.called).to.be.false;
     });
 
+    it("rejects unknown payment methods and data owners, and bad amounts and refs", async () => {
+      const add = sinon.stub(DAO.donations, "add");
+      const register = (
+        input: Partial<Parameters<ReturnType<typeof admin>["donations"]["register"]>[0]>,
+      ) => admin().donations.register({ ...base, KID: "12345678", ...input });
+      await expectTrpcError(register({ paymentId: 6 }), "BAD_REQUEST");
+      await expectTrpcError(register({ metaOwnerId: 4 }), "BAD_REQUEST");
+      await expectTrpcError(register({ sum: 10.001 }), "BAD_REQUEST");
+      await expectTrpcError(register({ paymentExternalRef: "x".repeat(33) }), "BAD_REQUEST");
+      expect(add.called).to.be.false;
+    });
+
+    it("checks the distribution's references before creating it", async () => {
+      lookups.donor.resolves(null);
+      const addDistribution = sinon.stub(DAO.distributions, "add");
+      await expectTrpcError(admin().donations.register({ ...base, distribution }), "BAD_REQUEST");
+      expect(addDistribution.called).to.be.false;
+    });
+
+    it("returns CONFLICT for an external ref used by any payment method", async () => {
+      lookups.externalRefExists.withArgs("ext-1").resolves(true);
+      const add = sinon.stub(DAO.donations, "add");
+      await expectTrpcError(admin().donations.register({ ...base, KID: "12345678" }), "CONFLICT");
+      expect(add.called).to.be.false;
+    });
+
     it("maps duplicate external refs to CONFLICT", async () => {
       sinon
         .stub(DAO.donations, "add")
@@ -313,7 +428,7 @@ describe("tRPC donations router", () => {
   describe("distributions", () => {
     it("lists and exports distributions", async () => {
       const getAll = sinon.stub(DAO.distributions, "getAll").resolves({
-        rows: [{ KID: "1", full_name: "A", email: "a@b", donation_sum: 1, donation_count: 1 }],
+        rows: [{ KID: "1", full_name: "A", email: "a@b", donation_sum: "1.00", donation_count: 1 }],
         statistics: { numDistributions: 1 },
         pages: 1,
       });
@@ -333,7 +448,7 @@ describe("tRPC donations router", () => {
 
       const exported = await admin().donations.distributions.export({});
       expect(exported.csv).to.equal(
-        "﻿KID,full_name,email,donation_sum,donation_count\n1,A,a@b,1,1",
+        "﻿KID,full_name,email,donation_sum,donation_count\n1,A,a@b,1.00,1",
       );
     });
 
@@ -351,7 +466,23 @@ describe("tRPC donations router", () => {
       await expectTrpcError(admin().donations.distributions.get({ kid: "404" }), "NOT_FOUND");
     });
 
+    it("rejects a distribution whose references do not exist", async () => {
+      const lookups = stubLookups();
+      const add = sinon.stub(DAO.distributions, "add");
+      await expectTrpcError(
+        admin().donations.distributions.create({ ...distribution, metaOwnerId: 4 }),
+        "BAD_REQUEST",
+      );
+      lookups.organizations.resolves([{ ID: 2, cause_area_ID: 1 }] as any);
+      await expectTrpcError(
+        admin().donations.distributions.create({ ...distribution, metaOwnerId: 3 }),
+        "BAD_REQUEST",
+      );
+      expect(add.called).to.be.false;
+    });
+
     it("creates a distribution or returns the KID of an existing split", async () => {
+      stubLookups();
       const bySplit = sinon.stub(DAO.distributions, "getKIDbySplit").resolves("55556666");
       const add = sinon.stub(DAO.distributions, "add").resolves(true);
 

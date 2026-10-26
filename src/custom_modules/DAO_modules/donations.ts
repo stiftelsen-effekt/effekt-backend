@@ -1,7 +1,7 @@
 import { distributions } from "./distributions";
 import { EA_NORGE_META_OWNER_ID } from "./meta";
 import { DAO } from "../DAO";
-import { Donation } from "../../schemas/types";
+import { Distribution, Donation } from "../../schemas/types";
 
 import sqlString from "sqlstring";
 import { DateTime } from "luxon";
@@ -307,8 +307,19 @@ async function getAll(
   }
 }
 
-async function getTransactionCostsReport() {
-  let [res] = await DAO.query(`
+/** Rounded transaction cost sums (decimal strings, null when there are no donations in the period) */
+export type TransactionCostsReport = {
+  donationsCount: number;
+  costPrevMonth: string | null;
+  costPrevMonthPrevYear: string | null;
+  costCurrentMonthToDate: string | null;
+  costCurrentMonthToDatePrevYear: string | null;
+  costYTD: string | null;
+  costYTDPrevYear: string | null;
+};
+
+async function getTransactionCostsReport(): Promise<TransactionCostsReport | false> {
+  let [res] = await DAO.query<TransactionCostsReport[]>(`
     SELECT count(ID) as donationsCount,
       (SELECT round(sum(transaction_cost)) FROM Donations
         WHERE YEAR(timestamp_confirmed) = YEAR(CURRENT_DATE)
@@ -377,8 +388,8 @@ async function getAllByKID(KID): Promise<Array<Donation>> {
  * Skips empty buckets
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
-async function getHistogramBySum() {
-  let [results] = await DAO.query(`
+async function getHistogramBySum(): Promise<Array<{ bucket: number; items: number; bar: number }>> {
+  let [results] = await DAO.query<Array<{ bucket: number; items: number; bar: number }>>(`
             SELECT 
                 floor(sum_confirmed/5000)*5000 	AS bucket, 
                 count(*) 						AS items,
@@ -451,13 +462,43 @@ async function getLatestByKID(KID) {
  * @param {Date} endTime
  * @returns {Array} Returns an array of organizations names and their aggregate donations
  */
-async function getAggregateByTime(startTime, endTime) {
-  var [getAggregateQuery] = await DAO.query("CALL `get_aggregate_donations_by_period`(?, ?)", [
-    startTime,
-    endTime,
-  ]);
+async function getAggregateByTime(
+  startTime: Date,
+  endTime: Date,
+): Promise<Array<{ id: number; orgName: string; sum: string }>> {
+  // Inline replacement for the get_aggregate_donations_by_period procedure, which still
+  // queries the Combining_table/Distribution tables dropped in 20230731130928_multiple_cause_areas.
+  // An organization's share of a donation is its share within the cause area times the
+  // cause area's share of the distribution.
+  const [rows] = await DAO.query<Array<{ id: number; orgName: string; sum: string }>>(
+    `
+    SELECT
+      Organizations.ID AS id,
+      Organizations.full_name AS orgName,
+      ROUND(
+        SUM(
+          Donations.sum_confirmed
+          * Distribution_cause_areas.Percentage_share / 100
+          * Distribution_cause_area_organizations.Percentage_share / 100
+        ),
+        2
+      ) AS sum
+    FROM Donations
+      INNER JOIN Distribution_cause_areas
+        ON Distribution_cause_areas.Distribution_KID = Donations.KID_fordeling
+      INNER JOIN Distribution_cause_area_organizations
+        ON Distribution_cause_area_organizations.Distribution_cause_area_ID = Distribution_cause_areas.ID
+      INNER JOIN Organizations
+        ON Organizations.ID = Distribution_cause_area_organizations.Organization_ID
+    WHERE
+      DATE(Donations.timestamp_confirmed) >= DATE(?)
+      AND DATE(Donations.timestamp_confirmed) <= DATE(?)
+    GROUP BY Organizations.ID, Organizations.full_name
+    `,
+    [startTime, endTime],
+  );
 
-  return getAggregateQuery[0];
+  return rows;
 }
 
 /**
@@ -465,8 +506,10 @@ async function getAggregateByTime(startTime, endTime) {
  * and including the current time. Excludes current month in previous year.
  * @returns {Array<{year: number, month: number, sum: number}>}
  */
-async function getAggregateLastYearByMonth() {
-  var [getAggregateQuery] = await DAO.query(`
+async function getAggregateLastYearByMonth(): Promise<
+  Array<{ year: number; month: number; /** Decimal string */ sum: string }>
+> {
+  var [getAggregateQuery] = await DAO.query<Array<{ year: number; month: number; sum: string }>>(`
             SELECT 
                 extract(YEAR from timestamp_confirmed) as \`year\`,
                 extract(MONTH from timestamp_confirmed) as \`month\`, 
@@ -482,6 +525,18 @@ async function getAggregateLastYearByMonth() {
         `);
 
   return getAggregateQuery;
+}
+
+/**
+ * Whether any donation, with any payment method, has the given external reference.
+ * PaymentExternal_ID is unique across all payment methods in the database.
+ */
+async function externalRefExists(externalRef: string): Promise<boolean> {
+  const [res] = await DAO.query<Array<{ ID: number }>>(
+    "SELECT ID FROM Donations WHERE PaymentExternal_ID = ? LIMIT 1",
+    [externalRef],
+  );
+  return res.length > 0;
 }
 
 async function externalPaymentIDExists(externalPaymentID, paymentID) {
@@ -509,8 +564,43 @@ async function getByExternalPaymentID(externalPaymentID, paymentID) {
  * @param {number} donationID
  * @returns {Donation} A donation object
  */
-async function getByID(donationID) {
-  var [getDonationFromIDquery] = await DAO.query(
+export type DonationDetails = {
+  id: number;
+  donor: string;
+  donorId: number;
+  email: string;
+  /** Decimal string */
+  sum: string;
+  /** Decimal string */
+  transactionCost: string | null;
+  timestamp: Date;
+  paymentId: number;
+  paymentExternalRef: string | null;
+  paymentMethod: string;
+  KID: string;
+  metaOwnerId: number;
+  fundraiserId: number | null;
+  distribution: Distribution;
+};
+
+async function getByID(donationID: number | string): Promise<DonationDetails> {
+  var [getDonationFromIDquery] = await DAO.query<
+    Array<{
+      ID: number;
+      sum_confirmed: string;
+      KID_fordeling: string;
+      transaction_cost: string | null;
+      timestamp_confirmed: Date;
+      Payment_ID: number;
+      PaymentExternal_ID: string | null;
+      Meta_owner_ID: number;
+      donorId: number;
+      full_name: string;
+      email: string;
+      payment_name: string;
+      Fundraiser_ID: number | null;
+    }>
+  >(
     `
             SELECT 
                 Donation.ID,
@@ -551,8 +641,7 @@ async function getByID(donationID) {
 
   let dbDonation = getDonationFromIDquery[0];
 
-  /** @type Donation */
-  let donation = {
+  const donation: Omit<DonationDetails, "distribution"> = {
     id: dbDonation.ID,
     donor: dbDonation.full_name,
     donorId: dbDonation.donorId,
@@ -570,9 +659,7 @@ async function getByID(donationID) {
 
   const distribution = await distributions.getSplitByKID(donation.KID);
 
-  donation["distribution"] = distribution;
-
-  return donation;
+  return { ...donation, distribution };
 }
 
 /**
@@ -660,11 +747,52 @@ async function getHasReplacedOrgs(donationID) {
  * @param {Date} [toDate=Today] The date in which to end the selection, inclusive interval.
  * @param {Array<Integer>} [paymentMethodIDs=null] Provide optional PaymentMethodID to filter to a payment method
  */
-async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
+export type DonationInRange = {
+  ID: number;
+  time: Date;
+  name: string;
+  donorID: number;
+  /** Decimal string */
+  sum: string;
+  paymentMethod: string;
+  /** Decimal string */
+  transactionCost: string | null;
+  split: Array<{
+    /** Organization id */
+    id: number;
+    name: string;
+    /** The organization's share of the whole donation in percent (decimal string) */
+    percentage: string;
+    /** The organization's amount of the donation, rounded to øre (decimal string) */
+    amount: string;
+  }>;
+};
+
+async function getFromRange(
+  fromDate?: Date | null,
+  toDate?: Date | null,
+  paymentMethodIDs: number[] | null = null,
+): Promise<DonationInRange[]> {
   if (!fromDate) fromDate = new Date(2000, 0, 1);
   if (!toDate) toDate = new Date();
 
-  let [getFromRangeQuery] = await DAO.query(
+  // An organization's share of a donation is its share within the cause area times the
+  // cause area's share of the distribution.
+  let [getFromRangeQuery] = await DAO.query<
+    Array<{
+      Donation_ID: number;
+      timestamp_confirmed: Date;
+      Donor_ID: number;
+      transaction_cost: string | null;
+      donor_name: string;
+      sum_confirmed: string;
+      payment_name: string;
+      Org_ID: number;
+      org_name: string;
+      percentage_share: string;
+      actual_share: string;
+    }>
+  >(
     `
                 SELECT 
                     Donations.ID as Donation_ID,
@@ -674,20 +802,20 @@ async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
                     Donors.full_name as donor_name, 
                     Donations.sum_confirmed, 
                     Payment.payment_name,
-                    Distribution.OrgID as Org_ID, 
+                    Organizations.ID as Org_ID, 
                     Organizations.full_name as org_name, 
-                    Distribution.percentage_share, 
-                    (Donations.sum_confirmed*Distribution.percentage_share)/100 as actual_share 
+                    ROUND(DCA.Percentage_share * DCAO.Percentage_share / 100, 12) as percentage_share,
+                    ROUND(Donations.sum_confirmed * DCA.Percentage_share * DCAO.Percentage_share / 10000, 2) as actual_share
 
                 FROM Donations
-                    INNER JOIN Combining_table 
-                        ON Donations.KID_fordeling = Combining_table.KID
-                    INNER JOIN Distribution 
-                        ON Combining_table.Distribution_ID = Distribution.ID
+                    INNER JOIN Distribution_cause_areas as DCA
+                        ON DCA.Distribution_KID = Donations.KID_fordeling
+                    INNER JOIN Distribution_cause_area_organizations as DCAO
+                        ON DCAO.Distribution_cause_area_ID = DCA.ID
                     INNER JOIN Donors 
                         ON Donors.ID = Donations.Donor_ID
                     INNER JOIN Organizations 
-                        ON Organizations.ID = Distribution.OrgID
+                        ON Organizations.ID = DCAO.Organization_ID
                     INNER JOIN Payment
                         ON Payment.ID = Donations.Payment_ID
                 
@@ -703,33 +831,29 @@ async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
                 `
                     : ""
                 }
+                ORDER BY Donations.ID, DCA.ID, DCAO.ID
                 `,
     [fromDate, toDate, paymentMethodIDs],
   );
 
-  let donations = new Map();
+  const donations = new Map<number, DonationInRange>();
   getFromRangeQuery.forEach((row) => {
-    if (!donations.get(row.Donation_ID))
-      donations.set(row.Donation_ID, {
-        ID: null,
-        time: null,
-        name: null,
-        donorID: null,
-        sum: null,
-        paymentMethod: null,
-        transactionCost: null,
+    let donation = donations.get(row.Donation_ID);
+    if (!donation) {
+      donation = {
+        ID: row.Donation_ID,
+        time: row.timestamp_confirmed,
+        name: row.donor_name,
+        donorID: row.Donor_ID,
+        sum: row.sum_confirmed,
+        paymentMethod: row.payment_name,
+        transactionCost: row.transaction_cost,
         split: [],
-      });
+      };
+      donations.set(row.Donation_ID, donation);
+    }
 
-    donations.get(row.Donation_ID).ID = row.Donation_ID;
-    donations.get(row.Donation_ID).time = row.timestamp_confirmed;
-    donations.get(row.Donation_ID).name = row.donor_name;
-    donations.get(row.Donation_ID).donorID = row.Donor_ID;
-    donations.get(row.Donation_ID).sum = row.sum_confirmed;
-    donations.get(row.Donation_ID).paymentMethod = row.payment_name;
-    donations.get(row.Donation_ID).transactionCost = row.transaction_cost;
-
-    donations.get(row.Donation_ID).split.push({
+    donation.split.push({
       id: row.Org_ID,
       name: row.org_name,
       percentage: row.percentage_share,
@@ -737,9 +861,7 @@ async function getFromRange(fromDate, toDate, paymentMethodIDs = null) {
     });
   });
 
-  let returnDonations = [...donations.values()].sort((a, b) => a.time - b.time);
-
-  return returnDonations;
+  return [...donations.values()].sort((a, b) => a.time.getTime() - b.time.getTime());
 }
 
 /**
@@ -1359,6 +1481,7 @@ export const donations = {
   getByID,
   getAllByKID,
   getAggregateByTime,
+  externalRefExists,
   getAggregateLastYearByMonth,
   getFromRange,
   getMedianFromRange,

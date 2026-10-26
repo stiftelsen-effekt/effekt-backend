@@ -1,35 +1,38 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { DAO } from "../../custom_modules/DAO";
-import { generateCsv } from "../../custom_modules/csvexport";
+import { TaxUnitType } from "../../custom_modules/DAO_modules/donations";
 import {
   confirmDonation,
   createDistribution,
   updateDonation,
 } from "../../custom_modules/donationsService";
 import { sendDonationReceipt } from "../../custom_modules/mail";
+import { Distribution } from "../../schemas/types";
+import { csvExport } from "../csv";
+import { assertDistributionReferences } from "../distributionChecks";
 import {
   distributionCreateSchema,
-  distributionFilterSchema,
   distributionSchema,
+  idSchema,
+  isoDateOrDateTimeSchema,
+  isoDateSchema,
+  localeSchema,
+  moneySchema,
+  paginationFields,
+} from "../schemas/common";
+import {
+  distributionFilterSchema,
   distributionSortSchema,
   donationFilterSchema,
   donationSortSchema,
-  idSchema,
-  isoDateSchema,
-  localeSchema,
-  paginationFields,
+  paymentExternalRefSchema,
+  transactionCostSchema,
 } from "../schemas/donations";
 import { adminProcedure, router } from "../trpc";
 
 const DEFAULT_DONATION_SORT = { id: "timestamp", desc: true } as const;
 const DEFAULT_DISTRIBUTION_SORT = { id: "KID", desc: true } as const;
-
-/** Excel needs the BOM to read UTF-8 (æøå); matches the REST csv download. */
-const toCsvExport = (prefix: string, rows: object[]) => ({
-  filename: `${prefix}-${new Date().toISOString()}.csv`,
-  csv: "﻿" + generateCsv(rows),
-});
 
 const errorMessage = (ex: unknown) => (ex instanceof Error ? ex.message : String(ex));
 
@@ -46,6 +49,35 @@ const getDonationOrThrow = async (id: number) => {
     return await DAO.donations.getByID(id);
   } catch (ex) {
     return rethrowNotFound(ex, "Could not find donation");
+  }
+};
+
+const badRequest = (message: string) => new TRPCError({ code: "BAD_REQUEST", message });
+
+const assertPaymentMethodExists = async (paymentId: number) => {
+  const methods = await DAO.payment.getMethods();
+  if (!methods?.some((method) => method.id === paymentId)) {
+    throw badRequest(`Payment method ${paymentId} does not exist`);
+  }
+};
+
+const assertDataOwnerExists = async (metaOwnerId: number) => {
+  const owners = await DAO.meta.getDataOwners();
+  if (!owners.some((owner) => owner.id === metaOwnerId)) {
+    throw badRequest(`Data owner ${metaOwnerId} does not exist`);
+  }
+};
+
+/**
+ * PaymentExternal_ID is unique across all payment methods, so any existing donation with the
+ * reference conflicts (the DAO's own check only looks at the same payment method).
+ */
+const assertExternalRefUnused = async (externalRef: string) => {
+  if (await DAO.donations.externalRefExists(externalRef)) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: `A donation with external reference ${externalRef} already exists`,
+    });
   }
 };
 
@@ -70,6 +102,46 @@ const toDaoDonationFilter = (filter: z.infer<typeof donationFilterSchema> | unde
           : undefined,
       }
     : null;
+
+/** A row of donations.list as the DAO returns it at runtime (decimals are strings) */
+type DonationListRow = {
+  id: number;
+  donor: string;
+  paymentMethod: string;
+  /** Decimal string */
+  sum: string;
+  /** Decimal string */
+  transactionCost: string | null;
+  kid: string;
+  timestamp: Date;
+  taxUnitType: TaxUnitType | null;
+};
+
+const getDonationList = async (
+  input: z.infer<typeof donationExportInput>,
+  page: number,
+  limit: number,
+) => {
+  const result = await DAO.donations.getAll(
+    input.sort ?? DEFAULT_DONATION_SORT,
+    page,
+    limit,
+    toDaoDonationFilter(input.filter),
+    input.locale,
+  );
+  return {
+    // The DAO's declared row type predates the tax unit type column and decimal strings
+    rows: result.rows as unknown as DonationListRow[],
+    statistics: {
+      numDonations: Number(result.statistics.numDonations),
+      /** Decimal string */
+      sumDonations: String(result.statistics.sumDonations ?? 0),
+      /** Decimal string */
+      avgDonation: String(result.statistics.avgDonation ?? 0),
+    },
+    pages: result.pages,
+  };
+};
 
 const distributionListInput = z.strictObject({
   ...paginationFields,
@@ -98,11 +170,11 @@ const distributionsRouter = router({
       input.sort ?? DEFAULT_DISTRIBUTION_SORT,
       input.filter ?? null,
     );
-    return toCsvExport("distributions", results.rows);
+    return csvExport("distributions", results.rows);
   }),
 
   get: adminProcedure.input(z.strictObject({ kid: z.string() })).query(async ({ input }) => {
-    let distribution;
+    let distribution: Distribution;
     try {
       distribution = await DAO.distributions.getSplitByKID(input.kid);
     } catch (ex) {
@@ -117,7 +189,8 @@ const distributionsRouter = router({
     return { ...distribution, donor, taxUnit };
   }),
 
-  create: adminProcedure.input(distributionCreateSchema).mutation(({ input }) => {
+  create: adminProcedure.input(distributionCreateSchema).mutation(async ({ input }) => {
+    await assertDistributionReferences(input);
     const { metaOwnerId, ...distribution } = input;
     return createDistribution(distribution, metaOwnerId);
   }),
@@ -126,49 +199,52 @@ const distributionsRouter = router({
 export const donationsRouter = router({
   list: adminProcedure
     .input(donationListInput)
-    .query(({ input }) =>
-      DAO.donations.getAll(
-        input.sort ?? DEFAULT_DONATION_SORT,
-        input.page,
-        input.limit,
-        toDaoDonationFilter(input.filter),
-        input.locale,
-      ),
-    ),
+    .query(({ input }) => getDonationList(input, input.page, input.limit)),
 
   export: adminProcedure.input(donationExportInput).query(async ({ input }) => {
-    const results = await DAO.donations.getAll(
-      input.sort ?? DEFAULT_DONATION_SORT,
-      0,
-      Number.MAX_SAFE_INTEGER,
-      toDaoDonationFilter(input.filter),
-      input.locale,
-    );
-    return toCsvExport("donations", results.rows);
+    const results = await getDonationList(input, 0, Number.MAX_SAFE_INTEGER);
+    return csvExport("donations", results.rows);
   }),
 
   get: adminProcedure
     .input(z.strictObject({ id: idSchema }))
     .query(({ input }) => getDonationOrThrow(input.id)),
 
+  /**
+   * Updates a donation. The external reference can't be cleared: the shared update keeps the
+   * current value for null/undefined (as PUT /donations/:id does).
+   */
   update: adminProcedure
     .input(
       z.strictObject({
         id: idSchema,
-        sum: z.number().positive().optional(),
-        timestamp: isoDateSchema.optional(),
+        sum: moneySchema.optional(),
+        transactionCost: transactionCostSchema.optional(),
+        timestamp: isoDateOrDateTimeSchema.optional(),
         paymentId: idSchema.optional(),
-        paymentExternalRef: z.string().optional(),
+        paymentExternalRef: paymentExternalRefSchema.optional(),
         metaOwnerId: idSchema.optional(),
         distribution: distributionSchema.optional(),
       }),
     )
     .mutation(async ({ input }) => {
       const existingDonation = await getDonationOrThrow(input.id);
+
+      if (input.paymentId !== undefined) await assertPaymentMethodExists(input.paymentId);
+      if (input.metaOwnerId !== undefined) await assertDataOwnerExists(input.metaOwnerId);
+      if (
+        input.paymentExternalRef !== undefined &&
+        input.paymentExternalRef !== existingDonation.paymentExternalRef
+      ) {
+        await assertExternalRefUnused(input.paymentExternalRef);
+      }
+      if (input.distribution) await assertDistributionReferences(input.distribution);
+
       await updateDonation(
         existingDonation,
         {
           sum: input.sum,
+          transactionCost: input.transactionCost,
           timestamp: input.timestamp ? new Date(input.timestamp) : undefined,
           paymentId: input.paymentId,
           paymentExternalRef: input.paymentExternalRef,
@@ -188,6 +264,7 @@ export const donationsRouter = router({
   resendReceipt: adminProcedure
     .input(z.strictObject({ id: idSchema, email: z.email().optional() }))
     .mutation(async ({ input }) => {
+      await getDonationOrThrow(input.id);
       const mailStatus = await sendDonationReceipt(input.id, input.email ?? null);
       if (mailStatus !== true) {
         throw new TRPCError({
@@ -207,10 +284,10 @@ export const donationsRouter = router({
         .strictObject({
           KID: z.string().min(1).optional(),
           distribution: distributionSchema.optional(),
-          sum: z.number().positive(),
-          timestamp: isoDateSchema,
+          sum: moneySchema,
+          timestamp: isoDateOrDateTimeSchema,
           paymentId: idSchema,
-          paymentExternalRef: z.string().min(1).nullable(),
+          paymentExternalRef: paymentExternalRefSchema.nullable(),
           metaOwnerId: idSchema,
           sendReceipt: z.boolean(),
         })
@@ -219,9 +296,16 @@ export const donationsRouter = router({
         }),
     )
     .mutation(async ({ input }) => {
+      await assertPaymentMethodExists(input.paymentId);
+      await assertDataOwnerExists(input.metaOwnerId);
+      if (input.paymentExternalRef !== null) {
+        await assertExternalRefUnused(input.paymentExternalRef);
+      }
+
       let KID: string;
       let newDistribution = false;
       if (input.distribution) {
+        await assertDistributionReferences(input.distribution);
         ({ KID, newDistribution } = await createDistribution(
           input.distribution,
           input.metaOwnerId,
@@ -257,8 +341,13 @@ export const donationsRouter = router({
 
   histogram: adminProcedure.query(() => DAO.donations.getHistogramBySum()),
 
-  transactionCostsReport: adminProcedure.query(() => DAO.donations.getTransactionCostsReport()),
+  transactionCostsReport: adminProcedure.query(async () => {
+    const report = await DAO.donations.getTransactionCostsReport();
+    if (!report) throw new TRPCError({ code: "NOT_FOUND" });
+    return report;
+  }),
 
+  /** Sum per organization of donations confirmed in an inclusive date range */
   total: adminProcedure
     .input(z.strictObject({ fromDate: isoDateSchema, toDate: isoDateSchema }))
     .query(({ input }) =>

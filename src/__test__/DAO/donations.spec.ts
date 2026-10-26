@@ -211,4 +211,78 @@ describe("DAO donations", () => {
       ]);
     });
   });
+
+  describe("queries rewritten for the multiple cause area schema", () => {
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    const expectCurrentSchema = (sql: string) => {
+      expect(sql).to.not.match(/Combining_table|JOIN Distribution\b|CALL/i);
+      expect(sql).to.contain("Distribution_cause_areas");
+      expect(sql).to.contain("Distribution_cause_area_organizations");
+    };
+
+    it("getAggregateByTime sums each organization's share of the cause area share", async () => {
+      const rows = [{ id: 1, orgName: "Org", sum: "12.50" }];
+      const queryStub = sinon.stub(DAO, "query").resolves([rows, []]);
+      const from = new Date("2024-01-01");
+      const to = new Date("2024-12-31");
+
+      expect(await DAO.donations.getAggregateByTime(from, to)).to.deep.equal(rows);
+
+      const [sql, params] = queryStub.firstCall.args;
+      expectCurrentSchema(sql);
+      expect(sql).to.match(/GROUP BY Organizations\.ID/);
+      expect(params).to.deep.equal([from, to]);
+    });
+
+    it("getFromRange groups organization rows per donation, sorted by time", async () => {
+      const row = (id: number, time: string, org: number, share: string, amount: string) => ({
+        Donation_ID: id,
+        timestamp_confirmed: new Date(time),
+        Donor_ID: 7,
+        transaction_cost: "2.00",
+        donor_name: "Donor",
+        sum_confirmed: "100.00",
+        payment_name: "Bank",
+        Org_ID: org,
+        org_name: `Org ${org}`,
+        percentage_share: share,
+        actual_share: amount,
+      });
+      const queryStub = sinon
+        .stub(DAO, "query")
+        .resolves([
+          [
+            row(2, "2024-01-02", 1, "60.000000000000", "60.00"),
+            row(2, "2024-01-02", 2, "40.000000000000", "40.00"),
+            row(1, "2024-01-01", 1, "100.000000000000", "100.00"),
+          ],
+          [],
+        ]);
+
+      const result = await DAO.donations.getFromRange(
+        new Date("2024-01-01"),
+        new Date("2024-01-02"),
+        [4],
+      );
+
+      expectCurrentSchema(queryStub.firstCall.args[0]);
+      expect(queryStub.firstCall.args[0]).to.contain("Donations.Payment_ID IN (?)");
+      expect(result.map((d) => d.ID)).to.deep.equal([1, 2]);
+      expect(result[1]).to.deep.include({ sum: "100.00", transactionCost: "2.00", donorID: 7 });
+      expect(result[1].split).to.deep.equal([
+        { id: 1, name: "Org 1", percentage: "60.000000000000", amount: "60.00" },
+        { id: 2, name: "Org 2", percentage: "40.000000000000", amount: "40.00" },
+      ]);
+    });
+
+    it("externalRefExists checks every payment method", async () => {
+      const queryStub = sinon.stub(DAO, "query").resolves([[{ ID: 1 }], []]);
+      expect(await DAO.donations.externalRefExists("abc")).to.be.true;
+      expect(queryStub.firstCall.args[0]).to.not.contain("Payment_ID");
+      expect(queryStub.firstCall.args[1]).to.deep.equal(["abc"]);
+    });
+  });
 });

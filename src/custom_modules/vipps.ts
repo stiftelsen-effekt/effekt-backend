@@ -459,7 +459,7 @@ module.exports = {
           merchantSerialNumber: config.vipps_merchant_serial_number,
         },
         transaction: {
-          amount: donation.sum * 100,
+          amount: Number(donation.sum) * 100,
           transactionText: VIPPS_TEXT,
         },
       };
