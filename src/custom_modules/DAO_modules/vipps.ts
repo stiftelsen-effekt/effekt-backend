@@ -525,9 +525,9 @@ async function getCharges(
 /**
  * Fetches an agreement ID by agreementUrlCode
  * @property {string} agreementUrlCode The code used in the Vipps merchantAgreementUrl
- * @return {number | false} agreementId
+ * @return {string | false} agreementId
  */
-async function getAgreementIdByUrlCode(agreementUrlCode): Promise<number | false> {
+async function getAgreementIdByUrlCode(agreementUrlCode): Promise<string | false> {
   let [res] = await DAO.query(
     `
         SELECT ID FROM 

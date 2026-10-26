@@ -1,16 +1,11 @@
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendVippsAgreementChange, sendVippsProblemReport } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
-import { donationHelpers } from "../custom_modules/donationHelpers";
 import permissions from "../enums/authorizationPermissions";
 
 import express from "express";
 const router = express.Router();
 import bodyParser from "body-parser";
-import {
-  findGlobalHealthCauseAreaOrThrow,
-  validateDistribution,
-} from "../custom_modules/distribution";
 import { DistributionInput } from "../schemas/types";
 import { encodePlausibleData } from "../custom_modules/plausible";
 import { getFundraiserRedirectUrl } from "../custom_modules/fundraiserRedirect";
@@ -20,6 +15,7 @@ const jsonBody = bodyParser.json();
 import crypto from "crypto";
 const config = require("../config");
 const vipps = require("../custom_modules/vipps");
+import * as vippsService from "../custom_modules/vippsService";
 
 /**
  * @openapi
@@ -115,12 +111,7 @@ router.get(
       const agreementId = req.params.id;
 
       // Synchronize EffektDB with Vipps database
-      const responseVipps = await vipps.getAgreement(agreementId);
-      await DAO.vipps.updateAgreementStatus(agreementId, responseVipps.status);
-      await DAO.vipps.updateAgreementPrice(agreementId, responseVipps.pricing.amount / 100);
-      const responseDAO = await DAO.vipps.getAgreement(agreementId);
-
-      const response = { ...responseVipps, ...responseDAO };
+      const response = await vippsService.syncAndGetAgreement(agreementId);
 
       //TODO: Check for false
       res.json(response);
@@ -160,26 +151,17 @@ router.post("/matchingrules", authMiddleware.isAdmin, jsonBody, async (req, res,
       });
     }
 
-    if (matchingRule.periodFrom >= matchingRule.periodTo) {
-      return res.status(400).json({
-        status: 400,
-        content: "periodFrom must be before periodTo",
+    const created = await vippsService.createMatchingRule(matchingRule);
+    if (!created.ok) {
+      return res.status(created.status).json({
+        status: created.status,
+        content: created.message,
       });
     }
 
-    // Validate resolveKID
-    const exists = await DAO.distributions.KIDexists(matchingRule.resolveKID);
-    if (!exists) {
-      return res.status(400).json({
-        status: 400,
-        content: `Distribution with KID ${matchingRule.resolveKID} does not exist`,
-      });
-    }
-
-    const result = await DAO.vipps.addMatchingRule(matchingRule);
     res.json({
       status: 200,
-      content: result,
+      content: created.result,
     });
   } catch (ex) {
     next(ex);
@@ -338,13 +320,9 @@ router.put("/agreement/:urlcode/cancel", async (req, res, next) => {
         content: "Agreement not found",
       });
     }
-    const response = await vipps.updateAgreementStatus(agreementId, "STOPPED");
+    const response = await vippsService.cancelAgreement(agreementId, agreementCode);
 
-    if (response) {
-      await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED");
-      await DAO.vipps.updateAgreementCancellationDate(agreementId);
-      await sendVippsAgreementChange(agreementCode, "STOPPED");
-    } else {
+    if (!response) {
       res.status(500).json({
         status: 500,
         content: "Could not cancel agreement",
@@ -397,13 +375,9 @@ router.put("/agreement/:urlcode/price", jsonBody, async (req, res, next) => {
         content: "Agreement not found",
       });
     }
-    const response = await vipps.updateAgreementPrice(agreementId, price);
+    const response = await vippsService.updateAgreementPrice(agreementId, agreementCode, price);
 
-    // Only update database if Vipps update was successful
-    if (response) {
-      await DAO.vipps.updateAgreementPrice(agreementId, price / 100);
-      await sendVippsAgreementChange(agreementCode, "AMOUNT", price / 100);
-    } else {
+    if (!response) {
       res.status(500).json({
         status: 500,
         content: "Could not update agreement price",
@@ -534,8 +508,11 @@ router.put("/agreement/:urlcode/chargeday", jsonBody, async (req, res, next) => 
       return next(err);
     }
 
-    const response = await DAO.vipps.updateAgreementChargeDay(agreementId, chargeDay);
-    if (response) await sendVippsAgreementChange(agreementCode, "CHARGEDAY", chargeDay);
+    const response = await vippsService.updateAgreementChargeDay(
+      agreementId,
+      agreementCode,
+      chargeDay,
+    );
 
     res.send(response);
   } catch (ex) {
@@ -611,50 +588,18 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
       });
     }
 
-    const existingAgreement = await DAO.vipps.getAgreement(agreementId);
-    if (!existingAgreement) {
-      return res.status(404).json({
-        status: 404,
-        content: "Agreement not found",
+    const result = await vippsService.updateAgreementDistribution(
+      agreementId,
+      agreementCode,
+      req.body.distribution as DistributionInput,
+    );
+    if (!result.ok) {
+      return res.status(result.status).json({
+        status: result.status,
+        content: result.message,
       });
     }
-
-    const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
-
-    const distributionInput = req.body.distribution as DistributionInput;
-    let validatedDistribution: DistributionInput | null = null;
-    try {
-      validatedDistribution = validateDistribution(distributionInput);
-    } catch (ex) {
-      return res.status(400).json({
-        status: 400,
-        content: ex.message,
-      });
-    }
-
-    if (validatedDistribution.donorId !== donorId) {
-      return res.status(400).json({
-        status: 400,
-        content: "Donor ID mismatch",
-      });
-    }
-
-    let KID: string;
-
-    /**
-     * Check for existing distribution
-     */
-    const existingDistributionKID = await DAO.distributions.getKIDbySplit(validatedDistribution);
-
-    if (existingDistributionKID) {
-      KID = existingDistributionKID;
-    } else {
-      KID = await donationHelpers.createKID();
-      await DAO.distributions.add({ ...validatedDistribution, kid: KID });
-    }
-
-    const response = await DAO.vipps.updateAgreementKID(agreementId, KID);
-    if (response) await sendVippsAgreementChange(agreementCode, "SHARES", KID);
+    const KID = result.KID;
 
     res.send({ KID });
   } catch (ex) {
@@ -833,8 +778,7 @@ router.post(
       const agreementId = req.params.agreementId;
       const chargeId = req.params.chargeId;
 
-      const response = await vipps.refundCharge(agreementId, chargeId);
-      if (response) await DAO.vipps.updateChargeStatus("REFUNDED", agreementId, chargeId);
+      const response = await vippsService.refundCharge(agreementId, chargeId);
 
       res.json(response);
     } catch (ex) {
