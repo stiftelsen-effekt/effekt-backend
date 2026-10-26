@@ -4,6 +4,13 @@ import type { DistributionSplitInput } from "./schemas/common";
 
 const badRequest = (message: string) => new TRPCError({ code: "BAD_REQUEST", message });
 
+// DAO.causeareas.getById throws when the cause area doesn't exist
+const causeAreaExists = (id: number) =>
+  DAO.causeareas.getById(id).then(
+    () => true,
+    () => false,
+  );
+
 /**
  * Checks what the schema can't: that the donor, tax unit, cause areas, organizations and data
  * owner exist, that the tax unit belongs to the donor, and that each organization belongs to the
@@ -37,6 +44,9 @@ export const assertDistributionReferences = async (
         throw badRequest(`Organization ${organization.id} does not exist`);
       }
       if (organizationCauseArea !== causeArea.id) {
+        if (!(await causeAreaExists(causeArea.id))) {
+          throw badRequest(`Cause area ${causeArea.id} does not exist`);
+        }
         throw badRequest(
           `Organization ${organization.id} does not belong to cause area ${causeArea.id}`,
         );

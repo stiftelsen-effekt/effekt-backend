@@ -10,7 +10,9 @@ export const localeSchema = z.enum(RequestLocale).default(RequestLocale.NO);
 export const isoDateSchema = z.iso.date();
 
 /** An ISO 8601 date (YYYY-MM-DD) or date-time with offset */
-export const isoDateOrDateTimeSchema = z.union([z.iso.date(), z.iso.datetime({ offset: true })]);
+export const isoDateOrDateTimeSchema = z.union([z.iso.date(), z.iso.datetime({ offset: true })], {
+  error: "Expected an ISO date (YYYY-MM-DD) or date-time with offset",
+});
 
 export const paginationFields = {
   page: z.number().int().min(0),
@@ -25,7 +27,7 @@ export const sortSchema = <const T extends readonly [string, ...string[]]>(ids: 
 export const moneySchema = z
   .number()
   .positive()
-  .max(99_999_999_999_999.99)
+  .max(99_999_999_999_999)
   .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
     message: "Amount can have at most two decimals",
   });
@@ -50,6 +52,9 @@ const refineShares = (
   distribution: { causeAreas: z.infer<typeof distributionCauseAreaSchema>[] },
   ctx: z.core.$RefinementCtx,
 ) => {
+  // Share format errors are reported by the field schemas; validating the sums would only add noise
+  const shares = distribution.causeAreas.flatMap((c) => [c, ...c.organizations]);
+  if (shares.some((share) => !/^\d+(\.\d+)?$/.test(share.percentageShare))) return;
   try {
     // validateDistribution mutates nested arrays, so validate a copy. It also requires a donor
     // id, which a split doesn't have; the placeholder is overridden when there is one.

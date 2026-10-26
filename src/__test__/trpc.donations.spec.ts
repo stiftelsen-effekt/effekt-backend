@@ -461,7 +461,7 @@ describe("tRPC donations router", () => {
       sinon.stub(DAO.tax, "getById").resolves({ id: 9 } as any);
 
       const res = await admin().donations.distributions.get({ kid: "123" });
-      expect(res).to.deep.equal({ ...split, donor: { id: 7 }, taxUnit: { id: 9 } });
+      expect(res).to.deep.equal({ ...split, donor: { id: 7, trash: false }, taxUnit: { id: 9 } });
 
       await expectTrpcError(admin().donations.distributions.get({ kid: "404" }), "NOT_FOUND");
     });

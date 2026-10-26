@@ -239,13 +239,26 @@ describe("tRPC giro router", () => {
         .withArgs("123")
         .resolves([donation]);
       sinon.stub(DAO.avtalegiroagreements, "getAgreementSumHistogram").resolves([bucket]);
-      sinon
-        .stub(DAO.avtalegiroagreements, "getAgreementReport")
-        .resolves({ activeAgreementCount: 3 } as any);
+      sinon.stub(DAO.avtalegiroagreements, "getAgreementReport").resolves({
+        activeAgreementCount: 3,
+        averageAgreementSum: "752",
+        sumStoppedThisMonth: null,
+      } as any);
       sinon.stub(DAO.avtalegiroagreements, "getValidationTable").resolves([validation]);
       expect(await admin().giro.avtalegiro.donations({ KID: "123" })).to.deep.equal([donation]);
       expect(await admin().giro.avtalegiro.histogram()).to.deep.equal([bucket]);
-      expect(await admin().giro.avtalegiro.report()).to.deep.equal({ activeAgreementCount: 3 });
+      expect(await admin().giro.avtalegiro.report()).to.deep.equal({
+        activeAgreementCount: 3,
+        averageAgreementSum: 752,
+        totalAgreementSum: 0,
+        medianAgreementSum: 0,
+        draftedThisMonth: 0,
+        sumDraftedThisMonth: 0,
+        activatedThisMonth: 0,
+        sumActivatedThisMonth: 0,
+        stoppedThisMonth: 0,
+        sumStoppedThisMonth: 0,
+      });
       expect(await admin().giro.avtalegiro.validation()).to.deep.equal([validation]);
     });
 

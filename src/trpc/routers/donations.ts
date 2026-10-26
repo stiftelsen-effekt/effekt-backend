@@ -186,7 +186,11 @@ const distributionsRouter = router({
         ? DAO.tax.getById(distribution.taxUnitId)
         : Promise.resolve(null),
     ]);
-    return { ...distribution, donor, taxUnit };
+    return {
+      ...distribution,
+      donor: donor && { ...donor, trash: Boolean(donor.trash) },
+      taxUnit,
+    };
   }),
 
   create: adminProcedure.input(distributionCreateSchema).mutation(async ({ input }) => {

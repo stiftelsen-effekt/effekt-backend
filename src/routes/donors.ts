@@ -1265,7 +1265,7 @@ router.get(
 
       let distributions = result.distributions;
 
-      if (typeof req.query.kids !== undefined) {
+      if (typeof req.query.kids === "string") {
         const kidSet = new Set<string>();
         req.query.kids.split(",").map((kid) => kidSet.add(kid));
 

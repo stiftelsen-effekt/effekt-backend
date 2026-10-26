@@ -88,7 +88,7 @@ const agreementsRouter = router({
       ),
     ),
 
-  export: adminProcedure.input(agreementExportInput).mutation(async ({ input }) => {
+  export: adminProcedure.input(agreementExportInput).query(async ({ input }) => {
     const results = await DAO.vipps.getAgreements(
       input.sort,
       0,
@@ -189,7 +189,7 @@ const chargesRouter = router({
     return { ...result, rows: result.rows.map(withoutAggregates) };
   }),
 
-  export: adminProcedure.input(chargeExportInput).mutation(async ({ input }) => {
+  export: adminProcedure.input(chargeExportInput).query(async ({ input }) => {
     const results = await DAO.vipps.getCharges(
       input.sort ?? defaultChargeSort,
       0,

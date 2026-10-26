@@ -124,7 +124,20 @@ const avtalegiroRouter = router({
   report: adminProcedure.query(async () => {
     const report = await DAO.avtalegiroagreements.getAgreementReport();
     if (!report) throw new TRPCError({ code: "NOT_FOUND" });
-    return report;
+    // mysql2 returns the aggregates as decimal strings, and the monthly sums are null without rows
+    const toNumber = (value: unknown) => Number(value ?? 0);
+    return {
+      activeAgreementCount: toNumber(report.activeAgreementCount),
+      averageAgreementSum: toNumber(report.averageAgreementSum),
+      totalAgreementSum: toNumber(report.totalAgreementSum),
+      medianAgreementSum: toNumber(report.medianAgreementSum),
+      draftedThisMonth: toNumber(report.draftedThisMonth),
+      sumDraftedThisMonth: toNumber(report.sumDraftedThisMonth),
+      activatedThisMonth: toNumber(report.activatedThisMonth),
+      sumActivatedThisMonth: toNumber(report.sumActivatedThisMonth),
+      stoppedThisMonth: toNumber(report.stoppedThisMonth),
+      sumStoppedThisMonth: toNumber(report.sumStoppedThisMonth),
+    };
   }),
 
   /** GET /avtalegiro/validation. Sums in NOK. */
