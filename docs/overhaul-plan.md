@@ -1,17 +1,19 @@
 # Backend + admin overhaul
 
 Goal: replace effekt-admin (React 18 + redux-saga + styled-components) with a new admin that
-talks to the backend over tRPC, with a consistent design system — without breaking any existing
-REST consumer.
+talks to the backend over tRPC, with a consistent design system, and move main-site to tRPC too.
 
 ## Constraints
 
-- **REST is a public contract.** main-site serves NO, SE and DK. DK points
+- **Our backend sets the API; DK aligns to it.** main-site serves NO, SE and DK. DK points
   `NEXT_PUBLIC_EFFEKT_API` at a separate backend (giveffektivt/donation-platform, maintained by
-  Giv Effektivt DK) that mirrors our REST shapes. Every REST route keeps its path, method, auth
-  and `{ status, content }` envelope. Other REST consumers: payment provider callbacks (Vipps,
-  PayPal, Swish), Auth0 hooks/log stream, MailerSend, the api-scheduled Cloud Function, the
-  minside-redirect function, Sanity studio, Tidbyt feeds and email links.
+  Giv Effektivt DK) that mirrors our REST shapes. We design the tRPC API for our needs and do not
+  bend it for DK. Until DK ships the tRPC procedures main-site uses, main-site keeps its REST
+  client behind the DK site config only, so the DK donation flow doesn't go down; it is deleted
+  once DK has aligned.
+- REST routes stay where something outside main-site and the admin calls them: payment provider
+  callbacks (Vipps, PayPal, Swish), Auth0 hooks/log stream, MailerSend, the api-scheduled Cloud
+  Function, the minside-redirect function, Sanity studio, Tidbyt feeds and email links.
 - Merges to `master` deploy to production (Cloud Build → migrate → Cloud Run), so every merge
   must be additive and green.
 
@@ -29,9 +31,8 @@ effekt-backend/
   so dates serialise exactly as in REST.
 - Auth: the tRPC context verifies the bearer token with the same Auth0 validator as REST.
   `adminProcedure` requires the `admin` permission. Donor-scoped procedures come later.
-- Input validation with zod v4. Schemas live next to the routers and become the source of truth
-  for request/response shapes. They can later generate an OpenAPI description of the REST
-  contract, which main-site (and DK) can type against without changing the wire format.
+- Input validation with zod v4. Schemas live next to the routers and are the source of truth
+  for request/response shapes.
 - The admin consumes declaration output of `src/trpc/router.ts`; the backend needs
   `strictNullChecks` for zod/tRPC inference to be correct.
 
@@ -66,7 +67,11 @@ consistent:
 3. **Admin feature pages** to parity with the old admin (checklist below), in parallel.
 4. **Cut-over**: deploy the new admin next to the old one, switch DNS, archive effekt-admin,
    remove REST routes that only the old admin used (none that main-site, DK or externals use).
-5. **main-site**: typed REST client generated from the shared schemas (wire format unchanged).
+5. **main-site → tRPC**: donor-scoped procedures (Min Side, agreements, tax units) and public
+   ones (widget registration, cause areas, results). Type sharing across repos via a published
+   `@effekt/api` types package or by moving main-site into this repo (decide when we get there).
+   Hand DK the procedure list to implement; remove main-site's DK REST path once they have.
+   Then delete REST routes that no remaining caller uses.
 
 ## Parity checklist (old admin)
 

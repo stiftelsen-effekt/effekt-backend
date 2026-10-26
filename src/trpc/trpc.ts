@@ -3,7 +3,9 @@ import type { JWTPayload } from "express-oauth2-jwt-bearer";
 import authorizationPermissions from "../enums/authorizationPermissions";
 import type { Context } from "./context";
 
-const t = initTRPC.context<Context>().create();
+const t = initTRPC.context<Context>().create({
+  isDev: process.env.NODE_ENV === "development",
+});
 
 const hasPermission = (payload: JWTPayload | undefined, permission: string) =>
   Array.isArray(payload?.permissions) && payload.permissions.includes(permission);
