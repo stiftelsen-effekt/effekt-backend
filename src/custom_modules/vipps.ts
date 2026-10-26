@@ -1,3 +1,4 @@
+import { loggableRequestError } from "./requestErrors";
 import { createHash } from "crypto";
 import { DAO } from "./DAO";
 import { sendDonationReceipt, sendVippsErrorWarning } from "./mail";
@@ -151,7 +152,7 @@ module.exports = {
 
       return token;
     } catch (ex) {
-      console.error("Failed to fetch vipps token", ex);
+      console.error("Failed to fetch vipps token", loggableRequestError(ex));
       throw ex;
     }
   },
@@ -398,7 +399,7 @@ module.exports = {
         //This is most likely a case of the polling trying to capture an order already captured by the callback, simply return true
         return true;
       } else {
-        console.error(`Failed to capture order with id ${orderId}`, ex);
+        console.error(`Failed to capture order with id ${orderId}`, loggableRequestError(ex));
         throw ex;
       }
     }
@@ -476,7 +477,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(`Failed to refund vipps order with id ${orderId}`, ex);
+      console.error(`Failed to refund vipps order with id ${orderId}`, loggableRequestError(ex));
       return false;
     }
   },
@@ -510,7 +511,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(`Failed to cancel vipps order with id ${orderId}`, ex);
+      console.error(`Failed to cancel vipps order with id ${orderId}`, loggableRequestError(ex));
       return false;
     }
   },
@@ -647,7 +648,7 @@ module.exports = {
           KID,
           monthlyChargeDay,
         });
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -673,7 +674,7 @@ module.exports = {
 
       return response;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -715,7 +716,7 @@ module.exports = {
 
       return agreements;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -755,7 +756,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -792,7 +793,7 @@ module.exports = {
       });
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -822,7 +823,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -908,7 +909,7 @@ module.exports = {
           agreementId,
           headers,
         });
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -931,7 +932,7 @@ module.exports = {
 
       return JSON.parse(response);
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -958,7 +959,7 @@ module.exports = {
       }
       return false;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -980,7 +981,7 @@ module.exports = {
 
       return JSON.parse(response);
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -1004,7 +1005,7 @@ module.exports = {
       }
       return false;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -1035,7 +1036,7 @@ module.exports = {
         });
       return hasCharged;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -1058,7 +1059,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -1092,7 +1093,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -1278,7 +1279,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
     }
   },
 
@@ -1347,7 +1348,7 @@ module.exports = {
         };
       }
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
     }
   },
 };
