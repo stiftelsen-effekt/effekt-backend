@@ -152,4 +152,63 @@ describe("DAO donations", () => {
       });
     });
   });
+
+  describe("getEAFundsDonations", () => {
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    it("reads EA Norge (owner 2) donations from Donations with the tax unit from the distribution", async () => {
+      const timestamp = new Date("2024-05-01");
+      const queryStub = sinon.stub(DAO, "query").resolves([
+        [
+          {
+            ID: 11,
+            Donor_ID: 237,
+            Tax_unit_ID: 10,
+            sum_confirmed: "2000.00",
+            timestamp_confirmed: timestamp,
+            PaymentExternal_ID: "EAN.1",
+          },
+          {
+            ID: 12,
+            Donor_ID: 237,
+            Tax_unit_ID: null,
+            sum_confirmed: "500.00",
+            timestamp_confirmed: timestamp,
+            PaymentExternal_ID: "EAN.2",
+          },
+        ],
+        [],
+      ]);
+
+      const result = await DAO.donations.getEAFundsDonations(237);
+
+      expect(queryStub.calledOnce).to.be.true;
+      const [sql, params] = queryStub.firstCall.args as [string, unknown[]];
+      expect(sql).to.not.contain("Funds_donations");
+      expect(sql).to.contain("FROM Donations");
+      expect(sql).to.contain("Distributions.Tax_unit_ID");
+      expect(sql).to.contain("Donations.Meta_owner_ID = ?");
+      expect(params).to.deep.equal([237, 2]);
+      expect(result).to.deep.equal([
+        {
+          id: 11,
+          donorId: 237,
+          taxUnitId: 10,
+          sum: 2000,
+          timestamp,
+          paymentExternalId: "EAN.1",
+        },
+        {
+          id: 12,
+          donorId: 237,
+          taxUnitId: null,
+          sum: 500,
+          timestamp,
+          paymentExternalId: "EAN.2",
+        },
+      ]);
+    });
+  });
 });

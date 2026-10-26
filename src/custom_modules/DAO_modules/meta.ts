@@ -1,4 +1,12 @@
 import { DAO } from "../DAO";
+
+/**
+ * Data_owner ID for EA Norge. Donations with this owner are made through EA Giverportal,
+ * EA Norway's own offering. For tax purposes they go to the same legal entity as
+ * "EAN + Effekt" donations; the owner only marks them as given to EA Norway for donors.
+ */
+export const EA_NORGE_META_OWNER_ID = 2;
+
 //region Get
 
 /**

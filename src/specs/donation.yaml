@@ -39,6 +39,9 @@ components:
           type: string
           format: date-time
           description: The timestamp of the donation
+        metaOwnerId:
+          type: integer
+          description: The id of the data owner of the donation (2 = EA Norge, i.e. EA Giverportal donations)
       example:
         id: 217
         donor: Jack Torance
