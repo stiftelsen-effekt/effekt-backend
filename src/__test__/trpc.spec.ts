@@ -1,7 +1,9 @@
 import { expect } from "chai";
-import type { Request, Response } from "express";
+import express, { type Request, type Response } from "express";
+import request from "supertest";
 import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
+import { mountTrpc } from "../trpc/express";
 import { appRouter } from "../trpc/router";
 import { createCallerFactory } from "../trpc/trpc";
 
@@ -50,5 +52,37 @@ describe("tRPC procedures", () => {
   it("returns data owners to admins", async () => {
     const owners = await callerWith(["admin"]).meta.owners();
     expect(owners).to.deep.equal([{ id: 1, owner: "Effekt", default: true }]);
+  });
+});
+
+describe("tRPC over HTTP", () => {
+  const app = express();
+  app.use(express.json());
+  mountTrpc(app);
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it("answers CORS preflights with 204", async () => {
+    await request(app).options("/trpc/meta.owners").expect(204);
+  });
+
+  it("rejects anonymous requests to admin procedures with 401", async () => {
+    const res = await request(app).get("/trpc/meta.owners").expect(401);
+    expect(res.body.error.data.code).to.equal("UNAUTHORIZED");
+  });
+
+  it("rejects invalid bearer tokens with 401", async () => {
+    const res = await request(app)
+      .get("/trpc/meta.owners")
+      .set("Authorization", "Bearer not.a.token")
+      .expect(401);
+    expect(res.body.error.data.code).to.equal("UNAUTHORIZED");
+  });
+
+  it("does not include stack traces outside development", async () => {
+    const res = await request(app).get("/trpc/meta.owners");
+    expect(res.body.error.data.stack).to.be.undefined;
   });
 });
