@@ -10,7 +10,7 @@ import { normalizeDonorEmail } from "../donorEmail";
 type DonorFundraiserGiving = "only" | "atLeastOnce" | "never";
 type DonorFundraiserType = "facebook" | "adoveo" | "homebrew";
 
-interface DonorFilters {
+export interface DonorFilters {
   donorId: number | null;
   name?: string;
   email?: string;
@@ -28,7 +28,7 @@ interface DonorFilters {
   recipientOrgIDs?: Array<number>; // List of Organizations.ID
 }
 
-interface DonorRow {
+export interface DonorRow {
   id: number;
   name: string | null;
   email: string;
@@ -39,7 +39,7 @@ interface DonorRow {
   newsletter: boolean;
 }
 
-interface DonorStatistics {
+export interface DonorStatistics {
   totalDonors: number;
   totalDonationSum: number;
   totalDonationCount: number;

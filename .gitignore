@@ -9,3 +9,4 @@ dist/
 !.env.example
 !.env.test
 !.env.docker
+dist-types/
