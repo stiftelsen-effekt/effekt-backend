@@ -1,5 +1,10 @@
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+import {
+  buildNewOrganization,
+  mergeOrganizationUpdate,
+  toggleOrganizationActive,
+} from "../custom_modules/configService";
 
 import express from "express";
 export const organizationsRouter = express.Router();
@@ -87,17 +92,16 @@ organizationsRouter.post("/", authMiddleware.isAdmin, async (req, res, next) => 
       });
     }
 
-    const newOrganization = {
+    const newOrganization = buildNewOrganization({
       name,
       abbreviation,
-      shortDescription: shortDescription || "",
-      longDescription: longDescription || "",
-      informationUrl: informationUrl || "",
-      isActive: true,
-      ordering: ordering || 99,
-      standardShare: standardShare || 0,
+      shortDescription,
+      longDescription,
+      informationUrl,
+      ordering,
+      standardShare,
       causeAreaId,
-    };
+    });
 
     await DAO.organizations.add(newOrganization);
 
@@ -140,21 +144,17 @@ organizationsRouter.put("/:id", authMiddleware.isAdmin, async (req, res, next) =
       });
     }
 
-    const updatedOrganization = {
-      id,
-      name: name !== undefined ? name : existingOrganization.full_name,
-      abbreviation: abbreviation !== undefined ? abbreviation : existingOrganization.abbriv,
-      shortDescription:
-        shortDescription !== undefined ? shortDescription : existingOrganization.short_desc,
-      longDescription:
-        longDescription !== undefined ? longDescription : existingOrganization.long_desc,
-      informationUrl: informationUrl !== undefined ? informationUrl : existingOrganization.info_url,
-      isActive: isActive !== undefined ? isActive : existingOrganization.is_active === 1,
-      ordering: ordering !== undefined ? ordering : existingOrganization.ordering,
-      standardShare:
-        standardShare !== undefined ? standardShare : existingOrganization.std_percentage_share,
-      causeAreaId: causeAreaId !== undefined ? causeAreaId : existingOrganization.cause_area_ID,
-    };
+    const updatedOrganization = mergeOrganizationUpdate(id, existingOrganization, {
+      name,
+      abbreviation,
+      shortDescription,
+      longDescription,
+      informationUrl,
+      isActive,
+      ordering,
+      standardShare,
+      causeAreaId,
+    });
 
     await DAO.organizations.updateById(updatedOrganization);
 
@@ -187,18 +187,7 @@ organizationsRouter.put("/:id/toggle-active", authMiddleware.isAdmin, async (req
       });
     }
 
-    const updatedOrganization = {
-      id,
-      name: existingOrganization.full_name,
-      abbreviation: existingOrganization.abbriv,
-      shortDescription: existingOrganization.short_desc,
-      longDescription: existingOrganization.long_desc,
-      informationUrl: existingOrganization.info_url,
-      isActive: !(existingOrganization.is_active === 1),
-      ordering: existingOrganization.ordering,
-      standardShare: existingOrganization.std_percentage_share,
-      causeAreaId: existingOrganization.cause_area_ID,
-    };
+    const updatedOrganization = toggleOrganizationActive(id, existingOrganization);
 
     await DAO.organizations.updateById(updatedOrganization);
 
