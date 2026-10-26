@@ -9,5 +9,6 @@
     "esModuleInterop": true,
     "downlevelIteration": true
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "admin"]
 }
