@@ -12,7 +12,7 @@ import methods from "../enums/methods";
 import bodyParser from "body-parser";
 import apicache from "apicache";
 import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
-import { validateDistribution } from "../custom_modules/distribution";
+import { confirmDonation, updateDonation } from "../custom_modules/donationsService";
 import { localeMiddleware, LocaleRequest } from "../middleware/locale";
 import { exportCsv } from "../custom_modules/csvexport";
 import { MAX_REFERRAL_CODE_LENGTH, normalizeReferralCode } from "../custom_modules/referralCode";
@@ -356,59 +356,18 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
     const existingDonation = await DAO.donations.getByID(donationId);
     if (!existingDonation) return res.status(404).send("Donation not found");
 
-    await DAO.donations.update({
-      id: req.params.id,
-      paymentId: req.body.paymentId,
-      paymentExternalRef: req.body.paymentExternalRef,
-      sum: req.body.sum,
-      transactionCost: req.body.transactionCost,
-      timestamp: new Date(req.body.timestamp),
-      metaOwnerId: req.body.metaOwnerId,
-    });
-
-    if (req.body.distribution) {
-      const validatedDistribution = validateDistribution(req.body.distribution);
-
-      if (!("kid" in validatedDistribution)) {
-        throw new Error("Distribution does not have a KID");
-      }
-
-      // Check if the existing donation has a fundraiser distribution
-      const existingDistribution = await DAO.distributions.getSplitByKID(existingDonation.KID);
-
-      if (existingDistribution?.fundraiserTransactionId) {
-        // For fundraiser donations, keep the same KID but update the cause areas
-        // Fundraiser KIDs are unique per donation and linked to a specific fundraiser transaction
-        await DAO.distributions.updateCauseAreas(
-          existingDonation.KID,
-          validatedDistribution.causeAreas,
-        );
-      } else {
-        // For non-fundraiser donations, use the existing KID consolidation logic
-        const existingBySplitKID = await DAO.distributions.getKIDbySplit(validatedDistribution);
-
-        if (existingBySplitKID != null && existingBySplitKID === validatedDistribution.kid) {
-          // No change
-        } else if (existingBySplitKID != null) {
-          // Use an existing KID for a distribution matching the split
-          await DAO.donations.updateKIDById(req.params.id, existingBySplitKID);
-        } else {
-          // Create a new KID and distribution
-          const newKid = await donationHelpers.createKID();
-          await DAO.distributions.add({
-            ...validatedDistribution,
-            // Overwrite the KID with the new one
-            kid: newKid,
-          });
-          await DAO.donations.updateKIDById(req.params.id, newKid);
-        }
-      }
-
-      if (validatedDistribution.donorId !== existingDonation.donorId) {
-        console.log("UPDATE DONOR ID");
-        await DAO.donations.updateDonorId(donationId, validatedDistribution.donorId);
-      }
-    }
+    await updateDonation(
+      existingDonation,
+      {
+        paymentId: req.body.paymentId,
+        paymentExternalRef: req.body.paymentExternalRef,
+        sum: req.body.sum,
+        transactionCost: req.body.transactionCost,
+        timestamp: new Date(req.body.timestamp),
+        metaOwnerId: req.body.metaOwnerId,
+      },
+      req.body.distribution,
+    );
 
     return res.json({
       status: 200,
@@ -464,17 +423,15 @@ router.post("/confirm", authMiddleware.isAdmin, urlEncodeParser, async (req, res
     let externalRef = req.body.paymentExternalRef;
     let metaOwnerID = req.body.metaOwnerID;
 
-    let donationID = await DAO.donations.add(
+    await confirmDonation({
       KID,
-      methodId,
+      paymentMethodId: methodId,
       sum,
       timestamp,
       externalRef,
-      metaOwnerID,
-    );
-
-    if (config.env === "production" && req.body.reciept === true)
-      await sendDonationReceipt(donationID);
+      metaOwnerId: metaOwnerID,
+      sendReceipt: req.body.reciept === true,
+    });
 
     res.json({
       status: 200,
