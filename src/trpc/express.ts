@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { createContext } from "./context";
+import { passMultipartBodyToTrpc, TRPC_MAX_BODY_SIZE } from "./reportsMultipart";
 import { appRouter } from "./router";
 
 export const mountTrpc = (app: Express) => {
@@ -11,9 +12,11 @@ export const mountTrpc = (app: Express) => {
 
   app.use(
     "/trpc",
+    passMultipartBodyToTrpc,
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      maxBodySize: TRPC_MAX_BODY_SIZE,
       onError: ({ error, path }) => {
         if (error.code === "INTERNAL_SERVER_ERROR") console.error(`tRPC ${path}:`, error);
       },
