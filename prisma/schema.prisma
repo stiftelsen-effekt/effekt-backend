@@ -287,7 +287,6 @@ model Donors {
   Donations                     Donations[]
   Distributions                 Distributions[]
   FB_payment_ID                 FB_payment_ID[]
-  Funds_donations               Funds_donations[]
   Tax_unit                      Tax_unit[]
   Vipps_agreements              Vipps_agreements[]
   Swish_orders                  Swish_orders[]
@@ -479,20 +478,6 @@ model Fundraiser_transactions {
   Distributions Distributions[]
 }
 
-model Funds_donations {
-  ID                Int       @id @default(autoincrement())
-  DonorID           Int?
-  TaxUnitID         Int?
-  Sum               Decimal   @db.Decimal(15, 2)
-  Timestamp         DateTime  @db.DateTime(0)
-  PaymentExternalID String    @db.VarChar(45)
-  Donors            Donors?   @relation(fields: [DonorID], references: [ID], onDelete: Cascade, map: "FK_Funds_donorid")
-  Tax_unit          Tax_unit? @relation(fields: [TaxUnitID], references: [ID], map: "FK_Funds_taxunit")
-
-  @@index([DonorID], map: "FK_Funds_donorid_idx")
-  @@index([TaxUnitID], map: "FK_Funds_taxunit_idx")
-}
-
 model Import_logs {
   ID        Int       @id @default(autoincrement())
   label     String?   @db.VarChar(45)
@@ -620,9 +605,8 @@ model Tax_unit {
   registered DateTime? @default(now()) @db.DateTime(0)
   archived   DateTime? @db.DateTime(0)
 
-  FB_payment_ID   FB_payment_ID[]
-  Funds_donations Funds_donations[]
-  Distributions   Distributions[]
+  FB_payment_ID FB_payment_ID[]
+  Distributions Distributions[]
 
   // When a donor is deleted we also delete the tax unit.
   Donors Donors @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "FK_tax_unit_donor_id")
