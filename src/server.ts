@@ -42,6 +42,7 @@ import { oauthRouter, sendAuthorizationServerMetadata } from "./routes/oauth";
 import { getProtectedResourceMetadata } from "./custom_modules/mcp/oauthProtectedResource";
 import { startWebSocketServer } from "./websocket";
 import { mountTrpc } from "./trpc/express";
+import { skipForTrpc } from "./trpc/reportsMultipart";
 
 // Defence in depth: log stray rejections instead of letting Node's default
 // (--unhandled-rejections=throw) terminate the whole API process.
@@ -117,11 +118,13 @@ DAO.connect(() => {
     }),
   );
 
-  //File upload
+  //File upload (not for /trpc, which parses multipart/form-data itself)
   app.use(
-    fileUpload({
-      limits: { fileSize: 10 * 1024 * 1024 }, //Probably totally overkill, consider reducing
-    }),
+    skipForTrpc(
+      fileUpload({
+        limits: { fileSize: 10 * 1024 * 1024 }, //Probably totally overkill, consider reducing
+      }),
+    ),
   );
   // Exactly one trusted proxy hop: Cloud Run's Google Front End appends the real client IP
   // to X-Forwarded-For. Trusting more hops would let clients spoof req.ip (used by the

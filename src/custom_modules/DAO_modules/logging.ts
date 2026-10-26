@@ -1,6 +1,22 @@
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
 
+export type ImportLogSummary = {
+  ID: number;
+  label: string | null;
+  timestamp: Date | null;
+  /** Human-readable summary of known result shapes, empty string otherwise */
+  meta: string | null;
+};
+
+export type ImportLogEntry = {
+  ID: number;
+  label: string | null;
+  /** The JSON result column, parsed by mysql2 */
+  result: unknown;
+  timestamp: Date | null;
+};
+
 /**
  * @typedef ImportLogEntry
  * @property {number} ID
@@ -17,11 +33,17 @@ import sqlString from "sqlstring";
  * @param {string} filesearch A string to fuzzy match in the file in the log entry
  * @returns {{ results: Array<ImportLogEntry>, pages: number }}
  */
-async function getEntries(limit = 10, offset = 0, filesearch = null) {
-  /**
-   * TODO: Add filtering
-   */
-  let [res] = await DAO.query(
+async function getEntries(
+  limit = 10,
+  offset = 0,
+  filesearch: string | null = null,
+): Promise<{ results: ImportLogSummary[]; pages: number }> {
+  const where =
+    filesearch !== null && filesearch !== ""
+      ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' + sqlString.escape("%" + filesearch + "%")
+      : "";
+
+  let [res] = await DAO.query<ImportLogSummary[]>(
     `
       SELECT 
         ID, label, timestamp,
@@ -55,11 +77,7 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
       
       FROM Import_logs 
 
-      ${
-        filesearch !== null && filesearch !== ""
-          ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' + sqlString.escape("%" + filesearch + "%")
-          : ""
-      }
+      ${where}
       
       ORDER BY timestamp DESC 
       LIMIT ? 
@@ -67,8 +85,9 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
     [limit, offset],
   );
 
-  let [counter] = await DAO.query(`
-      SELECT COUNT(*) as count FROM Import_logs 
+  // Same filter as above, so the page count matches the filtered entries
+  let [counter] = await DAO.query<{ count: number }[]>(`
+      SELECT COUNT(*) as count FROM Import_logs ${where}
     `);
 
   const pages = Math.ceil(counter[0].count / limit);
@@ -84,8 +103,8 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
  * @param {number} id
  * @returns {ImportLogEntry}
  */
-async function get(id) {
-  let [res] = await DAO.query(
+async function get(id: number): Promise<ImportLogEntry | null> {
+  let [res] = await DAO.query<ImportLogEntry[]>(
     `
       SELECT *
       

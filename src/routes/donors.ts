@@ -8,7 +8,13 @@ import permissions from "../enums/authorizationPermissions";
 import bodyParser from "body-parser";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { TaxDeductionDonation, getYearlyMapping } from "../custom_modules/taxdeductions";
-import { connectDonationsForFirstTaxUnit } from "../custom_modules/tax";
+import {
+  DonorServiceError,
+  archiveTaxUnit,
+  createDonor,
+  createTaxUnitForDonor,
+  mergeDonors,
+} from "../custom_modules/donorService";
 import { exportCsv } from "../custom_modules/csvexport";
 import { requireAuthorizationSecret } from "../custom_modules/webhookAuth";
 import { EA_NORGE_META_OWNER_ID } from "../custom_modules/DAO_modules/meta";
@@ -40,16 +46,15 @@ router.post("/", authMiddleware.isAdmin, urlEncodeParser, async (req, res, next)
       throw error;
     }
 
-    const existing = await DAO.donors.getIDbyEmail(req.body.email);
-
-    if (existing !== null) {
-      return res.status(409).json({
-        status: 409,
-        content: "Email already exists",
-      });
+    let donorId: number;
+    try {
+      donorId = await createDonor(req.body.email, req.body.name);
+    } catch (ex) {
+      if (ex instanceof DonorServiceError) {
+        return res.status(ex.httpStatus).json({ status: ex.httpStatus, content: ex.message });
+      }
+      throw ex;
     }
-
-    const donorId = await DAO.donors.add({ email: req.body.email, full_name: req.body.name });
 
     /**
      * If we are provided a social security number, we should add a tax unit to the donor
@@ -674,19 +679,10 @@ router.post(
         });
       }
 
-      var taxUnitId = await DAO.tax.addTaxUnit(donor.id, ssn, name);
-      const taxUnit = await DAO.tax.getById(taxUnitId);
+      const taxUnit = await createTaxUnitForDonor(donor.id, ssn, name, req.locale);
 
       // If successfully created tax unit
       if (taxUnit) {
-        const taxUnits = await DAO.tax.getByDonorId(donor.id, req.locale);
-
-        // if this is the first tax unit created for the donor (also counts archived tax units)
-        if (taxUnits.length === 1) {
-          // Update the donor's KID numbers missing a tax unit
-          await connectDonationsForFirstTaxUnit(donor.id, taxUnit.id);
-        }
-
         return res.json({
           status: 200,
           content: taxUnit,
@@ -760,23 +756,19 @@ router.delete(
   },
   async (req, res, next) => {
     try {
-      const donor = await DAO.donors.getByID(req.params.id);
-      if (!donor) {
-        return res.status(404).json({
-          status: 404,
-          content: "No donor found with ID " + req.params.id,
-        });
+      let deleted: number;
+      try {
+        deleted = await archiveTaxUnit(
+          parseInt(req.params.id),
+          parseInt(req.params.taxunitid),
+          req.body.transferId,
+        );
+      } catch (ex) {
+        if (ex instanceof DonorServiceError) {
+          return res.status(ex.httpStatus).json({ status: ex.httpStatus, content: ex.message });
+        }
+        throw ex;
       }
-
-      const taxUnit = await DAO.tax.getById(req.params.taxunitid);
-      if (!taxUnit || taxUnit.donorId !== donor.id) {
-        return res.status(404).json({
-          status: 404,
-          content: "No tax unit found with ID " + req.params.taxunitid,
-        });
-      }
-
-      const deleted = await DAO.tax.deleteById(taxUnit.id, donor.id, req.body.transferId);
       if (deleted) {
         return res.json({
           status: 200,
@@ -1273,7 +1265,7 @@ router.get(
 
       let distributions = result.distributions;
 
-      if (typeof req.query.kids !== undefined) {
+      if (typeof req.query.kids === "string") {
         const kidSet = new Set<string>();
         req.query.kids.split(",").map((kid) => kidSet.add(kid));
 
@@ -1432,29 +1424,14 @@ router.post("/:originId/merge/:destinationId", authMiddleware.isAdmin, async (re
       });
     }
 
-    /**
-     * merge_donors moves the origin donor's rows over and then deletes the
-     * origin donor. With the same id on both sides that is a plain delete, and
-     * everything hanging off the donor goes with it via cascade.
-     */
-    if (originId === destinationId) {
-      return res.status(400).json({
-        status: 400,
-        content: "Cannot merge a donor into itself",
-      });
+    try {
+      await mergeDonors(originId, destinationId);
+    } catch (ex) {
+      if (ex instanceof DonorServiceError) {
+        return res.status(ex.httpStatus).json({ status: ex.httpStatus, content: ex.message });
+      }
+      throw ex;
     }
-
-    const donorOrigin = await DAO.donors.getByID(originId);
-    const donorDestination = await DAO.donors.getByID(destinationId);
-
-    if (!donorOrigin || !donorDestination) {
-      return res.status(404).json({
-        status: 404,
-        content: "Donor not found",
-      });
-    }
-
-    await DAO.donors.mergeDonors(originId, destinationId);
 
     return res.json({
       status: 200,

@@ -21,6 +21,8 @@ import {
   autogiroPaymentStatusCodeToStringExplenation,
 } from "./parsers/autogiro/transactions";
 import { AutogiroChargeToBeAmended } from "./DAO_modules/autogiroagreements";
+import { donationHelpers } from "./donationHelpers";
+import { DistributionInput } from "../schemas/types";
 
 /**
  * Generates a claims file to claim payments for AutoGiro agreements
@@ -659,4 +661,160 @@ export function getSeBankingDaysBetweenDates(start: DateTime, end: DateTime) {
   }
 
   return dueDates;
+}
+
+export type AutoGiroShipmentResult =
+  | {
+      shipmentID: number;
+      numCharges: number;
+      numMandatesToBeConfirmed: number;
+      file: string;
+      filename: string;
+    }
+  | {
+      shipmentID: null;
+      numCharges: 0;
+      mandatesToBeConfirmed: 0;
+      file: null;
+      filename: null;
+    };
+
+/**
+ * Creates a new AutoGiro shipment: collects agreements to charge for the current month, new
+ * mandates to confirm and pending charges to amend, generates the claims file and logs the
+ * result (the stored log is what the shipment report download reads back).
+ * Used by POST /scheduled/autogiro and the admin tRPC procedure.
+ */
+export async function createAutoGiroShipment(): Promise<AutoGiroShipmentResult> {
+  let result: AutoGiroShipmentResult;
+  const today = DateTime.fromJSDate(new Date());
+
+  const agreements = await DAO.autogiroagreements.getAgreementsToCharge();
+
+  let agreementsToClaim: {
+    agreement: AutoGiro_agreements;
+    claimDate: DateTime;
+  }[] = [];
+  for (let agreement of agreements) {
+    if (agreement.payment_date === 0) {
+      const lastDayOfMonth = today.endOf("month");
+      agreementsToClaim.push({
+        agreement,
+        claimDate: lastDayOfMonth,
+      });
+      continue;
+    }
+
+    if (
+      agreement.payment_date <= today.day &&
+      agreement.created!.getDate() < agreement.payment_date
+    ) {
+      let skewedDate = DateTime.now().plus({ days: 1 });
+      while (getSeBankingDaysBetweenDates(today, skewedDate) < 1) {
+        if (skewedDate.month !== today.month) {
+          console.error("Skewed date is in next month");
+          break;
+        }
+        skewedDate = skewedDate.plus({ days: 1 });
+      }
+      agreementsToClaim.push({
+        agreement,
+        claimDate: skewedDate,
+      });
+      continue;
+    }
+
+    const claimDate = today.set({ day: agreement.payment_date });
+    agreementsToClaim.push({
+      agreement,
+      claimDate: claimDate,
+    });
+  }
+
+  const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
+  const amendmentCandidates = await DAO.autogiroagreements.getAmendmentCandidates();
+
+  /* Check if the claim date is within the timeframe where we can send the file
+   * We need at least one banking day between the claim date and today
+   */
+  const chargesToAmend = amendmentCandidates.filter((candidate) => {
+    const claimDate =
+      candidate.agreementDay == 0
+        ? DateTime.now().endOf("month")
+        : DateTime.now().set({ day: candidate.agreementDay });
+    if (claimDate.diff(today, "days").days > 0) {
+      // Find the number of banking days between today and the claim date
+      const bankingDaysBetween = getSeBankingDaysBetweenDates(today, claimDate);
+      return bankingDaysBetween > 0;
+    }
+    return false;
+  });
+
+  agreementsToClaim = agreementsToClaim.filter((agreement) => {
+    return !chargesToAmend.some((charge) => charge.agreementId === agreement.agreement.ID);
+  });
+
+  if (
+    agreementsToClaim.length > 0 ||
+    mandatesToBeConfirmed.length > 0 ||
+    chargesToAmend.length > 0
+  ) {
+    /**
+     * Create file to charge agreements for current day
+     */
+    const shipmentID = await DAO.autogiroagreements.addShipment(agreementsToClaim.length);
+
+    let autoGiroClaimsFile: Buffer;
+    try {
+      autoGiroClaimsFile = await generateAutogiroGiroFile(
+        shipmentID,
+        agreementsToClaim,
+        chargesToAmend,
+        mandatesToBeConfirmed,
+      );
+    } catch (ex) {
+      console.error(ex);
+      await DAO.autogiroagreements.removeShipment(shipmentID);
+      throw new Error("Error generating file");
+    }
+
+    result = {
+      shipmentID: shipmentID,
+      numCharges: agreementsToClaim.length,
+      numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
+      file: autoGiroClaimsFile.toString(),
+      filename: `BFEP.IAGAG.${shipmentID}.${today.toFormat("yyLLdd.HHmmss")}`,
+    };
+  } else {
+    result = {
+      shipmentID: null,
+      numCharges: 0,
+      mandatesToBeConfirmed: 0,
+      file: null,
+      filename: null,
+    };
+  }
+
+  await DAO.logging.add("AutoGiro", result);
+  return result;
+}
+
+/**
+ * Replaces the distribution of an AutoGiro agreement. The current distribution is preserved
+ * under a newly generated KID (keeping donation history), and the new distribution takes over
+ * the agreement's original KID.
+ * @param KID The agreement KID
+ * @param validatedDistribution A distribution that has passed validateDistribution
+ */
+export async function replaceAutoGiroDistribution(
+  KID: string,
+  validatedDistribution: DistributionInput,
+) {
+  const originalDistribution = await DAO.distributions.getSplitByKID(KID);
+  const newKid = await donationHelpers.createKID();
+  await DAO.autogiroagreements.replaceAgreementDistribution(
+    originalDistribution,
+    newKid,
+    validatedDistribution,
+  );
 }

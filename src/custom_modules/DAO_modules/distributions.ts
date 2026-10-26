@@ -34,7 +34,8 @@ export interface DistributionRow {
   KID: string;
   full_name: string;
   email: string;
-  donation_sum: number;
+  /** Decimal string */
+  donation_sum: string;
   donation_count: number;
   // Index signature to allow for dynamic organization share properties
   [org_abbriv: string]: number | string;

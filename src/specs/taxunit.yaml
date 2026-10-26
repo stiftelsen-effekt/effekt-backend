@@ -27,6 +27,7 @@ components:
         archived:
           type: string
           format: date-time
+          nullable: true
           description: Indicates the date the unit was archived. Null if the unit is not archived
         sumDonations:
           type: string

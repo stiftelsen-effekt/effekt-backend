@@ -9,6 +9,20 @@ import { DateTime } from "luxon";
 import sqlString from "sqlstring";
 import { Distribution, DistributionInput } from "../../schemas/types";
 
+export type AutoGiroMandateRow = Pick<
+  AutoGiro_mandates,
+  | "ID"
+  | "KID"
+  | "status"
+  | "bank_account"
+  | "special_information"
+  | "name_and_address"
+  | "postal_code"
+  | "postal_label"
+  | "last_updated"
+  | "created"
+> & { full_name: string };
+
 export const autogiroagreements = {
   getAllShipments: async function () {
     const [shipments] = await DAO.query<AutoGiro_shipments[]>(
@@ -86,7 +100,12 @@ export const autogiroagreements = {
       if (filter.created) {
         if (filter.created.from)
           where.push(`AG.created >= ${sqlString.escape(filter.created.from)} `);
-        if (filter.created.to) where.push(`AG.created <= ${sqlString.escape(filter.created.to)} `);
+        if (filter.created.to) {
+          // Inclusive of the whole 'to' day, like the AvtaleGiro filter
+          const toDate = new Date(filter.created.to);
+          toDate.setDate(toDate.getDate() + 1);
+          where.push(`AG.created < ${sqlString.escape(toDate)} `);
+        }
       }
 
       if (filter.KID)
@@ -189,8 +208,10 @@ export const autogiroagreements = {
     );
     return agreements.map(mapAgreementType);
   },
-  getAgreementSumHistogram: async function () {
-    let [results] = await DAO.query(`
+  getAgreementSumHistogram: async function (): Promise<
+    Array<{ bucket: number; items: number; bar: number }>
+  > {
+    let [results] = await DAO.query<Array<{ bucket: number; items: number; bar: number }>>(`
               SELECT 
                   floor(amount/500)*500 	AS bucket, 
                   count(*) 						AS items,
@@ -524,7 +545,7 @@ export const autogiroagreements = {
     page: number,
     limit: number,
     filter: any,
-  ) {
+  ): Promise<{ pages: number; rows: AutoGiroMandateRow[] }> {
     const sortColumn = sort.id;
     const sortDirection = sort.desc ? "DESC" : "ASC";
     const offset = page * limit;
@@ -541,7 +562,17 @@ export const autogiroagreements = {
         );
     }
 
-    const [mandates] = await DAO.query(
+    const fromWhere = `
+          FROM AutoGiro_mandates as AG
+          INNER JOIN Distributions as DI
+              ON AG.KID = DI.KID
+          INNER JOIN Donors 
+              ON DI.Donor_ID = Donors.ID
+          WHERE
+              ${where.length !== 0 ? where.join(" AND ") : "1"}
+    `;
+
+    const [mandates] = await DAO.query<AutoGiroMandateRow[]>(
       `
           SELECT DISTINCT
               AG.ID,
@@ -555,22 +586,17 @@ export const autogiroagreements = {
               AG.last_updated,
               AG.created,
               Donors.full_name
-          FROM AutoGiro_mandates as AG
-          INNER JOIN Distributions as DI
-              ON AG.KID = DI.KID
-          INNER JOIN Donors 
-              ON DI.Donor_ID = Donors.ID
-          WHERE
-              ${where.length !== 0 ? where.join(" AND ") : "1"}
-
+          ${fromWhere}
           ORDER BY ${sortColumn} ${sortDirection}
           LIMIT ? OFFSET ?
           `,
       [limit, offset],
     );
 
-    const [counter] = await DAO.query(`
-          SELECT COUNT(*) as count FROM AutoGiro_mandates
+    // Count with the same filter so pages matches the filtered rows
+    const [counter] = await DAO.query<Array<{ count: number }>>(`
+          SELECT COUNT(DISTINCT AG.ID) as count
+          ${fromWhere}
       `);
 
     return {

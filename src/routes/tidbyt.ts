@@ -79,7 +79,7 @@ tidbytRouter.get("/agreements/vipps", async (req, res, next) => {
             color: "FFFFFF",
           },
           {
-            ...rightAlign("Sum", formatNumber(report.totalAgreementSum)),
+            ...rightAlign("Sum", formatNumber(Number(report.totalAgreementSum))),
             color: "FFFFFF",
           },
         ],

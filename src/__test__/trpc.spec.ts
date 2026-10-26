@@ -22,7 +22,7 @@ describe("tRPC procedures", () => {
   beforeEach(() => {
     ownersStub = sinon
       .stub(DAO.meta, "getDataOwners")
-      .resolves([{ id: 1, owner: "Effekt", default: true }]);
+      .resolves([{ id: 1, name: "Effekt", default: true }]);
   });
 
   afterEach(() => {
@@ -51,7 +51,7 @@ describe("tRPC procedures", () => {
 
   it("returns data owners to admins", async () => {
     const owners = await callerWith(["admin"]).meta.owners();
-    expect(owners).to.deep.equal([{ id: 1, owner: "Effekt", default: true }]);
+    expect(owners).to.deep.equal([{ id: 1, name: "Effekt", default: true }]);
   });
 });
 

@@ -208,4 +208,65 @@ describe("DAO avtalegiroagreements", () => {
       sinon.restore();
     });
   });
+
+  describe("queries rewritten for the multiple cause area schema", () => {
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    it("getMissingForDate finds the donor through Distributions", async () => {
+      const rows = [{ ID: 1, amount: 500 }];
+      const queryStub = sinon.stub(DAO, "query").resolves([rows, []]);
+
+      expect(await DAO.avtalegiroagreements.getMissingForDate(new Date(2024, 10, 19))).to.equal(
+        rows,
+      );
+
+      const [sql, params] = queryStub.firstCall.args;
+      expect(sql).to.not.match(/Combining_table|call /i);
+      expect(sql).to.contain("INNER JOIN Distributions");
+      expect(params).to.deep.equal(Array(5).fill("2024-11-19"));
+    });
+
+    it("getRecievedDonationsForDate maps donations", async () => {
+      const queryStub = sinon.stub(DAO, "query").resolves([
+        [
+          {
+            ID: 3,
+            email: "a@b",
+            full_name: "Ola",
+            sum_confirmed: "400.00",
+            transaction_cost: "2.00",
+            KID_fordeling: "123",
+            timestamp_confirmed: new Date(2024, 10, 19),
+          },
+        ],
+        [],
+      ]);
+
+      const result = await DAO.avtalegiroagreements.getRecievedDonationsForDate(
+        new Date(2024, 10, 19),
+      );
+
+      expect(queryStub.firstCall.args[0]).to.not.match(/Combining_table|call /i);
+      expect(result).to.deep.equal([
+        {
+          id: 3,
+          kid: "123",
+          paymentMethod: "AvtaleGiro",
+          email: "a@b",
+          donor: "Ola",
+          sum: "400.00",
+          transactionCost: "2.00",
+          timestamp: new Date(2024, 10, 19),
+        },
+      ]);
+    });
+
+    it("getAgreement returns the donor id separately from the agreement id", async () => {
+      const queryStub = sinon.stub(DAO, "query").resolves([[{ ID: 7, donorId: 12 }], []]);
+      expect(await DAO.avtalegiroagreements.getAgreement(7)).to.deep.equal({ ID: 7, donorId: 12 });
+      expect(queryStub.firstCall.args[0]).to.contain("Donors.ID as donorId");
+    });
+  });
 });

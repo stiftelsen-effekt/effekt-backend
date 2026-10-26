@@ -86,6 +86,8 @@ export const fundraisers = {
     totalSum: number;
     donationCount: number;
     transactions: {
+      /** Fundraiser transaction id */
+      id: number;
       name: string | null;
       message: string | null;
       amount: number;

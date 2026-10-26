@@ -61,7 +61,7 @@ export interface components {
        * Format: date-time
        * @description Indicates the date the unit was archived. Null if the unit is not archived
        */
-      archived?: string;
+      archived?: string | null;
       /** @description The sum of all donations for the tax unit for the year */
       sumDonations?: string;
       /** @description The number of donations for the tax unit for the year */

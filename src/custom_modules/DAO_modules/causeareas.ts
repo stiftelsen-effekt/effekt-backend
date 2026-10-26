@@ -1,4 +1,5 @@
 import { Cause_areas, Organizations } from "@prisma/client";
+import type { ResultSetHeader } from "mysql2";
 import { DAO } from "../DAO";
 import { CauseArea, Organization } from "../../schemas/types";
 import { mapOrganization } from "./organizations";
@@ -32,8 +33,9 @@ export const causeareas = {
       ],
     );
   },
-  add: async function (causeArea: Omit<CauseArea, "id">) {
-    await DAO.query(
+  /** @returns The new cause area's ID */
+  add: async function (causeArea: Omit<CauseArea, "id">): Promise<number> {
+    const [result] = await DAO.query<ResultSetHeader>(
       `
         INSERT INTO Cause_areas (name, short_desc, long_desc, is_active, ordering, std_percentage_share)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -47,6 +49,7 @@ export const causeareas = {
         causeArea.standardPercentageShare || 0,
       ],
     );
+    return result.insertId;
   },
   getAll: async function (): Promise<CauseArea[]> {
     const [causeAreas] = await DAO.query<Cause_areas[]>(

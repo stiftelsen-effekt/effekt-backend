@@ -1,6 +1,11 @@
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { donationHelpers } from "../custom_modules/donationHelpers";
+import {
+  buildNewCauseArea,
+  getAllCauseAreasWithOrganizations,
+  mergeCauseAreaUpdate,
+  toggleCauseAreaActive,
+} from "../custom_modules/configService";
 
 import express from "express";
 export const causeAreasRouter = express.Router();
@@ -54,18 +59,7 @@ causeAreasRouter.get("/active", async (req, res, next) => {
 
 causeAreasRouter.get("/all", async (req, res, next) => {
   try {
-    const causeAreas = await DAO.causeareas.getAll();
-    const organizations = await DAO.organizations.getAll();
-
-    const causeAreasWithOrganizations: Array<
-      (typeof causeAreas)[number] & { organizations: typeof organizations }
-    > = [];
-    for (let causeArea of causeAreas) {
-      causeAreasWithOrganizations.push({
-        ...causeArea,
-        organizations: organizations.filter((org) => org.causeAreaId === causeArea.id),
-      });
-    }
+    const causeAreasWithOrganizations = await getAllCauseAreasWithOrganizations();
 
     res.json({
       status: 200,
@@ -113,15 +107,14 @@ causeAreasRouter.post("/", authMiddleware.isAdmin, async (req, res, next) => {
       });
     }
 
-    const newCauseArea = {
+    const newCauseArea = buildNewCauseArea({
       name,
-      shortDescription: shortDescription || "",
-      longDescription: longDescription || "",
-      informationUrl: informationUrl || "",
-      isActive: true,
-      ordering: ordering || 99,
-      standardPercentageShare: standardPercentageShare || 0,
-    };
+      shortDescription,
+      longDescription,
+      informationUrl,
+      ordering,
+      standardPercentageShare,
+    });
 
     await DAO.causeareas.add(newCauseArea);
 
@@ -162,22 +155,15 @@ causeAreasRouter.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
       });
     }
 
-    const updatedCauseArea = {
-      id,
-      name: name !== undefined ? name : existingCauseArea.name,
-      shortDescription:
-        shortDescription !== undefined ? shortDescription : existingCauseArea.shortDescription,
-      longDescription:
-        longDescription !== undefined ? longDescription : existingCauseArea.longDescription,
-      informationUrl:
-        informationUrl !== undefined ? informationUrl : existingCauseArea.informationUrl,
-      isActive: isActive !== undefined ? isActive : existingCauseArea.isActive,
-      ordering: ordering !== undefined ? ordering : existingCauseArea.ordering,
-      standardPercentageShare:
-        standardPercentageShare !== undefined
-          ? standardPercentageShare
-          : existingCauseArea.standardPercentageShare,
-    };
+    const updatedCauseArea = mergeCauseAreaUpdate(id, existingCauseArea, {
+      name,
+      shortDescription,
+      longDescription,
+      informationUrl,
+      isActive,
+      ordering,
+      standardPercentageShare,
+    });
 
     await DAO.causeareas.updateById(updatedCauseArea);
 
@@ -210,10 +196,7 @@ causeAreasRouter.put("/:id/toggle-active", authMiddleware.isAdmin, async (req, r
       });
     }
 
-    const updatedCauseArea = {
-      ...existingCauseArea,
-      isActive: !existingCauseArea.isActive,
-    };
+    const updatedCauseArea = toggleCauseAreaActive(existingCauseArea);
 
     await DAO.causeareas.updateById(updatedCauseArea);
 

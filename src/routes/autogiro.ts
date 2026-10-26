@@ -1,7 +1,7 @@
 import * as express from "express";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import permissions from "../enums/authorizationPermissions";
-import { processAutogiroInputFile } from "../custom_modules/autogiro";
+import { replaceAutoGiroDistribution } from "../custom_modules/autogiro";
 import {
   checkDonorOwnsDistribution,
   isAdmin,
@@ -10,7 +10,6 @@ import { DAO } from "../custom_modules/DAO";
 import { localeMiddleware } from "../middleware/locale";
 import { DistributionInput } from "../schemas/types";
 import { validateDistribution } from "../custom_modules/distribution";
-import { donationHelpers } from "../custom_modules/donationHelpers";
 import { exportCsv } from "../custom_modules/csvexport";
 
 const router = express.Router();
@@ -234,13 +233,7 @@ router.put(
 
       // Update distribution
       if (validatedDistribution) {
-        const originalDistribution = await DAO.distributions.getSplitByKID(KID);
-        const newKid = await donationHelpers.createKID();
-        await DAO.autogiroagreements.replaceAgreementDistribution(
-          originalDistribution,
-          newKid,
-          validatedDistribution,
-        );
+        await replaceAutoGiroDistribution(KID, validatedDistribution);
       }
 
       res.json({

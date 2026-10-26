@@ -460,7 +460,7 @@ module.exports = {
           merchantSerialNumber: config.vipps_merchant_serial_number,
         },
         transaction: {
-          amount: donation.sum * 100,
+          amount: Number(donation.sum) * 100,
           transactionText: VIPPS_TEXT,
         },
       };
@@ -1309,9 +1309,10 @@ module.exports = {
 
         for (let i = 0; i < activeAgreements.length; i++) {
           const agreement = activeAgreements[i];
-          const pauseEnd = agreement.paused_until_date;
+          // Both columns are nullable; null gives the epoch / NaN, which both mean "not set" below
+          const pauseEnd = agreement.paused_until_date as string;
           const chargeDay = agreement.monthly_charge_day;
-          const forceChargeDate = new Date(agreement.force_charge_date);
+          const forceChargeDate = new Date(agreement.force_charge_date as string);
 
           // If agreement charge should be created today
           if (

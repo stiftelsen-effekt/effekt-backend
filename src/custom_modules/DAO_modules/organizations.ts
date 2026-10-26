@@ -1,3 +1,4 @@
+import type { ResultSetHeader } from "mysql2";
 import { Organizations } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
 import { Organization } from "../../schemas/types";
@@ -63,7 +64,7 @@ async function getAll() {
 /**
  * Adds a new organization
  * @param {Organization} organization The organization object to add
- * @returns {Promise<boolean>} Whether the operation was successful
+ * @returns The new organization's ID
  */
 async function add(organization: {
   name: string;
@@ -75,8 +76,8 @@ async function add(organization: {
   ordering: number;
   standardShare: number;
   causeAreaId: number;
-}) {
-  await DAO.query(
+}): Promise<number> {
+  const [result] = await DAO.query<ResultSetHeader>(
     `INSERT INTO Organizations (full_name, abbriv, short_desc, long_desc, info_url, is_active, ordering, std_percentage_share, cause_area_ID)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -91,6 +92,7 @@ async function add(organization: {
       organization.causeAreaId,
     ],
   );
+  return result.insertId;
 }
 //endregion
 
