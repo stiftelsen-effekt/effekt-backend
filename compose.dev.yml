@@ -138,6 +138,7 @@ services:
           echo "Database already seeded, skipping seed"
         else
           npx prisma db seed
+          npx prisma db execute --schema prisma/schema.prisma --file prisma/dev/fulltext-search.sql
         fi
     depends_on:
       db:

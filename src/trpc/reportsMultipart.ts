@@ -14,7 +14,11 @@ import type { NextFunction, Request, RequestHandler, Response } from "express";
 /** Upload size limit for tRPC multipart requests, same as the REST file upload limit */
 export const TRPC_MAX_BODY_SIZE = 10 * 1024 * 1024;
 
-const isTrpcPath = (path: string) => path === "/trpc" || path.startsWith("/trpc/");
+const isTrpcPath = (path: string) => {
+  // Express routing is case-insensitive, so match /TRPC too
+  const lower = path.toLowerCase();
+  return lower === "/trpc" || lower.startsWith("/trpc/");
+};
 
 /** Wraps an app-level middleware so it doesn't run for /trpc requests */
 export const skipForTrpc =
