@@ -2,8 +2,13 @@ import * as express from "express";
 import { checkDonorOwnsDistribution } from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { sendAvtaleGiroChange, sendAvtalegiroRegistered } from "../custom_modules/mail";
-import { donationHelpers } from "../custom_modules/donationHelpers";
+import { sendAvtalegiroRegistered } from "../custom_modules/mail";
+import {
+  replaceAvtaleGiroDistribution,
+  setAvtaleGiroStatus,
+  updateAvtaleGiroAmount,
+  updateAvtaleGiroPaymentDate,
+} from "../custom_modules/avtalegiro";
 import { DistributionInput } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import moment from "moment";
@@ -360,14 +365,7 @@ router.post(
       }
 
       if (validatedDistribtion) {
-        const originalDistribution = await DAO.distributions.getSplitByKID(originalKID);
-        const newKid = await donationHelpers.createAvtaleGiroKID();
-        await DAO.avtalegiroagreements.replaceDistribution(
-          originalDistribution,
-          newKid,
-          validatedDistribtion,
-        );
-        await sendAvtaleGiroChange(originalKID, "SHARES");
+        await replaceAvtaleGiroDistribution(originalKID, validatedDistribtion);
 
         res.json({
           status: 200,
@@ -420,9 +418,8 @@ router.post(
       const KID = req.params.KID;
       const active = req.body.active;
 
-      const response = await DAO.avtalegiroagreements.setActive(KID, active);
+      const response = await setAvtaleGiroStatus(KID, active);
 
-      if (active === 0) await sendAvtaleGiroChange(KID, "CANCELLED");
       res.send(response);
     } catch (ex) {
       next({ ex });
@@ -465,11 +462,8 @@ router.post(
       const KID = req.params.KID;
       const amount = req.body.amount;
 
-      const response = await DAO.avtalegiroagreements.updateAmount(KID, amount);
+      const response = await updateAvtaleGiroAmount(KID, amount);
 
-      let newAmountInNok = parseFloat(amount) / 100;
-
-      await sendAvtaleGiroChange(KID, "AMOUNT", newAmountInNok.toString());
       res.send(response);
     } catch (ex) {
       next({ ex });
@@ -514,9 +508,8 @@ router.post(
       const KID = req.params.KID;
       const paymentDate = req.body.paymentDate;
 
-      const response = await DAO.avtalegiroagreements.updatePaymentDate(KID, paymentDate);
+      const response = await updateAvtaleGiroPaymentDate(KID, paymentDate);
 
-      await sendAvtaleGiroChange(KID, "CHARGEDAY", paymentDate);
       res.send(response);
     } catch (ex) {
       next({ ex });
