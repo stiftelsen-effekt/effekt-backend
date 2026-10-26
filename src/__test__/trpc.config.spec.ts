@@ -77,7 +77,7 @@ describe("tRPC config router", () => {
     });
 
     it("rejects authenticated callers without the admin permission", async () => {
-      const stub = sinon.stub(DAO.causeareas, "add").resolves();
+      const stub = sinon.stub(DAO.causeareas, "add").resolves(1);
       await expectCode(
         callerWith(["read:profile"]).config.causeAreas.create({ name: "X" }),
         "FORBIDDEN",
@@ -86,7 +86,7 @@ describe("tRPC config router", () => {
     });
 
     it("rejects invalid input", async () => {
-      const stub = sinon.stub(DAO.organizations, "add").resolves();
+      const stub = sinon.stub(DAO.organizations, "add").resolves(1);
       await expectCode(
         admin().config.organizations.create({
           name: "X",
@@ -101,6 +101,14 @@ describe("tRPC config router", () => {
           abbreviation: "X",
           causeAreaId: 1,
           standardShare: 101,
+        }),
+        "BAD_REQUEST",
+      );
+      await expectCode(
+        admin().config.organizations.create({
+          name: "X",
+          abbreviation: "ABCDEFGHIJK",
+          causeAreaId: 1,
         }),
         "BAD_REQUEST",
       );
@@ -127,9 +135,12 @@ describe("tRPC config router", () => {
       expect(result.map((c) => c.organizations.map((o) => o.id))).to.deep.equal([[1, 3], [2]]);
     });
 
-    it("creates a cause area with REST defaults", async () => {
-      const add = sinon.stub(DAO.causeareas, "add").resolves();
-      await admin().config.causeAreas.create({ name: "Animals" });
+    it("creates a cause area with REST defaults and returns it", async () => {
+      const add = sinon.stub(DAO.causeareas, "add").resolves(5);
+      const getById = sinon.stub(DAO.causeareas, "getById").resolves({ ...causeArea, id: 5 });
+      const created = await admin().config.causeAreas.create({ name: "Animals" });
+      expect(getById.firstCall.args[0]).to.equal(5);
+      expect(created.id).to.equal(5);
       expect(add.firstCall.args[0]).to.deep.equal({
         name: "Animals",
         shortDescription: "",
@@ -182,9 +193,17 @@ describe("tRPC config router", () => {
       expect(result.map((o) => o.id)).to.deep.equal([3, 1]);
     });
 
-    it("creates an organization with REST defaults", async () => {
-      const add = sinon.stub(DAO.organizations, "add").resolves();
-      await admin().config.organizations.create({ name: "GD", abbreviation: "GD", causeAreaId: 1 });
+    it("creates an organization with REST defaults and returns it", async () => {
+      sinon.stub(DAO.causeareas, "getById").resolves(causeArea);
+      const add = sinon.stub(DAO.organizations, "add").resolves(7);
+      const getByID = sinon.stub(DAO.organizations, "getByID").resolves(orgRow);
+      const created = await admin().config.organizations.create({
+        name: "GD",
+        abbreviation: "GD",
+        causeAreaId: 1,
+      });
+      expect(getByID.firstCall.args[0]).to.equal(7);
+      expect(created).to.include({ id: 7, abbreviation: "AMF", isActive: true });
       expect(add.firstCall.args[0]).to.deep.equal({
         name: "GD",
         abbreviation: "GD",
@@ -196,6 +215,23 @@ describe("tRPC config router", () => {
         standardShare: 0,
         causeAreaId: 1,
       });
+    });
+
+    it("rejects an unknown cause area on create and update", async () => {
+      sinon.stub(DAO.causeareas, "getById").rejects(new Error("Cause area not found"));
+      sinon.stub(DAO.organizations, "getByID").resolves(orgRow);
+      const add = sinon.stub(DAO.organizations, "add").resolves(7);
+      const update = sinon.stub(DAO.organizations, "updateById").resolves();
+      await expectCode(
+        admin().config.organizations.create({ name: "GD", abbreviation: "GD", causeAreaId: 99 }),
+        "BAD_REQUEST",
+      );
+      await expectCode(
+        admin().config.organizations.update({ id: 7, causeAreaId: 99 }),
+        "BAD_REQUEST",
+      );
+      expect(add.called).to.be.false;
+      expect(update.called).to.be.false;
     });
 
     it("updates an organization and returns it mapped", async () => {
@@ -231,12 +267,15 @@ describe("tRPC config router", () => {
 
   describe("referralTypes", () => {
     const type = { id: 3, name: "Podcast", ordering: 2, is_active: 1 as const };
+    const mapped = { id: 3, name: "Podcast", ordering: 2, isActive: true };
 
     it("lists active and all referral types", async () => {
       sinon.stub(DAO.referrals, "getTypes").resolves([{ id: 3, name: "Podcast", ordering: 2 }]);
       sinon.stub(DAO.referrals, "getAllTypes").resolves([type]);
-      expect(await admin().config.referralTypes.listActive()).to.have.length(1);
-      expect(await admin().config.referralTypes.listAll()).to.deep.equal([type]);
+      expect(await admin().config.referralTypes.listActive()).to.deep.equal([
+        { id: 3, name: "Podcast", ordering: 2, isActive: true },
+      ]);
+      expect(await admin().config.referralTypes.listAll()).to.deep.equal([mapped]);
     });
 
     it("creates a referral type", async () => {
@@ -245,7 +284,7 @@ describe("tRPC config router", () => {
         .resolves({ id: 4, name: "Radio", ordering: 5, is_active: true });
       const result = await admin().config.referralTypes.create({ name: "Radio", ordering: 5 });
       expect(create.firstCall.args).to.deep.equal(["Radio", 5]);
-      expect(result.id).to.equal(4);
+      expect(result).to.deep.equal({ id: 4, name: "Radio", ordering: 5, isActive: true });
     });
 
     it("updates a referral type", async () => {
@@ -256,7 +295,7 @@ describe("tRPC config router", () => {
         3,
         { name: undefined, ordering: undefined, is_active: false },
       ]);
-      expect(result).to.deep.equal(type);
+      expect(result).to.deep.equal(mapped);
     });
 
     it("rejects empty updates and 404s on missing types", async () => {
@@ -270,7 +309,7 @@ describe("tRPC config router", () => {
       sinon.stub(DAO.referrals, "toggleTypeActive").resolves(true);
       sinon.stub(DAO.referrals, "getTypeById").resolves({ ...type, is_active: 0 });
       const result = await admin().config.referralTypes.toggleActive({ id: 3 });
-      expect(result.is_active).to.equal(0);
+      expect(result.isActive).to.equal(false);
     });
   });
 

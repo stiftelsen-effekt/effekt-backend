@@ -90,8 +90,20 @@ async function getDonorAnswered(donorID: Donors["ID"]) {
  * Gets all referrals for a user
  * @param {number} donorID
  */
-async function getDonorAnswers(donorID: Donors["ID"]) {
-  let [answers] = await DAO.query(
+export type DonorReferralAnswer = {
+  id: number;
+  typeId: number;
+  donorId: number | null;
+  timestamp: Date | null;
+  session: string | null;
+  /** Whether the referral type is active (0/1) */
+  active: 0 | 1;
+  /** The type name, or the donor's own comment for "other" (type 10) */
+  answer: string | null;
+};
+
+async function getDonorAnswers(donorID: Donors["ID"]): Promise<DonorReferralAnswer[]> {
+  let [answers] = await DAO.query<DonorReferralAnswer[]>(
     `
         SELECT
           r.id AS id, t.id AS typeId, r.DonorID AS donorId, r.Registered AS timestamp, r.website_session AS session, t.is_active AS active,

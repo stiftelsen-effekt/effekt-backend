@@ -1,4 +1,7 @@
+import type { Data_owner } from "@prisma/client";
 import { DAO } from "../DAO";
+
+export type DataOwner = { id: number; name: string; default: boolean };
 
 /**
  * Data_owner ID for EA Norge. Donations with this owner are made through EA Giverportal,
@@ -20,8 +23,8 @@ export const EA_NORGE_META_OWNER_ID = 2;
  * Gets the diferent data owner actors from the DB
  * @returns {Array<DataOwner>} An array of DataOwner objects
  */
-async function getDataOwners() {
-  var [res] = await DAO.query(`SELECT * FROM Data_owner`);
+async function getDataOwners(): Promise<DataOwner[]> {
+  var [res] = await DAO.query<Data_owner[]>(`SELECT * FROM Data_owner`);
   return res.map((owner) => ({
     id: owner.ID,
     name: owner.owner,

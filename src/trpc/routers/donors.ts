@@ -1,6 +1,5 @@
 import { TRPCError } from "@trpc/server";
 import { DAO } from "../../custom_modules/DAO";
-import { generateCsv } from "../../custom_modules/csvexport";
 import {
   DonorServiceError,
   archiveTaxUnit,
@@ -10,6 +9,7 @@ import {
   validateTaxUnitSsn,
 } from "../../custom_modules/donorService";
 import { RequestLocale } from "../../middleware/locale";
+import { csvExport } from "../csv";
 import { adminProcedure, router } from "../trpc";
 import {
   DonorFilterInput,
@@ -76,10 +76,84 @@ const getDonorOrThrow = async (donorId: number) => {
   return donor;
 };
 
-const assertValidSsn = (ssn: string, locale: RequestLocale) => {
+/**
+ * Validates the ssn and returns it in the form we store: Swedish personnummer /
+ * organisationsnummer without the dash (YYYYMMDDNNNN), everything else as given.
+ */
+const normalizeValidSsn = (ssn: string, locale: RequestLocale): string => {
   const error = validateTaxUnitSsn(ssn, locale);
   if (error) throw new TRPCError({ code: "BAD_REQUEST", message: error });
+  return locale === RequestLocale.SV ? ssn.replace("-", "") : ssn;
 };
+
+/** The stored forms an ssn may have; older Swedish tax units can have the dash */
+const storedSsnForms = (ssn: string, locale: RequestLocale): string[] =>
+  locale === RequestLocale.SV ? [ssn, `${ssn.slice(0, 8)}-${ssn.slice(8)}`] : [ssn];
+
+/** Throws CONFLICT if the donor has another tax unit (archived ones included) with this ssn */
+const assertSsnUnused = async (
+  donorId: number,
+  ssn: string,
+  locale: RequestLocale,
+  exceptTaxUnitId?: number,
+) => {
+  for (const form of storedSsnForms(ssn, locale)) {
+    const existing = await DAO.tax.getByDonorIdAndSsn(donorId, form);
+    if (existing && existing.id !== exceptTaxUnitId) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "The donor already has a tax unit with this ssn",
+      });
+    }
+  }
+};
+
+/**
+ * Makes a free text query safe for MATCH ... AGAINST (... IN BOOLEAN MODE). Keeps the
+ * documented syntax (leading + or -, "quoted phrases", trailing * for prefixes) and drops
+ * every other operator character, so malformed input can't cause a syntax error.
+ * Returns an empty string when nothing searchable is left.
+ */
+export const sanitizeBooleanQuery = (query: string): string => {
+  const operatorChars = /[+\-<>()~*"@]/g;
+  const terms: string[] = [];
+  for (const match of query.matchAll(/([+-]?)"([^"]*)"|(\S+)/g)) {
+    const [, phrasePrefix, phrase, bare] = match;
+    if (phrase !== undefined) {
+      const words = phrase.replace(operatorChars, " ").trim().split(/\s+/).filter(Boolean);
+      if (words.length > 0) terms.push(`${phrasePrefix}"${words.join(" ")}"`);
+      continue;
+    }
+    const prefix = bare[0] === "+" || bare[0] === "-" ? bare[0] : "";
+    const truncate = bare.length > 1 && bare.endsWith("*");
+    const words = bare.replace(operatorChars, " ").trim().split(/\s+/).filter(Boolean);
+    words.forEach((word, i) => {
+      terms.push(`${prefix}${word}${truncate && i === words.length - 1 ? "*" : ""}`);
+    });
+  }
+  return terms.join(" ");
+};
+
+const isMysqlParseError = (err: unknown) =>
+  typeof err === "object" && err !== null && (err as { errno?: unknown }).errno === 1064;
+
+type DonorListResult = Awaited<ReturnType<typeof DAO.donors.getAll>>;
+
+/** Statistics are aggregate strings from MySQL when there are rows, 0 otherwise */
+const withNumericStatistics = ({ statistics, ...result }: DonorListResult) => ({
+  ...result,
+  statistics: {
+    totalDonors: Number(statistics.totalDonors),
+    totalDonationSum: Number(statistics.totalDonationSum),
+    totalDonationCount: Number(statistics.totalDonationCount),
+  },
+});
+
+/** Donors.trash is a nullable TINYINT */
+const toDonorOutput = (donor: NonNullable<Awaited<ReturnType<typeof DAO.donors.getByID>>>) => ({
+  ...donor,
+  trash: Boolean(donor.trash),
+});
 
 const taxUnitsRouter = router({
   list: adminProcedure
@@ -87,18 +161,11 @@ const taxUnitsRouter = router({
     .query(({ input }) => DAO.tax.getByDonorId(input.donorId, input.locale)),
 
   create: adminProcedure.input(taxUnitCreateInput).mutation(async ({ input }) => {
-    assertValidSsn(input.ssn, input.locale);
+    const ssn = normalizeValidSsn(input.ssn, input.locale);
     const donor = await getDonorOrThrow(input.donorId);
+    await assertSsnUnused(donor.id, ssn, input.locale);
 
-    const existing = await DAO.tax.getByDonorIdAndSsn(donor.id, input.ssn);
-    if (existing) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "The donor already has a tax unit with this ssn",
-      });
-    }
-
-    const taxUnit = await createTaxUnitForDonor(donor.id, input.ssn, input.name, input.locale);
+    const taxUnit = await createTaxUnitForDonor(donor.id, ssn, input.name, input.locale);
     if (!taxUnit) {
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create tax unit" });
     }
@@ -106,7 +173,7 @@ const taxUnitsRouter = router({
   }),
 
   update: adminProcedure.input(taxUnitUpdateInput).mutation(async ({ input }) => {
-    assertValidSsn(input.ssn, input.locale);
+    const ssn = normalizeValidSsn(input.ssn, input.locale);
 
     const existing = await DAO.tax.getById(input.id);
     if (!existing) {
@@ -116,8 +183,10 @@ const taxUnitsRouter = router({
       throw new TRPCError({ code: "BAD_REQUEST", message: "Archived tax units can't be edited" });
     }
 
-    await DAO.tax.updateTaxUnit(input.id, { ...existing, name: input.name, ssn: input.ssn });
-    return { ...existing, name: input.name, ssn: input.ssn };
+    await assertSsnUnused(existing.donorId, ssn, input.locale, existing.id);
+
+    await DAO.tax.updateTaxUnit(input.id, { ...existing, name: input.name, ssn });
+    return { ...existing, name: input.name, ssn };
   }),
 
   archive: adminProcedure.input(taxUnitArchiveInput).mutation(async ({ input }) => {
@@ -148,9 +217,16 @@ const taxUnitsRouter = router({
 });
 
 const recurringRouter = router({
-  avtalegiro: adminProcedure
-    .input(donorIdInput)
-    .query(({ input }) => DAO.avtalegiroagreements.getByDonorId(input.donorId)),
+  /** amount is in whole kroner */
+  avtalegiro: adminProcedure.input(donorIdInput).query(async ({ input }) =>
+    (await DAO.avtalegiroagreements.getByDonorId(input.donorId)).map((agreement) => ({
+      ...agreement,
+      // ROUND(amount / 100, 0) arrives as a decimal string
+      amount: Number(agreement.amount),
+      active: Boolean(agreement.active),
+      notice: Boolean(agreement.notice),
+    })),
+  ),
   autogiro: adminProcedure
     .input(donorIdInput)
     .query(({ input }) => DAO.autogiroagreements.getAgreementsByDonorId(input.donorId)),
@@ -162,13 +238,15 @@ const recurringRouter = router({
 export const donorsRouter = router({
   list: adminProcedure
     .input(listInput)
-    .query(({ input }) =>
-      DAO.donors.getAll(
-        input.sort ?? DEFAULT_SORT,
-        input.page,
-        input.limit,
-        toDonorFilters(input.filter),
-        RequestLocale.NO,
+    .query(async ({ input }) =>
+      withNumericStatistics(
+        await DAO.donors.getAll(
+          input.sort ?? DEFAULT_SORT,
+          input.page,
+          input.limit,
+          toDonorFilters(input.filter),
+          RequestLocale.NO,
+        ),
       ),
     ),
 
@@ -180,30 +258,51 @@ export const donorsRouter = router({
       toDonorFilters(input.filter),
       RequestLocale.NO,
     );
-    return {
-      filename: `donors-${new Date().toISOString()}.csv`,
-      csv: generateCsv(rows),
-    };
+    return csvExport("donors", rows);
   }),
 
   /** The donor picker. See searchInput for the query syntax. */
-  search: adminProcedure
-    .input(searchInput)
-    .query(({ input }) =>
-      DAO.donors.getAll(
-        input.sort ?? DEFAULT_SORT,
-        input.page,
-        input.limit,
-        toDonorFilters(undefined, input.query),
-        RequestLocale.NO,
-      ),
-    ),
+  search: adminProcedure.input(searchInput).query(async ({ input }) => {
+    const query = sanitizeBooleanQuery(input.query);
+    if (query.length === 0) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "The search query has no search terms" });
+    }
+    try {
+      return withNumericStatistics(
+        await DAO.donors.getAll(
+          input.sort ?? DEFAULT_SORT,
+          input.page,
+          input.limit,
+          toDonorFilters(undefined, query),
+          RequestLocale.NO,
+        ),
+      );
+    } catch (err) {
+      if (isMysqlParseError(err)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid search query", cause: err });
+      }
+      throw err;
+    }
+  }),
 
-  get: adminProcedure.input(donorIdInput).query(({ input }) => getDonorOrThrow(input.donorId)),
+  get: adminProcedure
+    .input(donorIdInput)
+    .query(async ({ input }) => toDonorOutput(await getDonorOrThrow(input.donorId))),
 
+  /** Creates a donor, and a tax unit named after the donor if ssn is given (like POST /donors) */
   create: adminProcedure.input(createInput).mutation(async ({ input }) => {
+    const ssn = input.ssn !== undefined ? normalizeValidSsn(input.ssn, input.locale) : undefined;
     const donorId = await withServiceErrors(() => createDonor(input.email, input.name));
-    return getDonorOrThrow(donorId);
+    if (ssn !== undefined) {
+      const taxUnit = await createTaxUnitForDonor(donorId, ssn, input.name, input.locale);
+      if (!taxUnit) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create tax unit",
+        });
+      }
+    }
+    return toDonorOutput(await getDonorOrThrow(donorId));
   }),
 
   update: adminProcedure.input(updateInput).mutation(async ({ input }) => {
@@ -228,7 +327,7 @@ export const donorsRouter = router({
       }
       throw err;
     }
-    return getDonorOrThrow(donor.id);
+    return toDonorOutput(await getDonorOrThrow(donor.id));
   }),
 
   /** Moves everything from origin to destination and deletes origin. */
@@ -246,14 +345,27 @@ export const donorsRouter = router({
     .input(donorIdInput)
     .query(({ input }) => DAO.donations.getYearlyAggregateByDonorId(input.donorId)),
 
-  /** Distributions (KIDs) with donation sum and count */
-  distributionsAggregated: adminProcedure
-    .input(donorIdInput)
-    .query(({ input }) => DAO.distributions.getByDonorId(input.donorId)),
+  /**
+   * Distributions (KIDs) with donation sum and count. sum is a decimal string, null when the
+   * distribution has no donations.
+   */
+  distributionsAggregated: adminProcedure.input(donorIdInput).query(async ({ input }) =>
+    (await DAO.distributions.getByDonorId(input.donorId)).map((distribution) => {
+      const { sum, count } = distribution as { sum: unknown; count: unknown };
+      return {
+        ...distribution,
+        sum: sum === null || sum === undefined ? null : String(sum),
+        count: Number(count ?? 0),
+      };
+    }),
+  ),
 
-  referrals: adminProcedure
-    .input(donorIdInput)
-    .query(({ input }) => DAO.referrals.getDonorAnswers(input.donorId)),
+  referrals: adminProcedure.input(donorIdInput).query(async ({ input }) =>
+    (await DAO.referrals.getDonorAnswers(input.donorId)).map((answer) => ({
+      ...answer,
+      active: Boolean(answer.active),
+    })),
+  ),
 
   recurring: recurringRouter,
 
