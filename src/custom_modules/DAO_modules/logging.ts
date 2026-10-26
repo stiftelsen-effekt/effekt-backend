@@ -1,6 +1,22 @@
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
 
+export type ImportLogSummary = {
+  ID: number;
+  label: string | null;
+  timestamp: Date | null;
+  /** Human-readable summary of known result shapes, empty string otherwise */
+  meta: string | null;
+};
+
+export type ImportLogEntry = {
+  ID: number;
+  label: string | null;
+  /** The JSON result column, parsed by mysql2 */
+  result: unknown;
+  timestamp: Date | null;
+};
+
 /**
  * @typedef ImportLogEntry
  * @property {number} ID
@@ -17,11 +33,15 @@ import sqlString from "sqlstring";
  * @param {string} filesearch A string to fuzzy match in the file in the log entry
  * @returns {{ results: Array<ImportLogEntry>, pages: number }}
  */
-async function getEntries(limit = 10, offset = 0, filesearch = null) {
+async function getEntries(
+  limit = 10,
+  offset = 0,
+  filesearch: string | null = null,
+): Promise<{ results: ImportLogSummary[]; pages: number }> {
   /**
    * TODO: Add filtering
    */
-  let [res] = await DAO.query(
+  let [res] = await DAO.query<ImportLogSummary[]>(
     `
       SELECT 
         ID, label, timestamp,
@@ -84,8 +104,8 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
  * @param {number} id
  * @returns {ImportLogEntry}
  */
-async function get(id) {
-  let [res] = await DAO.query(
+async function get(id: number): Promise<ImportLogEntry | null> {
+  let [res] = await DAO.query<ImportLogEntry[]>(
     `
       SELECT *
       

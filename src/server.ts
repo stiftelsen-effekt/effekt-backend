@@ -44,6 +44,7 @@ import { startWebSocketServer } from "./websocket";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "./trpc/router";
 import { createContext } from "./trpc/context";
+import { passMultipartBodyToTrpc, skipForTrpc, TRPC_MAX_BODY_SIZE } from "./trpc/reportsMultipart";
 
 // Defence in depth: log stray rejections instead of letting Node's default
 // (--unhandled-rejections=throw) terminate the whole API process.
@@ -119,11 +120,13 @@ DAO.connect(() => {
     }),
   );
 
-  //File upload
+  //File upload (not for /trpc, which parses multipart/form-data itself)
   app.use(
-    fileUpload({
-      limits: { fileSize: 10 * 1024 * 1024 }, //Probably totally overkill, consider reducing
-    }),
+    skipForTrpc(
+      fileUpload({
+        limits: { fileSize: 10 * 1024 * 1024 }, //Probably totally overkill, consider reducing
+      }),
+    ),
   );
   // Exactly one trusted proxy hop: Cloud Run's Google Front End appends the real client IP
   // to X-Forwarded-For. Trusting more hops would let clients spoof req.ip (used by the
@@ -219,9 +222,11 @@ DAO.connect(() => {
 
   app.use(
     "/trpc",
+    passMultipartBodyToTrpc,
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      maxBodySize: TRPC_MAX_BODY_SIZE,
       onError: ({ error, path }) => {
         if (error.code === "INTERNAL_SERVER_ERROR") console.error(`tRPC ${path}:`, error);
       },
