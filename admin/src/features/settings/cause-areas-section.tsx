@@ -135,8 +135,8 @@ export function CauseAreasSection() {
         description={
           <>
             <p>
-              The recommended distribution for donors who don't choose their own. Active cause
-              areas must add up to 100 %, and so must the active organizations inside each.
+              The recommended distribution for donors who don't choose their own. Active cause areas
+              must add up to 100 %, and so must the active organizations inside each.
             </p>
             <p className="mt-2">
               Inactive cause areas and organizations are hidden from donors and kept on old
@@ -263,7 +263,12 @@ export function CauseAreasSection() {
                             />
                           </TableCell>
                           <TableCell>
-                            <span className={cn("font-semibold", !org.isActive && "text-muted-foreground")}>
+                            <span
+                              className={cn(
+                                "font-semibold",
+                                !org.isActive && "text-muted-foreground",
+                              )}
+                            >
                               {org.name}
                             </span>
                             <span className="ml-2 text-muted-foreground">{org.abbreviation}</span>
@@ -474,7 +479,11 @@ function CauseAreaDialog({
               onChange={(e) => set({ shortDescription: e.target.value })}
             />
           </Field>
-          <Field label="Long description" hint="At most 45 characters" error={errors.longDescription}>
+          <Field
+            label="Long description"
+            hint="At most 45 characters"
+            error={errors.longDescription}
+          >
             <Input
               value={values.longDescription}
               onChange={(e) => set({ longDescription: e.target.value })}
@@ -615,7 +624,11 @@ function OrganizationDialog({
               onChange={(e) => set({ shortDescription: e.target.value })}
             />
           </Field>
-          <Field label="Long description" hint="At most 45 characters" error={errors.longDescription}>
+          <Field
+            label="Long description"
+            hint="At most 45 characters"
+            error={errors.longDescription}
+          >
             <Input
               value={values.longDescription}
               onChange={(e) => set({ longDescription: e.target.value })}

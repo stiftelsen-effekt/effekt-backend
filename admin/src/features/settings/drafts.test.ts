@@ -28,7 +28,11 @@ describe("drafts", () => {
 
   it("moves an item and renumbers the list", () => {
     const ordered = byOrdering(items);
-    expect(move(ordered, 3, -1)).toEqual({ 2: { ordering: 1 }, 3: { ordering: 2 }, 1: { ordering: 3 } });
+    expect(move(ordered, 3, -1)).toEqual({
+      2: { ordering: 1 },
+      3: { ordering: 2 },
+      1: { ordering: 3 },
+    });
     expect(move(ordered, 2, -1)).toEqual({});
   });
 });
@@ -39,7 +43,12 @@ describe("shareProblems", () => {
   it("accepts a split that adds up", () => {
     expect(
       shareProblems([
-        { name: "Health", isActive: true, standardPercentageShare: 90, organizations: [org(60), org(40)] },
+        {
+          name: "Health",
+          isActive: true,
+          standardPercentageShare: 90,
+          organizations: [org(60), org(40)],
+        },
         { name: "Climate", isActive: true, standardPercentageShare: 10, organizations: [org(100)] },
         { name: "Old", isActive: false, standardPercentageShare: 50, organizations: [] },
       ]),
@@ -55,7 +64,12 @@ describe("shareProblems", () => {
           standardPercentageShare: 80,
           organizations: [org(60), org(40, false)],
         },
-        { name: "Empty", isActive: true, standardPercentageShare: 10, organizations: [org(100, false)] },
+        {
+          name: "Empty",
+          isActive: true,
+          standardPercentageShare: 10,
+          organizations: [org(100, false)],
+        },
       ]),
     ).toEqual([
       "Active cause areas add up to 90 %",

@@ -94,19 +94,14 @@ export function monthlyByCauseArea(
   const folded = new Set<string>();
   const hasOther = (grand.get(OTHER) ?? 0) !== 0;
   if (ordered.length + (hasOther ? 1 : 0) > MAX_SERIES) {
-    const byTotal = [...ordered].sort(
-      (a, b) => (grand.get(b.key) ?? 0) - (grand.get(a.key) ?? 0),
-    );
+    const byTotal = [...ordered].sort((a, b) => (grand.get(b.key) ?? 0) - (grand.get(a.key) ?? 0));
     const keep = new Set(byTotal.slice(0, MAX_SERIES - 1).map((s) => s.key));
     kept = ordered.filter((s) => keep.has(s.key));
     ordered.filter((s) => !keep.has(s.key)).forEach((s) => folded.add(s.key));
   }
   const showOther = hasOther || folded.size > 0;
 
-  const series: ChartSeries[] = [
-    ...kept,
-    ...(showOther ? [{ key: OTHER, label: "Other" }] : []),
-  ];
+  const series: ChartSeries[] = [...kept, ...(showOther ? [{ key: OTHER, label: "Other" }] : [])];
 
   const rows = months.map((month, index) => {
     const row: Record<string, string | number> = { month: month.key };

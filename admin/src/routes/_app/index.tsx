@@ -100,7 +100,9 @@ function HomePage() {
             tone: "danger" as const,
             title: "Failed Vipps charges",
             count: failedCharges.data.statistics.numCharges,
-            description: `Due this month, ${formatMoney(failedCharges.data.statistics.sumCharges)} in total.`,
+            description: `Due this month, ${formatMoney(
+              failedCharges.data.statistics.sumCharges,
+            )} in total.`,
             href: "/charges",
             action: "See charges",
           },

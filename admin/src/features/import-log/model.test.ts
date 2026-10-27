@@ -14,7 +14,11 @@ describe("import log", () => {
       file: "raw",
       filename: "a.txt",
     });
-    expect(withoutFile({ nofile: true })).toEqual({ result: { nofile: true }, file: null, filename: null });
+    expect(withoutFile({ nofile: true })).toEqual({
+      result: { nofile: true },
+      file: null,
+      filename: null,
+    });
     expect(withoutFile(null).file).toBeNull();
   });
 });

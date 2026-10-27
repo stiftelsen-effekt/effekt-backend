@@ -3,7 +3,12 @@
  * exact; before that it is the upper bound (every page full), which is what pagination
  * needs to offer the next page.
  */
-export function importLogRowCount(pages: number, page: number, pageSize: number, rowsOnPage: number) {
+export function importLogRowCount(
+  pages: number,
+  page: number,
+  pageSize: number,
+  rowsOnPage: number,
+) {
   if (pages <= 0) return 0;
   if (page >= pages) return (pages - 1) * pageSize + rowsOnPage;
   return pages * pageSize;

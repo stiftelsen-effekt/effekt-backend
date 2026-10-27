@@ -75,9 +75,7 @@ function ImportLogPage() {
       title="Import log"
       description="Every payment file and scheduled job the system has processed, newest first."
       filters={<FilterBar list={list} searchPlaceholder="Search file contents" />}
-      peek={
-        peeked && <LogPeek row={peeked} onClose={() => setPeekId(null)} />
-      }
+      peek={peeked && <LogPeek row={peeked} onClose={() => setPeekId(null)} />}
     >
       {query.error ? (
         <div className="px-4 sm:px-6">
@@ -97,9 +95,7 @@ function ImportLogPage() {
           getRowId={(row) => String(row.ID)}
           {...list.tableState}
           onRowPeek={(row) => setPeekId(row.ID)}
-          onRowOpen={(row) =>
-            void navigate({ to: "/logs/$id", params: { id: String(row.ID) } })
-          }
+          onRowOpen={(row) => void navigate({ to: "/logs/$id", params: { id: String(row.ID) } })}
           peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/logs/${row.ID}`}
           pageHotkeys

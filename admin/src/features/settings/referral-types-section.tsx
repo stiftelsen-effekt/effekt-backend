@@ -159,7 +159,10 @@ export function ReferralTypesSection() {
                       />
                     </TableCell>
                     <TableCell>
-                      <Status catalog={activeStatus} value={type.isActive ? "active" : "inactive"} />
+                      <Status
+                        catalog={activeStatus}
+                        value={type.isActive ? "active" : "inactive"}
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <Switch

@@ -135,6 +135,7 @@ export function textError(
 ) {
   const length = value.trim().length;
   if (required && length === 0) return `Enter ${label}`;
-  if (length > max) return `${label[0]!.toUpperCase()}${label.slice(1)} can be at most ${max} characters`;
+  if (length > max)
+    return `${label[0]!.toUpperCase()}${label.slice(1)} can be at most ${max} characters`;
   return undefined;
 }

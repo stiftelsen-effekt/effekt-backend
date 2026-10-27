@@ -46,8 +46,8 @@ export function DataOwnersSection() {
       description={
         <>
           <p>
-            The organizations that can own donation data. Imports and registrations choose one;
-            the default is used when none is chosen.
+            The organizations that can own donation data. Imports and registrations choose one; the
+            default is used when none is chosen.
           </p>
           <p className="mt-2">Changed in the database, not here.</p>
         </>
@@ -135,8 +135,8 @@ export function MatchingRulesSection() {
             effect. When several rules match, the highest precedence wins.
           </p>
           <p className="mt-2">
-            Rules apply when a Vipps report is imported, only if the rule covers the report's
-            whole period. Payments no rule matches go to the review queue.
+            Rules apply when a Vipps report is imported, only if the rule covers the report's whole
+            period. Payments no rule matches go to the review queue.
           </p>
         </>
       }
@@ -150,28 +150,47 @@ export function MatchingRulesSection() {
           }
           title="New matching rule"
           description="Applies to Vipps reports imported from now on. Rules can't be edited; delete and recreate to change one."
-          initial={() => ({ salesLocation: "", message: "", KID: "", from: today, to: "", precedence: "" })}
+          initial={() => ({
+            salesLocation: "",
+            message: "",
+            KID: "",
+            from: today,
+            to: "",
+            precedence: "",
+          })}
           validate={validateMatchingRule}
           saveLabel="Create rule"
           onSave={async (values) => {
             await create.mutateAsync(matchingRuleInput(values));
             await invalidate();
-            notify.success("Matching rule created", `${values.salesLocation.trim()} → KID ${values.KID.trim()}`);
+            notify.success(
+              "Matching rule created",
+              `${values.salesLocation.trim()} → KID ${values.KID.trim()}`,
+            );
           }}
         >
           {({ values, set, errors }) => (
             <>
-              <Field label="Sales location" required error={errors.salesLocation} hint="As written in the Vipps report">
-                <Input value={values.salesLocation} onChange={(e) => set({ salesLocation: e.target.value })} />
-              </Field>
               <Field
-                label="Message"
-                hint="Leave empty to match any message"
-                error={errors.message}
+                label="Sales location"
+                required
+                error={errors.salesLocation}
+                hint="As written in the Vipps report"
               >
+                <Input
+                  value={values.salesLocation}
+                  onChange={(e) => set({ salesLocation: e.target.value })}
+                />
+              </Field>
+              <Field label="Message" hint="Leave empty to match any message" error={errors.message}>
                 <Input value={values.message} onChange={(e) => set({ message: e.target.value })} />
               </Field>
-              <Field label="KID" required error={errors.resolveKID} hint="Matched payments are registered to this distribution">
+              <Field
+                label="KID"
+                required
+                error={errors.resolveKID}
+                hint="Matched payments are registered to this distribution"
+              >
                 <Input
                   inputMode="numeric"
                   className="num"
@@ -179,7 +198,12 @@ export function MatchingRulesSection() {
                   onChange={(e) => set({ KID: e.target.value })}
                 />
               </Field>
-              <Field label="In effect" required error={errors.periodTo ?? errors.periodFrom} hint="First and last day, both included">
+              <Field
+                label="In effect"
+                required
+                error={errors.periodTo ?? errors.periodFrom}
+                hint="First and last day, both included"
+              >
                 <FieldDateRange
                   from={values.from}
                   to={values.to}
@@ -235,11 +259,18 @@ export function MatchingRulesSection() {
             <TableBody>
               {sortRules(rules.data, today).map((rule) => {
                 const validity = ruleValidityOn(rule, today);
-                const label = `${rule.salesLocation ?? "no sales location"}${rule.message ? ` / ${rule.message}` : ""}`;
+                const label = `${rule.salesLocation ?? "no sales location"}${
+                  rule.message ? ` / ${rule.message}` : ""
+                }`;
                 return (
-                  <TableRow key={rule.id} className={cn(validity === "expired" && "text-muted-foreground")}>
+                  <TableRow
+                    key={rule.id}
+                    className={cn(validity === "expired" && "text-muted-foreground")}
+                  >
                     <TableCell className="font-semibold">{rule.salesLocation ?? "–"}</TableCell>
-                    <TableCell>{rule.message ?? <span className="text-muted-foreground">Any</span>}</TableCell>
+                    <TableCell>
+                      {rule.message ?? <span className="text-muted-foreground">Any</span>}
+                    </TableCell>
                     <TableCell>
                       <CopyValue value={rule.resolveKID} label="KID" />
                     </TableCell>
@@ -255,14 +286,20 @@ export function MatchingRulesSection() {
                     <TableCell>
                       <ConfirmDialog
                         trigger={
-                          <Button variant="ghost" size="icon-sm" aria-label={`Delete rule for ${label}`}>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Delete rule for ${label}`}
+                          >
                             <Trash2Icon />
                           </Button>
                         }
                         tone="danger"
                         title={`Delete the rule for ${label}?`}
                         consequences={[
-                          `Vipps payments from ${rule.salesLocation ?? "this location"} will no longer go to KID ${rule.resolveKID} in future imports`,
+                          `Vipps payments from ${
+                            rule.salesLocation ?? "this location"
+                          } will no longer go to KID ${rule.resolveKID} in future imports`,
                           "Unmatched payments go to the review queue instead",
                           "Donations already registered by this rule are not changed",
                           `In effect ${formatDate(rule.periodFrom)} – ${formatDate(rule.periodTo)}`,

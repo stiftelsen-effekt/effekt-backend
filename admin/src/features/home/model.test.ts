@@ -12,13 +12,17 @@ const area = (id: number, name: string, ordering: number, orgIds: number[]) =>
     longDescription: null,
     informationUrl: null,
     organizations: orgIds.map((orgId) => ({ id: orgId })),
-  }) as never;
+  } as never);
 
 describe("lastMonths", () => {
   it("returns 12 months oldest first, the current one ending today", () => {
     const months = lastMonths(new Date(2026, 9, 27));
     expect(months).toHaveLength(12);
-    expect(months[0]).toMatchObject({ key: "2025-11", fromDate: "2025-11-01", toDate: "2025-11-30" });
+    expect(months[0]).toMatchObject({
+      key: "2025-11",
+      fromDate: "2025-11-01",
+      toDate: "2025-11-30",
+    });
     expect(months.at(-1)).toMatchObject({
       key: "2026-10",
       year: 2026,
@@ -55,7 +59,10 @@ describe("monthlyByCauseArea", () => {
     const { series, rows } = monthlyByCauseArea(
       months,
       [
-        [{ id: 11, orgName: "A", sum: "100.10" }, { id: 12, orgName: "B", sum: "0.20" }],
+        [
+          { id: 11, orgName: "A", sum: "100.10" },
+          { id: 12, orgName: "B", sum: "0.20" },
+        ],
         [{ id: 21, orgName: "C", sum: "50" }],
       ],
       areas,

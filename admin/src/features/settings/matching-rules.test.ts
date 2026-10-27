@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { matchingRuleInput, ruleValidityOn, sortRules, validateMatchingRule } from "./matching-rules";
+import {
+  matchingRuleInput,
+  ruleValidityOn,
+  sortRules,
+  validateMatchingRule,
+} from "./matching-rules";
 
 const rule = (id: number, from: string, to: string, precedence: number | null) => ({
   id,
@@ -48,7 +53,9 @@ describe("matching rules", () => {
       precedence: null,
     });
     expect(matchingRuleInput({ ...form, precedence: "-2" }).precedence).toBe(-2);
-    expect(validateMatchingRule({ ...form, to: "2026-09-01", KID: "abc", precedence: "1.5" })).toMatchObject({
+    expect(
+      validateMatchingRule({ ...form, to: "2026-09-01", KID: "abc", precedence: "1.5" }),
+    ).toMatchObject({
       periodTo: "The last day must be after the first",
       resolveKID: "Enter a KID (digits only)",
       precedence: "Enter a whole number",

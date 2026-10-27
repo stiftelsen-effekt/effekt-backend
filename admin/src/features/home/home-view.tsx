@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageHeader, PageSection } from "@/components/templates";
+import { config } from "@/lib/config";
 import type { RouterOutputs } from "@/lib/trpc";
 
 export type ImportLogRow = RouterOutputs["reports"]["logs"]["list"]["rows"][number];
@@ -58,7 +59,11 @@ export function HomeView({
                   icon={SparklesIcon}
                   size="sm"
                   title="Nothing needs you right now"
-                  description="No open review items or failed charges."
+                  description={
+                    config.locale === "NO"
+                      ? "No open review items, missing AvtaleGiro payments or failed Vipps charges."
+                      : "No open review items."
+                  }
                   className="rounded-md border border-border"
                 />
               }
@@ -140,7 +145,7 @@ export function reviewQueueAttention(open: number): AttentionItem[] {
           title: "Transactions to review",
           count: open,
           description: "From imported payment reports that could not be matched to a KID.",
-          href: "/review",
+          href: "/import/review",
           action: "Review",
         },
       ]

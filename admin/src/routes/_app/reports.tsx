@@ -149,7 +149,10 @@ function TransactionReport() {
           void download();
         }}
       >
-        <Field label="Period" error={missingRange && !range?.to ? "Choose a start and end date" : undefined}>
+        <Field
+          label="Period"
+          error={missingRange && !range?.to ? "Choose a start and end date" : undefined}
+        >
           <FieldDateRange
             value={range}
             onValueChange={(next) => {
@@ -160,7 +163,8 @@ function TransactionReport() {
         </Field>
         <fieldset className="grid gap-2">
           <legend className="mb-1.5 text-sm font-semibold">
-            Payment methods <span className="font-normal text-muted-foreground">(all when none are chosen)</span>
+            Payment methods{" "}
+            <span className="font-normal text-muted-foreground">(all when none are chosen)</span>
           </legend>
           {methods.error ? (
             <ErrorState error={methods.error} onRetry={() => void methods.refetch()} />
@@ -177,7 +181,9 @@ function TransactionReport() {
                       checked={methodIds.includes(method.id)}
                       onCheckedChange={(checked) =>
                         setMethodIds((ids) =>
-                          checked ? [...ids, method.id] : ids.filter((other) => other !== method.id),
+                          checked
+                            ? [...ids, method.id]
+                            : ids.filter((other) => other !== method.id),
                         )
                       }
                     />
@@ -405,7 +411,9 @@ function AutoGiroShipments() {
             A shipment is the claims file for Bankgirot: this month's charges, mandates to confirm
             and changed charges. One is normally created on schedule each banking day.
           </p>
-          <p className="mt-2">Download a shipment's file to see or resend exactly what was claimed.</p>
+          <p className="mt-2">
+            Download a shipment's file to see or resend exactly what was claimed.
+          </p>
         </>
       }
       actions={

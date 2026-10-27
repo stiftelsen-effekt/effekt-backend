@@ -45,7 +45,7 @@ export function errorCode(error: unknown): string | undefined {
 /** Per-field server validation messages (`error.data.fieldErrors`), keyed by input field. */
 export function fieldErrors(error: unknown): Record<string, string[] | undefined> {
   return error instanceof TRPCClientError
-    ? ((error.data as { fieldErrors?: Record<string, string[]> } | undefined)?.fieldErrors ?? {})
+    ? (error.data as { fieldErrors?: Record<string, string[]> } | undefined)?.fieldErrors ?? {}
     : {};
 }
 

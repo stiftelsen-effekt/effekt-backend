@@ -83,7 +83,11 @@ export const activeStatus = define({
 
 /** Whether a dated rule (Vipps matching rule) applies today. */
 export const ruleValidity = define({
-  current: { label: "In effect", tone: "success", description: "Applied to imports covering today" },
+  current: {
+    label: "In effect",
+    tone: "success",
+    description: "Applied to imports covering today",
+  },
   upcoming: { label: "Upcoming", tone: "accent", description: "Starts later" },
   expired: { label: "Expired", tone: "neutral", description: "Ended; kept for old imports" },
 });

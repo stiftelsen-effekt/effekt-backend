@@ -68,7 +68,7 @@ export const navGroups: NavGroup[] = [
         keywords: ["register", "upload", "ocr", "report", "bank", "totalin"],
       },
       {
-        to: "/review",
+        to: "/import/review",
         label: "Review queue",
         icon: InboxIcon,
         badge: "reviewQueue",

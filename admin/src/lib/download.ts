@@ -18,14 +18,19 @@ export function downloadFile({ filename, contentType, content }: FilePayload) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+/** Text a spreadsheet would run as a formula (CSV injection), unless it is just a number. */
+const formulaLike = (text: string) => /^[=+\-@\t\r]/.test(text) && !/^[+-]?\d+(\.\d+)?$/.test(text);
+
 function csvCell(value: unknown): string {
   if (value === null || value === undefined) return "";
-  const text =
+  const raw =
     value instanceof Date
       ? value.toISOString()
       : typeof value === "object"
       ? JSON.stringify(value)
       : String(value);
+  // A leading apostrophe makes spreadsheets show the text instead of evaluating it.
+  const text = formulaLike(raw) ? `'${raw}` : raw;
   return /[",\r\n;]/.test(text) || /^\s|\s$/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 

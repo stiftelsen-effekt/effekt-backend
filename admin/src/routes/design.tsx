@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, type LinkProps } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/app-shell";
 import { fakeSearchProviders } from "@/design-system/fake-search";
+import { useOpenReviewCount } from "@/features/review-queue/store";
 import { SearchProvidersProvider } from "@/features/search/providers";
 import { cn } from "@/lib/utils";
 
@@ -25,9 +26,10 @@ export const designPages: { to: string; label: string; group: "Reference" | "Tem
 ];
 
 function DesignLayout() {
+  const reviewCount = useOpenReviewCount();
   return (
     <SearchProvidersProvider value={fakeSearchProviders}>
-      <AppShell>
+      <AppShell reviewCount={reviewCount}>
         <nav
           aria-label="Design system"
           className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-4 py-1.5 text-sm sm:px-6"
