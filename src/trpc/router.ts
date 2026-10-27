@@ -1,3 +1,4 @@
+import { agreementsRouter } from "./routers/agreements";
 import { configRouter } from "./routers/config";
 import { donationsRouter } from "./routers/donations";
 import { donorsRouter } from "./routers/donors";
@@ -15,6 +16,7 @@ export const appRouter = router({
   vipps: vippsRouter,
   giro: giroRouter,
   reports: reportsRouter,
+  agreements: agreementsRouter,
 });
 
 export type AppRouter = typeof appRouter;

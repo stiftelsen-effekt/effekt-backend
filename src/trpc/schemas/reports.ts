@@ -1,6 +1,19 @@
 import { z } from "zod";
 import { TRPC_MAX_BODY_SIZE } from "../reportsMultipart";
-import { idSchema as id, isoDateSchema, paginationFields, sortSchema } from "./common";
+import {
+  reviewQueueSources,
+  reviewQueueStatuses,
+} from "../../custom_modules/DAO_modules/reviewqueue";
+import {
+  distributionSchema,
+  idSchema as id,
+  isoDateOrDateTimeSchema,
+  isoDateSchema,
+  moneySchema,
+  paginationFields,
+  sortSchema,
+} from "./common";
+import { paymentExternalRefSchema } from "./donations";
 
 export const idInput = z.strictObject({ id });
 
@@ -163,6 +176,59 @@ export const fundraisersListInput = z.strictObject({
   ...paginationFields,
   sort: fundraiserSort.optional(),
   filter: fundraiserFilter.optional(),
+});
+
+//endregion
+
+//region Review queue
+
+export const reviewQueueSourceSchema = z.enum(reviewQueueSources);
+export const reviewQueueStatusSchema = z.enum(reviewQueueStatuses);
+
+export const reviewQueueSort = sortSchema([
+  "id",
+  "created",
+  "date",
+  "amount",
+  "source",
+  "status",
+] as const);
+
+export const reviewQueueListInput = z.strictObject({
+  ...paginationFields,
+  sort: reviewQueueSort.optional(),
+  filter: z
+    .strictObject({
+      statuses: z.array(reviewQueueStatusSchema).min(1).optional(),
+      sources: z.array(reviewQueueSourceSchema).min(1).optional(),
+    })
+    .optional(),
+});
+
+/**
+ * Registers a donation from a queued item. The amount, date, payment method and external
+ * reference default to the item's; the admin supplies the KID or a distribution.
+ */
+export const reviewQueueRegisterInput = z
+  .strictObject({
+    id,
+    KID: z.string().min(1).optional(),
+    distribution: distributionSchema.optional(),
+    sum: moneySchema.optional(),
+    timestamp: isoDateOrDateTimeSchema.optional(),
+    paymentId: id.optional(),
+    /** null registers the donation without an external reference */
+    paymentExternalRef: paymentExternalRefSchema.nullable().optional(),
+    metaOwnerId: id,
+    sendReceipt: z.boolean(),
+  })
+  .refine((input) => (input.KID === undefined) !== (input.distribution === undefined), {
+    message: "Provide either a KID or a distribution, not both",
+  });
+
+export const reviewQueueIgnoreInput = z.strictObject({
+  id,
+  note: z.string().trim().min(1).max(2000).optional(),
 });
 
 //endregion

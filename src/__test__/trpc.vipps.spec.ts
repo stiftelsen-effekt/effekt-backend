@@ -479,7 +479,6 @@ describe("tRPC vipps router", () => {
         periodFrom: new Date(2026, 0, 1),
         periodTo: new Date(2026, 0, 31),
         resolveKID: "111",
-        resolveAdoveoFundraiserID: null,
         precedence: 1,
       },
       {
@@ -489,16 +488,14 @@ describe("tRPC vipps router", () => {
         periodFrom: new Date(2026, 11, 1),
         periodTo: new Date(2026, 11, 31),
         resolveKID: "222",
-        resolveAdoveoFundraiserID: 7,
         precedence: null,
       },
     ];
 
-    it("lists all rules without the Adoveo field", async () => {
+    it("lists all rules", async () => {
       sinon.stub(DAO.vipps, "getMatchingRules").resolves(rules);
       const res = await admin().vipps.matchingRules.list();
       expect(res.map((r) => r.id)).to.deep.equal([1, 2]);
-      expect(res[1]).to.not.have.property("resolveAdoveoFundraiserID");
     });
 
     it("lists rules overlapping a period", async () => {
@@ -509,7 +506,7 @@ describe("tRPC vipps router", () => {
       expect(res.map((r) => r.id)).to.deep.equal([1]);
     });
 
-    it("creates a rule without an Adoveo fundraiser", async () => {
+    it("creates a rule", async () => {
       sinon.stub(DAO.distributions, "KIDexists").resolves(true);
       const addStub = sinon.stub(DAO.vipps, "addMatchingRule").resolves(9);
 
@@ -525,7 +522,6 @@ describe("tRPC vipps router", () => {
       expect(res).to.deep.equal({ id: 9 });
       expect(addStub.firstCall.args[0]).to.include({
         resolveKID: "111",
-        resolveAdoveoFundraiserID: null,
         periodFrom: "2026-03-01",
       });
     });

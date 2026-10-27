@@ -1,3 +1,4 @@
+import { enqueueInvalidTransactions } from "../../custom_modules/reviewQueue";
 import { isAdmin } from "../../custom_modules/authorization/authMiddleware";
 import { Router } from "express";
 import { processBankNoReport, processBankSeReport } from "../../custom_modules/reportsService";
@@ -14,6 +15,8 @@ bankReportRouter.post("/no", isAdmin, async (req, res, next) => {
   } catch (ex) {
     return next(ex);
   }
+
+  await enqueueInvalidTransactions("bankNo", result.invalidTransactions);
 
   res.json({
     status: 200,
@@ -46,6 +49,8 @@ bankReportRouter.post("/se", isAdmin, async (req, res, next) => {
   } catch (ex) {
     return next(ex);
   }
+
+  if (!dryRun) await enqueueInvalidTransactions("bankSe", result.invalidTransactions);
 
   res.json({
     status: 200,

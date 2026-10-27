@@ -61,7 +61,7 @@ consistent:
    tests. Local docker-compose environment with seeded MySQL and a dev token issuer.
 1. **tRPC routers per domain**, reusing DAOs: config (cause areas, organizations, referral
    types, owners, payment methods), donors, donations, distributions, tax units, Vipps,
-   AvtaleGiro, AutoGiro, fundraisers + Adoveo, reports/uploads, logs. REST handlers and
+   AvtaleGiro, AutoGiro, fundraisers, reports/uploads, logs. REST handlers and
    procedures share the same functions; REST contract tests guard the shapes.
 2. **Admin scaffold + design system** in `admin/`.
 3. **Admin feature pages** to parity with the old admin (checklist below), in parallel.
@@ -83,7 +83,7 @@ list/filter/histogram/export · Donation page (edit, delete, resend receipt) · 
 list/create/page · Register (report uploads per source, KU65 XML, AutoGiro shipments, single
 donation, resend receipt) · Manual review queue · Logs list/entry · Vipps agreements/charges
 (refund)/matching rules · AvtaleGiro list/page/validation · AutoGiro list/page/mandates ·
-Fundraisers · Adoveo · Referral types · Cause areas · Organizations · Donor picker with query
+Fundraisers · Referral types · Cause areas · Organizations · Donor picker with query
 syntax · Distribution input · Tax unit create/edit/archive-with-transfer.
 
 Known bugs not to port: dead mandate/fundraiser detail links, unauthenticated report form POST,
