@@ -224,7 +224,7 @@ function SettingsDemo() {
                     <TableCell>
                       <Status
                         catalog={activeStatus}
-                        value={type.is_active ? "active" : "inactive"}
+                        value={type.isActive ? "active" : "inactive"}
                       />
                     </TableCell>
                   </TableRow>

@@ -1,6 +1,7 @@
 import { format as formatDateFns, formatDistanceToNowStrict, isValid, parseISO } from "date-fns";
 import { enGB } from "date-fns/locale";
 import { appLocale, type LocaleSettings } from "./locale";
+import { toMoneyString, type MoneyInput } from "./money";
 
 export type DateInput = Date | string | number | null | undefined;
 
@@ -15,8 +16,12 @@ function numberFormat(intl: string, options: Intl.NumberFormatOptions) {
   return nf;
 }
 
+/**
+ * Amounts as numbers or as the API's decimal strings. Strings are formatted exactly (Intl
+ * takes decimal strings), so "12345678901234.56" doesn't pick up float error.
+ */
 export function formatMoney(
-  value: number | null | undefined,
+  value: MoneyInput | null | undefined,
   {
     decimals = 0,
     currency = true,
@@ -27,14 +32,15 @@ export function formatMoney(
     settings?: LocaleSettings;
   } = {},
 ) {
-  if (value == null || Number.isNaN(value)) return "–";
+  const amount = toMoneyString(value);
+  if (amount == null) return "–";
   return numberFormat(settings.intl, {
     style: currency ? "currency" : "decimal",
     currency: settings.currency,
     currencyDisplay: "narrowSymbol",
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
-  }).format(value);
+  }).format(amount as Intl.StringNumericLiteral);
 }
 
 export function formatNumber(

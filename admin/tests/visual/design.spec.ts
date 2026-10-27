@@ -50,6 +50,8 @@ for (const theme of themes) {
       await expect(editor).toBeVisible();
       await editor.getByRole("checkbox").nth(2).click();
       await expect(page).toHaveURL(/method=4/);
+      // Wait for the filtered rows, not the refetch in flight.
+      await expect(page.locator("[aria-busy=true]")).toHaveCount(0);
       await expect(page).toHaveScreenshot(`state-add-filter-${theme}.png`);
     });
 

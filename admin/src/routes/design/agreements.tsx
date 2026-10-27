@@ -38,6 +38,7 @@ import {
   type AgreementType,
 } from "@/features/agreements/model";
 import { draftFromApi } from "@/features/distribution/model";
+import { sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
 import { agreementStatus, type AgreementStatus } from "@/lib/status";
 import { strings } from "@/lib/strings";
@@ -101,7 +102,7 @@ async function fetchAgreements(
     rows: sorted.slice((page - 1) * size, page * size),
     total: rows.length,
     active: active.length,
-    monthly: active.reduce((sum, row) => sum + row.amount, 0),
+    monthly: sumMoney(active.map((row) => row.amount)),
   };
 }
 

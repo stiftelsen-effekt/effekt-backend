@@ -3,6 +3,7 @@
  * the build when the API changes shape. Names are random combinations, not real donors.
  */
 import type { ManualReviewItem } from "@/features/review-queue/store";
+import { percentOfMoney, toMoneyString } from "@/lib/money";
 import type { RouterOutputs } from "@/lib/trpc";
 
 type O = RouterOutputs;
@@ -21,6 +22,15 @@ export type AvtaleGiroRow = O["giro"]["avtalegiro"]["list"]["rows"][number];
 export type AvtaleGiroDetail = O["giro"]["avtalegiro"]["get"];
 export type LogRow = O["reports"]["logs"]["list"]["rows"][number];
 export type ReferralType = O["config"]["referralTypes"]["listAll"][number];
+type TaxUnitType = NonNullable<DonationRow["taxUnitType"]>;
+
+// The API's TaxUnitType enum values. The admin imports only the backend's types, so the enum
+// members aren't available at runtime; `satisfies` keeps these in step with the enum.
+const PERSON = "person" satisfies `${TaxUnitType}` as TaxUnitType;
+const ORGANIZATION = "organization" satisfies `${TaxUnitType}` as TaxUnitType;
+
+/** API amounts are decimal strings with two fraction digits ("500.00"). */
+const money = (value: number | string) => toMoneyString(value)!;
 
 export const NOW = new Date("2026-10-24T12:00:00Z");
 
@@ -227,11 +237,11 @@ export const causeAreas: CauseArea[] = [
 ];
 
 export const referralTypes: ReferralType[] = [
-  { id: 1, name: "Podcast", ordering: 1, is_active: 1 },
-  { id: 2, name: "Friends or family", ordering: 2, is_active: 1 },
-  { id: 3, name: "Newspaper", ordering: 3, is_active: 1 },
-  { id: 4, name: "Search engine", ordering: 4, is_active: 1 },
-  { id: 5, name: "Facebook", ordering: 5, is_active: 0 },
+  { id: 1, name: "Podcast", ordering: 1, isActive: true },
+  { id: 2, name: "Friends or family", ordering: 2, isActive: true },
+  { id: 3, name: "Newspaper", ordering: 3, isActive: true },
+  { id: 4, name: "Search engine", ordering: 4, isActive: true },
+  { id: 5, name: "Facebook", ordering: 5, isActive: false },
 ];
 
 function amountFor(rand: () => number) {
@@ -267,21 +277,24 @@ export const donations: FakeDonation[] = Array.from({ length: 1240 }, (_, index)
   const rand = mulberry32(42 + index);
   const donor = pick(rand, donors);
   const method = pick(rand, paymentMethods);
-  const sum = amountFor(rand);
-  const fee = method.percentageFee
-    ? Math.round(sum * (Number(method.percentageFee) / 100) * 100) / 100
-    : Number(method.flatFee ?? 0);
+  const sum = money(amountFor(rand));
+  const transactionCost = method.percentageFee
+    ? percentOfMoney(sum, method.percentageFee)
+    : method.flatFee
+    ? money(method.flatFee)
+    : null;
   return {
     id: 98_000 + 1240 - index,
     donor: donor.name,
     donorId: donor.id,
     email: donor.email,
     sum,
-    transactionCost: fee,
+    transactionCost,
     paymentMethod: method.name,
     methodId: method.id,
     timestamp: daysAgo(Math.floor(rand() * 540), rand),
     kid: String(10_000_000 + Math.floor(rand() * 89_999_999)),
+    taxUnitType: rand() < 0.08 ? ORGANIZATION : rand() < 0.7 ? PERSON : null,
   };
 }).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
@@ -308,8 +321,8 @@ export const donorDonations: DonorDonation[] = Array.from({ length: 23 }, (_, in
     donor: donor.name,
     donorId: donor.id,
     email: donor.email,
-    sum: String(index % 3 === 0 ? 500 : amountFor(rand)),
-    transactionCost: "0",
+    sum: money(index % 3 === 0 ? 500 : amountFor(rand)),
+    transactionCost: "0.00",
     paymentMethod: method.name,
     KID: index % 3 === 0 ? "000138700015" : "96891492",
     taxUnitId: 77,
@@ -328,7 +341,7 @@ export const donorYearly: DonorYearly[] = [2020, 2021, 2022, 2023, 2024, 2025, 2
         organization: "Against Malaria Foundation",
         abbriv: "AMF",
         causeAreaID: 1,
-        value: String(Math.round(base * (0.55 + rand() * 0.2))),
+        value: money(Math.round(base * (0.55 + rand() * 0.2))),
         year,
       },
       {
@@ -336,7 +349,7 @@ export const donorYearly: DonorYearly[] = [2020, 2021, 2022, 2023, 2024, 2025, 2
         organization: "The Humane League",
         abbriv: "THL",
         causeAreaID: 2,
-        value: String(Math.round(base * (0.15 + rand() * 0.1))),
+        value: money(Math.round(base * (0.15 + rand() * 0.1))),
         year,
       },
       {
@@ -344,7 +357,7 @@ export const donorYearly: DonorYearly[] = [2020, 2021, 2022, 2023, 2024, 2025, 2
         organization: "Clean Air Task Force",
         abbriv: "CATF",
         causeAreaID: 3,
-        value: String(Math.round(base * (0.1 + rand() * 0.08))),
+        value: money(Math.round(base * (0.1 + rand() * 0.08))),
         year,
       },
     ];
@@ -352,8 +365,8 @@ export const donorYearly: DonorYearly[] = [2020, 2021, 2022, 2023, 2024, 2025, 2
 );
 
 export const donorDistributions: DonorDistribution[] = [
-  { KID: "96891492", email: donor.email, full_name: donor.name, sum: 48_210, count: 14 },
-  { KID: "000138700015", email: donor.email, full_name: donor.name, sum: 4_500, count: 9 },
+  { KID: "96891492", email: donor.email, full_name: donor.name, sum: "48210.00", count: 14 },
+  { KID: "000138700015", email: donor.email, full_name: donor.name, sum: "4500.00", count: 9 },
 ];
 
 export const donorTaxUnits: TaxUnit[] = [
@@ -363,7 +376,7 @@ export const donorTaxUnits: TaxUnit[] = [
     name: "Elias Olsen",
     ssn: "01019012345",
     registered: "2019-03-14T11:22:00Z",
-    sumDonations: "52710",
+    sumDonations: "52710.00",
     numDonations: 23,
     taxDeductions: [
       { year: 2025, sumDonations: 18200, deduction: 18200, benefit: 4004 },
@@ -377,8 +390,10 @@ export const avtaleGiroDetail: AvtaleGiroDetail = {
   KID: "000138700015",
   amount: 500,
   payment_date: 20,
-  notice: 1,
-  active: 1,
+  notice: true,
+  active: true,
+  donorId: donor.id,
+  full_name: donor.name,
   last_updated: "2026-02-01T10:00:00Z",
   created: "2023-11-02T09:13:00Z",
   cancelled: null,
@@ -424,7 +439,8 @@ export const vippsAgreements: VippsRow[] = Array.from({ length: 180 }, (_, index
   const rand = mulberry32(5000 + index);
   const donorRow = pick(rand, donors);
   return {
-    ID: index + 1,
+    // Vipps agreement ids are strings; derived from the index so the other fields keep their seeds.
+    ID: `agr_${(60_466_176 + index * 104_729).toString(36).toUpperCase()}`,
     KID: String(20_000_000 + Math.floor(rand() * 79_999_999)),
     amount: pick(rand, [50, 100, 150, 200, 250, 300, 500, 1000]),
     full_name: donorRow.name,
@@ -444,8 +460,8 @@ export const avtaleGiroAgreements: AvtaleGiroRow[] = Array.from({ length: 140 },
     KID: `000${donorRow.id}${String(index).padStart(5, "0")}`,
     amount: pick(rand, [100, 200, 300, 500, 750, 1000, 2000, 5000]),
     payment_date: pick(rand, [0, 1, 5, 10, 15, 20, 25]),
-    notice: rand() > 0.5 ? "1" : null,
-    active: active ? 1 : 0,
+    notice: rand() > 0.5,
+    active,
     last_updated: daysAgo(Math.floor(rand() * 200), rand),
     created: daysAgo(200 + Math.floor(rand() * 1600), rand),
     cancelled: active ? null : daysAgo(Math.floor(rand() * 180), rand),
@@ -550,10 +566,3 @@ export const monthlyTotals = [
     donors: Math.round((1100 + rand() * 400) * (season > 2 ? 1.9 : season)),
   };
 });
-
-export function median(values: number[]) {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
-}

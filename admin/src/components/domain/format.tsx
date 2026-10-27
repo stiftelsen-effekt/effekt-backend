@@ -7,6 +7,7 @@ import {
   toDate,
   type DateInput,
 } from "@/lib/format";
+import { moneySign, toMoneyString, type MoneyInput } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 type SpanProps = Omit<React.ComponentProps<"span">, "children">;
@@ -14,7 +15,7 @@ type SpanProps = Omit<React.ComponentProps<"span">, "children">;
 /**
  * The only way to show an amount of money. Currency comes from the build locale (NOK/SEK),
  * digits are tabular so columns line up, negatives are red only when `signed`.
- * API amounts are sometimes decimal strings; pass them straight in.
+ * API amounts are decimal strings; pass them straight in (formatted exactly, never via float).
  */
 export function Money({
   value,
@@ -24,21 +25,21 @@ export function Money({
   className,
   ...props
 }: SpanProps & {
-  value: number | string | null | undefined;
+  value: MoneyInput | null | undefined;
   decimals?: number;
   currency?: boolean;
   /** Show + / − and colour negatives (refunds, corrections). */
   signed?: boolean;
 }) {
-  const amount = typeof value === "string" ? Number(value) : value;
-  const negative = amount != null && amount < 0;
+  const amount = toMoneyString(value);
+  const sign = amount == null ? 0 : moneySign(amount);
   return (
     <span
       data-slot="money"
-      className={cn("num whitespace-nowrap", signed && negative && "text-danger", className)}
+      className={cn("num whitespace-nowrap", signed && sign < 0 && "text-danger", className)}
       {...props}
     >
-      {signed && amount != null && amount > 0 ? "+" : ""}
+      {signed && sign > 0 ? "+" : ""}
       {formatMoney(amount, { decimals, currency })}
     </span>
   );

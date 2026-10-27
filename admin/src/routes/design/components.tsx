@@ -83,6 +83,7 @@ import {
 } from "@/design-system/fake-data";
 import { DocPage, DocSection, Example } from "@/design-system/doc";
 import { draftFromApi, standardDraft } from "@/features/distribution/model";
+import { moneyToNumber } from "@/lib/money";
 import { notify } from "@/lib/notify";
 import { agreementStatus, chargeStatus, importStatus } from "@/lib/status";
 
@@ -105,7 +106,7 @@ export const Route = createFileRoute("/design/components")({
 });
 
 const bins = binValues(
-  donations.map((d) => d.sum),
+  donations.map((d) => moneyToNumber(d.sum)),
   donationAmountEdges,
 );
 

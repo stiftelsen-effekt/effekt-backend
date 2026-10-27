@@ -28,10 +28,11 @@ import { Button } from "@/components/ui/button";
 import {
   donationAmountEdges,
   donations,
-  median,
   paymentMethods,
+  type DonationStats,
   type FakeDonation,
 } from "@/design-system/fake-data";
+import { averageMoney, compareMoney, medianMoney, moneyToNumber, sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
 
@@ -66,33 +67,35 @@ async function fetchDonations(
   const rows = donations.filter(
     (row) =>
       (!q || row.donor.toLowerCase().includes(q) || row.kid.includes(q) || String(row.id) === q) &&
-      (filters.amount?.min === undefined || row.sum >= filters.amount.min) &&
-      (filters.amount?.max === undefined || row.sum <= filters.amount.max) &&
+      (filters.amount?.min === undefined || compareMoney(row.sum, filters.amount.min) >= 0) &&
+      (filters.amount?.max === undefined || compareMoney(row.sum, filters.amount.max) <= 0) &&
       (!filters.date?.from || row.timestamp.slice(0, 10) >= filters.date.from) &&
       (!filters.date?.to || row.timestamp.slice(0, 10) <= filters.date.to) &&
       (!filters.method?.length || filters.method.includes(row.methodId)),
   );
-  const key =
-    sort.id === "sum"
-      ? "sum"
-      : sort.id === "donor"
-      ? "donor"
-      : sort.id === "id"
-      ? "id"
-      : "timestamp";
   const dir = sort.desc ? -1 : 1;
-  const sorted = [...rows].sort((a, b) => (a[key] < b[key] ? -dir : a[key] > b[key] ? dir : 0));
+  const ascending = (a: string | number, b: string | number) => (a < b ? -1 : a > b ? 1 : 0);
+  // Amounts are decimal strings: compare them as money, not as text.
+  const compare: (a: FakeDonation, b: FakeDonation) => number =
+    sort.id === "sum"
+      ? (a, b) => compareMoney(a.sum, b.sum)
+      : sort.id === "donor"
+      ? (a, b) => ascending(a.donor, b.donor)
+      : sort.id === "id"
+      ? (a, b) => a.id - b.id
+      : (a, b) => ascending(a.timestamp, b.timestamp);
+  const sorted = [...rows].sort((a, b) => dir * compare(a, b));
   const sums = rows.map((row) => row.sum);
-  const total = sums.reduce((a, b) => a + b, 0);
+  const statistics: DonationStats & { median: string } = {
+    numDonations: rows.length,
+    sumDonations: sumMoney(sums),
+    avgDonation: averageMoney(sums),
+    median: medianMoney(sums),
+  };
   return {
     rows: sorted.slice((page - 1) * size, page * size),
     total: rows.length,
-    statistics: {
-      numDonations: rows.length,
-      sumDonations: total,
-      avgDonation: rows.length ? total / rows.length : 0,
-      median: median(sums),
-    },
+    statistics,
   };
 }
 
@@ -130,7 +133,7 @@ const columns = col.columns([
 ]);
 
 const amountBins = binValues(
-  donations.map((row) => row.sum),
+  donations.map((row) => moneyToNumber(row.sum)),
   donationAmountEdges,
 );
 const methodOptions = paymentMethods.map((method) => ({

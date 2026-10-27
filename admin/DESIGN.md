@@ -276,6 +276,10 @@ pass children, not config objects, wherever the structure varies.
 | `AttentionList`                                                              | Home, “what needs me”                                                                                                     |
 | `FileDropzone`, `JsonViewer`                                                 | Uploads, raw payloads                                                                                                     |
 
+The API sends amounts and aggregates as decimal strings. Pass them to `Money` / `formatMoney` as
+they are; for sums, averages, comparisons and sorting use `src/lib/money.ts` (exact, in øre).
+`moneyToNumber` is only for charts, histograms and ratios.
+
 ### Data and filters
 
 `DataTable` (+ `createColumns`, `TableSummary`), `FilterBar` with `RangeFilter`,

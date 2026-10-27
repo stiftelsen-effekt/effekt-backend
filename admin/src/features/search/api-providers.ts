@@ -50,7 +50,7 @@ export function useApiSearchProviders(): SearchProvider[] {
               id: `donation-${donation.id}`,
               title: `Donation #${donation.id}`,
               subtitle: `${donation.donor} · ${formatDate(donation.timestamp)}`,
-              meta: formatMoney(Number(donation.sum)),
+              meta: formatMoney(donation.sum),
               href: `/donations/${donation.id}`,
               icon: HandCoinsIcon,
             },

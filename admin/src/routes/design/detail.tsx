@@ -41,6 +41,8 @@ import {
   type AgreementRow,
 } from "@/features/agreements/model";
 import { draftFromApi } from "@/features/distribution/model";
+import { formatMoney } from "@/lib/format";
+import { moneyToNumber, percentOfMoney, sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
 import { agreementStatus } from "@/lib/status";
 
@@ -109,7 +111,6 @@ const distributionColumns = distributionCol.columns([
 const agreements: AgreementRow[] = [
   fromAvtaleGiro({
     ...avtaleGiroDetail,
-    notice: "1",
     last_updated: avtaleGiroDetail.last_updated ?? "",
     created: avtaleGiroDetail.created ?? "",
     full_name: fakeDonor.name,
@@ -117,21 +118,27 @@ const agreements: AgreementRow[] = [
   { ...fromVipps({ ...vippsAgreements[3]!, full_name: fakeDonor.name }), status: "stopped" },
 ];
 
+const years = [...new Set(donorYearly.map((row) => row.year))];
+const thisYear = years.at(-1)!;
+const lastYear = years.at(-2)!;
+/** Exact total given in a year (optionally to one cause area). */
+const given = (year: number, causeAreaId?: number) =>
+  sumMoney(
+    donorYearly
+      .filter((r) => r.year === year && (causeAreaId == null || r.causeAreaID === causeAreaId))
+      .map((r) => r.value),
+  );
+/** Chart series take floats of the exact per-year totals. */
+const yearly = years.map((year) => ({
+  year: String(year),
+  health: moneyToNumber(given(year, 1)),
+  animals: moneyToNumber(given(year, 2)),
+  climate: moneyToNumber(given(year, 3)),
+}));
+
 function DonorDemo() {
   const [donor, setDonor] = useState(fakeDonor);
-  const total = donorDonations.reduce((sum, d) => sum + Number(d.sum), 0);
-  const yearly = useMemo(() => {
-    const years = [...new Set(donorYearly.map((row) => row.year))];
-    return years.map((year) => {
-      const rows = donorYearly.filter((row) => row.year === year);
-      const by = (id: number) =>
-        rows.filter((r) => r.causeAreaID === id).reduce((s, r) => s + Number(r.value), 0);
-      return { year: String(year), health: by(1), animals: by(2), climate: by(3) };
-    });
-  }, []);
-  const thisYear = yearly.at(-1)!;
-  const lastYear = yearly.at(-2)!;
-  const sumYear = (row: typeof thisYear) => row.health + row.animals + row.climate;
+  const total = sumMoney(donorDonations.map((d) => d.sum));
   const distribution = useMemo(() => draftFromApi(causeAreas, avtaleGiroDetail.distribution), []);
 
   const save = (patch: Partial<typeof donor>) => async () => {
@@ -208,13 +215,13 @@ function DonorDemo() {
           />
           <Stat
             label="This year"
-            value={<Money value={sumYear(thisYear)} />}
-            delta={sumYear(thisYear) / sumYear(lastYear) - 1}
-            deltaLabel={`vs. ${lastYear.year}`}
+            value={<Money value={given(thisYear)} />}
+            delta={moneyToNumber(given(thisYear)) / moneyToNumber(given(lastYear)) - 1}
+            deltaLabel={`vs. ${lastYear}`}
           />
           <Stat
             label="Excluding operations"
-            value={<Money value={total * 0.95} />}
+            value={<Money value={percentOfMoney(total, 95)} />}
             hint="5 % to operations"
           />
           <Stat label="Active agreements" value={1} hint="AvtaleGiro 500 kr / month" />
@@ -345,7 +352,11 @@ function DonorDemo() {
         <TabsContent value="tax">
           <PropertyList>
             {donorTaxUnits[0]!.taxDeductions!.map((row) => (
-              <Property key={row.year} label={String(row.year)} hint={`Benefit ${row.benefit} kr`}>
+              <Property
+                key={row.year}
+                label={String(row.year)}
+                hint={`Benefit ${formatMoney(row.benefit)}`}
+              >
                 <Money value={row.deduction} className="font-semibold" /> deducted of{" "}
                 <Money value={row.sumDonations} />
               </Property>
