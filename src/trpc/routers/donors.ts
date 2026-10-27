@@ -9,6 +9,7 @@ import {
   validateTaxUnitSsn,
 } from "../../custom_modules/donorService";
 import { RequestLocale } from "../../middleware/locale";
+import { osloDayRange } from "../../custom_modules/osloDays";
 import { csvExport } from "../csv";
 import { adminProcedure, router } from "../trpc";
 import {
@@ -26,30 +27,25 @@ import {
   updateInput,
 } from "../schemas/donors";
 
-/** Turns an ISO date (YYYY-MM-DD) into local midnight, the way the old admin's date pickers did. */
-const toDate = (isoDate: string): Date => {
-  const [year, month, day] = isoDate.split("-").map(Number);
-  return new Date(year, month - 1, day);
-};
-
-const toDateRange = (range?: { from?: string; to?: string }) =>
-  range && {
-    from: range.from !== undefined ? toDate(range.from) : undefined,
-    to: range.to !== undefined ? toDate(range.to) : undefined,
-  };
-
 /**
- * Maps the procedure filter to DAO.donors.getAll's filter. donorId must be null rather than
- * undefined when unset: getAll adds `Donors.ID = NULL` for anything !== null.
+ * Maps the procedure filter to DAO.donors.getAll's filter. Date ranges are whole Oslo days
+ * (osloDays.ts). donorId must be null rather than undefined when unset: getAll adds
+ * `Donors.ID = NULL` for anything !== null.
  */
-const toDonorFilters = (filter: DonorFilterInput | undefined, query?: string) => ({
-  ...filter,
-  donorId: filter?.donorId ?? null,
-  query,
-  registered: toDateRange(filter?.registered),
-  donationsDateRange: toDateRange(filter?.donationsDateRange),
-  lastDonationDate: toDateRange(filter?.lastDonationDate),
-});
+const toDonorFilters = (filter: DonorFilterInput | undefined, query?: string) => {
+  const { registered, donationsDateRange, lastDonationDate, ...rest } = filter ?? {};
+  return {
+    ...rest,
+    // Fundraiser types alone mean "gave to a fundraiser of these types"
+    fundraiserGiving:
+      rest.fundraiserGiving ?? (rest.fundraiserTypes ? ("atLeastOnce" as const) : undefined),
+    donorId: filter?.donorId ?? null,
+    query,
+    registeredRange: osloDayRange(registered),
+    donationsRange: osloDayRange(donationsDateRange),
+    lastDonationRange: osloDayRange(lastDonationDate),
+  };
+};
 
 const DEFAULT_SORT = { id: "id", desc: true };
 
@@ -67,6 +63,20 @@ const withServiceErrors = async <T>(fn: () => Promise<T>): Promise<T> => {
 
 const isDuplicateEntry = (err: unknown) =>
   typeof err === "object" && err !== null && (err as { code?: unknown }).code === "ER_DUP_ENTRY";
+
+/**
+ * CONFLICT if another donor has the email. The message ends with "(donor <id>)", so the admin
+ * can link to the existing donor.
+ */
+const assertEmailUnused = async (email: string, exceptDonorId?: number) => {
+  const existing = await DAO.donors.getIDbyEmail(email);
+  if (existing !== null && existing !== exceptDonorId) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: `Email already belongs to another donor (donor ${existing})`,
+    });
+  }
+};
 
 const getDonorOrThrow = async (donorId: number) => {
   const donor = await DAO.donors.getByID(donorId);
@@ -132,6 +142,34 @@ export const sanitizeBooleanQuery = (query: string): string => {
     });
   }
   return terms.join(" ");
+};
+
+/** Input that looks like (part of) an email address: one token containing @ */
+const isEmailLike = (query: string) => /^\S*@\S*$/.test(query);
+
+/** The query uses the boolean mode syntax: a +/- prefixed token, a quote or a trailing * */
+const usesBooleanSyntax = (query: string) => /(^|\s)[+-]|"|\*(\s|$)/.test(query);
+
+/**
+ * How donors.search matches a query: an all-digit query is a donor id; email-like input is a
+ * partial match on the email (MySQL full text search can't match across @ and dots); explicit
+ * boolean syntax is passed through; plain words must all match, as prefixes.
+ */
+export const toDonorSearch = (
+  query: string,
+): { query: string } | { nameOrEmail: string } | { error: string } => {
+  const trimmed = query.trim();
+  if (/^\d+$/.test(trimmed)) return { query: trimmed };
+  if (isEmailLike(trimmed)) return { nameOrEmail: trimmed };
+  const sanitized = sanitizeBooleanQuery(trimmed);
+  if (sanitized.length === 0) return { error: "The search query has no search terms" };
+  if (usesBooleanSyntax(trimmed)) return { query: sanitized };
+  return {
+    query: sanitized
+      .split(" ")
+      .map((word) => `+${word}*`)
+      .join(" "),
+  };
 };
 
 const isMysqlParseError = (err: unknown) =>
@@ -261,19 +299,27 @@ export const donorsRouter = router({
     return csvExport("donors", rows);
   }),
 
-  /** The donor picker. See searchInput for the query syntax. */
+  /**
+   * The donor picker. See searchInput for the query syntax. Donors whose id, email or name
+   * equals the query come first, then the sort order.
+   */
   search: adminProcedure.input(searchInput).query(async ({ input }) => {
-    const query = sanitizeBooleanQuery(input.query);
-    if (query.length === 0) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: "The search query has no search terms" });
-    }
+    const search = toDonorSearch(input.query);
+    if ("error" in search) throw new TRPCError({ code: "BAD_REQUEST", message: search.error });
+    const filter = {
+      ...toDonorFilters(
+        "nameOrEmail" in search ? { nameOrEmail: search.nameOrEmail } : undefined,
+        "query" in search ? search.query : undefined,
+      ),
+      exactMatchFirst: input.query.trim(),
+    };
     try {
       return withNumericStatistics(
         await DAO.donors.getAll(
           input.sort ?? DEFAULT_SORT,
           input.page,
           input.limit,
-          toDonorFilters(undefined, query),
+          filter,
           RequestLocale.NO,
         ),
       );
@@ -292,6 +338,7 @@ export const donorsRouter = router({
   /** Creates a donor, and a tax unit named after the donor if ssn is given (like POST /donors) */
   create: adminProcedure.input(createInput).mutation(async ({ input }) => {
     const ssn = input.ssn !== undefined ? normalizeValidSsn(input.ssn, input.locale) : undefined;
+    await assertEmailUnused(input.email);
     const donorId = await withServiceErrors(() => createDonor(input.email, input.name));
     if (ssn !== undefined) {
       const taxUnit = await createTaxUnitForDonor(donorId, ssn, input.name, input.locale);
@@ -320,9 +367,15 @@ export const donorsRouter = router({
       }
     } catch (err) {
       if (isDuplicateEntry(err)) {
+        const existing =
+          input.email !== undefined
+            ? await DAO.donors.getIDbyEmail(input.email).catch(() => null)
+            : null;
         throw new TRPCError({
           code: "CONFLICT",
-          message: "Email already belongs to another donor",
+          message: `Email already belongs to another donor${
+            existing ? ` (donor ${existing})` : ""
+          }`,
         });
       }
       throw err;

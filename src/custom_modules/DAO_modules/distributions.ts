@@ -23,6 +23,8 @@ import { sumWithPrecision } from "../rounding";
 export interface DistributionFilters {
   KID?: string;
   donor?: string;
+  /** Free text: part of the KID, the donor's name or email, or the donor id (all digits) */
+  query?: string;
 }
 
 /**
@@ -111,6 +113,17 @@ export async function getAll(
       whereClauses.push(
         `(Donors.full_name LIKE ${donorFilter} OR Donors.email LIKE ${donorFilter})`,
       );
+    }
+    if (filter.query?.trim()) {
+      const text = filter.query.trim();
+      const pattern = sqlString.escape(`%${text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
+      const matches = [
+        `D.KID LIKE ${pattern}`,
+        `Donors.full_name LIKE ${pattern}`,
+        `Donors.email LIKE ${pattern}`,
+      ];
+      if (/^\d+$/.test(text)) matches.push(`D.Donor_ID = ${sqlString.escape(Number(text))}`);
+      whereClauses.push(`(${matches.join(" OR ")})`);
     }
   }
   const whereStatement = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { osloDayRange } from "../../custom_modules/osloDays";
 import { isoDateSchema, paginationFields, sortSchema } from "./common";
 
 /** ISO date (YYYY-MM-DD), converted to local midnight like the REST API's date strings were. */
@@ -10,12 +11,6 @@ export const toLocalDate = (isoDateString: string) => {
 
 const range = <T extends z.ZodType>(schema: T) =>
   z.strictObject({ from: schema.optional(), to: schema.optional() });
-
-const toDateRange = (created: { from?: string; to?: string } | undefined) =>
-  created && {
-    from: created.from ? toLocalDate(created.from) : undefined,
-    to: created.to ? toLocalDate(created.to) : undefined,
-  };
 
 /** Day of month an agreement is charged; 0 means the last day of the month. */
 export const chargeDay = z.number().int().min(0).max(28);
@@ -49,13 +44,13 @@ const avtaleGiroFilter = z
     /** Agreement sum in NOK */
     amount: range(z.number()).optional(),
     paymentDate: range(chargeDay).optional(),
-    /** Draft (created) date, inclusive */
+    /** Draft (created) date, inclusive whole Oslo days */
     created: range(isoDate).optional(),
     KID: z.string().optional(),
     donor: z.string().optional(),
     statuses: z.array(agreementStatus).optional(),
   })
-  .transform(({ created, ...rest }) => ({ ...rest, created: toDateRange(created) }));
+  .transform(({ created, ...rest }) => ({ ...rest, createdRange: osloDayRange(created) }));
 
 const avtaleGiroQuery = {
   sort: sortSchema(avtaleGiroSortId).optional(),
@@ -86,13 +81,13 @@ const autoGiroFilter = z
     /** Agreement sum in SEK */
     amount: range(z.number()).optional(),
     payment_date: range(chargeDay).optional(),
-    /** Created date, inclusive */
+    /** Created date, inclusive whole Oslo days */
     created: range(isoDate).optional(),
     KID: z.string().optional(),
     donor: z.string().optional(),
     statuses: z.array(agreementStatus).optional(),
   })
-  .transform(({ created, ...rest }) => ({ ...rest, created: toDateRange(created) }));
+  .transform(({ created, ...rest }) => ({ ...rest, createdRange: osloDayRange(created) }));
 
 const autoGiroQuery = {
   sort: sortSchema(autoGiroSortId).optional(),
