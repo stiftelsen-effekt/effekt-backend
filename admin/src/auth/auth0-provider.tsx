@@ -1,7 +1,7 @@
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import { useMemo, type ReactNode } from "react";
 import { config } from "@/lib/config";
-import { AuthContext, type AuthState } from "./context";
+import { AuthContext, givenNameFrom, type AuthState } from "./context";
 
 type AppState = { returnTo?: string };
 
@@ -23,7 +23,13 @@ function Auth0Bridge({ children }: { children: ReactNode }) {
       isLoading,
       error: error ?? null,
       user: user
-        ? { id: user.sub ?? "", name: user.name, email: user.email, picture: user.picture }
+        ? {
+            id: user.sub ?? "",
+            name: user.name,
+            givenName: givenNameFrom(user),
+            email: user.email,
+            picture: user.picture,
+          }
         : null,
       login: ({ returnTo } = {}) => loginWithRedirect({ appState: { returnTo } }),
       logout: () => void logout({ logoutParams: { returnTo: window.location.origin } }),

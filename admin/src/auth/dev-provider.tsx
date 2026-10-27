@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { config } from "@/lib/config";
-import { AuthContext, type AuthState, type AuthUser } from "./context";
+import { AuthContext, givenNameFrom, type AuthState, type AuthUser } from "./context";
 
 /**
  * Local-only auth against the mock OIDC server from compose.dev.yml. Issues a
@@ -27,9 +27,16 @@ function decodeUser(accessToken: string): AuthUser {
     const payload = JSON.parse(atob(accessToken.split(".")[1] ?? "")) as {
       sub?: string;
       name?: string;
+      given_name?: string;
       email?: string;
     };
-    return { id: payload.sub ?? "dev", name: payload.name ?? "Dev admin", email: payload.email };
+    return {
+      id: payload.sub ?? "dev",
+      name: payload.name ?? "Dev admin",
+      // From the token's claims only; the display fallback above is not a name to greet.
+      givenName: givenNameFrom(payload),
+      email: payload.email,
+    };
   } catch {
     return { id: "dev", name: "Dev admin" };
   }

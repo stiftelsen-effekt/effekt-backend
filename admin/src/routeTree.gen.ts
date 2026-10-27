@@ -14,6 +14,8 @@ import { Route as DesignRouteImport } from './routes/design'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
+import { Route as AppReportsRouteImport } from './routes/_app/reports'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as DesignIndexRouteImport } from './routes/design/index'
 import { Route as DesignAgreementsRouteImport } from './routes/design/agreements'
 import { Route as DesignComponentsRouteImport } from './routes/design/components'
@@ -23,6 +25,8 @@ import { Route as DesignHomeRouteImport } from './routes/design/home'
 import { Route as DesignListRouteImport } from './routes/design/list'
 import { Route as DesignPatternsRouteImport } from './routes/design/patterns'
 import { Route as DesignSettingsRouteImport } from './routes/design/settings'
+import { Route as AppLogsIndexRouteImport } from './routes/_app/logs/index'
+import { Route as AppLogsIdRouteImport } from './routes/_app/logs/$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -46,6 +50,16 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppSplatRoute = AppSplatRouteImport.update({
   id: '/$',
   path: '/$',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const DesignIndexRoute = DesignIndexRouteImport.update({
@@ -93,12 +107,24 @@ const DesignSettingsRoute = DesignSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => DesignRoute,
 } as any)
+const AppLogsIndexRoute = AppLogsIndexRouteImport.update({
+  id: '/logs/',
+  path: '/logs/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLogsIdRoute = AppLogsIdRouteImport.update({
+  id: '/logs/$id',
+  path: '/logs/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/reports': typeof AppReportsRoute
+  '/settings': typeof AppSettingsRoute
   '/design/agreements': typeof DesignAgreementsRoute
   '/design/components': typeof DesignComponentsRoute
   '/design/detail': typeof DesignDetailRoute
@@ -108,10 +134,14 @@ export interface FileRoutesByFullPath {
   '/design/patterns': typeof DesignPatternsRoute
   '/design/settings': typeof DesignSettingsRoute
   '/design/': typeof DesignIndexRoute
+  '/logs/$id': typeof AppLogsIdRoute
+  '/logs/': typeof AppLogsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/reports': typeof AppReportsRoute
+  '/settings': typeof AppSettingsRoute
   '/design/agreements': typeof DesignAgreementsRoute
   '/design/components': typeof DesignComponentsRoute
   '/design/detail': typeof DesignDetailRoute
@@ -122,6 +152,8 @@ export interface FileRoutesByTo {
   '/design/settings': typeof DesignSettingsRoute
   '/': typeof AppIndexRoute
   '/design': typeof DesignIndexRoute
+  '/logs/$id': typeof AppLogsIdRoute
+  '/logs': typeof AppLogsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -129,6 +161,8 @@ export interface FileRoutesById {
   '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/$': typeof AppSplatRoute
+  '/_app/reports': typeof AppReportsRoute
+  '/_app/settings': typeof AppSettingsRoute
   '/design/agreements': typeof DesignAgreementsRoute
   '/design/components': typeof DesignComponentsRoute
   '/design/detail': typeof DesignDetailRoute
@@ -139,6 +173,8 @@ export interface FileRoutesById {
   '/design/settings': typeof DesignSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/design/': typeof DesignIndexRoute
+  '/_app/logs/$id': typeof AppLogsIdRoute
+  '/_app/logs/': typeof AppLogsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,6 +183,8 @@ export interface FileRouteTypes {
     | '/design'
     | '/login'
     | '/$'
+    | '/reports'
+    | '/settings'
     | '/design/agreements'
     | '/design/components'
     | '/design/detail'
@@ -156,10 +194,14 @@ export interface FileRouteTypes {
     | '/design/patterns'
     | '/design/settings'
     | '/design/'
+    | '/logs/$id'
+    | '/logs/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
     | '/$'
+    | '/reports'
+    | '/settings'
     | '/design/agreements'
     | '/design/components'
     | '/design/detail'
@@ -170,12 +212,16 @@ export interface FileRouteTypes {
     | '/design/settings'
     | '/'
     | '/design'
+    | '/logs/$id'
+    | '/logs'
   id:
     | '__root__'
     | '/_app'
     | '/design'
     | '/login'
     | '/_app/$'
+    | '/_app/reports'
+    | '/_app/settings'
     | '/design/agreements'
     | '/design/components'
     | '/design/detail'
@@ -186,6 +232,8 @@ export interface FileRouteTypes {
     | '/design/settings'
     | '/_app/'
     | '/design/'
+    | '/_app/logs/$id'
+    | '/_app/logs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -229,6 +277,20 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof AppSplatRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/design/': {
@@ -294,17 +356,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DesignSettingsRouteImport
       parentRoute: typeof DesignRoute
     }
+    '/_app/logs/': {
+      id: '/_app/logs/'
+      path: '/logs'
+      fullPath: '/logs/'
+      preLoaderRoute: typeof AppLogsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logs/$id': {
+      id: '/_app/logs/$id'
+      path: '/logs/$id'
+      fullPath: '/logs/$id'
+      preLoaderRoute: typeof AppLogsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
+  AppReportsRoute: typeof AppReportsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppLogsIdRoute: typeof AppLogsIdRoute
+  AppLogsIndexRoute: typeof AppLogsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
+  AppReportsRoute: AppReportsRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppLogsIdRoute: AppLogsIdRoute,
+  AppLogsIndexRoute: AppLogsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

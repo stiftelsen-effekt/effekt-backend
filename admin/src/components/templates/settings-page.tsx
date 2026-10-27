@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "./page-header";
 
@@ -82,4 +82,11 @@ export function SettingsSection({
       <div className="min-w-0">{children}</div>
     </section>
   );
+}
+
+/** Scrolls the page back to the top when the shown section changes. */
+export function useScrollTopOn(section: string) {
+  useEffect(() => {
+    document.querySelector("[data-slot=settings-page]")?.scrollTo({ top: 0 });
+  }, [section]);
 }

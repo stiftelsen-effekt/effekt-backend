@@ -30,4 +30,25 @@ describe("createApiClient", () => {
     await client.meta.owners.query();
     expect(new Headers(fetchMock.mock.calls[0]![1]?.headers).has("authorization")).toBe(false);
   });
+
+  it("sends FormData uploads unbatched, as multipart", async () => {
+    const fetchMock = vi.fn(
+      async (_url: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(
+          JSON.stringify({
+            result: { data: { filename: "ku65_2025.xml", contentType: "", content: "" } },
+          }),
+          { headers: { "content-type": "application/json" } },
+        ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const client = createApiClient(async () => "token-123");
+    const form = new FormData();
+    form.set("year", "2025");
+    await client.reports.tax.ku65.mutate(form);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(String(url)).toMatch(/\/trpc\/reports\.tax\.ku65$/);
+    expect(init?.body).toBeInstanceOf(FormData);
+    expect(new Headers(init?.headers).get("authorization")).toBe("Bearer token-123");
+  });
 });
