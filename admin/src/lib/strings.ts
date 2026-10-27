@@ -49,6 +49,9 @@ export const strings = {
   form: {
     unsaved: "Unsaved changes",
     unsavedLeave: "You have unsaved changes. Leave and discard them?",
+    discardTitle: "Discard your changes?",
+    discardHint: "What you changed in this form hasn't been saved.",
+    keepEditing: "Keep editing",
     required: "Required",
     optional: "Optional",
   },

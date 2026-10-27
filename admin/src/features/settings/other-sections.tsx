@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseISO } from "date-fns";
-import { PlusIcon, ScaleIcon, Trash2Icon } from "lucide-react";
+import { PencilIcon, PlusIcon, ScaleIcon, Trash2Icon } from "lucide-react";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { CopyValue } from "@/components/domain/copy-value";
 import { EmptyState } from "@/components/domain/empty-state";
@@ -10,8 +9,8 @@ import { Status } from "@/components/domain/status";
 import { SettingsSection } from "@/components/templates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { Field, useFieldControl } from "@/components/ui/field";
+import { DateInput } from "@/components/ui/date-input";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -22,13 +21,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { isoDay } from "@/features/home/model";
+import { osloDay } from "@/lib/dates";
 import { formatDate } from "@/lib/format";
 import { notify } from "@/lib/notify";
 import { ruleValidity } from "@/lib/status";
+import { strings } from "@/lib/strings";
 import { useTRPC } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import {
+  matchingRuleForm,
   matchingRuleInput,
   ruleValidityOn,
   sortRules,
@@ -84,33 +85,70 @@ export function DataOwnersSection() {
   );
 }
 
-function FieldDateRange({
-  from,
-  to,
-  onChange,
+function MatchingRuleFields({
+  values,
+  set,
+  errors,
 }: {
-  from: string;
-  to: string;
-  onChange: (range: { from: string; to: string }) => void;
+  values: MatchingRuleForm;
+  set: (patch: Partial<MatchingRuleForm>) => void;
+  errors: Record<string, string | undefined>;
 }) {
-  const { id } = useFieldControl();
   return (
-    <DateRangePicker
-      id={id}
-      placeholder="Choose dates"
-      presets={false}
-      value={
-        from || to
-          ? { from: from ? parseISO(from) : undefined, to: to ? parseISO(to) : undefined }
-          : undefined
-      }
-      onValueChange={(range) =>
-        onChange({
-          from: range?.from ? isoDay(range.from) : "",
-          to: range?.to ? isoDay(range.to) : "",
-        })
-      }
-    />
+    <>
+      <Field
+        label="Sales location"
+        required
+        error={errors.salesLocation}
+        hint="As written in the Vipps report"
+      >
+        <Input
+          value={values.salesLocation}
+          onChange={(e) => set({ salesLocation: e.target.value })}
+        />
+      </Field>
+      <Field label="Message" hint="Leave empty to match any message" error={errors.message}>
+        <Input value={values.message} onChange={(e) => set({ message: e.target.value })} />
+      </Field>
+      <Field
+        label="KID"
+        required
+        error={errors.resolveKID}
+        hint="Matched payments are registered to this distribution"
+      >
+        <Input
+          inputMode="numeric"
+          className="num"
+          value={values.KID}
+          onChange={(e) => set({ KID: e.target.value })}
+        />
+      </Field>
+      <fieldset className="grid gap-1.5">
+        <legend className="mb-1.5 text-sm font-semibold">In effect</legend>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="First day" required error={errors.periodFrom}>
+            <DateInput value={values.from} onValueChange={(from) => set({ from })} />
+          </Field>
+          <Field label="Last day" required error={errors.periodTo}>
+            <DateInput value={values.to} onValueChange={(to) => set({ to })} />
+          </Field>
+        </div>
+        <p className="text-xs text-muted-foreground">Both days included.</p>
+      </fieldset>
+      <Field
+        label="Precedence"
+        hint="Higher wins when several rules match. Leave empty for lowest."
+        error={errors.precedence}
+        className="max-w-48"
+      >
+        <Input
+          inputMode="numeric"
+          className="num"
+          value={values.precedence}
+          onChange={(e) => set({ precedence: e.target.value })}
+        />
+      </Field>
+    </>
   );
 }
 
@@ -119,10 +157,11 @@ export function MatchingRulesSection() {
   const queryClient = useQueryClient();
   const rules = useQuery(trpc.vipps.matchingRules.list.queryOptions());
   const create = useMutation(trpc.vipps.matchingRules.create.mutationOptions());
+  const update = useMutation(trpc.vipps.matchingRules.update.mutationOptions());
   const remove = useMutation(trpc.vipps.matchingRules.delete.mutationOptions());
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: trpc.vipps.matchingRules.pathKey() });
-  const today = isoDay(new Date());
+  const today = osloDay();
 
   return (
     <SettingsSection
@@ -149,7 +188,7 @@ export function MatchingRulesSection() {
             </Button>
           }
           title="New matching rule"
-          description="Applies to Vipps reports imported from now on. Rules can't be edited; delete and recreate to change one."
+          description="Applies to Vipps reports imported from now on."
           initial={() => ({
             salesLocation: "",
             message: "",
@@ -169,62 +208,7 @@ export function MatchingRulesSection() {
             );
           }}
         >
-          {({ values, set, errors }) => (
-            <>
-              <Field
-                label="Sales location"
-                required
-                error={errors.salesLocation}
-                hint="As written in the Vipps report"
-              >
-                <Input
-                  value={values.salesLocation}
-                  onChange={(e) => set({ salesLocation: e.target.value })}
-                />
-              </Field>
-              <Field label="Message" hint="Leave empty to match any message" error={errors.message}>
-                <Input value={values.message} onChange={(e) => set({ message: e.target.value })} />
-              </Field>
-              <Field
-                label="KID"
-                required
-                error={errors.resolveKID}
-                hint="Matched payments are registered to this distribution"
-              >
-                <Input
-                  inputMode="numeric"
-                  className="num"
-                  value={values.KID}
-                  onChange={(e) => set({ KID: e.target.value })}
-                />
-              </Field>
-              <Field
-                label="In effect"
-                required
-                error={errors.periodTo ?? errors.periodFrom}
-                hint="First and last day, both included"
-              >
-                <FieldDateRange
-                  from={values.from}
-                  to={values.to}
-                  onChange={(range) => set(range)}
-                />
-              </Field>
-              <Field
-                label="Precedence"
-                hint="Higher wins when several rules match. Leave empty for lowest."
-                error={errors.precedence}
-                className="max-w-48"
-              >
-                <Input
-                  inputMode="numeric"
-                  className="num"
-                  value={values.precedence}
-                  onChange={(e) => set({ precedence: e.target.value })}
-                />
-              </Field>
-            </>
-          )}
+          {(form) => <MatchingRuleFields {...form} />}
         </RecordDialog>
       }
     >
@@ -251,8 +235,8 @@ export function MatchingRulesSection() {
                 <TableHead>In effect</TableHead>
                 <TableHead className="text-right">Precedence</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-12">
-                  <span className="sr-only">Delete</span>
+                <TableHead className="w-20">
+                  <span className="sr-only">Actions</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -284,33 +268,63 @@ export function MatchingRulesSection() {
                       <Status catalog={ruleValidity} value={validity} />
                     </TableCell>
                     <TableCell>
-                      <ConfirmDialog
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={`Delete rule for ${label}`}
-                          >
-                            <Trash2Icon />
-                          </Button>
-                        }
-                        tone="danger"
-                        title={`Delete the rule for ${label}?`}
-                        consequences={[
-                          `Vipps payments from ${
-                            rule.salesLocation ?? "this location"
-                          } will no longer go to KID ${rule.resolveKID} in future imports`,
-                          "Unmatched payments go to the review queue instead",
-                          "Donations already registered by this rule are not changed",
-                          `In effect ${formatDate(rule.periodFrom)} – ${formatDate(rule.periodTo)}`,
-                        ]}
-                        confirmLabel="Delete rule"
-                        onConfirm={async () => {
-                          await remove.mutateAsync({ id: rule.id });
-                          await invalidate();
-                          notify.success("Matching rule deleted", label);
-                        }}
-                      />
+                      <div className="flex items-center gap-0.5">
+                        <RecordDialog<MatchingRuleForm>
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`Edit rule for ${label}`}
+                            >
+                              <PencilIcon />
+                            </Button>
+                          }
+                          title={`Edit the rule for ${label}`}
+                          description="Changes apply to Vipps reports imported from now on. Donations this rule already registered keep their KID."
+                          initial={() => matchingRuleForm(rule)}
+                          validate={validateMatchingRule}
+                          saveLabel={strings.actions.saveChanges}
+                          onSave={async (values) => {
+                            await update.mutateAsync({ id: rule.id, ...matchingRuleInput(values) });
+                            await invalidate();
+                            notify.success(
+                              "Matching rule updated",
+                              `${values.salesLocation.trim()} → KID ${values.KID.trim()}`,
+                            );
+                          }}
+                        >
+                          {(form) => <MatchingRuleFields {...form} />}
+                        </RecordDialog>
+                        <ConfirmDialog
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`Delete rule for ${label}`}
+                            >
+                              <Trash2Icon />
+                            </Button>
+                          }
+                          tone="danger"
+                          title={`Delete the rule for ${label}?`}
+                          consequences={[
+                            `Vipps payments from ${
+                              rule.salesLocation ?? "this location"
+                            } will no longer go to KID ${rule.resolveKID} in future imports`,
+                            "Unmatched payments go to the review queue instead",
+                            "Donations already registered by this rule are not changed",
+                            `In effect ${formatDate(rule.periodFrom)} – ${formatDate(
+                              rule.periodTo,
+                            )}`,
+                          ]}
+                          confirmLabel="Delete rule"
+                          onConfirm={async () => {
+                            await remove.mutateAsync({ id: rule.id });
+                            await invalidate();
+                            notify.success("Matching rule deleted", label);
+                          }}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

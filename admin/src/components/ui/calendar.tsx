@@ -47,7 +47,7 @@ export function Calendar({
         month_grid: "w-full border-collapse",
         weekdays: cn("flex", defaults.weekdays),
         weekday: cn(
-          "w-(--cell) text-xs font-semibold text-muted-foreground uppercase select-none",
+          "w-(--cell) text-xs font-semibold text-muted-foreground select-none",
           defaults.weekday,
         ),
         week: cn("mt-1 flex w-full", defaults.week),

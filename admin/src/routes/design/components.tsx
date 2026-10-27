@@ -43,6 +43,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChoiceCards } from "@/components/ui/choice-cards";
 import { Combobox } from "@/components/ui/combobox";
+import { DateInput } from "@/components/ui/date-input";
 import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
 import {
   Dialog,
@@ -125,6 +126,7 @@ function Components() {
   const [name, setName] = useState("Elias Olsen");
   const [owner, setOwner] = useState<string | null>(null);
   const [range, setRange] = useState<DateRange | undefined>();
+  const [day, setDay] = useState("2026-10-24");
   const [pickedDonor, setPickedDonor] = useState<PickedDonor | null>(() => {
     const { id, name, email } = donors[4]!;
     return { id, name, email };
@@ -231,6 +233,9 @@ function Components() {
               hint="DateRangePicker: for forms and reports; lists use the date filter chip."
             >
               <DateRangePicker value={range} onValueChange={setRange} />
+            </Field>
+            <Field label="Payment date" hint="DateInput: one day, typed as dd.mm.yyyy or picked.">
+              <DateInput value={day} onValueChange={setDay} />
             </Field>
             <Field label="Note" className="sm:col-span-2">
               <Textarea placeholder="Visible to the team only" />

@@ -12,8 +12,7 @@ import { Stat, StatGroup } from "@/components/domain/stat";
 import { Status } from "@/components/domain/status";
 import { DetailPage, DetailPanel } from "@/components/templates";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { DateInput } from "@/components/ui/date-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -177,15 +176,11 @@ function AvtaleGiroCheckPage() {
           <Button size="icon" aria-label="Previous day" onClick={() => shift(-1)}>
             <ChevronLeftIcon />
           </Button>
-          <Label className="sr-only" htmlFor="check-date">
-            Charge date
-          </Label>
-          <Input
-            id="check-date"
-            type="date"
-            className="num w-40"
+          <DateInput
+            aria-label="Charge date"
+            className="w-40"
             value={date}
-            onChange={(event) => event.target.value && setDate(event.target.value)}
+            onValueChange={(value) => value && setDate(value)}
           />
           <Button size="icon" aria-label="Next day" onClick={() => shift(1)}>
             <ChevronRightIcon />

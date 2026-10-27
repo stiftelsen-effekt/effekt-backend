@@ -1,9 +1,12 @@
 import { CheckIcon, ListFilterIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { format as formatDateFns, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DateRangeEditor,
+  defaultDatePresets,
+  type DateRangePreset,
+} from "@/components/ui/date-range-picker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,7 +43,7 @@ type Mode = "chip" | "menu";
 // The bar only reads and writes generic values; each filter component knows its own type.
 type AnyList = ListState<Record<string, never>, string> & {
   filters: Record<string, unknown>;
-  setFilter: (key: string, value: unknown) => void;
+  setFilter: (key: string, value: unknown, options?: { replace?: boolean }) => void;
 };
 
 type FilterBarContextValue = {
@@ -107,7 +110,12 @@ export function FilterBar({
       {searchField && (
         <SearchBox
           value={anyList.filters[searchField] as string | undefined}
-          onChange={(value) => anyList.setFilter(searchField, value)}
+          // Refining a search replaces its history entry; starting or clearing one adds one.
+          onChange={(value) =>
+            anyList.setFilter(searchField, value, {
+              replace: Boolean(anyList.filters[searchField]) && value !== undefined,
+            })
+          }
           placeholder={searchPlaceholder}
         />
       )}
@@ -339,8 +347,6 @@ export function RangeFilter({
   );
 }
 
-const toIso = (date: Date | undefined) => (date ? formatDateFns(date, "yyyy-MM-dd") : undefined);
-
 export function summarizeDates(value: DateRangeValue) {
   if (value.from && value.to) return `${formatDate(value.from)} – ${formatDate(value.to)}`;
   if (value.from) return `from ${formatDate(value.from)}`;
@@ -348,7 +354,7 @@ export function summarizeDates(value: DateRangeValue) {
   return "";
 }
 
-/** Inclusive date ranges, with common presets. */
+/** Inclusive date ranges (Oslo days), typed or picked, with common presets. */
 export function DateRangeFilter({
   field,
   label,
@@ -356,7 +362,7 @@ export function DateRangeFilter({
 }: {
   field: string;
   label: string;
-  presets?: { label: string; range: () => DateRangeValue }[];
+  presets?: DateRangePreset[];
 }) {
   const slot = useFilterSlot<DateRangeValue>(field);
   const value = slot.value;
@@ -367,88 +373,17 @@ export function DateRangeFilter({
       active={slot.active}
       slot={slot}
       summary={value ? summarizeDates(value) : ""}
-      editorClassName="w-auto"
+      editorClassName="w-auto gap-0 p-0 [&>p]:px-3 [&>p]:pt-3"
     >
-      <div className="flex gap-3">
-        <div className="hidden w-32 flex-col gap-px sm:flex">
-          {presets.map((preset) => (
-            <Button
-              key={preset.label}
-              variant="ghost"
-              size="sm"
-              className="justify-start font-normal"
-              onClick={() => {
-                slot.setValue(preset.range());
-                slot.setOpen(false);
-              }}
-            >
-              {preset.label}
-            </Button>
-          ))}
-        </div>
-        <Calendar
-          mode="range"
-          numberOfMonths={2}
-          selected={{
-            from: value?.from ? parseISO(value.from) : undefined,
-            to: value?.to ? parseISO(value.to) : undefined,
-          }}
-          defaultMonth={value?.from ? parseISO(value.from) : undefined}
-          onSelect={(range) =>
-            slot.setValue(
-              range?.from || range?.to
-                ? { from: toIso(range.from), to: toIso(range.to) }
-                : undefined,
-            )
-          }
-        />
-      </div>
+      <DateRangeEditor
+        value={value}
+        presets={presets}
+        onValueChange={(range) => slot.setValue(range)}
+        onPreset={() => slot.setOpen(false)}
+      />
     </FilterShell>
   );
 }
-
-const iso = (date: Date) => formatDateFns(date, "yyyy-MM-dd");
-const defaultDatePresets: { label: string; range: () => DateRangeValue }[] = [
-  {
-    label: "Today",
-    range: () => ({ from: iso(new Date()), to: iso(new Date()) }),
-  },
-  {
-    label: "Last 7 days",
-    range: () => ({ from: iso(new Date(Date.now() - 6 * 864e5)), to: iso(new Date()) }),
-  },
-  {
-    label: "This month",
-    range: () => {
-      const now = new Date();
-      return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(now) };
-    },
-  },
-  {
-    label: "Last month",
-    range: () => {
-      const now = new Date();
-      return {
-        from: iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
-        to: iso(new Date(now.getFullYear(), now.getMonth(), 0)),
-      };
-    },
-  },
-  {
-    label: "This year",
-    range: () => {
-      const now = new Date();
-      return { from: iso(new Date(now.getFullYear(), 0, 1)), to: iso(now) };
-    },
-  },
-  {
-    label: "Last year",
-    range: () => {
-      const year = new Date().getFullYear() - 1;
-      return { from: `${year}-01-01`, to: `${year}-12-31` };
-    },
-  },
-];
 
 export type FilterOption<V extends string | number = string | number> = {
   value: V;
