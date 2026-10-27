@@ -1,10 +1,14 @@
 import { CalendarCheckIcon, InboxIcon, SparklesIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { AttentionList, type AttentionItem } from "@/components/domain/attention-list";
+import {
+  AttentionClear,
+  AttentionList,
+  type AttentionItem,
+} from "@/components/domain/attention-list";
 import { DateTime } from "@/components/domain/format";
 import { EmptyState } from "@/components/domain/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonText } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -15,6 +19,10 @@ import {
 } from "@/components/ui/table";
 import { PageHeader, PageSection } from "@/components/templates";
 import type { RouterOutputs } from "@/lib/trpc";
+
+/** Home asks for the six most recent imports; the placeholder has as many rows. */
+export const RECENT_IMPORTS = 6;
+const placeholderRows = Array.from({ length: RECENT_IMPORTS }, (_, index) => index);
 
 export type ImportLogRow = RouterOutputs["reports"]["logs"]["list"]["rows"][number];
 
@@ -34,8 +42,12 @@ export function HomeView({
 }: {
   greeting: string;
   attention: AttentionItem[];
-  /** While the checks behind `attention` are loading, don't claim nothing needs attention. */
-  attentionLoading?: boolean;
+  /**
+   * While the checks behind `attention` are loading: placeholder rows (a number: that many,
+   * e.g. as many as last time), so neither a partial list nor "nothing needs you" shows
+   * before all checks are in.
+   */
+  attentionLoading?: boolean | number;
   stats?: ReactNode;
   chart?: ReactNode;
   recentImports: ImportLogRow[] | undefined;
@@ -48,22 +60,17 @@ export function HomeView({
       <PageHeader title={greeting} actions={actions} />
       <div className="grid gap-8 px-4 pb-10 sm:px-6">
         <PageSection title="Needs attention">
-          {attentionLoading && attention.length === 0 ? (
-            <Skeleton className="h-16" />
-          ) : (
-            <AttentionList
-              items={attention}
-              empty={
-                <EmptyState
-                  icon={SparklesIcon}
-                  size="sm"
-                  title="Nothing needs you right now"
-                  description="No open review items, missing AvtaleGiro payments or failed Vipps charges."
-                  className="rounded-md border border-border"
-                />
-              }
-            />
-          )}
+          <AttentionList
+            pending={attentionLoading}
+            items={attention}
+            empty={
+              <AttentionClear
+                icon={SparklesIcon}
+                title="Nothing needs you right now"
+                description="No open review items, missing AvtaleGiro payments or failed Vipps charges."
+              />
+            }
+          />
         </PageSection>
         {stats && <PageSection title="This month">{stats}</PageSection>}
         <div className="grid gap-8 xl:grid-cols-2">
@@ -81,13 +88,7 @@ export function HomeView({
           >
             {recentImportsError ? (
               recentImportsError
-            ) : recentImports === undefined ? (
-              <div className="grid gap-2">
-                <Skeleton className="h-8" />
-                <Skeleton className="h-8" />
-                <Skeleton className="h-8" />
-              </div>
-            ) : recentImports.length === 0 ? (
+            ) : recentImports?.length === 0 ? (
               <EmptyState icon={InboxIcon} size="sm" title="No imports yet" />
             ) : (
               <div className="overflow-hidden rounded-md border border-border">
@@ -99,8 +100,22 @@ export function HomeView({
                       <TableHead className="text-right">When</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {recentImports.map((log) => (
+                  <TableBody aria-busy={!recentImports || undefined}>
+                    {!recentImports &&
+                      placeholderRows.map((index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <SkeletonText>Import source name</SkeletonText>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <SkeletonText>#0000</SkeletonText>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <SkeletonText>2 days ago</SkeletonText>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    {recentImports?.map((log) => (
                       <TableRow key={log.ID}>
                         <TableCell className="font-semibold">
                           <Link

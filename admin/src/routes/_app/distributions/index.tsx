@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { DownloadIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -11,13 +11,14 @@ import { Property, PropertyList } from "@/components/domain/property-list";
 import { FilterBar, SavedViews, TextFilter, useListState, ListEmpty } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Updating } from "@/components/ui/pending";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { downloadCsv } from "@/features/donations/api";
 import { distributionsList, toDistributionFilter } from "@/features/donations/list";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
+import { nextPage, usePageQuery } from "@/lib/query";
 import { useTRPC, type RouterOutputs } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/distributions/")({
@@ -66,14 +67,16 @@ function DistributionsPage() {
 
   const filter = toDistributionFilter(list.filters);
   const sort = { id: list.sort.id, desc: list.sort.desc };
-  const query = useQuery({
-    ...trpc.donations.distributions.list.queryOptions({
-      page: list.page - 1,
+  const listOptions = (page: number) =>
+    trpc.donations.distributions.list.queryOptions({
+      page: page - 1,
       limit: list.pageSize,
       sort,
       filter,
-    }),
-    placeholderData: keepPreviousData,
+    });
+  const query = usePageQuery(listOptions(list.page), {
+    // The next page is fetched as soon as this one is in, so paging forward is instant.
+    prefetch: (data) => nextPage(list.page, data.pages, listOptions),
   });
 
   async function exportCsv() {
@@ -165,26 +168,29 @@ function DistributionsPage() {
 
 function DistributionPeek({ kid, onClose }: { kid: string; onClose: () => void }) {
   const trpc = useTRPC();
-  const distribution = useQuery(trpc.donations.distributions.get.queryOptions({ kid }));
+  // j/k moves the peek: the previous KID's details stay (dimmed) until the next's are in.
+  const distribution = usePageQuery(trpc.donations.distributions.get.queryOptions({ kid }));
   const causeAreas = useCauseAreaConfig({ includeInactive: true });
   const d = distribution.data;
+  const updating = distribution.isPlaceholderData;
 
   return (
     <PeekPanel
       title={`KID ${kid}`}
-      subtitle={d?.donor?.name ?? undefined}
+      subtitle={updating ? undefined : d?.donor?.name ?? undefined}
       href={`/distributions/${kid}`}
       onClose={onClose}
     >
       {distribution.isError ? (
         <ErrorState error={distribution.error} onRetry={() => void distribution.refetch()} />
       ) : !d || !causeAreas.data ? (
-        <div className="grid gap-2">
-          <Skeleton className="h-5 w-2/3" />
-          <Skeleton className="h-5 w-1/2" />
-        </div>
+        <PropertyList labelWidth="7rem">
+          {["Donor", "Email", "Tax unit", "KID"].map((label) => (
+            <Property key={label} label={label} pending />
+          ))}
+        </PropertyList>
       ) : (
-        <>
+        <Updating active={updating} className="grid content-start gap-6">
           <PropertyList labelWidth="7rem">
             <Property label="Donor">
               <Link
@@ -208,7 +214,7 @@ function DistributionPeek({ kid, onClose }: { kid: string; onClose: () => void }
               config={causeAreas.data}
             />
           </section>
-        </>
+        </Updating>
       )}
     </PeekPanel>
   );

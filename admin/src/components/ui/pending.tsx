@@ -58,6 +58,20 @@ export function Updating({
   );
 }
 
+/**
+ * A section still loading that has no shape worth sketching (a form, an editor): reserves
+ * its space (`className`, e.g. "min-h-96"), is busy for assistive tech, and runs the top
+ * progress bar (after the delay) instead of drawing fake fields.
+ */
+export function Pending({ className, label = "Loading" }: { className?: string; label?: string }) {
+  useReportUpdating(true);
+  return (
+    <div data-slot="pending" aria-busy className={className}>
+      <span className="sr-only">{label}</span>
+    </div>
+  );
+}
+
 // "Something on this page is updating": a count of active reporters, read by the app's top
 // progress bar, so a parameter change anywhere shows the same indicator as a route change.
 let updating = 0;

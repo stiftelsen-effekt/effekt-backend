@@ -34,7 +34,10 @@ export type LoadCause = "preload" | "enter" | "stay";
  *       trpc.donors.donations.queryOptions({ donorId }), …
  *     ]),
  *
- * - `preload` (hover/focus on a link or row): fetch the record only.
+ * `primary` is what the page can't be drawn without (one record, or a few for a dashboard);
+ * `rest` is everything else it shows.
+ *
+ * - `preload` (hover/focus on a link or row): fetch the primary data only.
  * - `enter` (navigating here): fetch everything, wait for the record up to ROUTE_WAIT_MS.
  *   Not on the app's first load: there is no previous page to keep, so render at once.
  * - `stay` (search params changed on this page): fetch, never wait; the page keeps its
@@ -42,19 +45,28 @@ export type LoadCause = "preload" | "enter" | "stay";
  *
  * Errors never reach the router: the page shows them in place with Try again.
  */
+/**
+ * Fetch unless fresh (staleTime); resolve at once when anything is cached, so cached data,
+ * even stale, never holds up a navigation (it refreshes in the background).
+ */
+function warm(queryClient: QueryClient, options: AnyFetchOptions): Promise<unknown> {
+  const fetching = queryClient.prefetchQuery(options);
+  return queryClient.getQueryData(options.queryKey) === undefined ? fetching : Promise.resolve();
+}
+
 export async function loadPage(
   queryClient: QueryClient,
   cause: LoadCause,
-  primary: AnyFetchOptions | null,
+  primary: AnyFetchOptions | AnyFetchOptions[] | null,
   rest: AnyFetchOptions[] = [],
 ) {
+  const records = primary === null ? [] : Array.isArray(primary) ? primary : [primary];
   if (cause === "preload") {
-    if (primary) await queryClient.prefetchQuery(primary);
+    await Promise.all(records.map((options) => warm(queryClient, options)));
     return;
   }
-  for (const options of rest) void queryClient.prefetchQuery(options);
-  if (!primary) return;
-  const record = queryClient.prefetchQuery(primary);
-  if (cause !== "enter" || !firstLoadDone) return;
-  await Promise.race([record, new Promise((resolve) => setTimeout(resolve, ROUTE_WAIT_MS))]);
+  for (const options of rest) void warm(queryClient, options);
+  const loaded = Promise.all(records.map((options) => warm(queryClient, options)));
+  if (cause !== "enter" || !firstLoadDone || records.length === 0) return;
+  await Promise.race([loaded, new Promise((resolve) => setTimeout(resolve, ROUTE_WAIT_MS))]);
 }

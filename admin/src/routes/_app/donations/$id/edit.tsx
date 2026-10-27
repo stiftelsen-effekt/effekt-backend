@@ -7,8 +7,8 @@ import { DistributionEditor } from "@/components/domain/distribution-editor";
 import { ErrorState } from "@/components/domain/error-state";
 import { UnsavedChangesBar } from "@/components/domain/unsaved-changes";
 import { DetailPage, PageSection } from "@/components/templates";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useCauseAreaConfig } from "@/features/distribution/queries";
+import { Pending } from "@/components/ui/pending";
+import { causeAreaConfigOptions, useCauseAreaConfig } from "@/features/distribution/queries";
 import type { CauseAreaConfig } from "@/features/distribution/model";
 import {
   visiblePaymentMethods,
@@ -28,9 +28,21 @@ import { DonationFields } from "@/features/donations/donation-fields";
 import { parseMoneyInput, serverErrors } from "@/features/donations/form";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
+import { loadPage } from "@/lib/route-data";
 import { useTRPC } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/donations/$id/edit")({
+  // The form needs all of it; navigating here waits for it (route-data.ts).
+  loader: ({ context: { queryClient, trpc }, params, cause }) => {
+    const id = Number(params.id);
+    if (!(id > 0)) return;
+    return loadPage(queryClient, cause, [
+      trpc.donations.get.queryOptions({ id }),
+      causeAreaConfigOptions(trpc, { includeInactive: true }),
+      { ...trpc.config.paymentMethods.list.queryOptions(), staleTime: 300_000 },
+      { ...trpc.meta.owners.queryOptions(), staleTime: 300_000 },
+    ]);
+  },
   component: EditDonationPage,
 });
 
@@ -76,11 +88,7 @@ function EditDonationPage() {
   if (!donation.data || !causeAreas.data || !methods.data || !owners.data) {
     return (
       <DetailPage breadcrumbs={breadcrumbs} title="Edit donation">
-        <div className="grid max-w-3xl gap-3">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-40 w-full" />
-        </div>
+        <Pending className="min-h-96 max-w-3xl" label="Loading the donation" />
       </DetailPage>
     );
   }

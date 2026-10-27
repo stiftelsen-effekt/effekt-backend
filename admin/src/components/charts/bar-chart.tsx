@@ -39,7 +39,7 @@ export function BarChart<TRow extends Record<string, unknown>>({
   format?: ValueFormat;
   xFormatter?: (value: string) => string;
   className?: string;
-  /** While loading, whether to reserve a legend line (shown when there is more than one series). */
+  /** Show the legend (and reserve its line while loading). */
   legend?: boolean;
 }) {
   if (!data) return <ChartFrame className={className} pending legend={legend} />;
@@ -54,7 +54,10 @@ export function BarChart<TRow extends Record<string, unknown>>({
     <ChartFrame
       className={className}
       legend={
-        series.length > 1 && (
+        // Always shown when the placeholder reserved it, even for one series, so the chart
+        // has the same height loaded as loading.
+        legend &&
+        series.length > 0 && (
           <ChartLegend items={series.map((s) => ({ label: s.label, color: colors[s.key]! }))} />
         )
       }

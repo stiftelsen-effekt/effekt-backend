@@ -9,14 +9,20 @@ import { DateTime, Money, Num } from "@/components/domain/format";
 import { Property, PropertyList } from "@/components/domain/property-list";
 import { Stat, StatGroup } from "@/components/domain/stat";
 import { DetailPage, DetailPanel, PageSection } from "@/components/templates";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { sumMoney } from "@/lib/money";
+import { loadPage } from "@/lib/route-data";
 import { useTRPC, type RouterOutputs } from "@/lib/trpc";
 import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
 export const Route = createFileRoute("/_app/distributions/$kid")({
+  loader: ({ context: { queryClient, trpc }, params: { kid }, cause }) =>
+    loadPage(queryClient, cause, trpc.donations.distributions.get.queryOptions({ kid }), [
+      trpc.donations.byKid.queryOptions({ kid }),
+      { ...trpc.config.causeAreas.listAll.queryOptions(), staleTime: 5 * 60_000 },
+    ]),
   component: DistributionPage,
 });
 
@@ -74,13 +80,56 @@ function DistributionPage() {
     );
   }
   const d = distribution.data;
+  const stats = (
+    <StatGroup>
+      <Stat label="Donations" pending placeholder="00" />
+      <Stat label="Total" pending />
+      <Stat label="Latest donation" pending placeholder="00.00.0000" />
+    </StatGroup>
+  );
   if (!d) {
+    // First load only (navigations wait for the distribution).
     return (
-      <DetailPage breadcrumbs={breadcrumbs} title={title}>
-        <div className="grid gap-3">
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-40 w-full" />
-        </div>
+      <DetailPage
+        breadcrumbs={breadcrumbs}
+        title={title}
+        meta={[
+          <CopyValue key="kid" value={kid} label="KID" />,
+          <SkeletonText key="donor">Firstname Lastname</SkeletonText>,
+          <SkeletonText key="tax">Tax unit Firstname Lastname</SkeletonText>,
+        ]}
+        stats={stats}
+        aside={
+          <>
+            <DetailPanel title="Split">
+              <div className="py-3">
+                <Skeleton className="h-16 w-full" />
+              </div>
+            </DetailPanel>
+            <DetailPanel title="Donor">
+              <PropertyList labelWidth="6.5rem">
+                {["Name", "Email", "Donor ID"].map((label) => (
+                  <Property key={label} label={label} pending />
+                ))}
+              </PropertyList>
+            </DetailPanel>
+          </>
+        }
+      >
+        <PageSection
+          title="Donations"
+          description="Every donation registered on this KID, newest first."
+        >
+          <div className="flex max-h-[36rem] flex-col">
+            <DataTable
+              label="Donations on this KID"
+              columns={columns}
+              data={undefined}
+              isLoading
+              getRowId={(row, index) => String(row.id ?? index)}
+            />
+          </div>
+        </PageSection>
       </DetailPage>
     );
   }
@@ -116,7 +165,9 @@ function DistributionPage() {
         d.taxUnit ? `Tax unit ${d.taxUnit.name}` : "No tax unit",
       ]}
       stats={
-        donations.data && (
+        !donations.data ? (
+          !donations.isError && stats
+        ) : (
           <StatGroup>
             <Stat label="Donations" value={<Num value={rows.length} />} />
             <Stat label="Total" value={<Money value={total} />} />

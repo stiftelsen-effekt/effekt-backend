@@ -1,7 +1,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowDownToLineIcon, SmartphoneIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useAuth } from "@/auth";
 import { BarChart } from "@/components/charts";
 import type { AttentionItem } from "@/components/domain/attention-list";
@@ -10,7 +10,6 @@ import { Money, Num } from "@/components/domain/format";
 import { Stat, StatGroup } from "@/components/domain/stat";
 import { PageSection } from "@/components/templates";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   avtaleGiroCheckAttention,
   HomeView,
@@ -24,50 +23,86 @@ import {
   monthSum,
   monthTick,
 } from "@/features/home/model";
-import { useOpenReviewItems } from "@/features/home/review-queue-counts";
+import { RECENT_IMPORTS } from "@/features/home/home-view";
+import { reviewQueueCountsOptions } from "@/features/home/review-queue-counts";
 import { formatDate, formatMoney } from "@/lib/format";
 import { compareMoney, moneyToNumber, sumMoney } from "@/lib/money";
+import { createPersistentStore } from "@/lib/persistent-store";
+import { loadPage } from "@/lib/route-data";
 import { useTRPC } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/")({
+  loader: ({ context: { queryClient, trpc }, cause }) => {
+    const q = homeQueries(trpc, new Date());
+    // Coming back to Home waits briefly for the top of the page (attention and this month);
+    // the chart and recent imports may follow.
+    return loadPage(
+      queryClient,
+      cause,
+      [q.reviewCounts, q.missingAvtaleGiro, q.failedCharges, q.monthly, q.costs],
+      [q.vippsReport, q.avtaleGiroReport, q.causeAreas, ...q.totals, q.logs],
+    );
+  },
   component: HomePage,
 });
+
+/**
+ * How many attention items Home showed last time (per browser). The list's placeholder
+ * reserves that many rows, so on a reload the page below it doesn't jump when they arrive.
+ */
+const lastAttentionCount = createPersistentStore("home-attention-rows", 1);
+
+function homeQueries(trpc: ReturnType<typeof useTRPC>, today: Date) {
+  const todayIso = isoDay(today);
+  const months = lastMonths(today);
+  const thisMonth = months.at(-1)!;
+  return {
+    months,
+    reviewCounts: reviewQueueCountsOptions(trpc),
+    missingAvtaleGiro: trpc.giro.avtalegiro.missing.queryOptions({ date: todayIso }),
+    failedCharges: trpc.vipps.charges.list.queryOptions({
+      page: 0,
+      limit: 1,
+      filter: { statuses: ["FAILED"], dueDate: { from: thisMonth.fromDate, to: todayIso } },
+    }),
+    monthly: trpc.donations.totalMonthly.queryOptions(),
+    costs: trpc.donations.transactionCostsReport.queryOptions(),
+    vippsReport: trpc.vipps.agreements.report.queryOptions(),
+    avtaleGiroReport: trpc.giro.avtalegiro.report.queryOptions(),
+    causeAreas: trpc.config.causeAreas.listAll.queryOptions(),
+    totals: months.map((month) =>
+      trpc.donations.total.queryOptions({ fromDate: month.fromDate, toDate: month.toDate }),
+    ),
+    logs: trpc.reports.logs.list.queryOptions({ page: 0, limit: RECENT_IMPORTS }),
+  };
+}
 
 function HomePage() {
   const trpc = useTRPC();
   const { user } = useAuth();
   const today = useMemo(() => new Date(), []);
-  const todayIso = isoDay(today);
-  const months = useMemo(() => lastMonths(today), [today]);
+  const q = useMemo(() => homeQueries(trpc, today), [trpc, today]);
+  const months = q.months;
   const thisMonth = months.at(-1)!;
   const lastMonth = months.at(-2)!;
 
   // Needs attention
-  const openReviewItems = useOpenReviewItems();
-  const missingAvtaleGiro = useQuery(trpc.giro.avtalegiro.missing.queryOptions({ date: todayIso }));
-  const failedCharges = useQuery(
-    trpc.vipps.charges.list.queryOptions({
-      page: 0,
-      limit: 1,
-      filter: { statuses: ["FAILED"], dueDate: { from: thisMonth.fromDate, to: todayIso } },
-    }),
-  );
+  const reviewCounts = useQuery(q.reviewCounts);
+  const openReviewItems = reviewCounts.data?.open;
+  const missingAvtaleGiro = useQuery(q.missingAvtaleGiro);
+  const failedCharges = useQuery(q.failedCharges);
 
   // This month
-  const monthly = useQuery(trpc.donations.totalMonthly.queryOptions());
-  const costs = useQuery(trpc.donations.transactionCostsReport.queryOptions());
-  const vippsReport = useQuery(trpc.vipps.agreements.report.queryOptions());
-  const avtaleGiroReport = useQuery(trpc.giro.avtalegiro.report.queryOptions());
+  const monthly = useQuery(q.monthly);
+  const costs = useQuery(q.costs);
+  const vippsReport = useQuery(q.vippsReport);
+  const avtaleGiroReport = useQuery(q.avtaleGiroReport);
 
   // Last 12 months by cause area
-  const causeAreas = useQuery(trpc.config.causeAreas.listAll.queryOptions());
-  const totals = useQueries({
-    queries: months.map((month) =>
-      trpc.donations.total.queryOptions({ fromDate: month.fromDate, toDate: month.toDate }),
-    ),
-  });
+  const causeAreas = useQuery(q.causeAreas);
+  const totals = useQueries({ queries: q.totals });
 
-  const logs = useQuery(trpc.reports.logs.list.queryOptions({ page: 0, limit: 6 }));
+  const logs = useQuery(q.logs);
 
   const attention: AttentionItem[] = [
     ...(openReviewItems !== undefined ? reviewQueueAttention(openReviewItems) : []),
@@ -97,6 +132,12 @@ function HomePage() {
       : []),
   ];
 
+  const attentionPending =
+    reviewCounts.isPending || missingAvtaleGiro.isPending || failedCharges.isPending;
+  useEffect(() => {
+    if (!attentionPending) lastAttentionCount.set(Math.max(1, attention.length));
+  }, [attentionPending, attention.length]);
+
   const thisMonthSum = monthly.data && monthSum(monthly.data, thisMonth.year, thisMonth.month);
   const lastMonthSum = monthly.data && monthSum(monthly.data, lastMonth.year, lastMonth.month);
   const monthName = (key: string) => formatDate(`${key}-01`, "month").split(" ")[0];
@@ -119,8 +160,10 @@ function HomePage() {
         }
       : undefined;
 
-  const statsLoading = monthly.isPending || costs.isPending;
   const statsError = monthly.error ?? costs.error;
+  // The four stats are always there, each a placeholder until its own data is in, so the
+  // strip has its final layout from the start.
+  const agreementsPending = !agreements && !vippsReport.isError && !avtaleGiroReport.isError;
   const stats = statsError ? (
     <ErrorState
       error={statsError}
@@ -129,12 +172,11 @@ function HomePage() {
         void costs.refetch();
       }}
     />
-  ) : statsLoading ? (
-    <Skeleton className="h-20" />
   ) : (
     <StatGroup>
       <Stat
         label={`Donations in ${monthName(thisMonth.key)}`}
+        pending={monthly.isPending}
         value={<Money value={thisMonthSum} />}
         hint={
           <>
@@ -144,6 +186,7 @@ function HomePage() {
       />
       <Stat
         label="Transaction costs"
+        pending={costs.isPending || monthly.isPending}
         value={<Money value={costThisMonth} />}
         hint={
           costShare !== undefined ? (
@@ -155,25 +198,33 @@ function HomePage() {
           )
         }
       />
-      {agreements && (
+      {(agreements || agreementsPending) && (
         <Stat
           label="Active agreements"
-          value={<Num value={agreements.count} />}
+          pending={agreementsPending}
+          placeholder="0 000"
+          value={agreements && <Num value={agreements.count} />}
           hint={
-            <>
-              <Money value={agreements.monthly} /> a month
-            </>
+            agreements && (
+              <>
+                <Money value={agreements.monthly} /> a month
+              </>
+            )
           }
         />
       )}
-      {agreements && (
+      {(agreements || agreementsPending) && (
         <Stat
           label="Agreements started"
-          value={<Num value={agreements.started} />}
+          pending={agreementsPending}
+          placeholder="00"
+          value={agreements && <Num value={agreements.started} />}
           hint={
-            <>
-              <Num value={agreements.stopped} /> stopped this month
-            </>
+            agreements && (
+              <>
+                <Num value={agreements.stopped} /> stopped this month
+              </>
+            )
           }
         />
       )}
@@ -195,7 +246,7 @@ function HomePage() {
     <HomeView
       greeting={greeting(user?.givenName, today)}
       attention={attention}
-      attentionLoading={missingAvtaleGiro.isPending || failedCharges.isPending}
+      attentionLoading={attentionPending && lastAttentionCount.get()}
       stats={stats}
       chart={
         <PageSection title="Last 12 months" description="Donations by cause area">
@@ -207,18 +258,16 @@ function HomePage() {
                 totals.forEach((query) => void query.refetch());
               }}
             />
-          ) : chartData ? (
+          ) : (
             <BarChart
-              data={chartData.rows}
+              data={chartData?.rows}
               xKey="month"
               stacked
               format="money"
               xFormatter={monthTick}
-              series={chartData.series}
+              series={chartData?.series ?? []}
               className="h-60"
             />
-          ) : (
-            <Skeleton className="h-60" />
           )}
         </PageSection>
       }

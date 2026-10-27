@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Pending } from "@/components/ui/pending";
 import {
   Table,
   TableBody,
@@ -57,7 +57,7 @@ export function DataOwnersSection() {
       {owners.error ? (
         <ErrorState error={owners.error} onRetry={() => void owners.refetch()} />
       ) : !owners.data ? (
-        <Skeleton className="h-28" />
+        <Pending className="min-h-28" />
       ) : (
         <div className="relative overflow-hidden rounded-md border border-border">
           <Table aria-label="Data owners">
@@ -215,7 +215,7 @@ export function MatchingRulesSection() {
       {rules.error ? (
         <ErrorState error={rules.error} onRetry={() => void rules.refetch()} />
       ) : !rules.data ? (
-        <Skeleton className="h-48" />
+        <Pending className="min-h-48" />
       ) : rules.data.length === 0 ? (
         <EmptyState
           icon={ScaleIcon}

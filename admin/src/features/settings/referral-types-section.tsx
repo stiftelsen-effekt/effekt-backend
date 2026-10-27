@@ -8,7 +8,7 @@ import { SettingsSection } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Pending } from "@/components/ui/pending";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -111,7 +111,7 @@ export function ReferralTypesSection() {
         {query.error ? (
           <ErrorState error={query.error} onRetry={() => void query.refetch()} />
         ) : !query.data ? (
-          <Skeleton className="h-48" />
+          <Pending className="min-h-48" />
         ) : (
           <div className="relative overflow-hidden rounded-md border border-border">
             <Table aria-label="Referral types">

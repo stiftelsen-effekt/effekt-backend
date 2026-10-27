@@ -23,6 +23,22 @@ export type DataTableColumnMeta = {
   placeholder?: string;
 };
 
+/**
+ * Typical cell values for `meta.placeholder`, so the first-load rows give each column about
+ * its final width and the header doesn't shift when the data arrives.
+ */
+export const cellPlaceholder = {
+  id: "00000",
+  name: "Firstname Lastname",
+  email: "firstname.lastname@example.org",
+  date: "00.00.0000",
+  dateTime: "00.00.0000 00:00",
+  money: "00 000 kr",
+  count: "00",
+  kid: "000000000000000",
+  word: "Subscribed",
+} as const;
+
 export const dataTableFeatures = tableFeatures({
   rowSortingFeature,
   columnVisibilityFeature,

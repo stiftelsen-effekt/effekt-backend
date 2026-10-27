@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowUpRightIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -25,6 +25,7 @@ import {
   toFundraiserFilter,
   type FundraiserRow,
 } from "@/features/fundraisers/model";
+import { nextPage, usePageQuery } from "@/lib/query";
 import { useTRPC } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/fundraisers/")({
@@ -92,14 +93,16 @@ function FundraisersPage() {
   const list = useListState(fundraisersList);
   const [peekId, setPeekId] = useState<number | null>(null);
 
-  const query = useQuery({
-    ...trpc.reports.fundraisers.list.queryOptions({
-      page: list.page - 1,
+  const listOptions = (page: number) =>
+    trpc.reports.fundraisers.list.queryOptions({
+      page: page - 1,
       limit: list.pageSize,
       sort: { id: list.sort.id, desc: list.sort.desc },
       filter: toFundraiserFilter(list.filters),
-    }),
-    placeholderData: keepPreviousData,
+    });
+  const query = usePageQuery(listOptions(list.page), {
+    // The next page is fetched as soon as this one is in, so paging forward is instant.
+    prefetch: (data) => nextPage(list.page, data.pages, listOptions),
   });
   const organizations = useQuery(trpc.config.organizations.listAll.queryOptions());
   const rows = query.data?.rows;

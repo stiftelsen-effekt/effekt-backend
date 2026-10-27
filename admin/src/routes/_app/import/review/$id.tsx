@@ -1,12 +1,14 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeftIcon, ChevronRightIcon, ListIcon } from "lucide-react";
+import { useEffect } from "react";
 import { useAuth } from "@/auth";
 import { ErrorState } from "@/components/domain/error-state";
 import { Callout } from "@/components/domain/callout";
 import { DetailPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Pending } from "@/components/ui/pending";
+import { SkeletonText } from "@/components/ui/skeleton";
 import { defaultOwner } from "@/features/donations/api";
 import { formatAmount } from "@/features/donations/edit-model";
 import {
@@ -20,6 +22,8 @@ import { sourceParam, useRegistrationReferenceData } from "@/features/review-que
 import { ReviewWorkbench } from "@/features/review-queue/review-workbench";
 import { useHotkey } from "@/hooks/use-hotkey";
 import { notify } from "@/lib/notify";
+import { usePageQuery } from "@/lib/query";
+import { loadPage } from "@/lib/route-data";
 import { useTRPC } from "@/lib/trpc";
 
 type Search = { source?: string; owner?: string };
@@ -32,6 +36,13 @@ export const Route = createFileRoute("/_app/import/review/$id")({
         ? String(raw.owner)
         : undefined,
   }),
+  // Moving to the next item keeps the current one on screen until the next is in (it is
+  // usually prefetched already, see below).
+  loader: ({ context: { queryClient, trpc }, params, cause }) => {
+    const id = Number(params.id);
+    if (!(Number.isInteger(id) && id > 0)) return;
+    return loadPage(queryClient, cause, trpc.reports.reviewQueue.get.queryOptions({ id }));
+  },
   component: ReviewItemPage,
 });
 
@@ -50,20 +61,27 @@ function ReviewItemPage() {
 
   const item = useQuery(trpc.reports.reviewQueue.get.queryOptions({ id: itemId }));
   // Open items in the same filter, oldest first: the order the workbench goes through them.
-  const open = useQuery({
-    ...trpc.reports.reviewQueue.list.queryOptions({
+  const open = usePageQuery(
+    trpc.reports.reviewQueue.list.queryOptions({
       page: 0,
       limit: 1000,
       sort: { id: "id", desc: false },
       filter: { statuses: ["open"], sources },
     }),
-    placeholderData: keepPreviousData,
-  });
+  );
   const openIds = open.data?.rows.map((row) => row.id) ?? [];
   const openCount = open.data?.counts.open ?? 0;
   const position = openIds.indexOf(itemId);
   const next = nextOpenId(openIds, itemId);
   const previous = previousOpenId(openIds, itemId);
+
+  // The items Skip, Register, Ignore and j/k lead to, fetched ahead so the move is instant.
+  useEffect(() => {
+    for (const id of [next, previous]) {
+      if (id != null)
+        void queryClient.prefetchQuery(trpc.reports.reviewQueue.get.queryOptions({ id }));
+    }
+  }, [next, previous, queryClient, trpc]);
 
   const register = useMutation(trpc.reports.reviewQueue.register.mutationOptions());
   const ignore = useMutation(trpc.reports.reviewQueue.ignore.mutationOptions());
@@ -136,7 +154,15 @@ function ReviewItemPage() {
   const error = item.error ?? reference.error;
   if (error || !item.data || !reference.data) {
     return (
-      <DetailPage title="Review item" {...header}>
+      <DetailPage
+        title={error ? "Review item" : <SkeletonText>0 000 kr from OCR file</SkeletonText>}
+        meta={
+          error
+            ? undefined
+            : [`Item #${itemId}`, <SkeletonText key="payer">Firstname Lastname</SkeletonText>]
+        }
+        {...header}
+      >
         {error ? (
           <ErrorState
             back={{ to: "/import/review", label: "Review queue" }}
@@ -147,9 +173,10 @@ function ReviewItemPage() {
             }}
           />
         ) : (
+          // The workbench's two panes (transaction, registration form), their size reserved.
           <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
-            <Skeleton className="h-96" />
-            <Skeleton className="h-96" />
+            <Pending className="h-96" />
+            <Pending className="h-96" />
           </div>
         )}
       </DetailPage>

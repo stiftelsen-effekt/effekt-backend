@@ -37,19 +37,33 @@ export function usePageQuery<
   TQueryKey extends QueryKey = QueryKey,
 >(
   options: UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
-  { prefetch = [] }: { prefetch?: AnyFetchOptions[] } = {},
+  {
+    prefetch = [],
+  }: {
+    /** Neighbouring inputs to fetch once this one is in; a function to decide from its data. */
+    prefetch?: AnyFetchOptions[] | ((data: TData) => AnyFetchOptions[]);
+  } = {},
 ) {
   const query = useQuery({ placeholderData: keepPreviousData, ...options });
   const queryClient = useQueryClient();
   useReportUpdating(query.isPlaceholderData && query.isFetching);
 
   const settled = query.isSuccess && !query.isPlaceholderData;
-  const prefetchKey = JSON.stringify(prefetch.map((neighbour) => neighbour.queryKey));
+  const neighbours = !settled
+    ? []
+    : typeof prefetch === "function"
+    ? prefetch(query.data as TData)
+    : prefetch;
+  // The key captures the neighbours; the array itself is rebuilt every render.
+  const neighboursKey = JSON.stringify(neighbours.map((neighbour) => neighbour.queryKey));
   useEffect(() => {
-    if (!settled) return;
-    for (const neighbour of prefetch) void queryClient.prefetchQuery(neighbour);
-    // The key captures the neighbours; the array itself is rebuilt every render.
-  }, [settled, prefetchKey, queryClient]);
+    for (const neighbour of neighbours) void queryClient.prefetchQuery(neighbour);
+  }, [neighboursKey, queryClient]);
 
   return query;
+}
+
+/** The next page of a paged list, when there is one (`pages` as the list procedures return it). */
+export function nextPage<T>(page: number, pages: number | undefined, options: (page: number) => T) {
+  return pages !== undefined && page < pages ? [options(page + 1)] : [];
 }

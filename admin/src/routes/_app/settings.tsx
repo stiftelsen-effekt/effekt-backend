@@ -4,6 +4,7 @@ import { SettingsPage, useScrollTopOn } from "@/components/templates";
 import { CauseAreasSection } from "@/features/settings/cause-areas-section";
 import { DataOwnersSection, MatchingRulesSection } from "@/features/settings/other-sections";
 import { ReferralTypesSection } from "@/features/settings/referral-types-section";
+import { loadPage } from "@/lib/route-data";
 import { useTRPC } from "@/lib/trpc";
 
 const sectionIds = ["cause-areas", "referrals", "owners", "matching"];
@@ -14,6 +15,13 @@ export const Route = createFileRoute("/_app/settings")({
     typeof search.section === "string" && sectionIds.includes(search.section)
       ? { section: search.section as SectionId }
       : {},
+  loader: ({ context: { queryClient, trpc }, cause }) =>
+    loadPage(queryClient, cause, [
+      trpc.config.causeAreas.listAll.queryOptions(),
+      trpc.config.referralTypes.listAll.queryOptions(),
+      trpc.meta.owners.queryOptions(),
+      trpc.vipps.matchingRules.list.queryOptions(),
+    ]),
   component: SettingsRoute,
 });
 

@@ -10,14 +10,28 @@ import { Property, PropertyList } from "@/components/domain/property-list";
 import { Stat, StatGroup } from "@/components/domain/stat";
 import { DetailPage, DetailPanel, PageSection } from "@/components/templates";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonText } from "@/components/ui/skeleton";
 import { dashboardUrl } from "@/features/fundraisers/model";
 import { averageMoney } from "@/lib/money";
+import { loadPage } from "@/lib/route-data";
 import { errorCode, useTRPC, type RouterOutputs } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/fundraisers/$id")({
+  loader: async ({ context: { queryClient, trpc }, params, cause }) => {
+    const id = Number(params.id);
+    if (!Number.isInteger(id) || id <= 0) return;
+    const fundraiser = trpc.reports.fundraisers.get.queryOptions({ id });
+    await loadPage(queryClient, cause, fundraiser);
+    // The owner's name is in the header; fetch it as soon as we know who it is.
+    const donorId = queryClient.getQueryData(fundraiser.queryKey)?.donorId;
+    if (donorId !== undefined && cause !== "preload") {
+      void queryClient.prefetchQuery(trpc.donors.get.queryOptions({ donorId }));
+    }
+  },
   component: FundraiserPage,
 });
+
+const breadcrumbs = [{ label: "Fundraisers", to: "/fundraisers" }];
 
 type Transaction = RouterOutputs["reports"]["fundraisers"]["get"]["transactions"][number];
 
@@ -70,12 +84,49 @@ function Fundraiser({ fundraiserId }: { fundraiserId: number }) {
   });
 
   if (query.isPending) {
+    // First load only (navigations wait for the fundraiser): the page's layout with
+    // placeholders for its values.
     return (
-      <div className="grid gap-6 p-6" aria-busy>
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-20" />
-        <Skeleton className="h-56" />
-      </div>
+      <DetailPage
+        breadcrumbs={breadcrumbs}
+        title={`Fundraiser #${fundraiserId}`}
+        meta={[
+          <SkeletonText key="owner">Run by Firstname Lastname</SkeletonText>,
+          <SkeletonText key="created">Created 00.00.0000</SkeletonText>,
+        ]}
+        stats={
+          <StatGroup>
+            <Stat label="Raised" pending />
+            <Stat label="Donations" pending placeholder="00" />
+            <Stat label="Average donation" pending placeholder="000 kr" />
+            <Stat label="Last donation" pending placeholder="00.00.0000" />
+          </StatGroup>
+        }
+        aside={
+          <DetailPanel title="Fundraiser">
+            <PropertyList labelWidth="7rem">
+              {["Owner", "Owner email", "Created", "Last updated", "Fundraiser ID"].map((label) => (
+                <Property key={label} label={label} pending />
+              ))}
+            </PropertyList>
+          </DetailPanel>
+        }
+      >
+        <PageSection
+          title="Donations"
+          description="Names are shown only where the giver chose to show them on the fundraiser."
+        >
+          <div className="flex max-h-[40rem] flex-col">
+            <DataTable
+              label="Donations to this fundraiser"
+              columns={columns}
+              data={undefined}
+              isLoading
+              getRowId={(row) => String(row.id)}
+            />
+          </div>
+        </PageSection>
+      </DetailPage>
     );
   }
   if (query.isError) {
@@ -96,9 +147,13 @@ function Fundraiser({ fundraiserId }: { fundraiserId: number }) {
   }
 
   const fundraiser = query.data;
-  const ownerName = owner.data
-    ? owner.data.name || owner.data.email
-    : `Donor #${fundraiser.donorId}`;
+  const ownerName = owner.data ? (
+    owner.data.name || owner.data.email
+  ) : owner.isPending ? (
+    <SkeletonText>Firstname Lastname</SkeletonText>
+  ) : (
+    `Donor #${fundraiser.donorId}`
+  );
   const ownerLink = (
     <Link
       to="/donors/$id"
@@ -113,7 +168,7 @@ function Fundraiser({ fundraiserId }: { fundraiserId: number }) {
 
   return (
     <DetailPage
-      breadcrumbs={[{ label: "Fundraisers", to: "/fundraisers" }]}
+      breadcrumbs={breadcrumbs}
       title={`Fundraiser #${fundraiser.id}`}
       meta={[
         <span key="owner">Run by {ownerLink}</span>,
@@ -151,7 +206,9 @@ function Fundraiser({ fundraiserId }: { fundraiserId: number }) {
         <DetailPanel title="Fundraiser">
           <PropertyList labelWidth="7rem">
             <Property label="Owner">{ownerLink}</Property>
-            <Property label="Owner email">{owner.data?.email}</Property>
+            <Property label="Owner email" pending={owner.isPending}>
+              {owner.data?.email}
+            </Property>
             <Property label="Created">
               <DateTime value={fundraiser.registered} format="datetime" />
             </Property>

@@ -14,7 +14,7 @@ import { Status } from "@/components/domain/status";
 import { DetailPage, DetailPanel, PageSection } from "@/components/templates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 import {
   ActivateAgreementDialog,
   ChangeAmountDialog,
@@ -31,11 +31,37 @@ import { formatMoney } from "@/lib/format";
 import { sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
 import { agreementStatus, chargeStatus, type AgreementStatus } from "@/lib/status";
+import { loadPage } from "@/lib/route-data";
 import { unbatched, useTRPC, type RouterOutputs } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/agreements/$provider/$id")({
+  loader: ({ context: { queryClient, trpc }, params: { provider, id }, cause }) => {
+    if (provider === "vipps") {
+      return loadPage(queryClient, cause, vippsStoredOptions(trpc, id), [
+        trpc.vipps.agreements.payments.queryOptions({ id }),
+        normalisedVippsOptions(trpc, id),
+      ]);
+    }
+    const numericId = Number(id);
+    if (provider !== "avtalegiro" || !(Number.isInteger(numericId) && numericId > 0)) return;
+    return loadPage(queryClient, cause, trpc.giro.avtalegiro.get.queryOptions({ id: numericId }), [
+      trpc.giro.avtalegiro.payments.queryOptions({ agreementId: numericId }),
+      { ...trpc.config.causeAreas.listAll.queryOptions(), staleTime: 5 * 60_000 },
+    ]);
+  },
   component: AgreementPage,
 });
+
+/** Our database's copy of a Vipps agreement (the page is built from it). */
+const vippsStoredOptions = (trpc: ReturnType<typeof useTRPC>, id: string) =>
+  trpc.vipps.agreements.list.queryOptions({ page: 0, limit: 50, filter: { agreementID: id } });
+/** The normalised row (status, pause, donor) for exactly this agreement. */
+const normalisedVippsOptions = (trpc: ReturnType<typeof useTRPC>, id: string) =>
+  trpc.agreements.list.queryOptions({
+    page: 0,
+    limit: 1,
+    filter: { providers: ["vipps"], ids: [id] },
+  });
 
 /** Vipps refuses amounts above this (vipps.agreements.updatePrice). */
 const VIPPS_MAX_NOK = 1_000_000;
@@ -207,9 +233,8 @@ function AgreementLayout({
           <Stat label="Charge day" value={describeChargeDay(facts.chargeDay)} />
           <Stat
             label={withStatus ? "Charged" : "Received"}
-            value={
-              total !== undefined ? <Money value={total} /> : <Skeleton className="h-7 w-20" />
-            }
+            pending={total === undefined && !paymentsError}
+            value={total !== undefined && <Money value={total} />}
             hint={
               received && (
                 <>
@@ -220,15 +245,9 @@ function AgreementLayout({
           />
           <Stat
             label="Last payment"
-            value={
-              received === undefined ? (
-                <Skeleton className="h-7 w-24" />
-              ) : last ? (
-                <DateTime value={last} />
-              ) : (
-                "None yet"
-              )
-            }
+            pending={received === undefined && !paymentsError}
+            placeholder="00.00.0000"
+            value={last ? <DateTime value={last} /> : "None yet"}
           />
         </StatGroup>
       }
@@ -337,12 +356,58 @@ function LoadingOrError({
           error={error}
           onRetry={onRetry}
         />
-      ) : (
-        <div className="grid gap-3">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-40 w-full" />
-        </div>
-      )}
+      ) : null}
+    </DetailPage>
+  );
+}
+
+/**
+ * First load only (navigations wait for the agreement): the agreement page's layout with
+ * placeholders for its values.
+ */
+function AgreementPending({ title }: { title: string }) {
+  return (
+    <DetailPage
+      breadcrumbs={breadcrumbs}
+      title={title}
+      adornment={<SkeletonText className="text-sm">Active</SkeletonText>}
+      meta={[
+        <SkeletonText key="type">AvtaleGiro</SkeletonText>,
+        <SkeletonText key="donor">Firstname Lastname</SkeletonText>,
+        <SkeletonText key="kid">KID 000000000000000</SkeletonText>,
+      ]}
+      stats={
+        <StatGroup>
+          <Stat label="Monthly amount" pending />
+          <Stat label="Charge day" pending placeholder="The 00th" />
+          <Stat label="Received" pending />
+          <Stat label="Last payment" pending placeholder="00.00.0000" />
+        </StatGroup>
+      }
+      aside={
+        <>
+          <DetailPanel title="Agreement">
+            <PropertyList labelWidth="7rem">
+              {["Status", "Monthly", "Charged", "KID", "Agreement ID", "Created"].map((label) => (
+                <Property key={label} label={label} pending placeholder="Placeholder" />
+              ))}
+            </PropertyList>
+          </DetailPanel>
+          <DetailPanel title="Donor">
+            <PropertyList labelWidth="7rem">
+              <Property label="Name" pending />
+              <Property label="Donor ID" pending placeholder="#00000" />
+            </PropertyList>
+          </DetailPanel>
+        </>
+      }
+    >
+      <PageSection
+        title="Distribution"
+        description="How each payment is split between cause areas."
+      >
+        <Skeleton className="h-24 w-full" />
+      </PageSection>
     </DetailPage>
   );
 }
@@ -356,19 +421,10 @@ function VippsAgreementPage({ id }: { id: string }) {
   const invalidate = useInvalidateAgreements();
   // Our database's copy. vipps.agreements.get goes to Vipps (and fails when Vipps can't be
   // reached), so the page is built from the database and shows Vipps' view next to it.
-  const stored = useQuery(
-    trpc.vipps.agreements.list.queryOptions({ page: 0, limit: 50, filter: { agreementID: id } }),
-  );
+  const stored = useQuery(vippsStoredOptions(trpc, id));
   const row = stored.data?.rows.find((r) => r.ID === id);
   // The normalised row (status, pause, donor) for exactly this agreement.
-  const normalised = useQuery({
-    ...trpc.agreements.list.queryOptions({
-      page: 0,
-      limit: 1,
-      filter: { providers: ["vipps"], ids: [id] },
-    }),
-    enabled: Boolean(row),
-  });
+  const normalised = useQuery({ ...normalisedVippsOptions(trpc, id), enabled: Boolean(row) });
   const listRow = normalised.data?.rows.find((r) => r.id === id);
   const live = useQuery({
     ...trpc.vipps.agreements.get.queryOptions({ id }, unbatched),
@@ -393,7 +449,8 @@ function VippsAgreementPage({ id }: { id: string }) {
   );
 
   const title = "Vipps agreement";
-  if (stored.isError || stored.isPending) {
+  if (stored.isPending) return <AgreementPending title={title} />;
+  if (stored.isError) {
     return (
       <LoadingOrError title={title} error={stored.error} onRetry={() => void stored.refetch()} />
     );
@@ -588,9 +645,10 @@ function VippsPanel({
           </Callout>
         </div>
       ) : live.isPending || !live.data ? (
-        <div className="py-3">
-          <Skeleton className="h-16 w-full" />
-        </div>
+        <PropertyList labelWidth="7rem">
+          <Property label="Status" pending placeholder="ACTIVE" />
+          <Property label="Price" pending placeholder="000 kr" />
+        </PropertyList>
       ) : (
         <PropertyList labelWidth="7rem">
           <Property label="Status">{String(live.data.status)}</Property>
@@ -645,6 +703,7 @@ function AvtaleGiroAgreementPage({ id }: { id: string }) {
       </DetailPage>
     );
   }
+  if (agreement.isPending) return <AgreementPending title={title} />;
   if (!agreement.data) {
     return (
       <LoadingOrError
