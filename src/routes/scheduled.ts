@@ -14,6 +14,7 @@ import paymentMethods from "../enums/paymentMethods";
 import { AutoGiro_agreements, Payment_follow_up, Payment_intent } from "@prisma/client";
 import { getAllInflationEligibleAgreements } from "../custom_modules/inflationadjustment";
 import { RequestLocale } from "../middleware/locale";
+import { enqueueInvalidTransactions } from "../custom_modules/reviewQueue";
 
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
@@ -68,7 +69,12 @@ router.post("/ocr", authMiddleware.isAdmin, async (req, res, next) => {
       file: latestOcrFile.toString(),
     };
 
-    await DAO.logging.add("OCR", result);
+    const importLogId = await DAO.logging.add("OCR", result);
+    await enqueueInvalidTransactions(
+      "ocr",
+      addedDonations.invalidTransactions,
+      typeof importLogId === "number" ? importLogId : null,
+    );
     res.json(result);
   } catch (ex) {
     next({ ex });

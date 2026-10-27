@@ -2,15 +2,17 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { DAO } from "../../custom_modules/DAO";
 import { TaxUnitType } from "../../custom_modules/DAO_modules/donations";
-import {
-  confirmDonation,
-  createDistribution,
-  updateDonation,
-} from "../../custom_modules/donationsService";
+import { createDistribution, updateDonation } from "../../custom_modules/donationsService";
 import { sendDonationReceipt } from "../../custom_modules/mail";
 import { Distribution } from "../../schemas/types";
 import { csvExport } from "../csv";
 import { assertDistributionReferences } from "../distributionChecks";
+import {
+  assertDataOwnerExists,
+  assertExternalRefUnused,
+  assertPaymentMethodExists,
+  registerDonation,
+} from "../donationRegistration";
 import {
   distributionCreateSchema,
   distributionSchema,
@@ -49,35 +51,6 @@ const getDonationOrThrow = async (id: number) => {
     return await DAO.donations.getByID(id);
   } catch (ex) {
     return rethrowNotFound(ex, "Could not find donation");
-  }
-};
-
-const badRequest = (message: string) => new TRPCError({ code: "BAD_REQUEST", message });
-
-const assertPaymentMethodExists = async (paymentId: number) => {
-  const methods = await DAO.payment.getMethods();
-  if (!methods?.some((method) => method.id === paymentId)) {
-    throw badRequest(`Payment method ${paymentId} does not exist`);
-  }
-};
-
-const assertDataOwnerExists = async (metaOwnerId: number) => {
-  const owners = await DAO.meta.getDataOwners();
-  if (!owners.some((owner) => owner.id === metaOwnerId)) {
-    throw badRequest(`Data owner ${metaOwnerId} does not exist`);
-  }
-};
-
-/**
- * PaymentExternal_ID is unique across all payment methods, so any existing donation with the
- * reference conflicts (the DAO's own check only looks at the same payment method).
- */
-const assertExternalRefUnused = async (externalRef: string) => {
-  if (await DAO.donations.externalRefExists(externalRef)) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: `A donation with external reference ${externalRef} already exists`,
-    });
   }
 };
 
@@ -299,49 +272,7 @@ export const donationsRouter = router({
           message: "Provide either a KID or a distribution, not both",
         }),
     )
-    .mutation(async ({ input }) => {
-      await assertPaymentMethodExists(input.paymentId);
-      await assertDataOwnerExists(input.metaOwnerId);
-      if (input.paymentExternalRef !== null) {
-        await assertExternalRefUnused(input.paymentExternalRef);
-      }
-
-      let KID: string;
-      let newDistribution = false;
-      if (input.distribution) {
-        await assertDistributionReferences(input.distribution);
-        ({ KID, newDistribution } = await createDistribution(
-          input.distribution,
-          input.metaOwnerId,
-        ));
-      } else {
-        KID = input.KID!;
-      }
-
-      let donationId: number;
-      try {
-        donationId = await confirmDonation({
-          KID,
-          paymentMethodId: input.paymentId,
-          sum: input.sum,
-          timestamp: new Date(input.timestamp),
-          externalRef: input.paymentExternalRef,
-          metaOwnerId: input.metaOwnerId,
-          sendReceipt: input.sendReceipt,
-        });
-      } catch (ex) {
-        const message = errorMessage(ex);
-        if (message.startsWith("NO_KID")) {
-          throw new TRPCError({ code: "BAD_REQUEST", message, cause: ex });
-        }
-        if (message.startsWith("EXISTING_DONATION")) {
-          throw new TRPCError({ code: "CONFLICT", message, cause: ex });
-        }
-        throw ex;
-      }
-
-      return { donationId, KID, newDistribution };
-    }),
+    .mutation(({ input }) => registerDonation(input)),
 
   histogram: adminProcedure.query(() => DAO.donations.getHistogramBySum()),
 

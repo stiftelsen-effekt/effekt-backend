@@ -24,6 +24,7 @@ import { inflationadjustments } from "./DAO_modules/inflationadjustment";
 import { agreementfeedback } from "./DAO_modules/agreementfeedback";
 import { fundraisers } from "./DAO_modules/fundraisers";
 import { donationReferralCodes } from "./DAO_modules/donationReferralCodes";
+import { reviewqueue } from "./DAO_modules/reviewqueue";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -77,6 +78,7 @@ export const DAO = {
   agreementfeedback: agreementfeedback,
   fundraisers: fundraisers,
   donationReferralCodes: donationReferralCodes,
+  reviewqueue: reviewqueue,
 
   dbPool: undefined as mysql.Pool | undefined,
 
