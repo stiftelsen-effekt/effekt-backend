@@ -1,0 +1,149 @@
+# Per-PR preview environments (docs/preview-environments.md).
+#
+# pull_request_target: this file and scripts/preview/* always come from the default branch, so a
+# PR cannot change what runs with cloud credentials (the workload identity provider only trusts
+# this workflow on the default branch). The PR's code is only built into the image (docker build
+# runs before any credentials exist) and runs on Cloud Run as the runtime service account, which
+# can reach nothing but the effekt-previews Cloud SQL instance.
+# Fork PRs never deploy. Infrastructure: scripts/preview/provision.sh.
+name: Preview
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+
+permissions: {}
+
+# One preview per PR: a push cancels the PR's run in flight and deploys the new commit.
+concurrency:
+  group: preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PR: ${{ github.event.pull_request.number }}
+  SHA: ${{ github.event.pull_request.head.sha }}
+  PREVIEW_MAX: ${{ vars.PREVIEW_MAX || '5' }}
+
+jobs:
+  deploy:
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      vars.PREVIEW_WIF_PROVIDER != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the trusted scripts (default branch)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: trusted
+          persist-credentials: false
+
+      - name: Comment "building"
+        run: trusted/scripts/preview/pr-comment.sh "$PR" building --sha "$SHA"
+
+      - name: Check out the pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr
+          persist-credentials: false
+
+      # Before authenticating: the PR's Dockerfile and code run here, with no credentials around
+      # (the checkouts don't keep tokens, and the GCP credentials don't exist yet).
+      - name: Build the preview image
+        env:
+          REGION: ${{ vars.PREVIEW_GCP_REGION }}
+          PROJECT: ${{ vars.PREVIEW_GCP_PROJECT }}
+        run: |
+          image="${REGION}-docker.pkg.dev/${PROJECT}/effekt-previews/backend:pr-${PR}-${SHA}"
+          echo "IMAGE=${image}" >> "$GITHUB_ENV"
+          DOCKER_BUILDKIT=1 docker build -f pr/Dockerfile.preview -t "$image" pr
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.PREVIEW_WIF_PROVIDER }}
+          service_account: ${{ vars.PREVIEW_CI_SA }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      - name: Check the preview limit
+        id: capacity
+        run: trusted/scripts/preview/capacity.sh "$PR" "$RUNNER_TEMP/capacity.md"
+
+      - name: Comment "not created" (limit reached)
+        if: steps.capacity.outputs.allowed != 'true'
+        run: >-
+          trusted/scripts/preview/pr-comment.sh "$PR" capped --sha "$SHA"
+          --note-file "$RUNNER_TEMP/capacity.md"
+
+      - name: Push the image
+        if: steps.capacity.outputs.allowed == 'true'
+        env:
+          REGION: ${{ vars.PREVIEW_GCP_REGION }}
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker push "$IMAGE"
+
+      - name: Migrate, seed and deploy
+        id: deploy
+        if: steps.capacity.outputs.allowed == 'true'
+        run: trusted/scripts/preview/deploy.sh "$PR" "$IMAGE" "$SHA"
+
+      - name: Comment "ready"
+        if: steps.capacity.outputs.allowed == 'true'
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+          SEEDED_AT: ${{ steps.deploy.outputs.seeded_at }}
+        run: >-
+          trusted/scripts/preview/pr-comment.sh "$PR" ready --sha "$SHA"
+          --url "$URL" --seeded-at "$SEEDED_AT"
+
+      - name: Comment "failed"
+        if: failure()
+        run: trusted/scripts/preview/pr-comment.sh "$PR" failed --sha "$SHA"
+
+  teardown:
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      vars.PREVIEW_WIF_PROVIDER != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the trusted scripts (default branch)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: trusted
+          persist-credentials: false
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.PREVIEW_WIF_PROVIDER }}
+          service_account: ${{ vars.PREVIEW_CI_SA }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      - name: Tear down
+        run: trusted/scripts/preview/teardown.sh "$PR"
+
+      - name: Comment "torn down"
+        run: |
+          echo "Deleted because the PR was closed." > "$RUNNER_TEMP/note.md"
+          trusted/scripts/preview/pr-comment.sh "$PR" torn-down --sha "$SHA" --note-file "$RUNNER_TEMP/note.md"

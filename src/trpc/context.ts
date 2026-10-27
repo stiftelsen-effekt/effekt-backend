@@ -4,12 +4,16 @@ import { TRPCError } from "@trpc/server";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import { authAdditionalIssuers, authAudience, authIssuerBaseURL } from "../config";
 import { createJwtCheck } from "../custom_modules/authorization/jwtIssuers";
+import { selectJwtCheck } from "../custom_modules/preview/previewMode";
 
-// Defaulting to "default" to enable tests to run, same as authMiddleware
-const checkJwt = createJwtCheck(
-  authAudience || "default",
-  authIssuerBaseURL || "default",
-  authIssuerBaseURL ? authAdditionalIssuers : [],
+// Defaulting to "default" to enable tests to run, same as authMiddleware.
+// With PREVIEW_MODE=true (preview environments only) this is the preview session check instead.
+const checkJwt = selectJwtCheck(() =>
+  createJwtCheck(
+    authAudience || "default",
+    authIssuerBaseURL || "default",
+    authIssuerBaseURL ? authAdditionalIssuers : [],
+  ),
 );
 
 /**

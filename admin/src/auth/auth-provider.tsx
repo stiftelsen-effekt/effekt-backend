@@ -2,9 +2,8 @@ import type { ReactNode } from "react";
 import { config } from "@/lib/config";
 import { Auth0AuthProvider } from "./auth0-provider";
 import { DevAuthProvider } from "./dev-provider";
-
-const devModeRequested = config.auth.mode === "dev";
-const devModeAllowed = devModeRequested && !import.meta.env.PROD;
+import { resolveAuthMode } from "./mode";
+import { PreviewAuthProvider } from "./preview-provider";
 
 export function AuthProvider({
   children,
@@ -13,9 +12,12 @@ export function AuthProvider({
   children: ReactNode;
   onRedirect: (path: string) => void;
 }) {
-  if (devModeRequested && !devModeAllowed) {
-    throw new Error("VITE_AUTH_MODE=dev is not allowed in production builds.");
-  }
-  const Provider = devModeAllowed ? DevAuthProvider : Auth0AuthProvider;
+  const mode = resolveAuthMode({
+    requested: config.auth.mode,
+    production: import.meta.env.PROD,
+    buildMode: import.meta.env.MODE,
+  });
+  const Provider =
+    mode === "dev" ? DevAuthProvider : mode === "preview" ? PreviewAuthProvider : Auth0AuthProvider;
   return <Provider onRedirect={onRedirect}>{children}</Provider>;
 }

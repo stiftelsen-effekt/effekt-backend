@@ -2,7 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
-  readonly VITE_AUTH_MODE?: "auth0" | "dev";
+  readonly VITE_AUTH_MODE?: "auth0" | "dev" | "preview";
   readonly VITE_AUTH_DOMAIN?: string;
   readonly VITE_AUTH_CLIENT_ID?: string;
   readonly VITE_AUTH_AUDIENCE?: string;

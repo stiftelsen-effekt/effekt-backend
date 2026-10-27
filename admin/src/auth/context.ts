@@ -9,6 +9,27 @@ export type AuthUser = {
   picture?: string;
 };
 
+export type PreviewUser = {
+  id: string;
+  label: string;
+  email: string;
+  description: string;
+};
+
+export type PreviewInfo = {
+  pr: string | null;
+  sha: string | null;
+  seededAt: string | null;
+};
+
+/** Only in preview environments (VITE_AUTH_MODE=preview): "Continue as…" instead of a login. */
+export type PreviewSession = {
+  users: PreviewUser[];
+  current: PreviewUser | null;
+  info: PreviewInfo | null;
+  continueAs: (userId: string, options?: { returnTo?: string }) => Promise<void>;
+};
+
 export type AuthState = {
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -17,6 +38,7 @@ export type AuthState = {
   login: (options?: { returnTo?: string }) => Promise<void>;
   logout: () => void;
   getAccessToken: () => Promise<string>;
+  preview?: PreviewSession;
 };
 
 export const AuthContext = createContext<AuthState | null>(null);

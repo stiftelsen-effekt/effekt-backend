@@ -1,0 +1,79 @@
+# "@claude …" in a pull request comment or review: Claude Code works on the PR's branch and
+# commits there, which redeploys the PR's preview (docs/preview-environments.md).
+#
+# Public repository: only people with write, maintain or admin permission can trigger it
+# (checked below, and again by the action itself), and only on PRs from this repository.
+# One-time setup by a repo admin: install the Claude GitHub app (https://github.com/apps/claude)
+# on this repository and add the ANTHROPIC_API_KEY repository secret. The app's token is what
+# lets Claude's commits trigger the Preview workflow (pushes made with GITHUB_TOKEN don't).
+name: Claude
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+
+permissions: {}
+
+jobs:
+  claude:
+    if: >-
+      (
+        (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+          contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review_comment' &&
+          contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review' &&
+          contains(github.event.review.body, '@claude'))
+      ) &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'),
+        github.event.comment.author_association || github.event.review.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: claude-pr-${{ github.event.issue.number || github.event.pull_request.number }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Require write access and a PR from this repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.event.comment.user.login || github.event.review.user.login }}
+          PR: ${{ github.event.issue.number || github.event.pull_request.number }}
+        run: |
+          permission="$(gh api "repos/${GITHUB_REPOSITORY}/collaborators/${ACTOR}/permission" --jq .permission)"
+          case "$permission" in
+            admin | maintain | write) ;;
+            *)
+              echo "::error::${ACTOR} has '${permission}' permission; @claude needs write access."
+              exit 1
+              ;;
+          esac
+          head_repo="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" --jq .head.repo.full_name)"
+          if [[ "$head_repo" != "$GITHUB_REPOSITORY" ]]; then
+            echo "::error::PR #${PR} comes from ${head_repo}; @claude only works on branches of this repository."
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@8041f1d17e0e7d2f2cfe35002962e9f26237c0bb # v1.0.263
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --max-turns 60
+            --append-system-prompt "You are working on a pull request of the effekt-backend repository (Express/tRPC backend, admin SPA in admin/, pnpm workspace). Commit your changes to the PR branch; every push redeploys the PR's preview environment (synthetic data, see docs/preview-environments.md). Never add secrets, real personal data or production configuration. Never edit .github/workflows/ or scripts/preview/."
