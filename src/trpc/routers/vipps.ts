@@ -222,29 +222,19 @@ const chargesRouter = router({
     }),
 });
 
-/**
- * Rules that resolve Vipps settlement transactions (by sales location and message) to a KID.
- *
- * Rules can also resolve to an Adoveo fundraiser (`resolveAdoveoFundraiserID`, used by the
- * Vipps report import to register a fundraiser transaction). That is intentionally not
- * supported here: `list` drops the field and `create` always sets it to null.
- */
+/** Rules that resolve Vipps settlement transactions (by sales location and message) to a KID */
 const matchingRulesRouter = router({
   list: adminProcedure.input(matchingRuleListInput).query(async ({ input }) => {
     const rules = await DAO.vipps.getMatchingRules();
-    const withoutAdoveo = rules.map(({ resolveAdoveoFundraiserID, ...rule }) => rule);
-    if (!input) return withoutAdoveo;
+    if (!input) return rules;
 
     const { from, to } = input.period;
     const day = (date: Date) => DateTime.fromJSDate(new Date(date)).toISODate() ?? "";
-    return withoutAdoveo.filter((rule) => day(rule.periodFrom) <= to && day(rule.periodTo) >= from);
+    return rules.filter((rule) => day(rule.periodFrom) <= to && day(rule.periodTo) >= from);
   }),
 
   create: adminProcedure.input(matchingRuleCreateInput).mutation(async ({ input }) => {
-    const created = await vippsService.createMatchingRule({
-      ...input,
-      resolveAdoveoFundraiserID: null,
-    });
+    const created = await vippsService.createMatchingRule(input);
     if (!created.ok) throw new TRPCError({ code: "BAD_REQUEST", message: created.message });
     if (created.result === false) {
       throw new TRPCError({

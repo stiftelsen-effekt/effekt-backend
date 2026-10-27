@@ -49,9 +49,13 @@ const expectTrpcError = async (promise: Promise<unknown>, code: string, message?
 
 describe("tRPC reports router", () => {
   let addStub: sinon.SinonStub;
+  let queueStub: sinon.SinonStub;
 
   beforeEach(() => {
     addStub = sinon.stub(DAO.donations, "add").resolves(10);
+    queueStub = sinon
+      .stub(DAO.reviewqueue, "add")
+      .callsFake(async (_source, items) => ({ added: items.length, existing: 0 }));
     sinon.stub(mail, "sendDonationReceipt").resolves();
     sinon.stub(DAO.meta, "getDataOwners").resolves([
       { id: 1, name: "Default", default: true },
@@ -203,6 +207,33 @@ describe("tRPC reports router", () => {
       expect(item.transaction.paymentID).to.be.a("number");
       expect(item.transaction.date).to.match(/^\d{4}-\d{2}-\d{2}T/);
       expect(item.transaction.KID).to.be.a("string");
+
+      expect(result.queue).to.deep.equal({ added: 1, existing: 0 });
+      expect(queueStub.calledOnce).to.be.true;
+      const [source, queued, importLogId] = queueStub.firstCall.args;
+      expect(source).to.equal("ocr");
+      expect(importLogId).to.equal(null);
+      expect(queued).to.have.length(1);
+      expect(queued[0]).to.include({
+        reason: "Invalid KID",
+        KID: item.transaction.KID,
+        amount: item.transaction.amount,
+        externalId: item.transaction.transactionID,
+        paymentId: item.transaction.paymentID,
+      });
+      expect(queued[0].date).to.be.instanceOf(Date);
+      expect(queued[0].raw).to.have.property("transactionID", item.transaction.transactionID);
+    });
+
+    it("still returns the upload result when queueing for review fails", async () => {
+      sinon.stub(console, "error");
+      queueStub.rejects(new Error("db down"));
+      addStub.rejects(new Error("Invalid KID"));
+
+      const result = await admin().uploads.ocr(uploadForm("ocr/TBOC2072.DAT"));
+
+      expect(result.invalidTransactions.length).to.be.greaterThan(0);
+      expect(result.queue).to.equal(null);
     });
 
     it("vipps adds donations with a KID and queues the rest", async () => {
@@ -253,6 +284,8 @@ describe("tRPC reports router", () => {
       expect(result.dryRun!.fileFormat).to.equal("xml");
       expect(result.dryRun!.totalParsed).to.be.greaterThan(0);
       expect(result.dryRun!.validTransactions).to.have.length(result.valid);
+      expect(result.queue).to.equal(null);
+      expect(queueStub.called).to.be.false;
     });
 
     it("bankSe without dryRun returns no dry run info", async () => {
@@ -263,7 +296,13 @@ describe("tRPC reports router", () => {
       const result = await admin().uploads.bankSe(uploadForm("camt/camt053_mixed.xml", {}));
 
       expect(processStub.firstCall.args[1]).to.equal(false);
-      expect(result).to.deep.equal({ valid: 1, invalid: 0, invalidTransactions: [], dryRun: null });
+      expect(result).to.deep.equal({
+        valid: 1,
+        invalid: 0,
+        invalidTransactions: [],
+        queue: { added: 0, existing: 0 },
+        dryRun: null,
+      });
     });
 
     it("facebook returns campaigns missing shares", async () => {
@@ -307,6 +346,8 @@ describe("tRPC reports router", () => {
         name: null,
         location: null,
       });
+      expect(queueStub.firstCall.args[0]).to.equal("autogiro");
+      expect(queueStub.firstCall.args[1][0]).to.include({ amount: 100, externalId: "ag.1" });
     });
 
     it("autogiro passes other file types through", async () => {

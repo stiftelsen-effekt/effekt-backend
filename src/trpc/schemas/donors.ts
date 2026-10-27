@@ -33,8 +33,9 @@ const taxUnitName = z.string().min(1).max(128);
 const ssn = z.string().max(32);
 
 /**
- * Mirrors DonorFilters in DAO_modules/donors.ts (minus the Adoveo fundraiser type and the
- * free text `query`, which `search` exposes).
+ * Mirrors DonorFilters in DAO_modules/donors.ts (minus the free text `query`, which `search`
+ * exposes). Without `fundraiserTypes`, `fundraiserGiving` counts every fundraiser type,
+ * including historical Adoveo fundraisers.
  */
 export const donorFilter = z.strictObject({
   donorId: id.optional(),

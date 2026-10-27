@@ -263,6 +263,7 @@ model Donations {
   Adoveo_giftcard_transactions   Adoveo_giftcard_transactions?
   AutoGiro_agreement_charges     AutoGiro_agreement_charges?
   LegacySeDistributionConnection LegacySeDistributionConnection?
+  Review_queue_items             Review_queue_items[]
 
   // When we delete a distribution we delete the associated donations.
   Distributions Distributions @relation(fields: [KID_fordeling], references: [KID], onDelete: Cascade, map: "fk_Donations_to_Distributions_KID")
@@ -479,10 +480,43 @@ model Fundraiser_transactions {
 }
 
 model Import_logs {
-  ID        Int       @id @default(autoincrement())
-  label     String?   @db.VarChar(45)
-  result    Json?
-  timestamp DateTime? @default(now()) @db.DateTime(0)
+  ID                 Int                  @id @default(autoincrement())
+  label              String?              @db.VarChar(45)
+  result             Json?
+  timestamp          DateTime?            @default(now()) @db.DateTime(0)
+  Review_queue_items Review_queue_items[]
+}
+
+/// Transactions from payment reports that could not be registered automatically, shared by all
+/// admins. Written by report uploads (REST and tRPC) and the scheduled OCR import.
+model Review_queue_items {
+  ID               Int       @id @default(autoincrement())
+  Source           String    @db.VarChar(16) /// ocr | vipps | bankNo | bankSe | autogiro
+  Reason           String    @db.Text
+  KID              String?   @db.VarChar(64) /// KID as read from the transaction; may not exist
+  Amount           Decimal   @db.Decimal(16, 2) /// Whole currency units (NOK/SEK)
+  Transaction_date DateTime? @db.DateTime(0)
+  External_ID      String?   @db.VarChar(64) /// Transaction id in the source; dedupes re-uploads
+  Payment_ID       Int /// Payment method to register the donation with
+  Message          String?   @db.Text
+  Payer_name       String?   @db.VarChar(255)
+  Location         String?   @db.VarChar(255) /// Vipps sales location
+  Raw              Json? /// The transaction as the parser produced it
+  Import_log_ID    Int?
+  Status           String    @default("open") @db.VarChar(16) /// open | registered | ignored
+  Resolved_by      String?   @db.VarChar(255) /// Admin (JWT email or sub) who registered or ignored it
+  Resolved_at      DateTime? @db.DateTime(0)
+  Note             String?   @db.Text
+  Donation_ID      Int?
+  Created          DateTime  @default(now()) @db.DateTime(0)
+
+  Import_logs Import_logs? @relation(fields: [Import_log_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Review_queue_items_to_Import_logs")
+  Donations   Donations?   @relation(fields: [Donation_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Review_queue_items_to_Donations")
+
+  @@unique([Source, External_ID], map: "Source_External_ID_UNIQUE")
+  @@index([Status, Created], map: "Status_Created_idx")
+  @@index([Import_log_ID], map: "fk_Review_queue_items_to_Import_logs_idx")
+  @@index([Donation_ID], map: "fk_Review_queue_items_to_Donations_idx")
 }
 
 model Payment {

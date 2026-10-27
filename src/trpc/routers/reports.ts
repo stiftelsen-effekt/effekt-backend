@@ -1,6 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { DateTime } from "luxon";
-import moment from "moment";
+import type { JWTPayload } from "express-oauth2-jwt-bearer";
 import { DAO } from "../../custom_modules/DAO";
 import { buildKu65Report } from "../../custom_modules/ku65";
 import {
@@ -21,34 +20,31 @@ import {
   ku65Input,
   logsListInput,
   reportUploadInput,
+  reviewQueueIgnoreInput,
+  reviewQueueListInput,
+  reviewQueueRegisterInput,
   transactionRangeInput,
 } from "../schemas/reports";
 import { adminProcedure, router } from "../trpc";
+import type {
+  ReviewQueueItemWithRaw,
+  ReviewQueueSource,
+} from "../../custom_modules/DAO_modules/reviewqueue";
+import { registerDonation } from "../donationRegistration";
+import { moneySchema } from "../schemas/common";
+import { paymentExternalRefSchema } from "../schemas/donations";
+import {
+  enqueueInvalidTransactions,
+  toIso,
+  toReviewItem,
+  type EnqueueResult,
+  type ManualReviewItem,
+  type SourceInvalidTransaction,
+} from "../../custom_modules/reviewQueue";
 
 //region Types
 
-/**
- * A transaction from an uploaded report that could not be registered automatically. The admin
- * queues these for manual review (register with a KID / distribution, or discard).
- * Normalised across report sources.
- */
-export type ManualReviewTransaction = {
-  KID: string | null;
-  /** In whole currency units (NOK/SEK), like the donation that would be registered */
-  amount: number;
-  /** ISO 8601 */
-  date: string | null;
-  transactionID: string;
-  /** Payment method ID to register the donation with */
-  paymentID: number;
-  message: string | null;
-  /** Payer name (Vipps) or donor name (Swedish bank) */
-  name: string | null;
-  /** Vipps sales location */
-  location: string | null;
-};
-
-export type ManualReviewItem = { reason: string; transaction: ManualReviewTransaction };
+export type { ManualReviewItem, ManualReviewTransaction } from "../../custom_modules/reviewQueue";
 
 export type ReportUploadSummary = {
   /** Donations registered */
@@ -57,6 +53,11 @@ export type ReportUploadSummary = {
   invalid: number;
   /** Transactions that need manual review */
   invalidTransactions: ManualReviewItem[];
+  /**
+   * What happened to `invalidTransactions` in the review queue (reports.reviewQueue). Null when
+   * nothing was queued: a dry run, or writing to the queue failed (the upload itself succeeded).
+   */
+  queue: EnqueueResult | null;
 };
 
 /** A file to download. `content` is text for text content types, base64 otherwise. */
@@ -66,55 +67,21 @@ export type FilePayload = {
   content: string;
 };
 
-type DateLike = Date | moment.Moment | DateTime | null | undefined;
-
-/** Same string the REST routes produce when JSON-serialising these dates */
-const toIso = (date: DateLike): string | null => {
-  if (date == null) return null;
-  if (date instanceof Date) return isNaN(date.getTime()) ? null : date.toISOString();
-  if (DateTime.isDateTime(date)) return date.toISO();
-  return date.isValid() ? date.toISOString() : null;
-};
-
-type SourceTransaction = {
-  KID?: string | number | null;
-  amount: number;
-  date?: DateLike;
-  transactionID: string;
-  paymentID?: number;
-  paymentMethod?: number;
-  message?: string | null;
-  name?: string | null;
-  donorName?: string | null;
-  location?: string | null;
-};
-
-type SourceInvalidTransaction = { reason: string | undefined; transaction: SourceTransaction };
-
-const toReviewItem = ({ reason, transaction: t }: SourceInvalidTransaction): ManualReviewItem => ({
-  reason: reason ?? "Unknown error",
-  transaction: {
-    KID: t.KID == null ? null : String(t.KID),
-    amount: t.amount,
-    date: toIso(t.date),
-    transactionID: t.transactionID,
-    // OCR transactions carry the payment method as `paymentMethod`
-    paymentID: (t.paymentID ?? t.paymentMethod)!,
-    message: t.message ?? null,
-    name: t.name ?? t.donorName ?? null,
-    location: t.location ?? null,
-  },
-});
-
-const toSummary = (result: {
-  valid: number;
-  invalid: number;
-  invalidTransactions: SourceInvalidTransaction[];
-}): ReportUploadSummary => ({
-  valid: result.valid,
-  invalid: result.invalid,
-  invalidTransactions: result.invalidTransactions.map(toReviewItem),
-});
+/** Queues the invalid transactions and summarises the result */
+async function summarise(
+  source: ReviewQueueSource,
+  result: { valid: number; invalid: number; invalidTransactions: SourceInvalidTransaction[] },
+  options: { dryRun?: boolean } = {},
+): Promise<ReportUploadSummary> {
+  return {
+    valid: result.valid,
+    invalid: result.invalid,
+    invalidTransactions: result.invalidTransactions.map((item) => toReviewItem(source, item)),
+    queue: options.dryRun
+      ? null
+      : await enqueueInvalidTransactions(source, result.invalidTransactions),
+  };
+}
 
 const readText = async (file: File) => Buffer.from(await file.arrayBuffer()).toString("utf8");
 const readBuffer = async (file: File) => Buffer.from(await file.arrayBuffer());
@@ -152,21 +119,21 @@ const uploadsRouter = router({
     const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readText(input.report);
     const result = await processFile(() => processOcrReport(data, metaOwnerID));
-    return { ...toSummary(result), ignored: result.ignored };
+    return { ...(await summarise("ocr", result)), ignored: result.ignored };
   }),
 
   /** Vipps settlement report (CSV) */
   vipps: adminProcedure.input(reportUploadInput).mutation(async ({ input }) => {
     const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readBuffer(input.report);
-    return toSummary(await processFile(() => processVippsReport(data, metaOwnerID)));
+    return summarise("vipps", await processFile(() => processVippsReport(data, metaOwnerID)));
   }),
 
   /** Norwegian bank export of payments without KID (CSV) */
   bankNo: adminProcedure.input(reportUploadInput).mutation(async ({ input }) => {
     const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readText(input.report);
-    return toSummary(await processFile(() => processBankNoReport(data, metaOwnerID)));
+    return summarise("bankNo", await processFile(() => processBankNoReport(data, metaOwnerID)));
   }),
 
   /** Swedish bank file (CAMT.053 XML or TotalIn). `dryRun` writes nothing. */
@@ -175,7 +142,7 @@ const uploadsRouter = router({
     const data = await readText(input.report);
     const result = await processFile(() => processBankSeReport(data, input.dryRun, metaOwnerID));
     return {
-      ...toSummary(result),
+      ...(await summarise("bankSe", result, { dryRun: input.dryRun })),
       dryRun:
         result.dryRun === true
           ? {
@@ -218,15 +185,8 @@ const uploadsRouter = router({
     const data = await readBuffer(input.report);
     const result = await processFile(() => processAutogiroReport(data));
     if (result.type === "payments") {
-      const summary = toSummary({
-        ...result,
-        // AutoGiro amounts are in öre; review items are in whole currency like other sources
-        invalidTransactions: result.invalidTransactions.map((item) => ({
-          ...item,
-          transaction: { ...item.transaction, amount: item.transaction.amount / 100 },
-        })),
-      });
-      return { ...summary, type: result.type };
+      // AutoGiro amounts are in öre; review items are in whole currency like other sources
+      return { ...(await summarise("autogiro", result)), type: result.type };
     }
     return result;
   }),
@@ -328,8 +288,139 @@ const fundraisersRouter = router({
   }),
 });
 
+/**
+ * Who resolved a review item: the token's email claim (plain or namespaced, if the Auth0 tenant
+ * adds one), otherwise its subject.
+ */
+const adminIdentity = (auth: JWTPayload): string => {
+  const emailClaim = Object.entries(auth).find(
+    ([key, value]) => (key === "email" || key.endsWith("/email")) && typeof value === "string",
+  );
+  return (emailClaim?.[1] as string | undefined) ?? auth.sub ?? "unknown";
+};
+
+const getReviewItemOrThrow = async (id: number) => {
+  const item = await DAO.reviewqueue.getById(id);
+  if (!item) throw new TRPCError({ code: "NOT_FOUND", message: `Review item ${id} not found` });
+  return item;
+};
+
+const conflict = (message: string) => new TRPCError({ code: "CONFLICT", message });
+
+/** Throws CONFLICT for an item that isn't open; NOT_FOUND if it has disappeared */
+const throwNotOpen = async (id: number): Promise<never> => {
+  const item = await getReviewItemOrThrow(id);
+  throw conflict(`Review item ${id} is already ${item.status}`);
+};
+
+/**
+ * The shared queue of transactions from report imports that could not be registered
+ * automatically. Uploads (REST and tRPC) and the scheduled OCR import add to it.
+ */
+const reviewQueueRouter = router({
+  list: adminProcedure.input(reviewQueueListInput).query(({ input }) =>
+    DAO.reviewqueue.getList({
+      page: input.page,
+      limit: input.limit,
+      statuses: input.filter?.statuses,
+      sources: input.filter?.sources,
+      sort: input.sort ?? { id: "id", desc: true },
+    }),
+  ),
+
+  /** Items per status, e.g. for a badge with the number of open items */
+  counts: adminProcedure.query(() => DAO.reviewqueue.getCounts()),
+
+  /** An item with the transaction as the parser produced it (`raw`) */
+  get: adminProcedure
+    .input(idInput)
+    .query(({ input }): Promise<ReviewQueueItemWithRaw> => getReviewItemOrThrow(input.id)),
+
+  /**
+   * Registers a donation from an open item, the same way donations.register does, and marks the
+   * item registered with the donation. CONFLICT if the item is already resolved.
+   */
+  register: adminProcedure.input(reviewQueueRegisterInput).mutation(async ({ input, ctx }) => {
+    const item = await getReviewItemOrThrow(input.id);
+    if (item.status !== "open") throw conflict(`Review item ${item.id} is already ${item.status}`);
+
+    const sum = input.sum ?? Number(item.amount);
+    if (!moneySchema.safeParse(sum).success) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `The item's amount ${item.amount} can't be registered; provide a sum`,
+      });
+    }
+    const timestamp = input.timestamp ?? item.date?.toISOString();
+    if (timestamp === undefined) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "The item has no date; provide one" });
+    }
+    const paymentExternalRef =
+      input.paymentExternalRef !== undefined ? input.paymentExternalRef : item.externalId;
+    if (
+      paymentExternalRef !== null &&
+      !paymentExternalRefSchema.safeParse(paymentExternalRef).success
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "The item's external id is too long for a donation; provide paymentExternalRef",
+      });
+    }
+
+    // Claim the item first so two admins can't register it twice
+    if (!(await DAO.reviewqueue.claimForRegistration(item.id, adminIdentity(ctx.auth)))) {
+      await throwNotOpen(item.id);
+    }
+
+    let registered: Awaited<ReturnType<typeof registerDonation>>;
+    try {
+      registered = await registerDonation({
+        KID: input.KID,
+        distribution: input.distribution,
+        sum,
+        timestamp,
+        paymentId: input.paymentId ?? item.paymentId,
+        paymentExternalRef,
+        metaOwnerId: input.metaOwnerId,
+        sendReceipt: input.sendReceipt,
+      });
+    } catch (ex) {
+      await DAO.reviewqueue.releaseRegistrationClaim(item.id);
+      throw ex;
+    }
+
+    await DAO.reviewqueue.setDonation(item.id, registered.donationId);
+    return { ...registered, item: await getReviewItemOrThrow(item.id) };
+  }),
+
+  /** Marks an open item as not needing a donation. CONFLICT if it is already resolved. */
+  ignore: adminProcedure.input(reviewQueueIgnoreInput).mutation(async ({ input, ctx }) => {
+    if (!(await DAO.reviewqueue.ignore(input.id, adminIdentity(ctx.auth), input.note ?? null))) {
+      await throwNotOpen(input.id);
+    }
+    return getReviewItemOrThrow(input.id);
+  }),
+
+  /**
+   * Reopens an ignored item, or a registered one whose donation has been deleted. CONFLICT for
+   * open items and for registered items whose donation still exists.
+   */
+  reopen: adminProcedure.input(idInput).mutation(async ({ input }) => {
+    if (!(await DAO.reviewqueue.reopen(input.id))) {
+      const item = await getReviewItemOrThrow(input.id);
+      throw conflict(
+        item.status === "open"
+          ? `Review item ${item.id} is already open`
+          : `Review item ${item.id} has donation ${item.donationId}; delete the donation first`,
+      );
+    }
+    return getReviewItemOrThrow(input.id);
+  }),
+});
+
 export const reportsRouter = router({
   uploads: uploadsRouter,
+  reviewQueue: reviewQueueRouter,
   transactions: transactionsRouter,
   tax: taxRouter,
   logs: logsRouter,

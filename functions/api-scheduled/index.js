@@ -80,20 +80,6 @@ exports.default = async (req, res) => {
         if (mailchimpresponse.status !== 200) throw new Error("Failed to process mailchimp");
         res.send("OK");
         break;
-      case "adoveo":
-        let adoveoToken = await getAdoveoAuthToken();
-        if (!adoveoToken) throw new Error("Failed to get adoveo token");
-        let adoveocrawlerresponse = await fetch(
-          "https://data.gieffektivt.no/scheduled/fundraiser/crawler",
-          {
-            method: "POST",
-            headers: { authorization: "Bearer " + token, "Content-Type": "application/json" },
-            body: `{"token":"${adoveoToken}"}`,
-          },
-        );
-        if (adoveocrawlerresponse.status !== 200) throw new Error("Failed to crawl fundraisers");
-        res.send("OK");
-        break;
       default:
         res
           .status(400)
@@ -107,56 +93,3 @@ exports.default = async (req, res) => {
     res.status(500).send("Failed to fet auth0 access token");
   }
 };
-
-async function getAdoveoAuthToken() {
-  const puppeteer = require("puppeteer");
-
-  const browser = await puppeteer.launch();
-
-  try {
-    const page = await browser.newPage();
-    let authToken = null;
-
-    // Enable request interception
-    await page.setRequestInterception(true);
-
-    // Listen for requests
-    page.on("request", async (request) => {
-      if (request.url().startsWith("https://api.adoveo.com")) {
-        const headers = request.headers();
-        if (headers.authorization?.startsWith("Bearer ")) {
-          authToken = headers.authorization.replace("Bearer ", "");
-          console.log("Found bearer token!");
-        }
-      }
-      request.continue();
-    });
-
-    console.log("Navigating to page...");
-    await page.goto("https://manager.adoveo.com/", {
-      waitUntil: "networkidle0",
-      timeout: 30000,
-    });
-
-    const loginButton = await page.locator("text/Log in").click();
-
-    // Login
-    await page.locator('#a0-lock [name="email"]').fill(process.env.ADOVEO_USERNAME);
-    await page.locator('#a0-lock [name="password"]').fill(process.env.ADOVEO_PASSWORD);
-    await page.click('#a0-lock [type="submit"]');
-
-    // Wait for the first API request that contains the token
-    console.log("Waiting for auth token...");
-    while (!authToken) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-
-    console.log("Successfully captured auth token");
-    return authToken;
-  } catch (error) {
-    console.error("Failed to get auth token:", error);
-    throw error;
-  } finally {
-    await browser.close();
-  }
-}

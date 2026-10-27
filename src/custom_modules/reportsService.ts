@@ -6,9 +6,7 @@ import iconv from "iconv-lite";
  * The returned objects are serialised as-is by the REST routes, so their shapes are part of the
  * REST contract (`content` of POST /reports/{ocr,vipps,bank/no,bank/se,facebook,autogiro}).
  */
-import { Prisma } from "@prisma/client";
 import chardet from "chardet";
-import { createHash } from "crypto";
 import { DateTime } from "luxon";
 import type { Moment } from "moment";
 import { processAutogiroInputFile } from "./autogiro";
@@ -166,7 +164,7 @@ export async function processVippsReport(
        * The rules are defined in the database
        */
       try {
-        const donationId = await DAO.donations.add(
+        await DAO.donations.add(
           matchingRule.KID,
           payment.vipps_KID,
           transaction.amount,
@@ -175,30 +173,6 @@ export async function processVippsReport(
           metaOwnerID,
         );
 
-        if (matchingRule.fundraiserId) {
-          const donor = await DAO.donors.getByKID(matchingRule.KID);
-
-          const hash = createHash("md5");
-          hash.update(transaction.transactionID);
-          const hexHash = hash.digest("hex");
-
-          try {
-            await DAO.adoveo.addFundraiserTransaction({
-              Fundraiser_ID: matchingRule.fundraiserId,
-              Donation_ID: donationId,
-              Sum: transaction.amount as unknown as Prisma.Decimal,
-              Timestamp: transaction.date.toDate(),
-              Sender_email: donor!.email,
-              Sender_phone: "",
-              Status: "SALE",
-              Location: "VippsNumber",
-              Hash: hexHash,
-            });
-          } catch (ex) {
-            console.error("Failed to add fundraiser transaction");
-            console.error(ex);
-          }
-        }
         valid++;
       } catch (ex) {
         console.error(
@@ -242,10 +216,7 @@ function checkForMatchingParsingRule(transaction, rules: VippsParsingRule[]) {
       rule.salesLocation == transaction.location &&
       (rule.message == transaction.message || rule.message == null || transaction.message == "")
     )
-      return {
-        KID: rule.resolveKID,
-        fundraiserId: rule.resolveAdoveoFundraiserId,
-      };
+      return { KID: rule.resolveKID };
   }
   return false;
 }
@@ -489,7 +460,8 @@ export async function processBankSeReport(
           });
           continue;
         } else if (!orderId || orderId.toLowerCase().includes("adoveo")) {
-          // Adoveo Swish - skip (handled by Adoveo)
+          // Swish without our order id, or via Adoveo (discontinued; still in older bank files).
+          // These were registered through the fundraising platform, so skip them.
           skippedSwish++;
           if (dryRun) {
             console.log(

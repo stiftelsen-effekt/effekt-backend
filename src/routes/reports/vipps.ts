@@ -1,3 +1,4 @@
+import { enqueueInvalidTransactions } from "../../custom_modules/reviewQueue";
 import { processVippsReport } from "../../custom_modules/reportsService";
 
 module.exports = async (req, res, next) => {
@@ -11,6 +12,8 @@ module.exports = async (req, res, next) => {
     next(ex);
     return false;
   }
+
+  await enqueueInvalidTransactions("vipps", result.invalidTransactions);
 
   res.json({
     status: 200,

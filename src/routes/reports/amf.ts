@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { processFundraisingReport, processGiftCardsReport } from "../../custom_modules/adoveo";
 import { isAdmin } from "../../custom_modules/authorization/authMiddleware";
 import { processAmfDonations } from "../../custom_modules/amf";
 

@@ -1,3 +1,4 @@
+import { enqueueInvalidTransactions } from "../../custom_modules/reviewQueue";
 import { processAutogiroReport } from "../../custom_modules/reportsService";
 
 module.exports = async (req, res, next) => {
@@ -5,6 +6,7 @@ module.exports = async (req, res, next) => {
     const result = await processAutogiroReport(req.files.report.data);
 
     if (result.type === "payments") {
+      await enqueueInvalidTransactions("autogiro", result.invalidTransactions);
       res.json({
         status: 200,
         content: {
