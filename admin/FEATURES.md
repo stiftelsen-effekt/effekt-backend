@@ -1,0 +1,63 @@
+# What the admin must let people do
+
+Functional scope of the admin, carried over from the old effekt-admin. Users are the small ops /
+donor-relations team at Gi Effektivt (NO) and Ge Effektivt (SE), working with donations, recurring
+payment agreements and tax data every day. Accuracy with money matters more than speed, but they
+repeat the same tasks many times a day. Country is a build-time switch (`VITE_LOCALE=NO|SV`): NO has
+Vipps + AvtaleGiro agreements, SE has AutoGiro. Currency NOK/SEK. Adoveo is discontinued.
+
+## Jobs
+
+- **Find anything fast**: a donor by name/email/id, a donation by id, a KID, an agreement id, then
+  see everything about it (⌘K).
+- **Donors**: list + filter (name, email, id, registered / donation / last-donation date ranges, total
+  sum range, donation count range, fundraiser behaviour, newsletter, organizations, referral types) +
+  stats + CSV export. Donor detail: contact info (inline edit name, email, newsletter, trash), totals
+  (incl. excluding operations), yearly donations by organization, donations, distributions (KIDs),
+  agreements, tax units, referral answers. Merge a donor into another. Create a donor.
+- **Tax units**: per donor (ssn/orgnr, name, donations, sum, yearly deductions); create (server
+  validates NO fnr/orgnr, SE personnummer), edit, archive with optional transfer of this year's
+  donations to another unit.
+- **Donations**: list + filter (date range, amount with histogram, id, fundraiser id, donor, KID,
+  payment methods, tax unit type, organizations) + stats + export. Detail: sum, timestamp, method,
+  external ref, data owner, KID, distribution; edit all of those incl. distribution; delete; resend
+  receipt (optional override email).
+- **Distributions (KIDs)**: list + filter (KID, donor) + export; detail (donor, tax unit, shares,
+  donations using it); create.
+- **Registering money** (the most important ops flow):
+  - Import a payment report per source — NO: Vipps, bank OCR, bank (custom), Facebook; SE: bank
+    TotalIn (dry run supported), AutoGiro. Choose data owner. Result: inserted / ignored / sent to
+    review.
+  - **Review queue** (server-side, shared by the team): unmatched transactions with reason + raw
+    transaction; register (prefilled form: KID or new distribution) or ignore, reopen.
+  - Register a single donation manually (KID or new distribution, sum, date, method, external ref,
+    data owner, send receipt).
+  - SE: KU65 tax XML from an uploaded CSV + year. AutoGiro: previous shipments + download, generate
+    a new shipment.
+  - Transaction report for a date range + payment methods.
+- **Agreements**: one list across providers (`agreements.list`), plus per-provider detail. Vipps
+  (NO), AvtaleGiro (NO), AutoGiro (SE): amount, status, charge day, KID, start, distribution,
+  payments; edit amount, charge day, status, distribution. Vipps: charges (+refund), matching rules.
+  AvtaleGiro: daily check (expected vs received vs missing). AutoGiro: mandates.
+- **Fundraisers**: list + filter + stats; detail; create for a donor.
+- **Settings**: cause areas, organizations per cause area, referral types — create, edit,
+  activate/deactivate, ordering, standard split percentages (must sum to 100 within a group; warn
+  when not). Data owners (read-only). Vipps matching rules.
+- **Records**: import log list (search file content) + entry detail (JSON result + raw file);
+  reports.
+- **Home**: what needs attention (review queue, missing AvtaleGiro payments, failed charges, recent
+  imports) and headline numbers.
+
+## Distributions
+
+A KID maps to a donor + optional tax unit + split: per cause area a % share, either "standard
+split" (organization shares from settings) or custom per-organization % shares; all sum to 100.
+Distributions are edited in several places (donation edit, single registration, review queue,
+agreements, create distribution) — always with the one distribution editor in
+`src/features/distribution`.
+
+## Old admin problems not to repeat
+
+Double-click to open rows; filters hidden in a drawer; three input styles; a second palette on
+newer pages; emoji toasts; Courier numbers; mixed Norwegian/English; dead links; no keyboard
+support; review queue lost on reload; NOK hard-coded in SE.
