@@ -42,6 +42,13 @@ export const emailMessage = /email/i;
 export const isDuplicateEmail = (message: string | undefined) =>
   Boolean(message && /already (exists|belongs|in use)|duplicate/i.test(message));
 
+/** The donor a CONFLICT is about: the API ends the message with "(donor <id>)". */
+export function conflictingDonorId(message: string | undefined): number | null {
+  // "… (donor 12)" as the API writes it, or "… donor #12." as plainMessage rewrites it
+  const match = message ? /\(?donor #?(\d+)\)?\.?$/.exec(message.trim()) : null;
+  return match ? Number(match[1]) : null;
+}
+
 /**
  * Service messages written for developers, in the person's terms. Unknown messages are
  * returned as they are (DESIGN.md › Writing: server validation is shown as written).
@@ -55,5 +62,8 @@ export function plainMessage(message: string): string {
     return "Enter an 11-digit fødselsnummer or a 9-digit organization number, digits only.";
   if (/^email already exists$/i.test(message.trim()))
     return "A donor with this email already exists.";
+  const donorId = conflictingDonorId(message);
+  if (donorId !== null && /email/i.test(message))
+    return `This email already belongs to donor #${donorId}.`;
   return message;
 }

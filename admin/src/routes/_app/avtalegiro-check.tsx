@@ -11,6 +11,7 @@ import { DateTime, Money, Num } from "@/components/domain/format";
 import { Stat, StatGroup } from "@/components/domain/stat";
 import { Status } from "@/components/domain/status";
 import { DetailPage, DetailPanel } from "@/components/templates";
+import { Callout } from "@/components/domain/callout";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -84,7 +85,18 @@ const expectedColumns = expectedCol.columns([
   expectedCol.accessor("amount", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} />,
+    cell: ({ getValue, row }) =>
+      row.original.amountSource === "agreement" ? (
+        <span title="No claim file for this date: the agreement's current amount">
+          <Money value={getValue()} />
+          <span aria-hidden className="text-muted-foreground">
+            *
+          </span>
+          <span className="sr-only"> (current agreement amount)</span>
+        </span>
+      ) : (
+        <Money value={getValue()} />
+      ),
   }),
   expectedCol.accessor("KID", {
     header: "KID",
@@ -137,6 +149,9 @@ function AvtaleGiroCheckPage() {
   const tab: Tab = search.tab ?? "missing";
 
   const expected = useQuery(trpc.giro.avtalegiro.expected.queryOptions({ date }));
+  // A past day without its claim file falls back to today's agreement amounts (P2-11).
+  const estimated =
+    date < isoDay(today) && Boolean(expected.data?.some((row) => row.amountSource === "agreement"));
   const received = useQuery(trpc.giro.avtalegiro.received.queryOptions({ date }));
   const missing = useQuery(trpc.giro.avtalegiro.missing.queryOptions({ date }));
   const validation = useQuery(trpc.giro.avtalegiro.validation.queryOptions());
@@ -317,6 +332,13 @@ function AvtaleGiroCheckPage() {
         </DetailPanel>
       }
     >
+      {estimated && (
+        <Callout tone="neutral" title="Expected amounts are today's agreement amounts">
+          No claim file sent to the bank was found for this date, so Expected uses each agreement's
+          current amount (marked *). Agreements changed since then may show a difference that wasn't
+          there on the day.
+        </Callout>
+      )}
       <Tabs
         value={tab}
         onValueChange={(value) =>

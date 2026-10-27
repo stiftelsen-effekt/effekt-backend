@@ -39,12 +39,27 @@ const columns = col.columns([
     header: "Time",
     cell: ({ getValue }) => <DateTime value={getValue()} format="datetime" />,
   }),
-  col.accessor("label", {
+  col.accessor("displayLabel", {
+    id: "label",
     header: "Source",
     meta: { cellClassName: "font-semibold" },
     cell: ({ getValue }) => getValue() ?? "Unknown",
   }),
-  col.accessor("meta", {
+  col.accessor("filename", {
+    header: "File",
+    enableSorting: false,
+    meta: { cellClassName: "max-w-64 truncate" },
+    cell: ({ getValue }) => {
+      const name = getValue();
+      return name ? (
+        <span title={name}>{name}</span>
+      ) : (
+        <span className="text-faint-foreground">–</span>
+      );
+    },
+  }),
+  col.accessor((row) => row.summary ?? row.meta, {
+    id: "summary",
     header: "Summary",
     enableSorting: false,
     meta: { cellClassName: "text-muted-foreground max-w-[32rem] truncate" },
@@ -72,7 +87,7 @@ function ImportLogPage() {
     <ListPage
       title="Import log"
       description="Every payment file and scheduled job the system has processed."
-      filters={<FilterBar list={list} searchPlaceholder="Search file contents" />}
+      filters={<FilterBar list={list} searchPlaceholder="File name or contents" />}
       peek={peeked && <LogPeek row={peeked} onClose={() => setPeekId(null)} />}
     >
       {query.error ? (
@@ -100,7 +115,7 @@ function ImportLogPage() {
               title={list.filters.q ? "No files match" : "Nothing imported yet"}
               description={
                 list.filters.q
-                  ? "The search looks inside the imported files. Try part of a KID, an amount or a name."
+                  ? "The search matches file names and looks inside the imported files. Try part of a file name, a KID, an amount or a name."
                   : "Imports and scheduled jobs show up here as they run."
               }
             />
@@ -116,8 +131,8 @@ function LogPeek({ row, onClose }: { row: LogRow; onClose: () => void }) {
   const entry = useQuery(trpc.reports.logs.get.queryOptions({ id: row.ID }));
   return (
     <PeekPanel
-      title={row.label ?? "Unknown"}
-      subtitle={`Log #${row.ID}`}
+      title={row.displayLabel ?? "Unknown"}
+      subtitle={row.filename ? `Log #${row.ID} · ${row.filename}` : `Log #${row.ID}`}
       href={`/logs/${row.ID}`}
       onClose={onClose}
     >
@@ -126,7 +141,9 @@ function LogPeek({ row, onClose }: { row: LogRow; onClose: () => void }) {
           <Property label="Time">
             <DateTime value={row.timestamp} format="datetime" />
           </Property>
-          {row.meta && <Property label="Summary">{row.meta}</Property>}
+          {(row.summary ?? row.meta) && (
+            <Property label="Summary">{row.summary ?? row.meta}</Property>
+          )}
         </PropertyList>
         {entry.error ? (
           <ErrorState error={entry.error} onRetry={() => void entry.refetch()} />

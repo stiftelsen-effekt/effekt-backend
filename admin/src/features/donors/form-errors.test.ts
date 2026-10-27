@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isDuplicateEmail, plainMessage } from "./form-errors";
+import { conflictingDonorId, isDuplicateEmail, plainMessage } from "./form-errors";
 
 describe("plainMessage", () => {
   it("explains tax id validation in plain language", () => {
@@ -19,5 +19,16 @@ describe("plainMessage", () => {
     expect(message).toBe("A donor with this email already exists.");
     expect(isDuplicateEmail(message)).toBe(true);
     expect(plainMessage("Name is too long")).toBe("Name is too long");
+  });
+});
+
+describe("conflictingDonorId", () => {
+  it("reads the donor the API names, before and after rewording", () => {
+    const api = "Email already belongs to another donor (donor 12)";
+    expect(conflictingDonorId(api)).toBe(12);
+    expect(plainMessage(api)).toBe("This email already belongs to donor #12.");
+    expect(conflictingDonorId(plainMessage(api))).toBe(12);
+    expect(isDuplicateEmail(plainMessage(api))).toBe(true);
+    expect(conflictingDonorId("Email already exists")).toBeNull();
   });
 });

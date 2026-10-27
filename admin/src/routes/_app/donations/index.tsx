@@ -165,7 +165,7 @@ function DonationsPage() {
       filters={
         <FilterBar
           list={list}
-          searchPlaceholder="Donor name or email"
+          searchPlaceholder="Donor, KID or donation ID"
           end={<SavedViews list={list} />}
         >
           <DateRangeFilter field="date" label="Date" />

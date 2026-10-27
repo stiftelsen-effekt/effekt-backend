@@ -61,12 +61,39 @@ export type UploadSummary =
       ignored: number;
       /** Transactions that need a decision */
       review: number;
-      /** New in the queue / already queued by an earlier upload. Null if queueing failed. */
-      queue: { added: number; existing: number } | null;
+      /** What happened in the review queue (reports.uploads.* `queue`). Null for a dry run. */
+      queue: UploadQueue | null;
       /** The upload's import log entry (reports.logs.get); null if none was written. */
       importLogId: number | null;
     }
   | { kind: "facebook"; campaigns: FacebookCampaign[] };
+
+export type UploadQueue = NonNullable<RouterOutputs["reports"]["uploads"]["ocr"]["queue"]>;
+
+export type QueueOutcome = {
+  /** The file's transactions still waiting for a decision */
+  open: number;
+  /** Queued by an earlier upload and since registered or ignored */
+  handled: number;
+  /** New in the queue with this upload */
+  added: number;
+  /** Couldn't be queued at all (no usable amount, failed insert) */
+  skipped: number;
+};
+
+/**
+ * "N need a decision, M already handled" for an upload's review transactions. Without per-status
+ * counts every queued transaction counts as open.
+ */
+export function queueOutcome(queue: UploadQueue): QueueOutcome {
+  const statuses = queue.statuses;
+  return {
+    open: statuses ? statuses.open : queue.added + queue.existing,
+    handled: statuses ? statuses.registered + statuses.ignored : 0,
+    added: queue.added,
+    skipped: queue.skipped,
+  };
+}
 
 export function summariseUpload(upload: UploadResult): UploadSummary {
   if (upload.source === "facebook") {

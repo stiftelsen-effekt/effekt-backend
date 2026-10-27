@@ -114,7 +114,7 @@ function DistributionsPage() {
       filters={
         <FilterBar
           list={list}
-          searchPlaceholder="Donor name or email"
+          searchPlaceholder="KID, donor name, email or ID"
           end={<SavedViews list={list} />}
         >
           <TextFilter field="kid" label="KID" numeric />

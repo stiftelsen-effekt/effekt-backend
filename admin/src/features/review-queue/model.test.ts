@@ -5,6 +5,7 @@ import {
   isResolvedElsewhere,
   nextOpenId,
   previousOpenId,
+  queueOutcome,
   resolverName,
   reviewRegisterInput,
   summariseUpload,
@@ -138,5 +139,26 @@ describe("resolverName", () => {
     expect(resolverName("kari@gieffektivt.no", user)).toBe("kari@gieffektivt.no");
     expect(resolverName("auth0|123", null)).toBe("auth0|123");
     expect(resolverName(null, user)).toBe("someone");
+  });
+});
+
+describe("queueOutcome", () => {
+  it("counts only open items as needing a decision", () => {
+    expect(
+      queueOutcome({
+        added: 0,
+        existing: 4,
+        skipped: 0,
+        statuses: { open: 2, registered: 1, ignored: 1 },
+      }),
+    ).toEqual({ open: 2, handled: 2, added: 0, skipped: 0 });
+  });
+  it("treats everything queued as open without status counts, and keeps skipped", () => {
+    expect(queueOutcome({ added: 3, existing: 1, skipped: 2, statuses: null })).toEqual({
+      open: 4,
+      handled: 0,
+      added: 3,
+      skipped: 2,
+    });
   });
 });

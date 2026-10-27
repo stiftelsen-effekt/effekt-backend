@@ -18,6 +18,7 @@ import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
 import { useTRPC } from "@/lib/trpc";
 import {
+  conflictingDonorId,
   emailMessage,
   isDuplicateEmail,
   ssnMessage,
@@ -94,14 +95,25 @@ export function CreateDonorDialog({ trigger }: { trigger: ReactNode }) {
               isDuplicateEmail(errors.fields.email) ? (
                 <>
                   {errors.fields.email}{" "}
-                  <Link
-                    to="/donors"
-                    search={{ q: values.email.trim() }}
-                    onClick={() => setOpen(false)}
-                    className="text-accent underline"
-                  >
-                    Find the donor
-                  </Link>
+                  {conflictingDonorId(errors.fields.email) !== null ? (
+                    <Link
+                      to="/donors/$id"
+                      params={{ id: String(conflictingDonorId(errors.fields.email)) }}
+                      onClick={() => setOpen(false)}
+                      className="text-accent underline"
+                    >
+                      Open donor #{conflictingDonorId(errors.fields.email)}
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/donors"
+                      search={{ q: values.email.trim() }}
+                      onClick={() => setOpen(false)}
+                      className="text-accent underline"
+                    >
+                      Find the donor
+                    </Link>
+                  )}
                 </>
               ) : (
                 errors.fields.email

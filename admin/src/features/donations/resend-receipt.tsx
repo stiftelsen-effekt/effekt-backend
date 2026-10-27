@@ -17,7 +17,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
-import { useTRPC } from "@/lib/trpc";
+import { errorCode, useTRPC } from "@/lib/trpc";
 
 const isEmail = (value: string) => /^\S+@\S+\.\S+$/.test(value);
 
@@ -127,11 +127,14 @@ export function ResendReceiptDialog({
 /** The receipt mail failing is the common case; say what it means instead of "Something went wrong". */
 export function receiptError(error: unknown): { title: string; hint: string } {
   const message = error instanceof Error ? error.message : "";
-  const mailCode = /^Receipt failed with error code (.+)$/.exec(message)?.[1];
-  if (mailCode !== undefined) {
+  // The API answers BAD_GATEWAY with what the mail service said.
+  if (errorCode(error) === "BAD_GATEWAY" || /^Receipt failed/.test(message)) {
     return {
       title: "The receipt wasn't sent",
-      hint: `The email service didn't accept it (code ${mailCode}), so the donor got nothing. Try again in a few minutes; if it keeps failing, tell the tech team.`,
+      hint: `${message.replace(
+        /\.$/,
+        "",
+      )}. The donor got nothing. Check the email address, then try again in a few minutes; if it keeps failing, tell the tech team.`,
     };
   }
   return describeError(error);

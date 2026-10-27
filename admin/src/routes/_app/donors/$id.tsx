@@ -39,6 +39,7 @@ import { notify } from "@/lib/notify";
 import { agreementStatus, donorStatus } from "@/lib/status";
 import { errorCode, useTRPC, type RouterOutputs } from "@/lib/trpc";
 import { PaymentMethodName } from "@/features/donations/payment-method-name";
+import { conflictingDonorId } from "@/features/donors/form-errors";
 
 const tabs = ["donations", "kids", "agreements", "tax", "referrals"] as const;
 type Tab = (typeof tabs)[number];
@@ -400,7 +401,20 @@ function Donor({ donorId }: { donorId: number }) {
                   /^\S+@\S+\.\S+$/.test(value.trim()) ? null : "Enter a valid email address"
                 }
                 onSave={async (email) => {
-                  await update.mutateAsync({ donorId, name: donor.name, email: email.trim() });
+                  try {
+                    await update.mutateAsync({ donorId, name: donor.name, email: email.trim() });
+                  } catch (error) {
+                    // The email belongs to another donor: offer the way there.
+                    const other = conflictingDonorId(error instanceof Error ? error.message : "");
+                    if (errorCode(error) === "CONFLICT" && other !== null) {
+                      notify.error(error, `This email already belongs to donor #${other}`, {
+                        label: `Open donor #${other}`,
+                        onClick: () =>
+                          void navigate({ to: "/donors/$id", params: { id: String(other) } }),
+                      });
+                    }
+                    throw error;
+                  }
                   notify.success("Email updated");
                 }}
               />

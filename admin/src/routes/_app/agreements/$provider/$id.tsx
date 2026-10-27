@@ -113,10 +113,10 @@ const paymentColumns = (withStatus: boolean) =>
       cell: ({ getValue }) => <Money value={getValue()} />,
     }),
     paymentCol.accessor("reference", {
-      header: withStatus ? "Charge" : "Donation",
+      header: withStatus ? "Reference" : "Donation",
       meta: { cellClassName: "text-muted-foreground" },
       cell: ({ getValue }) => (
-        <CopyValue value={getValue()} label={withStatus ? "charge ID" : "donation ID"} />
+        <CopyValue value={getValue()} label={withStatus ? "reference" : "donation ID"} />
       ),
     }),
   ]);
@@ -375,13 +375,9 @@ function VippsAgreementPage({ id }: { id: string }) {
     enabled: Boolean(row),
     retry: false,
   });
+  // Charges and donations under every KID the agreement has had (vipps.agreements.payments).
   const charges = useQuery({
-    ...trpc.vipps.charges.list.queryOptions({
-      page: 0,
-      limit: 500,
-      filter: { agreementID: id },
-      sort: { id: "dueDate", desc: true },
-    }),
+    ...trpc.vipps.agreements.payments.queryOptions({ id }),
     enabled: Boolean(row),
   });
   const distribution = useQuery({
@@ -438,16 +434,32 @@ function VippsAgreementPage({ id }: { id: string }) {
   const subject = { type: "vipps" as const, ...facts };
   const stopped = facts.status === "stopped";
 
-  const payments: Payment[] | undefined = charges.data?.rows
-    .filter((charge) => charge.agreementID === id)
-    .map((charge) => ({
-      key: charge.chargeID,
-      date: charge.dueDate,
-      amount: charge.amountNOK,
-      status: charge.status as keyof typeof chargeStatus,
-      reference: charge.chargeID,
-      href: `/charges?charge=${encodeURIComponent(charge.chargeID)}`,
-    }));
+  // One row per charge (its donation when registered), plus donations registered without one
+  // (e.g. from a settlement report).
+  const payments: Payment[] | undefined =
+    charges.data &&
+    [
+      ...charges.data.charges.map((charge) => ({
+        key: `charge-${charge.chargeId}`,
+        date: charge.dueDate,
+        amount: charge.amount,
+        status: charge.status as keyof typeof chargeStatus,
+        reference: charge.chargeId,
+        href:
+          charge.donationId != null
+            ? `/donations/${charge.donationId}`
+            : `/charges?charge=${encodeURIComponent(charge.chargeId)}`,
+      })),
+      ...charges.data.donations
+        .filter((donation) => donation.chargeId == null)
+        .map((donation) => ({
+          key: `donation-${donation.id}`,
+          date: toIso(donation.timestamp),
+          amount: donation.sum,
+          reference: `Donation ${donation.id}`,
+          href: `/donations/${donation.id}`,
+        })),
+    ].sort((x, y) => String(y.date ?? "").localeCompare(String(x.date ?? "")));
 
   const run = async (action: Promise<unknown>, message: string) => {
     await action;
@@ -521,8 +533,14 @@ function VippsAgreementPage({ id }: { id: string }) {
       payments={payments}
       paymentsError={charges.error}
       onRetryPayments={() => void charges.refetch()}
-      paymentsTitle="Charges"
-      paymentsDescription="Monthly charges on this agreement, newest first."
+      paymentsTitle="Payments"
+      paymentsDescription={
+        charges.data && charges.data.KIDs.length > 1
+          ? `Charges and donations on this agreement, newest first, including earlier KIDs (${charges.data.KIDs.join(
+              ", ",
+            )}).`
+          : "Charges and donations on this agreement, newest first."
+      }
       paymentsLink={
         <Button asChild size="sm" variant="ghost">
           <Link to="/charges" search={{ agreement: id }}>

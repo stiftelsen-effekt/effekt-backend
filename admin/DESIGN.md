@@ -305,9 +305,9 @@ One rule each, applied by the formatters, so pages never choose:
 - **Chart axes**: compact from 1 000 up (`7,5k`, `15k`, `1,2M`); tooltips use the money rule.
 - **Dates and times** are Oslo time (`Europe/Oslo`), whatever the browser's zone: `24.10.2026`,
   `24.10.2026 14:05`. A day the API sends as `YYYY-MM-DD` is that day. Filters and forms hold
-  days as `YYYY-MM-DD`; a procedure that takes plain dates gets them as they are (the API reads
-  them as Oslo days), one that compares instants gets the Oslo day's first and last instant
-  (`osloDayStart` / `osloDayEnd` in `src/lib/dates.ts`). CSV exports write Oslo local time
+  days as `YYYY-MM-DD` and send them to the API as they are; the API reads a plain date as the
+  whole Europe/Oslo day, inclusive, in every procedure. Never send a day as a UTC instant.
+  Helpers: `src/lib/dates.ts`. CSV exports write Oslo local time
   (`2026-10-24 14:05:00`).
 - **Date entry** is `dd.mm.yyyy`, typed or picked: `DateInput` for one day,
   `DateRangePicker` / the date filter for ranges (both take typed dates). No native

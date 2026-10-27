@@ -21,9 +21,10 @@ export const notify = {
   info(title: string, description?: string) {
     return toast.info(title, { description });
   },
-  error(error: unknown, title?: string) {
+  /** With `action`, a way to the thing the error is about ("Open donor #12"). */
+  error(error: unknown, title?: string, action?: NotifyAction) {
     const info = describeError(error);
-    return toast.error(title ?? info.title, { description: info.hint, duration: 8000 });
+    return toast.error(title ?? info.title, { description: info.hint, duration: 8000, action });
   },
   /**
    * For cheap-to-reverse actions done without a confirmation (skip, archive, hide). The undo

@@ -3,7 +3,6 @@
  * shapes of donations.list / donations.distributions.list.
  */
 import { defineList, param, type FilterValues, type HistogramBin } from "@/components/filters";
-import { osloDayEnd, osloDayStart } from "@/lib/dates";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
 
 export const taxUnitTypes = ["person", "organization", "none"] as const;
@@ -17,7 +16,7 @@ export const taxUnitTypeLabels: Record<TaxUnitTypeOption, string> = {
 export const donationsList = defineList({
   id: "donations",
   filters: {
-    /** Donor name or email */
+    /** Donation id, KID, donor name or email */
     q: param.text,
     date: param.dateRange,
     amount: param.range,
@@ -46,21 +45,16 @@ type DonationFilterInput = NonNullable<RouterInputs["donations"]["list"]["filter
 type TaxUnitTypeInput = NonNullable<DonationFilterInput["taxUnitTypes"]>[number];
 
 /**
- * List filters → donations.list `filter`. Dates are inclusive Oslo days; the procedure
- * compares instants, so they go as the Oslo day's first and last instant (the same days the
- * other lists and reports use, whatever the browser's time zone). "No tax unit" is `null` in
- * taxUnitTypes.
+ * List filters → donations.list `filter`. Dates are sent as plain YYYY-MM-DD days, which the
+ * API reads as whole Europe/Oslo days (inclusive). The search box is `query` (donation id,
+ * KID, donor name or email). "No tax unit" is `null` in taxUnitTypes.
  */
 export function toDonationFilter(
   filters: FilterValues<typeof donationsList.filters>,
 ): DonationFilterInput | undefined {
   const filter: DonationFilterInput = {};
-  if (filters.q) filter.donor = filters.q;
-  if (filters.date)
-    filter.date = {
-      from: filters.date.from ? osloDayStart(filters.date.from) : undefined,
-      to: filters.date.to ? osloDayEnd(filters.date.to) : undefined,
-    };
+  if (filters.q) filter.query = filters.q;
+  if (filters.date) filter.date = { from: filters.date.from, to: filters.date.to };
   if (filters.amount) filter.sum = { from: filters.amount.min, to: filters.amount.max };
   if (filters.method) filter.paymentMethodIDs = filters.method;
   if (filters.id) filter.id = filters.id;
@@ -102,7 +96,7 @@ export function histogramBins(
 export const distributionsList = defineList({
   id: "distributions",
   filters: {
-    /** Donor name or email */
+    /** KID, donor id, donor name or email */
     q: param.text,
     kid: param.text,
   },
@@ -114,5 +108,5 @@ export function toDistributionFilter(
   filters: FilterValues<typeof distributionsList.filters>,
 ): RouterInputs["donations"]["distributions"]["list"]["filter"] {
   if (!filters.q && !filters.kid) return undefined;
-  return { donor: filters.q, KID: filters.kid };
+  return { query: filters.q, KID: filters.kid };
 }

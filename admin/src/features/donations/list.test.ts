@@ -21,7 +21,7 @@ describe("toDonationFilter", () => {
         owner: [3],
       }),
     ).toEqual({
-      donor: "kari",
+      query: "kari",
       sum: { from: 100, to: 500 },
       paymentMethodIDs: [2, 4],
       id: "123",
@@ -33,15 +33,12 @@ describe("toDonationFilter", () => {
     });
   });
 
-  it("makes date ranges inclusive local days", () => {
+  it("sends date ranges as plain Oslo days", () => {
     const filter = toDonationFilter({ date: { from: "2026-01-01", to: "2026-01-31" } });
     expect(filter?.date).toEqual({
-      from: "2025-12-31T23:00:00.000Z",
-      to: "2026-01-31T22:59:59.999Z",
+      from: "2026-01-01",
+      to: "2026-01-31",
     });
-    const to = new Date(filter!.date!.to!);
-    expect([to.getDate(), to.getHours(), to.getMinutes()]).toEqual([31, 23, 59]);
-    expect(new Date(filter!.date!.from!).getHours()).toBe(0);
     expect(
       toDonationFilter({ date: { from: undefined, to: "2026-01-31" } })?.date?.from,
     ).toBeUndefined();
@@ -51,7 +48,7 @@ describe("toDonationFilter", () => {
 describe("toDistributionFilter", () => {
   it("maps search to donor and the KID chip to KID", () => {
     expect(toDistributionFilter({})).toBeUndefined();
-    expect(toDistributionFilter({ q: "ola", kid: "123" })).toEqual({ donor: "ola", KID: "123" });
+    expect(toDistributionFilter({ q: "ola", kid: "123" })).toEqual({ query: "ola", KID: "123" });
   });
 });
 
