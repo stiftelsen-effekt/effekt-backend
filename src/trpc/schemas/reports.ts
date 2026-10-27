@@ -205,6 +205,12 @@ export const reviewQueueListInput = z.strictObject({
     .optional(),
 });
 
+export const reviewQueueSearchInput = z.strictObject({
+  /** An item id, or part of a KID, external id, payer name or message */
+  query: z.string().trim().min(1).max(255),
+  limit: z.number().int().positive().max(50).default(10),
+});
+
 /**
  * Registers a donation from a queued item. The amount, date, payment method, external reference
  * and data owner default to the item's; the admin supplies the KID or a distribution.

@@ -241,6 +241,26 @@ async function getList(options: {
   };
 }
 
+const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+/**
+ * Items whose id equals the query (when it is a number), or whose KID, external id, payer name
+ * or message contains it. An exact id match comes first, then open items, then the newest.
+ */
+async function search(query: string, limit: number): Promise<ReviewQueueItem[]> {
+  const pattern = `%${escapeLike(query)}%`;
+  const id = /^\d+$/.test(query) && query.length <= 10 ? Number(query) : null;
+  const [rows] = await DAO.query<ReviewQueueItem[]>(
+    `SELECT ${itemColumns}
+     FROM Review_queue_items
+     WHERE ID = ? OR KID LIKE ? OR External_ID LIKE ? OR Payer_name LIKE ? OR Message LIKE ?
+     ORDER BY ID = ? DESC, Status = 'open' DESC, ID DESC
+     LIMIT ?`,
+    [id, pattern, pattern, pattern, pattern, id, limit],
+  );
+  return rows;
+}
+
 /** Items per status across all sources */
 async function getCounts(): Promise<ReviewQueueStatusCounts> {
   const [rows] = await DAO.query<{ status: string; count: number }[]>(
@@ -327,6 +347,7 @@ export const reviewqueue = {
   add,
   getById,
   getList,
+  search,
   getCounts,
   claimForRegistration,
   releaseRegistrationClaim,

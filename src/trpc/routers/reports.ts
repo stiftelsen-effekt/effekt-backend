@@ -23,10 +23,12 @@ import {
   reviewQueueIgnoreInput,
   reviewQueueListInput,
   reviewQueueRegisterInput,
+  reviewQueueSearchInput,
   transactionRangeInput,
 } from "../schemas/reports";
 import { adminProcedure, router } from "../trpc";
 import type {
+  ReviewQueueItem,
   ReviewQueueItemWithRaw,
   ReviewQueueSource,
 } from "../../custom_modules/DAO_modules/reviewqueue";
@@ -440,6 +442,16 @@ const reviewQueueRouter = router({
       sort: input.sort ?? { id: "id", desc: true },
     }),
   ),
+
+  /**
+   * Quick search (e.g. ⌘K): items with the id, or a KID, external id, payer name or message
+   * containing the query. Exact id match first, then open items, then newest; at most `limit`.
+   */
+  search: adminProcedure
+    .input(reviewQueueSearchInput)
+    .query(
+      ({ input }): Promise<ReviewQueueItem[]> => DAO.reviewqueue.search(input.query, input.limit),
+    ),
 
   /** Items per status, e.g. for a badge with the number of open items */
   counts: adminProcedure.query(() => DAO.reviewqueue.getCounts()),
