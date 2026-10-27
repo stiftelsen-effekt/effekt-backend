@@ -342,7 +342,9 @@ export function DataTable<TData extends RowData>({
                 <TableRow
                   key={index}
                   data-placeholder-row
-                  className="[tbody>&]:hover:bg-transparent"
+                  // Lists show no skeletons: the placeholder rows only hold the table's height
+                  // (and column widths) so nothing moves when the real rows fade in.
+                  className="invisible [tbody>&]:hover:bg-transparent"
                 >
                   {visibleColumns.map((column, cellIndex) => {
                     const meta = column.columnDef.meta;

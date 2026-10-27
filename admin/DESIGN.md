@@ -224,7 +224,8 @@ placeholder:
 
 - `DataTable isLoading`: placeholder rows from its real columns at the real row height
   (`meta.placeholder` gives a column its typical width, `cellPlaceholder` has the common ones).
-  The only table skeleton.
+  They are **invisible**: lists show no skeletons; the rows only hold the table's height and
+  column widths, and the real rows fade in over them.
 - `Stat pending` (label stays, value and hint line reserved), `Property pending` (label stays),
   `TabsTrigger count={null}` (badge space reserved), `AttentionList pending`.
 - `SkeletonText` for a value inside a real heading, meta line or cell: its sample text gives the
@@ -284,7 +285,7 @@ on.
 
 Single-key shortcuts are ignored while typing or inside dialogs (`useHotkey`).
 
-**Rows arriving.** `DataTable` fades rows in with a 4 px rise (180 ms), staggered 10 ms per row and capped at 400 ms. It plays only when rows mount (first load, a new page or filter result); refetches and re-sorting reuse rows by id and don't replay it. Transform and opacity only, so it never shifts layout; off under reduced motion. Lists get this for free — don't add per-list animation.
+**Rows arriving.** `DataTable` fades rows in while they settle 4 px down into place (180 ms), staggered 10 ms per row and capped at 400 ms. It plays only when rows mount (first load, a new page or filter result); refetches and re-sorting reuse rows by id and don't replay it. Transform and opacity only, so it never shifts layout; off under reduced motion. Lists get this for free — don't add per-list animation.
 
 ## Tokens
 
