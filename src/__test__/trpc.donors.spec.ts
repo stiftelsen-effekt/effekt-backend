@@ -20,12 +20,13 @@ const callerWith = (permissions?: string[]) =>
 
 const admin = () => callerWith(["admin"]);
 
-const expectTrpcError = async (promise: Promise<unknown>, code: string) => {
+const expectTrpcError = async (promise: Promise<unknown>, code: string, message?: RegExp) => {
   try {
     await promise;
     expect.fail(`expected ${code}`);
   } catch (err: any) {
     expect(err.code).to.equal(code);
+    if (message) expect(err.message).to.match(message);
   }
 };
 
@@ -368,10 +369,29 @@ describe("tRPC donors router", () => {
       sinon
         .stub(DAO.donors, "update")
         .rejects(Object.assign(new Error("dup"), { code: "ER_DUP_ENTRY" }));
+      const lookup = sinon.stub(DAO.donors, "getIDbyEmail").resolves(12);
       await expectTrpcError(
         admin().donors.update({ donorId: 7, name: "John", email: "taken@example.com" }),
         "CONFLICT",
+        /\(donor 12\)$/,
       );
+      lookup.rejects(new Error("db down"));
+      await expectTrpcError(
+        admin().donors.update({ donorId: 7, name: "John", email: "taken@example.com" }),
+        "CONFLICT",
+        /another donor$/,
+      );
+    });
+
+    it("names the existing donor when creating a donor with a taken email", async () => {
+      sinon.stub(DAO.donors, "getIDbyEmail").resolves(12);
+      const add = sinon.stub(DAO.donors, "add").resolves(7);
+      await expectTrpcError(
+        admin().donors.create({ email: "taken@example.com", name: "John" }),
+        "CONFLICT",
+        /\(donor 12\)$/,
+      );
+      expect(add.called).to.be.false;
     });
 
     it("merges donors", async () => {

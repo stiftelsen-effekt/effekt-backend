@@ -237,9 +237,13 @@ export const donationsRouter = router({
       await getDonationOrThrow(input.id);
       const mailStatus = await sendDonationReceipt(input.id, input.email ?? null);
       if (mailStatus !== true) {
+        // Not INTERNAL_SERVER_ERROR, whose message is hidden in production
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Receipt failed with error code ${mailStatus}`,
+          code: "BAD_GATEWAY",
+          message:
+            typeof mailStatus === "number"
+              ? `The mail service didn't accept the receipt (status ${mailStatus})`
+              : "The receipt could not be sent: the donor may have no email address, or the mail service failed",
         });
       }
     }),

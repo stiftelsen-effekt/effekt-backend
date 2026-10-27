@@ -288,8 +288,11 @@ describe("tRPC donations router", () => {
       expect(send.firstCall.args).to.deep.equal([42, null]);
       expect(send.secondCall.args).to.deep.equal([42, "other@example.org"]);
 
+      // A failed send is a mail service error with a message the admin can show
       send.resolves(401 as any);
-      await expectTrpcError(admin().donations.resendReceipt({ id: 42 }), "INTERNAL_SERVER_ERROR");
+      await expectTrpcError(admin().donations.resendReceipt({ id: 42 }), "BAD_GATEWAY");
+      send.resolves(false as any);
+      await expectTrpcError(admin().donations.resendReceipt({ id: 42 }), "BAD_GATEWAY");
 
       send.resetHistory();
       await expectTrpcError(admin().donations.resendReceipt({ id: 43 }), "NOT_FOUND");

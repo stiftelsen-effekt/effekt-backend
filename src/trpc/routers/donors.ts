@@ -64,6 +64,20 @@ const withServiceErrors = async <T>(fn: () => Promise<T>): Promise<T> => {
 const isDuplicateEntry = (err: unknown) =>
   typeof err === "object" && err !== null && (err as { code?: unknown }).code === "ER_DUP_ENTRY";
 
+/**
+ * CONFLICT if another donor has the email. The message ends with "(donor <id>)", so the admin
+ * can link to the existing donor.
+ */
+const assertEmailUnused = async (email: string, exceptDonorId?: number) => {
+  const existing = await DAO.donors.getIDbyEmail(email);
+  if (existing !== null && existing !== exceptDonorId) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: `Email already belongs to another donor (donor ${existing})`,
+    });
+  }
+};
+
 const getDonorOrThrow = async (donorId: number) => {
   const donor = await DAO.donors.getByID(donorId);
   if (!donor) {
@@ -324,6 +338,7 @@ export const donorsRouter = router({
   /** Creates a donor, and a tax unit named after the donor if ssn is given (like POST /donors) */
   create: adminProcedure.input(createInput).mutation(async ({ input }) => {
     const ssn = input.ssn !== undefined ? normalizeValidSsn(input.ssn, input.locale) : undefined;
+    await assertEmailUnused(input.email);
     const donorId = await withServiceErrors(() => createDonor(input.email, input.name));
     if (ssn !== undefined) {
       const taxUnit = await createTaxUnitForDonor(donorId, ssn, input.name, input.locale);
@@ -352,9 +367,15 @@ export const donorsRouter = router({
       }
     } catch (err) {
       if (isDuplicateEntry(err)) {
+        const existing =
+          input.email !== undefined
+            ? await DAO.donors.getIDbyEmail(input.email).catch(() => null)
+            : null;
         throw new TRPCError({
           code: "CONFLICT",
-          message: "Email already belongs to another donor",
+          message: `Email already belongs to another donor${
+            existing ? ` (donor ${existing})` : ""
+          }`,
         });
       }
       throw err;
