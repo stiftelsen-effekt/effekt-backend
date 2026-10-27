@@ -42,8 +42,10 @@ labels="preview=true,pr=${pr},sha=${sha:0:7}"
 
 echo "== Cancelling seed runs still going for #${pr}"
 if gcloud run jobs describe "$job" "${R[@]}" >/dev/null 2>&1; then
+  # Executions without a completion time are still running. (gcloud's filter can't test a
+  # timestamp field for presence, so the check is done here.)
   running="$(gcloud run jobs executions list --job "$job" "${R[@]}" \
-    --filter 'NOT status.completionTime:*' --format 'value(metadata.name)')"
+    --format 'value(metadata.name,status.completionTime)' | awk 'NF == 1 { print $1 }')"
   for execution in $running; do
     gcloud run jobs executions cancel "$execution" "${R[@]}" --quiet || true
   done
