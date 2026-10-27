@@ -97,8 +97,16 @@ describe("tRPC agreements router", () => {
       expect(
         await admin().list({ page: 1, limit: 20, sort: { id: "amount", desc: false }, filter }),
       ).to.deep.equal(result);
+      const { created, ...rest } = filter;
       expect(getList.firstCall.args[0]).to.deep.equal({
-        filter,
+        // Whole Oslo days: 1 January starts at 23:00 UTC the day before (CET)
+        filter: {
+          ...rest,
+          createdRange: {
+            from: new Date("2025-12-31T23:00:00Z"),
+            before: new Date("2026-01-31T23:00:00Z"),
+          },
+        },
         sort: { id: "amount", desc: false },
         page: 1,
         limit: 20,

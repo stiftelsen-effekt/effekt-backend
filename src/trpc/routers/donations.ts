@@ -4,6 +4,7 @@ import { DAO } from "../../custom_modules/DAO";
 import { TaxUnitType, type SumHistogramBucket } from "../../custom_modules/DAO_modules/donations";
 import { createDistribution, updateDonation } from "../../custom_modules/donationsService";
 import { sendDonationReceipt } from "../../custom_modules/mail";
+import { osloDateOrInstantRange, osloDayEnd, osloDayStart } from "../../custom_modules/osloDays";
 import { Distribution } from "../../schemas/types";
 import { csvExport } from "../csv";
 import { assertDistributionReferences } from "../distributionChecks";
@@ -64,18 +65,9 @@ const donationListInput = z.strictObject({
 
 const donationExportInput = donationListInput.omit({ page: true, limit: true });
 
+/** Dates are whole Oslo days; date-times with offset are exact instants (osloDays.ts) */
 const toDaoDonationFilter = (filter: z.infer<typeof donationFilterSchema> | undefined) =>
-  filter
-    ? {
-        ...filter,
-        date: filter.date
-          ? {
-              from: filter.date.from ? new Date(filter.date.from) : undefined,
-              to: filter.date.to ? new Date(filter.date.to) : undefined,
-            }
-          : undefined,
-      }
-    : null;
+  filter ? { ...filter, date: osloDateOrInstantRange(filter.date) } : null;
 
 /** A row of donations.list as the DAO returns it at runtime (decimals are strings) */
 type DonationListRow = {
@@ -245,9 +237,13 @@ export const donationsRouter = router({
       await getDonationOrThrow(input.id);
       const mailStatus = await sendDonationReceipt(input.id, input.email ?? null);
       if (mailStatus !== true) {
+        // Not INTERNAL_SERVER_ERROR, whose message is hidden in production
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Receipt failed with error code ${mailStatus}`,
+          code: "BAD_GATEWAY",
+          message:
+            typeof mailStatus === "number"
+              ? `The mail service didn't accept the receipt (status ${mailStatus})`
+              : "The receipt could not be sent: the donor may have no email address, or the mail service failed",
         });
       }
     }),
@@ -303,11 +299,13 @@ export const donationsRouter = router({
     return report;
   }),
 
-  /** Sum per organization of donations confirmed in an inclusive date range */
+  /** Sum per organization of donations confirmed in an inclusive range of Oslo days */
   total: adminProcedure
     .input(z.strictObject({ fromDate: isoDateSchema, toDate: isoDateSchema }))
     .query(({ input }) =>
-      DAO.donations.getAggregateByTime(new Date(input.fromDate), new Date(input.toDate)),
+      DAO.donations.getAggregateByTime(osloDayStart(input.fromDate), osloDayEnd(input.toDate), {
+        exclusiveEnd: true,
+      }),
     ),
 
   totalMonthly: adminProcedure.query(() => DAO.donations.getAggregateLastYearByMonth()),

@@ -6,7 +6,11 @@
 import { DateTime } from "luxon";
 import moment from "moment";
 import { DAO } from "./DAO";
-import type { ReviewQueueSource } from "./DAO_modules/reviewqueue";
+import type {
+  NewReviewQueueItem,
+  ReviewQueueSource,
+  ReviewQueueStatusCounts,
+} from "./DAO_modules/reviewqueue";
 
 /**
  * A transaction from an uploaded report that could not be registered automatically.
@@ -86,13 +90,77 @@ export type EnqueueResult = {
   added: number;
   /** Items already in the queue from an earlier import of the same transactions */
   existing: number;
+  /**
+   * Transactions that could not be queued: no usable amount or payment method, or the insert
+   * failed. They are listed in the upload result and the import log, but not in the queue.
+   */
+  skipped: number;
+  /**
+   * The file's queued transactions by their status now, including ones queued by an earlier
+   * upload and since registered or ignored ("N new, M already handled"). Null if they couldn't
+   * be counted.
+   */
+  statuses: ReviewQueueStatusCounts | null;
 };
 
 /**
+ * Turns an invalid transaction into a queue row, or null if it can't be queued (the amount or
+ * payment method is missing or not a number). An unreadable date is queued as null.
+ */
+const toQueueRow = (
+  source: ReviewQueueSource,
+  invalid: SourceInvalidTransaction,
+): NewReviewQueueItem | null => {
+  let item: ManualReviewItem;
+  try {
+    item = toReviewItem(source, invalid);
+  } catch {
+    return null;
+  }
+  const { reason, transaction } = item;
+  const amount = Number(transaction.amount);
+  const paymentId = Number(transaction.paymentID);
+  if (!Number.isFinite(amount) || !Number.isInteger(paymentId) || paymentId <= 0) return null;
+  const date = transaction.date ? new Date(transaction.date) : null;
+  return {
+    reason,
+    KID: transaction.KID,
+    amount: Math.round(amount * 100) / 100,
+    date: date && !isNaN(date.getTime()) ? date : null,
+    externalId: transaction.transactionID ? String(transaction.transactionID) : null,
+    paymentId,
+    message: transaction.message,
+    name: transaction.name,
+    location: transaction.location,
+    raw: invalid.transaction,
+  };
+};
+
+/** Statuses of an import's queue items; null (logged) if they can't be read */
+async function countStatuses(
+  source: ReviewQueueSource,
+  items: NewReviewQueueItem[],
+  importLogId: number | null,
+): Promise<ReviewQueueStatusCounts | null> {
+  try {
+    const externalIds = items.flatMap((item) =>
+      item.externalId === null ? [] : [item.externalId],
+    );
+    return await DAO.reviewqueue.getCountsForImport(source, externalIds, importLogId);
+  } catch (ex) {
+    console.error(`Failed to count the queued ${source} transactions`);
+    console.error(ex);
+    return null;
+  }
+}
+
+/**
  * Queues the invalid transactions of an import, linked to its import log entry and with the data
- * owner chosen for the import (null: the default owner). Never throws: the donations of the
- * import are already registered, so a failure here is logged and reported as null instead of
- * failing the import.
+ * owner chosen for the import (null: the default owner). Transactions that can't be queued are
+ * skipped and counted; if the batch insert fails, the rows are inserted one by one so one bad
+ * row doesn't lose the others. Never throws: the donations of the import are already
+ * registered, so an unexpected failure is logged and reported as null instead of failing the
+ * import.
  */
 export async function enqueueInvalidTransactions(
   source: ReviewQueueSource,
@@ -100,24 +168,39 @@ export async function enqueueInvalidTransactions(
   importLogId: number | null = null,
   metaOwnerId: number | null = null,
 ): Promise<EnqueueResult | null> {
-  if (invalidTransactions.length === 0) return { added: 0, existing: 0 };
+  if (invalidTransactions.length === 0) {
+    return { added: 0, existing: 0, skipped: 0, statuses: { open: 0, registered: 0, ignored: 0 } };
+  }
   try {
-    const items = invalidTransactions.map((invalid) => {
-      const { reason, transaction } = toReviewItem(source, invalid);
-      return {
-        reason,
-        KID: transaction.KID,
-        amount: Math.round(transaction.amount * 100) / 100,
-        date: transaction.date ? new Date(transaction.date) : null,
-        externalId: transaction.transactionID ? String(transaction.transactionID) : null,
-        paymentId: transaction.paymentID,
-        message: transaction.message,
-        name: transaction.name,
-        location: transaction.location,
-        raw: invalid.transaction,
-      };
-    });
-    return await DAO.reviewqueue.add(source, items, importLogId, metaOwnerId);
+    const rows = invalidTransactions.map((invalid) => toQueueRow(source, invalid));
+    const items = rows.filter((row): row is NewReviewQueueItem => row !== null);
+    const result = { added: 0, existing: 0, skipped: rows.length - items.length };
+
+    if (items.length > 0) {
+      try {
+        const added = await DAO.reviewqueue.add(source, items, importLogId, metaOwnerId);
+        result.added = added.added;
+        result.existing = added.existing;
+      } catch (ex) {
+        console.error(
+          `Failed to queue ${items.length} ${source} transactions at once, retrying one by one`,
+        );
+        console.error(ex);
+        for (const item of items) {
+          try {
+            const one = await DAO.reviewqueue.add(source, [item], importLogId, metaOwnerId);
+            result.added += one.added;
+            result.existing += one.existing;
+          } catch (ex) {
+            console.error(`Failed to queue a ${source} transaction for review`);
+            console.error(ex);
+            result.skipped++;
+          }
+        }
+      }
+    }
+
+    return { ...result, statuses: await countStatuses(source, items, importLogId) };
   } catch (ex) {
     console.error(
       `Failed to queue ${invalidTransactions.length} ${source} transactions for review`,

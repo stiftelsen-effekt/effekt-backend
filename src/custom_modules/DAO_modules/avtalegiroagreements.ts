@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { DAO, SqlResult } from "../DAO";
 
 import sqlString from "sqlstring";
+import { instantRangeClauses, type InstantRange } from "../osloDays";
 import { OkPacket, ResultSetHeader } from "mysql2/promise";
 import { Avtalegiro_agreements } from "@prisma/client";
 import { Distribution, DistributionInput } from "../../schemas/types";
@@ -373,6 +374,8 @@ interface AvtaleGiroFilters {
   KID?: string;
   paymentDate?: { from?: number; to?: number };
   created?: { from?: Date; to?: Date };
+  /** Half-open instant range (osloDays.ts), used by tRPC; `created` is filled by MySQL */
+  createdRange?: InstantRange;
   donor?: string;
   statuses?: Array<number>;
 }
@@ -459,6 +462,7 @@ async function getAgreements(
         whereClauses.push(`AG.created < ${sqlString.escape(toDate)}`);
       }
     }
+    whereClauses.push(...instantRangeClauses("AG.created", filter.createdRange, "db"));
 
     if (filter.KID && filter.KID.length > 0) {
       whereClauses.push(`CAST(AG.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)}`);
@@ -861,6 +865,76 @@ async function getExpectedDonationsForDate(date: Date): Promise<ExpectedAvtaleGi
   return res[0];
 }
 
+/** An AvtaleGiro claim as sent to Nets */
+export type AvtaleGiroClaim = {
+  KID: string;
+  /** øre */
+  amount: number;
+};
+
+/**
+ * The claims sent to Nets for a due date, read from the claim file (DIRREM) the scheduled
+ * AvtaleGiro job stores in Import_logs ("AvtaleGiro", or "AvtaleGiro - Retry" when it was sent
+ * again; the latest file wins). Available since June 2021.
+ * @param day YYYY-MM-DD
+ * @returns null if no claim file for the date was logged
+ */
+async function getClaimsForDate(day: string): Promise<AvtaleGiroClaim[] | null> {
+  const [year, month, date] = day.split("-");
+  // First line of a claim: NY21 02 30, transaction number 0000001, due date DDMMYY
+  const firstLine = `NY2102300000001${date}${month}${year.slice(2)}`;
+  const [rows] = await DAO.query<Array<{ file: string }>>(
+    `SELECT JSON_UNQUOTE(JSON_EXTRACT(result, '$.file')) AS file
+     FROM Import_logs
+     WHERE label IN ('AvtaleGiro', 'AvtaleGiro - Retry')
+       AND timestamp >= DATE_SUB(?, INTERVAL 40 DAY)
+       AND timestamp < DATE_ADD(?, INTERVAL 2 DAY)
+       AND JSON_TYPE(JSON_EXTRACT(result, '$.file')) = 'STRING'
+       AND JSON_UNQUOTE(JSON_EXTRACT(result, '$.file')) LIKE ?
+     ORDER BY timestamp DESC, ID DESC
+     LIMIT 1`,
+    [day, day, `%${firstLine}%`],
+  );
+  if (rows.length === 0) return null;
+  return parseClaimFile(rows[0].file, firstLine.slice(15));
+}
+
+/**
+ * Claim lines (record NY210230) of a DIRREM file with the given due date (DDMMYY): amount in
+ * øre at 32-49, KID right-aligned at 49-74 (see avtalegiro/filewriterutil.js).
+ */
+export const parseClaimFile = (file: string, dueDate: string): AvtaleGiroClaim[] =>
+  file
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("NY210230") && line.substring(15, 21) === dueDate)
+    .map((line) => ({
+      KID: line.substring(49, 74).trim(),
+      amount: parseInt(line.substring(32, 49), 10),
+    }))
+    .filter((claim) => claim.KID.length > 0 && Number.isFinite(claim.amount));
+
+/**
+ * Agreements with the claimed amounts of a past due date, in agreement order. Claims whose
+ * KID no longer has an agreement are left out.
+ * @returns null if no claim file for the date was logged
+ */
+async function getClaimedAgreementsForDate(
+  day: string,
+): Promise<ExpectedAvtaleGiroAgreement[] | null> {
+  const claims = await getClaimsForDate(day);
+  if (claims === null) return null;
+  if (claims.length === 0) return [];
+  const [agreements] = await DAO.query<ExpectedAvtaleGiroAgreement[]>(
+    `SELECT * FROM Avtalegiro_agreements WHERE KID IN (?) ORDER BY ID`,
+    [claims.map((claim) => claim.KID)],
+  );
+  const amountByKID = new Map(claims.map((claim) => [claim.KID, claim.amount]));
+  return agreements.map((agreement) => ({
+    ...agreement,
+    amount: amountByKID.get(agreement.KID) ?? agreement.amount,
+  }));
+}
+
 export type ReceivedAvtaleGiroDonation = {
   id: number;
   kid: string;
@@ -1116,6 +1190,7 @@ export const avtalegiroagreements = {
   getMissingForDate,
   getRecievedDonationsForDate,
   getExpectedDonationsForDate,
+  getClaimedAgreementsForDate,
   getDonationsByKID,
   getShipmentIDs,
   getAgreementsWithKIDStartingWith,

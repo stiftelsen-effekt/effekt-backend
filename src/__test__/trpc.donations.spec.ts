@@ -167,8 +167,11 @@ describe("tRPC donations router", () => {
       expect(sort).to.deep.equal({ id: "timestamp", desc: true });
       expect(page).to.equal(2);
       expect(limit).to.equal(25);
-      expect(filter!.date!.from).to.be.instanceOf(Date);
-      expect(filter!.date!.to!.toISOString()).to.equal("2025-12-31T23:59:59.000Z");
+      // A date is the whole Oslo day; a date-time is the exact (inclusive) instant
+      expect(filter!.date).to.deep.equal({
+        from: new Date("2024-12-31T23:00:00.000Z"),
+        before: new Date("2025-12-31T23:59:59.001Z"),
+      });
       expect(filter!.taxUnitTypes).to.deep.equal(["person", null]);
       expect(locale).to.equal("NO");
     });
@@ -285,8 +288,11 @@ describe("tRPC donations router", () => {
       expect(send.firstCall.args).to.deep.equal([42, null]);
       expect(send.secondCall.args).to.deep.equal([42, "other@example.org"]);
 
+      // A failed send is a mail service error with a message the admin can show
       send.resolves(401 as any);
-      await expectTrpcError(admin().donations.resendReceipt({ id: 42 }), "INTERNAL_SERVER_ERROR");
+      await expectTrpcError(admin().donations.resendReceipt({ id: 42 }), "BAD_GATEWAY");
+      send.resolves(false as any);
+      await expectTrpcError(admin().donations.resendReceipt({ id: 42 }), "BAD_GATEWAY");
 
       send.resetHistory();
       await expectTrpcError(admin().donations.resendReceipt({ id: 43 }), "NOT_FOUND");
@@ -467,6 +473,41 @@ describe("tRPC donations router", () => {
         .stub(DAO.donations, "add")
         .rejects(new Error("EXISTING_DONATION | Already a donation with ExternalPaymentID"));
       await expectTrpcError(admin().donations.register({ ...base, KID: "12345678" }), "CONFLICT");
+    });
+  });
+
+  describe("free text query", () => {
+    it("matches id, KID, donor name or email, escaping wildcards", async () => {
+      const query = sinon.stub(DAO, "query");
+      query.resolves([[{ abbriv: "AMF" }], []] as any);
+      await DAO.donations.getAll(
+        { id: "timestamp", desc: true },
+        0,
+        10,
+        { query: " 1234 ", paymentMethodIDs: [4] },
+        "NO" as any,
+      );
+      const donationSql = query.lastCall.args[0] as string;
+      expect(donationSql).to.contain(
+        "(Donations.ID = 1234 OR Donations.KID_fordeling LIKE '%1234%' OR Donors.full_name LIKE '%1234%' OR Donors.email LIKE '%1234%')",
+      );
+      expect(donationSql).to.contain("Donations.Payment_ID IN (4)");
+
+      await DAO.distributions.getAll(0, 10, { id: "KID", desc: true }, { query: "50%_ola" });
+      const distributionSql = query.lastCall.args[0] as string;
+      expect(distributionSql).to.contain(
+        "(D.KID LIKE '%50\\\\%\\\\_ola%' OR Donors.full_name LIKE '%50\\\\%\\\\_ola%' OR Donors.email LIKE '%50\\\\%\\\\_ola%')",
+      );
+    });
+
+    it("accepts query in the procedure filters", async () => {
+      const getAll = sinon.stub(DAO.distributions, "getAll").resolves({
+        rows: [],
+        statistics: { numDistributions: 0 },
+        pages: 0,
+      });
+      await admin().donations.distributions.list({ page: 0, limit: 10, filter: { query: " 77 " } });
+      expect(getAll.firstCall.args[3]).to.deep.equal({ query: "77" });
     });
   });
 

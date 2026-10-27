@@ -1,4 +1,5 @@
 import { DAO } from "../DAO";
+import { instantRangeClauses, type InstantRange } from "../osloDays";
 
 /**
  * Recurring agreements across providers (Vipps and AvtaleGiro in NO, AutoGiro in SE) in one
@@ -75,8 +76,10 @@ export type AgreementFilter = {
   /** Whole currency units, inclusive */
   amount?: { from?: number; to?: number };
   chargeDay?: { from?: number; to?: number };
-  /** ISO dates (YYYY-MM-DD), inclusive of the whole `to` day */
+  /** ISO dates (YYYY-MM-DD) of the stored wall clock, inclusive of the whole `to` day */
   created?: { from?: string; to?: string };
+  /** Half-open instant range (osloDays.ts); the created columns are filled by MySQL defaults */
+  createdRange?: InstantRange;
   /** Partial match on the donor's name or email */
   donor?: string;
   /** Partial match */
@@ -211,6 +214,7 @@ function buildQuery(filter: AgreementFilter) {
   if (filter.chargeDay?.to !== undefined) add("chargeDay <= ?", filter.chargeDay.to);
   if (filter.created?.from) add("created >= ?", filter.created.from);
   if (filter.created?.to) add("created < DATE_ADD(?, INTERVAL 1 DAY)", filter.created.to);
+  for (const clause of instantRangeClauses("created", filter.createdRange, "db")) add(clause);
   if (filter.donor) {
     const pattern = `%${escapeLike(filter.donor)}%`;
     add("(donorName LIKE ? OR donorEmail LIKE ?)", pattern, pattern);

@@ -269,6 +269,37 @@ async function getCounts(): Promise<ReviewQueueStatusCounts> {
   return toCounts(rows);
 }
 
+/**
+ * Items per status among the given transactions of one source: those with one of the external
+ * ids, plus (with an import log id) the items without external id queued by that import. Tells
+ * an upload how many of its transactions are still open and how many were already handled.
+ */
+async function getCountsForImport(
+  source: ReviewQueueSource,
+  externalIds: string[],
+  importLogId: number | null,
+): Promise<ReviewQueueStatusCounts> {
+  const ids = [...new Set(externalIds.map((id) => fit(id, 64)!))];
+  const conditions: string[] = [];
+  const params: unknown[] = [source];
+  if (ids.length > 0) {
+    conditions.push("External_ID IN (?)");
+    params.push(ids);
+  }
+  if (importLogId !== null) {
+    conditions.push("(External_ID IS NULL AND Import_log_ID = ?)");
+    params.push(importLogId);
+  }
+  if (conditions.length === 0) return emptyCounts();
+  const [rows] = await DAO.query<{ status: string; count: number }[]>(
+    `SELECT Status AS status, COUNT(*) AS count FROM Review_queue_items
+     WHERE Source = ? AND (${conditions.join(" OR ")})
+     GROUP BY Status`,
+    params,
+  );
+  return toCounts(rows);
+}
+
 const toCounts = (rows: { status: string; count: number }[]) => {
   const counts = emptyCounts();
   for (const row of rows) {
@@ -328,13 +359,14 @@ async function ignore(id: number, resolvedBy: string, note: string | null): Prom
 }
 
 /**
- * Reopens an ignored item, or a registered one whose donation has since been deleted. Returns
- * false otherwise (open items, and registered items whose donation still exists).
+ * Reopens an ignored item, or a registered one whose donation has since been deleted, clearing
+ * who resolved it and the ignore note. Returns false otherwise (open items, and registered
+ * items whose donation still exists).
  */
 async function reopen(id: number): Promise<boolean> {
   const [result] = await DAO.query<ResultSetHeader>(
     `UPDATE Review_queue_items
-     SET Status = 'open', Resolved_by = NULL, Resolved_at = NULL
+     SET Status = 'open', Resolved_by = NULL, Resolved_at = NULL, Note = NULL
      WHERE ID = ? AND (Status = 'ignored' OR (Status = 'registered' AND Donation_ID IS NULL))`,
     [id],
   );
@@ -349,6 +381,7 @@ export const reviewqueue = {
   getList,
   search,
   getCounts,
+  getCountsForImport,
   claimForRegistration,
   releaseRegistrationClaim,
   setDonation,

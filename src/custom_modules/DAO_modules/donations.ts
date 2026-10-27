@@ -4,6 +4,10 @@ import { DAO } from "../DAO";
 import { Distribution, Donation } from "../../schemas/types";
 
 import sqlString from "sqlstring";
+import { instantRangeClauses, type InstantRange } from "../osloDays";
+
+/** Escapes LIKE wildcards so free text matches literally */
+const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
 import { DateTime } from "luxon";
 import { Donations, Prisma } from "@prisma/client";
 import { RequestLocale } from "../../middleware/locale";
@@ -56,11 +60,14 @@ async function getAll(
   limit = 10,
   filter: {
     sum?: { from?: number; to?: number };
-    date?: { from?: Date; to?: Date };
+    /** `to` is inclusive (REST), or a half-open InstantRange with `before` (tRPC) */
+    date?: { from?: Date; to?: Date } | InstantRange;
     KID?: string;
     paymentMethodIDs?: Array<number>;
     taxUnitTypes?: Array<TaxUnitType | null>;
     donor?: string;
+    /** Free text: the donation id (all digits), part of the KID, or the donor's name or email */
+    query?: string;
     id?: string;
     fundraiserId?: string;
     organizationIDs?: Array<number>;
@@ -98,11 +105,14 @@ async function getAll(
           where.push(`Donations.sum_confirmed <= ${sqlString.escape(filter.sum.to)} `);
       }
 
-      if (filter.date) {
-        if (filter.date.from)
-          where.push(`Donations.timestamp_confirmed >= ${sqlString.escape(filter.date.from)} `);
-        if (filter.date.to)
-          where.push(`Donations.timestamp_confirmed <= ${sqlString.escape(filter.date.to)} `);
+      if (filter.date && "before" in filter.date) {
+        // tRPC: a half-open instant range (osloDays.ts)
+        where.push(...instantRangeClauses("Donations.timestamp_confirmed", filter.date));
+      } else if (filter.date) {
+        const date = filter.date as { from?: Date; to?: Date };
+        if (date.from)
+          where.push(`Donations.timestamp_confirmed >= ${sqlString.escape(date.from)} `);
+        if (date.to) where.push(`Donations.timestamp_confirmed <= ${sqlString.escape(date.to)} `);
       }
 
       if (filter.KID)
@@ -155,6 +165,18 @@ async function getAll(
         );
 
       if (filter.id) where.push(` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `);
+
+      if (filter.query?.trim()) {
+        const text = filter.query.trim();
+        const pattern = sqlString.escape(`%${escapeLike(text)}%`);
+        const matches = [
+          `Donations.KID_fordeling LIKE ${pattern}`,
+          `Donors.full_name LIKE ${pattern}`,
+          `Donors.email LIKE ${pattern}`,
+        ];
+        if (/^\d+$/.test(text)) matches.unshift(`Donations.ID = ${sqlString.escape(Number(text))}`);
+        where.push(` (${matches.join(" OR ")}) `);
+      }
 
       if (filter.fundraiserId) {
         // Ensure the join happens below if filter.fundraiserId is present
@@ -549,7 +571,15 @@ async function getLatestByKID(KID) {
 async function getAggregateByTime(
   startTime: Date,
   endTime: Date,
+  /**
+   * Compare instants: `startTime` inclusive, `endTime` exclusive (tRPC whole Oslo days). By
+   * default (REST) both are calendar dates of the stored wall clock, inclusive.
+   */
+  options: { exclusiveEnd?: boolean } = {},
 ): Promise<Array<{ id: number; orgName: string; sum: string }>> {
+  const range = options.exclusiveEnd
+    ? "Donations.timestamp_confirmed >= ? AND Donations.timestamp_confirmed < ?"
+    : "DATE(Donations.timestamp_confirmed) >= DATE(?) AND DATE(Donations.timestamp_confirmed) <= DATE(?)";
   // Inline replacement for the get_aggregate_donations_by_period procedure, which still
   // queries the Combining_table/Distribution tables dropped in 20230731130928_multiple_cause_areas.
   // An organization's share of a donation is its share within the cause area times the
@@ -574,9 +604,7 @@ async function getAggregateByTime(
         ON Distribution_cause_area_organizations.Distribution_cause_area_ID = Distribution_cause_areas.ID
       INNER JOIN Organizations
         ON Organizations.ID = Distribution_cause_area_organizations.Organization_ID
-    WHERE
-      DATE(Donations.timestamp_confirmed) >= DATE(?)
-      AND DATE(Donations.timestamp_confirmed) <= DATE(?)
+    WHERE ${range}
     GROUP BY Organizations.ID, Organizations.full_name
     `,
     [startTime, endTime],
@@ -856,9 +884,17 @@ async function getFromRange(
   fromDate?: Date | null,
   toDate?: Date | null,
   paymentMethodIDs: number[] | null = null,
+  /**
+   * Compare instants: `fromDate` inclusive, `toDate` exclusive (tRPC whole Oslo days). By
+   * default (REST) both are truncated to calendar dates of the stored wall clock, inclusive.
+   */
+  options: { exclusiveEnd?: boolean } = {},
 ): Promise<DonationInRange[]> {
   if (!fromDate) fromDate = new Date(2000, 0, 1);
   if (!toDate) toDate = new Date();
+  const range = options.exclusiveEnd
+    ? "Donations.timestamp_confirmed >= ? AND Donations.timestamp_confirmed < ?"
+    : "Donations.timestamp_confirmed >= Date(?) AND Donations.timestamp_confirmed < Date(Date_add(Date(?), interval 1 day))";
 
   // An organization's share of a donation is its share within the cause area times the
   // cause area's share of the distribution.
@@ -903,10 +939,7 @@ async function getFromRange(
                     INNER JOIN Payment
                         ON Payment.ID = Donations.Payment_ID
                 
-                WHERE 
-                    Donations.timestamp_confirmed >= Date(?)  
-                    AND 
-                    Donations.timestamp_confirmed < Date(Date_add(Date(?), interval 1 day))
+                WHERE ${range}
                 ${
                   paymentMethodIDs != null
                     ? `
