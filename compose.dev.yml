@@ -81,6 +81,8 @@ services:
                   "claims": {
                     "sub": "local-admin",
                     "aud": "http://localhost:5050",
+                    "name": "Dev Admin",
+                    "given_name": "Dev",
                     "permissions": [
                       "admin",
                       "read:donations", "write:donations",

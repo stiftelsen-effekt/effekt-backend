@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { useOpenReviewCount } from "@/features/review-queue/store";
 import { useHotkey } from "@/hooks/use-hotkey";
 import { appLocale } from "@/lib/locale";
 import { usePreferences, type Density, type ThemePreference } from "@/lib/preferences";
@@ -152,15 +151,16 @@ function UserMenu() {
 function Sidebar({
   groups,
   showDesign,
+  reviewCount,
   onSearch,
   onNavigate,
 }: {
   groups: NavGroup[];
   showDesign: boolean;
+  reviewCount?: number;
   onSearch: () => void;
   onNavigate?: () => void;
 }) {
-  const reviewCount = useOpenReviewCount();
   return (
     <div className="flex h-full flex-col gap-4 bg-canvas px-3 pt-4 pb-3">
       <Link
@@ -223,7 +223,14 @@ function Sidebar({
  * The frame around every page: quiet paper-coloured sidebar, white content sheet, ⌘K
  * palette and global shortcuts. Pages render templates (ListPage, DetailPage, …) inside.
  */
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  reviewCount,
+}: {
+  children: ReactNode;
+  /** Open review-queue items, shown as the nav badge; hidden while unknown */
+  reviewCount?: number;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -284,7 +291,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         Skip to content
       </a>
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 lg:block">
-        <Sidebar groups={groups} showDesign={showDesign} onSearch={() => setPaletteOpen(true)} />
+        <Sidebar
+          groups={groups}
+          showDesign={showDesign}
+          reviewCount={reviewCount}
+          onSearch={() => setPaletteOpen(true)}
+        />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col lg:h-dvh lg:py-2 lg:pr-2">
@@ -318,6 +330,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Sidebar
               groups={groups}
               showDesign={showDesign}
+              reviewCount={reviewCount}
               onSearch={() => {
                 setMenuOpen(false);
                 setPaletteOpen(true);

@@ -14,6 +14,8 @@ import { Route as DesignRouteImport } from './routes/design'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
+import { Route as AppReportsRouteImport } from './routes/_app/reports'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as DesignIndexRouteImport } from './routes/design/index'
 import { Route as DesignAgreementsRouteImport } from './routes/design/agreements'
 import { Route as DesignComponentsRouteImport } from './routes/design/components'
@@ -32,6 +34,8 @@ import { Route as AppDonorsIndexRouteImport } from './routes/_app/donors/index'
 import { Route as AppDonorsIdRouteImport } from './routes/_app/donors/$id'
 import { Route as AppFundraisersIndexRouteImport } from './routes/_app/fundraisers/index'
 import { Route as AppFundraisersIdRouteImport } from './routes/_app/fundraisers/$id'
+import { Route as AppLogsIndexRouteImport } from './routes/_app/logs/index'
+import { Route as AppLogsIdRouteImport } from './routes/_app/logs/$id'
 import { Route as AppDonationsIdIndexRouteImport } from './routes/_app/donations/$id/index'
 import { Route as AppDonationsIdEditRouteImport } from './routes/_app/donations/$id/edit'
 
@@ -57,6 +61,16 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppSplatRoute = AppSplatRouteImport.update({
   id: '/$',
   path: '/$',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const DesignIndexRoute = DesignIndexRouteImport.update({
@@ -149,6 +163,16 @@ const AppFundraisersIdRoute = AppFundraisersIdRouteImport.update({
   path: '/fundraisers/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLogsIndexRoute = AppLogsIndexRouteImport.update({
+  id: '/logs/',
+  path: '/logs/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLogsIdRoute = AppLogsIdRouteImport.update({
+  id: '/logs/$id',
+  path: '/logs/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDonationsIdIndexRoute = AppDonationsIdIndexRouteImport.update({
   id: '/donations/$id/',
   path: '/donations/$id/',
@@ -165,6 +189,8 @@ export interface FileRoutesByFullPath {
   '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/reports': typeof AppReportsRoute
+  '/settings': typeof AppSettingsRoute
   '/design/agreements': typeof DesignAgreementsRoute
   '/design/components': typeof DesignComponentsRoute
   '/design/detail': typeof DesignDetailRoute
@@ -179,16 +205,20 @@ export interface FileRoutesByFullPath {
   '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/logs/$id': typeof AppLogsIdRoute
   '/distributions/': typeof AppDistributionsIndexRoute
   '/donations/': typeof AppDonationsIndexRoute
   '/donors/': typeof AppDonorsIndexRoute
   '/fundraisers/': typeof AppFundraisersIndexRoute
+  '/logs/': typeof AppLogsIndexRoute
   '/donations/$id/edit': typeof AppDonationsIdEditRoute
   '/donations/$id/': typeof AppDonationsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/reports': typeof AppReportsRoute
+  '/settings': typeof AppSettingsRoute
   '/design/agreements': typeof DesignAgreementsRoute
   '/design/components': typeof DesignComponentsRoute
   '/design/detail': typeof DesignDetailRoute
@@ -204,10 +234,12 @@ export interface FileRoutesByTo {
   '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/logs/$id': typeof AppLogsIdRoute
   '/distributions': typeof AppDistributionsIndexRoute
   '/donations': typeof AppDonationsIndexRoute
   '/donors': typeof AppDonorsIndexRoute
   '/fundraisers': typeof AppFundraisersIndexRoute
+  '/logs': typeof AppLogsIndexRoute
   '/donations/$id/edit': typeof AppDonationsIdEditRoute
   '/donations/$id': typeof AppDonationsIdIndexRoute
 }
@@ -217,6 +249,8 @@ export interface FileRoutesById {
   '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/$': typeof AppSplatRoute
+  '/_app/reports': typeof AppReportsRoute
+  '/_app/settings': typeof AppSettingsRoute
   '/design/agreements': typeof DesignAgreementsRoute
   '/design/components': typeof DesignComponentsRoute
   '/design/detail': typeof DesignDetailRoute
@@ -232,10 +266,12 @@ export interface FileRoutesById {
   '/_app/donations/register': typeof AppDonationsRegisterRoute
   '/_app/donors/$id': typeof AppDonorsIdRoute
   '/_app/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/_app/logs/$id': typeof AppLogsIdRoute
   '/_app/distributions/': typeof AppDistributionsIndexRoute
   '/_app/donations/': typeof AppDonationsIndexRoute
   '/_app/donors/': typeof AppDonorsIndexRoute
   '/_app/fundraisers/': typeof AppFundraisersIndexRoute
+  '/_app/logs/': typeof AppLogsIndexRoute
   '/_app/donations/$id/edit': typeof AppDonationsIdEditRoute
   '/_app/donations/$id/': typeof AppDonationsIdIndexRoute
 }
@@ -246,6 +282,8 @@ export interface FileRouteTypes {
     | '/design'
     | '/login'
     | '/$'
+    | '/reports'
+    | '/settings'
     | '/design/agreements'
     | '/design/components'
     | '/design/detail'
@@ -260,16 +298,20 @@ export interface FileRouteTypes {
     | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/logs/$id'
     | '/distributions/'
     | '/donations/'
     | '/donors/'
     | '/fundraisers/'
+    | '/logs/'
     | '/donations/$id/edit'
     | '/donations/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
     | '/$'
+    | '/reports'
+    | '/settings'
     | '/design/agreements'
     | '/design/components'
     | '/design/detail'
@@ -285,10 +327,12 @@ export interface FileRouteTypes {
     | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/logs/$id'
     | '/distributions'
     | '/donations'
     | '/donors'
     | '/fundraisers'
+    | '/logs'
     | '/donations/$id/edit'
     | '/donations/$id'
   id:
@@ -297,6 +341,8 @@ export interface FileRouteTypes {
     | '/design'
     | '/login'
     | '/_app/$'
+    | '/_app/reports'
+    | '/_app/settings'
     | '/design/agreements'
     | '/design/components'
     | '/design/detail'
@@ -312,10 +358,12 @@ export interface FileRouteTypes {
     | '/_app/donations/register'
     | '/_app/donors/$id'
     | '/_app/fundraisers/$id'
+    | '/_app/logs/$id'
     | '/_app/distributions/'
     | '/_app/donations/'
     | '/_app/donors/'
     | '/_app/fundraisers/'
+    | '/_app/logs/'
     | '/_app/donations/$id/edit'
     | '/_app/donations/$id/'
   fileRoutesById: FileRoutesById
@@ -361,6 +409,20 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof AppSplatRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/design/': {
@@ -489,6 +551,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFundraisersIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/logs/': {
+      id: '/_app/logs/'
+      path: '/logs'
+      fullPath: '/logs/'
+      preLoaderRoute: typeof AppLogsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logs/$id': {
+      id: '/_app/logs/$id'
+      path: '/logs/$id'
+      fullPath: '/logs/$id'
+      preLoaderRoute: typeof AppLogsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/donations/$id/': {
       id: '/_app/donations/$id/'
       path: '/donations/$id'
@@ -508,32 +584,40 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
+  AppReportsRoute: typeof AppReportsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppDistributionsKidRoute: typeof AppDistributionsKidRoute
   AppDistributionsNewRoute: typeof AppDistributionsNewRoute
   AppDonationsRegisterRoute: typeof AppDonationsRegisterRoute
   AppDonorsIdRoute: typeof AppDonorsIdRoute
   AppFundraisersIdRoute: typeof AppFundraisersIdRoute
+  AppLogsIdRoute: typeof AppLogsIdRoute
   AppDistributionsIndexRoute: typeof AppDistributionsIndexRoute
   AppDonationsIndexRoute: typeof AppDonationsIndexRoute
   AppDonorsIndexRoute: typeof AppDonorsIndexRoute
   AppFundraisersIndexRoute: typeof AppFundraisersIndexRoute
+  AppLogsIndexRoute: typeof AppLogsIndexRoute
   AppDonationsIdEditRoute: typeof AppDonationsIdEditRoute
   AppDonationsIdIndexRoute: typeof AppDonationsIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
+  AppReportsRoute: AppReportsRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppDistributionsKidRoute: AppDistributionsKidRoute,
   AppDistributionsNewRoute: AppDistributionsNewRoute,
   AppDonationsRegisterRoute: AppDonationsRegisterRoute,
   AppDonorsIdRoute: AppDonorsIdRoute,
   AppFundraisersIdRoute: AppFundraisersIdRoute,
+  AppLogsIdRoute: AppLogsIdRoute,
   AppDistributionsIndexRoute: AppDistributionsIndexRoute,
   AppDonationsIndexRoute: AppDonationsIndexRoute,
   AppDonorsIndexRoute: AppDonorsIndexRoute,
   AppFundraisersIndexRoute: AppFundraisersIndexRoute,
+  AppLogsIndexRoute: AppLogsIndexRoute,
   AppDonationsIdEditRoute: AppDonationsIdEditRoute,
   AppDonationsIdIndexRoute: AppDonationsIdIndexRoute,
 }
