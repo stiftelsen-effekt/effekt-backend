@@ -9,15 +9,24 @@ async function openList(page: Page) {
   await page.goto("/design");
   await page.getByRole("link", { name: "List", exact: true }).first().click();
   await expect(page).toHaveURL(/\/design\/list$/);
-  await expect(page.getByRole("table", { name: "Donations" }).getByRole("row").nth(1)).toBeVisible();
+  await expect(
+    page.getByRole("table", { name: "Donations" }).getByRole("row").nth(1),
+  ).toBeVisible();
 }
 
 test("filter, sort and page each add a history entry", async ({ page }) => {
   await openList(page);
 
-  await page.getByRole("button", { name: /^(add filter|filter)$/i }).first().click();
+  await page
+    .getByRole("button", { name: /^(add filter|filter)$/i })
+    .first()
+    .click();
   await page.getByRole("menuitem", { name: "Payment method", exact: true }).click();
-  await page.getByRole("dialog", { name: "Payment method filter" }).getByRole("checkbox").first().click();
+  await page
+    .getByRole("dialog", { name: "Payment method filter" })
+    .getByRole("checkbox")
+    .first()
+    .click();
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/[?&]method=/);
 

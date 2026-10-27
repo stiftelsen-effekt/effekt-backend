@@ -71,7 +71,7 @@ function ImportLogPage() {
   return (
     <ListPage
       title="Import log"
-      description="Every payment file and scheduled job the system has processed, newest first."
+      description="Every payment file and scheduled job the system has processed."
       filters={<FilterBar list={list} searchPlaceholder="Search file contents" />}
       peek={peeked && <LogPeek row={peeked} onClose={() => setPeekId(null)} />}
     >

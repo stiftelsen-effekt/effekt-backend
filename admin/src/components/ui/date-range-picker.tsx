@@ -83,10 +83,18 @@ export function DateRangeEditor({
   const set = (next: DayRange) =>
     onValueChange(next.from || next.to ? { from: next.from, to: next.to } : undefined);
 
-  // A typed date shows its month.
+  // A typed date shows its month: "from" in the first month shown; "to" in the last, unless
+  // the whole range fits starting at "from".
   const showDay = (day: string, end: "from" | "to") => {
     const target = monthOf(day);
     if (!target) return;
+    const start = monthOf(from);
+    const span = (a: Date, b: Date) =>
+      (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth();
+    if (end === "to" && start && span(start, target) >= 0 && span(start, target) < numberOfMonths) {
+      setMonth(start);
+      return;
+    }
     setMonth(
       end === "to" && numberOfMonths > 1
         ? new Date(target.getFullYear(), target.getMonth() - (numberOfMonths - 1), 1)
@@ -140,7 +148,10 @@ export function DateRangeEditor({
           numberOfMonths={numberOfMonths}
           month={month}
           onMonthChange={setMonth}
-          selected={{ from: from ? dateOfDay(from) : undefined, to: to ? dateOfDay(to) : undefined }}
+          selected={{
+            from: from ? dateOfDay(from) : undefined,
+            to: to ? dateOfDay(to) : undefined,
+          }}
           onSelect={(range) =>
             set({
               from: range?.from ? dayOf(range.from) : undefined,
@@ -182,7 +193,9 @@ function RangeEnd({
 
 export function summarizeDayRange(value: DayRange | undefined, placeholder: string) {
   if (!value?.from && !value?.to) return placeholder;
-  return `${value.from ? formatDayText(value.from) : "…"} – ${value.to ? formatDayText(value.to) : "…"}`;
+  return `${value.from ? formatDayText(value.from) : "…"} – ${
+    value.to ? formatDayText(value.to) : "…"
+  }`;
 }
 
 type DateRangePickerProps = {

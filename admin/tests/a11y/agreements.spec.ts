@@ -178,16 +178,19 @@ const fixtures: Record<string, unknown> = {
     donorId: 951,
     distribution: { ...split, kid: "000951394512895", donorId: 951, taxUnitId: null },
   },
-  "giro.avtalegiro.donations": [
-    {
-      id: 17662,
-      sum: "200.00",
-      transactionCost: "2.00",
-      timestamp: "2025-10-28T16:31:28.000Z",
-      paymentMethod: "AvtaleGiro",
-      KID: "000951394512895",
-    },
-  ],
+  "giro.avtalegiro.payments": {
+    KIDs: ["000951394512895"],
+    donations: [
+      {
+        id: 17662,
+        sum: "200.00",
+        transactionCost: "2.00",
+        timestamp: "2025-10-28T16:31:28.000Z",
+        paymentMethod: "AvtaleGiro",
+        KID: "000951394512895",
+      },
+    ],
+  },
   "giro.avtalegiro.expected": [
     {
       ID: 167,

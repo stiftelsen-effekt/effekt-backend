@@ -75,8 +75,14 @@ export function formatNumber(
 /** Axis labels and slider ends: 1,8M / 450k, Norwegian digits, units language-neutral. */
 export function formatCompact(value: number) {
   const abs = Math.abs(value);
-  if (abs >= 1e6) return `${formatNumber(value / 1e6, { decimals: abs >= 1e7 ? 0 : 1 })}M`;
-  if (abs >= 1e3) return `${formatNumber(value / 1e3, { decimals: abs >= 1e4 ? 0 : 1 })}k`;
+  // One decimal below 10k / 10M, and only when it isn't zero: "7,5k", "5k", "15k".
+  const scaled = (divisor: number, suffix: string) => {
+    const shown = value / divisor;
+    const decimals = Math.abs(shown) < 10 && Math.round(shown * 10) % 10 !== 0 ? 1 : 0;
+    return `${formatNumber(shown, { decimals })}${suffix}`;
+  };
+  if (abs >= 1e6) return scaled(1e6, "M");
+  if (abs >= 1e3) return scaled(1e3, "k");
   return formatNumber(value);
 }
 

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatDate, formatMoney, formatMoneyInput, formatNumber, moneyDecimals } from "./format";
+import {
+  formatCompact,
+  formatDate,
+  formatMoney,
+  formatMoneyInput,
+  formatNumber,
+  moneyDecimals,
+} from "./format";
 
 const nbsp = /[  ]/g;
 const plain = (value: string) => value.replace(nbsp, " ").replace("−", "-");
@@ -46,6 +53,16 @@ describe("the money rule", () => {
     expect(formatMoneyInput("1000.00")).toBe("1000");
     expect(formatMoneyInput("249.5")).toBe("249,50");
     expect(formatMoneyInput(null)).toBe("");
+  });
+});
+
+describe("formatCompact", () => {
+  it("abbreviates axis values in one style", () => {
+    expect(formatCompact(500)).toBe("500");
+    expect(formatCompact(5000)).toBe("5k");
+    expect(formatCompact(7500)).toBe("7,5k");
+    expect(formatCompact(15000)).toBe("15k");
+    expect(formatCompact(1_400_000)).toBe("1,4M");
   });
 });
 
