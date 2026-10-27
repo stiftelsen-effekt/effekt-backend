@@ -126,6 +126,9 @@ export const matchingRuleCreateInput = z.strictObject({
   precedence: z.number().int().nullable(),
 });
 
+/** Same fields and validation as create */
+export const matchingRuleUpdateInput = matchingRuleCreateInput.extend({ id: idSchema });
+
 export const matchingRuleListInput = z
   .strictObject({
     /** Only rules whose period overlaps this one (inclusive) */

@@ -544,6 +544,43 @@ describe("tRPC vipps router", () => {
       expect(addStub.called).to.be.false;
     });
 
+    it("updates a rule with the create validation, NOT_FOUND when missing", async () => {
+      const kidExists = sinon.stub(DAO.distributions, "KIDexists").resolves(true);
+      const update = sinon
+        .stub(DAO.vipps, "updateMatchingRule")
+        .callsFake(async (ruleId) => ruleId === 4);
+      const rule = {
+        id: 4,
+        salesLocation: "Stand",
+        message: "gave",
+        periodFrom: "2026-03-01",
+        periodTo: "2026-03-31",
+        resolveKID: "111",
+        precedence: 2,
+      };
+
+      expect(await admin().vipps.matchingRules.update(rule)).to.deep.equal({ id: 4 });
+      const { id, ...fields } = rule;
+      expect(update.firstCall.args).to.deep.equal([id, fields]);
+
+      await expectTrpcError(admin().vipps.matchingRules.update({ ...rule, id: 5 }), "NOT_FOUND");
+      await expectTrpcError(
+        admin().vipps.matchingRules.update({ ...rule, periodTo: "2026-03-01" }),
+        "BAD_REQUEST",
+      );
+      kidExists.resolves(false);
+      await expectTrpcError(admin().vipps.matchingRules.update(rule), "BAD_REQUEST");
+      await expectTrpcError(
+        admin().vipps.matchingRules.update({ ...rule, salesLocation: "x".repeat(46) }),
+        "BAD_REQUEST",
+      );
+      await expectTrpcError(
+        admin().vipps.matchingRules.update({ ...rule, id: undefined } as any),
+        "BAD_REQUEST",
+      );
+      expect(update.callCount).to.equal(2);
+    });
+
     it("deletes a rule, NOT_FOUND when missing", async () => {
       const stub = sinon.stub(DAO.vipps, "deleteMatchingRule");
       stub.withArgs(1).resolves(true);
