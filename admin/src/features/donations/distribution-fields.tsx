@@ -20,6 +20,7 @@ import {
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { errorCode, useTRPC } from "@/lib/trpc";
 import { apiLocale } from "./api";
+import type { DonorSearch } from "@/features/donors/donor-picker";
 import { DonorPicker } from "./donor-picker";
 
 const NO_TAX_UNIT = "none";
@@ -76,6 +77,7 @@ export function NewDistributionFields({
   onDistributionChange,
   config,
   errors,
+  donorSearch,
 }: {
   donorId: number | null;
   onDonorChange: (donorId: number | null) => void;
@@ -85,6 +87,8 @@ export function NewDistributionFields({
   onDistributionChange: (draft: DistributionDraft) => void;
   config: CauseAreaConfig[];
   errors: { donorId?: ReactNode; taxUnitId?: ReactNode; distribution?: ReactNode };
+  /** Replace the API donor search (the /design demo uses fake data). */
+  donorSearch?: DonorSearch;
 }) {
   return (
     <div className="grid gap-4">
@@ -92,6 +96,7 @@ export function NewDistributionFields({
         <Field label="Donor" error={errors.donorId} required>
           <DonorPicker
             value={donorId}
+            search={donorSearch}
             onChange={(next) => {
               onDonorChange(next);
               onTaxUnitChange("");

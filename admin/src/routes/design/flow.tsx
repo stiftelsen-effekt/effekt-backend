@@ -25,9 +25,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { causeAreas, paymentMethods, reviewItems } from "@/design-system/fake-data";
+import {
+  addDemoItems,
+  demoReviewQueue,
+  reopenDemoItem,
+  resolveDemoItem,
+} from "@/design-system/fake-review-queue";
+import { fakeDonorSearch } from "@/design-system/fake-search";
+import { nextOpenId, type ImportSource } from "@/features/review-queue/model";
 import { ReviewWorkbench } from "@/features/review-queue/review-workbench";
-import { addToReviewQueue, reviewQueue, type ImportSource } from "@/features/review-queue/store";
 import { usePersistentState } from "@/lib/persistent-store";
+import { notify } from "@/lib/notify";
+
+const owners = [
+  { id: 1, name: "Gi Effektivt", default: true },
+  { id: 2, name: "Effektiv Altruisme Norge", default: false },
+];
 
 export const Route = createFileRoute("/design/flow")({
   component: ImportFlowDemo,
@@ -92,13 +105,21 @@ function ImportFlowDemo() {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const set = (patch: Partial<FlowState>) => setState((current) => ({ ...current, ...patch }));
-  const openCount = reviewQueue.use().filter((entry) => entry.state === "open").length;
+  const queue = demoReviewQueue.use();
+  const openIds = queue.filter((item) => item.status === "open").map((item) => item.id);
+  const openCount = openIds.length;
+  const [currentId, setCurrentId] = useState<number | null>(null);
+  const current =
+    queue.find((item) => item.id === currentId) ??
+    queue.find((item) => item.status === "open") ??
+    null;
+  const moveOn = (id: number) => setCurrentId(nextOpenId(openIds, id) ?? id);
 
   async function upload() {
     setUploading(true);
     await new Promise((resolve) => setTimeout(resolve, 900));
     const fileName = files[0]?.name ?? "report.txt";
-    addToReviewQueue(reviewItems, { source: state.source ?? "ocr", fileName });
+    addDemoItems(reviewItems);
     set({
       step: "result",
       fileName,
@@ -172,7 +193,7 @@ function ImportFlowDemo() {
     ),
     review: (
       <FlowFooter
-        info="Progress is saved in this browser; you can leave and come back."
+        info="The real queue is shared by the team; this demo keeps it in the browser."
         next={
           <Button
             onClick={() => {
@@ -201,7 +222,7 @@ function ImportFlowDemo() {
           variant="ghost"
           onClick={() => {
             reset();
-            reviewQueue.set([]);
+            demoReviewQueue.set([]);
             setFiles([]);
           }}
         >
@@ -229,8 +250,11 @@ function ImportFlowDemo() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Gi Effektivt</SelectItem>
-                <SelectItem value="2">Effektiv Altruisme Norge</SelectItem>
+                {owners.map((owner) => (
+                  <SelectItem key={owner.id} value={String(owner.id)}>
+                    {owner.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>
@@ -275,18 +299,50 @@ function ImportFlowDemo() {
         </>
       )}
 
-      {state.step === "review" && (
-        <ReviewWorkbench
-          causeAreas={causeAreas}
-          paymentMethods={paymentMethods}
-          metaOwnerId={Number(state.owner)}
-          register={async (input) => {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            if (input.KID === "00000000") throw new Error("NO_KID: no distribution with that KID");
-            return { donationId: 99_000 + Math.floor(Math.random() * 900) };
-          }}
-        />
-      )}
+      {state.step === "review" &&
+        (current ? (
+          <ReviewWorkbench
+            key={`${current.id}:${current.status}`}
+            item={current}
+            config={causeAreas}
+            paymentMethods={paymentMethods}
+            owners={owners}
+            defaultOwnerId={state.owner}
+            importInfo={state.fileName}
+            donationLink={(donationId) => (
+              <Button size="sm" asChild>
+                <a href="/design/detail">Open donation #{donationId}</a>
+              </Button>
+            )}
+            donorSearch={fakeDonorSearch}
+            kidPreview={(kid) =>
+              /^\d{5,32}$/.test(kid) && (
+                <Callout tone="neutral" title={`KID ${kid} belongs to Kari Nordby`} />
+              )
+            }
+            register={async (input) => {
+              await new Promise((resolve) => setTimeout(resolve, 500));
+              if (input.KID === "00000000")
+                throw new Error("NO_KID: no distribution with that KID");
+              const donationId = 99_000 + current.id;
+              resolveDemoItem(current.id, { status: "registered", donationId });
+              notify.success(`Registered item #${current.id}`, `Donation #${donationId}`);
+              moveOn(current.id);
+            }}
+            ignore={async (note) => {
+              resolveDemoItem(current.id, { status: "ignored", note });
+              notify.undo(`Ignored item #${current.id}`, () => reopenDemoItem(current.id));
+              moveOn(current.id);
+            }}
+            reopen={async () => reopenDemoItem(current.id)}
+            onSkip={openCount > 1 ? () => moveOn(current.id) : undefined}
+            onResolvedElsewhere={() => moveOn(current.id)}
+          />
+        ) : (
+          <Callout tone="neutral" title="The review queue is empty">
+            Upload a payment report to fill it.
+          </Callout>
+        ))}
     </FlowPage>
   );
 }

@@ -1,17 +1,15 @@
-import { format as formatDateFns } from "date-fns";
 import {
+  BanIcon,
   CheckIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   CornerDownLeftIcon,
+  RotateCcwIcon,
   SkipForwardIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Callout } from "@/components/domain/callout";
 import { CopyValue } from "@/components/domain/copy-value";
-import { DistributionEditor } from "@/components/domain/distribution-editor";
-import { describeError } from "@/components/domain/error-state";
 import { DateTime, Money } from "@/components/domain/format";
+import { JsonViewer } from "@/components/domain/json-viewer";
 import { Property, PropertyList } from "@/components/domain/property-list";
 import { Status } from "@/components/domain/status";
 import { Button } from "@/components/ui/button";
@@ -19,259 +17,74 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Textarea } from "@/components/ui/textarea";
+import { withCurrentStandardSplits, type CauseAreaConfig } from "@/features/distribution/model";
+import type { DataOwner, PaymentMethod } from "@/features/donations/api";
+import { KidPreview, NewDistributionFields } from "@/features/donations/distribution-fields";
+import { DonationFields } from "@/features/donations/donation-fields";
+import { formatAmount } from "@/features/donations/edit-model";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  moneyDecimals,
+  parseMoneyInput,
+  serverErrors,
+  type ServerErrors,
+} from "@/features/donations/form";
 import {
-  draftToApi,
-  emptyDraft,
-  validateDraft,
-  type ApiCauseAreaShare,
-  type CauseAreaConfig,
-  type DistributionDraft,
-} from "@/features/distribution/model";
+  registerFieldNames,
+  validateRegister,
+  type RegisterDraft,
+  type RegisterField,
+} from "@/features/donations/register-model";
+import type { DonorSearch } from "@/features/donors/donor-picker";
 import { useHotkey } from "@/hooks/use-hotkey";
-import { formatMoney } from "@/lib/format";
-import { notify } from "@/lib/notify";
-import { importStatus } from "@/lib/status";
-import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
-import { cn } from "@/lib/utils";
-import { reopenReviewEntry, resolveReviewEntry, reviewQueue, type ReviewEntry } from "./store";
+import { reviewStatus } from "@/lib/status";
+import { errorCode } from "@/lib/trpc";
+import {
+  draftForItem,
+  isResolvedElsewhere,
+  reviewRegisterInput,
+  reasonText,
+  sourceLabel,
+  type ReviewItem,
+  type ReviewRegisterInput,
+} from "./model";
 
-export type RegisterInput = RouterInputs["donations"]["register"];
-type PaymentMethod = RouterOutputs["config"]["paymentMethods"]["list"][number];
-
-type Draft = {
-  mode: "kid" | "distribution";
-  KID: string;
-  donorId: string;
-  distribution: DistributionDraft;
-  sum: string;
-  date: string;
-  paymentId: string;
-  externalRef: string;
-  sendReceipt: boolean;
+export type ReviewWorkbenchProps = {
+  item: ReviewItem;
+  /** The transaction as the parser produced it (reports.reviewQueue.get), when loaded. */
+  raw?: unknown;
+  config: CauseAreaConfig[];
+  paymentMethods: PaymentMethod[];
+  owners: DataOwner[];
+  /** Data owner the form starts with. */
+  defaultOwnerId: string;
+  register: (input: ReviewRegisterInput) => Promise<void>;
+  ignore: (note: string | undefined) => Promise<void>;
+  reopen: () => Promise<void>;
+  /** Go to the next item without deciding. */
+  onSkip?: () => void;
+  /** The item was resolved by someone else while it was open here. */
+  onResolvedElsewhere: (message: string) => void;
+  /** Where the transaction came from (file / import log entry). */
+  importInfo?: ReactNode;
+  /** A link to the donation an item was registered as. */
+  donationLink: (donationId: number) => ReactNode;
+  /** Replacements for the API lookups (the /design demo). */
+  donorSearch?: DonorSearch;
+  kidPreview?: (kid: string) => ReactNode;
 };
 
-function draftFor(entry: ReviewEntry, config: CauseAreaConfig[]): Draft {
-  const t = entry.transaction;
-  return {
-    mode: t.KID ? "kid" : "distribution",
-    KID: t.KID ?? "",
-    donorId: "",
-    distribution: emptyDraft(config),
-    sum: String(t.amount),
-    date: t.date ? formatDateFns(new Date(t.date), "yyyy-MM-dd") : "",
-    paymentId: String(t.paymentID),
-    externalRef: t.transactionID,
-    sendReceipt: true,
-  };
-}
-
 /**
- * Work through unmatched transactions one at a time: the raw transaction on the left, a
- * registration form prefilled from it on the right. Register (⌘Enter) or Skip moves to the
- * next open item; Skip can be undone from the toast. State lives in the review queue store,
- * so a reload resumes at the same item.
- *
- * `register` should call trpc.donations.register and return the new donation id.
+ * One review-queue item: the raw transaction on the left, a registration form prefilled from
+ * it on the right. Register (⌘Enter), Ignore (with an optional note) or Skip. Resolved items
+ * show who resolved them; ignored ones can be reopened. Key it by item id so the form resets
+ * between items.
  */
-export function ReviewWorkbench({
-  causeAreas,
-  paymentMethods,
-  register,
-  metaOwnerId,
-}: {
-  causeAreas: CauseAreaConfig[];
-  paymentMethods: PaymentMethod[];
-  register: (input: RegisterInput) => Promise<{ donationId: number }>;
-  metaOwnerId: number;
-}) {
-  const entries = reviewQueue.use();
-  const open = entries.filter((entry) => entry.state === "open");
-  const [currentKey, setCurrentKey] = useState<string | null>(open[0]?.key ?? null);
-  const current = entries.find((entry) => entry.key === currentKey) ?? open[0];
-  const index = current ? entries.indexOf(current) : -1;
-  const resolvedCount = entries.length - open.length;
-
-  useEffect(() => {
-    if (!current && open[0]) setCurrentKey(open[0].key);
-  }, [current, open]);
-
-  function goNextOpen(afterKey: string) {
-    const position = entries.findIndex((entry) => entry.key === afterKey);
-    const next =
-      entries
-        .slice(position + 1)
-        .find((entry) => entry.state === "open" && entry.key !== afterKey) ??
-      entries.find((entry) => entry.state === "open" && entry.key !== afterKey);
-    setCurrentKey(next?.key ?? null);
-  }
-
-  if (entries.length === 0) {
-    return (
-      <Callout tone="neutral" title="The review queue is empty">
-        Upload a payment report to fill it.
-      </Callout>
-    );
-  }
-
-  return (
-    <div className="grid gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="h-1.5 min-w-40 flex-1 overflow-hidden rounded-full bg-border" aria-hidden>
-          <div
-            className="h-full rounded-full bg-success transition-[width] duration-(--duration-slow)"
-            style={{ width: `${(resolvedCount / entries.length) * 100}%` }}
-          />
-        </div>
-        <p className="num text-sm text-muted-foreground" aria-live="polite">
-          {resolvedCount} of {entries.length} done · {open.length} open
-        </p>
-        <div className="flex gap-1">
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            aria-label="Previous item"
-            disabled={index <= 0}
-            onClick={() => setCurrentKey(entries[index - 1]!.key)}
-          >
-            <ChevronLeftIcon />
-          </Button>
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            aria-label="Next item"
-            disabled={index >= entries.length - 1}
-            onClick={() => setCurrentKey(entries[index + 1]!.key)}
-          >
-            <ChevronRightIcon />
-          </Button>
-        </div>
-      </div>
-
-      {current ? (
-        <ReviewItem
-          key={current.key}
-          entry={current}
-          position={index + 1}
-          total={entries.length}
-          causeAreas={causeAreas}
-          paymentMethods={paymentMethods}
-          metaOwnerId={metaOwnerId}
-          onRegister={async (input) => {
-            const { donationId } = await register(input);
-            resolveReviewEntry(current.key, { state: "registered", donationId });
-            notify.success(`Registered ${formatMoney(input.sum)}`, `Donation #${donationId}`);
-            goNextOpen(current.key);
-          }}
-          onSkip={() => {
-            resolveReviewEntry(current.key, { state: "skipped" });
-            notify.undo("Skipped transaction", () => {
-              reopenReviewEntry(current.key);
-              setCurrentKey(current.key);
-            });
-            goNextOpen(current.key);
-          }}
-          onReopen={() => reopenReviewEntry(current.key)}
-        />
-      ) : (
-        <Callout tone="success" title="All transactions reviewed">
-          {resolvedCount} handled. Skipped items stay listed in case you need them.
-        </Callout>
-      )}
-    </div>
-  );
-}
-
-function ReviewItem({
-  entry,
-  position,
-  total,
-  causeAreas,
-  paymentMethods,
-  metaOwnerId,
-  onRegister,
-  onSkip,
-  onReopen,
-}: {
-  entry: ReviewEntry;
-  position: number;
-  total: number;
-  causeAreas: CauseAreaConfig[];
-  paymentMethods: PaymentMethod[];
-  metaOwnerId: number;
-  onRegister: (input: RegisterInput) => Promise<void>;
-  onSkip: () => void;
-  onReopen: () => void;
-}) {
-  const [draft, setDraft] = useState(() => draftFor(entry, causeAreas));
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const [touched, setTouched] = useState(false);
-  const t = entry.transaction;
-  const resolved = entry.state !== "open";
-
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
-    setDraft((d) => ({ ...d, [key]: value }));
-  const sum = Number(draft.sum.replace(",", "."));
-  const errors = {
-    KID:
-      draft.mode === "kid" && !/^\d{5,15}$/.test(draft.KID)
-        ? "Enter a KID of 5–15 digits"
-        : undefined,
-    donorId:
-      draft.mode === "distribution" && !/^\d+$/.test(draft.donorId)
-        ? "Pick the donor this belongs to"
-        : undefined,
-    distribution:
-      draft.mode === "distribution" && !validateDraft(draft.distribution).valid
-        ? "Fix the distribution"
-        : undefined,
-    sum: !(sum > 0) ? "Enter an amount above 0" : undefined,
-    date: !draft.date ? "Enter the payment date" : undefined,
-  };
-  const valid = Object.values(errors).every((e) => !e);
-
-  async function submit() {
-    setTouched(true);
-    if (!valid || resolved) return;
-    setPending(true);
-    setError(null);
-    try {
-      const distribution: ApiCauseAreaShare[] = draftToApi(draft.distribution);
-      await onRegister({
-        ...(draft.mode === "kid"
-          ? { KID: draft.KID }
-          : {
-              distribution: {
-                donorId: Number(draft.donorId),
-                taxUnitId: null,
-                causeAreas: distribution,
-              },
-            }),
-        sum,
-        timestamp: draft.date,
-        paymentId: Number(draft.paymentId),
-        paymentExternalRef: draft.externalRef || null,
-        metaOwnerId,
-        sendReceipt: draft.sendReceipt,
-      });
-    } catch (err) {
-      setError(err);
-    } finally {
-      setPending(false);
-    }
-  }
-
-  useHotkey("mod+enter", () => void submit(), { enabled: !resolved });
-  const show = (key: keyof typeof errors) => (touched ? errors[key] : undefined);
-  const errorInfo = error ? describeError(error) : null;
+export function ReviewWorkbench(props: ReviewWorkbenchProps) {
+  const { item, raw, paymentMethods, importInfo } = props;
+  const method = paymentMethods.find((m) => m.id === item.paymentId)?.name;
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
@@ -280,189 +93,329 @@ function ReviewItem({
         className="grid gap-4 rounded-md border border-border bg-surface p-4 lg:sticky lg:top-0"
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="num text-sm text-muted-foreground">
-            Item {position} of {total}
-          </span>
-          <Status catalog={importStatus} value={entry.state === "open" ? "review" : entry.state} />
+          <span className="num text-sm text-muted-foreground">Item #{item.id}</span>
+          <Status catalog={reviewStatus} value={item.status} />
         </div>
         <div className="grid gap-1">
-          <Money value={t.amount} className="text-3xl font-semibold tracking-tight" />
+          <Money
+            value={item.amount}
+            decimals={moneyDecimals(item.amount)}
+            className="text-3xl font-semibold tracking-tight"
+          />
           <span className="text-sm text-muted-foreground">
-            <DateTime value={t.date} /> ·{" "}
-            {paymentMethods.find((m) => m.id === t.paymentID)?.name ?? "Unknown method"}
+            <DateTime value={item.date} /> · {method ?? `Payment method ${item.paymentId}`}
           </span>
         </div>
-        <Callout tone="warning" title={entry.reason} />
+        <Callout tone="warning" title={reasonText(item.reason)} />
         <PropertyList labelWidth="5.5rem">
-          <Property label="Payer">{t.name}</Property>
-          <Property label="Message">{t.message && <q>{t.message}</q>}</Property>
-          <Property label="Location">{t.location}</Property>
-          <Property label="KID">{t.KID && <CopyValue value={t.KID} label="KID" />}</Property>
+          <Property label="Payer">{item.name}</Property>
+          <Property label="Message">{item.message && <q>{item.message}</q>}</Property>
+          <Property label="Location">{item.location}</Property>
+          <Property label="KID">{item.KID && <CopyValue value={item.KID} label="KID" />}</Property>
           <Property label="Reference">
-            <CopyValue value={t.transactionID} label="transaction reference" />
+            {item.externalId && <CopyValue value={item.externalId} label="transaction reference" />}
           </Property>
-          <Property label="File">{entry.fileName}</Property>
+          <Property label="Source">{sourceLabel(item.source)}</Property>
+          <Property label="Import">{importInfo}</Property>
+          <Property label="Queued">
+            <DateTime value={item.created} format="datetime" />
+          </Property>
         </PropertyList>
+        {raw !== undefined && raw !== null && (
+          <details className="text-sm">
+            <summary className="cursor-pointer rounded-sm text-muted-foreground focus-ring">
+              Raw transaction
+            </summary>
+            <JsonViewer data={raw} defaultExpandDepth={1} className="mt-2" />
+          </details>
+        )}
       </section>
 
-      <form
-        aria-label="Register donation"
-        className="grid gap-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void submit();
-        }}
-      >
-        {resolved && (
-          <Callout
-            tone={entry.state === "registered" ? "success" : "neutral"}
-            title={
-              entry.state === "registered"
-                ? `Registered as donation #${entry.donationId}`
-                : "Skipped"
-            }
-            action={
-              entry.state === "skipped" && (
-                <Button size="sm" onClick={onReopen}>
-                  Reopen
-                </Button>
-              )
-            }
+      {item.status === "open" ? <RegisterForm {...props} /> : <Resolution {...props} />}
+    </div>
+  );
+}
+
+function Resolution({ item, reopen, donationLink }: ReviewWorkbenchProps) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const by = (
+    <>
+      by {item.resolvedBy ?? "someone"}
+      {item.resolvedAt && (
+        <>
+          {" "}
+          <DateTime value={item.resolvedAt} format="relative" />
+        </>
+      )}
+    </>
+  );
+
+  async function onReopen() {
+    setPending(true);
+    setError(null);
+    try {
+      await reopen();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const reopenButton = (
+    <Button size="sm" onClick={() => void onReopen()} pending={pending}>
+      <RotateCcwIcon />
+      Reopen
+    </Button>
+  );
+
+  return (
+    <div className="grid content-start gap-4">
+      {item.status === "registered" ? (
+        <Callout
+          tone="success"
+          title={
+            item.donationId != null ? `Registered as donation #${item.donationId}` : "Registered"
+          }
+          action={item.donationId != null && donationLink(item.donationId)}
+        >
+          Registered {by}. To reopen it, delete the donation first.
+        </Callout>
+      ) : (
+        <Callout tone="neutral" title="Ignored" action={reopenButton}>
+          <p>Ignored {by}.</p>
+          {item.note && (
+            <p className="mt-1">
+              Note: <q>{item.note}</q>
+            </p>
+          )}
+        </Callout>
+      )}
+      {item.status === "registered" && item.donationId == null && reopenButton}
+      {error && <Callout tone="danger" title="Couldn't reopen the item" children={error} />}
+    </div>
+  );
+}
+
+function RegisterForm({
+  item,
+  config,
+  paymentMethods,
+  owners,
+  defaultOwnerId,
+  register,
+  ignore,
+  onSkip,
+  onResolvedElsewhere,
+  donorSearch,
+  kidPreview,
+}: ReviewWorkbenchProps) {
+  const [stored, setDraft] = useState<RegisterDraft>(() =>
+    draftForItem(item, config, defaultOwnerId),
+  );
+  const draft = stored.distribution
+    ? { ...stored, distribution: withCurrentStandardSplits(stored.distribution, config) }
+    : stored;
+  const [pending, setPending] = useState<"register" | "ignore" | null>(null);
+  const [touched, setTouched] = useState(false);
+  const [server, setServer] = useState<ServerErrors<RegisterField>>({ fields: {} });
+  const [ignoreOpen, setIgnoreOpen] = useState(false);
+  const [note, setNote] = useState("");
+
+  const errors = validateRegister(draft);
+  const valid = Object.keys(errors).length === 0;
+  const shown = (field: RegisterField) =>
+    server.fields[field] ?? (touched ? errors[field] : undefined);
+  const sum = parseMoneyInput(draft.sum);
+
+  const set = <K extends keyof RegisterDraft>(key: K, value: RegisterDraft[K]) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+    const field = key === "date" || key === "time" ? "timestamp" : key;
+    setServer((current) => ({ ...current, fields: { ...current.fields, [field]: undefined } }));
+  };
+
+  /** True when the failure was handled as "someone else got there first". */
+  function resolvedElsewhere(err: unknown) {
+    const message = err instanceof Error ? err.message : "";
+    if (errorCode(err) === "CONFLICT" && isResolvedElsewhere(message)) {
+      onResolvedElsewhere(message);
+      return true;
+    }
+    return false;
+  }
+
+  async function submit() {
+    setTouched(true);
+    if (!valid || pending) return;
+    setPending("register");
+    setServer({ fields: {} });
+    try {
+      await register(reviewRegisterInput(item.id, draft));
+    } catch (err) {
+      if (!resolvedElsewhere(err)) setServer(serverErrors(err, registerFieldNames));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function submitIgnore() {
+    if (pending) return;
+    setPending("ignore");
+    setServer({ fields: {} });
+    try {
+      await ignore(note.trim() || undefined);
+      setIgnoreOpen(false);
+    } catch (err) {
+      setIgnoreOpen(false);
+      if (!resolvedElsewhere(err)) setServer(serverErrors(err, {}));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  useHotkey("mod+enter", () => void submit(), { enabled: !ignoreOpen });
+
+  return (
+    <form
+      aria-label="Register donation"
+      className="grid gap-5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void submit();
+      }}
+    >
+      <fieldset disabled={pending !== null} className="grid gap-5">
+        <legend className="sr-only">Registration</legend>
+        <div className="grid gap-2">
+          <span className="text-sm font-semibold">Register on</span>
+          <SegmentedControl
+            label="Register on"
+            value={draft.mode}
+            onValueChange={(mode) => set("mode", mode)}
+            options={[
+              { value: "kid", label: "Existing KID" },
+              { value: "distribution", label: "New distribution" },
+            ]}
           />
-        )}
-        <fieldset disabled={resolved || pending} className="grid gap-5">
-          <legend className="sr-only">Registration</legend>
-          <div className="grid gap-2">
-            <span className="text-sm font-semibold">Register on</span>
-            <SegmentedControl
-              label="Register on"
-              value={draft.mode}
-              onValueChange={(mode) => set("mode", mode)}
-              options={[
-                { value: "kid", label: "Existing KID" },
-                { value: "distribution", label: "New distribution" },
-              ]}
-            />
-          </div>
-          {draft.mode === "kid" ? (
+        </div>
+        {draft.mode === "kid" ? (
+          <div className="grid gap-3">
             <Field
               label="KID"
-              error={show("KID")}
+              error={shown("KID")}
               hint="The donor's KID; check the message and payer name."
+              required
+              className="max-w-64"
             >
               <Input
                 value={draft.KID}
                 inputMode="numeric"
                 autoComplete="off"
-                className="num max-w-56"
+                className="num"
                 onChange={(event) => set("KID", event.target.value.trim())}
               />
             </Field>
-          ) : (
-            <>
-              <Field
-                label="Donor ID"
-                error={show("donorId")}
-                hint="Search with ⌘K and copy the id."
-              >
-                <Input
-                  value={draft.donorId}
-                  inputMode="numeric"
-                  className="num max-w-40"
-                  onChange={(event) => set("donorId", event.target.value.trim())}
-                />
-              </Field>
-              <div className="grid gap-1.5">
-                <span className="text-sm font-semibold">Distribution</span>
-                <DistributionEditor
-                  config={causeAreas}
-                  value={draft.distribution}
-                  onChange={(distribution) => set("distribution", distribution)}
-                />
-              </div>
-            </>
-          )}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Amount" error={show("sum")}>
-              <div className="relative">
-                <Input
-                  value={draft.sum}
-                  inputMode="decimal"
-                  className="num pr-8 text-right"
-                  onChange={(event) => set("sum", event.target.value)}
-                />
-                <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-sm text-muted-foreground">
-                  kr
-                </span>
-              </div>
-            </Field>
-            <Field label="Payment date" error={show("date")}>
-              <Input
-                type="date"
-                value={draft.date}
-                className="num"
-                onChange={(event) => set("date", event.target.value)}
+            {kidPreview ? kidPreview(draft.KID) : <KidPreview kid={draft.KID} />}
+          </div>
+        ) : (
+          draft.distribution && (
+            <NewDistributionFields
+              donorId={draft.donorId}
+              onDonorChange={(donorId) => set("donorId", donorId)}
+              taxUnitId={draft.taxUnitId}
+              onTaxUnitChange={(taxUnitId) => set("taxUnitId", taxUnitId)}
+              distribution={draft.distribution}
+              onDistributionChange={(distribution) => set("distribution", distribution)}
+              config={config}
+              donorSearch={donorSearch}
+              errors={{
+                donorId: shown("donorId"),
+                taxUnitId: shown("taxUnitId"),
+                distribution: shown("distribution"),
+              }}
+            />
+          )
+        )}
+        <DonationFields
+          values={draft}
+          onChange={(key, value) => key !== "transactionCost" && set(key, value)}
+          errors={{
+            sum: shown("sum"),
+            timestamp: shown("timestamp"),
+            paymentId: shown("paymentId"),
+            externalRef: shown("externalRef"),
+            ownerId: shown("ownerId"),
+          }}
+          paymentMethods={paymentMethods}
+          owners={owners}
+          externalRefHint="Prefilled from the transaction, so it can never be registered twice."
+        />
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox
+            checked={draft.sendReceipt}
+            onCheckedChange={(checked) => set("sendReceipt", checked === true)}
+          />
+          Email the donor a receipt
+        </label>
+      </fieldset>
+
+      {server.general && (
+        <Callout tone="danger" title={server.general.title}>
+          {server.general.hint}
+        </Callout>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+        <Button type="submit" variant="primary" pending={pending === "register"}>
+          <CheckIcon />
+          Register {sum ? formatAmount(sum) : ""}
+          <Kbd className="border-primary-foreground/30 bg-transparent text-primary-foreground/80">
+            ⌘<CornerDownLeftIcon className="size-3" />
+          </Kbd>
+        </Button>
+        {onSkip && (
+          <Button type="button" onClick={onSkip} disabled={pending !== null}>
+            <SkipForwardIcon />
+            Skip
+          </Button>
+        )}
+        <Popover open={ignoreOpen} onOpenChange={setIgnoreOpen}>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="ghost" disabled={pending !== null}>
+              <BanIcon />
+              Ignore…
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="grid w-80 gap-3">
+            <Field label="Note" hint="Optional. Why no donation is registered for this.">
+              <Textarea
+                value={note}
+                rows={3}
+                maxLength={2000}
+                onChange={(event) => setNote(event.target.value)}
               />
             </Field>
-            <Field label="Payment method">
-              <Select value={draft.paymentId} onValueChange={(value) => set("paymentId", value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods.map((method) => (
-                    <SelectItem key={method.id} value={String(method.id)}>
-                      {method.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-          <Field
-            label="External reference"
-            hint="Kept so the same transaction is never registered twice."
-          >
-            <Input
-              value={draft.externalRef}
-              className="num"
-              onChange={(event) => set("externalRef", event.target.value)}
-            />
-          </Field>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={draft.sendReceipt}
-              onCheckedChange={(checked) => set("sendReceipt", checked === true)}
-            />
-            Email the donor a receipt
-          </label>
-        </fieldset>
-
-        {errorInfo && (
-          <Callout tone="danger" title={errorInfo.title}>
-            {errorInfo.hint}
-          </Callout>
-        )}
-
-        {!resolved && (
-          <div className={cn("flex flex-wrap items-center gap-2 border-t border-border pt-4")}>
-            <Button type="submit" variant="primary" pending={pending}>
-              <CheckIcon />
-              Register {sum > 0 ? formatMoney(sum) : ""}
-              <Kbd className="border-primary-foreground/30 bg-transparent text-primary-foreground/80">
-                ⌘<CornerDownLeftIcon className="size-3" />
-              </Kbd>
-            </Button>
-            <Button type="button" onClick={onSkip} disabled={pending}>
-              <SkipForwardIcon />
-              Skip
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              Skipped items are not registered and can be reopened.
-            </span>
-          </div>
-        )}
-      </form>
-    </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" size="sm" onClick={() => setIgnoreOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="primary"
+                pending={pending === "ignore"}
+                onClick={() => void submitIgnore()}
+              >
+                Ignore item
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+        <span className="text-sm text-muted-foreground">
+          Skip leaves it open; ignored items can be reopened.
+        </span>
+      </div>
+    </form>
   );
 }

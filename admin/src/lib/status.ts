@@ -71,6 +71,18 @@ export const importStatus = define({
 });
 export type ImportStatus = keyof typeof importStatus;
 
+/** Items in the shared review queue (reports.reviewQueue). */
+export const reviewStatus = define({
+  open: {
+    label: "Needs review",
+    tone: "warning",
+    description: "Could not be matched automatically; waiting for someone to decide",
+  },
+  registered: { label: "Registered", tone: "success", description: "Registered as a donation" },
+  ignored: { label: "Ignored", tone: "neutral", description: "Marked as not needing a donation" },
+});
+export type ReviewStatus = keyof typeof reviewStatus;
+
 /** Configuration records (cause areas, organizations, referral types). */
 export const activeStatus = define({
   active: { label: "Active", tone: "success", description: "Shown to donors" },
@@ -116,6 +128,7 @@ export const statusCatalogs = {
   agreementStatus,
   chargeStatus,
   importStatus,
+  reviewStatus,
   activeStatus,
   donorStatus,
   taxUnitStatus,

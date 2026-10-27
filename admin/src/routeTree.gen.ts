@@ -34,10 +34,13 @@ import { Route as AppDonorsIndexRouteImport } from './routes/_app/donors/index'
 import { Route as AppDonorsIdRouteImport } from './routes/_app/donors/$id'
 import { Route as AppFundraisersIndexRouteImport } from './routes/_app/fundraisers/index'
 import { Route as AppFundraisersIdRouteImport } from './routes/_app/fundraisers/$id'
+import { Route as AppImportIndexRouteImport } from './routes/_app/import/index'
 import { Route as AppLogsIndexRouteImport } from './routes/_app/logs/index'
 import { Route as AppLogsIdRouteImport } from './routes/_app/logs/$id'
 import { Route as AppDonationsIdIndexRouteImport } from './routes/_app/donations/$id/index'
 import { Route as AppDonationsIdEditRouteImport } from './routes/_app/donations/$id/edit'
+import { Route as AppImportReviewIndexRouteImport } from './routes/_app/import/review/index'
+import { Route as AppImportReviewIdRouteImport } from './routes/_app/import/review/$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -163,6 +166,11 @@ const AppFundraisersIdRoute = AppFundraisersIdRouteImport.update({
   path: '/fundraisers/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppImportIndexRoute = AppImportIndexRouteImport.update({
+  id: '/import/',
+  path: '/import/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLogsIndexRoute = AppLogsIndexRouteImport.update({
   id: '/logs/',
   path: '/logs/',
@@ -181,6 +189,16 @@ const AppDonationsIdIndexRoute = AppDonationsIdIndexRouteImport.update({
 const AppDonationsIdEditRoute = AppDonationsIdEditRouteImport.update({
   id: '/donations/$id/edit',
   path: '/donations/$id/edit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImportReviewIndexRoute = AppImportReviewIndexRouteImport.update({
+  id: '/import/review/',
+  path: '/import/review/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImportReviewIdRoute = AppImportReviewIdRouteImport.update({
+  id: '/import/review/$id',
+  path: '/import/review/$id',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -210,9 +228,12 @@ export interface FileRoutesByFullPath {
   '/donations/': typeof AppDonationsIndexRoute
   '/donors/': typeof AppDonorsIndexRoute
   '/fundraisers/': typeof AppFundraisersIndexRoute
+  '/import/': typeof AppImportIndexRoute
   '/logs/': typeof AppLogsIndexRoute
   '/donations/$id/edit': typeof AppDonationsIdEditRoute
+  '/import/review/$id': typeof AppImportReviewIdRoute
   '/donations/$id/': typeof AppDonationsIdIndexRoute
+  '/import/review/': typeof AppImportReviewIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -239,9 +260,12 @@ export interface FileRoutesByTo {
   '/donations': typeof AppDonationsIndexRoute
   '/donors': typeof AppDonorsIndexRoute
   '/fundraisers': typeof AppFundraisersIndexRoute
+  '/import': typeof AppImportIndexRoute
   '/logs': typeof AppLogsIndexRoute
   '/donations/$id/edit': typeof AppDonationsIdEditRoute
+  '/import/review/$id': typeof AppImportReviewIdRoute
   '/donations/$id': typeof AppDonationsIdIndexRoute
+  '/import/review': typeof AppImportReviewIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -271,9 +295,12 @@ export interface FileRoutesById {
   '/_app/donations/': typeof AppDonationsIndexRoute
   '/_app/donors/': typeof AppDonorsIndexRoute
   '/_app/fundraisers/': typeof AppFundraisersIndexRoute
+  '/_app/import/': typeof AppImportIndexRoute
   '/_app/logs/': typeof AppLogsIndexRoute
   '/_app/donations/$id/edit': typeof AppDonationsIdEditRoute
+  '/_app/import/review/$id': typeof AppImportReviewIdRoute
   '/_app/donations/$id/': typeof AppDonationsIdIndexRoute
+  '/_app/import/review/': typeof AppImportReviewIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -303,9 +330,12 @@ export interface FileRouteTypes {
     | '/donations/'
     | '/donors/'
     | '/fundraisers/'
+    | '/import/'
     | '/logs/'
     | '/donations/$id/edit'
+    | '/import/review/$id'
     | '/donations/$id/'
+    | '/import/review/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -332,9 +362,12 @@ export interface FileRouteTypes {
     | '/donations'
     | '/donors'
     | '/fundraisers'
+    | '/import'
     | '/logs'
     | '/donations/$id/edit'
+    | '/import/review/$id'
     | '/donations/$id'
+    | '/import/review'
   id:
     | '__root__'
     | '/_app'
@@ -363,9 +396,12 @@ export interface FileRouteTypes {
     | '/_app/donations/'
     | '/_app/donors/'
     | '/_app/fundraisers/'
+    | '/_app/import/'
     | '/_app/logs/'
     | '/_app/donations/$id/edit'
+    | '/_app/import/review/$id'
     | '/_app/donations/$id/'
+    | '/_app/import/review/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -551,6 +587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFundraisersIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/import/': {
+      id: '/_app/import/'
+      path: '/import'
+      fullPath: '/import/'
+      preLoaderRoute: typeof AppImportIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/logs/': {
       id: '/_app/logs/'
       path: '/logs'
@@ -579,6 +622,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDonationsIdEditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/import/review/': {
+      id: '/_app/import/review/'
+      path: '/import/review'
+      fullPath: '/import/review/'
+      preLoaderRoute: typeof AppImportReviewIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/import/review/$id': {
+      id: '/_app/import/review/$id'
+      path: '/import/review/$id'
+      fullPath: '/import/review/$id'
+      preLoaderRoute: typeof AppImportReviewIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -597,9 +654,12 @@ interface AppRouteChildren {
   AppDonationsIndexRoute: typeof AppDonationsIndexRoute
   AppDonorsIndexRoute: typeof AppDonorsIndexRoute
   AppFundraisersIndexRoute: typeof AppFundraisersIndexRoute
+  AppImportIndexRoute: typeof AppImportIndexRoute
   AppLogsIndexRoute: typeof AppLogsIndexRoute
   AppDonationsIdEditRoute: typeof AppDonationsIdEditRoute
+  AppImportReviewIdRoute: typeof AppImportReviewIdRoute
   AppDonationsIdIndexRoute: typeof AppDonationsIdIndexRoute
+  AppImportReviewIndexRoute: typeof AppImportReviewIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -617,9 +677,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppDonationsIndexRoute: AppDonationsIndexRoute,
   AppDonorsIndexRoute: AppDonorsIndexRoute,
   AppFundraisersIndexRoute: AppFundraisersIndexRoute,
+  AppImportIndexRoute: AppImportIndexRoute,
   AppLogsIndexRoute: AppLogsIndexRoute,
   AppDonationsIdEditRoute: AppDonationsIdEditRoute,
+  AppImportReviewIdRoute: AppImportReviewIdRoute,
   AppDonationsIdIndexRoute: AppDonationsIdIndexRoute,
+  AppImportReviewIndexRoute: AppImportReviewIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
