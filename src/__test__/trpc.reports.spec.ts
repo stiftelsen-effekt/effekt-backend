@@ -178,6 +178,39 @@ describe("tRPC reports router", () => {
       expect(addStub.called).to.be.false;
     });
 
+    it("rejects files that don't match the chosen source before writing anything", async () => {
+      await expectTrpcError(
+        admin().uploads.ocr(uploadForm("bank/sampleReport.CSV")),
+        "BAD_REQUEST",
+        /Not a Nets OCR file/,
+      );
+      await expectTrpcError(
+        admin().uploads.ocr(uploadForm("ocr_no_valid_records.ocr")),
+        "BAD_REQUEST",
+        /no KID or AvtaleGiro payments/,
+      );
+      await expectTrpcError(
+        admin().uploads.bankNo(uploadForm("vipps/Vipps Details June 2026.CSV")),
+        "BAD_REQUEST",
+        /Not a bank account export: row 2 has no date/,
+      );
+      await expectTrpcError(
+        admin().uploads.bankNo(uploadForm("ocr/TBOC2072.DAT")),
+        "BAD_REQUEST",
+        /Not a bank account export/,
+      );
+      const fetchRates = sinon.stub(DAO.facebook, "removeAllFacebookReports").resolves();
+      await expectTrpcError(
+        admin().uploads.facebook(uploadForm("bank/sampleReport.CSV", {})),
+        "BAD_REQUEST",
+        /Not a Facebook payout report: missing the columns Charge date/,
+      );
+      expect(fetchRates.called).to.be.false;
+      expect(addStub.called).to.be.false;
+      expect(logStub.called).to.be.false;
+      expect(queueStub.called).to.be.false;
+    });
+
     it("keeps stored Facebook reports when the file can't be parsed", async () => {
       sinon.stub(console, "error");
       const remove = sinon.stub(DAO.facebook, "removeAllFacebookReports").resolves();
@@ -210,7 +243,7 @@ describe("tRPC reports router", () => {
       expect(item.transaction.date).to.match(/^\d{4}-\d{2}-\d{2}T/);
       expect(item.transaction.KID).to.be.a("string");
 
-      expect(result.queue).to.deep.equal({ added: 1, existing: 0 });
+      expect(result.queue).to.deep.equal({ added: 1, existing: 0, skipped: 0 });
       expect(queueStub.calledOnce).to.be.true;
       const [source, queued, importLogId, metaOwnerId] = queueStub.firstCall.args;
       expect(source).to.equal("ocr");
@@ -289,7 +322,8 @@ describe("tRPC reports router", () => {
       const result = await admin().uploads.ocr(uploadForm("ocr/TBOC2072.DAT"));
 
       expect(result.invalidTransactions.length).to.be.greaterThan(0);
-      expect(result.queue).to.equal(null);
+      expect(result.queue).to.deep.include({ added: 0, existing: 0 });
+      expect(result.queue!.skipped).to.equal(result.invalidTransactions.length);
     });
 
     it("vipps adds donations with a KID and queues the rest", async () => {
@@ -358,7 +392,7 @@ describe("tRPC reports router", () => {
         valid: 1,
         invalid: 0,
         invalidTransactions: [],
-        queue: { added: 0, existing: 0 },
+        queue: { added: 0, existing: 0, skipped: 0 },
         importLogId: 77,
         dryRun: null,
       });

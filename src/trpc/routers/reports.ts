@@ -224,7 +224,7 @@ const uploadsRouter = router({
   ocr: adminProcedure.input(reportUploadInput).mutation(async ({ input, ctx }) => {
     const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readText(input.report);
-    const result = await processFile(() => processOcrReport(data, metaOwnerID));
+    const result = await processFile(() => processOcrReport(data, metaOwnerID, { strict: true }));
     const upload = uploadContext(input.report, data, metaOwnerID, ctx.auth);
     return { ...(await logAndSummarise("ocr", upload, result)), ignored: result.ignored };
   }),
@@ -242,7 +242,9 @@ const uploadsRouter = router({
   bankNo: adminProcedure.input(reportUploadInput).mutation(async ({ input, ctx }) => {
     const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readText(input.report);
-    const result = await processFile(() => processBankNoReport(data, metaOwnerID));
+    const result = await processFile(() =>
+      processBankNoReport(data, metaOwnerID, { strict: true }),
+    );
     const upload = uploadContext(input.report, data, metaOwnerID, ctx.auth);
     return logAndSummarise("bankNo", upload, result);
   }),
@@ -291,7 +293,7 @@ const uploadsRouter = router({
   facebook: adminProcedure.input(fileOnlyUploadInput).mutation(async ({ input }) => {
     await checkedMetaOwner(input.metaOwnerID);
     const data = await readBuffer(input.report);
-    return processFile(() => processFacebookReport(data));
+    return processFile(() => processFacebookReport(data, { strict: true }));
   }),
 
   /**
