@@ -41,7 +41,7 @@ effekt-backend/
 Vite, React 19, TanStack Router (file-based, typed search params for filters), TanStack Query via
 `@trpc/tanstack-react-query`, TanStack Table, Tailwind CSS v4 + shadcn/ui (Radix), react-hook-form
 
-- zod, `@auth0/auth0-react` v2, Recharts. Build-time `VITE_LOCALE=NO|SV` stays.
+- zod, `@auth0/auth0-react` v2, Recharts. The admin is Norway-only (Gi Effektivt; Sweden moves to its own system).
 
 ### Design system
 
