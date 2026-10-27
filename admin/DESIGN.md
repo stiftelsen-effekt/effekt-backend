@@ -16,26 +16,26 @@ Live reference: run `pnpm dev` and open `/design` (works without the API or a lo
    keep their state in the URL. Rows peek with one click; the full page is one key away.
 4. **Built for the hundredth time.** Keyboard paths for frequent actions, a compact density,
    flows that remember where you were.
-5. **One concept, one component.** Agreements are one model across Vipps, AvtaleGiro and
-   AutoGiro. Distributions have one editor. Statuses have one vocabulary. Pages come from four
+5. **One concept, one component.** Agreements are one model across Vipps and AvtaleGiro.
+   Distributions have one editor. Statuses have one vocabulary. Pages come from four
    templates.
 6. **Say what happened.** Plain English, sentence case, verbs on buttons. Errors say what went
    wrong and what to do next.
 
 ## What changed from the old admin, and why
 
-| Old                                                  | New                                                                           | Why                                                                                |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Black sidebar, notch on the active item              | Paper-coloured sidebar, active item as a raised white tab with an accent icon | The sidebar was the loudest thing on every screen; the content should be.          |
-| Page title with a thick left bar                     | Display-face title, breadcrumbs above, a meta line of facts below             | The bar carried no information; breadcrumbs and facts do.                          |
-| Black filter drawer on the right                     | Inline filter bar: search, chips, “Add filter”, saved views; URL-backed       | Filters were hidden and unshareable. Chips show what is applied at a glance.       |
-| Double-click a row to open                           | Click/Space peeks, Enter opens, ⌘-click new tab, j/k moves                    | Double-click is undiscoverable and slow; peeking keeps your place in the list.     |
-| Vipps, AvtaleGiro, AutoGiro as three unrelated lists | One Agreements list and model with a type filter                              | The job (“what does this donor give monthly?”) doesn't care about the provider.    |
-| Pages by table (Register, Reports, Logs…)            | IA by job (below)                                                             | People think “money came in” not “Register”.                                       |
-| Review queue lost on reload                          | Persistent queue, worked one item at a time with a prefilled form             | It was the most fragile part of the most important flow.                           |
-| Norwegian and English mixed                          | English UI throughout; product names (KID, AvtaleGiro, Vipps, KU65) kept      | NO and SE share one admin; English is the team's common language.                  |
-| Courier numbers, NOK hard-coded                      | Tabular figures in the brand face; currency from the build locale             | Columns line up; SE shows SEK.                                                     |
-| Square, monochrome, pure black/white                 | Warm paper/ink neutrals, small radii, one accent, three state tones           | Pure #000 on #fff is tiring for long sessions; state needs colour to be scannable. |
+| Old                                       | New                                                                           | Why                                                                                |
+| ----------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Black sidebar, notch on the active item   | Paper-coloured sidebar, active item as a raised white tab with an accent icon | The sidebar was the loudest thing on every screen; the content should be.          |
+| Page title with a thick left bar          | Display-face title, breadcrumbs above, a meta line of facts below             | The bar carried no information; breadcrumbs and facts do.                          |
+| Black filter drawer on the right          | Inline filter bar: search, chips, “Add filter”, saved views; URL-backed       | Filters were hidden and unshareable. Chips show what is applied at a glance.       |
+| Double-click a row to open                | Click/Space peeks, Enter opens, ⌘-click new tab, j/k moves                    | Double-click is undiscoverable and slow; peeking keeps your place in the list.     |
+| Vipps and AvtaleGiro as unrelated lists   | One Agreements list and model with a type filter                              | The job (“what does this donor give monthly?”) doesn't care about the provider.    |
+| Pages by table (Register, Reports, Logs…) | IA by job (below)                                                             | People think “money came in” not “Register”.                                       |
+| Review queue lost on reload               | Persistent queue, worked one item at a time with a prefilled form             | It was the most fragile part of the most important flow.                           |
+| Norwegian and English mixed               | English UI throughout; product names (KID, AvtaleGiro, Vipps) kept            | English is the team's common language.                                             |
+| Courier numbers                           | Tabular figures in the brand face, Norwegian number and date formats          | Columns line up.                                                                   |
+| Square, monochrome, pure black/white      | Warm paper/ink neutrals, small radii, one accent, three state tones           | Pure #000 on #fff is tiring for long sessions; state needs colour to be scannable. |
 
 ## Information architecture
 
@@ -50,17 +50,16 @@ Money in
   Import                   flow: source → upload → result → review
   Review queue  [n]        unmatched transactions, worked one by one
 Agreements
-  Agreements               Vipps + AvtaleGiro (NO) / AutoGiro (SE), one list
-  Vipps charges      (NO)  charges, refunds
-  AvtaleGiro check   (NO)  daily expected vs received
-  Mandates, Shipments (SE)
+  Agreements               Vipps + AvtaleGiro, one list
+  Vipps charges            charges, refunds
+  AvtaleGiro check         daily expected vs received
 Records
-  Reports                  transaction report, KU65 (SE), agreement reports
+  Reports                  transaction report
   Import log
 Settings                   cause areas & organizations (standard split), referral types, Vipps matching rules
 ```
 
-The nav is data (`src/components/layout/nav.ts`), filtered by build locale, and also feeds ⌘K.
+The nav is data (`src/components/layout/nav.ts`) and also feeds ⌘K.
 
 ## Page templates
 
@@ -290,8 +289,8 @@ they are; for sums, averages, comparisons and sorting use `src/lib/money.ts` (ex
 
 ### Feature models (`src/features`)
 
-- `agreements/model.ts`: `AgreementRow` + `fromVipps` / `fromAvtaleGiro` / `fromAutoGiro`. Pages
-  never read the raw provider shapes.
+- `agreements/model.ts`: `AgreementRow` + `fromVipps` / `fromAvtaleGiro`. Pages never read the raw
+  provider shapes.
 - `distribution/model.ts`: `DistributionDraft`, validation (both levels sum to 100), API
   conversion. Unit tested.
 - `review-queue`: `ReviewWorkbench` and the queue model over `reports.reviewQueue.*`.
@@ -313,8 +312,8 @@ API has none).
 - Errors: what went wrong in the person's terms, then what to do. Server validation messages are
   shown as written; generic failures map through `describeError`.
 - Empty states say why it's empty and offer the next step.
-- Numbers and dates follow the country (NO: `1 234 kr`, `24.10.2026`; SE: `1 234 kr`,
-  `2026-10-24`); words follow the UI language (month names, “2 days ago”).
+- Numbers and dates are Norwegian (`1 234 kr`, `24.10.2026`, `nb-NO`); words follow the UI
+  language (month names, “2 days ago”).
 - Shared copy lives in `src/lib/strings.ts` so a later translation swaps one module. No i18n
   library yet.
 

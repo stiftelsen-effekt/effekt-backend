@@ -1,11 +1,9 @@
-export type Locale = "NO" | "SV";
 export type AuthMode = "auth0" | "dev";
 
 const env = import.meta.env;
 
 export const config = {
   apiUrl: (env.VITE_API_URL || "http://localhost:5050").replace(/\/$/, ""),
-  locale: (env.VITE_LOCALE === "SV" ? "SV" : "NO") as Locale,
   auth: {
     mode: (env.VITE_AUTH_MODE === "dev" ? "dev" : "auth0") as AuthMode,
     domain: env.VITE_AUTH_DOMAIN ?? "",

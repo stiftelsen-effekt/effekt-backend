@@ -26,12 +26,12 @@ import {
 import { Kbd } from "@/components/ui/kbd";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useHotkey } from "@/hooks/use-hotkey";
-import { appLocale } from "@/lib/locale";
+import { org } from "@/lib/org";
 import { usePreferences, type Density, type ThemePreference } from "@/lib/preferences";
 import { strings } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { CommandPalette, type PaletteCommand } from "./command-palette";
-import { navFor, settingsItem, type NavGroup, type NavItem } from "./nav";
+import { navGroups, settingsItem, type NavGroup, type NavItem } from "./nav";
 import { ShortcutsDialog } from "./shortcuts-dialog";
 
 const designItem: NavItem = { to: "/design", label: "Design system", icon: PaletteIcon };
@@ -167,9 +167,9 @@ function Sidebar({
         to="/"
         onClick={onNavigate}
         className="mx-2.5 block w-28 rounded-xs focus-ring"
-        aria-label={`${appLocale.orgName} admin home`}
+        aria-label={`${org.name} admin home`}
       >
-        <img src={appLocale.logo} alt="" className="w-full invert dark:invert-0" />
+        <img src={org.logo} alt="" className="w-full invert dark:invert-0" />
       </Link>
 
       <button
@@ -238,7 +238,7 @@ export function AppShell({
   const prefs = usePreferences();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const showDesign = import.meta.env.DEV || pathname.startsWith("/design");
-  const groups = navFor(appLocale.locale);
+  const groups = navGroups;
 
   useHotkey("mod+k", () => setPaletteOpen((open) => !open));
   useHotkey("?", () => setShortcutsOpen(true));
@@ -309,11 +309,7 @@ export function AppShell({
             <MenuIcon className="size-5" />
             <span className="sr-only">Open menu</span>
           </button>
-          <img
-            src={appLocale.logo}
-            alt={appLocale.orgName}
-            className="h-4 w-auto invert dark:invert-0"
-          />
+          <img src={org.logo} alt={org.name} className="h-4 w-auto invert dark:invert-0" />
           <button
             type="button"
             onClick={() => setPaletteOpen(true)}

@@ -22,9 +22,8 @@ import {
 } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import {
-  apiLocale,
   defaultOwner,
-  paymentMethodsFor,
+  visiblePaymentMethods,
   type DataOwner,
   type PaymentMethod,
 } from "@/features/donations/api";
@@ -100,7 +99,7 @@ function RegisterDonationPage() {
   return (
     <RegisterFlow
       config={causeAreas.data}
-      paymentMethods={paymentMethodsFor(methods.data)}
+      paymentMethods={visiblePaymentMethods(methods.data)}
       owners={owners.data}
     />
   );
@@ -213,7 +212,7 @@ function RegisterFlow({
     enabled: draft.mode === "distribution" && draft.donorId != null,
   });
   const taxUnits = useQuery({
-    ...trpc.donors.taxUnits.list.queryOptions({ donorId: draft.donorId ?? 0, locale: apiLocale }),
+    ...trpc.donors.taxUnits.list.queryOptions({ donorId: draft.donorId ?? 0 }),
     enabled: draft.mode === "distribution" && draft.donorId != null && draft.taxUnitId !== "",
   });
   const methodName = paymentMethods.find((m) => String(m.id) === draft.paymentId)?.name;

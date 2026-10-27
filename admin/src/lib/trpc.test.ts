@@ -36,7 +36,9 @@ describe("createApiClient", () => {
       async (_url: RequestInfo | URL, _init?: RequestInit) =>
         new Response(
           JSON.stringify({
-            result: { data: { filename: "ku65_2025.xml", contentType: "", content: "" } },
+            result: {
+              data: { valid: 1, invalid: 0, invalidTransactions: [], queue: null, ignored: 0 },
+            },
           }),
           { headers: { "content-type": "application/json" } },
         ),
@@ -44,10 +46,10 @@ describe("createApiClient", () => {
     vi.stubGlobal("fetch", fetchMock);
     const client = createApiClient(async () => "token-123");
     const form = new FormData();
-    form.set("year", "2025");
-    await client.reports.tax.ku65.mutate(form);
+    form.set("report", new File(["OCR"], "ocr.txt"));
+    await client.reports.uploads.ocr.mutate(form);
     const [url, init] = fetchMock.mock.calls[0]!;
-    expect(String(url)).toMatch(/\/trpc\/reports\.tax\.ku65$/);
+    expect(String(url)).toMatch(/\/trpc\/reports\.uploads\.ocr$/);
     expect(init?.body).toBeInstanceOf(FormData);
     expect(new Headers(init?.headers).get("authorization")).toBe("Bearer token-123");
   });

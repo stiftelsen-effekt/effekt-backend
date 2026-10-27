@@ -155,7 +155,7 @@ describe("yearlyChart", () => {
 
 describe("donorAgreements", () => {
   it("joins AvtaleGiro and Vipps in NO and normalizes Vipps status case", () => {
-    const rows = donorAgreements("NO", "Kari", {
+    const rows = donorAgreements("Kari", {
       avtalegiro: [
         {
           ID: 1,
@@ -192,17 +192,11 @@ describe("donorAgreements", () => {
     ]);
     expect(rows[1]!.donorName).toBe("Kari");
   });
-
-  it("only reads AutoGiro in SE", () => {
-    expect(donorAgreements("SV", "Kari", { avtalegiro: [], vipps: [] })).toEqual([]);
-  });
 });
 
 describe("maskSsn", () => {
   it("hides the individual digits of personal numbers only", () => {
     expect(maskSsn("04466914812")).toBe("044669 •••••");
-    expect(maskSsn("199001010017")).toBe("19900101-••••");
-    expect(maskSsn("19900101-0017")).toBe("19900101-••••");
     expect(maskSsn("923609016")).toBe("923609016");
     expect(maskSsn(undefined)).toBe("");
   });

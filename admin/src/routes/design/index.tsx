@@ -41,7 +41,7 @@ const principles = [
   },
   {
     title: "One concept, one component",
-    body: "Agreements are one model across Vipps, AvtaleGiro and AutoGiro. Distributions have one editor. Statuses have one vocabulary. Pages come from four templates.",
+    body: "Agreements are one model across Vipps and AvtaleGiro. Distributions have one editor. Statuses have one vocabulary. Pages come from four templates.",
   },
   {
     title: "Say what happened",

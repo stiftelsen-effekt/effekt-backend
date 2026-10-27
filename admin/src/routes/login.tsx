@@ -6,7 +6,7 @@ import { useAuth } from "@/auth";
 import { ErrorState } from "@/components/domain/error-state";
 import { Button } from "@/components/ui/button";
 import { config } from "@/lib/config";
-import { appLocale } from "@/lib/locale";
+import { org } from "@/lib/org";
 
 export const Route = createFileRoute("/login")({
   validateSearch: z.object({ redirect: z.string().optional() }),
@@ -38,11 +38,11 @@ function LoginPage() {
   return (
     <main className="grid min-h-dvh place-items-center bg-canvas p-6">
       <div className="grid w-full max-w-sm gap-6 rounded-lg border border-border bg-surface p-8">
-        <img src={appLocale.logo} alt={appLocale.orgName} className="w-28 invert dark:invert-0" />
+        <img src={org.logo} alt={org.name} className="w-28 invert dark:invert-0" />
         <div className="grid gap-1">
           <h1 className="font-display text-2xl">Sign in</h1>
           <p className="text-sm text-muted-foreground">
-            Use your {appLocale.orgName} account. Admin access is required.
+            Use your {org.name} account. Admin access is required.
           </p>
         </div>
 

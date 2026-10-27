@@ -13,8 +13,8 @@ import { cn } from "@/lib/utils";
 type SpanProps = Omit<React.ComponentProps<"span">, "children">;
 
 /**
- * The only way to show an amount of money. Currency comes from the build locale (NOK/SEK),
- * digits are tabular so columns line up, negatives are red only when `signed`.
+ * The only way to show an amount of money, in NOK. Digits are tabular so columns line up,
+ * and negatives are red only when `signed`.
  * API amounts are decimal strings; pass them straight in (formatted exactly, never via float).
  */
 export function Money({

@@ -2,7 +2,6 @@ import { FlagIcon, HandCoinsIcon, KeyRoundIcon, RepeatIcon, UserIcon } from "luc
 import { useMemo } from "react";
 import { formatDate, formatMoney } from "@/lib/format";
 import { errorCode, useTRPCClient } from "@/lib/trpc";
-import { appLocale } from "@/lib/locale";
 import { isDigits, isVippsAgreementId, type SearchProvider } from "./providers";
 
 const notFoundIsEmpty = <T>(promise: Promise<T>) =>
@@ -113,7 +112,7 @@ export function useApiSearchProviders(): SearchProvider[] {
         // Our database's copy, so search works when Vipps can't be reached.
         id: "vipps-agreement",
         group: "Agreements",
-        applies: (query) => appLocale.locale === "NO" && isVippsAgreementId(query),
+        applies: (query) => isVippsAgreementId(query),
         async search(query, signal) {
           const result = await client.vipps.agreements.list.query(
             { page: 0, limit: 6, filter: { agreementID: query.trim() } },
@@ -132,8 +131,7 @@ export function useApiSearchProviders(): SearchProvider[] {
       {
         id: "avtalegiro-agreement",
         group: "Agreements",
-        applies: (query) =>
-          appLocale.locale === "NO" && isDigits(query) && query.trim().length <= 9,
+        applies: (query) => isDigits(query) && query.trim().length <= 9,
         async search(query, signal) {
           const agreement = await notFoundIsEmpty(
             client.giro.avtalegiro.get.query({ id: Number(query) }, { signal }),
@@ -154,8 +152,7 @@ export function useApiSearchProviders(): SearchProvider[] {
       {
         id: "agreement-kid",
         group: "Agreements",
-        applies: (query) =>
-          appLocale.locale === "NO" && isDigits(query) && query.trim().length >= 5,
+        applies: (query) => isDigits(query) && query.trim().length >= 5,
         async search(query, signal) {
           const result = await client.agreements.list.query(
             {

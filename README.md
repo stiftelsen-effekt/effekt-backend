@@ -6,7 +6,7 @@ The API is also responsible for handling payment processing.
 
 ## Local environment
 
-One command runs the API and the new admin with a seeded MySQL and a local OIDC issuer in Docker. The admin is on http://localhost:3001 (already signed in as an admin; `DEV_ADMIN_LOCALE=SV` for the Swedish build), the API on http://localhost:5050. Nothing touches Auth0 or any staging/production resource, and all third-party integrations are blank ([`.env.docker`](.env.docker)). Requires Docker.
+One command runs the API and the new admin with a seeded MySQL and a local OIDC issuer in Docker. The admin is on http://localhost:3001 (already signed in as an admin), the API on http://localhost:5050. Nothing touches Auth0 or any staging/production resource, and all third-party integrations are blank ([`.env.docker`](.env.docker)). Requires Docker.
 
 ```bash
 pnpm dev:env:up       # build + start db, auth, migrate+seed, api, admin; waits until healthy

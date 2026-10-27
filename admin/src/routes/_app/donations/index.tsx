@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
-import { apiLocale, downloadCsv, paymentMethodsFor } from "@/features/donations/api";
+import { downloadCsv, visiblePaymentMethods } from "@/features/donations/api";
 import { moneyDecimals } from "@/features/donations/form";
 import { ResendReceiptDialog } from "@/features/donations/resend-receipt";
 import {
@@ -95,7 +95,6 @@ function DonationsPage() {
       limit: list.pageSize,
       sort,
       filter,
-      locale: apiLocale,
     }),
     placeholderData: keepPreviousData,
   });
@@ -110,7 +109,7 @@ function DonationsPage() {
 
   const amountBins = useMemo(() => histogramBins(histogram.data ?? []), [histogram.data]);
   const methodOptions = useMemo(
-    () => paymentMethodsFor(methods.data ?? []).map((m) => ({ value: m.id, label: m.name })),
+    () => visiblePaymentMethods(methods.data ?? []).map((m) => ({ value: m.id, label: m.name })),
     [methods.data],
   );
   const organizationOptions = useMemo(
@@ -125,9 +124,7 @@ function DonationsPage() {
     setExporting(true);
     try {
       downloadCsv(
-        await queryClient.fetchQuery(
-          trpc.donations.export.queryOptions({ sort, filter, locale: apiLocale }),
-        ),
+        await queryClient.fetchQuery(trpc.donations.export.queryOptions({ sort, filter })),
       );
     } catch (error) {
       notify.error(error, "Export failed");

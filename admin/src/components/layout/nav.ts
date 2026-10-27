@@ -3,7 +3,7 @@
  *   Home         – what needs attention today
  *   Donors       – people and what they give through (fundraisers)
  *   Money in     – every krone that arrives: donations, the KIDs they use, imports, review
- *   Agreements   – recurring giving, one model across Vipps / AvtaleGiro / AutoGiro
+ *   Agreements   – recurring giving, one model across Vipps / AvtaleGiro
  *   Records      – reports and the import log
  *   Settings     – cause areas, organizations, referral types, matching rules
  * See DESIGN.md › Information architecture.
@@ -12,7 +12,6 @@ import {
   ArrowDownToLineIcon,
   BookOpenIcon,
   CalendarCheckIcon,
-  FileTextIcon,
   FlagIcon,
   HandCoinsIcon,
   HouseIcon,
@@ -22,11 +21,9 @@ import {
   ScrollTextIcon,
   SettingsIcon,
   SmartphoneIcon,
-  TruckIcon,
   UsersIcon,
   type LucideIcon,
 } from "lucide-react";
-import type { Locale } from "@/lib/config";
 
 export type NavItem = {
   to: string;
@@ -35,8 +32,6 @@ export type NavItem = {
   exact?: boolean;
   /** Live count shown next to the label. */
   badge?: "reviewQueue";
-  /** Only in these builds; all when omitted. */
-  locales?: Locale[];
   /** Words the command palette also matches on. */
   keywords?: string[];
 };
@@ -67,7 +62,7 @@ export const navGroups: NavGroup[] = [
         icon: ArrowDownToLineIcon,
         // The review queue lives under /import/review and has its own item.
         exact: true,
-        keywords: ["register", "upload", "ocr", "report", "bank", "totalin"],
+        keywords: ["register", "upload", "ocr", "report", "bank"],
       },
       {
         to: "/import/review",
@@ -85,24 +80,20 @@ export const navGroups: NavGroup[] = [
         to: "/agreements",
         label: "Agreements",
         icon: RepeatIcon,
-        keywords: ["recurring", "vipps", "avtalegiro", "autogiro", "avtaler"],
+        keywords: ["recurring", "vipps", "avtalegiro", "avtaler"],
       },
       {
         to: "/charges",
         label: "Vipps charges",
         icon: SmartphoneIcon,
-        locales: ["NO"],
         keywords: ["refund"],
       },
       {
         to: "/avtalegiro-check",
         label: "AvtaleGiro check",
         icon: CalendarCheckIcon,
-        locales: ["NO"],
         keywords: ["validation", "missing", "expected"],
       },
-      { to: "/mandates", label: "Mandates", icon: FileTextIcon, locales: ["SV"] },
-      { to: "/shipments", label: "Shipments", icon: TruckIcon, locales: ["SV"] },
     ],
   },
   {
@@ -112,7 +103,7 @@ export const navGroups: NavGroup[] = [
         to: "/reports",
         label: "Reports",
         icon: BookOpenIcon,
-        keywords: ["ku65", "transaction report", "tax"],
+        keywords: ["transaction report", "accounting"],
       },
       { to: "/logs", label: "Import log", icon: ScrollTextIcon, keywords: ["logs"] },
     ],
@@ -125,12 +116,3 @@ export const settingsItem: NavItem = {
   icon: SettingsIcon,
   keywords: ["cause areas", "organizations", "referral types", "matching rules"],
 };
-
-export function navFor(locale: Locale): NavGroup[] {
-  return navGroups
-    .map((group) => ({
-      ...group,
-      items: group.items.filter((item) => !item.locales || item.locales.includes(locale)),
-    }))
-    .filter((group) => group.items.length > 0);
-}

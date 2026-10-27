@@ -14,13 +14,14 @@ is the workflow. Read, in order: `DESIGN.md`, `FEATURES.md`, the template demos 
 - **Lists**: URL-backed filters, sort and page, exactly like the List demo. Register ⌘K search
   providers for your entities.
 - **Money**: API amounts are decimal strings. Format with `Money`; do arithmetic with
-  `src/lib/money.ts`, never floats. Currency follows `VITE_LOCALE`.
+  `src/lib/money.ts`, never floats. Currency is NOK; numbers and dates use `nb-NO`.
 - **Mutations**: follow DESIGN.md's risk ladder (inline edit for low-risk fields, explicit save for
   forms, before → after confirmation for money, typed confirmation for irreversible). Invalidate
   the right queries; show server validation (`error.data.fieldErrors`, `error.message`) next to the
   fields.
-- **Country**: respect `VITE_LOCALE` (NO: Vipps/AvtaleGiro; SE: AutoGiro) via the locale helpers and
-  nav config.
+- **Country**: the admin serves Gi Effektivt (Norway) only: Vipps and AvtaleGiro agreements, NOK.
+  No Swedish features and no locale switch. Procedures that take a `locale` default to NO — omit
+  it.
 - **Copy**: English, following `src/lib/strings.ts` conventions.
 - **Accessibility**: keyboard flows as in the demos; add new routes to the axe test list.
 - **Tests**: Vitest for non-trivial logic (mappers, form → input transforms). Screenshot tests only

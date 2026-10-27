@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { paymentMethodsFor } from "./api";
+import { visiblePaymentMethods } from "./api";
 import {
   endOfLocalDay,
   histogramBins,
@@ -90,12 +90,9 @@ describe("histogramBins", () => {
   });
 });
 
-describe("paymentMethodsFor", () => {
+describe("visiblePaymentMethods", () => {
   const methods = [2, 3, 4, 7, 10, 11, 12, 13].map((id) => ({ id }));
-  it("hides AutoGiro and Swish in Norway", () => {
-    expect(paymentMethodsFor(methods, "NO").map((m) => m.id)).toEqual([2, 3, 4, 7, 10, 13]);
-  });
-  it("hides the Norwegian methods in Sweden", () => {
-    expect(paymentMethodsFor(methods, "SV").map((m) => m.id)).toEqual([2, 11, 12, 13]);
+  it("hides AutoGiro and Swish (ids 11–12)", () => {
+    expect(visiblePaymentMethods(methods).map((m) => m.id)).toEqual([2, 3, 4, 7, 10, 13]);
   });
 });
