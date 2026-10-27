@@ -54,7 +54,7 @@ function ImportLogEntryPage() {
   return (
     <DetailPage
       breadcrumbs={breadcrumbs}
-      title={entry.data.label ?? "Unknown source"}
+      title={entry.data.displayLabel ?? "Unknown source"}
       meta={[
         <CopyValue key="id" value={entry.data.ID} label="log ID" prefix="#" />,
         <DateTime key="time" value={entry.data.timestamp} format="datetime" />,

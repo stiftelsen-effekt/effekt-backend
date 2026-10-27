@@ -439,7 +439,8 @@ const logsRouter = router({
   get: adminProcedure.input(idInput).query(async ({ input }) => {
     const entry = await DAO.logging.get(input.id);
     if (!entry) throw new TRPCError({ code: "NOT_FOUND" });
-    return entry;
+    const upload = entry.label ? uploadDisplayLabels[entry.label] : undefined;
+    return { ...entry, displayLabel: upload?.label ?? entry.label };
   }),
 });
 
