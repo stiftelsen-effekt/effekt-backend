@@ -275,11 +275,11 @@ section "Cloud SQL (separate instance, synthetic data only)"
 if new "sql-instance/${PREVIEW_SQL_INSTANCE}"; then
   # Root password is random and not stored: nothing uses root; an owner can reset it.
   REDACT="$(openssl rand -hex 24)"
-  run gcloud sql instances create "$PREVIEW_SQL_INSTANCE" "${P[@]}" \
+  run gcloud beta sql instances create "$PREVIEW_SQL_INSTANCE" "${P[@]}" \
     --database-version MYSQL_8_4 --edition enterprise --tier "$PREVIEW_SQL_TIER" \
     --region "$PREVIEW_REGION" --availability-type zonal \
     --storage-type SSD --storage-size 10 --no-storage-auto-increase \
-    --no-backup --no-enable-bin-log \
+    --no-backup \
     --database-flags log_bin_trust_function_creators=on \
     --root-password "$REDACT" \
     --labels "preview=true,${PREVIEW_MARKER_LABEL}" \

@@ -45,9 +45,6 @@ jobs:
           path: trusted
           persist-credentials: false
 
-      - name: Comment "building"
-        run: trusted/scripts/preview/pr-comment.sh "$PR" building --sha "$SHA"
-
       - name: Check out the pull request
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -55,9 +52,26 @@ jobs:
           path: pr
           persist-credentials: false
 
+      # Branches from before the preview setup (no Dockerfile.preview) get no preview and no
+      # comment; only a file check runs on the PR's checkout here.
+      - name: Check that the branch supports previews
+        id: support
+        run: |
+          if [[ -f pr/Dockerfile.preview ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Dockerfile.preview on this branch; skipping the preview."
+          fi
+
+      - name: Comment "building"
+        if: steps.support.outputs.enabled == 'true'
+        run: trusted/scripts/preview/pr-comment.sh "$PR" building --sha "$SHA"
+
       # Before authenticating: the PR's Dockerfile and code run here, with no credentials around
       # (the checkouts don't keep tokens, and the GCP credentials don't exist yet).
       - name: Build the preview image
+        if: steps.support.outputs.enabled == 'true'
         env:
           REGION: ${{ vars.PREVIEW_GCP_REGION }}
           PROJECT: ${{ vars.PREVIEW_GCP_PROJECT }}
@@ -67,26 +81,29 @@ jobs:
           DOCKER_BUILDKIT=1 docker build -f pr/Dockerfile.preview -t "$image" pr
 
       - name: Authenticate to Google Cloud
+        if: steps.support.outputs.enabled == 'true'
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           workload_identity_provider: ${{ vars.PREVIEW_WIF_PROVIDER }}
           service_account: ${{ vars.PREVIEW_CI_SA }}
 
       - name: Set up gcloud
+        if: steps.support.outputs.enabled == 'true'
         uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
       - name: Check the preview limit
+        if: steps.support.outputs.enabled == 'true'
         id: capacity
         run: trusted/scripts/preview/capacity.sh "$PR" "$RUNNER_TEMP/capacity.md"
 
       - name: Comment "not created" (limit reached)
-        if: steps.capacity.outputs.allowed != 'true'
+        if: steps.support.outputs.enabled == 'true' && steps.capacity.outputs.allowed != 'true'
         run: >-
           trusted/scripts/preview/pr-comment.sh "$PR" capped --sha "$SHA"
           --note-file "$RUNNER_TEMP/capacity.md"
 
       - name: Push the image
-        if: steps.capacity.outputs.allowed == 'true'
+        if: steps.support.outputs.enabled == 'true' && steps.capacity.outputs.allowed == 'true'
         env:
           REGION: ${{ vars.PREVIEW_GCP_REGION }}
         run: |
@@ -95,11 +112,11 @@ jobs:
 
       - name: Migrate, seed and deploy
         id: deploy
-        if: steps.capacity.outputs.allowed == 'true'
+        if: steps.support.outputs.enabled == 'true' && steps.capacity.outputs.allowed == 'true'
         run: trusted/scripts/preview/deploy.sh "$PR" "$IMAGE" "$SHA"
 
       - name: Comment "ready"
-        if: steps.capacity.outputs.allowed == 'true'
+        if: steps.support.outputs.enabled == 'true' && steps.capacity.outputs.allowed == 'true'
         env:
           URL: ${{ steps.deploy.outputs.url }}
           SEEDED_AT: ${{ steps.deploy.outputs.seeded_at }}
