@@ -584,8 +584,13 @@ describe("tRPC reports router", () => {
         50,
         "002370000101",
         { id: "timestamp", desc: true },
+        { searchFilename: true, uploadDetails: true },
       ]);
-      expect(result).to.deep.equal({ rows, pages: 3, total: 70 });
+      expect(result).to.deep.equal({
+        rows: [{ ...rows[0], displayLabel: "Vipps", source: null, filename: null, summary: null }],
+        pages: 3,
+        total: 70,
+      });
 
       await admin().logs.list({ page: 0, limit: 10, sort: { id: "label", desc: false } });
       expect(getEntries.secondCall.args[3]).to.deep.equal({ id: "label", desc: false });
@@ -604,6 +609,76 @@ describe("tRPC reports router", () => {
 
       await DAO.logging.getEntries(25, 0, null);
       expect(query.thirdCall.args[0]).to.match(/ORDER BY timestamp DESC\s+LIMIT/);
+    });
+
+    it("labels upload entries with the admin's source names and a summary", async () => {
+      const timestamp = new Date();
+      sinon.stub(DAO.logging, "getEntries").resolves({
+        results: [
+          {
+            ID: 1,
+            label: "Bank NO - Upload",
+            timestamp,
+            meta: "Upload [...]",
+            uploadSource: "bankNo",
+            filename: "konto.csv",
+            donations: { valid: 12, invalid: 3 },
+            reviewCount: 3,
+            campaignsMissingShares: null,
+          },
+          {
+            ID: 2,
+            label: "OCR - Upload",
+            timestamp,
+            meta: "",
+            uploadSource: "ocr",
+            filename: "TBOC1.DAT",
+            donations: { valid: 1, invalid: 0, ignored: 4 },
+            reviewCount: 0,
+            campaignsMissingShares: null,
+          },
+          {
+            ID: 3,
+            label: "Facebook - Upload",
+            timestamp,
+            meta: "",
+            uploadSource: "facebook",
+            filename: "payout.csv",
+            donations: null,
+            reviewCount: null,
+            campaignsMissingShares: 2,
+          },
+          { ID: 4, label: "OCR", timestamp, meta: "Donations [...]" },
+        ] as any,
+        pages: 1,
+        total: 4,
+      });
+      const { rows } = await admin().logs.list({ page: 0, limit: 10 });
+      expect(rows.map((row) => [row.displayLabel, row.source, row.summary])).to.deep.equal([
+        ["Bank account export", "bankNo", "konto.csv: 12 donations registered, 3 sent to review"],
+        [
+          "Bank OCR",
+          "ocr",
+          "TBOC1.DAT: 1 donation registered, 4 already registered, 0 sent to review",
+        ],
+        ["Facebook", "facebook", "payout.csv: 2 campaigns without shares"],
+        ["OCR", null, null],
+      ]);
+    });
+
+    it("searches file names too when asked", async () => {
+      const query = sinon.stub(DAO, "query");
+      query.onCall(0).resolves([[], []] as any);
+      query.onCall(1).resolves([[{ count: 0 }], []] as any);
+      await DAO.logging.getEntries(25, 0, "TBOC", undefined, {
+        searchFilename: true,
+        uploadDetails: true,
+      });
+      const sql = query.firstCall.args[0] as string;
+      expect(sql).to.contain(
+        `WHERE JSON_EXTRACT(result, "$.file") LIKE '%TBOC%' OR JSON_UNQUOTE(JSON_EXTRACT(result, "$.filename")) LIKE '%TBOC%'`,
+      );
+      expect(sql).to.contain("AS reviewCount");
     });
 
     it("counts pages with the file search filter applied", async () => {

@@ -1,6 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import type { JWTPayload } from "express-oauth2-jwt-bearer";
 import { DAO } from "../../custom_modules/DAO";
+import type {
+  ImportLogSummary,
+  ImportLogUploadDetails,
+} from "../../custom_modules/DAO_modules/logging";
 import { buildKu65Report } from "../../custom_modules/ku65";
 import { osloDayEnd, osloDayRange, osloDayStart } from "../../custom_modules/osloDays";
 import {
@@ -84,6 +88,35 @@ export const uploadLogLabels = {
   bankNo: "Bank NO - Upload",
   bankSe: "Bank SE - Upload",
 } as const satisfies Partial<Record<ReviewQueueSource, string>>;
+
+const FACEBOOK_UPLOAD_LOG_LABEL = "Facebook - Upload";
+
+/** The admin's names of the upload sources, by Import_logs label */
+const uploadDisplayLabels: Record<string, { source: string; label: string }> = {
+  [uploadLogLabels.ocr]: { source: "ocr", label: "Bank OCR" },
+  [uploadLogLabels.vipps]: { source: "vipps", label: "Vipps" },
+  [uploadLogLabels.bankNo]: { source: "bankNo", label: "Bank account export" },
+  [uploadLogLabels.bankSe]: { source: "bankSe", label: "Bank (SE)" },
+  [FACEBOOK_UPLOAD_LOG_LABEL]: { source: "facebook", label: "Facebook" },
+};
+
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+/** "report.csv: 12 donations registered, 1 already registered, 3 sent to review" */
+const uploadSummary = (row: ImportLogSummary & Partial<ImportLogUploadDetails>): string => {
+  const parts: string[] = [];
+  const donations = row.donations ?? null;
+  if (donations?.valid !== undefined) {
+    parts.push(`${plural(Number(donations.valid), "donation")} registered`);
+  }
+  if (donations?.ignored) parts.push(`${donations.ignored} already registered`);
+  if (row.reviewCount != null) parts.push(`${row.reviewCount} sent to review`);
+  if (row.campaignsMissingShares != null) {
+    parts.push(`${plural(Number(row.campaignsMissingShares), "campaign")} without shares`);
+  }
+  const counts = parts.join(", ");
+  return row.filename ? `${row.filename}${counts ? `: ${counts}` : ""}` : counts;
+};
 
 type UploadContext = {
   /** The uploaded file's name */
@@ -216,9 +249,10 @@ const adminIdentity = (auth: JWTPayload): string => {
 //endregion
 
 /**
- * Each upload (except dry runs and Facebook, which register nothing) writes an Import_logs entry
- * labelled per source (see uploadLogLabels; AutoGiro payments use the entry its processing
- * writes) and returns its id as `importLogId`. Invalid transactions are queued for review linked
+ * Each upload except dry runs writes an Import_logs entry labelled per source (see
+ * uploadLogLabels; Facebook, which registers nothing, logs "Facebook - Upload" without returning
+ * an id; AutoGiro payments use the entry its processing writes) and returns its id as
+ * `importLogId`. Invalid transactions are queued for review linked
  * to that entry and with the chosen data owner, which reviewQueue.register defaults to.
  */
 const uploadsRouter = router({
@@ -290,12 +324,25 @@ const uploadsRouter = router({
   /**
    * Facebook payout report. Returns the campaigns that have no organization shares registered.
    * Registering shares and donations from Facebook reports is not implemented (see report).
-   * No donations are registered, so `metaOwnerID` is only validated and nothing is logged.
+   * No donations are registered, so `metaOwnerID` is only validated. The upload is logged
+   * ("Facebook - Upload") with the file name and campaign count, without the file.
    */
-  facebook: adminProcedure.input(fileOnlyUploadInput).mutation(async ({ input }) => {
-    await checkedMetaOwner(input.metaOwnerID);
+  facebook: adminProcedure.input(fileOnlyUploadInput).mutation(async ({ input, ctx }) => {
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readBuffer(input.report);
-    return processFile(() => processFacebookReport(data, { strict: true }));
+    const result = await processFile(() => processFacebookReport(data, { strict: true }));
+    // Logged without the file: it has donors' names and emails and is stored as the report
+    try {
+      await DAO.logging.add(FACEBOOK_UPLOAD_LOG_LABEL, {
+        upload: { source: "facebook", metaOwnerID, uploadedBy: adminIdentity(ctx.auth) },
+        campaigns: { missingShares: result.fbCampaigns.length },
+        filename: input.report.name,
+      });
+    } catch (ex) {
+      console.error("Failed to write the import log of a facebook upload");
+      console.error(ex);
+    }
+    return result;
   }),
 
   /**
@@ -358,15 +405,35 @@ const taxRouter = router({
 });
 
 const logsRouter = router({
-  /** Log entries, newest first unless sorted; `total` counts the entries matching fileSearch */
+  /**
+   * Log entries, newest first unless sorted; `total` counts the entries matching fileSearch,
+   * which matches the stored file content or the uploaded file's name. Upload entries get the
+   * admin's source name as `displayLabel` (e.g. "Bank account export" for "Bank NO - Upload"),
+   * their `source` and a `summary` ("report.csv: 12 donations registered, 3 sent to review");
+   * for other entries `displayLabel` is the label and `source`/`summary` are null.
+   */
   list: adminProcedure.input(logsListInput).query(async ({ input }) => {
     const entries = await DAO.logging.getEntries(
       input.limit,
       input.page * input.limit,
       input.filter?.fileSearch ?? null,
       input.sort ?? { id: "timestamp", desc: true },
+      { searchFilename: true, uploadDetails: true },
     );
-    return { rows: entries.results, pages: entries.pages, total: entries.total };
+    const rows = (entries.results as Array<ImportLogSummary & Partial<ImportLogUploadDetails>>).map(
+      ({ uploadSource, filename, donations, reviewCount, campaignsMissingShares, ...row }) => {
+        const upload = row.label ? uploadDisplayLabels[row.label] : undefined;
+        const details = { filename, donations, reviewCount, campaignsMissingShares };
+        return {
+          ...row,
+          displayLabel: upload?.label ?? row.label,
+          source: upload?.source ?? null,
+          filename: filename ?? null,
+          summary: upload ? uploadSummary({ ...row, ...details }) : null,
+        };
+      },
+    );
+    return { rows, pages: entries.pages, total: entries.total };
   }),
 
   get: adminProcedure.input(idInput).query(async ({ input }) => {

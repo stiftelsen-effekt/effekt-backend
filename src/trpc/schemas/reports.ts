@@ -129,7 +129,7 @@ export const logsListInput = z.strictObject({
   sort: logsSort.optional(),
   filter: z
     .strictObject({
-      /** Fuzzy match in the `file` field of the log entry's result JSON */
+      /** Partial match on the stored file content or the uploaded file's name */
       fileSearch: z.string().optional(),
     })
     .optional(),
