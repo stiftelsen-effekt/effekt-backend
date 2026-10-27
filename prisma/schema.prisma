@@ -241,7 +241,8 @@ model Data_owner {
   owner   String  @unique(map: "owner_UNIQUE") @db.VarChar(128)
   default Boolean @default(false)
 
-  Distributions Distributions[]
+  Distributions      Distributions[]
+  Review_queue_items Review_queue_items[]
 }
 
 model Donations {
@@ -503,6 +504,7 @@ model Review_queue_items {
   Location         String?   @db.VarChar(255) /// Vipps sales location
   Raw              Json? /// The transaction as the parser produced it
   Import_log_ID    Int?
+  Meta_owner_ID    Int? /// Data owner chosen at upload; the default owner when registering if null
   Status           String    @default("open") @db.VarChar(16) /// open | registered | ignored
   Resolved_by      String?   @db.VarChar(255) /// Admin (JWT email or sub) who registered or ignored it
   Resolved_at      DateTime? @db.DateTime(0)
@@ -512,11 +514,13 @@ model Review_queue_items {
 
   Import_logs Import_logs? @relation(fields: [Import_log_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Review_queue_items_to_Import_logs")
   Donations   Donations?   @relation(fields: [Donation_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Review_queue_items_to_Donations")
+  Data_owner  Data_owner?  @relation(fields: [Meta_owner_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Review_queue_items_to_Data_owner")
 
   @@unique([Source, External_ID], map: "Source_External_ID_UNIQUE")
   @@index([Status, Created], map: "Status_Created_idx")
   @@index([Import_log_ID], map: "fk_Review_queue_items_to_Import_logs_idx")
   @@index([Donation_ID], map: "fk_Review_queue_items_to_Donations_idx")
+  @@index([Meta_owner_ID], map: "fk_Review_queue_items_to_Data_owner_idx")
 }
 
 model Payment {

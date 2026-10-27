@@ -67,6 +67,9 @@ describe("tRPC agreements router", () => {
         { page: 0, limit: 10, filter: { created: { from: "01.02.2026" } } },
         { page: 0, limit: 10, filter: { amount: { from: -1 } } },
         { page: 0, limit: 10, filter: { unknown: true } },
+        { page: 0, limit: 10, filter: { ids: [] } },
+        { page: 0, limit: 10, filter: { ids: [""] } },
+        { page: 0, limit: 10, filter: { ids: [12] } },
       ];
       for (const input of invalid) {
         await expectTrpcError(admin().list(input as any), "BAD_REQUEST");
@@ -216,6 +219,19 @@ describe("tRPC agreements router", () => {
       ]);
       // The statistics query uses the same filter without paging
       expect(query.secondCall.args[1]).to.deep.equal(params.slice(0, -2));
+    });
+
+    it("filters on exact ids, combined with the provider", async () => {
+      await DAO.agreements.getList({
+        filter: { providers: ["avtalegiro"], ids: ["12"] },
+        sort: { id: "created", desc: true },
+        page: 0,
+        limit: 1,
+      });
+      const [sql, params] = query.firstCall.args;
+      expect(sql).to.contain("WHERE id IN (?)");
+      expect(sql).to.not.contain("Vipps_agreements");
+      expect(params).to.deep.equal([["12"], 1, 0]);
     });
 
     it("returns all rows without paging for exports", async () => {

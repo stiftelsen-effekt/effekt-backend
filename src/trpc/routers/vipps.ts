@@ -21,6 +21,7 @@ import {
   matchingRuleCreateInput,
   matchingRuleIdInput,
   matchingRuleListInput,
+  matchingRuleUpdateInput,
 } from "../schemas/vipps";
 
 /** Parses a YYYY-MM-DD input as local midnight, like the dates the REST admin sent. */
@@ -243,6 +244,19 @@ const matchingRulesRouter = router({
       });
     }
     return { id: created.result };
+  }),
+
+  /** Replaces a rule's fields, validated like create. NOT_FOUND for an unknown id. */
+  update: adminProcedure.input(matchingRuleUpdateInput).mutation(async ({ input }) => {
+    const { id, ...rule } = input;
+    const updated = await vippsService.updateMatchingRule(id, rule);
+    if (!updated.ok) {
+      throw new TRPCError({
+        code: updated.status === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+        message: updated.message,
+      });
+    }
+    return { id };
   }),
 
   delete: adminProcedure.input(matchingRuleIdInput).mutation(async ({ input }) => {

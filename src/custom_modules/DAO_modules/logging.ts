@@ -34,11 +34,25 @@ export type ImportLogEntry = {
  * @param {string} filesearch A string to fuzzy match in the file in the log entry
  * @returns {{ results: Array<ImportLogEntry>, pages: number }}
  */
+export type ImportLogSortColumn = "timestamp" | "label" | "id";
+
+const logSortColumns: Record<ImportLogSortColumn, string> = {
+  timestamp: "timestamp",
+  label: "label",
+  id: "ID",
+};
+
 async function getEntries(
   limit = 10,
   offset = 0,
   filesearch: string | null = null,
-): Promise<{ results: ImportLogSummary[]; pages: number }> {
+  /** Newest first when omitted (without the ID tie-break, as REST has always sorted) */
+  sort?: { id: ImportLogSortColumn; desc: boolean },
+): Promise<{ results: ImportLogSummary[]; pages: number; total: number }> {
+  const orderBy = sort
+    ? `${logSortColumns[sort.id]} ${sort.desc ? "DESC" : "ASC"}, ID ${sort.desc ? "DESC" : "ASC"}`
+    : "timestamp DESC";
+
   const where =
     filesearch !== null && filesearch !== ""
       ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' + sqlString.escape("%" + filesearch + "%")
@@ -49,6 +63,14 @@ async function getEntries(
       SELECT 
         ID, label, timestamp,
         (CASE 
+          WHEN JSON_CONTAINS_PATH(result, 'one', '$.upload') THEN 
+            CONCAT(
+              "Upload [",
+              " File: ", COALESCE(JSON_UNQUOTE(JSON_EXTRACT(result, "$.filename")), ''),
+              " Added: ", COALESCE(JSON_EXTRACT(result, "$.donations.valid"), 0),
+              " Invalid: ", COALESCE(JSON_EXTRACT(result, "$.donations.invalid"), 0),
+              " ]"
+            )
           WHEN JSON_CONTAINS_PATH(result, 'one', '$.addedDonations') THEN 
             CONCAT(
               "Donations [",
@@ -80,7 +102,7 @@ async function getEntries(
 
       ${where}
       
-      ORDER BY timestamp DESC 
+      ORDER BY ${orderBy} 
       LIMIT ? 
       OFFSET ?`,
     [limit, offset],
@@ -91,11 +113,13 @@ async function getEntries(
       SELECT COUNT(*) as count FROM Import_logs ${where}
     `);
 
-  const pages = Math.ceil(counter[0].count / limit);
+  const total = Number(counter[0].count);
+  const pages = Math.ceil(total / limit);
 
   return {
     results: res,
     pages,
+    total,
   };
 }
 

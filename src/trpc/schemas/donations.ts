@@ -49,3 +49,17 @@ export const transactionCostSchema = z
   .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
     message: "Amount can have at most two decimals",
   });
+
+/**
+ * Donation sum histogram buckets: `fixed` is 5 000 kr wide buckets (as REST, empty buckets
+ * skipped); `log` is about `buckets` log-scale buckets with rounded edges, empty ones included.
+ */
+export const donationHistogramInput = z
+  .discriminatedUnion("scale", [
+    z.strictObject({ scale: z.literal("fixed") }),
+    z.strictObject({
+      scale: z.literal("log"),
+      buckets: z.number().int().min(5).max(50).default(20),
+    }),
+  ])
+  .optional();

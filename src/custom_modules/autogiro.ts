@@ -247,7 +247,7 @@ export async function processAutogiroInputFile(fileContents: string) {
       }
     }
 
-    await DAO.logging.add("Autogiro - Payments BAG", {
+    const importLogId = await DAO.logging.add("Autogiro - Payments BAG", {
       valid,
       invalid: invalidTransactions.length,
       ignored: invalid - invalidTransactions.length,
@@ -260,6 +260,8 @@ export async function processAutogiroInputFile(fileContents: string) {
 
     return {
       openingRecord: parsedFile.openingRecord,
+      /** The "Autogiro - Payments BAG" log entry */
+      importLogId,
       results: {
         valid,
         invalid,

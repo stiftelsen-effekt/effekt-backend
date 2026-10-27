@@ -1,6 +1,7 @@
 import { distributions } from "./distributions";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
+import type { ResultSetHeader } from "mysql2";
 import { Vipps_agreements, Vipps_order_transaction_statuses, Vipps_orders } from "@prisma/client";
 
 // Valid states for Vipps recurring charges
@@ -983,6 +984,40 @@ async function addMatchingRule({
 
 //region Modify
 /**
+ * Replaces the fields of a Vipps matching rule
+ * @returns false if there is no rule with the id
+ */
+async function updateMatchingRule(
+  id: number,
+  rule: {
+    salesLocation: string | null;
+    message: string | null;
+    periodFrom: string;
+    periodTo: string;
+    resolveKID: string;
+    precedence: number | null;
+  },
+): Promise<boolean> {
+  const [res] = await DAO.query<ResultSetHeader>(
+    `UPDATE Vipps_matching_rules
+     SET SalesLocation = ?, Message = ?, PeriodFrom = ?, PeriodTo = ?, ResolveKID = ?, precedence = ?
+     WHERE ID = ?`,
+    [
+      rule.salesLocation,
+      // Same normalisation as addMatchingRule
+      typeof rule.message === "string" && rule.message.length > 0 ? rule.message : null,
+      rule.periodFrom,
+      rule.periodTo,
+      rule.resolveKID,
+      rule.precedence,
+      id,
+    ],
+  );
+  // affectedRows counts matched rows (mysql2 sets FOUND_ROWS), so an unchanged rule is found too
+  return res.affectedRows > 0;
+}
+
+/**
  * Adds a Vipps order transaction status
  * @param {string} orderId
  * @param {Array<VippsTransactionLogItem>} transactionHistory
@@ -1275,4 +1310,5 @@ export const vipps = {
   updateChargeStatus,
   updateAgreementCancellationDate,
   deleteMatchingRule,
+  updateMatchingRule,
 };

@@ -38,6 +38,7 @@ const item = (overrides: Partial<ReviewQueueItemWithRaw> = {}): ReviewQueueItemW
   name: "Ola",
   location: "Gi Effektivt.",
   importLogId: null,
+  metaOwnerId: null,
   status: "open",
   resolvedBy: null,
   resolvedAt: null,
@@ -133,6 +134,43 @@ describe("tRPC reports.reviewQueue", () => {
     });
   });
 
+  describe("search", () => {
+    it("passes the trimmed query and a default limit", async () => {
+      const search = sinon.stub(DAO.reviewqueue, "search").resolves([item()]);
+      expect(await admin().search({ query: "  Ola " })).to.deep.equal([item()]);
+      expect(search.firstCall.args).to.deep.equal(["Ola", 10]);
+      await admin().search({ query: "123", limit: 5 });
+      expect(search.secondCall.args).to.deep.equal(["123", 5]);
+    });
+
+    it("rejects empty queries and large limits", async () => {
+      const search = sinon.stub(DAO.reviewqueue, "search");
+      await expectTrpcError(admin().search({ query: "  " }), "BAD_REQUEST");
+      await expectTrpcError(admin().search({ query: "a", limit: 51 }), "BAD_REQUEST");
+      expect(search.called).to.be.false;
+    });
+
+    it("matches the id exactly and the text columns with escaped LIKE patterns", async () => {
+      const query = sinon.stub(DAO, "query").resolves([[], []] as any);
+      await DAO.reviewqueue.search("12", 10);
+      expect(query.firstCall.args[0]).to.match(
+        /WHERE ID = \? OR KID LIKE \? OR External_ID LIKE \? OR Payer_name LIKE \? OR Message LIKE \?/,
+      );
+      expect(query.firstCall.args[1]).to.deep.equal([12, "%12%", "%12%", "%12%", "%12%", 12, 10]);
+
+      await DAO.reviewqueue.search("50%_off\\", 3);
+      expect(query.secondCall.args[1]).to.deep.equal([
+        null,
+        "%50\\%\\_off\\\\%",
+        "%50\\%\\_off\\\\%",
+        "%50\\%\\_off\\\\%",
+        "%50\\%\\_off\\\\%",
+        null,
+        3,
+      ]);
+    });
+  });
+
   describe("register", () => {
     let getById: sinon.SinonStub;
     let claim: sinon.SinonStub;
@@ -195,6 +233,23 @@ describe("tRPC reports.reviewQueue", () => {
         externalRef: null,
         timestamp: new Date("2026-10-03"),
       });
+    });
+
+    it("defaults the data owner to the item's, then the default owner", async () => {
+      sinon.stub(DAO.meta, "getDefaultOwnerID").resolves(1);
+      (DAO.meta.getDataOwners as sinon.SinonStub).resolves([{ id: 1 }, { id: 3 }] as any);
+
+      getById.resolves(item({ metaOwnerId: 3 }));
+      await admin().register({ id: 5, KID: "12345678", sendReceipt: false });
+      expect(confirm.firstCall.args[0]).to.deep.include({ metaOwnerId: 3 });
+
+      getById.resolves(item({ metaOwnerId: null }));
+      await admin().register({ id: 5, KID: "12345678", sendReceipt: false });
+      expect(confirm.secondCall.args[0]).to.deep.include({ metaOwnerId: 1 });
+
+      getById.resolves(item({ metaOwnerId: 3 }));
+      await admin().register({ id: 5, KID: "12345678", metaOwnerId: 1, sendReceipt: false });
+      expect(confirm.thirdCall.args[0]).to.deep.include({ metaOwnerId: 1 });
     });
 
     it("creates a distribution like donations.register", async () => {

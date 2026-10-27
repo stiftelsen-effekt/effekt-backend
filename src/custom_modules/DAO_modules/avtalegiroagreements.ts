@@ -68,6 +68,79 @@ async function getDonationsByKID(KID: string): Promise<AvtaleGiroDonation[]> {
   return donations;
 }
 
+export type AvtaleGiroAgreementPayments = {
+  /**
+   * Every KID the agreement's donations have been registered under: the agreement's current KID
+   * first, then the KIDs that preserve earlier distributions (AvtaleGiro_replaced_distributions)
+   */
+  KIDs: string[];
+  /** AvtaleGiro donations under any of the KIDs, newest first */
+  donations: AvtaleGiroDonation[];
+};
+
+/**
+ * AvtaleGiro donations of an agreement across distribution changes. replaceDistribution keeps
+ * the agreement's KID for the new distribution and moves earlier donations to a replacement KID,
+ * linked in AvtaleGiro_replaced_distributions. Because that link's original KID follows
+ * Distributions.KID updates (ON UPDATE CASCADE), a later replacement re-points earlier links to
+ * the newer replacement KID, so the links form a chain that is followed recursively.
+ *
+ * Donations moved by a tax unit change (tax.ts, updateKIDBeforeTimestamp) are not linked to the
+ * agreement anywhere and are not included.
+ * @returns null if there is no agreement with the id
+ */
+async function getPaymentsByAgreementId(
+  agreementId: number,
+): Promise<AvtaleGiroAgreementPayments | null> {
+  const [kidRows] = await DAO.query<Array<{ KID: string; depth: number }>>(
+    `WITH RECURSIVE agreement_kids (KID, depth) AS (
+       SELECT CAST(KID AS CHAR(32)) COLLATE utf8mb4_0900_ai_ci, 0
+       FROM Avtalegiro_agreements
+       WHERE ID = ?
+       UNION
+       SELECT CAST(R.Replacement_KID AS CHAR(32)) COLLATE utf8mb4_0900_ai_ci, K.depth + 1
+       FROM AvtaleGiro_replaced_distributions R
+       INNER JOIN agreement_kids K ON R.Original_AvtaleGiro_KID = K.KID
+       WHERE K.depth < 100
+     )
+     SELECT KID, MIN(depth) AS depth FROM agreement_kids GROUP BY KID ORDER BY depth, KID`,
+    [agreementId],
+  );
+  if (kidRows.length === 0) return null;
+  const KIDs = kidRows.map((row) => row.KID);
+
+  const [rows] = await DAO.query<
+    Array<{
+      ID: number;
+      sum_confirmed: string;
+      transaction_cost: string | null;
+      timestamp_confirmed: Date;
+      payment_name: string;
+      KID_fordeling: string;
+    }>
+  >(
+    `SELECT D.ID, D.sum_confirmed, D.transaction_cost, D.timestamp_confirmed, P.payment_name,
+       D.KID_fordeling
+     FROM Donations AS D
+     INNER JOIN Payment AS P ON D.Payment_ID = P.ID
+     WHERE D.KID_fordeling IN (?) AND D.Payment_ID = 7
+     ORDER BY D.timestamp_confirmed DESC, D.ID DESC`,
+    [KIDs],
+  );
+
+  return {
+    KIDs,
+    donations: rows.map((donation) => ({
+      id: donation.ID,
+      sum: donation.sum_confirmed,
+      transactionCost: donation.transaction_cost,
+      timestamp: donation.timestamp_confirmed,
+      paymentMethod: donation.payment_name,
+      KID: donation.KID_fordeling,
+    })),
+  };
+}
+
 /*
  * Gets all active agreements
  * @return {Array<AvtaleGiro>} Array of AvtaleGiro agreements
@@ -1027,6 +1100,7 @@ export const avtalegiroagreements = {
   updatePaymentDate,
   updateAmount,
   replaceDistribution,
+  getPaymentsByAgreementId,
   remove,
   exists,
   getActiveAgreements,

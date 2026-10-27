@@ -122,6 +122,36 @@ describe("tRPC donors router", () => {
       expect(filter!.recipientOrgIDs).to.deep.equal([1, 2]);
     });
 
+    it("matches name or email with nameOrEmail, escaping wildcards", async () => {
+      const stub = sinon.stub(DAO.donors, "getAll").resolves(listResult);
+      await admin().donors.list({
+        page: 0,
+        limit: 10,
+        filter: { nameOrEmail: " 50%_off ", newsletter: true },
+      });
+      expect(stub.firstCall.args[3]).to.deep.include({ nameOrEmail: "50%_off", newsletter: true });
+      await expectTrpcError(
+        admin().donors.list({ page: 0, limit: 10, filter: { nameOrEmail: "  " } }),
+        "BAD_REQUEST",
+      );
+
+      stub.restore();
+      const query = sinon.stub(DAO, "query").resolves([[], []] as any);
+      await DAO.donors
+        .getAll(
+          { id: "id", desc: true },
+          0,
+          10,
+          { donorId: null, nameOrEmail: "o'b%_\\", newsletter: true },
+          "NO" as any,
+        )
+        .catch(() => undefined);
+      const sql: string = query.firstCall.args[0];
+      const pattern = "'%o\\'b\\\\%\\\\_\\\\\\\\%'";
+      expect(sql).to.contain(`(Donors.full_name LIKE ${pattern} OR Donors.email LIKE ${pattern})`);
+      expect(sql).to.contain("Donors.newsletter = 1");
+    });
+
     it("returns statistics as numbers", async () => {
       sinon.stub(DAO.donors, "getAll").resolves({
         ...listResult,

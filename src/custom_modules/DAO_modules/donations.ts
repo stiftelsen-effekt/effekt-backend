@@ -402,6 +402,90 @@ async function getHistogramBySum(): Promise<Array<{ bucket: number; items: numbe
   return results;
 }
 
+export type SumHistogramBucket = {
+  /** Inclusive lower edge in whole currency units */
+  bucket: number;
+  /** Exclusive upper edge (the log histogram's last bucket includes it) */
+  bucketEnd: number;
+  items: number;
+  /** ROUND(100 * LN(items)), 0 for empty buckets, as in getHistogramBySum */
+  bar: number;
+};
+
+/** Rounds to two significant digits, e.g. 4642 -> 4600 */
+const twoSignificant = (value: number) => Number(value.toPrecision(2));
+
+/** Rounds down to two significant digits, e.g. 147 -> 140 */
+const twoSignificantFloor = (value: number) => {
+  const magnitude = 10 ** (Math.floor(Math.log10(value)) - 1);
+  return Math.min(twoSignificant(Math.floor(value / magnitude) * magnitude), value);
+};
+
+/**
+ * Bucket edges spaced evenly on a log scale from `min` to `max`, rounded to two significant
+ * digits (e.g. 10, 22, 46, 100, …). The first edge is at most `min` and the last at least `max`,
+ * so with the last bucket including its upper edge every value in [min, max] falls in a bucket.
+ * Fewer than `count` buckets when rounding makes neighbouring edges equal.
+ */
+export function logBucketEdges(min: number, max: number, count: number): number[] {
+  const lo = twoSignificantFloor(min);
+  const ratio = max / lo;
+  const edges = [lo];
+  for (let i = 1; i <= count; i++) {
+    const edge = twoSignificant(lo * ratio ** (i / count));
+    if (edge > edges[edges.length - 1]) edges.push(edge);
+  }
+  // Rounding down can leave the last edge below max; a single value needs one bucket
+  while (edges.length < 2 || edges[edges.length - 1] < max) {
+    const last = edges[edges.length - 1];
+    edges.push(twoSignificant(Math.max(last * 1.1, last + 0.01)));
+  }
+  return edges;
+}
+
+/**
+ * Histogram of donation sums with `count` log-scale buckets (see logBucketEdges) between the
+ * smallest positive and the largest sum, including empty buckets. `bucketEnd` is exclusive,
+ * except for the last bucket, which includes the largest sum. Donations of zero or less, if any,
+ * get one bucket of their own first (from the smallest sum up to the first edge).
+ */
+async function getLogHistogramBySum(count: number): Promise<SumHistogramBucket[]> {
+  const [[range]] = await DAO.query<
+    Array<{ min: string | null; minPositive: string | null; max: string | null }>
+  >(
+    `SELECT
+       MIN(sum_confirmed) AS min,
+       MIN(IF(sum_confirmed > 0, sum_confirmed, NULL)) AS minPositive,
+       MAX(sum_confirmed) AS max
+     FROM Donations`,
+  );
+  if (range.minPositive === null || range.max === null || range.min === null) return [];
+
+  const edges = logBucketEdges(Number(range.minPositive), Number(range.max), count);
+  // INTERVAL(N, e0, e1, …) is 0 for N < e0 and i for e(i-1) <= N < e(i)
+  const [rows] = await DAO.query<Array<{ idx: number; items: number }>>(
+    `SELECT INTERVAL(sum_confirmed, ${edges.map(() => "?").join(", ")}) AS idx, COUNT(*) AS items
+     FROM Donations
+     GROUP BY idx`,
+    edges,
+  );
+  const itemsByIndex = new Map(rows.map((row) => [Number(row.idx), Number(row.items)]));
+  const bar = (items: number) => (items > 0 ? Math.round(100 * Math.log(items)) : 0);
+
+  const buckets: SumHistogramBucket[] = [];
+  const below = itemsByIndex.get(0) ?? 0;
+  if (below > 0) {
+    buckets.push({ bucket: Number(range.min), bucketEnd: edges[0], items: below, bar: bar(below) });
+  }
+  for (let i = 1; i < edges.length; i++) {
+    // Sums equal to the last edge (INTERVAL index edges.length) belong to the last bucket
+    const items =
+      (itemsByIndex.get(i) ?? 0) + (i === edges.length - 1 ? itemsByIndex.get(i + 1) ?? 0 : 0);
+    buckets.push({ bucket: edges[i - 1], bucketEnd: edges[i], items, bar: bar(items) });
+  }
+  return buckets;
+}
+
 /**
  * Fetches the latest donation with a given KID
  * @param {string} KID
@@ -1505,6 +1589,7 @@ export const donations = {
   addLegacySeDonationDistribution,
   registerConfirmedByIDs,
   getHistogramBySum,
+  getLogHistogramBySum,
   transferDonationsFromDummy,
   updateKIDBeforeTimestamp,
   updateKIDById,
