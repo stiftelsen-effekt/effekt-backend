@@ -43,6 +43,9 @@ async function scan(page: Page) {
 async function open(page: Page, path: string, theme: Theme) {
   await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
   await page.goto(`${appUrl}${path}`);
+  // The sign-in page (when the session is gone) renders once auth has checked; don't look
+  // for its button before then.
+  await page.waitForLoadState("networkidle");
   const signIn = page.getByRole("button", { name: /sign in with dev token/i });
   if (await signIn.isVisible().catch(() => false)) {
     await signIn.click();

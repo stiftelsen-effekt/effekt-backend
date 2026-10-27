@@ -22,9 +22,11 @@ export function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 /**
- * A text-sized placeholder: renders `children` as transparent text on a skeleton background,
- * so it has exactly the line height and roughly the width of the value it stands in for.
- * Put it where the value goes, inside the real label/heading/cell.
+ * A text-sized placeholder: `children` (a sample of the value, e.g. "00 000 kr") is drawn as
+ * invisible text on a skeleton background, so the placeholder has exactly the line height and
+ * roughly the width of the value it stands in for. The sample is CSS-generated content, so it
+ * isn't in the page's text (find-in-page, tests, copy). Put it where the value goes, inside the
+ * real label, heading or cell.
  *
  *   <Stat label="Expected" value={<SkeletonText>00 000 kr</SkeletonText>} />
  */
@@ -32,18 +34,18 @@ export function SkeletonText({
   children = "0 000",
   className,
   ...props
-}: React.ComponentProps<"span">) {
+}: Omit<React.ComponentProps<"span">, "children"> & { children?: string }) {
   return (
     <span
       data-slot="skeleton"
+      data-sample={children}
       aria-hidden
       className={cn(
         "animate-skeleton rounded-xs bg-border whitespace-nowrap text-transparent select-none data-[static]:animate-none",
+        "before:content-[attr(data-sample)]",
         className,
       )}
       {...props}
-    >
-      {children}
-    </span>
+    />
   );
 }

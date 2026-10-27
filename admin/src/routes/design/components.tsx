@@ -644,6 +644,10 @@ function Components() {
                     Expected
                   </TabsTrigger>
                 </TabsList>
+                <TabsContent value="a" className="text-sm text-muted-foreground">
+                  Missing payments load here.
+                </TabsContent>
+                <TabsContent value="b" />
               </Tabs>
             </div>
           </Example>
