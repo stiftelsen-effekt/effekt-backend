@@ -147,6 +147,31 @@ export const ruleValidity = define({
 });
 export type RuleValidity = keyof typeof ruleValidity;
 
+/** Regranting rounds (regranting.rounds): draft → approved → paid. */
+export const roundStatus = define({
+  draft: {
+    label: "Draft",
+    tone: "warning",
+    description: "Being prepared; a second person must approve it before anything is paid",
+  },
+  approved: {
+    label: "Approved",
+    tone: "accent",
+    description: "Locked and approved; record each transfer's payment, then mark it paid",
+  },
+  paid: { label: "Paid", tone: "success", description: "Paid; the transfers are in the balances" },
+});
+export type RoundStatus = keyof typeof roundStatus;
+
+/** Projects at a regranting recipient. */
+export const projectStatus = define({
+  proposed: { label: "Proposed", tone: "accent", description: "Not started; no agreement yet" },
+  active: { label: "Active", tone: "success", description: "Running; can receive money" },
+  completed: { label: "Completed", tone: "neutral", description: "Finished; kept for history" },
+  cancelled: { label: "Cancelled", tone: "neutral", description: "Stopped before completion" },
+});
+export type ProjectStatus = keyof typeof projectStatus;
+
 export const statusCatalogs = {
   agreementStatus,
   chargeStatus,
@@ -158,4 +183,6 @@ export const statusCatalogs = {
   taxUnitStatus,
 
   ruleValidity,
+  roundStatus,
+  projectStatus,
 };
