@@ -32,6 +32,10 @@ export type ConfirmDialogProps = {
    * confirm button. Use it when a slip would be expensive to undo.
    */
   confirmText?: string;
+  /** Inputs the action needs (pick the donor to keep), shown above the typed confirmation. */
+  children?: ReactNode;
+  /** Keeps the confirm button disabled, e.g. until `children` have a valid value. */
+  disabled?: boolean;
   /** Throw to keep the dialog open and show the error inside it. */
   onConfirm: () => void | Promise<unknown>;
 };
@@ -48,6 +52,8 @@ export function ConfirmDialog({
   confirmLabel,
   tone = "default",
   confirmText,
+  children,
+  disabled = false,
   onConfirm,
 }: ConfirmDialogProps) {
   const [open, setOpen] = useState(false);
@@ -55,7 +61,7 @@ export function ConfirmDialog({
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<unknown>(null);
   const inputId = useId();
-  const blocked = confirmText !== undefined && typed.trim() !== confirmText;
+  const blocked = disabled || (confirmText !== undefined && typed.trim() !== confirmText);
 
   function onOpenChange(next: boolean) {
     if (pending) return;
@@ -80,6 +86,7 @@ export function ConfirmDialog({
   }
 
   const errorInfo = error ? describeError(error) : null;
+  const errorMessage = error instanceof Error ? error.message : undefined;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -99,6 +106,7 @@ export function ConfirmDialog({
             ))}
           </ul>
         )}
+        {children}
         {confirmText !== undefined && (
           <div className="grid gap-1.5">
             <Label htmlFor={inputId} className="font-normal">
@@ -119,6 +127,12 @@ export function ConfirmDialog({
         {errorInfo && (
           <Callout tone="danger" title={errorInfo.title}>
             {errorInfo.hint}
+            {/* The server's own words, for the tech team, when the hint doesn't already say them. */}
+            {errorMessage && errorMessage !== errorInfo.hint && (
+              <p className="mt-1 font-mono text-xs break-words text-muted-foreground">
+                {errorMessage}
+              </p>
+            )}
           </Callout>
         )}
         <AlertDialogFooter>

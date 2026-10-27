@@ -1,4 +1,4 @@
-import { HandCoinsIcon, KeyRoundIcon, RepeatIcon, UserIcon } from "lucide-react";
+import { FlagIcon, HandCoinsIcon, KeyRoundIcon, RepeatIcon, UserIcon } from "lucide-react";
 import { useMemo } from "react";
 import { formatDate, formatMoney } from "@/lib/format";
 import { errorCode, useTRPCClient } from "@/lib/trpc";
@@ -11,6 +11,13 @@ const notFoundIsEmpty = <T>(promise: Promise<T>) =>
     throw error;
   });
 
+/** A query with only operators left ("-", "+") is a bad request, not a failure. */
+const badRequestIsEmpty = <T>(promise: Promise<T>) =>
+  promise.catch((error: unknown) => {
+    if (errorCode(error) === "BAD_REQUEST") return null;
+    throw error;
+  });
+
 /** Providers backed by the tRPC API. Mounted by the authenticated app layout. */
 export function useApiSearchProviders(): SearchProvider[] {
   const client = useTRPCClient();
@@ -19,13 +26,15 @@ export function useApiSearchProviders(): SearchProvider[] {
       {
         id: "donors",
         group: "Donors",
-        // The API matches name/email full text, and an all-digit query matches the donor id.
-        applies: (query) => query.trim().length >= 2,
+        // The API matches name/email full text (+word requires, -word excludes, "a phrase",
+        // prefix*), and an all-digit query matches the donor id.
+        applies: (query) =>
+          isDigits(query) || query.replace(/[+\-"*]/g, "").trim().length >= 2,
         async search(query, signal) {
-          const result = await client.donors.search.query(
-            { query: query.trim(), page: 0, limit: 6 },
-            { signal },
+          const result = await badRequestIsEmpty(
+            client.donors.search.query({ query: query.trim(), page: 0, limit: 6 }, { signal }),
           );
+          if (!result) return [];
           return result.rows.map((donor) => ({
             id: `donor-${donor.id}`,
             title: donor.name ?? donor.email,
@@ -74,6 +83,27 @@ export function useApiSearchProviders(): SearchProvider[] {
               subtitle: distribution.donor?.name ?? undefined,
               href: `/distributions/${kid}`,
               icon: KeyRoundIcon,
+            },
+          ];
+        },
+      },
+      {
+        id: "fundraiser",
+        group: "Fundraisers",
+        applies: isDigits,
+        async search(query, signal) {
+          const fundraiser = await notFoundIsEmpty(
+            client.reports.fundraisers.get.query({ id: Number(query) }, { signal }),
+          );
+          if (!fundraiser) return [];
+          return [
+            {
+              id: `fundraiser-${fundraiser.id}`,
+              title: `Fundraiser #${fundraiser.id}`,
+              subtitle: `${fundraiser.donationCount} donations · created ${formatDate(fundraiser.registered)}`,
+              meta: formatMoney(fundraiser.totalSum),
+              href: `/fundraisers/${fundraiser.id}`,
+              icon: FlagIcon,
             },
           ];
         },

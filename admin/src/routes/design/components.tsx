@@ -27,6 +27,7 @@ import { Status } from "@/components/domain/status";
 import {
   binValues,
   BooleanFilter,
+  ChoiceFilter,
   DateRangeFilter,
   defineList,
   FilterBar,
@@ -79,9 +80,12 @@ import {
   causeAreas,
   donationAmountEdges,
   donations,
+  donors,
   paymentMethods,
 } from "@/design-system/fake-data";
 import { DocPage, DocSection, Example } from "@/design-system/doc";
+import { fakeDonorSearch } from "@/design-system/fake-search";
+import { DonorPicker, type PickedDonor } from "@/features/donors/donor-picker";
 import { draftFromApi, standardDraft } from "@/features/distribution/model";
 import { moneyToNumber } from "@/lib/money";
 import { notify } from "@/lib/notify";
@@ -95,6 +99,7 @@ const demoList = defineList({
     date: param.dateRange,
     method: param.numberList,
     newsletter: param.boolean,
+    fundraiser: param.oneOf(["atLeastOnce", "only", "never"]),
   },
   sortable: ["id"],
   defaultSort: { id: "id", desc: true },
@@ -118,6 +123,10 @@ function Components() {
   const [name, setName] = useState("Elias Olsen");
   const [owner, setOwner] = useState<string | null>(null);
   const [range, setRange] = useState<DateRange | undefined>();
+  const [pickedDonor, setPickedDonor] = useState<PickedDonor | null>(() => {
+    const { id, name, email } = donors[4]!;
+    return { id, name, email };
+  });
 
   return (
     <DocPage
@@ -272,6 +281,22 @@ function Components() {
               />
             </Example>
           </div>
+          <Example
+            title="DonorPicker"
+            use="Pick one donor by name, email or donor ID (⌘K's search, in a form). Controlled; Enter picks, Esc closes."
+            surfaceClassName="grid gap-4 sm:grid-cols-2"
+          >
+            <Field label="Donor" hint="Searches as you type; +word requires, -word excludes.">
+              <DonorPicker
+                value={pickedDonor}
+                onValueChange={setPickedDonor}
+                search={fakeDonorSearch}
+              />
+            </Field>
+            <Field label="Merge into" error="Pick the donor to keep">
+              <DonorPicker value={null} onValueChange={() => {}} search={fakeDonorSearch} />
+            </Field>
+          </Example>
         </div>
       </DocSection>
 
@@ -298,6 +323,15 @@ function Components() {
               label="Newsletter"
               trueLabel="Subscribed"
               falseLabel="Not subscribed"
+            />
+            <ChoiceFilter
+              field="fundraiser"
+              label="Fundraisers"
+              options={[
+                { value: "atLeastOnce", label: "Gave to a fundraiser" },
+                { value: "only", label: "Only gave to fundraisers" },
+                { value: "never", label: "Never gave to a fundraiser" },
+              ]}
             />
           </FilterBar>
           <p className="mt-3 font-mono text-xs break-all text-muted-foreground">
