@@ -330,7 +330,7 @@ const roundsRouter = router({
     return getRoundBuilder(input.id);
   }),
 
-  /** The validation issues approval would see (errors block approval, warnings don't) */
+  /** The validation issues approval would see (errors block approval, warnings don't). Drafts only: approved and paid rounds return [] */
   validate: adminProcedure.input(byId).query(async ({ input }): Promise<Issue[]> => {
     return (await loadRoundState(input.id)).issues;
   }),

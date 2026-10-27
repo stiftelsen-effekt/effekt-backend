@@ -1,0 +1,480 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Regranting Ledger</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column (~72ch) with wide breakouts for ledger tables and UI mockups */
+:root{
+  --bg:#f7f8f6; --surface:#ffffff; --fg:#1b2420; --muted:#5d6a63; --line:#d9dfdb;
+  --accent:#1f6b52; --accent-soft:#e3efe9; --warn:#a86a12; --warn-soft:#fbf0dc; --neg:#a8382e; --neg-soft:#f8e4e1;
+  --display:"Newsreader",Georgia,serif; --body:"Public Sans",system-ui,-apple-system,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121715; --surface:#1a211e; --fg:#e4ebe7; --muted:#97a59d; --line:#2d3833;
+  --accent:#6cc5a2; --accent-soft:#1d3329; --warn:#e2ac57; --warn-soft:#352a17; --neg:#ec8a7f; --neg-soft:#3a1f1c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121715; --surface:#1a211e; --fg:#e4ebe7; --muted:#97a59d; --line:#2d3833;
+  --accent:#6cc5a2; --accent-soft:#1d3329; --warn:#e2ac57; --warn-soft:#352a17; --neg:#ec8a7f; --neg-soft:#3a1f1c; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--body)}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:48px 80px}
+.prose{max-width:70ch}
+h1,h2,h3{font-family:var(--display);font-weight:600;text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(2rem,5vw,2.9rem)}
+h2{font-size:1.75rem;margin-top:64px;padding-top:24px;border-top:1px solid var(--line)}
+h3{font-size:1.2rem;margin-top:32px}
+p{margin:12px 0}
+.eyebrow{font:500 .75rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{font-size:1.15rem;color:var(--muted);max-width:62ch}
+code,.mono{font-family:var(--mono);font-size:.86em}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+a{color:var(--accent)}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));margin-top:20px}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px 18px;min-width:0}
+.note h4{margin:0 0 6px;font:600 .95rem var(--body)}
+.note p{margin:0;font-size:.93rem;color:var(--muted)}
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);padding:14px 18px;margin:20px 0;border-radius:0 6px 6px 0}
+.scroll{overflow-x:auto;margin:20px 0;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font:500 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.neg{color:var(--neg)}
+.pill{display:inline-block;font:500 .72rem/1 var(--mono);padding:4px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.neg{background:var(--neg-soft);color:var(--neg)}
+.pill.mute{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+/* lifecycle */
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:20px 0}
+.step{flex:1 1 150px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.step b{display:block;font:600 .95rem var(--body)}
+.step span{font-size:.85rem;color:var(--muted)}
+.step .eyebrow{display:block;margin-bottom:6px}
+/* equation */
+.eq{font-family:var(--mono);font-size:.95rem;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px 18px;overflow-x:auto;white-space:nowrap;margin:20px 0}
+.eq .plus{color:var(--accent)} .eq .minus{color:var(--neg)}
+/* mockup */
+.mock{border:1px solid var(--line);border-radius:8px;background:var(--surface);margin:24px 0;overflow:hidden}
+.mock-bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--bg)}
+.mock-bar strong{font:600 1rem var(--body)}
+.mock-tag{font:500 .7rem var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.btn{font:500 .82rem var(--body);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 12px;border-radius:5px;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.payee td{background:var(--bg);font-weight:600}
+input.amt{font:inherit;font-family:var(--mono);width:9.5em;text-align:right;padding:3px 6px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--fg)}
+input.amt:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+ol.phases{list-style:none;padding:0;margin:20px 0;display:grid;gap:12px}
+ol.phases li{display:grid;grid-template-columns:3.2rem 1fr;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+ol.phases .n{font:600 1.5rem var(--display);color:var(--accent)}
+ol.phases p{margin:4px 0 0;font-size:.93rem;color:var(--muted)}
+ul.tight{padding-left:1.2em} ul.tight li{margin:4px 0}
+.small{font-size:.85rem;color:var(--muted)}
+select.sel,input.txt{font:inherit;font-size:.88rem;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--fg)}
+select.sel{max-width:16rem}
+input.txt{flex:1;min-width:12rem}
+select.sel:focus-visible,input.txt:focus-visible,.x:focus-visible,.plink:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.fd-proj,.fd-add,.fd-rat{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.plink{font-size:.85rem;white-space:nowrap}
+label.inc{display:inline-flex;gap:6px;align-items:center;font-size:.78rem;color:var(--muted);margin-top:4px;cursor:pointer}
+label.fd-kind{display:inline-flex;gap:6px;align-items:center}
+td.muted{color:var(--muted)}
+.btn.sm{font-size:.78rem;padding:4px 10px;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+#fd-addrec{cursor:pointer}
+.x{border:0;background:none;color:var(--muted);font-size:1.1rem;line-height:1;cursor:pointer;padding:2px 6px;border-radius:4px}
+.x:hover{color:var(--neg);background:var(--neg-soft)}
+a.btn{text-decoration:none;cursor:pointer}
+.pp-body{padding:16px;display:grid;gap:16px}
+.pp-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px;margin:0}
+.pp-facts dt{font:500 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pp-facts dd{margin:2px 0 0;font-size:.93rem}
+#project{scroll-margin-top:16px}#fund-demo{scroll-margin-top:16px}
+</style>
+
+<div class="wrap">
+  <header class="prose">
+    <div class="eyebrow">Design sketch · Gi Effektivt · 26 Oct 2026</div>
+    <h1 style="margin-top:12px">Regranting from the database, not the sheet</h1>
+    <p class="lede">A proposal for replacing the <em>Tildelinger</em> tab of Samlefila with a ledger in the admin panel. Donations already carry their split, so the system can work out what each organisation is owed. People then only decide what gets paid, when, and to whom.</p>
+  </header>
+
+  <h2>What the sheet does today</h2>
+  <div class="prose">
+    <p>I read the export back to 2018. It covers 35 recipient columns, about 35 transfer rounds, and roughly <span class="mono">38.9M kr</span> received and <span class="mono">38.8M kr</span> transferred in 2025. Each round repeats the same steps by hand:</p>
+  </div>
+  <div class="flow">
+    <div class="step"><span class="eyebrow">Monthly</span><b>Sum per org</b><span>Paste monthly totals per recipient from the DB export (<code>getMonthlyAggregateByOrganization</code>).</span></div>
+    <div class="step"><span class="eyebrow">Round</span><b>Gjenstående til deling</b><span>Carry-in plus inflow since the last round, per recipient.</span></div>
+    <div class="step"><span class="eyebrow">Round</span><b>Faktisk overført</b><span>One row per bank transfer: a GiveWell payment covers TCF, AGF, AMF, MC, HKI and NI.</span></div>
+    <div class="step"><span class="eyebrow">Round</span><b>Ikke overført</b><span>The remainder, typed in as next round's carry-in.</span></div>
+    <div class="step"><span class="eyebrow">Ad hoc</span><b>Corrections</b><span>Fees, “Korrigering forrige overføring”, major-donor rounds, fronted payments, #REF! cells.</span></div>
+  </div>
+  <div class="prose">
+    <p>The sheet is really a ledger, kept by hand. Most of the pain comes from the carry-forward step: one wrong cell flows into every later round, and the checksum column only catches some of those errors.</p>
+  </div>
+
+  <h3>The database already agrees with the sheet</h3>
+  <div class="prose"><p>For 2025, I compared the sheet's monthly rows with the same per-organisation query run against <code>EffektDonasjonDB</code> (Payment_ID 15 excluded, as in the export). 15 of 17 recipients match to the krone. The two that differ are the GiveWell funds, and their differences almost cancel out, which looks like one donation booked to the other fund in one source.</p></div>
+  <div class="scroll"><table>
+    <thead><tr><th>Recipient</th><th class="num">Sheet 2025</th><th class="num">Database 2025</th><th class="num">Difference</th></tr></thead>
+    <tbody>
+      <tr><td>GiveWell All Grants Fund</td><td class="num">16 780 033</td><td class="num">16 781 533</td><td class="num">+1 500</td></tr>
+      <tr><td>GiveWell Top Charities Fund</td><td class="num">5 025 453</td><td class="num">5 018 953</td><td class="num neg">−6 500</td></tr>
+      <tr><td>Taimaka</td><td class="num">5 800 810</td><td class="num">5 800 810</td><td class="num">0</td></tr>
+      <tr><td>Helen Keller International</td><td class="num">2 423 724</td><td class="num">2 423 724</td><td class="num">0</td></tr>
+      <tr><td>GiveDirectly</td><td class="num">2 310 446</td><td class="num">2 310 446</td><td class="num">0</td></tr>
+      <tr><td>Malaria Consortium</td><td class="num">1 509 207</td><td class="num">1 509 207</td><td class="num">0</td></tr>
+      <tr><td>New Incentives</td><td class="num">1 099 540</td><td class="num">1 099 540</td><td class="num">0</td></tr>
+      <tr><td class="small" colspan="4">AMF, FEM, DIL, OAF, GDCSF, EASWN, GD MB, DG, SB and UBI also match exactly.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="prose"><p class="small">Amounts are in NOK, rounded. Older years will differ more, since the sheet has manual corrections that the database never saw. The migration plan below treats those differences as opening balances instead of trying to make history match exactly.</p></div>
+
+  <h2>Core idea: one ledger per recipient</h2>
+  <div class="prose"><p>Every amount that changes what we owe a recipient becomes an entry in one table. A recipient's balance is the sum of its entries, so nothing needs to be carried forward by hand.</p></div>
+  <div class="eq">balance(org, t) = <span class="plus">opening balance</span> + <span class="plus">Σ allocations</span> − <span class="minus">Σ transfer lines</span> ± <span>Σ adjustments</span>   (all entries dated ≤ t)</div>
+  <div class="grid">
+    <div class="note"><h4>Allocations <span class="pill">credit</span></h4><p>One row per donation × organisation, from <code>sum_confirmed × cause-area share × org share</code>. They're read straight from the donation tables, so a correction made in the database flows through automatically.</p></div>
+    <div class="note"><h4>Transfer lines <span class="pill neg">debit</span></h4><p>Money that has actually left the bank, split per organisation. One bank transfer to GiveWell becomes six lines.</p></div>
+    <div class="note"><h4>Adjustments <span class="pill warn">±</span></h4><p>Typed and signed entries with a reason and an author: fee, correction, reallocation, fronted amount, opening balance.</p></div>
+  </div>
+  <div class="callout prose"><strong>The database is the source of truth.</strong> Reconciling donations against the bank happens in the donation database, as it does today. The regranting system adds no reconciliation step of its own. If a donation is corrected after a round, the recipient's balance simply changes, and the next round pays the difference. Each approved round keeps a snapshot of the balances it was based on, so you can always see what a decision was made on.</div>
+
+  <h2>Data model</h2>
+  <div class="prose"><p>These would be new tables in the existing MySQL database, next to <code>Organizations</code> and <code>Donations</code>. Nothing existing changes shape.</p></div>
+  <div class="scroll"><table>
+    <thead><tr><th>Table</th><th>Key columns</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">Payees</td><td class="mono">ID, name, currency, bank_account / IBAN / wallet, payment_reference_template</td><td>Who we actually pay. Examples: GiveWell (pays for TCF, AGF, AMF, MC, HKI, NI), GiveDirectly (GD, GD MB, Zakat, UBI), DIV Fund, direct payees.</td></tr>
+      <tr><td class="mono">Organization_payees</td><td class="mono">Organization_ID, Payee_ID, valid_from, valid_to</td><td>Maps a recipient to the payee that handles it. This is dated: MC went directly in Aug 2026 but through GiveWell otherwise.</td></tr>
+      <tr><td class="mono">Regrant_allocations <span class="pill mute">view</span></td><td class="mono">Donation_ID, Organization_ID, amount, timestamp_confirmed</td><td>A view over <code>Donations</code> and the distribution tables. It applies the same filters as today's export (e.g. Payment_ID 15). No stored copy.</td></tr>
+      <tr><td class="mono">Projects</td><td class="mono">ID, Organization_ID, name, description, country, start_date, end_date, status, agreement_ref, report_due</td><td>A specific project at a recipient. Transfer lines and fund grant lines can point to one. Used for project reports, audits and due diligence.</td></tr>
+      <tr><td class="mono">Regrant_rounds</td><td class="mono">ID, name, kind, cutoff, status, created_by, approved_by, approved_at</td><td><code>kind</code>: regular · fund-grant · extraordinary · major-donor. A fund-grant round leaves direct donations unpaid unless someone includes them. <code>status</code>: draft → approved → paid.</td></tr>
+      <tr><td class="mono">Regrant_round_balances</td><td class="mono">Round_ID, Organization_ID, balance_at_cutoff</td><td>Written when a round is approved. It records what the decision was based on, for audit and grant letters.</td></tr>
+      <tr><td class="mono">Regrant_transfers</td><td class="mono">ID, Round_ID, Payee_ID, amount_nok, currency, amount_foreign, fx_rate, bank_fee, paid_at, bank_ref</td><td>One per real bank transaction. The “1a / 1b / 1c” rows in the sheet each become one of these.</td></tr>
+      <tr><td class="mono">Regrant_transfer_lines</td><td class="mono">Transfer_ID, Organization_ID, Project_ID?, amount_nok</td><td>Splits a transfer across recipients and projects. An empty <code>Project_ID</code> means unrestricted. One recipient can have several lines in the same transfer, one per project.</td></tr>
+      <tr><td class="mono">Regrant_adjustments</td><td class="mono">ID, Organization_ID, amount, type, reason, Round_ID?, linked_ID?, created_by</td><td>Types: <code>opening</code>, <code>fee</code>, <code>correction</code>, <code>reallocation</code>, <code>fronted</code>, <code>pledge</code>.</td></tr>
+      <tr><td class="mono">Funds</td><td class="mono">Organization_ID, max_hold_days</td><td>Marks a recipient as one of our own funds, so it's never paid out directly.</td></tr>
+      <tr><td class="mono">Fund_grants</td><td class="mono">ID, Fund_ID, Round_ID, rationale, approved_by</td><td>The grant decision made during a round. Each one writes balanced entries (fund −, recipients +) that sum to zero.</td></tr>
+      <tr><td class="mono">Fund_grant_lines</td><td class="mono">Fund_grant_ID, Organization_ID, Project_ID?, amount</td><td>How much each recipient, and optionally each project, gets from the fund. Several lines per recipient are allowed.</td></tr>
+      <tr><td class="mono">Fund_grant_attributions</td><td class="mono">Fund_grant_ID, Donation_ID, Organization_ID, amount</td><td><span class="pill mute">nice to have</span> Which donations funded which grant (FIFO, pro rata). Only needed for donor tracing.</td></tr>
+      <tr><td class="mono">Regrant_holds</td><td class="mono">Organization_ID, amount or reason, until</td><td>Optional. Holds back money from the proposal, for example while a grant letter is pending or a minimum transfer size isn't reached.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>A round, start to finish</h2>
+  <div class="flow">
+    <div class="step"><span class="eyebrow">1 · Draft</span><b>Pick a cutoff</b><span>The system proposes paying each recipient's balance at the cutoff, grouped by payee.</span></div>
+    <div class="step"><span class="eyebrow">2 · Edit</span><b>Adjust amounts</b><span>Lower or hold amounts and add transfers. Anything not paid stays in the balance automatically.</span></div>
+    <div class="step"><span class="eyebrow">3 · Approve</span><b>Second person signs off</b><span>The round locks. The system produces payment instructions and grant letters per payee.</span></div>
+    <div class="step"><span class="eyebrow">4 · Paid</span><b>Enter actuals</b><span>Record the paid date, FX rate, foreign amount, bank fee and bank reference per transfer. The balances update straight away.</span></div>
+  </div>
+
+  <h3>Mockup: round builder</h3>
+  <div class="prose"><p class="small">The example uses October 2026 figures from the sheet. MC and NI start negative because of the August major-donor round, so the system shows the offset by itself instead of someone typing <code>−1,175,000</code> into a cell.</p></div>
+  <div class="mock">
+    <div class="mock-bar">
+      <div><div class="mock-tag">Admin › Regranting › Rounds</div><strong>October 2026 · GiveWell</strong> <span class="pill warn">draft</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button">Cutoff 30 Sep 2026</button><button class="btn" type="button">Add transfer</button><button class="btn primary" type="button">Send for approval</button></div>
+    </div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Recipient</th><th class="num">Balance at cutoff</th><th class="num">Pay now</th><th class="num">Carries over</th><th>Flags</th></tr></thead>
+      <tbody>
+        <tr class="payee"><td colspan="5">GiveWell · NOK · 1 transfer</td></tr>
+        <tr><td>GiveWell All Grants Fund</td><td class="num">3 940 286.92</td><td class="num"><input class="amt" id="p-agf" value="3 940 286.92" aria-label="Pay now, All Grants Fund"></td><td class="num">0.00</td><td></td></tr>
+        <tr><td>GiveWell Top Charities Fund</td><td class="num">204 740.86</td><td class="num"><input class="amt" id="p-tcf" value="204 740.86" aria-label="Pay now, Top Charities Fund"></td><td class="num">0.00</td><td></td></tr>
+        <tr><td>Against Malaria Foundation</td><td class="num">67 356.26</td><td class="num"><input class="amt" id="p-amf" value="67 356.26" aria-label="Pay now, AMF"></td><td class="num">0.00</td><td></td></tr>
+        <tr><td>Helen Keller International</td><td class="num">57 886.60</td><td class="num"><input class="amt" id="p-hki" value="57 886.60" aria-label="Pay now, HKI"></td><td class="num">0.00</td><td></td></tr>
+        <tr><td>Malaria Consortium</td><td class="num">40 234.41</td><td class="num"><input class="amt" id="p-mc" value="40 234.41" aria-label="Pay now, Malaria Consortium"></td><td class="num">0.00</td><td><span class="pill mute">−500 000 fronted in Aug, offset</span></td></tr>
+        <tr><td>New Incentives</td><td class="num">52 917.91</td><td class="num"><input class="amt" id="p-ni" value="52 917.91" aria-label="Pay now, New Incentives"></td><td class="num">0.00</td><td><span class="pill mute">−675 000 fronted in Aug, offset</span></td></tr>
+        <tr class="payee"><td colspan="5">GiveDirectly · NOK · not in this round</td></tr>
+        <tr><td>GiveDirectly</td><td class="num">412 380.10</td><td class="num"><input class="amt" id="p-gd" value="0.00" aria-label="Pay now, GiveDirectly"></td><td class="num">412 380.10</td><td><span class="pill warn">held until Dec round</span></td></tr>
+        <tr class="payee"><td colspan="5">Not yet mapped</td></tr>
+        <tr><td>Facebook fundraisers, unassigned</td><td class="num">3 375.71</td><td class="num">—</td><td class="num">3 375.71</td><td><span class="pill neg">needs a recipient</span></td></tr>
+      </tbody>
+    </table></div>
+    <div class="mock-bar"><span class="small">Total to pay <span class="mono">4 363 422.96 kr</span> · 1 transfer · checks pass except 1 unmapped balance</span><span class="small">GiveDirectly and Facebook rows are illustrative</span></div>
+  </div>
+
+  <h3>Mockup: a round that includes our own fund</h3>
+  <div class="prose"><p class="small">This mockup is editable. Change amounts, pick a project for a line, add more projects to a recipient, or add another recipient. Click a project name to open its page below. The numbers and projects are made up. The fund (<code>GEBF</code>) has 250 000 kr. The granted amounts are added to the recipients' balances and paid in step 2 with everything else. The fund itself never gets a bank transfer.</p></div>
+  <div class="mock" id="fund-demo">
+    <div class="mock-bar">
+      <div><div class="mock-tag">Admin › Regranting › Rounds</div><strong id="fd-title">December 2026 · Regular round with fund grants</strong> <span class="pill warn">draft</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="small fd-kind" for="fd-kind">Round type <select class="sel" id="fd-kind"><option value="regular" selected>Regular + fund grants</option><option value="fund">Fund grants only</option></select></label><button class="btn" type="button">Cutoff 30 Nov 2026</button><button class="btn" type="button">Add transfer</button><button class="btn primary" type="button">Send for approval</button></div>
+    </div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Recipient</th><th>Project</th><th class="num">Balance at cutoff</th><th class="num">Fund grant</th><th class="num">Pay now</th><th class="num">Carries over</th></tr></thead>
+      <tbody id="fd-s1"></tbody>
+      <tbody id="fd-s2"></tbody>
+    </table></div>
+    <div class="mock-bar"><span class="small" id="fd-foot"></span><span class="small">Illustrative figures · editable</span></div>
+  </div>
+
+  <div class="mock" id="project">
+    <div class="mock-bar">
+      <div><div class="mock-tag">Admin › Regranting › Projects</div><strong id="pp-name"></strong> <span class="pill" id="pp-status"></span></div>
+      <a class="btn" href="#fund-demo" id="pp-back">Back to round</a>
+    </div>
+    <div class="pp-body">
+      <dl class="pp-facts" id="pp-facts"></dl>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Transfer</th><th>Paid from</th><th class="num">Amount</th></tr></thead>
+        <tbody id="pp-transfers"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="prose"><p class="small">Fund grants don't have to follow the regular schedule. With <b>Fund grants only</b>, the round pays just the granted amounts, and AMF's and GiveDirectly's direct donations stay in their balances for the next regular round. With <b>Regular + fund grants</b>, both go out together. Either way, each recipient's <i>Include direct donations</i> switch can override the default. Try switching between the two.</p>
+  <p class="small">In a real round the grant lines start empty. The team adds recipients, projects and amounts, and can choose any recipient in the system. A recipient can appear on several lines, one per project, plus one unrestricted. Whatever isn't granted stays in the fund for a later round. The grant and its rationale are approved together with the rest of the round.</p></div>
+
+  <h3>Other screens</h3>
+  <div class="grid">
+    <div class="note"><h4>Balances</h4><p>A table with one row per recipient: balance today, inflow since the last round, the last transfer, and a sparkline. It replaces scrolling to the bottom of the sheet.</p></div>
+    <div class="note"><h4>Recipient statement</h4><p>Every entry for one organisation over a period. Use it for grant letters, the annual report, and answering “how much did X get in 2025?”.</p></div>
+    <div class="note"><h4>Round history</h4><p>Past rounds with their balance snapshot, transfers and grant letters. It answers “what did we send in June, and why?”</p></div>
+    <div class="note"><h4>Donation trace <span class="pill mute">nice to have</span></h4><p>From a donation ID: which allocations, which round, which transfer. This could later power “your money reached X on date Y” on Min Side.</p></div>
+  </div>
+
+  <h2>Our own funds</h2>
+  <div class="prose">
+    <p>Example: a donor gives 100 kr to the Gi Effektivt fund, and Gi Effektivt later decides that the fund pays 50% to AMF and 50% to GiveDirectly. The database already has a fund recipient for this (<code>GEBF</code>, GiEffektivts barnedødelighetsfond, currently inactive).</p>
+    <p>The fund is treated as a recipient that never receives a bank transfer. Its money leaves through <b>fund grants</b>: internal entries that move the balance from the fund to the final recipients. Money only reaches the bank in the normal rounds, from the AMF and GiveDirectly balances.</p>
+  </div>
+  <div class="scroll"><table>
+    <thead><tr><th>Step</th><th>Entry</th><th class="num">Fund</th><th class="num">AMF</th><th class="num">GiveDirectly</th></tr></thead>
+    <tbody>
+      <tr><td>Donation confirmed (KID: 100% fund)</td><td><span class="pill">allocation</span></td><td class="num">+100</td><td class="num">0</td><td class="num">0</td></tr>
+      <tr><td>Team decides the grant during a round</td><td><span class="pill warn">fund grant</span></td><td class="num neg">−100</td><td class="num">+50</td><td class="num">+50</td></tr>
+      <tr><td>Regular round pays GiveWell and GiveDirectly payees</td><td><span class="pill neg">transfer line</span></td><td class="num">0</td><td class="num neg">−50</td><td class="num neg">−50</td></tr>
+      <tr><td><b>Balances after</b></td><td></td><td class="num"><b>0</b></td><td class="num"><b>0</b></td><td class="num"><b>0</b></td></tr>
+    </tbody>
+  </table></div>
+  <div class="grid">
+    <div class="note"><h4>Don't expand at donation time</h4><p>Rewriting the KID to 50/50 when the donation arrives would be simpler, but it loses the donor's actual choice. It also locks in today's split and leaves no room for reserves or later decisions. The donation stays 100% fund.</p></div>
+    <div class="note"><h4>Decided in each round</h4><p>A fund has no fixed split. In each round, the team chooses which recipients get how much of the fund's balance, writes a short rationale, and the round's approver signs off on it.</p></div>
+    <div class="note"><h4>Tracing back to the donor <span class="pill mute">nice to have</span></h4><p>Not needed for regranting itself, and can be added later without changing the rest. Grants use fund money oldest-first (FIFO), pro rata across the donations in that slice, and the result is stored in <code>Fund_grant_attributions</code>. Min Side can then say “your 100 kr from March went 50 to AMF and 50 to GiveDirectly in June”. Before a grant it shows “in the fund, not yet granted”.</p></div>
+    <div class="note"><h4>Counting without double counting</h4><p>“Given to a charity” = direct allocations + fund grants. The fund's own inflow is reported as donor intent, and its unspent balance as a separate line with its age, so money waiting in the fund stays visible.</p></div>
+  </div>
+  <div class="prose"><p class="small">External funds such as GiveWell's All Grants Fund remain ordinary recipients. Our ledger stops where we hand money to a payee. A fund only needs this treatment when Gi Effektivt itself decides where the money goes. Fund-to-fund grants are blocked in the first version.</p></div>
+
+  <h2>Projects</h2>
+  <div class="prose">
+    <p>Some money goes to a recipient without restrictions, and some is tied to a specific project. A <b>project</b> is its own record in the database, belonging to one recipient. It holds the name, country, period, agreement reference and when reports are due.</p>
+    <ul class="tight">
+      <li><b>Balances are kept per recipient and project.</b> Donations go to the recipient's unrestricted balance. A fund grant to a project goes to that project's balance, so the round knows to pay it as a project line and not as unrestricted money.</li>
+      <li><b>A transfer can have several lines for the same recipient</b>, e.g. one unrestricted line and two project lines in a single payment to GiveDirectly.</li>
+      <li><b>Projects can also be chosen directly in a round.</b> The team can mark part of a recipient's unrestricted balance for a project when paying it, as in the August 2026 transfer “GiveDirectly prosjekt og Unrestricted”.</li>
+    </ul>
+  </div>
+  <div class="grid">
+    <div class="note"><h4>Project page</h4><p>Everything sent to a project: transfers, dates, amounts, which fund grants paid for it, agreement and report deadlines. This is what an auditor or a due diligence review asks for.</p></div>
+    <div class="note"><h4>Project report</h4><p>Per project, or across all projects for a period: total granted, from which funds, and which reports are outstanding.</p></div>
+  </div>
+
+  <h2>How the messy cases map</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>In the sheet today</th><th>In the ledger</th></tr></thead>
+    <tbody>
+      <tr><td>“Ikke overført mottaker i denne tildelingen”</td><td>Not stored. It's simply the balance after the round.</td></tr>
+      <tr><td>Major-donor rounds (DSN Aug 2026, Miracle Feet, CS/AMI)</td><td>A round with <code>kind = major-donor</code>. If money goes out before the donation is confirmed, record a <code>fronted</code> adjustment linked to the expected donation. The balance goes negative and is visibly offset when the donation's allocation arrives.</td></tr>
+      <tr><td>One transfer covering many orgs, sometimes in EUR or BTC</td><td>One <code>Regrant_transfer</code> with currency, FX rate and foreign amount, plus one line per recipient in NOK.</td></tr>
+      <tr><td>Recipient fees (“Gebyr mottaker”), Vipps/PayPal fees</td><td><code>fee</code> adjustments. Decide once whether fees reduce the recipient's balance or are covered by operations, then apply it everywhere.</td></tr>
+      <tr><td>“Korrigering forrige overføring”</td><td>Wrong donation data is fixed in the database, and the balance follows. A transfer that was sent with the wrong amount gets a <code>correction</code> adjustment linked to it. Paid rounds are never edited.</td></tr>
+      <tr><td>Project lines kept as separate columns (GD UNR, and the GiveDirectly project in Aug 2026)</td><td>Transfer lines to GiveDirectly, one with a <code>Project_ID</code> and one without. No separate recipient is needed just to tell a project apart.</td></tr>
+      <tr><td>Facebook donations without a split</td><td>Shown as “Unassigned” until someone sets the donation's split in the database. The balance then moves on its own.</td></tr>
+      <tr><td>Drift share / “Effekt-overføres-til-driftskonto”</td><td>Drift stays an organisation with its own balance, and its transfers go to the operating account. Today's export filters it out instead.</td></tr>
+      <tr><td>Deactivated orgs (SCI, DtW, END…) and replaced distributions</td><td>Handled in the database, as today (<code>Replaced_old_organizations</code>). Use a <code>reallocation</code> adjustment only for decisions made outside the donation data, e.g. moving a leftover balance to a successor.</td></tr>
+      <tr><td>Payment_ID 15 (influenced, not via our accounts)</td><td>Never allocated. The same filter as today, enforced in one place.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Migration</h2>
+  <div class="prose">
+    <p>There's no need to make 2019–2025 match exactly. Pick a start date, take the sheet's balance at that date as truth, and let the database take over from there.</p>
+    <ul class="tight">
+      <li><b>Cutoff:</b> the end of the last completed round, e.g. 30 Sep 2026.</li>
+      <li><b>Opening balances:</b> one <code>opening</code> adjustment per recipient, equal to the sheet's carry-over at the cutoff. Negative balances (MC, NI) carry over as they are.</li>
+      <li><b>History:</b> optionally import the sheet's “faktisk overført” rows as historical transfers, so recipient statements go back to 2020. Mark them <code>imported</code>.</li>
+      <li><b>Shadow period:</b> run one or two rounds in both systems, and diff the proposal against the sheet per recipient. Every difference becomes either a code fix or a documented adjustment.</li>
+    </ul>
+  </div>
+
+  <h2>Admin panel or a new product?</h2>
+  <div class="prose">
+    <p><b>Recommendation: build it in the admin panel, backed by new routes and DAO modules in <code>effekt-backend</code>.</b> Auth0 roles, the organisation list, and the donation and distribution queries are already there. The monthly-by-org SQL becomes the allocation generator almost unchanged. A separate product would need its own auth, database access and deploy pipeline, all to read the same tables.</p>
+    <p>Consider a separate service only if the system should be shared with Effektiv Spenden and other organisations later. Even then, the ledger tables and the round workflow above would stay the same, and only the allocation source would change. Giveon's <code>grants</code> table already plays a similar role on that side.</p>
+  </div>
+
+  <h2>Suggested phases</h2>
+  <ol class="phases">
+    <li><span class="n">1</span><div><b>Allocations + balances (read-only)</b><p>Add the <code>Regrant_allocations</code> view, load opening balances, and add a Balances page. Ops checks it against the sheet for one round.</p></div></li>
+    <li><span class="n">2</span><div><b>Rounds and transfers</b><p>Round builder, payees, approval and recording actuals. Run it alongside the sheet for one regular round.</p></div></li>
+    <li><span class="n">3</span><div><b>Adjustments and the hard cases</b><p>Fronted amounts, reallocations, fees, unassigned Facebook money, and projects on transfer lines and fund grants. Retire the sheet after this.</p></div></li>
+    <li><span class="n">4</span><div><b>Outputs</b><p>Grant letters, payment files and recipient statements. Donation tracing on Min Side is a nice to have that can come after this.</p></div></li>
+  </ol>
+
+  <h2>Decisions for the team</h2>
+  <ul class="tight prose">
+    <li>Are fees taken out of the recipient's balance, or paid from operations? The sheet does both depending on the year.</li>
+    <li>Is a donation allocated at <code>timestamp_confirmed</code> or when it's registered? This matters for AvtaleGiro and late imports near a cutoff.</li>
+    <li>Does a round need a second approver, and who?</li>
+    <li>Should balances below a threshold (say 10 000 kr) be held automatically?</li>
+    <li>How far back should transfer history be imported: all of it, or only from 2024?</li>
+    <li>For our own funds: who approves grants, and how long can money stay in a fund before it must be granted?</li>
+    <li>Should recipients donors can pick today, such as GD MB, GDCSF or GD UNR, stay separate recipients or become projects under GiveDirectly? As projects, donors could no longer choose them unless the donation form learns about projects.</li>
+  </ul>
+</div>
+<script>
+(function(){
+  var F=function(n){var s=Math.abs(n).toFixed(2).split('.');return (n<0?'−':'')+s[0].replace(/\B(?=(\d{3})+(?!\d))/g,' ')+'.'+s[1];};
+  var P=function(s){var v=parseFloat(String(s).replace(/[\s ]/g,'').replace('−','-').replace(',','.'));return isNaN(v)?0:v;};
+  var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  var FUND=250000;
+  var ORGS={
+    AMF:{name:'Against Malaria Foundation',payee:'GiveWell',direct:67356.26},
+    MC:{name:'Malaria Consortium',payee:'GiveWell',direct:40234.41},
+    HKI:{name:'Helen Keller International',payee:'GiveWell',direct:57886.60},
+    NI:{name:'New Incentives',payee:'GiveWell',direct:52917.91},
+    GD:{name:'GiveDirectly',payee:'GiveDirectly',direct:412380.10}
+  };
+  var PROJECTS=[
+    {id:'gd-mw',org:'GD',name:'Malawi flood response',country:'Malawi',period:'Jan 2027 – Dec 2027',status:'Active',agreement:'GD-NO-2026-07',report:'30 Jun 2027',history:[['August 2026 · major-donor round','Donations to GiveDirectly',120000]]},
+    {id:'gd-ke',org:'GD',name:'Kenya mothers and babies',country:'Kenya',period:'Jul 2026 – Jun 2028',status:'Active',agreement:'GD-NO-2026-03',report:'31 Jan 2027',history:[['July 2026 round','Gi Effektivt fund',60000]]},
+    {id:'gd-ug',org:'GD',name:'Uganda refugee cash transfers',country:'Uganda',period:'Mar 2027 – Feb 2028',status:'Proposed',agreement:'Not signed',report:'—',history:[]},
+    {id:'amf-td',org:'AMF',name:'Chad net distribution 2027',country:'Chad',period:'Jan 2027 – Dec 2027',status:'Active',agreement:'AMF-NO-2026-02',report:'31 Mar 2027',history:[]},
+    {id:'amf-cd',org:'AMF',name:'DRC Kasaï nets',country:'DR Congo',period:'Apr 2027 – Mar 2028',status:'Proposed',agreement:'Not signed',report:'—',history:[]},
+    {id:'mc-ng',org:'MC',name:'SMC Nigeria 2027',country:'Nigeria',period:'May 2027 – Nov 2027',status:'Active',agreement:'MC-NO-2026-01',report:'15 Dec 2027',history:[]},
+    {id:'hki-cd',org:'HKI',name:'Vitamin A supplementation, DRC',country:'DR Congo',period:'2027',status:'Active',agreement:'HKI-NO-2026-04',report:'30 Sep 2027',history:[]},
+    {id:'ni-ng',org:'NI',name:'Northern Nigeria expansion',country:'Nigeria',period:'2027',status:'Active',agreement:'NI-NO-2026-02',report:'31 Jul 2027',history:[]}
+  ];
+  var byId={};PROJECTS.forEach(function(p){byId[p.id]=p;});
+  var seq=0;
+  var st={
+    lines:[{k:++seq,org:'AMF',project:null,amount:150000},{k:++seq,org:'GD',project:'gd-mw',amount:45000},{k:++seq,org:'GD',project:'gd-ke',amount:30000}],
+    base:['AMF','GD'],
+    rationale:'AMF has a funding gap for 2027 nets. GiveDirectly projects agreed with the board in November.',
+    selected:'gd-mw',
+    kind:'regular',
+    inc:{}
+  };
+  var $=function(id){return document.getElementById(id);};
+  var granted=function(){return st.lines.reduce(function(s,l){return s+l.amount;},0);};
+  var orgOrder=function(){var o=[];st.lines.forEach(function(l){if(o.indexOf(l.org)<0)o.push(l.org);});return o;};
+  var plink=function(id){var p=byId[id];return '<a class="plink" href="#project" data-project="'+id+'">'+esc(p.name)+' ↗</a>';};
+
+  function renderS1(){
+    var h='<tr class="payee"><td colspan="6">Step 1 · Fund grants · no bank transfer</td></tr>';
+    h+='<tr><td><b>Gi Effektivt fund (GEBF)</b></td><td class="small">—</td><td class="num">'+F(FUND)+'</td><td class="num neg" id="fd-granted"></td><td class="num">—</td><td class="num" id="fd-left"></td></tr>';
+    h+='<tr><td colspan="6"><div class="fd-rat"><label class="small" for="fd-rationale">Rationale</label><input class="txt" id="fd-rationale" value="'+esc(st.rationale)+'" placeholder="Why these grants? Required before approval"></div></td></tr>';
+    orgOrder().forEach(function(org){
+      var lines=st.lines.filter(function(l){return l.org===org;});
+      var used=lines.map(function(l){return l.project;});
+      lines.forEach(function(l,i){
+        var opts='<option value=""'+(l.project?'':' selected')+'>Unrestricted</option>';
+        PROJECTS.filter(function(p){return p.org===org;}).forEach(function(p){
+          var taken=p.id!==l.project&&used.indexOf(p.id)>=0;
+          opts+='<option value="'+p.id+'"'+(p.id===l.project?' selected':'')+(taken?' disabled':'')+'>'+esc(p.name)+'</option>';
+        });
+        h+='<tr><td class="small">'+(i===0?'↳ '+esc(ORGS[org].name):'')+'</td>'+
+          '<td><div class="fd-proj"><select class="sel" id="fd-p-'+l.k+'" data-k="'+l.k+'" aria-label="Project for '+esc(ORGS[org].name)+'">'+opts+'</select>'+(l.project?plink(l.project):'')+'</div></td>'+
+          '<td></td><td class="num"><input class="amt" id="fd-a-'+l.k+'" data-k="'+l.k+'" value="'+F(l.amount)+'" aria-label="Fund grant amount"></td>'+
+          '<td></td><td class="num"><button class="x" type="button" data-remove="'+l.k+'" aria-label="Remove this line">×</button></td></tr>';
+      });
+      var free=PROJECTS.filter(function(p){return p.org===org&&used.indexOf(p.id)<0;}).length;
+      h+='<tr><td></td><td colspan="5"><button class="btn sm" type="button" data-addproj="'+org+'"'+(free?'':' disabled title="All of this recipient\'s projects are already in the grant"')+'>+ Add project to '+esc(ORGS[org].name)+'</button></td></tr>';
+    });
+    var rest=Object.keys(ORGS).filter(function(o){return orgOrder().indexOf(o)<0;});
+    h+='<tr><td colspan="6"><div class="fd-add">'+(rest.length?'<select class="sel" id="fd-neworg" aria-label="Recipient to add">'+rest.map(function(o){return '<option value="'+o+'">'+esc(ORGS[o].name)+'</option>';}).join('')+'</select><button class="btn" type="button" id="fd-addrec">+ Add recipient</button>':'<span class="small">Every recipient is in the grant.</span>')+'</div></td></tr>';
+    $('fd-s1').innerHTML=h;
+  }
+
+  function renderTotals(){
+    var g=granted(),left=FUND-g;
+    $('fd-granted').textContent=F(-g);
+    $('fd-left').textContent=F(left);
+    $('fd-left').className='num'+(left<0?' neg':'');
+    var orgs=st.kind==='regular'?st.base.slice():[];orgOrder().forEach(function(o){if(orgs.indexOf(o)<0)orgs.push(o);});
+    var h='',total=0,transfers=0,carried=0,maxLines={};
+    ['GiveWell','GiveDirectly'].forEach(function(payee){
+      var po=orgs.filter(function(o){return ORGS[o].payee===payee;});
+      if(!po.length)return;
+      var rows='',n=0,ptot=0;
+      po.forEach(function(o){
+        var unr=st.lines.filter(function(l){return l.org===o&&!l.project;}).reduce(function(s,l){return s+l.amount;},0);
+        var inc=st.inc[o]!==undefined?st.inc[o]:st.kind==='regular';
+        var pay=(inc?ORGS[o].direct:0)+unr;total+=pay;ptot+=pay;if(pay)n++;if(!inc)carried+=ORGS[o].direct;
+        rows+='<tr><td><div>'+esc(ORGS[o].name)+'</div><label class="inc"><input type="checkbox" data-inc="'+o+'" id="fd-inc-'+o+'"'+(inc?' checked':'')+'> Include direct donations</label></td><td class="small">Unrestricted</td><td class="num">'+F(ORGS[o].direct)+'</td><td class="num">'+(unr?'+'+F(unr):'—')+'</td><td class="num'+(inc?'':' muted')+'">'+F(pay)+'</td><td class="num">'+F(inc?0:ORGS[o].direct)+'</td></tr>';
+        st.lines.filter(function(l){return l.org===o&&l.project&&l.amount;}).forEach(function(l){
+          total+=l.amount;ptot+=l.amount;n++;
+          rows+='<tr><td class="small">↳</td><td>'+plink(l.project)+'</td><td class="num">0.00</td><td class="num">+'+F(l.amount)+'</td><td class="num">'+F(l.amount)+'</td><td class="num">0.00</td></tr>';
+        });
+      });
+      if(ptot)transfers++;maxLines[payee]=n;
+      h+='<tr class="payee"><td colspan="6">Step 2 · '+payee+' · NOK · 1 transfer · '+n+(n===1?' line':' lines')+'</td></tr>'+rows;
+    });
+    $('fd-s2').innerHTML=h;
+    var flags='';
+    if(carried)flags+=' <span class="pill mute">'+F(carried)+' kr in direct donations waits for the next regular round</span>';
+    if(left<0)flags+=' <span class="pill neg">grants exceed the fund by '+F(-left)+'</span>';
+    if(!st.rationale.trim())flags+=' <span class="pill warn">rationale required</span>';
+    $('fd-foot').innerHTML='Total to pay <span class="mono">'+F(total)+' kr</span> · '+transfers+(transfers===1?' transfer':' transfers')+' · fund grant '+F(g)+' kr · '+F(Math.max(left,0))+' kr stays in the fund'+flags;
+    renderProject();
+  }
+
+  function renderProject(){
+    var p=byId[st.selected];
+    $('pp-name').textContent=p.name;
+    $('pp-status').textContent=p.status.toLowerCase();
+    $('pp-status').className='pill'+(p.status==='Active'?'':' mute');
+    var facts=[['Recipient',ORGS[p.org].name],['Country',p.country],['Period',p.period],['Agreement',p.agreement],['Next report due',p.report]];
+    $('pp-facts').innerHTML=facts.map(function(f){return '<div><dt>'+f[0]+'</dt><dd>'+esc(f[1])+'</dd></div>';}).join('');
+    var rows=p.history.map(function(r){return '<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td class="num">'+F(r[2])+'</td></tr>';});
+    var sum=p.history.reduce(function(s,r){return s+r[2];},0);
+    st.lines.filter(function(l){return l.project===p.id&&l.amount;}).forEach(function(l){
+      sum+=l.amount;rows.push('<tr><td>December 2026 round <span class="pill warn">draft</span></td><td>Gi Effektivt fund</td><td class="num">'+F(l.amount)+'</td></tr>');
+    });
+    if(!rows.length)rows.push('<tr><td colspan="3" class="small">Nothing sent to this project yet.</td></tr>');
+    rows.push('<tr><td><b>Total</b></td><td></td><td class="num"><b>'+F(sum)+'</b></td></tr>');
+    $('pp-transfers').innerHTML=rows.join('');
+  }
+
+  function renderAll(){renderS1();renderTotals();}
+  var line=function(k){return st.lines.filter(function(l){return String(l.k)===String(k);})[0];};
+  var demo=$('fund-demo');
+  demo.addEventListener('input',function(e){
+    var t=e.target;
+    if(t.classList.contains('amt')&&t.dataset.k){line(t.dataset.k).amount=P(t.value);renderTotals();}
+    else if(t.id==='fd-rationale'){st.rationale=t.value;renderTotals();}
+  });
+  demo.addEventListener('focusout',function(e){
+    var t=e.target;if(t.classList.contains('amt')&&t.dataset.k){t.value=F(line(t.dataset.k).amount);}
+  });
+  demo.addEventListener('change',function(e){
+    var t=e.target;
+    if(t.id==='fd-kind'){st.kind=t.value;st.inc={};$('fd-title').textContent=t.value==='regular'?'December 2026 · Regular round with fund grants':'December 2026 · Fund grant round';renderTotals();return;}
+    if(t.dataset.inc){st.inc[t.dataset.inc]=t.checked;renderTotals();var c=$('fd-inc-'+t.dataset.inc);if(c)c.focus();return;}
+    if(t.classList.contains('sel')&&t.dataset.k){line(t.dataset.k).project=t.value||null;if(t.value)st.selected=t.value;renderAll();var n=$('fd-p-'+t.dataset.k);if(n)n.focus();}
+  });
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.addEventListener('click',function(e){
+    var a=e.target.closest('a.plink');
+    if(a){e.preventDefault();st.selected=a.dataset.project;renderProject();$('project').scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});return;}
+    if(e.target.closest('#pp-back')){e.preventDefault();demo.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});return;}
+    if(!demo.contains(e.target))return;
+    var b=e.target.closest('button');if(!b)return;
+    if(b.dataset.remove){st.lines=st.lines.filter(function(l){return String(l.k)!==b.dataset.remove;});renderAll();}
+    else if(b.dataset.addproj){
+      var org=b.dataset.addproj,used=st.lines.filter(function(l){return l.org===org;}).map(function(l){return l.project;});
+      var p=PROJECTS.filter(function(p){return p.org===org&&used.indexOf(p.id)<0;})[0];if(!p)return;
+      var nl={k:++seq,org:org,project:p.id,amount:0};
+      var last=-1;st.lines.forEach(function(l,i){if(l.org===org)last=i;});st.lines.splice(last+1,0,nl);
+      renderAll();$('fd-a-'+nl.k).focus();$('fd-a-'+nl.k).select();
+    }
+    else if(b.id==='fd-addrec'){
+      var o=$('fd-neworg').value,nl2={k:++seq,org:o,project:null,amount:0};st.lines.push(nl2);renderAll();$('fd-a-'+nl2.k).focus();$('fd-a-'+nl2.k).select();
+    }
+  });
+  if(location.hash==='#project'){renderAll();}else{renderAll();}
+})();
+</script>
+
+</body></html>
