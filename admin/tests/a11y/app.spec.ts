@@ -20,6 +20,9 @@ const appRoutes = [
   { name: "settings: matching rules", path: "/settings?section=matching" },
   { name: "import log", path: "/logs" },
   { name: "reports", path: "/reports" },
+  { name: "import", path: "/import" },
+  { name: "review queue", path: "/import/review?status=open,registered,ignored" },
+  { name: "review item", path: "/import/review/1" },
 ];
 
 async function scan(page: Page) {

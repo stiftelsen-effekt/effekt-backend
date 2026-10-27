@@ -65,6 +65,8 @@ export const navGroups: NavGroup[] = [
         to: "/import",
         label: "Import",
         icon: ArrowDownToLineIcon,
+        // The review queue lives under /import/review and has its own item.
+        exact: true,
         keywords: ["register", "upload", "ocr", "report", "bank", "totalin"],
       },
       {

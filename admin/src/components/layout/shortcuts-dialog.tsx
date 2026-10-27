@@ -33,6 +33,8 @@ export const shortcuts: { group: string; items: { keys: string[]; label: string 
     group: "Forms and review",
     items: [
       { keys: ["⌘", "Enter"], label: "Save / register" },
+      { keys: ["J"], label: "Next open review item" },
+      { keys: ["K"], label: "Previous open review item" },
       { keys: ["Esc"], label: "Cancel inline edit" },
     ],
   },

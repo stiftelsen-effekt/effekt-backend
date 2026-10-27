@@ -1,5 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { DonorPicker as SharedDonorPicker, type PickedDonor } from "@/features/donors/donor-picker";
+import {
+  DonorPicker as SharedDonorPicker,
+  type DonorSearch,
+  type PickedDonor,
+} from "@/features/donors/donor-picker";
 import { useTRPC } from "@/lib/trpc";
 
 /**
@@ -12,6 +16,7 @@ export function DonorPicker({
   placeholder,
   disabled,
   id,
+  search,
   "aria-invalid": ariaInvalid,
 }: {
   value: number | null;
@@ -19,6 +24,8 @@ export function DonorPicker({
   placeholder?: string;
   disabled?: boolean;
   id?: string;
+  /** Replace the API search (the /design demo uses fake data). */
+  search?: DonorSearch;
   "aria-invalid"?: boolean;
 }) {
   const trpc = useTRPC();
@@ -40,6 +47,7 @@ export function DonorPicker({
       placeholder={placeholder}
       disabled={disabled}
       id={id}
+      search={search}
       aria-invalid={ariaInvalid}
     />
   );

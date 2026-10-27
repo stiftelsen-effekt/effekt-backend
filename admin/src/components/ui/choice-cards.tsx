@@ -22,7 +22,8 @@ export function ChoiceCards<V extends string>({
   return (
     <RadioGroupPrimitive.Root
       aria-label={label}
-      value={value}
+      // "" keeps the group controlled while nothing is chosen
+      value={value ?? ""}
       onValueChange={(next) => onValueChange(next as V)}
       className={cn("grid gap-2 sm:grid-cols-2", className)}
     >

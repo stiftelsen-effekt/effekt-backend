@@ -2,7 +2,7 @@
  * Deterministic fake data for /design, typed with the real API output types so demos break
  * the build when the API changes shape. Names are random combinations, not real donors.
  */
-import type { ManualReviewItem } from "@/features/review-queue/store";
+import type { ReviewItem } from "@/features/review-queue/model";
 import { percentOfMoney, toMoneyString } from "@/lib/money";
 import type { RouterOutputs } from "@/lib/trpc";
 
@@ -479,59 +479,70 @@ export const importLogs: LogRow[] = [
   { ID: 4917, label: "AvtaleGiro", timestamp: daysAgo(2, mulberry32(5)), meta: null },
 ];
 
-export const reviewItems: ManualReviewItem[] = [
-  {
-    reason: "KID not found",
-    transaction: {
-      KID: "77812094",
-      amount: 500,
-      date: daysAgo(1, mulberry32(11)),
-      transactionID: "OCR-20261023-0012",
-      paymentID: 5,
-      message: null,
-      name: "Kari Nordby",
-      location: null,
-    },
-  },
-  {
-    reason: "No KID in transaction",
-    transaction: {
-      KID: null,
-      amount: 1200,
-      date: daysAgo(1, mulberry32(12)),
-      transactionID: "VIPPS-88123001",
-      paymentID: 4,
-      message: "Til malaria",
-      name: "Ola Strand",
-      location: "Effektiv giving stand",
-    },
-  },
-  {
-    reason: "Ambiguous: message matches two rules",
-    transaction: {
-      KID: null,
-      amount: 350,
-      date: daysAgo(2, mulberry32(13)),
-      transactionID: "VIPPS-88123044",
-      paymentID: 4,
-      message: "Julegave",
-      name: "Sofie Lie",
-      location: "Julemarked",
-    },
-  },
-  {
-    reason: "Amount does not match agreement",
-    transaction: {
-      KID: "000100400012",
-      amount: 5000,
-      date: daysAgo(2, mulberry32(14)),
-      transactionID: "OCR-20261022-0004",
-      paymentID: 7,
-      message: null,
-      name: null,
-      location: null,
-    },
-  },
+/** Open review-queue items as reports.reviewQueue.list returns them. */
+const reviewItem = (
+  id: number,
+  source: ReviewItem["source"],
+  reason: string,
+  fields: Pick<
+    ReviewItem,
+    "KID" | "amount" | "date" | "externalId" | "paymentId" | "message" | "name" | "location"
+  >,
+): ReviewItem => ({
+  id,
+  source,
+  reason,
+  ...fields,
+  importLogId: 4920,
+  status: "open",
+  resolvedBy: null,
+  resolvedAt: null,
+  note: null,
+  donationId: null,
+  created: daysAgo(0.6, mulberry32(id)),
+});
+
+export const reviewItems: ReviewItem[] = [
+  reviewItem(311, "ocr", "KID not found", {
+    KID: "77812094",
+    amount: "500.00",
+    date: daysAgo(1, mulberry32(11)),
+    externalId: "OCR-20261023-0012",
+    paymentId: 5,
+    message: null,
+    name: "Kari Nordby",
+    location: null,
+  }),
+  reviewItem(312, "vipps", "No KID in transaction", {
+    KID: null,
+    amount: "1200.00",
+    date: daysAgo(1, mulberry32(12)),
+    externalId: "VIPPS-88123001",
+    paymentId: 4,
+    message: "Til malaria",
+    name: "Ola Strand",
+    location: "Effektiv giving stand",
+  }),
+  reviewItem(313, "vipps", "Ambiguous: message matches two rules", {
+    KID: null,
+    amount: "350.00",
+    date: daysAgo(2, mulberry32(13)),
+    externalId: "VIPPS-88123044",
+    paymentId: 4,
+    message: "Julegave",
+    name: "Sofie Lie",
+    location: "Julemarked",
+  }),
+  reviewItem(314, "ocr", "Amount does not match agreement", {
+    KID: "000100400012",
+    amount: "5000.00",
+    date: daysAgo(2, mulberry32(14)),
+    externalId: "OCR-20261022-0004",
+    paymentId: 7,
+    message: null,
+    name: null,
+    location: null,
+  }),
 ];
 
 // --- Charts -------------------------------------------------------------------------------
