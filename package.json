@@ -17,7 +17,7 @@
     "debug": "cross-env NODEMON=true nodemon --exec 'node --inspect=0.0.0.0:9229 --require ts-node/register src/server.ts'",
     "dev:env:up": "docker compose -f compose.dev.yml up -d --build --wait",
     "dev:env:down": "docker compose -f compose.dev.yml down",
-    "dev:env:reset": "docker compose -f compose.dev.yml down -v && npm run dev:env:up",
+    "dev:env:reset": "docker compose -f compose.dev.yml down -v && pnpm dev:env:up",
     "dev:env:logs": "docker compose -f compose.dev.yml logs -f api",
     "dev:token": "sh scripts/dev-token.sh",
     "generate-types-from-schema": "cd src && openapi-typescript \"specs/**/*.yaml\" --output schemas/",
@@ -29,7 +29,7 @@
     "postinstall": "prisma generate"
   },
   "prisma": {
-    "seed": "npx ts-node prisma/seed.ts"
+    "seed": "ts-node prisma/seed.ts"
   },
   "repository": {
     "type": "git",
@@ -84,6 +84,7 @@
     "node-fetch": "^2.6.1",
     "norwegian-workdays": "^1.0.1",
     "object-hash": "^2.1.1",
+    "prisma": "^4.16.2",
     "qs": "^6.9.4",
     "request": "^2.88.2",
     "request-promise-native": "^1.0.9",
@@ -127,8 +128,8 @@
     "nyc": "^15.1.0",
     "openapi-typescript": "^6.2.6",
     "prettier": "^2.8.8",
-    "prisma": "^4.14.0",
     "sinon": "^15.0.4",
+    "ssh2": "1.16.0",
     "supertest": "^6.1.6",
     "ts-loader": "^9.2.6",
     "typescript": "^5.9.3",
@@ -137,5 +138,6 @@
   "lint-staged": {
     "*": "prettier --write --ignore-unknown",
     "schema.prisma": "prisma format"
-  }
+  },
+  "packageManager": "pnpm@12.15.0"
 }

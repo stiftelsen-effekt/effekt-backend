@@ -1,10 +1,10 @@
 # Isolated local environment: MySQL + mock OIDC issuer + migrations/seed + API in dev mode.
 # Nothing here talks to Auth0 or any staging/production resource.
 #
-#   npm run dev:env:up       build, start and wait until the API is healthy
-#   npm run -s dev:token     print an admin access token (see scripts/dev-token.sh)
-#   npm run dev:env:down     stop (keeps the database volume)
-#   npm run dev:env:reset    wipe the database volume, re-migrate and re-seed
+#   pnpm dev:env:up       build, start and wait until the API is healthy
+#   pnpm -s dev:token     print an admin access token (see scripts/dev-token.sh)
+#   pnpm dev:env:down     stop (keeps the database volume)
+#   pnpm dev:env:reset    wipe the database volume, re-migrate and re-seed
 #
 # Host ports can be overridden: DEV_DB_PORT (3307), DEV_AUTH_PORT (8090), DEV_API_PORT (5050).
 # Independent of docker-compose.yml (the plain-MySQL setup described further down in the README).
@@ -20,10 +20,11 @@ x-backend: &backend
     dockerfile_inline: |
       FROM node:24.22.1
       WORKDIR /app
-      COPY package.json package-lock.json ./
-      RUN npm ci --ignore-scripts --no-audit --no-fund
+      RUN corepack enable
+      COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+      RUN pnpm install --frozen-lockfile --ignore-scripts --filter stiftelsen-effekt-backend
       COPY prisma/schema.prisma prisma/schema.prisma
-      RUN npx prisma generate
+      RUN pnpm exec prisma generate
   env_file: .env.docker
   volumes:
     - ./src:/app/src:ro
@@ -127,18 +128,18 @@ services:
   migrate:
     <<: *backend
     # Applies migrations, then loads prisma/fakedata/json (prisma/seed.ts) if the DB has no donors yet.
-    # It does NOT run `npm run generate-test-data`, which rewrites the committed JSON files.
+    # It does NOT run `pnpm generate-test-data`, which rewrites the committed JSON files.
     command:
       - sh
       - -c
       - |
         set -e
-        npx prisma migrate deploy
+        pnpm exec prisma migrate deploy
         if node -e "new (require('@prisma/client').PrismaClient)().donors.count().then(n => process.exit(n > 0 ? 0 : 1), () => process.exit(1))"; then
           echo "Database already seeded, skipping seed"
         else
-          npx prisma db seed
-          npx prisma db execute --schema prisma/schema.prisma --file prisma/dev/fulltext-search.sql
+          pnpm exec prisma db seed
+          pnpm exec prisma db execute --schema prisma/schema.prisma --file prisma/dev/fulltext-search.sql
         fi
     depends_on:
       db:
@@ -147,7 +148,7 @@ services:
 
   api:
     <<: *backend
-    command: ["npx", "nodemon", "--watch", "src", "--ext", "ts,js,json", "src/server.ts"]
+    command: ["pnpm", "exec", "nodemon", "--watch", "src", "--ext", "ts,js,json", "src/server.ts"]
     ports:
       - "${DEV_API_PORT:-5050}:5050"
     depends_on:
