@@ -1,0 +1,48 @@
+# Building admin pages
+
+How to add a feature page. The design decisions are made — `DESIGN.md` is the rulebook; this file
+is the workflow. Read, in order: `DESIGN.md`, `FEATURES.md`, the template demos in
+`src/routes/design/*`, and the procedures you'll call in `../src/trpc/routers/*.ts`.
+
+## Rules
+
+- **Real data only**: tRPC through TanStack Query (`trpc.<path>.queryOptions(...)` /
+  `mutationOptions(...)`). Fake data stays in `/design`.
+- **Templates and components**: `ListPage`, `DetailPage`, `FlowPage`, `SettingsPage`, `PeekPanel`,
+  `defineList` / `useListState` / `FilterBar` / `DataTable`. If a generic component is genuinely
+  missing, add it to `src/components` following DESIGN.md and show it on `/design/components`.
+- **Lists**: URL-backed filters, sort and page, exactly like the List demo. Register ⌘K search
+  providers for your entities.
+- **Money**: API amounts are decimal strings. Format with `Money`; do arithmetic with
+  `src/lib/money.ts`, never floats. Currency follows `VITE_LOCALE`.
+- **Mutations**: follow DESIGN.md's risk ladder (inline edit for low-risk fields, explicit save for
+  forms, before → after confirmation for money, typed confirmation for irreversible). Invalidate
+  the right queries; show server validation (`error.data.fieldErrors`, `error.message`) next to the
+  fields.
+- **Country**: respect `VITE_LOCALE` (NO: Vipps/AvtaleGiro; SE: AutoGiro) via the locale helpers and
+  nav config.
+- **Copy**: English, following `src/lib/strings.ts` conventions.
+- **Accessibility**: keyboard flows as in the demos; add new routes to the axe test list.
+- **Tests**: Vitest for non-trivial logic (mappers, form → input transforms). Screenshot tests only
+  for new reusable components.
+- If a page needs data no procedure provides, don't fake it — add the procedure (backend
+  conventions: `docs/overhaul-plan.md`, `src/trpc/schemas/common.ts`) or note the gap.
+
+## Running against real data
+
+```sh
+pnpm dev:env:up          # repo root: MySQL + seeded data, mock OIDC, API on :5050
+pnpm -s dev:token        # admin token for curl
+cd admin && VITE_AUTH_MODE=dev VITE_API_URL=http://localhost:5050 pnpm dev
+```
+
+Check every page and action in a browser against seeded data, in both themes. Mutations against the
+local database are fine.
+
+`pnpm typecheck`, `pnpm build`, `pnpm test` and `pnpm test:a11y` must pass in `admin/`.
+
+## Package manager
+
+The repo is a pnpm workspace (backend at the root, admin in `admin/`); packages are hard-linked
+from pnpm's global store. Use `pnpm` only — `npm install` would create a full copy of
+`node_modules` per checkout.
