@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Callout } from "@/components/domain/callout";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,13 @@ import { Input } from "@/components/ui/input";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
 import { useTRPC } from "@/lib/trpc";
-import { emailMessage, ssnMessage, toFormErrors, type FormErrors } from "./form-errors";
+import {
+  emailMessage,
+  isDuplicateEmail,
+  ssnMessage,
+  toFormErrors,
+  type FormErrors,
+} from "./form-errors";
 
 /** What the ssn field accepts, for the hint. */
 export const ssnHint = "Fødselsnummer (11 digits) or organization number (9 digits)";
@@ -82,7 +88,27 @@ export function CreateDonorDialog({ trigger }: { trigger: ReactNode }) {
           </DialogDescription>
         </DialogHeader>
         <form id="create-donor" className="grid gap-4" onSubmit={submit} noValidate>
-          <Field label="Email" error={errors.fields.email} required>
+          <Field
+            label="Email"
+            error={
+              isDuplicateEmail(errors.fields.email) ? (
+                <>
+                  {errors.fields.email}{" "}
+                  <Link
+                    to="/donors"
+                    search={{ q: values.email.trim() }}
+                    onClick={() => setOpen(false)}
+                    className="text-accent underline"
+                  >
+                    Find the donor
+                  </Link>
+                </>
+              ) : (
+                errors.fields.email
+              )
+            }
+            required
+          >
             <Input type="email" value={values.email} onChange={set("email")} autoFocus />
           </Field>
           <Field label="Name" error={errors.fields.name} required>

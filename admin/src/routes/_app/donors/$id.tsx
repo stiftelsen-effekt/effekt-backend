@@ -38,6 +38,7 @@ import { moneySign, moneyToNumber, sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
 import { agreementStatus, donorStatus } from "@/lib/status";
 import { errorCode, useTRPC, type RouterOutputs } from "@/lib/trpc";
+import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
 const tabs = ["donations", "kids", "agreements", "tax", "referrals"] as const;
 type Tab = (typeof tabs)[number];
@@ -64,7 +65,10 @@ const donationColumns = donationCol.columns([
     header: "Date",
     cell: ({ getValue }) => <DateTime value={getValue()} format="datetime" />,
   }),
-  donationCol.accessor("paymentMethod", { header: "Method" }),
+  donationCol.accessor("paymentMethod", {
+    header: "Method",
+    cell: ({ getValue }) => <PaymentMethodName value={getValue()} />,
+  }),
   donationCol.accessor("sum", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
@@ -177,6 +181,7 @@ function Donor({ donorId }: { donorId: number }) {
     return (
       <div className="p-6">
         <ErrorState
+          back={{ to: "/donors", label: "All donors" }}
           error={donorQuery.error}
           title={
             errorCode(donorQuery.error) === "NOT_FOUND"

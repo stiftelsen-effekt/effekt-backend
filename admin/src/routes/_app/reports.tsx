@@ -21,6 +21,7 @@ import {
   transactionTotals,
 } from "@/features/reports/model";
 import { downloadFile, toCsv } from "@/lib/download";
+import { formatDate } from "@/lib/format";
 import { useTRPC } from "@/lib/trpc";
 
 const sections = [{ id: "transactions", label: "Transaction report" }];
@@ -78,7 +79,8 @@ function TransactionReport() {
         }),
       )
       .catch(() => null);
-    if (!result) return;
+    // An empty period has nothing to download; the callout below says so.
+    if (!result || result.rows.length === 0) return;
     downloadFile(
       format === "csv"
         ? {
@@ -127,6 +129,7 @@ function TransactionReport() {
             onValueChange={(next) => {
               setRange(next);
               setMissingRange(false);
+              report.reset();
             }}
           />
         </Field>
@@ -184,7 +187,15 @@ function TransactionReport() {
             {error.hint}
           </Callout>
         )}
-        {totals && !report.isPending && (
+        {totals && !report.isPending && totals.count === 0 && (
+          <Callout tone="warning" title="No donations in this period">
+            Nothing was downloaded. No donation was confirmed between {formatDate(range?.from)} and{" "}
+            {formatDate(range?.to)}
+            {methodIds.length ? " with the chosen payment methods" : ""}. Check the dates or choose
+            other payment methods.
+          </Callout>
+        )}
+        {totals && !report.isPending && totals.count > 0 && (
           <Callout tone="success" title="Report downloaded">
             <Num value={totals.count} /> {totals.count === 1 ? "donation" : "donations"},{" "}
             <Money value={totals.sum} /> in total.

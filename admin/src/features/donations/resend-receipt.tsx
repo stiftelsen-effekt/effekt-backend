@@ -39,7 +39,7 @@ export function ResendReceiptDialog({
   const resend = useMutation(trpc.donations.resendReceipt.mutationOptions());
   const target = override.trim() || email;
   const invalid = override.trim() !== "" && !isEmail(override.trim());
-  const errorInfo = resend.error ? describeError(resend.error) : null;
+  const errorInfo = resend.error ? receiptError(resend.error) : null;
 
   function onOpenChange(next: boolean) {
     if (resend.isPending) return;
@@ -122,4 +122,17 @@ export function ResendReceiptDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+/** The receipt mail failing is the common case; say what it means instead of "Something went wrong". */
+export function receiptError(error: unknown): { title: string; hint: string } {
+  const message = error instanceof Error ? error.message : "";
+  const mailCode = /^Receipt failed with error code (.+)$/.exec(message)?.[1];
+  if (mailCode !== undefined) {
+    return {
+      title: "The receipt wasn't sent",
+      hint: `The email service didn't accept it (code ${mailCode}), so the donor got nothing. Try again in a few minutes; if it keeps failing, tell the tech team.`,
+    };
+  }
+  return describeError(error);
 }

@@ -45,6 +45,7 @@ import { formatMoney } from "@/lib/format";
 import { moneyToNumber, percentOfMoney, sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
 import { agreementStatus } from "@/lib/status";
+import { maskSsn } from "@/features/donors/model";
 
 export const Route = createFileRoute("/design/detail")({
   component: DonorDemo,
@@ -281,7 +282,7 @@ function DonorDemo() {
             <PropertyList labelWidth="6.5rem">
               {donorTaxUnits.map((unit) => (
                 <Property key={unit.id} label={unit.name} hint={`${unit.numDonations} donations`}>
-                  <span className="num">{unit.ssn?.replace(/^(\d{6})\d+/, "$1 •••••")}</span>
+                  <span className="num">{maskSsn(unit.ssn)}</span>
                 </Property>
               ))}
             </PropertyList>

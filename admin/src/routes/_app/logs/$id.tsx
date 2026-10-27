@@ -33,6 +33,7 @@ function ImportLogEntryPage() {
     return (
       <DetailPage breadcrumbs={breadcrumbs} title={`Log #${id}`}>
         <ErrorState
+          back={{ to: "/logs", label: "Import log" }}
           error={entry.error ?? new Error("Not a log ID")}
           onRetry={entry.error ? () => void entry.refetch() : undefined}
         />

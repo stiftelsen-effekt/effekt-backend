@@ -14,6 +14,7 @@ import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { sumMoney } from "@/lib/money";
 import { useTRPC, type RouterOutputs } from "@/lib/trpc";
+import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
 export const Route = createFileRoute("/_app/distributions/$kid")({
   component: DistributionPage,
@@ -31,7 +32,10 @@ const columns = col.columns([
     header: "Date",
     cell: ({ getValue }) => <DateTime value={getValue()} format="datetime" />,
   }),
-  col.accessor("paymentMethod", { header: "Method" }),
+  col.accessor("paymentMethod", {
+    header: "Method",
+    cell: ({ getValue }) => <PaymentMethodName value={getValue()} />,
+  }),
   col.accessor("sum", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
@@ -61,7 +65,11 @@ function DistributionPage() {
   if (distribution.isError) {
     return (
       <DetailPage breadcrumbs={breadcrumbs} title={title}>
-        <ErrorState error={distribution.error} onRetry={() => void distribution.refetch()} />
+        <ErrorState
+          back={{ to: "/distributions", label: "All distributions" }}
+          error={distribution.error}
+          onRetry={() => void distribution.refetch()}
+        />
       </DetailPage>
     );
   }
@@ -99,8 +107,8 @@ function DistributionPage() {
         <CopyValue key="kid" value={kid} label="KID" />,
         <Link
           key="donor"
-          to="/$"
-          params={{ _splat: `donors/${d.donorId}` }}
+          to="/donors/$id"
+          params={{ id: String(d.donorId) }}
           className="text-accent hover:underline"
         >
           {donorName}
@@ -139,8 +147,8 @@ function DistributionPage() {
             <PropertyList labelWidth="6.5rem">
               <Property label="Name">
                 <Link
-                  to="/$"
-                  params={{ _splat: `donors/${d.donorId}` }}
+                  to="/donors/$id"
+                  params={{ id: String(d.donorId) }}
                   className="font-semibold text-accent hover:underline"
                 >
                   {donorName}

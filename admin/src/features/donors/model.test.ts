@@ -1,7 +1,7 @@
 import { TRPCClientError } from "@trpc/client";
 import { describe, expect, it } from "vitest";
 import { fundraisersList, toFundraiserFilter } from "@/features/fundraisers/model";
-import { toFormErrors, ssnMessage, emailMessage } from "./form-errors";
+import { emailMessage, plainMessage, ssnMessage, toFormErrors } from "./form-errors";
 import {
   donorAgreements,
   donorTotals,
@@ -217,11 +217,11 @@ describe("toFormErrors", () => {
   it("puts service messages on the field they're about", () => {
     const ssn = trpcError("Invalid ssn (failed fnr validation) checksum", { code: "BAD_REQUEST" });
     expect(toFormErrors(ssn, { ssn: ssnMessage, email: emailMessage }).fields).toEqual({
-      ssn: "Invalid ssn (failed fnr validation) checksum",
+      ssn: plainMessage("Invalid ssn (failed fnr validation) checksum"),
     });
     const email = trpcError("Email already exists", { code: "CONFLICT" });
     expect(toFormErrors(email, { ssn: ssnMessage, email: emailMessage }).fields).toEqual({
-      email: "Email already exists",
+      email: "A donor with this email already exists.",
     });
   });
 

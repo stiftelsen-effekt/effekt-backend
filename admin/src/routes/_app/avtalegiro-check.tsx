@@ -250,67 +250,69 @@ function AvtaleGiroCheckPage() {
           ) : validation.data.length === 0 ? (
             <p className="py-3 text-sm text-muted-foreground">No AvtaleGiro agreements to check.</p>
           ) : (
-            <table className="w-full text-sm">
-              <caption className="sr-only">
-                Expected and received AvtaleGiro payments per charge day over the last month
-              </caption>
-              <thead className="text-left text-muted-foreground">
-                <tr>
-                  <th scope="col" className="py-2 font-normal">
-                    Date
-                  </th>
-                  <th scope="col" className="py-2 text-right font-normal">
-                    Expected
-                  </th>
-                  <th scope="col" className="py-2 text-right font-normal">
-                    Received
-                  </th>
-                  <th scope="col" className="py-2 pl-3 font-normal">
-                    <span className="sr-only">Status</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {validation.data.map((row) => {
-                  const day = validationDate(Number(row.date), today);
-                  const current = day === date;
-                  return (
-                    <tr
-                      key={row.date}
-                      className="border-t border-border"
-                      aria-current={current ? "date" : undefined}
-                    >
-                      <td className="py-1.5">
-                        {day ? (
-                          <Link
-                            to="/avtalegiro-check"
-                            search={{ date: day, tab: search.tab }}
-                            className={
-                              current
-                                ? "num font-semibold text-foreground"
-                                : "num text-accent hover:underline focus-ring rounded-xs"
-                            }
-                          >
-                            {formatDate(day)}
-                          </Link>
-                        ) : (
-                          <span className="num">{shortChargeDay(Number(row.date))}</span>
-                        )}
-                      </td>
-                      <td className="py-1.5 text-right">
-                        <Money value={row.expected} />
-                      </td>
-                      <td className="py-1.5 text-right">
-                        <Money value={row.actual} />
-                      </td>
-                      <td className="py-1.5 pl-3">
-                        <Status catalog={avtaleGiroDayStatus} value={validationState(row)} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="-mx-4 overflow-x-auto px-4">
+              <table className="w-full text-sm whitespace-nowrap">
+                <caption className="sr-only">
+                  Expected and received AvtaleGiro payments per charge day over the last month
+                </caption>
+                <thead className="text-left text-muted-foreground">
+                  <tr>
+                    <th scope="col" className="py-2 font-normal">
+                      Date
+                    </th>
+                    <th scope="col" className="py-2 pl-2 text-right font-normal">
+                      Expected
+                    </th>
+                    <th scope="col" className="py-2 pl-2 text-right font-normal">
+                      Received
+                    </th>
+                    <th scope="col" className="py-2 pl-2 font-normal">
+                      <span className="sr-only">Status</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {validation.data.map((row) => {
+                    const day = validationDate(Number(row.date), today);
+                    const current = day === date;
+                    return (
+                      <tr
+                        key={row.date}
+                        className="border-t border-border"
+                        aria-current={current ? "date" : undefined}
+                      >
+                        <td className="py-1.5">
+                          {day ? (
+                            <Link
+                              to="/avtalegiro-check"
+                              search={{ date: day, tab: search.tab }}
+                              className={
+                                current
+                                  ? "num font-semibold text-foreground"
+                                  : "num text-accent hover:underline focus-ring rounded-xs"
+                              }
+                            >
+                              {formatDate(day)}
+                            </Link>
+                          ) : (
+                            <span className="num">{shortChargeDay(Number(row.date))}</span>
+                          )}
+                        </td>
+                        <td className="py-1.5 pl-2 text-right">
+                          <Money value={row.expected} />
+                        </td>
+                        <td className="py-1.5 pl-2 text-right">
+                          <Money value={row.actual} />
+                        </td>
+                        <td className="py-1.5 pl-2">
+                          <Status catalog={avtaleGiroDayStatus} value={validationState(row)} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </DetailPanel>
       }

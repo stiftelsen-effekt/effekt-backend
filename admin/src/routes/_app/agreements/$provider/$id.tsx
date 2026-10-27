@@ -332,7 +332,11 @@ function LoadingOrError({
   return (
     <DetailPage breadcrumbs={breadcrumbs} title={title}>
       {error ? (
-        <ErrorState error={error} onRetry={onRetry} />
+        <ErrorState
+          back={{ to: "/agreements", label: "All agreements" }}
+          error={error}
+          onRetry={onRetry}
+        />
       ) : (
         <div className="grid gap-3">
           <Skeleton className="h-20 w-full" />

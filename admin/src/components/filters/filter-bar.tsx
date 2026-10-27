@@ -1,4 +1,4 @@
-import { CheckIcon, ListFilterIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react";
+import { CheckIcon, ListFilterIcon, SearchIcon, XIcon } from "lucide-react";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -128,8 +128,8 @@ export function FilterBar({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="text-muted-foreground">
-              {hasFilters ? <PlusIcon /> : <ListFilterIcon />}
-              {hasFilters ? strings.list.filter : strings.list.addFilter}
+              <ListFilterIcon />
+              {strings.list.addFilter}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent

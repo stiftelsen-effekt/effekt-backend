@@ -18,6 +18,7 @@ import {
   SavedViews,
   TextFilter,
   useListState,
+  ListEmpty,
 } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
 import { Button } from "@/components/ui/button";
@@ -211,6 +212,13 @@ function ChargesPage() {
           peekedRowId={peekKey}
           getRowHref={(row) => `/agreements/vipps/${row.agreementID}`}
           pageHotkeys
+          empty={
+            <ListEmpty
+              list={list}
+              noun="charges"
+              hint="Charges appear here when Vipps charges a monthly agreement."
+            />
+          }
           summary={
             stats && (
               <TableSummary

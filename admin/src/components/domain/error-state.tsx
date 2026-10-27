@@ -1,4 +1,6 @@
+import { Link, type LinkProps } from "@tanstack/react-router";
 import {
+  ArrowLeftIcon,
   CircleAlertIcon,
   CloudOffIcon,
   LockIcon,
@@ -40,19 +42,27 @@ export function describeError(error: unknown) {
   return { icon: CircleAlertIcon, title: strings.errors.generic, hint: strings.errors.genericHint };
 }
 
-/** A failed load, in place of the content that failed. Always offer a retry when possible. */
+/**
+ * A failed load, in place of the content that failed. Always offer a retry when possible. A
+ * record that doesn't exist (deleted, merged) won't appear on retry, so NOT_FOUND shows `back`
+ * (a link to the list) instead.
+ */
 export function ErrorState({
   error,
   title,
   onRetry,
+  back,
   className,
 }: {
   error: unknown;
   title?: string;
   onRetry?: () => void;
+  /** Where to go when the record doesn't exist, e.g. { to: "/donors", label: "All donors" }. */
+  back?: { to: string; label: string };
   className?: string;
 }) {
   const info = describeError(error);
+  const notFound = errorCode(error) === "NOT_FOUND";
   const Icon = info.icon;
   const message = error instanceof Error ? error.message : undefined;
   return (
@@ -71,12 +81,21 @@ export function ErrorState({
           </p>
         )}
       </div>
-      {onRetry && (
-        <Button size="sm" onClick={onRetry}>
-          <RotateCwIcon />
-          {strings.actions.retry}
-        </Button>
-      )}
+      {notFound
+        ? back && (
+            <Button size="sm" asChild>
+              <Link to={back.to as LinkProps["to"]}>
+                <ArrowLeftIcon />
+                {back.label}
+              </Link>
+            </Button>
+          )
+        : onRetry && (
+            <Button size="sm" onClick={onRetry}>
+              <RotateCwIcon />
+              {strings.actions.retry}
+            </Button>
+          )}
     </div>
   );
 }

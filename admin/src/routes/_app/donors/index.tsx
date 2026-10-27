@@ -16,6 +16,7 @@ import {
   RangeFilter,
   SavedViews,
   useListState,
+  ListEmpty,
 } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ import { org } from "@/lib/org";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
 import { useTRPC } from "@/lib/trpc";
+import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
 export const Route = createFileRoute("/_app/donors/")({
   validateSearch: donorsList.validateSearch,
@@ -217,6 +219,13 @@ function DonorsPage() {
           peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/donors/${row.id}`}
           pageHotkeys
+          empty={
+            <ListEmpty
+              list={list}
+              noun="donors"
+              hint="Donors are added when someone gives for the first time."
+            />
+          }
           summary={
             stats && (
               <TableSummary
@@ -283,7 +292,9 @@ function DonorPeek({ donor, inPeriod }: { donor: DonorListRow; inPeriod: boolean
                 className="flex items-center gap-3 border-b border-border py-1.5 last:border-b-0"
               >
                 <DateTime value={donation.timestamp} className="text-muted-foreground" />
-                <span className="min-w-0 flex-1 truncate">{donation.paymentMethod}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  <PaymentMethodName value={donation.paymentMethod} />
+                </span>
                 <Link
                   to={`/donations/${donation.id}` as LinkProps["to"]}
                   className="rounded-xs font-semibold text-accent hover:underline focus-ring"

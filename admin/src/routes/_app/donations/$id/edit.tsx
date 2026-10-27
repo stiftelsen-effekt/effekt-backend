@@ -61,6 +61,7 @@ function EditDonationPage() {
     return (
       <DetailPage breadcrumbs={breadcrumbs} title="Edit donation">
         <ErrorState
+          back={{ to: "/donations", label: "All donations" }}
           error={error ?? new Error("Not a donation ID")}
           onRetry={() => {
             void donation.refetch();

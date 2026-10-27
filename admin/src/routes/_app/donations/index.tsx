@@ -16,6 +16,7 @@ import {
   SavedViews,
   TextFilter,
   useListState,
+  ListEmpty,
 } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import {
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
 import { useTRPC, type RouterOutputs } from "@/lib/trpc";
+import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
 export const Route = createFileRoute("/_app/donations/")({
   validateSearch: donationsList.validateSearch,
@@ -56,7 +58,10 @@ const columns = col.columns([
     header: "Donor",
     meta: { cellClassName: "font-semibold max-w-56 truncate" },
   }),
-  col.accessor("paymentMethod", { header: "Method" }),
+  col.accessor("paymentMethod", {
+    header: "Method",
+    cell: ({ getValue }) => <PaymentMethodName value={getValue()} />,
+  }),
   col.accessor("sum", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
@@ -213,6 +218,13 @@ function DonationsPage() {
           peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/donations/${row.id}`}
           pageHotkeys
+          empty={
+            <ListEmpty
+              list={list}
+              noun="donations"
+              hint="Donations appear when payments are imported or registered."
+            />
+          }
           summary={
             stats && (
               <TableSummary
@@ -261,8 +273,8 @@ function DonationPeek({ id, onClose }: { id: number; onClose: () => void }) {
           <PropertyList labelWidth="7rem">
             <Property label="Donor">
               <Link
-                to="/$"
-                params={{ _splat: `donors/${d.donorId}` }}
+                to="/donors/$id"
+                params={{ id: String(d.donorId) }}
                 className="font-semibold text-accent hover:underline"
               >
                 {d.donor}
@@ -272,7 +284,9 @@ function DonationPeek({ id, onClose }: { id: number; onClose: () => void }) {
             <Property label="Date">
               <DateTime value={d.timestamp} format="datetime" />
             </Property>
-            <Property label="Method">{d.paymentMethod}</Property>
+            <Property label="Method">
+              <PaymentMethodName value={d.paymentMethod} />
+            </Property>
             <Property label="Fee">
               <Money value={d.transactionCost} />
             </Property>

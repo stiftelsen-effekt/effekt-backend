@@ -25,7 +25,9 @@ export function toFormErrors<F extends string>(
     }
     if (Object.keys(fields).length > 0) return { fields };
     for (const [field, pattern] of Object.entries(match) as [F, RegExp][]) {
-      if (pattern.test(error.message)) return { fields: { [field]: error.message } as never };
+      if (pattern.test(error.message)) {
+        return { fields: { [field]: plainMessage(error.message) } as never };
+      }
     }
   }
   const info = describeError(error);
@@ -35,3 +37,23 @@ export function toFormErrors<F extends string>(
 /** Server messages that are about the ssn / organization number field. */
 export const ssnMessage = /ssn|organization number|fnr/i;
 export const emailMessage = /email/i;
+
+/** The API's message for an email that already belongs to a donor. */
+export const isDuplicateEmail = (message: string | undefined) =>
+  Boolean(message && /already (exists|belongs|in use)|duplicate/i.test(message));
+
+/**
+ * Service messages written for developers, in the person's terms. Unknown messages are
+ * returned as they are (DESIGN.md › Writing: server validation is shown as written).
+ */
+export function plainMessage(message: string): string {
+  if (/failed fnr validation/i.test(message))
+    return "That isn't a valid fødselsnummer: the check digits or the birth date don't add up. Check the 11 digits.";
+  if (/organization number \(failed checksum\)/i.test(message))
+    return "That isn't a valid organization number: the check digit doesn't add up. Check the 9 digits.";
+  if (/expected 11 digit/i.test(message))
+    return "Enter an 11-digit fødselsnummer or a 9-digit organization number, digits only.";
+  if (/^email already exists$/i.test(message.trim()))
+    return "A donor with this email already exists.";
+  return message;
+}

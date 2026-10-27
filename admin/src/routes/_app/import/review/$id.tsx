@@ -139,6 +139,7 @@ function ReviewItemPage() {
       <DetailPage title="Review item" {...header}>
         {error ? (
           <ErrorState
+            back={{ to: "/import/review", label: "Review queue" }}
             error={error}
             onRetry={() => {
               void item.refetch();

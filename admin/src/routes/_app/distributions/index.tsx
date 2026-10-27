@@ -8,7 +8,7 @@ import { DistributionSummary } from "@/components/domain/distribution-editor";
 import { ErrorState } from "@/components/domain/error-state";
 import { Money, Num } from "@/components/domain/format";
 import { Property, PropertyList } from "@/components/domain/property-list";
-import { FilterBar, SavedViews, TextFilter, useListState } from "@/components/filters";
+import { FilterBar, SavedViews, TextFilter, useListState, ListEmpty } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -145,6 +145,13 @@ function DistributionsPage() {
           peekedRowId={peekKid}
           getRowHref={(row) => `/distributions/${row.KID}`}
           pageHotkeys
+          empty={
+            <ListEmpty
+              list={list}
+              noun="distributions"
+              hint="A distribution (KID) is created with each new donation split."
+            />
+          }
           summary={
             total !== undefined && (
               <TableSummary items={[{ value: <Num value={total} />, suffix: "distributions" }]} />
@@ -181,8 +188,8 @@ function DistributionPeek({ kid, onClose }: { kid: string; onClose: () => void }
           <PropertyList labelWidth="7rem">
             <Property label="Donor">
               <Link
-                to="/$"
-                params={{ _splat: `donors/${d.donorId}` }}
+                to="/donors/$id"
+                params={{ id: String(d.donorId) }}
                 className="font-semibold text-accent hover:underline"
               >
                 {d.donor?.name ?? `#${d.donorId}`}
