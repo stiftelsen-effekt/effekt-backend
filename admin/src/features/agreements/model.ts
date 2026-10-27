@@ -40,13 +40,19 @@ export type AgreementRow = {
   created: string | null;
   cancelled: string | null;
   href: string;
+  /** The provider's own status ("ACTIVE", "inactive"); only from agreements.list. */
+  providerStatus?: string;
+  /** Vipps only, YYYY-MM-DD; only from agreements.list. */
+  pausedUntil?: string | null;
+  donorId?: number;
 };
 
 const vippsStatus: Record<string, AgreementStatus> = {
   ACTIVE: "active",
   PENDING: "pending",
   STOPPED: "stopped",
-  EXPIRED: "expired",
+  // Never accepted in the app; agreements.list maps it the same way.
+  EXPIRED: "stopped",
 };
 
 export function fromVipps(row: VippsAgreementListRow): AgreementRow {
@@ -97,8 +103,18 @@ export function fromAutoGiro(row: AutoGiroListRow): AgreementRow {
   };
 }
 
-/** "Every month on the 15th" / "Last day of every month". */
+/** 1st, 2nd, 3rd, 4th … 21st, 22nd. */
+export function ordinal(day: number) {
+  const teen = day % 100 >= 11 && day % 100 <= 13;
+  const suffix = teen ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[day % 10];
+  return `${day}${suffix ?? "th"}`;
+}
+
+/** "15th of every month" / "Last day of the month". 0 is the last day of the month. */
 export function describeChargeDay(day: number) {
   if (day === 0) return "Last day of the month";
-  return `${day}. every month`;
+  return `${ordinal(day)} of every month`;
 }
+
+/** Short form for table cells: "15th" / "Last". */
+export const shortChargeDay = (day: number) => (day === 0 ? "Last" : ordinal(day));

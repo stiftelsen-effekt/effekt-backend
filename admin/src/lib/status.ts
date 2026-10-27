@@ -15,23 +15,35 @@ function define<const T extends Record<string, StatusDefinition>>(catalog: T) {
   return catalog;
 }
 
-/** Unified agreement status across Vipps, AvtaleGiro and AutoGiro. */
+/**
+ * Unified agreement status across providers, as `agreements.list` normalises it (see
+ * DAO_modules/agreements.ts). The provider's own value is shown next to it as `providerStatus`.
+ */
 export const agreementStatus = define({
   active: {
     label: "Active",
     tone: "success",
     description: "Charged every month on the charge day",
   },
+  paused: {
+    label: "Paused",
+    tone: "accent",
+    description: "Active, but the donor paused charges until a date",
+  },
   pending: {
     label: "Pending",
     tone: "warning",
     description: "Waiting for the donor or bank to confirm",
   },
-  stopped: { label: "Stopped", tone: "neutral", description: "Cancelled by the donor or by us" },
-  expired: {
-    label: "Expired",
+  draft: {
+    label: "Draft",
     tone: "neutral",
-    description: "Never confirmed, or the mandate lapsed",
+    description: "Created, but never sent for confirmation",
+  },
+  stopped: {
+    label: "Stopped",
+    tone: "neutral",
+    description: "Cancelled by the donor or by us, or never confirmed",
   },
 });
 export type AgreementStatus = keyof typeof agreementStatus;
@@ -53,6 +65,22 @@ export const chargeStatus = define({
   CANCELLED: { label: "Cancelled", tone: "neutral", description: "Cancelled before charging" },
 });
 export type ChargeStatus = keyof typeof chargeStatus;
+
+/** One charge day in the AvtaleGiro check: did the expected money come in? */
+export const avtaleGiroDayStatus = define({
+  complete: {
+    label: "All received",
+    tone: "success",
+    description: "Received at least as expected",
+  },
+  partial: { label: "Some missing", tone: "warning", description: "Less received than expected" },
+  none: {
+    label: "Nothing received",
+    tone: "danger",
+    description: "No AvtaleGiro payments registered",
+  },
+});
+export type AvtaleGiroDayStatus = keyof typeof avtaleGiroDayStatus;
 
 /** Outcome of one transaction in an imported payment report. */
 export const importStatus = define({
@@ -127,6 +155,7 @@ export type RuleValidity = keyof typeof ruleValidity;
 export const statusCatalogs = {
   agreementStatus,
   chargeStatus,
+  avtaleGiroDayStatus,
   importStatus,
   reviewStatus,
   activeStatus,

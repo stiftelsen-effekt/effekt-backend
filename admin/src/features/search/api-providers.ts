@@ -28,8 +28,7 @@ export function useApiSearchProviders(): SearchProvider[] {
         group: "Donors",
         // The API matches name/email full text (+word requires, -word excludes, "a phrase",
         // prefix*), and an all-digit query matches the donor id.
-        applies: (query) =>
-          isDigits(query) || query.replace(/[+\-"*]/g, "").trim().length >= 2,
+        applies: (query) => isDigits(query) || query.replace(/[+\-"*]/g, "").trim().length >= 2,
         async search(query, signal) {
           const result = await badRequestIsEmpty(
             client.donors.search.query({ query: query.trim(), page: 0, limit: 6 }, { signal }),
@@ -100,7 +99,9 @@ export function useApiSearchProviders(): SearchProvider[] {
             {
               id: `fundraiser-${fundraiser.id}`,
               title: `Fundraiser #${fundraiser.id}`,
-              subtitle: `${fundraiser.donationCount} donations · created ${formatDate(fundraiser.registered)}`,
+              subtitle: `${fundraiser.donationCount} donations · created ${formatDate(
+                fundraiser.registered,
+              )}`,
               meta: formatMoney(fundraiser.totalSum),
               href: `/fundraisers/${fundraiser.id}`,
               icon: FlagIcon,
@@ -109,23 +110,71 @@ export function useApiSearchProviders(): SearchProvider[] {
         },
       },
       {
+        // Our database's copy, so search works when Vipps can't be reached.
         id: "vipps-agreement",
         group: "Agreements",
         applies: (query) => appLocale.locale === "NO" && isVippsAgreementId(query),
         async search(query, signal) {
+          const result = await client.vipps.agreements.list.query(
+            { page: 0, limit: 6, filter: { agreementID: query.trim() } },
+            { signal },
+          );
+          return result.rows.map((agreement) => ({
+            id: `vipps-${agreement.ID}`,
+            title: `Vipps agreement ${agreement.ID}`,
+            subtitle: agreement.full_name ?? undefined,
+            meta: `${formatMoney(agreement.amount)} / month`,
+            href: `/agreements/vipps/${agreement.ID}`,
+            icon: RepeatIcon,
+          }));
+        },
+      },
+      {
+        id: "avtalegiro-agreement",
+        group: "Agreements",
+        applies: (query) =>
+          appLocale.locale === "NO" && isDigits(query) && query.trim().length <= 9,
+        async search(query, signal) {
           const agreement = await notFoundIsEmpty(
-            client.vipps.agreements.get.query({ id: query.trim() }, { signal }),
+            client.giro.avtalegiro.get.query({ id: Number(query) }, { signal }),
           );
           if (!agreement) return [];
           return [
             {
-              id: `vipps-${agreement.id}`,
-              title: `Vipps agreement ${agreement.id}`,
-              meta: formatMoney(agreement.pricing.amount / 100),
-              href: `/agreements/vipps/${agreement.id}`,
+              id: `avtalegiro-${agreement.ID}`,
+              title: `AvtaleGiro agreement #${agreement.ID}`,
+              subtitle: agreement.full_name ?? undefined,
+              meta: `${formatMoney(agreement.amount)} / month`,
+              href: `/agreements/avtalegiro/${agreement.ID}`,
               icon: RepeatIcon,
             },
           ];
+        },
+      },
+      {
+        id: "agreement-kid",
+        group: "Agreements",
+        applies: (query) =>
+          appLocale.locale === "NO" && isDigits(query) && query.trim().length >= 5,
+        async search(query, signal) {
+          const result = await client.agreements.list.query(
+            {
+              page: 0,
+              limit: 6,
+              filter: { providers: ["vipps", "avtalegiro"], KID: query.trim() },
+            },
+            { signal },
+          );
+          return result.rows.map((agreement) => ({
+            id: `kid-${agreement.provider}-${agreement.id}`,
+            title: `${agreement.provider === "vipps" ? "Vipps" : "AvtaleGiro"} agreement · KID ${
+              agreement.KID
+            }`,
+            subtitle: agreement.donorName ?? undefined,
+            meta: `${formatMoney(agreement.amount)} / month`,
+            href: `/agreements/${agreement.provider}/${agreement.id}`,
+            icon: RepeatIcon,
+          }));
         },
       },
     ],

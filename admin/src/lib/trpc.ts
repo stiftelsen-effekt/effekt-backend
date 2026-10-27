@@ -26,15 +26,19 @@ export function createApiClient(getAccessToken: () => Promise<string | null>) {
   }
   return createTRPCClient<AppRouter>({
     links: [
-      // File uploads (FormData) can't be batched; everything else is.
+      // File uploads (FormData) can't be batched, and calls that wait on a payment provider
+      // (context `skipBatch`) shouldn't hold up the batch they'd share; everything else is batched.
       splitLink({
-        condition: (op) => isNonJsonSerializable(op.input),
+        condition: (op) => isNonJsonSerializable(op.input) || op.context.skipBatch === true,
         true: httpLink({ url, headers }),
         false: httpBatchLink({ url, headers }),
       }),
     ],
   });
 }
+
+/** Pass as query/mutation options to send a slow call (one that goes to Vipps) on its own. */
+export const unbatched = { trpc: { context: { skipBatch: true } } } as const;
 
 export function errorCode(error: unknown): string | undefined {
   return error instanceof TRPCClientError

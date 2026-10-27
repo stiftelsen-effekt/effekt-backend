@@ -61,6 +61,9 @@ export const strings = {
     unauthorizedHint: "Sign in again to continue.",
     forbidden: "You don't have access to this",
     forbiddenHint: "Ask an admin to grant you the admin role.",
+    upstream: "The payment provider didn't answer",
+    upstreamHint:
+      "It refused the request or couldn't be reached, so nothing changed. Try again in a few minutes; if it keeps failing, tell the tech team.",
     notFound: "Not found",
     notFoundHint: "It may have been deleted or merged into another record.",
   },

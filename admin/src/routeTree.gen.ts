@@ -14,6 +14,8 @@ import { Route as DesignRouteImport } from './routes/design'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
+import { Route as AppAvtalegiroCheckRouteImport } from './routes/_app/avtalegiro-check'
+import { Route as AppChargesRouteImport } from './routes/_app/charges'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as DesignIndexRouteImport } from './routes/design/index'
@@ -25,6 +27,7 @@ import { Route as DesignHomeRouteImport } from './routes/design/home'
 import { Route as DesignListRouteImport } from './routes/design/list'
 import { Route as DesignPatternsRouteImport } from './routes/design/patterns'
 import { Route as DesignSettingsRouteImport } from './routes/design/settings'
+import { Route as AppAgreementsIndexRouteImport } from './routes/_app/agreements/index'
 import { Route as AppDistributionsIndexRouteImport } from './routes/_app/distributions/index'
 import { Route as AppDistributionsKidRouteImport } from './routes/_app/distributions/$kid'
 import { Route as AppDistributionsNewRouteImport } from './routes/_app/distributions/new'
@@ -37,6 +40,7 @@ import { Route as AppFundraisersIdRouteImport } from './routes/_app/fundraisers/
 import { Route as AppImportIndexRouteImport } from './routes/_app/import/index'
 import { Route as AppLogsIndexRouteImport } from './routes/_app/logs/index'
 import { Route as AppLogsIdRouteImport } from './routes/_app/logs/$id'
+import { Route as AppAgreementsProviderIdRouteImport } from './routes/_app/agreements/$provider/$id'
 import { Route as AppDonationsIdIndexRouteImport } from './routes/_app/donations/$id/index'
 import { Route as AppDonationsIdEditRouteImport } from './routes/_app/donations/$id/edit'
 import { Route as AppImportReviewIndexRouteImport } from './routes/_app/import/review/index'
@@ -64,6 +68,16 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppSplatRoute = AppSplatRouteImport.update({
   id: '/$',
   path: '/$',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAvtalegiroCheckRoute = AppAvtalegiroCheckRouteImport.update({
+  id: '/avtalegiro-check',
+  path: '/avtalegiro-check',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChargesRoute = AppChargesRouteImport.update({
+  id: '/charges',
+  path: '/charges',
   getParentRoute: () => AppRoute,
 } as any)
 const AppReportsRoute = AppReportsRouteImport.update({
@@ -120,6 +134,11 @@ const DesignSettingsRoute = DesignSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => DesignRoute,
+} as any)
+const AppAgreementsIndexRoute = AppAgreementsIndexRouteImport.update({
+  id: '/agreements/',
+  path: '/agreements/',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppDistributionsIndexRoute = AppDistributionsIndexRouteImport.update({
   id: '/distributions/',
@@ -181,6 +200,11 @@ const AppLogsIdRoute = AppLogsIdRouteImport.update({
   path: '/logs/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAgreementsProviderIdRoute = AppAgreementsProviderIdRouteImport.update({
+  id: '/agreements/$provider/$id',
+  path: '/agreements/$provider/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDonationsIdIndexRoute = AppDonationsIdIndexRouteImport.update({
   id: '/donations/$id/',
   path: '/donations/$id/',
@@ -207,6 +231,8 @@ export interface FileRoutesByFullPath {
   '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/avtalegiro-check': typeof AppAvtalegiroCheckRoute
+  '/charges': typeof AppChargesRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/design/agreements': typeof DesignAgreementsRoute
@@ -224,12 +250,14 @@ export interface FileRoutesByFullPath {
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
   '/logs/$id': typeof AppLogsIdRoute
+  '/agreements/': typeof AppAgreementsIndexRoute
   '/distributions/': typeof AppDistributionsIndexRoute
   '/donations/': typeof AppDonationsIndexRoute
   '/donors/': typeof AppDonorsIndexRoute
   '/fundraisers/': typeof AppFundraisersIndexRoute
   '/import/': typeof AppImportIndexRoute
   '/logs/': typeof AppLogsIndexRoute
+  '/agreements/$provider/$id': typeof AppAgreementsProviderIdRoute
   '/donations/$id/edit': typeof AppDonationsIdEditRoute
   '/import/review/$id': typeof AppImportReviewIdRoute
   '/donations/$id/': typeof AppDonationsIdIndexRoute
@@ -238,6 +266,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/avtalegiro-check': typeof AppAvtalegiroCheckRoute
+  '/charges': typeof AppChargesRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/design/agreements': typeof DesignAgreementsRoute
@@ -256,12 +286,14 @@ export interface FileRoutesByTo {
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
   '/logs/$id': typeof AppLogsIdRoute
+  '/agreements': typeof AppAgreementsIndexRoute
   '/distributions': typeof AppDistributionsIndexRoute
   '/donations': typeof AppDonationsIndexRoute
   '/donors': typeof AppDonorsIndexRoute
   '/fundraisers': typeof AppFundraisersIndexRoute
   '/import': typeof AppImportIndexRoute
   '/logs': typeof AppLogsIndexRoute
+  '/agreements/$provider/$id': typeof AppAgreementsProviderIdRoute
   '/donations/$id/edit': typeof AppDonationsIdEditRoute
   '/import/review/$id': typeof AppImportReviewIdRoute
   '/donations/$id': typeof AppDonationsIdIndexRoute
@@ -273,6 +305,8 @@ export interface FileRoutesById {
   '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/$': typeof AppSplatRoute
+  '/_app/avtalegiro-check': typeof AppAvtalegiroCheckRoute
+  '/_app/charges': typeof AppChargesRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/design/agreements': typeof DesignAgreementsRoute
@@ -291,12 +325,14 @@ export interface FileRoutesById {
   '/_app/donors/$id': typeof AppDonorsIdRoute
   '/_app/fundraisers/$id': typeof AppFundraisersIdRoute
   '/_app/logs/$id': typeof AppLogsIdRoute
+  '/_app/agreements/': typeof AppAgreementsIndexRoute
   '/_app/distributions/': typeof AppDistributionsIndexRoute
   '/_app/donations/': typeof AppDonationsIndexRoute
   '/_app/donors/': typeof AppDonorsIndexRoute
   '/_app/fundraisers/': typeof AppFundraisersIndexRoute
   '/_app/import/': typeof AppImportIndexRoute
   '/_app/logs/': typeof AppLogsIndexRoute
+  '/_app/agreements/$provider/$id': typeof AppAgreementsProviderIdRoute
   '/_app/donations/$id/edit': typeof AppDonationsIdEditRoute
   '/_app/import/review/$id': typeof AppImportReviewIdRoute
   '/_app/donations/$id/': typeof AppDonationsIdIndexRoute
@@ -309,6 +345,8 @@ export interface FileRouteTypes {
     | '/design'
     | '/login'
     | '/$'
+    | '/avtalegiro-check'
+    | '/charges'
     | '/reports'
     | '/settings'
     | '/design/agreements'
@@ -326,12 +364,14 @@ export interface FileRouteTypes {
     | '/donors/$id'
     | '/fundraisers/$id'
     | '/logs/$id'
+    | '/agreements/'
     | '/distributions/'
     | '/donations/'
     | '/donors/'
     | '/fundraisers/'
     | '/import/'
     | '/logs/'
+    | '/agreements/$provider/$id'
     | '/donations/$id/edit'
     | '/import/review/$id'
     | '/donations/$id/'
@@ -340,6 +380,8 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/$'
+    | '/avtalegiro-check'
+    | '/charges'
     | '/reports'
     | '/settings'
     | '/design/agreements'
@@ -358,12 +400,14 @@ export interface FileRouteTypes {
     | '/donors/$id'
     | '/fundraisers/$id'
     | '/logs/$id'
+    | '/agreements'
     | '/distributions'
     | '/donations'
     | '/donors'
     | '/fundraisers'
     | '/import'
     | '/logs'
+    | '/agreements/$provider/$id'
     | '/donations/$id/edit'
     | '/import/review/$id'
     | '/donations/$id'
@@ -374,6 +418,8 @@ export interface FileRouteTypes {
     | '/design'
     | '/login'
     | '/_app/$'
+    | '/_app/avtalegiro-check'
+    | '/_app/charges'
     | '/_app/reports'
     | '/_app/settings'
     | '/design/agreements'
@@ -392,12 +438,14 @@ export interface FileRouteTypes {
     | '/_app/donors/$id'
     | '/_app/fundraisers/$id'
     | '/_app/logs/$id'
+    | '/_app/agreements/'
     | '/_app/distributions/'
     | '/_app/donations/'
     | '/_app/donors/'
     | '/_app/fundraisers/'
     | '/_app/import/'
     | '/_app/logs/'
+    | '/_app/agreements/$provider/$id'
     | '/_app/donations/$id/edit'
     | '/_app/import/review/$id'
     | '/_app/donations/$id/'
@@ -445,6 +493,20 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof AppSplatRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/avtalegiro-check': {
+      id: '/_app/avtalegiro-check'
+      path: '/avtalegiro-check'
+      fullPath: '/avtalegiro-check'
+      preLoaderRoute: typeof AppAvtalegiroCheckRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/charges': {
+      id: '/_app/charges'
+      path: '/charges'
+      fullPath: '/charges'
+      preLoaderRoute: typeof AppChargesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/reports': {
@@ -523,6 +585,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/design/settings'
       preLoaderRoute: typeof DesignSettingsRouteImport
       parentRoute: typeof DesignRoute
+    }
+    '/_app/agreements/': {
+      id: '/_app/agreements/'
+      path: '/agreements'
+      fullPath: '/agreements/'
+      preLoaderRoute: typeof AppAgreementsIndexRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/distributions/': {
       id: '/_app/distributions/'
@@ -608,6 +677,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLogsIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/agreements/$provider/$id': {
+      id: '/_app/agreements/$provider/$id'
+      path: '/agreements/$provider/$id'
+      fullPath: '/agreements/$provider/$id'
+      preLoaderRoute: typeof AppAgreementsProviderIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/donations/$id/': {
       id: '/_app/donations/$id/'
       path: '/donations/$id'
@@ -641,6 +717,8 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
+  AppAvtalegiroCheckRoute: typeof AppAvtalegiroCheckRoute
+  AppChargesRoute: typeof AppChargesRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -650,12 +728,14 @@ interface AppRouteChildren {
   AppDonorsIdRoute: typeof AppDonorsIdRoute
   AppFundraisersIdRoute: typeof AppFundraisersIdRoute
   AppLogsIdRoute: typeof AppLogsIdRoute
+  AppAgreementsIndexRoute: typeof AppAgreementsIndexRoute
   AppDistributionsIndexRoute: typeof AppDistributionsIndexRoute
   AppDonationsIndexRoute: typeof AppDonationsIndexRoute
   AppDonorsIndexRoute: typeof AppDonorsIndexRoute
   AppFundraisersIndexRoute: typeof AppFundraisersIndexRoute
   AppImportIndexRoute: typeof AppImportIndexRoute
   AppLogsIndexRoute: typeof AppLogsIndexRoute
+  AppAgreementsProviderIdRoute: typeof AppAgreementsProviderIdRoute
   AppDonationsIdEditRoute: typeof AppDonationsIdEditRoute
   AppImportReviewIdRoute: typeof AppImportReviewIdRoute
   AppDonationsIdIndexRoute: typeof AppDonationsIdIndexRoute
@@ -664,6 +744,8 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
+  AppAvtalegiroCheckRoute: AppAvtalegiroCheckRoute,
+  AppChargesRoute: AppChargesRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
@@ -673,12 +755,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppDonorsIdRoute: AppDonorsIdRoute,
   AppFundraisersIdRoute: AppFundraisersIdRoute,
   AppLogsIdRoute: AppLogsIdRoute,
+  AppAgreementsIndexRoute: AppAgreementsIndexRoute,
   AppDistributionsIndexRoute: AppDistributionsIndexRoute,
   AppDonationsIndexRoute: AppDonationsIndexRoute,
   AppDonorsIndexRoute: AppDonorsIndexRoute,
   AppFundraisersIndexRoute: AppFundraisersIndexRoute,
   AppImportIndexRoute: AppImportIndexRoute,
   AppLogsIndexRoute: AppLogsIndexRoute,
+  AppAgreementsProviderIdRoute: AppAgreementsProviderIdRoute,
   AppDonationsIdEditRoute: AppDonationsIdEditRoute,
   AppImportReviewIdRoute: AppImportReviewIdRoute,
   AppDonationsIdIndexRoute: AppDonationsIdIndexRoute,

@@ -116,7 +116,7 @@ const typeScale = [
     token: "text-sm",
     size: "13/20",
     use: "Tables, labels, buttons, meta",
-    sample: "AvtaleGiro · 20. every month",
+    sample: "AvtaleGiro · 20th of every month",
   },
   {
     token: "text-xs",
