@@ -32,6 +32,23 @@ export const moneySchema = z
     message: "Amount can have at most two decimals",
   });
 
+const twoDecimals = (value: number) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6;
+
+/** Like moneySchema, but 0 is allowed */
+export const nonNegativeMoneySchema = z
+  .number()
+  .min(0)
+  .max(99_999_999_999_999)
+  .refine(twoDecimals, { message: "Amount can have at most two decimals" });
+
+/** A signed, non-zero money amount in kroner with at most two decimals */
+export const signedMoneySchema = z
+  .number()
+  .min(-99_999_999_999_999)
+  .max(99_999_999_999_999)
+  .refine((value) => value !== 0, { message: "Amount can't be zero" })
+  .refine(twoDecimals, { message: "Amount can have at most two decimals" });
+
 /** A non-negative decimal number as a string, e.g. "33.333333333333" */
 const percentageShareSchema = z
   .string()

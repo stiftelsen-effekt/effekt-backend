@@ -1,0 +1,453 @@
+import { z } from "zod";
+import {
+  adjustmentTypes,
+  paidByValues,
+  projectStatuses,
+  roundKinds,
+  roundStatuses,
+} from "../../custom_modules/regranting/types";
+import {
+  idSchema as id,
+  isoDateSchema,
+  moneySchema,
+  nonNegativeMoneySchema,
+  signedMoneySchema,
+} from "./common";
+
+/** Inputs of the regranting router. Money is a number in kroner (two decimals max). */
+
+export const roundKindSchema = z.enum(roundKinds);
+export const roundStatusSchema = z.enum(roundStatuses);
+export const adjustmentTypeSchema = z.enum(adjustmentTypes);
+export const projectStatusSchema = z.enum(projectStatuses);
+export const paidBySchema = z.enum(paidByValues);
+
+const text = (max: number) => z.string().trim().min(1).max(max);
+const optionalText = (max: number) => z.string().trim().max(max).nullable();
+/** Required free text (reasons, rationales): non-blank */
+const reasonText = z.string().trim().min(1, "Required").max(5000);
+
+/** ISO 4217 code, or e.g. BTC */
+export const currencySchema = z
+  .string()
+  .regex(/^[A-Z]{3,8}$/, "Currency must be an upper-case code like NOK, EUR or BTC");
+
+/** Decimal string with up to 8 decimals, e.g. "0.01234567" (foreign amounts, FX rates) */
+const preciseDecimal = (integerDigits: number) =>
+  z
+    .string()
+    .regex(
+      new RegExp(`^\\d{1,${integerDigits}}(\\.\\d{1,8})?$`),
+      `Expected a positive decimal string with at most ${integerDigits} integer digits and 8 decimals`,
+    )
+    .refine((v) => Number(v) > 0, "Must be greater than 0");
+
+export const byId = z.strictObject({ id });
+
+//region Lines
+
+const lineFields = {
+  organizationId: id,
+  /** null = unrestricted */
+  projectId: id.nullable(),
+};
+
+const noDuplicateLines = <T extends { organizationId: number; projectId: number | null }>(
+  lines: T[],
+  ctx: z.core.$RefinementCtx,
+) => {
+  const seen = new Set<string>();
+  for (const line of lines) {
+    const key = `${line.organizationId}:${line.projectId ?? ""}`;
+    if (seen.has(key)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Recipient ${line.organizationId}${
+          line.projectId ? `, project ${line.projectId}` : " (unrestricted)"
+        } appears twice; use one line`,
+      });
+    }
+    seen.add(key);
+  }
+};
+
+export const transferLineInput = z.strictObject({ ...lineFields, amountNok: moneySchema });
+export const transferLinesSchema = z.array(transferLineInput).superRefine(noDuplicateLines);
+
+export const fundGrantLineInput = z.strictObject({ ...lineFields, amount: moneySchema });
+export const fundGrantLinesSchema = z
+  .array(fundGrantLineInput)
+  .min(1)
+  .superRefine(noDuplicateLines);
+
+//endregion
+
+//region Balances and statements
+
+export const balancesListInput = z
+  .strictObject({
+    /** Default: today (Europe/Oslo) */
+    at: isoDateSchema.optional(),
+    /** Only these recipients */
+    organizationIds: z.array(id).min(1).optional(),
+  })
+  .optional();
+
+export const statementInput = z
+  .strictObject({
+    organizationId: id,
+    from: isoDateSchema,
+    /** Default: today (Europe/Oslo) */
+    to: isoDateSchema.optional(),
+    /** Omit for all; null for unrestricted only; an id for that project */
+    projectId: id.nullable().optional(),
+  })
+  .refine((v) => v.to === undefined || v.to >= v.from, {
+    message: "`to` is before `from`",
+    path: ["to"],
+  });
+
+//endregion
+
+//region Rounds
+
+export const roundListInput = z
+  .strictObject({
+    statuses: z.array(roundStatusSchema).min(1).optional(),
+    kinds: z.array(roundKindSchema).min(1).optional(),
+  })
+  .optional();
+
+export const roundCreateInput = z
+  .strictObject({
+    name: text(255),
+    kind: roundKindSchema,
+    cutoff: isoDateSchema,
+    /** Proposal: a recipient whose total is under this is proposed 0. Default 0. */
+    minTransfer: nonNegativeMoneySchema.default(0),
+    /** major_donor only (required there): the donations the round passes on */
+    donationIds: z.array(id).min(1).max(1000).optional(),
+    /** Fill the round with the proposal right away. Default true. */
+    propose: z.boolean().default(true),
+  })
+  .superRefine((v, ctx) => {
+    if (v.kind === "major_donor" && !v.donationIds) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A major_donor round needs donationIds",
+        path: ["donationIds"],
+      });
+    }
+    if (v.kind !== "major_donor" && v.donationIds) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Only major_donor rounds have donations",
+        path: ["donationIds"],
+      });
+    }
+  });
+
+export const roundUpdateInput = z.strictObject({
+  id,
+  name: text(255).optional(),
+  cutoff: isoDateSchema.optional(),
+  minTransfer: nonNegativeMoneySchema.optional(),
+});
+
+export const roundDonationsInput = z.strictObject({
+  id,
+  donationIds: z.array(id).min(1).max(1000),
+});
+
+export const includeDirectInput = z.strictObject({
+  roundId: id,
+  organizationId: id,
+  /** null clears the override (the kind's default applies) */
+  includeDirect: z.boolean().nullable(),
+  /** Re-propose this recipient's lines afterwards. Default true. */
+  propose: z.boolean().default(true),
+});
+
+export const proposeInput = z.strictObject({
+  id,
+  /** Only re-propose these recipients' lines (all when omitted) */
+  organizationIds: z.array(id).min(1).optional(),
+});
+
+//endregion
+
+//region Transfers
+
+export const transferCreateInput = z.strictObject({
+  roundId: id,
+  payeeId: id,
+  /** Default: the payee's currency */
+  currency: currencySchema.optional(),
+  /** Default: none. amount_nok is set to their sum. */
+  lines: transferLinesSchema.optional(),
+});
+
+export const transferUpdateInput = z.strictObject({
+  id,
+  payeeId: id.optional(),
+  currency: currencySchema.optional(),
+  /** Set the bank amount explicitly (validation checks the lines sum to it) */
+  amountNok: nonNegativeMoneySchema.optional(),
+});
+
+export const transferSetLinesInput = z.strictObject({
+  id,
+  lines: transferLinesSchema,
+  /** Set amount_nok to the lines' sum. Default true. */
+  syncAmount: z.boolean().default(true),
+});
+
+export const transferSetLineInput = z.strictObject({
+  id,
+  ...lineFields,
+  /** 0 removes the line. amount_nok is set to the lines' sum. */
+  amountNok: nonNegativeMoneySchema,
+});
+
+export const recordPaymentInput = z.strictObject({
+  id,
+  paidAt: isoDateSchema,
+  /** Default: the transfer's currency */
+  currency: currencySchema.optional(),
+  /** In `currency`; up to 8 decimals */
+  amountForeign: preciseDecimal(16).nullable().default(null),
+  /** NOK per unit of `currency`; up to 8 decimals */
+  fxRate: preciseDecimal(10).nullable().default(null),
+  /** NOK, paid by operations; doesn't reduce the recipient's balance */
+  bankFee: nonNegativeMoneySchema.nullable().default(null),
+  bankRef: optionalText(255).default(null),
+  paidBy: paidBySchema.default("foundation"),
+});
+
+//endregion
+
+//region Fund grants
+
+export const fundGrantCreateInput = z.strictObject({
+  roundId: id,
+  /** The own fund's organization id */
+  fundId: id,
+  rationale: reasonText,
+  lines: fundGrantLinesSchema,
+});
+
+export const fundGrantUpdateInput = z.strictObject({
+  id,
+  rationale: reasonText.optional(),
+  lines: fundGrantLinesSchema.optional(),
+});
+
+//endregion
+
+//region Adjustments
+
+const adjustmentFields = {
+  organizationId: id,
+  projectId: id.nullable().default(null),
+  /** Signed. fronted: the amount fronted (positive; a record, not counted in the balance) */
+  amount: signedMoneySchema,
+  type: adjustmentTypeSchema,
+  reason: reasonText,
+  effectiveAt: isoDateSchema,
+  /** A draft round this belongs to, e.g. a correction decided in a later round */
+  roundId: id.nullable().default(null),
+  /** correction only: the paid transfer it corrects */
+  linkedTransferId: id.nullable().default(null),
+  /** fronted only: the expected donation (can be linked later with linkDonation) */
+  linkedDonationId: id.nullable().default(null),
+  /** Bilag */
+  documentRef: optionalText(512).default(null),
+};
+
+const refineAdjustment = (
+  a: {
+    type: string;
+    amount: number;
+    linkedTransferId: number | null;
+    linkedDonationId: number | null;
+  },
+  ctx: z.core.$RefinementCtx,
+) => {
+  if (a.linkedTransferId !== null && a.type !== "correction") {
+    ctx.addIssue({
+      code: "custom",
+      message: "Only corrections link a transfer",
+      path: ["linkedTransferId"],
+    });
+  }
+  if (a.linkedDonationId !== null && a.type !== "fronted") {
+    ctx.addIssue({
+      code: "custom",
+      message: "Only fronted entries link a donation",
+      path: ["linkedDonationId"],
+    });
+  }
+  if (a.type === "fronted" && a.amount < 0) {
+    ctx.addIssue({ code: "custom", message: "A fronted amount is positive", path: ["amount"] });
+  }
+};
+
+export const adjustmentCreateInput = z.strictObject(adjustmentFields).superRefine(refineAdjustment);
+
+/** Replaces every field (send the full adjustment) */
+export const adjustmentUpdateInput = z
+  .strictObject({ id, ...adjustmentFields })
+  .superRefine(refineAdjustment);
+
+export const adjustmentListInput = z
+  .strictObject({
+    organizationId: id.optional(),
+    projectId: id.optional(),
+    roundId: id.optional(),
+    types: z.array(adjustmentTypeSchema).min(1).optional(),
+    from: isoDateSchema.optional(),
+    to: isoDateSchema.optional(),
+  })
+  .optional();
+
+export const linkDonationInput = z.strictObject({ id, donationId: id.nullable() });
+
+//endregion
+
+//region Payees and routing
+
+const payeeFields = {
+  name: text(255),
+  currency: currencySchema.default("NOK"),
+  bankAccount: optionalText(64).default(null),
+  iban: optionalText(64).default(null),
+  swift: optionalText(16).default(null),
+  wallet: optionalText(128).default(null),
+  /** e.g. "Gi Effektivt {round}" */
+  paymentReferenceTemplate: optionalText(255).default(null),
+  isActive: z.boolean().default(true),
+};
+
+export const payeeCreateInput = z.strictObject(payeeFields);
+
+export const payeeUpdateInput = z.strictObject({
+  id,
+  name: text(255).optional(),
+  currency: currencySchema.optional(),
+  bankAccount: optionalText(64).optional(),
+  iban: optionalText(64).optional(),
+  swift: optionalText(16).optional(),
+  wallet: optionalText(128).optional(),
+  paymentReferenceTemplate: optionalText(255).optional(),
+  isActive: z.boolean().optional(),
+});
+
+const validRange = (
+  v: { validFrom?: string; validTo?: string | null },
+  ctx: z.core.$RefinementCtx,
+) => {
+  if (v.validFrom && v.validTo && v.validTo < v.validFrom) {
+    ctx.addIssue({ code: "custom", message: "validTo is before validFrom", path: ["validTo"] });
+  }
+};
+
+export const routingListInput = z
+  .strictObject({ organizationId: id.optional(), payeeId: id.optional() })
+  .optional();
+
+export const routingCreateInput = z
+  .strictObject({
+    organizationId: id,
+    payeeId: id,
+    validFrom: isoDateSchema,
+    /** Inclusive; null = open-ended */
+    validTo: isoDateSchema.nullable().default(null),
+  })
+  .superRefine(validRange);
+
+export const routingUpdateInput = z
+  .strictObject({
+    id,
+    organizationId: id.optional(),
+    payeeId: id.optional(),
+    validFrom: isoDateSchema.optional(),
+    validTo: isoDateSchema.nullable().optional(),
+  })
+  .superRefine(validRange);
+
+//endregion
+
+//region Projects, funds, holds
+
+const projectFields = {
+  organizationId: id,
+  name: text(255),
+  description: optionalText(5000).default(null),
+  country: optionalText(64).default(null),
+  startDate: isoDateSchema.nullable().default(null),
+  endDate: isoDateSchema.nullable().default(null),
+  status: projectStatusSchema.default("proposed"),
+  agreementRef: optionalText(255).default(null),
+  reportDue: isoDateSchema.nullable().default(null),
+  documentsUrl: optionalText(512).default(null),
+};
+
+export const projectCreateInput = z.strictObject(projectFields);
+
+export const projectUpdateInput = z.strictObject({
+  id,
+  organizationId: id.optional(),
+  name: text(255).optional(),
+  description: optionalText(5000).optional(),
+  country: optionalText(64).optional(),
+  startDate: isoDateSchema.nullable().optional(),
+  endDate: isoDateSchema.nullable().optional(),
+  status: projectStatusSchema.optional(),
+  agreementRef: optionalText(255).optional(),
+  reportDue: isoDateSchema.nullable().optional(),
+  documentsUrl: optionalText(512).optional(),
+});
+
+export const projectListInput = z
+  .strictObject({
+    organizationId: id.optional(),
+    statuses: z.array(projectStatusSchema).min(1).optional(),
+  })
+  .optional();
+
+const maxHoldDays = z.number().int().positive().max(36500).nullable();
+
+export const fundCreateInput = z.strictObject({
+  organizationId: id,
+  maxHoldDays: maxHoldDays.default(null),
+});
+
+export const fundUpdateInput = z.strictObject({ organizationId: id, maxHoldDays });
+
+export const fundByOrganization = z.strictObject({ organizationId: id });
+
+export const holdListInput = z
+  .strictObject({
+    /** Only holds active on this day */
+    activeAt: isoDateSchema.optional(),
+    organizationId: id.optional(),
+  })
+  .optional();
+
+export const holdCreateInput = z.strictObject({
+  organizationId: id,
+  /** null = the whole recipient */
+  projectId: id.nullable().default(null),
+  reason: reasonText,
+  /** Active for rounds with cutoff on or before this day; null = until removed */
+  until: isoDateSchema.nullable().default(null),
+});
+
+export const holdUpdateInput = z.strictObject({
+  id,
+  projectId: id.nullable().optional(),
+  reason: reasonText.optional(),
+  until: isoDateSchema.nullable().optional(),
+});
+
+//endregion
