@@ -17,7 +17,7 @@ export default defineConfig({
       // Local mock OIDC server (compose.dev.yml). It derives `iss` from the Host header,
       // so present the in-network host the API trusts (http://auth:8080/effekt).
       "/dev-auth": {
-        target: "http://localhost:8090",
+        target: process.env.DEV_AUTH_PROXY_TARGET ?? "http://localhost:8090",
         changeOrigin: false,
         headers: { Host: "auth:8080" },
         rewrite: (path) => path.replace(/^\/dev-auth/, ""),

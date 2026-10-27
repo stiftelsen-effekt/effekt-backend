@@ -31,10 +31,12 @@ is the workflow. Read, in order: `DESIGN.md`, `FEATURES.md`, the template demos 
 ## Running against real data
 
 ```sh
-pnpm dev:env:up          # repo root: MySQL + seeded data, mock OIDC, API on :5050
+pnpm dev:env:up          # repo root: MySQL + seeded data, mock OIDC, API on :5050, admin on :3001
 pnpm -s dev:token        # admin token for curl
-cd admin && VITE_AUTH_MODE=dev VITE_API_URL=http://localhost:5050 pnpm dev
 ```
+
+The admin container hot-reloads from your checkout. To run the admin on the host instead:
+`cd admin && VITE_AUTH_MODE=dev VITE_API_URL=http://localhost:5050 pnpm dev --port 5200`.
 
 Check every page and action in a browser against seeded data, in both themes. Mutations against the
 local database are fine.

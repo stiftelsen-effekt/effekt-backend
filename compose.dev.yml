@@ -167,5 +167,48 @@ services:
       retries: 60
       start_period: 30s
 
+  # The new admin (admin/) on http://localhost:3001, signed in with the local issuer.
+  # Source is bind-mounted for hot reload; node_modules live in volumes so the container gets
+  # Linux builds of native packages instead of the host's.
+  admin:
+    image: node:24.22.1
+    working_dir: /repo/admin
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        corepack enable
+        pnpm install --frozen-lockfile --filter effekt-admin-v2 --store-dir /repo/node_modules/.pnpm-store
+        pnpm exec vite --host 0.0.0.0 --port 3001 --strictPort
+    environment:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      VITE_AUTH_MODE: dev
+      VITE_API_URL: http://localhost:${DEV_API_PORT:-5050}
+      VITE_LOCALE: ${DEV_ADMIN_LOCALE:-NO}
+      VITE_DEV_AUTH_TOKEN_URL: /dev-auth/effekt/token
+      DEV_AUTH_PROXY_TARGET: http://auth:8080
+    volumes:
+      - .:/repo
+      - admin-root-node-modules:/repo/node_modules
+      - admin-node-modules:/repo/admin/node_modules
+    ports:
+      - "${DEV_ADMIN_PORT:-3001}:3001"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+
 volumes:
   db-data:
+  admin-root-node-modules:
+  admin-node-modules:
