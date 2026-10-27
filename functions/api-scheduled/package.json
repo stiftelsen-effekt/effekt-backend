@@ -1,12 +1,8 @@
 {
   "name": "api-scheduled",
   "version": "1.0.0",
-  "scripts": {
-    "gcp-build": "node node_modules/puppeteer/install.mjs"
-  },
   "dependencies": {
-    "node-fetch": "^2.6.1",
-    "puppeteer": "^22.6.5"
+    "node-fetch": "^2.6.1"
   },
   "private": true,
   "engines": {

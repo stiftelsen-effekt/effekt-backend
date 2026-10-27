@@ -18,7 +18,6 @@ import { Prisma } from "@prisma/client";
 import config from "../config";
 import { autogiroagreements } from "./DAO_modules/autogiroagreements";
 import { causeareas } from "./DAO_modules/causeareas";
-import { adoveo } from "./DAO_modules/adoveo";
 import { results } from "./DAO_modules/results";
 import { mail } from "./DAO_modules/mail";
 import { inflationadjustments } from "./DAO_modules/inflationadjustment";
@@ -72,7 +71,6 @@ export const DAO = {
   tax: tax,
   logging: logging,
   swish: swish,
-  adoveo: adoveo,
   results: results,
   mail: mail,
   inflationadjustments: inflationadjustments,

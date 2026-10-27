@@ -13,7 +13,6 @@ import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpayme
 import paymentMethods from "../enums/paymentMethods";
 import { AutoGiro_agreements, Payment_follow_up, Payment_intent } from "@prisma/client";
 import { getAllInflationEligibleAgreements } from "../custom_modules/inflationadjustment";
-import { processFundraisingCrawler } from "../custom_modules/adoveo";
 import { RequestLocale } from "../middleware/locale";
 
 const router = express.Router();
@@ -603,24 +602,6 @@ router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next
   res.json({
     status: 200,
     content: result,
-  });
-});
-
-router.post("/fundraiser/crawler", authMiddleware.isAdmin, async (req, res, next) => {
-  if (!req.body.token) {
-    return res.status(400).json({
-      status: 400,
-      message: "Missing adoveo token",
-    });
-  }
-
-  const token = req.body.token;
-
-  await processFundraisingCrawler(token);
-
-  res.json({
-    status: 200,
-    message: "Crawler completed",
   });
 });
 
