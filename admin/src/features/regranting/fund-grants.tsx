@@ -67,9 +67,14 @@ export function FundGrants({ builder, editable }: { builder: Builder; editable: 
       </p>
     );
   }
+  const funds = editable
+    ? builder.funds
+    : builder.funds.filter((f) => builder.fundGrants.some((g) => g.fundId === f.organizationId));
+  if (funds.length === 0)
+    return <p className="text-sm text-muted-foreground">No fund grants in this round.</p>;
   return (
     <div className="grid gap-4">
-      {builder.funds.map((fund) => (
+      {funds.map((fund) => (
         <FundCard
           key={fund.organizationId}
           builder={builder}

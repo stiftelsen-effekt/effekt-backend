@@ -72,6 +72,15 @@ export function Payments({
 }: PaymentsProps) {
   const saved = savedPayments(builder.transfers);
   const byId = new Map(builder.recipients.map((r) => [r.organizationId, r]));
+  // Rounds that don't include direct donations by default list every recipient with a balance;
+  // show only those in the round unless asked
+  const [showAll, setShowAll] = useState(builder.defaultIncludeDirect);
+  const inRound = (r: BuilderRecipient) =>
+    moneySign(r.totals.inRound) !== 0 ||
+    moneySign(r.totals.proposed) !== 0 ||
+    r.includeDirectOverride !== null ||
+    [...edits.keys()].some((k) => k.startsWith(`${r.organizationId}:`));
+  const hidden = builder.recipients.filter((r) => !inRound(r)).length;
 
   if (builder.recipients.length === 0) {
     return (
@@ -83,10 +92,21 @@ export function Payments({
 
   return (
     <div className="grid gap-6">
+      {editable && hidden > 0 && (
+        <div className="flex items-center gap-2 text-sm">
+          <Switch id="show-all-recipients" checked={showAll} onCheckedChange={setShowAll} />
+          <label htmlFor="show-all-recipients">
+            Show recipients not in this round ({hidden}), e.g. to include their direct donations
+          </label>
+        </div>
+      )}
       {builder.payeeGroups.map((group) => {
+        // Approved and paid rounds show only what the round pays
         const recipients = group.organizationIds
           .map((id) => byId.get(id))
-          .filter((r): r is BuilderRecipient => r !== undefined);
+          .filter((r): r is BuilderRecipient => r !== undefined)
+          .filter((r) => (editable ? showAll || inRound(r) : moneySign(r.totals.inRound) !== 0));
+        if (recipients.length === 0) return null;
         const transfers = builder.transfers.filter((t) =>
           group.payee ? t.payee.id === group.payee.id : false,
         );

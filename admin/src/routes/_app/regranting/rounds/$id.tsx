@@ -188,6 +188,7 @@ function Round({ roundId }: { roundId: number }) {
         builder && (
           <RoundActions
             builder={builder}
+            adjustments={detail.data?.adjustments ?? []}
             isCreator={isCreator}
             dirty={edits.size > 0}
             onBlocked={setApprovalIssues}
@@ -217,7 +218,9 @@ function Round({ roundId }: { roundId: number }) {
           <Stat
             label="Issues"
             value={
-              builder ? (
+              builder && !editable ? (
+                <span className="text-muted-foreground">Checked at approval</span>
+              ) : builder ? (
                 <span className={counts.errors ? "text-danger" : undefined}>
                   {counts.errors} errors · {counts.warnings} warnings
                 </span>
@@ -331,7 +334,7 @@ function Round({ roundId }: { roundId: number }) {
             <span data-testid="round-transfers">{transferCount ?? "–"}</span>{" "}
             {transferCount === 1 ? "transfer" : "transfers"}
           </span>
-          {builder && (
+          {builder && editable && (
             <span className={counts.errors ? "font-semibold text-danger" : "text-muted-foreground"}>
               {counts.errors === 0 && counts.warnings === 0
                 ? "All checks pass"
@@ -364,6 +367,8 @@ function Round({ roundId }: { roundId: number }) {
     </DetailPage>
   );
 }
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 const defaultStatementFrom = (today: string) => addDays(today, -365);
 
@@ -441,11 +446,14 @@ function IssuesPanel({
 
 function RoundActions({
   builder,
+  adjustments,
   isCreator,
   dirty,
   onBlocked,
 }: {
   builder: Builder;
+  /** Attached to the round (e.g. earmarks); deleted with a draft */
+  adjustments: RoundDetail["adjustments"];
   isCreator: boolean;
   dirty: boolean;
   onBlocked: (issues: Issue[] | null) => void;
@@ -460,6 +468,7 @@ function RoundActions({
   const reopen = useMutation(trpc.regranting.rounds.reopen.mutationOptions());
   const markPaid = useMutation(trpc.regranting.rounds.markPaid.mutationOptions());
   const remove = useMutation(trpc.regranting.rounds.delete.mutationOptions());
+  const removeAdjustment = useMutation(trpc.regranting.adjustments.delete.mutationOptions());
   const counts = countIssues(builder.issues);
   const grants = builder.fundGrants;
   const unpaid = builder.transfers.filter((t) => !t.paidAt);
@@ -520,7 +529,7 @@ function RoundActions({
               payment
             </span>,
             grants.length > 0
-              ? `${grants.length} fund grants (${formatMoney(
+              ? `${plural(grants.length, "fund grant")} (${formatMoney(
                   builder.totals.fundGranted,
                 )}) are approved with it, under your name`
               : "No fund grants",
@@ -550,11 +559,21 @@ function RoundActions({
           title={`Delete the draft ${round.name}?`}
           consequences={[
             `Its ${builder.transfers.length} transfers and ${grants.length} fund grants are deleted`,
+            ...(adjustments.length > 0
+              ? [
+                  `Its ${plural(
+                    adjustments.length,
+                    "adjustment",
+                  )} (earmarks, corrections) are deleted too`,
+                ]
+              : []),
             "Nothing was paid; the balances don't change",
           ]}
           confirmText={String(round.id)}
           confirmLabel="Delete draft"
           onConfirm={async () => {
+            // The API keeps a deleted round's adjustments (unattached); they belong to the draft
+            for (const a of adjustments) await removeAdjustment.mutateAsync({ id: a.id });
             await remove.mutateAsync({ id: round.id });
             await invalidate();
             notify.success("Draft deleted", round.name);
@@ -652,7 +671,9 @@ function ReadyDialog({ builder }: { builder: Builder }) {
                 ? `${counts.errors} errors block approval; fix them first`
                 : "Nothing blocks approval",
               `${counts.warnings} warnings`,
-              `${builder.totals.transferCount} transfers, ${formatMoney(builder.totals.inRound)}`,
+              `${plural(builder.totals.transferCount, "transfer")}, ${formatMoney(
+                builder.totals.inRound,
+              )}`,
             ]
           : ["Checking the round…"]
       }

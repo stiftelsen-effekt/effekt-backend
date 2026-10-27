@@ -53,6 +53,12 @@ Agreements
   Agreements               Vipps + AvtaleGiro, one list
   Vipps charges            charges, refunds
   AvtaleGiro check         daily expected vs received
+Regranting
+  Balances                 what each recipient is owed (expand to projects) → recipient statement
+  Rounds                   list → round builder: fund grants, payments by payee, approve, record payments
+  Projects                 list → project page (facts, everything sent to it)
+  Adjustments              ledger entries with a reason (corrections, fees, fronted …)
+  Payees & funds           payees, dated routing, own funds, holds
 Records
   Reports                  transaction report
   Import log
