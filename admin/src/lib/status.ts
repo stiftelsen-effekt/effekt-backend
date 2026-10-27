@@ -35,11 +35,6 @@ export const agreementStatus = define({
     tone: "warning",
     description: "Waiting for the donor or bank to confirm",
   },
-  draft: {
-    label: "Draft",
-    tone: "neutral",
-    description: "Created, but never sent for confirmation",
-  },
   stopped: {
     label: "Stopped",
     tone: "neutral",

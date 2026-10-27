@@ -19,7 +19,6 @@ import {
 } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { errorCode, useTRPC } from "@/lib/trpc";
-import { apiLocale } from "./api";
 import type { DonorSearch } from "@/features/donors/donor-picker";
 import { DonorPicker } from "./donor-picker";
 
@@ -38,7 +37,7 @@ export function TaxUnitSelect({
 }) {
   const trpc = useTRPC();
   const taxUnits = useQuery({
-    ...trpc.donors.taxUnits.list.queryOptions({ donorId: donorId ?? 0, locale: apiLocale }),
+    ...trpc.donors.taxUnits.list.queryOptions({ donorId: donorId ?? 0 }),
     enabled: donorId != null,
   });
   const options = (taxUnits.data ?? []).filter((unit) => !unit.archived);

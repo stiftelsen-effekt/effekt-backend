@@ -10,7 +10,7 @@ import type { AgreementRow } from "./model";
 export const listProviders = ["vipps", "avtalegiro"] as const;
 export type ListProvider = (typeof listProviders)[number];
 
-/** The normalised statuses Vipps and AvtaleGiro agreements can have ("draft" is AutoGiro-only). */
+/** The normalised statuses Vipps and AvtaleGiro agreements can have. */
 export const listStatuses = [
   "active",
   "paused",
@@ -69,10 +69,17 @@ export function toAgreementFilter(filters: AgreementListFilters): AgreementApiFi
   ) as AgreementApiFilter;
 }
 
+/**
+ * The API also knows AutoGiro and its "draft" status, but this admin only ever asks for Vipps and
+ * AvtaleGiro (`toAgreementFilter`), so neither comes back.
+ */
+export const toListStatus = (status: AgreementListApiRow["status"]): AgreementStatus =>
+  status === "draft" ? "pending" : status;
+
 /** A row of agreements.list as the shared AgreementRow. */
 export function fromListRow(row: AgreementListApiRow): AgreementRow {
   return {
-    type: row.provider,
+    type: row.provider as ListProvider,
     key: `${row.provider}:${row.id}`,
     id: row.id,
     KID: row.KID,
@@ -80,7 +87,7 @@ export function fromListRow(row: AgreementListApiRow): AgreementRow {
     donorId: row.donorId,
     amount: row.amount,
     chargeDay: row.chargeDay,
-    status: row.status,
+    status: toListStatus(row.status),
     providerStatus: row.providerStatus,
     pausedUntil: row.pausedUntil,
     created: toIso(row.created),

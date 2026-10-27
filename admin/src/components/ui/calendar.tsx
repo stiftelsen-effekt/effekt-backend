@@ -17,7 +17,7 @@ export function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      // English words (UI language), Monday-first weeks (both countries).
+      // English words (UI language), Monday-first weeks (Norwegian convention).
       locale={enGB}
       weekStartsOn={1}
       className={cn("p-3 [--cell:--spacing(8)]", className)}

@@ -30,10 +30,9 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { agreementTypes, describeChargeDay, type AgreementRow } from "@/features/agreements/model";
 import { MergeDonor } from "@/features/donors/merge-donor";
-import { apiLocale, donorAgreements, donorTotals, yearlyChart } from "@/features/donors/model";
+import { donorAgreements, donorTotals, yearlyChart } from "@/features/donors/model";
 import { TaxUnitsSection } from "@/features/donors/tax-units";
 import { CreateFundraiserDialog } from "@/features/fundraisers/create-fundraiser-dialog";
-import { config } from "@/lib/config";
 import { formatMoney } from "@/lib/format";
 import { moneySign, moneyToNumber, sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
@@ -156,17 +155,9 @@ function Donor({ donorId }: { donorId: number }) {
   const aggregated = useQuery(trpc.donors.donationsAggregated.queryOptions(input));
   const donations = useQuery(trpc.donors.donations.queryOptions(input));
   const distributions = useQuery(trpc.donors.distributionsAggregated.queryOptions(input));
-  const isNO = config.locale === "NO";
-  const vipps = useQuery({ ...trpc.donors.recurring.vipps.queryOptions(input), enabled: isNO });
-  const avtalegiro = useQuery({
-    ...trpc.donors.recurring.avtalegiro.queryOptions(input),
-    enabled: isNO,
-  });
-  const autogiro = useQuery({
-    ...trpc.donors.recurring.autogiro.queryOptions(input),
-    enabled: !isNO,
-  });
-  const taxUnits = useQuery(trpc.donors.taxUnits.list.queryOptions({ donorId, locale: apiLocale }));
+  const vipps = useQuery(trpc.donors.recurring.vipps.queryOptions(input));
+  const avtalegiro = useQuery(trpc.donors.recurring.avtalegiro.queryOptions(input));
+  const taxUnits = useQuery(trpc.donors.taxUnits.list.queryOptions({ donorId }));
   const referrals = useQuery(trpc.donors.referrals.queryOptions(input));
   const referralTypes = useQuery(trpc.config.referralTypes.listAll.queryOptions());
 
@@ -227,14 +218,13 @@ function Donor({ donorId }: { donorId: number }) {
   const lastYearTotal = totals?.byYear.get(thisYear - 1);
   const lastYearNumber = moneyToNumber(lastYearTotal);
 
-  const agreements = donorAgreements(config.locale, displayName, {
+  const agreements = donorAgreements(displayName, {
     vipps: vipps.data,
     avtalegiro: avtalegiro.data,
-    autogiro: autogiro.data,
   });
   const activeAgreements = agreements.filter((agreement) => agreement.status === "active");
-  const agreementsLoading = isNO ? vipps.isPending || avtalegiro.isPending : autogiro.isPending;
-  const agreementsError = (isNO ? vipps.error ?? avtalegiro.error : autogiro.error) ?? null;
+  const agreementsLoading = vipps.isPending || avtalegiro.isPending;
+  const agreementsError = vipps.error ?? avtalegiro.error ?? null;
 
   const typeNames = new Map((referralTypes.data ?? []).map((type) => [type.id, type.name]));
   const heardVia = (referrals.data ?? [])

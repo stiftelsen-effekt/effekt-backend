@@ -1,33 +1,19 @@
 /**
  * Small adapters between the money pages and the tRPC procedures they call.
  */
-import { config } from "@/lib/config";
-import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
-
-/**
- * The API types `locale` as its RequestLocale enum; the runtime values are the same strings
- * as the build locale ("NO" / "SV").
- */
-export const apiLocale = config.locale as RouterInputs["donations"]["list"]["locale"];
+import type { RouterOutputs } from "@/lib/trpc";
 
 export type PaymentMethod = RouterOutputs["config"]["paymentMethods"]["list"][number];
 export type DataOwner = RouterOutputs["meta"]["owners"][number];
 
 /**
- * Payment methods each country uses, masked as in the old admin: Norway hides AutoGiro and
- * Swish (ids 11–12), Sweden hides the Norwegian methods (ids 3–10: PayPal, Vipps,
- * AvtaleGiro, Facebook …).
+ * The payment methods Norway uses, masked as in the old admin: the table also holds the
+ * Swedish AutoGiro and Swish (ids 11–12), which are hidden.
  */
-const hiddenPaymentMethods: Record<typeof config.locale, (id: number) => boolean> = {
-  NO: (id) => id === 11 || id === 12,
-  SV: (id) => id >= 3 && id <= 10,
-};
+const hiddenPaymentMethodIds: ReadonlySet<number> = new Set([11, 12]);
 
-export function paymentMethodsFor<T extends { id: number }>(
-  methods: readonly T[],
-  locale: typeof config.locale = config.locale,
-): T[] {
-  return methods.filter((method) => !hiddenPaymentMethods[locale](method.id));
+export function visiblePaymentMethods<T extends { id: number }>(methods: readonly T[]): T[] {
+  return methods.filter((method) => !hiddenPaymentMethodIds.has(method.id));
 }
 
 /** The owner new records get unless someone picks another. */

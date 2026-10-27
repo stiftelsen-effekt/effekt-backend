@@ -187,7 +187,6 @@ services:
       COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
       VITE_AUTH_MODE: dev
       VITE_API_URL: http://localhost:${DEV_API_PORT:-5050}
-      VITE_LOCALE: ${DEV_ADMIN_LOCALE:-NO}
       VITE_DEV_AUTH_TOKEN_URL: /dev-auth/effekt/token
       DEV_AUTH_PROXY_TARGET: http://auth:8080
     volumes:

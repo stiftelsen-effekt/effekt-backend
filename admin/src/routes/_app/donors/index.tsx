@@ -27,7 +27,7 @@ import {
   type DonorListRow,
 } from "@/features/donors/model";
 import { downloadText } from "@/lib/download";
-import { appLocale } from "@/lib/locale";
+import { org } from "@/lib/org";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
 import { useTRPC } from "@/lib/trpc";
@@ -156,7 +156,7 @@ function DonorsPage() {
             field="fundraiserType"
             label="Fundraiser type"
             options={[
-              { value: "homebrew", label: appLocale.orgName },
+              { value: "homebrew", label: org.name },
               { value: "facebook", label: "Facebook" },
             ]}
           />

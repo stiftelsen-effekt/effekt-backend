@@ -25,7 +25,6 @@ import {
   monthTick,
 } from "@/features/home/model";
 import { useOpenReviewItems } from "@/features/home/review-queue-counts";
-import { config } from "@/lib/config";
 import { formatDate, formatMoney } from "@/lib/format";
 import { compareMoney, moneyToNumber, sumMoney } from "@/lib/money";
 import { useTRPC } from "@/lib/trpc";
@@ -33,8 +32,6 @@ import { useTRPC } from "@/lib/trpc";
 export const Route = createFileRoute("/_app/")({
   component: HomePage,
 });
-
-const isNorway = config.locale === "NO";
 
 function HomePage() {
   const trpc = useTRPC();
@@ -47,30 +44,20 @@ function HomePage() {
 
   // Needs attention
   const openReviewItems = useOpenReviewItems();
-  const missingAvtaleGiro = useQuery({
-    ...trpc.giro.avtalegiro.missing.queryOptions({ date: todayIso }),
-    enabled: isNorway,
-  });
-  const failedCharges = useQuery({
-    ...trpc.vipps.charges.list.queryOptions({
+  const missingAvtaleGiro = useQuery(trpc.giro.avtalegiro.missing.queryOptions({ date: todayIso }));
+  const failedCharges = useQuery(
+    trpc.vipps.charges.list.queryOptions({
       page: 0,
       limit: 1,
       filter: { statuses: ["FAILED"], dueDate: { from: thisMonth.fromDate, to: todayIso } },
     }),
-    enabled: isNorway,
-  });
+  );
 
   // This month
   const monthly = useQuery(trpc.donations.totalMonthly.queryOptions());
   const costs = useQuery(trpc.donations.transactionCostsReport.queryOptions());
-  const vippsReport = useQuery({
-    ...trpc.vipps.agreements.report.queryOptions(),
-    enabled: isNorway,
-  });
-  const avtaleGiroReport = useQuery({
-    ...trpc.giro.avtalegiro.report.queryOptions(),
-    enabled: isNorway,
-  });
+  const vippsReport = useQuery(trpc.vipps.agreements.report.queryOptions());
+  const avtaleGiroReport = useQuery(trpc.giro.avtalegiro.report.queryOptions());
 
   // Last 12 months by cause area
   const causeAreas = useQuery(trpc.config.causeAreas.listAll.queryOptions());
@@ -168,7 +155,7 @@ function HomePage() {
           )
         }
       />
-      {isNorway && agreements && (
+      {agreements && (
         <Stat
           label="Active agreements"
           value={<Num value={agreements.count} />}
@@ -179,7 +166,7 @@ function HomePage() {
           }
         />
       )}
-      {isNorway && agreements && (
+      {agreements && (
         <Stat
           label="Agreements started"
           value={<Num value={agreements.started} />}
@@ -208,7 +195,7 @@ function HomePage() {
     <HomeView
       greeting={greeting(user?.givenName, today)}
       attention={attention}
-      attentionLoading={isNorway && (missingAvtaleGiro.isPending || failedCharges.isPending)}
+      attentionLoading={missingAvtaleGiro.isPending || failedCharges.isPending}
       stats={stats}
       chart={
         <PageSection title="Last 12 months" description="Donations by cause area">

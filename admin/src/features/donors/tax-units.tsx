@@ -41,12 +41,12 @@ import { strings } from "@/lib/strings";
 import { useTRPC } from "@/lib/trpc";
 import { ssnHint } from "./create-donor-dialog";
 import { ssnMessage, toFormErrors, type FormErrors } from "./form-errors";
-import { apiLocale, isArchived, maskSsn, type TaxUnit } from "./model";
+import { isArchived, maskSsn, type TaxUnit } from "./model";
 
 /** The donor's tax units: deductions per year, create, edit, archive. */
 export function TaxUnitsSection({ donorId, donorName }: { donorId: number; donorName: string }) {
   const trpc = useTRPC();
-  const units = useQuery(trpc.donors.taxUnits.list.queryOptions({ donorId, locale: apiLocale }));
+  const units = useQuery(trpc.donors.taxUnits.list.queryOptions({ donorId }));
 
   if (units.isPending) return <Skeleton className="h-32" />;
   if (units.isError)
@@ -212,7 +212,7 @@ function useInvalidateTaxUnits(donorId: number) {
   return () =>
     Promise.all([
       queryClient.invalidateQueries({
-        queryKey: trpc.donors.taxUnits.list.queryKey({ donorId, locale: apiLocale }),
+        queryKey: trpc.donors.taxUnits.list.queryKey({ donorId }),
       }),
       queryClient.invalidateQueries({ queryKey: trpc.donors.donations.queryKey({ donorId }) }),
     ]);
@@ -268,8 +268,8 @@ function TaxUnitDialog({
     if (!ssn) missing.ssn = "Enter the personal or organization number";
     if (Object.keys(missing).length) return setErrors({ fields: missing });
     setErrors({ fields: {} });
-    if (unit) update.mutate({ id: unit.id, name, ssn, locale: apiLocale });
-    else create.mutate({ donorId, name, ssn, locale: apiLocale });
+    if (unit) update.mutate({ id: unit.id, name, ssn });
+    else create.mutate({ donorId, name, ssn });
   }
 
   const formId = unit ? `tax-unit-${unit.id}` : "tax-unit-new";

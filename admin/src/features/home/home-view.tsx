@@ -14,7 +14,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageHeader, PageSection } from "@/components/templates";
-import { config } from "@/lib/config";
 import type { RouterOutputs } from "@/lib/trpc";
 
 export type ImportLogRow = RouterOutputs["reports"]["logs"]["list"]["rows"][number];
@@ -59,11 +58,7 @@ export function HomeView({
                   icon={SparklesIcon}
                   size="sm"
                   title="Nothing needs you right now"
-                  description={
-                    config.locale === "NO"
-                      ? "No open review items, missing AvtaleGiro payments or failed Vipps charges."
-                      : "No open review items."
-                  }
+                  description="No open review items, missing AvtaleGiro payments or failed Vipps charges."
                   className="rounded-md border border-border"
                 />
               }

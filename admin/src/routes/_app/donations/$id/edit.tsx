@@ -10,7 +10,11 @@ import { DetailPage, PageSection } from "@/components/templates";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import type { CauseAreaConfig } from "@/features/distribution/model";
-import { paymentMethodsFor, type DataOwner, type PaymentMethod } from "@/features/donations/api";
+import {
+  visiblePaymentMethods,
+  type DataOwner,
+  type PaymentMethod,
+} from "@/features/donations/api";
 import {
   editChanges,
   editDraftFromDonation,
@@ -84,7 +88,7 @@ function EditDonationPage() {
       key={donation.data.id}
       donation={donation.data}
       config={causeAreas.data}
-      paymentMethods={paymentMethodsFor(methods.data)}
+      paymentMethods={visiblePaymentMethods(methods.data)}
       owners={owners.data}
       breadcrumbs={breadcrumbs}
     />

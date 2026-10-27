@@ -1,28 +1,20 @@
 /**
- * One agreement model across Vipps, AvtaleGiro and AutoGiro. The three APIs return
- * different shapes (ID vs id, active 0|1 vs boolean vs status string, payment_date vs
- * monthly_charge_day); pages work with AgreementRow and never touch the raw shapes.
- *
- * Which types exist depends on the build: NO has Vipps + AvtaleGiro, SE has AutoGiro.
+ * One agreement model across Vipps and AvtaleGiro. The two APIs return different shapes
+ * (active 0|1 vs status string, payment_date vs monthly_charge_day); pages work with
+ * AgreementRow and never touch the raw shapes.
  */
-import type { Locale } from "@/lib/config";
 import type { AgreementStatus } from "@/lib/status";
 import type { RouterOutputs } from "@/lib/trpc";
 
-export type AgreementType = "vipps" | "avtalegiro" | "autogiro";
+export type AgreementType = "vipps" | "avtalegiro";
 
 export const agreementTypes: Record<AgreementType, { label: string; short: string }> = {
   vipps: { label: "Vipps", short: "Vipps" },
   avtalegiro: { label: "AvtaleGiro", short: "AvtaleGiro" },
-  autogiro: { label: "AutoGiro", short: "AutoGiro" },
 };
-
-export const agreementTypesFor = (locale: Locale): AgreementType[] =>
-  locale === "NO" ? ["vipps", "avtalegiro"] : ["autogiro"];
 
 export type VippsAgreementListRow = RouterOutputs["vipps"]["agreements"]["list"]["rows"][number];
 export type AvtaleGiroListRow = RouterOutputs["giro"]["avtalegiro"]["list"]["rows"][number];
-export type AutoGiroListRow = RouterOutputs["giro"]["autogiro"]["list"]["rows"][number];
 
 export type AgreementRow = {
   type: AgreementType;
@@ -84,22 +76,6 @@ export function fromAvtaleGiro(row: AvtaleGiroListRow): AgreementRow {
     created: row.created,
     cancelled: row.cancelled,
     href: `/agreements/avtalegiro/${row.ID}`,
-  };
-}
-
-export function fromAutoGiro(row: AutoGiroListRow): AgreementRow {
-  return {
-    type: "autogiro",
-    key: `autogiro:${row.ID}`,
-    id: String(row.ID),
-    KID: row.KID,
-    donorName: row.full_name,
-    amount: row.amount,
-    chargeDay: row.payment_date,
-    status: row.active ? "active" : row.cancelled ? "stopped" : "pending",
-    created: row.created,
-    cancelled: row.cancelled,
-    href: `/agreements/autogiro/${row.ID}`,
   };
 }
 

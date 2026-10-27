@@ -3,13 +3,7 @@
  * (totals, yearly chart, agreements across providers). Pages never compute these inline.
  */
 import { defineList, param, type FilterValues } from "@/components/filters";
-import {
-  fromAutoGiro,
-  fromAvtaleGiro,
-  fromVipps,
-  type AgreementRow,
-} from "@/features/agreements/model";
-import { config, type Locale } from "@/lib/config";
+import { fromAvtaleGiro, fromVipps, type AgreementRow } from "@/features/agreements/model";
 import { fromMinorUnits, moneyToNumber, sumMoney, toMinorUnits } from "@/lib/money";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
 
@@ -167,19 +161,11 @@ export function yearlyChart(rows: YearlyAggregateRow[], maxSeries = 5): YearlyCh
 
 type Recurring = RouterOutputs["donors"]["recurring"];
 
-/** A donor's agreements across the providers of this build, as one list. */
+/** A donor's Vipps and AvtaleGiro agreements, as one list. */
 export function donorAgreements(
-  locale: Locale,
   donorName: string,
-  recurring: {
-    vipps?: Recurring["vipps"];
-    avtalegiro?: Recurring["avtalegiro"];
-    autogiro?: Recurring["autogiro"];
-  },
+  recurring: { vipps?: Recurring["vipps"]; avtalegiro?: Recurring["avtalegiro"] },
 ): AgreementRow[] {
-  if (locale === "SV") {
-    return (recurring.autogiro ?? []).map((row) => fromAutoGiro({ ...row, full_name: donorName }));
-  }
   return [
     ...(recurring.avtalegiro ?? []).map((row) =>
       fromAvtaleGiro({
@@ -208,14 +194,7 @@ export function maskSsn(ssn: string | null | undefined): string {
   if (!ssn) return "";
   const digits = ssn.replace(/\D/g, "");
   if (digits.length === 11) return `${digits.slice(0, 6)} •••••`;
-  if (digits.length === 12) return `${digits.slice(0, 8)}-••••`;
   return ssn;
 }
 
 export const isArchived = (unit: Pick<TaxUnit, "archived">) => Boolean(unit.archived);
-
-/**
- * The build's country as the API's locale input. The API types it as a TS enum
- * (RequestLocale) whose values are the same strings as our Locale.
- */
-export const apiLocale = config.locale as NonNullable<RouterInputs["donors"]["create"]["locale"]>;

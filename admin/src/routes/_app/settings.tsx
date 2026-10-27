@@ -4,11 +4,9 @@ import { SettingsPage, useScrollTopOn } from "@/components/templates";
 import { CauseAreasSection } from "@/features/settings/cause-areas-section";
 import { DataOwnersSection, MatchingRulesSection } from "@/features/settings/other-sections";
 import { ReferralTypesSection } from "@/features/settings/referral-types-section";
-import { config } from "@/lib/config";
 import { useTRPC } from "@/lib/trpc";
 
-const isNorway = config.locale === "NO";
-const sectionIds = ["cause-areas", "referrals", "owners", ...(isNorway ? ["matching"] : [])];
+const sectionIds = ["cause-areas", "referrals", "owners", "matching"];
 type SectionId = "cause-areas" | "referrals" | "owners" | "matching";
 
 export const Route = createFileRoute("/_app/settings")({
@@ -28,15 +26,13 @@ function SettingsRoute() {
   const areas = useQuery(trpc.config.causeAreas.listAll.queryOptions());
   const referrals = useQuery(trpc.config.referralTypes.listAll.queryOptions());
   const owners = useQuery(trpc.meta.owners.queryOptions());
-  const rules = useQuery({ ...trpc.vipps.matchingRules.list.queryOptions(), enabled: isNorway });
+  const rules = useQuery(trpc.vipps.matchingRules.list.queryOptions());
 
   const nav = [
     { id: "cause-areas", label: "Cause areas", count: areas.data?.length },
     { id: "referrals", label: "Referral types", count: referrals.data?.length },
     { id: "owners", label: "Data owners", count: owners.data?.length },
-    ...(isNorway
-      ? [{ id: "matching", label: "Vipps matching rules", count: rules.data?.length }]
-      : []),
+    { id: "matching", label: "Vipps matching rules", count: rules.data?.length },
   ];
 
   return (
@@ -54,7 +50,7 @@ function SettingsRoute() {
       {section === "cause-areas" && <CauseAreasSection />}
       {section === "referrals" && <ReferralTypesSection />}
       {section === "owners" && <DataOwnersSection />}
-      {section === "matching" && isNorway && <MatchingRulesSection />}
+      {section === "matching" && <MatchingRulesSection />}
     </SettingsPage>
   );
 }

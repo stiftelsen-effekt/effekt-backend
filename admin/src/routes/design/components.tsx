@@ -351,10 +351,7 @@ function Components() {
         description="Money, numbers, dates and identifiers each have exactly one component."
       >
         <div className="grid gap-4 lg:grid-cols-2">
-          <Example
-            title="Money and numbers"
-            use="Currency from the build locale; tabular figures; signed for corrections."
-          >
+          <Example title="Money and numbers" use="NOK; tabular figures; signed for corrections.">
             <Money value={1438093} className="font-semibold" />
             <Money value={249.5} decimals={2} />
             <Money value={-500} signed />

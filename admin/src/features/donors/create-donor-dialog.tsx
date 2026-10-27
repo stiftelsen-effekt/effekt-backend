@@ -14,18 +14,13 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { config } from "@/lib/config";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
 import { useTRPC } from "@/lib/trpc";
-import { apiLocale } from "./model";
 import { emailMessage, ssnMessage, toFormErrors, type FormErrors } from "./form-errors";
 
-/** What the ssn field accepts in this build, for the hint. */
-export const ssnHint =
-  config.locale === "SV"
-    ? "Personnummer or organisationsnummer, 12 digits (YYYYMMDDNNNN)"
-    : "Fødselsnummer (11 digits) or organization number (9 digits)";
+/** What the ssn field accepts, for the hint. */
+export const ssnHint = "Fødselsnummer (11 digits) or organization number (9 digits)";
 
 type Fields = "email" | "name" | "ssn";
 
@@ -70,7 +65,6 @@ export function CreateDonorDialog({ trigger }: { trigger: ReactNode }) {
       email: values.email.trim(),
       name: values.name.trim(),
       ssn: values.ssn.trim() || undefined,
-      locale: apiLocale,
     });
   }
 

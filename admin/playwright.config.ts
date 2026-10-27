@@ -51,7 +51,7 @@ export default defineConfig({
     command: `pnpm exec vite --port ${port} --strictPort`,
     url: `http://localhost:${port}/design`,
     reuseExistingServer: process.env.PW_REUSE_SERVER === "1",
-    env: { VITE_AUTH_MODE: "dev", VITE_LOCALE: "NO", VITE_API_URL: "http://localhost:5999" },
+    env: { VITE_AUTH_MODE: "dev", VITE_API_URL: "http://localhost:5999" },
     timeout: 60_000,
   },
 });

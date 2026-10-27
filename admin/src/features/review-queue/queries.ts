@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
-import { paymentMethodsFor } from "@/features/donations/api";
+import { visiblePaymentMethods } from "@/features/donations/api";
 import { useTRPC } from "@/lib/trpc";
 import { param } from "@/components/filters";
 import { queueSources } from "./model";
@@ -19,7 +19,7 @@ export function useRegistrationReferenceData() {
     causeAreas.data && methods.data && owners.data
       ? {
           config: causeAreas.data,
-          paymentMethods: paymentMethodsFor(methods.data),
+          paymentMethods: visiblePaymentMethods(methods.data),
           owners: owners.data,
         }
       : undefined;

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { formatMoney } from "./format";
-import { localeSettings } from "./locale";
 import {
   averageMoney,
   compareMoney,
@@ -94,12 +93,10 @@ describe("arithmetic", () => {
 
 describe("formatMoney with decimal strings", () => {
   it("formats strings exactly", () => {
-    expect(plain(formatMoney("1234.50", { decimals: 2, settings: localeSettings.NO }))).toBe(
-      "1 234,50 kr",
+    expect(plain(formatMoney("1234.50", { decimals: 2 }))).toBe("1 234,50 kr");
+    expect(plain(formatMoney("90071992547409.93", { decimals: 2 }))).toBe(
+      "90 071 992 547 409,93 kr",
     );
-    expect(
-      plain(formatMoney("90071992547409.93", { decimals: 2, settings: localeSettings.NO })),
-    ).toBe("90 071 992 547 409,93 kr");
     expect(formatMoney("not money")).toBe("–");
   });
 });

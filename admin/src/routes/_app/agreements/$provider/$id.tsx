@@ -25,7 +25,7 @@ import {
   AgreementDistribution,
   type SplitInput,
 } from "@/features/agreements/agreement-distribution";
-import { listProviders, type ListProvider } from "@/features/agreements/list";
+import { listProviders, toListStatus, type ListProvider } from "@/features/agreements/list";
 import { agreementTypes, describeChargeDay } from "@/features/agreements/model";
 import { moneyDecimals } from "@/features/donations/form";
 import { formatMoney } from "@/lib/format";
@@ -419,7 +419,7 @@ function VippsAgreementPage({ id }: { id: string }) {
     amount: Number(row.amount),
     chargeDay: row.monthly_charge_day,
     status:
-      listRow?.status ??
+      (listRow && toListStatus(listRow.status)) ??
       (upper === "ACTIVE"
         ? "active"
         : upper === "STOPPED" || upper === "EXPIRED"

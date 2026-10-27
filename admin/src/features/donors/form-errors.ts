@@ -33,5 +33,5 @@ export function toFormErrors<F extends string>(
 }
 
 /** Server messages that are about the ssn / organization number field. */
-export const ssnMessage = /ssn|personnummer|organisationsnummer|organization number|fnr/i;
+export const ssnMessage = /ssn|organization number|fnr/i;
 export const emailMessage = /email/i;
