@@ -1,0 +1,197 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { PencilIcon, Trash2Icon } from "lucide-react";
+import { ConfirmDialog } from "@/components/domain/confirm-dialog";
+import { CopyValue } from "@/components/domain/copy-value";
+import { DistributionSummary } from "@/components/domain/distribution-editor";
+import { ErrorState } from "@/components/domain/error-state";
+import { DateTime, Money } from "@/components/domain/format";
+import { Property, PropertyList } from "@/components/domain/property-list";
+import { DetailPage, DetailPanel, PageSection } from "@/components/templates";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { draftFromApi } from "@/features/distribution/model";
+import { useCauseAreaConfig } from "@/features/distribution/queries";
+import { ResendReceiptDialog } from "@/features/donations/resend-receipt";
+import { formatAmount } from "@/features/donations/edit-model";
+import { moneyDecimals } from "@/features/donations/form";
+import { notify } from "@/lib/notify";
+import { useTRPC } from "@/lib/trpc";
+
+export const Route = createFileRoute("/_app/donations/$id/")({
+  component: DonationPage,
+});
+
+const breadcrumbs = [{ label: "Donations", to: "/donations" }];
+
+function DonationPage() {
+  const { id: rawId } = Route.useParams();
+  const id = Number(rawId);
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const donation = useQuery({
+    ...trpc.donations.get.queryOptions({ id }),
+    enabled: Number.isInteger(id) && id > 0,
+  });
+  const owners = useQuery({ ...trpc.meta.owners.queryOptions(), staleTime: 300_000 });
+  const causeAreas = useCauseAreaConfig({ includeInactive: true });
+  const remove = useMutation(trpc.donations.delete.mutationOptions());
+
+  if (donation.isError || !(id > 0)) {
+    return (
+      <DetailPage breadcrumbs={breadcrumbs} title={`Donation #${rawId}`}>
+        <ErrorState
+          error={donation.error ?? new Error("Not a donation ID")}
+          onRetry={() => void donation.refetch()}
+        />
+      </DetailPage>
+    );
+  }
+
+  const d = donation.data;
+  if (!d) {
+    return (
+      <DetailPage breadcrumbs={breadcrumbs} title={`Donation #${id}`}>
+        <div className="grid gap-3">
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </DetailPage>
+    );
+  }
+
+  const owner = owners.data?.find((o) => o.id === d.metaOwnerId);
+
+  return (
+    <DetailPage
+      breadcrumbs={breadcrumbs}
+      title={<Money value={d.sum} decimals={moneyDecimals(d.sum)} />}
+      meta={[
+        <CopyValue key="id" value={d.id} prefix="#" label="donation ID" />,
+        <DateTime key="date" value={d.timestamp} format="datetime" />,
+        d.paymentMethod,
+        <Link
+          key="donor"
+          to="/$"
+          params={{ _splat: `donors/${d.donorId}` }}
+          className="text-accent hover:underline"
+        >
+          {d.donor}
+        </Link>,
+      ]}
+      actions={
+        <>
+          <Button asChild>
+            <Link to="/donations/$id/edit" params={{ id: String(d.id) }}>
+              <PencilIcon />
+              Edit
+            </Link>
+          </Button>
+          <ResendReceiptDialog donationId={d.id} email={d.email} />
+          <ConfirmDialog
+            title={`Delete the donation of ${formatAmount(d.sum)} from ${d.donor}?`}
+            consequences={[
+              <>
+                Donation <strong>#{d.id}</strong> is removed from the donor's history, totals and
+                tax reports.
+              </>,
+              "Receipts already sent are not withdrawn.",
+              "This can't be undone. To change the amount or split, edit the donation instead.",
+            ]}
+            confirmLabel="Delete donation"
+            tone="danger"
+            confirmText={String(d.id)}
+            onConfirm={async () => {
+              await remove.mutateAsync({ id: d.id });
+              await queryClient.invalidateQueries({ queryKey: trpc.donations.pathKey() });
+              notify.success("Donation deleted", `#${d.id} · ${formatAmount(d.sum)}`);
+              void navigate({ to: "/donations" });
+            }}
+            trigger={
+              <Button>
+                <Trash2Icon />
+                Delete…
+              </Button>
+            }
+          />
+        </>
+      }
+      aside={
+        <>
+          <DetailPanel title="Payment">
+            <PropertyList labelWidth="7rem">
+              <Property label="Amount">
+                <Money value={d.sum} decimals={2} className="font-semibold" />
+              </Property>
+              <Property label="Fee">
+                {d.transactionCost != null && <Money value={d.transactionCost} decimals={2} />}
+              </Property>
+              <Property label="Date">
+                <DateTime value={d.timestamp} format="datetime" />
+              </Property>
+              <Property label="Method">{d.paymentMethod}</Property>
+              <Property label="External ref">
+                {d.paymentExternalRef && (
+                  <CopyValue value={d.paymentExternalRef} label="external reference" />
+                )}
+              </Property>
+              <Property label="Data owner">{owner?.name}</Property>
+              {d.fundraiserId != null && (
+                <Property label="Fundraiser">
+                  <CopyValue value={d.fundraiserId} prefix="#" label="fundraiser ID" />
+                </Property>
+              )}
+            </PropertyList>
+          </DetailPanel>
+          <DetailPanel title="Donor">
+            <PropertyList labelWidth="7rem">
+              <Property label="Name">
+                <Link
+                  to="/$"
+                  params={{ _splat: `donors/${d.donorId}` }}
+                  className="font-semibold text-accent hover:underline"
+                >
+                  {d.donor}
+                </Link>
+              </Property>
+              <Property label="Email">{d.email}</Property>
+              <Property label="Donor ID">
+                <CopyValue value={d.donorId} prefix="#" label="donor ID" />
+              </Property>
+            </PropertyList>
+          </DetailPanel>
+        </>
+      }
+    >
+      <PageSection
+        title="Distribution"
+        description={
+          <>
+            KID{" "}
+            <Link
+              to="/distributions/$kid"
+              params={{ kid: d.KID }}
+              className="num text-accent hover:underline"
+            >
+              {d.KID}
+            </Link>
+          </>
+        }
+      >
+        <div className="rounded-md border border-border bg-surface p-4">
+          {causeAreas.data ? (
+            <DistributionSummary
+              draft={draftFromApi(causeAreas.data, d.distribution)}
+              config={causeAreas.data}
+            />
+          ) : causeAreas.isError ? (
+            <ErrorState error={causeAreas.error} onRetry={() => void causeAreas.refetch()} />
+          ) : (
+            <Skeleton className="h-16 w-full" />
+          )}
+        </div>
+      </PageSection>
+    </DetailPage>
+  );
+}

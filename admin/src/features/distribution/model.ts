@@ -30,16 +30,19 @@ const isHundred = (value: number) => Math.abs(value - 100) < 1e-6;
 const activeOrganizations = (area: CauseAreaConfig) =>
   area.organizations.filter((org) => org.isActive);
 
+/** A cause area a new split can use: active, with at least one active organization. */
+const isUsable = (area: CauseAreaConfig) => area.isActive && activeOrganizations(area).length > 0;
+
 /** Organization shares used when a cause area follows the standard split. */
 export function standardOrganizations(area: CauseAreaConfig): DraftOrganization[] {
   return activeOrganizations(area).map((org) => ({ id: org.id, share: org.standardShare ?? 0 }));
 }
 
-/** Empty draft: every active cause area at 0 %, standard split on. */
+/** Empty draft: every usable cause area at 0 %, standard split on. */
 export function emptyDraft(config: CauseAreaConfig[]): DistributionDraft {
   return {
     causeAreas: config
-      .filter((area) => area.isActive)
+      .filter(isUsable)
       .map((area) => ({
         id: area.id,
         share: 0,
@@ -60,30 +63,37 @@ export function standardDraft(config: CauseAreaConfig[]): DistributionDraft {
   };
 }
 
-/** Draft from an existing distribution (API strings), filling in unused cause areas. */
+/**
+ * Draft from an existing distribution (API strings), filling in unused cause areas. Cause
+ * areas and organizations the distribution uses stay in the draft even when they have been
+ * deactivated since (pass the full config, `config.causeAreas.listAll`, when editing), so
+ * opening an old split never silently drops part of it.
+ */
 export function draftFromApi(
   config: CauseAreaConfig[],
   distribution: ApiDistributionRead,
 ): DistributionDraft {
-  const draft = emptyDraft(config);
+  const usedArea = (id: number) => distribution.causeAreas.find((c) => c.id === id);
   return {
-    causeAreas: draft.causeAreas.map((area) => {
-      const existing = distribution.causeAreas.find((c) => c.id === area.id);
-      if (!existing) return area;
-      return {
-        id: area.id,
-        share: Number(existing.percentageShare),
-        standardSplit: existing.standardSplit,
-        organizations: existing.standardSplit
-          ? area.organizations
-          : area.organizations.map((org) => ({
-              id: org.id,
-              share: Number(
-                existing.organizations.find((o) => o.id === org.id)?.percentageShare ?? 0,
-              ),
-            })),
-      };
-    }),
+    causeAreas: config
+      .filter((area) => isUsable(area) || usedArea(area.id))
+      .map((area) => {
+        const existing = usedArea(area.id);
+        const standard = standardOrganizations(area);
+        if (!existing) return { id: area.id, share: 0, standardSplit: true, organizations: standard };
+        const usedShare = (orgId: number) =>
+          existing.organizations.find((o) => o.id === orgId)?.percentageShare;
+        return {
+          id: area.id,
+          share: Number(existing.percentageShare),
+          standardSplit: existing.standardSplit,
+          organizations: existing.standardSplit
+            ? standard
+            : area.organizations
+                .filter((org) => org.isActive || usedShare(org.id) !== undefined)
+                .map((org) => ({ id: org.id, share: Number(usedShare(org.id) ?? 0) })),
+        };
+      }),
   };
 }
 
@@ -122,18 +132,56 @@ export function validateDraft(draft: DistributionDraft): DistributionValidation 
   return { valid, total, remaining, causeAreas, error };
 }
 
-/** API input: cause areas with a share, percentages as decimal strings. */
+/** Shares are sent with at most six decimals (the API keeps 15; six is finer than any input). */
+const MICRO = 1_000_000;
+
+function microToString(micro: number) {
+  const whole = Math.floor(micro / MICRO);
+  const fraction = micro % MICRO;
+  return fraction === 0
+    ? String(whole)
+    : `${whole}.${String(fraction).padStart(6, "0").replace(/0+$/, "")}`;
+}
+
+/**
+ * Percentages as decimal strings that add up to exactly "100" whenever the draft is valid.
+ * The API sums the strings exactly, so 33.333333 × 3 would be rejected: the rounding drift
+ * (at most one millionth per share) goes to the largest share.
+ */
+export function exactShares(values: number[]): string[] {
+  const micro = values.map((value) => Math.round(value * MICRO));
+  const drift = 100 * MICRO - micro.reduce((total, value) => total + value, 0);
+  if (drift !== 0 && Math.abs(drift) <= micro.length) {
+    const largest = micro.indexOf(Math.max(...micro));
+    micro[largest]! += drift;
+  }
+  return micro.map(microToString);
+}
+
+/**
+ * The `causeAreas` of the API's distribution input (distributionSchema): only cause areas
+ * and organizations with a share above zero, percentages as decimal strings, the
+ * standardSplit flag per cause area. Standard split areas carry the configured
+ * organization shares (the API requires organizations that sum to 100 for every area).
+ */
 export function draftToApi(draft: DistributionDraft): ApiCauseAreaShare[] {
-  return draft.causeAreas
-    .filter((area) => area.share > 0)
-    .map((area) => ({
+  const areas = draft.causeAreas.filter((area) => area.share > 0);
+  const areaShares = exactShares(areas.map((area) => area.share));
+  return areas.map((area, index) => {
+    const organizations = area.organizations.filter((org) => org.share > 0);
+    const orgShares = exactShares(organizations.map((org) => org.share));
+    return {
       id: area.id,
-      percentageShare: String(round(area.share)),
+      percentageShare: areaShares[index]!,
       standardSplit: area.standardSplit,
-      organizations: area.organizations
-        .filter((org) => area.standardSplit || org.share > 0)
-        .map((org) => ({ id: org.id, percentageShare: String(round(org.share)) })),
-    }));
+      organizations: organizations.map((org, i) => ({ id: org.id, percentageShare: orgShares[i]! })),
+    };
+  });
+}
+
+/** Whether two drafts mean the same split (compares what would be sent to the API). */
+export function sameDistribution(a: DistributionDraft, b: DistributionDraft) {
+  return JSON.stringify(draftToApi(a)) === JSON.stringify(draftToApi(b));
 }
 
 /** Give a cause area whatever is left to reach 100. */
