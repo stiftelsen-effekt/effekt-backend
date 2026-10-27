@@ -147,12 +147,12 @@
       opacity: 0;
     }
   }
-  /* Table rows arriving: a quick fade and a few pixels of rise. The table staggers rows with an
+  /* Table rows arriving: a quick fade while settling a few pixels down into place. The table staggers rows with an
      inline animation-delay. Transform and opacity only, so nothing around the rows moves. */
   --animate-row-in: row-in 180ms var(--ease-out) both;
   @keyframes row-in {
     from {
-      transform: translateY(4px);
+      transform: translateY(-4px);
       opacity: 0;
     }
   }
