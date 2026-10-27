@@ -2,10 +2,9 @@
  * Form ↔ API helpers shared by the donation edit form, single registration and creating a
  * distribution: money and date inputs, and server errors mapped to the field they are about.
  */
-import { format as formatDateFns } from "date-fns";
 import { TRPCClientError } from "@trpc/client";
 import { describeError } from "@/components/domain/error-state";
-import { toMoneyString } from "@/lib/money";
+import { osloDay, osloInstant, osloTime } from "@/lib/dates";
 import { errorCode } from "@/lib/trpc";
 
 /**
@@ -19,31 +18,18 @@ export function parseMoneyInput(text: string): string | null {
   return `${BigInt(whole!)}.${fraction.padEnd(2, "0")}`;
 }
 
-/**
- * Decimals to show for an amount: none for whole kroner, two when there are øre, so
- * 0.30 never reads as "0 kr". Pass to `Money` / `formatMoney`.
- */
-export const moneyDecimals = (value: string | number | null | undefined) =>
-  toMoneyString(value)?.endsWith(".00") === false ? 2 : 0;
-
 /** The API takes amounts as numbers; a canonical two-decimal string converts exactly. */
 export const moneyToApi = (decimal: string) => Number(decimal);
 
-/** An instant as values for <input type="date"> and <input type="time"> in local time. */
+/** An instant as the date (YYYY-MM-DD) and time (HH:mm) fields, in Oslo time. */
 export function toDateTimeInputs(value: string | Date) {
   const date = typeof value === "string" ? new Date(value) : value;
-  return { date: formatDateFns(date, "yyyy-MM-dd"), time: formatDateFns(date, "HH:mm") };
+  return { date: osloDay(date), time: osloTime(date) };
 }
 
-/** Local date (+ optional time) inputs back to an ISO instant for the API. Null if invalid. */
+/** Date (+ optional time) fields, in Oslo time, back to an ISO instant. Null if invalid. */
 export function fromDateTimeInputs(date: string, time: string): string | null {
-  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-  const timeMatch = /^(\d{2}):(\d{2})$/.exec(time || "00:00");
-  if (!dateMatch || !timeMatch) return null;
-  const [, y, m, d] = dateMatch.map(Number);
-  const [, h, min] = timeMatch.map(Number);
-  const result = new Date(y!, m! - 1, d!, h!, min!);
-  return Number.isNaN(result.getTime()) || result.getDate() !== d ? null : result.toISOString();
+  return osloInstant(date, time || "00:00")?.toISOString() ?? null;
 }
 
 export type ServerErrors<F extends string> = {

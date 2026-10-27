@@ -23,7 +23,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { downloadCsv, visiblePaymentMethods } from "@/features/donations/api";
-import { moneyDecimals } from "@/features/donations/form";
 import { ResendReceiptDialog } from "@/features/donations/resend-receipt";
 import {
   donationsList,
@@ -61,12 +60,12 @@ const columns = col.columns([
   col.accessor("sum", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("transactionCost", {
     header: "Fee",
     meta: { numeric: true, cellClassName: "text-muted-foreground" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={2} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("kid", {
     header: "KID",
@@ -216,12 +215,7 @@ function DonationsPage() {
                   { value: <Num value={stats.numDonations} />, suffix: "donations" },
                   {
                     label: "Sum",
-                    value: (
-                      <Money
-                        value={stats.sumDonations}
-                        decimals={moneyDecimals(stats.sumDonations)}
-                      />
-                    ),
+                    value: <Money value={stats.sumDonations} />,
                   },
                   { label: "Average", value: <Money value={stats.avgDonation} /> },
                 ]}
@@ -243,7 +237,7 @@ function DonationPeek({ id, onClose }: { id: number; onClose: () => void }) {
 
   return (
     <PeekPanel
-      title={d ? <Money value={d.sum} decimals={moneyDecimals(d.sum)} /> : `Donation #${id}`}
+      title={d ? <Money value={d.sum} /> : `Donation #${id}`}
       subtitle={d ? `Donation #${d.id} · ${d.donor}` : undefined}
       href={`/donations/${id}`}
       onClose={onClose}
@@ -275,7 +269,7 @@ function DonationPeek({ id, onClose }: { id: number; onClose: () => void }) {
             </Property>
             <Property label="Method">{d.paymentMethod}</Property>
             <Property label="Fee">
-              {d.transactionCost != null && <Money value={d.transactionCost} decimals={2} />}
+              <Money value={d.transactionCost} />
             </Property>
             <Property label="KID">
               <Link

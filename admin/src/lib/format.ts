@@ -1,5 +1,6 @@
-import { format as formatDateFns, formatDistanceToNowStrict, isValid, parseISO } from "date-fns";
-import { enGB, nb } from "date-fns/locale";
+import { formatDistanceToNowStrict, isValid, parseISO } from "date-fns";
+import { enGB } from "date-fns/locale";
+import { osloParts, parseIsoDay } from "./dates";
 import { toMoneyString, type MoneyInput } from "./money";
 
 export type DateInput = Date | string | number | null | undefined;
@@ -7,7 +8,6 @@ export type DateInput = Date | string | number | null | undefined;
 /** Norwegian numbers, currency and date patterns; words stay English (the UI language). */
 const intl = "nb-NO";
 const currencyCode = "NOK";
-const datePattern = "dd.MM.yyyy";
 
 const cache = new Map<string, Intl.NumberFormat>();
 function numberFormat(options: Intl.NumberFormatOptions) {
@@ -21,15 +21,27 @@ function numberFormat(options: Intl.NumberFormatOptions) {
 }
 
 /**
- * Amounts as numbers or as the API's decimal strings. Strings are formatted exactly (Intl
- * takes decimal strings), so "12345678901234.56" doesn't pick up float error.
+ * Fraction digits for an amount, by the one money rule (DESIGN.md › Numbers): whole kroner
+ * have none, anything with øre has two. So 1500 is "1 500 kr", 1234.5 is "1 234,50 kr" and
+ * 0.3 is "0,30 kr" – the same value always reads the same, wherever it is.
+ */
+export function moneyDecimals(value: MoneyInput | null | undefined): 0 | 2 {
+  const amount = toMoneyString(value);
+  return amount != null && !amount.endsWith(".00") ? 2 : 0;
+}
+
+/**
+ * Amounts as numbers or as the API's decimal strings, by the money rule above. Strings are
+ * formatted exactly (Intl takes decimal strings), so "12345678901234.56" doesn't pick up
+ * float error. Missing amounts are "–".
  */
 export function formatMoney(
   value: MoneyInput | null | undefined,
-  { decimals = 0, currency = true }: { decimals?: number; currency?: boolean } = {},
+  { currency = true }: { currency?: boolean } = {},
 ) {
   const amount = toMoneyString(value);
   if (amount == null) return "–";
+  const decimals = moneyDecimals(amount);
   return numberFormat({
     style: currency ? "currency" : "decimal",
     currency: currencyCode,
@@ -37,6 +49,16 @@ export function formatMoney(
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(amount as Intl.StringNumericLiteral);
+}
+
+/**
+ * An amount as the text of a form input: Norwegian decimal comma, no grouping, øre only when
+ * there are any ("1000", "249,50"). `parseMoneyInput` reads it back. Empty for nothing.
+ */
+export function formatMoneyInput(value: MoneyInput | null | undefined): string {
+  const amount = toMoneyString(value);
+  if (amount == null) return "";
+  return amount.endsWith(".00") ? amount.slice(0, -3) : amount.replace(".", ",");
 }
 
 export function formatNumber(
@@ -72,26 +94,56 @@ export function formatPercent(
 
 export function toDate(value: DateInput): Date | null {
   if (value == null || value === "") return null;
+  if (typeof value === "string") {
+    // A calendar day is that day, not an instant: midnight local, so pickers and
+    // formatting agree whatever the browser's time zone.
+    const day = parseIsoDay(value);
+    if (day) return new Date(day.year, day.month - 1, day.day);
+  }
   const date = typeof value === "string" ? parseISO(value) : new Date(value);
   return isValid(date) ? date : null;
 }
 
 export type DateStyle = "date" | "datetime" | "time" | "month" | "relative";
 
+const pad = (value: number) => String(value).padStart(2, "0");
+const monthNames = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/**
+ * Dates and times as Oslo wall time (`24.10.2026`, `24.10.2026 14:05`), whatever the
+ * browser's time zone. A YYYY-MM-DD string is a calendar day and is shown as that day.
+ */
 export function formatDate(value: DateInput, style: DateStyle = "date") {
+  const day = typeof value === "string" ? parseIsoDay(value) : null;
   const date = toDate(value);
   if (!date) return "–";
+  if (style === "relative")
+    return formatDistanceToNowStrict(date, { locale: enGB, addSuffix: true });
+  const p = day ? { ...day, hour: 0, minute: 0 } : osloParts(date);
+  const dayText = `${pad(p.day)}.${pad(p.month)}.${p.year}`;
+  const timeText = `${pad(p.hour)}:${pad(p.minute)}`;
   switch (style) {
     case "date":
-      return formatDateFns(date, datePattern, { locale: nb });
+      return dayText;
     case "datetime":
-      return formatDateFns(date, `${datePattern} HH:mm`, { locale: nb });
+      return `${dayText} ${timeText}`;
     case "time":
-      return formatDateFns(date, "HH:mm", { locale: nb });
+      return timeText;
     // Words follow the UI language (English); numeric patterns are Norwegian.
     case "month":
-      return formatDateFns(date, "LLL yyyy", { locale: enGB });
-    case "relative":
-      return formatDistanceToNowStrict(date, { locale: enGB, addSuffix: true });
+      return `${monthNames[p.month - 1]} ${p.year}`;
   }
 }

@@ -14,7 +14,6 @@ import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { ResendReceiptDialog } from "@/features/donations/resend-receipt";
 import { formatAmount } from "@/features/donations/edit-model";
-import { moneyDecimals } from "@/features/donations/form";
 import { notify } from "@/lib/notify";
 import { useTRPC } from "@/lib/trpc";
 
@@ -66,7 +65,7 @@ function DonationPage() {
   return (
     <DetailPage
       breadcrumbs={breadcrumbs}
-      title={<Money value={d.sum} decimals={moneyDecimals(d.sum)} />}
+      title={<Money value={d.sum} />}
       meta={[
         <CopyValue key="id" value={d.id} prefix="#" label="donation ID" />,
         <DateTime key="date" value={d.timestamp} format="datetime" />,
@@ -122,10 +121,10 @@ function DonationPage() {
           <DetailPanel title="Payment">
             <PropertyList labelWidth="7rem">
               <Property label="Amount">
-                <Money value={d.sum} decimals={2} className="font-semibold" />
+                <Money value={d.sum} className="font-semibold" />
               </Property>
               <Property label="Fee">
-                {d.transactionCost != null && <Money value={d.transactionCost} decimals={2} />}
+                <Money value={d.transactionCost} />
               </Property>
               <Property label="Date">
                 <DateTime value={d.timestamp} format="datetime" />

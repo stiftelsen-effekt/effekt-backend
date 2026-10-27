@@ -73,7 +73,7 @@ const donationColumns = donationCol.columns([
   donationCol.accessor("transactionCost", {
     header: "Fee",
     meta: { numeric: true, cellClassName: "text-muted-foreground" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={2} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   donationCol.accessor("KID", {
     header: "KID",

@@ -27,7 +27,6 @@ import {
   type ReceivedRow,
 } from "@/features/agreements/avtalegiro-check";
 import { shortChargeDay } from "@/features/agreements/model";
-import { moneyDecimals } from "@/features/donations/form";
 import { formatDate } from "@/lib/format";
 import { avtaleGiroDayStatus } from "@/lib/status";
 import { useTRPC } from "@/lib/trpc";
@@ -118,7 +117,7 @@ const receivedColumns = receivedCol.columns([
   receivedCol.accessor("sum", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   receivedCol.accessor("kid", {
     header: "KID",

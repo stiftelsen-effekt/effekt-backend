@@ -21,7 +21,6 @@ import {
   type ReviewItem,
 } from "@/features/review-queue/model";
 import { reviewStatus } from "@/lib/status";
-import { moneyDecimals } from "@/features/donations/form";
 import { useTRPC } from "@/lib/trpc";
 
 const reviewList = defineList({
@@ -51,7 +50,7 @@ const columns = col.columns([
   col.accessor("amount", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("source", {
     header: "Source",
@@ -248,7 +247,7 @@ function ReviewPeek({
 }) {
   return (
     <PeekPanel
-      title={<Money value={row.amount} decimals={moneyDecimals(row.amount)} />}
+      title={<Money value={row.amount} />}
       subtitle={`${sourceLabel(row.source)} · item #${row.id}`}
       href={href}
       onClose={onClose}

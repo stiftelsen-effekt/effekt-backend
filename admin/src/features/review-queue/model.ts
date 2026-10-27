@@ -4,6 +4,7 @@
  */
 import { emptyDraft, type CauseAreaConfig } from "@/features/distribution/model";
 import { toDateTimeInputs } from "@/features/donations/form";
+import { formatMoneyInput } from "@/lib/format";
 import {
   emptyRegisterDraft,
   registerInput,
@@ -104,7 +105,7 @@ export function draftForItem(
     mode: item.KID ? "kid" : "distribution",
     KID: item.KID ?? "",
     distribution: emptyDraft(config),
-    sum: item.amount,
+    sum: formatMoneyInput(item.amount),
     date: when.date,
     time: when.time,
     paymentId: String(item.paymentId),

@@ -70,7 +70,7 @@ describe("draftForItem", () => {
     const draft = draftForItem(item, config, "3");
     expect(draft).toMatchObject({
       mode: "distribution",
-      sum: "1234.50",
+      sum: "1234,50",
       paymentId: "4",
       externalRef: "VIPPS-1",
       ownerId: "3",

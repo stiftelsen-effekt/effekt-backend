@@ -14,19 +14,18 @@ type SpanProps = Omit<React.ComponentProps<"span">, "children">;
 
 /**
  * The only way to show an amount of money, in NOK. Digits are tabular so columns line up,
- * and negatives are red only when `signed`.
+ * and negatives are red only when `signed`. Decimals follow the money rule (`formatMoney`):
+ * whole kroner without øre, two decimals when there are øre. Missing amounts are "–".
  * API amounts are decimal strings; pass them straight in (formatted exactly, never via float).
  */
 export function Money({
   value,
-  decimals,
   currency = true,
   signed = false,
   className,
   ...props
 }: SpanProps & {
   value: MoneyInput | null | undefined;
-  decimals?: number;
   currency?: boolean;
   /** Show + / − and colour negatives (refunds, corrections). */
   signed?: boolean;
@@ -40,7 +39,7 @@ export function Money({
       {...props}
     >
       {signed && sign > 0 ? "+" : ""}
-      {formatMoney(amount, { decimals, currency })}
+      {formatMoney(amount, { currency })}
     </span>
   );
 }

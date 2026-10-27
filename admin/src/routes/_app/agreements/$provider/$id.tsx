@@ -27,7 +27,6 @@ import {
 } from "@/features/agreements/agreement-distribution";
 import { listProviders, toListStatus, type ListProvider } from "@/features/agreements/list";
 import { agreementTypes, describeChargeDay } from "@/features/agreements/model";
-import { moneyDecimals } from "@/features/donations/form";
 import { formatMoney } from "@/lib/format";
 import { sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
@@ -111,7 +110,7 @@ const paymentColumns = (withStatus: boolean) =>
     paymentCol.accessor("amount", {
       header: "Amount",
       meta: { numeric: true, cellClassName: "font-semibold" },
-      cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+      cell: ({ getValue }) => <Money value={getValue()} />,
     }),
     paymentCol.accessor("reference", {
       header: withStatus ? "Charge" : "Donation",

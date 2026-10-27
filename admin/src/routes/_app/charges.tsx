@@ -217,7 +217,7 @@ function ChargesPage() {
                 items={[
                   { value: <Num value={stats.numCharges} />, suffix: "charges" },
                   { label: "Total", value: <Money value={stats.sumCharges} /> },
-                  { label: "Average", value: <Money value={stats.avgCharge} decimals={0} /> },
+                  { label: "Average", value: <Money value={stats.avgCharge} /> },
                 ]}
               />
             )

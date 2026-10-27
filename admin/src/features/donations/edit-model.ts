@@ -10,16 +10,10 @@ import {
   type CauseAreaConfig,
   type DistributionDraft,
 } from "@/features/distribution/model";
-import { formatDate, formatMoney, formatNumber } from "@/lib/format";
-import { compareMoney, toMoneyString } from "@/lib/money";
+import { formatDate, formatMoney, formatMoneyInput, formatNumber } from "@/lib/format";
+import { compareMoney } from "@/lib/money";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
-import {
-  fromDateTimeInputs,
-  moneyDecimals,
-  moneyToApi,
-  parseMoneyInput,
-  toDateTimeInputs,
-} from "./form";
+import { fromDateTimeInputs, moneyToApi, parseMoneyInput, toDateTimeInputs } from "./form";
 
 export type Donation = RouterOutputs["donations"]["get"];
 export type DonationUpdate = RouterInputs["donations"]["update"];
@@ -40,8 +34,8 @@ export type EditField = Exclude<keyof EditDraft, "date" | "time"> | "timestamp";
 export function editDraftFromDonation(donation: Donation, config: CauseAreaConfig[]): EditDraft {
   const { date, time } = toDateTimeInputs(donation.timestamp);
   return {
-    sum: (toMoneyString(donation.sum) ?? donation.sum).replace(/\.00$/, ""),
-    transactionCost: donation.transactionCost ?? "",
+    sum: formatMoneyInput(donation.sum),
+    transactionCost: formatMoneyInput(donation.transactionCost),
     date,
     time,
     paymentId: String(donation.paymentId),
@@ -77,9 +71,8 @@ export function validateEdit(draft: EditDraft, original: Donation) {
   return errors;
 }
 
-/** Whole kroner unless there are øre, so 50.30 → 50.40 never reads as "50 kr → 50 kr". */
-export const formatAmount = (value: string) =>
-  formatMoney(value, { decimals: moneyDecimals(value) });
+/** The money rule keeps øre, so 50.30 → 50.40 never reads as "50 kr → 50 kr". */
+export const formatAmount = (value: string) => formatMoney(value);
 
 export type Change = { label: string; before: string; after: string };
 
@@ -127,11 +120,8 @@ export function editChanges(
     input.transactionCost = moneyToApi(cost);
     changes.push({
       label: "Fee",
-      before:
-        original.transactionCost == null
-          ? "none"
-          : formatMoney(original.transactionCost, { decimals: 2 }),
-      after: formatMoney(cost, { decimals: 2 }),
+      before: original.transactionCost == null ? "none" : formatMoney(original.transactionCost),
+      after: formatMoney(cost),
     });
   }
 

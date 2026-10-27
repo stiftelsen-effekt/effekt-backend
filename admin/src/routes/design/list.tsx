@@ -123,7 +123,7 @@ const columns = col.columns([
     header: "Fee",
     enableSorting: false,
     meta: { numeric: true, cellClassName: "text-muted-foreground" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={2} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("kid", {
     header: "KID",
@@ -218,7 +218,7 @@ function DonationsDemo() {
               </Property>
               <Property label="Method">{peeked.paymentMethod}</Property>
               <Property label="Fee">
-                <Money value={peeked.transactionCost} decimals={2} />
+                <Money value={peeked.transactionCost} />
               </Property>
               <Property label="KID">
                 <CopyValue value={peeked.kid} label="KID" />

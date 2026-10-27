@@ -353,7 +353,7 @@ function Components() {
         <div className="grid gap-4 lg:grid-cols-2">
           <Example title="Money and numbers" use="NOK; tabular figures; signed for corrections.">
             <Money value={1438093} className="font-semibold" />
-            <Money value={249.5} decimals={2} />
+            <Money value={249.5} />
             <Money value={-500} signed />
             <Money value={"18200.00"} />
             <Num value={1240} />

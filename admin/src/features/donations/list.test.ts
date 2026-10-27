@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { visiblePaymentMethods } from "./api";
-import {
-  endOfLocalDay,
-  histogramBins,
-  startOfLocalDay,
-  toDistributionFilter,
-  toDonationFilter,
-} from "./list";
+import { histogramBins, toDistributionFilter, toDonationFilter } from "./list";
 
 describe("toDonationFilter", () => {
   it("is undefined without filters", () => {
@@ -42,8 +36,8 @@ describe("toDonationFilter", () => {
   it("makes date ranges inclusive local days", () => {
     const filter = toDonationFilter({ date: { from: "2026-01-01", to: "2026-01-31" } });
     expect(filter?.date).toEqual({
-      from: startOfLocalDay("2026-01-01"),
-      to: endOfLocalDay("2026-01-31"),
+      from: "2025-12-31T23:00:00.000Z",
+      to: "2026-01-31T22:59:59.999Z",
     });
     const to = new Date(filter!.date!.to!);
     expect([to.getDate(), to.getHours(), to.getMinutes()]).toEqual([31, 23, 59]);

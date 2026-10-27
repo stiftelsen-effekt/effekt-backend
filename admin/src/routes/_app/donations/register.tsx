@@ -344,7 +344,7 @@ function RegisterFlow({
       {step === "check" && (
         <>
           <div className="grid gap-1">
-            <Money value={sum} decimals={2} className="text-3xl font-semibold tracking-tight" />
+            <Money value={sum} className="text-3xl font-semibold tracking-tight" />
             <span className="text-sm text-muted-foreground">
               {timestamp && <DateTime value={timestamp} format="datetime" />} · {methodName}
             </span>

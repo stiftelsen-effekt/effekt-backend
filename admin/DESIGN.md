@@ -248,16 +248,16 @@ pass children, not config objects, wherever the structure varies.
 
 ### Primitives (`src/components/ui`)
 
-| Component                                                              | Use when                                                                                                                                         | Don't                                       |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
-| `Button`                                                               | Any action. `primary` once per view; `secondary` default; `ghost` in toolbars/rows; `danger` only to confirm irreversible actions; `link` inline | Use `danger` as a trigger; write “OK”       |
-| `Input`, `Textarea`, `Select`, `Combobox`, `DateRangePicker`           | Form values; always inside `Field`                                                                                                               | Build a custom control                      |
-| `Field`                                                                | Label + hint/error for any control (wires id/aria via context)                                                                                   | Put labels in placeholders                  |
-| `Checkbox` / `Switch` / `SegmentedControl` / `ChoiceCards`             | independent options / immediate settings / 2–4 modes / a choice that needs a sentence each                                                       | Use a Switch inside a form that saves later |
-| `Badge`                                                                | Category labels (agreement type, “Default”)                                                                                                      | Show lifecycle state (use `Status`)         |
-| `Tabs`                                                                 | Related records of one parent                                                                                                                    | Top-level navigation                        |
-| `Dialog`, `AlertDialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip` | Short focused task / via ConfirmDialog / navigation on narrow, peek / filter editors / secondary actions / icon-only buttons                     | Put long forms in dialogs                   |
-| `Kbd`                                                                  | Keys in UI copy                                                                                                                                  |                                             |
+| Component                                                                 | Use when                                                                                                                                         | Don't                                       |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| `Button`                                                                  | Any action. `primary` once per view; `secondary` default; `ghost` in toolbars/rows; `danger` only to confirm irreversible actions; `link` inline | Use `danger` as a trigger; write “OK”       |
+| `Input`, `Textarea`, `Select`, `Combobox`, `DateInput`, `DateRangePicker` | Form values; always inside `Field`                                                                                                               | Build a custom control                      |
+| `Field`                                                                   | Label + hint/error for any control (wires id/aria via context)                                                                                   | Put labels in placeholders                  |
+| `Checkbox` / `Switch` / `SegmentedControl` / `ChoiceCards`                | independent options / immediate settings / 2–4 modes / a choice that needs a sentence each                                                       | Use a Switch inside a form that saves later |
+| `Badge`                                                                   | Category labels (agreement type, “Default”)                                                                                                      | Show lifecycle state (use `Status`)         |
+| `Tabs`                                                                    | Related records of one parent                                                                                                                    | Top-level navigation                        |
+| `Dialog`, `AlertDialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip`    | Short focused task / via ConfirmDialog / navigation on narrow, peek / filter editors / secondary actions / icon-only buttons                     | Put long forms in dialogs                   |
+| `Kbd`                                                                     | Keys in UI copy                                                                                                                                  |                                             |
 
 ### Domain (`src/components/domain`)
 
@@ -280,6 +280,29 @@ pass children, not config objects, wherever the structure varies.
 The API sends amounts and aggregates as decimal strings. Pass them to `Money` / `formatMoney` as
 they are; for sums, averages, comparisons and sorting use `src/lib/money.ts` (exact, in øre).
 `moneyToNumber` is only for charts, histograms and ratios.
+
+### Money, numbers and dates
+
+One rule each, applied by the formatters, so pages never choose:
+
+- **Money**: whole kroner when the amount has no øre, two decimals when it has any:
+  `1 500 kr`, `1 234,50 kr`, `0,30 kr`, fee `0 kr`. A value is always shown the same way, on
+  every page; nothing is rounded to whole kroner for display (an average of 1 234,50 is not
+  "1 235 kr"). There is no `decimals` prop. A missing amount (no fee) is `–`, in tables,
+  peeks and detail pages alike.
+- **Money in inputs** (`formatMoneyInput` / `parseMoneyInput`): decimal comma, no grouping,
+  øre only when there are any: `1000`, `249,50`. Typing `1 000`, `1000.5` or `500 kr` is
+  accepted.
+- **Chart axes**: compact from 1 000 up (`7,5k`, `15k`, `1,2M`); tooltips use the money rule.
+- **Dates and times** are Oslo time (`Europe/Oslo`), whatever the browser's zone: `24.10.2026`,
+  `24.10.2026 14:05`. A day the API sends as `YYYY-MM-DD` is that day. Filters and forms hold
+  days as `YYYY-MM-DD`; a procedure that takes plain dates gets them as they are (the API reads
+  them as Oslo days), one that compares instants gets the Oslo day's first and last instant
+  (`osloDayStart` / `osloDayEnd` in `src/lib/dates.ts`). CSV exports write Oslo local time
+  (`2026-10-24 14:05:00`).
+- **Date entry** is `dd.mm.yyyy`, typed or picked: `DateInput` for one day,
+  `DateRangePicker` / the date filter for ranges (both take typed dates). No native
+  `<input type="date">`; its format follows the browser, not Norway.
 
 ### Data and filters
 

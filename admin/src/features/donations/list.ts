@@ -3,6 +3,7 @@
  * shapes of donations.list / donations.distributions.list.
  */
 import { defineList, param, type FilterValues, type HistogramBin } from "@/components/filters";
+import { osloDayEnd, osloDayStart } from "@/lib/dates";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
 
 export const taxUnitTypes = ["person", "organization", "none"] as const;
@@ -44,20 +45,11 @@ export const donationsList = defineList({
 type DonationFilterInput = NonNullable<RouterInputs["donations"]["list"]["filter"]>;
 type TaxUnitTypeInput = NonNullable<DonationFilterInput["taxUnitTypes"]>[number];
 
-/** Start of a local calendar day, as an ISO instant. */
-export const startOfLocalDay = (isoDate: string) => {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  return new Date(y!, m! - 1, d!, 0, 0, 0, 0).toISOString();
-};
-/** Last millisecond of a local calendar day, as an ISO instant. */
-export const endOfLocalDay = (isoDate: string) => {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  return new Date(y!, m! - 1, d!, 23, 59, 59, 999).toISOString();
-};
-
 /**
- * List filters → donations.list `filter`. Dates are inclusive local days (the API compares
- * instants, so "to" becomes the end of that day); "No tax unit" is `null` in taxUnitTypes.
+ * List filters → donations.list `filter`. Dates are inclusive Oslo days; the procedure
+ * compares instants, so they go as the Oslo day's first and last instant (the same days the
+ * other lists and reports use, whatever the browser's time zone). "No tax unit" is `null` in
+ * taxUnitTypes.
  */
 export function toDonationFilter(
   filters: FilterValues<typeof donationsList.filters>,
@@ -66,8 +58,8 @@ export function toDonationFilter(
   if (filters.q) filter.donor = filters.q;
   if (filters.date)
     filter.date = {
-      from: filters.date.from ? startOfLocalDay(filters.date.from) : undefined,
-      to: filters.date.to ? endOfLocalDay(filters.date.to) : undefined,
+      from: filters.date.from ? osloDayStart(filters.date.from) : undefined,
+      to: filters.date.to ? osloDayEnd(filters.date.to) : undefined,
     };
   if (filters.amount) filter.sum = { from: filters.amount.min, to: filters.amount.max };
   if (filters.method) filter.paymentMethodIDs = filters.method;

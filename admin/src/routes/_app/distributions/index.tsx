@@ -15,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { downloadCsv } from "@/features/donations/api";
-import { moneyDecimals } from "@/features/donations/form";
 import { distributionsList, toDistributionFilter } from "@/features/donations/list";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
@@ -53,7 +52,7 @@ const columns = col.columns([
     id: "sum",
     header: "Total",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
 ]);
 

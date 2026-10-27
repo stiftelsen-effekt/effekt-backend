@@ -23,18 +23,20 @@ const escapeCsvValue = (value) => {
 };
 
 /**
- * Formats a date for CSV export
+ * Formats a date for CSV export as Oslo local time ("2026-10-24 14:05:00"), the time people
+ * see in the admin, rather than UTC ISO. A date-only string stays the day it is.
  * @param {Date|string|null} date - The date to format
- * @returns {string} - Formatted date string (YYYY-MM-DD) or empty string
+ * @returns {string} - Formatted date string or empty string
  */
 const formatDate = (date) => {
   if (!date) return "";
   if (date instanceof Date) {
-    return DateTime.fromJSDate(date).toISO();
-  } else {
-    const dt = DateTime.fromSQL(date, { locale: "no-NB" });
-    return dt.isValid ? dt.toISO() : "";
+    const dt = DateTime.fromJSDate(date).setZone("Europe/Oslo");
+    return dt.isValid ? dt.toFormat("yyyy-MM-dd HH:mm:ss") : "";
   }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+  const dt = DateTime.fromSQL(date, { zone: "Europe/Oslo" });
+  return dt.isValid ? dt.toFormat("yyyy-MM-dd HH:mm:ss") : "";
 };
 
 /**

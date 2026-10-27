@@ -12,7 +12,6 @@ import { DetailPage, DetailPanel, PageSection } from "@/components/templates";
 import { Skeleton } from "@/components/ui/skeleton";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
-import { moneyDecimals } from "@/features/donations/form";
 import { sumMoney } from "@/lib/money";
 import { useTRPC, type RouterOutputs } from "@/lib/trpc";
 
@@ -36,12 +35,12 @@ const columns = col.columns([
   col.accessor("sum", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("transactionCost", {
     header: "Fee",
     meta: { numeric: true, cellClassName: "text-muted-foreground" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={2} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
 ]);
 
@@ -112,7 +111,7 @@ function DistributionPage() {
         donations.data && (
           <StatGroup>
             <Stat label="Donations" value={<Num value={rows.length} />} />
-            <Stat label="Total" value={<Money value={total} decimals={moneyDecimals(total)} />} />
+            <Stat label="Total" value={<Money value={total} />} />
             <Stat
               label="Latest donation"
               value={latest ? <DateTime value={latest} /> : "None yet"}
