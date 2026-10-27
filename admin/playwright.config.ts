@@ -4,9 +4,9 @@ import { defineConfig, devices } from "@playwright/test";
  * Stability tooling for the design system. Runs against /design, which needs neither the
  * API nor auth, on a dedicated Vite server.
  *
- *   npm run test:visual          compare screenshots with the committed baselines
- *   npm run test:visual:update   accept intended visual changes (review the diff first!)
- *   npm run test:a11y            axe WCAG 2.1 A/AA checks, light and dark
+ *   pnpm test:visual          compare screenshots with the committed baselines
+ *   pnpm test:visual:update   accept intended visual changes (review the diff first!)
+ *   pnpm test:a11y            axe WCAG 2.1 A/AA checks, light and dark
  *
  * Baselines are per platform (the file names end in -darwin / -linux). CI should run in the
  * official Playwright Docker image and keep its own linux baselines.
@@ -41,7 +41,7 @@ export default defineConfig({
     { name: "a11y", testDir: "tests/a11y", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: `npx vite --port ${port} --strictPort`,
+    command: `pnpm exec vite --port ${port} --strictPort`,
     url: `http://localhost:${port}/design`,
     reuseExistingServer: !process.env.CI,
     env: { VITE_AUTH_MODE: "dev", VITE_LOCALE: "NO", VITE_API_URL: "http://localhost:5999" },

@@ -4,7 +4,6 @@ import express from "express";
 const router = express.Router();
 
 import bodyParser from "body-parser";
-import { adoveoReportRouter } from "./reports/adoveo";
 import { bankReportRouter } from "./reports/bank";
 import { amfReportRouter } from "./reports/amf";
 import { donationsByOrgRouter } from "./reports/donationsbyorg";
@@ -17,7 +16,6 @@ router.post("/facebook", isAdmin, require("./reports/facebook"));
 router.post("/range", urlEncodeParser, isAdmin, require("./reports/range"));
 router.post("/taxdeductions", urlEncodeParser, isAdmin, require("./reports/tax"));
 router.post("/autogiro", isAdmin, require("./reports/autogiro"));
-router.use("/adoveo", adoveoReportRouter);
 router.use("/amf", amfReportRouter);
 router.use("/donationsbyorg", donationsByOrgRouter);
 

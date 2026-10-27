@@ -162,7 +162,6 @@ export type MatchingRuleInput = {
   periodFrom: string;
   periodTo: string;
   resolveKID: string;
-  resolveAdoveoFundraiserID: number | null;
   precedence: number | null;
 };
 

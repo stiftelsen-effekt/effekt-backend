@@ -2,26 +2,28 @@
 FROM node:24.22.1 AS build
 
 WORKDIR /usr/src/app
-COPY package*.json ./
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # --ignore-scripts to prevent prisma generate from running.
 # No use until we got the source code
-RUN npm install --ignore-scripts
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter stiftelsen-effekt-backend
 
 COPY . .
-RUN npx prisma generate
-RUN npm run build
+RUN pnpm exec prisma generate
+RUN pnpm run build
 
 # ---- Release ----
 FROM node:24.22.1
 
 WORKDIR /usr/src/app
+RUN corepack enable
 COPY --from=build /usr/src/app/dist ./dist
 COPY --from=build /usr/src/app/prisma ./prisma
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # --ignore-scripts to avoid husky install from running
-RUN npm ci --omit=dev --ignore-scripts
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter stiftelsen-effekt-backend
 
 EXPOSE 5050
 CMD [ "npm", "start" ]

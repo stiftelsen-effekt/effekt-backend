@@ -4,7 +4,7 @@ The admin is a dense, calm tool for a small ops team that handles donations, agr
 data every day. It is used for hours at a time, the same jobs are repeated many times a day, and
 mistakes cost money. Everything below follows from that.
 
-Live reference: run `npm run dev` and open `/design` (works without the API or a login).
+Live reference: run `pnpm dev` and open `/design` (works without the API or a login).
 
 ## Principles
 
@@ -319,7 +319,7 @@ API has none).
 ## Accessibility commitments
 
 - WCAG 2.1 AA in both themes: text contrast ≥4.5:1, control outlines and focus ≥3:1. Checked by
-  `npm run test:a11y` (axe) on every `/design` page and key states.
+  `pnpm test:a11y` (axe) on every `/design` page and key states.
 - Everything works with the keyboard; focus is always visible (2 px accent ring); lists use a
   roving tab stop so Tab moves between regions, not through 1 000 rows.
 - Every control has an accessible name (`label` prop or `Field`); icon buttons have
@@ -333,11 +333,11 @@ API has none).
 ## Stability tooling
 
 ```
-npm run typecheck          API types + router + app + tests
+pnpm typecheck          API types + router + app + tests
 npm test                   Vitest unit tests (src/**/*.test.ts[x])
-npm run test:visual        Playwright screenshots of /design: 9 pages × light/dark × desktop/narrow + interaction states
-npm run test:visual:update accept intended changes (look at the diff in playwright-report first)
-npm run test:a11y          axe on every /design page and state, both themes
+pnpm test:visual        Playwright screenshots of /design: 9 pages × light/dark × desktop/narrow + interaction states
+pnpm test:visual:update accept intended changes (look at the diff in playwright-report first)
+pnpm test:a11y          axe on every /design page and state, both themes
 ```
 
 Demo data in `src/design-system/fake-data.ts` is typed with `RouterOutputs`, so an API change
