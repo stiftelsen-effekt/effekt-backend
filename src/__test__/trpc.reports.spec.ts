@@ -58,6 +58,9 @@ describe("tRPC reports router", () => {
     queueStub = sinon
       .stub(DAO.reviewqueue, "add")
       .callsFake(async (_source, items) => ({ added: items.length, existing: 0 }));
+    sinon
+      .stub(DAO.reviewqueue, "getCountsForImport")
+      .resolves({ open: 1, registered: 2, ignored: 3 });
     sinon.stub(mail, "sendDonationReceipt").resolves();
     sinon.stub(DAO.meta, "getDataOwners").resolves([
       { id: 1, name: "Default", default: true },
@@ -243,7 +246,12 @@ describe("tRPC reports router", () => {
       expect(item.transaction.date).to.match(/^\d{4}-\d{2}-\d{2}T/);
       expect(item.transaction.KID).to.be.a("string");
 
-      expect(result.queue).to.deep.equal({ added: 1, existing: 0, skipped: 0 });
+      expect(result.queue).to.deep.equal({
+        added: 1,
+        existing: 0,
+        skipped: 0,
+        statuses: { open: 1, registered: 2, ignored: 3 },
+      });
       expect(queueStub.calledOnce).to.be.true;
       const [source, queued, importLogId, metaOwnerId] = queueStub.firstCall.args;
       expect(source).to.equal("ocr");
@@ -392,7 +400,12 @@ describe("tRPC reports router", () => {
         valid: 1,
         invalid: 0,
         invalidTransactions: [],
-        queue: { added: 0, existing: 0, skipped: 0 },
+        queue: {
+          added: 0,
+          existing: 0,
+          skipped: 0,
+          statuses: { open: 0, registered: 0, ignored: 0 },
+        },
         importLogId: 77,
         dryRun: null,
       });

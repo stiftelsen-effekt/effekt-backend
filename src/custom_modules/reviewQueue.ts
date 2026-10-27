@@ -6,7 +6,11 @@
 import { DateTime } from "luxon";
 import moment from "moment";
 import { DAO } from "./DAO";
-import type { NewReviewQueueItem, ReviewQueueSource } from "./DAO_modules/reviewqueue";
+import type {
+  NewReviewQueueItem,
+  ReviewQueueSource,
+  ReviewQueueStatusCounts,
+} from "./DAO_modules/reviewqueue";
 
 /**
  * A transaction from an uploaded report that could not be registered automatically.
@@ -91,6 +95,12 @@ export type EnqueueResult = {
    * failed. They are listed in the upload result and the import log, but not in the queue.
    */
   skipped: number;
+  /**
+   * The file's queued transactions by their status now, including ones queued by an earlier
+   * upload and since registered or ignored ("N new, M already handled"). Null if they couldn't
+   * be counted.
+   */
+  statuses: ReviewQueueStatusCounts | null;
 };
 
 /**
@@ -126,6 +136,24 @@ const toQueueRow = (
   };
 };
 
+/** Statuses of an import's queue items; null (logged) if they can't be read */
+async function countStatuses(
+  source: ReviewQueueSource,
+  items: NewReviewQueueItem[],
+  importLogId: number | null,
+): Promise<ReviewQueueStatusCounts | null> {
+  try {
+    const externalIds = items.flatMap((item) =>
+      item.externalId === null ? [] : [item.externalId],
+    );
+    return await DAO.reviewqueue.getCountsForImport(source, externalIds, importLogId);
+  } catch (ex) {
+    console.error(`Failed to count the queued ${source} transactions`);
+    console.error(ex);
+    return null;
+  }
+}
+
 /**
  * Queues the invalid transactions of an import, linked to its import log entry and with the data
  * owner chosen for the import (null: the default owner). Transactions that can't be queued are
@@ -140,35 +168,39 @@ export async function enqueueInvalidTransactions(
   importLogId: number | null = null,
   metaOwnerId: number | null = null,
 ): Promise<EnqueueResult | null> {
-  if (invalidTransactions.length === 0) return { added: 0, existing: 0, skipped: 0 };
+  if (invalidTransactions.length === 0) {
+    return { added: 0, existing: 0, skipped: 0, statuses: { open: 0, registered: 0, ignored: 0 } };
+  }
   try {
     const rows = invalidTransactions.map((invalid) => toQueueRow(source, invalid));
     const items = rows.filter((row): row is NewReviewQueueItem => row !== null);
-    let skipped = rows.length - items.length;
-    if (items.length === 0) return { added: 0, existing: 0, skipped };
+    const result = { added: 0, existing: 0, skipped: rows.length - items.length };
 
-    try {
-      return { ...(await DAO.reviewqueue.add(source, items, importLogId, metaOwnerId)), skipped };
-    } catch (ex) {
-      console.error(
-        `Failed to queue ${items.length} ${source} transactions at once, retrying one by one`,
-      );
-      console.error(ex);
-    }
-
-    const result = { added: 0, existing: 0, skipped };
-    for (const item of items) {
+    if (items.length > 0) {
       try {
-        const one = await DAO.reviewqueue.add(source, [item], importLogId, metaOwnerId);
-        result.added += one.added;
-        result.existing += one.existing;
+        const added = await DAO.reviewqueue.add(source, items, importLogId, metaOwnerId);
+        result.added = added.added;
+        result.existing = added.existing;
       } catch (ex) {
-        console.error(`Failed to queue a ${source} transaction for review`);
+        console.error(
+          `Failed to queue ${items.length} ${source} transactions at once, retrying one by one`,
+        );
         console.error(ex);
-        result.skipped++;
+        for (const item of items) {
+          try {
+            const one = await DAO.reviewqueue.add(source, [item], importLogId, metaOwnerId);
+            result.added += one.added;
+            result.existing += one.existing;
+          } catch (ex) {
+            console.error(`Failed to queue a ${source} transaction for review`);
+            console.error(ex);
+            result.skipped++;
+          }
+        }
       }
     }
-    return result;
+
+    return { ...result, statuses: await countStatuses(source, items, importLogId) };
   } catch (ex) {
     console.error(
       `Failed to queue ${invalidTransactions.length} ${source} transactions for review`,

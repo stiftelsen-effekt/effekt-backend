@@ -57,8 +57,10 @@ export type ReportUploadSummary = {
   /** Transactions that need manual review */
   invalidTransactions: ManualReviewItem[];
   /**
-   * What happened to `invalidTransactions` in the review queue (reports.reviewQueue). Null when
-   * nothing was queued: a dry run, or writing to the queue failed (the upload itself succeeded).
+   * What happened to `invalidTransactions` in the review queue (reports.reviewQueue): `added`
+   * new items, `existing` ones queued by an earlier upload, `skipped` ones that couldn't be
+   * queued, and `statuses`, the file's queue items by their current status (open / registered /
+   * ignored), for "N new, M already handled". Null for a dry run (the upload itself succeeded).
    */
   queue: EnqueueResult | null;
   /**
