@@ -35,6 +35,7 @@ import {
   param,
   RangeFilter,
   SavedViews,
+  TextFilter,
   useListState,
 } from "@/components/filters";
 import { Badge } from "@/components/ui/badge";
@@ -100,6 +101,7 @@ const demoList = defineList({
     method: param.numberList,
     newsletter: param.boolean,
     fundraiser: param.oneOf(["atLeastOnce", "only", "never"]),
+    kid: param.text,
   },
   sortable: ["id"],
   defaultSort: { id: "id", desc: true },
@@ -333,6 +335,7 @@ function Components() {
                 { value: "never", label: "Never gave to a fundraiser" },
               ]}
             />
+            <TextFilter field="kid" label="KID" numeric />
           </FilterBar>
           <p className="mt-3 font-mono text-xs break-all text-muted-foreground">
             URL: ?

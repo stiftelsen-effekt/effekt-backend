@@ -589,3 +589,59 @@ export function ChoiceFilter<V extends string>({
     </FilterShell>
   );
 }
+
+/**
+ * One exact or partial value that isn't the free-text search: a KID, a donation id, a
+ * fundraiser id. Applies on Enter or Apply.
+ */
+export function TextFilter({
+  field,
+  label,
+  placeholder,
+  numeric = false,
+}: {
+  field: string;
+  label: string;
+  placeholder?: string;
+  /** Digits only: numeric keyboard and tabular figures. */
+  numeric?: boolean;
+}) {
+  const slot = useFilterSlot<string>(field);
+  const [draft, setDraft] = useState(slot.value ?? "");
+  useEffect(() => setDraft(slot.value ?? ""), [slot.value, slot.open]);
+  const apply = () => {
+    slot.setValue(draft.trim() || undefined);
+    slot.setOpen(false);
+  };
+  return (
+    <FilterShell
+      field={field}
+      label={label}
+      active={slot.active}
+      slot={slot}
+      summary={slot.value}
+      editorClassName="w-64"
+    >
+      <form
+        className="flex gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          apply();
+        }}
+      >
+        <Input
+          value={draft}
+          aria-label={label}
+          placeholder={placeholder}
+          inputMode={numeric ? "numeric" : undefined}
+          autoComplete="off"
+          className={cn("h-7", numeric && "num")}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+        <Button type="submit" size="sm">
+          {strings.actions.apply}
+        </Button>
+      </form>
+    </FilterShell>
+  );
+}

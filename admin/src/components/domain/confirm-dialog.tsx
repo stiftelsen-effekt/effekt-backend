@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { Callout } from "@/components/domain/callout";
 import { describeError } from "@/components/domain/error-state";
 import {
@@ -17,7 +17,11 @@ import { Label } from "@/components/ui/label";
 import { strings } from "@/lib/strings";
 
 export type ConfirmDialogProps = {
-  trigger: ReactNode;
+  /** Opens the dialog. Omit when opening it from elsewhere with `open` / `onOpenChange`. */
+  trigger?: ReactNode;
+  /** Controlled open state, e.g. opened by the Save button of an UnsavedChangesBar. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   /** A question naming the action and the object: "Refund 500 kr to Kari Nordmann?" */
   title: ReactNode;
   description?: ReactNode;
@@ -55,8 +59,15 @@ export function ConfirmDialog({
   children,
   disabled = false,
   onConfirm,
+  open: controlledOpen,
+  onOpenChange: onControlledOpenChange,
 }: ConfirmDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    setUncontrolledOpen(next);
+    onControlledOpenChange?.(next);
+  };
   const [pending, setPending] = useState(false);
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<unknown>(null);
@@ -66,11 +77,15 @@ export function ConfirmDialog({
   function onOpenChange(next: boolean) {
     if (pending) return;
     setOpen(next);
-    if (next) {
+  }
+
+  // Start clean every time it opens, however it was opened.
+  useEffect(() => {
+    if (open) {
       setTyped("");
       setError(null);
     }
-  }
+  }, [open]);
 
   async function confirm() {
     setPending(true);
@@ -90,7 +105,7 @@ export function ConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+      {trigger && <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>

@@ -23,10 +23,17 @@ import { Route as DesignHomeRouteImport } from './routes/design/home'
 import { Route as DesignListRouteImport } from './routes/design/list'
 import { Route as DesignPatternsRouteImport } from './routes/design/patterns'
 import { Route as DesignSettingsRouteImport } from './routes/design/settings'
+import { Route as AppDistributionsIndexRouteImport } from './routes/_app/distributions/index'
+import { Route as AppDistributionsKidRouteImport } from './routes/_app/distributions/$kid'
+import { Route as AppDistributionsNewRouteImport } from './routes/_app/distributions/new'
+import { Route as AppDonationsIndexRouteImport } from './routes/_app/donations/index'
+import { Route as AppDonationsRegisterRouteImport } from './routes/_app/donations/register'
 import { Route as AppDonorsIndexRouteImport } from './routes/_app/donors/index'
 import { Route as AppDonorsIdRouteImport } from './routes/_app/donors/$id'
 import { Route as AppFundraisersIndexRouteImport } from './routes/_app/fundraisers/index'
 import { Route as AppFundraisersIdRouteImport } from './routes/_app/fundraisers/$id'
+import { Route as AppDonationsIdIndexRouteImport } from './routes/_app/donations/$id/index'
+import { Route as AppDonationsIdEditRouteImport } from './routes/_app/donations/$id/edit'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -97,6 +104,31 @@ const DesignSettingsRoute = DesignSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => DesignRoute,
 } as any)
+const AppDistributionsIndexRoute = AppDistributionsIndexRouteImport.update({
+  id: '/distributions/',
+  path: '/distributions/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDistributionsKidRoute = AppDistributionsKidRouteImport.update({
+  id: '/distributions/$kid',
+  path: '/distributions/$kid',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDistributionsNewRoute = AppDistributionsNewRouteImport.update({
+  id: '/distributions/new',
+  path: '/distributions/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDonationsIndexRoute = AppDonationsIndexRouteImport.update({
+  id: '/donations/',
+  path: '/donations/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDonationsRegisterRoute = AppDonationsRegisterRouteImport.update({
+  id: '/donations/register',
+  path: '/donations/register',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDonorsIndexRoute = AppDonorsIndexRouteImport.update({
   id: '/donors/',
   path: '/donors/',
@@ -117,6 +149,16 @@ const AppFundraisersIdRoute = AppFundraisersIdRouteImport.update({
   path: '/fundraisers/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDonationsIdIndexRoute = AppDonationsIdIndexRouteImport.update({
+  id: '/donations/$id/',
+  path: '/donations/$id/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDonationsIdEditRoute = AppDonationsIdEditRouteImport.update({
+  id: '/donations/$id/edit',
+  path: '/donations/$id/edit',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -132,10 +174,17 @@ export interface FileRoutesByFullPath {
   '/design/patterns': typeof DesignPatternsRoute
   '/design/settings': typeof DesignSettingsRoute
   '/design/': typeof DesignIndexRoute
+  '/distributions/$kid': typeof AppDistributionsKidRoute
+  '/distributions/new': typeof AppDistributionsNewRoute
+  '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/distributions/': typeof AppDistributionsIndexRoute
+  '/donations/': typeof AppDonationsIndexRoute
   '/donors/': typeof AppDonorsIndexRoute
   '/fundraisers/': typeof AppFundraisersIndexRoute
+  '/donations/$id/edit': typeof AppDonationsIdEditRoute
+  '/donations/$id/': typeof AppDonationsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -150,10 +199,17 @@ export interface FileRoutesByTo {
   '/design/settings': typeof DesignSettingsRoute
   '/': typeof AppIndexRoute
   '/design': typeof DesignIndexRoute
+  '/distributions/$kid': typeof AppDistributionsKidRoute
+  '/distributions/new': typeof AppDistributionsNewRoute
+  '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/distributions': typeof AppDistributionsIndexRoute
+  '/donations': typeof AppDonationsIndexRoute
   '/donors': typeof AppDonorsIndexRoute
   '/fundraisers': typeof AppFundraisersIndexRoute
+  '/donations/$id/edit': typeof AppDonationsIdEditRoute
+  '/donations/$id': typeof AppDonationsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -171,10 +227,17 @@ export interface FileRoutesById {
   '/design/settings': typeof DesignSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/design/': typeof DesignIndexRoute
+  '/_app/distributions/$kid': typeof AppDistributionsKidRoute
+  '/_app/distributions/new': typeof AppDistributionsNewRoute
+  '/_app/donations/register': typeof AppDonationsRegisterRoute
   '/_app/donors/$id': typeof AppDonorsIdRoute
   '/_app/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/_app/distributions/': typeof AppDistributionsIndexRoute
+  '/_app/donations/': typeof AppDonationsIndexRoute
   '/_app/donors/': typeof AppDonorsIndexRoute
   '/_app/fundraisers/': typeof AppFundraisersIndexRoute
+  '/_app/donations/$id/edit': typeof AppDonationsIdEditRoute
+  '/_app/donations/$id/': typeof AppDonationsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -192,10 +255,17 @@ export interface FileRouteTypes {
     | '/design/patterns'
     | '/design/settings'
     | '/design/'
+    | '/distributions/$kid'
+    | '/distributions/new'
+    | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/distributions/'
+    | '/donations/'
     | '/donors/'
     | '/fundraisers/'
+    | '/donations/$id/edit'
+    | '/donations/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -210,10 +280,17 @@ export interface FileRouteTypes {
     | '/design/settings'
     | '/'
     | '/design'
+    | '/distributions/$kid'
+    | '/distributions/new'
+    | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/distributions'
+    | '/donations'
     | '/donors'
     | '/fundraisers'
+    | '/donations/$id/edit'
+    | '/donations/$id'
   id:
     | '__root__'
     | '/_app'
@@ -230,10 +307,17 @@ export interface FileRouteTypes {
     | '/design/settings'
     | '/_app/'
     | '/design/'
+    | '/_app/distributions/$kid'
+    | '/_app/distributions/new'
+    | '/_app/donations/register'
     | '/_app/donors/$id'
     | '/_app/fundraisers/$id'
+    | '/_app/distributions/'
+    | '/_app/donations/'
     | '/_app/donors/'
     | '/_app/fundraisers/'
+    | '/_app/donations/$id/edit'
+    | '/_app/donations/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -342,6 +426,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DesignSettingsRouteImport
       parentRoute: typeof DesignRoute
     }
+    '/_app/distributions/': {
+      id: '/_app/distributions/'
+      path: '/distributions'
+      fullPath: '/distributions/'
+      preLoaderRoute: typeof AppDistributionsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/distributions/$kid': {
+      id: '/_app/distributions/$kid'
+      path: '/distributions/$kid'
+      fullPath: '/distributions/$kid'
+      preLoaderRoute: typeof AppDistributionsKidRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/distributions/new': {
+      id: '/_app/distributions/new'
+      path: '/distributions/new'
+      fullPath: '/distributions/new'
+      preLoaderRoute: typeof AppDistributionsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/donations/': {
+      id: '/_app/donations/'
+      path: '/donations'
+      fullPath: '/donations/'
+      preLoaderRoute: typeof AppDonationsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/donations/register': {
+      id: '/_app/donations/register'
+      path: '/donations/register'
+      fullPath: '/donations/register'
+      preLoaderRoute: typeof AppDonationsRegisterRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/donors/': {
       id: '/_app/donors/'
       path: '/donors'
@@ -370,25 +489,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFundraisersIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/donations/$id/': {
+      id: '/_app/donations/$id/'
+      path: '/donations/$id'
+      fullPath: '/donations/$id/'
+      preLoaderRoute: typeof AppDonationsIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/donations/$id/edit': {
+      id: '/_app/donations/$id/edit'
+      path: '/donations/$id/edit'
+      fullPath: '/donations/$id/edit'
+      preLoaderRoute: typeof AppDonationsIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppDistributionsKidRoute: typeof AppDistributionsKidRoute
+  AppDistributionsNewRoute: typeof AppDistributionsNewRoute
+  AppDonationsRegisterRoute: typeof AppDonationsRegisterRoute
   AppDonorsIdRoute: typeof AppDonorsIdRoute
   AppFundraisersIdRoute: typeof AppFundraisersIdRoute
+  AppDistributionsIndexRoute: typeof AppDistributionsIndexRoute
+  AppDonationsIndexRoute: typeof AppDonationsIndexRoute
   AppDonorsIndexRoute: typeof AppDonorsIndexRoute
   AppFundraisersIndexRoute: typeof AppFundraisersIndexRoute
+  AppDonationsIdEditRoute: typeof AppDonationsIdEditRoute
+  AppDonationsIdIndexRoute: typeof AppDonationsIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
   AppIndexRoute: AppIndexRoute,
+  AppDistributionsKidRoute: AppDistributionsKidRoute,
+  AppDistributionsNewRoute: AppDistributionsNewRoute,
+  AppDonationsRegisterRoute: AppDonationsRegisterRoute,
   AppDonorsIdRoute: AppDonorsIdRoute,
   AppFundraisersIdRoute: AppFundraisersIdRoute,
+  AppDistributionsIndexRoute: AppDistributionsIndexRoute,
+  AppDonationsIndexRoute: AppDonationsIndexRoute,
   AppDonorsIndexRoute: AppDonorsIndexRoute,
   AppFundraisersIndexRoute: AppFundraisersIndexRoute,
+  AppDonationsIdEditRoute: AppDonationsIdEditRoute,
+  AppDonationsIdIndexRoute: AppDonationsIdIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
