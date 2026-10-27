@@ -284,6 +284,8 @@ on.
 
 Single-key shortcuts are ignored while typing or inside dialogs (`useHotkey`).
 
+**Rows arriving.** `DataTable` fades rows in with a 4 px rise (180 ms), staggered 10 ms per row and capped at 400 ms. It plays only when rows mount (first load, a new page or filter result); refetches and re-sorting reuse rows by id and don't replay it. Transform and opacity only, so it never shifts layout; off under reduced motion. Lists get this for free — don't add per-list animation.
+
 ## Tokens
 
 All in `src/styles/app.css`. Tailwind's default palette, sizes, radii and shadows are removed;
