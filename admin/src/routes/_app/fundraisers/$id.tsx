@@ -30,8 +30,7 @@ const columns = col.columns([
   col.accessor("name", {
     header: "From",
     meta: { cellClassName: "max-w-56 truncate" },
-    cell: ({ getValue }) =>
-      getValue() || <span className="text-muted-foreground">Anonymous</span>,
+    cell: ({ getValue }) => getValue() || <span className="text-muted-foreground">Anonymous</span>,
   }),
   col.accessor("message", {
     header: "Message",
@@ -96,7 +95,9 @@ function Fundraiser({ fundraiserId }: { fundraiserId: number }) {
   }
 
   const fundraiser = query.data;
-  const ownerName = owner.data ? owner.data.name || owner.data.email : `Donor #${fundraiser.donorId}`;
+  const ownerName = owner.data
+    ? owner.data.name || owner.data.email
+    : `Donor #${fundraiser.donorId}`;
   const ownerLink = (
     <Link
       to="/donors/$id"

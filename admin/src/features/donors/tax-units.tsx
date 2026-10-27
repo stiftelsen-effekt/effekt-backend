@@ -19,7 +19,13 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -40,9 +46,7 @@ import { apiLocale, isArchived, maskSsn, type TaxUnit } from "./model";
 /** The donor's tax units: deductions per year, create, edit, archive. */
 export function TaxUnitsSection({ donorId, donorName }: { donorId: number; donorName: string }) {
   const trpc = useTRPC();
-  const units = useQuery(
-    trpc.donors.taxUnits.list.queryOptions({ donorId, locale: apiLocale }),
-  );
+  const units = useQuery(trpc.donors.taxUnits.list.queryOptions({ donorId, locale: apiLocale }));
 
   if (units.isPending) return <Skeleton className="h-32" />;
   if (units.isError)
@@ -282,7 +286,12 @@ function TaxUnitDialog({
           </DialogDescription>
         </DialogHeader>
         <form id={formId} className="grid gap-4" onSubmit={submit} noValidate>
-          <Field label="Name" hint="The person or organization, as registered" error={errors.fields.name} required>
+          <Field
+            label="Name"
+            hint="The person or organization, as registered"
+            error={errors.fields.name}
+            required
+          >
             <Input
               value={values.name}
               onChange={(e) => setValues((v) => ({ ...v, name: e.target.value }))}
@@ -337,7 +346,7 @@ function ArchiveTaxUnit({
 
   return (
     <ConfirmDialog
-      title={`Archive tax unit ${unit.name}?`}
+      title={`Archive tax unit ${unit.name} (${maskSsn(unit.ssn)})?`}
       tone="danger"
       confirmLabel="Archive tax unit"
       consequences={[

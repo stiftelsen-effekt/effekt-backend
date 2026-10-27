@@ -17,14 +17,13 @@ const decode = <F extends Record<string, { decode: (raw: unknown) => unknown }>>
   filters: F,
   raw: Record<string, string>,
 ) =>
-  Object.fromEntries(
-    Object.entries(raw).map(([key, value]) => [key, filters[key]!.decode(value)]),
-  );
+  Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, filters[key]!.decode(value)]));
 
 describe("searchToFilter", () => {
   it("reads digits as a donor id, @ as email, the rest as a name", () => {
     expect(searchToFilter(" 1387 ")).toEqual({ donorId: 1387 });
     expect(searchToFilter("kari@")).toEqual({ email: "kari@" });
+    expect(searchToFilter("gmail.com")).toEqual({ email: "gmail.com" });
     expect(searchToFilter("Kari Nord")).toEqual({ name: "Kari Nord" });
     expect(searchToFilter("  ")).toEqual({});
     expect(searchToFilter(undefined)).toEqual({});
@@ -63,6 +62,14 @@ describe("toDonorFilter", () => {
     });
   });
 
+  it("asks for a donation in the period when filtering by donation date", () => {
+    const filters = decode(donorsList.filters, { donated: "2024-01-01..2024-12-31" });
+    expect(toDonorFilter(filters)).toEqual({
+      donationsDateRange: { from: "2024-01-01", to: "2024-12-31" },
+      donationsCount: { from: 1 },
+    });
+  });
+
   it("drops unknown choice values from the URL", () => {
     const filters = decode(donorsList.filters, { fundraiser: "sometimes" });
     expect(toDonorFilter(filters)).toBeUndefined();
@@ -92,12 +99,7 @@ describe("toFundraiserFilter", () => {
   });
 });
 
-const row = (
-  ID: number,
-  abbriv: string,
-  year: number,
-  value: string,
-): YearlyAggregateRow => ({
+const row = (ID: number, abbriv: string, year: number, value: string): YearlyAggregateRow => ({
   ID,
   organization: `Org ${abbriv}`,
   abbriv,
@@ -211,7 +213,10 @@ describe("toFormErrors", () => {
     Object.assign(new TRPCClientError(message), { data });
 
   it("uses zod field errors first", () => {
-    const error = trpcError("bad", { code: "BAD_REQUEST", fieldErrors: { email: ["Invalid email"] } });
+    const error = trpcError("bad", {
+      code: "BAD_REQUEST",
+      fieldErrors: { email: ["Invalid email"] },
+    });
     expect(toFormErrors(error)).toEqual({ fields: { email: "Invalid email" } });
   });
 

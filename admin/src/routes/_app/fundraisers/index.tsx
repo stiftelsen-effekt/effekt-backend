@@ -147,6 +147,7 @@ function FundraisersPage() {
                   <a href={dashboardUrl(peeked.secret)} target="_blank" rel="noopener noreferrer">
                     Open dashboard
                     <ArrowUpRightIcon />
+                    <span className="sr-only">(opens in a new tab)</span>
                   </a>
                 </Button>
               )

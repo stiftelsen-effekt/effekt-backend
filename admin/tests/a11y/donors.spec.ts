@@ -49,12 +49,39 @@ const fixtures: Record<string, unknown> = {
     },
   ],
   "donors.donationsAggregated": [
-    { ID: 1, organization: "Against Malaria Foundation", abbriv: "AMF", causeAreaID: 1, value: "650.00", year: 2026 },
-    { ID: 11, organization: "Drift av Gi Effektivt", abbriv: "Drift", causeAreaID: 4, value: "50.00", year: 2026 },
-    { ID: 1, organization: "Against Malaria Foundation", abbriv: "AMF", causeAreaID: 1, value: "900.00", year: 2025 },
+    {
+      ID: 1,
+      organization: "Against Malaria Foundation",
+      abbriv: "AMF",
+      causeAreaID: 1,
+      value: "650.00",
+      year: 2026,
+    },
+    {
+      ID: 11,
+      organization: "Drift av Gi Effektivt",
+      abbriv: "Drift",
+      causeAreaID: 4,
+      value: "50.00",
+      year: 2026,
+    },
+    {
+      ID: 1,
+      organization: "Against Malaria Foundation",
+      abbriv: "AMF",
+      causeAreaID: 1,
+      value: "900.00",
+      year: 2025,
+    },
   ],
   "donors.distributionsAggregated": [
-    { KID: "000569937638223", sum: "700.00", count: 1, full_name: "Kari Nordmann", email: "kari.nordmann@example.org" },
+    {
+      KID: "000569937638223",
+      sum: "700.00",
+      count: 1,
+      full_name: "Kari Nordmann",
+      email: "kari.nordmann@example.org",
+    },
   ],
   "donors.recurring.avtalegiro": [
     {
@@ -85,10 +112,20 @@ const fixtures: Record<string, unknown> = {
     },
   ],
   "donors.referrals": [
-    { id: 1, typeId: 1, donorId: 569, timestamp: "2026-10-01T10:00:00.000Z", session: null, active: true, answer: "A friend" },
+    {
+      id: 1,
+      typeId: 1,
+      donorId: 569,
+      timestamp: "2026-10-01T10:00:00.000Z",
+      session: null,
+      active: true,
+      answer: "A friend",
+    },
   ],
   "config.organizations.listAll": [{ id: 1, name: "Against Malaria Foundation" }],
-  "config.referralTypes.listAll": [{ id: 1, name: "Friends or family", ordering: 0, isActive: true }],
+  "config.referralTypes.listAll": [
+    { id: 1, name: "Friends or family", ordering: 0, isActive: true },
+  ],
   "reports.fundraisers.list": {
     rows: [
       {

@@ -133,7 +133,14 @@ function DonorPage() {
   const { id } = Route.useParams();
   const donorId = Number(id);
   if (!Number.isInteger(donorId) || donorId <= 0) {
-    return <EmptyState icon={UserXIcon} title="No such donor" description={`“${id}” isn't a donor ID.`} className="flex-1" />;
+    return (
+      <EmptyState
+        icon={UserXIcon}
+        title="No such donor"
+        description={`“${id}” isn't a donor ID.`}
+        className="flex-1"
+      />
+    );
   }
   return <Donor donorId={donorId} />;
 }
@@ -159,9 +166,7 @@ function Donor({ donorId }: { donorId: number }) {
     ...trpc.donors.recurring.autogiro.queryOptions(input),
     enabled: !isNO,
   });
-  const taxUnits = useQuery(
-    trpc.donors.taxUnits.list.queryOptions({ donorId, locale: apiLocale }),
-  );
+  const taxUnits = useQuery(trpc.donors.taxUnits.list.queryOptions({ donorId, locale: apiLocale }));
   const referrals = useQuery(trpc.donors.referrals.queryOptions(input));
   const referralTypes = useQuery(trpc.config.referralTypes.listAll.queryOptions());
 
@@ -182,7 +187,11 @@ function Donor({ donorId }: { donorId: number }) {
       <div className="p-6">
         <ErrorState
           error={donorQuery.error}
-          title={errorCode(donorQuery.error) === "NOT_FOUND" ? `No donor #${donorId}` : "Couldn't load the donor"}
+          title={
+            errorCode(donorQuery.error) === "NOT_FOUND"
+              ? `No donor #${donorId}`
+              : "Couldn't load the donor"
+          }
           onRetry={() => void donorQuery.refetch()}
         />
       </div>
@@ -192,7 +201,11 @@ function Donor({ donorId }: { donorId: number }) {
   const displayName = donor.name || donor.email;
 
   /** Flag changes are optimistic with undo (DESIGN.md › Optimism, undo and feedback). */
-  function setFlag(patch: { newsletter?: boolean; trash?: boolean }, message: string, undo: typeof patch) {
+  function setFlag(
+    patch: { newsletter?: boolean; trash?: boolean },
+    message: string,
+    undo: typeof patch,
+  ) {
     const previous = queryClient.getQueryData(getKey);
     queryClient.setQueryData(getKey, { ...donor, ...patch });
     update.mutate(
@@ -352,7 +365,9 @@ function Donor({ donorId }: { donorId: number }) {
             />
             <Stat
               label="Active agreements"
-              value={agreementsLoading ? <Skeleton className="h-7 w-10" /> : activeAgreements.length}
+              value={
+                agreementsLoading ? <Skeleton className="h-7 w-10" /> : activeAgreements.length
+              }
               hint={
                 activeAgreements.length > 0 &&
                 `${formatMoney(sumMoney(activeAgreements.map((a) => a.amount)))} / month`
@@ -425,9 +440,7 @@ function Donor({ donorId }: { donorId: number }) {
             className="h-56"
           />
         ) : (
-          !aggregated.isError && (
-            <p className="text-sm text-muted-foreground">No donations yet.</p>
-          )
+          !aggregated.isError && <p className="text-sm text-muted-foreground">No donations yet.</p>
         )}
       </PageSection>
       <Tabs value={tab} onValueChange={setTab}>
@@ -460,7 +473,13 @@ function Donor({ donorId }: { donorId: number }) {
               getRowId={(row) => String(row.id)}
               onRowOpen={(row) => void navigate({ to: href(`/donations/${row.id}`) })}
               getRowHref={(row) => `/donations/${row.id}`}
-              empty={<EmptyState size="sm" title="No donations yet" description="Donations show up here once they're registered." />}
+              empty={
+                <EmptyState
+                  size="sm"
+                  title="No donations yet"
+                  description="Donations show up here once they're registered."
+                />
+              }
             />
           )}
         </TabsContent>
@@ -476,7 +495,13 @@ function Donor({ donorId }: { donorId: number }) {
               getRowId={(row) => row.KID}
               onRowOpen={(row) => void navigate({ to: href(`/distributions/${row.KID}`) })}
               getRowHref={(row) => `/distributions/${row.KID}`}
-              empty={<EmptyState size="sm" title="No KIDs" description="The donor has no distributions." />}
+              empty={
+                <EmptyState
+                  size="sm"
+                  title="No KIDs"
+                  description="The donor has no distributions."
+                />
+              }
             />
           )}
         </TabsContent>
@@ -492,7 +517,13 @@ function Donor({ donorId }: { donorId: number }) {
               getRowId={(row) => row.key}
               onRowOpen={(row) => void navigate({ to: href(row.href) })}
               getRowHref={(row) => row.href}
-              empty={<EmptyState size="sm" title="No agreements" description="The donor has no recurring donations." />}
+              empty={
+                <EmptyState
+                  size="sm"
+                  title="No agreements"
+                  description="The donor has no recurring donations."
+                />
+              }
             />
           )}
         </TabsContent>

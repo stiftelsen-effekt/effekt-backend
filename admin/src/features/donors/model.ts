@@ -62,17 +62,24 @@ const range = (value: { min?: number; max?: number } | undefined) =>
 
 /**
  * The list's search box reads the query the way people type it: digits are a donor id,
- * anything with "@" an email, the rest part of a name.
+ * anything with "@" or a dotted word an email, the rest part of a name.
  */
 export function searchToFilter(q: string | undefined): Partial<DonorFilter> {
   const query = q?.trim();
   if (!query) return {};
   if (/^\d+$/.test(query)) return { donorId: Number(query) };
-  if (query.includes("@")) return { email: query };
+  // "@" or a domain-like word ("gmail.com", "kari.nordmann") is part of an email address.
+  if (query.includes("@") || /^\S+\.\S+$/.test(query)) return { email: query };
   return { name: query };
 }
 
-/** URL filter values → donors.list / donors.export filter. Undefined when nothing applies. */
+/**
+ * URL filter values → donors.list / donors.export filter. Undefined when nothing applies.
+ *
+ * The API's donationsDateRange only scopes the totals (count, sum, last donation) to the period
+ * and keeps donors without donations in it. "Donated between" means donors who gave in the
+ * period, so unless a donation count range is set it also asks for at least one donation.
+ */
 export function toDonorFilter(filters: DonorListFilters): DonorFilter | undefined {
   const filter: DonorFilter = {
     ...searchToFilter(filters.q),
@@ -80,7 +87,7 @@ export function toDonorFilter(filters: DonorListFilters): DonorFilter | undefine
     donationsDateRange: filters.donated,
     lastDonationDate: filters.lastDonation,
     donationsSum: range(filters.sum),
-    donationsCount: range(filters.count),
+    donationsCount: range(filters.count) ?? (filters.donated ? { from: 1 } : undefined),
     fundraiserGiving: filters.fundraiser,
     fundraiserTypes: filters.fundraiserType,
     newsletter: filters.newsletter,
@@ -141,7 +148,7 @@ export function yearlyChart(rows: YearlyAggregateRow[], maxSeries = 5): YearlyCh
   const named = grouped ? ranked.slice(0, maxSeries - 1) : ranked;
   const namedIds = new Set(named.map(([id]) => id));
   const series = named.map(([id, { label }]) => ({ key: `org${id}`, label }));
-  if (grouped) series.push({ key: "rest", label: "All other organizations" });
+  if (grouped) series.push({ key: "rest", label: "Remaining organizations" });
 
   const years = [...new Set(rows.map((row) => row.year))].sort((a, b) => a - b);
   const data = years.map((year) => {
@@ -149,9 +156,7 @@ export function yearlyChart(rows: YearlyAggregateRow[], maxSeries = 5): YearlyCh
     for (const { key } of series) {
       const values = rows
         .filter((row) => row.year === year)
-        .filter((row) =>
-          key === "rest" ? !namedIds.has(row.ID) : `org${row.ID}` === key,
-        )
+        .filter((row) => (key === "rest" ? !namedIds.has(row.ID) : `org${row.ID}` === key))
         .map((row) => row.value);
       point[key] = moneyToNumber(sumMoney(values));
     }

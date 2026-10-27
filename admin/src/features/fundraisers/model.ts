@@ -3,7 +3,9 @@ import { config } from "@/lib/config";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
 
 export type FundraiserRow = RouterOutputs["reports"]["fundraisers"]["list"]["rows"][number];
-export type FundraiserFilter = NonNullable<RouterInputs["reports"]["fundraisers"]["list"]["filter"]>;
+export type FundraiserFilter = NonNullable<
+  RouterInputs["reports"]["fundraisers"]["list"]["filter"]
+>;
 
 export const fundraisersList = defineList({
   id: "fundraisers",

@@ -33,7 +33,12 @@ export function MergeDonor({
   const navigate = useNavigate();
   const [keep, setKeep] = useState<PickedDonor | null>(null);
   const merge = useMutation(trpc.donors.merge.mutationOptions());
-  const keepLabel = keep ? `#${keep.id}` : "the donor you keep";
+  const keepLabel = keep ? `${keep.name || keep.email} (#${keep.id})` : "the donor you keep";
+  const count = (n: number, one: string, many: string) => (
+    <>
+      <Num value={n} /> {n === 1 ? one : many}
+    </>
+  );
 
   return (
     <ConfirmDialog
@@ -46,16 +51,17 @@ export function MergeDonor({
       consequences={[
         counts ? (
           <>
-            <Num value={counts.donations} /> donations, <Num value={counts.agreements} />{" "}
-            agreements, <Num value={counts.taxUnits} /> tax units and <Num value={counts.kids} />{" "}
-            KIDs move to {keepLabel}.
+            {count(counts.donations, "donation", "donations")},{" "}
+            {count(counts.agreements, "agreement", "agreements")},{" "}
+            {count(counts.taxUnits, "tax unit", "tax units")} and{" "}
+            {count(counts.kids, "KID", "KIDs")} move to {keepLabel}.
           </>
         ) : (
           `Donations, agreements, tax units and KIDs move to ${keepLabel}.`
         ),
         <>
-          Donor <strong className="num">#{donor.id}</strong> ({donor.email}) is deleted. This
-          can't be undone.
+          Donor <strong className="num">#{donor.id}</strong> ({donor.email}) is deleted. This can't
+          be undone.
         </>,
       ]}
       trigger={

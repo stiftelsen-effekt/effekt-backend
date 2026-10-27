@@ -189,7 +189,7 @@ function DonorsPage() {
             href={`/donors/${peeked.id}`}
             onClose={() => setPeekId(null)}
           >
-            <DonorPeek donor={peeked} />
+            <DonorPeek donor={peeked} inPeriod={Boolean(list.filters.donated)} />
           </PeekPanel>
         )
       }
@@ -213,9 +213,7 @@ function DonorsPage() {
           getRowId={(row) => String(row.id)}
           {...list.tableState}
           onRowPeek={(row) => setPeekId(row.id)}
-          onRowOpen={(row) =>
-            void navigate({ to: "/donors/$id", params: { id: String(row.id) } })
-          }
+          onRowOpen={(row) => void navigate({ to: "/donors/$id", params: { id: String(row.id) } })}
           peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/donors/${row.id}`}
           pageHotkeys
@@ -224,8 +222,15 @@ function DonorsPage() {
               <TableSummary
                 items={[
                   { value: <Num value={stats.totalDonors} />, suffix: "donors" },
-                  { label: "Given", value: <Money value={stats.totalDonationSum} /> },
-                  { value: <Num value={stats.totalDonationCount} />, suffix: "donations" },
+                  {
+                    // With "Donated between", the API sums only the donations in the period.
+                    label: list.filters.donated ? "Given in period" : "Given",
+                    value: <Money value={stats.totalDonationSum} />,
+                  },
+                  {
+                    value: <Num value={stats.totalDonationCount} />,
+                    suffix: list.filters.donated ? "donations in period" : "donations",
+                  },
                 ]}
               />
             )
@@ -236,7 +241,8 @@ function DonorsPage() {
   );
 }
 
-function DonorPeek({ donor }: { donor: DonorListRow }) {
+/** With "Donated between", the row's totals cover only the period. */
+function DonorPeek({ donor, inPeriod }: { donor: DonorListRow; inPeriod: boolean }) {
   const trpc = useTRPC();
   const donations = useQuery(trpc.donors.donations.queryOptions({ donorId: donor.id }));
   const recent = [...(donations.data ?? [])]
@@ -246,13 +252,13 @@ function DonorPeek({ donor }: { donor: DonorListRow }) {
   return (
     <>
       <PropertyList>
-        <Property label="Given in total">
+        <Property label={inPeriod ? "Given in period" : "Given in total"}>
           <Money value={donor.donationsSum} className="font-semibold" />
         </Property>
-        <Property label="Donations">
+        <Property label={inPeriod ? "Donations in period" : "Donations"}>
           <Num value={donor.donationsCount} />
         </Property>
-        <Property label="Last donation">
+        <Property label={inPeriod ? "Last in period" : "Last donation"}>
           <DateTime value={donor.lastDonation} />
         </Property>
         <Property label="Registered">
