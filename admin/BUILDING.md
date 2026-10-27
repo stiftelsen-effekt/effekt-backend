@@ -41,7 +41,7 @@ The admin container hot-reloads from your checkout. To run the admin on the host
 Check every page and action in a browser against seeded data, in both themes. Mutations against the
 local database are fine.
 
-`pnpm typecheck`, `pnpm build`, `pnpm test` and `pnpm test:a11y` must pass in `admin/`.
+`pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:a11y` and `pnpm test:interaction` must pass in `admin/`.
 
 ## Package manager
 

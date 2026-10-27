@@ -48,6 +48,8 @@ type FilterBarContextValue = {
   mode: Mode;
   openKey: string | null;
   setOpenKey: (key: string | null) => void;
+  /** From the Add filter menu: open this filter's editor once the menu has closed. */
+  requestOpen: (key: string) => void;
 };
 
 const FilterBarContext = createContext<FilterBarContextValue | null>(null);
@@ -62,6 +64,7 @@ function useFilterSlot<T>(field: string) {
     active: value !== undefined,
     open: context.openKey === field,
     setOpen: (open: boolean) => context.setOpenKey(open ? field : null),
+    requestOpen: () => context.requestOpen(field),
     setValue: (next: T | undefined) => context.list.setFilter(field, next),
     clear: () => context.list.setFilter(field, undefined),
   };
@@ -86,6 +89,12 @@ export function FilterBar({
   className?: string;
 }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
+  // Opening a chip's editor while the menu is still closing races with the menu's own
+  // dismissal and closes the new editor again, so the menu hands the key over on close.
+  const pendingOpen = useRef<string | null>(null);
+  const requestOpen = (key: string) => {
+    pendingOpen.current = key;
+  };
   const anyList = list as AnyList;
   const hasFilters = list.activeFilterKeys.length > 0;
 
@@ -102,7 +111,9 @@ export function FilterBar({
           placeholder={searchPlaceholder}
         />
       )}
-      <FilterBarContext.Provider value={{ list: anyList, mode: "chip", openKey, setOpenKey }}>
+      <FilterBarContext.Provider
+        value={{ list: anyList, mode: "chip", openKey, setOpenKey, requestOpen }}
+      >
         {children}
       </FilterBarContext.Provider>
       {children && (
@@ -117,10 +128,18 @@ export function FilterBar({
             align="start"
             className="w-52"
             // Focus moves to the new chip's editor, not back to this button.
-            onCloseAutoFocus={(event) => event.preventDefault()}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              if (pendingOpen.current) {
+                setOpenKey(pendingOpen.current);
+                pendingOpen.current = null;
+              }
+            }}
           >
             <DropdownMenuLabel>{strings.list.addFilter}</DropdownMenuLabel>
-            <FilterBarContext.Provider value={{ list: anyList, mode: "menu", openKey, setOpenKey }}>
+            <FilterBarContext.Provider
+              value={{ list: anyList, mode: "menu", openKey, setOpenKey, requestOpen }}
+            >
               {children}
             </FilterBarContext.Provider>
           </DropdownMenuContent>
@@ -215,17 +234,19 @@ function FilterShell({
   label: string;
   summary: ReactNode;
   active: boolean;
-  slot: { mode: Mode; open: boolean; setOpen: (open: boolean) => void; clear: () => void };
+  slot: {
+    mode: Mode;
+    open: boolean;
+    setOpen: (open: boolean) => void;
+    requestOpen: () => void;
+    clear: () => void;
+  };
   editorClassName?: string;
   children: ReactNode;
 }) {
   if (slot.mode === "menu") {
     if (active) return null;
-    return (
-      <DropdownMenuItem onSelect={() => setTimeout(() => slot.setOpen(true), 0)}>
-        {label}
-      </DropdownMenuItem>
-    );
+    return <DropdownMenuItem onSelect={slot.requestOpen}>{label}</DropdownMenuItem>;
   }
   if (!active && !slot.open) return null;
   return (

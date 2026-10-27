@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "test:visual": "playwright test --project=visual",
     "test:visual:update": "playwright test --project=visual --update-snapshots",
-    "test:a11y": "playwright test --project=a11y"
+    "test:a11y": "playwright test --project=a11y",
+    "test:interaction": "playwright test --project=interaction"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.11.0",

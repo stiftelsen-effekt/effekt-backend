@@ -41,6 +41,11 @@ export default defineConfig({
   projects: [
     { name: "visual", testDir: "tests/visual", use: { ...devices["Desktop Chrome"] } },
     { name: "a11y", testDir: "tests/a11y", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "interaction",
+      testDir: "tests/interaction",
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
   webServer: {
     command: `pnpm exec vite --port ${port} --strictPort`,
