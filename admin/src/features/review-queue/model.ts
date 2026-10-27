@@ -63,6 +63,8 @@ export type UploadSummary =
       review: number;
       /** New in the queue / already queued by an earlier upload. Null if queueing failed. */
       queue: { added: number; existing: number } | null;
+      /** The upload's import log entry (reports.logs.get); null if none was written. */
+      importLogId: number | null;
     }
   | { kind: "facebook"; campaigns: FacebookCampaign[] };
 
@@ -79,6 +81,7 @@ export function summariseUpload(upload: UploadResult): UploadSummary {
     ignored: upload.source === "ocr" ? upload.result.ignored : Math.max(0, result.invalid - review),
     review,
     queue: result.queue,
+    importLogId: result.importLogId ?? null,
   };
 }
 
@@ -138,3 +141,18 @@ export function previousOpenId(openIds: readonly number[], currentId: number): n
 }
 
 //endregion
+
+/**
+ * Who resolved an item, for people. The API records the admin's email or, for identities
+ * without one, the token subject. The signed-in admin is shown by name; others by email,
+ * or the id when that's all there is.
+ */
+export function resolverName(
+  resolvedBy: string | null | undefined,
+  user: { id: string; name?: string; email?: string } | null,
+): string {
+  if (!resolvedBy) return "someone";
+  const isUser = user && (resolvedBy === user.id || (user.email && resolvedBy === user.email));
+  if (isUser) return user.name ? `you (${user.name})` : "you";
+  return resolvedBy;
+}

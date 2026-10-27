@@ -72,7 +72,7 @@ describe("histogramBins", () => {
 
   it("folds the rare tail into the last bin", () => {
     const bins = histogramBins([
-      { bucket: 0, bucketEnd: 500, items: 990, bar: 1 },
+      { bucket: 0, bucketEnd: 5000, items: 990, bar: 1 },
       { bucket: 5000, bucketEnd: 10000, items: 8, bar: 1 },
       { bucket: 10000, bucketEnd: 15000, items: 1, bar: 1 },
       { bucket: 100000, bucketEnd: 105000, items: 1, bar: 1 },

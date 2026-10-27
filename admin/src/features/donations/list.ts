@@ -76,8 +76,8 @@ export function toDonationFilter(
 }
 
 /**
- * donations.histogram returns the lower edge of each bucket with its count; the bins run to
- * the next edge, the last one as wide as the one before it. The long tail of rare large
+ * donations.histogram returns each bucket's edges with its count (log scale: even steps for
+ * small and large amounts alike). The long tail of rare large
  * amounts (above `coverage` of all donations) is folded into the last bin so the slider
  * isn't mostly empty buckets.
  */
@@ -85,15 +85,11 @@ export function histogramBins(
   buckets: RouterOutputs["donations"]["histogram"],
   coverage = 0.995,
 ): HistogramBin[] {
-  const bins = buckets.map((bucket, index) => {
-    const next = buckets[index + 1]?.bucket;
-    const previous = buckets[index - 1]?.bucket ?? 0;
-    return {
-      from: bucket.bucket,
-      to: next ?? bucket.bucket + Math.max(bucket.bucket - previous, 1),
-      count: bucket.items,
-    };
-  });
+  const bins = buckets.map((bucket) => ({
+    from: bucket.bucket,
+    to: bucket.bucketEnd,
+    count: bucket.items,
+  }));
   const total = bins.reduce((sum, bin) => sum + bin.count, 0);
   let seen = 0;
   const cut = bins.findIndex((bin) => (seen += bin.count) >= total * coverage);

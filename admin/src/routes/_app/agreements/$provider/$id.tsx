@@ -356,13 +356,14 @@ function VippsAgreementPage({ id }: { id: string }) {
     trpc.vipps.agreements.list.queryOptions({ page: 0, limit: 50, filter: { agreementID: id } }),
   );
   const row = stored.data?.rows.find((r) => r.ID === id);
+  // The normalised row (status, pause, donor) for exactly this agreement.
   const normalised = useQuery({
     ...trpc.agreements.list.queryOptions({
       page: 0,
-      limit: 50,
-      filter: { providers: ["vipps"], KID: row?.KID ?? "" },
+      limit: 1,
+      filter: { providers: ["vipps"], ids: [id] },
     }),
-    enabled: Boolean(row?.KID),
+    enabled: Boolean(row),
   });
   const listRow = normalised.data?.rows.find((r) => r.id === id);
   const live = useQuery({
@@ -601,9 +602,10 @@ function AvtaleGiroAgreementPage({ id }: { id: string }) {
     enabled: valid,
   });
   const KID = agreement.data?.KID ?? "";
+  // Under every KID the agreement has had, so a distribution change doesn't hide earlier ones.
   const donations = useQuery({
-    ...trpc.giro.avtalegiro.donations.queryOptions({ KID }),
-    enabled: Boolean(KID),
+    ...trpc.giro.avtalegiro.payments.queryOptions({ agreementId: numericId }),
+    enabled: valid,
   });
   const updateAmount = useMutation(trpc.giro.avtalegiro.updateAmount.mutationOptions());
   const updateStatus = useMutation(trpc.giro.avtalegiro.updateStatus.mutationOptions());
@@ -651,8 +653,8 @@ function AvtaleGiroAgreementPage({ id }: { id: string }) {
   };
   const subject = { type: "avtalegiro" as const, ...facts };
 
-  const payments: Payment[] | undefined = donations.data
-    ?.map((donation) => ({
+  const payments: Payment[] | undefined = donations.data?.donations
+    .map((donation) => ({
       key: String(donation.id),
       date: toIso(donation.timestamp),
       amount: donation.sum,
@@ -737,7 +739,13 @@ function AvtaleGiroAgreementPage({ id }: { id: string }) {
       paymentsError={donations.error}
       onRetryPayments={() => void donations.refetch()}
       paymentsTitle="Donations"
-      paymentsDescription="Donations on this agreement's KID, newest first. Changing the distribution moves earlier donations to a new KID, so they're no longer listed here."
+      paymentsDescription={
+        donations.data && donations.data.KIDs.length > 1
+          ? `Donations from this agreement, newest first, including those registered before a distribution change (KIDs ${donations.data.KIDs.join(
+              ", ",
+            )}).`
+          : "Donations from this agreement, newest first."
+      }
     />
   );
 }

@@ -11,7 +11,7 @@ import { Property, PropertyList } from "@/components/domain/property-list";
 import { defineList, FilterBar, param, useListState } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
 import { Skeleton } from "@/components/ui/skeleton";
-import { importLogRowCount, withoutFile } from "@/features/import-log/model";
+import { withoutFile } from "@/features/import-log/model";
 import { type RouterOutputs, useTRPC } from "@/lib/trpc";
 
 type LogRow = RouterOutputs["reports"]["logs"]["list"]["rows"][number];
@@ -19,8 +19,7 @@ type LogRow = RouterOutputs["reports"]["logs"]["list"]["rows"][number];
 const logsList = defineList({
   id: "import-log",
   filters: { q: param.text },
-  // The API returns entries newest first and doesn't sort otherwise.
-  sortable: ["timestamp"],
+  sortable: ["timestamp", "label", "id"],
   defaultSort: { id: "timestamp", desc: true },
 });
 
@@ -32,18 +31,16 @@ export const Route = createFileRoute("/_app/logs/")({
 const col = createColumns<LogRow>();
 const columns = col.columns([
   col.accessor("ID", {
+    id: "id",
     header: "ID",
-    enableSorting: false,
     meta: { numeric: true, cellClassName: "text-muted-foreground w-20" },
   }),
   col.accessor("timestamp", {
     header: "Time",
-    enableSorting: false,
     cell: ({ getValue }) => <DateTime value={getValue()} format="datetime" />,
   }),
   col.accessor("label", {
     header: "Source",
-    enableSorting: false,
     meta: { cellClassName: "font-semibold" },
     cell: ({ getValue }) => getValue() ?? "Unknown",
   }),
@@ -64,6 +61,7 @@ function ImportLogPage() {
     ...trpc.reports.logs.list.queryOptions({
       page: list.page - 1,
       limit: list.pageSize,
+      sort: { id: list.sort.id, desc: list.sort.desc },
       filter: list.filters.q ? { fileSearch: list.filters.q } : undefined,
     }),
     placeholderData: keepPreviousData,
@@ -86,10 +84,7 @@ function ImportLogPage() {
           label="Import log"
           columns={columns}
           data={query.data?.rows}
-          rowCount={
-            query.data &&
-            importLogRowCount(query.data.pages, list.page, list.pageSize, query.data.rows.length)
-          }
+          rowCount={query.data?.total}
           isLoading={query.isPending}
           isFetching={query.isFetching}
           getRowId={(row) => String(row.ID)}

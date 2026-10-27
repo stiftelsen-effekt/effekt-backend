@@ -378,15 +378,39 @@ function ResultStep({
     );
   }
 
-  const { registered, ignored, review, queue } = summary;
+  const { registered, ignored, review, queue, importLogId } = summary;
+  const sourceName = sources.find((s) => s.value === source)?.label;
   return (
     <>
       <StatGroup>
-        <Stat label="Registered" value={<Num value={registered} />} hint="donations" />
-        <Stat label="Already registered" value={<Num value={ignored} />} hint="ignored" />
-        <Stat label="Sent to review" value={<Num value={review} />} hint="could not be matched" />
+        <Stat label="Registered" value={<Num value={registered} />} hint="new donations" />
+        <Stat
+          label="Skipped"
+          value={<Num value={ignored} />}
+          hint="registered by an earlier import"
+        />
+        <Stat label="Sent to review" value={<Num value={review} />} hint="couldn't be matched" />
       </StatGroup>
-      {review === 0 ? (
+      {importLogId != null && (
+        <p className="text-sm text-muted-foreground">
+          Recorded in the import log as{" "}
+          <Link
+            to="/logs/$id"
+            params={{ id: String(importLogId) }}
+            className="text-accent hover:underline"
+          >
+            entry #{importLogId}
+          </Link>
+          , with the file.
+        </p>
+      )}
+      {registered + ignored + review === 0 ? (
+        <Callout tone="warning" title="No payments found in the file">
+          Nothing was registered or queued. Check that it is{" "}
+          {sourceName ? `a ${sourceName}` : "the right"} file and that it covers the period you
+          expected.
+        </Callout>
+      ) : review === 0 ? (
         <Callout tone="success" title="Everything in the file was handled" />
       ) : queue === null ? (
         <Callout tone="danger" title="The unmatched transactions couldn't be queued">

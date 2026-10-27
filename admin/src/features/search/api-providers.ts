@@ -1,6 +1,15 @@
-import { FlagIcon, HandCoinsIcon, KeyRoundIcon, RepeatIcon, UserIcon } from "lucide-react";
+import {
+  FlagIcon,
+  HandCoinsIcon,
+  InboxIcon,
+  KeyRoundIcon,
+  RepeatIcon,
+  UserIcon,
+} from "lucide-react";
 import { useMemo } from "react";
+import { reviewStatus } from "@/lib/status";
 import { formatDate, formatMoney } from "@/lib/format";
+import { sourceLabel } from "@/features/review-queue/model";
 import { errorCode, useTRPCClient } from "@/lib/trpc";
 import { isDigits, isVippsAgreementId, type SearchProvider } from "./providers";
 
@@ -171,6 +180,32 @@ export function useApiSearchProviders(): SearchProvider[] {
             meta: `${formatMoney(agreement.amount)} / month`,
             href: `/agreements/${agreement.provider}/${agreement.id}`,
             icon: RepeatIcon,
+          }));
+        },
+      },
+      {
+        // Unmatched transactions: an item id, or part of a KID, reference, payer or message.
+        id: "review-item",
+        group: "Review queue",
+        applies: (query) => query.trim().length >= 3 || isDigits(query),
+        async search(query, signal) {
+          const items = await badRequestIsEmpty(
+            client.reports.reviewQueue.search.query({ query: query.trim(), limit: 5 }, { signal }),
+          );
+          return (items ?? []).map((item) => ({
+            id: `review-${item.id}`,
+            title: `${formatMoney(item.amount)} from ${sourceLabel(item.source)}`,
+            subtitle: [
+              `Item #${item.id}`,
+              reviewStatus[item.status].label,
+              item.name,
+              item.KID && `KID ${item.KID}`,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            meta: item.date ? formatDate(item.date) : undefined,
+            href: `/import/review/${item.id}`,
+            icon: InboxIcon,
           }));
         },
       },

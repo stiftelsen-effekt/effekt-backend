@@ -27,6 +27,11 @@ export function useAuth(): AuthState {
   return auth;
 }
 
+/** The signed-in user where there may be no auth provider (the /design demos): null there. */
+export function useOptionalUser(): AuthUser | null {
+  return useContext(AuthContext)?.user ?? null;
+}
+
 /**
  * A first name from identity claims: `given_name` when present, else the first word of
  * `name`, unless that is really an email address (Auth0 sets name = email for password

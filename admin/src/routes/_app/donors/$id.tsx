@@ -191,18 +191,24 @@ function Donor({ donorId }: { donorId: number }) {
   const donor = donorQuery.data;
   const displayName = donor.name || donor.email;
 
-  /** Flag changes are optimistic with undo (DESIGN.md › Optimism, undo and feedback). */
+  /**
+   * Flag changes are optimistic with undo (DESIGN.md › Optimism, undo and feedback). Undoing
+   * confirms with a plain toast: an undo of the undo would only go round in circles.
+   */
   function setFlag(
     patch: { newsletter?: boolean; trash?: boolean },
     message: string,
-    undo: typeof patch,
+    undo?: typeof patch,
   ) {
     const previous = queryClient.getQueryData(getKey);
     queryClient.setQueryData(getKey, { ...donor, ...patch });
     update.mutate(
       { donorId, name: donor.name, ...patch },
       {
-        onSuccess: () => notify.undo(message, () => setFlag(undo, "Change undone", patch)),
+        onSuccess: () =>
+          undo
+            ? notify.undo(message, () => setFlag(undo, "Change undone"))
+            : notify.success(message),
         onError: (error) => {
           queryClient.setQueryData(getKey, previous);
           notify.error(error, "Couldn't update the donor");

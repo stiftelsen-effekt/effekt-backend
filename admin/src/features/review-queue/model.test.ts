@@ -5,6 +5,7 @@ import {
   isResolvedElsewhere,
   nextOpenId,
   previousOpenId,
+  resolverName,
   reviewRegisterInput,
   summariseUpload,
   uploadForm,
@@ -22,7 +23,14 @@ describe("summariseUpload", () => {
         source: "ocr",
         result: { ...base, invalid: 2, invalidTransactions: items, ignored: 5 },
       }),
-    ).toEqual({ kind: "payments", registered: 10, ignored: 5, review: 2, queue: base.queue });
+    ).toEqual({
+      kind: "payments",
+      registered: 10,
+      ignored: 5,
+      review: 2,
+      queue: base.queue,
+      importLogId: 7,
+    });
   });
 
   it("counts non-queued invalid transactions as ignored for the other sources", () => {
@@ -112,5 +120,18 @@ describe("queue navigation", () => {
   it("tells the queue's CONFLICT from a donation conflict", () => {
     expect(isResolvedElsewhere("Review item 12 is already ignored")).toBe(true);
     expect(isResolvedElsewhere("EXISTING_DONATION | already registered")).toBe(false);
+  });
+});
+
+describe("resolverName", () => {
+  const user = { id: "local-admin", name: "Dev Admin", email: "dev@gieffektivt.no" };
+  it("names the signed-in admin", () => {
+    expect(resolverName("local-admin", user)).toBe("you (Dev Admin)");
+    expect(resolverName("dev@gieffektivt.no", user)).toBe("you (Dev Admin)");
+  });
+  it("falls back to the email or id", () => {
+    expect(resolverName("kari@gieffektivt.no", user)).toBe("kari@gieffektivt.no");
+    expect(resolverName("auth0|123", null)).toBe("auth0|123");
+    expect(resolverName(null, user)).toBe("someone");
   });
 });

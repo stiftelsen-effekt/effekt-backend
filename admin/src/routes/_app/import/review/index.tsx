@@ -1,3 +1,4 @@
+import { useOptionalUser } from "@/auth";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRightIcon, InboxIcon, UploadIcon } from "lucide-react";
@@ -17,6 +18,7 @@ import {
   queueSources,
   reviewStatuses,
   reasonText,
+  resolverName,
   sourceLabel,
   type ReviewItem,
 } from "@/features/review-queue/model";
@@ -245,6 +247,7 @@ function ReviewPeek({
   href: string;
   onClose: () => void;
 }) {
+  const user = useOptionalUser();
   return (
     <PeekPanel
       title={<Money value={row.amount} />}
@@ -273,7 +276,7 @@ function ReviewPeek({
           </Property>
           {row.status !== "open" && (
             <Property label="Resolved">
-              {row.resolvedBy ?? "Unknown"}
+              {resolverName(row.resolvedBy, user)}
               {row.resolvedAt && (
                 <>
                   {" · "}
@@ -282,7 +285,7 @@ function ReviewPeek({
               )}
             </Property>
           )}
-          {row.note && <Property label="Note">{row.note}</Property>}
+          {row.status === "ignored" && row.note && <Property label="Note">{row.note}</Property>}
           {row.donationId != null && (
             <Property label="Donation">
               <Link

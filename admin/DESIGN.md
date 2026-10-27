@@ -143,8 +143,9 @@ function DonationsPage() {
 ### Finding
 
 - **⌘K** (also the sidebar search box): one box for records and commands. Providers decide from
-  the query what it could be (digits → donor id, donation id, KID; `agr_` → Vipps agreement; text
-  → name/email) and run in parallel. Add providers in `src/features/search/api-providers.ts`.
+  the query what it could be (digits → donor id, donation id, KID, review item; `agr_…` or
+  `VA_…` → Vipps agreement; text → donor name/email, review items by payer, message or
+  reference) and run in parallel. Add providers in `src/features/search/api-providers.ts`.
 - **`/`** focuses the list search. **Filters** are chips; each opens its own editor. The URL holds
   the whole view (`?amount=100..500&method=4,8&sort=-sum&page=2`), so sharing a view is copying
   the address. **Saved views** name a combination per list (per browser).

@@ -5,6 +5,7 @@ import {
   RotateCcwIcon,
   SkipForwardIcon,
 } from "lucide-react";
+import { useOptionalUser } from "@/auth";
 import { useState, type ReactNode } from "react";
 import { Callout } from "@/components/domain/callout";
 import { CopyValue } from "@/components/domain/copy-value";
@@ -39,6 +40,7 @@ import { errorCode } from "@/lib/trpc";
 import {
   draftForItem,
   isResolvedElsewhere,
+  resolverName,
   reviewRegisterInput,
   reasonText,
   sourceLabel,
@@ -130,9 +132,10 @@ export function ReviewWorkbench(props: ReviewWorkbenchProps) {
 function Resolution({ item, reopen, donationLink }: ReviewWorkbenchProps) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const user = useOptionalUser();
   const by = (
     <>
-      by {item.resolvedBy ?? "someone"}
+      by {resolverName(item.resolvedBy, user)}
       {item.resolvedAt && (
         <>
           {" "}

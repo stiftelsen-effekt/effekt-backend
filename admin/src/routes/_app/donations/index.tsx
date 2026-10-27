@@ -98,7 +98,12 @@ function DonationsPage() {
     placeholderData: keepPreviousData,
   });
 
-  const histogram = useQuery({ ...trpc.donations.histogram.queryOptions(), staleTime: 300_000 });
+  // Log-scale buckets: most donations are small, so fixed 5 000 kr buckets put nearly all of
+  // them in the first bar.
+  const histogram = useQuery({
+    ...trpc.donations.histogram.queryOptions({ scale: "log", buckets: 24 }),
+    staleTime: 300_000,
+  });
   const methods = useQuery({
     ...trpc.config.paymentMethods.list.queryOptions(),
     staleTime: 300_000,
