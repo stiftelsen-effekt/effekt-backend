@@ -1,3 +1,4 @@
+import type { ResultSetHeader } from "mysql2";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
 
@@ -145,15 +146,17 @@ async function getAutoGiroShipmentFile(id: number) {
  * Adds a log entry.
  * @param {string} label
  * @param {object} result Results stored as JSON in DB
+ * @returns The id of the new entry
  */
-async function add(label, result) {
-  await DAO.execute(
+async function add(label, result): Promise<number> {
+  const [insert] = await DAO.execute<ResultSetHeader>(
     `INSERT INTO Import_logs
           (label, result) 
           VALUES 
           (?,?)`,
     [label, JSON.stringify(result)],
   );
+  return insert.insertId;
 }
 //endregion
 

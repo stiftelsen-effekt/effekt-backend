@@ -5,7 +5,6 @@ export type VippsParsingRule = {
   salesLocation: string | null;
   message: string | null;
   resolveKID: string;
-  resolveAdoveoFundraiserId?: number | null;
 };
 
 /**
@@ -25,7 +24,6 @@ async function getVippsParsingRules(periodStart, periodEnd): Promise<VippsParsin
       salesLocation: res.SalesLocation,
       message: res.Message,
       resolveKID: res.ResolveKID,
-      resolveAdoveoFundraiserId: res.ResolveAdoveoFundraiserID,
     };
   });
 }

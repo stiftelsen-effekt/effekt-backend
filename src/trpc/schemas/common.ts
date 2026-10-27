@@ -96,3 +96,4 @@ export const distributionCreateSchema = z
   .superRefine(refineShares);
 
 export type DistributionSplitInput = z.infer<typeof distributionSplitSchema>;
+export type DistributionInputSchema = z.infer<typeof distributionSchema>;
