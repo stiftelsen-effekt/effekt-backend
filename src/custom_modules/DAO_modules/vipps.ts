@@ -402,6 +402,130 @@ export async function getAgreements(
   };
 }
 
+export type VippsAgreementPayments = {
+  /** The agreement's current KID first, then other KIDs its charges were made under */
+  KIDs: string[];
+  /**
+   * Donations of the agreement, newest first: Vipps recurring donations on any of the KIDs, and
+   * donations registered from one of its charges (external id "<agreement>.<charge>")
+   */
+  donations: Array<{
+    id: number;
+    /** Decimal string */
+    sum: string;
+    /** Decimal string */
+    transactionCost: string | null;
+    timestamp: Date;
+    paymentMethod: string;
+    KID: string;
+    /** The charge the donation was registered from, if any */
+    chargeId: string | null;
+  }>;
+  /** The agreement's charges (Vipps_agreement_charges), newest due date first */
+  charges: Array<{
+    chargeId: string;
+    /** Whole NOK */
+    amount: number;
+    KID: string;
+    /** YYYY-MM-DD */
+    dueDate: string;
+    status: string;
+    type: string | null;
+    created: Date | null;
+    /** The donation registered from the charge, if any */
+    donationId: number | null;
+  }>;
+};
+
+/**
+ * Payments of a Vipps agreement: its charges and its donations, following KID changes (a
+ * distribution change gives the agreement a new KID; earlier charges keep theirs).
+ * @returns null if there is no agreement with the id
+ */
+async function getPaymentsByAgreementId(
+  agreementId: string,
+): Promise<VippsAgreementPayments | null> {
+  const [agreements] = await DAO.query<Array<{ KID: string }>>(
+    "SELECT KID FROM Vipps_agreements WHERE ID = ?",
+    [agreementId],
+  );
+  if (agreements.length === 0) return null;
+
+  const [chargeRows] = await DAO.query<
+    Array<{
+      chargeID: string;
+      amountNOK: number;
+      KID: string;
+      dueDate: string;
+      status: string;
+      type: string | null;
+      timestamp_created: Date | null;
+    }>
+  >(
+    `SELECT chargeID, amountNOK, KID, dueDate, status, type, timestamp_created
+     FROM Vipps_agreement_charges
+     WHERE agreementID = ?
+     ORDER BY dueDate DESC, timestamp_created DESC`,
+    [agreementId],
+  );
+
+  const KIDs = [...new Set([agreements[0].KID, ...chargeRows.map((charge) => charge.KID)])];
+  const chargePrefix = `${agreementId}.`;
+
+  const [donationRows] = await DAO.query<
+    Array<{
+      ID: number;
+      sum_confirmed: string;
+      transaction_cost: string | null;
+      timestamp_confirmed: Date;
+      payment_name: string;
+      KID_fordeling: string;
+      PaymentExternal_ID: string | null;
+    }>
+  >(
+    `SELECT D.ID, D.sum_confirmed, D.transaction_cost, D.timestamp_confirmed, P.payment_name,
+       D.KID_fordeling, D.PaymentExternal_ID
+     FROM Donations AS D
+     INNER JOIN Payment AS P ON D.Payment_ID = P.ID
+     WHERE (D.KID_fordeling IN (?) AND D.Payment_ID = 8)
+       OR D.PaymentExternal_ID LIKE ?
+     ORDER BY D.timestamp_confirmed DESC, D.ID DESC`,
+    [KIDs, `${chargePrefix.replace(/[\\%_]/g, (c) => `\\${c}`)}%`],
+  );
+
+  const chargeIdOf = (externalId: string | null) =>
+    externalId?.startsWith(chargePrefix) ? externalId.slice(chargePrefix.length) : null;
+  const donationByCharge = new Map<string, number>();
+  for (const row of donationRows) {
+    const chargeId = chargeIdOf(row.PaymentExternal_ID);
+    if (chargeId !== null && !donationByCharge.has(chargeId))
+      donationByCharge.set(chargeId, row.ID);
+  }
+
+  return {
+    KIDs,
+    donations: donationRows.map((row) => ({
+      id: row.ID,
+      sum: row.sum_confirmed,
+      transactionCost: row.transaction_cost,
+      timestamp: row.timestamp_confirmed,
+      paymentMethod: row.payment_name,
+      KID: row.KID_fordeling,
+      chargeId: chargeIdOf(row.PaymentExternal_ID),
+    })),
+    charges: chargeRows.map((charge) => ({
+      chargeId: charge.chargeID,
+      amount: charge.amountNOK,
+      KID: charge.KID,
+      dueDate: charge.dueDate,
+      status: charge.status,
+      type: charge.type,
+      created: charge.timestamp_created,
+      donationId: donationByCharge.get(charge.chargeID) ?? null,
+    })),
+  };
+}
+
 /**
  * Fetches an agreement by donor id
  * @property {number} donorId
@@ -1281,6 +1405,7 @@ const jsDBmapping = [
 ];
 
 export const vipps = {
+  getPaymentsByAgreementId,
   getLatestToken,
   getOrder,
   getRecentOrder,

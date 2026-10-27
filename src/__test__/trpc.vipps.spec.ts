@@ -103,6 +103,74 @@ describe("tRPC vipps router", () => {
   });
 
   describe("agreements", () => {
+    it("lists an agreement's charges and donations across KIDs", async () => {
+      const query = sinon.stub(DAO, "query");
+      query.onCall(0).resolves([[{ KID: "200" }], []] as any);
+      query.onCall(1).resolves([
+        [
+          {
+            chargeID: "chr-2",
+            amountNOK: 300,
+            KID: "200",
+            dueDate: "2026-02-01",
+            status: "CHARGED",
+            type: "RECURRING",
+            timestamp_created: null,
+          },
+          {
+            chargeID: "chr-1",
+            amountNOK: 200,
+            KID: "100",
+            dueDate: "2026-01-01",
+            status: "CHARGED",
+            type: "RECURRING",
+            timestamp_created: null,
+          },
+        ],
+        [],
+      ] as any);
+      query.onCall(2).resolves([
+        [
+          {
+            ID: 2,
+            sum_confirmed: "300.00",
+            transaction_cost: null,
+            timestamp_confirmed: new Date("2026-02-01"),
+            payment_name: "Vipps Recurring",
+            KID_fordeling: "200",
+            PaymentExternal_ID: "agr_1.chr-2",
+          },
+          {
+            ID: 1,
+            sum_confirmed: "200.00",
+            transaction_cost: null,
+            timestamp_confirmed: new Date("2026-01-01"),
+            payment_name: "Vipps Recurring",
+            KID_fordeling: "100",
+            PaymentExternal_ID: null,
+          },
+        ],
+        [],
+      ] as any);
+
+      const result = await admin().vipps.agreements.payments({ id: "agr_1" });
+
+      expect(result.KIDs).to.deep.equal(["200", "100"]);
+      expect(query.thirdCall.args[1]).to.deep.equal([["200", "100"], "agr\\_1.%"]);
+      expect(result.donations.map((d) => [d.id, d.chargeId])).to.deep.equal([
+        [2, "chr-2"],
+        [1, null],
+      ]);
+      expect(result.charges.map((c) => [c.chargeId, c.donationId])).to.deep.equal([
+        ["chr-2", 2],
+        ["chr-1", null],
+      ]);
+
+      query.reset();
+      query.resolves([[], []] as any);
+      await expectTrpcError(admin().vipps.agreements.payments({ id: "agr_x" }), "NOT_FOUND");
+    });
+
     it("lists agreements with the filter converted for the DAO", async () => {
       const result = { rows: [], statistics: {}, pages: 0 } as any;
       const stub = sinon.stub(DAO.vipps, "getAgreements").resolves(result);

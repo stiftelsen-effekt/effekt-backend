@@ -3,7 +3,10 @@ import { DateTime } from "luxon";
 import { z } from "zod";
 import { DAO } from "../../custom_modules/DAO";
 import { osloDayRange } from "../../custom_modules/osloDays";
-import type { VippsChargeRow } from "../../custom_modules/DAO_modules/vipps";
+import type {
+  VippsAgreementPayments,
+  VippsChargeRow,
+} from "../../custom_modules/DAO_modules/vipps";
 import * as vippsService from "../../custom_modules/vippsService";
 import { csvExport } from "../csv";
 import { assertDistributionReferences } from "../distributionChecks";
@@ -97,6 +100,19 @@ const agreementsRouter = router({
     await getAgreementOrThrow(input.id);
     return callVipps("fetch the agreement", () => vippsService.syncAndGetAgreement(input.id));
   }),
+
+  /**
+   * The agreement's payments from our DB: its charges, and its donations under every KID it
+   * has had (Vipps recurring donations on the KIDs, plus donations registered from its charges),
+   * each linked to the other where possible. NOT_FOUND for an unknown agreement.
+   */
+  payments: adminProcedure
+    .input(z.strictObject({ id: agreementIdSchema }))
+    .query(async ({ input }): Promise<VippsAgreementPayments> => {
+      const payments = await DAO.vipps.getPaymentsByAgreementId(input.id);
+      if (!payments) throw new TRPCError({ code: "NOT_FOUND", message: "Agreement not found" });
+      return payments;
+    }),
 
   report: adminProcedure.query(() => DAO.vipps.getAgreementReport()),
 
