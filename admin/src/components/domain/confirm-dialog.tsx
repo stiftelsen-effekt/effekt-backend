@@ -109,6 +109,15 @@ export function ConfirmDialog({
       {trigger && <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>}
       <AlertDialogContent
         onOpenAutoFocus={(event) => {
+          // An input the action needs (the new amount) can ask to be focused first.
+          const requested = (event.currentTarget as HTMLElement | null)?.querySelector<HTMLElement>(
+            "[data-autofocus]",
+          );
+          if (requested) {
+            event.preventDefault();
+            requested.focus();
+            return;
+          }
           // Typing is the next step of a typed confirmation, so start there. Dialogs with their
           // own inputs (children) keep the default order, and plain ones focus Cancel.
           if (confirmText !== undefined && !children) {
@@ -154,11 +163,13 @@ export function ConfirmDialog({
           <Callout tone="danger" title={errorInfo.title}>
             {errorInfo.hint}
             {/* The server's own words, for the tech team, when the hint doesn't already say them. */}
-            {errorMessage && errorMessage !== errorInfo.hint && (
-              <p className="mt-1 font-mono text-xs break-words text-muted-foreground">
-                {errorMessage}
-              </p>
-            )}
+            {errorMessage &&
+              errorMessage !== errorInfo.hint &&
+              errorMessage !== errorInfo.title && (
+                <p className="mt-1 font-mono text-xs break-words text-muted-foreground">
+                  {errorMessage}
+                </p>
+              )}
           </Callout>
         )}
         <AlertDialogFooter>

@@ -1,4 +1,11 @@
-import { CircleAlertIcon, LockIcon, RotateCwIcon, SearchXIcon, WifiOffIcon } from "lucide-react";
+import {
+  CircleAlertIcon,
+  CloudOffIcon,
+  LockIcon,
+  RotateCwIcon,
+  SearchXIcon,
+  WifiOffIcon,
+} from "lucide-react";
 import { strings } from "@/lib/strings";
 import { errorCode } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -21,6 +28,13 @@ export function describeError(error: unknown) {
   if (code === "BAD_REQUEST" || code === "CONFLICT")
     // Server validation messages are written for people; show them as the hint.
     return { icon: CircleAlertIcon, title: "That didn't work", hint: message };
+  if (code === "BAD_GATEWAY")
+    // A payment provider (Vipps) refused or couldn't be reached; the server names the action.
+    return {
+      icon: CloudOffIcon,
+      title: message || strings.errors.upstream,
+      hint: strings.errors.upstreamHint,
+    };
   if (/fetch|network|load failed/i.test(message))
     return { icon: WifiOffIcon, title: strings.errors.network, hint: strings.errors.networkHint };
   return { icon: CircleAlertIcon, title: strings.errors.generic, hint: strings.errors.genericHint };
@@ -51,7 +65,7 @@ export function ErrorState({
       <div className="grid min-w-0 flex-1 gap-1">
         <p className="font-semibold text-foreground">{title ?? info.title}</p>
         {info.hint && <p className="text-sm text-foreground/80">{info.hint}</p>}
-        {message && message !== info.hint && (
+        {message && message !== info.hint && message !== (title ?? info.title) && (
           <p className="truncate font-mono text-xs text-muted-foreground" title={message}>
             {message}
           </p>
