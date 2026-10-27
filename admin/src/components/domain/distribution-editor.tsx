@@ -36,10 +36,12 @@ export function AllocationBar({
   return (
     <div
       role="img"
-      aria-label={draft.causeAreas
-        .filter((area) => area.share > 0)
-        .map((area) => `${config.find((c) => c.id === area.id)?.name}: ${pct(area.share)}`)
-        .join(", ")}
+      aria-label={
+        draft.causeAreas
+          .filter((area) => area.share > 0)
+          .map((area) => `${config.find((c) => c.id === area.id)?.name}: ${pct(area.share)}`)
+          .join(", ") || "Nothing placed yet"
+      }
       className={cn("flex h-2.5 w-full gap-px overflow-hidden rounded-full bg-border", className)}
     >
       {draft.causeAreas.map((area, index) =>

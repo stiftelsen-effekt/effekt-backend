@@ -84,6 +84,12 @@ function DistributionPage() {
     undefined,
   );
   const total = sumMoney(rows.map((row) => row.sum));
+  // donations.byKid has no defined order
+  const newestFirst = [...rows].sort(
+    (a, b) =>
+      String(b.timestamp ?? "").localeCompare(String(a.timestamp ?? "")) ||
+      (b.id ?? 0) - (a.id ?? 0),
+  );
   const donorName = d.donor?.name ?? d.donor?.email ?? `Donor #${d.donorId}`;
 
   return (
@@ -119,7 +125,10 @@ function DistributionPage() {
           <DetailPanel title="Split">
             <div className="py-3">
               {causeAreas.data ? (
-                <DistributionSummary draft={draftFromApi(causeAreas.data, d)} config={causeAreas.data} />
+                <DistributionSummary
+                  draft={draftFromApi(causeAreas.data, d)}
+                  config={causeAreas.data}
+                />
               ) : causeAreas.isError ? (
                 <ErrorState error={causeAreas.error} onRetry={() => void causeAreas.refetch()} />
               ) : (
@@ -159,14 +168,19 @@ function DistributionPage() {
                   )}
                 </>
               ) : (
-                <Property label="Tax unit">None: donations on this KID aren't tax deductible</Property>
+                <Property label="Tax unit">
+                  None: donations on this KID aren't tax deductible
+                </Property>
               )}
             </PropertyList>
           </DetailPanel>
         </>
       }
     >
-      <PageSection title="Donations" description="Every donation registered on this KID, newest first.">
+      <PageSection
+        title="Donations"
+        description="Every donation registered on this KID, newest first."
+      >
         {donations.isError ? (
           <ErrorState error={donations.error} onRetry={() => void donations.refetch()} />
         ) : donations.data && rows.length === 0 ? (
@@ -179,7 +193,7 @@ function DistributionPage() {
             <DataTable
               label="Donations on this KID"
               columns={columns}
-              data={donations.data && [...rows].reverse()}
+              data={donations.data && newestFirst}
               isLoading={donations.isPending}
               getRowId={(row, index) => String(row.id ?? index)}
               onRowOpen={(row) =>

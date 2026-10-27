@@ -6,3 +6,4 @@ dist/
 *.tsbuildinfo
 test-results/
 playwright-report/
+.screenshots/

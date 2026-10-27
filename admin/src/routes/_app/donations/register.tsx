@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Callout } from "@/components/domain/callout";
 import { CopyValue } from "@/components/domain/copy-value";
 import { DistributionSummary } from "@/components/domain/distribution-editor";
@@ -15,7 +15,11 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
-import { emptyDraft, type CauseAreaConfig } from "@/features/distribution/model";
+import {
+  emptyDraft,
+  withCurrentStandardSplits,
+  type CauseAreaConfig,
+} from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import {
   apiLocale,
@@ -64,7 +68,10 @@ const breadcrumbs = [{ label: "Donations", to: "/donations" }];
 function RegisterDonationPage() {
   const trpc = useTRPC();
   const causeAreas = useCauseAreaConfig();
-  const methods = useQuery({ ...trpc.config.paymentMethods.list.queryOptions(), staleTime: 300_000 });
+  const methods = useQuery({
+    ...trpc.config.paymentMethods.list.queryOptions(),
+    staleTime: 300_000,
+  });
   const owners = useQuery({ ...trpc.meta.owners.queryOptions(), staleTime: 300_000 });
   const error = causeAreas.error ?? methods.error ?? owners.error;
 
@@ -116,7 +123,18 @@ function RegisterFlow({
   const [server, setServer] = useState<ReturnType<typeof serverErrors<RegisterField>>>({
     fields: {},
   });
-  const { draft, step } = state;
+  const { step } = state;
+  // The draft survives reloads; standard split shares always come from today's config.
+  const draft = useMemo(
+    () =>
+      state.draft.distribution
+        ? {
+            ...state.draft,
+            distribution: withCurrentStandardSplits(state.draft.distribution, config),
+          }
+        : state.draft,
+    [state.draft, config],
+  );
 
   // Fill in what the form can't start with: the default owner and an empty split.
   useEffect(() => {
@@ -354,7 +372,9 @@ function RegisterFlow({
             )}
             <Property label="External reference">{draft.externalRef.trim()}</Property>
             <Property label="Data owner">{ownerName}</Property>
-            <Property label="Receipt">{draft.sendReceipt ? "Emailed to the donor" : "Not sent"}</Property>
+            <Property label="Receipt">
+              {draft.sendReceipt ? "Emailed to the donor" : "Not sent"}
+            </Property>
           </PropertyList>
           {draft.mode === "kid" ? (
             <KidPreview kid={draft.KID} />
@@ -377,7 +397,9 @@ function RegisterFlow({
         <>
           <Callout
             tone="success"
-            title={`Registered ${formatAmount(state.result.sum)} as donation #${state.result.donationId}`}
+            title={`Registered ${formatAmount(state.result.sum)} as donation #${
+              state.result.donationId
+            }`}
             action={
               <Button size="sm" asChild>
                 <Link to="/donations/$id" params={{ id: String(state.result.donationId) }}>

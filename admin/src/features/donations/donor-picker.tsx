@@ -18,20 +18,20 @@ import { cn } from "@/lib/utils";
 
 /**
  * TEMPORARY local donor picker for the money pages. A shared DonorPicker over donors.search
- * is being built in the donors area; swap this for it on merge (same props).
+ * is being built in the donors area; swap this for it on merge. Props: `{ value: number | null, onChange(id: number | null) }`.
  *
  * Searches name, email or donor id (donors.search) as you type; shows the chosen donor's
  * name and email.
  */
 export function DonorPicker({
   value,
-  onValueChange,
+  onChange,
   placeholder = "Search name, email or donor ID",
   disabled,
   className,
 }: {
   value: number | null;
-  onValueChange: (donorId: number | null) => void;
+  onChange: (donorId: number | null) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -52,14 +52,14 @@ export function DonorPicker({
     enabled: debounced.length >= 2,
     placeholderData: keepPreviousData,
   });
-  const rows = debounced.length >= 2 ? (results.data?.rows ?? []) : [];
+  const rows = debounced.length >= 2 ? results.data?.rows ?? [] : [];
 
   const label =
     value == null
       ? placeholder
       : selected.data
-        ? `${selected.data.name ?? selected.data.email} · #${selected.data.id}`
-        : `Donor #${value}`;
+      ? `${selected.data.name ?? selected.data.email} · #${selected.data.id}`
+      : `Donor #${value}`;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -100,10 +100,10 @@ export function DonorPicker({
               {debounced.length < 2
                 ? "Type at least two characters"
                 : results.isFetching
-                  ? "Searching…"
-                  : results.isError
-                    ? "Search failed. Try other words."
-                    : "No donors match"}
+                ? "Searching…"
+                : results.isError
+                ? "Search failed. Try other words."
+                : "No donors match"}
             </CommandEmpty>
             {rows.length > 0 && (
               <CommandGroup>
@@ -112,7 +112,7 @@ export function DonorPicker({
                     key={donor.id}
                     value={String(donor.id)}
                     onSelect={() => {
-                      onValueChange(donor.id);
+                      onChange(donor.id);
                       setOpen(false);
                     }}
                   >

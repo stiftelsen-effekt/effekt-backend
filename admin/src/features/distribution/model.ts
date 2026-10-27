@@ -41,14 +41,12 @@ export function standardOrganizations(area: CauseAreaConfig): DraftOrganization[
 /** Empty draft: every usable cause area at 0 %, standard split on. */
 export function emptyDraft(config: CauseAreaConfig[]): DistributionDraft {
   return {
-    causeAreas: config
-      .filter(isUsable)
-      .map((area) => ({
-        id: area.id,
-        share: 0,
-        standardSplit: true,
-        organizations: standardOrganizations(area),
-      })),
+    causeAreas: config.filter(isUsable).map((area) => ({
+      id: area.id,
+      share: 0,
+      standardSplit: true,
+      organizations: standardOrganizations(area),
+    })),
   };
 }
 
@@ -80,7 +78,8 @@ export function draftFromApi(
       .map((area) => {
         const existing = usedArea(area.id);
         const standard = standardOrganizations(area);
-        if (!existing) return { id: area.id, share: 0, standardSplit: true, organizations: standard };
+        if (!existing)
+          return { id: area.id, share: 0, standardSplit: true, organizations: standard };
         const usedShare = (orgId: number) =>
           existing.organizations.find((o) => o.id === orgId)?.percentageShare;
         return {
@@ -174,7 +173,10 @@ export function draftToApi(draft: DistributionDraft): ApiCauseAreaShare[] {
       id: area.id,
       percentageShare: areaShares[index]!,
       standardSplit: area.standardSplit,
-      organizations: organizations.map((org, i) => ({ id: org.id, percentageShare: orgShares[i]! })),
+      organizations: organizations.map((org, i) => ({
+        id: org.id,
+        percentageShare: orgShares[i]!,
+      })),
     };
   });
 }
@@ -240,3 +242,25 @@ export function setStandardSplit(
 }
 
 const clampShare = (value: number) => round(Math.min(100, Math.max(0, value || 0)));
+
+/**
+ * A draft kept across reloads (the register form) can hold standard split shares from an
+ * older config. Re-reads them from the current config for every standard split cause area,
+ * and drops cause areas that are no longer usable and have no share, so what is sent is
+ * always today's standard split.
+ */
+export function withCurrentStandardSplits(
+  draft: DistributionDraft,
+  config: CauseAreaConfig[],
+): DistributionDraft {
+  return {
+    causeAreas: draft.causeAreas
+      .filter((area) => area.share > 0 || config.some((c) => c.id === area.id && isUsable(c)))
+      .map((area) => {
+        const areaConfig = config.find((c) => c.id === area.id);
+        return area.standardSplit && areaConfig
+          ? { ...area, organizations: standardOrganizations(areaConfig) }
+          : area;
+      }),
+  };
+}

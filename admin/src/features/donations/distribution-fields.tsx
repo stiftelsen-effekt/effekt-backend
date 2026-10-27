@@ -92,7 +92,7 @@ export function NewDistributionFields({
         <Field label="Donor" error={errors.donorId} required>
           <DonorPicker
             value={donorId}
-            onValueChange={(next) => {
+            onChange={(next) => {
               onDonorChange(next);
               onTaxUnitChange("");
             }}
