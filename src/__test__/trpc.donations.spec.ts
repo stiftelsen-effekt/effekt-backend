@@ -473,6 +473,41 @@ describe("tRPC donations router", () => {
     });
   });
 
+  describe("free text query", () => {
+    it("matches id, KID, donor name or email, escaping wildcards", async () => {
+      const query = sinon.stub(DAO, "query");
+      query.resolves([[{ abbriv: "AMF" }], []] as any);
+      await DAO.donations.getAll(
+        { id: "timestamp", desc: true },
+        0,
+        10,
+        { query: " 1234 ", paymentMethodIDs: [4] },
+        "NO" as any,
+      );
+      const donationSql = query.lastCall.args[0] as string;
+      expect(donationSql).to.contain(
+        "(Donations.ID = 1234 OR Donations.KID_fordeling LIKE '%1234%' OR Donors.full_name LIKE '%1234%' OR Donors.email LIKE '%1234%')",
+      );
+      expect(donationSql).to.contain("Donations.Payment_ID IN (4)");
+
+      await DAO.distributions.getAll(0, 10, { id: "KID", desc: true }, { query: "50%_ola" });
+      const distributionSql = query.lastCall.args[0] as string;
+      expect(distributionSql).to.contain(
+        "(D.KID LIKE '%50\\\\%\\\\_ola%' OR Donors.full_name LIKE '%50\\\\%\\\\_ola%' OR Donors.email LIKE '%50\\\\%\\\\_ola%')",
+      );
+    });
+
+    it("accepts query in the procedure filters", async () => {
+      const getAll = sinon.stub(DAO.distributions, "getAll").resolves({
+        rows: [],
+        statistics: { numDistributions: 0 },
+        pages: 0,
+      });
+      await admin().donations.distributions.list({ page: 0, limit: 10, filter: { query: " 77 " } });
+      expect(getAll.firstCall.args[3]).to.deep.equal({ query: "77" });
+    });
+  });
+
   describe("distributions", () => {
     it("lists and exports distributions", async () => {
       const getAll = sinon.stub(DAO.distributions, "getAll").resolves({

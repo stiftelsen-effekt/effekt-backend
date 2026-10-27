@@ -5,6 +5,9 @@ import { Distribution, Donation } from "../../schemas/types";
 
 import sqlString from "sqlstring";
 import { instantRangeClauses, type InstantRange } from "../osloDays";
+
+/** Escapes LIKE wildcards so free text matches literally */
+const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
 import { DateTime } from "luxon";
 import { Donations, Prisma } from "@prisma/client";
 import { RequestLocale } from "../../middleware/locale";
@@ -63,6 +66,8 @@ async function getAll(
     paymentMethodIDs?: Array<number>;
     taxUnitTypes?: Array<TaxUnitType | null>;
     donor?: string;
+    /** Free text: the donation id (all digits), part of the KID, or the donor's name or email */
+    query?: string;
     id?: string;
     fundraiserId?: string;
     organizationIDs?: Array<number>;
@@ -160,6 +165,18 @@ async function getAll(
         );
 
       if (filter.id) where.push(` Donations.ID LIKE ${sqlString.escape(`${filter.id}%`)} `);
+
+      if (filter.query?.trim()) {
+        const text = filter.query.trim();
+        const pattern = sqlString.escape(`%${escapeLike(text)}%`);
+        const matches = [
+          `Donations.KID_fordeling LIKE ${pattern}`,
+          `Donors.full_name LIKE ${pattern}`,
+          `Donors.email LIKE ${pattern}`,
+        ];
+        if (/^\d+$/.test(text)) matches.unshift(`Donations.ID = ${sqlString.escape(Number(text))}`);
+        where.push(` (${matches.join(" OR ")}) `);
+      }
 
       if (filter.fundraiserId) {
         // Ensure the join happens below if filter.fundraiserId is present
