@@ -34,6 +34,7 @@ import {
   vippsId,
 } from "./people";
 import { Rng } from "./random";
+import { gdzfClosedDay, RegrantingHistory, RG_ORG, type SplitShare } from "./regranting";
 import {
   FUNDRAISER_MESSAGES,
   ORG,
@@ -56,6 +57,11 @@ export type GenerateOptions = {
   end: number;
   /** Multiplies all volumes */
   scale: number;
+  /**
+   * The day of the first seed (default `end`). Kept across top-ups; the regranting history is
+   * laid out relative to it (prisma/devdata/regranting.ts).
+   */
+  anchor?: number;
 };
 
 /** Tables written by the generator, in foreign key order */
@@ -81,6 +87,21 @@ export const GENERATED_TABLES = [
   "Import_logs",
   "Review_queue_items",
   "Avtalegiro_shipment",
+  // Regranting (prisma/devdata/regranting.ts)
+  "Payees",
+  "Organization_payees",
+  "Projects",
+  "Funds",
+  "Regrant_holds",
+  "Regrant_rounds",
+  "Regrant_round_donations",
+  "Regrant_round_recipients",
+  "Regrant_transfers",
+  "Regrant_transfer_lines",
+  "Fund_grants",
+  "Fund_grant_lines",
+  "Regrant_adjustments",
+  "Regrant_round_balances",
 ] as const;
 export type TableName = (typeof GENERATED_TABLES)[number];
 
@@ -175,6 +196,11 @@ class Simulation {
   private readonly donors: Donor[] = [];
   private readonly usedKids = new Set<string>();
   private readonly kidDonor = new Map<string, number>();
+  /** Organization shares per KID (pct of cause area × pct of organization) for regranting */
+  private readonly kidShares = new Map<string, { orgId: number; share: number }[]>();
+  private readonly regranting: RegrantingHistory;
+  /** GiveDirectly's Zakat fund closes: new splits stop choosing it */
+  private readonly gdzfClosed: number | null;
   private readonly agreementsByPaymentDay = new Map<number, AvtaleGiro[]>();
   private readonly avtaleGiro: AvtaleGiro[] = [];
   private readonly vippsByChargeDay = new Map<number, VippsAgreement[]>();
@@ -189,7 +215,7 @@ class Simulation {
   private readonly operationalFrom: number;
   private readonly reviewFrom: number;
 
-  constructor({ seed, start, end, scale }: GenerateOptions) {
+  constructor({ seed, start, end, scale, anchor }: GenerateOptions) {
     this.seed = seed;
     this.start = start;
     this.end = end;
@@ -198,6 +224,21 @@ class Simulation {
       TableName,
       Row[]
     >;
+    const regrantingAnchor = anchor ?? end;
+    this.gdzfClosed = gdzfClosedDay(start, regrantingAnchor);
+    this.regranting = new RegrantingHistory(
+      {
+        id: (table) => this.id(table),
+        add: (table, row) => this.add(table, row),
+        donations: this.tables.Donations,
+        kidShares: (KID) => this.kidShares.get(KID),
+        majorGift: (tag, day, arrival, amount, split, onArrival) =>
+          this.majorGift(tag, day, arrival, amount, split, onArrival),
+      },
+      seed,
+      start,
+      regrantingAnchor,
+    );
     const initialEnd = start + Math.round(config.years * 365.25);
     this.operationalFrom = initialEnd - config.operationalLogDays;
     this.reviewFrom = initialEnd - 150;
@@ -219,6 +260,7 @@ class Simulation {
       this.bigGifts();
       this.reviewQueue();
       this.drainQueue();
+      this.regranting.step(this.day);
       this.operationalLogs();
     }
     this.finalize();
@@ -418,7 +460,7 @@ class Simulation {
         { causeAreaId: 1, standard: true, orgs: [{ orgId: this.standardOrg(day), pct: 100 }] },
       ];
     }
-    return [{ causeAreaId: 1, standard: false, orgs: this.customOrgs(rng) }];
+    return [{ causeAreaId: 1, standard: false, orgs: this.customOrgs(rng, day) }];
   }
 
   /**
@@ -429,9 +471,13 @@ class Simulation {
     return ORG.AGF;
   }
 
-  private customOrgs(rng: Rng): { orgId: number; pct: number }[] {
+  private customOrgs(rng: Rng, day: number): { orgId: number; pct: number }[] {
     const count = rng.weightedNum(config.distributions.customOrgCount);
-    const candidates = ORGANIZATIONS.filter((o) => o.cause_area_ID === 1 && o.customWeight > 0);
+    const closed = (id: number) =>
+      id === RG_ORG.GDZF && this.gdzfClosed !== null && day >= this.gdzfClosed;
+    const candidates = ORGANIZATIONS.filter(
+      (o) => o.cause_area_ID === 1 && o.customWeight > 0 && !closed(o.ID),
+    );
     const chosen: number[] = [];
     while (chosen.length < Math.min(count, candidates.length)) {
       const remaining = candidates.filter((o) => !chosen.includes(o.ID));
@@ -473,6 +519,12 @@ class Simulation {
     });
 
     const split = options.split ?? this.sampleSplit(rng, day);
+    this.kidShares.set(
+      KID,
+      split.flatMap((ca) =>
+        ca.orgs.map((o) => ({ orgId: o.orgId, share: (ca.pct ?? 100) * o.pct })),
+      ),
+    );
     for (const causeArea of split) {
       const causeAreaRowId = this.id("Distribution_cause_areas");
       this.add("Distribution_cause_areas", {
@@ -1005,6 +1057,40 @@ class Simulation {
         preferCustom: true,
       });
     }
+  }
+
+  /**
+   * A large bank gift for the regranting history: registered on `day` (a new donor and KID with
+   * the given split), booked on `arrival`.
+   */
+  private majorGift(
+    tag: string,
+    day: number,
+    arrival: number,
+    amount: number,
+    split: SplitShare[],
+    onArrival: (donationId: number) => void,
+  ) {
+    const rng = this.rng("major-gift", tag);
+    const seconds = rng.int(9, 15) * 3600;
+    const donor = this.newDonor(rng, day, seconds, "bigGift", rng.chance(0.5));
+    const { KID, ownerId } = this.newDistribution(rng, donor, day, seconds + 60, {
+      split: [{ causeAreaId: 1, standard: false, orgs: split }],
+      ownerId: 3,
+    });
+    this.at(arrival, () => {
+      const id = this.donation({
+        donorId: donor.id,
+        KID,
+        paymentId: PAYMENT.BANK,
+        amount,
+        day: arrival,
+        seconds: 0,
+        ownerId,
+        externalId: this.externalId(PAYMENT.BANK, arrival),
+      });
+      onArrival(id);
+    });
   }
 
   private fundraisers() {

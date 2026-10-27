@@ -38,7 +38,8 @@ const META_SCHEMA = "dev_seed_meta";
 /** Bump to invalidate stored metadata when its format changes */
 const META_VERSION = 1;
 
-type TableMeta = { key: string; numericKey: boolean; fks?: Record<string, TableName> };
+/** `key` is the primary key; a list for composite keys (never generated ids themselves) */
+type TableMeta = { key: string | string[]; numericKey: boolean; fks?: Record<string, TableName> };
 
 const TABLES: Record<TableName, TableMeta> = {
   Donors: { key: "ID", numericKey: true },
@@ -86,7 +87,60 @@ const TABLES: Record<TableName, TableMeta> = {
     fks: { Import_log_ID: "Import_logs", Donation_ID: "Donations" },
   },
   Avtalegiro_shipment: { key: "ID", numericKey: true },
+  Payees: { key: "ID", numericKey: true },
+  Organization_payees: { key: "ID", numericKey: true, fks: { Payee_ID: "Payees" } },
+  Projects: { key: "ID", numericKey: true },
+  Funds: { key: "Organization_ID", numericKey: false },
+  Regrant_holds: { key: "ID", numericKey: true, fks: { Project_ID: "Projects" } },
+  Regrant_rounds: { key: "ID", numericKey: true },
+  Regrant_round_donations: {
+    key: ["Round_ID", "Donation_ID"],
+    numericKey: false,
+    fks: { Round_ID: "Regrant_rounds", Donation_ID: "Donations" },
+  },
+  Regrant_round_recipients: {
+    key: ["Round_ID", "Organization_ID"],
+    numericKey: false,
+    fks: { Round_ID: "Regrant_rounds" },
+  },
+  Regrant_transfers: {
+    key: "ID",
+    numericKey: true,
+    fks: { Round_ID: "Regrant_rounds", Payee_ID: "Payees" },
+  },
+  Regrant_transfer_lines: {
+    key: "ID",
+    numericKey: true,
+    fks: { Transfer_ID: "Regrant_transfers", Project_ID: "Projects" },
+  },
+  Fund_grants: { key: "ID", numericKey: true, fks: { Round_ID: "Regrant_rounds" } },
+  Fund_grant_lines: {
+    key: "ID",
+    numericKey: true,
+    fks: { Fund_grant_ID: "Fund_grants", Project_ID: "Projects" },
+  },
+  Regrant_adjustments: {
+    key: "ID",
+    numericKey: true,
+    fks: {
+      Project_ID: "Projects",
+      Round_ID: "Regrant_rounds",
+      linked_transfer_ID: "Regrant_transfers",
+      linked_donation_ID: "Donations",
+    },
+  },
+  Regrant_round_balances: {
+    key: "ID",
+    numericKey: true,
+    fks: { Round_ID: "Regrant_rounds", Project_ID: "Projects" },
+  },
 };
+
+const keyColumns = (meta: TableMeta) => (Array.isArray(meta.key) ? meta.key : [meta.key]);
+const keyOf = (meta: TableMeta, row: Row) =>
+  keyColumns(meta)
+    .map((c) => String(row[c]))
+    .join("|");
 
 /** Generated ids from..to are stored as id + offset */
 type Segment = { from: number; to: number; offset: number };
@@ -97,13 +151,22 @@ type Meta = {
   scale: number;
   start: string;
   end: string;
+  /** The day of the first seed (regranting history is laid out relative to it) */
+  anchor?: string;
   /** Hash of generate(start, end), to detect generator changes */
   hash: string;
   counts: Record<string, number>;
   segments: Record<string, Segment[]>;
 };
 
-export type Settings = { seed: string; scale: number; start: number; end: number };
+export type Settings = {
+  seed: string;
+  scale: number;
+  start: number;
+  end: number;
+  /** The day of the first seed; `end` when seeding */
+  anchor: number;
+};
 
 // -------------------------------------------------------------------------------------------------
 // Connection and metadata
@@ -164,7 +227,7 @@ export function settingsFromEnv(): Settings {
     : firstOfMonth(year - config.years, month);
   const scale = Number(process.env.SEED_SCALE ?? 1);
   if (!(scale > 0)) throw new Error("SEED_SCALE must be a positive number");
-  return { seed: process.env.SEED ?? "effekt-dev", scale, start, end };
+  return { seed: process.env.SEED ?? "effekt-dev", scale, start, end, anchor: end };
 }
 
 function datasetHash(dataset: Dataset): string {
@@ -232,7 +295,10 @@ function mapId(segments: Segment[] | undefined, genId: number): number {
 function toDatabase(table: TableName, row: Row, segments: Record<string, Segment[]>): Row {
   const meta = TABLES[table];
   const out: Row = { ...row };
-  if (meta.numericKey) out[meta.key] = mapId(segments[table], row[meta.key] as number);
+  if (meta.numericKey) {
+    const key = meta.key as string;
+    out[key] = mapId(segments[table], row[key] as number);
+  }
   for (const [column, target] of Object.entries(meta.fks ?? {})) {
     if (out[column] != null) out[column] = mapId(segments[target], out[column] as number);
   }
@@ -263,9 +329,9 @@ async function apply(
     inserts[table] = [];
     updates[table] = [];
 
-    const oldByKey = new Map(oldRows.map((r) => [r[meta.key], r]));
+    const oldByKey = new Map(oldRows.map((r) => [keyOf(meta, r), r]));
     for (const row of newRows) {
-      const old = oldByKey.get(row[meta.key]);
+      const old = oldByKey.get(keyOf(meta, row));
       if (!old) {
         inserts[table].push(row);
         continue;
@@ -278,15 +344,16 @@ async function apply(
     }
 
     if (meta.numericKey && inserts[table].length > 0) {
+      const idColumn = meta.key as string;
       const from = oldRows.length + 1;
       const to = newRows.length;
       // Generated ids are sequential, so new rows must be exactly from..to
       inserts[table].forEach((row, i) => {
-        if (row[meta.key] !== from + i) throw new Error(`Unexpected id order in ${table}`);
+        if (row[idColumn] !== from + i) throw new Error(`Unexpected id order in ${table}`);
       });
       const [[{ maxId }]] = await conn.query<mysql.RowDataPacket[]>(
         `SELECT COALESCE(MAX(??), 0) AS maxId FROM ??`,
-        [meta.key, table],
+        [idColumn, table],
       );
       const previousTop = (segments[table] ?? []).reduce(
         (top, s) => Math.max(top, s.to + s.offset),
@@ -307,11 +374,17 @@ async function apply(
     inserted += rows.length;
 
     for (const { key, changes } of updates[table]) {
-      const dbRow = toDatabase(table, { ...changes, [meta.key]: key[meta.key] }, segments);
-      const keyValue = dbRow[meta.key];
-      delete dbRow[meta.key];
+      const columns = keyColumns(meta);
+      const keyValues = Object.fromEntries(columns.map((c) => [c, key[c]]));
+      const dbRow = toDatabase(table, { ...changes, ...keyValues }, segments);
+      const where = columns.map((c) => dbRow[c]);
+      for (const c of columns) delete dbRow[c];
       if (Object.keys(dbRow).length === 0) continue;
-      await conn.query(`UPDATE ?? SET ? WHERE ?? = ?`, [table, dbRow, meta.key, keyValue]);
+      await conn.query(`UPDATE ?? SET ? WHERE ${columns.map(() => "?? = ?").join(" AND ")}`, [
+        table,
+        dbRow,
+        ...columns.flatMap((c, i) => [c, where[i]]),
+      ]);
       updated++;
     }
   }
@@ -323,6 +396,7 @@ async function apply(
       scale: settings.scale,
       start: isoDate(settings.start),
       end: isoDate(settings.end),
+      anchor: isoDate(settings.anchor),
       hash: datasetHash(next),
       counts,
       segments,
@@ -381,7 +455,13 @@ export async function topUp(conn: mysql.Connection, end: number): Promise<TopUpR
   }
 
   const started = Date.now();
-  const base = { seed: meta.seed, scale: meta.scale, start: toDay(meta.start) };
+  const base = {
+    seed: meta.seed,
+    scale: meta.scale,
+    start: toDay(meta.start),
+    // Databases seeded before the anchor was recorded fail the hash check below
+    anchor: toDay(meta.anchor ?? meta.end),
+  };
   const previous = generate({ ...base, end: previousEnd });
   if (datasetHash(previous) !== meta.hash) {
     console.log(
@@ -431,4 +511,14 @@ function printSummary(dataset: Dataset) {
         .padStart(12)} kr`,
     );
   }
+  const rounds = dataset.Regrant_rounds;
+  const regular = rounds.filter((r) => r.kind === "regular");
+  const byStatus = (status: string) => rounds.filter((r) => r.status === status).length;
+  console.log(
+    `Regranting: ${rounds.length} rounds (${byStatus("paid")} paid, ${byStatus(
+      "approved",
+    )} approved, ${byStatus("draft")} draft), last regular cutoff ${
+      regular[regular.length - 1]?.cutoff ?? "-"
+    }`,
+  );
 }

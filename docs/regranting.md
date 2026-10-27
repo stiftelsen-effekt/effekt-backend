@@ -321,5 +321,11 @@ Backend: migration `20261027150000_regranting`, `DAO.regranting`
 - **Outputs** (grant letters, payment files) are not built. They should read `regranting.rounds.get`
   (an approved round's transfers with payees, lines, fund grants and snapshot) and
   `Payees.payment_reference_template`.
+- **Dev data.** The local seed (`prisma/devdata/regranting.ts`) generates the history described in
+  the README's Local environment section by running `proposeRound` and `validateRound` on the
+  generated donations, so the seeded rounds are what the system would have proposed (plus a few
+  scripted edits). Re-validating a _paid_ round today can report `fund_grant_exceeds_balance` when a
+  later round granted from the same fund: later grants count as committed at the earlier cutoff.
+  Approval only validates drafts, so this only shows if a paid round's issues are displayed.
 - **Performance.** The balance query sums donations per KID before applying the split (identical
   to the view, about twice as fast): the Balances page takes ~0.35 s on 200k donations.
