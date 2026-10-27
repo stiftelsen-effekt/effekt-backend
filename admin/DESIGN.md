@@ -181,12 +181,14 @@ rows are selected.
 
 ### Imports and the review queue
 
-`FlowPage` with Source → Upload → Result → Review. Unmatched transactions go into the review
-queue store (`src/features/review-queue/store.ts`, localStorage, deduplicated by source +
-transaction id), so they survive reloads and are counted in the nav. `ReviewWorkbench` shows one
-item at a time: the raw transaction left, a registration form prefilled from it right
-(existing KID or new distribution), Register (⌘Enter) or Skip (undoable). The same workbench
-serves the Review queue page.
+`FlowPage` with Source → Upload → Result → Review (`/import`). Unmatched transactions go into the
+server-side review queue (`reports.reviewQueue.*`, shared by the whole team and deduplicated by
+source + transaction id), so nothing is lost on reload or on another machine; the nav badge shows
+the open count. `ReviewWorkbench` (`/import/review/$id`) shows one item at a time: the raw
+transaction left, a registration form prefilled from it right (existing KID or new distribution),
+Register (⌘Enter), Skip (moves on, changes nothing), or Ignore with an optional note (undoable,
+and ignored items can be reopened). If someone else resolved the item first, it says so and moves
+on.
 
 ### Keyboard
 
@@ -292,7 +294,7 @@ they are; for sums, averages, comparisons and sorting use `src/lib/money.ts` (ex
   never read the raw provider shapes.
 - `distribution/model.ts`: `DistributionDraft`, validation (both levels sum to 100), API
   conversion. Unit tested.
-- `review-queue`: persistent queue store and `ReviewWorkbench`.
+- `review-queue`: `ReviewWorkbench` and the queue model over `reports.reviewQueue.*`.
 - `search`: palette providers.
 
 Removed from the first pass: the black sidebar and its notch animation and `sidebar-*` tokens,
