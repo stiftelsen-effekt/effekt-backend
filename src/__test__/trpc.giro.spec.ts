@@ -230,6 +230,66 @@ describe("tRPC giro router", () => {
       await expectTRPCError(admin().giro.avtalegiro.get({ id: 7 }), "NOT_FOUND");
     });
 
+    it("returns an agreement's payments across its KIDs, NOT_FOUND when missing", async () => {
+      const payments = {
+        KIDs: ["111", "222"],
+        donations: [
+          {
+            id: 2,
+            sum: "100.00",
+            transactionCost: null,
+            timestamp: new Date("2026-02-01"),
+            paymentMethod: "AvtaleGiro",
+            KID: "111",
+          },
+          {
+            id: 1,
+            sum: "100.00",
+            transactionCost: null,
+            timestamp: new Date("2026-01-01"),
+            paymentMethod: "AvtaleGiro",
+            KID: "222",
+          },
+        ],
+      };
+      const stub = sinon
+        .stub(DAO.avtalegiroagreements, "getPaymentsByAgreementId")
+        .callsFake(async (agreementId) => (agreementId === 7 ? payments : null));
+
+      expect(await admin().giro.avtalegiro.payments({ agreementId: 7 })).to.deep.equal(payments);
+      await expectTRPCError(admin().giro.avtalegiro.payments({ agreementId: 8 }), "NOT_FOUND");
+      await expectTRPCError(
+        admin().giro.avtalegiro.payments({ agreementId: "7" } as any),
+        "BAD_REQUEST",
+      );
+      expect(stub.callCount).to.equal(2);
+    });
+
+    it("follows the replaced distribution chain for an agreement's KIDs", async () => {
+      const query = sinon.stub(DAO, "query");
+      query.onFirstCall().resolves([
+        [
+          { KID: "111", depth: 0 },
+          { KID: "222", depth: 1 },
+        ],
+      ] as any);
+      query.onSecondCall().resolves([[]] as any);
+
+      const result = await DAO.avtalegiroagreements.getPaymentsByAgreementId(7);
+
+      expect(query.firstCall.args[0]).to.match(/WITH RECURSIVE/);
+      expect(query.firstCall.args[0]).to.match(
+        /INNER JOIN agreement_kids K ON R.Original_AvtaleGiro_KID = K.KID/,
+      );
+      expect(query.firstCall.args[1]).to.deep.equal([7]);
+      expect(query.secondCall.args[1]).to.deep.equal([["111", "222"]]);
+      expect(result).to.deep.equal({ KIDs: ["111", "222"], donations: [] });
+
+      query.onThirdCall().resolves([[]] as any);
+      expect(await DAO.avtalegiroagreements.getPaymentsByAgreementId(8)).to.equal(null);
+      expect(query.callCount).to.equal(3);
+    });
+
     it("returns donations, histogram, report and validation", async () => {
       const donation = { id: 1, KID: "123", sum: "1.00" } as any;
       const bucket = { bucket: 0, items: 1, bar: 0 };
