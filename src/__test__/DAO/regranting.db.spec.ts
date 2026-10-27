@@ -212,6 +212,21 @@ const NOPAYEE = 7;
       expect((await balanceOf("2026-01-09", AGF)).balance).to.equal("0.00");
     });
 
+    it("computes the same allocations as the Regrant_allocations view", async () => {
+      for (const at of ["2026-02-15", "2026-03-31", "2026-12-31"]) {
+        const view = await sql(
+          `SELECT Organization_ID AS org, ROUND(SUM(amount), 2) AS amount FROM Regrant_allocations
+           WHERE timestamp_confirmed < DATE_ADD(?, INTERVAL 1 DAY) GROUP BY Organization_ID ORDER BY Organization_ID`,
+          [at],
+        );
+        const rows = await DAO.regranting.getBalances({ at });
+        const fromQuery = rows
+          .filter((r) => r.projectId === null && r.allocations !== "0.00")
+          .map((r) => ({ org: r.organizationId, amount: r.allocations }));
+        expect(fromQuery).to.deep.equal(view.map((v: any) => ({ org: v.org, amount: v.amount })));
+      }
+    });
+
     it("reports donations without a split as Unassigned", async () => {
       expect(await DAO.regranting.getUnassigned("2026-03-31")).to.deep.equal({
         amount: "250.00",

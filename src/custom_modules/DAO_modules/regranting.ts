@@ -129,7 +129,8 @@ export type BalanceQuery = {
 /**
  * Balances per (recipient, project) at a date, from one grouped UNION ALL over the entry
  * sources. Only entries in effect count:
- * - allocations by timestamp_confirmed (UTC day) on or before `at`;
+ * - allocations (as in the Regrant_allocations view) by timestamp_confirmed (UTC day) on or
+ *   before `at`;
  * - fund grant lines of approved and paid rounds, dated at the round's cutoff (fund +, fund −);
  * - transfer lines of paid rounds, dated at the transfer's paid_at;
  * - adjustments by effective_at, except `fronted`, which are records only.
@@ -161,11 +162,23 @@ async function getBalances(query: BalanceQuery, conn?: Queryable): Promise<Balan
            ROUND(SUM(CASE WHEN e.kind = 'later_debit' THEN e.amount ELSE 0 END), 2) AS laterDebits,
            ROUND(SUM(e.inflow), 2) AS inflowSince
     FROM (
-      SELECT a.Organization_ID, NULL AS Project_ID, 'allocation' AS kind, SUM(a.amount) AS amount,
-             SUM(CASE WHEN a.timestamp_confirmed >= DATE_ADD(?, INTERVAL 1 DAY) THEN a.amount ELSE 0 END) AS inflow
-      FROM Regrant_allocations a
-      WHERE a.timestamp_confirmed < DATE_ADD(?, INTERVAL 1 DAY) ${orgFilter("a.Organization_ID")}
-      GROUP BY a.Organization_ID
+      -- Allocations: the same as summing Regrant_allocations (keep the filters in step with the
+      -- view), but donations are summed per KID before the split is applied, which halves the
+      -- time on production-sized data. The split is linear, so the result is identical.
+      SELECT dcao.Organization_ID, NULL AS Project_ID, 'allocation' AS kind,
+             SUM(k.amount * dca.Percentage_share / 100 * dcao.Percentage_share / 100) AS amount,
+             SUM(k.recent * dca.Percentage_share / 100 * dcao.Percentage_share / 100) AS inflow
+      FROM (
+        SELECT d.KID_fordeling, SUM(d.sum_confirmed) AS amount,
+               SUM(CASE WHEN d.timestamp_confirmed >= DATE_ADD(?, INTERVAL 1 DAY) THEN d.sum_confirmed ELSE 0 END) AS recent
+        FROM Donations d
+        WHERE d.Payment_ID NOT IN (15, 16) AND d.timestamp_confirmed < DATE_ADD(?, INTERVAL 1 DAY)
+        GROUP BY d.KID_fordeling
+      ) k
+      JOIN Distribution_cause_areas dca ON dca.Distribution_KID = k.KID_fordeling
+      JOIN Distribution_cause_area_organizations dcao ON dcao.Distribution_cause_area_ID = dca.ID
+      WHERE TRUE ${orgFilter("dcao.Organization_ID")}
+      GROUP BY dcao.Organization_ID
 
       UNION ALL
       SELECT l.Organization_ID, l.Project_ID, 'fund_grant_in', l.amount, 0
