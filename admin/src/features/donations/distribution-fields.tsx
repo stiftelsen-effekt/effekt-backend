@@ -21,6 +21,7 @@ import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { errorCode, useTRPC } from "@/lib/trpc";
 import type { DonorSearch } from "@/features/donors/donor-picker";
 import { DonorPicker } from "./donor-picker";
+import { maskSsn } from "@/features/donors/model";
 
 const NO_TAX_UNIT = "none";
 
@@ -55,7 +56,7 @@ export function TaxUnitSelect({
         {options.map((unit) => (
           <SelectItem key={unit.id} value={String(unit.id)}>
             {unit.name}
-            {unit.ssn ? ` · ${unit.ssn.replace(/^(\d{6})\d+/, "$1 •••••")}` : ""}
+            {unit.ssn ? ` · ${maskSsn(unit.ssn)}` : ""}
           </SelectItem>
         ))}
       </SelectContent>

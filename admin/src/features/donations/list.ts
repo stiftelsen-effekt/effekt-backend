@@ -16,7 +16,7 @@ export const taxUnitTypeLabels: Record<TaxUnitTypeOption, string> = {
 export const donationsList = defineList({
   id: "donations",
   filters: {
-    /** Donor name or email */
+    /** Donation id, KID, donor name or email */
     q: param.text,
     date: param.dateRange,
     amount: param.range,
@@ -44,31 +44,17 @@ export const donationsList = defineList({
 type DonationFilterInput = NonNullable<RouterInputs["donations"]["list"]["filter"]>;
 type TaxUnitTypeInput = NonNullable<DonationFilterInput["taxUnitTypes"]>[number];
 
-/** Start of a local calendar day, as an ISO instant. */
-export const startOfLocalDay = (isoDate: string) => {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  return new Date(y!, m! - 1, d!, 0, 0, 0, 0).toISOString();
-};
-/** Last millisecond of a local calendar day, as an ISO instant. */
-export const endOfLocalDay = (isoDate: string) => {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  return new Date(y!, m! - 1, d!, 23, 59, 59, 999).toISOString();
-};
-
 /**
- * List filters → donations.list `filter`. Dates are inclusive local days (the API compares
- * instants, so "to" becomes the end of that day); "No tax unit" is `null` in taxUnitTypes.
+ * List filters → donations.list `filter`. Dates are sent as plain YYYY-MM-DD days, which the
+ * API reads as whole Europe/Oslo days (inclusive). The search box is `query` (donation id,
+ * KID, donor name or email). "No tax unit" is `null` in taxUnitTypes.
  */
 export function toDonationFilter(
   filters: FilterValues<typeof donationsList.filters>,
 ): DonationFilterInput | undefined {
   const filter: DonationFilterInput = {};
-  if (filters.q) filter.donor = filters.q;
-  if (filters.date)
-    filter.date = {
-      from: filters.date.from ? startOfLocalDay(filters.date.from) : undefined,
-      to: filters.date.to ? endOfLocalDay(filters.date.to) : undefined,
-    };
+  if (filters.q) filter.query = filters.q;
+  if (filters.date) filter.date = { from: filters.date.from, to: filters.date.to };
   if (filters.amount) filter.sum = { from: filters.amount.min, to: filters.amount.max };
   if (filters.method) filter.paymentMethodIDs = filters.method;
   if (filters.id) filter.id = filters.id;
@@ -84,8 +70,8 @@ export function toDonationFilter(
 }
 
 /**
- * donations.histogram returns the lower edge of each bucket with its count; the bins run to
- * the next edge, the last one as wide as the one before it. The long tail of rare large
+ * donations.histogram returns each bucket's edges with its count (log scale: even steps for
+ * small and large amounts alike). The long tail of rare large
  * amounts (above `coverage` of all donations) is folded into the last bin so the slider
  * isn't mostly empty buckets.
  */
@@ -93,15 +79,11 @@ export function histogramBins(
   buckets: RouterOutputs["donations"]["histogram"],
   coverage = 0.995,
 ): HistogramBin[] {
-  const bins = buckets.map((bucket, index) => {
-    const next = buckets[index + 1]?.bucket;
-    const previous = buckets[index - 1]?.bucket ?? 0;
-    return {
-      from: bucket.bucket,
-      to: next ?? bucket.bucket + Math.max(bucket.bucket - previous, 1),
-      count: bucket.items,
-    };
-  });
+  const bins = buckets.map((bucket) => ({
+    from: bucket.bucket,
+    to: bucket.bucketEnd,
+    count: bucket.items,
+  }));
   const total = bins.reduce((sum, bin) => sum + bin.count, 0);
   let seen = 0;
   const cut = bins.findIndex((bin) => (seen += bin.count) >= total * coverage);
@@ -114,7 +96,7 @@ export function histogramBins(
 export const distributionsList = defineList({
   id: "distributions",
   filters: {
-    /** Donor name or email */
+    /** KID, donor id, donor name or email */
     q: param.text,
     kid: param.text,
   },
@@ -126,5 +108,5 @@ export function toDistributionFilter(
   filters: FilterValues<typeof distributionsList.filters>,
 ): RouterInputs["donations"]["distributions"]["list"]["filter"] {
   if (!filters.q && !filters.kid) return undefined;
-  return { donor: filters.q, KID: filters.kid };
+  return { query: filters.q, KID: filters.kid };
 }

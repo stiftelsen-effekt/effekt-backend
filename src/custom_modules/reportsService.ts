@@ -19,9 +19,15 @@ import {
   AutoGiroMandateCommentaryCodes,
   AutoGiroMandateInformationCodes,
 } from "./parsers/autogiro/mandates";
-import { parseReport as parseBankReport } from "./parsers/bank";
+import {
+  parseReport as parseBankReport,
+  validateReport as validateBankReport,
+} from "./parsers/bank";
 import { isCamtXml, parseCamtFile } from "./parsers/camtParser";
-import { parseReport as parseFacebookReport } from "./parsers/facebook";
+import {
+  parseReport as parseFacebookReport,
+  validateReport as validateFacebookReport,
+} from "./parsers/facebook";
 import { parseTotalInFile, RecordType } from "./parsers/sebank";
 import { parseReport as parseVippsReport, VippsTransaction } from "./parsers/vipps";
 import payment from "../enums/paymentMethods";
@@ -59,6 +65,12 @@ function parseOrThrow<T>(description: string, parse: () => T): T {
   }
 }
 
+/**
+ * `strict` (tRPC uploads) rejects a file that isn't the expected report type with a
+ * ReportParseError before anything is written. The REST routes keep the lenient behaviour.
+ */
+export type ProcessOptions = { strict?: boolean };
+
 export type InvalidTransaction<T> = { reason: string; transaction: T };
 
 export type ReportUploadResult<T> = {
@@ -87,8 +99,16 @@ export type OcrTransaction = {
 export async function processOcrReport(
   data: string,
   metaOwnerID: number | null,
+  options: ProcessOptions = {},
 ): Promise<ReportUploadResult<OcrTransaction> & { ignored: number }> {
+  if (options.strict) {
+    const problem = OCRparser.validate(data);
+    if (problem) throw new ReportParseError(`Not a Nets OCR file: ${problem}`);
+  }
   const transactions: OcrTransaction[] = OCRparser.parse(data);
+  if (options.strict && transactions.length === 0) {
+    throw new ReportParseError("The OCR file has no KID or AvtaleGiro payments");
+  }
   return ocr.addDonations(transactions, metaOwnerID);
 }
 
@@ -238,7 +258,12 @@ export type BankNoTransaction = {
 export async function processBankNoReport(
   data: string,
   metaOwnerID: number | null,
+  options: ProcessOptions = {},
 ): Promise<ReportUploadResult<BankNoTransaction>> {
+  if (options.strict) {
+    const problem = validateBankReport(data);
+    if (problem) throw new ReportParseError(`Not a bank account export: ${problem}`);
+  }
   const transactions: BankNoTransaction[] | false = parseOrThrow(
     "Could not read the bank report",
     () => parseBankReport(data),
@@ -663,7 +688,12 @@ export type FacebookCampaignMissingShares = {
  */
 export async function processFacebookReport(
   report: Buffer,
+  options: ProcessOptions = {},
 ): Promise<{ fbCampaigns: FacebookCampaignMissingShares[] }> {
+  if (options.strict) {
+    const problem = validateFacebookReport(report);
+    if (problem) throw new ReportParseError(`Not a Facebook payout report: ${problem}`);
+  }
   // Parse before removing the stored reports, so a broken file doesn't wipe them
   const donations = await parseFacebookReport(report);
   if (!donations) {

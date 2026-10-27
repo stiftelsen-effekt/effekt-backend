@@ -5,13 +5,14 @@
 import { defineList, param, type FilterValues } from "@/components/filters";
 import { chargeStatus, type ChargeStatus } from "@/lib/status";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
+import { isVippsAgreementId } from "@/features/search/providers";
 
 export const chargeStatuses = Object.keys(chargeStatus) as ChargeStatus[];
 
 export const chargesList = defineList({
   id: "vipps-charges",
   filters: {
-    /** Donor name; all digits is a KID, "agr_…" an agreement id */
+    /** Donor name; all digits is a KID, "agr_…" / "VA_…" an agreement id */
     q: param.text,
     kid: param.text,
     agreement: param.text,
@@ -33,7 +34,7 @@ export function toChargeFilter(filters: ChargeListFilters): ChargeApiFilter | un
   const q = filters.q?.trim();
   const filter: ChargeApiFilter = {};
   if (q && /^\d+$/.test(q)) filter.KID = q;
-  else if (q && /^agr_/i.test(q)) filter.agreementID = q;
+  else if (q && isVippsAgreementId(q)) filter.agreementID = q;
   else if (q) filter.donor = q;
   if (filters.kid) filter.KID = filters.kid;
   if (filters.agreement) filter.agreementID = filters.agreement;

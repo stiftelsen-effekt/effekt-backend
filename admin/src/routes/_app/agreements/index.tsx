@@ -17,6 +17,7 @@ import {
   SavedViews,
   TextFilter,
   useListState,
+  ListEmpty,
 } from "@/components/filters";
 import { ListPage, PageSection, PeekPanel } from "@/components/templates";
 import { Badge } from "@/components/ui/badge";
@@ -206,6 +207,13 @@ function AgreementsPage() {
           peekedRowId={peekKey}
           getRowHref={(row) => row.href}
           pageHotkeys
+          empty={
+            <ListEmpty
+              list={list}
+              noun="agreements"
+              hint="Agreements appear when donors set up Vipps or AvtaleGiro."
+            />
+          }
           summary={
             stats && (
               <TableSummary

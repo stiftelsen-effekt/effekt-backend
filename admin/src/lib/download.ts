@@ -2,6 +2,7 @@
  * Client-side downloads: files the API returns as text (`FilePayload`), and reports the
  * client turns into JSON or CSV.
  */
+import { osloDateTimeText } from "./dates";
 
 export type FilePayload = { filename: string; contentType: string; content: string };
 
@@ -25,7 +26,7 @@ function csvCell(value: unknown): string {
   if (value === null || value === undefined) return "";
   const raw =
     value instanceof Date
-      ? value.toISOString()
+      ? osloDateTimeText(value)
       : typeof value === "object"
       ? JSON.stringify(value)
       : String(value);

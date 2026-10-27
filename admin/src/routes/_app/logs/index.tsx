@@ -11,7 +11,7 @@ import { Property, PropertyList } from "@/components/domain/property-list";
 import { defineList, FilterBar, param, useListState } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
 import { Skeleton } from "@/components/ui/skeleton";
-import { importLogRowCount, withoutFile } from "@/features/import-log/model";
+import { withoutFile } from "@/features/import-log/model";
 import { type RouterOutputs, useTRPC } from "@/lib/trpc";
 
 type LogRow = RouterOutputs["reports"]["logs"]["list"]["rows"][number];
@@ -19,8 +19,7 @@ type LogRow = RouterOutputs["reports"]["logs"]["list"]["rows"][number];
 const logsList = defineList({
   id: "import-log",
   filters: { q: param.text },
-  // The API returns entries newest first and doesn't sort otherwise.
-  sortable: ["timestamp"],
+  sortable: ["timestamp", "label", "id"],
   defaultSort: { id: "timestamp", desc: true },
 });
 
@@ -32,22 +31,35 @@ export const Route = createFileRoute("/_app/logs/")({
 const col = createColumns<LogRow>();
 const columns = col.columns([
   col.accessor("ID", {
+    id: "id",
     header: "ID",
-    enableSorting: false,
     meta: { numeric: true, cellClassName: "text-muted-foreground w-20" },
   }),
   col.accessor("timestamp", {
     header: "Time",
-    enableSorting: false,
     cell: ({ getValue }) => <DateTime value={getValue()} format="datetime" />,
   }),
-  col.accessor("label", {
+  col.accessor("displayLabel", {
+    id: "label",
     header: "Source",
-    enableSorting: false,
     meta: { cellClassName: "font-semibold" },
     cell: ({ getValue }) => getValue() ?? "Unknown",
   }),
-  col.accessor("meta", {
+  col.accessor("filename", {
+    header: "File",
+    enableSorting: false,
+    meta: { cellClassName: "max-w-64 truncate" },
+    cell: ({ getValue }) => {
+      const name = getValue();
+      return name ? (
+        <span title={name}>{name}</span>
+      ) : (
+        <span className="text-faint-foreground">–</span>
+      );
+    },
+  }),
+  col.accessor((row) => row.summary ?? row.meta, {
+    id: "summary",
     header: "Summary",
     enableSorting: false,
     meta: { cellClassName: "text-muted-foreground max-w-[32rem] truncate" },
@@ -64,6 +76,7 @@ function ImportLogPage() {
     ...trpc.reports.logs.list.queryOptions({
       page: list.page - 1,
       limit: list.pageSize,
+      sort: { id: list.sort.id, desc: list.sort.desc },
       filter: list.filters.q ? { fileSearch: list.filters.q } : undefined,
     }),
     placeholderData: keepPreviousData,
@@ -73,8 +86,8 @@ function ImportLogPage() {
   return (
     <ListPage
       title="Import log"
-      description="Every payment file and scheduled job the system has processed, newest first."
-      filters={<FilterBar list={list} searchPlaceholder="Search file contents" />}
+      description="Every payment file and scheduled job the system has processed."
+      filters={<FilterBar list={list} searchPlaceholder="File name or contents" />}
       peek={peeked && <LogPeek row={peeked} onClose={() => setPeekId(null)} />}
     >
       {query.error ? (
@@ -86,10 +99,7 @@ function ImportLogPage() {
           label="Import log"
           columns={columns}
           data={query.data?.rows}
-          rowCount={
-            query.data &&
-            importLogRowCount(query.data.pages, list.page, list.pageSize, query.data.rows.length)
-          }
+          rowCount={query.data?.total}
           isLoading={query.isPending}
           isFetching={query.isFetching}
           getRowId={(row) => String(row.ID)}
@@ -105,7 +115,7 @@ function ImportLogPage() {
               title={list.filters.q ? "No files match" : "Nothing imported yet"}
               description={
                 list.filters.q
-                  ? "The search looks inside the imported files. Try part of a KID, an amount or a name."
+                  ? "The search matches file names and looks inside the imported files. Try part of a file name, a KID, an amount or a name."
                   : "Imports and scheduled jobs show up here as they run."
               }
             />
@@ -121,8 +131,8 @@ function LogPeek({ row, onClose }: { row: LogRow; onClose: () => void }) {
   const entry = useQuery(trpc.reports.logs.get.queryOptions({ id: row.ID }));
   return (
     <PeekPanel
-      title={row.label ?? "Unknown"}
-      subtitle={`Log #${row.ID}`}
+      title={row.displayLabel ?? "Unknown"}
+      subtitle={row.filename ? `Log #${row.ID} · ${row.filename}` : `Log #${row.ID}`}
       href={`/logs/${row.ID}`}
       onClose={onClose}
     >
@@ -131,7 +141,9 @@ function LogPeek({ row, onClose }: { row: LogRow; onClose: () => void }) {
           <Property label="Time">
             <DateTime value={row.timestamp} format="datetime" />
           </Property>
-          {row.meta && <Property label="Summary">{row.meta}</Property>}
+          {(row.summary ?? row.meta) && (
+            <Property label="Summary">{row.summary ?? row.meta}</Property>
+          )}
         </PropertyList>
         {entry.error ? (
           <ErrorState error={entry.error} onRetry={() => void entry.refetch()} />

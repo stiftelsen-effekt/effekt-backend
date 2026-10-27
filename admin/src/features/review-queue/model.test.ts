@@ -5,6 +5,8 @@ import {
   isResolvedElsewhere,
   nextOpenId,
   previousOpenId,
+  queueOutcome,
+  resolverName,
   reviewRegisterInput,
   summariseUpload,
   uploadForm,
@@ -13,7 +15,12 @@ import {
 const config: CauseAreaConfig[] = [];
 
 describe("summariseUpload", () => {
-  const base = { valid: 10, invalid: 3, queue: { added: 2, existing: 0 }, importLogId: 7 };
+  const base = {
+    valid: 10,
+    invalid: 3,
+    queue: { added: 2, existing: 0, skipped: 0, statuses: { open: 2, registered: 0, ignored: 0 } },
+    importLogId: 7,
+  };
   const items = [{}, {}] as never[];
 
   it("uses OCR's own count of duplicates", () => {
@@ -22,7 +29,14 @@ describe("summariseUpload", () => {
         source: "ocr",
         result: { ...base, invalid: 2, invalidTransactions: items, ignored: 5 },
       }),
-    ).toEqual({ kind: "payments", registered: 10, ignored: 5, review: 2, queue: base.queue });
+    ).toEqual({
+      kind: "payments",
+      registered: 10,
+      ignored: 5,
+      review: 2,
+      queue: base.queue,
+      importLogId: 7,
+    });
   });
 
   it("counts non-queued invalid transactions as ignored for the other sources", () => {
@@ -70,7 +84,7 @@ describe("draftForItem", () => {
     const draft = draftForItem(item, config, "3");
     expect(draft).toMatchObject({
       mode: "distribution",
-      sum: "1234.50",
+      sum: "1234,50",
       paymentId: "4",
       externalRef: "VIPPS-1",
       ownerId: "3",
@@ -112,5 +126,39 @@ describe("queue navigation", () => {
   it("tells the queue's CONFLICT from a donation conflict", () => {
     expect(isResolvedElsewhere("Review item 12 is already ignored")).toBe(true);
     expect(isResolvedElsewhere("EXISTING_DONATION | already registered")).toBe(false);
+  });
+});
+
+describe("resolverName", () => {
+  const user = { id: "local-admin", name: "Dev Admin", email: "dev@gieffektivt.no" };
+  it("names the signed-in admin", () => {
+    expect(resolverName("local-admin", user)).toBe("you (Dev Admin)");
+    expect(resolverName("dev@gieffektivt.no", user)).toBe("you (Dev Admin)");
+  });
+  it("falls back to the email or id", () => {
+    expect(resolverName("kari@gieffektivt.no", user)).toBe("kari@gieffektivt.no");
+    expect(resolverName("auth0|123", null)).toBe("auth0|123");
+    expect(resolverName(null, user)).toBe("someone");
+  });
+});
+
+describe("queueOutcome", () => {
+  it("counts only open items as needing a decision", () => {
+    expect(
+      queueOutcome({
+        added: 0,
+        existing: 4,
+        skipped: 0,
+        statuses: { open: 2, registered: 1, ignored: 1 },
+      }),
+    ).toEqual({ open: 2, handled: 2, added: 0, skipped: 0 });
+  });
+  it("treats everything queued as open without status counts, and keeps skipped", () => {
+    expect(queueOutcome({ added: 3, existing: 1, skipped: 2, statuses: null })).toEqual({
+      open: 4,
+      handled: 0,
+      added: 3,
+      skipped: 2,
+    });
   });
 });

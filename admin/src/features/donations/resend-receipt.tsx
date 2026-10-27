@@ -17,7 +17,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
-import { useTRPC } from "@/lib/trpc";
+import { errorCode, useTRPC } from "@/lib/trpc";
 
 const isEmail = (value: string) => /^\S+@\S+\.\S+$/.test(value);
 
@@ -39,7 +39,7 @@ export function ResendReceiptDialog({
   const resend = useMutation(trpc.donations.resendReceipt.mutationOptions());
   const target = override.trim() || email;
   const invalid = override.trim() !== "" && !isEmail(override.trim());
-  const errorInfo = resend.error ? describeError(resend.error) : null;
+  const errorInfo = resend.error ? receiptError(resend.error) : null;
 
   function onOpenChange(next: boolean) {
     if (resend.isPending) return;
@@ -122,4 +122,20 @@ export function ResendReceiptDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+/** The receipt mail failing is the common case; say what it means instead of "Something went wrong". */
+export function receiptError(error: unknown): { title: string; hint: string } {
+  const message = error instanceof Error ? error.message : "";
+  // The API answers BAD_GATEWAY with what the mail service said.
+  if (errorCode(error) === "BAD_GATEWAY" || /^Receipt failed/.test(message)) {
+    return {
+      title: "The receipt wasn't sent",
+      hint: `${message.replace(
+        /\.$/,
+        "",
+      )}. The donor got nothing. Check the email address, then try again in a few minutes; if it keeps failing, tell the tech team.`,
+    };
+  }
+  return describeError(error);
 }

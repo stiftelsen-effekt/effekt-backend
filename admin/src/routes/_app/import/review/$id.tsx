@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeftIcon, ChevronRightIcon, ListIcon } from "lucide-react";
+import { useAuth } from "@/auth";
 import { ErrorState } from "@/components/domain/error-state";
 import { Callout } from "@/components/domain/callout";
 import { DetailPage } from "@/components/templates";
@@ -11,6 +12,7 @@ import { formatAmount } from "@/features/donations/edit-model";
 import {
   nextOpenId,
   previousOpenId,
+  resolverName,
   sourceLabel,
   type ReviewItem,
 } from "@/features/review-queue/model";
@@ -44,6 +46,7 @@ function ReviewItemPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const reference = useRegistrationReferenceData();
+  const { user } = useAuth();
 
   const item = useQuery(trpc.reports.reviewQueue.get.queryOptions({ id: itemId }));
   // Open items in the same filter, oldest first: the order the workbench goes through them.
@@ -136,6 +139,7 @@ function ReviewItemPage() {
       <DetailPage title="Review item" {...header}>
         {error ? (
           <ErrorState
+            back={{ to: "/import/review", label: "Review queue" }}
             error={error}
             onRetry={() => {
               void item.refetch();
@@ -154,10 +158,12 @@ function ReviewItemPage() {
 
   const data = item.data;
   const { owners } = reference.data;
+  // The owner chosen in the URL, else the one picked when the report was uploaded, else the
+  // default owner.
+  const known = (id: string | number | null | undefined) =>
+    id != null && owners.some((o) => String(o.id) === String(id)) ? String(id) : undefined;
   const ownerId =
-    search.owner && owners.some((o) => String(o.id) === search.owner)
-      ? search.owner
-      : String(defaultOwner(owners)?.id ?? "");
+    known(search.owner) ?? known(data.metaOwnerId) ?? String(defaultOwner(owners)?.id ?? "");
 
   return (
     <DetailPage
@@ -210,6 +216,14 @@ function ReviewItemPage() {
           notify.success(
             `Registered ${formatAmount(input.sum != null ? String(input.sum) : data.amount)}`,
             `Donation #${result.donationId}`,
+            {
+              label: "Open donation",
+              onClick: () =>
+                void navigate({
+                  to: "/donations/$id",
+                  params: { id: String(result.donationId) },
+                }),
+            },
           );
           moveOn();
         }}
@@ -220,7 +234,10 @@ function ReviewItemPage() {
             void reopen
               .mutateAsync({ id: data.id })
               .then((reopened) => refresh(reopened))
-              .then(() => goTo(data.id))
+              .then(() => {
+                notify.success(`Item #${data.id} is open again`);
+                goTo(data.id);
+              })
               .catch((err: unknown) => notify.error(err, "Couldn't reopen the item"));
           });
           moveOn();
@@ -239,9 +256,10 @@ function ReviewItemPage() {
             notify.info(
               `Someone else already resolved item #${data.id}`,
               latest.resolvedBy
-                ? `${latest.status === "registered" ? "Registered" : "Ignored"} by ${
-                    latest.resolvedBy
-                  }.`
+                ? `${latest.status === "registered" ? "Registered" : "Ignored"} by ${resolverName(
+                    latest.resolvedBy,
+                    user,
+                  )}.`
                 : message,
             );
             moveOn();

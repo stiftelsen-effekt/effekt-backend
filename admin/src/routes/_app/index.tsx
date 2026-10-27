@@ -228,7 +228,7 @@ function HomePage() {
       }
       actions={
         <Button variant="primary" asChild>
-          <Link to="/$" params={{ _splat: "import" }}>
+          <Link to="/import">
             <ArrowDownToLineIcon />
             Import payments
           </Link>

@@ -58,6 +58,9 @@ describe("tRPC reports router", () => {
     queueStub = sinon
       .stub(DAO.reviewqueue, "add")
       .callsFake(async (_source, items) => ({ added: items.length, existing: 0 }));
+    sinon
+      .stub(DAO.reviewqueue, "getCountsForImport")
+      .resolves({ open: 1, registered: 2, ignored: 3 });
     sinon.stub(mail, "sendDonationReceipt").resolves();
     sinon.stub(DAO.meta, "getDataOwners").resolves([
       { id: 1, name: "Default", default: true },
@@ -178,6 +181,39 @@ describe("tRPC reports router", () => {
       expect(addStub.called).to.be.false;
     });
 
+    it("rejects files that don't match the chosen source before writing anything", async () => {
+      await expectTrpcError(
+        admin().uploads.ocr(uploadForm("bank/sampleReport.CSV")),
+        "BAD_REQUEST",
+        /Not a Nets OCR file/,
+      );
+      await expectTrpcError(
+        admin().uploads.ocr(uploadForm("ocr_no_valid_records.ocr")),
+        "BAD_REQUEST",
+        /no KID or AvtaleGiro payments/,
+      );
+      await expectTrpcError(
+        admin().uploads.bankNo(uploadForm("vipps/Vipps Details June 2026.CSV")),
+        "BAD_REQUEST",
+        /Not a bank account export: row 2 has no date/,
+      );
+      await expectTrpcError(
+        admin().uploads.bankNo(uploadForm("ocr/TBOC2072.DAT")),
+        "BAD_REQUEST",
+        /Not a bank account export/,
+      );
+      const fetchRates = sinon.stub(DAO.facebook, "removeAllFacebookReports").resolves();
+      await expectTrpcError(
+        admin().uploads.facebook(uploadForm("bank/sampleReport.CSV", {})),
+        "BAD_REQUEST",
+        /Not a Facebook payout report: missing the columns Charge date/,
+      );
+      expect(fetchRates.called).to.be.false;
+      expect(addStub.called).to.be.false;
+      expect(logStub.called).to.be.false;
+      expect(queueStub.called).to.be.false;
+    });
+
     it("keeps stored Facebook reports when the file can't be parsed", async () => {
       sinon.stub(console, "error");
       const remove = sinon.stub(DAO.facebook, "removeAllFacebookReports").resolves();
@@ -210,7 +246,12 @@ describe("tRPC reports router", () => {
       expect(item.transaction.date).to.match(/^\d{4}-\d{2}-\d{2}T/);
       expect(item.transaction.KID).to.be.a("string");
 
-      expect(result.queue).to.deep.equal({ added: 1, existing: 0 });
+      expect(result.queue).to.deep.equal({
+        added: 1,
+        existing: 0,
+        skipped: 0,
+        statuses: { open: 1, registered: 2, ignored: 3 },
+      });
       expect(queueStub.calledOnce).to.be.true;
       const [source, queued, importLogId, metaOwnerId] = queueStub.firstCall.args;
       expect(source).to.equal("ocr");
@@ -289,7 +330,8 @@ describe("tRPC reports router", () => {
       const result = await admin().uploads.ocr(uploadForm("ocr/TBOC2072.DAT"));
 
       expect(result.invalidTransactions.length).to.be.greaterThan(0);
-      expect(result.queue).to.equal(null);
+      expect(result.queue).to.deep.include({ added: 0, existing: 0 });
+      expect(result.queue!.skipped).to.equal(result.invalidTransactions.length);
     });
 
     it("vipps adds donations with a KID and queues the rest", async () => {
@@ -358,7 +400,12 @@ describe("tRPC reports router", () => {
         valid: 1,
         invalid: 0,
         invalidTransactions: [],
-        queue: { added: 0, existing: 0 },
+        queue: {
+          added: 0,
+          existing: 0,
+          skipped: 0,
+          statuses: { open: 0, registered: 0, ignored: 0 },
+        },
         importLogId: 77,
         dryRun: null,
       });
@@ -448,9 +495,11 @@ describe("tRPC reports router", () => {
         paymentMethodIDs: [2, 5],
       });
 
-      expect(rangeStub.firstCall.args[0]).to.deep.equal(new Date("2024-01-01"));
-      expect(rangeStub.firstCall.args[1]).to.deep.equal(new Date("2024-01-31"));
+      // Whole Oslo days: from the start of 1 January to the start of 1 February (CET)
+      expect(rangeStub.firstCall.args[0]).to.deep.equal(new Date("2023-12-31T23:00:00Z"));
+      expect(rangeStub.firstCall.args[1]).to.deep.equal(new Date("2024-01-31T23:00:00Z"));
       expect(rangeStub.firstCall.args[2]).to.deep.equal([2, 5]);
+      expect(rangeStub.firstCall.args[3]).to.deep.equal({ exclusiveEnd: true });
       expect(file).to.deep.equal({ filename: "transactions_2024-01-01_2024-01-31", rows });
     });
 
@@ -535,8 +584,13 @@ describe("tRPC reports router", () => {
         50,
         "002370000101",
         { id: "timestamp", desc: true },
+        { searchFilename: true, uploadDetails: true },
       ]);
-      expect(result).to.deep.equal({ rows, pages: 3, total: 70 });
+      expect(result).to.deep.equal({
+        rows: [{ ...rows[0], displayLabel: "Vipps", source: null, filename: null, summary: null }],
+        pages: 3,
+        total: 70,
+      });
 
       await admin().logs.list({ page: 0, limit: 10, sort: { id: "label", desc: false } });
       expect(getEntries.secondCall.args[3]).to.deep.equal({ id: "label", desc: false });
@@ -555,6 +609,76 @@ describe("tRPC reports router", () => {
 
       await DAO.logging.getEntries(25, 0, null);
       expect(query.thirdCall.args[0]).to.match(/ORDER BY timestamp DESC\s+LIMIT/);
+    });
+
+    it("labels upload entries with the admin's source names and a summary", async () => {
+      const timestamp = new Date();
+      sinon.stub(DAO.logging, "getEntries").resolves({
+        results: [
+          {
+            ID: 1,
+            label: "Bank NO - Upload",
+            timestamp,
+            meta: "Upload [...]",
+            uploadSource: "bankNo",
+            filename: "konto.csv",
+            donations: { valid: 12, invalid: 3 },
+            reviewCount: 3,
+            campaignsMissingShares: null,
+          },
+          {
+            ID: 2,
+            label: "OCR - Upload",
+            timestamp,
+            meta: "",
+            uploadSource: "ocr",
+            filename: "TBOC1.DAT",
+            donations: { valid: 1, invalid: 0, ignored: 4 },
+            reviewCount: 0,
+            campaignsMissingShares: null,
+          },
+          {
+            ID: 3,
+            label: "Facebook - Upload",
+            timestamp,
+            meta: "",
+            uploadSource: "facebook",
+            filename: "payout.csv",
+            donations: null,
+            reviewCount: null,
+            campaignsMissingShares: 2,
+          },
+          { ID: 4, label: "OCR", timestamp, meta: "Donations [...]" },
+        ] as any,
+        pages: 1,
+        total: 4,
+      });
+      const { rows } = await admin().logs.list({ page: 0, limit: 10 });
+      expect(rows.map((row) => [row.displayLabel, row.source, row.summary])).to.deep.equal([
+        ["Bank account export", "bankNo", "konto.csv: 12 donations registered, 3 sent to review"],
+        [
+          "Bank OCR",
+          "ocr",
+          "TBOC1.DAT: 1 donation registered, 4 already registered, 0 sent to review",
+        ],
+        ["Facebook", "facebook", "payout.csv: 2 campaigns without shares"],
+        ["OCR", null, null],
+      ]);
+    });
+
+    it("searches file names too when asked", async () => {
+      const query = sinon.stub(DAO, "query");
+      query.onCall(0).resolves([[], []] as any);
+      query.onCall(1).resolves([[{ count: 0 }], []] as any);
+      await DAO.logging.getEntries(25, 0, "TBOC", undefined, {
+        searchFilename: true,
+        uploadDetails: true,
+      });
+      const sql = query.firstCall.args[0] as string;
+      expect(sql).to.contain(
+        `WHERE JSON_EXTRACT(result, "$.file") LIKE '%TBOC%' OR JSON_UNQUOTE(JSON_EXTRACT(result, "$.filename")) LIKE '%TBOC%'`,
+      );
+      expect(sql).to.contain("AS reviewCount");
     });
 
     it("counts pages with the file search filter applied", async () => {
@@ -577,7 +701,7 @@ describe("tRPC reports router", () => {
       get.withArgs(7).resolves(entry);
       get.resolves(null);
 
-      expect(await admin().logs.get({ id: 7 })).to.deep.equal(entry);
+      expect(await admin().logs.get({ id: 7 })).to.deep.equal({ ...entry, displayLabel: "OCR" });
       await expectTrpcError(admin().logs.get({ id: 8 }), "NOT_FOUND");
     });
   });
@@ -616,7 +740,7 @@ describe("tRPC reports router", () => {
       expect([page, limit, includeSecrets]).to.deep.equal([1, 20, true]);
       expect(sort).to.deep.equal({ id: "totalSum", desc: true });
       expect(filter).to.deep.equal({
-        registrationDate: { from: new Date("2025-01-01"), to: undefined },
+        registrationRange: { from: new Date("2024-12-31T23:00:00Z"), before: undefined },
         donationSum: { from: 100 },
         donor: "Ola",
         organizationIDs: [1],

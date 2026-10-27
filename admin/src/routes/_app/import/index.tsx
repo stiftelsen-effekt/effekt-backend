@@ -32,7 +32,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { describeError } from "@/components/domain/error-state";
 import { defaultOwner } from "@/features/donations/api";
 import {
+  queueOutcome,
   sourceLabel,
+  type QueueOutcome,
   summariseUpload,
   uploadForm,
   type ImportSource,
@@ -378,36 +380,91 @@ function ResultStep({
     );
   }
 
-  const { registered, ignored, review, queue } = summary;
+  const { registered, ignored, review, queue, importLogId } = summary;
+  const sourceName = sources.find((s) => s.value === source)?.label;
   return (
     <>
       <StatGroup>
-        <Stat label="Registered" value={<Num value={registered} />} hint="donations" />
-        <Stat label="Already registered" value={<Num value={ignored} />} hint="ignored" />
-        <Stat label="Sent to review" value={<Num value={review} />} hint="could not be matched" />
+        <Stat label="Registered" value={<Num value={registered} />} hint="new donations" />
+        <Stat
+          label="Skipped"
+          value={<Num value={ignored} />}
+          hint="registered by an earlier import"
+        />
+        <Stat label="Sent to review" value={<Num value={review} />} hint="couldn't be matched" />
       </StatGroup>
-      {review === 0 ? (
+      {importLogId != null && (
+        <p className="text-sm text-muted-foreground">
+          Recorded in the import log as{" "}
+          <Link
+            to="/logs/$id"
+            params={{ id: String(importLogId) }}
+            className="text-accent hover:underline"
+          >
+            entry #{importLogId}
+          </Link>
+          , with the file.
+        </p>
+      )}
+      {registered + ignored + review === 0 ? (
+        <Callout tone="warning" title="No payments found in the file">
+          Nothing was registered or queued. Check that it is{" "}
+          {sourceName ? `a ${sourceName}` : "the right"} file and that it covers the period you
+          expected.
+        </Callout>
+      ) : review === 0 ? (
         <Callout tone="success" title="Everything in the file was handled" />
       ) : queue === null ? (
-        <Callout tone="danger" title="The unmatched transactions couldn't be queued">
-          The donations above are registered, but the {review} transactions that need review weren't
-          saved to the review queue. Tell the tech team, then upload the file again: it's safe,
-          nothing is registered twice.
+        <Callout tone="neutral" title={`${review} transactions couldn't be matched`}>
+          This was a trial run, so nothing was put in the review queue.
         </Callout>
       ) : (
+        <QueueCallouts outcome={queueOutcome(queue)} openCount={openCount} source={source} />
+      )}
+    </>
+  );
+}
+
+function QueueCallouts({
+  outcome,
+  openCount,
+  source,
+}: {
+  outcome: QueueOutcome;
+  openCount: number;
+  source?: ImportSource;
+}) {
+  const { open, handled, added, skipped } = outcome;
+  const items = (count: number) => `${count} ${count === 1 ? "transaction" : "transactions"}`;
+  return (
+    <>
+      {skipped > 0 && (
+        <Callout tone="danger" title={`${items(skipped)} couldn't be put in the review queue`}>
+          They have no usable amount or payment method, or saving them failed. They are listed in
+          the import log entry; register them by hand, or tell the tech team if it keeps happening.
+        </Callout>
+      )}
+      {open > 0 ? (
         <Callout
           tone="warning"
-          title={`${review} ${review === 1 ? "transaction needs" : "transactions need"} a decision`}
+          title={`${items(open)} ${open === 1 ? "needs" : "need"} a decision`}
         >
-          {queue.added} new in the review queue
-          {queue.existing > 0 && `, ${queue.existing} already there from an earlier upload`}.{" "}
-          {openCount} {sourceLabel(source ?? "")} {openCount === 1 ? "item is" : "items are"} open
-          now. The queue is shared, so anyone on the team can{" "}
+          {added} new in the review queue
+          {handled > 0 && `, ${handled} already handled by the team`}. {openCount}{" "}
+          {sourceLabel(source ?? "")} {openCount === 1 ? "item is" : "items are"} open now. The
+          queue is shared, so anyone on the team can{" "}
           <Link to="/import/review" className="text-accent hover:underline">
             pick them up
           </Link>
           .
         </Callout>
+      ) : (
+        handled > 0 && (
+          <Callout tone="success" title="Nothing in the file needs a decision">
+            The {items(handled)} that couldn't be matched were already registered or ignored after
+            an earlier upload of the same file.
+          </Callout>
+        )
       )}
     </>
   );

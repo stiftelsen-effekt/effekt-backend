@@ -1,3 +1,4 @@
+import { osloDateTimeText } from "@/lib/dates";
 import { sumMoney } from "@/lib/money";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
 
@@ -25,7 +26,7 @@ export function transactionCsvRows(rows: TransactionRow[]): Record<string, unkno
   return rows.flatMap((donation): Record<string, unknown>[] => {
     const base = {
       donationId: donation.ID,
-      time: donation.time,
+      time: donation.time == null ? null : osloDateTimeText(donation.time),
       donorId: donation.donorID,
       donorName: donation.name,
       sum: donation.sum,

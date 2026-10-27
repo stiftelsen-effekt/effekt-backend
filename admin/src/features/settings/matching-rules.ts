@@ -50,18 +50,30 @@ export function validateMatchingRule(form: MatchingRuleForm) {
         : undefined,
     message: form.message.trim().length > 45 ? "At most 45 characters" : undefined,
     resolveKID: /^\d{1,32}$/.test(form.KID.trim()) ? undefined : "Enter a KID (digits only)",
-    periodTo:
-      !form.from || !form.to
-        ? "Choose the first and last day"
-        : form.from >= form.to
-        ? "The last day must be after the first"
-        : undefined,
+    periodFrom: !form.from ? "Enter the first day (dd.mm.yyyy)" : undefined,
+    periodTo: !form.to
+      ? "Enter the last day (dd.mm.yyyy)"
+      : form.from && form.from >= form.to
+      ? "The last day must be after the first"
+      : undefined,
     precedence:
       precedence === "" || /^-?\d+$/.test(precedence) ? undefined : "Enter a whole number",
   };
 }
 
-/** Form → `vipps.matchingRules.create` input. Empty optional fields become null. */
+/** A rule as the form edits it. */
+export function matchingRuleForm(rule: MatchingRule): MatchingRuleForm {
+  return {
+    salesLocation: rule.salesLocation ?? "",
+    message: rule.message ?? "",
+    KID: rule.resolveKID,
+    from: ruleDay(rule.periodFrom),
+    to: ruleDay(rule.periodTo),
+    precedence: rule.precedence == null ? "" : String(rule.precedence),
+  };
+}
+
+/** Form → `vipps.matchingRules.create` / `update` input. Empty optional fields become null. */
 export function matchingRuleInput(form: MatchingRuleForm): MatchingRuleInput {
   const precedence = form.precedence.trim();
   return {

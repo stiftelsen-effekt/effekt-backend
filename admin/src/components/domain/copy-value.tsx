@@ -39,7 +39,7 @@ export function CopyValue({
       data-slot="copy-value"
       className={cn("group/copy inline-flex max-w-full items-center gap-1 align-middle", className)}
     >
-      <span className="num truncate select-all">
+      <span className="num truncate select-all" title={String(text)}>
         {prefix && <span className="text-faint-foreground select-none">{prefix}</span>}
         {text}
       </span>

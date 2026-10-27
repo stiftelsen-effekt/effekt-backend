@@ -14,6 +14,7 @@ import {
   RangeFilter,
   SavedViews,
   useListState,
+  ListEmpty,
 } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
 import { Button } from "@/components/ui/button";
@@ -211,6 +212,13 @@ function FundraisersPage() {
           peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/fundraisers/${row.id}`}
           pageHotkeys
+          empty={
+            <ListEmpty
+              list={list}
+              noun="fundraisers"
+              hint="Donors create fundraisers; you can also create one from a donor page."
+            />
+          }
           summary={
             stats && (
               <TableSummary

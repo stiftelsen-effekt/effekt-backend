@@ -5,6 +5,7 @@ import {
   RotateCcwIcon,
   SkipForwardIcon,
 } from "lucide-react";
+import { useOptionalUser } from "@/auth";
 import { useState, type ReactNode } from "react";
 import { Callout } from "@/components/domain/callout";
 import { CopyValue } from "@/components/domain/copy-value";
@@ -25,12 +26,7 @@ import type { DataOwner, PaymentMethod } from "@/features/donations/api";
 import { KidPreview, NewDistributionFields } from "@/features/donations/distribution-fields";
 import { DonationFields } from "@/features/donations/donation-fields";
 import { formatAmount } from "@/features/donations/edit-model";
-import {
-  moneyDecimals,
-  parseMoneyInput,
-  serverErrors,
-  type ServerErrors,
-} from "@/features/donations/form";
+import { parseMoneyInput, serverErrors, type ServerErrors } from "@/features/donations/form";
 import {
   registerFieldNames,
   validateRegister,
@@ -44,6 +40,7 @@ import { errorCode } from "@/lib/trpc";
 import {
   draftForItem,
   isResolvedElsewhere,
+  resolverName,
   reviewRegisterInput,
   reasonText,
   sourceLabel,
@@ -97,11 +94,7 @@ export function ReviewWorkbench(props: ReviewWorkbenchProps) {
           <Status catalog={reviewStatus} value={item.status} />
         </div>
         <div className="grid gap-1">
-          <Money
-            value={item.amount}
-            decimals={moneyDecimals(item.amount)}
-            className="text-3xl font-semibold tracking-tight"
-          />
+          <Money value={item.amount} className="text-3xl font-semibold tracking-tight" />
           <span className="text-sm text-muted-foreground">
             <DateTime value={item.date} /> · {method ?? `Payment method ${item.paymentId}`}
           </span>
@@ -139,9 +132,10 @@ export function ReviewWorkbench(props: ReviewWorkbenchProps) {
 function Resolution({ item, reopen, donationLink }: ReviewWorkbenchProps) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const user = useOptionalUser();
   const by = (
     <>
-      by {item.resolvedBy ?? "someone"}
+      by {resolverName(item.resolvedBy, user)}
       {item.resolvedAt && (
         <>
           {" "}

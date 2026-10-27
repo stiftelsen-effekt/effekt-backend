@@ -58,7 +58,9 @@ export function DetailPage({
           )}
         >
           <div className="grid min-w-0 gap-6">{children}</div>
-          {aside && <div className="grid gap-4 xl:sticky xl:top-4 xl:order-last">{aside}</div>}
+          {aside && (
+            <div className="grid min-w-0 gap-4 xl:sticky xl:top-4 xl:order-last">{aside}</div>
+          )}
         </div>
       </div>
     </div>
@@ -80,7 +82,7 @@ export function DetailPanel({
   return (
     <section
       data-slot="detail-panel"
-      className={cn("rounded-md border border-border bg-surface", className)}
+      className={cn("min-w-0 rounded-md border border-border bg-surface", className)}
     >
       <div className="flex min-h-10 items-center justify-between gap-2 border-b border-border px-4 py-1.5">
         <h2 className="text-sm font-semibold">{title}</h2>

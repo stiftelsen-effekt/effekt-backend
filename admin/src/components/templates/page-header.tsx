@@ -30,6 +30,10 @@ export function PageHeader({
   actions?: ReactNode;
   className?: string;
 }) {
+  // Conditional facts ({x && …}) leave false/null/"" behind; they'd show as an empty gap.
+  const facts = (meta ?? []).filter(
+    (item) => item !== null && item !== undefined && item !== false && item !== "",
+  );
   return (
     <header
       data-slot="page-header"
@@ -65,14 +69,24 @@ export function PageHeader({
           {adornment}
         </div>
         {description && <p className="max-w-prose text-sm text-muted-foreground">{description}</p>}
-        {meta && meta.length > 0 && (
-          <ul className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-            {meta.map((item, index) => (
-              <li key={index} className="flex items-center gap-2">
+        {facts.length > 0 && (
+          <ul
+            className={cn(
+              "flex flex-wrap items-center gap-y-1 text-sm text-muted-foreground",
+              // An id's copy button floats over the separator instead of reserving a gap.
+              "[&_[data-slot=copy-value]]:relative [&_[data-slot=copy-value]>button]:absolute [&_[data-slot=copy-value]>button]:left-full [&_[data-slot=copy-value]>button]:bg-background",
+            )}
+          >
+            {facts.map((item, index) => (
+              <li key={index} className="flex min-w-0 items-center">
                 {index > 0 && (
-                  <span aria-hidden className="size-0.75 rounded-full bg-faint-foreground" />
+                  <span
+                    aria-hidden
+                    className="mx-2 size-0.75 shrink-0 rounded-full bg-faint-foreground"
+                  />
                 )}
-                {item}
+                {/* One box per fact, so text and elements inside it aren't spaced as flex items. */}
+                <span className="min-w-0">{item}</span>
               </li>
             ))}
           </ul>

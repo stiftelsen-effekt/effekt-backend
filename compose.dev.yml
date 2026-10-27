@@ -36,7 +36,12 @@ x-backend: &backend
 services:
   db:
     image: mysql:8.4.11 # same major/minor as production Cloud SQL
-    command: ["--log_bin_trust_function_creators=1"]
+    # Sized for a laptop: the defaults (128 MB+ buffer pool, performance schema on) suit a server.
+    command:
+      - --log_bin_trust_function_creators=1
+      - --innodb-buffer-pool-size=192M
+      - --performance-schema=OFF
+      - --skip-log-bin
     environment:
       # Must match DB_* in .env.docker
       MYSQL_ROOT_PASSWORD: effekt-local

@@ -55,16 +55,14 @@ const range = (value: { min?: number; max?: number } | undefined) =>
   value && { from: value.min, to: value.max };
 
 /**
- * The list's search box reads the query the way people type it: digits are a donor id,
- * anything with "@" or a dotted word an email, the rest part of a name.
+ * The list's search box: digits are a donor id, anything else part of a name or an email
+ * address (the API matches either).
  */
 export function searchToFilter(q: string | undefined): Partial<DonorFilter> {
   const query = q?.trim();
   if (!query) return {};
   if (/^\d+$/.test(query)) return { donorId: Number(query) };
-  // "@" or a domain-like word ("gmail.com", "kari.nordmann") is part of an email address.
-  if (query.includes("@") || /^\S+\.\S+$/.test(query)) return { email: query };
-  return { name: query };
+  return { nameOrEmail: query };
 }
 
 /**

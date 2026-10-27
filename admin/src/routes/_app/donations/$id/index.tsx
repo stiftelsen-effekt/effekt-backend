@@ -14,9 +14,9 @@ import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { ResendReceiptDialog } from "@/features/donations/resend-receipt";
 import { formatAmount } from "@/features/donations/edit-model";
-import { moneyDecimals } from "@/features/donations/form";
 import { notify } from "@/lib/notify";
 import { useTRPC } from "@/lib/trpc";
+import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
 export const Route = createFileRoute("/_app/donations/$id/")({
   component: DonationPage,
@@ -42,6 +42,7 @@ function DonationPage() {
     return (
       <DetailPage breadcrumbs={breadcrumbs} title={`Donation #${rawId}`}>
         <ErrorState
+          back={{ to: "/donations", label: "All donations" }}
           error={donation.error ?? new Error("Not a donation ID")}
           onRetry={() => void donation.refetch()}
         />
@@ -66,15 +67,15 @@ function DonationPage() {
   return (
     <DetailPage
       breadcrumbs={breadcrumbs}
-      title={<Money value={d.sum} decimals={moneyDecimals(d.sum)} />}
+      title={<Money value={d.sum} />}
       meta={[
         <CopyValue key="id" value={d.id} prefix="#" label="donation ID" />,
         <DateTime key="date" value={d.timestamp} format="datetime" />,
-        d.paymentMethod,
+        <PaymentMethodName key="method" value={d.paymentMethod} />,
         <Link
           key="donor"
-          to="/$"
-          params={{ _splat: `donors/${d.donorId}` }}
+          to="/donors/$id"
+          params={{ id: String(d.donorId) }}
           className="text-accent hover:underline"
         >
           {d.donor}
@@ -122,15 +123,17 @@ function DonationPage() {
           <DetailPanel title="Payment">
             <PropertyList labelWidth="7rem">
               <Property label="Amount">
-                <Money value={d.sum} decimals={2} className="font-semibold" />
+                <Money value={d.sum} className="font-semibold" />
               </Property>
               <Property label="Fee">
-                {d.transactionCost != null && <Money value={d.transactionCost} decimals={2} />}
+                <Money value={d.transactionCost} />
               </Property>
               <Property label="Date">
                 <DateTime value={d.timestamp} format="datetime" />
               </Property>
-              <Property label="Method">{d.paymentMethod}</Property>
+              <Property label="Method">
+                <PaymentMethodName value={d.paymentMethod} />
+              </Property>
               <Property label="External ref">
                 {d.paymentExternalRef && (
                   <CopyValue value={d.paymentExternalRef} label="external reference" />
@@ -148,8 +151,8 @@ function DonationPage() {
             <PropertyList labelWidth="7rem">
               <Property label="Name">
                 <Link
-                  to="/$"
-                  params={{ _splat: `donors/${d.donorId}` }}
+                  to="/donors/$id"
+                  params={{ id: String(d.donorId) }}
                   className="font-semibold text-accent hover:underline"
                 >
                   {d.donor}

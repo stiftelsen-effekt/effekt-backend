@@ -27,7 +27,6 @@ import {
 } from "@/features/agreements/agreement-distribution";
 import { listProviders, toListStatus, type ListProvider } from "@/features/agreements/list";
 import { agreementTypes, describeChargeDay } from "@/features/agreements/model";
-import { moneyDecimals } from "@/features/donations/form";
 import { formatMoney } from "@/lib/format";
 import { sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
@@ -111,13 +110,13 @@ const paymentColumns = (withStatus: boolean) =>
     paymentCol.accessor("amount", {
       header: "Amount",
       meta: { numeric: true, cellClassName: "font-semibold" },
-      cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+      cell: ({ getValue }) => <Money value={getValue()} />,
     }),
     paymentCol.accessor("reference", {
-      header: withStatus ? "Charge" : "Donation",
+      header: withStatus ? "Reference" : "Donation",
       meta: { cellClassName: "text-muted-foreground" },
       cell: ({ getValue }) => (
-        <CopyValue value={getValue()} label={withStatus ? "charge ID" : "donation ID"} />
+        <CopyValue value={getValue()} label={withStatus ? "reference" : "donation ID"} />
       ),
     }),
   ]);
@@ -333,7 +332,11 @@ function LoadingOrError({
   return (
     <DetailPage breadcrumbs={breadcrumbs} title={title}>
       {error ? (
-        <ErrorState error={error} onRetry={onRetry} />
+        <ErrorState
+          back={{ to: "/agreements", label: "All agreements" }}
+          error={error}
+          onRetry={onRetry}
+        />
       ) : (
         <div className="grid gap-3">
           <Skeleton className="h-20 w-full" />
@@ -357,13 +360,14 @@ function VippsAgreementPage({ id }: { id: string }) {
     trpc.vipps.agreements.list.queryOptions({ page: 0, limit: 50, filter: { agreementID: id } }),
   );
   const row = stored.data?.rows.find((r) => r.ID === id);
+  // The normalised row (status, pause, donor) for exactly this agreement.
   const normalised = useQuery({
     ...trpc.agreements.list.queryOptions({
       page: 0,
-      limit: 50,
-      filter: { providers: ["vipps"], KID: row?.KID ?? "" },
+      limit: 1,
+      filter: { providers: ["vipps"], ids: [id] },
     }),
-    enabled: Boolean(row?.KID),
+    enabled: Boolean(row),
   });
   const listRow = normalised.data?.rows.find((r) => r.id === id);
   const live = useQuery({
@@ -371,13 +375,9 @@ function VippsAgreementPage({ id }: { id: string }) {
     enabled: Boolean(row),
     retry: false,
   });
+  // Charges and donations under every KID the agreement has had (vipps.agreements.payments).
   const charges = useQuery({
-    ...trpc.vipps.charges.list.queryOptions({
-      page: 0,
-      limit: 500,
-      filter: { agreementID: id },
-      sort: { id: "dueDate", desc: true },
-    }),
+    ...trpc.vipps.agreements.payments.queryOptions({ id }),
     enabled: Boolean(row),
   });
   const distribution = useQuery({
@@ -434,16 +434,32 @@ function VippsAgreementPage({ id }: { id: string }) {
   const subject = { type: "vipps" as const, ...facts };
   const stopped = facts.status === "stopped";
 
-  const payments: Payment[] | undefined = charges.data?.rows
-    .filter((charge) => charge.agreementID === id)
-    .map((charge) => ({
-      key: charge.chargeID,
-      date: charge.dueDate,
-      amount: charge.amountNOK,
-      status: charge.status as keyof typeof chargeStatus,
-      reference: charge.chargeID,
-      href: `/charges?charge=${encodeURIComponent(charge.chargeID)}`,
-    }));
+  // One row per charge (its donation when registered), plus donations registered without one
+  // (e.g. from a settlement report).
+  const payments: Payment[] | undefined =
+    charges.data &&
+    [
+      ...charges.data.charges.map((charge) => ({
+        key: `charge-${charge.chargeId}`,
+        date: charge.dueDate,
+        amount: charge.amount,
+        status: charge.status as keyof typeof chargeStatus,
+        reference: charge.chargeId,
+        href:
+          charge.donationId != null
+            ? `/donations/${charge.donationId}`
+            : `/charges?charge=${encodeURIComponent(charge.chargeId)}`,
+      })),
+      ...charges.data.donations
+        .filter((donation) => donation.chargeId == null)
+        .map((donation) => ({
+          key: `donation-${donation.id}`,
+          date: toIso(donation.timestamp),
+          amount: donation.sum,
+          reference: `Donation ${donation.id}`,
+          href: `/donations/${donation.id}`,
+        })),
+    ].sort((x, y) => String(y.date ?? "").localeCompare(String(x.date ?? "")));
 
   const run = async (action: Promise<unknown>, message: string) => {
     await action;
@@ -517,8 +533,14 @@ function VippsAgreementPage({ id }: { id: string }) {
       payments={payments}
       paymentsError={charges.error}
       onRetryPayments={() => void charges.refetch()}
-      paymentsTitle="Charges"
-      paymentsDescription="Monthly charges on this agreement, newest first."
+      paymentsTitle="Payments"
+      paymentsDescription={
+        charges.data && charges.data.KIDs.length > 1
+          ? `Charges and donations on this agreement, newest first, including earlier KIDs (${charges.data.KIDs.join(
+              ", ",
+            )}).`
+          : "Charges and donations on this agreement, newest first."
+      }
       paymentsLink={
         <Button asChild size="sm" variant="ghost">
           <Link to="/charges" search={{ agreement: id }}>
@@ -602,9 +624,10 @@ function AvtaleGiroAgreementPage({ id }: { id: string }) {
     enabled: valid,
   });
   const KID = agreement.data?.KID ?? "";
+  // Under every KID the agreement has had, so a distribution change doesn't hide earlier ones.
   const donations = useQuery({
-    ...trpc.giro.avtalegiro.donations.queryOptions({ KID }),
-    enabled: Boolean(KID),
+    ...trpc.giro.avtalegiro.payments.queryOptions({ agreementId: numericId }),
+    enabled: valid,
   });
   const updateAmount = useMutation(trpc.giro.avtalegiro.updateAmount.mutationOptions());
   const updateStatus = useMutation(trpc.giro.avtalegiro.updateStatus.mutationOptions());
@@ -652,8 +675,8 @@ function AvtaleGiroAgreementPage({ id }: { id: string }) {
   };
   const subject = { type: "avtalegiro" as const, ...facts };
 
-  const payments: Payment[] | undefined = donations.data
-    ?.map((donation) => ({
+  const payments: Payment[] | undefined = donations.data?.donations
+    .map((donation) => ({
       key: String(donation.id),
       date: toIso(donation.timestamp),
       amount: donation.sum,
@@ -738,7 +761,13 @@ function AvtaleGiroAgreementPage({ id }: { id: string }) {
       paymentsError={donations.error}
       onRetryPayments={() => void donations.refetch()}
       paymentsTitle="Donations"
-      paymentsDescription="Donations on this agreement's KID, newest first. Changing the distribution moves earlier donations to a new KID, so they're no longer listed here."
+      paymentsDescription={
+        donations.data && donations.data.KIDs.length > 1
+          ? `Donations from this agreement, newest first, including those registered before a distribution change (KIDs ${donations.data.KIDs.join(
+              ", ",
+            )}).`
+          : "Donations from this agreement, newest first."
+      }
     />
   );
 }

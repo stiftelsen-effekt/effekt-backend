@@ -3,6 +3,33 @@ import { parse } from "csv-parse/sync";
 
 const parseUtil = require("./util");
 
+/** Columns parseReport and processFacebookReport read */
+const REQUIRED_COLUMNS = [
+  "Charge date",
+  "Payout currency",
+  "Net payout amount",
+  "Sender currency",
+  "Campaign ID",
+];
+
+/**
+ * Checks that a file is a Facebook payout report (CSV with the columns parseReport reads and at
+ * least one row). Returns why it isn't, or null. Doesn't fetch exchange rates.
+ */
+export const validateReport = (report): string | null => {
+  let data: string[][];
+  try {
+    data = parse(report.toString(), { delimiter: ",", bom: true, skip_empty_lines: true });
+  } catch {
+    return "the file is not a comma separated CSV file";
+  }
+  const columns = data[0] ?? [];
+  const missing = REQUIRED_COLUMNS.filter((column) => !columns.includes(column));
+  if (missing.length > 0) return `missing the columns ${missing.join(", ")}`;
+  if (data.length < 2) return "the file has no donations";
+  return null;
+};
+
 /**
  * Parses a csv file from vipps reports
  * @param {Buffer} report A file buffer, from a csv comma seperated file
@@ -163,5 +190,6 @@ function roundToSignificantFigures(number: number, signFig: number) {
 
 module.exports = {
   parseReport,
+  validateReport,
   roundSum,
 };

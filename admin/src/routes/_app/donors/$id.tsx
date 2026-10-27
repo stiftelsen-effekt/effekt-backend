@@ -38,6 +38,8 @@ import { moneySign, moneyToNumber, sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
 import { agreementStatus, donorStatus } from "@/lib/status";
 import { errorCode, useTRPC, type RouterOutputs } from "@/lib/trpc";
+import { PaymentMethodName } from "@/features/donations/payment-method-name";
+import { conflictingDonorId } from "@/features/donors/form-errors";
 
 const tabs = ["donations", "kids", "agreements", "tax", "referrals"] as const;
 type Tab = (typeof tabs)[number];
@@ -64,7 +66,10 @@ const donationColumns = donationCol.columns([
     header: "Date",
     cell: ({ getValue }) => <DateTime value={getValue()} format="datetime" />,
   }),
-  donationCol.accessor("paymentMethod", { header: "Method" }),
+  donationCol.accessor("paymentMethod", {
+    header: "Method",
+    cell: ({ getValue }) => <PaymentMethodName value={getValue()} />,
+  }),
   donationCol.accessor("sum", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
@@ -73,7 +78,7 @@ const donationColumns = donationCol.columns([
   donationCol.accessor("transactionCost", {
     header: "Fee",
     meta: { numeric: true, cellClassName: "text-muted-foreground" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={2} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   donationCol.accessor("KID", {
     header: "KID",
@@ -177,6 +182,7 @@ function Donor({ donorId }: { donorId: number }) {
     return (
       <div className="p-6">
         <ErrorState
+          back={{ to: "/donors", label: "All donors" }}
           error={donorQuery.error}
           title={
             errorCode(donorQuery.error) === "NOT_FOUND"
@@ -191,18 +197,24 @@ function Donor({ donorId }: { donorId: number }) {
   const donor = donorQuery.data;
   const displayName = donor.name || donor.email;
 
-  /** Flag changes are optimistic with undo (DESIGN.md › Optimism, undo and feedback). */
+  /**
+   * Flag changes are optimistic with undo (DESIGN.md › Optimism, undo and feedback). Undoing
+   * confirms with a plain toast: an undo of the undo would only go round in circles.
+   */
   function setFlag(
     patch: { newsletter?: boolean; trash?: boolean },
     message: string,
-    undo: typeof patch,
+    undo?: typeof patch,
   ) {
     const previous = queryClient.getQueryData(getKey);
     queryClient.setQueryData(getKey, { ...donor, ...patch });
     update.mutate(
       { donorId, name: donor.name, ...patch },
       {
-        onSuccess: () => notify.undo(message, () => setFlag(undo, "Change undone", patch)),
+        onSuccess: () =>
+          undo
+            ? notify.undo(message, () => setFlag(undo, "Change undone"))
+            : notify.success(message),
         onError: (error) => {
           queryClient.setQueryData(getKey, previous);
           notify.error(error, "Couldn't update the donor");
@@ -389,7 +401,20 @@ function Donor({ donorId }: { donorId: number }) {
                   /^\S+@\S+\.\S+$/.test(value.trim()) ? null : "Enter a valid email address"
                 }
                 onSave={async (email) => {
-                  await update.mutateAsync({ donorId, name: donor.name, email: email.trim() });
+                  try {
+                    await update.mutateAsync({ donorId, name: donor.name, email: email.trim() });
+                  } catch (error) {
+                    // The email belongs to another donor: offer the way there.
+                    const other = conflictingDonorId(error instanceof Error ? error.message : "");
+                    if (errorCode(error) === "CONFLICT" && other !== null) {
+                      notify.error(error, `This email already belongs to donor #${other}`, {
+                        label: `Open donor #${other}`,
+                        onClick: () =>
+                          void navigate({ to: "/donors/$id", params: { id: String(other) } }),
+                      });
+                    }
+                    throw error;
+                  }
                   notify.success("Email updated");
                 }}
               />

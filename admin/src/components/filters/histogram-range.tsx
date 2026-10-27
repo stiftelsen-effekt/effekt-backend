@@ -15,6 +15,10 @@ function parseNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+/** A bound as input text: Norwegian decimal comma, no grouping ("1000", "249,5"). */
+const inputText = (value: number | undefined) =>
+  value === undefined ? "" : String(value).replace(".", ",");
+
 /** Min/max inputs that accept "1 000" and "1000,5" and commit on Enter or blur. */
 export function NumberRangeInputs({
   value,
@@ -27,10 +31,10 @@ export function NumberRangeInputs({
   unit?: string;
   label: string;
 }) {
-  const [min, setMin] = useState(value.min?.toString() ?? "");
-  const [max, setMax] = useState(value.max?.toString() ?? "");
-  useEffect(() => setMin(value.min?.toString() ?? ""), [value.min]);
-  useEffect(() => setMax(value.max?.toString() ?? ""), [value.max]);
+  const [min, setMin] = useState(inputText(value.min));
+  const [max, setMax] = useState(inputText(value.max));
+  useEffect(() => setMin(inputText(value.min)), [value.min]);
+  useEffect(() => setMax(inputText(value.max)), [value.max]);
 
   const commit = () => onChange({ min: parseNumber(min), max: parseNumber(max) });
   const field = (which: "min" | "max") => (

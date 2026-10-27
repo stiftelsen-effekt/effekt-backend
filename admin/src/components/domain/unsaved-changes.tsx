@@ -1,4 +1,5 @@
 import { useBlocker } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -75,4 +76,41 @@ export function UnsavedChangesBar({
       </AlertDialog>
     </>
   );
+}
+
+/**
+ * For forms in dialogs: closing (Esc, outside click, Cancel) while there are changes asks
+ * before discarding them. Call `requestClose` where the dialog would close and render
+ * `dialog` next to it.
+ *
+ *   const guard = useDiscardGuard(dirty, () => setOpen(false));
+ *   <Dialog open={open} onOpenChange={(next) => next ? setOpen(true) : guard.requestClose()}>
+ *   {guard.dialog}
+ */
+export function useDiscardGuard(dirty: boolean, close: () => void) {
+  const [asking, setAsking] = useState(false);
+  const requestClose = () => (dirty ? setAsking(true) : close());
+  const dialog = (
+    <AlertDialog open={asking} onOpenChange={setAsking}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{strings.form.discardTitle}</AlertDialogTitle>
+          <AlertDialogDescription>{strings.form.discardHint}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{strings.form.keepEditing}</AlertDialogCancel>
+          <Button
+            variant="danger"
+            onClick={() => {
+              setAsking(false);
+              close();
+            }}
+          >
+            {strings.actions.discard}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+  return { requestClose, dialog };
 }

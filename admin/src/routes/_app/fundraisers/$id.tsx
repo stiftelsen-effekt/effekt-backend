@@ -82,6 +82,7 @@ function Fundraiser({ fundraiserId }: { fundraiserId: number }) {
     return (
       <div className="p-6">
         <ErrorState
+          back={{ to: "/fundraisers", label: "All fundraisers" }}
           error={query.error}
           title={
             errorCode(query.error) === "NOT_FOUND"

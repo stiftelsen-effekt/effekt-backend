@@ -83,7 +83,11 @@ export function InlineEdit({
           className,
         )}
       >
-        <span className="min-w-0 truncate">
+        {/* Long names and emails are cut to fit; the whole value is in the tooltip. */}
+        <span
+          className="min-w-0 truncate"
+          title={typeof value === "string" && value ? value : undefined}
+        >
           {children ??
             (value || <span className="text-faint-foreground">{placeholder ?? "–"}</span>)}
         </span>

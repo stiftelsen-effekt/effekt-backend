@@ -8,14 +8,13 @@ import { DistributionSummary } from "@/components/domain/distribution-editor";
 import { ErrorState } from "@/components/domain/error-state";
 import { Money, Num } from "@/components/domain/format";
 import { Property, PropertyList } from "@/components/domain/property-list";
-import { FilterBar, SavedViews, TextFilter, useListState } from "@/components/filters";
+import { FilterBar, SavedViews, TextFilter, useListState, ListEmpty } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { downloadCsv } from "@/features/donations/api";
-import { moneyDecimals } from "@/features/donations/form";
 import { distributionsList, toDistributionFilter } from "@/features/donations/list";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
@@ -53,7 +52,7 @@ const columns = col.columns([
     id: "sum",
     header: "Total",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
 ]);
 
@@ -115,7 +114,7 @@ function DistributionsPage() {
       filters={
         <FilterBar
           list={list}
-          searchPlaceholder="Donor name or email"
+          searchPlaceholder="KID, donor name, email or ID"
           end={<SavedViews list={list} />}
         >
           <TextFilter field="kid" label="KID" numeric />
@@ -146,6 +145,13 @@ function DistributionsPage() {
           peekedRowId={peekKid}
           getRowHref={(row) => `/distributions/${row.KID}`}
           pageHotkeys
+          empty={
+            <ListEmpty
+              list={list}
+              noun="distributions"
+              hint="A distribution (KID) is created with each new donation split."
+            />
+          }
           summary={
             total !== undefined && (
               <TableSummary items={[{ value: <Num value={total} />, suffix: "distributions" }]} />
@@ -182,8 +188,8 @@ function DistributionPeek({ kid, onClose }: { kid: string; onClose: () => void }
           <PropertyList labelWidth="7rem">
             <Property label="Donor">
               <Link
-                to="/$"
-                params={{ _splat: `donors/${d.donorId}` }}
+                to="/donors/$id"
+                params={{ id: String(d.donorId) }}
                 className="font-semibold text-accent hover:underline"
               >
                 {d.donor?.name ?? `#${d.donorId}`}

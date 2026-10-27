@@ -11,9 +11,9 @@ import { DateTime, Money, Num } from "@/components/domain/format";
 import { Stat, StatGroup } from "@/components/domain/stat";
 import { Status } from "@/components/domain/status";
 import { DetailPage, DetailPanel } from "@/components/templates";
+import { Callout } from "@/components/domain/callout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { DateInput } from "@/components/ui/date-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -27,7 +27,6 @@ import {
   type ReceivedRow,
 } from "@/features/agreements/avtalegiro-check";
 import { shortChargeDay } from "@/features/agreements/model";
-import { moneyDecimals } from "@/features/donations/form";
 import { formatDate } from "@/lib/format";
 import { avtaleGiroDayStatus } from "@/lib/status";
 import { useTRPC } from "@/lib/trpc";
@@ -86,7 +85,18 @@ const expectedColumns = expectedCol.columns([
   expectedCol.accessor("amount", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} />,
+    cell: ({ getValue, row }) =>
+      row.original.amountSource === "agreement" ? (
+        <span title="No claim file for this date: the agreement's current amount">
+          <Money value={getValue()} />
+          <span aria-hidden className="text-muted-foreground">
+            *
+          </span>
+          <span className="sr-only"> (current agreement amount)</span>
+        </span>
+      ) : (
+        <Money value={getValue()} />
+      ),
   }),
   expectedCol.accessor("KID", {
     header: "KID",
@@ -118,7 +128,7 @@ const receivedColumns = receivedCol.columns([
   receivedCol.accessor("sum", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   receivedCol.accessor("kid", {
     header: "KID",
@@ -139,6 +149,9 @@ function AvtaleGiroCheckPage() {
   const tab: Tab = search.tab ?? "missing";
 
   const expected = useQuery(trpc.giro.avtalegiro.expected.queryOptions({ date }));
+  // A past day without its claim file falls back to today's agreement amounts (P2-11).
+  const estimated =
+    date < isoDay(today) && Boolean(expected.data?.some((row) => row.amountSource === "agreement"));
   const received = useQuery(trpc.giro.avtalegiro.received.queryOptions({ date }));
   const missing = useQuery(trpc.giro.avtalegiro.missing.queryOptions({ date }));
   const validation = useQuery(trpc.giro.avtalegiro.validation.queryOptions());
@@ -178,15 +191,11 @@ function AvtaleGiroCheckPage() {
           <Button size="icon" aria-label="Previous day" onClick={() => shift(-1)}>
             <ChevronLeftIcon />
           </Button>
-          <Label className="sr-only" htmlFor="check-date">
-            Charge date
-          </Label>
-          <Input
-            id="check-date"
-            type="date"
-            className="num w-40"
+          <DateInput
+            aria-label="Charge date"
+            className="w-40"
             value={date}
-            onChange={(event) => event.target.value && setDate(event.target.value)}
+            onValueChange={(value) => value && setDate(value)}
           />
           <Button size="icon" aria-label="Next day" onClick={() => shift(1)}>
             <ChevronRightIcon />
@@ -256,71 +265,80 @@ function AvtaleGiroCheckPage() {
           ) : validation.data.length === 0 ? (
             <p className="py-3 text-sm text-muted-foreground">No AvtaleGiro agreements to check.</p>
           ) : (
-            <table className="w-full text-sm">
-              <caption className="sr-only">
-                Expected and received AvtaleGiro payments per charge day over the last month
-              </caption>
-              <thead className="text-left text-muted-foreground">
-                <tr>
-                  <th scope="col" className="py-2 font-normal">
-                    Date
-                  </th>
-                  <th scope="col" className="py-2 text-right font-normal">
-                    Expected
-                  </th>
-                  <th scope="col" className="py-2 text-right font-normal">
-                    Received
-                  </th>
-                  <th scope="col" className="py-2 pl-3 font-normal">
-                    <span className="sr-only">Status</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {validation.data.map((row) => {
-                  const day = validationDate(Number(row.date), today);
-                  const current = day === date;
-                  return (
-                    <tr
-                      key={row.date}
-                      className="border-t border-border"
-                      aria-current={current ? "date" : undefined}
-                    >
-                      <td className="py-1.5">
-                        {day ? (
-                          <Link
-                            to="/avtalegiro-check"
-                            search={{ date: day, tab: search.tab }}
-                            className={
-                              current
-                                ? "num font-semibold text-foreground"
-                                : "num text-accent hover:underline focus-ring rounded-xs"
-                            }
-                          >
-                            {formatDate(day)}
-                          </Link>
-                        ) : (
-                          <span className="num">{shortChargeDay(Number(row.date))}</span>
-                        )}
-                      </td>
-                      <td className="py-1.5 text-right">
-                        <Money value={row.expected} />
-                      </td>
-                      <td className="py-1.5 text-right">
-                        <Money value={row.actual} />
-                      </td>
-                      <td className="py-1.5 pl-3">
-                        <Status catalog={avtaleGiroDayStatus} value={validationState(row)} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="-mx-4 overflow-x-auto px-4">
+              <table className="w-full text-sm whitespace-nowrap">
+                <caption className="sr-only">
+                  Expected and received AvtaleGiro payments per charge day over the last month
+                </caption>
+                <thead className="text-left text-muted-foreground">
+                  <tr>
+                    <th scope="col" className="py-2 font-normal">
+                      Date
+                    </th>
+                    <th scope="col" className="py-2 pl-2 text-right font-normal">
+                      Expected
+                    </th>
+                    <th scope="col" className="py-2 pl-2 text-right font-normal">
+                      Received
+                    </th>
+                    <th scope="col" className="py-2 pl-2 font-normal">
+                      <span className="sr-only">Status</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {validation.data.map((row) => {
+                    const day = validationDate(Number(row.date), today);
+                    const current = day === date;
+                    return (
+                      <tr
+                        key={row.date}
+                        className="border-t border-border"
+                        aria-current={current ? "date" : undefined}
+                      >
+                        <td className="py-1.5">
+                          {day ? (
+                            <Link
+                              to="/avtalegiro-check"
+                              search={{ date: day, tab: search.tab }}
+                              className={
+                                current
+                                  ? "num font-semibold text-foreground"
+                                  : "num text-accent hover:underline focus-ring rounded-xs"
+                              }
+                            >
+                              {formatDate(day)}
+                            </Link>
+                          ) : (
+                            <span className="num">{shortChargeDay(Number(row.date))}</span>
+                          )}
+                        </td>
+                        <td className="py-1.5 pl-2 text-right">
+                          <Money value={row.expected} />
+                        </td>
+                        <td className="py-1.5 pl-2 text-right">
+                          <Money value={row.actual} />
+                        </td>
+                        <td className="py-1.5 pl-2">
+                          <Status catalog={avtaleGiroDayStatus} value={validationState(row)} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </DetailPanel>
       }
     >
+      {estimated && (
+        <Callout tone="neutral" title="Expected amounts are today's agreement amounts">
+          No claim file sent to the bank was found for this date, so Expected uses each agreement's
+          current amount (marked *). Agreements changed since then may show a difference that wasn't
+          there on the day.
+        </Callout>
+      )}
       <Tabs
         value={tab}
         onValueChange={(value) =>

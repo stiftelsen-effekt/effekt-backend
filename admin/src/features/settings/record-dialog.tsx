@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Callout } from "@/components/domain/callout";
 import { describeError } from "@/components/domain/error-state";
+import { useDiscardGuard } from "@/components/domain/unsaved-changes";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +21,7 @@ export type FieldErrors = Record<string, string | undefined>;
  * A short create/edit form in a dialog with explicit save. `validate` returns client-side
  * errors by field; server validation messages (`error.data.fieldErrors`) are merged in by
  * the same field names, and anything else shows as a callout in the dialog, which stays
- * open so it's clear nothing was saved.
+ * open so it's clear nothing was saved. Closing with unsaved changes asks first.
  */
 export function RecordDialog<V>({
   trigger,
@@ -48,6 +49,9 @@ export function RecordDialog<V>({
 }) {
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState<V>(initial);
+  const [start, setStart] = useState<V>(values);
+  const dirty = JSON.stringify(values) !== JSON.stringify(start);
+  const guard = useDiscardGuard(dirty, () => setOpen(false));
   const [submitted, setSubmitted] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -62,12 +66,13 @@ export function RecordDialog<V>({
 
   function onOpenChange(next: boolean) {
     if (pending) return;
-    setOpen(next);
-    if (next) {
-      setValues(initial());
-      setSubmitted(false);
-      setError(null);
-    }
+    if (!next) return guard.requestClose();
+    const fresh = initial();
+    setValues(fresh);
+    setStart(fresh);
+    setSubmitted(false);
+    setError(null);
+    setOpen(true);
   }
 
   async function save() {
@@ -124,6 +129,7 @@ export function RecordDialog<V>({
           </DialogFooter>
         </form>
       </DialogContent>
+      {guard.dialog}
     </Dialog>
   );
 }

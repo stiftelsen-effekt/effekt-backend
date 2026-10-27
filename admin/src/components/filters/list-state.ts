@@ -3,6 +3,11 @@
  * is shareable and bookmarkable, and Back works. Values are encoded as short, readable
  * strings (`?amount=100..500&method=2,5&sort=-timestamp&page=3`).
  *
+ * History: every discrete change (a filter applied or removed, a sort, a page) is its own
+ * history entry, so Back undoes it. Continuous edits replace the entry instead of piling
+ * up: refining a search that's already applied, and repeated changes to the same filter in
+ * quick succession (dragging a range, typing a number).
+ *
  *   // route file
  *   const donationsList = defineList({
  *     id: "donations",
@@ -22,7 +27,7 @@
  *   <DataTable {...list.tableState} … />
  */
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 export type Codec<T> = {
   decode: (raw: unknown) => T | undefined;
@@ -172,6 +177,9 @@ export function defineList<const F extends FilterCodecs, const S extends string>
   };
 }
 
+/** Changes to the same filter closer together than this share one history entry. */
+const REPEAT_MS = 1000;
+
 export type SortingState = { id: string; desc: boolean }[];
 export type PaginationState = { pageIndex: number; pageSize: number };
 
@@ -184,7 +192,11 @@ type LooseNavigate = (options: {
 export type ListState<F extends FilterCodecs = FilterCodecs, S extends string = string> = {
   id: string;
   filters: FilterValues<F>;
-  setFilter: <K extends keyof F & string>(key: K, value: FilterValues<F>[K] | undefined) => void;
+  setFilter: <K extends keyof F & string>(
+    key: K,
+    value: FilterValues<F>[K] | undefined,
+    options?: { replace?: boolean },
+  ) => void;
   clearFilters: () => void;
   activeFilterKeys: (keyof F & string)[];
   sort: { id: S; desc: boolean };
@@ -228,10 +240,13 @@ export function useListState<F extends FilterCodecs, S extends string>(
   const page = Math.max(1, Math.floor(Number(raw.page) || 1));
 
   const update = useCallback(
-    (patch: Record<string, string | number | undefined>, { resetPage = true } = {}) =>
+    (
+      patch: Record<string, string | number | undefined>,
+      { resetPage = true, replace = false }: { resetPage?: boolean; replace?: boolean } = {},
+    ) =>
       void navigate({
         to: ".",
-        replace: true,
+        replace,
         search: (prev) => {
           const next: Record<string, unknown> = { ...prev, ...patch };
           if (resetPage) delete next.page;
@@ -242,9 +257,23 @@ export function useListState<F extends FilterCodecs, S extends string>(
     [navigate],
   );
 
+  // The last filter change, to fold rapid repeats of one filter into one history entry.
+  const lastChange = useRef<{ key: string; at: number } | null>(null);
   const setFilter = useCallback(
-    <K extends keyof F & string>(key: K, value: FilterValues<F>[K] | undefined) =>
-      update({ [key]: list.filters[key]!.encode(value) }),
+    <K extends keyof F & string>(
+      key: K,
+      value: FilterValues<F>[K] | undefined,
+      options?: { replace?: boolean },
+    ) => {
+      const now = Date.now();
+      const last = lastChange.current;
+      const repeat = last !== null && last.key === key && now - last.at < REPEAT_MS;
+      lastChange.current = { key, at: now };
+      update(
+        { [key]: list.filters[key]!.encode(value) },
+        { replace: options?.replace ?? (repeat && value !== undefined) },
+      );
+    },
     [list.filters, update],
   );
 

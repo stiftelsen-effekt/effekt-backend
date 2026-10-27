@@ -1,3 +1,4 @@
+import { useOptionalUser } from "@/auth";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRightIcon, InboxIcon, UploadIcon } from "lucide-react";
@@ -17,11 +18,11 @@ import {
   queueSources,
   reviewStatuses,
   reasonText,
+  resolverName,
   sourceLabel,
   type ReviewItem,
 } from "@/features/review-queue/model";
 import { reviewStatus } from "@/lib/status";
-import { moneyDecimals } from "@/features/donations/form";
 import { useTRPC } from "@/lib/trpc";
 
 const reviewList = defineList({
@@ -51,7 +52,7 @@ const columns = col.columns([
   col.accessor("amount", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("source", {
     header: "Source",
@@ -246,9 +247,10 @@ function ReviewPeek({
   href: string;
   onClose: () => void;
 }) {
+  const user = useOptionalUser();
   return (
     <PeekPanel
-      title={<Money value={row.amount} decimals={moneyDecimals(row.amount)} />}
+      title={<Money value={row.amount} />}
       subtitle={`${sourceLabel(row.source)} · item #${row.id}`}
       href={href}
       onClose={onClose}
@@ -274,7 +276,7 @@ function ReviewPeek({
           </Property>
           {row.status !== "open" && (
             <Property label="Resolved">
-              {row.resolvedBy ?? "Unknown"}
+              {resolverName(row.resolvedBy, user)}
               {row.resolvedAt && (
                 <>
                   {" · "}
@@ -283,7 +285,7 @@ function ReviewPeek({
               )}
             </Property>
           )}
-          {row.note && <Property label="Note">{row.note}</Property>}
+          {row.status === "ignored" && row.note && <Property label="Note">{row.note}</Property>}
           {row.donationId != null && (
             <Property label="Donation">
               <Link

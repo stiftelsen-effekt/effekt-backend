@@ -143,11 +143,17 @@ function DonationsPage() {
 ### Finding
 
 - **⌘K** (also the sidebar search box): one box for records and commands. Providers decide from
-  the query what it could be (digits → donor id, donation id, KID; `agr_` → Vipps agreement; text
-  → name/email) and run in parallel. Add providers in `src/features/search/api-providers.ts`.
+  the query what it could be (digits → donor id, donation id, KID, review item; `agr_…` or
+  `VA_…` → Vipps agreement; text → donor name/email, review items by payer, message or
+  reference) and run in parallel. Add providers in `src/features/search/api-providers.ts`.
 - **`/`** focuses the list search. **Filters** are chips; each opens its own editor. The URL holds
   the whole view (`?amount=100..500&method=4,8&sort=-sum&page=2`), so sharing a view is copying
   the address. **Saved views** name a combination per list (per browser).
+- **History**: applying or removing a filter, sorting and paging are history entries, so Back
+  undoes them one at a time and never jumps out of the list. Refining a search that is already
+  applied, and quick repeated changes to one filter (dragging a range), replace the entry.
+- **Empty lists** (`ListEmpty`): without filters, "No charges yet" and why; with filters or a
+  search, "No results" and Clear all. Never "Nothing matches these filters" when none are set.
 
 ### List → detail
 
@@ -158,23 +164,26 @@ rows are selected.
 
 ### Editing, by risk
 
-| Risk           | Examples                                              | Pattern                                                                                                      |
-| -------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Low, one field | donor name, email, newsletter                         | `InlineEdit` / `Switch`; save on Enter/toggle; undo toast for toggles                                        |
-| Several fields | settings, tax unit, matching rule                     | form + `UnsavedChangesBar` (explicit save, leaving asks first)                                               |
-| Moves money    | donation amount/date/split, agreement amount          | form + `ConfirmDialog` showing before → after, amount in the button                                          |
-| Irreversible   | delete donation, merge donors, stop agreement, refund | `ConfirmDialog tone="danger"` with `consequences`; `confirmText` (type the id/amount) for merges and refunds |
+| Risk           | Examples                                              | Pattern                                                                                                                          |
+| -------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Low, one field | donor name, email, newsletter                         | `InlineEdit` / `Switch`; save on Enter/toggle; undo toast for toggles                                                            |
+| Several fields | settings, tax unit, matching rule                     | form + `UnsavedChangesBar` (explicit save, leaving asks first); in a dialog, closing with changes asks first (`useDiscardGuard`) |
+| Moves money    | donation amount/date/split, agreement amount          | form + `ConfirmDialog` showing before → after, amount in the button                                                              |
+| Irreversible   | delete donation, merge donors, stop agreement, refund | `ConfirmDialog tone="danger"` with `consequences`; `confirmText` (type the id/amount) for merges and refunds                     |
 
 ### Optimism, undo and feedback
 
 - Optimistic only for cheap, reversible, non-financial changes (newsletter, name, saved views,
   skipping a review item). Everything in a confirmation waits for the server and shows
   `pending` on the button.
-- Undo (`notify.undo`) only for actions done _without_ confirmation. Never both.
-- `notify.success` for things that happened (short, past tense). `notify.error(error)` for
+- Undo (`notify.undo`) only for actions done _without_ confirmation. Never both. Undoing is
+  confirmed with a plain success toast ("Change undone"), never with another Undo.
+- `notify.success` for things that happened (short, past tense), with at most one action to
+  what was just made ("Open donation" after registering). `notify.error(error)` for
   failures outside dialogs; inside a dialog, keep it open and show the error in it. Section load
-  failures use `ErrorState` in place with Try again. Persistent page-level messages use
-  `Callout`.
+  failures use `ErrorState` in place with Try again. A record that doesn't exist (deleted,
+  merged into another) can't come back on retry: `ErrorState` with `back` links to its list
+  instead. Persistent page-level messages use `Callout`.
 - Loading: skeletons on first load, a thin accent progress line on refetch (rows dim slightly),
   `pending` on buttons. Never a full-page spinner.
 
@@ -248,16 +257,16 @@ pass children, not config objects, wherever the structure varies.
 
 ### Primitives (`src/components/ui`)
 
-| Component                                                              | Use when                                                                                                                                         | Don't                                       |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
-| `Button`                                                               | Any action. `primary` once per view; `secondary` default; `ghost` in toolbars/rows; `danger` only to confirm irreversible actions; `link` inline | Use `danger` as a trigger; write “OK”       |
-| `Input`, `Textarea`, `Select`, `Combobox`, `DateRangePicker`           | Form values; always inside `Field`                                                                                                               | Build a custom control                      |
-| `Field`                                                                | Label + hint/error for any control (wires id/aria via context)                                                                                   | Put labels in placeholders                  |
-| `Checkbox` / `Switch` / `SegmentedControl` / `ChoiceCards`             | independent options / immediate settings / 2–4 modes / a choice that needs a sentence each                                                       | Use a Switch inside a form that saves later |
-| `Badge`                                                                | Category labels (agreement type, “Default”)                                                                                                      | Show lifecycle state (use `Status`)         |
-| `Tabs`                                                                 | Related records of one parent                                                                                                                    | Top-level navigation                        |
-| `Dialog`, `AlertDialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip` | Short focused task / via ConfirmDialog / navigation on narrow, peek / filter editors / secondary actions / icon-only buttons                     | Put long forms in dialogs                   |
-| `Kbd`                                                                  | Keys in UI copy                                                                                                                                  |                                             |
+| Component                                                                 | Use when                                                                                                                                         | Don't                                       |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| `Button`                                                                  | Any action. `primary` once per view; `secondary` default; `ghost` in toolbars/rows; `danger` only to confirm irreversible actions; `link` inline | Use `danger` as a trigger; write “OK”       |
+| `Input`, `Textarea`, `Select`, `Combobox`, `DateInput`, `DateRangePicker` | Form values; always inside `Field`                                                                                                               | Build a custom control                      |
+| `Field`                                                                   | Label + hint/error for any control (wires id/aria via context)                                                                                   | Put labels in placeholders                  |
+| `Checkbox` / `Switch` / `SegmentedControl` / `ChoiceCards`                | independent options / immediate settings / 2–4 modes / a choice that needs a sentence each                                                       | Use a Switch inside a form that saves later |
+| `Badge`                                                                   | Category labels (agreement type, “Default”)                                                                                                      | Show lifecycle state (use `Status`)         |
+| `Tabs`                                                                    | Related records of one parent                                                                                                                    | Top-level navigation                        |
+| `Dialog`, `AlertDialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip`    | Short focused task / via ConfirmDialog / navigation on narrow, peek / filter editors / secondary actions / icon-only buttons                     | Put long forms in dialogs                   |
+| `Kbd`                                                                     | Keys in UI copy                                                                                                                                  |                                             |
 
 ### Domain (`src/components/domain`)
 
@@ -280,6 +289,29 @@ pass children, not config objects, wherever the structure varies.
 The API sends amounts and aggregates as decimal strings. Pass them to `Money` / `formatMoney` as
 they are; for sums, averages, comparisons and sorting use `src/lib/money.ts` (exact, in øre).
 `moneyToNumber` is only for charts, histograms and ratios.
+
+### Money, numbers and dates
+
+One rule each, applied by the formatters, so pages never choose:
+
+- **Money**: whole kroner when the amount has no øre, two decimals when it has any:
+  `1 500 kr`, `1 234,50 kr`, `0,30 kr`, fee `0 kr`. A value is always shown the same way, on
+  every page; nothing is rounded to whole kroner for display (an average of 1 234,50 is not
+  "1 235 kr"). There is no `decimals` prop. A missing amount (no fee) is `–`, in tables,
+  peeks and detail pages alike.
+- **Money in inputs** (`formatMoneyInput` / `parseMoneyInput`): decimal comma, no grouping,
+  øre only when there are any: `1000`, `249,50`. Typing `1 000`, `1000.5` or `500 kr` is
+  accepted.
+- **Chart axes**: compact from 1 000 up (`7,5k`, `15k`, `1,2M`); tooltips use the money rule.
+- **Dates and times** are Oslo time (`Europe/Oslo`), whatever the browser's zone: `24.10.2026`,
+  `24.10.2026 14:05`. A day the API sends as `YYYY-MM-DD` is that day. Filters and forms hold
+  days as `YYYY-MM-DD` and send them to the API as they are; the API reads a plain date as the
+  whole Europe/Oslo day, inclusive, in every procedure. Never send a day as a UTC instant.
+  Helpers: `src/lib/dates.ts`. CSV exports write Oslo local time
+  (`2026-10-24 14:05:00`).
+- **Date entry** is `dd.mm.yyyy`, typed or picked: `DateInput` for one day,
+  `DateRangePicker` / the date filter for ranges (both take typed dates). No native
+  `<input type="date">`; its format follows the browser, not Norway.
 
 ### Data and filters
 
@@ -311,7 +343,14 @@ API has none).
   consequences as a list.
 - Errors: what went wrong in the person's terms, then what to do. Server validation messages are
   shown as written; generic failures map through `describeError`.
-- Empty states say why it's empty and offer the next step.
+- Empty states say why it's empty and offer the next step. An action that produced nothing
+  says so instead of succeeding silently (an empty report period downloads no file; an import
+  with no payments in it is a warning, not "Everything was handled").
+- Service messages written for developers ("Invalid ssn (failed fnr validation) …") are
+  rewritten in the person's terms before they're shown (`plainMessage`).
+- Payment methods are shown by their full name (`PaymentMethodName`), whichever form the API
+  sent. Tax ids: fødselsnummer masked (`010190 •••••`), organization numbers in full
+  (`maskSsn`). Truncated text has the whole value in its tooltip.
 - Numbers and dates are Norwegian (`1 234 kr`, `24.10.2026`, `nb-NO`); words follow the UI
   language (month names, “2 days ago”).
 - Shared copy lives in `src/lib/strings.ts` so a later translation swaps one module. No i18n

@@ -28,8 +28,9 @@ export function formatValue(value: number, format: ValueFormat) {
   return format === "money" ? formatMoney(value) : formatNumber(value);
 }
 
+/** Axis ticks: compact from 1 000 up ("7,5k", "15k", "1,2M") so one axis never mixes styles. */
 export function formatAxis(value: number) {
-  return Math.abs(value) >= 10_000 ? formatCompact(value) : formatNumber(value);
+  return formatCompact(value);
 }
 
 export const axisProps = {

@@ -160,6 +160,51 @@ const fixtures: Record<string, unknown> = {
     statistics: { numCharges: 2, sumCharges: "1000", avgCharge: "500" },
     pages: 1,
   },
+  "vipps.agreements.payments": {
+    KIDs: ["000951394512895"],
+    charges: [
+      {
+        chargeId: "chr_1",
+        amount: 500,
+        KID: "000951394512895",
+        dueDate: "2026-10-15",
+        status: "CHARGED",
+        type: "RECURRING",
+        created: "2026-10-10T08:00:00.000Z",
+        donationId: 17663,
+      },
+      {
+        chargeId: "chr_2",
+        amount: 500,
+        KID: "000951394512895",
+        dueDate: "2026-09-15",
+        status: "FAILED",
+        type: "RECURRING",
+        created: "2026-09-10T08:00:00.000Z",
+        donationId: null,
+      },
+    ],
+    donations: [
+      {
+        id: 17663,
+        sum: "500.00",
+        transactionCost: "15.95",
+        timestamp: "2026-10-15T06:00:00.000Z",
+        paymentMethod: "Vipps Recurring",
+        KID: "000951394512895",
+        chargeId: "chr_1",
+      },
+      {
+        id: 17001,
+        sum: "500.00",
+        transactionCost: "15.95",
+        timestamp: "2026-08-15T06:00:00.000Z",
+        paymentMethod: "Vipps",
+        KID: "000951394512895",
+        chargeId: null,
+      },
+    ],
+  },
   "vipps.charges.histogram": [
     { bucket: 0, items: 10, bar: 100 },
     { bucket: 500, items: 4, bar: 40 },
@@ -178,16 +223,19 @@ const fixtures: Record<string, unknown> = {
     donorId: 951,
     distribution: { ...split, kid: "000951394512895", donorId: 951, taxUnitId: null },
   },
-  "giro.avtalegiro.donations": [
-    {
-      id: 17662,
-      sum: "200.00",
-      transactionCost: "2.00",
-      timestamp: "2025-10-28T16:31:28.000Z",
-      paymentMethod: "AvtaleGiro",
-      KID: "000951394512895",
-    },
-  ],
+  "giro.avtalegiro.payments": {
+    KIDs: ["000951394512895"],
+    donations: [
+      {
+        id: 17662,
+        sum: "200.00",
+        transactionCost: "2.00",
+        timestamp: "2025-10-28T16:31:28.000Z",
+        paymentMethod: "AvtaleGiro",
+        KID: "000951394512895",
+      },
+    ],
+  },
   "giro.avtalegiro.expected": [
     {
       ID: 167,
@@ -199,6 +247,7 @@ const fixtures: Record<string, unknown> = {
       created: "2025-10-12T16:31:28.000Z",
       cancelled: null,
       amount: 200,
+      amountSource: "agreement",
     },
   ],
   "giro.avtalegiro.received": [],
@@ -274,7 +323,7 @@ for (const theme of ["light", "dark"] as Theme[]) {
     test("Vipps agreement page", async ({ page }) => {
       await open(page, "/agreements/vipps/agr_5kSeqz", theme);
       await expect(page.getByRole("heading", { name: "Vipps agreement" })).toBeVisible();
-      await expect(page.getByRole("table", { name: "Charges" })).toBeVisible();
+      await expect(page.getByRole("table", { name: "Payments" })).toBeVisible();
       await scan(page);
     });
 

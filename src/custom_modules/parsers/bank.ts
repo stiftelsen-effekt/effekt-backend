@@ -56,6 +56,49 @@ export const parseReport = (report) => {
   return transactions;
 };
 
+const REQUIRED_COLUMNS = Math.max(...Object.values(fieldMapping)) + 1;
+
+/**
+ * Checks that a file is the Norwegian bank account export parseReport expects (header plus rows
+ * of date DD.MM.YYYY, text, -, sum, -, reference, KID). Returns why it isn't, or null.
+ */
+export const validateReport = (report): string | null => {
+  const reportText = report.toString();
+  let data: string[][] | undefined;
+  // Like parseReport, semicolon first, then comma; keep the first with enough columns
+  for (const delimiter of [";", ","]) {
+    try {
+      const parsed: string[][] = parse(reportText, {
+        delimiter,
+        bom: true,
+        skip_empty_lines: true,
+      });
+      if (!data || (parsed[0]?.length ?? 0) > (data[0]?.length ?? 0)) data = parsed;
+      if ((data[0]?.length ?? 0) >= REQUIRED_COLUMNS) break;
+    } catch {
+      // try the next delimiter
+    }
+  }
+  if (!data) return "the file is not a CSV file";
+  if (data.length < 2) return "the file has no transactions";
+  if (data[0].length < REQUIRED_COLUMNS) {
+    return `expected at least ${REQUIRED_COLUMNS} columns, found ${data[0].length}`;
+  }
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const line = `row ${i + 1}`;
+    if (row.length < REQUIRED_COLUMNS) return `${line} has ${row.length} columns`;
+    if (!moment.utc(row[fieldMapping.date], "DD.MM.YYYY", true).isValid()) {
+      return `${line} has no date in the first column (DD.MM.YYYY)`;
+    }
+    const amount = Number(row[fieldMapping.sum].replace(/\./g, "").replace(/\,/g, "."));
+    if (row[fieldMapping.sum].trim() === "" || !Number.isFinite(amount)) {
+      return `${line} has no amount in the fourth column`;
+    }
+  }
+  return null;
+};
+
 /**
  * Parses a row from the
  * @param {Array<string>} row
@@ -75,4 +118,5 @@ const parseRow = (row: Array<string>) => {
 module.exports = {
   parseReport,
   parseRow,
+  validateReport,
 };

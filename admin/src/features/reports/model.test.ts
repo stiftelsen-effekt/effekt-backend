@@ -40,9 +40,9 @@ describe("transaction report", () => {
       "donationId,time,donorId,donorName,sum,paymentMethod,transactionCost,organizationId,organization,percentage,amount",
     );
     expect(csv[1]).toBe(
-      '7,2026-10-01T10:00:00.000Z,3,"Kari, Nordmann",100.10,Vipps,1.75,1,AMF,60,60.06',
+      '7,2026-10-01 12:00:00,3,"Kari, Nordmann",100.10,Vipps,1.75,1,AMF,60,60.06',
     );
-    expect(csv[3]).toBe('8,2026-10-01T10:00:00.000Z,3,"Kari, Nordmann",100.10,Vipps,1.75,,,,');
+    expect(csv[3]).toBe('8,2026-10-01 12:00:00,3,"Kari, Nordmann",100.10,Vipps,1.75,,,,');
   });
 
   it("keeps spreadsheet formulas in names as text, but not negative amounts", () => {

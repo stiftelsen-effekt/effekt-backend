@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { visiblePaymentMethods } from "./api";
-import {
-  endOfLocalDay,
-  histogramBins,
-  startOfLocalDay,
-  toDistributionFilter,
-  toDonationFilter,
-} from "./list";
+import { histogramBins, toDistributionFilter, toDonationFilter } from "./list";
 
 describe("toDonationFilter", () => {
   it("is undefined without filters", () => {
@@ -27,7 +21,7 @@ describe("toDonationFilter", () => {
         owner: [3],
       }),
     ).toEqual({
-      donor: "kari",
+      query: "kari",
       sum: { from: 100, to: 500 },
       paymentMethodIDs: [2, 4],
       id: "123",
@@ -39,15 +33,12 @@ describe("toDonationFilter", () => {
     });
   });
 
-  it("makes date ranges inclusive local days", () => {
+  it("sends date ranges as plain Oslo days", () => {
     const filter = toDonationFilter({ date: { from: "2026-01-01", to: "2026-01-31" } });
     expect(filter?.date).toEqual({
-      from: startOfLocalDay("2026-01-01"),
-      to: endOfLocalDay("2026-01-31"),
+      from: "2026-01-01",
+      to: "2026-01-31",
     });
-    const to = new Date(filter!.date!.to!);
-    expect([to.getDate(), to.getHours(), to.getMinutes()]).toEqual([31, 23, 59]);
-    expect(new Date(filter!.date!.from!).getHours()).toBe(0);
     expect(
       toDonationFilter({ date: { from: undefined, to: "2026-01-31" } })?.date?.from,
     ).toBeUndefined();
@@ -57,7 +48,7 @@ describe("toDonationFilter", () => {
 describe("toDistributionFilter", () => {
   it("maps search to donor and the KID chip to KID", () => {
     expect(toDistributionFilter({})).toBeUndefined();
-    expect(toDistributionFilter({ q: "ola", kid: "123" })).toEqual({ donor: "ola", KID: "123" });
+    expect(toDistributionFilter({ q: "ola", kid: "123" })).toEqual({ query: "ola", KID: "123" });
   });
 });
 
@@ -78,7 +69,7 @@ describe("histogramBins", () => {
 
   it("folds the rare tail into the last bin", () => {
     const bins = histogramBins([
-      { bucket: 0, bucketEnd: 500, items: 990, bar: 1 },
+      { bucket: 0, bucketEnd: 5000, items: 990, bar: 1 },
       { bucket: 5000, bucketEnd: 10000, items: 8, bar: 1 },
       { bucket: 10000, bucketEnd: 15000, items: 1, bar: 1 },
       { bucket: 100000, bucketEnd: 105000, items: 1, bar: 1 },

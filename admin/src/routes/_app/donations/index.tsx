@@ -16,6 +16,7 @@ import {
   SavedViews,
   TextFilter,
   useListState,
+  ListEmpty,
 } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { downloadCsv, visiblePaymentMethods } from "@/features/donations/api";
-import { moneyDecimals } from "@/features/donations/form";
 import { ResendReceiptDialog } from "@/features/donations/resend-receipt";
 import {
   donationsList,
@@ -35,6 +35,7 @@ import {
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
 import { useTRPC, type RouterOutputs } from "@/lib/trpc";
+import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
 export const Route = createFileRoute("/_app/donations/")({
   validateSearch: donationsList.validateSearch,
@@ -57,16 +58,19 @@ const columns = col.columns([
     header: "Donor",
     meta: { cellClassName: "font-semibold max-w-56 truncate" },
   }),
-  col.accessor("paymentMethod", { header: "Method" }),
+  col.accessor("paymentMethod", {
+    header: "Method",
+    cell: ({ getValue }) => <PaymentMethodName value={getValue()} />,
+  }),
   col.accessor("sum", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("transactionCost", {
     header: "Fee",
     meta: { numeric: true, cellClassName: "text-muted-foreground" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={2} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("kid", {
     header: "KID",
@@ -99,7 +103,12 @@ function DonationsPage() {
     placeholderData: keepPreviousData,
   });
 
-  const histogram = useQuery({ ...trpc.donations.histogram.queryOptions(), staleTime: 300_000 });
+  // Log-scale buckets: most donations are small, so fixed 5 000 kr buckets put nearly all of
+  // them in the first bar.
+  const histogram = useQuery({
+    ...trpc.donations.histogram.queryOptions({ scale: "log", buckets: 24 }),
+    staleTime: 300_000,
+  });
   const methods = useQuery({
     ...trpc.config.paymentMethods.list.queryOptions(),
     staleTime: 300_000,
@@ -156,7 +165,7 @@ function DonationsPage() {
       filters={
         <FilterBar
           list={list}
-          searchPlaceholder="Donor name or email"
+          searchPlaceholder="Donor, KID or donation ID"
           end={<SavedViews list={list} />}
         >
           <DateRangeFilter field="date" label="Date" />
@@ -209,6 +218,13 @@ function DonationsPage() {
           peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/donations/${row.id}`}
           pageHotkeys
+          empty={
+            <ListEmpty
+              list={list}
+              noun="donations"
+              hint="Donations appear when payments are imported or registered."
+            />
+          }
           summary={
             stats && (
               <TableSummary
@@ -216,12 +232,7 @@ function DonationsPage() {
                   { value: <Num value={stats.numDonations} />, suffix: "donations" },
                   {
                     label: "Sum",
-                    value: (
-                      <Money
-                        value={stats.sumDonations}
-                        decimals={moneyDecimals(stats.sumDonations)}
-                      />
-                    ),
+                    value: <Money value={stats.sumDonations} />,
                   },
                   { label: "Average", value: <Money value={stats.avgDonation} /> },
                 ]}
@@ -243,7 +254,7 @@ function DonationPeek({ id, onClose }: { id: number; onClose: () => void }) {
 
   return (
     <PeekPanel
-      title={d ? <Money value={d.sum} decimals={moneyDecimals(d.sum)} /> : `Donation #${id}`}
+      title={d ? <Money value={d.sum} /> : `Donation #${id}`}
       subtitle={d ? `Donation #${d.id} · ${d.donor}` : undefined}
       href={`/donations/${id}`}
       onClose={onClose}
@@ -262,8 +273,8 @@ function DonationPeek({ id, onClose }: { id: number; onClose: () => void }) {
           <PropertyList labelWidth="7rem">
             <Property label="Donor">
               <Link
-                to="/$"
-                params={{ _splat: `donors/${d.donorId}` }}
+                to="/donors/$id"
+                params={{ id: String(d.donorId) }}
                 className="font-semibold text-accent hover:underline"
               >
                 {d.donor}
@@ -273,9 +284,11 @@ function DonationPeek({ id, onClose }: { id: number; onClose: () => void }) {
             <Property label="Date">
               <DateTime value={d.timestamp} format="datetime" />
             </Property>
-            <Property label="Method">{d.paymentMethod}</Property>
+            <Property label="Method">
+              <PaymentMethodName value={d.paymentMethod} />
+            </Property>
             <Property label="Fee">
-              {d.transactionCost != null && <Money value={d.transactionCost} decimals={2} />}
+              <Money value={d.transactionCost} />
             </Property>
             <Property label="KID">
               <Link

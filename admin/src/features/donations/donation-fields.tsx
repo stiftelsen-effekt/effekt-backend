@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { DateInput } from "@/components/ui/date-input";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -93,12 +94,7 @@ export function DonationFields({
       )}
       <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-2">
         <Field label="Payment date" error={errors.timestamp} required>
-          <Input
-            type="date"
-            value={values.date}
-            className="num"
-            onChange={(event) => onChange("date", event.target.value)}
-          />
+          <DateInput value={values.date} onValueChange={(value) => onChange("date", value)} />
         </Field>
         <Field label="Time">
           <Input

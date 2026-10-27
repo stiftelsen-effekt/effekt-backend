@@ -3,6 +3,7 @@ import { ArchiveIcon, PencilIcon, PlusIcon, ReceiptTextIcon } from "lucide-react
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Callout } from "@/components/domain/callout";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
+import { useDiscardGuard } from "@/components/domain/unsaved-changes";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
@@ -236,13 +237,18 @@ function TaxUnitDialog({
   const invalidate = useInvalidateTaxUnits(donorId);
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState({ name: "", ssn: "" });
+  const [initial, setInitial] = useState({ name: "", ssn: "" });
   const [errors, setErrors] = useState<FormErrors<TaxUnitFields>>({ fields: {} });
+  const dirty = values.name !== initial.name || values.ssn !== initial.ssn;
+  const guard = useDiscardGuard(dirty, () => setOpen(false));
 
   const options = {
-    onSuccess: async () => {
-      await invalidate();
+    // Confirm before refetching: adding the first unit swaps the empty state (and this
+    // dialog with it) for the list, which would unmount the dialog before the toast.
+    onSuccess: () => {
       notify.success(unit ? "Tax unit updated" : "Tax unit added", values.name.trim());
       setOpen(false);
+      return invalidate();
     },
     onError: (error: unknown) => setErrors(toFormErrors(error, { ssn: ssnMessage })),
   };
@@ -252,11 +258,12 @@ function TaxUnitDialog({
 
   function onOpenChange(next: boolean) {
     if (pending) return;
-    setOpen(next);
-    if (next) {
-      setValues({ name: unit?.name ?? defaultName, ssn: unit?.ssn ?? "" });
-      setErrors({ fields: {} });
-    }
+    if (!next) return guard.requestClose();
+    const start = { name: unit?.name ?? defaultName, ssn: unit?.ssn ?? "" };
+    setValues(start);
+    setInitial(start);
+    setErrors({ fields: {} });
+    setOpen(true);
   }
 
   function submit(event: FormEvent) {
@@ -323,6 +330,7 @@ function TaxUnitDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {guard.dialog}
     </Dialog>
   );
 }

@@ -1,7 +1,7 @@
 import { TRPCClientError } from "@trpc/client";
 import { describe, expect, it } from "vitest";
 import { fundraisersList, toFundraiserFilter } from "@/features/fundraisers/model";
-import { toFormErrors, ssnMessage, emailMessage } from "./form-errors";
+import { emailMessage, plainMessage, ssnMessage, toFormErrors } from "./form-errors";
 import {
   donorAgreements,
   donorTotals,
@@ -20,11 +20,11 @@ const decode = <F extends Record<string, { decode: (raw: unknown) => unknown }>>
   Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, filters[key]!.decode(value)]));
 
 describe("searchToFilter", () => {
-  it("reads digits as a donor id, @ as email, the rest as a name", () => {
+  it("reads digits as a donor id, the rest as part of a name or email", () => {
     expect(searchToFilter(" 1387 ")).toEqual({ donorId: 1387 });
-    expect(searchToFilter("kari@")).toEqual({ email: "kari@" });
-    expect(searchToFilter("gmail.com")).toEqual({ email: "gmail.com" });
-    expect(searchToFilter("Kari Nord")).toEqual({ name: "Kari Nord" });
+    expect(searchToFilter("kari@")).toEqual({ nameOrEmail: "kari@" });
+    expect(searchToFilter("gmail.com")).toEqual({ nameOrEmail: "gmail.com" });
+    expect(searchToFilter("Kari Nord")).toEqual({ nameOrEmail: "Kari Nord" });
     expect(searchToFilter("  ")).toEqual({});
     expect(searchToFilter(undefined)).toEqual({});
   });
@@ -49,7 +49,7 @@ describe("toDonorFilter", () => {
       referral: "4",
     });
     expect(toDonorFilter(filters)).toEqual({
-      name: "olsen",
+      nameOrEmail: "olsen",
       registered: { from: "2024-01-01", to: "2024-12-31" },
       donationsDateRange: { from: "2025-01-01", to: undefined },
       donationsSum: { from: 1000, to: 5000 },
@@ -217,11 +217,11 @@ describe("toFormErrors", () => {
   it("puts service messages on the field they're about", () => {
     const ssn = trpcError("Invalid ssn (failed fnr validation) checksum", { code: "BAD_REQUEST" });
     expect(toFormErrors(ssn, { ssn: ssnMessage, email: emailMessage }).fields).toEqual({
-      ssn: "Invalid ssn (failed fnr validation) checksum",
+      ssn: plainMessage("Invalid ssn (failed fnr validation) checksum"),
     });
     const email = trpcError("Email already exists", { code: "CONFLICT" });
     expect(toFormErrors(email, { ssn: ssnMessage, email: emailMessage }).fields).toEqual({
-      email: "Email already exists",
+      email: "A donor with this email already exists.",
     });
   });
 

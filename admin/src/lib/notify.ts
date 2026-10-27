@@ -11,18 +11,25 @@ import { toast } from "sonner";
 import { describeError } from "@/components/domain/error-state";
 import { strings } from "./strings";
 
+export type NotifyAction = { label: string; onClick: () => void };
+
 export const notify = {
-  success(title: string, description?: string) {
-    return toast.success(title, { description });
+  /** With `action`, a link-like button to what was just made ("Open donation"). */
+  success(title: string, description?: string, action?: NotifyAction) {
+    return toast.success(title, { description, action, duration: action ? 8000 : undefined });
   },
   info(title: string, description?: string) {
     return toast.info(title, { description });
   },
-  error(error: unknown, title?: string) {
+  /** With `action`, a way to the thing the error is about ("Open donor #12"). */
+  error(error: unknown, title?: string, action?: NotifyAction) {
     const info = describeError(error);
-    return toast.error(title ?? info.title, { description: info.hint, duration: 8000 });
+    return toast.error(title ?? info.title, { description: info.hint, duration: 8000, action });
   },
-  /** For cheap-to-reverse actions done without a confirmation (skip, archive, hide). */
+  /**
+   * For cheap-to-reverse actions done without a confirmation (skip, archive, hide). The undo
+   * itself is confirmed with `success`, never with another undo.
+   */
   undo(title: string, onUndo: () => void, description?: string) {
     return toast(title, {
       description,

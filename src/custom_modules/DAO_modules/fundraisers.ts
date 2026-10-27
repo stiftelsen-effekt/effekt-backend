@@ -1,9 +1,12 @@
 import { Donors, Fundraisers, Organizations } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
 import * as crypto from "crypto";
+import { instantRangeClauses, type InstantRange } from "../osloDays";
 
 type FundraiserListFilter = {
   registrationDate?: { from?: Date; to?: Date };
+  /** Half-open instant range of Fundraisers.Inserted (osloDays.ts), used by tRPC */
+  registrationRange?: InstantRange;
   fundraiserId?: Fundraisers["ID"];
   donor?: string;
   donationCount?: { from?: number; to?: number };
@@ -311,6 +314,7 @@ export const fundraisers = {
         parameters.push(toDate);
       }
     }
+    whereConditions.push(...instantRangeClauses("f.Inserted", filter?.registrationRange, "db"));
     if (filter?.donor) {
       whereConditions.push(`d.full_name LIKE ?`);
       parameters.push(`%${filter.donor}%`);

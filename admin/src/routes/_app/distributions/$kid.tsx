@@ -12,9 +12,9 @@ import { DetailPage, DetailPanel, PageSection } from "@/components/templates";
 import { Skeleton } from "@/components/ui/skeleton";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
-import { moneyDecimals } from "@/features/donations/form";
 import { sumMoney } from "@/lib/money";
 import { useTRPC, type RouterOutputs } from "@/lib/trpc";
+import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
 export const Route = createFileRoute("/_app/distributions/$kid")({
   component: DistributionPage,
@@ -32,16 +32,19 @@ const columns = col.columns([
     header: "Date",
     cell: ({ getValue }) => <DateTime value={getValue()} format="datetime" />,
   }),
-  col.accessor("paymentMethod", { header: "Method" }),
+  col.accessor("paymentMethod", {
+    header: "Method",
+    cell: ({ getValue }) => <PaymentMethodName value={getValue()} />,
+  }),
   col.accessor("sum", {
     header: "Amount",
     meta: { numeric: true, cellClassName: "font-semibold" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={moneyDecimals(getValue())} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("transactionCost", {
     header: "Fee",
     meta: { numeric: true, cellClassName: "text-muted-foreground" },
-    cell: ({ getValue }) => <Money value={getValue()} decimals={2} />,
+    cell: ({ getValue }) => <Money value={getValue()} />,
   }),
 ]);
 
@@ -62,7 +65,11 @@ function DistributionPage() {
   if (distribution.isError) {
     return (
       <DetailPage breadcrumbs={breadcrumbs} title={title}>
-        <ErrorState error={distribution.error} onRetry={() => void distribution.refetch()} />
+        <ErrorState
+          back={{ to: "/distributions", label: "All distributions" }}
+          error={distribution.error}
+          onRetry={() => void distribution.refetch()}
+        />
       </DetailPage>
     );
   }
@@ -100,8 +107,8 @@ function DistributionPage() {
         <CopyValue key="kid" value={kid} label="KID" />,
         <Link
           key="donor"
-          to="/$"
-          params={{ _splat: `donors/${d.donorId}` }}
+          to="/donors/$id"
+          params={{ id: String(d.donorId) }}
           className="text-accent hover:underline"
         >
           {donorName}
@@ -112,7 +119,7 @@ function DistributionPage() {
         donations.data && (
           <StatGroup>
             <Stat label="Donations" value={<Num value={rows.length} />} />
-            <Stat label="Total" value={<Money value={total} decimals={moneyDecimals(total)} />} />
+            <Stat label="Total" value={<Money value={total} />} />
             <Stat
               label="Latest donation"
               value={latest ? <DateTime value={latest} /> : "None yet"}
@@ -140,8 +147,8 @@ function DistributionPage() {
             <PropertyList labelWidth="6.5rem">
               <Property label="Name">
                 <Link
-                  to="/$"
-                  params={{ _splat: `donors/${d.donorId}` }}
+                  to="/donors/$id"
+                  params={{ id: String(d.donorId) }}
                   className="font-semibold text-accent hover:underline"
                 >
                   {donorName}
