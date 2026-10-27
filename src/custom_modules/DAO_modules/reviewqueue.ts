@@ -359,13 +359,14 @@ async function ignore(id: number, resolvedBy: string, note: string | null): Prom
 }
 
 /**
- * Reopens an ignored item, or a registered one whose donation has since been deleted. Returns
- * false otherwise (open items, and registered items whose donation still exists).
+ * Reopens an ignored item, or a registered one whose donation has since been deleted, clearing
+ * who resolved it and the ignore note. Returns false otherwise (open items, and registered
+ * items whose donation still exists).
  */
 async function reopen(id: number): Promise<boolean> {
   const [result] = await DAO.query<ResultSetHeader>(
     `UPDATE Review_queue_items
-     SET Status = 'open', Resolved_by = NULL, Resolved_at = NULL
+     SET Status = 'open', Resolved_by = NULL, Resolved_at = NULL, Note = NULL
      WHERE ID = ? AND (Status = 'ignored' OR (Status = 'registered' AND Donation_ID IS NULL))`,
     [id],
   );

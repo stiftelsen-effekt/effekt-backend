@@ -391,6 +391,14 @@ describe("tRPC reports.reviewQueue", () => {
       expect(reopen.calledOnceWith(5)).to.be.true;
     });
 
+    it("clears the resolver and the ignore note when reopening", async () => {
+      const query = sinon.stub(DAO, "query").resolves([{ affectedRows: 1 }, []] as any);
+      expect(await DAO.reviewqueue.reopen(5)).to.equal(true);
+      expect(query.firstCall.args[0]).to.contain(
+        "SET Status = 'open', Resolved_by = NULL, Resolved_at = NULL, Note = NULL",
+      );
+    });
+
     it("refuses to reopen open items and items whose donation exists", async () => {
       sinon.stub(DAO.reviewqueue, "reopen").resolves(false);
       const getById = sinon.stub(DAO.reviewqueue, "getById");
