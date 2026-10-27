@@ -2,8 +2,8 @@
 # Names shared by the preview scripts (provision, teardown, workflow helpers).
 # Sourced, not executed. Every resource the preview pipeline owns is named here.
 
-PREVIEW_PROJECT="${PREVIEW_PROJECT:-hidden-display-243419}"
-PREVIEW_PROJECT_NUMBER="${PREVIEW_PROJECT_NUMBER:-1073854556440}"
+PREVIEW_PROJECT="${PREVIEW_PROJECT:-effekt-previews}"
+PREVIEW_PROJECT_NUMBER="${PREVIEW_PROJECT_NUMBER:-565259612547}"
 PREVIEW_REGION="${PREVIEW_REGION:-europe-north1}"
 PREVIEW_GITHUB_REPO="${PREVIEW_GITHUB_REPO:-stiftelsen-effekt/effekt-backend}"
 PREVIEW_GITHUB_REPO_ID="${PREVIEW_GITHUB_REPO_ID:-86714950}"
@@ -12,7 +12,7 @@ PREVIEW_DEFAULT_BRANCH="${PREVIEW_DEFAULT_BRANCH:-master}"
 
 # Cloud SQL
 PREVIEW_SQL_INSTANCE="effekt-previews"
-PREVIEW_SQL_TIER="${PREVIEW_SQL_TIER:-db-g1-small}"
+PREVIEW_SQL_TIER="${PREVIEW_SQL_TIER:-db-f1-micro}"
 PREVIEW_SQL_USER="preview"
 PREVIEW_SQL_CONNECTION="${PREVIEW_PROJECT}:${PREVIEW_REGION}:${PREVIEW_SQL_INSTANCE}"
 PREVIEW_DB_PASSWORD_SECRET="effekt-preview-db-password"

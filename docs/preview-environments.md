@@ -1,5 +1,8 @@
 # Preview environments
 
+All preview infrastructure lives in its own GCP project, `effekt-previews`, so nothing the pipeline
+can do reaches production (`hidden-display-243419`).
+
 Every pull request gets its own running copy of the API and the new admin, filled with
 synthetic data, at a link posted on the PR. Testers open the link, pick who they are and try
 the change. Nobody logs in, and nothing in a preview can reach a real person, bank or payment
@@ -197,7 +200,7 @@ federation) if it's off.
 
 | Resource                     | Name                                                                                                                                                      | Notes                                                                                             |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Cloud SQL instance           | `effekt-previews`                                                                                                                                         | MySQL 8.4, Enterprise, `db-g1-small`, 10 GB SSD, zonal, no backups/binlog, no authorised networks |
+| Cloud SQL instance           | `effekt-previews`                                                                                                                                         | MySQL 8.4, Enterprise, `db-f1-micro`, 10 GB SSD, zonal, no backups/binlog, no authorised networks |
 | Cloud SQL user               | `preview`                                                                                                                                                 | password generated, stored only in the secret below                                               |
 | Secret                       | `effekt-preview-db-password`                                                                                                                              |                                                                                                   |
 | Artifact Registry repository | `effekt-previews` (docker, europe-north1)                                                                                                                 | cleanup policy: untagged after 1 day, everything after 30 days                                    |
@@ -221,15 +224,15 @@ Service settings: ingress all, no invoker IAM check (public), min 0 / max 2 inst
 Rough monthly estimate at list prices for europe-north1, with up to 5 previews used a few
 hours a week:
 
-| Item                                | Estimate     | Notes                                                                                                                                |
-| ----------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Cloud SQL `db-g1-small` + 10 GB SSD | ≈ $28–30     | Runs all the time (Cloud SQL doesn't scale to zero). `db-f1-micro` (`PREVIEW_SQL_TIER=db-f1-micro provision.sh`) is ≈ $10 but tight. |
-| Cloud Run services (min 0)          | ≈ $0–10      | Billed only while handling requests; ~100 active hours a month ≈ $9 before the free tier                                             |
-| Seed job runs                       | < $1         | ~1 minute per push                                                                                                                   |
-| Artifact Registry                   | ≈ $1–3       | ~0.7 GB compressed per image; per-PR deletion + 30-day cleanup                                                                       |
-| Secret Manager, WIF, GitHub Actions | ≈ $0         | Actions minutes are free on public repositories                                                                                      |
-| Claude (`@claude`)                  | per use      | API usage on the `ANTHROPIC_API_KEY` account, typically cents to a few dollars per request                                           |
-| **Total**                           | **≈ $30–45** | ≈ $15–25 with `db-f1-micro`                                                                                                          |
+| Item                                | Estimate     | Notes                                                                                                                                                                               |
+| ----------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cloud SQL `db-f1-micro` + 10 GB SSD | ≈ $10–12     | Runs all the time (Cloud SQL doesn't scale to zero). Shared vCPU; if seeding or regranting gets slow with several previews, `PREVIEW_SQL_TIER=db-g1-small provision.sh` (≈ $28–30). |
+| Cloud Run services (min 0)          | ≈ $0–10      | Billed only while handling requests; ~100 active hours a month ≈ $9 before the free tier                                                                                            |
+| Seed job runs                       | < $1         | ~1 minute per push                                                                                                                                                                  |
+| Artifact Registry                   | ≈ $1–3       | ~0.7 GB compressed per image; per-PR deletion + 30-day cleanup                                                                                                                      |
+| Secret Manager, WIF, GitHub Actions | ≈ $0         | Actions minutes are free on public repositories                                                                                                                                     |
+| Claude (`@claude`)                  | per use      | API usage on the `ANTHROPIC_API_KEY` account, typically cents to a few dollars per request                                                                                          |
+| **Total**                           | **≈ $30–45** | ≈ $15–25 with `db-f1-micro`                                                                                                                                                         |
 
 Possible later savings: stop the instance (activation policy `NEVER`) when no preview exists,
 and a slimmer base image.
@@ -249,7 +252,7 @@ and a slimmer base image.
 ## Later: custom domain
 
 Today previews live on `run.app` URLs
-(`https://effekt-preview-pr-<n>-1073854556440.europe-north1.run.app`). For
+(`https://effekt-preview-pr-<n>-565259612547.europe-north1.run.app`). For
 `https://effekt-preview-pr-<n>.preview.gieffektivt.no`:
 
 1. **Certificate Manager:** a wildcard certificate for `*.preview.gieffektivt.no` with DNS
