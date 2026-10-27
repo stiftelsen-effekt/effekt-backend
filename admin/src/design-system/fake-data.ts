@@ -492,6 +492,7 @@ const reviewItem = (
   id,
   source,
   reason,
+  metaOwnerId: null,
   ...fields,
   importLogId: 4920,
   status: "open",
