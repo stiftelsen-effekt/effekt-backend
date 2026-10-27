@@ -70,7 +70,7 @@ export function validatePayment(v: PaymentForm, amountNok: string) {
         : !isNok && foreign === null
         ? `Enter the amount paid in ${currency || "the currency"}`
         : converted && !converted.ok
-        ? `${foreign} ${currency} at ${rate} is ${formatMoney(
+        ? `${foreign?.replace(".", ",")} ${currency} at ${rate?.replace(".", ",")} is ${formatMoney(
             converted.nok,
           )}, but the transfer is ${formatMoney(amountNok)} (more than ${formatMoney(
             converted.allowed,
