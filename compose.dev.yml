@@ -5,6 +5,7 @@
 #   pnpm -s dev:token     print an admin access token (see scripts/dev-token.sh)
 #   pnpm dev:env:down     stop (keeps the database volume)
 #   pnpm dev:env:reset    wipe the database volume, re-migrate and re-seed
+#   pnpm dev:data:topup   bring generated data up to today (also done by every `up`)
 #
 # Host ports can be overridden: DEV_DB_PORT (3307), DEV_AUTH_PORT (8090), DEV_API_PORT (5050).
 # Independent of docker-compose.yml (the plain-MySQL setup described further down in the README).
@@ -129,8 +130,9 @@ services:
 
   migrate:
     <<: *backend
-    # Applies migrations, then loads prisma/fakedata/json (prisma/seed.ts) if the DB has no donors yet.
-    # It does NOT run `pnpm generate-test-data`, which rewrites the committed JSON files.
+    # Applies migrations. An empty DB gets generated fake data ending today (prisma/seed.ts ->
+    # prisma/devdata); a DB seeded earlier is topped up with the days since (prisma/devdata/topup.ts),
+    # keeping records created by hand. A failed top-up only prints a warning.
     command:
       - sh
       - -c
@@ -138,7 +140,7 @@ services:
         set -e
         pnpm exec prisma migrate deploy
         if node -e "new (require('@prisma/client').PrismaClient)().donors.count().then(n => process.exit(n > 0 ? 0 : 1), () => process.exit(1))"; then
-          echo "Database already seeded, skipping seed"
+          pnpm exec ts-node prisma/devdata/topup.ts || echo "Warning: dev data top-up failed; the database is unchanged"
         else
           pnpm exec prisma db seed
           pnpm exec prisma db execute --schema prisma/schema.prisma --file prisma/dev/fulltext-search.sql
