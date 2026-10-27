@@ -106,7 +106,7 @@ export const parseSwedishDonationsReport = (report): ExtractedDonor[] => {
       }) as SwedishDonationsReportRow[];
     } catch (ex) {
       console.error("Using semicolon delimiter failed.");
-      console.error("Parsing adoveo transactions failed.");
+      console.error("Parsing Swedish donations report failed.");
       throw new Error(ex);
     }
   }

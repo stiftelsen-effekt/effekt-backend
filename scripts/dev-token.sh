@@ -4,8 +4,8 @@
 #   scripts/dev-token.sh               admin token (all permissions)
 #   scripts/dev-token.sh --donor 27    donor token for donor 27 (non-admin, user-id claim = 27)
 #
-#   curl -H "Authorization: Bearer $(npm run -s dev:token)" localhost:5050/...
-#   npm run -s dev:token -- --donor 27
+#   curl -H "Authorization: Bearer $(pnpm -s dev:token)" localhost:5050/...
+#   pnpm -s dev:token -- --donor 27
 #
 # The API discovers the issuer as http://auth:8080/effekt (inside docker), and the mock server
 # derives `iss` from the Host header, so requests from the host send "Host: auth:8080".
@@ -53,7 +53,7 @@ extract_token() {
 }
 
 if ! curl -sf -o /dev/null "$AUTH_URL/.well-known/openid-configuration"; then
-  echo "Local issuer not reachable at $AUTH_URL. Run: npm run dev:env:up" >&2
+  echo "Local issuer not reachable at $AUTH_URL. Run: pnpm dev:env:up" >&2
   exit 1
 fi
 

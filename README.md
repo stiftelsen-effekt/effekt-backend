@@ -9,24 +9,24 @@ The API is also responsible for handling payment processing.
 One command runs the API with a seeded MySQL and a local OIDC issuer in Docker. Nothing touches Auth0 or any staging/production resource, and all third-party integrations are blank ([`.env.docker`](.env.docker)). Requires Docker.
 
 ```bash
-npm run dev:env:up       # build + start db, auth, migrate+seed, api; waits until healthy
-npm run -s dev:token     # admin access token (all permissions)
-npm run -s dev:token -- --donor 27   # non-admin token for donor 27
-npm run dev:env:logs     # follow API logs
-npm run dev:env:down     # stop (keeps the database)
-npm run dev:env:reset    # wipe the database, re-migrate and re-seed
+pnpm dev:env:up       # build + start db, auth, migrate+seed, api; waits until healthy
+pnpm -s dev:token     # admin access token (all permissions)
+pnpm -s dev:token -- --donor 27   # non-admin token for donor 27
+pnpm dev:env:logs     # follow API logs
+pnpm dev:env:down     # stop (keeps the database)
+pnpm dev:env:reset    # wipe the database, re-migrate and re-seed
 ```
 
 ```bash
 curl localhost:5050/causeareas/active
-curl -X POST localhost:5050/donors/list/ -H "Authorization: Bearer $(npm run -s dev:token)" \
+curl -X POST localhost:5050/donors/list/ -H "Authorization: Bearer $(pnpm -s dev:token)" \
   -H 'content-type: application/json' -d '{"page":0,"limit":5,"filter":null}'
 ```
 
 - API on `localhost:5050` (nodemon; edits under `src/` reload). MySQL on `localhost:3307` (`root` / `effekt-local`, database `EffektDonasjonDB_Local`). Issuer on `localhost:8090/effekt`. Override ports with `DEV_API_PORT`, `DEV_DB_PORT`, `DEV_AUTH_PORT`.
 - The seed loads the committed fake data in `prisma/fakedata/json` once (skipped if donors exist).
 - Token claims are configured in [`compose.dev.yml`](compose.dev.yml) (`auth` service). The issuer is taken from the `Host` header, so tokens must be requested with `Host: auth:8080`; [`scripts/dev-token.sh`](scripts/dev-token.sh) does this.
-- Changes to `package.json` or `prisma/schema.prisma` need a rebuild: run `npm run dev:env:up` again.
+- Changes to `package.json` or `prisma/schema.prisma` need a rebuild: run `pnpm dev:env:up` again.
 
 ---
 
@@ -119,7 +119,7 @@ The other configuration variables are only needed to run specific parts of the c
 
 ### Install packages
 
-The api uses [node.js](https://nodejs.org/en/) and npm is the package manager. Go to the root folder of the cloned repository, and install the requisite packages with the command:
+The api uses [node.js](https://nodejs.org/en/) and [pnpm](https://pnpm.io/) is the package manager (`corepack enable` picks the pinned version). The repo is a pnpm workspace: the backend at the root and the admin in `admin/`. Packages are hard-linked from pnpm's global store, so extra worktrees cost almost no disk. Go to the root folder of the cloned repository, and install the requisite packages with the command:
 
 ```sh
 npm install
@@ -148,7 +148,7 @@ docker compose up -d # Sets up MySQL and the database: EffektDonasjonDB_Local
 then:
 
 ```sh
-npx prisma migrate reset # Migrates schemas and tables to the database and seeds test-data
+pnpm exec prisma migrate reset # Migrates schemas and tables to the database and seeds test-data
 ```
 
 Read on if you are unfamiliar with these commands.
@@ -251,7 +251,7 @@ mysql -h 127.0.0.1 -uroot -peffekt EffektDonasjonDB_Local -e 'SHOW DATABASES;'
 The schema is defined by prisma in [prisma/schema.prisma](prisma/schema.prisma). Prisma is a tool that generates a database schema from this file, and also generates a node.js client for interacting with the database. To begin with, you should run the existing migrations to setup your local database:
 
 ```sh
-npx prisma migrate reset
+pnpm exec prisma migrate reset
 ```
 
 Use the `--skip-seed` flag, if you want the database to be empty (no test-data will be added).
@@ -299,19 +299,19 @@ you should see output like:
 You can also view the database with `Prisma Studio`, a GUI of the database via. the browser (the default address is <http://localhost:5555>):
 
 ```sh
-npx prisma studio
+pnpm exec prisma studio
 ```
 
 Alternatively download and connect with a visual database tool like `MySQL Workbench`.
 
 #### Add test data to your local MySQL instance
 
-Test data is automatically seeded with the `npx prisma migrate reset` command (unless `--skip-seed` flag was passed), and is generated from [seed.ts](/prisma/seed.ts)
+Test data is automatically seeded with the `pnpm exec prisma migrate reset` command (unless `--skip-seed` flag was passed), and is generated from [seed.ts](/prisma/seed.ts)
 
 You can add test-data inside [seed.ts](/prisma/seed.ts) to suit your needs, and manually seed the database with:
 
 ```sh
-npx prisma db seed
+pnpm exec prisma db seed
 ```
 
 The test-data is stored in the folder [prisma/fakedata/json](/prisma/fakedata/json/). To add more random test-data to the json files, run [addFakeDataScript.ts](/prisma/fakedata/addFakeDataScript.ts), and modify it to your needs. If you want to delete the test-data from the json files, make sure to at least leave an empty array.
@@ -355,7 +355,7 @@ The proxy is now listening for connections on port 3306 (the standard mysql port
 Let's run the service, using our locally-running MySQL instance (either native or in Docker):
 
 ```sh
-npm start
+pnpm start
 ```
 
 If all goes well, you should be seeing something like this in your terminal
@@ -373,7 +373,7 @@ If you wish to test restricted routes without having to authorize, you may also 
 We use mocha for our unit tests. To run the test suite, use the command
 
 ```sh
-npm test
+pnpm test
 ```
 
 which will yield something like this
@@ -584,13 +584,13 @@ Distributions (2 records)
 We're using prisma to manage database schema migrations. The schema is defined in [/prisma/schema.prisma](prisma/schema.prisma). To apply the schema locally, run
 
 ```sh
-npx prisma db push
+pnpm exec prisma db push
 ```
 
 This is useful while developing locally. Once you're ready to make a migration file, run
 
 ```sh
-npx prisma migrate dev --name <migration-name>
+pnpm exec prisma migrate dev --name <migration-name>
 ```
 
 This will create a new migration file in [/prisma/migrations](prisma/migrations).

@@ -1,3 +1,4 @@
+import { enqueueInvalidTransactions } from "../../custom_modules/reviewQueue";
 import { processOcrReport } from "../../custom_modules/reportsService";
 
 module.exports = async (req, res, next) => {
@@ -10,6 +11,8 @@ module.exports = async (req, res, next) => {
   } catch (ex) {
     return next(ex);
   }
+
+  await enqueueInvalidTransactions("ocr", result.invalidTransactions);
 
   res.json({
     status: 200,

@@ -8,7 +8,7 @@ import { normalizeDonorEmail } from "../donorEmail";
 //region Get
 
 type DonorFundraiserGiving = "only" | "atLeastOnce" | "never";
-type DonorFundraiserType = "facebook" | "adoveo" | "homebrew";
+type DonorFundraiserType = "facebook" | "homebrew";
 
 export interface DonorFilters {
   donorId: number | null;
@@ -56,19 +56,35 @@ const jsToDbDonorMapping: Array<[string, string]> = [
   ["donationsSum", "FD.donations_sum"],
 ];
 
-const allFundraiserTypes: Array<DonorFundraiserType> = ["facebook", "adoveo", "homebrew"];
+const allFundraiserTypes: Array<DonorFundraiserType> = ["facebook", "homebrew"];
 
+/**
+ * Matches donations made through a fundraiser of the given types. Without explicit types, any
+ * fundraiser counts, including the discontinued Adoveo fundraisers, so historical donations keep
+ * being classified as fundraiser donations.
+ */
 function fundraiserMatchClause(
   donationAlias: string,
-  fundraiserTypes: Array<DonorFundraiserType>,
+  fundraiserTypes: Array<DonorFundraiserType> | undefined,
 ): string {
+  const types = fundraiserTypes ?? allFundraiserTypes;
   const clauses: string[] = [];
 
-  if (fundraiserTypes.includes("facebook")) {
+  if (types.includes("facebook")) {
     clauses.push(`${donationAlias}.Payment_ID = 9`);
   }
 
-  if (fundraiserTypes.includes("adoveo")) {
+  if (types.includes("homebrew")) {
+    clauses.push(`EXISTS (
+      SELECT 1
+      FROM Distributions DIST_HB
+      WHERE DIST_HB.KID = ${donationAlias}.KID_fordeling
+        AND DIST_HB.Fundraiser_transaction_ID IS NOT NULL
+    )`);
+  }
+
+  if (fundraiserTypes === undefined) {
+    // Historical Adoveo fundraiser donations
     clauses.push(`(
       ${donationAlias}.Payment_ID = 13
       AND EXISTS (
@@ -77,15 +93,6 @@ function fundraiserMatchClause(
         WHERE AFT.Donation_ID = ${donationAlias}.ID
           AND AFT.Status = 'SALE'
       )
-    )`);
-  }
-
-  if (fundraiserTypes.includes("homebrew")) {
-    clauses.push(`EXISTS (
-      SELECT 1
-      FROM Distributions DIST_HB
-      WHERE DIST_HB.KID = ${donationAlias}.KID_fordeling
-        AND DIST_HB.Fundraiser_transaction_ID IS NOT NULL
     )`);
   }
 
@@ -311,8 +318,7 @@ async function getAll(
     }
 
     if (filter.fundraiserGiving) {
-      const fundraiserTypes = filter.fundraiserTypes ?? allFundraiserTypes;
-      if (fundraiserTypes.length === 0) {
+      if (filter.fundraiserTypes?.length === 0) {
         return {
           rows: [],
           statistics: { totalDonors: 0, totalDonationCount: 0, totalDonationSum: 0 },
@@ -320,7 +326,7 @@ async function getAll(
         };
       }
 
-      const fundraiserClause = fundraiserMatchClause("D_rec", fundraiserTypes);
+      const fundraiserClause = fundraiserMatchClause("D_rec", filter.fundraiserTypes);
       const hasFundraiserDonationsSubquery = `
         EXISTS (
           SELECT 1

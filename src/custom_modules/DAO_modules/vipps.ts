@@ -813,7 +813,6 @@ async function getMatchingRules(): Promise<
     periodFrom: Date;
     periodTo: Date;
     resolveKID: string;
-    resolveAdoveoFundraiserID: number | null;
     precedence: number | null;
   }[]
 > {
@@ -825,7 +824,6 @@ async function getMatchingRules(): Promise<
             PeriodFrom, 
             PeriodTo, 
             ResolveKID, 
-            ResolveAdoveoFundraiserID, 
             precedence
         FROM Vipps_matching_rules
     `);
@@ -837,7 +835,6 @@ async function getMatchingRules(): Promise<
     periodFrom: row.PeriodFrom,
     periodTo: row.PeriodTo,
     resolveKID: row.ResolveKID,
-    resolveAdoveoFundraiserID: row.ResolveAdoveoFundraiserID,
     precedence: row.precedence,
   }));
 }
@@ -956,23 +953,21 @@ async function addMatchingRule({
   periodFrom,
   periodTo,
   resolveKID,
-  resolveAdoveoFundraiserID,
   precedence,
 }) {
   try {
     const [result] = await DAO.query(
       `
             INSERT INTO Vipps_matching_rules
-                (SalesLocation, Message, PeriodFrom, PeriodTo, ResolveKID, ResolveAdoveoFundraiserID, precedence)
+                (SalesLocation, Message, PeriodFrom, PeriodTo, ResolveKID, precedence)
             VALUES
-                (?,?,?,?,?,?,?)`,
+                (?,?,?,?,?,?)`,
       [
         salesLocation,
         typeof message === "string" && message.length > 0 ? message : null,
         periodFrom,
         periodTo,
         resolveKID,
-        resolveAdoveoFundraiserID,
         precedence,
       ],
     );
