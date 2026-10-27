@@ -124,6 +124,23 @@ describe("tRPC donors router", () => {
       expect(filter!.recipientOrgIDs).to.deep.equal([1, 2]);
     });
 
+    it("treats fundraiserTypes alone as having given to such a fundraiser", async () => {
+      const stub = sinon.stub(DAO.donors, "getAll").resolves(listResult);
+      await admin().donors.list({ page: 0, limit: 10, filter: { fundraiserTypes: ["facebook"] } });
+      expect(stub.firstCall.args[3]).to.deep.include({
+        fundraiserGiving: "atLeastOnce",
+        fundraiserTypes: ["facebook"],
+      });
+      await admin().donors.list({
+        page: 0,
+        limit: 10,
+        filter: { fundraiserTypes: ["facebook"], fundraiserGiving: "never" },
+      });
+      expect(stub.secondCall.args[3]).to.deep.include({ fundraiserGiving: "never" });
+      await admin().donors.list({ page: 0, limit: 10, filter: {} });
+      expect(stub.thirdCall.args[3]!.fundraiserGiving).to.equal(undefined);
+    });
+
     it("matches name or email with nameOrEmail, escaping wildcards", async () => {
       const stub = sinon.stub(DAO.donors, "getAll").resolves(listResult);
       await admin().donors.list({

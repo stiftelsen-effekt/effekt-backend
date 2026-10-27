@@ -36,6 +36,9 @@ const toDonorFilters = (filter: DonorFilterInput | undefined, query?: string) =>
   const { registered, donationsDateRange, lastDonationDate, ...rest } = filter ?? {};
   return {
     ...rest,
+    // Fundraiser types alone mean "gave to a fundraiser of these types"
+    fundraiserGiving:
+      rest.fundraiserGiving ?? (rest.fundraiserTypes ? ("atLeastOnce" as const) : undefined),
     donorId: filter?.donorId ?? null,
     query,
     registeredRange: osloDayRange(registered),

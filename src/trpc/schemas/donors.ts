@@ -51,6 +51,10 @@ export const donorFilter = z.strictObject({
   donationsCount: countRange.optional(),
   donationsSum: sumRange.optional(),
   fundraiserGiving: z.enum(["only", "atLeastOnce", "never"]).optional(),
+  /**
+   * Narrows fundraiserGiving to these fundraiser types; on its own it means "gave to a
+   * fundraiser of these types at least once" (fundraiserGiving "atLeastOnce").
+   */
   fundraiserTypes: z.array(z.enum(["facebook", "homebrew"])).optional(),
   referralTypeIDs: z.array(id).optional(),
   recipientOrgIDs: z.array(id).optional(),
