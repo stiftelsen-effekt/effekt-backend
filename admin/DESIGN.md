@@ -206,7 +206,7 @@ progress bar is a static line. Buttons keep their own rule: `pending` shows at o
 | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | First load of a page or section (no data yet)                    | The real layout with placeholder values (below)                                                 |
 | A parameter changes: day, page, filter, sort, period, peeked row | The current content stays, dimmed (`Updating`, DataTable `isFetching`), + the top progress line |
-| Navigating to another page                                       | The previous page stays, with the top progress line, until the next page's record is in (≤ 1 s) |
+| Navigating to another page                                       | The previous page stays, with the top progress line, until the next page's data is in (≤ 1 s)   |
 | Background refetch (after a mutation, interval)                  | Nothing, or rows dim slightly if it takes > 300 ms                                              |
 | A form or editor whose reference data is loading                 | `Pending`: its space reserved, the top progress line; no fake fields                            |
 | An action                                                        | `pending` on its button                                                                         |
@@ -237,13 +237,16 @@ its template (`DetailPage`, …) with these, as the donor and AvtaleGiro pages d
 
 **Prefetch.** Links preload on hover and focus (`defaultPreload: "intent"`); DataTable rows with
 `getRowHref` do the same on hover and when the cursor moves to them. Detail routes have a loader
-built on `loadPage` (`src/lib/route-data.ts`): it warms the page's queries, and on navigation
-waits up to 1 s for the record so the page arrives finished (on the app's first load and on
-search-param changes it doesn't wait). Lists prefetch the next page; the AvtaleGiro check the
-previous and next day and today; the review workbench the next and previous item. Queries are
-fresh for 30 s (`createQueryClient`), so a prefetch is used; mutations still invalidate what
-they change. A loader must not use `loaderDeps` for parameters the page itself steps through
-(the AvtaleGiro date): that turns each step into a navigation that waits.
+built on `loadPage` (`src/lib/route-data.ts`) that warms every query the page shows (the record
+in its own request, the rest in a second batch). On a preload or a navigation it resolves when
+they're in, or after 1 s, so the page arrives finished: the router reuses a preloaded match
+without running the loader again, and a navigation that starts during the preload waits for it.
+On the app's first load and on search-param changes it doesn't wait. Lists prefetch the next
+page; the AvtaleGiro check the previous and next day and today; the review workbench the next
+and previous item. Queries are fresh for 30 s (`createQueryClient`), so a prefetch is used;
+mutations still invalidate what they change. A loader must not use `loaderDeps` for parameters
+the page itself steps through (the AvtaleGiro date): that turns each step into a navigation that
+waits.
 
 **Reserve space for what arrives late.** Counts in tab badges (`count={null}`), stat hint
 lines, footers, chart legends (always shown), the nav review badge (in the row, right-aligned),

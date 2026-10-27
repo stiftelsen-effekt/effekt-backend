@@ -20,6 +20,9 @@ export const router = createRouter({
   defaultPreload: "intent",
   // Freshness is TanStack Query's job (staleTime in createQueryClient); always ask the loader.
   defaultPreloadStaleTime: 0,
+  // When a loader does run again for a match already shown, wait for it rather than reload
+  // behind the page; loaders return at once for search-param changes, so those stay instant.
+  defaultStaleReloadMode: "blocking",
   // No pending components: a navigation keeps the previous page (with the top progress bar)
   // while the next page's loader waits for its record (route-data.ts › loadPage).
   scrollRestoration: true,

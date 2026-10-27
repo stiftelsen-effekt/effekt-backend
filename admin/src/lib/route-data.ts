@@ -3,8 +3,8 @@ import type { FetchQueryOptions, QueryClient } from "@tanstack/react-query";
 /*
  * Route loaders for pages reachable from lists. They start the page's queries before the
  * page renders (on link hover/focus too: `defaultPreload: "intent"`), and on navigation
- * hold the previous page, with the top progress bar, until the record is in, so the next
- * page appears finished instead of as skeletons. Pages still read their data with
+ * hold the previous page, with the top progress bar, until its data is in, so the next page
+ * appears finished instead of as skeletons. Pages still read their data with
  * useQuery; the loaders only warm the same cache entries.
  */
 
@@ -12,7 +12,7 @@ import type { FetchQueryOptions, QueryClient } from "@tanstack/react-query";
 type AnyFetchOptions = FetchQueryOptions<any, any, any, any>;
 
 /**
- * How long a navigation keeps the previous page while the next one's record loads. After
+ * How long a navigation keeps the previous page while the next one's data loads. After
  * that the next page shows with its first-load placeholders, so a slow API never makes a
  * click look ignored.
  */
@@ -37,9 +37,11 @@ export type LoadCause = "preload" | "enter" | "stay";
  * `primary` is what the page can't be drawn without (one record, or a few for a dashboard);
  * `rest` is everything else it shows.
  *
- * - `preload` (hover/focus on a link or row): fetch the primary data only.
- * - `enter` (navigating here): fetch everything, wait for the record up to ROUTE_WAIT_MS.
- *   Not on the app's first load: there is no previous page to keep, so render at once.
+ * - `enter` (navigating here) and `preload` (hover/focus on a link or row): fetch everything,
+ *   resolve when it's in, or after ROUTE_WAIT_MS. The router reuses a preloaded match
+ *   without running the loader again, so a preload must warm the whole page; a navigation
+ *   that starts while its preload is running waits for it. Not on the app's first load:
+ *   there is no previous page to keep, so render at once.
  * - `stay` (search params changed on this page): fetch, never wait; the page keeps its
  *   previous data on its own (usePageQuery).
  *
@@ -61,12 +63,20 @@ export async function loadPage(
   rest: AnyFetchOptions[] = [],
 ) {
   const records = primary === null ? [] : Array.isArray(primary) ? primary : [primary];
-  if (cause === "preload") {
-    await Promise.all(records.map((options) => warm(queryClient, options)));
-    return;
-  }
-  for (const options of rest) void warm(queryClient, options);
   const loaded = Promise.all(records.map((options) => warm(queryClient, options)));
-  if (cause !== "enter" || !firstLoadDone || records.length === 0) return;
-  await Promise.race([loaded, new Promise((resolve) => setTimeout(resolve, ROUTE_WAIT_MS))]);
+  // The rest one task later, so they go in a batch of their own (httpBatchLink sends what was
+  // asked for in the same task together): the record shouldn't wait for the slowest of them.
+  const restLoaded = new Promise((resolve) =>
+    setTimeout(
+      () => void Promise.all(rest.map((options) => warm(queryClient, options))).then(resolve),
+      0,
+    ),
+  );
+  if (cause === "stay" || (cause === "enter" && !firstLoadDone)) return;
+  // Wait for the whole page, so it arrives finished rather than as a record with placeholders
+  // that blink away a moment later; never longer than ROUTE_WAIT_MS.
+  await Promise.race([
+    Promise.all([loaded, restLoaded]),
+    new Promise((resolve) => setTimeout(resolve, ROUTE_WAIT_MS)),
+  ]);
 }
