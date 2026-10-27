@@ -1,9 +1,22 @@
 import { DAO } from "../../custom_modules/DAO";
+import type { AgreementFilter } from "../../custom_modules/DAO_modules/agreements";
+import { osloDayRange } from "../../custom_modules/osloDays";
 import { csvExport } from "../csv";
-import { agreementsExportInput, agreementsListInput } from "../schemas/agreements";
+import { z } from "zod";
+import {
+  agreementsExportInput,
+  agreementsFilter,
+  agreementsListInput,
+} from "../schemas/agreements";
 import { adminProcedure, router } from "../trpc";
 
 const DEFAULT_SORT = { id: "created", desc: true } as const;
+
+/** `created` is a range of whole Oslo days */
+const toDaoFilter = (filter: z.infer<typeof agreementsFilter> | undefined): AgreementFilter => {
+  const { created, ...rest } = filter ?? {};
+  return created ? { ...rest, createdRange: osloDayRange(created) } : rest;
+};
 
 /**
  * Recurring agreements across Vipps, AvtaleGiro and AutoGiro in one list, with normalised
@@ -13,7 +26,7 @@ const DEFAULT_SORT = { id: "created", desc: true } as const;
 export const agreementsRouter = router({
   list: adminProcedure.input(agreementsListInput).query(({ input }) =>
     DAO.agreements.getList({
-      filter: input.filter ?? {},
+      filter: toDaoFilter(input.filter),
       sort: input.sort ?? DEFAULT_SORT,
       page: input.page,
       limit: input.limit,
@@ -22,7 +35,7 @@ export const agreementsRouter = router({
 
   export: adminProcedure.input(agreementsExportInput).query(async ({ input }) => {
     const { rows } = await DAO.agreements.getList({
-      filter: input.filter ?? {},
+      filter: toDaoFilter(input.filter),
       sort: input.sort ?? DEFAULT_SORT,
     });
     return csvExport(

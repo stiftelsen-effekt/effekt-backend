@@ -2,6 +2,7 @@ import { expect } from "chai";
 import type { Request, Response } from "express";
 import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
+import { parseClaimFile } from "../custom_modules/DAO_modules/avtalegiroagreements";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import * as mail from "../custom_modules/mail";
 import { appRouter } from "../trpc/router";
@@ -175,7 +176,10 @@ describe("tRPC giro router", () => {
       expect(page).to.equal(2);
       expect(limit).to.equal(25);
       expect(filter!.amount).to.deep.equal({ from: 100 });
-      expect(filter!.created!.from).to.deep.equal(new Date(2026, 0, 2));
+      expect(filter!.createdRange).to.deep.equal({
+        from: new Date("2026-01-01T23:00:00Z"),
+        before: undefined,
+      });
       expect(filter!.statuses).to.deep.equal([1]);
     });
 
@@ -332,6 +336,8 @@ describe("tRPC giro router", () => {
       const expected = sinon
         .stub(DAO.avtalegiroagreements, "getExpectedDonationsForDate")
         .resolves([{ ID: 3, amount: 50050, active: 0, notice: 1 } as any]);
+      // No claim file logged for the date
+      sinon.stub(DAO.avtalegiroagreements, "getClaimedAgreementsForDate").resolves(null);
       expect(await admin().giro.avtalegiro.missing({ date: "2026-10-05" })).to.deep.equal([
         { ID: 1, amount: 500, active: true },
       ]);
@@ -340,12 +346,49 @@ describe("tRPC giro router", () => {
       ]);
       // øre in the DAO, NOK out
       expect(await admin().giro.avtalegiro.expected({ date: "2026-10-05" })).to.deep.equal([
-        { ID: 3, amount: 500.5, active: false, notice: true },
+        { ID: 3, amount: 500.5, active: false, notice: true, amountSource: "agreement" },
       ]);
       for (const stub of [missing, received, expected]) {
         const date: Date = stub.firstCall.args[0];
         expect([date.getFullYear(), date.getMonth(), date.getDate()]).to.deep.equal([2026, 9, 5]);
       }
+    });
+
+    it("uses the claimed amounts for past dates with a logged claim file", async () => {
+      const claimed = sinon
+        .stub(DAO.avtalegiroagreements, "getClaimedAgreementsForDate")
+        .resolves([{ ID: 3, amount: 40000, active: 1, notice: 0 } as any]);
+      const current = sinon
+        .stub(DAO.avtalegiroagreements, "getExpectedDonationsForDate")
+        .resolves([]);
+      expect(await admin().giro.avtalegiro.expected({ date: "2025-10-05" })).to.deep.equal([
+        { ID: 3, amount: 400, active: true, notice: false, amountSource: "claim" },
+      ]);
+      expect(claimed.firstCall.args[0]).to.equal("2025-10-05");
+      expect(current.called).to.be.false;
+
+      // Today and later: the agreements' current amounts
+      await admin().giro.avtalegiro.expected({ date: "2999-01-01" });
+      expect(claimed.calledOnce).to.be.true;
+      expect(current.calledOnce).to.be.true;
+    });
+
+    it("parses claim lines of a DIRREM file for one due date", () => {
+      const claim = (date: string, amount: number, kid: string) =>
+        `NY2102300000001${date}`.padEnd(32, "0") +
+        String(amount).padStart(17, "0") +
+        kid.padStart(25, " ") +
+        "000000";
+      const file = [
+        "NY000010".padEnd(80, "0"),
+        "NY210020".padEnd(80, "0"),
+        claim("201026", 40000, "000123456789012"),
+        "NY210231000000100000OLANORDMANN".padEnd(80, "0"),
+        claim("211026", 10000, "000999999999999"),
+      ].join("\n");
+      expect(parseClaimFile(file, "201026")).to.deep.equal([
+        { KID: "000123456789012", amount: 40000 },
+      ]);
     });
 
     it("updates the amount in øre and notifies the donor", async () => {

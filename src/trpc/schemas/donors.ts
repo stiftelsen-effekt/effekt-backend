@@ -9,6 +9,7 @@ import {
 
 export const donorIdInput = z.strictObject({ donorId: id });
 
+/** Whole Europe/Oslo days, `to` inclusive (osloDays.ts) */
 const dateRange = z.strictObject({
   from: isoDateSchema.optional(),
   to: isoDateSchema.optional(),
@@ -50,6 +51,10 @@ export const donorFilter = z.strictObject({
   donationsCount: countRange.optional(),
   donationsSum: sumRange.optional(),
   fundraiserGiving: z.enum(["only", "atLeastOnce", "never"]).optional(),
+  /**
+   * Narrows fundraiserGiving to these fundraiser types; on its own it means "gave to a
+   * fundraiser of these types at least once" (fundraiserGiving "atLeastOnce").
+   */
   fundraiserTypes: z.array(z.enum(["facebook", "homebrew"])).optional(),
   referralTypeIDs: z.array(id).optional(),
   recipientOrgIDs: z.array(id).optional(),
@@ -80,9 +85,12 @@ export const exportInput = z.strictObject({
 
 export const searchInput = z.strictObject({
   /**
-   * MySQL boolean mode full text search over name and email: `+term` must match,
-   * `-term` must not match, `"a phrase"` matches the phrase, `term*` matches the prefix,
-   * bare terms are OR-ed. Other operators are ignored. An all-digit query matches the donor id.
+   * An all-digit query matches the donor id. Input containing @ (an email or part of one) is a
+   * partial match on the email. Plain words must all match name or email, as prefixes
+   * ("ola nor" finds "Ola Nordmann"). With explicit MySQL boolean mode syntax the query is
+   * passed through: `+term` must match, `-term` must not match, `"a phrase"` matches the
+   * phrase, `term*` matches the prefix, bare terms are OR-ed; other operators are ignored.
+   * Exact id, email or name matches are listed first.
    */
   query: z.string().min(1).max(200),
   page: paginationFields.page.default(0),

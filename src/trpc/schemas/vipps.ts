@@ -35,7 +35,7 @@ const dateRange = z.strictObject({
 /** Mirrors VippsAgreementFilters in DAO_modules/vipps.ts. */
 export const agreementFilterSchema = z.strictObject({
   amount: numberRange.optional(),
-  /** Draft (created) date range, inclusive of the whole `to` day */
+  /** Draft (created) date range in whole Oslo days, inclusive of the `to` day */
   created: dateRange.optional(),
   chargeDay: z
     .strictObject({ from: chargeDaySchema.optional(), to: chargeDaySchema.optional() })

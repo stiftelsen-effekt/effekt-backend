@@ -2,7 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { DateTime } from "luxon";
 import { z } from "zod";
 import { DAO } from "../../custom_modules/DAO";
-import type { VippsChargeRow } from "../../custom_modules/DAO_modules/vipps";
+import { osloDayRange } from "../../custom_modules/osloDays";
+import type {
+  VippsAgreementPayments,
+  VippsChargeRow,
+} from "../../custom_modules/DAO_modules/vipps";
 import * as vippsService from "../../custom_modules/vippsService";
 import { csvExport } from "../csv";
 import { assertDistributionReferences } from "../distributionChecks";
@@ -24,19 +28,11 @@ import {
   matchingRuleUpdateInput,
 } from "../schemas/vipps";
 
-/** Parses a YYYY-MM-DD input as local midnight, like the dates the REST admin sent. */
-const localDate = (isoDate: string) => DateTime.fromISO(isoDate).toJSDate();
-
+/** `created` is a range of whole Oslo days */
 const toAgreementDaoFilter = (filter: z.infer<typeof agreementFilterSchema> | undefined) => {
   if (!filter) return null;
   const { created, ...rest } = filter;
-  return {
-    ...rest,
-    created: created && {
-      from: created.from ? localDate(created.from) : null,
-      to: created.to ? localDate(created.to) : null,
-    },
-  };
+  return { ...rest, createdRange: osloDayRange(created) };
 };
 
 // The DAO's `timestamp` branch (which reads filter.dueDate) is unreachable: the schema has no
@@ -104,6 +100,19 @@ const agreementsRouter = router({
     await getAgreementOrThrow(input.id);
     return callVipps("fetch the agreement", () => vippsService.syncAndGetAgreement(input.id));
   }),
+
+  /**
+   * The agreement's payments from our DB: its charges, and its donations under every KID it
+   * has had (Vipps recurring donations on the KIDs, plus donations registered from its charges),
+   * each linked to the other where possible. NOT_FOUND for an unknown agreement.
+   */
+  payments: adminProcedure
+    .input(z.strictObject({ id: agreementIdSchema }))
+    .query(async ({ input }): Promise<VippsAgreementPayments> => {
+      const payments = await DAO.vipps.getPaymentsByAgreementId(input.id);
+      if (!payments) throw new TRPCError({ code: "NOT_FOUND", message: "Agreement not found" });
+      return payments;
+    }),
 
   report: adminProcedure.query(() => DAO.vipps.getAgreementReport()),
 

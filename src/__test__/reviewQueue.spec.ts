@@ -12,9 +12,12 @@ const avtalegiro = require("../custom_modules/avtalegiro");
 
 describe("review queue: enqueueInvalidTransactions", () => {
   let addStub: sinon.SinonStub;
+  let countStub: sinon.SinonStub;
+  const statuses = { open: 2, registered: 1, ignored: 0 };
 
   beforeEach(() => {
     addStub = sinon.stub(DAO.reviewqueue, "add").resolves({ added: 2, existing: 0 });
+    countStub = sinon.stub(DAO.reviewqueue, "getCountsForImport").resolves(statuses);
   });
 
   afterEach(() => sinon.restore());
@@ -86,17 +89,59 @@ describe("review queue: enqueueInvalidTransactions", () => {
   });
 
   it("writes nothing when there are no transactions", async () => {
-    expect(await enqueueInvalidTransactions("vipps", [])).to.deep.equal({ added: 0, existing: 0 });
+    expect(await enqueueInvalidTransactions("vipps", [])).to.deep.equal({
+      added: 0,
+      existing: 0,
+      skipped: 0,
+      statuses: { open: 0, registered: 0, ignored: 0 },
+    });
     expect(addStub.called).to.be.false;
   });
 
-  it("returns null instead of throwing when the queue can't be written", async () => {
+  it("counts rows as skipped instead of throwing when the queue can't be written", async () => {
     sinon.stub(console, "error");
     addStub.rejects(new Error("db down"));
     const result = await enqueueInvalidTransactions("bankNo", [
       { reason: "x", transaction: { amount: 1, transactionID: "b.1", paymentID: 5 } },
     ]);
-    expect(result).to.equal(null);
+    expect(result).to.deep.equal({ added: 0, existing: 0, skipped: 1, statuses });
+  });
+
+  it("skips unqueueable rows and queues the rest one by one if the batch fails", async () => {
+    sinon.stub(console, "error");
+    addStub.reset();
+    addStub.callsFake(async (_source, items) => {
+      if (items.length > 1) throw new Error("Incorrect decimal value");
+      if (items[0].externalId === "b.3") throw new Error("Data too long");
+      return { added: 1, existing: 0 };
+    });
+    const result = await enqueueInvalidTransactions("bankNo", [
+      { reason: "x", transaction: { amount: 1, transactionID: "b.1", paymentID: 5 } },
+      { reason: "x", transaction: { amount: NaN, transactionID: "b.2", paymentID: 5 } },
+      { reason: "x", transaction: { amount: 2, transactionID: "b.3", paymentID: 5 } },
+      {
+        reason: "x",
+        transaction: { amount: 3, transactionID: "b.4", paymentID: 5, date: new Date("x") },
+      },
+    ]);
+    expect(result).to.deep.equal({ added: 2, existing: 0, skipped: 2, statuses });
+    expect(countStub.firstCall.args).to.deep.equal(["bankNo", ["b.1", "b.3", "b.4"], null]);
+    // The NaN amount is never sent; the invalid date is queued as null
+    expect(addStub.firstCall.args[1].map((item) => item.externalId)).to.deep.equal([
+      "b.1",
+      "b.3",
+      "b.4",
+    ]);
+    expect(addStub.lastCall.args[1][0].date).to.equal(null);
+  });
+
+  it("reports null statuses when they can't be counted", async () => {
+    sinon.stub(console, "error");
+    countStub.rejects(new Error("db down"));
+    const result = await enqueueInvalidTransactions("bankNo", [
+      { reason: "x", transaction: { amount: 1, transactionID: "b.1", paymentID: 5 } },
+    ]);
+    expect(result).to.deep.equal({ added: 2, existing: 0, skipped: 0, statuses: null });
   });
 });
 

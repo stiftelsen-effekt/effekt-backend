@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { osloToday } from "../../custom_modules/osloDays";
 import { z } from "zod";
 import { DAO } from "../../custom_modules/DAO";
 import type { AvtaleGiroAgreementPayments } from "../../custom_modules/DAO_modules/avtalegiroagreements";
@@ -173,17 +174,28 @@ const avtalegiroRouter = router({
   /**
    * GET /avtalegiro/expected?date=. Agreements expected to be charged on the date. Unlike REST
    * (øre in `amount`), the amount is in NOK like the other procedures.
+   *
+   * For a past date the rows are the claims actually sent to Nets for that due date, with the
+   * claimed amounts, read from the claim file logged by the AvtaleGiro job (`amountSource`
+   * "claim"). Without a logged file (today and later, or before June 2021) the rows are the
+   * agreements due that day with their current amounts (`amountSource` "agreement"), which can
+   * differ from what was charged if an amount changed since.
    */
   expected: adminProcedure.input(forDate).query(async ({ input }) => {
-    const rows = await DAO.avtalegiroagreements.getExpectedDonationsForDate(
-      toLocalDate(input.date),
-    );
+    const claimed =
+      input.date < osloToday()
+        ? await DAO.avtalegiroagreements.getClaimedAgreementsForDate(input.date)
+        : null;
+    const rows =
+      claimed ??
+      (await DAO.avtalegiroagreements.getExpectedDonationsForDate(toLocalDate(input.date)));
     return rows.map(({ amount, ...row }) => ({
       ...row,
       /** NOK */
       amount: amount / 100,
       active: row.active == 1,
       notice: row.notice == 1,
+      amountSource: claimed ? ("claim" as const) : ("agreement" as const),
     }));
   }),
 

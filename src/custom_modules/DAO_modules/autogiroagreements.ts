@@ -7,6 +7,7 @@ import {
 import { DAO, SqlResult } from "../DAO";
 import { DateTime } from "luxon";
 import sqlString from "sqlstring";
+import { instantRangeClauses, type InstantRange } from "../osloDays";
 import { Distribution, DistributionInput } from "../../schemas/types";
 
 export type AutoGiroMandateRow = Pick<
@@ -107,6 +108,8 @@ export const autogiroagreements = {
           where.push(`AG.created < ${sqlString.escape(toDate)} `);
         }
       }
+      // Half-open instant range (osloDays.ts), used by tRPC; `created` is filled by MySQL
+      where.push(...instantRangeClauses("AG.created", filter.createdRange, "db"));
 
       if (filter.KID)
         where.push(` CAST(DI.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);

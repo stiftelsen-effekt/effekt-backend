@@ -10,6 +10,19 @@ export type ImportLogSummary = {
   meta: string | null;
 };
 
+/** Fields of an upload entry's result (tRPC uploads), read with `uploadDetails` */
+export type ImportLogUploadDetails = {
+  /** reportsRouter upload source, e.g. "ocr", "bankNo" */
+  uploadSource: string | null;
+  filename: string | null;
+  /** { valid, invalid, ignored? } as logged */
+  donations: { valid?: number; invalid?: number; ignored?: number } | null;
+  /** Transactions sent to review */
+  reviewCount: number | null;
+  /** Facebook uploads: campaigns without organization shares */
+  campaignsMissingShares: number | null;
+};
+
 export type ImportLogEntry = {
   ID: number;
   label: string | null;
@@ -48,15 +61,35 @@ async function getEntries(
   filesearch: string | null = null,
   /** Newest first when omitted (without the ID tie-break, as REST has always sorted) */
   sort?: { id: ImportLogSortColumn; desc: boolean },
+  options: {
+    /** filesearch also matches the uploaded file's name (`filename`) */
+    searchFilename?: boolean;
+    /** Adds the ImportLogUploadDetails columns */
+    uploadDetails?: boolean;
+  } = {},
 ): Promise<{ results: ImportLogSummary[]; pages: number; total: number }> {
   const orderBy = sort
     ? `${logSortColumns[sort.id]} ${sort.desc ? "DESC" : "ASC"}, ID ${sort.desc ? "DESC" : "ASC"}`
     : "timestamp DESC";
 
+  const pattern = sqlString.escape("%" + filesearch + "%");
   const where =
     filesearch !== null && filesearch !== ""
-      ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' + sqlString.escape("%" + filesearch + "%")
+      ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' +
+        pattern +
+        (options.searchFilename
+          ? ` OR JSON_UNQUOTE(JSON_EXTRACT(result, "$.filename")) LIKE ${pattern}`
+          : "")
       : "";
+
+  const uploadDetailColumns = options.uploadDetails
+    ? `,
+        JSON_UNQUOTE(JSON_EXTRACT(result, "$.upload.source")) AS uploadSource,
+        JSON_UNQUOTE(JSON_EXTRACT(result, "$.filename")) AS filename,
+        JSON_EXTRACT(result, "$.donations") AS donations,
+        JSON_LENGTH(result, "$.invalidTransactions") AS reviewCount,
+        JSON_EXTRACT(result, "$.campaigns.missingShares") AS campaignsMissingShares`
+    : "";
 
   let [res] = await DAO.query<ImportLogSummary[]>(
     `
@@ -96,7 +129,7 @@ async function getEntries(
               " ]"
             )
           ELSE ''
-        END) as meta
+        END) as meta${uploadDetailColumns}
       
       FROM Import_logs 
 

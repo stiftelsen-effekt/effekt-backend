@@ -152,7 +152,7 @@ export function validateTaxUnitSsn(ssn: string, locale: RequestLocale): string |
   if (/^\d{11}$/.test(ssn)) {
     const validation = fnr(ssn);
     if (validation.status !== "valid") {
-      return "Invalid ssn (failed fnr validation) " + validation.reasons.join(", ");
+      return "Invalid fødselsnummer: the check digits or the birth date are wrong";
     }
     return null;
   }

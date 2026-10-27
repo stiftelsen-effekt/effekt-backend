@@ -4,6 +4,10 @@ import { idSchema, isoDateOrDateTimeSchema, sortSchema } from "./common";
 
 export const donationFilterSchema = z.strictObject({
   sum: z.strictObject({ from: z.number().optional(), to: z.number().optional() }).optional(),
+  /**
+   * Inclusive. A date (YYYY-MM-DD) means the whole Europe/Oslo day; a date-time with offset is
+   * the exact instant.
+   */
   date: z
     .strictObject({
       from: isoDateOrDateTimeSchema.optional(),
@@ -14,6 +18,11 @@ export const donationFilterSchema = z.strictObject({
   paymentMethodIDs: z.array(idSchema).optional(),
   taxUnitTypes: z.array(z.enum(TaxUnitType).nullable()).optional(),
   donor: z.string().optional(),
+  /**
+   * Free text matching the donation id (all digits, exact), part of the KID, or part of the
+   * donor's name or email. Combines with the other filters.
+   */
+  query: z.string().trim().min(1).max(255).optional(),
   id: z.string().optional(),
   fundraiserId: z.string().optional(),
   organizationIDs: z.array(idSchema).optional(),
@@ -34,6 +43,11 @@ export const donationSortSchema = sortSchema([
 export const distributionFilterSchema = z.strictObject({
   KID: z.string().optional(),
   donor: z.string().optional(),
+  /**
+   * Free text matching part of the KID, part of the donor's name or email, or the donor id
+   * (all digits, exact). Combines with the other filters.
+   */
+  query: z.string().trim().min(1).max(255).optional(),
 });
 
 export const distributionSortSchema = sortSchema(["KID", "full_name", "email", "sum", "count"]);
