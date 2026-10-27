@@ -126,6 +126,27 @@
       transform: translateX(300%);
     }
   }
+  /* Loading. Nothing shows for loads under --delay-pending (useDelayedFlag's PENDING_DELAY_MS):
+     a skeleton is transparent until then, then fades in and breathes slowly. */
+  --delay-pending: 300ms;
+  --animate-skeleton: skeleton-in var(--duration-base) var(--ease-out) var(--delay-pending) both,
+    skeleton-pulse 1.8s ease-in-out calc(var(--delay-pending) + var(--duration-base)) infinite;
+  @keyframes skeleton-in {
+    from {
+      background-color: transparent;
+    }
+  }
+  @keyframes skeleton-pulse {
+    50% {
+      opacity: 0.55;
+    }
+  }
+  --animate-fade-in: fade-in var(--duration-base) var(--ease-out);
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
   --animate-panel-in: panel-in var(--duration-base) var(--ease-out);
   @keyframes panel-in {
     from {
@@ -314,6 +335,11 @@
     ::after {
       animation-duration: 1ms !important;
       transition-duration: 1ms !important;
+    }
+    /* Looping animations at 1 ms would flicker: skeletons appear (still after the delay) and
+       hold still; the progress bar is a static line. */
+    [data-slot="skeleton"] {
+      animation-iteration-count: 1 !important;
     }
   }
 }

@@ -1,5 +1,6 @@
 import { Tabs as TabsPrimitive } from "radix-ui";
 import type * as React from "react";
+import { SkeletonText } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export function Tabs({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Root>) {
@@ -30,7 +31,13 @@ export function TabsTrigger({
   count,
   children,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger> & { count?: number }) {
+}: React.ComponentProps<typeof TabsPrimitive.Trigger> & {
+  /**
+   * Badge after the label. `null` while the count is loading: the badge's space is reserved
+   * so the tabs don't move when it arrives. Leave undefined for no badge.
+   */
+  count?: number | null;
+}) {
   return (
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
@@ -46,11 +53,13 @@ export function TabsTrigger({
       {...props}
     >
       {children}
-      {count !== undefined && (
+      {count === null ? (
+        <SkeletonText className="min-w-5 rounded-sm px-1 text-xs leading-4">0</SkeletonText>
+      ) : count !== undefined ? (
         <span className="num min-w-5 rounded-sm bg-pressed px-1 text-center text-xs leading-4 font-semibold text-muted-foreground group-data-[state=active]:text-foreground">
           {count}
         </span>
-      )}
+      ) : null}
     </TabsPrimitive.Trigger>
   );
 }

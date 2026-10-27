@@ -6,6 +6,7 @@ import {
   type RowSelectionState,
   type SortingState,
 } from "@tanstack/react-table";
+import { useRouter, type LinkProps } from "@tanstack/react-router";
 import { SearchXIcon, XIcon } from "lucide-react";
 import {
   useEffect,
@@ -19,7 +20,7 @@ import {
 import { EmptyState } from "@/components/domain/empty-state";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonText } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -28,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useDelayedFlag } from "@/hooks/use-delayed-flag";
 import { useHotkey } from "@/hooks/use-hotkey";
 import { formatNumber } from "@/lib/format";
 import { strings } from "@/lib/strings";
@@ -52,7 +54,12 @@ export type DataTableProps<TData extends RowData> = {
   getRowId: (row: TData, index: number) => string;
   /** Total rows on the server, for pagination. */
   rowCount?: number;
+  /**
+   * First load (no data yet): placeholder rows built from the columns, at the real row height.
+   * The only table skeleton; never pass it for a parameter change (keep the previous data).
+   */
   isLoading?: boolean;
+  /** Refetching or showing the previous data while the next loads: rows dim (after 300 ms). */
   isFetching?: boolean;
 
   sorting?: SortingState;
@@ -97,6 +104,12 @@ function alignment(meta: DataTableColumnMeta | undefined) {
 }
 
 const interactive = "a,button,input,select,textarea,label,[role=checkbox],[role=menuitem]";
+
+/** Sample cell text for the first-load rows, by column position, so rows look like text. */
+const textSamples = ["Placeholder name", "Short text", "Longer placeholder text", "Text"];
+
+/** Hovering a row this long preloads its page (the router's link intent delay is 50 ms). */
+const ROW_INTENT_MS = 100;
 
 /**
  * The list table. Server-side sort and paging, sticky header, density-aware rows, keyboard
@@ -172,9 +185,27 @@ export function DataTable<TData extends RowData>({
   });
 
   const rows = table.getRowModel().rows;
-  const visibleColumnCount = table.getVisibleLeafColumns().length;
+  const visibleColumns = table.getVisibleLeafColumns();
+  const visibleColumnCount = visibleColumns.length;
   const showSkeleton = isLoading && rows.length === 0;
   const skeletonRows = Math.min(pagination?.pageSize ?? 12, 14);
+  const dimmed = useDelayedFlag(isFetching && !showSkeleton);
+
+  // Hovering or moving the cursor onto a row warms the row's page (its route loader), as
+  // link hover does for links.
+  const router = useRouter({ warn: false });
+  const intentTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  function preloadRow(row: TData, delay = ROW_INTENT_MS) {
+    const href = getRowHref?.(row);
+    if (!href || !router) return;
+    clearTimeout(intentTimer.current);
+    intentTimer.current = setTimeout(
+      () => void router.preloadRoute({ to: href as LinkProps["to"] }).catch(() => undefined),
+      delay,
+    );
+  }
+  const cancelPreload = () => clearTimeout(intentTimer.current);
+  useEffect(() => cancelPreload, []);
   const selectedIds = Object.keys(rowSelection ?? {}).filter((id) => rowSelection?.[id]);
 
   // Keep the cursor on the peeked row, and inside the data when it changes.
@@ -195,6 +226,7 @@ export function DataTable<TData extends RowData>({
     element?.focus({ preventScroll: false });
     element?.scrollIntoView({ block: "nearest" });
     const row = rows[clamped];
+    if (row) preloadRow(row.original);
     if (row && peekedRowId != null && onRowPeek) onRowPeek(row.original);
   }
 
@@ -264,13 +296,6 @@ export function DataTable<TData extends RowData>({
         className="relative min-h-0 flex-1 overflow-auto border-t border-border max-lg:max-h-[75dvh]"
         aria-busy={isLoading || isFetching}
       >
-        {isFetching && !showSkeleton && (
-          <div className="sticky top-0 left-0 z-20 h-0 w-full" aria-hidden>
-            <div className="h-0.5 w-full overflow-hidden">
-              <div className="h-full w-1/3 animate-progress bg-accent" />
-            </div>
-          </div>
-        )}
         <Table aria-label={label} aria-rowcount={rowCount ?? data?.length}>
           <TableHeader className="sticky top-0 z-10">
             {table.getHeaderGroups().map((group) => (
@@ -305,18 +330,35 @@ export function DataTable<TData extends RowData>({
           </TableHeader>
           <TableBody
             ref={bodyRef}
-            className={cn(isFetching && !showSkeleton && "opacity-70 transition-opacity")}
+            data-updating={dimmed || undefined}
+            className="transition-opacity duration-(--duration-base) data-[updating]:opacity-60"
           >
             {showSkeleton ? (
               Array.from({ length: skeletonRows }, (_, index) => (
-                <TableRow key={index}>
-                  {Array.from({ length: visibleColumnCount }, (_, cellIndex) => (
-                    <TableCell key={cellIndex}>
-                      <Skeleton
-                        className={cn("h-3", cellIndex === 0 ? "w-10" : "w-full max-w-28")}
-                      />
-                    </TableCell>
-                  ))}
+                <TableRow
+                  key={index}
+                  data-placeholder-row
+                  className="[tbody>&]:hover:bg-transparent"
+                >
+                  {visibleColumns.map((column, cellIndex) => {
+                    const meta = column.columnDef.meta;
+                    const blank = column.id === "__options" || column.id === "select";
+                    return (
+                      <TableCell
+                        key={column.id}
+                        className={cn(alignment(meta), meta?.cellClassName)}
+                      >
+                        {!blank && (
+                          <SkeletonText>
+                            {meta?.placeholder ??
+                              (meta?.numeric
+                                ? "00 000"
+                                : textSamples[(cellIndex + index) % textSamples.length])}
+                          </SkeletonText>
+                        )}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))
             ) : rows.length === 0 ? (
@@ -344,6 +386,8 @@ export function DataTable<TData extends RowData>({
                     aria-current={peeked || undefined}
                     tabIndex={navigable ? (index === cursor ? 0 : -1) : undefined}
                     onClick={navigable ? (event) => onRowClick(event, row, index) : undefined}
+                    onPointerEnter={getRowHref ? () => preloadRow(row.original) : undefined}
+                    onPointerLeave={getRowHref ? cancelPreload : undefined}
                     onKeyDown={navigable ? (event) => onRowKeyDown(event, row, index) : undefined}
                     onFocus={navigable ? () => setCursor(index) : undefined}
                     className={cn(

@@ -29,15 +29,20 @@ export function BarChart<TRow extends Record<string, unknown>>({
   format = "number",
   xFormatter,
   className,
+  legend = true,
 }: {
-  data: TRow[];
+  /** Undefined while loading: the chart's box is reserved with a placeholder. */
+  data: TRow[] | undefined;
   xKey: keyof TRow & string;
   series: ChartSeries[];
   stacked?: boolean;
   format?: ValueFormat;
   xFormatter?: (value: string) => string;
   className?: string;
+  /** While loading, whether to reserve a legend line (shown when there is more than one series). */
+  legend?: boolean;
 }) {
+  if (!data) return <ChartFrame className={className} pending legend={legend} />;
   const colors: Record<string, ChartColor> = {};
   const labels: Record<string, string> = {};
   series.forEach((s, i) => {

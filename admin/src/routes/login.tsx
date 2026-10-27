@@ -38,7 +38,13 @@ function LoginPage() {
   return (
     <main className="grid min-h-dvh place-items-center bg-canvas p-6">
       <div className="grid w-full max-w-sm gap-6 rounded-lg border border-border bg-surface p-8">
-        <img src={org.logo} alt={org.name} className="w-28 invert dark:invert-0" />
+        <img
+          src={org.logo}
+          alt={org.name}
+          width={org.logoSize.width}
+          height={org.logoSize.height}
+          className="h-auto w-28 invert dark:invert-0"
+        />
         <div className="grid gap-1">
           <h1 className="font-display text-2xl">Sign in</h1>
           <p className="text-sm text-muted-foreground">

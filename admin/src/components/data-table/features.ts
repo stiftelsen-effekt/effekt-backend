@@ -16,6 +16,11 @@ export type DataTableColumnMeta = {
   label?: string;
   headerClassName?: string;
   cellClassName?: string;
+  /**
+   * Sample text the size of a typical value, for the first-load placeholder rows
+   * (default "00 000" for numeric columns, a short phrase otherwise).
+   */
+  placeholder?: string;
 };
 
 export const dataTableFeatures = tableFeatures({
