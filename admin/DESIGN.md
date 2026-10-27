@@ -149,6 +149,11 @@ function DonationsPage() {
 - **`/`** focuses the list search. **Filters** are chips; each opens its own editor. The URL holds
   the whole view (`?amount=100..500&method=4,8&sort=-sum&page=2`), so sharing a view is copying
   the address. **Saved views** name a combination per list (per browser).
+- **History**: applying or removing a filter, sorting and paging are history entries, so Back
+  undoes them one at a time and never jumps out of the list. Refining a search that is already
+  applied, and quick repeated changes to one filter (dragging a range), replace the entry.
+- **Empty lists** (`ListEmpty`): without filters, "No charges yet" and why; with filters or a
+  search, "No results" and Clear all. Never "Nothing matches these filters" when none are set.
 
 ### List → detail
 
@@ -159,23 +164,26 @@ rows are selected.
 
 ### Editing, by risk
 
-| Risk           | Examples                                              | Pattern                                                                                                      |
-| -------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Low, one field | donor name, email, newsletter                         | `InlineEdit` / `Switch`; save on Enter/toggle; undo toast for toggles                                        |
-| Several fields | settings, tax unit, matching rule                     | form + `UnsavedChangesBar` (explicit save, leaving asks first)                                               |
-| Moves money    | donation amount/date/split, agreement amount          | form + `ConfirmDialog` showing before → after, amount in the button                                          |
-| Irreversible   | delete donation, merge donors, stop agreement, refund | `ConfirmDialog tone="danger"` with `consequences`; `confirmText` (type the id/amount) for merges and refunds |
+| Risk           | Examples                                              | Pattern                                                                                                                          |
+| -------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Low, one field | donor name, email, newsletter                         | `InlineEdit` / `Switch`; save on Enter/toggle; undo toast for toggles                                                            |
+| Several fields | settings, tax unit, matching rule                     | form + `UnsavedChangesBar` (explicit save, leaving asks first); in a dialog, closing with changes asks first (`useDiscardGuard`) |
+| Moves money    | donation amount/date/split, agreement amount          | form + `ConfirmDialog` showing before → after, amount in the button                                                              |
+| Irreversible   | delete donation, merge donors, stop agreement, refund | `ConfirmDialog tone="danger"` with `consequences`; `confirmText` (type the id/amount) for merges and refunds                     |
 
 ### Optimism, undo and feedback
 
 - Optimistic only for cheap, reversible, non-financial changes (newsletter, name, saved views,
   skipping a review item). Everything in a confirmation waits for the server and shows
   `pending` on the button.
-- Undo (`notify.undo`) only for actions done _without_ confirmation. Never both.
-- `notify.success` for things that happened (short, past tense). `notify.error(error)` for
+- Undo (`notify.undo`) only for actions done _without_ confirmation. Never both. Undoing is
+  confirmed with a plain success toast ("Change undone"), never with another Undo.
+- `notify.success` for things that happened (short, past tense), with at most one action to
+  what was just made ("Open donation" after registering). `notify.error(error)` for
   failures outside dialogs; inside a dialog, keep it open and show the error in it. Section load
-  failures use `ErrorState` in place with Try again. Persistent page-level messages use
-  `Callout`.
+  failures use `ErrorState` in place with Try again. A record that doesn't exist (deleted,
+  merged into another) can't come back on retry: `ErrorState` with `back` links to its list
+  instead. Persistent page-level messages use `Callout`.
 - Loading: skeletons on first load, a thin accent progress line on refetch (rows dim slightly),
   `pending` on buttons. Never a full-page spinner.
 
@@ -335,7 +343,14 @@ API has none).
   consequences as a list.
 - Errors: what went wrong in the person's terms, then what to do. Server validation messages are
   shown as written; generic failures map through `describeError`.
-- Empty states say why it's empty and offer the next step.
+- Empty states say why it's empty and offer the next step. An action that produced nothing
+  says so instead of succeeding silently (an empty report period downloads no file; an import
+  with no payments in it is a warning, not "Everything was handled").
+- Service messages written for developers ("Invalid ssn (failed fnr validation) …") are
+  rewritten in the person's terms before they're shown (`plainMessage`).
+- Payment methods are shown by their full name (`PaymentMethodName`), whichever form the API
+  sent. Tax ids: fødselsnummer masked (`010190 •••••`), organization numbers in full
+  (`maskSsn`). Truncated text has the whole value in its tooltip.
 - Numbers and dates are Norwegian (`1 234 kr`, `24.10.2026`, `nb-NO`); words follow the UI
   language (month names, “2 days ago”).
 - Shared copy lives in `src/lib/strings.ts` so a later translation swaps one module. No i18n
