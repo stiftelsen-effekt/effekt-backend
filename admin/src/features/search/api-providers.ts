@@ -1,5 +1,7 @@
 import {
+  CoinsIcon,
   FlagIcon,
+  FolderKanbanIcon,
   HandCoinsIcon,
   InboxIcon,
   KeyRoundIcon,
@@ -7,7 +9,7 @@ import {
   UserIcon,
 } from "lucide-react";
 import { useMemo } from "react";
-import { reviewStatus } from "@/lib/status";
+import { projectStatus, reviewStatus, roundStatus } from "@/lib/status";
 import { formatDate, formatMoney } from "@/lib/format";
 import { sourceLabel } from "@/features/review-queue/model";
 import { errorCode, useTRPCClient } from "@/lib/trpc";
@@ -181,6 +183,56 @@ export function useApiSearchProviders(): SearchProvider[] {
             href: `/agreements/${agreement.provider}/${agreement.id}`,
             icon: RepeatIcon,
           }));
+        },
+      },
+      {
+        // Regranting rounds: an id, or part of the name ("October 2026")
+        id: "regranting-round",
+        group: "Rounds",
+        applies: (query) => isDigits(query) || query.trim().length >= 3,
+        async search(query, signal) {
+          const q = query.trim().toLowerCase();
+          const rounds = await client.regranting.rounds.list.query(undefined, { signal });
+          return rounds
+            .filter((r) => String(r.id) === q || r.name.toLowerCase().includes(q))
+            .slice(0, 5)
+            .map((r) => ({
+              id: `round-${r.id}`,
+              title: r.name,
+              subtitle: `Round #${r.id} · ${roundStatus[r.status].label} · cutoff ${formatDate(
+                r.cutoff,
+              )}`,
+              meta: formatMoney(r.totalNok),
+              href: `/regranting/rounds/${r.id}`,
+              icon: CoinsIcon,
+            }));
+        },
+      },
+      {
+        // Projects at regranting recipients: name, recipient or agreement reference
+        id: "regranting-project",
+        group: "Projects",
+        applies: (query) => isDigits(query) || query.trim().length >= 3,
+        async search(query, signal) {
+          const q = query.trim().toLowerCase();
+          const projects = await client.regranting.projects.list.query(undefined, { signal });
+          return projects
+            .filter(
+              (p) =>
+                String(p.id) === q ||
+                p.name.toLowerCase().includes(q) ||
+                p.organizationName.toLowerCase().includes(q) ||
+                (p.agreementRef ?? "").toLowerCase().includes(q),
+            )
+            .slice(0, 5)
+            .map((p) => ({
+              id: `project-${p.id}`,
+              title: p.name,
+              subtitle: `${p.organizationName} · ${projectStatus[p.status].label}`,
+              meta: p.reportDue ? `Report ${formatDate(p.reportDue)}` : undefined,
+              href: `/regranting/projects/${p.id}`,
+              icon: FolderKanbanIcon,
+            }));
         },
       },
       {

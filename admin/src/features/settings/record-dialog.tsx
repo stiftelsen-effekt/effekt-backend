@@ -31,9 +31,12 @@ export function RecordDialog<V>({
   validate,
   onSave,
   saveLabel,
+  contentClassName,
   children,
 }: {
   trigger: ReactNode;
+  /** Wider dialogs for forms with a table in them, e.g. "sm:max-w-2xl". */
+  contentClassName?: string;
   title: ReactNode;
   description?: ReactNode;
   initial: () => V;
@@ -93,7 +96,7 @@ export function RecordDialog<V>({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className={contentClassName}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}

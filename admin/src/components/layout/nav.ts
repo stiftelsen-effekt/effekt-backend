@@ -4,6 +4,7 @@
  *   Donors       – people and what they give through (fundraisers)
  *   Money in     – every krone that arrives: donations, the KIDs they use, imports, review
  *   Agreements   – recurring giving, one model across Vipps / AvtaleGiro
+ *   Regranting   – money out: balances, rounds, projects, adjustments, payees & funds
  *   Records      – reports and the import log
  *   Settings     – cause areas, organizations, referral types, matching rules
  * See DESIGN.md › Information architecture.
@@ -11,6 +12,11 @@
 import {
   ArrowDownToLineIcon,
   BookOpenIcon,
+  CoinsIcon,
+  FolderKanbanIcon,
+  LandmarkIcon,
+  ScaleIcon,
+  SlidersHorizontalIcon,
   CalendarCheckIcon,
   FlagIcon,
   HandCoinsIcon,
@@ -93,6 +99,42 @@ export const navGroups: NavGroup[] = [
         label: "AvtaleGiro check",
         icon: CalendarCheckIcon,
         keywords: ["validation", "missing", "expected"],
+      },
+    ],
+  },
+  {
+    label: "Regranting",
+    items: [
+      {
+        to: "/regranting",
+        label: "Balances",
+        icon: ScaleIcon,
+        exact: true,
+        keywords: ["regranting", "tildelinger", "owed", "ikke overført"],
+      },
+      {
+        to: "/regranting/rounds",
+        label: "Rounds",
+        icon: CoinsIcon,
+        keywords: ["regranting", "tildeling", "transfers", "payout", "fund grant"],
+      },
+      {
+        to: "/regranting/projects",
+        label: "Projects",
+        icon: FolderKanbanIcon,
+        keywords: ["prosjekt"],
+      },
+      {
+        to: "/regranting/adjustments",
+        label: "Adjustments",
+        icon: SlidersHorizontalIcon,
+        keywords: ["correction", "fee", "opening balance", "fronted", "reallocation"],
+      },
+      {
+        to: "/regranting/settings",
+        label: "Payees & funds",
+        icon: LandmarkIcon,
+        keywords: ["payee", "routing", "own fund", "hold", "mottaker"],
       },
     ],
   },
