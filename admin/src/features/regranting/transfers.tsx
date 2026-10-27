@@ -14,57 +14,15 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { parseMoneyInput } from "@/features/donations/form";
-import { RecordDialog, textError } from "@/features/settings/record-dialog";
+import { RecordDialog } from "@/features/settings/record-dialog";
 import { osloDay } from "@/lib/dates";
 import { formatMoney, formatMoneyInput } from "@/lib/format";
 import { notify } from "@/lib/notify";
 import { useTRPC } from "@/lib/trpc";
 import { AdjustmentDialog } from "./adjustment-dialog";
 import { lineLabel, type RoundSummary, type Transfer } from "./model";
+import { parsePreciseDecimal, validatePayment, type PaymentForm } from "./payment-form";
 import { ForeignAmount, RecipientLink } from "./ui";
-
-type PaymentForm = {
-  paidAt: string;
-  currency: string;
-  amountForeign: string;
-  fxRate: string;
-  bankFee: string;
-  bankRef: string;
-  paidBy: "foundation" | "external";
-};
-
-const decimal8 = /^\d{1,16}([.,]\d{1,8})?$/;
-/** "1 234,5678" → "1234.5678"; null if it isn't a positive decimal with ≤ 8 decimals. */
-export function parsePreciseDecimal(text: string): string | null {
-  const cleaned = text.replace(/[\s  ]/g, "");
-  if (!decimal8.test(cleaned)) return null;
-  const value = cleaned.replace(",", ".");
-  return Number(value) > 0 ? value : null;
-}
-
-export function validatePayment(v: PaymentForm) {
-  return {
-    paidAt: v.paidAt ? undefined : "Enter the day the bank paid it",
-    currency: /^[A-Z]{3,8}$/.test(v.currency.trim())
-      ? undefined
-      : "Enter a code like NOK, EUR or BTC",
-    amountForeign:
-      v.amountForeign.trim() === "" || parsePreciseDecimal(v.amountForeign) !== null
-        ? v.currency !== "NOK" && v.amountForeign.trim() === ""
-          ? `Enter the amount paid in ${v.currency}`
-          : undefined
-        : "Enter a positive amount with at most 8 decimals",
-    fxRate:
-      v.fxRate.trim() === "" || parsePreciseDecimal(v.fxRate) !== null
-        ? undefined
-        : "Enter NOK per unit, e.g. 11,6234",
-    bankFee:
-      v.bankFee.trim() === "" || parseMoneyInput(v.bankFee) !== null
-        ? undefined
-        : "Enter an amount in kroner",
-    bankRef: textError(v.bankRef, { label: "the bank reference", max: 255 }),
-  };
-}
 
 export function Transfers({ round, transfers }: { round: RoundSummary; transfers: Transfer[] }) {
   const trpc = useTRPC();
@@ -226,7 +184,7 @@ function RecordPaymentDialog({ transfer: t }: { transfer: Transfer }) {
         bankRef: t.bankRef ?? "",
         paidBy: t.paidBy,
       })}
-      validate={validatePayment}
+      validate={(v) => validatePayment(v, t.amountNok)}
       saveLabel={`Record ${formatMoney(t.amountNok)}`}
       onSave={async (v) => {
         await record.mutateAsync({

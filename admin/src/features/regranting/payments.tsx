@@ -1,7 +1,8 @@
 /**
  * Step 2 of the round builder: payments grouped by payee. One table per payee (one transfer per
  * payee and currency); per recipient its lines (unrestricted + projects) with balance at
- * cutoff, fund grant in, available, Pay now (editable in a draft), Carries over and flags.
+ * cutoff, fund grant in, the round's adjustments (earmarks), available, Pay now (editable in a
+ * draft), Carries over and flags.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -31,11 +32,9 @@ import { useTRPC } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import {
   defaultTransferFor,
-  earmarkEdits,
   lineFigures,
   lineKey,
   paymentFor,
-  planSave,
   recipientLines,
   recipientTotals,
   savedPayments,
@@ -73,13 +72,10 @@ export function Payments({
   const saved = savedPayments(builder.transfers);
   const byId = new Map(builder.recipients.map((r) => [r.organizationId, r]));
   // Rounds that don't include direct donations by default list every recipient with a balance;
-  // show only those in the round unless asked
+  // show only those in the round (the API's inRound, or with unsaved edits) unless asked
   const [showAll, setShowAll] = useState(builder.defaultIncludeDirect);
   const inRound = (r: BuilderRecipient) =>
-    moneySign(r.totals.inRound) !== 0 ||
-    moneySign(r.totals.proposed) !== 0 ||
-    r.includeDirectOverride !== null ||
-    [...edits.keys()].some((k) => k.startsWith(`${r.organizationId}:`));
+    r.inRound || [...edits.keys()].some((k) => k.startsWith(`${r.organizationId}:`));
   const hidden = builder.recipients.filter((r) => !inRound(r)).length;
 
   if (builder.recipients.length === 0) {
@@ -145,6 +141,13 @@ export function Payments({
                     <th scope="col" className="text-right">
                       Fund grant in
                     </th>
+                    <th
+                      scope="col"
+                      className="text-right"
+                      title="This round's adjustments, e.g. earmarks. They count in balances once the round is approved."
+                    >
+                      Adjustments
+                    </th>
                     <th scope="col" className="text-right">
                       Available
                     </th>
@@ -172,6 +175,7 @@ export function Payments({
                 <tfoot>
                   <tr className="font-semibold [&>td]:border-t [&>td]:border-border-strong [&>td]:px-3 [&>td]:py-2">
                     <td>Total {groupLabel}</td>
+                    <td />
                     <td />
                     <td />
                     <td />
@@ -382,7 +386,7 @@ function RecipientRows({
       className="[&>tr>td]:border-b [&>tr>td]:border-border [&>tr>td]:px-3 [&>tr>td]:py-1.5"
     >
       <tr className="bg-muted/40">
-        <td colSpan={5}>
+        <td colSpan={6}>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span onMouseEnter={() => onPrefetch?.(orgId)} onFocus={() => onPrefetch?.(orgId)}>
               <RecipientLink organizationId={orgId} className="font-semibold">
@@ -451,6 +455,11 @@ function RecipientRows({
             </td>
             <td className="text-right">
               {moneySign(line.fundGrants) !== 0 && <Money value={line.fundGrants} />}
+            </td>
+            <td className="text-right">
+              {moneySign(line.roundAdjustments) !== 0 && (
+                <Money value={line.roundAdjustments} signed />
+              )}
             </td>
             <td className="text-right">
               <Money value={line.available} signed />
@@ -543,7 +552,7 @@ function RecipientRows({
       })}
       {editable && recipient.payee && (
         <tr>
-          <td colSpan={8} className="pl-6">
+          <td colSpan={9} className="pl-6">
             <div className="flex flex-wrap gap-2">
               <AddProjectLineDialog
                 builder={builder}
@@ -552,12 +561,7 @@ function RecipientRows({
                 saved={saved}
                 onEditsChange={onEditsChange}
               />
-              <EarmarkDialog
-                builder={builder}
-                recipient={recipient}
-                saved={saved}
-                dirty={edits.size > 0}
-              />
+              <EarmarkDialog builder={builder} recipient={recipient} dirty={edits.size > 0} />
             </div>
           </td>
         </tr>
@@ -768,26 +772,23 @@ function AddProjectLineDialog({
 }
 
 /**
- * Earmarks part of the unrestricted balance to a project: two reallocation adjustments dated
- * the cutoff and attached to this draft (unrestricted −X, project +X), and the same amount of
- * Pay now moves from the unrestricted line to the project line.
+ * Earmarks part of the unrestricted balance to a project (regranting.rounds.earmark): two paired
+ * reallocation entries attached to this draft and dated its cutoff (unrestricted −X, project +X),
+ * and the same amount of Pay now moves from the unrestricted line to the project line, in one
+ * transaction. Balances change only once the round is approved.
  */
 function EarmarkDialog({
   builder,
   recipient,
-  saved,
   dirty,
 }: {
   builder: Builder;
   recipient: BuilderRecipient;
-  saved: ReadonlyMap<string, LinePayment>;
   dirty: boolean;
 }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const createAdjustment = useMutation(trpc.regranting.adjustments.create.mutationOptions());
-  const setLines = useMutation(trpc.regranting.transfers.setLines.mutationOptions());
-  const createTransfer = useMutation(trpc.regranting.transfers.create.mutationOptions());
+  const earmark = useMutation(trpc.regranting.rounds.earmark.mutationOptions());
   const unrestricted = recipient.lines.find((l) => l.projectId === null);
   const available = unrestricted?.available ?? "0.00";
   return (
@@ -795,7 +796,7 @@ function EarmarkDialog({
       projectId: number | null;
       projectName: string | null;
       amount: string;
-      reason: string;
+      note: string;
     }>
       trigger={
         <Button
@@ -812,8 +813,8 @@ function EarmarkDialog({
         available,
       )} available) to a project, with two reallocation entries dated the cutoff (${formatDate(
         builder.round.cutoff,
-      )}). Pay now moves with it.`}
-      initial={() => ({ projectId: null, projectName: null, amount: "", reason: "" })}
+      )}). Pay now moves with it. Balances change when the round is approved.`}
+      initial={() => ({ projectId: null, projectName: null, amount: "", note: "" })}
       validate={(v) => {
         const amount = parseMoneyInput(v.amount);
         return {
@@ -821,41 +822,22 @@ function EarmarkDialog({
           amount:
             amount === null || moneySign(amount) <= 0
               ? "Enter an amount in kroner, like 1000 or 249,50"
-              : Number(amount) > Number(available)
+              : compareMoney(amount, available) > 0
               ? `At most ${formatMoney(available)} is available`
               : undefined,
-          reason: v.reason.trim() ? undefined : "Say why (e.g. the grant letter)",
+          note: v.note.length > 1000 ? "Keep the note under 1000 characters" : undefined,
         };
       }}
       saveLabel="Earmark"
       onSave={async (v) => {
         const amount = parseMoneyInput(v.amount)!;
-        const common = {
-          organizationId: recipient.organizationId,
-          type: "reallocation" as const,
-          reason: `Earmarked in ${builder.round.name}: ${v.reason.trim()}`,
-          effectiveAt: builder.round.cutoff,
+        await earmark.mutateAsync({
           roundId: builder.round.id,
-        };
-        await createAdjustment.mutateAsync({ ...common, projectId: null, amount: -Number(amount) });
-        await createAdjustment.mutateAsync({
-          ...common,
-          projectId: v.projectId,
+          organizationId: recipient.organizationId,
+          projectId: v.projectId!,
           amount: Number(amount),
+          note: v.note.trim() || null,
         });
-        const plan = planSave(
-          builder,
-          earmarkEdits(
-            new Map(),
-            saved,
-            recipient.organizationId,
-            { id: v.projectId!, name: v.projectName ?? "" },
-            amount,
-          ),
-        );
-        for (const s of plan.setLines) await setLines.mutateAsync(s);
-        for (const c of plan.create)
-          await createTransfer.mutateAsync({ roundId: builder.round.id, ...c });
         await queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
         notify.success("Earmarked", `${formatMoney(amount)} to ${v.projectName ?? "the project"}`);
       }}
@@ -878,8 +860,12 @@ function EarmarkDialog({
               onChange={(e) => set({ amount: e.target.value })}
             />
           </Field>
-          <Field label="Reason" required error={errors.reason}>
-            <Textarea value={values.reason} onChange={(e) => set({ reason: e.target.value })} />
+          <Field
+            label="Note"
+            error={errors.note}
+            hint="Added to the reason, which names the project and the round (e.g. the grant letter)"
+          >
+            <Textarea value={values.note} onChange={(e) => set({ note: e.target.value })} />
           </Field>
         </>
       )}

@@ -91,3 +91,46 @@ test("the creator can't approve their own round", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Approve round" })).toBeDisabled();
 });
+
+test("Earmark to project sends one earmark request with the project, amount and note", async ({
+  page,
+}) => {
+  const calls: unknown[] = [];
+  await openBuilder(page, {
+    "regranting.rounds.earmark": (input: unknown) => {
+      calls.push(input);
+      return builderFixture();
+    },
+  });
+  await page
+    .locator("[data-recipient='1']")
+    .getByRole("button", { name: "Earmark to project…" })
+    .click();
+  const dialog = page.getByRole("dialog", { name: /Earmark part of/ });
+  await dialog.getByRole("combobox").click();
+  await page.getByRole("option", { name: "Cash transfers in Malawi" }).click();
+  await dialog.getByRole("textbox", { name: "Amount" }).fill("2000");
+  await dialog.getByRole("button", { name: "Earmark" }).click();
+  await expect(dialog).toContainText("At most 1 000,30 kr is available");
+  expect(calls).toEqual([]);
+
+  await dialog.getByRole("textbox", { name: "Amount" }).fill("200,50");
+  await dialog.getByRole("textbox", { name: "Note" }).fill("Grant letter 12");
+  await dialog.getByRole("button", { name: "Earmark" }).click();
+  await expect(dialog).toBeHidden();
+  expect(calls).toEqual([
+    { roundId: 7, organizationId: 1, projectId: 3, amount: 200.5, note: "Grant letter 12" },
+  ]);
+});
+
+test("Show recipients not in this round follows the API's inRound flag", async ({ page }) => {
+  const fixture = builderFixture();
+  fixture.defaultIncludeDirect = false;
+  (fixture.recipients[1] as { inRound: boolean }).inRound = false;
+  await openBuilder(page, { "regranting.rounds.builder": () => fixture });
+  const tcf = page.locator("[data-recipient='2']");
+  await expect(page.locator("[data-recipient='1']")).toBeVisible();
+  await expect(tcf).toHaveCount(0);
+  await page.getByRole("switch", { name: /Show recipients not in this round \(1\)/ }).click();
+  await expect(tcf).toBeVisible();
+});

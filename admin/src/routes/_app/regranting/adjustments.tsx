@@ -63,7 +63,13 @@ const columns = col.columns([
     cell: ({ row: { original: a } }) => (
       <span className="inline-flex items-center gap-1.5">
         {adjustmentTypeLabels[a.type]}
-        {!a.affectsBalance && <Badge tone="outline">Record</Badge>}
+        {a.type === "fronted" ? (
+          <Badge tone="outline">Record</Badge>
+        ) : a.pending ? (
+          <Badge tone="outline" title="Attached to a draft round; counts once it is approved">
+            Pending
+          </Badge>
+        ) : null}
       </span>
     ),
   }),
@@ -261,15 +267,17 @@ function AdjustmentPeek({
       actions={
         !locked && (
           <>
-            <AdjustmentDialog
-              adjustment={a}
-              trigger={
-                <Button size="sm">
-                  <PencilIcon />
-                  Edit
-                </Button>
-              }
-            />
+            {a.pairedAdjustmentId === null && (
+              <AdjustmentDialog
+                adjustment={a}
+                trigger={
+                  <Button size="sm">
+                    <PencilIcon />
+                    Edit
+                  </Button>
+                }
+              />
+            )}
             <ConfirmDialog
               trigger={
                 <Button size="sm" variant="ghost" aria-label="Delete adjustment">
@@ -281,10 +289,14 @@ function AdjustmentPeek({
                 a.amount,
               )}?`}
               consequences={[
-                a.affectsBalance
+                a.pairedAdjustmentId !== null
+                  ? "It's half of an earmark: both halves (unrestricted and project) are deleted. The round's Pay now stays; remove the earmark in the round to move it back."
+                  : a.affectsBalance
                   ? `${a.organizationName}'s balance changes by ${formatMoney(
                       a.amount.startsWith("-") ? a.amount.slice(1) : `-${a.amount}`,
                     )}`
+                  : a.pending
+                  ? "It's pending in a draft round; no balance changes"
                   : "It's a record only; no balance changes",
               ]}
               confirmLabel="Delete adjustment"
@@ -320,7 +332,13 @@ function AdjustmentPeek({
         <Property label="Counts from">
           <DateTime value={a.effectiveAt} />
         </Property>
-        <Property label="In balance">{a.affectsBalance ? "Yes" : "No, a record only"}</Property>
+        <Property label="In balance">
+          {a.affectsBalance
+            ? "Yes"
+            : a.pending
+            ? "Not yet: it counts once its round is approved"
+            : "No, a record only"}
+        </Property>
         <Property label="Reason">{a.reason}</Property>
         <Property label="Round">
           {a.roundId && (

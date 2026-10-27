@@ -67,7 +67,7 @@ export function statementCsv(statement: Statement): string {
       description: describeEntry(e),
       amount: e.amount,
       balance: e.balanceAfter,
-      counts_in_balance: e.affectsBalance ? "yes" : "no",
+      counts_in_balance: e.affectsBalance ? "yes" : e.pending ? "pending" : "no",
       round: e.roundName ?? "",
       reference: e.bankRef ?? "",
     })),

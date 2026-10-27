@@ -20,6 +20,7 @@ import { Status } from "@/components/domain/status";
 import { Stat, StatGroup } from "@/components/domain/stat";
 import { UnsavedChangesBar } from "@/components/domain/unsaved-changes";
 import { DetailPage, PageSection } from "@/components/templates";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateInput } from "@/components/ui/date-input";
@@ -286,22 +287,7 @@ function Round({ roundId }: { roundId: number }) {
             </PageSection>
           )}
           {detail.data && detail.data.adjustments.length > 0 && (
-            <PageSection title="Adjustments in this round">
-              <ul className="grid gap-1 text-sm">
-                {detail.data.adjustments.map((a) => (
-                  <li key={a.id} className="flex flex-wrap gap-2">
-                    <Money value={a.amount} signed className="w-28 text-right" />
-                    <RecipientLink organizationId={a.organizationId}>
-                      {a.organizationName}
-                    </RecipientLink>
-                    {a.projectName && (
-                      <span className="text-muted-foreground">{a.projectName}</span>
-                    )}
-                    <span className="text-muted-foreground">{a.reason}</span>
-                  </li>
-                ))}
-              </ul>
-            </PageSection>
+            <RoundAdjustments adjustments={detail.data.adjustments} editable={editable} />
           )}
           {detail.data && detail.data.snapshot.length > 0 && (
             <Snapshot snapshot={detail.data.snapshot} />
@@ -452,7 +438,7 @@ function RoundActions({
   onBlocked,
 }: {
   builder: Builder;
-  /** Attached to the round (e.g. earmarks); deleted with a draft */
+  /** Attached to the round (e.g. earmarks); the API deletes them with a draft */
   adjustments: RoundDetail["adjustments"];
   isCreator: boolean;
   dirty: boolean;
@@ -468,7 +454,6 @@ function RoundActions({
   const reopen = useMutation(trpc.regranting.rounds.reopen.mutationOptions());
   const markPaid = useMutation(trpc.regranting.rounds.markPaid.mutationOptions());
   const remove = useMutation(trpc.regranting.rounds.delete.mutationOptions());
-  const removeAdjustment = useMutation(trpc.regranting.adjustments.delete.mutationOptions());
   const counts = countIssues(builder.issues);
   const grants = builder.fundGrants;
   const unpaid = builder.transfers.filter((t) => !t.paidAt);
@@ -564,16 +549,14 @@ function RoundActions({
                   `Its ${plural(
                     adjustments.length,
                     "adjustment",
-                  )} (earmarks, corrections) are deleted too`,
+                  )} (earmarks, corrections) are deleted with it`,
                 ]
               : []),
-            "Nothing was paid; the balances don't change",
+            "Nothing was paid and a draft's adjustments never counted; the balances don't change",
           ]}
           confirmText={String(round.id)}
           confirmLabel="Delete draft"
           onConfirm={async () => {
-            // The API keeps a deleted round's adjustments (unattached); they belong to the draft
-            for (const a of adjustments) await removeAdjustment.mutateAsync({ id: a.id });
             await remove.mutateAsync({ id: round.id });
             await invalidate();
             notify.success("Draft deleted", round.name);
@@ -846,6 +829,84 @@ function ChosenDonations({ builder, editable }: { builder: Builder; editable: bo
   );
 }
 
+/**
+ * The round's adjustments (earmarks, corrections). In a draft they are pending: shown in the
+ * builder's Adjustments column, in balances only once the round is approved. An earmark (two
+ * paired entries) is listed once and can be removed, which also moves its Pay now back.
+ */
+function RoundAdjustments({
+  adjustments,
+  editable,
+}: {
+  adjustments: RoundDetail["adjustments"];
+  editable: boolean;
+}) {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const removeEarmark = useMutation(trpc.regranting.rounds.removeEarmark.mutationOptions());
+  // An earmark is shown by its project half
+  const shown = adjustments.filter((a) => a.pairedAdjustmentId === null || a.projectId !== null);
+  return (
+    <PageSection
+      title="Adjustments in this round"
+      description={
+        editable
+          ? "Pending: they count in the Pay now figures above, and in balances once the round is approved."
+          : undefined
+      }
+    >
+      <ul className="grid gap-1 text-sm" aria-label="Adjustments in this round">
+        {shown.map((a) => {
+          const earmark = a.pairedAdjustmentId !== null;
+          return (
+            <li key={a.id} className="flex flex-wrap items-center gap-2">
+              <Money value={a.amount} signed className="w-28 text-right" />
+              <RecipientLink organizationId={a.organizationId}>{a.organizationName}</RecipientLink>
+              {a.projectName && (
+                <span className="text-muted-foreground">
+                  {earmark ? `Unrestricted → ${a.projectName}` : a.projectName}
+                </span>
+              )}
+              <span className="text-muted-foreground">{a.reason}</span>
+              {a.pending && <Badge tone="outline">Pending</Badge>}
+              {editable && earmark && (
+                <ConfirmDialog
+                  trigger={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto px-1 py-0 text-xs"
+                      aria-label={`Remove the earmark of ${formatMoney(a.amount)} to ${
+                        a.projectName ?? "the project"
+                      }`}
+                    >
+                      Remove earmark
+                    </Button>
+                  }
+                  tone="danger"
+                  title={`Remove the earmark of ${formatMoney(a.amount)} to ${
+                    a.projectName ?? "the project"
+                  }?`}
+                  consequences={[
+                    "Both entries (unrestricted and project) are deleted",
+                    "Pay now moves back from the project line to the unrestricted line",
+                  ]}
+                  confirmLabel="Remove earmark"
+                  onConfirm={async () => {
+                    await removeEarmark.mutateAsync({ adjustmentId: a.id });
+                    await queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
+                    notify.success("Earmark removed", a.projectName ?? undefined);
+                  }}
+                />
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </PageSection>
+  );
+}
+
 function Snapshot({ snapshot }: { snapshot: RoundDetail["snapshot"] }) {
   return (
     <PageSection
@@ -866,6 +927,9 @@ function Snapshot({ snapshot }: { snapshot: RoundDetail["snapshot"] }) {
               </th>
               <th scope="col" className="text-right">
                 Fund grants
+              </th>
+              <th scope="col" className="text-right">
+                Adjustments
               </th>
               <th scope="col" className="text-right">
                 In round
@@ -889,6 +953,9 @@ function Snapshot({ snapshot }: { snapshot: RoundDetail["snapshot"] }) {
                 </td>
                 <td className="text-right">
                   <Money value={s.fundGrants} signed />
+                </td>
+                <td className="text-right">
+                  <Money value={s.roundAdjustments} signed />
                 </td>
                 <td className="text-right">
                   <Money value={s.inRound} />

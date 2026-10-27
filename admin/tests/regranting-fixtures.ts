@@ -10,6 +10,7 @@ const amounts = (available: string, inRound = "0.00", extra: Record<string, stri
   balanceAtCutoff: available,
   committed: "0.00",
   fundGrants: "0.00",
+  roundAdjustments: "0.00",
   available,
   proposed: available,
   inRound,
@@ -96,6 +97,7 @@ const recipient = (
   organizationId,
   name,
   abbriv,
+  inRound: true,
   payee,
   includeDirect: true,
   includeDirectOverride: null,
@@ -349,6 +351,9 @@ const adjustment = {
   documentRef: "Bilag 2026-118",
   createdBy: "ops@example.org",
   createdAt: "2026-08-12T10:00:00.000Z",
+  pairedAdjustmentId: null,
+  roundStatus: null,
+  pending: false,
   affectsBalance: false,
 };
 
@@ -410,6 +415,7 @@ export const fixtures: Record<string, unknown> = {
         adjustmentType: null,
         reason: null,
         createdBy: null,
+        pending: false,
       },
       {
         date: "2026-07-10",
@@ -435,6 +441,7 @@ export const fixtures: Record<string, unknown> = {
         adjustmentType: null,
         reason: null,
         createdBy: "approver@example.org",
+        pending: false,
       },
     ],
     closingBalance: "12000.50",

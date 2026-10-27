@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   defaultTransferFor,
-  earmarkEdits,
   lineFigures,
   lineKey,
   paymentFor,
@@ -24,6 +23,7 @@ const line = (projectId: number | null, available: string, inRound = "0.00"): Bu
   balanceAtCutoff: available,
   committed: "0.00",
   fundGrants: "0.00",
+  roundAdjustments: "0.00",
   available,
   proposed: available,
   inRound,
@@ -43,6 +43,7 @@ const recipient = (
   organizationId,
   name: `Org ${organizationId}`,
   abbriv: `O${organizationId}`,
+  inRound: true,
   payee,
   includeDirect: true,
   includeDirectOverride: null,
@@ -54,6 +55,7 @@ const recipient = (
     balanceAtCutoff: "0.00",
     committed: "0.00",
     fundGrants: "0.00",
+    roundAdjustments: "0.00",
     available: "0.00",
     proposed: "0.00",
     inRound: "0.00",
@@ -213,23 +215,10 @@ describe("planSave", () => {
   });
 });
 
-describe("transfers and earmarking", () => {
+describe("transfers", () => {
   it("puts a line in the payee's transfer in its currency", () => {
     expect(defaultTransferFor(builder, givewell, null)).toBe(100);
     expect(defaultTransferFor(builder, gd, null)).toBeNull();
     expect(defaultTransferFor(builder, givewell, 999)).toBe(100);
-  });
-
-  it("moves Pay now from unrestricted to the project, keeping the total", () => {
-    const edits = earmarkEdits(new Map(), saved, 10, { id: 8, name: "Nets" }, "200.10");
-    expect(paymentFor(saved, edits, 10, null).amount).toBe("800.00");
-    expect(paymentFor(saved, edits, 10, 8)).toEqual({ amount: "200.10", transferId: 100 });
-    expect(totalToPay(builder, edits)).toBe(totalToPay(builder, new Map()));
-  });
-
-  it("moves at most what unrestricted pays", () => {
-    const edits = earmarkEdits(new Map(), saved, 11, { id: 8, name: "Nets" }, "5.00");
-    expect(paymentFor(saved, edits, 11, null).amount).toBe("0.00");
-    expect(paymentFor(saved, edits, 11, 8).amount).toBe("0.30");
   });
 });

@@ -24,7 +24,6 @@ export type LineEdit = LinePayment & { projectName?: string | null };
 export type Edits = ReadonlyMap<string, LineEdit>;
 
 const subtract = (a: string, b: string) => fromMinorUnits(toMinorUnits(a) - toMinorUnits(b));
-const max0 = (value: string) => (moneySign(value) < 0 ? "0.00" : value);
 
 /** The round's lines as saved: amount per (recipient, project), summed over transfers. */
 export function savedPayments(transfers: readonly Transfer[]): Map<string, LinePayment> {
@@ -81,6 +80,7 @@ const zeroLine = (projectId: number | null, projectName: string | null): Builder
   balanceAtCutoff: "0.00",
   committed: "0.00",
   fundGrants: "0.00",
+  roundAdjustments: "0.00",
   available: "0.00",
   proposed: "0.00",
   inRound: "0.00",
@@ -326,33 +326,4 @@ export function transferCountAfter(
   const plan = planSave(builder, edits);
   const emptied = new Set(plan.setLines.filter((s) => s.lines.length === 0).map((s) => s.id));
   return builder.transfers.filter((t) => !emptied.has(t.id)).length + plan.create.length;
-}
-
-/**
- * Earmarking part of an unrestricted balance to a project: the money moves (two reallocation
- * adjustments, made by the caller) and so does the payment, so Pay now in total stays the
- * same. Returns the edits that move up to `amount` of the unrestricted line's Pay now to the
- * project line, in the same transfer.
- */
-export function earmarkEdits(
-  edits: Edits,
-  saved: ReadonlyMap<string, LinePayment>,
-  organizationId: number,
-  project: { id: number; name: string },
-  amount: string,
-): Map<string, LineEdit> {
-  const unrestricted = paymentFor(saved, edits, organizationId, null);
-  const projectPayment = paymentFor(saved, edits, organizationId, project.id);
-  const moved = compareMoney(amount, unrestricted.amount) > 0 ? unrestricted.amount : amount;
-  if (moneySign(moved) <= 0) return new Map(edits);
-  let next = setPayment(edits, saved, organizationId, null, {
-    ...unrestricted,
-    amount: max0(subtract(unrestricted.amount, moved)),
-  });
-  next = setPayment(next, saved, organizationId, project.id, {
-    amount: sumMoney([projectPayment.amount, moved]),
-    transferId: projectPayment.transferId ?? unrestricted.transferId,
-    projectName: project.name,
-  });
-  return next;
 }

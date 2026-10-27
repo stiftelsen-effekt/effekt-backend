@@ -83,10 +83,16 @@ const columns = col.columns([
     cell: ({ row: { original: e } }) => (
       <span className="inline-flex items-center gap-1.5">
         {entryKindLabels[e.kind]}
-        {!e.affectsBalance && (
-          <Badge tone="outline" title="A record only; doesn't change the balance">
-            Record
+        {e.pending ? (
+          <Badge tone="outline" title="In a draft round; counts once the round is approved">
+            Pending
           </Badge>
+        ) : (
+          !e.affectsBalance && (
+            <Badge tone="outline" title="A record only; doesn't change the balance">
+              Record
+            </Badge>
+          )
         )}
       </span>
     ),
