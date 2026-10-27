@@ -352,13 +352,15 @@ const taxRouter = router({
 });
 
 const logsRouter = router({
+  /** Log entries, newest first unless sorted; `total` counts the entries matching fileSearch */
   list: adminProcedure.input(logsListInput).query(async ({ input }) => {
     const entries = await DAO.logging.getEntries(
       input.limit,
       input.page * input.limit,
       input.filter?.fileSearch ?? null,
+      input.sort ?? { id: "timestamp", desc: true },
     );
-    return { rows: entries.results, pages: entries.pages };
+    return { rows: entries.results, pages: entries.pages, total: entries.total };
   }),
 
   get: adminProcedure.input(idInput).query(async ({ input }) => {

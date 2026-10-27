@@ -121,8 +121,12 @@ export const transactionRangeInput = z
 
 //region Logs
 
+export const logsSort = sortSchema(["timestamp", "label", "id"] as const);
+
 export const logsListInput = z.strictObject({
   ...paginationFields,
+  /** Newest first when omitted */
+  sort: logsSort.optional(),
   filter: z
     .strictObject({
       /** Fuzzy match in the `file` field of the log entry's result JSON */

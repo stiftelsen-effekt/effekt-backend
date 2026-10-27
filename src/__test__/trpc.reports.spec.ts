@@ -522,7 +522,7 @@ describe("tRPC reports router", () => {
       const rows = [{ ID: 1, label: "Vipps", timestamp: new Date(), meta: "" }];
       const getEntries = sinon
         .stub(DAO.logging, "getEntries")
-        .resolves({ results: rows, pages: 3 });
+        .resolves({ results: rows, pages: 3, total: 70 });
 
       const result = await admin().logs.list({
         page: 2,
@@ -530,8 +530,31 @@ describe("tRPC reports router", () => {
         filter: { fileSearch: "002370000101" },
       });
 
-      expect(getEntries.firstCall.args).to.deep.equal([25, 50, "002370000101"]);
-      expect(result).to.deep.equal({ rows, pages: 3 });
+      expect(getEntries.firstCall.args).to.deep.equal([
+        25,
+        50,
+        "002370000101",
+        { id: "timestamp", desc: true },
+      ]);
+      expect(result).to.deep.equal({ rows, pages: 3, total: 70 });
+
+      await admin().logs.list({ page: 0, limit: 10, sort: { id: "label", desc: false } });
+      expect(getEntries.secondCall.args[3]).to.deep.equal({ id: "label", desc: false });
+      await expectTrpcError(
+        admin().logs.list({ page: 0, limit: 10, sort: { id: "result" as any, desc: false } }),
+        "BAD_REQUEST",
+      );
+    });
+
+    it("sorts with an id tie-break, keeping the REST order when unsorted", async () => {
+      const query = sinon.stub(DAO, "query");
+      query.resolves([[{ count: 3 }], []] as any);
+
+      await DAO.logging.getEntries(25, 0, null, { id: "label", desc: false });
+      expect(query.firstCall.args[0]).to.match(/ORDER BY label ASC, ID ASC\s+LIMIT/);
+
+      await DAO.logging.getEntries(25, 0, null);
+      expect(query.thirdCall.args[0]).to.match(/ORDER BY timestamp DESC\s+LIMIT/);
     });
 
     it("counts pages with the file search filter applied", async () => {
@@ -545,6 +568,7 @@ describe("tRPC reports router", () => {
         /WHERE JSON_EXTRACT\(result, "\$\.file"\) LIKE '%0023%'/,
       );
       expect(result.pages).to.equal(2);
+      expect(result.total).to.equal(30);
     });
 
     it("get returns an entry or NOT_FOUND", async () => {
