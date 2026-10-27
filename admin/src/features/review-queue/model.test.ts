@@ -13,7 +13,12 @@ import {
 const config: CauseAreaConfig[] = [];
 
 describe("summariseUpload", () => {
-  const base = { valid: 10, invalid: 3, queue: { added: 2, existing: 0 }, importLogId: 7 };
+  const base = {
+    valid: 10,
+    invalid: 3,
+    queue: { added: 2, existing: 0, skipped: 0, statuses: { open: 2, registered: 0, ignored: 0 } },
+    importLogId: 7,
+  };
   const items = [{}, {}] as never[];
 
   it("uses OCR's own count of duplicates", () => {
