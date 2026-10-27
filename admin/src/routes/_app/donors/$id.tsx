@@ -3,12 +3,13 @@ import { createFileRoute, useNavigate, type LinkProps } from "@tanstack/react-ro
 import {
   ArchiveRestoreIcon,
   FlagIcon,
+  GitMergeIcon,
   MoreHorizontalIcon,
   Trash2Icon,
   UserXIcon,
 } from "lucide-react";
 import { BarChart } from "@/components/charts";
-import { createColumns, DataTable } from "@/components/data-table";
+import { cellPlaceholder, createColumns, DataTable } from "@/components/data-table";
 import { CopyValue } from "@/components/domain/copy-value";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
@@ -25,7 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonText } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { agreementTypes, describeChargeDay, type AgreementRow } from "@/features/agreements/model";
@@ -37,6 +38,7 @@ import { formatMoney } from "@/lib/format";
 import { moneySign, moneyToNumber, sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
 import { agreementStatus, donorStatus } from "@/lib/status";
+import { loadPage } from "@/lib/route-data";
 import { errorCode, useTRPC, type RouterOutputs } from "@/lib/trpc";
 import { PaymentMethodName } from "@/features/donations/payment-method-name";
 import { conflictingDonorId } from "@/features/donors/form-errors";
@@ -47,8 +49,39 @@ type Tab = (typeof tabs)[number];
 export const Route = createFileRoute("/_app/donors/$id")({
   validateSearch: (raw: Record<string, unknown>): { tab?: Tab } =>
     tabs.includes(raw.tab as Tab) && raw.tab !== "donations" ? { tab: raw.tab as Tab } : {},
+  loader: ({ context: { queryClient, trpc }, params, cause }) => {
+    const donorId = Number(params.id);
+    if (!Number.isInteger(donorId) || donorId <= 0) return;
+    const q = donorQueries(trpc, donorId);
+    return loadPage(queryClient, cause, q.donor, [
+      q.aggregated,
+      q.donations,
+      q.distributions,
+      q.vipps,
+      q.avtalegiro,
+      q.taxUnits,
+      q.referrals,
+      q.referralTypes,
+    ]);
+  },
   component: DonorPage,
 });
+
+/** Everything the donor page shows; the page reads these and the loader warms them. */
+function donorQueries(trpc: ReturnType<typeof useTRPC>, donorId: number) {
+  const input = { donorId };
+  return {
+    donor: trpc.donors.get.queryOptions(input),
+    aggregated: trpc.donors.donationsAggregated.queryOptions(input),
+    donations: trpc.donors.donations.queryOptions(input),
+    distributions: trpc.donors.distributionsAggregated.queryOptions(input),
+    vipps: trpc.donors.recurring.vipps.queryOptions(input),
+    avtalegiro: trpc.donors.recurring.avtalegiro.queryOptions(input),
+    taxUnits: trpc.donors.taxUnits.list.queryOptions({ donorId }),
+    referrals: trpc.donors.referrals.queryOptions(input),
+    referralTypes: trpc.config.referralTypes.listAll.queryOptions(),
+  };
+}
 
 type Donation = RouterOutputs["donors"]["donations"][number];
 type Distribution = RouterOutputs["donors"]["distributionsAggregated"][number];
@@ -60,10 +93,15 @@ const donationCol = createColumns<Donation>();
 const donationColumns = donationCol.columns([
   donationCol.accessor("id", {
     header: "ID",
-    meta: { numeric: true, cellClassName: "text-muted-foreground w-20" },
+    meta: {
+      placeholder: cellPlaceholder.id,
+      numeric: true,
+      cellClassName: "text-muted-foreground w-20",
+    },
   }),
   donationCol.accessor("timestamp", {
     header: "Date",
+    meta: { placeholder: cellPlaceholder.dateTime },
     cell: ({ getValue }) => <DateTime value={getValue()} format="datetime" />,
   }),
   donationCol.accessor("paymentMethod", {
@@ -72,16 +110,21 @@ const donationColumns = donationCol.columns([
   }),
   donationCol.accessor("sum", {
     header: "Amount",
-    meta: { numeric: true, cellClassName: "font-semibold" },
+    meta: { placeholder: cellPlaceholder.money, numeric: true, cellClassName: "font-semibold" },
     cell: ({ getValue }) => <Money value={getValue()} signed={moneySign(getValue()) < 0} />,
   }),
   donationCol.accessor("transactionCost", {
     header: "Fee",
-    meta: { numeric: true, cellClassName: "text-muted-foreground" },
+    meta: {
+      placeholder: cellPlaceholder.money,
+      numeric: true,
+      cellClassName: "text-muted-foreground",
+    },
     cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   donationCol.accessor("KID", {
     header: "KID",
+    meta: { placeholder: cellPlaceholder.kid },
     cell: ({ getValue }) => <CopyValue value={getValue()} label="KID" />,
   }),
 ]);
@@ -90,6 +133,7 @@ const distributionCol = createColumns<Distribution>();
 const distributionColumns = distributionCol.columns([
   distributionCol.accessor("KID", {
     header: "KID",
+    meta: { placeholder: cellPlaceholder.kid },
     cell: ({ getValue }) => <CopyValue value={getValue()} label="KID" />,
   }),
   distributionCol.accessor("count", {
@@ -99,7 +143,7 @@ const distributionColumns = distributionCol.columns([
   }),
   distributionCol.accessor("sum", {
     header: "Total",
-    meta: { numeric: true, cellClassName: "font-semibold" },
+    meta: { placeholder: cellPlaceholder.money, numeric: true, cellClassName: "font-semibold" },
     cell: ({ getValue }) => <Money value={getValue() ?? 0} />,
   }),
 ]);
@@ -116,7 +160,7 @@ const agreementColumns = agreementCol.columns([
   }),
   agreementCol.accessor("amount", {
     header: "Monthly",
-    meta: { numeric: true, cellClassName: "font-semibold" },
+    meta: { placeholder: cellPlaceholder.money, numeric: true, cellClassName: "font-semibold" },
     cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   agreementCol.accessor("chargeDay", {
@@ -125,10 +169,12 @@ const agreementColumns = agreementCol.columns([
   }),
   agreementCol.accessor("KID", {
     header: "KID",
+    meta: { placeholder: cellPlaceholder.kid },
     cell: ({ getValue }) => <CopyValue value={getValue()} label="KID" />,
   }),
   agreementCol.accessor("created", {
     header: "Created",
+    meta: { placeholder: cellPlaceholder.date },
     cell: ({ getValue }) => <DateTime value={getValue()} />,
   }),
 ]);
@@ -154,19 +200,19 @@ function Donor({ donorId }: { donorId: number }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { tab = "donations" } = Route.useSearch();
-  const input = { donorId };
+  const q = donorQueries(trpc, donorId);
 
-  const donorQuery = useQuery(trpc.donors.get.queryOptions(input));
-  const aggregated = useQuery(trpc.donors.donationsAggregated.queryOptions(input));
-  const donations = useQuery(trpc.donors.donations.queryOptions(input));
-  const distributions = useQuery(trpc.donors.distributionsAggregated.queryOptions(input));
-  const vipps = useQuery(trpc.donors.recurring.vipps.queryOptions(input));
-  const avtalegiro = useQuery(trpc.donors.recurring.avtalegiro.queryOptions(input));
-  const taxUnits = useQuery(trpc.donors.taxUnits.list.queryOptions({ donorId }));
-  const referrals = useQuery(trpc.donors.referrals.queryOptions(input));
-  const referralTypes = useQuery(trpc.config.referralTypes.listAll.queryOptions());
+  const donorQuery = useQuery(q.donor);
+  const aggregated = useQuery(q.aggregated);
+  const donations = useQuery(q.donations);
+  const distributions = useQuery(q.distributions);
+  const vipps = useQuery(q.vipps);
+  const avtalegiro = useQuery(q.avtalegiro);
+  const taxUnits = useQuery(q.taxUnits);
+  const referrals = useQuery(q.referrals);
+  const referralTypes = useQuery(q.referralTypes);
 
-  const getKey = trpc.donors.get.queryKey(input);
+  const getKey = q.donor.queryKey;
   const update = useMutation(
     trpc.donors.update.mutationOptions({
       onSuccess: (donor) => {
@@ -177,7 +223,6 @@ function Donor({ donorId }: { donorId: number }) {
     }),
   );
 
-  if (donorQuery.isPending) return <DonorSkeleton />;
   if (donorQuery.isError) {
     return (
       <div className="p-6">
@@ -194,8 +239,10 @@ function Donor({ donorId }: { donorId: number }) {
       </div>
     );
   }
+  // Undefined only on the app's first load (navigations wait for it in the loader): the page
+  // then draws its real layout with placeholders for the donor's own facts.
   const donor = donorQuery.data;
-  const displayName = donor.name || donor.email;
+  const displayName = donor ? donor.name || donor.email : "";
 
   /**
    * Flag changes are optimistic with undo (DESIGN.md › Optimism, undo and feedback). Undoing
@@ -206,6 +253,7 @@ function Donor({ donorId }: { donorId: number }) {
     message: string,
     undo?: typeof patch,
   ) {
+    if (!donor) return;
     const previous = queryClient.getQueryData(getKey);
     queryClient.setQueryData(getKey, { ...donor, ...patch });
     update.mutate(
@@ -262,67 +310,93 @@ function Donor({ donorId }: { donorId: number }) {
   return (
     <DetailPage
       breadcrumbs={[{ label: "Donors", to: "/donors" }]}
-      title={displayName}
-      adornment={donor.trash && <Status catalog={donorStatus} value="trash" />}
-      meta={[
-        <CopyValue key="id" value={donor.id} prefix="#" label="donor ID" />,
-        donor.email,
-        donor.registered && (
-          <span key="since">
-            Donor since <DateTime value={donor.registered} format="month" />
-          </span>
-        ),
-      ].filter(Boolean)}
+      title={donor ? displayName : <SkeletonText>Firstname Lastname</SkeletonText>}
+      adornment={donor?.trash && <Status catalog={donorStatus} value="trash" />}
+      meta={
+        donor
+          ? [
+              <CopyValue key="id" value={donor.id} prefix="#" label="donor ID" />,
+              donor.email,
+              donor.registered && (
+                <span key="since">
+                  Donor since <DateTime value={donor.registered} format="month" />
+                </span>
+              ),
+            ].filter(Boolean)
+          : [
+              <SkeletonText key="id">#00000</SkeletonText>,
+              <SkeletonText key="email">firstname.lastname@example.org</SkeletonText>,
+              <SkeletonText key="since">Donor since October 2020</SkeletonText>,
+            ]
+      }
       actions={
-        <>
-          <CreateFundraiserDialog
-            donor={{ id: donor.id, name: donor.name, email: donor.email }}
-            trigger={
-              <Button>
-                <FlagIcon />
-                Create fundraiser
-              </Button>
-            }
-          />
-          <MergeDonor
-            donor={donor}
-            counts={
-              donations.data && distributions.data && taxUnits.data
-                ? {
-                    donations: donations.data.length,
-                    agreements: agreements.length,
-                    taxUnits: taxUnits.data.length,
-                    kids: distributions.data.length,
-                  }
-                : undefined
-            }
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="icon" aria-label="More actions">
-                <MoreHorizontalIcon />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {donor.trash ? (
-                <DropdownMenuItem
-                  onSelect={() => setFlag({ trash: false }, "Restored from trash", { trash: true })}
-                >
-                  <ArchiveRestoreIcon />
-                  Restore from trash
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem
-                  variant="danger"
-                  onSelect={() => setFlag({ trash: true }, "Moved to trash", { trash: false })}
-                >
-                  <Trash2Icon />
-                  Move to trash
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </>
+        !donor ? (
+          <>
+            <Button disabled>
+              <FlagIcon />
+              Create fundraiser
+            </Button>
+            <Button disabled>
+              <GitMergeIcon />
+              Merge…
+            </Button>
+            <Button size="icon" aria-label="More actions" disabled>
+              <MoreHorizontalIcon />
+            </Button>
+          </>
+        ) : (
+          <>
+            <CreateFundraiserDialog
+              donor={{ id: donor.id, name: donor.name, email: donor.email }}
+              trigger={
+                <Button>
+                  <FlagIcon />
+                  Create fundraiser
+                </Button>
+              }
+            />
+            <MergeDonor
+              donor={donor}
+              counts={
+                donations.data && distributions.data && taxUnits.data
+                  ? {
+                      donations: donations.data.length,
+                      agreements: agreements.length,
+                      taxUnits: taxUnits.data.length,
+                      kids: distributions.data.length,
+                    }
+                  : undefined
+              }
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" aria-label="More actions">
+                  <MoreHorizontalIcon />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {donor.trash ? (
+                  <DropdownMenuItem
+                    onSelect={() =>
+                      setFlag({ trash: false }, "Restored from trash", { trash: true })
+                    }
+                  >
+                    <ArchiveRestoreIcon />
+                    Restore from trash
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    variant="danger"
+                    onSelect={() => setFlag({ trash: true }, "Moved to trash", { trash: false })}
+                  >
+                    <Trash2Icon />
+                    Move to trash
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )
       }
       stats={
         aggregated.isError ? (
@@ -335,7 +409,8 @@ function Donor({ donorId }: { donorId: number }) {
           <StatGroup>
             <Stat
               label="Given in total"
-              value={totals ? <Money value={totals.total} /> : <Skeleton className="h-7 w-28" />}
+              pending={!totals || !donations.data}
+              value={totals && <Money value={totals.total} />}
               hint={
                 donations.data && (
                   <>
@@ -346,18 +421,14 @@ function Donor({ donorId }: { donorId: number }) {
             />
             <Stat
               label="Excluding operations"
-              value={
-                totals ? (
-                  <Money value={totals.excludingOperations} />
-                ) : (
-                  <Skeleton className="h-7 w-28" />
-                )
-              }
+              pending={!totals}
+              value={totals && <Money value={totals.excludingOperations} />}
               hint={totals && `${formatMoney(totals.operations)} to operations`}
             />
             <Stat
               label={`In ${thisYear}`}
-              value={totals ? <Money value={thisYearTotal} /> : <Skeleton className="h-7 w-28" />}
+              pending={!totals}
+              value={totals && <Money value={thisYearTotal} />}
               delta={
                 totals && lastYearNumber > 0
                   ? moneyToNumber(thisYearTotal) / lastYearNumber - 1
@@ -367,9 +438,9 @@ function Donor({ donorId }: { donorId: number }) {
             />
             <Stat
               label="Active agreements"
-              value={
-                agreementsLoading ? <Skeleton className="h-7 w-10" /> : activeAgreements.length
-              }
+              pending={agreementsLoading}
+              placeholder="0"
+              value={activeAgreements.length}
               hint={
                 activeAgreements.length > 0 &&
                 `${formatMoney(sumMoney(activeAgreements.map((a) => a.amount)))} / month`
@@ -380,78 +451,86 @@ function Donor({ donorId }: { donorId: number }) {
       }
       aside={
         <DetailPanel title="Contact">
-          <PropertyList labelWidth="6.5rem">
-            <Property label="Name">
-              <InlineEdit
-                label="Name"
-                value={donor.name}
-                validate={(value) => (value.trim() ? null : "Enter a name")}
-                onSave={async (name) => {
-                  await update.mutateAsync({ donorId, name: name.trim() });
-                  notify.success("Name updated");
-                }}
-              />
-            </Property>
-            <Property label="Email">
-              <InlineEdit
-                label="Email"
-                type="email"
-                value={donor.email}
-                validate={(value) =>
-                  /^\S+@\S+\.\S+$/.test(value.trim()) ? null : "Enter a valid email address"
-                }
-                onSave={async (email) => {
-                  try {
-                    await update.mutateAsync({ donorId, name: donor.name, email: email.trim() });
-                  } catch (error) {
-                    // The email belongs to another donor: offer the way there.
-                    const other = conflictingDonorId(error instanceof Error ? error.message : "");
-                    if (errorCode(error) === "CONFLICT" && other !== null) {
-                      notify.error(error, `This email already belongs to donor #${other}`, {
-                        label: `Open donor #${other}`,
-                        onClick: () =>
-                          void navigate({ to: "/donors/$id", params: { id: String(other) } }),
-                      });
-                    }
-                    throw error;
-                  }
-                  notify.success("Email updated");
-                }}
-              />
-            </Property>
-            <Property label="Newsletter">
-              <label className="inline-flex items-center gap-2">
-                <Switch
-                  checked={Boolean(donor.newsletter)}
-                  onCheckedChange={(newsletter) =>
-                    setFlag(
-                      { newsletter },
-                      newsletter ? "Subscribed to newsletter" : "Unsubscribed from newsletter",
-                      { newsletter: !newsletter },
-                    )
-                  }
+          {!donor ? (
+            <PropertyList labelWidth="6.5rem">
+              <Property label="Name" pending placeholder="Firstname Lastname" />
+              <Property label="Email" pending placeholder="firstname@example.org" />
+              <Property label="Newsletter" pending placeholder="Not subscribed" />
+              <Property label="Registered" pending placeholder="00.00.0000 00:00" />
+              <Property label="Heard via" pending placeholder="Friends or family" />
+            </PropertyList>
+          ) : (
+            <PropertyList labelWidth="6.5rem">
+              <Property label="Name">
+                <InlineEdit
+                  label="Name"
+                  value={donor.name}
+                  validate={(value) => (value.trim() ? null : "Enter a name")}
+                  onSave={async (name) => {
+                    await update.mutateAsync({ donorId, name: name.trim() });
+                    notify.success("Name updated");
+                  }}
                 />
-                {donor.newsletter ? "Subscribed" : "Not subscribed"}
-              </label>
-            </Property>
-            <Property label="Registered">
-              <DateTime value={donor.registered} format="datetime" />
-            </Property>
-            <Property label="Heard via">{heardVia}</Property>
-          </PropertyList>
+              </Property>
+              <Property label="Email">
+                <InlineEdit
+                  label="Email"
+                  type="email"
+                  value={donor.email}
+                  validate={(value) =>
+                    /^\S+@\S+\.\S+$/.test(value.trim()) ? null : "Enter a valid email address"
+                  }
+                  onSave={async (email) => {
+                    try {
+                      await update.mutateAsync({ donorId, name: donor.name, email: email.trim() });
+                    } catch (error) {
+                      // The email belongs to another donor: offer the way there.
+                      const other = conflictingDonorId(error instanceof Error ? error.message : "");
+                      if (errorCode(error) === "CONFLICT" && other !== null) {
+                        notify.error(error, `This email already belongs to donor #${other}`, {
+                          label: `Open donor #${other}`,
+                          onClick: () =>
+                            void navigate({ to: "/donors/$id", params: { id: String(other) } }),
+                        });
+                      }
+                      throw error;
+                    }
+                    notify.success("Email updated");
+                  }}
+                />
+              </Property>
+              <Property label="Newsletter">
+                <label className="inline-flex items-center gap-2">
+                  <Switch
+                    checked={Boolean(donor.newsletter)}
+                    onCheckedChange={(newsletter) =>
+                      setFlag(
+                        { newsletter },
+                        newsletter ? "Subscribed to newsletter" : "Unsubscribed from newsletter",
+                        { newsletter: !newsletter },
+                      )
+                    }
+                  />
+                  {donor.newsletter ? "Subscribed" : "Not subscribed"}
+                </label>
+              </Property>
+              <Property label="Registered">
+                <DateTime value={donor.registered} format="datetime" />
+              </Property>
+              <Property label="Heard via">{heardVia}</Property>
+            </PropertyList>
+          )}
         </DetailPanel>
       }
     >
       <PageSection title="Given per year" description="By organization">
-        {aggregated.isPending ? (
-          <Skeleton className="h-56" />
-        ) : chart && chart.data.length > 0 ? (
+        {aggregated.isPending || (chart && chart.data.length > 0) ? (
           <BarChart
-            data={chart.data}
+            data={chart?.data}
             xKey="year"
             stacked
             format="money"
-            series={chart.series}
+            series={chart?.series ?? []}
             className="h-56"
           />
         ) : (
@@ -460,19 +539,22 @@ function Donor({ donorId }: { donorId: number }) {
       </PageSection>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="donations" count={donations.data?.length}>
+          <TabsTrigger value="donations" count={pendingCount(donations)}>
             Donations
           </TabsTrigger>
-          <TabsTrigger value="kids" count={distributions.data?.length}>
+          <TabsTrigger value="kids" count={pendingCount(distributions)}>
             KIDs
           </TabsTrigger>
-          <TabsTrigger value="agreements" count={agreementsLoading ? undefined : agreements.length}>
+          <TabsTrigger
+            value="agreements"
+            count={agreementsError ? undefined : agreementsLoading ? null : agreements.length}
+          >
             Agreements
           </TabsTrigger>
-          <TabsTrigger value="tax" count={taxUnits.data?.length}>
+          <TabsTrigger value="tax" count={pendingCount(taxUnits)}>
             Tax units
           </TabsTrigger>
-          <TabsTrigger value="referrals" count={referrals.data?.length}>
+          <TabsTrigger value="referrals" count={pendingCount(referrals)}>
             Referrals
           </TabsTrigger>
         </TabsList>
@@ -543,7 +625,7 @@ function Donor({ donorId }: { donorId: number }) {
           )}
         </TabsContent>
         <TabsContent value="tax">
-          <TaxUnitsSection donorId={donorId} donorName={donor.name} />
+          <TaxUnitsSection donorId={donorId} donorName={donor?.name ?? ""} />
         </TabsContent>
         <TabsContent value="referrals" className="flex flex-col">
           <ReferralsTable
@@ -555,6 +637,11 @@ function Donor({ donorId }: { donorId: number }) {
       </Tabs>
     </DetailPage>
   );
+}
+
+/** A tab badge's count: reserved while loading, absent after an error. */
+function pendingCount(query: { data?: unknown[]; isError: boolean }) {
+  return query.isError ? undefined : query.data?.length ?? null;
 }
 
 function ReferralsTable({
@@ -596,16 +683,5 @@ function ReferralsTable({
         />
       }
     />
-  );
-}
-
-function DonorSkeleton() {
-  return (
-    <div className="grid gap-6 p-6" aria-busy>
-      <Skeleton className="h-8 w-64" />
-      <Skeleton className="h-4 w-96" />
-      <Skeleton className="h-20" />
-      <Skeleton className="h-56" />
-    </div>
   );
 }

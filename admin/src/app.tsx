@@ -1,11 +1,10 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { AuthProvider, useAuth } from "@/auth";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { createApiClient, createQueryClient, TRPCProvider } from "@/lib/trpc";
+import { createApiClient, createQueryClient, TRPCProvider, useTRPC } from "@/lib/trpc";
 import { router } from "./router";
 
 function ApiProvider({ children }: { children: ReactNode }) {
@@ -37,22 +36,24 @@ function useLatest<T>(value: T) {
 
 function RoutedApp() {
   const auth = useAuth();
+  const queryClient = useQueryClient();
+  const trpc = useTRPC();
   useEffect(() => {
     void router.invalidate();
   }, [auth.isAuthenticated]);
 
   if (auth.isLoading) {
+    // The app's frame, empty: the session is usually back before anything could be drawn.
     return (
-      <div className="flex min-h-dvh bg-canvas">
+      <div className="flex min-h-dvh bg-canvas" aria-busy>
         <div className="hidden w-60 lg:block" />
-        <div className="m-2 flex-1 space-y-4 rounded-lg border border-border bg-background p-6">
-          <Skeleton className="h-8 w-56" />
-          <Skeleton className="h-4 w-96" />
+        <div className="flex-1 lg:py-2 lg:pr-2">
+          <div className="h-full min-h-dvh bg-background lg:min-h-0 lg:rounded-lg lg:border lg:border-border" />
         </div>
       </div>
     );
   }
-  return <RouterProvider router={router} context={{ auth }} />;
+  return <RouterProvider router={router} context={{ auth, queryClient, trpc }} />;
 }
 
 export function App() {

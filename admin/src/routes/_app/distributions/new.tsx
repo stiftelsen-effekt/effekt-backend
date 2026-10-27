@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Pending } from "@/components/ui/pending";
 import {
   draftToApi,
   emptyDraft,
@@ -24,14 +24,20 @@ import {
   type CauseAreaConfig,
   type DistributionDraft,
 } from "@/features/distribution/model";
-import { useCauseAreaConfig } from "@/features/distribution/queries";
+import { causeAreaConfigOptions, useCauseAreaConfig } from "@/features/distribution/queries";
 import { defaultOwner, type DataOwner } from "@/features/donations/api";
 import { NewDistributionFields } from "@/features/donations/distribution-fields";
 import { serverErrors } from "@/features/donations/form";
 import { notify } from "@/lib/notify";
+import { loadPage } from "@/lib/route-data";
 import { useTRPC, type RouterOutputs } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/distributions/new")({
+  loader: ({ context: { queryClient, trpc }, cause }) =>
+    loadPage(queryClient, cause, [
+      causeAreaConfigOptions(trpc),
+      { ...trpc.meta.owners.queryOptions(), staleTime: 300_000 },
+    ]),
   component: CreateDistributionPage,
 });
 
@@ -66,7 +72,7 @@ function CreateDistributionPage() {
             }}
           />
         ) : (
-          <Skeleton className="h-40 w-full" />
+          <Pending className="min-h-96" />
         )}
       </FlowPage>
     );

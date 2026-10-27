@@ -1,5 +1,4 @@
 import { useOptionalUser } from "@/auth";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRightIcon, InboxIcon, UploadIcon } from "lucide-react";
 import { useState } from "react";
@@ -23,6 +22,7 @@ import {
   type ReviewItem,
 } from "@/features/review-queue/model";
 import { reviewStatus } from "@/lib/status";
+import { nextPage, usePageQuery } from "@/lib/query";
 import { useTRPC } from "@/lib/trpc";
 
 const reviewList = defineList({
@@ -95,25 +95,26 @@ function ReviewQueuePage() {
   const [peekId, setPeekId] = useState<number | null>(null);
   const sources = list.filters.source;
 
-  const query = useQuery({
-    ...trpc.reports.reviewQueue.list.queryOptions({
-      page: list.page - 1,
+  const listOptions = (page: number) =>
+    trpc.reports.reviewQueue.list.queryOptions({
+      page: page - 1,
       limit: list.pageSize,
       sort: { id: list.sort.id, desc: list.sort.desc },
       filter: { statuses: list.filters.status, sources },
-    }),
-    placeholderData: keepPreviousData,
+    });
+  const query = usePageQuery(listOptions(list.page), {
+    // The next page is fetched as soon as this one is in, so paging forward is instant.
+    prefetch: (data) => nextPage(list.page, data.pages, listOptions),
   });
   // Where "Start reviewing" begins: the oldest open item in the source filter.
-  const firstOpen = useQuery({
-    ...trpc.reports.reviewQueue.list.queryOptions({
+  const firstOpen = usePageQuery(
+    trpc.reports.reviewQueue.list.queryOptions({
       page: 0,
       limit: 1,
       sort: { id: "id", desc: false },
       filter: { statuses: ["open"], sources },
     }),
-    placeholderData: keepPreviousData,
-  });
+  );
   const counts = query.data?.counts;
   const firstOpenId = firstOpen.data?.rows[0]?.id;
   const sourceSearch = sources?.join(",");

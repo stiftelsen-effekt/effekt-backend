@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { DownloadIcon, PlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -20,7 +20,7 @@ import {
 } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Updating } from "@/components/ui/pending";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { downloadCsv, visiblePaymentMethods } from "@/features/donations/api";
@@ -34,6 +34,7 @@ import {
 } from "@/features/donations/list";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
+import { nextPage, usePageQuery } from "@/lib/query";
 import { useTRPC, type RouterOutputs } from "@/lib/trpc";
 import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
@@ -93,14 +94,16 @@ function DonationsPage() {
 
   const filter = toDonationFilter(list.filters);
   const sort = { id: list.sort.id, desc: list.sort.desc };
-  const query = useQuery({
-    ...trpc.donations.list.queryOptions({
-      page: list.page - 1,
+  const listOptions = (page: number) =>
+    trpc.donations.list.queryOptions({
+      page: page - 1,
       limit: list.pageSize,
       sort,
       filter,
-    }),
-    placeholderData: keepPreviousData,
+    });
+  const query = usePageQuery(listOptions(list.page), {
+    // The next page is fetched as soon as this one is in, so paging forward is instant.
+    prefetch: (data) => nextPage(list.page, data.pages, listOptions),
   });
 
   // Log-scale buckets: most donations are small, so fixed 5 000 kr buckets put nearly all of
@@ -193,7 +196,15 @@ function DonationsPage() {
           />
         </FilterBar>
       }
-      peek={peekId != null && <DonationPeek id={peekId} onClose={() => setPeekId(null)} />}
+      peek={
+        peekId != null && (
+          <DonationPeek
+            id={peekId}
+            row={query.data?.rows.find((row) => row.id === peekId)}
+            onClose={() => setPeekId(null)}
+          />
+        )
+      }
     >
       {query.isError ? (
         <ErrorState
@@ -245,31 +256,57 @@ function DonationsPage() {
   );
 }
 
-function DonationPeek({ id, onClose }: { id: number; onClose: () => void }) {
+const donationPeekLabels = [
+  "Donor",
+  "Email",
+  "Date",
+  "Method",
+  "Fee",
+  "KID",
+  "External ref",
+  "Data owner",
+];
+
+function DonationPeek({
+  id,
+  row,
+  onClose,
+}: {
+  id: number;
+  /** The list row, for the header while the details load. */
+  row: { sum: string; donor: string | null } | undefined;
+  onClose: () => void;
+}) {
   const trpc = useTRPC();
-  const donation = useQuery(trpc.donations.get.queryOptions({ id }));
+  // j/k moves the peek: the previous donation's details stay (dimmed) until the next's are in.
+  const donation = usePageQuery(trpc.donations.get.queryOptions({ id }));
   const causeAreas = useCauseAreaConfig({ includeInactive: true });
   const owners = useQuery({ ...trpc.meta.owners.queryOptions(), staleTime: 300_000 });
   const d = donation.data;
+  const current = d && !donation.isPlaceholderData ? d : undefined;
+  const sum = row?.sum ?? current?.sum;
+  const donor = row?.donor ?? current?.donor;
 
   return (
     <PeekPanel
-      title={d ? <Money value={d.sum} /> : `Donation #${id}`}
-      subtitle={d ? `Donation #${d.id} · ${d.donor}` : undefined}
+      title={sum !== undefined ? <Money value={sum} /> : `Donation #${id}`}
+      subtitle={`Donation #${id}${donor ? ` · ${donor}` : ""}`}
       href={`/donations/${id}`}
       onClose={onClose}
-      actions={d && <ResendReceiptDialog donationId={d.id} email={d.email} size="sm" />}
+      actions={
+        current && <ResendReceiptDialog donationId={current.id} email={current.email} size="sm" />
+      }
     >
       {donation.isError ? (
         <ErrorState error={donation.error} onRetry={() => void donation.refetch()} />
       ) : !d ? (
-        <div className="grid gap-2">
-          <Skeleton className="h-5 w-2/3" />
-          <Skeleton className="h-5 w-1/2" />
-          <Skeleton className="h-5 w-3/4" />
-        </div>
+        <PropertyList labelWidth="7rem">
+          {donationPeekLabels.map((label) => (
+            <Property key={label} label={label} pending />
+          ))}
+        </PropertyList>
       ) : (
-        <>
+        <Updating active={donation.isPlaceholderData} className="grid content-start gap-6">
           <PropertyList labelWidth="7rem">
             <Property label="Donor">
               <Link
@@ -317,7 +354,7 @@ function DonationPeek({ id, onClose }: { id: number; onClose: () => void }) {
               />
             </section>
           )}
-        </>
+        </Updating>
       )}
     </PeekPanel>
   );

@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonText } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -49,7 +49,31 @@ export function TaxUnitsSection({ donorId, donorName }: { donorId: number; donor
   const trpc = useTRPC();
   const units = useQuery(trpc.donors.taxUnits.list.queryOptions({ donorId }));
 
-  if (units.isPending) return <Skeleton className="h-32" />;
+  if (units.isPending)
+    return (
+      <div className="grid gap-4" aria-busy>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Donations on a tax unit are reported for deduction each year.
+          </p>
+          <Button size="sm" disabled>
+            <PlusIcon />
+            Add tax unit
+          </Button>
+        </div>
+        <section className="rounded-md border border-border bg-surface">
+          <header className="grid gap-0.5 border-b border-border px-4 py-2.5">
+            <h3 className="text-sm font-semibold">
+              <SkeletonText>Tax unit name</SkeletonText>
+            </h3>
+            <p className="text-sm">
+              <SkeletonText>000000 ••••• · 00 donations, 00 000 kr deductible</SkeletonText>
+            </p>
+          </header>
+          <div className="h-24" />
+        </section>
+      </div>
+    );
   if (units.isError)
     return (
       <ErrorState

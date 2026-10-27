@@ -14,13 +14,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Pending } from "@/components/ui/pending";
 import {
   emptyDraft,
   withCurrentStandardSplits,
   type CauseAreaConfig,
 } from "@/features/distribution/model";
-import { useCauseAreaConfig } from "@/features/distribution/queries";
+import { causeAreaConfigOptions, useCauseAreaConfig } from "@/features/distribution/queries";
 import {
   defaultOwner,
   visiblePaymentMethods,
@@ -43,9 +43,16 @@ import {
 import { useHotkey } from "@/hooks/use-hotkey";
 import { usePersistentState } from "@/lib/persistent-store";
 import { notify } from "@/lib/notify";
+import { loadPage } from "@/lib/route-data";
 import { useTRPC } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/donations/register")({
+  loader: ({ context: { queryClient, trpc }, cause }) =>
+    loadPage(queryClient, cause, [
+      causeAreaConfigOptions(trpc),
+      { ...trpc.config.paymentMethods.list.queryOptions(), staleTime: 300_000 },
+      { ...trpc.meta.owners.queryOptions(), staleTime: 300_000 },
+    ]),
   component: RegisterDonationPage,
 });
 
@@ -87,11 +94,7 @@ function RegisterDonationPage() {
             }}
           />
         ) : (
-          <div className="grid gap-3">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-40 w-full" />
-          </div>
+          <Pending className="min-h-96" />
         )}
       </FlowPage>
     );

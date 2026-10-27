@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { DownloadIcon } from "lucide-react";
 import { useState } from "react";
@@ -22,6 +22,7 @@ import {
 import { ListPage, PageSection, PeekPanel } from "@/components/templates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Updating } from "@/components/ui/pending";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   agreementsList,
@@ -42,6 +43,7 @@ import { downloadCsv } from "@/features/donations/api";
 import { notify } from "@/lib/notify";
 import { agreementStatus } from "@/lib/status";
 import { strings } from "@/lib/strings";
+import { nextPage, usePageQuery } from "@/lib/query";
 import { useTRPC } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/agreements/")({
@@ -101,14 +103,16 @@ function AgreementsPage() {
 
   const filter = toAgreementFilter(list.filters);
   const sort = { id: list.sort.id, desc: list.sort.desc };
-  const query = useQuery({
-    ...trpc.agreements.list.queryOptions({
-      page: list.page - 1,
+  const listOptions = (page: number) =>
+    trpc.agreements.list.queryOptions({
+      page: page - 1,
       limit: list.pageSize,
       sort,
       filter,
-    }),
-    placeholderData: keepPreviousData,
+    });
+  const query = usePageQuery(listOptions(list.page), {
+    // The next page is fetched as soon as this one is in, so paging forward is instant.
+    prefetch: (data) => nextPage(list.page, data.pages, listOptions),
   });
   const rows = query.data?.rows.map(fromListRow);
   const peeked = peekKey ? rows?.find((row) => row.key === peekKey) : undefined;
@@ -236,7 +240,8 @@ function AgreementsPage() {
 
 function AgreementPeek({ agreement }: { agreement: AgreementRow }) {
   const trpc = useTRPC();
-  const distribution = useQuery(
+  // j/k moves the peek: the previous split stays (dimmed) until the next is in.
+  const distribution = usePageQuery(
     trpc.donations.distributions.get.queryOptions({ kid: agreement.KID }),
   );
   const config = useCauseAreaConfig({ includeInactive: true });
@@ -294,10 +299,12 @@ function AgreementPeek({ agreement }: { agreement: AgreementRow }) {
             }}
           />
         ) : distribution.data && config.data ? (
-          <DistributionSummary
-            draft={draftFromApi(config.data, distribution.data)}
-            config={config.data}
-          />
+          <Updating active={distribution.isPlaceholderData}>
+            <DistributionSummary
+              draft={draftFromApi(config.data, distribution.data)}
+              config={config.data}
+            />
+          </Updating>
         ) : (
           <Skeleton className="h-16 w-full" />
         )}

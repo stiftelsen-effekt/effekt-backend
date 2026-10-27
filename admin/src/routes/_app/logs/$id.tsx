@@ -8,13 +8,19 @@ import { DateTime } from "@/components/domain/format";
 import { JsonViewer } from "@/components/domain/json-viewer";
 import { DetailPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { withoutFile } from "@/features/import-log/model";
 import { downloadFile } from "@/lib/download";
+import { loadPage } from "@/lib/route-data";
 import { useTRPC } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/logs/$id")({
+  loader: ({ context: { queryClient, trpc }, params, cause }) => {
+    const id = Number(params.id);
+    if (!(Number.isInteger(id) && id > 0)) return;
+    return loadPage(queryClient, cause, trpc.reports.logs.get.queryOptions({ id }));
+  },
   component: ImportLogEntryPage,
 });
 
@@ -43,8 +49,26 @@ function ImportLogEntryPage() {
 
   if (!entry.data) {
     return (
-      <DetailPage breadcrumbs={breadcrumbs} title={<Skeleton className="h-8 w-64" />}>
-        <Skeleton className="h-64" />
+      // First load only (navigations wait for the entry).
+      <DetailPage
+        breadcrumbs={breadcrumbs}
+        title={<SkeletonText>Import source name</SkeletonText>}
+        meta={[
+          <span key="id">#{logId}</span>,
+          <SkeletonText key="time">00.00.0000 00:00</SkeletonText>,
+        ]}
+      >
+        <Tabs value="result">
+          <TabsList>
+            <TabsTrigger value="result">Result</TabsTrigger>
+            <TabsTrigger value="file" disabled>
+              Raw file
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="result">
+            <Skeleton className="h-64" />
+          </TabsContent>
+        </Tabs>
       </DetailPage>
     );
   }

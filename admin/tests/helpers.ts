@@ -33,8 +33,12 @@ export async function openDesign(page: Page, path: string, theme: Theme) {
 export async function settle(page: Page) {
   await page.waitForLoadState("networkidle");
   await page.evaluate(() => document.fonts.ready);
+  // Loaded: no placeholders left (demo ones marked data-static aside) and no section pending.
   await page.waitForFunction(
-    () => document.querySelectorAll("[data-slot=skeleton]:not([data-static])").length === 0,
+    () =>
+      document.querySelectorAll(
+        "[data-slot=skeleton]:not([data-static], [data-static] *), [data-slot=pending]",
+      ).length === 0,
     null,
     {
       timeout: 10_000,

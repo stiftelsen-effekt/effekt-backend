@@ -29,15 +29,20 @@ export function BarChart<TRow extends Record<string, unknown>>({
   format = "number",
   xFormatter,
   className,
+  legend = true,
 }: {
-  data: TRow[];
+  /** Undefined while loading: the chart's box is reserved with a placeholder. */
+  data: TRow[] | undefined;
   xKey: keyof TRow & string;
   series: ChartSeries[];
   stacked?: boolean;
   format?: ValueFormat;
   xFormatter?: (value: string) => string;
   className?: string;
+  /** Show the legend (and reserve its line while loading). */
+  legend?: boolean;
 }) {
+  if (!data) return <ChartFrame className={className} pending legend={legend} />;
   const colors: Record<string, ChartColor> = {};
   const labels: Record<string, string> = {};
   series.forEach((s, i) => {
@@ -49,7 +54,10 @@ export function BarChart<TRow extends Record<string, unknown>>({
     <ChartFrame
       className={className}
       legend={
-        series.length > 1 && (
+        // Always shown when the placeholder reserved it, even for one series, so the chart
+        // has the same height loaded as loading.
+        legend &&
+        series.length > 0 && (
           <ChartLegend items={series.map((s) => ({ label: s.label, color: colors[s.key]! }))} />
         )
       }

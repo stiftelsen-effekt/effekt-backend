@@ -11,14 +11,9 @@ import type { CauseAreaConfig } from "./model";
  */
 export function useCauseAreaConfig({ includeInactive = false } = {}) {
   const trpc = useTRPC();
-  const active = useQuery({
-    ...trpc.config.causeAreas.listActive.queryOptions(),
-    staleTime: 5 * 60_000,
-    enabled: !includeInactive,
-  });
+  const active = useQuery({ ...causeAreaConfigOptions(trpc), enabled: !includeInactive });
   const all = useQuery({
-    ...trpc.config.causeAreas.listAll.queryOptions(),
-    staleTime: 5 * 60_000,
+    ...causeAreaConfigOptions(trpc, { includeInactive: true }),
     enabled: includeInactive,
   });
   const query = includeInactive ? all : active;
@@ -27,6 +22,16 @@ export function useCauseAreaConfig({ includeInactive = false } = {}) {
     [query.data],
   );
   return { ...query, data };
+}
+
+/** The query behind useCauseAreaConfig, for route loaders to warm. */
+export function causeAreaConfigOptions(
+  trpc: ReturnType<typeof useTRPC>,
+  { includeInactive = false } = {},
+) {
+  return includeInactive
+    ? { ...trpc.config.causeAreas.listAll.queryOptions(), staleTime: 5 * 60_000 }
+    : { ...trpc.config.causeAreas.listActive.queryOptions(), staleTime: 5 * 60_000 };
 }
 
 const byOrdering = (a: { ordering: number | null; id: number }, b: typeof a) =>

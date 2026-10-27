@@ -8,6 +8,10 @@ is the workflow. Read, in order: `DESIGN.md`, `FEATURES.md`, the template demos 
 
 - **Real data only**: tRPC through TanStack Query (`trpc.<path>.queryOptions(...)` /
   `mutationOptions(...)`). Fake data stays in `/design`.
+- **Loading** (DESIGN.md › Loading): `usePageQuery` for any query whose input follows the URL or
+  local state; a `loader` with `loadPage` for pages reached from a list; first-load
+  placeholders from the components (`DataTable isLoading`, `Stat pending`, `Property pending`,
+  `SkeletonText`), never hand-drawn skeleton layouts.
 - **Templates and components**: `ListPage`, `DetailPage`, `FlowPage`, `SettingsPage`, `PeekPanel`,
   `defineList` / `useListState` / `FilterBar` / `DataTable`. If a generic component is genuinely
   missing, add it to `src/components` following DESIGN.md and show it on `/design/components`.

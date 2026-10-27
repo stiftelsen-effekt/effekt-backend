@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { TooltipContentProps } from "recharts";
+import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 import { formatCompact, formatMoney, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -45,21 +46,41 @@ export const gridProps = {
   stroke: "var(--border)",
 } as const;
 
+/**
+ * The chart's box. Its height is fixed (className, default h-64), so the space is reserved
+ * whether the data is in or not: `pending` shows a placeholder of the same size (and a
+ * legend line when `legend` is truthy), and the chart fades in over it without moving
+ * anything.
+ */
 export function ChartFrame({
   className,
   children,
   legend,
+  pending = false,
 }: {
   className?: string;
-  children: ReactNode;
+  children?: ReactNode;
   legend?: ReactNode;
+  pending?: boolean;
 }) {
   return (
-    <figure data-slot="chart" className="grid gap-3">
-      <div className={cn("h-64 w-full text-xs [&_.recharts-surface]:outline-none", className)}>
-        {children}
+    <figure data-slot="chart" className="grid gap-3" aria-busy={pending || undefined}>
+      <div
+        className={cn(
+          "h-64 w-full text-xs [&_.recharts-surface]:outline-none",
+          !pending && "animate-fade-in",
+          className,
+        )}
+      >
+        {pending ? <Skeleton className="size-full rounded-sm" /> : children}
       </div>
-      {legend}
+      {pending
+        ? legend && (
+            <div className="text-xs">
+              <SkeletonText>Legend for the chart series</SkeletonText>
+            </div>
+          )
+        : legend}
     </figure>
   );
 }

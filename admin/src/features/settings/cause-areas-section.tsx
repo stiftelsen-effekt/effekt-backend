@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Pending } from "@/components/ui/pending";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -72,10 +72,7 @@ export function CauseAreasSection() {
   if (!areasQuery.data) {
     return (
       <SettingsSection title="Standard split">
-        <div className="grid gap-4">
-          <Skeleton className="h-40" />
-          <Skeleton className="h-40" />
-        </div>
+        <Pending className="min-h-80" />
       </SettingsSection>
     );
   }
@@ -231,7 +228,7 @@ export function CauseAreasSection() {
                     onRetry={() => void orgQuery.refetch()}
                   />
                 ) : !orgQuery?.data ? (
-                  <Skeleton className="m-3 h-20" />
+                  <Pending className="h-26" />
                 ) : (
                   <Table aria-label={`${area.name} organizations`}>
                     <TableHeader>

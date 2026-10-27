@@ -3,7 +3,9 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Callout } from "@/components/domain/callout";
 import { DistributionEditor, DistributionSummary } from "@/components/domain/distribution-editor";
+import { Updating } from "@/components/ui/pending";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePageQuery } from "@/lib/query";
 import { Field } from "@/components/ui/field";
 import {
   Select,
@@ -128,7 +130,8 @@ export function NewDistributionFields({
 export function KidPreview({ kid }: { kid: string }) {
   const trpc = useTRPC();
   const valid = /^\d{5,32}$/.test(kid);
-  const distribution = useQuery({
+  // Editing the KID keeps the last preview (dimmed) until the new one is in.
+  const distribution = usePageQuery({
     ...trpc.donations.distributions.get.queryOptions({ kid }),
     enabled: valid,
   });
@@ -147,7 +150,10 @@ export function KidPreview({ kid }: { kid: string }) {
   if (!distribution.data || !causeAreas.data) return <Skeleton className="h-20 w-full" />;
   const d = distribution.data;
   return (
-    <div className="grid gap-3 rounded-md border border-border bg-surface p-4">
+    <Updating
+      active={distribution.isPlaceholderData}
+      className="grid gap-3 rounded-md border border-border bg-surface p-4"
+    >
       <p className="text-sm">
         <span className="text-muted-foreground">KID {kid} belongs to </span>
         <Link
@@ -160,6 +166,6 @@ export function KidPreview({ kid }: { kid: string }) {
         {d.taxUnit && <span className="text-muted-foreground"> · tax unit {d.taxUnit.name}</span>}
       </p>
       <DistributionSummary draft={draftFromApi(causeAreas.data, d)} config={causeAreas.data} />
-    </div>
+    </Updating>
   );
 }

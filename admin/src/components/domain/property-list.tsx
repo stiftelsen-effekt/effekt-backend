@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { SkeletonText } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 /**
@@ -34,10 +35,16 @@ export function Property({
   label,
   children,
   hint,
+  pending = false,
+  placeholder = "Placeholder value",
   className,
 }: {
   label: ReactNode;
   children?: ReactNode;
+  /** First load: the label stays, the value is a text-sized placeholder. */
+  pending?: boolean;
+  /** Sample text the size of the value, for the placeholder. */
+  placeholder?: string;
   /** Small muted text under the value, e.g. "since 2019". */
   hint?: ReactNode;
   className?: string;
@@ -53,7 +60,13 @@ export function Property({
     >
       <dt className="pt-px text-muted-foreground">{label}</dt>
       <dd className="min-w-0">
-        {empty ? <span className="text-faint-foreground">–</span> : children}
+        {pending ? (
+          <SkeletonText>{placeholder}</SkeletonText>
+        ) : empty ? (
+          <span className="text-faint-foreground">–</span>
+        ) : (
+          children
+        )}
         {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
       </dd>
     </div>

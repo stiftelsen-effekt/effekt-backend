@@ -1,4 +1,3 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ScrollTextIcon } from "lucide-react";
 import { useState } from "react";
@@ -10,9 +9,11 @@ import { JsonViewer } from "@/components/domain/json-viewer";
 import { Property, PropertyList } from "@/components/domain/property-list";
 import { defineList, FilterBar, param, useListState } from "@/components/filters";
 import { ListPage, PeekPanel } from "@/components/templates";
+import { Updating } from "@/components/ui/pending";
 import { Skeleton } from "@/components/ui/skeleton";
 import { withoutFile } from "@/features/import-log/model";
 import { type RouterOutputs, useTRPC } from "@/lib/trpc";
+import { nextPage, usePageQuery } from "@/lib/query";
 
 type LogRow = RouterOutputs["reports"]["logs"]["list"]["rows"][number];
 
@@ -72,14 +73,16 @@ function ImportLogPage() {
   const trpc = useTRPC();
   const navigate = useNavigate();
   const [peekId, setPeekId] = useState<number | null>(null);
-  const query = useQuery({
-    ...trpc.reports.logs.list.queryOptions({
-      page: list.page - 1,
+  const listOptions = (page: number) =>
+    trpc.reports.logs.list.queryOptions({
+      page: page - 1,
       limit: list.pageSize,
       sort: { id: list.sort.id, desc: list.sort.desc },
       filter: list.filters.q ? { fileSearch: list.filters.q } : undefined,
-    }),
-    placeholderData: keepPreviousData,
+    });
+  const query = usePageQuery(listOptions(list.page), {
+    // The next page is fetched as soon as this one is in, so paging forward is instant.
+    prefetch: (data) => nextPage(list.page, data.pages, listOptions),
   });
   const peeked = query.data?.rows.find((row) => row.ID === peekId);
 
@@ -128,7 +131,8 @@ function ImportLogPage() {
 
 function LogPeek({ row, onClose }: { row: LogRow; onClose: () => void }) {
   const trpc = useTRPC();
-  const entry = useQuery(trpc.reports.logs.get.queryOptions({ id: row.ID }));
+  // j/k moves the peek: the previous entry stays (dimmed) until the next is in.
+  const entry = usePageQuery(trpc.reports.logs.get.queryOptions({ id: row.ID }));
   return (
     <PeekPanel
       title={row.displayLabel ?? "Unknown"}
@@ -148,7 +152,9 @@ function LogPeek({ row, onClose }: { row: LogRow; onClose: () => void }) {
         {entry.error ? (
           <ErrorState error={entry.error} onRetry={() => void entry.refetch()} />
         ) : entry.data ? (
-          <JsonViewer data={withoutFile(entry.data.result).result} defaultExpandDepth={1} />
+          <Updating active={entry.isPlaceholderData}>
+            <JsonViewer data={withoutFile(entry.data.result).result} defaultExpandDepth={1} />
+          </Updating>
         ) : (
           <Skeleton className="h-32" />
         )}

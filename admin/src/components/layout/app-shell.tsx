@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
+import { ProgressBar, useAnyUpdating } from "@/components/ui/pending";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useHotkey } from "@/hooks/use-hotkey";
 import { org } from "@/lib/org";
@@ -169,7 +170,13 @@ function Sidebar({
         className="mx-2.5 block w-28 rounded-xs focus-ring"
         aria-label={`${org.name} admin home`}
       >
-        <img src={org.logo} alt="" className="w-full invert dark:invert-0" />
+        <img
+          src={org.logo}
+          alt=""
+          width={org.logoSize.width}
+          height={org.logoSize.height}
+          className="h-auto w-full invert dark:invert-0"
+        />
       </Link>
 
       <button
@@ -217,6 +224,16 @@ function Sidebar({
       </div>
     </div>
   );
+}
+
+/**
+ * The one "updating" line, along the top of the content sheet: a route change waiting for
+ * its data, or a page whose content is being replaced (usePageQuery). After 300 ms only.
+ */
+function TopProgress() {
+  const navigating = useRouterState({ select: (state) => state.isLoading });
+  const updating = useAnyUpdating();
+  return <ProgressBar active={navigating || updating} className="absolute inset-x-0 top-0 z-40" />;
 }
 
 /**
@@ -309,7 +326,13 @@ export function AppShell({
             <MenuIcon className="size-5" />
             <span className="sr-only">Open menu</span>
           </button>
-          <img src={org.logo} alt={org.name} className="h-4 w-auto invert dark:invert-0" />
+          <img
+            src={org.logo}
+            alt={org.name}
+            width={org.logoSize.width}
+            height={org.logoSize.height}
+            className="h-4 w-auto invert dark:invert-0"
+          />
           <button
             type="button"
             onClick={() => setPaletteOpen(true)}
@@ -338,8 +361,9 @@ export function AppShell({
 
         <main
           id="main"
-          className="flex min-h-0 min-w-0 flex-1 flex-col bg-background lg:overflow-hidden lg:rounded-lg lg:border lg:border-border"
+          className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-background lg:overflow-hidden lg:rounded-lg lg:border lg:border-border"
         >
+          <TopProgress />
           {children}
         </main>
       </div>

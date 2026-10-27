@@ -1,5 +1,6 @@
 import { ArrowDownRightIcon, ArrowUpRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { SkeletonText } from "@/components/ui/skeleton";
 import { formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -25,13 +26,22 @@ export function StatGroup({ className, children }: { className?: string; childre
 export function Stat({
   label,
   value,
+  pending = false,
+  placeholder = "00 000 kr",
   delta,
   deltaLabel,
   hint,
   className,
 }: {
   label: ReactNode;
-  value: ReactNode;
+  value?: ReactNode;
+  /**
+   * First load: the label stays, the value and hint line are text-sized placeholders, so the
+   * strip has its final size before the numbers arrive.
+   */
+  pending?: boolean;
+  /** Sample text the size of the value, for the placeholder ("00 000 kr", "12"). */
+  placeholder?: string;
   /** Relative change as a fraction (0.18 = +18 %). Up is not assumed to be good. */
   delta?: number;
   deltaLabel?: ReactNode;
@@ -39,6 +49,23 @@ export function Stat({
   className?: string;
 }) {
   const up = delta !== undefined && delta >= 0;
+  if (pending) {
+    return (
+      <div
+        data-slot="stat"
+        aria-busy
+        className={cn("grid content-start gap-1 px-4 py-3", className)}
+      >
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <span className="num text-xl font-semibold tracking-tight">
+          <SkeletonText>{placeholder}</SkeletonText>
+        </span>
+        <span className="text-xs">
+          <SkeletonText>00 agreements</SkeletonText>
+        </span>
+      </div>
+    );
+  }
   return (
     <div data-slot="stat" className={cn("grid content-start gap-1 px-4 py-3", className)}>
       <span className="text-sm text-muted-foreground">{label}</span>

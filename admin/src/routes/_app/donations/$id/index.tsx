@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { PencilIcon, Trash2Icon } from "lucide-react";
+import { MailIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { CopyValue } from "@/components/domain/copy-value";
 import { DistributionSummary } from "@/components/domain/distribution-editor";
@@ -9,16 +9,25 @@ import { DateTime, Money } from "@/components/domain/format";
 import { Property, PropertyList } from "@/components/domain/property-list";
 import { DetailPage, DetailPanel, PageSection } from "@/components/templates";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { ResendReceiptDialog } from "@/features/donations/resend-receipt";
 import { formatAmount } from "@/features/donations/edit-model";
 import { notify } from "@/lib/notify";
+import { loadPage } from "@/lib/route-data";
 import { useTRPC } from "@/lib/trpc";
 import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
 export const Route = createFileRoute("/_app/donations/$id/")({
+  loader: ({ context: { queryClient, trpc }, params, cause }) => {
+    const id = Number(params.id);
+    if (!(Number.isInteger(id) && id > 0)) return;
+    return loadPage(queryClient, cause, trpc.donations.get.queryOptions({ id }), [
+      { ...trpc.config.causeAreas.listAll.queryOptions(), staleTime: 5 * 60_000 },
+      { ...trpc.meta.owners.queryOptions(), staleTime: 300_000 },
+    ]);
+  },
   component: DonationPage,
 });
 
@@ -52,12 +61,65 @@ function DonationPage() {
 
   const d = donation.data;
   if (!d) {
+    // First load only (navigations wait for the donation): the page's own layout, with
+    // placeholders for the values.
     return (
-      <DetailPage breadcrumbs={breadcrumbs} title={`Donation #${id}`}>
-        <div className="grid gap-3">
-          <Skeleton className="h-6 w-1/3" />
-          <Skeleton className="h-24 w-full" />
-        </div>
+      <DetailPage
+        breadcrumbs={breadcrumbs}
+        title={<SkeletonText>0 000 kr</SkeletonText>}
+        meta={[
+          <span key="id">#{id}</span>,
+          <SkeletonText key="date">00.00.0000 00:00</SkeletonText>,
+          <SkeletonText key="method">Bank transfer</SkeletonText>,
+          <SkeletonText key="donor">Firstname Lastname</SkeletonText>,
+        ]}
+        actions={
+          <>
+            <Button disabled>
+              <PencilIcon />
+              Edit
+            </Button>
+            <Button disabled>
+              <MailIcon />
+              Resend receipt
+            </Button>
+            <Button disabled>
+              <Trash2Icon />
+              Delete…
+            </Button>
+          </>
+        }
+        aside={
+          <>
+            <DetailPanel title="Payment">
+              <PropertyList labelWidth="7rem">
+                {["Amount", "Fee", "Date", "Method", "External ref", "Data owner"].map((label) => (
+                  <Property key={label} label={label} pending placeholder="Placeholder" />
+                ))}
+              </PropertyList>
+            </DetailPanel>
+            <DetailPanel title="Donor">
+              <PropertyList labelWidth="7rem">
+                {["Name", "Email", "Donor ID"].map((label) => (
+                  <Property key={label} label={label} pending />
+                ))}
+              </PropertyList>
+            </DetailPanel>
+          </>
+        }
+      >
+        <PageSection
+          title="Distribution"
+          description={
+            <>
+              KID <SkeletonText>000000000000000</SkeletonText>
+            </>
+          }
+        >
+          <div className="rounded-md border border-border bg-surface p-4">
+            <Skeleton className="h-16 w-full" />
+          </div>
+        </PageSection>
       </DetailPage>
     );
   }

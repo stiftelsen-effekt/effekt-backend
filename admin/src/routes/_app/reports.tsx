@@ -12,7 +12,7 @@ import { DateRangePicker, type DateRange } from "@/components/ui/date-range-pick
 import { Field, useFieldControl } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Pending } from "@/components/ui/pending";
 import { visiblePaymentMethods } from "@/features/donations/api";
 import { isoDay } from "@/features/home/model";
 import {
@@ -141,7 +141,7 @@ function TransactionReport() {
           {methods.error ? (
             <ErrorState error={methods.error} onRetry={() => void methods.refetch()} />
           ) : !methods.data ? (
-            <Skeleton className="h-24" />
+            <Pending className="min-h-24" />
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
               {visiblePaymentMethods(methods.data).map((method) => {

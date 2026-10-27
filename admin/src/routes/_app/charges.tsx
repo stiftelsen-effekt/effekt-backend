@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { DownloadIcon, Undo2Icon } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -36,6 +36,7 @@ import { notify } from "@/lib/notify";
 import { chargeStatus } from "@/lib/status";
 import { strings } from "@/lib/strings";
 import { unbatched, useTRPC } from "@/lib/trpc";
+import { nextPage, usePageQuery } from "@/lib/query";
 
 export const Route = createFileRoute("/_app/charges")({
   validateSearch: chargesList.validateSearch,
@@ -100,14 +101,16 @@ function ChargesPage() {
 
   const filter = toChargeFilter(list.filters);
   const sort = { id: list.sort.id, desc: list.sort.desc };
-  const query = useQuery({
-    ...trpc.vipps.charges.list.queryOptions({
-      page: list.page - 1,
+  const listOptions = (page: number) =>
+    trpc.vipps.charges.list.queryOptions({
+      page: page - 1,
       limit: list.pageSize,
       sort,
       filter,
-    }),
-    placeholderData: keepPreviousData,
+    });
+  const query = usePageQuery(listOptions(list.page), {
+    // The next page is fetched as soon as this one is in, so paging forward is instant.
+    prefetch: (data) => nextPage(list.page, data.pages, listOptions),
   });
   const histogram = useQuery({
     ...trpc.vipps.charges.histogram.queryOptions(),

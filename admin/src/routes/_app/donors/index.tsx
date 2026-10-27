@@ -1,8 +1,8 @@
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, type LinkProps } from "@tanstack/react-router";
 import { DownloadIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
-import { createColumns, DataTable, TableSummary } from "@/components/data-table";
+import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { CopyValue } from "@/components/domain/copy-value";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
@@ -31,7 +31,10 @@ import { downloadText } from "@/lib/download";
 import { org } from "@/lib/org";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
+import { nextPage, usePageQuery } from "@/lib/query";
 import { useTRPC } from "@/lib/trpc";
+import { Updating } from "@/components/ui/pending";
+import { SkeletonText } from "@/components/ui/skeleton";
 import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
 export const Route = createFileRoute("/_app/donors/")({
@@ -43,39 +46,45 @@ const col = createColumns<DonorListRow>();
 const columns = col.columns([
   col.accessor("id", {
     header: "ID",
-    meta: { numeric: true, cellClassName: "text-muted-foreground w-20" },
+    meta: {
+      placeholder: cellPlaceholder.id,
+      numeric: true,
+      cellClassName: "text-muted-foreground w-20",
+    },
   }),
   col.accessor("name", {
     header: "Name",
-    meta: { cellClassName: "font-semibold max-w-56 truncate" },
+    meta: { placeholder: cellPlaceholder.name, cellClassName: "font-semibold max-w-56 truncate" },
     cell: ({ getValue }) => getValue() ?? <span className="text-faint-foreground">–</span>,
   }),
   col.accessor("email", {
     header: "Email",
-    meta: { cellClassName: "max-w-64 truncate" },
+    meta: { placeholder: cellPlaceholder.email, cellClassName: "max-w-64 truncate" },
   }),
   col.accessor("registered", {
     header: "Registered",
+    meta: { placeholder: cellPlaceholder.date },
     cell: ({ getValue }) => <DateTime value={getValue()} />,
   }),
   col.accessor("lastDonation", {
     id: "lastDonationDate",
     header: "Last donation",
-    meta: { label: "Last donation" },
+    meta: { placeholder: cellPlaceholder.date, label: "Last donation" },
     cell: ({ getValue }) => <DateTime value={getValue()} />,
   }),
   col.accessor("donationsCount", {
     header: "Donations",
-    meta: { numeric: true },
+    meta: { placeholder: cellPlaceholder.count, numeric: true },
     cell: ({ getValue }) => <Num value={getValue()} />,
   }),
   col.accessor("donationsSum", {
     header: "Given",
-    meta: { numeric: true, cellClassName: "font-semibold" },
+    meta: { placeholder: cellPlaceholder.money, numeric: true, cellClassName: "font-semibold" },
     cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("newsletter", {
     header: "Newsletter",
+    meta: { placeholder: cellPlaceholder.word },
     enableSorting: false,
     cell: ({ getValue }) =>
       getValue() ? "Subscribed" : <span className="text-muted-foreground">No</span>,
@@ -92,14 +101,16 @@ function DonorsPage() {
 
   const filter = toDonorFilter(list.filters);
   const sort = { id: list.sort.id, desc: list.sort.desc };
-  const query = useQuery({
-    ...trpc.donors.list.queryOptions({
-      page: list.page - 1,
+  const listOptions = (page: number) =>
+    trpc.donors.list.queryOptions({
+      page: page - 1,
       limit: list.pageSize,
       sort,
       filter,
-    }),
-    placeholderData: keepPreviousData,
+    });
+  const query = usePageQuery(listOptions(list.page), {
+    // The next page is fetched as soon as this one is in, so paging forward is instant.
+    prefetch: (data) => nextPage(list.page, data.pages, listOptions),
   });
   const organizations = useQuery(trpc.config.organizations.listAll.queryOptions());
   const referralTypes = useQuery(trpc.config.referralTypes.listAll.queryOptions());
@@ -253,7 +264,8 @@ function DonorsPage() {
 /** With "Donated between", the row's totals cover only the period. */
 function DonorPeek({ donor, inPeriod }: { donor: DonorListRow; inPeriod: boolean }) {
   const trpc = useTRPC();
-  const donations = useQuery(trpc.donors.donations.queryOptions({ donorId: donor.id }));
+  // j/k moves the peek: the previous donor's donations stay (dimmed) until the next's are in.
+  const donations = usePageQuery(trpc.donors.donations.queryOptions({ donorId: donor.id }));
   const recent = [...(donations.data ?? [])]
     .sort((a, b) => (b.timestamp ?? "").localeCompare(a.timestamp ?? ""))
     .slice(0, 5);
@@ -281,29 +293,37 @@ function DonorPeek({ donor, inPeriod }: { donor: DonorListRow; inPeriod: boolean
       <section className="grid gap-2">
         <h3 className="text-sm font-semibold">Recent donations</h3>
         {donations.isPending ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : recent.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No donations yet.</p>
-        ) : (
-          <ul className="grid text-sm">
-            {recent.map((donation) => (
-              <li
-                key={donation.id}
-                className="flex items-center gap-3 border-b border-border py-1.5 last:border-b-0"
-              >
-                <DateTime value={donation.timestamp} className="text-muted-foreground" />
-                <span className="min-w-0 flex-1 truncate">
-                  <PaymentMethodName value={donation.paymentMethod} />
-                </span>
-                <Link
-                  to={`/donations/${donation.id}` as LinkProps["to"]}
-                  className="rounded-xs font-semibold text-accent hover:underline focus-ring"
-                >
-                  <Money value={donation.sum} />
-                </Link>
+          <ul className="grid text-sm" aria-busy>
+            {[0, 1, 2].map((index) => (
+              <li key={index} className="border-b border-border py-1.5 last:border-b-0">
+                <SkeletonText>00.00.0000 Bank transfer 0 000 kr</SkeletonText>
               </li>
             ))}
           </ul>
+        ) : recent.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No donations yet.</p>
+        ) : (
+          <Updating active={donations.isPlaceholderData}>
+            <ul className="grid text-sm">
+              {recent.map((donation) => (
+                <li
+                  key={donation.id}
+                  className="flex items-center gap-3 border-b border-border py-1.5 last:border-b-0"
+                >
+                  <DateTime value={donation.timestamp} className="text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate">
+                    <PaymentMethodName value={donation.paymentMethod} />
+                  </span>
+                  <Link
+                    to={`/donations/${donation.id}` as LinkProps["to"]}
+                    className="rounded-xs font-semibold text-accent hover:underline focus-ring"
+                  >
+                    <Money value={donation.sum} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Updating>
         )}
       </section>
     </>
