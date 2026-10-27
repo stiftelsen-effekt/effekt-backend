@@ -1,10 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { NOW, settle } from "../helpers";
+import { fixtures as regrantingFixtures } from "../regranting-fixtures";
 
 /**
  * Loading is calm (DESIGN.md › Loading): against a slow stubbed API, first loads of key pages
- * don't shift the layout when the data arrives, and changing the AvtaleGiro day keeps the
- * current day on screen (no skeletons, no shift).
+ * don't shift the layout when the data arrives, and changing the AvtaleGiro day, the Balances
+ * date or a statement's period keeps the current data on screen (no skeletons, no shift).
  *
  * Layout shift is measured with the browser's own `layout-shift` entries (what CLS sums).
  * The API answers after LATENCY ms, longer than both the 300 ms indicator delay (so the
@@ -238,7 +239,8 @@ function fixture(path: string, input: Record<string, unknown> | undefined): unkn
         diff: index % 3 ? "0" : "-400",
       }));
     default:
-      return [];
+      // Regranting: Balances, the round builder, a statement, a project.
+      return regrantingFixtures[path] ?? [];
   }
 }
 
@@ -355,6 +357,27 @@ const firstLoads = [
     path: "/avtalegiro-check?date=2026-10-21",
     ready: (page: Page) => page.getByRole("tab", { name: /Missing/ }),
   },
+  {
+    name: "Balances",
+    path: "/regranting",
+    ready: (page: Page) => page.getByRole("cell", { name: /GiveWell All Grants Fund/ }),
+  },
+  {
+    name: "round builder",
+    path: "/regranting/rounds/7",
+    ready: (page: Page) => page.getByRole("heading", { name: "Step 2 · Payments by payee" }),
+  },
+  {
+    name: "statement",
+    path: "/regranting/recipients/1",
+    ready: (page: Page) =>
+      page.getByRole("heading", { name: "Statement: GiveWell All Grants Fund" }),
+  },
+  {
+    name: "project page",
+    path: "/regranting/projects/3",
+    ready: (page: Page) => page.getByRole("heading", { name: "Cash transfers in Malawi" }),
+  },
 ];
 
 for (const { name, path, ready } of firstLoads) {
@@ -410,4 +433,54 @@ test("the previous day is shown dimmed and busy while the next loads", async ({ 
   await expect(page.locator("[data-slot=updating][data-updating]").first()).toBeVisible();
   await expect(page.locator("[data-slot=progress-bar][data-active]")).toHaveCount(1);
   await expect(busy).toHaveCount(0, { timeout: LATENCY * 3 });
+});
+
+/** After a parameter change: the shift (also within 500 ms of the input) and skeletons. */
+async function expectCalm(page: Page, label: string) {
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(LATENCY + 300);
+  const result = await measure(page);
+  test.info().annotations.push({
+    type: "parameter change",
+    description: `${label}: shift ${result.all}, skeletons ${result.skeletons}`,
+  });
+  expect(result.skeletons, `${label}: no skeletons`).toBe(0);
+  expect(result.all, JSON.stringify(result.shifts, null, 2)).toBeLessThan(MAX_SHIFT);
+}
+
+test("changing the Balances date keeps the balances in place", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/regranting");
+  await settle(page);
+  const balance = page.getByRole("cell", { name: "3 940 286,92 kr", exact: true });
+  await expect(balance).toBeVisible();
+
+  for (const day of ["01.10.2026", "30.09.2026"]) {
+    await reset(page);
+    const input = page.getByRole("textbox", { name: "Balances at" });
+    await input.fill(day);
+    await input.press("Enter");
+    // While the new date loads, the current balances stay: values, not placeholders.
+    await expect(balance).toBeVisible();
+    await expect(page).toHaveURL(/at=2026-/);
+    await expectCalm(page, `Balances at ${day}`);
+  }
+});
+
+test("changing a statement's period keeps the statement in place", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/regranting/recipients/1");
+  await settle(page);
+  const opening = page.locator("[data-slot=stat]").first();
+  await expect(opening).toContainText("kr");
+
+  for (const preset of ["Last 30 days", "This year"]) {
+    await reset(page);
+    await page.getByRole("button", { name: "Period" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: preset }).click();
+    await page.keyboard.press("Escape");
+    await expect(page).toHaveURL(/from=2026-/);
+    await expect(opening).toContainText("kr");
+    await expectCalm(page, `Statement ${preset}`);
+  }
 });

@@ -1,8 +1,7 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { createColumns, DataTable, TableSummary } from "@/components/data-table";
+import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Num } from "@/components/domain/format";
 import { Property, PropertyList } from "@/components/domain/property-list";
@@ -20,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { projectStatuses, type Project } from "@/features/regranting/model";
 import { ProjectDialog } from "@/features/regranting/project-dialog";
 import { RecipientLink, useOrganizations } from "@/features/regranting/ui";
+import { usePageQuery } from "@/lib/query";
 import { projectStatus } from "@/lib/status";
 import { useTRPC } from "@/lib/trpc";
 
@@ -54,6 +54,7 @@ const columns = col.columns([
   col.accessor("country", { header: "Country", enableSorting: false }),
   col.accessor("startDate", {
     header: "Period",
+    meta: { placeholder: "00.00.0000 – 00.00.0000" },
     cell: ({ row: { original: p } }) =>
       p.startDate || p.endDate ? (
         <span>
@@ -68,6 +69,7 @@ const columns = col.columns([
   }),
   col.accessor("reportDue", {
     header: "Next report due",
+    meta: { placeholder: cellPlaceholder.date },
     cell: ({ getValue }) => <DateTime value={getValue()} />,
   }),
 ]);
@@ -77,13 +79,12 @@ function ProjectsPage() {
   const navigate = useNavigate();
   const list = useListState(projectsList);
   const org = list.filters.org;
-  const query = useQuery({
-    ...trpc.regranting.projects.list.queryOptions({
+  const query = usePageQuery(
+    trpc.regranting.projects.list.queryOptions({
       organizationId: org?.length === 1 ? org[0] : undefined,
       statuses: list.filters.status,
     }),
-    placeholderData: keepPreviousData,
-  });
+  );
   const orgs = useOrganizations();
   const [peekId, setPeekId] = useState<number | null>(null);
   const rows = useMemo(() => {

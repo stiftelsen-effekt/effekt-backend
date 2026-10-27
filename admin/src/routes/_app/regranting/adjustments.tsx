@@ -1,8 +1,8 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { createColumns, DataTable, TableSummary } from "@/components/data-table";
+import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
@@ -32,6 +32,7 @@ import { RecordDialog } from "@/features/settings/record-dialog";
 import { formatMoney } from "@/lib/format";
 import { compareMoney, sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
+import { usePageQuery } from "@/lib/query";
 import { useTRPC } from "@/lib/trpc";
 
 const adjustmentsList = defineList({
@@ -55,6 +56,7 @@ const col = createColumns<Adjustment>();
 const columns = col.columns([
   col.accessor("effectiveAt", {
     header: "Counts from",
+    meta: { placeholder: cellPlaceholder.date },
     cell: ({ getValue }) => <DateTime value={getValue()} />,
   }),
   col.accessor("type", {
@@ -86,7 +88,7 @@ const columns = col.columns([
   }),
   col.accessor("amount", {
     header: "Amount",
-    meta: { numeric: true, cellClassName: "font-semibold" },
+    meta: { numeric: true, placeholder: cellPlaceholder.money, cellClassName: "font-semibold" },
     cell: ({ getValue }) => <Money value={getValue()} signed />,
   }),
   col.accessor("reason", {
@@ -122,15 +124,14 @@ function AdjustmentsPage() {
   const trpc = useTRPC();
   const list = useListState(adjustmentsList);
   const { type, org, date } = list.filters;
-  const query = useQuery({
-    ...trpc.regranting.adjustments.list.queryOptions({
+  const query = usePageQuery(
+    trpc.regranting.adjustments.list.queryOptions({
       types: type,
       organizationId: org?.length === 1 ? org[0] : undefined,
       from: date?.from,
       to: date?.to,
     }),
-    placeholderData: keepPreviousData,
-  });
+  );
   const orgs = useOrganizations();
   const [peekId, setPeekId] = useState<number | null>(null);
   const rows = useMemo(() => {
@@ -251,12 +252,14 @@ function AdjustmentPeek({
   const queryClient = useQueryClient();
   const remove = useMutation(trpc.regranting.adjustments.delete.mutationOptions());
   const link = useMutation(trpc.regranting.adjustments.linkDonation.mutationOptions());
-  const round = useQuery({
+  // Follows the peeked row: keeps the previous round while the next loads, but only this
+  // adjustment's own round counts.
+  const roundQuery = usePageQuery({
     ...trpc.regranting.rounds.get.queryOptions({ id: a.roundId ?? 0 }),
     enabled: a.roundId !== null,
   });
-  const locked =
-    a.roundId !== null && round.data !== undefined && round.data.round.status !== "draft";
+  const ownRound = roundQuery.data?.round.id === a.roundId ? roundQuery.data : undefined;
+  const locked = a.roundId !== null && ownRound !== undefined && ownRound.round.status !== "draft";
   const invalidate = () => queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
   return (
     <PeekPanel
@@ -342,7 +345,7 @@ function AdjustmentPeek({
         <Property label="Reason">{a.reason}</Property>
         <Property label="Round">
           {a.roundId && (
-            <RoundLink id={a.roundId}>{round.data?.round.name ?? `#${a.roundId}`}</RoundLink>
+            <RoundLink id={a.roundId}>{ownRound?.round.name ?? `#${a.roundId}`}</RoundLink>
           )}
         </Property>
         <Property label="Corrects">

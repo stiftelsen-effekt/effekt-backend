@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { XIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -9,11 +9,13 @@ import { ChoiceCards } from "@/components/ui/choice-cards";
 import { DateInput } from "@/components/ui/date-input";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Updating } from "@/components/ui/pending";
 import { parseMoneyInput } from "@/features/donations/form";
 import { RecordDialog, textError } from "@/features/settings/record-dialog";
 import { addDays, osloDay } from "@/lib/dates";
 import { formatDate } from "@/lib/format";
 import { notify } from "@/lib/notify";
+import { usePageQuery } from "@/lib/query";
 import { useTRPC } from "@/lib/trpc";
 import { roundKindDescriptions, roundKindLabels, roundKinds, type RoundKind } from "./model";
 
@@ -160,15 +162,15 @@ export function DonationChooser({
   const trpc = useTRPC();
   const [query, setQuery] = useState("");
   const [from, setFrom] = useState(addDays(osloDay(), -90));
-  const results = useQuery({
-    ...trpc.donations.list.queryOptions({
+  // Typing keeps the current matches (dimmed) until the new ones are in.
+  const results = usePageQuery(
+    trpc.donations.list.queryOptions({
       page: 0,
       limit: 8,
       sort: { id: "sum", desc: true },
       filter: { ...(query.trim() ? { query: query.trim() } : {}), date: { from } },
     }),
-    placeholderData: keepPreviousData,
-  });
+  );
   const chosenIds = new Set(chosen.map((d) => d.id));
   const toggle = (d: ChosenDonation) =>
     onChange(chosenIds.has(d.id) ? chosen.filter((c) => c.id !== d.id) : [...chosen, d]);
@@ -184,39 +186,41 @@ export function DonationChooser({
           <DateInput value={from} onValueChange={setFrom} />
         </Field>
       </div>
-      <ul
-        aria-label="Matching donations, largest first"
-        aria-busy={results.isFetching || undefined}
-        className="grid max-h-56 overflow-y-auto rounded-md border border-border"
-      >
-        {(results.data?.rows ?? []).map((row) => {
-          const donation = {
-            id: row.id,
-            donor: row.donor ?? "",
-            sum: row.sum,
-            timestamp: row.timestamp,
-          };
-          return (
-            <li key={row.id} className="border-b border-border last:border-b-0">
-              <label className="flex cursor-pointer items-center gap-3 px-3 py-1.5 text-sm hover:bg-hover">
-                <Checkbox
-                  checked={chosenIds.has(row.id)}
-                  onCheckedChange={() => toggle(donation)}
-                />
-                <span className="num w-16 text-muted-foreground">#{row.id}</span>
-                <span className="min-w-0 flex-1 truncate">{row.donor}</span>
-                <DateTime value={row.timestamp} />
-                <Money value={row.sum} className="w-28 text-right font-semibold" />
-              </label>
+      <Updating active={results.isPlaceholderData}>
+        <ul
+          aria-label="Matching donations, largest first"
+          aria-busy={results.isFetching || undefined}
+          className="grid max-h-56 overflow-y-auto rounded-md border border-border"
+        >
+          {(results.data?.rows ?? []).map((row) => {
+            const donation = {
+              id: row.id,
+              donor: row.donor ?? "",
+              sum: row.sum,
+              timestamp: row.timestamp,
+            };
+            return (
+              <li key={row.id} className="border-b border-border last:border-b-0">
+                <label className="flex cursor-pointer items-center gap-3 px-3 py-1.5 text-sm hover:bg-hover">
+                  <Checkbox
+                    checked={chosenIds.has(row.id)}
+                    onCheckedChange={() => toggle(donation)}
+                  />
+                  <span className="num w-16 text-muted-foreground">#{row.id}</span>
+                  <span className="min-w-0 flex-1 truncate">{row.donor}</span>
+                  <DateTime value={row.timestamp} />
+                  <Money value={row.sum} className="w-28 text-right font-semibold" />
+                </label>
+              </li>
+            );
+          })}
+          {results.data && results.data.rows.length === 0 && (
+            <li className="px-3 py-4 text-sm text-muted-foreground">
+              No donations match since {formatDate(from)}.
             </li>
-          );
-        })}
-        {results.data && results.data.rows.length === 0 && (
-          <li className="px-3 py-4 text-sm text-muted-foreground">
-            No donations match since {formatDate(from)}.
-          </li>
-        )}
-      </ul>
+          )}
+        </ul>
+      </Updating>
       {chosen.length > 0 && (
         <ul aria-label="Chosen donations" className="flex flex-wrap gap-1.5">
           {chosen.map((d) => (

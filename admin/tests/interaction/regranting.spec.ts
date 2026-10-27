@@ -134,3 +134,38 @@ test("Show recipients not in this round follows the API's inRound flag", async (
   await page.getByRole("switch", { name: /Show recipients not in this round \(1\)/ }).click();
   await expect(tcf).toBeVisible();
 });
+
+test("unsaved Pay now edits survive a background refetch of the builder", async ({ page }) => {
+  let includeTCF = true;
+  let builderCalls = 0;
+  await openBuilder(page, {
+    "regranting.rounds.setIncludeDirect": (input: unknown) => {
+      const value = (input as { includeDirect: boolean | null }).includeDirect;
+      includeTCF = value ?? true;
+      return { roundId: 7, organizationId: 2, includeDirectOverride: value };
+    },
+    "regranting.rounds.builder": () => {
+      builderCalls++;
+      return builderFixture(includeTCF);
+    },
+  });
+  const input = page.getByRole("textbox", {
+    name: "Pay now, GiveWell All Grants Fund, Unrestricted",
+  });
+  await input.fill("600,10");
+  await expect(page.getByTestId("round-total")).toHaveText("1 100,10 kr");
+  const callsBefore = builderCalls;
+
+  // Another recipient's switch saves at once and refetches the whole builder underneath.
+  await page.getByRole("switch", { name: "Include direct donations" }).nth(1).click();
+  await expect(page.locator("[data-recipient='2']")).toContainText(
+    "changed; regular rounds include them",
+  );
+  expect(builderCalls).toBeGreaterThan(callsBefore);
+
+  // The edit is still there, still counted, and still waiting to be saved.
+  await expect(input).toHaveValue("600,10");
+  await expect(page.getByTestId("carries-1:")).toHaveText("+400,20 kr");
+  await expect(page.getByTestId("round-total")).toHaveText("1 100,10 kr");
+  await expect(page.getByRole("button", { name: "Save 1 change…" })).toBeVisible();
+});

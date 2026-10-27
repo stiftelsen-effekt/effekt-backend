@@ -58,17 +58,9 @@ export type PaymentsProps = {
   editable: boolean;
   edits: Edits;
   onEditsChange: (edits: Map<string, LineEdit>) => void;
-  /** Prefetch a recipient's statement when its name is hovered. */
-  onPrefetchRecipient?: (organizationId: number) => void;
 };
 
-export function Payments({
-  builder,
-  editable,
-  edits,
-  onEditsChange,
-  onPrefetchRecipient,
-}: PaymentsProps) {
+export function Payments({ builder, editable, edits, onEditsChange }: PaymentsProps) {
   const saved = savedPayments(builder.transfers);
   const byId = new Map(builder.recipients.map((r) => [r.organizationId, r]));
   // Rounds that don't include direct donations by default list every recipient with a balance;
@@ -169,7 +161,6 @@ export function Payments({
                     edits={edits}
                     editable={editable}
                     onEditsChange={onEditsChange}
-                    onPrefetch={onPrefetchRecipient}
                   />
                 ))}
                 <tfoot>
@@ -356,7 +347,6 @@ function RecipientRows({
   edits,
   editable,
   onEditsChange,
-  onPrefetch,
 }: {
   builder: Builder;
   recipient: BuilderRecipient;
@@ -364,7 +354,6 @@ function RecipientRows({
   edits: Edits;
   editable: boolean;
   onEditsChange: (edits: Map<string, LineEdit>) => void;
-  onPrefetch?: (organizationId: number) => void;
 }) {
   const lines = recipientLines(recipient, saved, edits, builder.transfers);
   const totals = recipientTotals(recipient, saved, edits, builder.transfers);
@@ -388,11 +377,10 @@ function RecipientRows({
       <tr className="bg-muted/40">
         <td colSpan={6}>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span onMouseEnter={() => onPrefetch?.(orgId)} onFocus={() => onPrefetch?.(orgId)}>
-              <RecipientLink organizationId={orgId} className="font-semibold">
-                {recipient.name}
-              </RecipientLink>
-            </span>
+            {/* Preloads the statement on hover and focus (its route loader). */}
+            <RecipientLink organizationId={orgId} className="font-semibold">
+              {recipient.name}
+            </RecipientLink>
             <span className="text-xs text-muted-foreground">{recipient.abbriv}</span>
             <IncludeDirectSwitch
               builder={builder}

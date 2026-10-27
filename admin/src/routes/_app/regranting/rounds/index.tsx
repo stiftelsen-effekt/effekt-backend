@@ -1,8 +1,8 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
-import { useMemo, useState } from "react";
-import { createColumns, DataTable, TableSummary } from "@/components/data-table";
+import { useEffect, useMemo, useState } from "react";
+import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
 import { Property, PropertyList } from "@/components/domain/property-list";
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { CreateRoundDialog } from "@/features/regranting/create-round-dialog";
 import { roundKindLabels, roundKinds, type RoundSummary } from "@/features/regranting/model";
 import { compareMoney, sumMoney } from "@/lib/money";
+import { usePageQuery } from "@/lib/query";
 import { roundStatus } from "@/lib/status";
 import { useTRPC } from "@/lib/trpc";
 
@@ -41,6 +42,7 @@ const col = createColumns<RoundSummary>();
 const columns = col.columns([
   col.accessor("cutoff", {
     header: "Cutoff",
+    meta: { placeholder: cellPlaceholder.date },
     cell: ({ getValue }) => <DateTime value={getValue()} />,
   }),
   col.accessor("name", {
@@ -60,7 +62,7 @@ const columns = col.columns([
   col.accessor("totalNok", {
     id: "total",
     header: "To pay",
-    meta: { numeric: true, cellClassName: "font-semibold" },
+    meta: { numeric: true, placeholder: cellPlaceholder.money, cellClassName: "font-semibold" },
     cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("transferCount", {
@@ -72,7 +74,7 @@ const columns = col.columns([
   col.accessor("fundGrantTotal", {
     header: "Fund grants",
     enableSorting: false,
-    meta: { numeric: true },
+    meta: { numeric: true, placeholder: cellPlaceholder.money },
     cell: ({ getValue }) => <Money value={getValue()} />,
   }),
   col.accessor("createdBy", {
@@ -89,6 +91,7 @@ const columns = col.columns([
   col.accessor("paidAt", {
     header: "Paid",
     enableSorting: false,
+    meta: { placeholder: cellPlaceholder.date },
     cell: ({ getValue }) => <DateTime value={getValue()} />,
   }),
 ]);
@@ -97,13 +100,13 @@ function RoundsPage() {
   const trpc = useTRPC();
   const navigate = useNavigate();
   const list = useListState(roundsList);
-  const query = useQuery({
-    ...trpc.regranting.rounds.list.queryOptions({
+  const queryClient = useQueryClient();
+  const query = usePageQuery(
+    trpc.regranting.rounds.list.queryOptions({
       statuses: list.filters.status,
       kinds: list.filters.kind,
     }),
-    placeholderData: keepPreviousData,
-  });
+  );
   const [peekId, setPeekId] = useState<number | null>(null);
 
   const rows = useMemo(() => {
@@ -126,6 +129,18 @@ function RoundsPage() {
     });
   }, [query.data, list.filters.q, list.sort.id, list.sort.desc]);
   const peeked = rows.find((r) => r.id === peekId);
+
+  // While peeking, Enter opens the round and j/k move to the next or previous one: warm the
+  // round pages of the peeked row and its neighbours (rows also preload on hover).
+  const peekIndex = peeked ? rows.indexOf(peeked) : -1;
+  const nearby = peekIndex < 0 ? [] : rows.slice(Math.max(0, peekIndex - 1), peekIndex + 2);
+  const nearbyKey = nearby.map((r) => r.id).join(",");
+  useEffect(() => {
+    for (const r of nearby) {
+      void queryClient.prefetchQuery(trpc.regranting.rounds.builder.queryOptions({ id: r.id }));
+      void queryClient.prefetchQuery(trpc.regranting.rounds.get.queryOptions({ id: r.id }));
+    }
+  }, [nearbyKey, queryClient, trpc]);
 
   return (
     <ListPage

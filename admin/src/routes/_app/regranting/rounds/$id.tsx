@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   CircleAlertIcon,
@@ -8,7 +8,7 @@ import {
   Trash2Icon,
   TriangleAlertIcon,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/auth/context";
 import { Callout } from "@/components/domain/callout";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
@@ -27,6 +27,8 @@ import { DateInput } from "@/components/ui/date-input";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Pending } from "@/components/ui/pending";
+import { SkeletonText } from "@/components/ui/skeleton";
 import { parseMoneyInput } from "@/features/donations/form";
 import {
   planSave,
@@ -37,7 +39,6 @@ import {
 } from "@/features/regranting/builder-model";
 import { DonationChooser } from "@/features/regranting/create-round-dialog";
 import { FundGrants } from "@/features/regranting/fund-grants";
-import { busyProps, useDelayedFlag, ValuePlaceholder } from "@/features/regranting/loading";
 import {
   countIssues,
   generalIssues,
@@ -51,16 +52,30 @@ import { Payments } from "@/features/regranting/payments";
 import { Transfers } from "@/features/regranting/transfers";
 import { InlineIssues, RecipientLink } from "@/features/regranting/ui";
 import { RecordDialog, textError } from "@/features/settings/record-dialog";
-import { addDays, osloDay } from "@/lib/dates";
 import { formatDate, formatMoney, formatMoneyInput } from "@/lib/format";
 import { moneySign, sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
+import { loadPage } from "@/lib/route-data";
 import { roundStatus } from "@/lib/status";
 import { errorCode, useTRPC } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/regranting/rounds/$id")({
+  loader: ({ context: { queryClient, trpc }, params, cause }) => {
+    const roundId = Number(params.id);
+    if (!Number.isInteger(roundId) || roundId <= 0) return;
+    const q = roundQueries(trpc, roundId);
+    return loadPage(queryClient, cause, q.builder, [q.detail]);
+  },
   component: RoundPage,
 });
+
+/** What the round page shows; the page reads these and the loader warms them. */
+function roundQueries(trpc: ReturnType<typeof useTRPC>, roundId: number) {
+  return {
+    builder: trpc.regranting.rounds.builder.queryOptions({ id: roundId }),
+    detail: trpc.regranting.rounds.get.queryOptions({ id: roundId }),
+  };
+}
 
 function RoundPage() {
   const { id } = Route.useParams();
@@ -74,7 +89,8 @@ function RoundPage() {
         className="flex-1"
       />
     );
-  return <Round roundId={roundId} />;
+  // Keyed by the round: another round starts without this one's unsaved edits.
+  return <Round key={roundId} roundId={roundId} />;
 }
 
 function Round({ roundId }: { roundId: number }) {
@@ -82,35 +98,17 @@ function Round({ roundId }: { roundId: number }) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const me = identityOf(user);
-  const builderQuery = useQuery({
-    ...trpc.regranting.rounds.builder.queryOptions({ id: roundId }),
-    placeholderData: keepPreviousData,
-  });
-  const detail = useQuery({
-    ...trpc.regranting.rounds.get.queryOptions({ id: roundId }),
-    placeholderData: keepPreviousData,
-  });
+  // The round is the route's record (plain useQuery). Background refetches (after a mutation)
+  // replace the builder data underneath; the unsaved Pay now edits are local state on top of it
+  // and stay until saved or discarded.
+  const queries = roundQueries(trpc, roundId);
+  const builderQuery = useQuery(queries.builder);
+  const detail = useQuery(queries.detail);
   const [edits, setEdits] = useState<Map<string, LineEdit>>(new Map());
   const [confirmSave, setConfirmSave] = useState(false);
   const [approvalIssues, setApprovalIssues] = useState<Issue[] | null>(null);
   const setLines = useMutation(trpc.regranting.transfers.setLines.mutationOptions());
   const createTransfer = useMutation(trpc.regranting.transfers.create.mutationOptions());
-  const slow = useDelayedFlag(builderQuery.isFetching);
-
-  const prefetchStatement = useCallback(
-    (organizationId: number) => {
-      const cutoff = builderQuery.data?.round.cutoff;
-      if (!cutoff) return;
-      void queryClient.prefetchQuery(
-        trpc.regranting.statements.recipient.queryOptions({
-          organizationId,
-          from: defaultStatementFrom(osloDay()),
-        }),
-      );
-    },
-    [builderQuery.data?.round.cutoff, queryClient, trpc],
-  );
-
   if (builderQuery.isError) {
     return (
       <div className="p-6">
@@ -161,7 +159,7 @@ function Round({ roundId }: { roundId: number }) {
         { label: "Regranting", to: "/regranting" },
         { label: "Rounds", to: "/regranting/rounds" },
       ]}
-      title={round?.name ?? `Round #${roundId}`}
+      title={round?.name ?? <SkeletonText>September 2026 regular round</SkeletonText>}
       adornment={round && <Status catalog={roundStatus} value={round.status} />}
       meta={
         round
@@ -183,7 +181,11 @@ function Round({ roundId }: { roundId: number }) {
               ),
               <CopyValue key="id" value={round.id} prefix="#" label="round ID" />,
             ]
-          : []
+          : [
+              <SkeletonText key="kind">Regular round</SkeletonText>,
+              <SkeletonText key="cutoff">Cutoff 00.00.0000</SkeletonText>,
+              <SkeletonText key="created">Created by ops@example.org</SkeletonText>,
+            ]
       }
       actions={
         builder && (
@@ -197,10 +199,13 @@ function Round({ roundId }: { roundId: number }) {
         )
       }
       stats={
+        // No hint lines, so the values alone are placeholders (Stat pending reserves a hint).
         <StatGroup>
           <Stat
             label="Total to pay"
-            value={total !== null ? <Money value={total} /> : <ValuePlaceholder />}
+            value={
+              total !== null ? <Money value={total} /> : <SkeletonText>00 000 kr</SkeletonText>
+            }
           />
           <Stat
             label="Transfers"
@@ -208,13 +213,19 @@ function Round({ roundId }: { roundId: number }) {
               transferCount !== null ? (
                 <Num value={transferCount} />
               ) : (
-                <ValuePlaceholder width="2rem" />
+                <SkeletonText>00</SkeletonText>
               )
             }
           />
           <Stat
             label="Fund grants"
-            value={builder ? <Money value={builder.totals.fundGranted} /> : <ValuePlaceholder />}
+            value={
+              builder ? (
+                <Money value={builder.totals.fundGranted} />
+              ) : (
+                <SkeletonText>00 000 kr</SkeletonText>
+              )
+            }
           />
           <Stat
             label="Issues"
@@ -226,7 +237,7 @@ function Round({ roundId }: { roundId: number }) {
                   {counts.errors} errors · {counts.warnings} warnings
                 </span>
               ) : (
-                <ValuePlaceholder width="8rem" />
+                <SkeletonText>0 errors · 0 warnings</SkeletonText>
               )
             }
           />
@@ -243,11 +254,11 @@ function Round({ roundId }: { roundId: number }) {
           />
         </Callout>
       )}
+      {/* The builder has no shape worth sketching: its space is reserved (taller than the
+          window, so the totals bar stays put at the bottom) until it arrives whole. */}
+      {!builder && <Pending className="min-h-screen" label="Loading the round" />}
       {builder && (
-        <div
-          aria-busy={busyProps(builderQuery.isFetching, slow)["aria-busy"]}
-          className={`grid gap-8 ${busyProps(builderQuery.isFetching, slow).className}`}
-        >
+        <div className="grid gap-8">
           <IssuesPanel issues={builder.issues} unassigned={builder.unassigned} />
           {builder.round.kind === "major_donor" && (
             <ChosenDonations builder={builder} editable={editable} />
@@ -271,7 +282,6 @@ function Round({ roundId }: { roundId: number }) {
               editable={editable}
               edits={edits}
               onEditsChange={setEdits}
-              onPrefetchRecipient={prefetchStatement}
             />
           </PageSection>
           {round!.status !== "draft" && (
@@ -313,7 +323,7 @@ function Round({ roundId }: { roundId: number }) {
           <span>
             Total to pay{" "}
             <span data-testid="round-total" className="font-semibold">
-              {total !== null ? <Money value={total} /> : <ValuePlaceholder />}
+              {total !== null ? <Money value={total} /> : <SkeletonText>00 000 kr</SkeletonText>}
             </span>
           </span>
           <span>
@@ -355,8 +365,6 @@ function Round({ roundId }: { roundId: number }) {
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-
-const defaultStatementFrom = (today: string) => addDays(today, -365);
 
 function StatusCallout({ builder, isCreator }: { builder: Builder; isCreator: boolean }) {
   const round = builder.round;

@@ -1,7 +1,7 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { DownloadIcon, ScaleIcon, ScrollTextIcon } from "lucide-react";
-import { createColumns, DataTable } from "@/components/data-table";
+import { cellPlaceholder, createColumns, DataTable } from "@/components/data-table";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money } from "@/components/domain/format";
@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Field } from "@/components/ui/field";
+import { Updating } from "@/components/ui/pending";
+import { SkeletonText } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -18,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { busyProps, useDelayedFlag, ValuePlaceholder } from "@/features/regranting/loading";
 import type { StatementEntry } from "@/features/regranting/model";
 import {
   describeEntry,
@@ -32,6 +33,8 @@ import { ProjectLink, RoundLink } from "@/features/regranting/ui";
 import { addDays, dateOfDay, dayOf, osloDay, parseIsoDay } from "@/lib/dates";
 import { downloadText } from "@/lib/download";
 import { sumMoney } from "@/lib/money";
+import { usePageQuery } from "@/lib/query";
+import { loadPage } from "@/lib/route-data";
 import { errorCode, useTRPC } from "@/lib/trpc";
 
 type Search = { from?: string; to?: string; project?: string };
@@ -49,11 +52,52 @@ export const Route = createFileRoute("/_app/regranting/recipients/$organizationI
       project: project && /^(unrestricted|\d+)$/.test(project) ? project : undefined,
     };
   },
+  // No loaderDeps: changing the period or project stays on this match (`cause: "stay"`), so
+  // the page keeps the current entries itself (usePageQuery). Arriving from Balances or a round
+  // (links preload on hover) waits for the statement.
+  loader: ({ context: { queryClient, trpc }, params, location, cause }) => {
+    const organizationId = Number(params.organizationId);
+    if (!Number.isInteger(organizationId) || organizationId <= 0) return;
+    const q = statementQueries(trpc, organizationId, location.search as Search, osloDay());
+    return loadPage(queryClient, cause, q.statement, [q.projects]);
+  },
   component: StatementPage,
 });
 
 /** Default period: the last twelve months. */
 const defaultFrom = (today: string) => addDays(today, -365);
+
+/** The statement's period and project from the URL. */
+function statementPeriod(search: Search, today: string) {
+  const from = search.from ?? defaultFrom(today);
+  const to = search.to ?? today;
+  const project: ProjectFilter =
+    search.project === undefined
+      ? "all"
+      : search.project === "unrestricted"
+      ? "unrestricted"
+      : Number(search.project);
+  return { from, to, project };
+}
+
+/** What the statement page shows; the page reads these and the loader warms them. */
+function statementQueries(
+  trpc: ReturnType<typeof useTRPC>,
+  organizationId: number,
+  search: Search,
+  today: string,
+) {
+  const { from, to, project } = statementPeriod(search, today);
+  return {
+    statement: trpc.regranting.statements.recipient.queryOptions({
+      organizationId,
+      from,
+      to: to < from ? from : to,
+      ...toProjectInput(project),
+    }),
+    projects: trpc.regranting.projects.list.queryOptions({ organizationId }),
+  };
+}
 
 function StatementPage() {
   const { organizationId } = Route.useParams();
@@ -75,11 +119,13 @@ const columns = col.columns([
   col.accessor("date", {
     header: "Date",
     enableSorting: false,
+    meta: { placeholder: cellPlaceholder.date },
     cell: ({ getValue }) => <DateTime value={getValue()} />,
   }),
   col.accessor("kind", {
     header: "Type",
     enableSorting: false,
+    meta: { placeholder: "Donations" },
     cell: ({ row: { original: e } }) => (
       <span className="inline-flex items-center gap-1.5">
         {entryKindLabels[e.kind]}
@@ -100,6 +146,7 @@ const columns = col.columns([
   col.accessor("projectName", {
     header: "Project",
     enableSorting: false,
+    meta: { placeholder: "Unrestricted" },
     cell: ({ row: { original: e } }) =>
       e.projectId === null ? (
         <span className="text-muted-foreground">Unrestricted</span>
@@ -110,13 +157,13 @@ const columns = col.columns([
   col.display({
     id: "description",
     header: "Description",
-    meta: { cellClassName: "max-w-md truncate" },
+    meta: { placeholder: "Transfer via GiveWell, REF-123", cellClassName: "max-w-md truncate" },
     cell: ({ row: { original: e } }) => <span title={describeEntry(e)}>{describeEntry(e)}</span>,
   }),
   col.accessor("roundName", {
     header: "Round",
     enableSorting: false,
-    meta: { cellClassName: "max-w-48 truncate" },
+    meta: { placeholder: "June 2026 regular round", cellClassName: "max-w-48 truncate" },
     cell: ({ row: { original: e } }) =>
       e.roundId !== null ? (
         <RoundLink id={e.roundId}>{e.roundName ?? `#${e.roundId}`}</RoundLink>
@@ -125,7 +172,7 @@ const columns = col.columns([
   col.accessor("amount", {
     header: "Amount",
     enableSorting: false,
-    meta: { numeric: true },
+    meta: { numeric: true, placeholder: "+000 000,00 kr" },
     cell: ({ row: { original: e } }) => (
       <Money
         value={e.amount}
@@ -137,7 +184,7 @@ const columns = col.columns([
   col.accessor("balanceAfter", {
     header: "Balance",
     enableSorting: false,
-    meta: { numeric: true, cellClassName: "font-semibold" },
+    meta: { numeric: true, placeholder: "+000 000,00 kr", cellClassName: "font-semibold" },
     cell: ({ getValue }) => <Money value={getValue()} signed />,
   }),
 ]);
@@ -147,25 +194,12 @@ function Statement({ organizationId }: { organizationId: number }) {
   const navigate = useNavigate({ from: Route.fullPath });
   const search = Route.useSearch();
   const today = osloDay();
-  const from = search.from ?? defaultFrom(today);
-  const to = search.to ?? today;
-  const project: ProjectFilter =
-    search.project === undefined
-      ? "all"
-      : search.project === "unrestricted"
-      ? "unrestricted"
-      : Number(search.project);
-  const query = useQuery({
-    ...trpc.regranting.statements.recipient.queryOptions({
-      organizationId,
-      from,
-      to: to < from ? from : to,
-      ...toProjectInput(project),
-    }),
-    placeholderData: keepPreviousData,
-  });
-  const projects = useQuery(trpc.regranting.projects.list.queryOptions({ organizationId }));
-  const slow = useDelayedFlag(query.isFetching);
+  const { from, to, project } = statementPeriod(search, today);
+  const queries = statementQueries(trpc, organizationId, search, today);
+  // A new period or project keeps the current statement on screen (dimmed) until it's in.
+  const query = usePageQuery(queries.statement);
+  const projects = useQuery(queries.projects);
+  const updating = query.isPlaceholderData;
   const setSearch = (patch: Partial<Search>) =>
     void navigate({ search: (prev) => ({ ...prev, ...patch }) });
 
@@ -195,7 +229,15 @@ function Statement({ organizationId }: { organizationId: number }) {
   return (
     <DetailPage
       breadcrumbs={[{ label: "Balances", to: "/regranting" }]}
-      title={s ? `Statement: ${s.name}` : "Statement"}
+      title={
+        s ? (
+          `Statement: ${s.name}`
+        ) : (
+          <>
+            Statement: <SkeletonText>GiveWell All Grants Fund</SkeletonText>
+          </>
+        )
+      }
       adornment={s?.isFund && <Badge tone="accent">Own fund</Badge>}
       meta={[
         <span key="period">
@@ -220,23 +262,31 @@ function Statement({ organizationId }: { organizationId: number }) {
         </Button>
       }
       stats={
-        <StatGroup>
-          <Stat
-            label="Opening balance"
-            value={s ? <Money value={s.openingBalance} signed /> : <ValuePlaceholder />}
-          />
-          <Stat label="In" value={s ? <Money value={inflow} /> : <ValuePlaceholder />} />
-          <Stat label="Out" value={s ? <Money value={outflow} signed /> : <ValuePlaceholder />} />
-          <Stat
-            label="Closing balance"
-            value={s ? <Money value={s.closingBalance} signed /> : <ValuePlaceholder />}
-          />
-          <Stat
-            label="Committed"
-            hint="Approved, not yet paid"
-            value={s ? <Money value={committed} /> : <ValuePlaceholder />}
-          />
-        </StatGroup>
+        // Every stat reserves a hint line while pending; Committed has one, so the strip keeps
+        // its height. A new period dims the current figures instead.
+        <Updating active={updating}>
+          {s ? (
+            <StatGroup>
+              <Stat label="Opening balance" value={<Money value={s.openingBalance} signed />} />
+              <Stat label="In" value={<Money value={inflow} />} />
+              <Stat label="Out" value={<Money value={outflow} signed />} />
+              <Stat label="Closing balance" value={<Money value={s.closingBalance} signed />} />
+              <Stat
+                label="Committed"
+                hint="Approved, not yet paid"
+                value={<Money value={committed} />}
+              />
+            </StatGroup>
+          ) : (
+            <StatGroup>
+              <Stat label="Opening balance" pending />
+              <Stat label="In" pending />
+              <Stat label="Out" pending />
+              <Stat label="Closing balance" pending />
+              <Stat label="Committed" pending />
+            </StatGroup>
+          )}
+        </Updating>
       }
     >
       <div className="flex flex-wrap items-end gap-3">
@@ -276,10 +326,7 @@ function Statement({ organizationId }: { organizationId: number }) {
         title="Entries"
         description="Every entry in the period with the running balance. Donations are summed per day."
       >
-        <div
-          aria-busy={busyProps(query.isFetching, slow)["aria-busy"]}
-          className={`flex max-h-[44rem] flex-col ${busyProps(query.isFetching, slow).className}`}
-        >
+        <div className="flex max-h-[44rem] flex-col">
           <DataTable
             label="Statement entries"
             columns={columns}

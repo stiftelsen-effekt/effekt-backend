@@ -1,8 +1,8 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRightIcon, PlusIcon, ScaleIcon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { createColumns, DataTable, TableSummary } from "@/components/data-table";
+import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Field } from "@/components/ui/field";
+import { SkeletonText } from "@/components/ui/skeleton";
 import {
   balanceRows,
   balanceSorts,
@@ -25,6 +26,8 @@ import { recipientLabel } from "@/features/regranting/model";
 import { Flags, RoundLink } from "@/features/regranting/ui";
 import { osloDay, parseIsoDay } from "@/lib/dates";
 import { sumMoney } from "@/lib/money";
+import { usePageQuery } from "@/lib/query";
+import { loadPage } from "@/lib/route-data";
 import { projectStatus } from "@/lib/status";
 import { useTRPC } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -38,20 +41,36 @@ const balancesList = defineList({
 
 export const Route = createFileRoute("/_app/regranting/")({
   validateSearch: balancesList.validateSearch,
+  // Arriving from another page waits for the balances and the open draft. No loaderDeps: a new
+  // date stays on this match and the page keeps the current balances itself (usePageQuery).
+  loader: ({ context: { queryClient, trpc }, location, cause }) => {
+    const q = balancesQueries(trpc, balancesAt(location.search as { at?: string }));
+    return loadPage(queryClient, cause, [q.balances, q.drafts]);
+  },
   component: BalancesPage,
 });
+
+const balancesAt = (search: { at?: string }) =>
+  search.at && parseIsoDay(search.at) ? search.at : undefined;
+
+/** What the Balances page shows; the page reads these and the loader warms them. */
+function balancesQueries(trpc: ReturnType<typeof useTRPC>, at: string | undefined) {
+  return {
+    balances: trpc.regranting.balances.list.queryOptions(at ? { at } : undefined),
+    drafts: trpc.regranting.rounds.list.queryOptions({ statuses: ["draft"] }),
+  };
+}
 
 function BalancesPage() {
   const trpc = useTRPC();
   const navigate = useNavigate();
   const list = useListState(balancesList);
-  const at = list.filters.at && parseIsoDay(list.filters.at) ? list.filters.at : undefined;
+  const at = balancesAt(list.filters);
   const today = osloDay();
-  const query = useQuery({
-    ...trpc.regranting.balances.list.queryOptions(at ? { at } : undefined),
-    placeholderData: keepPreviousData,
-  });
-  const drafts = useQuery(trpc.regranting.rounds.list.queryOptions({ statuses: ["draft"] }));
+  // Changing the date keeps the current balances on screen (dimmed) until the new ones are in.
+  const queries = balancesQueries(trpc, at);
+  const query = usePageQuery(queries.balances);
+  const drafts = useQuery(queries.drafts);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [peekId, setPeekId] = useState<string | null>(null);
 
@@ -86,7 +105,14 @@ function BalancesPage() {
     <ListPage
       title="Balances"
       description={
-        query.data?.lastRound ? (
+        query.isPending ? (
+          // The sentence's usual length, so the header keeps its height when the data arrives.
+          <>
+            What each recipient is owed, calculated from the donations. Inflow is since{" "}
+            <SkeletonText>June 2026 regular round</SkeletonText> (cutoff{" "}
+            <SkeletonText>{cellPlaceholder.date}</SkeletonText>).
+          </>
+        ) : query.data?.lastRound ? (
           <>
             What each recipient is owed, calculated from the donations. Inflow is since{" "}
             <RoundLink id={query.data.lastRound.id} underline>
@@ -100,23 +126,27 @@ function BalancesPage() {
         )
       }
       actions={
-        <>
-          {draft && (
-            <Button asChild>
-              <Link to="/regranting/rounds/$id" params={{ id: String(draft.id) }}>
-                Open draft: {draft.name}
-              </Link>
-            </Button>
-          )}
-          <CreateRoundDialog
-            trigger={
-              <Button variant="primary">
-                <PlusIcon />
-                New round
+        // Together once the drafts are known: an Open draft button arriving later would push
+        // New round aside under the pointer.
+        !drafts.isPending && (
+          <>
+            {draft && (
+              <Button asChild>
+                <Link to="/regranting/rounds/$id" params={{ id: String(draft.id) }}>
+                  Open draft: {draft.name}
+                </Link>
               </Button>
-            }
-          />
-        </>
+            )}
+            <CreateRoundDialog
+              trigger={
+                <Button variant="primary">
+                  <PlusIcon />
+                  New round
+                </Button>
+              }
+            />
+          </>
+        )
       }
       filters={
         <FilterBar
@@ -238,6 +268,9 @@ function BalancesPage() {
 
 const col = createColumns<BalanceRow>();
 
+/** Balances run into the millions, with øre and a sign: first-load cells as wide as those. */
+const balancePlaceholder = "+0 000 000,00 kr";
+
 function balanceColumns(expanded: ReadonlySet<number>, toggle: (id: number) => void) {
   const figure = (key: "balance" | "committed" | "available") => (row: BalanceRow) =>
     row.kind === "unassigned" ? (key === "balance" ? row.amount : null) : row.figures[key];
@@ -245,7 +278,7 @@ function balanceColumns(expanded: ReadonlySet<number>, toggle: (id: number) => v
     col.accessor((row) => (row.kind === "unassigned" ? "Unassigned" : row.recipient.name), {
       id: "name",
       header: "Recipient",
-      meta: { cellClassName: "max-w-80" },
+      meta: { placeholder: "GiveWell Top Charities Fund TCF Own fun", cellClassName: "max-w-80" },
       cell: ({ row: { original: row } }) => {
         if (row.kind === "unassigned")
           return (
@@ -292,31 +325,31 @@ function balanceColumns(expanded: ReadonlySet<number>, toggle: (id: number) => v
     col.accessor(figure("balance"), {
       id: "balance",
       header: "Balance",
-      meta: { numeric: true, cellClassName: "font-semibold" },
+      meta: { numeric: true, placeholder: balancePlaceholder, cellClassName: "font-semibold" },
       cell: ({ getValue }) => <Money value={getValue()} signed />,
     }),
     col.accessor(figure("committed"), {
       id: "committed",
       header: "Committed",
-      meta: { numeric: true, label: "Committed" },
+      meta: { numeric: true, placeholder: cellPlaceholder.money, label: "Committed" },
       cell: ({ getValue }) => <Money value={getValue()} />,
     }),
     col.accessor(figure("available"), {
       id: "available",
       header: "Available",
-      meta: { numeric: true },
+      meta: { numeric: true, placeholder: balancePlaceholder },
       cell: ({ getValue }) => <Money value={getValue()} signed />,
     }),
     col.accessor((row) => (row.kind === "recipient" ? row.recipient.inflowSinceLastRound : null), {
       id: "inflow",
       header: "Inflow since last round",
-      meta: { numeric: true, label: "Inflow since last round" },
+      meta: { numeric: true, placeholder: "0 000 000,00 kr", label: "Inflow since last round" },
       cell: ({ getValue }) => (getValue() == null ? null : <Money value={getValue()} />),
     }),
     col.accessor((row) => (row.kind === "recipient" ? row.recipient.lastTransfer : null), {
       id: "lastTransfer",
       header: "Last transfer",
-      meta: { label: "Last transfer" },
+      meta: { label: "Last transfer", placeholder: "00.00.0000 00 000 kr" },
       cell: ({ getValue }) => {
         const last = getValue();
         return last ? (
@@ -331,11 +364,12 @@ function balanceColumns(expanded: ReadonlySet<number>, toggle: (id: number) => v
       id: "payee",
       header: "Payee",
       enableSorting: false,
-      meta: { cellClassName: "max-w-40 truncate" },
+      meta: { placeholder: "GiveDirectly", cellClassName: "max-w-40 truncate" },
     }),
     col.display({
       id: "flags",
       header: "Flags",
+      meta: { placeholder: "Held too long ·" },
       cell: ({ row: { original: row } }) =>
         row.kind === "recipient" ? (
           <Flags flags={recipientFlags(row.recipient)} />
