@@ -81,4 +81,30 @@ export const activeStatus = define({
   },
 });
 
-export const statusCatalogs = { agreementStatus, chargeStatus, importStatus, activeStatus };
+/** Donors.trash: test data, spam and duplicates kept out of the way. */
+export const donorStatus = define({
+  trash: {
+    label: "In trash",
+    tone: "neutral",
+    description: "Marked as test data, spam or a duplicate",
+  },
+});
+
+/** A donor's tax units. Archived units keep their history but get no new donations. */
+export const taxUnitStatus = define({
+  active: { label: "Active", tone: "success", description: "Donations count towards deductions" },
+  archived: {
+    label: "Archived",
+    tone: "neutral",
+    description: "Kept for history; gets no new donations",
+  },
+});
+
+export const statusCatalogs = {
+  agreementStatus,
+  chargeStatus,
+  importStatus,
+  activeStatus,
+  donorStatus,
+  taxUnitStatus,
+};

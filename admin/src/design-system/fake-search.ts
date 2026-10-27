@@ -76,3 +76,13 @@ export const fakeSearchProviders: SearchProvider[] = [
     },
   },
 ];
+
+/** DonorPicker's search over the fake donors (same contract as donors.search). */
+export async function fakeDonorSearch(query: string, signal: AbortSignal) {
+  await wait(120, signal);
+  const q = query.trim().toLowerCase();
+  return donors
+    .filter((d) => d.name.toLowerCase().includes(q) || d.email.includes(q) || String(d.id) === q)
+    .slice(0, 8)
+    .map(({ id, name, email }) => ({ id, name, email }));
+}

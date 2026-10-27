@@ -71,6 +71,19 @@ for (const theme of themes) {
       await expect(page).toHaveScreenshot(`state-confirm-${theme}.png`);
     });
 
+    test("donor picker", async ({ page }) => {
+      await openDesign(page, "/design/components", theme);
+      await page.getByRole("combobox", { name: "Donor", exact: true }).click();
+      await page.getByRole("combobox", { name: "Search donors" }).fill("hansen");
+      await expect(page.getByRole("option").first()).toBeVisible();
+      await settle(page);
+      const picker = page.getByRole("combobox", { name: "Donor", exact: true });
+      const box = (await picker.boundingBox())!;
+      await expect(page).toHaveScreenshot(`state-donor-picker-${theme}.png`, {
+        clip: { x: box.x - 16, y: box.y - 40, width: Math.max(box.width, 320) + 32, height: 420 },
+      });
+    });
+
     test("import flow review step", async ({ page }) => {
       await openDesign(page, "/design/flow", theme);
       await page.getByRole("radio", { name: /Bank OCR/ }).click();

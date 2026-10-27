@@ -549,3 +549,43 @@ export function BooleanFilter({
     </FilterShell>
   );
 }
+
+/** Exactly one of a few values (how a donor gave to fundraisers). For several, OptionsFilter. */
+export function ChoiceFilter<V extends string>({
+  field,
+  label,
+  options,
+}: {
+  field: string;
+  label: string;
+  options: readonly { value: V; label: string }[];
+}) {
+  const slot = useFilterSlot<V>(field);
+  return (
+    <FilterShell
+      field={field}
+      label={label}
+      active={slot.active}
+      slot={slot}
+      summary={options.find((option) => option.value === slot.value)?.label ?? ""}
+      editorClassName="w-60 p-2"
+    >
+      <div className="-mx-1 grid gap-px">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => {
+              slot.setValue(option.value);
+              slot.setOpen(false);
+            }}
+            className="flex h-7 items-center gap-2 rounded-sm px-1.5 text-left text-sm hover:bg-hover focus-ring-inset"
+          >
+            <CheckIcon className={cn("size-3.5", slot.value !== option.value && "invisible")} />
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </FilterShell>
+  );
+}
