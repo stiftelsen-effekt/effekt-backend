@@ -1,0 +1,11 @@
+packages:
+  - admin
+
+# Only prisma needs its install scripts; ssh2 and cpu-features have JS fallbacks
+allowBuilds:
+  "@prisma/client": true
+  "@prisma/engines": true
+  "@scarf/scarf": false
+  cpu-features: false
+  prisma: true
+  ssh2: false
