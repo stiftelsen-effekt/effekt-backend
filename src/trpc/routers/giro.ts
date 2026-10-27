@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { DAO } from "../../custom_modules/DAO";
+import type { AvtaleGiroAgreementPayments } from "../../custom_modules/DAO_modules/avtalegiroagreements";
 import {
   replaceAvtaleGiroDistribution,
   setAvtaleGiroStatus,
@@ -116,6 +117,19 @@ const avtalegiroRouter = router({
   donations: adminProcedure
     .input(byKID)
     .query(({ input }) => DAO.avtalegiroagreements.getDonationsByKID(input.KID)),
+
+  /**
+   * The agreement's AvtaleGiro donations under every KID it has had: changing the distribution
+   * moves earlier donations to a new "historic" KID, which donations({ KID }) doesn't follow.
+   * Donations moved by a tax unit change aren't linked to the agreement and are not included.
+   */
+  payments: adminProcedure
+    .input(z.strictObject({ agreementId: idSchema }))
+    .query(async ({ input }): Promise<AvtaleGiroAgreementPayments> => {
+      const payments = await DAO.avtalegiroagreements.getPaymentsByAgreementId(input.agreementId);
+      if (!payments) throw new TRPCError({ code: "NOT_FOUND", message: "Agreement not found" });
+      return payments;
+    }),
 
   /** GET /avtalegiro/histogram. Buckets in NOK. */
   histogram: adminProcedure.query(() => DAO.avtalegiroagreements.getAgreementSumHistogram()),

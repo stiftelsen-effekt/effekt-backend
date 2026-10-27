@@ -121,8 +121,12 @@ export const transactionRangeInput = z
 
 //region Logs
 
+export const logsSort = sortSchema(["timestamp", "label", "id"] as const);
+
 export const logsListInput = z.strictObject({
   ...paginationFields,
+  /** Newest first when omitted */
+  sort: logsSort.optional(),
   filter: z
     .strictObject({
       /** Fuzzy match in the `file` field of the log entry's result JSON */
@@ -205,9 +209,15 @@ export const reviewQueueListInput = z.strictObject({
     .optional(),
 });
 
+export const reviewQueueSearchInput = z.strictObject({
+  /** An item id, or part of a KID, external id, payer name or message */
+  query: z.string().trim().min(1).max(255),
+  limit: z.number().int().positive().max(50).default(10),
+});
+
 /**
- * Registers a donation from a queued item. The amount, date, payment method and external
- * reference default to the item's; the admin supplies the KID or a distribution.
+ * Registers a donation from a queued item. The amount, date, payment method, external reference
+ * and data owner default to the item's; the admin supplies the KID or a distribution.
  */
 export const reviewQueueRegisterInput = z
   .strictObject({
@@ -219,7 +229,8 @@ export const reviewQueueRegisterInput = z
     paymentId: id.optional(),
     /** null registers the donation without an external reference */
     paymentExternalRef: paymentExternalRefSchema.nullable().optional(),
-    metaOwnerId: id,
+    /** Defaults to the data owner chosen at upload (the item's metaOwnerId), else the default owner */
+    metaOwnerId: id.optional(),
     sendReceipt: z.boolean(),
   })
   .refine((input) => (input.KID === undefined) !== (input.distribution === undefined), {

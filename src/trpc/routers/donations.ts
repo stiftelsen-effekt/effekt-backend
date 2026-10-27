@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { DAO } from "../../custom_modules/DAO";
-import { TaxUnitType } from "../../custom_modules/DAO_modules/donations";
+import { TaxUnitType, type SumHistogramBucket } from "../../custom_modules/DAO_modules/donations";
 import { createDistribution, updateDonation } from "../../custom_modules/donationsService";
 import { sendDonationReceipt } from "../../custom_modules/mail";
 import { Distribution } from "../../schemas/types";
@@ -26,6 +26,7 @@ import {
 import {
   distributionFilterSchema,
   distributionSortSchema,
+  donationHistogramInput,
   donationFilterSchema,
   donationSortSchema,
   paymentExternalRefSchema,
@@ -274,7 +275,27 @@ export const donationsRouter = router({
     )
     .mutation(({ input }) => registerDonation(input)),
 
-  histogram: adminProcedure.query(() => DAO.donations.getHistogramBySum()),
+  /**
+   * Donation count per sum bucket, in whole currency units. Without input (or `scale: "fixed"`)
+   * the 5 000 kr buckets of REST GET /donations/histogram; `scale: "log"` spreads ~`buckets`
+   * buckets over the range on a log scale, so small donations aren't all in the first bucket.
+   */
+  histogram: adminProcedure
+    .input(donationHistogramInput)
+    .query(async ({ input }): Promise<SumHistogramBucket[]> => {
+      if (input?.scale === "log") return DAO.donations.getLogHistogramBySum(input.buckets);
+      const rows = await DAO.donations.getHistogramBySum();
+      // DECIMAL arithmetic: mysql2 returns the bucket as a string
+      return rows.map((row) => {
+        const bucket = Number(row.bucket);
+        return {
+          bucket,
+          bucketEnd: bucket + 5000,
+          items: Number(row.items),
+          bar: Number(row.bar),
+        };
+      });
+    }),
 
   transactionCostsReport: adminProcedure.query(async () => {
     const report = await DAO.donations.getTransactionCostsReport();

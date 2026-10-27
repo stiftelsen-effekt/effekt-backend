@@ -769,7 +769,11 @@ export type AutogiroRejectedChargesResult = {
 };
 
 export type AutogiroReportResult =
-  | ({ type: "payments" } & AutogiroPaymentsResult)
+  | ({
+      type: "payments";
+      /** The "Autogiro - Payments BAG" import log entry written while processing */
+      importLogId: number;
+    } & AutogiroPaymentsResult)
   | { type: "eMandates"; newMandates: number }
   | ({ type: "mandates" } & AutogiroMandatesResult)
   | ({ type: "rejectedCharges" } & AutogiroRejectedChargesResult)
@@ -793,9 +797,12 @@ export async function processAutogiroReport(report: Buffer): Promise<AutogiroRep
 
   if (fileType === AutoGiroContent.PAYMENT_SPECIFICATION_AND_STOP) {
     if (!("results" in result)) throw new Error("Missing results in return object");
+    const importLogId = "importLogId" in result ? result.importLogId : undefined;
+    if (typeof importLogId !== "number") throw new Error("Missing import log in return object");
     const { valid, invalid, invalidTransactions } = result.results;
     return {
       type: "payments",
+      importLogId,
       valid: valid!,
       invalid: invalid!,
       invalidTransactions: invalidTransactions!,

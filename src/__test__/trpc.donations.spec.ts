@@ -293,8 +293,51 @@ describe("tRPC donations router", () => {
       expect(send.called).to.be.false;
     });
 
+    it("builds log-scale histogram buckets", async () => {
+      const log = sinon.stub(DAO.donations, "getLogHistogramBySum").resolves([]);
+      await admin().donations.histogram({ scale: "log" });
+      await admin().donations.histogram({ scale: "log", buckets: 30 });
+      expect(log.args).to.deep.equal([[20], [30]]);
+      await expectTrpcError(
+        admin().donations.histogram({ scale: "log", buckets: 4 }),
+        "BAD_REQUEST",
+      );
+      await expectTrpcError(
+        admin().donations.histogram({ scale: "fixed", buckets: 20 } as any),
+        "BAD_REQUEST",
+      );
+
+      const query = sinon.stub(DAO, "query");
+      query
+        .onFirstCall()
+        .resolves([[{ min: "-100.00", minPositive: "10.00", max: "1000000.00" }]] as any);
+      query.onSecondCall().resolves([
+        [
+          { idx: 0, items: 2 },
+          { idx: 1, items: 50 },
+          { idx: 5, items: 1 },
+          // Sums equal to the last edge
+          { idx: 6, items: 2 },
+        ],
+      ] as any);
+      log.restore();
+      const buckets = await admin().donations.histogram({ scale: "log", buckets: 5 });
+      expect(query.secondCall.args[0]).to.match(
+        /INTERVAL\(sum_confirmed, \?, \?, \?, \?, \?, \?\)/,
+      );
+      expect(query.secondCall.args[1]).to.deep.equal([10, 100, 1000, 10000, 100000, 1000000]);
+      expect(buckets).to.deep.equal([
+        { bucket: -100, bucketEnd: 10, items: 2, bar: 69 },
+        { bucket: 10, bucketEnd: 100, items: 50, bar: 391 },
+        { bucket: 100, bucketEnd: 1000, items: 0, bar: 0 },
+        { bucket: 1000, bucketEnd: 10000, items: 0, bar: 0 },
+        { bucket: 10000, bucketEnd: 100000, items: 0, bar: 0 },
+        { bucket: 100000, bucketEnd: 1000000, items: 3, bar: 110 },
+      ]);
+    });
+
     it("returns histogram, transaction cost report, totals and donations by KID", async () => {
-      const bucket = { bucket: 0, items: 1, bar: 0 };
+      const bucket = { bucket: "5000", items: 1, bar: 0 } as any;
       const report = { donationsCount: 1, costYTD: "1" } as any;
       const aggregate = { id: 1, orgName: "Org", sum: "1.00" };
       const month = { year: 2025, month: 1, sum: "1.00" };
@@ -304,7 +347,9 @@ describe("tRPC donations router", () => {
       sinon.stub(DAO.donations, "getAggregateLastYearByMonth").resolves([month]);
       const byKid = sinon.stub(DAO.donations, "getAllByKID").resolves([{ id: 1 }] as any);
 
-      expect(await admin().donations.histogram()).to.deep.equal([bucket]);
+      expect(await admin().donations.histogram()).to.deep.equal([
+        { bucket: 5000, bucketEnd: 10000, items: 1, bar: 0 },
+      ]);
       expect(await admin().donations.transactionCostsReport()).to.deep.equal(report);
       expect(
         await admin().donations.total({ fromDate: "2025-01-01", toDate: "2025-02-01" }),

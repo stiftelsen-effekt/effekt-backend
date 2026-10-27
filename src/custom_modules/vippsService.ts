@@ -177,6 +177,19 @@ export type CreateMatchingRuleResult =
 export async function createMatchingRule(
   matchingRule: MatchingRuleInput,
 ): Promise<CreateMatchingRuleResult> {
+  const invalid = await validateMatchingRule(matchingRule);
+  if (invalid) return invalid;
+
+  const result = await DAO.vipps.addMatchingRule(matchingRule);
+  return { ok: true, result };
+}
+
+type MatchingRuleValidationError = { ok: false; status: 400; message: string };
+
+/** The period must be ordered and resolveKID must be an existing distribution */
+async function validateMatchingRule(
+  matchingRule: MatchingRuleInput,
+): Promise<MatchingRuleValidationError | null> {
   if (matchingRule.periodFrom >= matchingRule.periodTo) {
     return { ok: false, status: 400, message: "periodFrom must be before periodTo" };
   }
@@ -190,7 +203,24 @@ export async function createMatchingRule(
       message: `Distribution with KID ${matchingRule.resolveKID} does not exist`,
     };
   }
+  return null;
+}
 
-  const result = await DAO.vipps.addMatchingRule(matchingRule);
-  return { ok: true, result };
+export type UpdateMatchingRuleResult =
+  | { ok: true }
+  | MatchingRuleValidationError
+  | { ok: false; status: 404; message: string };
+
+/** Validates like createMatchingRule and replaces the fields of an existing rule */
+export async function updateMatchingRule(
+  id: number,
+  matchingRule: MatchingRuleInput,
+): Promise<UpdateMatchingRuleResult> {
+  const invalid = await validateMatchingRule(matchingRule);
+  if (invalid) return invalid;
+
+  if (!(await DAO.vipps.updateMatchingRule(id, matchingRule))) {
+    return { ok: false, status: 404, message: "Matching rule not found" };
+  }
+  return { ok: true };
 }
