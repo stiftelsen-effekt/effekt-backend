@@ -106,6 +106,10 @@ function alignment(meta: DataTableColumnMeta | undefined) {
 const interactive = "a,button,input,select,textarea,label,[role=checkbox],[role=menuitem]";
 
 /** Sample cell text for the first-load rows, by column position, so rows look like text. */
+/** Rows arrive staggered: 20 rows take 200 ms; long pages stop adding delay at 400 ms. */
+const ROW_STAGGER_MS = 10;
+const ROW_STAGGER_MAX_MS = 400;
+
 const textSamples = ["Placeholder name", "Short text", "Longer placeholder text", "Text"];
 
 /** Hovering a row this long preloads its page (the router's link intent delay is 50 ms). */
@@ -390,7 +394,13 @@ export function DataTable<TData extends RowData>({
                     onPointerLeave={getRowHref ? cancelPreload : undefined}
                     onKeyDown={navigable ? (event) => onRowKeyDown(event, row, index) : undefined}
                     onFocus={navigable ? () => setCursor(index) : undefined}
+                    // Rows animate in only when they mount (first load, a new page or filter
+                    // result). Refetches and sorting reuse rows by id, so they stay put.
+                    style={{
+                      animationDelay: `${Math.min(index * ROW_STAGGER_MS, ROW_STAGGER_MAX_MS)}ms`,
+                    }}
                     className={cn(
+                      "animate-row-in motion-reduce:animate-none",
                       navigable && "cursor-default focus-ring-inset",
                       "data-[peeked]:bg-accent-subtle data-[peeked]:shadow-[inset_2px_0_0_var(--accent)]",
                     )}
