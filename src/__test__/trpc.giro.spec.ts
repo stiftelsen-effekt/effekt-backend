@@ -175,7 +175,10 @@ describe("tRPC giro router", () => {
       expect(page).to.equal(2);
       expect(limit).to.equal(25);
       expect(filter!.amount).to.deep.equal({ from: 100 });
-      expect(filter!.created!.from).to.deep.equal(new Date(2026, 0, 2));
+      expect(filter!.createdRange).to.deep.equal({
+        from: new Date("2026-01-01T23:00:00Z"),
+        before: undefined,
+      });
       expect(filter!.statuses).to.deep.equal([1]);
     });
 

@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { DAO, SqlResult } from "../DAO";
 
 import sqlString from "sqlstring";
+import { instantRangeClauses, type InstantRange } from "../osloDays";
 import { OkPacket, ResultSetHeader } from "mysql2/promise";
 import { Avtalegiro_agreements } from "@prisma/client";
 import { Distribution, DistributionInput } from "../../schemas/types";
@@ -373,6 +374,8 @@ interface AvtaleGiroFilters {
   KID?: string;
   paymentDate?: { from?: number; to?: number };
   created?: { from?: Date; to?: Date };
+  /** Half-open instant range (osloDays.ts), used by tRPC; `created` is filled by MySQL */
+  createdRange?: InstantRange;
   donor?: string;
   statuses?: Array<number>;
 }
@@ -459,6 +462,7 @@ async function getAgreements(
         whereClauses.push(`AG.created < ${sqlString.escape(toDate)}`);
       }
     }
+    whereClauses.push(...instantRangeClauses("AG.created", filter.createdRange, "db"));
 
     if (filter.KID && filter.KID.length > 0) {
       whereClauses.push(`CAST(AG.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)}`);

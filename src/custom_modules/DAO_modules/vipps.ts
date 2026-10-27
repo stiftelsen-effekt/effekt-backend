@@ -1,6 +1,7 @@
 import { distributions } from "./distributions";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
+import { instantRangeClauses, type InstantRange } from "../osloDays";
 import type { ResultSetHeader } from "mysql2";
 import { Vipps_agreements, Vipps_order_transaction_statuses, Vipps_orders } from "@prisma/client";
 
@@ -222,6 +223,8 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
 interface VippsAgreementFilters {
   amount?: { from?: number; to?: number };
   created?: { from?: Date | null; to?: Date | null };
+  /** Half-open instant range (osloDays.ts), used by tRPC; timestamp_created is filled by MySQL */
+  createdRange?: InstantRange;
   chargeDay?: { from?: number; to?: number };
   KID?: string;
   donor?: string;
@@ -295,6 +298,7 @@ export async function getAgreements(
         whereClauses.push(`VA.timestamp_created < ${sqlString.escape(toDate)}`);
       }
     }
+    whereClauses.push(...instantRangeClauses("VA.timestamp_created", filter.createdRange, "db"));
     if (filter.chargeDay) {
       if (filter.chargeDay.from !== undefined)
         whereClauses.push(`VA.monthly_charge_day >= ${sqlString.escape(filter.chargeDay.from)}`);

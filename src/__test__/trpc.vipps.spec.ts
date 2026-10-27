@@ -124,8 +124,10 @@ describe("tRPC vipps router", () => {
       expect(sort).to.deep.equal({ id: "created", desc: true });
       expect(page).to.equal(1);
       expect(limit).to.equal(25);
-      expect(filter!.created!.from).to.be.instanceOf(Date);
-      expect(filter!.created!.to).to.be.instanceOf(Date);
+      expect(filter!.createdRange).to.deep.equal({
+        from: new Date("2025-12-31T23:00:00Z"),
+        before: new Date("2026-01-31T23:00:00Z"),
+      });
       expect(filter!.statuses).to.deep.equal(["ACTIVE"]);
       expect(filter!.donor).to.equal("Ola");
     });

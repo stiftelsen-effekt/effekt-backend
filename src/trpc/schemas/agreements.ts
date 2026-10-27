@@ -21,7 +21,7 @@ export const agreementsFilter = z.strictObject({
   /** Monthly amount in whole currency units, inclusive */
   amount: range(z.number().nonnegative()).optional(),
   chargeDay: range(chargeDay).optional(),
-  /** Inclusive of the whole `to` day */
+  /** Whole Oslo days, inclusive of the `to` day */
   created: range(isoDateSchema).optional(),
   /** Partial match on the donor's name or email */
   donor: z.string().trim().min(1).optional(),

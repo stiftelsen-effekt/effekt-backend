@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { DateTime } from "luxon";
 import { z } from "zod";
 import { DAO } from "../../custom_modules/DAO";
+import { osloDayRange } from "../../custom_modules/osloDays";
 import type { VippsChargeRow } from "../../custom_modules/DAO_modules/vipps";
 import * as vippsService from "../../custom_modules/vippsService";
 import { csvExport } from "../csv";
@@ -24,19 +25,11 @@ import {
   matchingRuleUpdateInput,
 } from "../schemas/vipps";
 
-/** Parses a YYYY-MM-DD input as local midnight, like the dates the REST admin sent. */
-const localDate = (isoDate: string) => DateTime.fromISO(isoDate).toJSDate();
-
+/** `created` is a range of whole Oslo days */
 const toAgreementDaoFilter = (filter: z.infer<typeof agreementFilterSchema> | undefined) => {
   if (!filter) return null;
   const { created, ...rest } = filter;
-  return {
-    ...rest,
-    created: created && {
-      from: created.from ? localDate(created.from) : null,
-      to: created.to ? localDate(created.to) : null,
-    },
-  };
+  return { ...rest, createdRange: osloDayRange(created) };
 };
 
 // The DAO's `timestamp` branch (which reads filter.dueDate) is unreachable: the schema has no

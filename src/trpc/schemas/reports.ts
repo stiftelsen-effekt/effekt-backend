@@ -105,9 +105,9 @@ export const ku65Input = formDataInput({
 
 export const transactionRangeInput = z
   .strictObject({
-    /** Inclusive */
+    /** Inclusive, the whole Europe/Oslo day */
     fromDate: isoDateSchema,
-    /** Inclusive */
+    /** Inclusive, the whole Europe/Oslo day */
     toDate: isoDateSchema,
     /** All payment methods when omitted */
     paymentMethodIDs: z.array(id).min(1).optional(),
@@ -139,6 +139,7 @@ export const logsListInput = z.strictObject({
 
 //region Fundraisers
 
+/** Whole Europe/Oslo days, `to` inclusive */
 const dateRange = z.strictObject({
   from: isoDateSchema.optional(),
   to: isoDateSchema.optional(),

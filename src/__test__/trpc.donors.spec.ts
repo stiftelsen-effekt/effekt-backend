@@ -114,10 +114,12 @@ describe("tRPC donors router", () => {
       expect(limit).to.equal(25);
       expect(filter!.donorId).to.equal(null);
       expect(filter!.name).to.equal("Jack");
-      expect(filter!.registered!.from).to.be.instanceOf(Date);
-      expect(filter!.registered!.from!.getFullYear()).to.equal(2024);
-      expect(filter!.registered!.from!.getMonth()).to.equal(0);
-      expect(filter!.registered!.from!.getDate()).to.equal(31);
+      // Whole Oslo days
+      expect(filter!.registered).to.equal(undefined);
+      expect(filter!.registeredRange).to.deep.equal({
+        from: new Date("2024-01-30T23:00:00Z"),
+        before: undefined,
+      });
       expect(filter!.donationsSum).to.deep.equal({ from: 100 });
       expect(filter!.recipientOrgIDs).to.deep.equal([1, 2]);
     });

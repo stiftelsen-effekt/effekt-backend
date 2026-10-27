@@ -9,6 +9,7 @@ import {
   validateTaxUnitSsn,
 } from "../../custom_modules/donorService";
 import { RequestLocale } from "../../middleware/locale";
+import { osloDayRange } from "../../custom_modules/osloDays";
 import { csvExport } from "../csv";
 import { adminProcedure, router } from "../trpc";
 import {
@@ -26,30 +27,22 @@ import {
   updateInput,
 } from "../schemas/donors";
 
-/** Turns an ISO date (YYYY-MM-DD) into local midnight, the way the old admin's date pickers did. */
-const toDate = (isoDate: string): Date => {
-  const [year, month, day] = isoDate.split("-").map(Number);
-  return new Date(year, month - 1, day);
-};
-
-const toDateRange = (range?: { from?: string; to?: string }) =>
-  range && {
-    from: range.from !== undefined ? toDate(range.from) : undefined,
-    to: range.to !== undefined ? toDate(range.to) : undefined,
-  };
-
 /**
- * Maps the procedure filter to DAO.donors.getAll's filter. donorId must be null rather than
- * undefined when unset: getAll adds `Donors.ID = NULL` for anything !== null.
+ * Maps the procedure filter to DAO.donors.getAll's filter. Date ranges are whole Oslo days
+ * (osloDays.ts). donorId must be null rather than undefined when unset: getAll adds
+ * `Donors.ID = NULL` for anything !== null.
  */
-const toDonorFilters = (filter: DonorFilterInput | undefined, query?: string) => ({
-  ...filter,
-  donorId: filter?.donorId ?? null,
-  query,
-  registered: toDateRange(filter?.registered),
-  donationsDateRange: toDateRange(filter?.donationsDateRange),
-  lastDonationDate: toDateRange(filter?.lastDonationDate),
-});
+const toDonorFilters = (filter: DonorFilterInput | undefined, query?: string) => {
+  const { registered, donationsDateRange, lastDonationDate, ...rest } = filter ?? {};
+  return {
+    ...rest,
+    donorId: filter?.donorId ?? null,
+    query,
+    registeredRange: osloDayRange(registered),
+    donationsRange: osloDayRange(donationsDateRange),
+    lastDonationRange: osloDayRange(lastDonationDate),
+  };
+};
 
 const DEFAULT_SORT = { id: "id", desc: true };
 

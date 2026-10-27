@@ -448,9 +448,11 @@ describe("tRPC reports router", () => {
         paymentMethodIDs: [2, 5],
       });
 
-      expect(rangeStub.firstCall.args[0]).to.deep.equal(new Date("2024-01-01"));
-      expect(rangeStub.firstCall.args[1]).to.deep.equal(new Date("2024-01-31"));
+      // Whole Oslo days: from the start of 1 January to the start of 1 February (CET)
+      expect(rangeStub.firstCall.args[0]).to.deep.equal(new Date("2023-12-31T23:00:00Z"));
+      expect(rangeStub.firstCall.args[1]).to.deep.equal(new Date("2024-01-31T23:00:00Z"));
       expect(rangeStub.firstCall.args[2]).to.deep.equal([2, 5]);
+      expect(rangeStub.firstCall.args[3]).to.deep.equal({ exclusiveEnd: true });
       expect(file).to.deep.equal({ filename: "transactions_2024-01-01_2024-01-31", rows });
     });
 
@@ -616,7 +618,7 @@ describe("tRPC reports router", () => {
       expect([page, limit, includeSecrets]).to.deep.equal([1, 20, true]);
       expect(sort).to.deep.equal({ id: "totalSum", desc: true });
       expect(filter).to.deep.equal({
-        registrationDate: { from: new Date("2025-01-01"), to: undefined },
+        registrationRange: { from: new Date("2024-12-31T23:00:00Z"), before: undefined },
         donationSum: { from: 100 },
         donor: "Ola",
         organizationIDs: [1],

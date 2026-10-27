@@ -9,6 +9,7 @@ import {
 
 export const donorIdInput = z.strictObject({ donorId: id });
 
+/** Whole Europe/Oslo days, `to` inclusive (osloDays.ts) */
 const dateRange = z.strictObject({
   from: isoDateSchema.optional(),
   to: isoDateSchema.optional(),

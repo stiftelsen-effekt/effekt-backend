@@ -4,6 +4,7 @@ import { DAO } from "../DAO";
 import * as sqlString from "sqlstring";
 import { RequestLocale } from "../../middleware/locale";
 import { normalizeDonorEmail } from "../donorEmail";
+import { instantRangeClauses, type InstantRange } from "../osloDays";
 
 //region Get
 
@@ -21,6 +22,13 @@ interface DonorFilters {
   registeredDate?: { from?: Date; to?: Date };
   donationsDateRange?: { from?: Date; to?: Date };
   lastDonationDate?: { from?: Date; to?: Date };
+  /**
+   * Half-open instant ranges (osloDays.ts), used by tRPC instead of the day ranges above, whose
+   * `to` day is added in the server's local time zone.
+   */
+  registeredRange?: InstantRange;
+  donationsRange?: InstantRange;
+  lastDonationRange?: InstantRange;
   donationsCount?: { from?: number; to?: number };
   donationsSum?: { from?: number; to?: number };
   fundraiserGiving?: DonorFundraiserGiving;
@@ -136,11 +144,17 @@ async function getAll(
   let donationDateFilterSqlForCTE = ""; // For filtering donations within the CTE
   let donationDateFilterSqlForSubqueries = ""; // For filtering donations within subqueries
 
-  if (filter?.donationsDateRange) {
-    const from = filter.donationsDateRange.from;
-    const to = filter.donationsDateRange.to;
-    let cteConditions: string[] = [];
-    let subqueryConditions: string[] = [];
+  if (filter?.donationsDateRange || filter?.donationsRange) {
+    const from = filter.donationsDateRange?.from;
+    const to = filter.donationsDateRange?.to;
+    let cteConditions: string[] = instantRangeClauses(
+      "Dons.timestamp_confirmed",
+      filter.donationsRange,
+    );
+    let subqueryConditions: string[] = instantRangeClauses(
+      "D_rec.timestamp_confirmed",
+      filter.donationsRange,
+    );
 
     if (from) {
       cteConditions.push(`Dons.timestamp_confirmed >= ${sqlString.escape(from)}`);
@@ -267,6 +281,11 @@ async function getAll(
         whereClauses.push(`Donors.date_registered < ${sqlString.escape(toDate)}`);
       }
     }
+
+    whereClauses.push(
+      ...instantRangeClauses("Donors.date_registered", filter.registeredRange, "db"),
+      ...instantRangeClauses("Aggregates.last_donation_date", filter.lastDonationRange),
+    );
 
     if (filter.lastDonationDate) {
       if (filter.lastDonationDate.from) {

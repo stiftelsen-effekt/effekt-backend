@@ -167,8 +167,11 @@ describe("tRPC donations router", () => {
       expect(sort).to.deep.equal({ id: "timestamp", desc: true });
       expect(page).to.equal(2);
       expect(limit).to.equal(25);
-      expect(filter!.date!.from).to.be.instanceOf(Date);
-      expect(filter!.date!.to!.toISOString()).to.equal("2025-12-31T23:59:59.000Z");
+      // A date is the whole Oslo day; a date-time is the exact (inclusive) instant
+      expect(filter!.date).to.deep.equal({
+        from: new Date("2024-12-31T23:00:00.000Z"),
+        before: new Date("2025-12-31T23:59:59.001Z"),
+      });
       expect(filter!.taxUnitTypes).to.deep.equal(["person", null]);
       expect(locale).to.equal("NO");
     });

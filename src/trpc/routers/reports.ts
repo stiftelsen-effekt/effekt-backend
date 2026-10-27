@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import type { JWTPayload } from "express-oauth2-jwt-bearer";
 import { DAO } from "../../custom_modules/DAO";
 import { buildKu65Report } from "../../custom_modules/ku65";
+import { osloDayEnd, osloDayRange, osloDayStart } from "../../custom_modules/osloDays";
 import {
   processAutogiroReport,
   processBankNoReport,
@@ -320,14 +321,15 @@ const uploadsRouter = router({
 
 const transactionsRouter = router({
   /**
-   * Donations confirmed in an inclusive date range, with their split per organization. The
-   * client turns `rows` into a JSON or CSV download named `filename` (without extension).
+   * Donations confirmed in an inclusive range of Oslo days, with their split per organization.
+   * The client turns `rows` into a JSON or CSV download named `filename` (without extension).
    */
   range: adminProcedure.input(transactionRangeInput).mutation(async ({ input }) => {
     const rows = await DAO.donations.getFromRange(
-      new Date(input.fromDate),
-      new Date(input.toDate),
+      osloDayStart(input.fromDate),
+      osloDayEnd(input.toDate),
       input.paymentMethodIDs ?? null,
+      { exclusiveEnd: true },
     );
     return { filename: `transactions_${input.fromDate}_${input.toDate}`, rows };
   }),
@@ -371,20 +373,16 @@ const logsRouter = router({
 });
 
 const fundraisersRouter = router({
+  /** `registrationDate` is a range of whole Oslo days */
   list: adminProcedure.input(fundraisersListInput).query(({ input }) => {
-    const { filter } = input;
+    const { registrationDate, ...filter } = input.filter ?? {};
     return DAO.fundraisers.getList(
       input.page,
       input.limit,
-      filter
+      input.filter
         ? {
             ...filter,
-            registrationDate: filter.registrationDate && {
-              from: filter.registrationDate.from
-                ? new Date(filter.registrationDate.from)
-                : undefined,
-              to: filter.registrationDate.to ? new Date(filter.registrationDate.to) : undefined,
-            },
+            ...(registrationDate && { registrationRange: osloDayRange(registrationDate) }),
           }
         : undefined,
       input.sort,

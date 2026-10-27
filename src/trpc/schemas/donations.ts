@@ -4,6 +4,10 @@ import { idSchema, isoDateOrDateTimeSchema, sortSchema } from "./common";
 
 export const donationFilterSchema = z.strictObject({
   sum: z.strictObject({ from: z.number().optional(), to: z.number().optional() }).optional(),
+  /**
+   * Inclusive. A date (YYYY-MM-DD) means the whole Europe/Oslo day; a date-time with offset is
+   * the exact instant.
+   */
   date: z
     .strictObject({
       from: isoDateOrDateTimeSchema.optional(),
