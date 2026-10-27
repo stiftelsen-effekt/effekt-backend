@@ -48,8 +48,13 @@ export type ReviewQueueItem = {
   name: string | null;
   /** Vipps sales location */
   location: string | null;
-  /** The import log entry of the scheduled import that queued the item */
+  /** The import log entry (Import_logs) of the import that queued the item */
   importLogId: number | null;
+  /**
+   * Data owner chosen when the report was uploaded through tRPC; null for the default owner and
+   * for items from REST uploads and the scheduled import
+   */
+  metaOwnerId: number | null;
   status: ReviewQueueStatus;
   /** Admin (JWT email or subject) who registered or ignored the item */
   resolvedBy: string | null;
@@ -86,6 +91,7 @@ const itemColumns = `
   Payer_name AS name,
   Location AS location,
   Import_log_ID AS importLogId,
+  Meta_owner_ID AS metaOwnerId,
   Status AS status,
   Resolved_by AS resolvedBy,
   Resolved_at AS resolvedAt,
@@ -117,6 +123,7 @@ async function add(
   source: ReviewQueueSource,
   items: NewReviewQueueItem[],
   importLogId: number | null = null,
+  metaOwnerId: number | null = null,
 ): Promise<{ added: number; existing: number }> {
   const seen = new Set<string>();
   const unique = items.filter((item) => {
@@ -155,12 +162,13 @@ async function add(
       fit(item.location, 255),
       toJson(item.raw),
       importLogId,
+      metaOwnerId,
     ]);
     // A concurrent upload of the same file may have queued an item since the check above
     await DAO.query(
       `INSERT INTO Review_queue_items
         (Source, Reason, KID, Amount, Transaction_date, External_ID, Payment_ID, Message,
-         Payer_name, Location, Raw, Import_log_ID)
+         Payer_name, Location, Raw, Import_log_ID, Meta_owner_ID)
        VALUES ?
        ON DUPLICATE KEY UPDATE ID = ID`,
       [values],

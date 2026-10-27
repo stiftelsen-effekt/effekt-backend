@@ -58,6 +58,11 @@ export type ReportUploadSummary = {
    * nothing was queued: a dry run, or writing to the queue failed (the upload itself succeeded).
    */
   queue: EnqueueResult | null;
+  /**
+   * The import log entry of the upload (reports.logs.get), which the queued items link to. Null
+   * for a dry run, or if writing the log failed (the upload itself succeeded).
+   */
+  importLogId: number | null;
 };
 
 /** A file to download. `content` is text for text content types, base64 otherwise. */
@@ -67,20 +72,94 @@ export type FilePayload = {
   content: string;
 };
 
-/** Queues the invalid transactions and summarises the result */
+/** Import_logs labels of the uploads that write their own log entry (AutoGiro's module logs) */
+export const uploadLogLabels = {
+  ocr: "OCR - Upload",
+  vipps: "Vipps - Upload",
+  bankNo: "Bank NO - Upload",
+  bankSe: "Bank SE - Upload",
+} as const satisfies Partial<Record<ReviewQueueSource, string>>;
+
+type UploadContext = {
+  /** The uploaded file's name */
+  filename: string;
+  /** The file content as stored in the log (`file`), searchable with logs.list fileSearch */
+  file: string;
+  /** Null for the default owner */
+  metaOwnerID: number | null;
+  uploadedBy: string;
+};
+
+type ProcessResult = {
+  valid: number;
+  invalid: number;
+  ignored?: number;
+  invalidTransactions: SourceInvalidTransaction[];
+};
+
+/**
+ * Writes the upload's Import_logs entry, like the scheduled OCR import does. Never throws: the
+ * donations are already registered, so a failure is logged and the entry id reported as null.
+ */
+async function logUpload(
+  source: keyof typeof uploadLogLabels,
+  upload: UploadContext,
+  result: ProcessResult,
+): Promise<number | null> {
+  try {
+    return await DAO.logging.add(uploadLogLabels[source], {
+      upload: {
+        source,
+        metaOwnerID: upload.metaOwnerID,
+        uploadedBy: upload.uploadedBy,
+      },
+      donations: {
+        valid: result.valid,
+        invalid: result.invalid,
+        ...(result.ignored !== undefined && { ignored: result.ignored }),
+      },
+      invalidTransactions: result.invalidTransactions.map((item) => toReviewItem(source, item)),
+      filename: upload.filename,
+      file: upload.file,
+    });
+  } catch (ex) {
+    console.error(`Failed to write the import log of a ${source} upload`);
+    console.error(ex);
+    return null;
+  }
+}
+
+/** Queues the invalid transactions, linked to the import log and the chosen data owner */
 async function summarise(
   source: ReviewQueueSource,
   result: { valid: number; invalid: number; invalidTransactions: SourceInvalidTransaction[] },
-  options: { dryRun?: boolean } = {},
+  options: { dryRun?: boolean; importLogId?: number | null; metaOwnerID?: number | null } = {},
 ): Promise<ReportUploadSummary> {
+  const importLogId = options.importLogId ?? null;
   return {
     valid: result.valid,
     invalid: result.invalid,
     invalidTransactions: result.invalidTransactions.map((item) => toReviewItem(source, item)),
     queue: options.dryRun
       ? null
-      : await enqueueInvalidTransactions(source, result.invalidTransactions),
+      : await enqueueInvalidTransactions(
+          source,
+          result.invalidTransactions,
+          importLogId,
+          options.metaOwnerID ?? null,
+        ),
+    importLogId,
   };
+}
+
+/** Logs a (non dry run) upload, then queues its invalid transactions linked to the log entry */
+async function logAndSummarise(
+  source: keyof typeof uploadLogLabels,
+  upload: UploadContext,
+  result: ProcessResult,
+): Promise<ReportUploadSummary> {
+  const importLogId = await logUpload(source, upload, result);
+  return summarise(source, result, { importLogId, metaOwnerID: upload.metaOwnerID });
 }
 
 const readText = async (file: File) => Buffer.from(await file.arrayBuffer()).toString("utf8");
@@ -111,38 +190,75 @@ async function checkedMetaOwner(metaOwnerID: number | undefined): Promise<number
   return metaOwnerID;
 }
 
+const uploadContext = (
+  report: File,
+  file: string,
+  metaOwnerID: number | null,
+  auth: JWTPayload,
+): UploadContext => ({ filename: report.name, file, metaOwnerID, uploadedBy: adminIdentity(auth) });
+
+/**
+ * Who resolved a review item or uploaded a report: the token's email claim (plain or
+ * namespaced, if the Auth0 tenant adds one), otherwise its subject.
+ */
+const adminIdentity = (auth: JWTPayload): string => {
+  const emailClaim = Object.entries(auth).find(
+    ([key, value]) => (key === "email" || key.endsWith("/email")) && typeof value === "string",
+  );
+  return (emailClaim?.[1] as string | undefined) ?? auth.sub ?? "unknown";
+};
+
 //endregion
 
+/**
+ * Each upload (except dry runs and Facebook, which register nothing) writes an Import_logs entry
+ * labelled per source (see uploadLogLabels; AutoGiro payments use the entry its processing
+ * writes) and returns its id as `importLogId`. Invalid transactions are queued for review linked
+ * to that entry and with the chosen data owner, which reviewQueue.register defaults to.
+ */
 const uploadsRouter = router({
   /** Nets OCR file (AvtaleGiro and KID bank payments, NO) */
-  ocr: adminProcedure.input(reportUploadInput).mutation(async ({ input }) => {
+  ocr: adminProcedure.input(reportUploadInput).mutation(async ({ input, ctx }) => {
     const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readText(input.report);
     const result = await processFile(() => processOcrReport(data, metaOwnerID));
-    return { ...(await summarise("ocr", result)), ignored: result.ignored };
+    const upload = uploadContext(input.report, data, metaOwnerID, ctx.auth);
+    return { ...(await logAndSummarise("ocr", upload, result)), ignored: result.ignored };
   }),
 
   /** Vipps settlement report (CSV) */
-  vipps: adminProcedure.input(reportUploadInput).mutation(async ({ input }) => {
+  vipps: adminProcedure.input(reportUploadInput).mutation(async ({ input, ctx }) => {
     const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readBuffer(input.report);
-    return summarise("vipps", await processFile(() => processVippsReport(data, metaOwnerID)));
+    const result = await processFile(() => processVippsReport(data, metaOwnerID));
+    const upload = uploadContext(input.report, data.toString("utf8"), metaOwnerID, ctx.auth);
+    return logAndSummarise("vipps", upload, result);
   }),
 
   /** Norwegian bank export of payments without KID (CSV) */
-  bankNo: adminProcedure.input(reportUploadInput).mutation(async ({ input }) => {
+  bankNo: adminProcedure.input(reportUploadInput).mutation(async ({ input, ctx }) => {
     const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readText(input.report);
-    return summarise("bankNo", await processFile(() => processBankNoReport(data, metaOwnerID)));
+    const result = await processFile(() => processBankNoReport(data, metaOwnerID));
+    const upload = uploadContext(input.report, data, metaOwnerID, ctx.auth);
+    return logAndSummarise("bankNo", upload, result);
   }),
 
-  /** Swedish bank file (CAMT.053 XML or TotalIn). `dryRun` writes nothing. */
-  bankSe: adminProcedure.input(bankSeUploadInput).mutation(async ({ input }) => {
+  /** Swedish bank file (CAMT.053 XML or TotalIn). `dryRun` writes nothing, not even a log. */
+  bankSe: adminProcedure.input(bankSeUploadInput).mutation(async ({ input, ctx }) => {
     const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readText(input.report);
     const result = await processFile(() => processBankSeReport(data, input.dryRun, metaOwnerID));
+    const summary =
+      result.dryRun === true
+        ? await summarise("bankSe", result, { dryRun: true })
+        : await logAndSummarise(
+            "bankSe",
+            uploadContext(input.report, data, metaOwnerID, ctx.auth),
+            result,
+          );
     return {
-      ...(await summarise("bankSe", result, { dryRun: input.dryRun })),
+      ...summary,
       dryRun:
         result.dryRun === true
           ? {
@@ -167,7 +283,7 @@ const uploadsRouter = router({
   /**
    * Facebook payout report. Returns the campaigns that have no organization shares registered.
    * Registering shares and donations from Facebook reports is not implemented (see report).
-   * No donations are registered, so `metaOwnerID` is only validated.
+   * No donations are registered, so `metaOwnerID` is only validated and nothing is logged.
    */
   facebook: adminProcedure.input(fileOnlyUploadInput).mutation(async ({ input }) => {
     await checkedMetaOwner(input.metaOwnerID);
@@ -177,16 +293,24 @@ const uploadsRouter = router({
 
   /**
    * Bankgirot AutoGiro file (SE): payments, mandates, e-mandates or rejected charges.
-   * `metaOwnerID` is only validated: AutoGiro donations are registered under the default data
-   * owner (custom_modules/autogiro.ts doesn't take an owner).
+   * `metaOwnerID` is validated and stored on queued review items, but the donations themselves
+   * are registered under the default data owner (custom_modules/autogiro.ts doesn't take an
+   * owner). AutoGiro processing writes its own log entries (without the file name); for payments
+   * its id is returned as `importLogId`.
    */
   autogiro: adminProcedure.input(fileOnlyUploadInput).mutation(async ({ input }) => {
-    await checkedMetaOwner(input.metaOwnerID);
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readBuffer(input.report);
     const result = await processFile(() => processAutogiroReport(data));
     if (result.type === "payments") {
       // AutoGiro amounts are in öre; review items are in whole currency like other sources
-      return { ...(await summarise("autogiro", result)), type: result.type };
+      return {
+        ...(await summarise("autogiro", result, {
+          importLogId: result.importLogId,
+          metaOwnerID,
+        })),
+        type: result.type,
+      };
     }
     return result;
   }),
@@ -288,17 +412,6 @@ const fundraisersRouter = router({
   }),
 });
 
-/**
- * Who resolved a review item: the token's email claim (plain or namespaced, if the Auth0 tenant
- * adds one), otherwise its subject.
- */
-const adminIdentity = (auth: JWTPayload): string => {
-  const emailClaim = Object.entries(auth).find(
-    ([key, value]) => (key === "email" || key.endsWith("/email")) && typeof value === "string",
-  );
-  return (emailClaim?.[1] as string | undefined) ?? auth.sub ?? "unknown";
-};
-
 const getReviewItemOrThrow = async (id: number) => {
   const item = await DAO.reviewqueue.getById(id);
   if (!item) throw new TRPCError({ code: "NOT_FOUND", message: `Review item ${id} not found` });
@@ -367,6 +480,9 @@ const reviewQueueRouter = router({
       });
     }
 
+    const metaOwnerId =
+      input.metaOwnerId ?? item.metaOwnerId ?? (await DAO.meta.getDefaultOwnerID());
+
     // Claim the item first so two admins can't register it twice
     if (!(await DAO.reviewqueue.claimForRegistration(item.id, adminIdentity(ctx.auth)))) {
       await throwNotOpen(item.id);
@@ -381,7 +497,7 @@ const reviewQueueRouter = router({
         timestamp,
         paymentId: input.paymentId ?? item.paymentId,
         paymentExternalRef,
-        metaOwnerId: input.metaOwnerId,
+        metaOwnerId,
         sendReceipt: input.sendReceipt,
       });
     } catch (ex) {

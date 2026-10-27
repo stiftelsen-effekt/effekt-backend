@@ -38,6 +38,7 @@ const item = (overrides: Partial<ReviewQueueItemWithRaw> = {}): ReviewQueueItemW
   name: "Ola",
   location: "Gi Effektivt.",
   importLogId: null,
+  metaOwnerId: null,
   status: "open",
   resolvedBy: null,
   resolvedAt: null,
@@ -195,6 +196,23 @@ describe("tRPC reports.reviewQueue", () => {
         externalRef: null,
         timestamp: new Date("2026-10-03"),
       });
+    });
+
+    it("defaults the data owner to the item's, then the default owner", async () => {
+      sinon.stub(DAO.meta, "getDefaultOwnerID").resolves(1);
+      (DAO.meta.getDataOwners as sinon.SinonStub).resolves([{ id: 1 }, { id: 3 }] as any);
+
+      getById.resolves(item({ metaOwnerId: 3 }));
+      await admin().register({ id: 5, KID: "12345678", sendReceipt: false });
+      expect(confirm.firstCall.args[0]).to.deep.include({ metaOwnerId: 3 });
+
+      getById.resolves(item({ metaOwnerId: null }));
+      await admin().register({ id: 5, KID: "12345678", sendReceipt: false });
+      expect(confirm.secondCall.args[0]).to.deep.include({ metaOwnerId: 1 });
+
+      getById.resolves(item({ metaOwnerId: 3 }));
+      await admin().register({ id: 5, KID: "12345678", metaOwnerId: 1, sendReceipt: false });
+      expect(confirm.thirdCall.args[0]).to.deep.include({ metaOwnerId: 1 });
     });
 
     it("creates a distribution like donations.register", async () => {

@@ -206,8 +206,8 @@ export const reviewQueueListInput = z.strictObject({
 });
 
 /**
- * Registers a donation from a queued item. The amount, date, payment method and external
- * reference default to the item's; the admin supplies the KID or a distribution.
+ * Registers a donation from a queued item. The amount, date, payment method, external reference
+ * and data owner default to the item's; the admin supplies the KID or a distribution.
  */
 export const reviewQueueRegisterInput = z
   .strictObject({
@@ -219,7 +219,8 @@ export const reviewQueueRegisterInput = z
     paymentId: id.optional(),
     /** null registers the donation without an external reference */
     paymentExternalRef: paymentExternalRefSchema.nullable().optional(),
-    metaOwnerId: id,
+    /** Defaults to the data owner chosen at upload (the item's metaOwnerId), else the default owner */
+    metaOwnerId: id.optional(),
     sendReceipt: z.boolean(),
   })
   .refine((input) => (input.KID === undefined) !== (input.distribution === undefined), {

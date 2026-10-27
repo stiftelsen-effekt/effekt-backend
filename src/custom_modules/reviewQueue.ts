@@ -89,14 +89,16 @@ export type EnqueueResult = {
 };
 
 /**
- * Queues the invalid transactions of an import. Never throws: the donations of the import are
- * already registered, so a failure here is logged and reported as null instead of failing the
- * import.
+ * Queues the invalid transactions of an import, linked to its import log entry and with the data
+ * owner chosen for the import (null: the default owner). Never throws: the donations of the
+ * import are already registered, so a failure here is logged and reported as null instead of
+ * failing the import.
  */
 export async function enqueueInvalidTransactions(
   source: ReviewQueueSource,
   invalidTransactions: SourceInvalidTransaction[],
   importLogId: number | null = null,
+  metaOwnerId: number | null = null,
 ): Promise<EnqueueResult | null> {
   if (invalidTransactions.length === 0) return { added: 0, existing: 0 };
   try {
@@ -115,7 +117,7 @@ export async function enqueueInvalidTransactions(
         raw: invalid.transaction,
       };
     });
-    return await DAO.reviewqueue.add(source, items, importLogId);
+    return await DAO.reviewqueue.add(source, items, importLogId, metaOwnerId);
   } catch (ex) {
     console.error(
       `Failed to queue ${invalidTransactions.length} ${source} transactions for review`,

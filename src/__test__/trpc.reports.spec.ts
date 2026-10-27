@@ -50,8 +50,10 @@ const expectTrpcError = async (promise: Promise<unknown>, code: string, message?
 describe("tRPC reports router", () => {
   let addStub: sinon.SinonStub;
   let queueStub: sinon.SinonStub;
+  let logStub: sinon.SinonStub;
 
   beforeEach(() => {
+    logStub = sinon.stub(DAO.logging, "add").resolves(77);
     addStub = sinon.stub(DAO.donations, "add").resolves(10);
     queueStub = sinon
       .stub(DAO.reviewqueue, "add")
@@ -210,9 +212,11 @@ describe("tRPC reports router", () => {
 
       expect(result.queue).to.deep.equal({ added: 1, existing: 0 });
       expect(queueStub.calledOnce).to.be.true;
-      const [source, queued, importLogId] = queueStub.firstCall.args;
+      const [source, queued, importLogId, metaOwnerId] = queueStub.firstCall.args;
       expect(source).to.equal("ocr");
-      expect(importLogId).to.equal(null);
+      expect(importLogId).to.equal(77);
+      expect(metaOwnerId).to.equal(3);
+      expect(result.importLogId).to.equal(77);
       expect(queued).to.have.length(1);
       expect(queued[0]).to.include({
         reason: "Invalid KID",
@@ -223,6 +227,58 @@ describe("tRPC reports router", () => {
       });
       expect(queued[0].date).to.be.instanceOf(Date);
       expect(queued[0].raw).to.have.property("transactionID", item.transaction.transactionID);
+    });
+
+    it("logs the upload with file, owner and uploader, like the scheduled import", async () => {
+      addStub.rejects(new Error("Invalid KID"));
+      const caller = createCaller({
+        req: {} as Request,
+        res: {} as Response,
+        auth: { permissions: ["admin"], sub: "auth0|1", email: "admin@example.org" } as any,
+      });
+
+      const result = await caller.reports.uploads.ocr(uploadForm("ocr/TBOC2072.DAT"));
+
+      expect(logStub.calledOnce).to.be.true;
+      const [label, entry] = logStub.firstCall.args;
+      expect(label).to.equal("OCR - Upload");
+      expect(entry.upload).to.deep.equal({
+        source: "ocr",
+        metaOwnerID: 3,
+        uploadedBy: "admin@example.org",
+      });
+      expect(entry.filename).to.equal("TBOC2072.DAT");
+      expect(entry.file).to.equal(readData("ocr/TBOC2072.DAT").toString("utf8"));
+      expect(entry.donations).to.deep.equal({
+        valid: result.valid,
+        invalid: result.invalid,
+        ignored: result.ignored,
+      });
+      expect(entry.invalidTransactions).to.deep.equal(result.invalidTransactions);
+      // The log is written before the items are queued, so they can link to it
+      expect(logStub.calledBefore(queueStub)).to.be.true;
+    });
+
+    it("labels the log per source and stores null for the default owner", async () => {
+      sinon.stub(DAO.parsing, "getVippsParsingRules").resolves([]);
+      await admin().uploads.vipps(uploadForm("vipps/Vipps April 2019.CSV"));
+      await admin().uploads.bankNo(uploadForm("bank/sampleReport.CSV", {}));
+      expect(logStub.firstCall.args[0]).to.equal("Vipps - Upload");
+      expect(logStub.firstCall.args[1].filename).to.equal("Vipps April 2019.CSV");
+      expect(logStub.secondCall.args[0]).to.equal("Bank NO - Upload");
+      expect(logStub.secondCall.args[1].upload.metaOwnerID).to.equal(null);
+    });
+
+    it("queues without a log link when writing the log fails", async () => {
+      sinon.stub(console, "error");
+      logStub.rejects(new Error("db down"));
+      addStub.rejects(new Error("Invalid KID"));
+
+      const result = await admin().uploads.ocr(uploadForm("ocr/TBOC2072.DAT"));
+
+      expect(result.importLogId).to.equal(null);
+      expect(result.queue).to.not.equal(null);
+      expect(queueStub.firstCall.args[2]).to.equal(null);
     });
 
     it("still returns the upload result when queueing for review fails", async () => {
@@ -285,7 +341,9 @@ describe("tRPC reports router", () => {
       expect(result.dryRun!.totalParsed).to.be.greaterThan(0);
       expect(result.dryRun!.validTransactions).to.have.length(result.valid);
       expect(result.queue).to.equal(null);
+      expect(result.importLogId).to.equal(null);
       expect(queueStub.called).to.be.false;
+      expect(logStub.called).to.be.false;
     });
 
     it("bankSe without dryRun returns no dry run info", async () => {
@@ -301,8 +359,10 @@ describe("tRPC reports router", () => {
         invalid: 0,
         invalidTransactions: [],
         queue: { added: 0, existing: 0 },
+        importLogId: 77,
         dryRun: null,
       });
+      expect(logStub.firstCall.args[0]).to.equal("Bank SE - Upload");
     });
 
     it("facebook returns campaigns missing shares", async () => {
@@ -320,6 +380,7 @@ describe("tRPC reports router", () => {
       const date = new Date("2024-03-28T00:00:00.000Z");
       sinon.stub(reportsService, "processAutogiroReport").resolves({
         type: "payments",
+        importLogId: 41,
         valid: 2,
         invalid: 1,
         invalidTransactions: [
@@ -331,7 +392,7 @@ describe("tRPC reports router", () => {
       });
 
       const result = await admin().uploads.autogiro(
-        uploadForm("autogiro/paymentSpecification.txt", {}),
+        uploadForm("autogiro/paymentSpecification.txt"),
       );
 
       expect(result.type).to.equal("payments");
@@ -346,7 +407,11 @@ describe("tRPC reports router", () => {
         name: null,
         location: null,
       });
+      expect(result.importLogId).to.equal(41);
+      // AutoGiro processing writes its own log entry; the upload doesn't add another
+      expect(logStub.called).to.be.false;
       expect(queueStub.firstCall.args[0]).to.equal("autogiro");
+      expect(queueStub.firstCall.args.slice(2)).to.deep.equal([41, 3]);
       expect(queueStub.firstCall.args[1][0]).to.include({ amount: 100, externalId: "ag.1" });
     });
 

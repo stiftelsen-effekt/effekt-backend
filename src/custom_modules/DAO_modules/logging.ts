@@ -49,6 +49,14 @@ async function getEntries(
       SELECT 
         ID, label, timestamp,
         (CASE 
+          WHEN JSON_CONTAINS_PATH(result, 'one', '$.upload') THEN 
+            CONCAT(
+              "Upload [",
+              " File: ", COALESCE(JSON_UNQUOTE(JSON_EXTRACT(result, "$.filename")), ''),
+              " Added: ", COALESCE(JSON_EXTRACT(result, "$.donations.valid"), 0),
+              " Invalid: ", COALESCE(JSON_EXTRACT(result, "$.donations.invalid"), 0),
+              " ]"
+            )
           WHEN JSON_CONTAINS_PATH(result, 'one', '$.addedDonations') THEN 
             CONCAT(
               "Donations [",
