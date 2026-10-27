@@ -27,6 +27,11 @@ export const agreementsFilter = z.strictObject({
   donor: z.string().trim().min(1).optional(),
   /** Partial match */
   KID: z.string().trim().min(1).optional(),
+  /**
+   * Exact provider table ids (Vipps "agr_…", AvtaleGiro/AutoGiro numeric ids as strings). Ids
+   * are only unique per provider, so add `providers` to fetch one agreement row.
+   */
+  ids: z.array(z.string().trim().min(1).max(64)).min(1).max(1000).optional(),
 });
 
 export const agreementsSort = sortSchema(agreementSortColumns);

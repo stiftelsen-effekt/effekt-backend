@@ -81,6 +81,8 @@ export type AgreementFilter = {
   donor?: string;
   /** Partial match */
   KID?: string;
+  /** Exact provider table ids; combine with `providers` to pick one provider's row */
+  ids?: string[];
 };
 
 export type AgreementStatistics = {
@@ -214,6 +216,7 @@ function buildQuery(filter: AgreementFilter) {
     add("(donorName LIKE ? OR donorEmail LIKE ?)", pattern, pattern);
   }
   if (filter.KID) add("KID LIKE ?", `%${escapeLike(filter.KID)}%`);
+  if (filter.ids?.length) add("id IN (?)", filter.ids);
 
   return {
     from: `(${union}) AS A`,
