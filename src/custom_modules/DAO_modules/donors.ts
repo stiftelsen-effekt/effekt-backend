@@ -15,6 +15,7 @@ interface DonorFilters {
   name?: string;
   email?: string;
   query?: string; // For fulltext search over name and email
+  nameOrEmail?: string; // Partial match on name OR email (LIKE, wildcards escaped)
   newsletter?: boolean; // Filter by newsletter subscription status
   registered?: { from?: Date; to?: Date };
   registeredDate?: { from?: Date; to?: Date };
@@ -229,6 +230,11 @@ async function getAll(
 
     if (filter.email && filter.email.length > 0) {
       whereClauses.push(`Donors.email LIKE ${sqlString.escape(`%${filter.email}%`)}`);
+    }
+
+    if (filter.nameOrEmail && filter.nameOrEmail.length > 0) {
+      const pattern = sqlString.escape(`%${filter.nameOrEmail.replace(/[\\%_]/g, "\\$&")}%`);
+      whereClauses.push(`(Donors.full_name LIKE ${pattern} OR Donors.email LIKE ${pattern})`);
     }
 
     // Fulltext search query (matches both name and email)

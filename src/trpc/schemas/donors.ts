@@ -41,6 +41,8 @@ export const donorFilter = z.strictObject({
   donorId: id.optional(),
   name: z.string().optional(),
   email: z.string().optional(),
+  /** Partial match on name OR email (wildcards matched literally); combines with the others */
+  nameOrEmail: z.string().trim().min(1).max(255).optional(),
   newsletter: z.boolean().optional(),
   registered: dateRange.optional(),
   donationsDateRange: dateRange.optional(),
