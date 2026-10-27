@@ -6,7 +6,7 @@ import * as taxModule from "../custom_modules/tax";
 import { validateTaxUnitSsn } from "../custom_modules/donorService";
 import { RequestLocale } from "../middleware/locale";
 import { appRouter } from "../trpc/router";
-import { sanitizeBooleanQuery } from "../trpc/routers/donors";
+import { sanitizeBooleanQuery, toDonorSearch } from "../trpc/routers/donors";
 import { createCallerFactory } from "../trpc/trpc";
 
 const createCaller = createCallerFactory(appRouter);
@@ -196,6 +196,45 @@ describe("tRPC donors router", () => {
       expect(limit).to.equal(25);
       expect(filter!.query).to.equal("+jack -gmail");
       expect(filter!.donorId).to.equal(null);
+      expect(filter!.exactMatchFirst).to.equal("+jack -gmail");
+    });
+
+    it("requires all plain words, matches emails partially and ranks exact matches first", async () => {
+      const stub = sinon.stub(DAO.donors, "getAll").resolves(listResult);
+      await admin().donors.search({ query: " Jack Tor " });
+      expect(stub.firstCall.args[3]).to.deep.include({
+        query: "+Jack* +Tor*",
+        exactMatchFirst: "Jack Tor",
+      });
+
+      await admin().donors.search({ query: "Jack.T_1@Overlook.com" });
+      expect(stub.secondCall.args[3]).to.deep.include({
+        nameOrEmail: "Jack.T_1@Overlook.com",
+        query: undefined,
+        exactMatchFirst: "Jack.T_1@Overlook.com",
+      });
+
+      expect(toDonorSearch("27")).to.deep.equal({ query: "27" });
+      expect(toDonorSearch("@overlook")).to.deep.equal({ nameOrEmail: "@overlook" });
+      expect(toDonorSearch("anne-marie hotel")).to.deep.equal({ query: "+anne* +marie* +hotel*" });
+      expect(toDonorSearch('"jack torrence"')).to.deep.equal({ query: '"jack torrence"' });
+      expect(toDonorSearch("jac* hotel")).to.deep.equal({ query: "jac* hotel" });
+      expect(toDonorSearch("((((")).to.have.property("error");
+    });
+
+    it("orders exact id, email or name matches first in the DAO", async () => {
+      const query = sinon.stub(DAO, "query").resolves([[], []] as any);
+      await DAO.donors.getAll(
+        { id: "id", desc: true },
+        0,
+        10,
+        { donorId: null, query: "+jack*", exactMatchFirst: "Jack@Overlook.com" },
+        RequestLocale.NO,
+      );
+      const sql = query.firstCall.args[0] as string;
+      expect(sql).to.contain(
+        "ORDER BY (LOWER(FD.email) = LOWER('Jack@Overlook.com') OR LOWER(FD.full_name) = LOWER('Jack@Overlook.com')) DESC, FD.ID DESC",
+      );
     });
 
     it("sanitises malformed boolean mode queries", () => {

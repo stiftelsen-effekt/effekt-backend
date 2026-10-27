@@ -127,6 +127,34 @@ export const sanitizeBooleanQuery = (query: string): string => {
   return terms.join(" ");
 };
 
+/** Input that looks like (part of) an email address: one token containing @ */
+const isEmailLike = (query: string) => /^\S*@\S*$/.test(query);
+
+/** The query uses the boolean mode syntax: a +/- prefixed token, a quote or a trailing * */
+const usesBooleanSyntax = (query: string) => /(^|\s)[+-]|"|\*(\s|$)/.test(query);
+
+/**
+ * How donors.search matches a query: an all-digit query is a donor id; email-like input is a
+ * partial match on the email (MySQL full text search can't match across @ and dots); explicit
+ * boolean syntax is passed through; plain words must all match, as prefixes.
+ */
+export const toDonorSearch = (
+  query: string,
+): { query: string } | { nameOrEmail: string } | { error: string } => {
+  const trimmed = query.trim();
+  if (/^\d+$/.test(trimmed)) return { query: trimmed };
+  if (isEmailLike(trimmed)) return { nameOrEmail: trimmed };
+  const sanitized = sanitizeBooleanQuery(trimmed);
+  if (sanitized.length === 0) return { error: "The search query has no search terms" };
+  if (usesBooleanSyntax(trimmed)) return { query: sanitized };
+  return {
+    query: sanitized
+      .split(" ")
+      .map((word) => `+${word}*`)
+      .join(" "),
+  };
+};
+
 const isMysqlParseError = (err: unknown) =>
   typeof err === "object" && err !== null && (err as { errno?: unknown }).errno === 1064;
 
@@ -254,19 +282,27 @@ export const donorsRouter = router({
     return csvExport("donors", rows);
   }),
 
-  /** The donor picker. See searchInput for the query syntax. */
+  /**
+   * The donor picker. See searchInput for the query syntax. Donors whose id, email or name
+   * equals the query come first, then the sort order.
+   */
   search: adminProcedure.input(searchInput).query(async ({ input }) => {
-    const query = sanitizeBooleanQuery(input.query);
-    if (query.length === 0) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: "The search query has no search terms" });
-    }
+    const search = toDonorSearch(input.query);
+    if ("error" in search) throw new TRPCError({ code: "BAD_REQUEST", message: search.error });
+    const filter = {
+      ...toDonorFilters(
+        "nameOrEmail" in search ? { nameOrEmail: search.nameOrEmail } : undefined,
+        "query" in search ? search.query : undefined,
+      ),
+      exactMatchFirst: input.query.trim(),
+    };
     try {
       return withNumericStatistics(
         await DAO.donors.getAll(
           input.sort ?? DEFAULT_SORT,
           input.page,
           input.limit,
-          toDonorFilters(undefined, query),
+          filter,
           RequestLocale.NO,
         ),
       );

@@ -17,6 +17,8 @@ interface DonorFilters {
   email?: string;
   query?: string; // For fulltext search over name and email
   nameOrEmail?: string; // Partial match on name OR email (LIKE, wildcards escaped)
+  /** Orders donors whose id, email or name equals this (case-insensitive) before the others */
+  exactMatchFirst?: string;
   newsletter?: boolean; // Filter by newsletter subscription status
   registered?: { from?: Date; to?: Date };
   registeredDate?: { from?: Date; to?: Date };
@@ -384,6 +386,13 @@ async function getAll(
 
   const whereStatement =
     whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "WHERE 1";
+
+  const exact = filter?.exactMatchFirst?.trim();
+  const exactMatchOrder = exact
+    ? `(${/^\d+$/.test(exact) ? `FD.ID = ${sqlString.escape(Number(exact))} OR ` : ""}` +
+      `LOWER(FD.email) = LOWER(${sqlString.escape(exact)}) OR ` +
+      `LOWER(FD.full_name) = LOWER(${sqlString.escape(exact)})) DESC, `
+    : "";
   const joinStatement = joins.join(" \n ");
 
   const query = `
@@ -420,7 +429,7 @@ async function getAll(
     FROM FilteredDonors FD
     CROSS JOIN TotalCount TC
     CROSS JOIN TotalSum TS
-    ORDER BY ${sortColumn} ${sort.desc ? "DESC" : "ASC"}
+    ORDER BY ${exactMatchOrder}${sortColumn} ${sort.desc ? "DESC" : "ASC"}
     LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(page * limit)};
   `;
 
