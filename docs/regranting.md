@@ -256,16 +256,70 @@ dev and test use seeded data that is assumed to line up:
 
 ## Open decisions
 
-- Are fees taken from the recipient's balance or paid by operations? (Current practice: recipients
-  receive the gross amount; fees are covered by the operations account. In 2024–26 fees were about
-  40% of operations inflow.)
+Settled for the first build:
+
+- **Fees:** recipients receive the gross amount. Bank fees are recorded on the transfer
+  (`bank_fee`) and paid by operations, so they don't reduce the recipient's balance. `fee`
+  adjustments exist for the rare case where a fee is deliberately charged to a recipient.
+- **Allocation date:** `timestamp_confirmed`.
+- **Approval:** the approver must differ from the round's creator. The same person may approve the
+  round and its fund grants; fund grants are approved with the round.
+- **Small balances:** no automatic hold. A round has an optional `min_transfer` (default 0): a
+  recipient whose proposed total is under it is proposed 0 and the money stays in the balance.
+- **Own fund holding time:** `max_hold_days` per fund, flagged on the Balances page (the part of the
+  balance older than that, oldest money first), not enforced.
+- **GD MB, GDCSF, GD UNR** stay separate recipients; **"Annet"** is unchanged.
+- **History import:** out of scope for the first build (see Migration and backfill).
+
+Still open:
+
 - Should the 2016–2018 transfer history be imported from the accounting bilag? (Samlefila only has
-  an opening balance into 2019.)
-- Allocation date: `timestamp_confirmed` or registration date (matters near cutoffs for
-  AvtaleGiro and late imports)?
-- Who approves rounds and fund grants? Same person allowed for both?
-- Automatic hold for small balances (e.g. < 10 000 kr)?
-- How far back to import transfer history?
-- Maximum time money may stay in an own fund?
-- Should GD MB, GDCSF, GD UNR stay separate recipients or become GiveDirectly projects?
+  an opening balance into 2019.) How far back to import transfer history?
 - What is "Annet" (`Organizations.ID = 18`) used for, and where does its money go?
+
+## First build (Oct 2026)
+
+Backend: migration `20261027150000_regranting`, `DAO.regranting`
+(`src/custom_modules/DAO_modules/regranting.ts`), the round logic in
+`src/custom_modules/regranting/` and the tRPC router `regranting.*`
+(`src/trpc/routers/regranting.ts`). Decisions made while building it:
+
+- **Dates.** A cutoff is a day: entries dated on or before it count. Allocations count by the
+  UTC day of `timestamp_confirmed` (as the Sheets export). Transfer lines count from the transfer's
+  `paid_at` once the round is `paid`; fund grant lines from the round's cutoff once it is
+  `approved`; adjustments from `effective_at`.
+- **Committed.** Transfer lines of approved, unpaid rounds are not in the balance; they are shown
+  as `committed`, and `available = balance − committed`. A round also counts as committed what
+  other rounds paid or granted out _after_ its cutoff, so a round built late with an earlier cutoff
+  never pays what a later round already paid (e.g. a regular round with cutoff 30 Sep built after a
+  major-donor round paid on 2 Oct). Proposals use `available`.
+- **Direct donations by kind:** `regular` includes them; `fund_grant` and `extraordinary` propose
+  only the round's fund grants; `major_donor` proposes the chosen donations' allocations plus the
+  round's fund grants, capped at what is available. The per-recipient switch
+  (`Regrant_round_recipients`) overrides this and, when on, proposes the whole balance.
+- **Fronted amounts.** The payment is an ordinary transfer line (entered by hand in a
+  `major_donor` or `extraordinary` round), so the balance goes negative until the allocation
+  arrives. The `fronted` adjustment is a record only (it doesn't count in the balance): amount
+  fronted, reason, and `linked_donation_ID` once the donation is registered (`linkDonation`, also
+  after the round is paid). A donation that is linked, or chosen by an approved/paid
+  `major_donor` round, counts as passed on: other `major_donor` rounds skip it, and approving one
+  that includes it is an error.
+- **Holds** have an `ID`, author and `until` (inclusive: active for rounds with cutoff on or before
+  it; empty = until removed). `Project_ID` empty holds the whole recipient.
+- **Unassigned** = donations (payments 15/16 excluded) whose KID has no split; a warning before
+  approval.
+- **Validation** adds two errors to the list above, because the first version doesn't allow them:
+  a fund grant to another own fund, and a `major_donor` donation already passed on.
+- **Small schema additions to the tables above:** `Payees.bank_account` is optional (wallets),
+  `Organization_payees` and `Regrant_holds` have an `ID`, `valid_to` is inclusive, rounds have
+  `min_transfer`, fund grants and holds record `created_by`, and the snapshot also stores
+  `committed`, `fund_grants` and `in_round` per line. `Fund_grant_attributions` (donor tracing) is
+  not built.
+- **Paid rounds are never edited** (enforced: every edit locks the round row and fails with
+  CONFLICT unless it is a draft; payments are recorded while it is approved). Corrections are
+  `correction` adjustments linking the paid transfer, optionally attached to a later draft round.
+- **Outputs** (grant letters, payment files) are not built. They should read `regranting.rounds.get`
+  (an approved round's transfers with payees, lines, fund grants and snapshot) and
+  `Payees.payment_reference_template`.
+- **Performance.** The balance query sums donations per KID before applying the split (identical
+  to the view, about twice as fast): the Balances page takes ~0.35 s on 200k donations.
