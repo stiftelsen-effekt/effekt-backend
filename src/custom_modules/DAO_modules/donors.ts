@@ -269,7 +269,12 @@ async function getAll(
     }
 
     if (filter.newsletter !== undefined) {
-      whereClauses.push(`Donors.newsletter = ${filter.newsletter ? 1 : 0}`);
+      // A NULL newsletter is shown as not subscribed, so "not subscribed" includes it
+      whereClauses.push(
+        filter.newsletter
+          ? "Donors.newsletter = 1"
+          : "(Donors.newsletter = 0 OR Donors.newsletter IS NULL)",
+      );
     }
 
     const registeredFilter = filter.registeredDate ?? filter.registered;

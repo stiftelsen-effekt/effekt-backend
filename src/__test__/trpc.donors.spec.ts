@@ -152,6 +152,17 @@ describe("tRPC donors router", () => {
       const pattern = "'%o\\'b\\\\%\\\\_\\\\\\\\%'";
       expect(sql).to.contain(`(Donors.full_name LIKE ${pattern} OR Donors.email LIKE ${pattern})`);
       expect(sql).to.contain("Donors.newsletter = 1");
+
+      await DAO.donors.getAll(
+        { id: "id", desc: true },
+        0,
+        10,
+        { donorId: null, newsletter: false },
+        RequestLocale.NO,
+      );
+      expect(query.lastCall.args[0]).to.contain(
+        "(Donors.newsletter = 0 OR Donors.newsletter IS NULL)",
+      );
     });
 
     it("returns statistics as numbers", async () => {
