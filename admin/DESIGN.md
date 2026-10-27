@@ -91,14 +91,16 @@ export const Route = createFileRoute("/_app/donations/")({
 function DonationsPage() {
   const list = useListState(donationsList);
   const trpc = useTRPC();
-  const query = useQuery({
-    ...trpc.donations.list.queryOptions({
-      page: list.page - 1,
+  const listOptions = (page: number) =>
+    trpc.donations.list.queryOptions({
+      page: page - 1,
       limit: list.pageSize,
       sort: { id: list.sort.id, desc: list.sort.desc },
       filter: toApiFilter(list.filters), // map ranges/dates to the procedure's filter shape
-    }),
-    placeholderData: keepPreviousData,
+    });
+  // Keeps the current rows while the next filter/sort/page loads; prefetches the next page.
+  const query = usePageQuery(listOptions(list.page), {
+    prefetch: (data) => nextPage(list.page, data.pages, listOptions),
   });
   const [peekId, setPeekId] = useState<number | null>(null);
 
@@ -184,8 +186,74 @@ rows are selected.
   failures use `ErrorState` in place with Try again. A record that doesn't exist (deleted,
   merged into another) can't come back on retry: `ErrorState` with `back` links to its list
   instead. Persistent page-level messages use `Callout`.
-- Loading: skeletons on first load, a thin accent progress line on refetch (rows dim slightly),
-  `pending` on buttons. Never a full-page spinner.
+- Loading: see [Loading](#loading). Never a full-page spinner, never skeletons on a parameter
+  change, nothing at all for loads under 300 ms.
+
+### Loading
+
+Loading should be invisible when it's fast and calm when it isn't: nothing jumps, nothing
+flashes, and what's on screen stays until its replacement is ready.
+
+**Delays.** No indicator for anything that finishes within 300 ms (`PENDING_DELAY_MS`,
+`--delay-pending`); once shown, an indicator stays at least 400 ms so a slow load doesn't end in
+a blink. `useDelayedFlag` drives the progress bar and dimming; skeletons get the same delay
+in CSS (transparent, then fade in). Under reduced motion they appear without pulsing and the
+progress bar is a static line. Buttons keep their own rule: `pending` shows at once.
+
+**Which indicator.**
+
+| Situation                                                        | What shows                                                                                      |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| First load of a page or section (no data yet)                    | The real layout with placeholder values (below)                                                 |
+| A parameter changes: day, page, filter, sort, period, peeked row | The current content stays, dimmed (`Updating`, DataTable `isFetching`), + the top progress line |
+| Navigating to another page                                       | The previous page stays, with the top progress line, until the next page's record is in (≤ 1 s) |
+| Background refetch (after a mutation, interval)                  | Nothing, or rows dim slightly if it takes > 300 ms                                              |
+| A form or editor whose reference data is loading                 | `Pending`: its space reserved, the top progress line; no fake fields                            |
+| An action                                                        | `pending` on its button                                                                         |
+
+**Keep the previous data on parameter changes.** Every query whose input comes from the URL or
+local state uses `usePageQuery` (`src/lib/query.ts`): `keepPreviousData`, reports to the top
+progress line, and `prefetch` for what comes next. Plain `useQuery` is only for inputs that
+don't change while the page is open (the record of a route). Never return a skeleton because
+`isPending` became true again after a change; `isPlaceholderData` means "updating", wrap that
+region in `<Updating active>`.
+
+**Skeletons only on first load, and only from real components.** Never draw a page layout by
+hand with skeleton bars. The primitives render their real structure with a same-size
+placeholder:
+
+- `DataTable isLoading`: placeholder rows from its real columns at the real row height
+  (`meta.placeholder` gives a column its typical width, `cellPlaceholder` has the common ones).
+  The only table skeleton.
+- `Stat pending` (label stays, value and hint line reserved), `Property pending` (label stays),
+  `TabsTrigger count={null}` (badge space reserved), `AttentionList pending`.
+- `SkeletonText` for a value inside a real heading, meta line or cell: its sample text gives the
+  size (`<SkeletonText>Firstname Lastname</SkeletonText>`).
+- Charts (`BarChart data={undefined}`) and panels keep a fixed size and fade in; a `Skeleton`
+  box is only for reserving such a fixed size.
+
+A page that needs a first-load state (only on the app's first load or a slow navigation) renders
+its template (`DetailPage`, …) with these, as the donor and AvtaleGiro pages do.
+
+**Prefetch.** Links preload on hover and focus (`defaultPreload: "intent"`); DataTable rows with
+`getRowHref` do the same on hover and when the cursor moves to them. Detail routes have a loader
+built on `loadPage` (`src/lib/route-data.ts`): it warms the page's queries, and on navigation
+waits up to 1 s for the record so the page arrives finished (on the app's first load and on
+search-param changes it doesn't wait). Lists prefetch the next page; the AvtaleGiro check the
+previous and next day and today; the review workbench the next and previous item. Queries are
+fresh for 30 s (`createQueryClient`), so a prefetch is used; mutations still invalidate what
+they change. A loader must not use `loaderDeps` for parameters the page itself steps through
+(the AvtaleGiro date): that turns each step into a navigation that waits.
+
+**Reserve space for what arrives late.** Counts in tab badges (`count={null}`), stat hint
+lines, footers, chart legends (always shown), the nav review badge (in the row, right-aligned),
+images (`width`/`height`). When the amount is unknown, reserve what was there last time (Home's
+attention list remembers its row count). Content that appears only sometimes (the AvtaleGiro
+estimate note) goes where it moves nothing: below fixed-height content, never above it.
+
+`tests/interaction/loading.spec.ts` measures layout shift (CLS) on Home, the donors list, a
+donor and the AvtaleGiro check against a slow stubbed API, and that changing the day shows no
+skeleton. Keep it under 0.02.
 
 ### Imports and the review queue
 
@@ -267,6 +335,8 @@ pass children, not config objects, wherever the structure varies.
 | `Tabs`                                                                    | Related records of one parent                                                                                                                    | Top-level navigation                        |
 | `Dialog`, `AlertDialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip`    | Short focused task / via ConfirmDialog / navigation on narrow, peek / filter editors / secondary actions / icon-only buttons                     | Put long forms in dialogs                   |
 | `Kbd`                                                                     | Keys in UI copy                                                                                                                                  |                                             |
+| `Skeleton`, `SkeletonText`                                                | First-load placeholders inside real components (see Loading); `Skeleton` only to reserve a fixed-size box                                        | Draw a page layout out of skeleton bars     |
+| `Updating`, `Pending`, `ProgressBar`                                      | A region showing kept data while the next loads / a form still loading / the top progress line (in the app shell)                                | Show a spinner                              |
 
 ### Domain (`src/components/domain`)
 
@@ -378,6 +448,7 @@ npm test                   Vitest unit tests (src/**/*.test.ts[x])
 pnpm test:visual        Playwright screenshots of /design: 9 pages × light/dark × desktop/narrow + interaction states
 pnpm test:visual:update accept intended changes (look at the diff in playwright-report first)
 pnpm test:a11y          axe on every /design page and state, both themes
+pnpm test:interaction   keyboard, history and loading behaviour (layout shift) with a stubbed API
 ```
 
 Demo data in `src/design-system/fake-data.ts` is typed with `RouterOutputs`, so an API change

@@ -72,7 +72,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonText } from "@/components/ui/skeleton";
+import { LoadingDemo } from "@/design-system/loading-demo";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -539,12 +540,19 @@ function Components() {
           </Example>
           <Example
             title="Loading (first load)"
-            use="Skeletons the shape of the content."
-            surfaceClassName="grid gap-2"
+            use="The real component with placeholder values (Stat pending, Property pending). See Loading below."
+            surfaceClassName="block"
           >
-            <Skeleton data-static className="h-4 w-1/2" />
-            <Skeleton data-static className="h-4 w-3/4" />
-            <Skeleton data-static className="h-4 w-2/3" />
+            <div data-static className="grid gap-3">
+              <StatGroup>
+                <Stat label="Expected" pending />
+                <Stat label="Received" pending />
+              </StatGroup>
+              <PropertyList labelWidth="6rem">
+                <Property label="Name" pending placeholder="Firstname Lastname" />
+                <Property label="Email" pending placeholder="name@example.org" />
+              </PropertyList>
+            </div>
           </Example>
           <Example
             title="JSON"
@@ -584,6 +592,60 @@ function Components() {
                 },
               ]}
             />
+          </Example>
+        </div>
+      </DocSection>
+
+      <DocSection
+        id="loading"
+        title="Loading"
+        description={
+          <>
+            Nothing shows for loads under 300 ms. A first load draws the real layout with
+            placeholder values; a change of day, page, filter or row keeps what is on screen,
+            dimmed, with the progress line along the top; a route change keeps the previous page
+            until the next one's record is in. See DESIGN.md › Loading.
+          </>
+        }
+      >
+        <Example
+          title="Try it"
+          use="A fake API. Reload for a first load (skeletons only with the slow API); step through days to see the previous day kept (neighbours are prefetched, so going back is instant)."
+          surfaceClassName="block"
+        >
+          <LoadingDemo />
+        </Example>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Example
+            title="SkeletonText"
+            use="A value's placeholder inside its real label, heading or cell: the sample text sets the size."
+          >
+            <div data-static className="grid gap-1">
+              <span className="font-display text-2xl">
+                <SkeletonText>Firstname Lastname</SkeletonText>
+              </span>
+              <span className="text-sm text-muted-foreground">
+                <SkeletonText>#00000</SkeletonText> · <SkeletonText>name@example.org</SkeletonText>
+              </span>
+            </div>
+          </Example>
+          <Example
+            title="Tab counts"
+            use="count={null} while loading reserves the badge, so the tabs don't move."
+            surfaceClassName="block"
+          >
+            <div data-static>
+              <Tabs value="a">
+                <TabsList>
+                  <TabsTrigger value="a" count={null}>
+                    Missing
+                  </TabsTrigger>
+                  <TabsTrigger value="b" count={40}>
+                    Expected
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </Example>
         </div>
       </DocSection>

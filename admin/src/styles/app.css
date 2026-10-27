@@ -356,3 +356,10 @@
 @utility focus-ring-inset {
   @apply outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring;
 }
+
+/* Design demos show placeholders at once and still (`data-static` on them or an ancestor);
+   the visual tests' settle() ignores them. */
+[data-static] [data-slot="skeleton"],
+[data-slot="skeleton"][data-static] {
+  animation: none;
+}
