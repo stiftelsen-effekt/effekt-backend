@@ -358,17 +358,22 @@ export async function loadRoundState(roundId: number): Promise<RoundState> {
   const projectOrganizations = await dao().getProjectOrganizations([...new Set(lineProjects)]);
   const organizationNames = new Map(organizations.map((o) => [o.id, o.name]));
 
-  const issues = validateRound({
-    positions: proposal.positions,
-    fundIds,
-    transfers,
-    fundGrants,
-    projectOrganizations,
-    payees,
-    unassigned,
-    donations,
-    organizationNames,
-  });
+  // Only drafts are validated. Once approved, the decision and its balance snapshot are fixed;
+  // re-validating against today's ledger would count later rounds' grants against it.
+  const issues: Issue[] =
+    round.status !== "draft"
+      ? []
+      : validateRound({
+          positions: proposal.positions,
+          fundIds,
+          transfers,
+          fundGrants,
+          projectOrganizations,
+          payees,
+          unassigned,
+          donations,
+          organizationNames,
+        });
 
   return {
     round,

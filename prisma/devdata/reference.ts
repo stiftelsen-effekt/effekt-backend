@@ -224,6 +224,17 @@ export const ORGANIZATIONS: Org[] = [
     ordering: 2,
     customWeight: 1,
   },
+  {
+    // Own fund (regranting `Funds`): Gi Effektivt decides its grants round by round
+    ID: 18,
+    cause_area_ID: 1,
+    full_name: "Gi Effektivt Bistandsfond",
+    abbriv: "GEBF",
+    std_percentage_share: 0,
+    is_active: 1,
+    ordering: 11,
+    customWeight: 150,
+  },
 ];
 
 export const ORG = {
