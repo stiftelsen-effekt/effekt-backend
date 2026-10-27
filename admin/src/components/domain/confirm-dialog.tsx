@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Callout } from "@/components/domain/callout";
 import { describeError } from "@/components/domain/error-state";
 import {
@@ -70,6 +70,7 @@ export function ConfirmDialog({
   };
   const [pending, setPending] = useState(false);
   const [typed, setTyped] = useState("");
+  const typedInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<unknown>(null);
   const inputId = useId();
   const blocked = disabled || (confirmText !== undefined && typed.trim() !== confirmText);
@@ -106,7 +107,16 @@ export function ConfirmDialog({
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       {trigger && <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>}
-      <AlertDialogContent>
+      <AlertDialogContent
+        onOpenAutoFocus={(event) => {
+          // Typing is the next step of a typed confirmation, so start there. Dialogs with their
+          // own inputs (children) keep the default order, and plain ones focus Cancel.
+          if (confirmText !== undefined && !children) {
+            event.preventDefault();
+            typedInputRef.current?.focus();
+          }
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
@@ -128,6 +138,7 @@ export function ConfirmDialog({
               Type <strong className="num font-semibold">{confirmText}</strong> to confirm
             </Label>
             <Input
+              ref={typedInputRef}
               id={inputId}
               value={typed}
               autoComplete="off"

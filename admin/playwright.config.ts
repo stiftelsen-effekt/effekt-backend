@@ -11,7 +11,9 @@ import { defineConfig, devices } from "@playwright/test";
  * Baselines are per platform (the file names end in -darwin / -linux). CI should run in the
  * official Playwright Docker image and keep its own linux baselines.
  */
-const port = 4173;
+// Each checkout can pick its own port (PW_PORT) so parallel worktrees never test each other's
+// dev server. An already running server is only reused when PW_REUSE_SERVER=1.
+const port = Number(process.env.PW_PORT ?? 4173);
 
 export default defineConfig({
   testDir: "tests",
@@ -43,7 +45,7 @@ export default defineConfig({
   webServer: {
     command: `pnpm exec vite --port ${port} --strictPort`,
     url: `http://localhost:${port}/design`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: process.env.PW_REUSE_SERVER === "1",
     env: { VITE_AUTH_MODE: "dev", VITE_LOCALE: "NO", VITE_API_URL: "http://localhost:5999" },
     timeout: 60_000,
   },

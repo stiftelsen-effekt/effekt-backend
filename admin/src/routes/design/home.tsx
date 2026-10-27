@@ -22,7 +22,7 @@ function HomeDemo() {
   const lastMonth = monthlyTotals.at(-2)!;
   return (
     <HomeView
-      greeting="Good morning, Johanna"
+      greeting="Good morning, Kari"
       actions={
         <Button variant="primary">
           <ArrowDownToLineIcon />
