@@ -1,4 +1,4 @@
-import { fmt, sum } from "./money";
+import { dateNo, krNo, sum } from "./money";
 import type { ProposedPosition } from "./proposal";
 import type {
   FundGrant,
@@ -35,6 +35,10 @@ export type ValidationInput = {
   /** major_donor rounds: the chosen donations */
   donations: RoundDonation[];
   organizationNames: Map<number, string>;
+  /** Project names for messages (falls back to the line's name, then the id) */
+  projectNames?: Map<number, { name: string }>;
+  /** Other rounds' names for messages (a donation passed on by another round) */
+  roundNames?: Map<number, { name: string; cutoff: string }>;
 };
 
 const issue = (
@@ -58,7 +62,13 @@ const issue = (
 
 export function validateRound(input: ValidationInput): Issue[] {
   const issues: Issue[] = [];
-  const name = (id: number) => input.organizationNames.get(id) ?? `Organization ${id}`;
+  const name = (id: number) => input.organizationNames.get(id) ?? `Recipient #${id}`;
+  const projectName = (id: number, fallback?: string | null) =>
+    input.projectNames?.get(id)?.name ?? fallback ?? `Project #${id}`;
+  const roundName = (id: number) => {
+    const round = input.roundNames?.get(id);
+    return round ? `${round.name} (cutoff ${dateNo(round.cutoff)})` : `round #${id}`;
+  };
 
   // No own fund appears in a transfer line
   for (const transfer of input.transfers) {
@@ -91,13 +101,15 @@ export function validateRound(input: ValidationInput): Issue[] {
   for (const [fundId, grants] of grantedByFund) {
     const granted = sum(grants.map((g) => g.total));
     const fund = input.positions.filter((p) => p.organizationId === fundId);
-    const balance = sum(fund.map((p) => p.balanceAtCutoff.minus(p.committed)));
+    const balance = sum(
+      fund.map((p) => p.balanceAtCutoff.minus(p.committed).plus(p.roundAdjustments)),
+    );
     if (granted.greaterThan(balance)) {
       issues.push(
         issue(
           "error",
           "fund_grant_exceeds_balance",
-          `Grants from ${name(fundId)} (${fmt(granted)}) exceed its balance at the cutoff (${fmt(
+          `Grants from ${name(fundId)} (${krNo(granted)}) exceed its balance at the cutoff (${krNo(
             balance,
           )})`,
           { organizationId: fundId, fundGrantId: grants.length === 1 ? grants[0].id : null },
@@ -146,7 +158,7 @@ export function validateRound(input: ValidationInput): Issue[] {
           issue(
             "error",
             "project_recipient_mismatch",
-            `Project ${line.projectName ?? line.projectId} doesn't belong to ${name(
+            `${projectName(line.projectId, line.projectName)} is not a project at ${name(
               line.organizationId,
             )}`,
             {
@@ -169,9 +181,9 @@ export function validateRound(input: ValidationInput): Issue[] {
         issue(
           "error",
           "transfer_lines_mismatch",
-          `The transfer to ${transfer.payee.name} is ${
-            transfer.amountNok
-          } but its lines sum to ${fmt(lines)}`,
+          `The transfer to ${transfer.payee.name} is ${krNo(
+            transfer.amountNok,
+          )} but its lines sum to ${krNo(lines)}`,
           { transferId: transfer.id },
         ),
       );
@@ -185,7 +197,7 @@ export function validateRound(input: ValidationInput): Issue[] {
           issue(
             "error",
             "project_recipient_mismatch",
-            `Project ${line.projectName ?? line.projectId} doesn't belong to ${name(
+            `${projectName(line.projectId, line.projectName)} is not a project at ${name(
               line.organizationId,
             )}`,
             {
@@ -205,13 +217,15 @@ export function validateRound(input: ValidationInput): Issue[] {
     if (donation.excludedReason === "passed_on") {
       const by =
         donation.passedOnByRoundId !== null
-          ? `round ${donation.passedOnByRoundId}`
-          : `fronted adjustment ${donation.frontedByAdjustmentId}`;
+          ? `by ${roundName(donation.passedOnByRoundId)}`
+          : "as a fronted amount";
       issues.push(
         issue(
           "error",
           "donation_already_passed_on",
-          `Donation ${donation.donationId} was already passed on (${by}); remove it from this round`,
+          `Donation #${donation.donationId} of ${krNo(
+            donation.sum,
+          )} was already passed on ${by}; remove it from this round`,
           { donationId: donation.donationId },
         ),
       );
@@ -228,8 +242,8 @@ export function validateRound(input: ValidationInput): Issue[] {
           "warning",
           "negative_balance",
           `${name(p.organizationId)}${
-            p.projectId !== null ? ` (project ${p.projectId})` : ""
-          } is at ${fmt(after)} after this round`,
+            p.projectId !== null ? ` (${projectName(p.projectId)})` : ""
+          } is at ${krNo(after)} after this round`,
           { organizationId: p.organizationId, projectId: p.projectId },
         ),
       );
@@ -261,7 +275,9 @@ export function validateRound(input: ValidationInput): Issue[] {
       issue(
         "warning",
         "unassigned_balance",
-        `${input.unassigned.amount} from ${input.unassigned.donationCount} donations has no split ("Unassigned"); set their split in the donation database`,
+        `${krNo(input.unassigned.amount)} from ${
+          input.unassigned.donationCount
+        } donations has no split ("Unassigned"); set their split in the donation database`,
       ),
     );
   }
@@ -270,3 +286,47 @@ export function validateRound(input: ValidationInput): Issue[] {
 }
 
 export const hasErrors = (issues: Issue[]) => issues.some((i) => i.severity === "error");
+
+/**
+ * A recorded payment must add up: a foreign-currency transfer has the amount paid in that
+ * currency and the FX rate, and amountForeign × fxRate is the transfer's NOK amount within
+ * max(1 kr, 0.5 %); a NOK transfer has neither. The bank fee is not negative. Returns what is
+ * wrong, in words, or null.
+ */
+export function paymentProblem(payment: {
+  currency: string;
+  amountNok: string;
+  amountForeign: string | null;
+  fxRate: string | null;
+  bankFee: number | string | null;
+}): string | null {
+  const { currency } = payment;
+  if (payment.bankFee !== null && dec(payment.bankFee).isNegative()) {
+    return "The bank fee can't be negative";
+  }
+  if (currency === "NOK") {
+    if (payment.amountForeign !== null || payment.fxRate !== null) {
+      return "A NOK transfer has no foreign amount or FX rate; clear them, or set the currency the bank paid in";
+    }
+    return null;
+  }
+  if (payment.amountForeign === null || payment.fxRate === null) {
+    const missing = [
+      payment.amountForeign === null ? `the amount paid in ${currency}` : null,
+      payment.fxRate === null ? `the FX rate (NOK per ${currency})` : null,
+    ].filter(Boolean);
+    return `A ${currency} transfer needs ${missing.join(" and ")}`;
+  }
+  const expected = dec(payment.amountNok);
+  const converted = dec(payment.amountForeign).times(payment.fxRate);
+  const tolerance = expected.abs().times("0.005");
+  const allowed = tolerance.greaterThan(1) ? tolerance : dec(1);
+  if (converted.minus(expected).abs().greaterThan(allowed)) {
+    return `${payment.amountForeign} ${currency} at ${payment.fxRate} NOK/${currency} is ${krNo(
+      converted,
+    )}, but the transfer is ${krNo(expected)} (more than ${krNo(
+      allowed,
+    )} apart). Check the amount and the rate against the bank statement`;
+  }
+  return null;
+}

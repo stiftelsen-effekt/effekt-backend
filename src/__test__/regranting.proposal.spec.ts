@@ -18,13 +18,14 @@ const pos = (
   organizationId: number,
   projectId: number | null,
   balance: number,
-  extra: Partial<Record<"committed" | "fundGrants" | "inRound", number>> = {},
+  extra: Partial<Record<"committed" | "fundGrants" | "roundAdjustments" | "inRound", number>> = {},
 ): Position => ({
   organizationId,
   projectId,
   balanceAtCutoff: dec(balance),
   committed: dec(extra.committed ?? 0),
   fundGrants: dec(extra.fundGrants ?? 0),
+  roundAdjustments: dec(extra.roundAdjustments ?? 0),
   inRound: dec(extra.inRound ?? 0),
 });
 
@@ -256,5 +257,18 @@ describe("regranting proposal rules", () => {
       "6:": "400.00",
       "6:61": "300.00",
     });
+  });
+
+  it("the round's own adjustments (an earmark) count in what it can pay, in every kind", () => {
+    const earmarked = [
+      pos(GD, null, 3000, { roundAdjustments: -1000 }),
+      pos(GD, MOMS, 0, { roundAdjustments: 1000 }),
+    ];
+    const regular = proposeRound(input({ positions: earmarked }));
+    expect(proposed(regular)).to.deep.equal({ "6:": "2000.00", "6:61": "1000.00" });
+    expect(regular.positions.map((p) => fmt(p.available))).to.deep.equal(["2000.00", "1000.00"]);
+    // Without direct donations the round pays what it decided: the earmarked project
+    const grantRound = proposeRound(input({ kind: "fund_grant", positions: earmarked }));
+    expect(proposed(grantRound)).to.deep.equal({ "6:": "0.00", "6:61": "1000.00" });
   });
 });

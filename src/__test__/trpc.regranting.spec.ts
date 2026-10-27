@@ -319,6 +319,7 @@ describe("tRPC regranting", () => {
           committed: "0.00",
           fundGrants: "0.00",
           inRound: "1000.00",
+          roundAdjustments: "0.00",
           includedDirect: true,
         },
       ]);
@@ -373,13 +374,15 @@ describe("tRPC regranting", () => {
       await admin().transfers.recordPayment({
         id: 70,
         paidAt: "2026-10-05",
+        currency: "EUR",
+        amountForeign: "86.81",
         fxRate: "11.52",
         bankFee: 30,
       });
       expect(stubs.recordPayment.firstCall.args[2]).to.deep.equal({
         paidAt: "2026-10-05",
-        currency: "NOK",
-        amountForeign: null,
+        currency: "EUR",
+        amountForeign: "86.81",
         fxRate: "11.52",
         bankFee: 30,
         bankRef: null,
@@ -415,10 +418,63 @@ describe("tRPC regranting", () => {
 
     it("adjustments in approved or paid rounds can't change", async () => {
       const stubs = stubDao();
-      stubs.getAdjustment.resolves({ id: 5, roundId: 7, type: "correction" });
-      stubs.getRound.resolves(round({ status: "approved" }));
-      await expectTrpcError(admin().adjustments.delete({ id: 5 }), "CONFLICT");
-      expect(stubs.deleteAdjustment.called).to.be.false;
+      stubs.getAdjustment.resolves({
+        id: 5,
+        roundId: 7,
+        type: "correction",
+        pairedAdjustmentId: null,
+      });
+      stubs.lockRound.resolves(round({ status: "approved" }));
+      await expectTrpcError(
+        admin().adjustments.delete({ id: 5 }),
+        "CONFLICT",
+        /Q3 \(cutoff 30\.09\.2026\)/,
+      );
+      expect(stubs.deleteAdjustments.called).to.be.false;
+      // Attaching a new adjustment to an approved round locks it and fails too
+      await expectTrpcError(
+        admin().adjustments.create({
+          organizationId: 1,
+          amount: -10,
+          type: "correction",
+          reason: "r",
+          effectiveAt: "2026-09-30",
+          roundId: 7,
+        }),
+        "CONFLICT",
+        /approved/,
+      );
+      expect(stubs.createAdjustment.called).to.be.false;
+    });
+
+    it("half of an earmark is deleted with its pair and can't be edited alone", async () => {
+      const stubs = stubDao();
+      const half = {
+        id: 5,
+        roundId: 7,
+        type: "reallocation",
+        reason: "Earmarked for Water in Q3",
+        pairedAdjustmentId: 6,
+      };
+      stubs.getAdjustment.resolves(half);
+      stubs.lockRound.resolves(round());
+      const result = await admin().adjustments.delete({ id: 5 });
+      expect(result.deletedIds).to.deep.equal([5, 6]);
+      expect(stubs.deleteAdjustments.firstCall.args[1]).to.deep.equal([5, 6]);
+      await expectTrpcError(
+        admin().adjustments.update({
+          id: 5,
+          organizationId: 1,
+          amount: -5,
+          type: "reallocation",
+          reason: "smaller",
+          effectiveAt: "2026-09-30",
+          roundId: 7,
+        }),
+        "CONFLICT",
+        /half of an earmark/,
+      );
+      expect(stubs.updateAdjustment.called).to.be.false;
     });
 
     it("fronted entries can be linked to their donation after the round is paid", async () => {
@@ -471,7 +527,7 @@ describe("tRPC regranting", () => {
           lines: [{ organizationId: 3, projectId: null, amount: 5 }],
         }),
         "BAD_REQUEST",
-        /not an own fund/,
+        /AGF isn't an own fund/,
       );
     });
 
@@ -551,6 +607,408 @@ describe("tRPC regranting", () => {
     });
   });
 
+  describe("payments", () => {
+    const record = (extra: Record<string, unknown>) =>
+      admin().transfers.recordPayment({ id: 70, paidAt: "2026-10-05", ...extra } as any);
+
+    it("needs the foreign amount and FX rate of a foreign-currency transfer, and they add up", async () => {
+      const stubs = stubDao();
+      stubs.getTransfer.resolves(transfer({ currency: "EUR" }));
+      stubs.lockRound.resolves(round({ status: "approved" }));
+      await expectTrpcError(
+        record({}),
+        "BAD_REQUEST",
+        /EUR transfer needs the amount paid in EUR and the FX rate/,
+      );
+      await expectTrpcError(record({ amountForeign: "86.81" }), "BAD_REQUEST", /needs the FX rate/);
+      // 86.81 × 12.52 = 1086.86, the transfer is 1000: more than 5 kr apart
+      await expectTrpcError(
+        record({ amountForeign: "86.81", fxRate: "12.52" }),
+        "BAD_REQUEST",
+        /86\.81 EUR at 12\.52 NOK\/EUR is 1\s086,86\skr, but the transfer is 1\s000,00\skr/,
+      );
+      expect(stubs.recordPayment.called).to.be.false;
+      await record({ amountForeign: "86.81", fxRate: "11.52" }); // 1000.05: within 5 kr
+      expect(stubs.recordPayment.calledOnce).to.be.true;
+    });
+
+    it("a NOK transfer has no foreign amount or FX rate", async () => {
+      const stubs = stubDao();
+      stubs.getTransfer.resolves(transfer());
+      stubs.lockRound.resolves(round({ status: "approved" }));
+      await expectTrpcError(
+        record({ fxRate: "1" }),
+        "BAD_REQUEST",
+        /NOK transfer has no foreign amount/,
+      );
+      await expectTrpcError(record({ bankFee: -1 }), "BAD_REQUEST");
+      // The currency in the input wins over the transfer's
+      await expectTrpcError(record({ currency: "USD" }), "BAD_REQUEST", /USD transfer needs/);
+      expect(stubs.recordPayment.called).to.be.false;
+    });
+  });
+
+  describe("adjustments attached to a round", () => {
+    const adjustment = (overrides: Record<string, unknown>) => ({
+      id: 1,
+      organizationId: 1,
+      organizationName: "AGF",
+      projectId: null,
+      projectName: null,
+      amount: "0.00",
+      type: "reallocation",
+      reason: "r",
+      effectiveAt: "2026-09-30",
+      roundId: 7,
+      linkedTransferId: null,
+      linkedDonationId: null,
+      documentRef: null,
+      createdBy: "alice@example.org",
+      createdAt: new Date("2026-10-01"),
+      pairedAdjustmentId: null,
+      roundStatus: "draft",
+      pending: true,
+      affectsBalance: false,
+      ...overrides,
+    });
+
+    it("count in the round's own positions and proposal, kept apart from the balance", async () => {
+      const stubs = stubDao();
+      stubs.getRound.resolves(round());
+      stubs.getRoundSummary.resolves(summary(round()));
+      stubs.getBalances.resolves([balanceRow(1, "1000.00")]);
+      stubs.getPayeesAt.resolves(new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]));
+      stubs.getProjectNames.resolves(new Map([[61, { name: "Water", status: "active" }]]));
+      stubs.listAdjustments.resolves([
+        adjustment({ id: 1, amount: "-300.00", pairedAdjustmentId: 2 }),
+        adjustment({
+          id: 2,
+          projectId: 61,
+          projectName: "Water",
+          amount: "300.00",
+          pairedAdjustmentId: 1,
+        }),
+        adjustment({ id: 3, type: "fronted", amount: "50.00" }), // a record only
+        adjustment({ id: 4, amount: "20.00", effectiveAt: "2026-10-05" }), // after the cutoff
+      ]);
+
+      const builder = await admin().rounds.builder({ id: 7 });
+      const agf = builder.recipients.find((r) => r.organizationId === 1)!;
+      expect(
+        agf.lines.map((l) => [
+          l.projectName,
+          l.balanceAtCutoff,
+          l.roundAdjustments,
+          l.available,
+          l.proposed,
+        ]),
+      ).to.deep.equal([
+        [null, "1000.00", "-300.00", "700.00", "700.00"],
+        ["Water", "0.00", "300.00", "300.00", "300.00"],
+      ]);
+      expect(stubs.listAdjustments.firstCall.args[0]).to.deep.equal({ roundId: 7 });
+    });
+
+    it("are paid in rounds without direct donations too", async () => {
+      const stubs = stubDao();
+      const r = round({ kind: "fund_grant" });
+      stubs.getRound.resolves(r);
+      stubs.getRoundSummary.resolves(summary(r));
+      stubs.getBalances.resolves([balanceRow(1, "1000.00"), balanceRow(3, "500.00")]);
+      stubs.getPayeesAt.resolves(
+        new Map([
+          [1, { id: 10, name: "GiveWell", currency: "NOK" }],
+          [3, { id: 10, name: "GiveWell", currency: "NOK" }],
+        ]),
+      );
+      stubs.listAdjustments.resolves([
+        adjustment({ id: 1, amount: "-300.00", pairedAdjustmentId: 2 }),
+        adjustment({ id: 2, projectId: 61, amount: "300.00", pairedAdjustmentId: 1 }),
+      ]);
+      const builder = await admin().rounds.builder({ id: 7 });
+      const agf = builder.recipients.find((x) => x.organizationId === 1)!;
+      expect(agf.lines.map((l) => [l.projectId, l.proposed])).to.deep.equal([
+        [null, "0.00"],
+        [61, "300.00"],
+      ]);
+      // In the round: AGF has adjustments here; MC only has a balance
+      expect(builder.recipients.map((x) => [x.organizationId, x.inRound])).to.deep.equal([
+        [1, true],
+        [3, false],
+      ]);
+    });
+
+    it("the snapshot keeps them apart", async () => {
+      const stubs = stubDao();
+      stubs.lockRound.resolves(round());
+      stubs.getRound.resolves(round());
+      stubs.getRoundSummary.resolves(summary(round({ status: "approved" })));
+      stubs.getBalances.resolves([balanceRow(1, "1000.00")]);
+      stubs.getPayeesAt.resolves(new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]));
+      stubs.getTransfers.resolves([
+        transfer({ amountNok: "700.00", lines: [{ ...transfer().lines[0], amountNok: "700.00" }] }),
+      ]);
+      stubs.listAdjustments.resolves([adjustment({ amount: "-300.00" })]);
+      await admin().rounds.approve({ id: 7 });
+      expect(stubs.writeSnapshot.firstCall.args[2][0]).to.include({
+        balanceAtCutoff: "1000.00",
+        roundAdjustments: "-300.00",
+        inRound: "700.00",
+      });
+    });
+  });
+
+  describe("builder scope", () => {
+    it("flags recipients the round touches: lines, grant lines, chosen donations or an override", async () => {
+      const stubs = stubDao();
+      const r = round({ kind: "extraordinary" });
+      stubs.getRound.resolves(r);
+      stubs.getRoundSummary.resolves(summary(r));
+      stubs.getBalances.resolves([balanceRow(1, "1000.00"), balanceRow(3, "500.00")]);
+      stubs.getIncludeDirectOverrides.resolves(new Map([[3, false]]));
+      let builder = await admin().rounds.builder({ id: 7 });
+      expect(builder.recipients.map((x) => [x.organizationId, x.inRound])).to.deep.equal([
+        [1, false],
+        [3, true], // an override, even one that leaves direct donations out
+      ]);
+      stubs.getIncludeDirectOverrides.resolves(new Map());
+      stubs.getTransfers.resolves([
+        transfer({ lines: [{ ...transfer().lines[0], amountNok: "1.00" }], amountNok: "1.00" }),
+      ]);
+      builder = await admin().rounds.builder({ id: 7 });
+      expect(builder.recipients.map((x) => [x.organizationId, x.inRound])).to.deep.equal([
+        [1, true],
+        [3, false],
+      ]);
+    });
+  });
+
+  describe("earmarks", () => {
+    const project = (organizationId: number) => ({
+      id: 61,
+      organizationId,
+      organizationName: organizationId === 1 ? "AGF" : "MC",
+      name: "Water",
+    });
+    const setUp = () => {
+      const stubs = stubDao();
+      stubs.lockRound.resolves(round());
+      stubs.getRound.resolves(round());
+      stubs.getRoundSummary.resolves(summary(round()));
+      stubs.getBalances.resolves([balanceRow(1, "1200.00")]);
+      stubs.getPayeesAt.resolves(new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]));
+      stubs.getTransfers.resolves([transfer()]); // AGF unrestricted pays 1000
+      stubs.getProject.resolves(project(1));
+      stubs.createAdjustment.onFirstCall().resolves(11).onSecondCall().resolves(12);
+      return stubs;
+    };
+
+    it("writes the paired adjustments and moves Pay now, in one transaction", async () => {
+      const stubs = setUp();
+      await admin().rounds.earmark({
+        roundId: 7,
+        organizationId: 1,
+        projectId: 61,
+        amount: 400,
+        note: "Grant letter 12",
+      });
+      expect(stubs.inTransaction.calledOnce).to.be.true;
+      const [from, to] = stubs.createAdjustment.getCalls().map((c) => c.args);
+      expect(from[0]).to.deep.include({
+        organizationId: 1,
+        projectId: null,
+        amount: -400,
+        type: "reallocation",
+        effectiveAt: "2026-09-30",
+        roundId: 7,
+        reason: "Earmarked for Water in Q3: Grant letter 12",
+      });
+      expect(to[0]).to.deep.include({ projectId: 61, amount: 400, roundId: 7 });
+      expect(from[1]).to.equal("bob@example.org");
+      expect(from[2]).to.deep.equal({ fake: true });
+      expect(stubs.pairAdjustments.firstCall.args.slice(1)).to.deep.equal([11, 12]);
+      expect(stubs.replaceTransferLines.firstCall.args.slice(1)).to.deep.equal([
+        70,
+        [
+          { organizationId: 1, projectId: null, amount: "600.00" },
+          { organizationId: 1, projectId: 61, amount: "400.00" },
+        ],
+        true,
+      ]);
+    });
+
+    it("moves at most what the unrestricted line pays", async () => {
+      const stubs = setUp();
+      await admin().rounds.earmark({ roundId: 7, organizationId: 1, projectId: 61, amount: 1200 });
+      expect(stubs.replaceTransferLines.firstCall.args[2]).to.deep.equal([
+        { organizationId: 1, projectId: 61, amount: "1000.00" },
+      ]);
+    });
+
+    it("checks the project, the amount and that the round is a draft", async () => {
+      const stubs = setUp();
+      stubs.getProject.resolves(project(3));
+      await expectTrpcError(
+        admin().rounds.earmark({ roundId: 7, organizationId: 1, projectId: 61, amount: 100 }),
+        "BAD_REQUEST",
+        /Water is a project at MC, not at AGF/,
+      );
+      stubs.getProject.resolves(project(1));
+      await expectTrpcError(
+        admin().rounds.earmark({ roundId: 7, organizationId: 1, projectId: 61, amount: 1200.01 }),
+        "BAD_REQUEST",
+        /AGF has 1\s200,00\skr unrestricted available in Q3 \(cutoff 30\.09\.2026\)/,
+      );
+      stubs.lockRound.resolves(round({ status: "approved" }));
+      await expectTrpcError(
+        admin().rounds.earmark({ roundId: 7, organizationId: 1, projectId: 61, amount: 100 }),
+        "CONFLICT",
+        /Can't earmark money in Q3 \(cutoff 30\.09\.2026\): it is approved/,
+      );
+      expect(stubs.createAdjustment.called).to.be.false;
+      expect(stubs.replaceTransferLines.called).to.be.false;
+    });
+
+    it("removing one deletes both halves and moves Pay now back", async () => {
+      const stubs = setUp();
+      const half = (id: number, projectId: number | null, amount: string, paired: number) => ({
+        id,
+        organizationId: 1,
+        organizationName: "AGF",
+        projectId,
+        amount,
+        type: "reallocation",
+        roundId: 7,
+        pairedAdjustmentId: paired,
+      });
+      stubs.getAdjustment.withArgs(11).resolves(half(11, null, "-400.00", 12));
+      stubs.getAdjustment.withArgs(12).resolves(half(12, 61, "400.00", 11));
+      stubs.getTransfers.resolves([
+        transfer({
+          lines: [
+            { ...transfer().lines[0], amountNok: "600.00" },
+            {
+              ...transfer().lines[0],
+              id: 701,
+              projectId: 61,
+              projectName: "Water",
+              amountNok: "400.00",
+            },
+          ],
+        }),
+      ]);
+      await admin().rounds.removeEarmark({ adjustmentId: 11 });
+      expect(stubs.replaceTransferLines.firstCall.args[2]).to.deep.equal([
+        { organizationId: 1, projectId: null, amount: "1000.00" },
+      ]);
+      expect(stubs.deleteAdjustments.firstCall.args[1]).to.deep.equal([11, 12]);
+
+      stubs.getAdjustment
+        .withArgs(13)
+        .resolves({ ...half(13, null, "-5.00", 0), pairedAdjustmentId: null, type: "fee" });
+      await expectTrpcError(
+        admin().rounds.removeEarmark({ adjustmentId: 13 }),
+        "BAD_REQUEST",
+        /isn't an earmark/,
+      );
+    });
+  });
+
+  describe("messages", () => {
+    it("name things and write dates as dd.mm.yyyy", async () => {
+      const stubs = stubDao();
+      stubs.getPayee.resolves({ id: 10 });
+      stubs.overlappingRoutings.resolves([
+        {
+          id: 1,
+          organizationName: "Malaria Consortium",
+          payeeName: "GiveWell",
+          validFrom: "2020-01-01",
+          validTo: "2026-07-31",
+        },
+      ]);
+      await expectTrpcError(
+        admin().routings.create({ organizationId: 3, payeeId: 11, validFrom: "2026-07-01" }),
+        "CONFLICT",
+        /^Malaria Consortium is already routed to GiveWell from 01\.01\.2020 to 31\.07\.2026; end that routing first$/,
+      );
+      await expectTrpcError(
+        admin().transfers.setLine({ id: 70, organizationId: 99, projectId: null, amountNok: 5 }),
+        "BAD_REQUEST",
+        /^Recipient #99 doesn't exist$/,
+      );
+      stubs.getTransfers.resolves([transfer()]);
+      stubs.lockRound.resolves(round({ status: "approved" }));
+      await expectTrpcError(
+        admin().rounds.markPaid({ id: 7 }),
+        "PRECONDITION_FAILED",
+        /^Record the payment of the transfer to GiveWell \(1\s000,00\skr, #70\) first$/,
+      );
+    });
+
+    it("turn a delete of something still in use into a CONFLICT that says what to do", async () => {
+      const stubs = stubDao();
+      stubs.getPayee.resolves({ id: 10, name: "GiveWell" });
+      stubs.deletePayee.rejects(
+        Object.assign(new Error("ER_ROW_IS_REFERENCED_2"), { errno: 1451 }),
+      );
+      await expectTrpcError(
+        admin().payees.delete({ id: 10 }),
+        "CONFLICT",
+        /GiveWell is still used by routings or transfers; mark it inactive instead/,
+      );
+    });
+  });
+
+  describe("statements", () => {
+    it("show adjustments of draft rounds as pending, outside the running balance", async () => {
+      const stubs = stubDao();
+      const row = {
+        projectId: null,
+        donationCount: null,
+        roundId: null,
+        roundName: null,
+        transferId: null,
+        transferLineId: null,
+        payeeName: null,
+        bankRef: null,
+        fundGrantId: null,
+        fundGrantLineId: null,
+        counterpartOrganizationId: null,
+        rationale: null,
+        adjustmentId: null,
+        adjustmentType: null,
+        reason: null,
+        createdBy: null,
+        pending: false,
+      };
+      stubs.getStatementRows.resolves([
+        { ...row, date: "2026-09-01", kind: "allocations", amount: "1000.00", donationCount: 3 },
+        {
+          ...row,
+          date: "2026-09-30",
+          kind: "adjustment",
+          amount: "-300.00",
+          adjustmentType: "reallocation",
+          roundId: 7,
+          pending: true,
+        },
+      ]);
+      const s = await admin().statements.recipient({
+        organizationId: 1,
+        from: "2026-09-01",
+        to: "2026-09-30",
+      });
+      expect(
+        s.entries.map((e) => [e.amount, e.pending, e.affectsBalance, e.balanceAfter]),
+      ).to.deep.equal([
+        ["1000.00", false, true, "1000.00"],
+        ["-300.00", true, false, "1000.00"],
+      ]);
+      expect(s.closingBalance).to.equal("1000.00");
+    });
+  });
+
   describe("DAO getBalances", () => {
     it("passes one parameter per placeholder, with and without a recipient filter", async () => {
       sinon.restore();
@@ -569,7 +1027,8 @@ describe("tRPC regranting", () => {
       const [, filtered] = query.secondCall.args as [string, unknown[]];
       expect(filtered[0]).to.equal("2026-06-30");
       expect(filtered.filter((p) => Array.isArray(p))).to.have.length(5);
-      expect(filtered.filter((p) => p === 3)).to.have.length(3);
+      // excludeRoundId leaves the round's fund grants, transfer lines and adjustments out
+      expect(filtered.filter((p) => p === 3)).to.have.length(4);
     });
 
     it("returns nothing for an empty recipient filter without querying", async () => {

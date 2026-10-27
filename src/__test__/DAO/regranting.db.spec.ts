@@ -379,7 +379,7 @@ const NOPAYEE = 7;
       await expectTrpcError(
         alice.transfers.setLine({ id: gw.id, organizationId: AGF, projectId: moms, amountNok: 10 }),
         "BAD_REQUEST",
-        /doesn't belong/,
+        /Moms and babies is a project at GiveDirectly, not at GiveWell All Grants Fund/,
       );
     });
 
@@ -761,6 +761,222 @@ const NOPAYEE = 7;
       ]);
       expect(page.figures.balance).to.equal("0.00");
       await expectTrpcError(alice.projects.delete({ id: moms }), "CONFLICT");
+    });
+  });
+
+  describe("earmarks and adjustments attached to a round", () => {
+    const Q3 = "2026-09-30";
+    let draft: number;
+    let earmarkIds: number[] = [];
+
+    before(async () => {
+      await sql(
+        `INSERT INTO Donations (Donor_ID, Payment_ID, sum_confirmed, timestamp_confirmed, KID_fordeling)
+         VALUES (1, 4, 5000, '2026-09-10 09:00:00', 'F')`,
+      );
+    });
+
+    const gdLines = (b: Awaited<ReturnType<typeof alice.rounds.builder>>) =>
+      b.recipients
+        .find((r) => r.organizationId === GD)!
+        .lines.map((l) => [
+          l.projectId,
+          l.balanceAtCutoff,
+          l.roundAdjustments,
+          l.available,
+          l.inRound,
+        ]);
+    const gdTransferLines = (b: Awaited<ReturnType<typeof alice.rounds.builder>>) =>
+      b.transfers
+        .filter((t) => t.payee.id === gdPayee)
+        .flatMap((t) => t.lines.map((l) => [l.projectId, l.amountNok]));
+
+    it("an earmark in a draft shows in the builder but doesn't move balances", async () => {
+      const before = await alice.balances.list({ at: Q3, organizationIds: [GD] });
+      expect(before.recipients[0].unrestricted.balance).to.equal("5000.00");
+
+      draft = (await alice.rounds.create({ name: "Q3 2026", kind: "regular", cutoff: Q3 })).round
+        .id;
+      const b = await bob.rounds.earmark({
+        roundId: draft,
+        organizationId: GD,
+        projectId: water,
+        amount: 2000,
+        note: "Agreement W-1",
+      });
+      expect(gdLines(b)).to.deep.equal([
+        [null, "5000.00", "-2000.00", "3000.00", "3000.00"],
+        [water, "0.00", "2000.00", "2000.00", "2000.00"],
+      ]);
+      expect(gdTransferLines(b)).to.deep.equal([
+        [null, "3000.00"],
+        [water, "2000.00"],
+      ]);
+      expect(b.recipients.find((r) => r.organizationId === GD)!.inRound).to.be.true;
+
+      const after = await alice.balances.list({ at: Q3, organizationIds: [GD] });
+      expect(after.recipients).to.deep.equal(before.recipients);
+      expect((await balanceOf("2026-12-31", GD, water)).balance).to.equal("0.00");
+
+      const adjustments = await alice.adjustments.list({ roundId: draft });
+      earmarkIds = adjustments.map((a) => a.id);
+      expect(
+        adjustments
+          .map((a) => [
+            a.projectId,
+            a.amount,
+            a.effectiveAt,
+            a.pending,
+            a.affectsBalance,
+            a.createdBy,
+          ])
+          .sort((x, y) => Number(x[1]) - Number(y[1])),
+      ).to.deep.equal([
+        [null, "-2000.00", Q3, true, false, "bob@example.org"],
+        [water, "2000.00", Q3, true, false, "bob@example.org"],
+      ]);
+      expect(adjustments[0].pairedAdjustmentId).to.equal(adjustments[1].id);
+      expect(adjustments[1].pairedAdjustmentId).to.equal(adjustments[0].id);
+      expect(adjustments[0].reason).to.equal("Earmarked for Water in Q3 2026: Agreement W-1");
+
+      const statement = await alice.statements.recipient({
+        organizationId: GD,
+        from: "2026-09-01",
+        to: Q3,
+      });
+      expect(
+        statement.entries.map((e) => [e.kind, e.amount, e.pending, e.balanceAfter]),
+      ).to.have.deep.members([
+        ["allocations", "5000.00", false, "5000.00"],
+        ["adjustment", "-2000.00", true, "5000.00"],
+        ["adjustment", "2000.00", true, "5000.00"],
+      ]);
+    });
+
+    it("an earmark can't take more than the unrestricted available", async () => {
+      await expectTrpcError(
+        alice.rounds.earmark({
+          roundId: draft,
+          organizationId: GD,
+          projectId: moms,
+          amount: 3000.01,
+        }),
+        "BAD_REQUEST",
+        /GiveDirectly has 3\s000,00\skr unrestricted available in Q3 2026 \(cutoff 30\.09\.2026\)/,
+      );
+      await expectTrpcError(
+        alice.rounds.earmark({ roundId: draft, organizationId: AGF, projectId: moms, amount: 1 }),
+        "BAD_REQUEST",
+        /Moms and babies is a project at GiveDirectly, not at GiveWell All Grants Fund/,
+      );
+    });
+
+    it("earmarks move with the draft's cutoff", async () => {
+      await alice.rounds.update({ id: draft, cutoff: "2026-09-29" });
+      expect(
+        (await alice.adjustments.list({ roundId: draft })).map((a) => a.effectiveAt),
+      ).to.deep.equal(["2026-09-29", "2026-09-29"]);
+      await alice.rounds.update({ id: draft, cutoff: Q3 });
+    });
+
+    it("deleting the draft deletes its adjustments", async () => {
+      await alice.rounds.delete({ id: draft });
+      const [{ n }] = await sql(`SELECT COUNT(*) AS n FROM Regrant_adjustments WHERE ID IN (?)`, [
+        earmarkIds,
+      ]);
+      expect(Number(n)).to.equal(0);
+      expect(await alice.adjustments.list({ roundId: draft })).to.deep.equal([]);
+    });
+
+    it("removing an earmark moves Pay now back", async () => {
+      draft = (await alice.rounds.create({ name: "Q3 2026", kind: "regular", cutoff: Q3 })).round
+        .id;
+      await alice.rounds.earmark({
+        roundId: draft,
+        organizationId: GD,
+        projectId: water,
+        amount: 500,
+      });
+      const [half] = await alice.adjustments.list({ roundId: draft });
+      const b = await alice.rounds.removeEarmark({ adjustmentId: half.id });
+      expect(gdTransferLines(b)).to.deep.equal([[null, "5000.00"]]);
+      expect(await alice.adjustments.list({ roundId: draft })).to.deep.equal([]);
+    });
+
+    it("counts once the round is approved, and as a later debit before its date", async () => {
+      await alice.rounds.earmark({
+        roundId: draft,
+        organizationId: GD,
+        projectId: water,
+        amount: 1000,
+      });
+      expect((await bob.rounds.approve({ id: draft })).approved).to.be.true;
+      const detail = await alice.rounds.get({ id: draft });
+      expect(
+        detail.snapshot
+          .filter((x) => x.organizationId === GD)
+          .map((x) => [x.projectId, x.balanceAtCutoff, x.roundAdjustments, x.inRound]),
+      ).to.deep.equal([
+        [null, "5000.00", "-1000.00", "4000.00"],
+        [water, "0.00", "1000.00", "1000.00"],
+      ]);
+      expect(detail.adjustments.every((a) => !a.pending && a.affectsBalance)).to.be.true;
+
+      const unrestricted = await balanceOf(Q3, GD);
+      expect([unrestricted.balance, unrestricted.committed, unrestricted.available]).to.deep.equal([
+        "4000.00",
+        "4000.00",
+        "0.00",
+      ]);
+      const project = await balanceOf(Q3, GD, water);
+      expect([project.balance, project.available]).to.deep.equal(["1000.00", "0.00"]);
+      // A round built later with an earlier cutoff sees the earmark as already decided
+      const early = await balanceOf("2026-09-29", GD);
+      expect([early.balance, early.committed, early.available]).to.deep.equal([
+        "5000.00",
+        "5000.00",
+        "0.00",
+      ]);
+      expect((await balanceOf("2026-09-29", GD, water)).available).to.equal("0.00");
+    });
+
+    it("records a foreign-currency payment only if it adds up", async () => {
+      const { transfers } = await alice.rounds.get({ id: draft });
+      const eur = transfers.find((t) => t.currency === "EUR")!;
+      expect(eur.amountNok).to.equal("600.00");
+      await expectTrpcError(
+        alice.transfers.recordPayment({
+          id: eur.id,
+          paidAt: "2026-10-05",
+          amountForeign: "50",
+          fxRate: "11",
+        }),
+        "BAD_REQUEST",
+        /50 EUR at 11 NOK\/EUR is 550,00\skr, but the transfer is 600,00\skr/,
+      );
+      await expectTrpcError(
+        alice.transfers.recordPayment({ id: eur.id, paidAt: "2026-10-05" }),
+        "BAD_REQUEST",
+        /EUR transfer needs/,
+      );
+      const paid = await alice.transfers.recordPayment({
+        id: eur.id,
+        paidAt: "2026-10-05",
+        amountForeign: "52.17",
+        fxRate: "11.5",
+      });
+      expect([paid.paidAt, paid.amountForeign, paid.fxRate]).to.deep.equal([
+        "2026-10-05",
+        "52.17",
+        "11.5",
+      ]);
+
+      // Clean up: the round goes back to a draft and is deleted with its earmark
+      await alice.transfers.clearPayment({ id: eur.id });
+      await alice.rounds.reopen({ id: draft });
+      await alice.rounds.delete({ id: draft });
+      expect((await balanceOf(Q3, GD)).balance).to.equal("5000.00");
+      expect((await balanceOf(Q3, GD, water)).balance).to.equal("0.00");
     });
   });
 });

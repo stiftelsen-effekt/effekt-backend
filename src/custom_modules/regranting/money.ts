@@ -35,3 +35,22 @@ export const daysBefore = (isoDate: string, days: number): string => {
   d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString().slice(0, 10);
 };
+
+//region Human-readable text (error and issue messages)
+
+/** "2026-09-30" → "30.09.2026" (Norwegian date format) */
+export const dateNo = (isoDate: string): string => {
+  const [year, month, day] = isoDate.slice(0, 10).split("-");
+  return `${day}.${month}.${year}`;
+};
+
+/** 1234.5 → "1 234,50 kr" (Norwegian number format, no-break spaces) */
+export const krNo = (value: Decimal | string | number): string => {
+  const fixed = fmt(dec(value));
+  const negative = fixed.startsWith("-");
+  const [int, frac] = (negative ? fixed.slice(1) : fixed).split(".");
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return `${negative ? "−" : ""}${grouped},${frac} kr`;
+};
+
+//endregion

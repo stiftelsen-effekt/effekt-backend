@@ -142,6 +142,7 @@ type AdjustmentState = {
   cents: number;
   type: string;
   effective: number;
+  roundId: number | null;
   row: Row;
 };
 
@@ -950,6 +951,7 @@ export class RegrantingHistory {
       cents: a.cents,
       type: a.type,
       effective,
+      roundId: a.roundId ?? null,
       row,
     };
     this.adjustments.push(state);
@@ -1049,9 +1051,18 @@ export class RegrantingHistory {
       if (day > cutoff) continue;
       for (const [org, micro] of byOrg) get(org, null).micro += micro;
     }
+    // As getBalances: an adjustment attached to a round counts once the round is approved (and
+    // not for the round itself); approved rounds' adjustments dated later are later debits
+    const roundStatus = new Map(this.rounds.map((r) => [r.id, r.status]));
     for (const a of this.adjustments) {
-      if (a.type === "fronted" || a.effective > cutoff) continue;
-      get(a.orgId, a.projectId).cents += a.cents;
+      if (a.type === "fronted") continue;
+      if (a.roundId === null) {
+        if (a.effective <= cutoff) get(a.orgId, a.projectId).cents += a.cents;
+        continue;
+      }
+      if (a.roundId === excludeRoundId || roundStatus.get(a.roundId) === "draft") continue;
+      if (a.effective <= cutoff) get(a.orgId, a.projectId).cents += a.cents;
+      else get(a.orgId, a.projectId).committed -= a.cents;
     }
     for (const round of this.rounds) {
       if (round.id === excludeRoundId || round.status === "draft") continue;
@@ -1239,6 +1250,7 @@ export class RegrantingHistory {
           balanceAtCutoff: new Decimal(0),
           committed: new Decimal(0),
           fundGrants: new Decimal(0),
+          roundAdjustments: new Decimal(0),
           inRound: new Decimal(0),
         });
       }
@@ -1263,6 +1275,11 @@ export class RegrantingHistory {
         const p = position(line.orgId, line.projectId);
         p.inRound = p.inRound.plus(dec(line.cents));
       }
+    }
+    for (const a of this.adjustments) {
+      if (a.roundId !== round.id || a.type === "fronted" || a.effective > round.cutoff) continue;
+      const p = position(a.orgId, a.projectId);
+      p.roundAdjustments = p.roundAdjustments.plus(dec(a.cents));
     }
 
     const chosen = new Map<number, Decimal>();
@@ -1388,6 +1405,7 @@ export class RegrantingHistory {
         !p.balanceAtCutoff.isZero() ||
         !p.committed.isZero() ||
         !p.fundGrants.isZero() ||
+        !p.roundAdjustments.isZero() ||
         !p.inRound.isZero() ||
         !p.proposed.isZero();
       if (!anything) continue;
@@ -1400,6 +1418,7 @@ export class RegrantingHistory {
         committed: nok(toCents(p.committed)),
         fund_grants: nok(toCents(p.fundGrants)),
         in_round: nok(toCents(p.inRound)),
+        round_adjustments: nok(toCents(p.roundAdjustments)),
         included_direct: this.fundIds.has(p.organizationId) ? 0 : p.includeDirect ? 1 : 0,
       });
     }

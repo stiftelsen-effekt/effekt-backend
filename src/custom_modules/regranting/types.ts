@@ -118,7 +118,10 @@ export type LedgerFigures = {
   fundGrantsOut: Money;
   /** Negative: paid transfer lines */
   transfers: Money;
-  /** Other adjustments (fee, correction, reallocation, own_funds); fronted entries don't count */
+  /**
+   * Other adjustments (fee, correction, reallocation, own_funds); fronted entries don't count,
+   * and adjustments attached to a round count only once it is approved
+   */
   adjustments: Money;
   /** Sum of the above, entries dated on or before the date */
   balance: Money;
@@ -142,7 +145,10 @@ export type BalanceRow = {
   adjustments: Money;
   /** Approved, unpaid transfer lines (positive) */
   committed: Money;
-  /** Paid transfer lines and fund grants out dated after the date (positive) */
+  /**
+   * Paid transfer lines and fund grants out dated after the date, and adjustments of approved or
+   * paid rounds dated after it (negated). Positive for a debit.
+   */
   laterDebits: Money;
   /** Allocations after the `inflowSince` date, up to the date */
   inflowSince: Money;
@@ -264,6 +270,8 @@ export type RoundBalanceSnapshot = {
   committed: Money;
   fundGrants: Money;
   inRound: Money;
+  /** This round's adjustments (e.g. earmarks), kept out of balanceAtCutoff */
+  roundAdjustments: Money;
   includedDirect: boolean;
 };
 
@@ -283,7 +291,13 @@ export type Adjustment = {
   documentRef: string | null;
   createdBy: string;
   createdAt: Date;
-  /** False for fronted entries, which are records only */
+  /** Earmarks: the other half of the pair (unrestricted −X ↔ project +X) */
+  pairedAdjustmentId: number | null;
+  /** The status of the round it is attached to (null when unattached) */
+  roundStatus: RoundStatus | null;
+  /** Attached to a draft round: counts only once that round is approved */
+  pending: boolean;
+  /** False for fronted entries (records only) and while pending */
   affectsBalance: boolean;
 };
 

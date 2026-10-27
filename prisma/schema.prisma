@@ -911,6 +911,7 @@ model Regrant_round_balances {
   fund_grants       Decimal @default(0) @db.Decimal(16, 2) /// This round's fund grant lines (negative for own funds)
   in_round          Decimal @default(0) @db.Decimal(16, 2) /// This round's transfer lines
   included_direct   Boolean
+  round_adjustments Decimal @default(0) @db.Decimal(16, 2) /// This round's adjustments (e.g. earmarks), not in balance_at_cutoff
 
   Regrant_rounds Regrant_rounds @relation(fields: [Round_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_round_balances_to_Regrant_rounds")
   Organizations  Organizations  @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_round_balances_to_Organizations")
@@ -963,31 +964,35 @@ model Regrant_transfer_lines {
 
 /// Typed, signed ledger entries with a reason and an author
 model Regrant_adjustments {
-  ID                 Int      @id @default(autoincrement())
-  Organization_ID    Int
-  Project_ID         Int?
-  amount             Decimal  @db.Decimal(16, 2) /// Signed; fronted entries are records only and don't count in the balance
-  type               String   @db.VarChar(16) /// opening | fee | correction | reallocation | fronted | own_funds
-  reason             String   @db.Text
-  effective_at       DateTime @db.Date
-  Round_ID           Int?
-  linked_transfer_ID Int? /// correction: the transfer it corrects
-  linked_donation_ID Int? /// fronted: the expected donation, once registered
-  document_ref       String?  @db.VarChar(512) /// Bilag
-  created_by         String   @db.VarChar(255)
-  created_at         DateTime @default(now()) @db.DateTime(0)
+  ID                   Int      @id @default(autoincrement())
+  Organization_ID      Int
+  Project_ID           Int?
+  amount               Decimal  @db.Decimal(16, 2) /// Signed; fronted entries are records only and don't count in the balance
+  type                 String   @db.VarChar(16) /// opening | fee | correction | reallocation | fronted | own_funds
+  reason               String   @db.Text
+  effective_at         DateTime @db.Date
+  Round_ID             Int?
+  linked_transfer_ID   Int? /// correction: the transfer it corrects
+  linked_donation_ID   Int? /// fronted: the expected donation, once registered
+  document_ref         String?  @db.VarChar(512) /// Bilag
+  created_by           String   @db.VarChar(255)
+  created_at           DateTime @default(now()) @db.DateTime(0)
+  Paired_adjustment_ID Int? /// Earmarks: the other half of the pair (unrestricted −X ↔ project +X)
 
-  Organizations     Organizations      @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Organizations")
-  Projects          Projects?          @relation(fields: [Project_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Projects")
-  Regrant_rounds    Regrant_rounds?    @relation(fields: [Round_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Regrant_rounds")
-  Regrant_transfers Regrant_transfers? @relation(fields: [linked_transfer_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Regrant_transfers")
-  Donations         Donations?         @relation(fields: [linked_donation_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Donations")
+  Paired            Regrant_adjustments?  @relation("Regrant_adjustment_pairs", fields: [Paired_adjustment_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_paired")
+  Paired_by         Regrant_adjustments[] @relation("Regrant_adjustment_pairs")
+  Organizations     Organizations         @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Organizations")
+  Projects          Projects?             @relation(fields: [Project_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Projects")
+  Regrant_rounds    Regrant_rounds?       @relation(fields: [Round_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Regrant_rounds")
+  Regrant_transfers Regrant_transfers?    @relation(fields: [linked_transfer_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Regrant_transfers")
+  Donations         Donations?            @relation(fields: [linked_donation_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Donations")
 
   @@index([Organization_ID, effective_at], map: "Organization_effective_at_idx")
   @@index([Project_ID], map: "fk_Regrant_adjustments_to_Projects_idx")
   @@index([Round_ID], map: "fk_Regrant_adjustments_to_Regrant_rounds_idx")
   @@index([linked_transfer_ID], map: "fk_Regrant_adjustments_to_Regrant_transfers_idx")
   @@index([linked_donation_ID], map: "fk_Regrant_adjustments_to_Donations_idx")
+  @@index([Paired_adjustment_ID], map: "fk_Regrant_adjustments_to_paired_idx")
 }
 
 /// Marks a recipient as one of our own funds: never paid directly, granted through Fund_grants

@@ -12,18 +12,23 @@ export type Position = {
   organizationId: number;
   /** null = unrestricted */
   projectId: number | null;
-  /** Ledger balance at the cutoff, leaving this round out */
+  /** Ledger balance at the cutoff, leaving this round (and its adjustments) out */
   balanceAtCutoff: Decimal;
   /** Other rounds' payments not in the ledger at the cutoff (approved, or paid/granted later) */
   committed: Decimal;
   /** This round's fund grant lines: + for recipients, − (the total granted) for own funds */
   fundGrants: Decimal;
+  /**
+   * This round's adjustments dated on or before the cutoff (e.g. an earmark: unrestricted −X,
+   * project +X). Counted in the round while it is a draft; in the ledger once it is approved.
+   */
+  roundAdjustments: Decimal;
   /** This round's transfer lines as they stand */
   inRound: Decimal;
 };
 
 export type ProposedPosition = Position & {
-  /** balanceAtCutoff − committed + fundGrants: what this round can pay */
+  /** balanceAtCutoff − committed + fundGrants + roundAdjustments: what this round can pay */
   available: Decimal;
   /** What the rules propose paying in this round */
   proposed: Decimal;
@@ -64,8 +69,8 @@ export const positionKey = (organizationId: number, projectId: number | null) =>
 /**
  * 1. Each recipient in scope: propose its unrestricted balance plus every project balance.
  * 2. Direct donations by kind: regular includes them; fund_grant and extraordinary only pay this
- *    round's fund grants; major_donor pays the chosen donations' allocations (plus this round's
- *    fund grants), capped at the balance. The per-recipient switch overrides the default; when
+ *    round's fund grants (and adjustments, e.g. earmarks); major_donor pays the chosen donations'
+ *    allocations (plus this round's fund grants and adjustments), capped at the balance. The per-recipient switch overrides the default; when
  *    on, the whole balance is proposed.
  * 3. Grouped by the payee valid at the cutoff: one transfer per payee and currency.
  * 4. Anything not proposed stays in the balance.
@@ -87,6 +92,7 @@ export function proposeRound(input: ProposalInput): {
         balanceAtCutoff: ZERO,
         committed: ZERO,
         fundGrants: ZERO,
+        roundAdjustments: ZERO,
         inRound: ZERO,
       });
     }
@@ -102,7 +108,10 @@ export function proposeRound(input: ProposalInput): {
   );
 
   const proposed: ProposedPosition[] = positions.map((p) => {
-    const available = p.balanceAtCutoff.minus(p.committed).plus(p.fundGrants);
+    const available = p.balanceAtCutoff
+      .minus(p.committed)
+      .plus(p.fundGrants)
+      .plus(p.roundAdjustments);
     const includeDirect =
       input.includeDirectOverrides.get(p.organizationId) ?? defaultIncludeDirect(input.kind);
     const held =
@@ -112,13 +121,16 @@ export function proposeRound(input: ProposalInput): {
 
     if (input.fundIds.has(p.organizationId) || held) return { ...base, proposed: ZERO };
 
+    // Without direct donations a round pays what it decides itself: its fund grants and its
+    // adjustments (an earmark moves money from the unrestricted line to the project line)
+    const decided = p.fundGrants.plus(p.roundAdjustments);
     let target: Decimal;
     if (includeDirect) {
       target = available;
     } else if (input.kind === "major_donor" && p.projectId === null) {
-      target = (input.chosenAllocations.get(p.organizationId) ?? ZERO).plus(p.fundGrants);
+      target = (input.chosenAllocations.get(p.organizationId) ?? ZERO).plus(decided);
     } else {
-      target = p.fundGrants;
+      target = decided;
     }
     return { ...base, proposed: max0(target.lessThan(available) ? target : available) };
   });

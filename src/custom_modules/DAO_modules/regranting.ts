@@ -120,7 +120,7 @@ export type BalanceQuery = {
   at: IsoDate;
   /** Only these recipients (all if omitted) */
   organizationIds?: number[];
-  /** Leave this round's transfer lines and fund grants out of everything (the round being built) */
+  /** Leave this round's transfer lines, fund grants and adjustments out of everything (the round being built) */
   excludeRoundId?: number;
   /** inflowSince = allocations dated after this day (all allocations up to `at` if null) */
   inflowSince?: IsoDate | null;
@@ -133,10 +133,16 @@ export type BalanceQuery = {
  *   before `at`;
  * - fund grant lines of approved and paid rounds, dated at the round's cutoff (fund +, fund −);
  * - transfer lines of paid rounds, dated at the transfer's paid_at;
- * - adjustments by effective_at, except `fronted`, which are records only.
+ * - adjustments by effective_at, except `fronted`, which are records only. An adjustment
+ *   attached to a round counts only once that round is approved (like its fund grant lines), so
+ *   an earmark made in a draft doesn't move balances until the round is approved.
  * Also returned, outside the balance: transfer lines of approved, unpaid rounds (`committed`)
- * and debits of paid/approved rounds dated after `at` (`laterDebits`), so a round built with an
- * earlier cutoff never pays what a later round already paid.
+ * and debits of paid/approved rounds dated after `at` (`laterDebits`: transfer lines, fund grants
+ * out, and the rounds' adjustments negated), so a round built with an earlier cutoff never pays
+ * what a later round already paid or earmarked.
+ *
+ * `excludeRoundId` leaves that round's transfer lines, fund grants and adjustments out: the
+ * round builder adds them back as the round's own figures.
  *
  * Rows where every figure is zero may be returned; callers filter.
  */
@@ -212,10 +218,16 @@ async function getBalances(query: BalanceQuery, conn?: Queryable): Promise<Balan
 
       UNION ALL
       SELECT adj.Organization_ID, adj.Project_ID,
-             CASE WHEN adj.type = 'opening' THEN 'opening' ELSE 'adjustment' END,
-             adj.amount, 0
+             CASE WHEN adj.effective_at > ? THEN 'later_debit'
+                  WHEN adj.type = 'opening' THEN 'opening' ELSE 'adjustment' END,
+             CASE WHEN adj.effective_at > ? THEN -adj.amount ELSE adj.amount END,
+             0
       FROM Regrant_adjustments adj
-      WHERE adj.type <> 'fronted' AND adj.effective_at <= ? ${orgFilter("adj.Organization_ID")}
+      LEFT JOIN Regrant_rounds ar ON ar.ID = adj.Round_ID
+      WHERE adj.type <> 'fronted'
+        AND ((adj.Round_ID IS NULL AND adj.effective_at <= ?)
+             OR (ar.status IN ('approved', 'paid') AND ar.ID <> ?))
+        ${orgFilter("adj.Organization_ID")}
     ) e
     GROUP BY e.Organization_ID, e.Project_ID
     ORDER BY e.Organization_ID, e.Project_ID IS NOT NULL, e.Project_ID`;
@@ -240,6 +252,9 @@ async function getBalances(query: BalanceQuery, conn?: Queryable): Promise<Balan
     ...orgParam,
     // adjustments
     at,
+    at,
+    at,
+    exclude,
     ...orgParam,
   ];
   const result = await rows<any>(conn, sql, params);
@@ -296,7 +311,7 @@ async function getLastTransfers(at: IsoDate): Promise<LastTransfer[]> {
   return result.map((r) => ({ ...r, amountNok: money(r.amountNok) }));
 }
 
-/** Allocations and positive adjustments to a recipient in (from, at]: recent inflow */
+/** Allocations and positive adjustments (in effect) to a recipient in (from, at]: recent inflow */
 async function getInflowBetween(
   organizationId: number,
   fromExclusive: IsoDate,
@@ -310,7 +325,9 @@ async function getInflowBetween(
          AND a.timestamp_confirmed < DATE_ADD(?, INTERVAL 1 DAY)
        UNION ALL
        SELECT adj.amount FROM Regrant_adjustments adj
+       LEFT JOIN Regrant_rounds ar ON ar.ID = adj.Round_ID
        WHERE adj.Organization_ID = ? AND adj.type <> 'fronted' AND adj.amount > 0
+         AND (adj.Round_ID IS NULL OR ar.status IN ('approved', 'paid'))
          AND adj.effective_at > ? AND adj.effective_at <= ?
      ) x`,
     [organizationId, fromExclusive, at, organizationId, fromExclusive, at],
@@ -939,7 +956,18 @@ async function updateRound(
   );
 }
 
+/**
+ * Deletes a round. Its transfers, fund grants, chosen donations and overrides go with it (FK
+ * cascades); its adjustments are deleted here, because the FK would only detach them and they
+ * belong to the round's decision (callers allow this for drafts only).
+ */
 async function deleteRound(conn: Queryable, id: number): Promise<void> {
+  await exec(
+    conn,
+    `UPDATE Regrant_adjustments SET Paired_adjustment_ID = NULL WHERE Round_ID = ?`,
+    [id],
+  );
+  await exec(conn, `DELETE FROM Regrant_adjustments WHERE Round_ID = ?`, [id]);
   await exec(conn, `DELETE FROM Regrant_rounds WHERE ID = ?`, [id]);
 }
 
@@ -991,7 +1019,7 @@ async function writeSnapshot(
   await exec(
     conn,
     `INSERT INTO Regrant_round_balances (Round_ID, Organization_ID, Project_ID, balance_at_cutoff, committed,
-       fund_grants, in_round, included_direct) VALUES ?`,
+       fund_grants, in_round, round_adjustments, included_direct) VALUES ?`,
     [
       snapshot.map((s) => [
         roundId,
@@ -1001,6 +1029,7 @@ async function writeSnapshot(
         s.committed,
         s.fundGrants,
         s.inRound,
+        s.roundAdjustments,
         s.includedDirect,
       ]),
     ],
@@ -1012,7 +1041,7 @@ async function getSnapshot(roundId: number): Promise<RoundBalanceSnapshot[]> {
     undefined,
     `SELECT b.Organization_ID AS organizationId, o.full_name AS organizationName, b.Project_ID AS projectId,
             pr.name AS projectName, b.balance_at_cutoff AS balanceAtCutoff, b.committed, b.fund_grants AS fundGrants,
-            b.in_round AS inRound, b.included_direct AS includedDirect
+            b.in_round AS inRound, b.round_adjustments AS roundAdjustments, b.included_direct AS includedDirect
      FROM Regrant_round_balances b
      JOIN Organizations o ON o.ID = b.Organization_ID
      LEFT JOIN Projects pr ON pr.ID = b.Project_ID
@@ -1026,6 +1055,7 @@ async function getSnapshot(roundId: number): Promise<RoundBalanceSnapshot[]> {
     committed: money(r.committed),
     fundGrants: money(r.fundGrants),
     inRound: money(r.inRound),
+    roundAdjustments: money(r.roundAdjustments),
     includedDirect: Boolean(r.includedDirect),
   }));
 }
@@ -1424,16 +1454,22 @@ const adjustmentSelect = `SELECT a.ID AS id, a.Organization_ID AS organizationId
       "a.effective_at",
     )} AS effectiveAt, a.Round_ID AS roundId, a.linked_transfer_ID AS linkedTransferId,
     a.linked_donation_ID AS linkedDonationId, a.document_ref AS documentRef, a.created_by AS createdBy,
-    a.created_at AS createdAt
+    a.created_at AS createdAt, a.Paired_adjustment_ID AS pairedAdjustmentId, ar.status AS roundStatus
   FROM Regrant_adjustments a
   JOIN Organizations o ON o.ID = a.Organization_ID
-  LEFT JOIN Projects pr ON pr.ID = a.Project_ID`;
+  LEFT JOIN Projects pr ON pr.ID = a.Project_ID
+  LEFT JOIN Regrant_rounds ar ON ar.ID = a.Round_ID`;
 
-const mapAdjustment = (r: any): Adjustment => ({
-  ...r,
-  amount: money(r.amount),
-  affectsBalance: r.type !== "fronted",
-});
+const mapAdjustment = (r: any): Adjustment => {
+  const pending = r.roundStatus === "draft";
+  return {
+    ...r,
+    amount: money(r.amount),
+    roundStatus: r.roundStatus ?? null,
+    pending,
+    affectsBalance: r.type !== "fronted" && !pending,
+  };
+};
 
 export type AdjustmentInput = {
   organizationId: number;
@@ -1519,6 +1555,36 @@ async function updateAdjustment(id: number, input: AdjustmentInput, conn?: Query
   );
 }
 
+/** Links the two halves of an earmark to each other */
+async function pairAdjustments(conn: Queryable, a: number, b: number): Promise<void> {
+  await exec(conn, `UPDATE Regrant_adjustments SET Paired_adjustment_ID = ? WHERE ID = ?`, [b, a]);
+  await exec(conn, `UPDATE Regrant_adjustments SET Paired_adjustment_ID = ? WHERE ID = ?`, [a, b]);
+}
+
+/** Deletes adjustments (e.g. both halves of an earmark); returns how many were deleted */
+async function deleteAdjustments(conn: Queryable, ids: number[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  await exec(conn, `UPDATE Regrant_adjustments SET Paired_adjustment_ID = NULL WHERE ID IN (?)`, [
+    ids,
+  ]);
+  return (await exec(conn, `DELETE FROM Regrant_adjustments WHERE ID IN (?)`, [ids])).affectedRows;
+}
+
+/** A draft's cutoff moved: its earmarks (dated the cutoff) move with it */
+async function moveRoundEarmarks(
+  conn: Queryable,
+  roundId: number,
+  from: IsoDate,
+  to: IsoDate,
+): Promise<void> {
+  await exec(
+    conn,
+    `UPDATE Regrant_adjustments SET effective_at = ?
+     WHERE Round_ID = ? AND Paired_adjustment_ID IS NOT NULL AND effective_at = ?`,
+    [to, roundId, from],
+  );
+}
+
 async function linkAdjustmentDonation(id: number, donationId: number | null) {
   await exec(undefined, `UPDATE Regrant_adjustments SET linked_donation_ID = ? WHERE ID = ?`, [
     donationId,
@@ -1557,11 +1623,14 @@ export type StatementRow = {
   adjustmentType: AdjustmentType | null;
   reason: string | null;
   createdBy: string | null;
+  /** Adjustments attached to a draft round: not in the balance until it is approved */
+  pending: boolean;
 };
 
 /**
- * Every entry in effect for a recipient in [from, to], allocations summed per day. Fronted
- * adjustments are included (callers mark them as not affecting the balance).
+ * Every entry for a recipient in [from, to], allocations summed per day. Fronted adjustments
+ * and adjustments attached to draft rounds (`pending`) are included; callers keep them out of
+ * the running balance.
  */
 async function getStatementRows(
   organizationId: number,
@@ -1590,7 +1659,7 @@ async function getStatementRows(
              "reason",
              "createdBy",
            ])},
-           0 AS sortKind, 0 AS sortId
+           0 AS pending, 0 AS sortKind, 0 AS sortId
     FROM Regrant_allocations a
     WHERE a.Organization_ID = ? AND a.timestamp_confirmed >= ? AND a.timestamp_confirmed < DATE_ADD(?, INTERVAL 1 DAY)
     GROUP BY ${isoDate("DATE(a.timestamp_confirmed)")}
@@ -1599,7 +1668,7 @@ async function getStatementRows(
     SELECT ${isoDate(
       "r.cutoff",
     )}, 'fund_grant_in', l.Project_ID, l.amount, NULL, r.ID, r.name, NULL, NULL, NULL, NULL,
-           g.ID, l.ID, g.Fund_ID, g.rationale, NULL, NULL, NULL, g.created_by, 1, l.ID
+           g.ID, l.ID, g.Fund_ID, g.rationale, NULL, NULL, NULL, g.created_by, 0, 1, l.ID
     FROM Fund_grant_lines l JOIN Fund_grants g ON g.ID = l.Fund_grant_ID JOIN Regrant_rounds r ON r.ID = g.Round_ID
     WHERE l.Organization_ID = ? AND r.status IN ('approved', 'paid') AND r.cutoff BETWEEN ? AND ?
 
@@ -1607,7 +1676,7 @@ async function getStatementRows(
     SELECT ${isoDate(
       "r.cutoff",
     )}, 'fund_grant_out', l.Project_ID, -l.amount, NULL, r.ID, r.name, NULL, NULL, NULL, NULL,
-           g.ID, l.ID, l.Organization_ID, g.rationale, NULL, NULL, NULL, g.created_by, 2, l.ID
+           g.ID, l.ID, l.Organization_ID, g.rationale, NULL, NULL, NULL, g.created_by, 0, 2, l.ID
     FROM Fund_grant_lines l JOIN Fund_grants g ON g.ID = l.Fund_grant_ID JOIN Regrant_rounds r ON r.ID = g.Round_ID
     WHERE g.Fund_ID = ? AND r.status IN ('approved', 'paid') AND r.cutoff BETWEEN ? AND ?
 
@@ -1615,7 +1684,8 @@ async function getStatementRows(
     SELECT ${isoDate(
       "adj.effective_at",
     )}, 'adjustment', adj.Project_ID, adj.amount, NULL, adj.Round_ID, rr.name, NULL, NULL,
-           NULL, NULL, NULL, NULL, NULL, NULL, adj.ID, adj.type, adj.reason, adj.created_by, 3, adj.ID
+           NULL, NULL, NULL, NULL, NULL, NULL, adj.ID, adj.type, adj.reason, adj.created_by,
+           COALESCE(rr.status = 'draft', 0), 3, adj.ID
     FROM Regrant_adjustments adj LEFT JOIN Regrant_rounds rr ON rr.ID = adj.Round_ID
     WHERE adj.Organization_ID = ? AND adj.effective_at BETWEEN ? AND ?
 
@@ -1623,7 +1693,7 @@ async function getStatementRows(
     SELECT ${isoDate(
       "t.paid_at",
     )}, 'transfer', tl.Project_ID, -tl.amount_nok, NULL, r.ID, r.name, t.ID, tl.ID, p.name,
-           t.bank_ref, NULL, NULL, NULL, NULL, NULL, NULL, NULL, r.approved_by, 4, tl.ID
+           t.bank_ref, NULL, NULL, NULL, NULL, NULL, NULL, NULL, r.approved_by, 0, 4, tl.ID
     FROM Regrant_transfer_lines tl JOIN Regrant_transfers t ON t.ID = tl.Transfer_ID
     JOIN Regrant_rounds r ON r.ID = t.Round_ID JOIN Payees p ON p.ID = t.Payee_ID
     WHERE tl.Organization_ID = ? AND r.status = 'paid' AND t.paid_at BETWEEN ? AND ?
@@ -1651,6 +1721,7 @@ async function getStatementRows(
     ...r,
     amount: money(r.amount),
     donationCount: r.donationCount === null ? null : Number(r.donationCount),
+    pending: Boolean(Number(r.pending)),
   }));
 }
 
@@ -1773,6 +1844,9 @@ export const regranting = {
   updateAdjustment,
   linkAdjustmentDonation,
   deleteAdjustment,
+  pairAdjustments,
+  deleteAdjustments,
+  moveRoundEarmarks,
   // statements
   getStatementRows,
   getCommittedLines,

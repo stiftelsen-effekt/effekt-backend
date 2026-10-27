@@ -103,7 +103,7 @@ export const statementInput = z
     projectId: id.nullable().optional(),
   })
   .refine((v) => v.to === undefined || v.to >= v.from, {
-    message: "`to` is before `from`",
+    message: "The period ends before it starts",
     path: ["to"],
   });
 
@@ -166,6 +166,22 @@ export const includeDirectInput = z.strictObject({
   includeDirect: z.boolean().nullable(),
   /** Re-propose this recipient's lines afterwards. Default true. */
   propose: z.boolean().default(true),
+});
+
+export const earmarkInput = z.strictObject({
+  roundId: id,
+  organizationId: id,
+  /** A project of that recipient */
+  projectId: id,
+  /** Moved from the recipient's unrestricted balance to the project; at most what is available */
+  amount: moneySchema,
+  /** Added to the reason, which names the project and the round */
+  note: optionalText(1000).optional(),
+});
+
+export const removeEarmarkInput = z.strictObject({
+  /** Either half of the earmark */
+  adjustmentId: id,
 });
 
 export const proposeInput = z.strictObject({
@@ -347,7 +363,7 @@ const validRange = (
   ctx: z.core.$RefinementCtx,
 ) => {
   if (v.validFrom && v.validTo && v.validTo < v.validFrom) {
-    ctx.addIssue({ code: "custom", message: "validTo is before validFrom", path: ["validTo"] });
+    ctx.addIssue({ code: "custom", message: "Ends before it starts", path: ["validTo"] });
   }
 };
 

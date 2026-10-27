@@ -287,12 +287,39 @@ Backend: migration `20261027150000_regranting`, `DAO.regranting`
 - **Dates.** A cutoff is a day: entries dated on or before it count. Allocations count by the
   UTC day of `timestamp_confirmed` (as the Sheets export). Transfer lines count from the transfer's
   `paid_at` once the round is `paid`; fund grant lines from the round's cutoff once it is
-  `approved`; adjustments from `effective_at`.
+  `approved`; adjustments from `effective_at`, except that an adjustment attached to a round
+  (`Round_ID` set) counts only once that round is `approved`, like its fund grant lines. A draft's
+  adjustments (e.g. an earmark) therefore never move balances, statements or the Balances page;
+  statements list them as _pending_, outside the running balance.
+- **A round's own adjustments.** The round builder shows a round's adjustments (dated on or before
+  its cutoff) as the round's own figure, `roundAdjustments`, next to its fund grants:
+  `available = balanceAtCutoff − committed + fundGrants + roundAdjustments`, and rounds that leave
+  direct donations out still propose them (so an earmark in a `fund_grant` round pays the
+  project). The snapshot stores them separately (`Regrant_round_balances.round_adjustments`).
+  Adjustments of approved or paid rounds dated after a date count as later debits there (see
+  Committed). Adjustments attach only to drafts; attaching, editing and deleting lock the round.
+- **Earmarks** (`rounds.earmark`): in a draft, part of a recipient's unrestricted balance (at most
+  its unrestricted `available` in the round) moves to one of its projects: two `reallocation`
+  adjustments attached to the round, dated its cutoff, reason "Earmarked for {project} in
+  {round}", paired through `Paired_adjustment_ID`; the same amount of Pay now moves from the
+  unrestricted line to the project line in the transfer that pays it. One transaction.
+  `rounds.removeEarmark` (or deleting either half) removes both halves; editing one half alone is
+  refused. When a draft's cutoff changes, its earmarks move with it. Own funds can't earmark; they
+  grant to projects.
+- **Deleting a draft** deletes its transfers, fund grants, chosen donations, overrides and
+  adjustments in one transaction.
+- **Payments must add up.** `transfers.recordPayment` refuses a foreign-currency payment without
+  `amountForeign` and `fxRate`, or where `amountForeign × fxRate` differs from the transfer's
+  `amount_nok` by more than max(1 kr, 0.5 %), and a NOK payment that has either. The bank fee is
+  not negative.
+- **Messages** in errors and validation issues name recipients, projects, payees and rounds, write
+  dates as dd.mm.yyyy and amounts as "1 234,50 kr"; ids appear only for things that don't exist.
 - **Committed.** Transfer lines of approved, unpaid rounds are not in the balance; they are shown
   as `committed`, and `available = balance − committed`. A round also counts as committed what
-  other rounds paid or granted out _after_ its cutoff, so a round built late with an earlier cutoff
-  never pays what a later round already paid (e.g. a regular round with cutoff 30 Sep built after a
-  major-donor round paid on 2 Oct). Proposals use `available`.
+  other rounds paid or granted out _after_ its cutoff, and those rounds' adjustments dated after
+  it, so a round built late with an earlier cutoff never pays what a later round already paid or
+  earmarked (e.g. a regular round with cutoff 30 Sep built after a major-donor round paid on
+  2 Oct). Proposals use `available`.
 - **Direct donations by kind:** `regular` includes them; `fund_grant` and `extraordinary` propose
   only the round's fund grants; `major_donor` proposes the chosen donations' allocations plus the
   round's fund grants, capped at what is available. The per-recipient switch
@@ -310,10 +337,15 @@ Backend: migration `20261027150000_regranting`, `DAO.regranting`
   approval.
 - **Validation** adds two errors to the list above, because the first version doesn't allow them:
   a fund grant to another own fund, and a `major_donor` donation already passed on.
+- **Builder scope.** `fund_grant`, `extraordinary` and `major_donor` rounds list every recipient
+  with a balance; each builder recipient has `inRound` (transfer lines, fund grant lines,
+  adjustments or chosen donations in the round, or an Include direct donations override), which
+  the admin's "Show recipients not in this round" switch filters on.
 - **Small schema additions to the tables above:** `Payees.bank_account` is optional (wallets),
   `Organization_payees` and `Regrant_holds` have an `ID`, `valid_to` is inclusive, rounds have
   `min_transfer`, fund grants and holds record `created_by`, and the snapshot also stores
-  `committed`, `fund_grants` and `in_round` per line. `Fund_grant_attributions` (donor tracing) is
+  `committed`, `fund_grants`, `in_round` and (migration `20261028090000_regranting_round_adjustments`)
+  `round_adjustments` per line; adjustments have `Paired_adjustment_ID` (earmarks). `Fund_grant_attributions` (donor tracing) is
   not built.
 - **Paid rounds are never edited** (enforced: every edit locks the round row and fails with
   CONFLICT unless it is a draft; payments are recorded while it is approved). Corrections are

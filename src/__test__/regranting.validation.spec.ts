@@ -4,6 +4,7 @@ import type { ProposedPosition } from "../custom_modules/regranting/proposal";
 import type { FundGrant, RoundDonation, Transfer } from "../custom_modules/regranting/types";
 import {
   hasErrors,
+  paymentProblem,
   validateRound,
   type ValidationInput,
 } from "../custom_modules/regranting/validation";
@@ -19,19 +20,23 @@ const MOMS = 61;
 const position = (
   organizationId: number,
   projectId: number | null,
-  values: Partial<Record<"balanceAtCutoff" | "committed" | "fundGrants" | "inRound", number>> = {},
+  values: Partial<
+    Record<"balanceAtCutoff" | "committed" | "fundGrants" | "roundAdjustments" | "inRound", number>
+  > = {},
 ): ProposedPosition => {
   const balanceAtCutoff = dec(values.balanceAtCutoff ?? 0);
   const committed = dec(values.committed ?? 0);
   const fundGrants = dec(values.fundGrants ?? 0);
+  const roundAdjustments = dec(values.roundAdjustments ?? 0);
   return {
     organizationId,
     projectId,
     balanceAtCutoff,
     committed,
     fundGrants,
+    roundAdjustments,
     inRound: dec(values.inRound ?? 0),
-    available: balanceAtCutoff.minus(committed).plus(fundGrants),
+    available: balanceAtCutoff.minus(committed).plus(fundGrants).plus(roundAdjustments),
     proposed: ZERO,
     includeDirect: true,
     held: false,
@@ -158,7 +163,18 @@ describe("regranting validation before approval", () => {
       organizationId: FUND,
       fundGrantId: 1,
     });
-    expect(issue.message).to.contain("700.00").and.contain("600.00");
+    expect(issue.message).to.contain("700,00\u00a0kr").and.contain("600,00\u00a0kr");
+  });
+
+  it("counts the round's own adjustments to a fund in what it can grant", () => {
+    const input = valid();
+    input.positions[2] = position(FUND, null, {
+      balanceAtCutoff: 1000,
+      committed: 400,
+      fundGrants: -700,
+      roundAdjustments: 100,
+    });
+    expect(validateRound(input).some((i) => i.code === "fund_grant_exceeds_balance")).to.be.false;
   });
 
   it("error: a fund grant without a rationale", () => {
@@ -247,5 +263,37 @@ describe("regranting validation before approval", () => {
     const input = valid();
     input.transfers[0].amountNok = "1.00";
     expect(hasErrors(validateRound(input))).to.be.true;
+  });
+});
+
+describe("regranting payment check", () => {
+  const eur = { currency: "EUR", amountNok: "11520.00", bankFee: null };
+
+  it("a foreign-currency payment adds up within max(1 kr, 0.5 %)", () => {
+    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: "11.52" })).to.equal(null);
+    // 0.5 % of 11 520 is 57.60
+    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: "11.5776" })).to.equal(null);
+    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: "11.578" })).to.match(
+      /1000 EUR at 11\.578 NOK\/EUR is 11\s578,00\skr, but the transfer is 11\s520,00\skr \(more than 57,60\skr apart\)/,
+    );
+    // Small transfers: 1 kr
+    const small = { ...eur, amountNok: "10.00" };
+    expect(paymentProblem({ ...small, amountForeign: "0.95", fxRate: "11.5" })).to.equal(null);
+    expect(paymentProblem({ ...small, amountForeign: "0.7", fxRate: "11.5" })).to.match(
+      /1,00\skr apart/,
+    );
+  });
+
+  it("needs both the foreign amount and the rate, and a NOK payment has neither", () => {
+    expect(paymentProblem({ ...eur, amountForeign: null, fxRate: null })).to.equal(
+      "A EUR transfer needs the amount paid in EUR and the FX rate (NOK per EUR)",
+    );
+    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: null })).to.match(/FX rate/);
+    const nok = { currency: "NOK", amountNok: "100.00", bankFee: 25 };
+    expect(paymentProblem({ ...nok, amountForeign: null, fxRate: null })).to.equal(null);
+    expect(paymentProblem({ ...nok, amountForeign: "100", fxRate: null })).to.match(/NOK transfer/);
+    expect(paymentProblem({ ...nok, amountForeign: null, fxRate: null, bankFee: -1 })).to.match(
+      /negative/,
+    );
   });
 });

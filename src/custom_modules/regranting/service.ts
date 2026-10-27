@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import type { Decimal } from "decimal.js";
 import { DAO } from "../DAO";
 import type { Queryable } from "../DAO_modules/regranting";
-import { dayBefore, daysBefore, dec, fmt, max0, sum, todayOslo, ZERO } from "./money";
+import { dateNo, dayBefore, daysBefore, dec, fmt, krNo, max0, sum, todayOslo, ZERO } from "./money";
 import {
   defaultIncludeDirect,
   positionKey,
@@ -42,8 +42,14 @@ import { hasErrors, validateRound } from "./validation";
 
 const dao = () => DAO.regranting;
 
-const conflict = (message: string) => new TRPCError({ code: "CONFLICT", message });
+const conflict = (message: string, cause?: unknown) =>
+  new TRPCError({ code: "CONFLICT", message, cause: cause as Error | undefined });
+const badRequest = (message: string) => new TRPCError({ code: "BAD_REQUEST", message });
 const notFound = (message: string) => new TRPCError({ code: "NOT_FOUND", message });
+
+/** A round as messages name it: "Kvartalstildeling Q3 2026 (cutoff 30.09.2026)" */
+export const roundLabel = (round: { name: string; cutoff: IsoDate }) =>
+  `${round.name} (cutoff ${dateNo(round.cutoff)})`;
 
 //region Ledger figures
 
@@ -242,6 +248,8 @@ export type RoundState = {
   funds: { organizationId: number; name: string; abbriv: string; maxHoldDays: number | null }[];
   fundGrants: FundGrant[];
   transfers: Transfer[];
+  /** Adjustments attached to the round (all, including fronted records and later-dated ones) */
+  adjustments: Adjustment[];
   overrides: Map<number, boolean>;
   holds: Hold[];
   payees: Map<number, PayeeRef>;
@@ -271,6 +279,7 @@ export async function loadRoundState(roundId: number): Promise<RoundState> {
     funds,
     fundGrants,
     transfers,
+    adjustments,
     overrides,
     holds,
     payees,
@@ -284,6 +293,7 @@ export async function loadRoundState(roundId: number): Promise<RoundState> {
     dao().listFunds(),
     dao().getFundGrants(round.id),
     dao().getTransfers(round.id),
+    dao().listAdjustments({ roundId: round.id }),
     dao().getIncludeDirectOverrides(round.id),
     dao().listHolds({ activeAt: at }),
     dao().getPayeesAt(at),
@@ -303,6 +313,7 @@ export async function loadRoundState(roundId: number): Promise<RoundState> {
         balanceAtCutoff: ZERO,
         committed: ZERO,
         fundGrants: ZERO,
+        roundAdjustments: ZERO,
         inRound: ZERO,
       });
     }
@@ -327,6 +338,13 @@ export async function loadRoundState(roundId: number): Promise<RoundState> {
       const p = position(line.organizationId, line.projectId);
       p.inRound = p.inRound.plus(line.amountNok);
     }
+  }
+  // The round's own adjustments (e.g. earmarks) count in it, also while it is a draft; the
+  // ledger counts them once the round is approved
+  for (const a of adjustments) {
+    if (a.type === "fronted" || a.effectiveAt > at) continue;
+    const p = position(a.organizationId, a.projectId);
+    p.roundAdjustments = p.roundAdjustments.plus(a.amount);
   }
 
   const donations = toRoundDonations(rawDonations);
@@ -357,6 +375,9 @@ export async function loadRoundState(roundId: number): Promise<RoundState> {
   ].filter((id): id is number => id !== null);
   const projectOrganizations = await dao().getProjectOrganizations([...new Set(lineProjects)]);
   const organizationNames = new Map(organizations.map((o) => [o.id, o.name]));
+  const roundNames = donations.some((d) => d.passedOnByRoundId !== null)
+    ? new Map((await dao().listRounds({})).map((r) => [r.id, r]))
+    : undefined;
 
   // Only drafts are validated. Once approved, the decision and its balance snapshot are fixed;
   // re-validating against today's ledger would count later rounds' grants against it.
@@ -373,6 +394,8 @@ export async function loadRoundState(roundId: number): Promise<RoundState> {
           unassigned,
           donations,
           organizationNames,
+          projectNames,
+          roundNames,
         });
 
   return {
@@ -384,6 +407,7 @@ export async function loadRoundState(roundId: number): Promise<RoundState> {
     funds,
     fundGrants,
     transfers,
+    adjustments,
     overrides,
     holds,
     payees,
@@ -402,13 +426,18 @@ export async function loadRoundState(roundId: number): Promise<RoundState> {
 //region Builder view
 
 export type BuilderAmounts = {
-  /** Ledger balance at the cutoff, without this round */
+  /** Ledger balance at the cutoff, without this round (its fund grants and adjustments) */
   balanceAtCutoff: Money;
   /** Other rounds' approved or later payments not in the ledger at the cutoff */
   committed: Money;
   /** This round's fund grant lines (+ to recipients) */
   fundGrants: Money;
-  /** balanceAtCutoff − committed + fundGrants */
+  /**
+   * This round's adjustments dated on or before the cutoff, e.g. an earmark (unrestricted −X,
+   * project +X). They count here while the round is a draft, and in balances once it is approved.
+   */
+  roundAdjustments: Money;
+  /** balanceAtCutoff − committed + fundGrants + roundAdjustments */
   available: Money;
   /** What the proposal rules would put in the round now */
   proposed: Money;
@@ -431,6 +460,13 @@ export type BuilderRecipient = {
   organizationId: number;
   name: string;
   abbriv: string;
+  /**
+   * Part of this round: it has transfer lines, fund grant lines, adjustments or chosen donations
+   * here, or an Include direct donations override. Rounds that leave direct donations out
+   * (fund_grant, extraordinary, major_donor) still list every recipient with a balance; the
+   * others have inRound false.
+   */
+  inRound: boolean;
   /** Routing at the cutoff */
   payee: PayeeRef | null;
   /** Effective Include direct donations switch */
@@ -455,7 +491,7 @@ export type BuilderFund = {
   maxHoldDays: number | null;
   balanceAtCutoff: Money;
   committed: Money;
-  /** balanceAtCutoff − committed: what this round can grant */
+  /** balanceAtCutoff − committed + this round's adjustments to it: what this round can grant */
   availableToGrant: Money;
   /** This round's grants from it */
   granted: Money;
@@ -499,6 +535,7 @@ const amounts = (positions: ProposedPosition[]): BuilderAmounts => {
     balanceAtCutoff: fmt(s((p) => p.balanceAtCutoff)),
     committed: fmt(s((p) => p.committed)),
     fundGrants: fmt(s((p) => p.fundGrants)),
+    roundAdjustments: fmt(s((p) => p.roundAdjustments)),
     available: fmt(available),
     proposed: fmt(s((p) => p.proposed)),
     inRound: fmt(inRound),
@@ -510,6 +547,7 @@ const hasAnything = (p: ProposedPosition) =>
   !p.balanceAtCutoff.isZero() ||
   !p.committed.isZero() ||
   !p.fundGrants.isZero() ||
+  !p.roundAdjustments.isZero() ||
   !p.inRound.isZero() ||
   !p.proposed.isZero();
 
@@ -525,7 +563,9 @@ export async function getRoundBuilder(roundId: number): Promise<RoundBuilder> {
     const own = state.positions.filter((p) => p.organizationId === f.organizationId);
     const balance = sum(own.map((p) => p.balanceAtCutoff));
     const committed = sum(own.map((p) => p.committed));
+    const adjusted = sum(own.map((p) => p.roundAdjustments));
     const granted = sum(own.map((p) => p.fundGrants)).negated();
+    const availableToGrant = balance.minus(committed).plus(adjusted);
     return {
       organizationId: f.organizationId,
       name: f.name,
@@ -533,9 +573,9 @@ export async function getRoundBuilder(roundId: number): Promise<RoundBuilder> {
       maxHoldDays: f.maxHoldDays,
       balanceAtCutoff: fmt(balance),
       committed: fmt(committed),
-      availableToGrant: fmt(balance.minus(committed)),
+      availableToGrant: fmt(availableToGrant),
       granted: fmt(granted),
-      remaining: fmt(balance.minus(committed).minus(granted)),
+      remaining: fmt(availableToGrant.minus(granted)),
     };
   });
 
@@ -545,6 +585,15 @@ export async function getRoundBuilder(roundId: number): Promise<RoundBuilder> {
   }
   for (const id of state.overrides.keys()) if (!state.fundIds.has(id)) recipientIds.add(id);
   for (const id of state.chosenAllocations.keys()) if (!state.fundIds.has(id)) recipientIds.add(id);
+
+  // What the round itself touches, per recipient (the admin hides the rest on request)
+  const touched = new Set<number>([
+    ...state.transfers.flatMap((t) => t.lines.map((l) => l.organizationId)),
+    ...state.fundGrants.flatMap((g) => g.lines.map((l) => l.organizationId)),
+    ...state.adjustments.filter((a) => a.type !== "fronted").map((a) => a.organizationId),
+    ...state.chosenAllocations.keys(),
+    ...state.overrides.keys(),
+  ]);
 
   const recipients: BuilderRecipient[] = state.organizations
     .filter((o) => recipientIds.has(o.id))
@@ -584,6 +633,7 @@ export async function getRoundBuilder(roundId: number): Promise<RoundBuilder> {
         organizationId: org.id,
         name: org.name,
         abbriv: org.abbriv,
+        inRound: touched.has(org.id),
         payee: state.payees.get(org.id) ?? null,
         includeDirect: state.overrides.get(org.id) ?? defaultIncludeDirect(round.kind),
         includeDirectOverride: state.overrides.get(org.id) ?? null,
@@ -657,7 +707,7 @@ export async function lockRoundIn(
   action: string,
 ): Promise<Round> {
   const round = await dao().lockRound(conn, roundId);
-  if (!round) throw notFound(`Round ${roundId} not found`);
+  if (!round) throw notFound(`Round #${roundId} not found`);
   if (!statuses.includes(round.status)) {
     const why =
       round.status === "paid"
@@ -665,7 +715,10 @@ export async function lockRoundIn(
         : round.status === "approved"
         ? "it is approved (reopen it as a draft first)"
         : "it is still a draft (approve it first)";
-    throw conflict(`Can't ${action} round ${roundId}: ${why}`);
+    throw conflict(`Can't ${action} ${roundLabel(round)}: ${why}`, {
+      roundId: round.id,
+      status: round.status,
+    });
   }
   return round;
 }
@@ -744,6 +797,7 @@ export async function approveRound(roundId: number, approver: string): Promise<A
         committed: fmt(p.committed),
         fundGrants: fmt(p.fundGrants),
         inRound: fmt(p.inRound),
+        roundAdjustments: fmt(p.roundAdjustments),
         includedDirect: state.fundIds.has(p.organizationId) ? false : p.includeDirect,
       }));
     await dao().writeSnapshot(conn, roundId, snapshot);
@@ -756,14 +810,15 @@ export async function approveRound(roundId: number, approver: string): Promise<A
 /** approved → draft, before any payment is recorded. Clears the approval and snapshot. */
 export async function reopenRound(roundId: number): Promise<void> {
   await dao().inTransaction(async (conn) => {
-    await lockRoundIn(conn, roundId, ["approved"], "reopen");
+    const round = await lockRoundIn(conn, roundId, ["approved"], "reopen");
     const transfers = await dao().getTransfers(roundId, conn);
     const paid = transfers.filter((t) => t.paidAt !== null);
     if (paid.length > 0) {
       throw conflict(
-        `Round ${roundId} has recorded payments (transfers ${paid
-          .map((t) => t.id)
-          .join(", ")}); clear them first`,
+        `${roundLabel(round)} has recorded payments (${paid
+          .map((t) => `${t.payee.name}, paid ${dateNo(t.paidAt!)}`)
+          .join("; ")}); clear them first`,
+        { transferIds: paid.map((t) => t.id) },
       );
     }
     await dao().setRoundDraft(conn, roundId);
@@ -779,10 +834,206 @@ export async function markRoundPaid(roundId: number): Promise<void> {
     if (unpaid.length > 0) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: `Record the payment of transfers ${unpaid.map((t) => t.id).join(", ")} first`,
+        message: `Record the payment of the transfer${unpaid.length > 1 ? "s" : ""} to ${unpaid
+          .map((t) => `${t.payee.name} (${krNo(t.amountNok)}, #${t.id})`)
+          .join(", ")} first`,
       });
     }
     await dao().setRoundPaid(conn, roundId);
+  });
+}
+
+//endregion
+
+//region Earmarks
+
+export type EarmarkInput = {
+  roundId: number;
+  organizationId: number;
+  projectId: number;
+  /** Kroner, positive */
+  amount: number;
+  /** Optional note added to the reason (e.g. the grant letter) */
+  note?: string | null;
+};
+
+export type EarmarkResult = {
+  /** The pair: unrestricted −amount, project +amount */
+  fromAdjustmentId: number;
+  toAdjustmentId: number;
+  /** Pay now moved from the unrestricted line to the project line (≤ amount) */
+  movedNok: Money;
+};
+
+/** One transfer's lines with `delta` moved from one (recipient, project) line to another */
+const moveBetweenLines = (
+  transfer: Transfer,
+  organizationId: number,
+  from: number | null,
+  to: number | null,
+  amount: Decimal,
+) => {
+  const lines = transfer.lines.map((l) => ({
+    organizationId: l.organizationId,
+    projectId: l.projectId,
+    amount: dec(l.amountNok),
+  }));
+  const line = (projectId: number | null) => {
+    let found = lines.find((l) => l.organizationId === organizationId && l.projectId === projectId);
+    if (!found) lines.push((found = { organizationId, projectId, amount: ZERO }));
+    return found;
+  };
+  line(from).amount = line(from).amount.minus(amount);
+  line(to).amount = line(to).amount.plus(amount);
+  return lines.filter((l) => l.amount.greaterThan(0)).map((l) => ({ ...l, amount: fmt(l.amount) }));
+};
+
+/**
+ * Earmarks part of a recipient's unrestricted balance to one of its projects, in a draft: two
+ * reallocation adjustments attached to the round and dated its cutoff (unrestricted −X, project
+ * +X, paired), and the same amount of Pay now moved from the unrestricted line to the project
+ * line in the transfer that has it (as much as that line pays). One transaction. Like the round,
+ * the earmark counts in balances only once the round is approved.
+ */
+export async function earmark(input: EarmarkInput, createdBy: string): Promise<EarmarkResult> {
+  const amount = dec(input.amount);
+  if (!amount.greaterThan(0)) throw badRequest("Earmark a positive amount");
+  return dao().inTransaction(async (conn) => {
+    const round = await lockRoundIn(conn, input.roundId, ["draft"], "earmark money in");
+    const [project, organizations, funds] = await Promise.all([
+      dao().getProject(input.projectId, conn),
+      dao().getOrganizations(conn),
+      dao().listFunds(conn),
+    ]);
+    const organization = organizations.find((o) => o.id === input.organizationId);
+    if (!organization) throw badRequest(`Recipient #${input.organizationId} does not exist`);
+    if (!project) throw badRequest(`Project #${input.projectId} does not exist`);
+    if (project.organizationId !== organization.id) {
+      throw badRequest(
+        `${project.name} is a project at ${project.organizationName}, not at ${organization.name}`,
+      );
+    }
+    if (funds.some((f) => f.organizationId === organization.id)) {
+      throw badRequest(
+        `${organization.name} is an own fund; grant to the project with a fund grant instead`,
+      );
+    }
+
+    // Edits lock the round, so the state read here is what the earmark applies to
+    const state = await loadRoundState(round.id);
+    const unrestricted = state.positions.find(
+      (p) => p.organizationId === organization.id && p.projectId === null,
+    );
+    const available = unrestricted?.available ?? ZERO;
+    if (amount.greaterThan(available)) {
+      throw badRequest(
+        `${organization.name} has ${krNo(available)} unrestricted available in ${roundLabel(
+          round,
+        )}; you can't earmark ${krNo(amount)}`,
+      );
+    }
+
+    const note = input.note?.trim();
+    const common = {
+      organizationId: organization.id,
+      type: "reallocation" as const,
+      reason: `Earmarked for ${project.name} in ${round.name}${note ? `: ${note}` : ""}`,
+      effectiveAt: round.cutoff,
+      roundId: round.id,
+      linkedTransferId: null,
+      linkedDonationId: null,
+      documentRef: null,
+    };
+    const fromAdjustmentId = await dao().createAdjustment(
+      { ...common, projectId: null, amount: amount.negated().toNumber() },
+      createdBy,
+      conn,
+    );
+    const toAdjustmentId = await dao().createAdjustment(
+      { ...common, projectId: project.id, amount: amount.toNumber() },
+      createdBy,
+      conn,
+    );
+    await dao().pairAdjustments(conn, fromAdjustmentId, toAdjustmentId);
+
+    // Pay now follows the money, within the transfer that pays the unrestricted line
+    let moved = ZERO;
+    const transfer = state.transfers.find((t) =>
+      t.lines.some((l) => l.organizationId === organization.id && l.projectId === null),
+    );
+    if (transfer) {
+      const payNow = dec(
+        transfer.lines.find((l) => l.organizationId === organization.id && l.projectId === null)!
+          .amountNok,
+      );
+      moved = amount.lessThan(payNow) ? amount : payNow;
+      await dao().replaceTransferLines(
+        conn,
+        transfer.id,
+        moveBetweenLines(transfer, organization.id, null, project.id, moved),
+        true,
+      );
+    }
+    return { fromAdjustmentId, toAdjustmentId, movedNok: fmt(moved) };
+  });
+}
+
+/**
+ * Undoes an earmark in a draft (either half's id): deletes both adjustments and moves the Pay
+ * now back from the project line to the unrestricted line, as much as the project line pays.
+ */
+export async function removeEarmark(adjustmentId: number): Promise<{ roundId: number }> {
+  return dao().inTransaction(async (conn) => {
+    const adjustment = await dao().getAdjustment(adjustmentId, conn);
+    if (!adjustment) throw notFound(`Adjustment #${adjustmentId} not found`);
+    if (adjustment.pairedAdjustmentId === null || adjustment.roundId === null) {
+      throw badRequest(
+        `The ${adjustment.type} entry for ${adjustment.organizationName} isn't an earmark; delete it instead`,
+      );
+    }
+    const round = await lockRoundIn(conn, adjustment.roundId, ["draft"], "remove an earmark from");
+    const pair = await dao().getAdjustment(adjustment.pairedAdjustmentId, conn);
+    const halves = [adjustment, ...(pair ? [pair] : [])];
+    const projectHalf = halves.find((a) => a.projectId !== null);
+
+    if (projectHalf) {
+      const amount = dec(projectHalf.amount);
+      const transfers = await dao().getTransfers(round.id, conn);
+      const transfer = transfers.find((t) =>
+        t.lines.some(
+          (l) =>
+            l.organizationId === projectHalf.organizationId &&
+            l.projectId === projectHalf.projectId,
+        ),
+      );
+      if (transfer && amount.greaterThan(0)) {
+        const payNow = dec(
+          transfer.lines.find(
+            (l) =>
+              l.organizationId === projectHalf.organizationId &&
+              l.projectId === projectHalf.projectId,
+          )!.amountNok,
+        );
+        const moved = amount.lessThan(payNow) ? amount : payNow;
+        await dao().replaceTransferLines(
+          conn,
+          transfer.id,
+          moveBetweenLines(
+            transfer,
+            projectHalf.organizationId,
+            projectHalf.projectId,
+            null,
+            moved,
+          ),
+          true,
+        );
+      }
+    }
+    await dao().deleteAdjustments(
+      conn,
+      halves.map((a) => a.id),
+    );
+    return { roundId: round.id };
   });
 }
 
@@ -797,8 +1048,10 @@ export type StatementEntry = {
   projectName: string | null;
   /** Signed as it affects the balance */
   amount: Money;
-  /** False for fronted adjustments (records only) */
+  /** False for fronted adjustments (records only) and pending ones */
   affectsBalance: boolean;
+  /** An adjustment attached to a draft round: shown, but in the balance only once it is approved */
+  pending: boolean;
   /** Running balance after this entry (of the selected project filter) */
   balanceAfter: Money;
   /** allocations: donations that day */
@@ -874,7 +1127,7 @@ export async function getStatement(input: {
   const entries: StatementEntry[] = rows
     .filter((r) => inProject(r.projectId))
     .map((r) => {
-      const affectsBalance = r.adjustmentType !== "fronted";
+      const affectsBalance = r.adjustmentType !== "fronted" && !r.pending;
       if (affectsBalance) running = running.plus(r.amount);
       return {
         ...r,

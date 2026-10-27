@@ -6,10 +6,11 @@ import type {
   ProjectTransferLine,
   Queryable,
 } from "../../custom_modules/DAO_modules/regranting";
-import { todayOslo } from "../../custom_modules/regranting/money";
+import { dateNo, todayOslo } from "../../custom_modules/regranting/money";
 import {
   applyProposal,
   approveRound,
+  earmark,
   getBalancesView,
   getRoundBuilder,
   getRoundOrThrow,
@@ -17,7 +18,9 @@ import {
   loadRoundState,
   lockRoundIn,
   markRoundPaid,
+  removeEarmark,
   reopenRound,
+  roundLabel,
   toRoundDonations,
   type ApproveResult,
   type BalancesView,
@@ -40,6 +43,7 @@ import type {
   RoundSummary,
   Transfer,
 } from "../../custom_modules/regranting/types";
+import { paymentProblem } from "../../custom_modules/regranting/validation";
 import { adminIdentity } from "../identity";
 import {
   adjustmentCreateInput,
@@ -47,6 +51,7 @@ import {
   adjustmentUpdateInput,
   balancesListInput,
   byId,
+  earmarkInput,
   fundByOrganization,
   fundCreateInput,
   fundGrantCreateInput,
@@ -64,6 +69,7 @@ import {
   projectUpdateInput,
   proposeInput,
   recordPaymentInput,
+  removeEarmarkInput,
   roundCreateInput,
   roundDonationsInput,
   roundListInput,
@@ -104,14 +110,41 @@ export type {
 const dao = () => DAO.regranting;
 const badRequest = (message: string) => new TRPCError({ code: "BAD_REQUEST", message });
 const notFound = (message: string) => new TRPCError({ code: "NOT_FOUND", message });
-const conflict = (message: string) => new TRPCError({ code: "CONFLICT", message });
+const conflict = (message: string, cause?: unknown) =>
+  new TRPCError({ code: "CONFLICT", message, cause });
+
+/**
+ * Messages are for people: they name recipients, projects, payees and rounds, and write dates
+ * as dd.mm.yyyy and amounts in kroner. Ids appear only where there is no name (something that
+ * doesn't exist) and in `cause`.
+ */
+
+/** Runs a delete; a row still referenced (MySQL 1451) becomes CONFLICT with `message` */
+const deleteOrConflict = async (run: () => Promise<boolean>, message: string) => {
+  try {
+    return await run();
+  } catch (err) {
+    if ((err as { errno?: unknown })?.errno === 1451) throw conflict(message, err);
+    throw err;
+  }
+};
 
 //region Reference checks
 
+const organizationNames = async () =>
+  new Map((await dao().getOrganizations()).map((o) => [o.id, o.name]));
+
 const assertOrganizations = async (ids: number[]) => {
-  const known = new Set((await dao().getOrganizations()).map((o) => o.id));
-  const missing = [...new Set(ids)].filter((id) => !known.has(id));
-  if (missing.length) throw badRequest(`Organization ${missing.join(", ")} does not exist`);
+  const names = await organizationNames();
+  const missing = [...new Set(ids)].filter((id) => !names.has(id));
+  if (missing.length) {
+    throw badRequest(
+      `${missing.length > 1 ? "Recipients" : "Recipient"} ${missing
+        .map((id) => `#${id}`)
+        .join(", ")} ${missing.length > 1 ? "don't" : "doesn't"} exist`,
+    );
+  }
+  return names;
 };
 
 /** Projects exist and belong to the line's recipient */
@@ -123,10 +156,14 @@ const assertProjects = async (lines: { organizationId: number; projectId: number
   for (const line of lines) {
     if (line.projectId === null) continue;
     const owner = owners.get(line.projectId);
-    if (owner === undefined) throw badRequest(`Project ${line.projectId} does not exist`);
+    if (owner === undefined) throw badRequest(`Project #${line.projectId} doesn't exist`);
     if (owner !== line.organizationId) {
+      const [names, projects] = await Promise.all([organizationNames(), dao().getProjectNames()]);
+      const project = projects.get(line.projectId)?.name ?? `Project #${line.projectId}`;
       throw badRequest(
-        `Project ${line.projectId} doesn't belong to organization ${line.organizationId}`,
+        `${project} is a project at ${names.get(owner) ?? `recipient #${owner}`}, not at ${
+          names.get(line.organizationId) ?? `recipient #${line.organizationId}`
+        }`,
       );
     }
   }
@@ -137,12 +174,12 @@ const assertLines = async (
   lines: { organizationId: number; projectId: number | null }[],
   what: string,
 ) => {
-  await assertOrganizations(lines.map((l) => l.organizationId));
+  const names = await assertOrganizations(lines.map((l) => l.organizationId));
   const funds = new Set((await dao().listFunds()).map((f) => f.organizationId));
   const fundLine = lines.find((l) => funds.has(l.organizationId));
   if (fundLine) {
     throw badRequest(
-      `Organization ${fundLine.organizationId} is an own fund and can't be on ${what}`,
+      `${names.get(fundLine.organizationId)} is an own fund and can't be on ${what}`,
     );
   }
   await assertProjects(lines);
@@ -150,31 +187,31 @@ const assertLines = async (
 
 const getPayeeOrThrow = async (id: number, conn?: Queryable) => {
   const payee = await dao().getPayee(id, conn);
-  if (!payee) throw badRequest(`Payee ${id} does not exist`);
+  if (!payee) throw badRequest(`Payee #${id} doesn't exist`);
   return payee;
 };
 
 const getTransferOrThrow = async (id: number, conn?: Queryable) => {
   const transfer = await dao().getTransfer(id, conn);
-  if (!transfer) throw notFound(`Transfer ${id} not found`);
+  if (!transfer) throw notFound(`Transfer #${id} not found`);
   return transfer;
 };
 
 const getFundGrantOrThrow = async (id: number, conn?: Queryable) => {
   const grant = await dao().getFundGrant(id, conn);
-  if (!grant) throw notFound(`Fund grant ${id} not found`);
+  if (!grant) throw notFound(`Fund grant #${id} not found`);
   return grant;
 };
 
-const getAdjustmentOrThrow = async (id: number) => {
-  const adjustment = await dao().getAdjustment(id);
-  if (!adjustment) throw notFound(`Adjustment ${id} not found`);
+const getAdjustmentOrThrow = async (id: number, conn?: Queryable) => {
+  const adjustment = await dao().getAdjustment(id, conn);
+  if (!adjustment) throw notFound(`Adjustment #${id} not found`);
   return adjustment;
 };
 
 const summaryOrThrow = async (id: number): Promise<RoundSummary> => {
   const summary = await dao().getRoundSummary(id);
-  if (!summary) throw notFound(`Round ${id} not found`);
+  if (!summary) throw notFound(`Round #${id} not found`);
   return summary;
 };
 
@@ -182,7 +219,13 @@ const assertDonations = async (ids: number[]) => {
   const unique = [...new Set(ids)];
   const existing = new Set(await dao().existingDonationIds(unique));
   const missing = unique.filter((id) => !existing.has(id));
-  if (missing.length) throw badRequest(`Donation ${missing.join(", ")} does not exist`);
+  if (missing.length) {
+    throw badRequest(
+      `${missing.length > 1 ? "Donations" : "Donation"} ${missing
+        .map((id) => `#${id}`)
+        .join(", ")} ${missing.length > 1 ? "don't" : "doesn't"} exist`,
+    );
+  }
   return unique;
 };
 
@@ -218,7 +261,7 @@ export type RoundDetail = {
   snapshot: RoundBalanceSnapshot[];
   transfers: Transfer[];
   fundGrants: FundGrant[];
-  /** Adjustments attached to the round (e.g. corrections) */
+  /** Adjustments attached to the round (earmarks, corrections); they count once it is approved */
   adjustments: Adjustment[];
   /** major_donor only */
   donations: RoundDonation[];
@@ -274,17 +317,23 @@ const roundsRouter = router({
       return getRoundBuilder(id);
     }),
 
-  /** Name, cutoff, minTransfer of a draft. Doesn't re-propose: call propose after a cutoff change. */
+  /**
+   * Name, cutoff, minTransfer of a draft. The draft's earmarks (dated the cutoff) move with the
+   * cutoff. Doesn't re-propose: call propose after a cutoff change.
+   */
   update: adminProcedure
     .input(roundUpdateInput)
     .mutation(async ({ input }): Promise<RoundSummary> => {
       await dao().inTransaction(async (conn) => {
         const round = await lockRoundIn(conn, input.id, ["draft"], "edit");
+        const cutoff = input.cutoff ?? round.cutoff;
         await dao().updateRound(conn, round.id, {
           name: input.name ?? round.name,
-          cutoff: input.cutoff ?? round.cutoff,
+          cutoff,
           minTransfer: input.minTransfer ?? Number(round.minTransfer),
         });
+        if (cutoff !== round.cutoff)
+          await dao().moveRoundEarmarks(conn, round.id, round.cutoff, cutoff);
       });
       return summaryOrThrow(input.id);
     }),
@@ -297,7 +346,9 @@ const roundsRouter = router({
       await dao().inTransaction(async (conn) => {
         const round = await lockRoundIn(conn, input.id, ["draft"], "edit");
         if (round.kind !== "major_donor")
-          throw badRequest("Only major_donor rounds have donations");
+          throw badRequest(
+            `${round.name} isn't a major-donor round; only those have chosen donations`,
+          );
         await dao().setRoundDonations(conn, round.id, donationIds);
       });
       return toRoundDonations(await dao().getRoundDonations(input.id));
@@ -358,7 +409,29 @@ const roundsRouter = router({
     return summaryOrThrow(input.id);
   }),
 
-  /** Deletes a draft with its transfers and fund grants */
+  /**
+   * Earmarks part of a recipient's unrestricted balance to one of its projects in a draft: two
+   * paired reallocation adjustments attached to the round and dated its cutoff (unrestricted −X,
+   * project +X), and X of Pay now moved from the unrestricted line to the project line (as much
+   * as the unrestricted line pays). Balances change only once the round is approved. BAD_REQUEST
+   * if the project isn't the recipient's or X is more than the unrestricted available.
+   */
+  earmark: adminProcedure
+    .input(earmarkInput)
+    .mutation(async ({ input, ctx }): Promise<RoundBuilder> => {
+      await earmark(input, adminIdentity(ctx.auth));
+      return getRoundBuilder(input.roundId);
+    }),
+
+  /** Undoes an earmark in a draft (either half's adjustment id), moving Pay now back */
+  removeEarmark: adminProcedure
+    .input(removeEarmarkInput)
+    .mutation(async ({ input }): Promise<RoundBuilder> => {
+      const { roundId } = await removeEarmark(input.adjustmentId);
+      return getRoundBuilder(roundId);
+    }),
+
+  /** Deletes a draft with its transfers, fund grants and adjustments (earmarks, corrections) */
   delete: adminProcedure.input(byId).mutation(async ({ input }) => {
     await dao().inTransaction(async (conn) => {
       await lockRoundIn(conn, input.id, ["draft"], "delete");
@@ -483,7 +556,12 @@ const transfersRouter = router({
       return getTransferOrThrow(input.id);
     }),
 
-  /** Records the actual payment of an approved round's transfer (can be corrected until the round is marked paid) */
+  /**
+   * Records the actual payment of an approved round's transfer (can be corrected until the round
+   * is marked paid). BAD_REQUEST unless it adds up (paymentProblem): a foreign-currency transfer
+   * needs amountForeign and fxRate with amountForeign × fxRate ≈ amountNok (max(1 kr, 0.5 %)); a
+   * NOK transfer has neither.
+   */
   recordPayment: adminProcedure
     .input(recordPaymentInput)
     .mutation(async ({ input }): Promise<Transfer> => {
@@ -494,9 +572,18 @@ const transfersRouter = router({
           ["approved"],
           "record a payment in",
         );
+        const currency = input.currency ?? transfer.currency;
+        const problem = paymentProblem({
+          currency,
+          amountNok: transfer.amountNok,
+          amountForeign: input.amountForeign,
+          fxRate: input.fxRate,
+          bankFee: input.bankFee,
+        });
+        if (problem) throw badRequest(problem);
         await dao().recordPayment(conn, transfer.id, {
           paidAt: input.paidAt,
-          currency: input.currency ?? transfer.currency,
+          currency,
           amountForeign: input.amountForeign,
           fxRate: input.fxRate,
           bankFee: input.bankFee,
@@ -523,7 +610,10 @@ const transfersRouter = router({
 
 const assertFund = async (fundId: number) => {
   const fund = await dao().getFund(fundId);
-  if (!fund) throw badRequest(`Organization ${fundId} is not an own fund`);
+  if (!fund) {
+    const name = (await organizationNames()).get(fundId) ?? `Recipient #${fundId}`;
+    throw badRequest(`${name} isn't an own fund; only own funds make fund grants`);
+  }
   return fund;
 };
 
@@ -580,35 +670,43 @@ const fundGrantsRouter = router({
 
 //region Adjustments
 
-/** Checks references and that an attached round is a draft */
+/** Checks references; the attached round is checked (locked) by the caller's transaction */
 const checkAdjustment = async (input: AdjustmentInput) => {
   await assertOrganizations([input.organizationId]);
   await assertProjects([input]);
-  if (input.roundId !== null) {
-    const round = await getRoundOrThrow(input.roundId);
-    if (round.status !== "draft") {
-      throw conflict(
-        `Round ${round.id} is ${round.status}; attach the adjustment to a draft round (or none)`,
-      );
-    }
-  }
   if (input.linkedTransferId !== null) {
     const transfer = await dao().getTransfer(input.linkedTransferId);
-    if (!transfer) throw badRequest(`Transfer ${input.linkedTransferId} does not exist`);
+    if (!transfer) throw badRequest(`Transfer #${input.linkedTransferId} doesn't exist`);
     const round = await getRoundOrThrow(transfer.roundId);
-    if (round.status !== "paid") throw badRequest("A correction links a transfer of a paid round");
+    if (round.status !== "paid") {
+      throw badRequest(
+        `The transfer to ${transfer.payee.name} in ${roundLabel(
+          round,
+        )} isn't paid; a correction links a transfer of a paid round`,
+      );
+    }
   }
   if (input.linkedDonationId !== null) await assertDonations([input.linkedDonationId]);
 };
 
-/** Adjustments in an approved or paid round are part of that decision and can't change */
-const assertAdjustmentEditable = async (adjustment: Adjustment) => {
-  if (adjustment.roundId === null) return;
-  const round = await getRoundOrThrow(adjustment.roundId);
-  if (round.status !== "draft") {
-    throw conflict(`Adjustment ${adjustment.id} belongs to ${round.status} round ${round.id}`);
-  }
+/**
+ * Locks the rounds an adjustment is (or will be) attached to, in id order: they must be drafts.
+ * Adjustments in an approved or paid round are part of that decision and can't change; locking
+ * also keeps them from changing while the round is being approved.
+ */
+const lockAdjustmentRounds = async (
+  conn: Queryable,
+  roundIds: (number | null)[],
+  action: string,
+) => {
+  const ids = [...new Set(roundIds.filter((id): id is number => id !== null))].sort(
+    (a, b) => a - b,
+  );
+  for (const id of ids) await lockRoundIn(conn, id, ["draft"], action);
 };
+
+const earmarkHalf = (adjustment: Adjustment) =>
+  `This entry is half of an earmark (${adjustment.reason})`;
 
 const adjustmentsRouter = router({
   list: adminProcedure
@@ -619,23 +717,42 @@ const adjustmentsRouter = router({
     .input(byId)
     .query(({ input }): Promise<Adjustment> => getAdjustmentOrThrow(input.id)),
 
-  /** A typed, signed ledger entry with reason and author. Counts from effective_at. */
+  /**
+   * A typed, signed ledger entry with reason and author. Counts from effective_at; attached to a
+   * round (a draft), it counts only once that round is approved.
+   */
   create: adminProcedure
     .input(adjustmentCreateInput)
     .mutation(async ({ input, ctx }): Promise<Adjustment> => {
       await checkAdjustment(input);
-      const id = await dao().createAdjustment(input, adminIdentity(ctx.auth));
+      const id = await dao().inTransaction(async (conn) => {
+        await lockAdjustmentRounds(conn, [input.roundId], "add an adjustment to");
+        return dao().createAdjustment(input, adminIdentity(ctx.auth), conn);
+      });
       return getAdjustmentOrThrow(id);
     }),
 
-  /** Replaces all fields; only for adjustments not in an approved or paid round */
+  /**
+   * Replaces all fields; only for adjustments not in an approved or paid round. Half of an
+   * earmark can't be edited on its own (CONFLICT): remove the earmark and make it again.
+   */
   update: adminProcedure
     .input(adjustmentUpdateInput)
     .mutation(async ({ input }): Promise<Adjustment> => {
       const { id, ...fields } = input;
-      await assertAdjustmentEditable(await getAdjustmentOrThrow(id));
       await checkAdjustment(fields);
-      await dao().updateAdjustment(id, fields);
+      await dao().inTransaction(async (conn) => {
+        const current = await getAdjustmentOrThrow(id, conn);
+        await lockAdjustmentRounds(
+          conn,
+          [current.roundId, fields.roundId],
+          "change an adjustment in",
+        );
+        if (current.pairedAdjustmentId !== null) {
+          throw conflict(`${earmarkHalf(current)}; remove the earmark and make it again`);
+        }
+        await dao().updateAdjustment(id, fields, conn);
+      });
       return getAdjustmentOrThrow(id);
     }),
 
@@ -653,10 +770,22 @@ const adjustmentsRouter = router({
       return getAdjustmentOrThrow(input.id);
     }),
 
+  /**
+   * Deletes an adjustment not in an approved or paid round. Half of an earmark deletes both halves
+   * (the round's Pay now stays; rounds.removeEarmark also moves it back). Returns the ids deleted.
+   */
   delete: adminProcedure.input(byId).mutation(async ({ input }) => {
-    await assertAdjustmentEditable(await getAdjustmentOrThrow(input.id));
-    await dao().deleteAdjustment(input.id);
-    return { id: input.id };
+    const ids = await dao().inTransaction(async (conn) => {
+      const adjustment = await getAdjustmentOrThrow(input.id, conn);
+      await lockAdjustmentRounds(conn, [adjustment.roundId], "delete an adjustment in");
+      const ids = [
+        input.id,
+        ...(adjustment.pairedAdjustmentId ? [adjustment.pairedAdjustmentId] : []),
+      ];
+      await dao().deleteAdjustments(conn, ids);
+      return ids;
+    });
+    return { id: input.id, deletedIds: ids };
   }),
 });
 
@@ -666,7 +795,7 @@ const adjustmentsRouter = router({
 
 const getPayeeNotFound = async (id: number) => {
   const payee = await dao().getPayee(id);
-  if (!payee) throw notFound(`Payee ${id} not found`);
+  if (!payee) throw notFound(`Payee #${id} not found`);
   return payee;
 };
 
@@ -695,14 +824,18 @@ const payeesRouter = router({
 
   /** CONFLICT while routings or transfers use it (set isActive false instead) */
   delete: adminProcedure.input(byId).mutation(async ({ input }) => {
-    if (!(await dao().deletePayee(input.id))) throw notFound(`Payee ${input.id} not found`);
+    const payee = await getPayeeNotFound(input.id);
+    await deleteOrConflict(
+      () => dao().deletePayee(input.id),
+      `${payee.name} is still used by routings or transfers; mark it inactive instead`,
+    );
     return { id: input.id };
   }),
 });
 
 const getRoutingOrThrow = async (id: number) => {
   const routing = await dao().getRouting(id);
-  if (!routing) throw notFound(`Routing ${id} not found`);
+  if (!routing) throw notFound(`Routing #${id} not found`);
   return routing;
 };
 
@@ -719,9 +852,10 @@ const assertNoOverlap = async (
   if (overlapping.length) {
     const o = overlapping[0];
     throw conflict(
-      `Organization ${r.organizationId} is already routed to ${o.payeeName} from ${o.validFrom}${
-        o.validTo ? ` to ${o.validTo}` : ""
+      `${o.organizationName} is already routed to ${o.payeeName} from ${dateNo(o.validFrom)}${
+        o.validTo ? ` to ${dateNo(o.validTo)}` : ""
       }; end that routing first`,
+      { routingId: o.id },
     );
   }
 };
@@ -752,7 +886,9 @@ const routingsRouter = router({
         validTo: input.validTo !== undefined ? input.validTo : current.validTo,
       };
       if (next.validTo !== null && next.validTo < next.validFrom)
-        throw badRequest("validTo is before validFrom");
+        throw badRequest(
+          `The routing ends (${dateNo(next.validTo)}) before it starts (${dateNo(next.validFrom)})`,
+        );
       await assertOrganizations([next.organizationId]);
       await getPayeeOrThrow(next.payeeId);
       await assertNoOverlap(next, input.id);
@@ -761,7 +897,7 @@ const routingsRouter = router({
     }),
 
   delete: adminProcedure.input(byId).mutation(async ({ input }) => {
-    if (!(await dao().deleteRouting(input.id))) throw notFound(`Routing ${input.id} not found`);
+    if (!(await dao().deleteRouting(input.id))) throw notFound(`Routing #${input.id} not found`);
     return { id: input.id };
   }),
 });
@@ -782,7 +918,7 @@ export type ProjectPage = {
 
 const getProjectOrThrow = async (id: number) => {
   const project = await dao().getProject(id);
-  if (!project) throw notFound(`Project ${id} not found`);
+  if (!project) throw notFound(`Project #${id} not found`);
   return project;
 };
 
@@ -823,16 +959,22 @@ const projectsRouter = router({
     if (next.organizationId !== current.organizationId) {
       await assertOrganizations([next.organizationId]);
       if (await dao().projectHasEntries(id)) {
-        throw conflict("The project has lines or adjustments; it can't move to another recipient");
+        throw conflict(
+          `${current.name} has lines or adjustments at ${current.organizationName}; it can't move to another recipient`,
+        );
       }
     }
     await dao().updateProject(id, next);
     return getProjectOrThrow(id);
   }),
 
-  /** CONFLICT while lines or adjustments point at it */
+  /** CONFLICT while lines, adjustments or holds point at it */
   delete: adminProcedure.input(byId).mutation(async ({ input }) => {
-    if (!(await dao().deleteProject(input.id))) throw notFound(`Project ${input.id} not found`);
+    const project = await getProjectOrThrow(input.id);
+    await deleteOrConflict(
+      () => dao().deleteProject(input.id),
+      `${project.name} at ${project.organizationName} has lines, adjustments or holds; set its status to cancelled instead`,
+    );
     return { id: input.id };
   }),
 });
@@ -843,7 +985,10 @@ const projectsRouter = router({
 
 const getFundOrThrow = async (organizationId: number) => {
   const fund = await dao().getFund(organizationId);
-  if (!fund) throw notFound(`Organization ${organizationId} is not an own fund`);
+  if (!fund) {
+    const name = (await organizationNames()).get(organizationId) ?? `Recipient #${organizationId}`;
+    throw notFound(`${name} isn't an own fund`);
+  }
   return fund;
 };
 
@@ -857,7 +1002,9 @@ const fundsRouter = router({
 
   /** Marks a recipient as an own fund. CONFLICT if it already is one. */
   create: adminProcedure.input(fundCreateInput).mutation(async ({ input }): Promise<Fund> => {
-    await assertOrganizations([input.organizationId]);
+    const names = await assertOrganizations([input.organizationId]);
+    if (await dao().getFund(input.organizationId))
+      throw conflict(`${names.get(input.organizationId)} is already an own fund`);
     await dao().createFund(input.organizationId, input.maxHoldDays);
     return getFundOrThrow(input.organizationId);
   }),
@@ -870,16 +1017,18 @@ const fundsRouter = router({
 
   /** CONFLICT once it has fund grants */
   delete: adminProcedure.input(fundByOrganization).mutation(async ({ input }) => {
-    if (!(await dao().deleteFund(input.organizationId))) {
-      throw notFound(`Organization ${input.organizationId} is not an own fund`);
-    }
+    const fund = await getFundOrThrow(input.organizationId);
+    await deleteOrConflict(
+      () => dao().deleteFund(input.organizationId),
+      `${fund.name} has fund grants; it stays an own fund`,
+    );
     return { organizationId: input.organizationId };
   }),
 });
 
 const getHoldOrThrow = async (id: number) => {
   const hold = await dao().getHold(id);
-  if (!hold) throw notFound(`Hold ${id} not found`);
+  if (!hold) throw notFound(`Hold #${id} not found`);
   return hold;
 };
 
@@ -904,7 +1053,7 @@ const holdsRouter = router({
   }),
 
   delete: adminProcedure.input(byId).mutation(async ({ input }) => {
-    if (!(await dao().deleteHold(input.id))) throw notFound(`Hold ${input.id} not found`);
+    if (!(await dao().deleteHold(input.id))) throw notFound(`Hold #${input.id} not found`);
     return { id: input.id };
   }),
 });
