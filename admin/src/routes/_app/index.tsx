@@ -25,6 +25,7 @@ import {
 } from "@/features/home/model";
 import { RECENT_IMPORTS } from "@/features/home/home-view";
 import { reviewQueueCountsOptions } from "@/features/home/review-queue-counts";
+import { awaitingFirstPaymentAttention } from "@/features/intents/attention";
 import { formatDate, formatMoney } from "@/lib/format";
 import { compareMoney, moneyToNumber, sumMoney } from "@/lib/money";
 import { createPersistentStore } from "@/lib/persistent-store";
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/_app/")({
     return loadPage(
       queryClient,
       cause,
-      [q.reviewCounts, q.missingAvtaleGiro, q.failedCharges, q.monthly, q.costs],
+      [q.reviewCounts, q.missingAvtaleGiro, q.failedCharges, q.intents, q.monthly, q.costs],
       [q.vippsReport, q.avtaleGiroReport, ...q.totals, q.logs],
     );
   },
@@ -65,6 +66,7 @@ function homeQueries(trpc: ReturnType<typeof useTRPC>, today: Date) {
       limit: 1,
       filter: { statuses: ["FAILED"], dueDate: { from: thisMonth.fromDate, to: todayIso } },
     }),
+    intents: trpc.intents.attention.queryOptions(),
     monthly: trpc.donations.totalMonthly.queryOptions(),
     costs: trpc.donations.transactionCostsReport.queryOptions(),
     vippsReport: trpc.vipps.agreements.report.queryOptions(),
@@ -90,6 +92,7 @@ function HomePage() {
   const openReviewItems = reviewCounts.data?.open;
   const missingAvtaleGiro = useQuery(q.missingAvtaleGiro);
   const failedCharges = useQuery(q.failedCharges);
+  const intents = useQuery(q.intents);
 
   // This month
   const monthly = useQuery(q.monthly);
@@ -130,10 +133,14 @@ function HomePage() {
           },
         ]
       : []),
+    ...awaitingFirstPaymentAttention(intents.data),
   ];
 
   const attentionPending =
-    reviewCounts.isPending || missingAvtaleGiro.isPending || failedCharges.isPending;
+    reviewCounts.isPending ||
+    missingAvtaleGiro.isPending ||
+    failedCharges.isPending ||
+    intents.isPending;
   useEffect(() => {
     if (!attentionPending) lastAttentionCount.set(Math.max(1, attention.length));
   }, [attentionPending, attention.length]);

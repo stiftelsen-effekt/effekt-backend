@@ -22,6 +22,7 @@ import {
   CalendarCheckIcon,
   FlagIcon,
   HandCoinsIcon,
+  HourglassIcon,
   HouseIcon,
   InboxIcon,
   KeyRoundIcon,
@@ -66,6 +67,12 @@ const allNavGroups: NavGroup[] = [
         label: "Distributions",
         icon: KeyRoundIcon,
         keywords: ["kid", "split", "fordeling"],
+      },
+      {
+        to: "/intents",
+        label: "Intents",
+        icon: HourglassIcon,
+        keywords: ["intent", "intensjon", "awaiting", "first payment", "unpaid", "follow-up"],
       },
       {
         to: "/import",

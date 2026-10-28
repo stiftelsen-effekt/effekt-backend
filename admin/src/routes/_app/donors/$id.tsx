@@ -46,8 +46,10 @@ import { errorCode, useTRPC, type RouterOutputs } from "@/lib/trpc";
 import { PaymentMethodName } from "@/features/donations/payment-method-name";
 import { RegisterForDonorDialog } from "@/features/donations/register-for-donor";
 import { conflictingDonorId } from "@/features/donors/form-errors";
+import { AwaitingIntentsCallout, IntentsTable } from "@/features/intents/intents-view";
+import { splitIntents } from "@/features/intents/model";
 
-const tabs = ["donations", "kids", "agreements", "tax", "referrals"] as const;
+const tabs = ["donations", "kids", "agreements", "intents", "tax", "referrals"] as const;
 type Tab = (typeof tabs)[number];
 
 export const Route = createFileRoute("/_app/donors/$id")({
@@ -66,6 +68,7 @@ export const Route = createFileRoute("/_app/donors/$id")({
       q.taxUnits,
       q.referrals,
       q.referralTypes,
+      q.intents,
     ]);
   },
   component: DonorPage,
@@ -84,6 +87,7 @@ function donorQueries(trpc: ReturnType<typeof useTRPC>, donorId: number) {
     taxUnits: trpc.donors.taxUnits.list.queryOptions({ donorId }),
     referrals: trpc.donors.referrals.queryOptions(input),
     referralTypes: trpc.config.referralTypes.listAll.queryOptions(),
+    intents: trpc.intents.forDonor.queryOptions(input),
   };
 }
 
@@ -221,6 +225,8 @@ function Donor({ donorId }: { donorId: number }) {
   const taxUnits = useQuery(q.taxUnits);
   const referrals = useQuery(q.referrals);
   const referralTypes = useQuery(q.referralTypes);
+  const intents = useQuery(q.intents);
+  const { awaiting: awaitingIntents } = splitIntents(intents.data);
 
   const getKey = q.donor.queryKey;
   const update = useMutation(
@@ -533,6 +539,10 @@ function Donor({ donorId }: { donorId: number }) {
         </DetailPanel>
       }
     >
+      <AwaitingIntentsCallout
+        intents={awaitingIntents}
+        firstPayment={awaitingIntents.some((intent) => intent.newDonor)}
+      />
       <PageSection title="Given per year" description="By organization">
         {aggregated.isPending || (chart && chart.data.length > 0) ? (
           <BarChart
@@ -560,6 +570,9 @@ function Donor({ donorId }: { donorId: number }) {
             count={agreementsError ? undefined : agreementsLoading ? null : agreements.length}
           >
             Agreements
+          </TabsTrigger>
+          <TabsTrigger value="intents" count={pendingCount(intents)}>
+            Intents
           </TabsTrigger>
           <TabsTrigger value="tax" count={pendingCount(taxUnits)}>
             Tax units
@@ -650,6 +663,17 @@ function Donor({ donorId }: { donorId: number }) {
                   description="The donor has no recurring donations."
                 />
               }
+            />
+          )}
+        </TabsContent>
+        <TabsContent value="intents" className="flex max-h-[36rem] flex-col">
+          {intents.isError ? (
+            <ErrorState error={intents.error} onRetry={() => void intents.refetch()} />
+          ) : (
+            <IntentsTable
+              label="Donation intents"
+              intents={intents.data}
+              isLoading={intents.isPending}
             />
           )}
         </TabsContent>
