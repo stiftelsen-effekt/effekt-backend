@@ -85,9 +85,11 @@ export function Stat({
               {formatPercent(Math.abs(delta), { decimals: 0 })}
             </span>
           )}
+          {/* One box each, so a hint like "<Num/> agreements" reads as one phrase and wraps as
+              text rather than as separate flex items. */}
           <MoneyPrecisionProvider precision="whole">
-            {deltaLabel}
-            {hint}
+            {deltaLabel && <span>{deltaLabel}</span>}
+            {hint && <span className="min-w-0">{hint}</span>}
           </MoneyPrecisionProvider>
         </span>
       )}
