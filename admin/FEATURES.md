@@ -24,6 +24,12 @@ Swedish organisation runs on its own system; Swedish features are out of scope.
   receipt (optional override email).
 - **Distributions (KIDs)**: list + filter (KID, donor) + export; detail (donor, tax unit, shares,
   donations using it); create.
+- **Donation intents**: what a donor said they'd give in the widget (amount, method, KID) and
+  whether it arrived (awaiting / received / not received after 30 days, the follow-up job's rule),
+  with the matched first donation and reminders sent. List under Money in (filter by status,
+  method, date, new donors only); a callout on the donor page for unpaid intents (a warning when
+  it's the donor's first payment) and an Intents tab; intents on the KID page; a Home item for new
+  donors waiting on a first bank/AvtaleGiro payment.
 - **Registering money** (the most important ops flow):
   - Import a payment report per source: Vipps, bank OCR, bank (custom), Facebook. Choose data
     owner. Result: inserted / ignored / sent to

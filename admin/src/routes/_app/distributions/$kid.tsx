@@ -17,6 +17,7 @@ import { sumMoney } from "@/lib/money";
 import { loadPage } from "@/lib/route-data";
 import { useTRPC, type RouterOutputs } from "@/lib/trpc";
 import { PaymentMethodName } from "@/features/donations/payment-method-name";
+import { IntentsTable } from "@/features/intents/intents-view";
 
 export const Route = createFileRoute("/_app/distributions/$kid")({
   loader: ({ context: { queryClient, trpc }, params: { kid }, cause }) =>
@@ -264,6 +265,27 @@ function DistributionPage() {
           </div>
         )}
       </PageSection>
+      <KidIntents kid={kid} />
     </DetailPage>
+  );
+}
+
+/** What donors said they'd give on this KID; only shown when there is something */
+function KidIntents({ kid }: { kid: string }) {
+  const trpc = useTRPC();
+  const intents = useQuery(
+    trpc.intents.list.queryOptions({ page: 0, limit: 100, filter: { KID: kid } }),
+  );
+  const rows = intents.data?.rows;
+  if (!rows?.length) return null;
+  return (
+    <PageSection
+      title="Intents"
+      description="What the donor said they'd give with this KID, and whether it arrived."
+    >
+      <div className="flex max-h-[24rem] flex-col">
+        <IntentsTable label="Intents on this KID" intents={rows} isLoading={false} />
+      </div>
+    </PageSection>
   );
 }
