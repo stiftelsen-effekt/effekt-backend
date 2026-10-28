@@ -27,7 +27,10 @@ is the workflow. Read, in order: `DESIGN.md`, `FEATURES.md`, the template demos 
   No Swedish features and no locale switch. Procedures that take a `locale` default to NO — omit
   it.
 - **Copy**: English, following `src/lib/strings.ts` conventions.
-- **Accessibility**: keyboard flows as in the demos; add new routes to the axe test list.
+- **Accessibility**: this is an internal tool for a small team. Keyboard use matters (power users:
+  shortcuts, focus order, Esc, Enter to submit); cover it in interaction tests. Use semantic
+  elements and labels as a matter of course, but don't spend time on screen-reader polish or axe
+  findings.
 - **Tests**: Vitest for non-trivial logic (mappers, form → input transforms). Screenshot tests only
   for new reusable components.
 - If a page needs data no procedure provides, don't fake it — add the procedure (backend
@@ -48,11 +51,15 @@ local database are fine.
 
 ## Testing while you work
 
-The full gate takes about four minutes, so run it once, at the end, not after every change:
+Run the gate once, at the end, not after every change:
 
 ```sh
-pnpm gate     # in admin/: typecheck, build, Vitest, then all Playwright projects in one run
+pnpm gate                               # in admin/: typecheck, Vitest, interaction + visual
+pnpm exec playwright test --last-failed # after a failure: only the tests that failed
 ```
+
+The axe scans (`pnpm test:a11y`, about two minutes) aren't part of the gate. Run them only when
+you change a shared component's markup.
 
 While iterating, run only what your change touches:
 
@@ -62,6 +69,8 @@ While iterating, run only what your change touches:
   call per project: each call starts its own Vite server.
 - `pnpm exec playwright test --only-changed=<base branch>` — the specs whose files (or imports)
   changed since the branch point.
+- Playwright already runs files in parallel (one browser per worker, a fresh context per test).
+  Several agents test at the same time, so don't raise `--workers`.
 - Backend: `pnpm test:file src/__test__/<file>.spec.ts` from the repo root runs one spec. A path
   passed to `pnpm test` is added to the spec glob in `.mocharc.json`, so the whole suite runs.
 
