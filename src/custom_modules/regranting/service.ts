@@ -166,6 +166,26 @@ export async function getBalancesView(input: {
   const wanted = input.organizationIds ? new Set(input.organizationIds) : null;
   const recipients: BalancesRecipient[] = [];
 
+  // Inflow in the last maxHoldDays days (inclusive) per fund, fetched side by side rather
+  // than one query per fund in the loop below
+  const recentInflow = new Map(
+    await Promise.all(
+      funds
+        .filter((fund) => fund.maxHoldDays && (!wanted || wanted.has(fund.organizationId)))
+        .map(
+          async (fund) =>
+            [
+              fund.organizationId,
+              await dao().getInflowBetween(
+                fund.organizationId,
+                daysBefore(at, fund.maxHoldDays! + 1),
+                at,
+              ),
+            ] as const,
+        ),
+    ),
+  );
+
   for (const org of organizations) {
     if (wanted && !wanted.has(org.id)) continue;
     const own = rows.filter((r) => r.organizationId === org.id);
@@ -176,10 +196,8 @@ export async function getBalancesView(input: {
     const total = figuresFor(own);
     let heldTooLong: Money | null = null;
     if (fund?.maxHoldDays) {
-      // Inflow in the last maxHoldDays days (inclusive); older money has waited too long
-      const recent = dec(
-        await dao().getInflowBetween(org.id, daysBefore(at, fund.maxHoldDays + 1), at),
-      );
+      // Older money than the last maxHoldDays days' inflow has waited too long
+      const recent = dec(recentInflow.get(org.id)!);
       heldTooLong = fmt(max0(dec(total.balance).minus(recent)));
     }
     recipients.push({

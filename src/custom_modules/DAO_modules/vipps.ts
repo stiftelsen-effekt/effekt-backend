@@ -645,34 +645,41 @@ async function getCharges(
     Donors.full_name
   `;
 
-  const [charges] = await DAO.query<VippsChargeRow[]>(
-    `
-        SELECT
-          count(*) OVER() AS full_count,
-          sum(amountNOK) OVER() AS full_sum,
-          avg(amountNOK) OVER() AS full_avg,
-          ${columns}
-
+  // The page and the totals are separate queries: totals as window functions over a grouped
+  // join made MySQL sort and aggregate every charge before taking the page.
+  const fromWhere = `
         FROM Vipps_agreement_charges as VC
         INNER JOIN Vipps_agreements as VA
             ON VA.ID = VC.agreementID
         INNER JOIN Donors
             ON Donors.ID = VA.donorID
         WHERE
-            ${where.length !== 0 ? where.join(" AND ") : "1"}
+            ${where.length !== 0 ? where.join(" AND ") : "1"}`;
 
-        GROUP BY
-          ${columns}
-
-        ORDER BY ${sortColumn} ${sortDirection}
+  const [[charges], [statistics]] = await Promise.all([
+    DAO.query<VippsChargeRow[]>(
+      `
+        SELECT ${columns}
+        ${fromWhere}
+        ORDER BY ${sortColumn} ${sortDirection}, VC.chargeID ${sortDirection}
         LIMIT ? OFFSET ?
         `,
-    [limit, offset],
-  );
+      [limit, offset],
+    ),
+    DAO.query<{ full_count: number; full_sum: string; full_avg: string }[]>(
+      `
+        SELECT
+          count(*) AS full_count,
+          sum(amountNOK) AS full_sum,
+          avg(amountNOK) AS full_avg
+        ${fromWhere}
+        `,
+    ),
+  ]);
 
-  const numCharges = charges.length > 0 ? charges[0]["full_count"] : 0;
-  const sumCharges = charges.length > 0 ? charges[0]["full_sum"] : "0";
-  const avgCharge = charges.length > 0 ? charges[0]["full_avg"] : "0";
+  const numCharges = charges.length > 0 ? statistics[0]["full_count"] : 0;
+  const sumCharges = charges.length > 0 ? statistics[0]["full_sum"] : "0";
+  const avgCharge = charges.length > 0 ? statistics[0]["full_avg"] : "0";
 
   if (charges.length === 0) {
     return {
@@ -687,7 +694,13 @@ async function getCharges(
   } else {
     return {
       pages: Math.ceil(numCharges / limit),
-      rows: charges,
+      // Rows keep the totals as columns, as when they were window functions (REST shape)
+      rows: charges.map((charge) => ({
+        ...charge,
+        full_count: numCharges,
+        full_sum: sumCharges,
+        full_avg: avgCharge,
+      })),
       statistics: {
         numCharges,
         sumCharges,

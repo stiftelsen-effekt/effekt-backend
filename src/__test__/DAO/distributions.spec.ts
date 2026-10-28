@@ -5,15 +5,15 @@ import { DAO } from "../../custom_modules/DAO";
 describe("DAO Distributions", () => {
   describe("getAll", () => {
     /**
-     * getAll issues two queries: the first fetches the active organizations used
-     * to build the pivot columns, the second is the main paginated query. The
-     * row total rides along on the main query as total_rows rather than coming
-     * from a separate count query, and rows are mapped to donation_sum /
-     * donation_count plus one column per active organization.
+     * getAll first fetches the active organizations used to build the pivot columns, then
+     * runs two queries side by side: the page (second call), which picks the page and adds
+     * donation totals and organization shares for its rows, and the row count over every
+     * matching distribution (third call). Rows are mapped to donation_sum / donation_count
+     * plus one column per active organization.
      */
     const mockActiveOrgs = [{ abbriv: "EFF" }, { abbriv: "AMF" }];
 
-    const mockRow = (KID: string, totalRows: number) => ({
+    const mockRow = (KID: string) => ({
       KID,
       full_name: "Test Testesen",
       email: "testæøå@test.com",
@@ -21,8 +21,15 @@ describe("DAO Distributions", () => {
       donation_count: 2,
       EFF: "60.000000000000",
       AMF: "40.000000000000",
-      total_rows: totalRows,
     });
+
+    /** The page rows (second call) and the count of every matching distribution (third) */
+    const resolvePage = (rows: ReturnType<typeof mockRow>[], totalRows: number) => {
+      queryStub.onSecondCall().resolves([rows, []]);
+      queryStub.onThirdCall().resolves([[{ total_rows: totalRows }], []]);
+    };
+    const pageSql = () => queryStub.secondCall.args[0] as string;
+    const countSql = () => queryStub.thirdCall.args[0] as string;
 
     const expectedRow = (KID: string) => ({
       KID,
@@ -46,11 +53,11 @@ describe("DAO Distributions", () => {
     });
 
     it("Gets all distributions with no filter", async () => {
-      queryStub.onSecondCall().resolves([[mockRow("123456789", 2), mockRow("987654321", 2)], []]);
+      resolvePage([mockRow("123456789"), mockRow("987654321")], 2);
 
       const result = await DAO.distributions.getAll(0, 10, { id: "KID" }, null);
 
-      expect(queryStub.calledTwice).to.be.true;
+      expect(queryStub.calledThrice).to.be.true;
       expect(result).to.deep.equal({
         rows: [expectedRow("123456789"), expectedRow("987654321")],
         statistics: { numDistributions: 2 },
@@ -58,13 +65,16 @@ describe("DAO Distributions", () => {
       });
       expect(queryStub.firstCall.args[0]).to.contain("FROM Organizations");
       // The filters are the only thing that puts a LIKE in the main query
-      expect(queryStub.secondCall.args[0]).to.not.contain("LIKE");
-      expect(queryStub.secondCall.args[0]).to.contain("LIMIT 10");
-      expect(queryStub.secondCall.args[0]).to.contain("OFFSET 0");
+      expect(pageSql()).to.not.contain("LIKE");
+      expect(pageSql()).to.contain("LIMIT 10");
+      expect(pageSql()).to.contain("OFFSET 0");
+      expect(countSql()).to.contain("COUNT(*) as total_rows");
+      expect(countSql()).to.not.contain("LIKE");
+      expect(countSql()).to.not.contain("LIMIT");
     });
 
     it("Gets all distributions with filter", async () => {
-      queryStub.onSecondCall().resolves([[mockRow("123456789", 2), mockRow("987654321", 2)], []]);
+      resolvePage([mockRow("123456789"), mockRow("987654321")], 2);
 
       const result = await DAO.distributions.getAll(
         0,
@@ -73,21 +83,26 @@ describe("DAO Distributions", () => {
         { donor: "Test Testesen" },
       );
 
-      expect(queryStub.calledTwice).to.be.true;
+      expect(queryStub.calledThrice).to.be.true;
       expect(result).to.deep.equal({
         rows: [expectedRow("123456789"), expectedRow("987654321")],
         statistics: { numDistributions: 2 },
         pages: 1,
       });
-      expect(queryStub.secondCall.args[0]).to.contain("WHERE");
-      expect(queryStub.secondCall.args[0]).to.contain("Test Testesen");
-      expect(queryStub.secondCall.args[0]).to.contain("LIKE");
-      expect(queryStub.secondCall.args[0]).to.contain("LIMIT 10");
-      expect(queryStub.secondCall.args[0]).to.contain("OFFSET 0");
+      expect(pageSql()).to.contain("WHERE");
+      expect(pageSql()).to.contain("Test Testesen");
+      expect(pageSql()).to.contain("LIKE");
+      expect(pageSql()).to.contain("LIMIT 10");
+      expect(pageSql()).to.contain("OFFSET 0");
+      // The count applies the same filter to every distribution, not just the page
+      expect(countSql()).to.contain("COUNT(*) as total_rows");
+      expect(countSql()).to.contain("Test Testesen");
+      expect(countSql()).to.contain("LIKE");
+      expect(countSql()).to.not.contain("LIMIT");
     });
 
     it("Gets all distributions with filter and order", async () => {
-      queryStub.onSecondCall().resolves([[mockRow("123456789", 2), mockRow("987654321", 2)], []]);
+      resolvePage([mockRow("123456789"), mockRow("987654321")], 2);
 
       const result = await DAO.distributions.getAll(
         0,
@@ -96,40 +111,38 @@ describe("DAO Distributions", () => {
         { donor: "Test Testesen" },
       );
 
-      expect(queryStub.calledTwice).to.be.true;
+      expect(queryStub.calledThrice).to.be.true;
       expect(result).to.deep.equal({
         rows: [expectedRow("123456789"), expectedRow("987654321")],
         statistics: { numDistributions: 2 },
         pages: 1,
       });
-      expect(queryStub.secondCall.args[0]).to.contain("WHERE");
-      expect(queryStub.secondCall.args[0]).to.contain("Test Testesen");
-      expect(queryStub.secondCall.args[0]).to.contain("LIKE");
+      expect(pageSql()).to.contain("WHERE");
+      expect(pageSql()).to.contain("Test Testesen");
+      expect(pageSql()).to.contain("LIKE");
       // "sum" maps to the donation_sum alias, not to a bare "sum" column
-      expect(queryStub.secondCall.args[0]).to.contain("ORDER BY donation_sum DESC");
-      expect(queryStub.secondCall.args[0]).to.contain("LIMIT 10");
-      expect(queryStub.secondCall.args[0]).to.contain("OFFSET 0");
+      expect(pageSql()).to.contain("ORDER BY donation_sum DESC");
+      expect(pageSql()).to.contain("LIMIT 10");
+      expect(pageSql()).to.contain("OFFSET 0");
+      expect(countSql()).to.contain("Test Testesen");
+      expect(countSql()).to.not.contain("ORDER BY");
     });
 
     it("Gets all distributions with correct pages counter when there are more rows than the limit", async () => {
-      queryStub
-        .onSecondCall()
-        .resolves([
-          [mockRow("111111111", 3), mockRow("222222222", 3), mockRow("333333333", 3)],
-          [],
-        ]);
+      resolvePage([mockRow("111111111"), mockRow("222222222"), mockRow("333333333")], 3);
 
       const result = await DAO.distributions.getAll(0, 1, { id: "KID" }, null);
 
-      expect(queryStub.calledTwice).to.be.true;
+      expect(queryStub.calledThrice).to.be.true;
       expect(result).to.deep.equal({
         rows: [expectedRow("111111111"), expectedRow("222222222"), expectedRow("333333333")],
         statistics: { numDistributions: 3 },
         pages: 3,
       });
-      expect(queryStub.secondCall.args[0]).to.not.contain("LIKE");
-      expect(queryStub.secondCall.args[0]).to.contain("LIMIT 1");
-      expect(queryStub.secondCall.args[0]).to.contain("OFFSET 0");
+      expect(pageSql()).to.not.contain("LIKE");
+      expect(pageSql()).to.contain("LIMIT 1");
+      expect(countSql()).to.contain("COUNT(*) as total_rows");
+      expect(pageSql()).to.contain("OFFSET 0");
     });
 
     it("Rejects a sort column that is not in the mapping", async () => {

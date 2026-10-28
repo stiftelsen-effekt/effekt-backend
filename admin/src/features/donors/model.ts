@@ -3,7 +3,7 @@
  * (totals, yearly chart, agreements across providers). Pages never compute these inline.
  */
 import type { ChartSeries } from "@/components/charts/chart";
-import { defineList, param, type FilterValues } from "@/components/filters";
+import { defineList, param, type FilterValues } from "@/components/filters/list-state";
 import { fromAvtaleGiro, fromVipps, type AgreementRow } from "@/features/agreements/model";
 import { orgChartSeries } from "@/features/distribution/orgs";
 import { fromMinorUnits, moneyToNumber, sumMoney, toMinorUnits } from "@/lib/money";
