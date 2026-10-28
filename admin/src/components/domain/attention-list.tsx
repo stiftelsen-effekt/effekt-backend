@@ -14,6 +14,8 @@ export type AttentionItem = {
   /** The number that makes this urgent, e.g. 12 open review items. */
   count?: number;
   href: string;
+  /** Search params for `href`, e.g. the filters that show exactly the items counted. */
+  search?: Record<string, string>;
   /** Verb for the link: "Review", "Check", "Retry". */
   action: string;
 };
@@ -78,6 +80,7 @@ export function AttentionList({
           <li key={item.id}>
             <Link
               to={item.href as LinkProps["to"]}
+              search={item.search as LinkProps["search"]}
               className="group flex items-center gap-3 px-4 py-3 hover:bg-hover focus-ring-inset"
             >
               <span

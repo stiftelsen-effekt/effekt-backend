@@ -52,7 +52,7 @@ Run the gate once, at the end. When you're done editing, start it in the backgro
 and if it fails, fix the problem and re-run only what failed:
 
 ```sh
-pnpm gate                               # in admin/: typecheck, Vitest, interaction + visual (background it)
+pnpm gate                               # in admin/: typecheck, Vitest, interaction + visual, Auth0 prod-build smoke (background it)
 pnpm exec playwright test --last-failed # after a failure: only the tests that failed
 ```
 

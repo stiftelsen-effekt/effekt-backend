@@ -112,7 +112,7 @@ function HomePage() {
           },
         ]
       : []),
-    ...(failedCharges.data?.statistics.numCharges
+    ...(failedCharges.data?.statistics?.numCharges
       ? [
           {
             id: "vipps-failed",
@@ -123,7 +123,9 @@ function HomePage() {
             description: `Due this month, ${formatMoney(
               failedCharges.data.statistics.sumCharges,
             )} in total.`,
+            // The charges counted here, not all of them.
             href: "/charges",
+            search: { status: "FAILED", due: `${thisMonth.fromDate}..${isoDay(today)}` },
             action: "See charges",
           },
         ]
