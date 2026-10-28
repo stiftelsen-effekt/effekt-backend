@@ -2,7 +2,6 @@ import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { AuthProvider, useAuth } from "@/auth";
-import { PreviewBanner } from "@/components/layout/preview-banner";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { createApiClient, createQueryClient, TRPCProvider, useTRPC } from "@/lib/trpc";
@@ -63,7 +62,6 @@ export function App() {
       <ApiProvider>
         <TooltipProvider>
           <RoutedApp />
-          <PreviewBanner onSwitched={() => void router.invalidate()} />
           <Toaster />
         </TooltipProvider>
       </ApiProvider>

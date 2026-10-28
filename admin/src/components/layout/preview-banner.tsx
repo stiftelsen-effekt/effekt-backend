@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { ChevronsUpDownIcon, FlaskConicalIcon } from "lucide-react";
 import { useAuth } from "@/auth";
 import {
@@ -21,12 +22,14 @@ function formatSeededAt(value: string | null) {
 }
 
 /**
- * Always on screen in preview environments: says the data is synthetic, who you are, and lets
- * you switch person (two-person flows such as regranting approval need two people).
+ * In preview environments, at the bottom of the sidebar: says the data is synthetic, who you
+ * are, and lets you switch person (two-person flows such as regranting approval need two
+ * people). Part of the layout, not floating, so it never covers page controls.
  */
-export function PreviewBanner({ onSwitched }: { onSwitched?: () => void }) {
+export function PreviewBanner() {
   const auth = useAuth();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const preview = auth.preview;
   if (!preview) return null;
 
@@ -43,7 +46,7 @@ export function PreviewBanner({ onSwitched }: { onSwitched?: () => void }) {
     await preview!.continueAs(userId);
     // Everything cached was fetched as the previous person
     queryClient.clear();
-    onSwitched?.();
+    void router.invalidate();
   }
 
   return (
@@ -52,20 +55,19 @@ export function PreviewBanner({ onSwitched }: { onSwitched?: () => void }) {
       aria-label="Preview environment"
       data-testid="preview-banner"
       className={cn(
-        "fixed right-3 bottom-3 z-50 flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full",
-        "border border-warning/30 bg-warning-subtle py-1 pr-1 pl-3 text-xs text-warning shadow-md",
+        "grid gap-1.5 rounded-sm border border-warning/30 bg-warning-subtle p-2 text-xs text-warning",
       )}
     >
-      <FlaskConicalIcon className="size-3.5 shrink-0" aria-hidden />
-      <span className="font-semibold whitespace-nowrap">Preview · synthetic data</span>
-      {details.length > 0 && (
-        <span className="hidden truncate opacity-80 sm:inline">{details.join(" · ")}</span>
-      )}
+      <span className="flex items-center gap-1.5 font-semibold">
+        <FlaskConicalIcon className="size-3.5 shrink-0" aria-hidden />
+        Preview · synthetic data
+      </span>
+      {details.length > 0 && <span className="truncate opacity-80">{details.join(" · ")}</span>}
       {current ? (
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
-              "flex h-6 items-center gap-1 rounded-full bg-surface px-2 font-semibold text-foreground",
+              "flex h-6 items-center justify-between gap-1 rounded-sm bg-surface px-2 font-semibold text-foreground",
               "hover:bg-hover focus-ring",
             )}
             aria-label={`You are ${current.label} (${current.email}). Switch user`}
@@ -73,7 +75,7 @@ export function PreviewBanner({ onSwitched }: { onSwitched?: () => void }) {
             You are {current.label}
             <ChevronsUpDownIcon className="size-3" aria-hidden />
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="end" className="w-64">
+          <DropdownMenuContent side="right" align="end" className="w-64">
             <DropdownMenuLabel>Switch user</DropdownMenuLabel>
             <DropdownMenuRadioGroup value={current.id} onValueChange={(id) => void switchTo(id)}>
               {users.map((user) => (

@@ -1,3 +1,4 @@
+import { PreviewBanner } from "./preview-banner";
 import { Link, useNavigate, useRouterState, type LinkProps } from "@tanstack/react-router";
 import {
   ChevronsUpDownIcon,
@@ -218,7 +219,8 @@ function Sidebar({
       <div className="grid gap-px">
         <NavLink item={settingsItem} onNavigate={onNavigate} />
         {showDesign && <NavLink item={designItem} onNavigate={onNavigate} />}
-        <div className="mt-2 border-t border-border pt-2">
+        <div className="mt-2 grid gap-2 border-t border-border pt-2">
+          <PreviewBanner />
           <UserMenu />
         </div>
       </div>
