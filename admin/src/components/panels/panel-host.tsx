@@ -223,6 +223,11 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
   );
   const [closing, setClosing] = useState<Rendered[]>([]);
   const previous = useRef(live);
+  const exitTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    const timers = exitTimers.current;
+    return () => timers.forEach(clearTimeout);
+  }, []);
   useLayoutEffect(() => {
     const gone = previous.current.filter((p) => !live.some((l) => l.key === p.key));
     previous.current = live;
@@ -231,11 +236,13 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
       ...gone.filter((g) => !current.some((c) => c.key === g.key)),
     ]);
     if (gone.length === 0) return;
-    const timer = setTimeout(
-      () => setClosing((current) => current.filter((c) => !gone.some((g) => g.key === c.key))),
-      EXIT_MS,
-    );
-    return () => clearTimeout(timer);
+    // Not cleared when the stack changes again: closing two panels within EXIT_MS must not
+    // leave the first one behind.
+    const timer = setTimeout(() => {
+      exitTimers.current.delete(timer);
+      setClosing((current) => current.filter((c) => !gone.some((g) => g.key === c.key)));
+    }, EXIT_MS);
+    exitTimers.current.add(timer);
   }, [live]);
 
   // Panels already in the URL when the page loads appear without sliding in.
