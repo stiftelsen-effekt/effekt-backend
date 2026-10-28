@@ -20,4 +20,9 @@ export const config = {
     scope: env.VITE_AUTH_SCOPE || undefined,
     devTokenUrl: env.VITE_DEV_AUTH_TOKEN_URL || "/dev-auth/effekt/token",
   },
+  features: {
+    // Off in production until historical rounds and transfers are backfilled: with empty
+    // regranting tables every donation ever received would show as owed.
+    regranting: env.VITE_FEATURE_REGRANTING !== "false",
+  },
 } as const;

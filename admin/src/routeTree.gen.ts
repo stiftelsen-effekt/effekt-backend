@@ -16,6 +16,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
 import { Route as AppAvtalegiroCheckRouteImport } from './routes/_app/avtalegiro-check'
 import { Route as AppChargesRouteImport } from './routes/_app/charges'
+import { Route as AppRegrantingRouteRouteImport } from './routes/_app/regranting/route'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as DesignIndexRouteImport } from './routes/design/index'
@@ -90,6 +91,11 @@ const AppAvtalegiroCheckRoute = AppAvtalegiroCheckRouteImport.update({
 const AppChargesRoute = AppChargesRouteImport.update({
   id: '/charges',
   path: '/charges',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRegrantingRouteRoute = AppRegrantingRouteRouteImport.update({
+  id: '/regranting',
+  path: '/regranting',
   getParentRoute: () => AppRoute,
 } as any)
 const AppReportsRoute = AppReportsRouteImport.update({
@@ -223,25 +229,25 @@ const AppLogsIdRoute = AppLogsIdRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const AppRegrantingIndexRoute = AppRegrantingIndexRouteImport.update({
-  id: '/regranting/',
-  path: '/regranting/',
-  getParentRoute: () => AppRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRegrantingRouteRoute,
 } as any)
 const AppRegrantingAdjustmentsRoute =
   AppRegrantingAdjustmentsRouteImport.update({
-    id: '/regranting/adjustments',
-    path: '/regranting/adjustments',
-    getParentRoute: () => AppRoute,
+    id: '/adjustments',
+    path: '/adjustments',
+    getParentRoute: () => AppRegrantingRouteRoute,
   } as any)
 const AppRegrantingCheckRoute = AppRegrantingCheckRouteImport.update({
-  id: '/regranting/check',
-  path: '/regranting/check',
-  getParentRoute: () => AppRoute,
+  id: '/check',
+  path: '/check',
+  getParentRoute: () => AppRegrantingRouteRoute,
 } as any)
 const AppRegrantingSettingsRoute = AppRegrantingSettingsRouteImport.update({
-  id: '/regranting/settings',
-  path: '/regranting/settings',
-  getParentRoute: () => AppRoute,
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRegrantingRouteRoute,
 } as any)
 const DesignDonationsIdRoute = DesignDonationsIdRouteImport.update({
   id: '/donations/$id',
@@ -275,37 +281,38 @@ const AppImportReviewIdRoute = AppImportReviewIdRouteImport.update({
 } as any)
 const AppRegrantingProjectsIndexRoute =
   AppRegrantingProjectsIndexRouteImport.update({
-    id: '/regranting/projects/',
-    path: '/regranting/projects/',
-    getParentRoute: () => AppRoute,
+    id: '/projects/',
+    path: '/projects/',
+    getParentRoute: () => AppRegrantingRouteRoute,
   } as any)
 const AppRegrantingProjectsIdRoute = AppRegrantingProjectsIdRouteImport.update({
-  id: '/regranting/projects/$id',
-  path: '/regranting/projects/$id',
-  getParentRoute: () => AppRoute,
+  id: '/projects/$id',
+  path: '/projects/$id',
+  getParentRoute: () => AppRegrantingRouteRoute,
 } as any)
 const AppRegrantingRecipientsOrganizationIdRoute =
   AppRegrantingRecipientsOrganizationIdRouteImport.update({
-    id: '/regranting/recipients/$organizationId',
-    path: '/regranting/recipients/$organizationId',
-    getParentRoute: () => AppRoute,
+    id: '/recipients/$organizationId',
+    path: '/recipients/$organizationId',
+    getParentRoute: () => AppRegrantingRouteRoute,
   } as any)
 const AppRegrantingRoundsIndexRoute =
   AppRegrantingRoundsIndexRouteImport.update({
-    id: '/regranting/rounds/',
-    path: '/regranting/rounds/',
-    getParentRoute: () => AppRoute,
+    id: '/rounds/',
+    path: '/rounds/',
+    getParentRoute: () => AppRegrantingRouteRoute,
   } as any)
 const AppRegrantingRoundsIdRoute = AppRegrantingRoundsIdRouteImport.update({
-  id: '/regranting/rounds/$id',
-  path: '/regranting/rounds/$id',
-  getParentRoute: () => AppRoute,
+  id: '/rounds/$id',
+  path: '/rounds/$id',
+  getParentRoute: () => AppRegrantingRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
+  '/regranting': typeof AppRegrantingRouteRouteWithChildren
   '/$': typeof AppSplatRoute
   '/avtalegiro-check': typeof AppAvtalegiroCheckRoute
   '/charges': typeof AppChargesRoute
@@ -404,6 +411,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/design': typeof DesignRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/regranting': typeof AppRegrantingRouteRouteWithChildren
   '/_app/$': typeof AppSplatRoute
   '/_app/avtalegiro-check': typeof AppAvtalegiroCheckRoute
   '/_app/charges': typeof AppChargesRoute
@@ -456,6 +464,7 @@ export interface FileRouteTypes {
     | '/'
     | '/design'
     | '/login'
+    | '/regranting'
     | '/$'
     | '/avtalegiro-check'
     | '/charges'
@@ -553,6 +562,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/design'
     | '/login'
+    | '/_app/regranting'
     | '/_app/$'
     | '/_app/avtalegiro-check'
     | '/_app/charges'
@@ -655,6 +665,13 @@ declare module '@tanstack/react-router' {
       path: '/charges'
       fullPath: '/charges'
       preLoaderRoute: typeof AppChargesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/regranting': {
+      id: '/_app/regranting'
+      path: '/regranting'
+      fullPath: '/regranting'
+      preLoaderRoute: typeof AppRegrantingRouteRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/reports': {
@@ -841,31 +858,31 @@ declare module '@tanstack/react-router' {
     }
     '/_app/regranting/': {
       id: '/_app/regranting/'
-      path: '/regranting'
+      path: '/'
       fullPath: '/regranting/'
       preLoaderRoute: typeof AppRegrantingIndexRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRegrantingRouteRoute
     }
     '/_app/regranting/adjustments': {
       id: '/_app/regranting/adjustments'
-      path: '/regranting/adjustments'
+      path: '/adjustments'
       fullPath: '/regranting/adjustments'
       preLoaderRoute: typeof AppRegrantingAdjustmentsRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRegrantingRouteRoute
     }
     '/_app/regranting/check': {
       id: '/_app/regranting/check'
-      path: '/regranting/check'
+      path: '/check'
       fullPath: '/regranting/check'
       preLoaderRoute: typeof AppRegrantingCheckRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRegrantingRouteRoute
     }
     '/_app/regranting/settings': {
       id: '/_app/regranting/settings'
-      path: '/regranting/settings'
+      path: '/settings'
       fullPath: '/regranting/settings'
       preLoaderRoute: typeof AppRegrantingSettingsRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRegrantingRouteRoute
     }
     '/design/donations/$id': {
       id: '/design/donations/$id'
@@ -911,43 +928,72 @@ declare module '@tanstack/react-router' {
     }
     '/_app/regranting/projects/': {
       id: '/_app/regranting/projects/'
-      path: '/regranting/projects'
+      path: '/projects'
       fullPath: '/regranting/projects/'
       preLoaderRoute: typeof AppRegrantingProjectsIndexRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRegrantingRouteRoute
     }
     '/_app/regranting/projects/$id': {
       id: '/_app/regranting/projects/$id'
-      path: '/regranting/projects/$id'
+      path: '/projects/$id'
       fullPath: '/regranting/projects/$id'
       preLoaderRoute: typeof AppRegrantingProjectsIdRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRegrantingRouteRoute
     }
     '/_app/regranting/recipients/$organizationId': {
       id: '/_app/regranting/recipients/$organizationId'
-      path: '/regranting/recipients/$organizationId'
+      path: '/recipients/$organizationId'
       fullPath: '/regranting/recipients/$organizationId'
       preLoaderRoute: typeof AppRegrantingRecipientsOrganizationIdRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRegrantingRouteRoute
     }
     '/_app/regranting/rounds/': {
       id: '/_app/regranting/rounds/'
-      path: '/regranting/rounds'
+      path: '/rounds'
       fullPath: '/regranting/rounds/'
       preLoaderRoute: typeof AppRegrantingRoundsIndexRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRegrantingRouteRoute
     }
     '/_app/regranting/rounds/$id': {
       id: '/_app/regranting/rounds/$id'
-      path: '/regranting/rounds/$id'
+      path: '/rounds/$id'
       fullPath: '/regranting/rounds/$id'
       preLoaderRoute: typeof AppRegrantingRoundsIdRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRegrantingRouteRoute
     }
   }
 }
 
+interface AppRegrantingRouteRouteChildren {
+  AppRegrantingAdjustmentsRoute: typeof AppRegrantingAdjustmentsRoute
+  AppRegrantingCheckRoute: typeof AppRegrantingCheckRoute
+  AppRegrantingSettingsRoute: typeof AppRegrantingSettingsRoute
+  AppRegrantingIndexRoute: typeof AppRegrantingIndexRoute
+  AppRegrantingProjectsIdRoute: typeof AppRegrantingProjectsIdRoute
+  AppRegrantingRecipientsOrganizationIdRoute: typeof AppRegrantingRecipientsOrganizationIdRoute
+  AppRegrantingRoundsIdRoute: typeof AppRegrantingRoundsIdRoute
+  AppRegrantingProjectsIndexRoute: typeof AppRegrantingProjectsIndexRoute
+  AppRegrantingRoundsIndexRoute: typeof AppRegrantingRoundsIndexRoute
+}
+
+const AppRegrantingRouteRouteChildren: AppRegrantingRouteRouteChildren = {
+  AppRegrantingAdjustmentsRoute: AppRegrantingAdjustmentsRoute,
+  AppRegrantingCheckRoute: AppRegrantingCheckRoute,
+  AppRegrantingSettingsRoute: AppRegrantingSettingsRoute,
+  AppRegrantingIndexRoute: AppRegrantingIndexRoute,
+  AppRegrantingProjectsIdRoute: AppRegrantingProjectsIdRoute,
+  AppRegrantingRecipientsOrganizationIdRoute:
+    AppRegrantingRecipientsOrganizationIdRoute,
+  AppRegrantingRoundsIdRoute: AppRegrantingRoundsIdRoute,
+  AppRegrantingProjectsIndexRoute: AppRegrantingProjectsIndexRoute,
+  AppRegrantingRoundsIndexRoute: AppRegrantingRoundsIndexRoute,
+}
+
+const AppRegrantingRouteRouteWithChildren =
+  AppRegrantingRouteRoute._addFileChildren(AppRegrantingRouteRouteChildren)
+
 interface AppRouteChildren {
+  AppRegrantingRouteRoute: typeof AppRegrantingRouteRouteWithChildren
   AppSplatRoute: typeof AppSplatRoute
   AppAvtalegiroCheckRoute: typeof AppAvtalegiroCheckRoute
   AppChargesRoute: typeof AppChargesRoute
@@ -961,9 +1007,6 @@ interface AppRouteChildren {
   AppDonorsIdRoute: typeof AppDonorsIdRoute
   AppFundraisersIdRoute: typeof AppFundraisersIdRoute
   AppLogsIdRoute: typeof AppLogsIdRoute
-  AppRegrantingAdjustmentsRoute: typeof AppRegrantingAdjustmentsRoute
-  AppRegrantingCheckRoute: typeof AppRegrantingCheckRoute
-  AppRegrantingSettingsRoute: typeof AppRegrantingSettingsRoute
   AppAgreementsIndexRoute: typeof AppAgreementsIndexRoute
   AppAnalysisIndexRoute: typeof AppAnalysisIndexRoute
   AppDistributionsIndexRoute: typeof AppDistributionsIndexRoute
@@ -972,20 +1015,15 @@ interface AppRouteChildren {
   AppFundraisersIndexRoute: typeof AppFundraisersIndexRoute
   AppImportIndexRoute: typeof AppImportIndexRoute
   AppLogsIndexRoute: typeof AppLogsIndexRoute
-  AppRegrantingIndexRoute: typeof AppRegrantingIndexRoute
   AppAgreementsProviderIdRoute: typeof AppAgreementsProviderIdRoute
   AppDonationsIdEditRoute: typeof AppDonationsIdEditRoute
   AppImportReviewIdRoute: typeof AppImportReviewIdRoute
-  AppRegrantingProjectsIdRoute: typeof AppRegrantingProjectsIdRoute
-  AppRegrantingRecipientsOrganizationIdRoute: typeof AppRegrantingRecipientsOrganizationIdRoute
-  AppRegrantingRoundsIdRoute: typeof AppRegrantingRoundsIdRoute
   AppDonationsIdIndexRoute: typeof AppDonationsIdIndexRoute
   AppImportReviewIndexRoute: typeof AppImportReviewIndexRoute
-  AppRegrantingProjectsIndexRoute: typeof AppRegrantingProjectsIndexRoute
-  AppRegrantingRoundsIndexRoute: typeof AppRegrantingRoundsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppRegrantingRouteRoute: AppRegrantingRouteRouteWithChildren,
   AppSplatRoute: AppSplatRoute,
   AppAvtalegiroCheckRoute: AppAvtalegiroCheckRoute,
   AppChargesRoute: AppChargesRoute,
@@ -999,9 +1037,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppDonorsIdRoute: AppDonorsIdRoute,
   AppFundraisersIdRoute: AppFundraisersIdRoute,
   AppLogsIdRoute: AppLogsIdRoute,
-  AppRegrantingAdjustmentsRoute: AppRegrantingAdjustmentsRoute,
-  AppRegrantingCheckRoute: AppRegrantingCheckRoute,
-  AppRegrantingSettingsRoute: AppRegrantingSettingsRoute,
   AppAgreementsIndexRoute: AppAgreementsIndexRoute,
   AppAnalysisIndexRoute: AppAnalysisIndexRoute,
   AppDistributionsIndexRoute: AppDistributionsIndexRoute,
@@ -1010,18 +1045,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppFundraisersIndexRoute: AppFundraisersIndexRoute,
   AppImportIndexRoute: AppImportIndexRoute,
   AppLogsIndexRoute: AppLogsIndexRoute,
-  AppRegrantingIndexRoute: AppRegrantingIndexRoute,
   AppAgreementsProviderIdRoute: AppAgreementsProviderIdRoute,
   AppDonationsIdEditRoute: AppDonationsIdEditRoute,
   AppImportReviewIdRoute: AppImportReviewIdRoute,
-  AppRegrantingProjectsIdRoute: AppRegrantingProjectsIdRoute,
-  AppRegrantingRecipientsOrganizationIdRoute:
-    AppRegrantingRecipientsOrganizationIdRoute,
-  AppRegrantingRoundsIdRoute: AppRegrantingRoundsIdRoute,
   AppDonationsIdIndexRoute: AppDonationsIdIndexRoute,
   AppImportReviewIndexRoute: AppImportReviewIndexRoute,
-  AppRegrantingProjectsIndexRoute: AppRegrantingProjectsIndexRoute,
-  AppRegrantingRoundsIndexRoute: AppRegrantingRoundsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
