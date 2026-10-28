@@ -40,12 +40,12 @@ export function CountUpMoney({ value, className }: { value: string; className?: 
   return (
     <span className={cn("num inline-grid whitespace-nowrap", className)}>
       <span className="invisible col-start-1 row-start-1" aria-hidden>
-        {formatMoney(String(target))}
+        {formatMoney(String(target), { precision: "whole" })}
       </span>
       <span data-slot="count-up" className="col-start-1 row-start-1 text-right" aria-hidden>
-        {formatMoney(String(shown))}
+        {formatMoney(String(shown), { precision: "whole" })}
       </span>
-      <span className="sr-only">{formatMoney(String(target))}</span>
+      <span className="sr-only">{formatMoney(String(target), { precision: "whole" })}</span>
     </span>
   );
 }

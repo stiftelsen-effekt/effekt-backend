@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ErrorState } from "@/components/domain/error-state";
-import { DateTime, Money, Num } from "@/components/domain/format";
+import { DateTime, Money, MoneyPrecisionProvider, Num } from "@/components/domain/format";
 import { Stat, StatGroup } from "@/components/domain/stat";
 import { DetailPage, PageSection } from "@/components/templates";
 import { SkeletonText } from "@/components/ui/skeleton";
@@ -97,56 +97,62 @@ function ThroughTime({ overview }: { overview: Overview | undefined }) {
       title={`Given to the recipients${since ? ` since ${since}` : ""}, with open pledges`}
       description="Excludes support for our own operations (Drift). Includes Influenced donations."
     >
-      <div className="grid gap-4">
-        <p className="text-3xl font-semibold tracking-tight">
-          {overview ? (
-            <CountUpMoney value={overview.withPledges.sum} />
-          ) : (
-            <SkeletonText>000 000 000 kr</SkeletonText>
-          )}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {overview ? (
-            <>
-              <Money
-                value={overview.throughTime.measured}
-                className="font-semibold text-foreground"
-              />{" "}
-              measured
-              {overview.pledges.count > 0 && (
-                <>
-                  {" "}
-                  +{" "}
-                  <Money
-                    value={overview.pledges.open}
-                    className="font-semibold text-foreground"
-                  />{" "}
-                  in <Num value={overview.pledges.count} /> open{" "}
-                  {overview.pledges.count === 1 ? "pledge" : "pledges"}
-                </>
-              )}
-            </>
-          ) : (
-            <SkeletonText>000 000 000 kr measured + 00 000 000 kr in 0 open pledges</SkeletonText>
-          )}
-        </p>
-        <Milestone overview={overview} />
-      </div>
+      {/* A headline figure: whole kroner, like the stats above. */}
+      <MoneyPrecisionProvider precision="whole">
+        <div className="grid gap-4">
+          <p className="text-3xl font-semibold tracking-tight">
+            {overview ? (
+              <CountUpMoney value={overview.withPledges.sum} />
+            ) : (
+              <SkeletonText>000 000 000 kr</SkeletonText>
+            )}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {overview ? (
+              <>
+                <Money
+                  value={overview.throughTime.measured}
+                  className="font-semibold text-foreground"
+                />{" "}
+                measured
+                {overview.pledges.count > 0 && (
+                  <>
+                    {" "}
+                    +{" "}
+                    <Money
+                      value={overview.pledges.open}
+                      className="font-semibold text-foreground"
+                    />{" "}
+                    in <Num value={overview.pledges.count} /> open{" "}
+                    {overview.pledges.count === 1 ? "pledge" : "pledges"}
+                  </>
+                )}
+              </>
+            ) : (
+              <SkeletonText>000 000 000 kr measured + 00 000 000 kr in 0 open pledges</SkeletonText>
+            )}
+          </p>
+          <Milestone overview={overview} />
+        </div>
+      </MoneyPrecisionProvider>
     </PageSection>
   );
 }
 
 /** Progress line to the milestone: measured solid, open pledges hatched after it. */
+const whole = { precision: "whole" } as const;
+
 function Milestone({ overview }: { overview: Overview | undefined }) {
   const widths = overview ? progress(overview) : { measured: 0, pledges: 0 };
   const label = overview ? milestoneLabel(overview.withPledges.milestone) : "200 MNOK";
   const description = overview
     ? `Progress to ${label}: ${formatMoney(
         overview.throughTime.measured,
-      )} measured and ${formatMoney(overview.pledges.open)} in open pledges, ${
+        whole,
+      )} measured and ${formatMoney(overview.pledges.open, whole)} in open pledges, ${
         overview.withPledges.passed
           ? "together past the milestone"
-          : `${formatMoney(overview.withPledges.remaining)} to go`
+          : `${formatMoney(overview.withPledges.remaining, whole)} to go`
       }.`
     : `Progress to ${label}`;
   return (
@@ -185,7 +191,7 @@ function Milestone({ overview }: { overview: Overview | undefined }) {
           ) : overview.withPledges.passed ? (
             `${label} passed, with pledges`
           ) : (
-            `${formatMoney(overview.withPledges.remaining)} to ${label}, with pledges`
+            `${formatMoney(overview.withPledges.remaining, whole)} to ${label}, with pledges`
           )}
         </span>
       </div>

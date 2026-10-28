@@ -379,15 +379,19 @@ they are; for sums, averages, comparisons and sorting use `src/lib/money.ts` (ex
 
 One rule each, applied by the formatters, so pages never choose:
 
-- **Money**: whole kroner when the amount has no øre, two decimals when it has any:
-  `1 500 kr`, `1 234,50 kr`, `0,30 kr`, fee `0 kr`. A value is always shown the same way, on
-  every page; nothing is rounded to whole kroner for display (an average of 1 234,50 is not
-  "1 235 kr"). There is no `decimals` prop. A missing amount (no fee) is `–`, in tables,
-  peeks and detail pages alike.
-- **Money in inputs** (`formatMoneyInput` / `parseMoneyInput`): decimal comma, no grouping,
-  øre only when there are any: `1000`, `249,50`. Typing `1 000`, `1000.5` or `500 kr` is
-  accepted.
-- **Chart axes**: compact from 1 000 up (`7,5k`, `15k`, `1,2M`); tooltips use the money rule.
+- **Money** has two precisions, chosen by context, never by value (`formatMoney` /
+  `Money precision`):
+  - **Exact** (the default): always two decimals, `1 500,00 kr`, `0,30 kr`, `0,00 kr`. Tables,
+    record and detail fields, inputs, statements, confirmations, and anything right-aligned:
+    with tabular figures the decimal commas line up.
+  - **Whole** kroner, rounded: `1 500 kr`. Only for aggregates meant to be glanced at: `Stat`
+    (its default, value and hint), chart axes and tooltips, overview headlines (Home,
+    Analysis). A statement's balances stay exact even in a `Stat` (`precision="exact"`).
+  - Never mix the two within one table or column. A missing amount is `–` everywhere.
+- **Money in inputs** (`formatMoneyInput` / `parseMoneyInput`): decimal comma, no grouping, two
+  decimals: `1000,00`, `249,50`; `MoneyInput` rewrites a valid entry that way on blur. Typing
+  `1 000`, `1000.5` or `500 kr` is accepted. CSV exports keep their own formats.
+- **Chart axes**: compact from 1 000 up (`7,5k`, `15k`, `1,2M`); tooltips use whole kroner.
 - **Dates and times** are Oslo time (`Europe/Oslo`), whatever the browser's zone: `24.10.2026`,
   `24.10.2026 14:05`. A day the API sends as `YYYY-MM-DD` is that day. Filters and forms hold
   days as `YYYY-MM-DD` and send them to the API as they are; the API reads a plain date as the

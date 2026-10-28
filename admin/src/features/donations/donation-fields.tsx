@@ -9,7 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatMoneyInput } from "@/lib/format";
 import type { DataOwner, PaymentMethod } from "./api";
+import { parseMoneyInput } from "./form";
 
 export type DonationFieldValues = {
   sum: string;
@@ -28,7 +30,10 @@ export type DonationFieldErrors = Partial<
   >
 >;
 
-/** An amount in kroner: decimal keyboard, tabular digits, "kr" suffix. */
+/**
+ * An amount in kroner: decimal keyboard, tabular digits, "kr" suffix. On blur a valid amount
+ * is rewritten with two decimals ("500" → "500,00"), like every exact amount.
+ */
 export function MoneyInput({
   value,
   onChange,
@@ -46,6 +51,11 @@ export function MoneyInput({
         autoComplete="off"
         className="num pr-8 text-right"
         onChange={(event) => onChange(event.target.value)}
+        onBlur={() => {
+          const parsed = parseMoneyInput(value);
+          const normalised = parsed == null ? value : formatMoneyInput(parsed);
+          if (normalised !== value) onChange(normalised);
+        }}
       />
       <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-sm text-muted-foreground">
         kr

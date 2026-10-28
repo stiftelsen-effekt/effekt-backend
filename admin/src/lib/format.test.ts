@@ -1,19 +1,12 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatCompact,
-  formatDate,
-  formatMoney,
-  formatMoneyInput,
-  formatNumber,
-  moneyDecimals,
-} from "./format";
+import { formatCompact, formatDate, formatMoney, formatMoneyInput, formatNumber } from "./format";
 
 const nbsp = /[  ]/g;
 const plain = (value: string) => value.replace(nbsp, " ").replace("−", "-");
 
 describe("formatMoney", () => {
   it("formats NOK with grouping and kr", () => {
-    expect(plain(formatMoney(1234567))).toBe("1 234 567 kr");
+    expect(plain(formatMoney(1234567))).toBe("1 234 567,00 kr");
   });
 
   it("supports decimals and negative values", () => {
@@ -22,17 +15,38 @@ describe("formatMoney", () => {
 
   it("renders a dash for missing values", () => {
     expect(formatMoney(null)).toBe("–");
+    expect(formatMoney(null, { precision: "whole" })).toBe("–");
     expect(formatNumber(undefined)).toBe("–");
   });
 });
 
 describe("the money rule", () => {
-  it("shows whole kroner without decimals and øre with two", () => {
-    expect(plain(formatMoney("1500.00"))).toBe("1 500 kr");
-    expect(plain(formatMoney(1500))).toBe("1 500 kr");
+  it("shows exact amounts with two decimals, always", () => {
+    expect(plain(formatMoney("1500.00"))).toBe("1 500,00 kr");
+    expect(plain(formatMoney(1500))).toBe("1 500,00 kr");
     expect(plain(formatMoney("1234.5"))).toBe("1 234,50 kr");
     expect(plain(formatMoney("0.30"))).toBe("0,30 kr");
-    expect(plain(formatMoney("0.00"))).toBe("0 kr");
+    expect(plain(formatMoney("0.00"))).toBe("0,00 kr");
+    expect(plain(formatMoney("1500", { currency: false }))).toBe("1 500,00");
+  });
+
+  it("rounds glanceable amounts to whole kroner, half away from zero", () => {
+    expect(plain(formatMoney("1500.00", { precision: "whole" }))).toBe("1 500 kr");
+    expect(plain(formatMoney("1234.50", { precision: "whole" }))).toBe("1 235 kr");
+    expect(plain(formatMoney("1234.49", { precision: "whole" }))).toBe("1 234 kr");
+    expect(plain(formatMoney("-0.50", { precision: "whole" }))).toBe("-1 kr");
+    expect(plain(formatMoney("90071992547409.93", { precision: "whole" }))).toBe(
+      "90 071 992 547 410 kr",
+    );
+  });
+
+  it("gives every value in a column the same number of decimals", () => {
+    const column = ["1500", "1234.5", "0.3", "-12"].map((value) => plain(formatMoney(value)));
+    expect(column.every((text) => /,\d\d kr$/.test(text))).toBe(true);
+    const glance = ["1500", "1234.5", "0.3"].map((value) =>
+      plain(formatMoney(value, { precision: "whole" })),
+    );
+    expect(glance.some((text) => text.includes(","))).toBe(false);
   });
 
   it("formats the same value the same way whatever its input form", () => {
@@ -41,16 +55,9 @@ describe("the money rule", () => {
     expect(formatMoney("1234.50")).toBe(formatMoney(1234.5));
   });
 
-  it("never rounds øre away", () => {
-    // An average of 1234.50 must not read as 1 235 kr next to a sum with øre.
-    expect(plain(formatMoney("1234.50"))).not.toBe("1 235 kr");
-    expect(moneyDecimals("1234.50")).toBe(2);
-    expect(moneyDecimals("1234.00")).toBe(0);
-    expect(moneyDecimals(null)).toBe(0);
-  });
-
-  it("writes form inputs with the decimal comma and without grouping", () => {
-    expect(formatMoneyInput("1000.00")).toBe("1000");
+  it("writes form inputs with the decimal comma, two decimals and no grouping", () => {
+    expect(formatMoneyInput("1000.00")).toBe("1000,00");
+    expect(formatMoneyInput(1000)).toBe("1000,00");
     expect(formatMoneyInput("249.5")).toBe("249,50");
     expect(formatMoneyInput(null)).toBe("");
   });

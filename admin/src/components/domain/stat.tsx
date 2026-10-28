@@ -1,6 +1,7 @@
 import { ArrowDownRightIcon, ArrowUpRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { SkeletonText } from "@/components/ui/skeleton";
+import { MoneyPrecisionProvider } from "./format";
 import { formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +70,9 @@ export function Stat({
   return (
     <div data-slot="stat" className={cn("grid content-start gap-1 px-4 py-3", className)}>
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="num text-xl font-semibold tracking-tight">{value}</span>
+      <span className="num text-xl font-semibold tracking-tight">
+        <MoneyPrecisionProvider precision="whole">{value}</MoneyPrecisionProvider>
+      </span>
       {(delta !== undefined || hint) && (
         <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
           {delta !== undefined && (
@@ -82,8 +85,10 @@ export function Stat({
               {formatPercent(Math.abs(delta), { decimals: 0 })}
             </span>
           )}
-          {deltaLabel}
-          {hint}
+          <MoneyPrecisionProvider precision="whole">
+            {deltaLabel}
+            {hint}
+          </MoneyPrecisionProvider>
         </span>
       )}
     </div>

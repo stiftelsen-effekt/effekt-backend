@@ -275,15 +275,22 @@ function Statement({ organizationId }: { organizationId: number }) {
         // its height. A new period dims the current figures instead.
         <Updating active={updating}>
           {s ? (
+            // A statement: balances reconcile to the øre, so these stay exact.
             <StatGroup>
-              <Stat label="Opening balance" value={<Money value={s.openingBalance} signed />} />
-              <Stat label="In" value={<Money value={inflow} />} />
-              <Stat label="Out" value={<Money value={outflow} signed />} />
-              <Stat label="Closing balance" value={<Money value={s.closingBalance} signed />} />
+              <Stat
+                label="Opening balance"
+                value={<Money precision="exact" value={s.openingBalance} signed />}
+              />
+              <Stat label="In" value={<Money precision="exact" value={inflow} />} />
+              <Stat label="Out" value={<Money precision="exact" value={outflow} signed />} />
+              <Stat
+                label="Closing balance"
+                value={<Money precision="exact" value={s.closingBalance} signed />}
+              />
               <Stat
                 label="Committed"
                 hint="Approved, not yet paid"
-                value={<Money value={committed} />}
+                value={<Money precision="exact" value={committed} />}
               />
             </StatGroup>
           ) : (

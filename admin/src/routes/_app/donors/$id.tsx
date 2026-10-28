@@ -425,7 +425,9 @@ function Donor({ donorId }: { donorId: number }) {
               label="Excluding operations"
               pending={!totals}
               value={totals && <Money value={totals.excludingOperations} />}
-              hint={totals && `${formatMoney(totals.operations)} to operations`}
+              hint={
+                totals && `${formatMoney(totals.operations, { precision: "whole" })} to operations`
+              }
             />
             <Stat
               label={`In ${thisYear}`}
@@ -445,7 +447,9 @@ function Donor({ donorId }: { donorId: number }) {
               value={activeAgreements.length}
               hint={
                 activeAgreements.length > 0 &&
-                `${formatMoney(sumMoney(activeAgreements.map((a) => a.amount)))} / month`
+                `${formatMoney(sumMoney(activeAgreements.map((a) => a.amount)), {
+                  precision: "whole",
+                })} / month`
               }
             />
           </StatGroup>

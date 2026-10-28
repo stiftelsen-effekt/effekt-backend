@@ -1,7 +1,9 @@
+import { createContext, useContext } from "react";
 import type * as React from "react";
 import {
   formatDate,
   formatMoney,
+  type MoneyPrecision,
   formatNumber,
   formatPercent,
   toDate,
@@ -12,16 +14,34 @@ import { cn } from "@/lib/utils";
 
 type SpanProps = Omit<React.ComponentProps<"span">, "children">;
 
+const MoneyPrecisionContext = createContext<MoneyPrecision>("exact");
+
+/**
+ * Sets the default precision for every `Money` inside: `Stat` wraps its value in `whole`, so
+ * headline figures round to kroner without each call site choosing.
+ */
+export function MoneyPrecisionProvider({
+  precision,
+  children,
+}: {
+  precision: MoneyPrecision;
+  children: React.ReactNode;
+}) {
+  return <MoneyPrecisionContext value={precision}>{children}</MoneyPrecisionContext>;
+}
+
 /**
  * The only way to show an amount of money, in NOK. Digits are tabular so columns line up,
- * and negatives are red only when `signed`. Decimals follow the money rule (`formatMoney`):
- * whole kroner without øre, two decimals when there are øre. Missing amounts are "–".
- * API amounts are decimal strings; pass them straight in (formatted exactly, never via float).
+ * and negatives are red only when `signed`. `precision` follows the money rule
+ * (`formatMoney`): `exact` (two decimals, the default) for tables, fields and anything
+ * right-aligned; `whole` kroner for glanceable aggregates (inside `Stat` it is the default).
+ * Missing amounts are "–". API amounts are decimal strings; pass them straight in.
  */
 export function Money({
   value,
   currency = true,
   signed = false,
+  precision,
   className,
   ...props
 }: SpanProps & {
@@ -29,7 +49,10 @@ export function Money({
   currency?: boolean;
   /** Show + / − and colour negatives (refunds, corrections). */
   signed?: boolean;
+  /** Defaults to the surrounding `MoneyPrecisionProvider`, else `exact`. */
+  precision?: MoneyPrecision;
 }) {
+  const inherited = useContext(MoneyPrecisionContext);
   const amount = toMoneyString(value);
   const sign = amount == null ? 0 : moneySign(amount);
   return (
@@ -39,7 +62,7 @@ export function Money({
       {...props}
     >
       {signed && sign > 0 ? "+" : ""}
-      {formatMoney(amount, { currency })}
+      {formatMoney(amount, { currency, precision: precision ?? inherited })}
     </span>
   );
 }

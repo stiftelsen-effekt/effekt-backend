@@ -65,7 +65,7 @@ const lookups = {
 describe("donation edit", () => {
   it("starts unchanged and valid", () => {
     const draft = editDraftFromDonation(donation, config);
-    expect(draft).toMatchObject({ sum: "500", date: "2026-03-05", time: "14:30" });
+    expect(draft).toMatchObject({ sum: "500,00", date: "2026-03-05", time: "14:30" });
     expect(validateEdit(draft, donation)).toEqual({});
     expect(editChanges(donation, draft, lookups)).toEqual({ input: { id: 7 }, changes: [] });
   });

@@ -21,27 +21,27 @@ function numberFormat(options: Intl.NumberFormatOptions) {
 }
 
 /**
- * Fraction digits for an amount, by the one money rule (DESIGN.md › Numbers): whole kroner
- * have none, anything with øre has two. So 1500 is "1 500 kr", 1234.5 is "1 234,50 kr" and
- * 0.3 is "0,30 kr" – the same value always reads the same, wherever it is.
+ * How an amount is shown (DESIGN.md › Money):
+ * - `exact` (the default): always two decimals, `1 500,00 kr`. Tables, record fields, inputs,
+ *   statements, confirmations: anything read as a figure or scanned in a right-aligned column.
+ * - `whole`: rounded to whole kroner, `1 500 kr`. Aggregates meant to be glanced at: stat
+ *   cards, chart axes and tooltips, overview headline figures.
+ * Never mix the two within one table or column.
  */
-export function moneyDecimals(value: MoneyInput | null | undefined): 0 | 2 {
-  const amount = toMoneyString(value);
-  return amount != null && !amount.endsWith(".00") ? 2 : 0;
-}
+export type MoneyPrecision = "exact" | "whole";
 
 /**
- * Amounts as numbers or as the API's decimal strings, by the money rule above. Strings are
- * formatted exactly (Intl takes decimal strings), so "12345678901234.56" doesn't pick up
- * float error. Missing amounts are "–".
+ * Amounts as numbers or as the API's decimal strings. Strings are formatted exactly (Intl
+ * takes decimal strings), so "12345678901234.56" doesn't pick up float error. Missing
+ * amounts are "–".
  */
 export function formatMoney(
   value: MoneyInput | null | undefined,
-  { currency = true }: { currency?: boolean } = {},
+  { currency = true, precision = "exact" }: { currency?: boolean; precision?: MoneyPrecision } = {},
 ) {
   const amount = toMoneyString(value);
   if (amount == null) return "–";
-  const decimals = moneyDecimals(amount);
+  const decimals = precision === "whole" ? 0 : 2;
   return numberFormat({
     style: currency ? "currency" : "decimal",
     currency: currencyCode,
@@ -52,13 +52,14 @@ export function formatMoney(
 }
 
 /**
- * An amount as the text of a form input: Norwegian decimal comma, no grouping, øre only when
- * there are any ("1000", "249,50"). `parseMoneyInput` reads it back. Empty for nothing.
+ * An amount as the text of a form input: Norwegian decimal comma, no grouping, always two
+ * decimals like every exact amount ("1000,00", "249,50"). `parseMoneyInput` reads it back.
+ * Empty for nothing.
  */
 export function formatMoneyInput(value: MoneyInput | null | undefined): string {
   const amount = toMoneyString(value);
   if (amount == null) return "";
-  return amount.endsWith(".00") ? amount.slice(0, -3) : amount.replace(".", ",");
+  return amount.replace(".", ",");
 }
 
 export function formatNumber(
