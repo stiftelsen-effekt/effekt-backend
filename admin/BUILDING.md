@@ -54,22 +54,30 @@ local database are fine.
 
 ## Testing while you work
 
-Run the gate once, at the end, not after every change:
+Run the gate once, at the end, not after every change. When you're done editing, start it as a
+background command, write your report while it runs, and if it fails fix the problem and re-run
+only what failed:
 
 ```sh
-pnpm gate                               # in admin/: typecheck, Vitest, interaction + visual
+pnpm gate                               # in admin/: typecheck, Vitest, interaction + visual (background it)
 pnpm exec playwright test --last-failed # after a failure: only the tests that failed
 ```
 
 The axe scans (`pnpm test:a11y`, about two minutes) aren't part of the gate. Run them only when
 you change a shared component's markup.
 
+Typecheck is incremental: with no change, a repeat `pnpm typecheck` takes about a second.
+
+Each checkout has its own dev-server port (4400–4999, derived from the directory; `PW_PORT`
+overrides it). Playwright starts a server there if none is running. For repeated runs, start it
+once in the background with `pnpm pw:serve`, and Playwright reuses it (outside CI).
+
 While iterating, run only what your change touches:
 
 - `pnpm exec vitest run src/lib/money` — the unit tests for one area (about 2 s).
 - `pnpm exec playwright test tests/interaction/donors.spec.ts` or `--grep "review queue"` — one
   spec, not a whole project. Pass several projects to one `playwright test` call rather than one
-  call per project: each call starts its own Vite server.
+  call per project: without `pw:serve`, each call starts its own Vite server.
 - `pnpm exec playwright test --only-changed=<base branch>` — the specs whose files (or imports)
   changed since the branch point.
 - Playwright already runs files in parallel (one browser per worker, a fresh context per test).

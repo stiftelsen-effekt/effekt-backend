@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { devPort } from "./scripts/dev-port.mjs";
 
 /**
  * Stability tooling for the design system. Runs against /design, which needs neither the
@@ -11,9 +12,9 @@ import { defineConfig, devices } from "@playwright/test";
  * Baselines are per platform (the file names end in -darwin / -linux). CI should run in the
  * official Playwright Docker image and keep its own linux baselines.
  */
-// Each checkout can pick its own port (PW_PORT) so parallel worktrees never test each other's
-// dev server. An already running server is only reused when PW_REUSE_SERVER=1.
-const port = Number(process.env.PW_PORT ?? 4173);
+// Each checkout has its own port (scripts/dev-port.mjs; PW_PORT overrides). A server already
+// listening there is reused outside CI, so `pnpm pw:serve` in the background makes runs faster.
+const port = devPort();
 
 export default defineConfig({
   testDir: "tests",
@@ -50,7 +51,7 @@ export default defineConfig({
   webServer: {
     command: `pnpm exec vite --port ${port} --strictPort`,
     url: `http://localhost:${port}/design`,
-    reuseExistingServer: process.env.PW_REUSE_SERVER === "1",
+    reuseExistingServer: !process.env.CI,
     env: { VITE_AUTH_MODE: "dev", VITE_API_URL: "http://localhost:5999" },
     timeout: 60_000,
   },

@@ -11,6 +11,7 @@
     "build": "vite build",
     "build:preview": "vite build --mode preview",
     "preview": "vite preview",
+    "pw:serve": "node scripts/pw-serve.mjs",
     "types:api": "pnpm --dir .. build:types",
     "typecheck": "pnpm types:api && tsr generate && tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "test": "vitest run",
