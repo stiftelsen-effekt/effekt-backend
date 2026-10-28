@@ -30,6 +30,7 @@ import { regranting } from "./DAO_modules/regranting";
 import { analysis } from "./DAO_modules/analysis";
 import { pledges } from "./DAO_modules/pledges";
 import { regrantingTrace } from "./DAO_modules/regrantingTrace";
+import { paymentIntents } from "./DAO_modules/paymentIntents";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -89,6 +90,7 @@ export const DAO = {
   analysis: analysis,
   pledges: pledges,
   regrantingTrace: regrantingTrace,
+  paymentIntents: paymentIntents,
 
   dbPool: undefined as mysql.Pool | undefined,
 

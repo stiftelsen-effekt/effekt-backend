@@ -116,6 +116,30 @@ export const activeStatus = define({
   },
 });
 
+/**
+ * Payment intents (what a donor said they'd give in the donation widget), as `intents.*`
+ * decides them: received when the donor has a donation on or after the intent's day, the
+ * same rule the follow-up email job uses (DAO_modules/paymentIntents.ts).
+ */
+export const intentStatus = define({
+  awaiting: {
+    label: "Awaiting payment",
+    tone: "warning",
+    description: "No donation from the donor since they said they'd give",
+  },
+  received: {
+    label: "Received",
+    tone: "success",
+    description: "The donor has given on or after the day they said they would",
+  },
+  expired: {
+    label: "Not received",
+    tone: "neutral",
+    description: "Nothing arrived within 30 days",
+  },
+});
+export type IntentStatus = keyof typeof intentStatus;
+
 /** Donors.trash: test data, spam and duplicates kept out of the way. */
 export const donorStatus = define({
   trash: {

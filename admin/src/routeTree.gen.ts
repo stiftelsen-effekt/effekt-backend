@@ -41,6 +41,7 @@ import { Route as AppDonorsIdRouteImport } from './routes/_app/donors/$id'
 import { Route as AppFundraisersIndexRouteImport } from './routes/_app/fundraisers/index'
 import { Route as AppFundraisersIdRouteImport } from './routes/_app/fundraisers/$id'
 import { Route as AppImportIndexRouteImport } from './routes/_app/import/index'
+import { Route as AppIntentsIndexRouteImport } from './routes/_app/intents/index'
 import { Route as AppLogsIndexRouteImport } from './routes/_app/logs/index'
 import { Route as AppLogsIdRouteImport } from './routes/_app/logs/$id'
 import { Route as AppRegrantingIndexRouteImport } from './routes/_app/regranting/index'
@@ -218,6 +219,11 @@ const AppImportIndexRoute = AppImportIndexRouteImport.update({
   path: '/import/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppIntentsIndexRoute = AppIntentsIndexRouteImport.update({
+  id: '/intents/',
+  path: '/intents/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLogsIndexRoute = AppLogsIndexRouteImport.update({
   id: '/logs/',
   path: '/logs/',
@@ -345,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/donors/': typeof AppDonorsIndexRoute
   '/fundraisers/': typeof AppFundraisersIndexRoute
   '/import/': typeof AppImportIndexRoute
+  '/intents/': typeof AppIntentsIndexRoute
   '/logs/': typeof AppLogsIndexRoute
   '/regranting/': typeof AppRegrantingIndexRoute
   '/agreements/$provider/$id': typeof AppAgreementsProviderIdRoute
@@ -393,6 +400,7 @@ export interface FileRoutesByTo {
   '/donors': typeof AppDonorsIndexRoute
   '/fundraisers': typeof AppFundraisersIndexRoute
   '/import': typeof AppImportIndexRoute
+  '/intents': typeof AppIntentsIndexRoute
   '/logs': typeof AppLogsIndexRoute
   '/regranting': typeof AppRegrantingIndexRoute
   '/agreements/$provider/$id': typeof AppAgreementsProviderIdRoute
@@ -445,6 +453,7 @@ export interface FileRoutesById {
   '/_app/donors/': typeof AppDonorsIndexRoute
   '/_app/fundraisers/': typeof AppFundraisersIndexRoute
   '/_app/import/': typeof AppImportIndexRoute
+  '/_app/intents/': typeof AppIntentsIndexRoute
   '/_app/logs/': typeof AppLogsIndexRoute
   '/_app/regranting/': typeof AppRegrantingIndexRoute
   '/_app/agreements/$provider/$id': typeof AppAgreementsProviderIdRoute
@@ -497,6 +506,7 @@ export interface FileRouteTypes {
     | '/donors/'
     | '/fundraisers/'
     | '/import/'
+    | '/intents/'
     | '/logs/'
     | '/regranting/'
     | '/agreements/$provider/$id'
@@ -545,6 +555,7 @@ export interface FileRouteTypes {
     | '/donors'
     | '/fundraisers'
     | '/import'
+    | '/intents'
     | '/logs'
     | '/regranting'
     | '/agreements/$provider/$id'
@@ -596,6 +607,7 @@ export interface FileRouteTypes {
     | '/_app/donors/'
     | '/_app/fundraisers/'
     | '/_app/import/'
+    | '/_app/intents/'
     | '/_app/logs/'
     | '/_app/regranting/'
     | '/_app/agreements/$provider/$id'
@@ -842,6 +854,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppImportIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/intents/': {
+      id: '/_app/intents/'
+      path: '/intents'
+      fullPath: '/intents/'
+      preLoaderRoute: typeof AppIntentsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/logs/': {
       id: '/_app/logs/'
       path: '/logs'
@@ -1014,6 +1033,7 @@ interface AppRouteChildren {
   AppDonorsIndexRoute: typeof AppDonorsIndexRoute
   AppFundraisersIndexRoute: typeof AppFundraisersIndexRoute
   AppImportIndexRoute: typeof AppImportIndexRoute
+  AppIntentsIndexRoute: typeof AppIntentsIndexRoute
   AppLogsIndexRoute: typeof AppLogsIndexRoute
   AppAgreementsProviderIdRoute: typeof AppAgreementsProviderIdRoute
   AppDonationsIdEditRoute: typeof AppDonationsIdEditRoute
@@ -1044,6 +1064,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDonorsIndexRoute: AppDonorsIndexRoute,
   AppFundraisersIndexRoute: AppFundraisersIndexRoute,
   AppImportIndexRoute: AppImportIndexRoute,
+  AppIntentsIndexRoute: AppIntentsIndexRoute,
   AppLogsIndexRoute: AppLogsIndexRoute,
   AppAgreementsProviderIdRoute: AppAgreementsProviderIdRoute,
   AppDonationsIdEditRoute: AppDonationsIdEditRoute,
