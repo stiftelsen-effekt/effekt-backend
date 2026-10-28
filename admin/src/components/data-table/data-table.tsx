@@ -168,7 +168,9 @@ export function DataTable<TData extends RowData>({
     columns: allColumns,
     data: data ?? (emptyRows as TData[]),
     getRowId,
-    manualSorting: true,
+    // Server-sorted lists pass onSortingChange; anything else (a donor's donations, a
+    // round's lines) has all its rows here and sorts them itself.
+    manualSorting: Boolean(onSortingChange),
     enableRowSelection: selectable,
     state: {
       sorting: sortingState,

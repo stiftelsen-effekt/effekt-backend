@@ -54,6 +54,22 @@ describe("DataTable", () => {
     expect(onSortingChange).toHaveBeenCalledWith([{ id: "name", desc: false }]);
   });
 
+  it("sorts its own rows when there's no server-side sorting", async () => {
+    renderTable();
+    const names = () =>
+      screen
+        .getAllByRole("row")
+        .slice(1)
+        .map((row) => within(row).getAllByRole("cell")[1]?.textContent);
+    const amount = screen.getByRole("button", { name: "Amount" });
+    await userEvent.click(amount);
+    const first = names();
+    await userEvent.click(amount);
+    const second = names();
+    expect([first, second]).toContainEqual(["Grace", "Ada", "Linus"]);
+    expect([first, second]).toContainEqual(["Linus", "Ada", "Grace"]);
+  });
+
   it("opens a row on click, Enter and Space when there is no panel host", async () => {
     const onRowOpen = vi.fn();
     renderTable({ onRowOpen });

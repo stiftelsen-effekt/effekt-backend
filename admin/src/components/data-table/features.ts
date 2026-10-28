@@ -1,8 +1,10 @@
 import {
   columnVisibilityFeature,
   createColumnHelper,
+  createSortedRowModel,
   rowSelectionFeature,
   rowSortingFeature,
+  sortFns,
   tableFeatures,
   type ColumnDef,
   type RowData,
@@ -43,6 +45,9 @@ export const dataTableFeatures = tableFeatures({
   rowSortingFeature,
   columnVisibilityFeature,
   rowSelectionFeature,
+  // Tables without server sorting (onSortingChange) sort their rows here.
+  sortedRowModel: createSortedRowModel(),
+  sortFns,
   columnMeta: {} as DataTableColumnMeta,
 });
 
