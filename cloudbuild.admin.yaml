@@ -1,7 +1,8 @@
 # Builds the admin (admin/) and publishes it to its bucket behind the effekt-load-balancer.
 # Trigger: push to master touching admin/**, src/trpc/**, pnpm-lock.yaml or this file.
 # Substitutions (set on the trigger): _BUCKET, _API_URL, _AUTH_DOMAIN, _AUTH_CLIENT_ID, _AUTH_AUDIENCE,
-# _FEATURE_REGRANTING ("false" hides Regranting until the historical data is backfilled)
+# _FEATURE_REGRANTING ("false" hides Regranting), _REGRANTING_BACKFILLED ("false" shows a notice
+# on the regranting pages that past rounds aren't imported yet)
 steps:
   - id: install
     name: "node:24.22.1"
@@ -31,6 +32,7 @@ steps:
       - "VITE_AUTH_CLIENT_ID=${_AUTH_CLIENT_ID}"
       - "VITE_AUTH_AUDIENCE=${_AUTH_AUDIENCE}"
       - "VITE_FEATURE_REGRANTING=${_FEATURE_REGRANTING}"
+      - "VITE_REGRANTING_BACKFILLED=${_REGRANTING_BACKFILLED}"
     args: ["-c", "corepack enable && pnpm --dir admin build"]
 
   # Hashed assets are immutable; index.html must always be revalidated so a deploy takes effect
@@ -65,4 +67,5 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _FEATURE_REGRANTING: "false"
+  _FEATURE_REGRANTING: "true"
+  _REGRANTING_BACKFILLED: "false"

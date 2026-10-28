@@ -21,8 +21,9 @@ export const config = {
     devTokenUrl: env.VITE_DEV_AUTH_TOKEN_URL || "/dev-auth/effekt/token",
   },
   features: {
-    // Off in production until historical rounds and transfers are backfilled: with empty
-    // regranting tables every donation ever received would show as owed.
     regranting: env.VITE_FEATURE_REGRANTING !== "false",
+    // Until historical rounds and transfers are imported, every donation ever received shows
+    // as owed; the regranting pages say so.
+    regrantingBackfilled: env.VITE_REGRANTING_BACKFILLED !== "false",
   },
 } as const;
