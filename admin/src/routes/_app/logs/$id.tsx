@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useRecordParams } from "@/components/panels";
 import { DownloadIcon, FileXIcon } from "lucide-react";
 import { CopyValue } from "@/components/domain/copy-value";
 import { EmptyState } from "@/components/domain/empty-state";
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/_app/logs/$id")({
 const breadcrumbs = [{ label: "Import log", to: "/logs" }];
 
 function ImportLogEntryPage() {
-  const { id } = Route.useParams();
+  const { id } = useRecordParams(Route);
   const logId = Number(id);
   const trpc = useTRPC();
   const entry = useQuery({

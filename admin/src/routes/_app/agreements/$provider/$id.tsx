@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, type LinkProps } from "@tanstack/react-router";
+import { useRecordParams } from "@/components/panels";
 import { ArrowUpRightIcon, RotateCwIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { createColumns, DataTable } from "@/components/data-table";
@@ -71,7 +72,7 @@ const AVTALEGIRO_MAX_NOK = 21_474_836;
 const breadcrumbs = [{ label: "Agreements", to: "/agreements" }];
 
 function AgreementPage() {
-  const { provider, id } = Route.useParams();
+  const { provider, id } = useRecordParams(Route);
   if (!(listProviders as readonly string[]).includes(provider)) {
     return (
       <DetailPage breadcrumbs={breadcrumbs} title="Agreement">

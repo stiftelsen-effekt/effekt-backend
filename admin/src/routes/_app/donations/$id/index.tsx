@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useRecordParams } from "@/components/panels";
 import { MailIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { CopyValue } from "@/components/domain/copy-value";
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/_app/donations/$id/")({
 const breadcrumbs = [{ label: "Donations", to: "/donations" }];
 
 function DonationPage() {
-  const { id: rawId } = Route.useParams();
+  const { id: rawId } = useRecordParams(Route);
   const id = Number(rawId);
   const trpc = useTRPC();
   const queryClient = useQueryClient();

@@ -18,6 +18,7 @@ import {
   type ReactNode,
 } from "react";
 import { EmptyState } from "@/components/domain/empty-state";
+import { usePanels } from "@/components/panels/panel-host";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SkeletonText } from "@/components/ui/skeleton";
@@ -76,12 +77,12 @@ export type DataTableProps<TData extends RowData> = {
   /** Actions for the selected rows, shown in the footer while anything is selected. */
   selectionActions?: (selectedIds: string[]) => ReactNode;
 
-  /** Go to the row's full page. Enter, or click when there is no peek. */
+  /**
+   * Click, Enter or Space. When the row's href is a record page that opens as a panel
+   * (components/panels), the panel opens instead and this isn't called.
+   */
   onRowOpen?: (row: TData, event: MouseEvent | KeyboardEvent) => void;
-  /** Quick look. Click and Space. While a row is peeked, moving the cursor moves the peek. */
-  onRowPeek?: (row: TData) => void;
-  peekedRowId?: string | null;
-  /** ⌘/Ctrl-click and middle-click open this in a new tab. */
+  /** The row's page: opens as a panel when it can, ⌘/Ctrl- and middle-click open a new tab. */
   getRowHref?: (row: TData) => string;
   /** Listen for j/k on the whole page (the page's main table only). */
   pageHotkeys?: boolean;
@@ -117,7 +118,8 @@ const ROW_INTENT_MS = 100;
 
 /**
  * The list table. Server-side sort and paging, sticky header, density-aware rows, keyboard
- * navigation (↑/↓ or j/k, Enter opens, Space peeks, x selects), optional peek and selection.
+ * navigation (↑/↓ or j/k, Enter/Space/click opens, x selects), optional selection. Rows whose
+ * href is a record page open it as a panel over the page (components/panels).
  * Fills its container's height and scrolls inside it.
  */
 export function DataTable<TData extends RowData>({
@@ -139,8 +141,6 @@ export function DataTable<TData extends RowData>({
   onRowSelectionChange,
   selectionActions,
   onRowOpen,
-  onRowPeek,
-  peekedRowId,
   getRowHref,
   pageHotkeys = false,
   summary,
@@ -152,7 +152,8 @@ export function DataTable<TData extends RowData>({
   const [cursor, setCursor] = useState(0);
   const bodyRef = useRef<HTMLTableSectionElement>(null);
   const selectable = rowSelection !== undefined && onRowSelectionChange !== undefined;
-  const navigable = Boolean(onRowOpen || onRowPeek);
+  const panels = usePanels();
+  const navigable = Boolean(onRowOpen || (getRowHref && panels));
 
   const allColumns = useMemo<DataTableColumn<TData>[]>(
     () => [...(selectable ? [selectionColumn<TData>()] : []), ...columns, optionsColumn<TData>()],
@@ -212,12 +213,22 @@ export function DataTable<TData extends RowData>({
   useEffect(() => cancelPreload, []);
   const selectedIds = Object.keys(rowSelection ?? {}).filter((id) => rowSelection?.[id]);
 
-  // Keep the cursor on the peeked row, and inside the data when it changes.
+  // The row whose panel is open stays marked, and the cursor on it.
+  const openRowId =
+    panels && panels.entries.length > 0 && getRowHref
+      ? rows.find((row) => panels.isOpen(getRowHref(row.original)))?.id
+      : undefined;
   useEffect(() => {
-    if (peekedRowId == null) return;
-    const index = rows.findIndex((row) => row.id === peekedRowId);
+    if (openRowId == null) return;
+    const index = rows.findIndex((row) => row.id === openRowId);
     if (index >= 0) setCursor(index);
-  }, [peekedRowId, rows]);
+  }, [openRowId, rows]);
+
+  function openRow(row: TData, event: MouseEvent | KeyboardEvent) {
+    const href = getRowHref?.(row);
+    if (href && panels?.open(href)) return;
+    onRowOpen?.(row, event);
+  }
   useEffect(() => {
     setCursor((current) => Math.min(current, Math.max(rows.length - 1, 0)));
   }, [rows.length]);
@@ -231,7 +242,6 @@ export function DataTable<TData extends RowData>({
     element?.scrollIntoView({ block: "nearest" });
     const row = rows[clamped];
     if (row) preloadRow(row.original);
-    if (row && peekedRowId != null && onRowPeek) onRowPeek(row.original);
   }
 
   const focusInside = () => bodyRef.current?.contains(document.activeElement) ?? false;
@@ -264,13 +274,9 @@ export function DataTable<TData extends RowData>({
         focusRow(rows.length - 1);
         break;
       case "Enter":
-        event.preventDefault();
-        (onRowOpen ?? ((r: TData) => onRowPeek?.(r)))(row.original, event);
-        break;
       case " ":
         event.preventDefault();
-        if (onRowPeek) onRowPeek(row.original);
-        else onRowOpen?.(row.original, event);
+        openRow(row.original, event);
         break;
       case "x":
         if (selectable) {
@@ -290,8 +296,14 @@ export function DataTable<TData extends RowData>({
       return;
     }
     setCursor(index);
-    if (onRowPeek) onRowPeek(row.original);
-    else onRowOpen?.(row.original, event);
+    openRow(row.original, event);
+  }
+
+  function onRowAuxClick(event: MouseEvent, row: Row<DataTableFeatures, TData>) {
+    const href = getRowHref?.(row.original);
+    if (event.button !== 1 || !href || (event.target as HTMLElement).closest(interactive)) return;
+    event.preventDefault();
+    window.open(href, "_blank", "noopener");
   }
 
   return (
@@ -382,16 +394,17 @@ export function DataTable<TData extends RowData>({
               </TableRow>
             ) : (
               rows.map((row, index) => {
-                const peeked = peekedRowId != null && row.id === peekedRowId;
+                const open = openRowId != null && row.id === openRowId;
                 return (
                   <TableRow
                     key={row.id}
                     data-row
                     data-state={row.getIsSelected() ? "selected" : undefined}
-                    data-peeked={peeked || undefined}
-                    aria-current={peeked || undefined}
+                    data-open={open || undefined}
+                    aria-current={open || undefined}
                     tabIndex={navigable ? (index === cursor ? 0 : -1) : undefined}
                     onClick={navigable ? (event) => onRowClick(event, row, index) : undefined}
+                    onAuxClick={getRowHref ? (event) => onRowAuxClick(event, row) : undefined}
                     onPointerEnter={getRowHref ? () => preloadRow(row.original) : undefined}
                     onPointerLeave={getRowHref ? cancelPreload : undefined}
                     onKeyDown={navigable ? (event) => onRowKeyDown(event, row, index) : undefined}
@@ -404,7 +417,7 @@ export function DataTable<TData extends RowData>({
                     className={cn(
                       "animate-row-in motion-reduce:animate-none",
                       navigable && "cursor-default focus-ring-inset",
-                      "data-[peeked]:bg-accent-subtle data-[peeked]:shadow-[inset_2px_0_0_var(--accent)]",
+                      "data-[open]:bg-accent-subtle data-[open]:shadow-[inset_2px_0_0_var(--accent)]",
                     )}
                   >
                     {row.getVisibleCells().map((cell) => {

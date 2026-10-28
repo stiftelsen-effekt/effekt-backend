@@ -1,12 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate, type LinkProps } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { DownloadIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/components/data-table";
-import { CopyValue } from "@/components/domain/copy-value";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
-import { Property, PropertyList } from "@/components/domain/property-list";
 import {
   BooleanFilter,
   ChoiceFilter,
@@ -18,7 +16,7 @@ import {
   useListState,
   ListEmpty,
 } from "@/components/filters";
-import { ListPage, PeekPanel } from "@/components/templates";
+import { ListPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import { CreateDonorDialog } from "@/features/donors/create-donor-dialog";
 import {
@@ -33,9 +31,6 @@ import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
 import { nextPage, usePageQuery } from "@/lib/query";
 import { useTRPC } from "@/lib/trpc";
-import { Updating } from "@/components/ui/pending";
-import { SkeletonText } from "@/components/ui/skeleton";
-import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
 export const Route = createFileRoute("/_app/donors/")({
   validateSearch: donorsList.validateSearch,
@@ -96,7 +91,6 @@ function DonorsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const list = useListState(donorsList);
-  const [peekId, setPeekId] = useState<number | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const filter = toDonorFilter(list.filters);
@@ -116,7 +110,6 @@ function DonorsPage() {
   const referralTypes = useQuery(trpc.config.referralTypes.listAll.queryOptions());
 
   const rows = query.data?.rows;
-  const peeked = peekId != null ? rows?.find((row) => row.id === peekId) : undefined;
   const stats = query.data?.statistics;
 
   async function exportCsv() {
@@ -194,18 +187,6 @@ function DonorsPage() {
           />
         </FilterBar>
       }
-      peek={
-        peeked && (
-          <PeekPanel
-            title={peeked.name || peeked.email}
-            subtitle={`Donor #${peeked.id} · ${peeked.email}`}
-            href={`/donors/${peeked.id}`}
-            onClose={() => setPeekId(null)}
-          >
-            <DonorPeek donor={peeked} inPeriod={Boolean(list.filters.donated)} />
-          </PeekPanel>
-        )
-      }
     >
       {query.isError ? (
         <div className="px-4 sm:px-6">
@@ -225,9 +206,7 @@ function DonorsPage() {
           isFetching={query.isFetching}
           getRowId={(row) => String(row.id)}
           {...list.tableState}
-          onRowPeek={(row) => setPeekId(row.id)}
           onRowOpen={(row) => void navigate({ to: "/donors/$id", params: { id: String(row.id) } })}
-          peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/donors/${row.id}`}
           pageHotkeys
           empty={
@@ -258,74 +237,5 @@ function DonorsPage() {
         />
       )}
     </ListPage>
-  );
-}
-
-/** With "Donated between", the row's totals cover only the period. */
-function DonorPeek({ donor, inPeriod }: { donor: DonorListRow; inPeriod: boolean }) {
-  const trpc = useTRPC();
-  // j/k moves the peek: the previous donor's donations stay (dimmed) until the next's are in.
-  const donations = usePageQuery(trpc.donors.donations.queryOptions({ donorId: donor.id }));
-  const recent = [...(donations.data ?? [])]
-    .sort((a, b) => (b.timestamp ?? "").localeCompare(a.timestamp ?? ""))
-    .slice(0, 5);
-
-  return (
-    <>
-      <PropertyList>
-        <Property label={inPeriod ? "Given in period" : "Given in total"}>
-          <Money value={donor.donationsSum} className="font-semibold" />
-        </Property>
-        <Property label={inPeriod ? "Donations in period" : "Donations"}>
-          <Num value={donor.donationsCount} />
-        </Property>
-        <Property label={inPeriod ? "Last in period" : "Last donation"}>
-          <DateTime value={donor.lastDonation} />
-        </Property>
-        <Property label="Registered">
-          <DateTime value={donor.registered} />
-        </Property>
-        <Property label="Newsletter">{donor.newsletter ? "Subscribed" : "Not subscribed"}</Property>
-        <Property label="Donor ID">
-          <CopyValue value={donor.id} prefix="#" label="donor ID" />
-        </Property>
-      </PropertyList>
-      <section className="grid gap-2">
-        <h3 className="text-sm font-semibold">Recent donations</h3>
-        {donations.isPending ? (
-          <ul className="grid text-sm" aria-busy>
-            {[0, 1, 2].map((index) => (
-              <li key={index} className="border-b border-border py-1.5 last:border-b-0">
-                <SkeletonText>00.00.0000 Bank transfer 0 000 kr</SkeletonText>
-              </li>
-            ))}
-          </ul>
-        ) : recent.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No donations yet.</p>
-        ) : (
-          <Updating active={donations.isPlaceholderData}>
-            <ul className="grid text-sm">
-              {recent.map((donation) => (
-                <li
-                  key={donation.id}
-                  className="flex items-center gap-3 border-b border-border py-1.5 last:border-b-0"
-                >
-                  <DateTime value={donation.timestamp} className="text-muted-foreground" />
-                  <span className="min-w-0 flex-1 truncate">
-                    <PaymentMethodName value={donation.paymentMethod} />
-                  </span>
-                  <Link
-                    to={`/donations/${donation.id}` as LinkProps["to"]}
-                    className="rounded-xs font-semibold text-accent hover:underline focus-ring"
-                  >
-                    <Money value={donation.sum} />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </Updating>
-        )}
-      </section>
-    </>
   );
 }

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, type LinkProps } from "@tanstack/react-router";
+import { useRecordParams, useRecordSearch } from "@/components/panels";
 import {
   ArchiveRestoreIcon,
   FlagIcon,
@@ -182,7 +183,7 @@ const agreementColumns = agreementCol.columns([
 ]);
 
 function DonorPage() {
-  const { id } = Route.useParams();
+  const { id } = useRecordParams(Route);
   const donorId = Number(id);
   if (!Number.isInteger(donorId) || donorId <= 0) {
     return (
@@ -201,7 +202,7 @@ function Donor({ donorId }: { donorId: number }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { tab = "donations" } = Route.useSearch();
+  const [{ tab = "donations" }, setSearch] = useRecordSearch(Route);
   const q = donorQueries(trpc, donorId);
 
   const donorQuery = useQuery(q.donor);
@@ -299,11 +300,7 @@ function Donor({ donorId }: { donorId: number }) {
     .join(", ");
 
   const setTab = (next: string) =>
-    void navigate({
-      to: ".",
-      replace: true,
-      search: next === "donations" ? {} : { tab: next as Tab },
-    });
+    setSearch({ tab: next === "donations" ? undefined : (next as Tab) }, { replace: true });
 
   const sortedDonations = [...(donations.data ?? [])].sort((a, b) =>
     (b.timestamp ?? "").localeCompare(a.timestamp ?? ""),

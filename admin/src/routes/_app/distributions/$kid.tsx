@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useRecordParams } from "@/components/panels";
 import { createColumns, DataTable } from "@/components/data-table";
 import { CopyValue } from "@/components/domain/copy-value";
 import { DistributionSummary } from "@/components/domain/distribution-editor";
@@ -60,7 +61,7 @@ const breadcrumbs = [{ label: "Distributions", to: "/distributions" }];
 const maskSsn = (ssn: string) => (ssn.length === 11 ? ssn.replace(/^(\d{6})\d+/, "$1 •••••") : ssn);
 
 function DistributionPage() {
-  const { kid } = Route.useParams();
+  const { kid } = useRecordParams(Route);
   const trpc = useTRPC();
   const navigate = useNavigate();
   const distribution = useQuery(trpc.donations.distributions.get.queryOptions({ kid }));

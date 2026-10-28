@@ -6,10 +6,9 @@ import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/compo
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
-import { Property, PropertyList } from "@/components/domain/property-list";
 import { Status } from "@/components/domain/status";
 import { BooleanFilter, defineList, FilterBar, param, useListState } from "@/components/filters";
-import { ListPage, PeekPanel } from "@/components/templates";
+import { ListPage } from "@/components/templates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
@@ -22,8 +21,6 @@ import {
   type BalanceRow,
 } from "@/features/regranting/balances";
 import { CreateRoundDialog } from "@/features/regranting/create-round-dialog";
-import { recipientLabel } from "@/features/regranting/model";
-import { BalanceBreakdown } from "@/features/regranting/trace";
 import { Flags, RoundLink } from "@/features/regranting/ui";
 import { osloDay, parseIsoDay } from "@/lib/dates";
 import { sumMoney } from "@/lib/money";
@@ -73,7 +70,6 @@ function BalancesPage() {
   const query = usePageQuery(queries.balances);
   const drafts = useQuery(queries.drafts);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const [peekId, setPeekId] = useState<string | null>(null);
 
   const rows = useMemo(
     () =>
@@ -97,7 +93,6 @@ function BalancesPage() {
     });
 
   const columns = useMemo(() => balanceColumns(expanded, toggle), [expanded]);
-  const peeked = rows?.find((row) => row.id === peekId);
   const recipients = query.data?.recipients ?? [];
   const nonFunds = recipients.filter((r) => !r.isFund);
   const draft = drafts.data?.[0];
@@ -176,12 +171,6 @@ function BalancesPage() {
           />
         </FilterBar>
       }
-      peek={
-        peeked &&
-        peeked.kind !== "unassigned" && (
-          <BalancePeek row={peeked} at={at} onClose={() => setPeekId(null)} />
-        )
-      }
     >
       {query.isError ? (
         <div className="px-4 sm:px-6">
@@ -201,7 +190,6 @@ function BalancesPage() {
           getRowId={(row) => row.id}
           sorting={list.tableState.sorting}
           onSortingChange={list.tableState.onSortingChange}
-          onRowPeek={(row) => setPeekId(row.kind === "unassigned" ? null : row.id)}
           onRowOpen={(row) => {
             if (row.kind === "project" && row.project.projectId)
               void navigate({
@@ -214,7 +202,6 @@ function BalancesPage() {
                 params: { organizationId: String(row.recipient.organizationId) },
               });
           }}
-          peekedRowId={peekId}
           getRowHref={(row) =>
             row.kind === "project" && row.project.projectId
               ? `/regranting/projects/${row.project.projectId}`
@@ -385,100 +372,4 @@ function balanceColumns(expanded: ReadonlySet<number>, toggle: (id: number) => v
         ) : null,
     }),
   ]);
-}
-
-function BalancePeek({
-  row,
-  at,
-  onClose,
-}: {
-  row: Exclude<BalanceRow, { kind: "unassigned" }>;
-  at?: string;
-  onClose: () => void;
-}) {
-  const r = row.recipient;
-  const isProject = row.kind === "project" && row.project.projectId > 0;
-  return (
-    <PeekPanel
-      title={row.kind === "project" ? row.project.name : recipientLabel(r)}
-      subtitle={
-        row.kind === "project"
-          ? r.name
-          : r.isFund
-          ? "Own fund"
-          : r.payee
-          ? `Paid via ${r.payee.name}`
-          : "No payee"
-      }
-      href={
-        isProject && row.kind === "project"
-          ? `/regranting/projects/${row.project.projectId}`
-          : `/regranting/recipients/${r.organizationId}`
-      }
-      onClose={onClose}
-      actions={
-        <Button size="sm" asChild>
-          <Link
-            to="/regranting/recipients/$organizationId"
-            params={{ organizationId: String(r.organizationId) }}
-            search={at ? { to: at } : {}}
-          >
-            Statement
-          </Link>
-        </Button>
-      }
-    >
-      <BalanceBreakdown
-        organizationId={r.organizationId}
-        projectId={
-          row.kind === "project"
-            ? row.project.projectId > 0
-              ? row.project.projectId
-              : null
-            : undefined
-        }
-        at={at}
-      />
-      <PropertyList>
-        {row.kind === "recipient" && (
-          <>
-            <Property label="Last transfer">
-              {r.lastTransfer && (
-                <span>
-                  <DateTime value={r.lastTransfer.paidAt} /> ·{" "}
-                  <RoundLink id={r.lastTransfer.roundId}>{r.lastTransfer.roundName}</RoundLink>
-                </span>
-              )}
-            </Property>
-            {r.isFund && (
-              <Property
-                label="Held too long"
-                hint={r.maxHoldDays ? `Older than ${r.maxHoldDays} days` : "No limit set"}
-              >
-                {r.heldTooLong && <Money value={r.heldTooLong} />}
-              </Property>
-            )}
-            <Property label="Fronted, not arrived">
-              <Money value={r.frontedOutstanding} />
-            </Property>
-            <Property label="Hold">{r.hold?.reason}</Property>
-            <Property label="Flags">
-              <Flags flags={recipientFlags(r)} />
-            </Property>
-            <Property label="Projects">
-              <Link
-                to="/regranting/projects"
-                search={{ org: String(r.organizationId) }}
-                className="rounded-xs text-accent hover:underline focus-ring"
-              >
-                {r.projects.length === 0
-                  ? "None with a balance"
-                  : `${r.projects.length} with a balance`}
-              </Link>
-            </Property>
-          </>
-        )}
-      </PropertyList>
-    </PeekPanel>
-  );
 }

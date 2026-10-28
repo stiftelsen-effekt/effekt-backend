@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { DownloadIcon, Undo2Icon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { createColumns, DataTable, TableSummary } from "@/components/data-table";
@@ -20,7 +20,7 @@ import {
   useListState,
   ListEmpty,
 } from "@/components/filters";
-import { ListPage, PeekPanel } from "@/components/templates";
+import { ListPage, RowDialog } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import {
   canRefund,
@@ -94,9 +94,8 @@ const keyOf = (row: ChargeRow) => `${row.agreementID}:${row.chargeID}`;
 function ChargesPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const list = useListState(chargesList);
-  const [peekKey, setPeekKey] = useState<string | null>(null);
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const filter = toChargeFilter(list.filters);
@@ -119,7 +118,7 @@ function ChargesPage() {
   const bins = useMemo(() => chargeHistogramBins(histogram.data ?? []), [histogram.data]);
 
   const rows = query.data?.rows;
-  const peeked = peekKey ? rows?.find((row) => keyOf(row) === peekKey) : undefined;
+  const opened = openKey ? rows?.find((row) => keyOf(row) === openKey) : undefined;
   const stats = query.data?.statistics;
 
   async function exportCsv() {
@@ -173,20 +172,17 @@ function ChargesPage() {
           <TextFilter field="charge" label="Charge ID" />
         </FilterBar>
       }
-      peek={
-        peeked && (
-          <PeekPanel
-            title={`${formatMoney(peeked.amountNOK)} from ${donorOf(peeked)}`}
-            subtitle={`Charge ${peeked.chargeID} · due ${formatDate(peeked.dueDate)}`}
-            href={`/agreements/vipps/${peeked.agreementID}`}
-            onClose={() => setPeekKey(null)}
-            actions={canRefund(peeked) && <RefundChargeDialog charge={peeked} />}
-          >
-            <ChargePeek charge={peeked} />
-          </PeekPanel>
-        )
-      }
     >
+      {opened && (
+        <RowDialog
+          title={`${formatMoney(opened.amountNOK)} from ${donorOf(opened)}`}
+          subtitle={`Charge ${opened.chargeID} · due ${formatDate(opened.dueDate)}`}
+          onClose={() => setOpenKey(null)}
+          actions={canRefund(opened) && <RefundChargeDialog charge={opened} />}
+        >
+          <ChargeDetails charge={opened} />
+        </RowDialog>
+      )}
       {query.isError ? (
         <div className="px-4 sm:px-6">
           <ErrorState
@@ -205,15 +201,8 @@ function ChargesPage() {
           isFetching={query.isFetching}
           getRowId={keyOf}
           {...list.tableState}
-          onRowPeek={(row) => setPeekKey(keyOf(row))}
-          onRowOpen={(row) =>
-            void navigate({
-              to: "/agreements/$provider/$id",
-              params: { provider: "vipps", id: row.agreementID },
-            })
-          }
-          peekedRowId={peekKey}
-          getRowHref={(row) => `/agreements/vipps/${row.agreementID}`}
+          // A charge has no page of its own: its details and Refund open in a dialog.
+          onRowOpen={(row) => setOpenKey(keyOf(row))}
           pageHotkeys
           empty={
             <ListEmpty
@@ -239,7 +228,7 @@ function ChargesPage() {
   );
 }
 
-function ChargePeek({ charge }: { charge: ChargeRow }) {
+function ChargeDetails({ charge }: { charge: ChargeRow }) {
   return (
     <>
       <PropertyList labelWidth="7rem">

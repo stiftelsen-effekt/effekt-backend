@@ -4,10 +4,8 @@ import { DownloadIcon, PlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { CopyValue } from "@/components/domain/copy-value";
-import { DistributionSummary } from "@/components/domain/distribution-editor";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
-import { Property, PropertyList } from "@/components/domain/property-list";
 import {
   DateRangeFilter,
   FilterBar,
@@ -18,13 +16,10 @@ import {
   useListState,
   ListEmpty,
 } from "@/components/filters";
-import { ListPage, PeekPanel } from "@/components/templates";
+import { ListPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
-import { Updating } from "@/components/ui/pending";
-import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { downloadCsv, visiblePaymentMethods } from "@/features/donations/api";
-import { ResendReceiptDialog } from "@/features/donations/resend-receipt";
 import {
   donationsList,
   histogramBins,
@@ -89,7 +84,6 @@ function DonationsPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [peekId, setPeekId] = useState<number | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const filter = toDonationFilter(list.filters);
@@ -196,15 +190,6 @@ function DonationsPage() {
           />
         </FilterBar>
       }
-      peek={
-        peekId != null && (
-          <DonationPeek
-            id={peekId}
-            row={query.data?.rows.find((row) => row.id === peekId)}
-            onClose={() => setPeekId(null)}
-          />
-        )
-      }
     >
       {query.isError ? (
         <ErrorState
@@ -222,11 +207,9 @@ function DonationsPage() {
           isFetching={query.isFetching}
           getRowId={(row) => String(row.id)}
           {...list.tableState}
-          onRowPeek={(row) => setPeekId(row.id)}
           onRowOpen={(row) =>
             void navigate({ to: "/donations/$id", params: { id: String(row.id) } })
           }
-          peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/donations/${row.id}`}
           pageHotkeys
           empty={
@@ -253,109 +236,5 @@ function DonationsPage() {
         />
       )}
     </ListPage>
-  );
-}
-
-const donationPeekLabels = [
-  "Donor",
-  "Email",
-  "Date",
-  "Method",
-  "Fee",
-  "KID",
-  "External ref",
-  "Data owner",
-];
-
-function DonationPeek({
-  id,
-  row,
-  onClose,
-}: {
-  id: number;
-  /** The list row, for the header while the details load. */
-  row: { sum: string; donor: string | null } | undefined;
-  onClose: () => void;
-}) {
-  const trpc = useTRPC();
-  // j/k moves the peek: the previous donation's details stay (dimmed) until the next's are in.
-  const donation = usePageQuery(trpc.donations.get.queryOptions({ id }));
-  const causeAreas = useCauseAreaConfig({ includeInactive: true });
-  const owners = useQuery({ ...trpc.meta.owners.queryOptions(), staleTime: 300_000 });
-  const d = donation.data;
-  const current = d && !donation.isPlaceholderData ? d : undefined;
-  const sum = row?.sum ?? current?.sum;
-  const donor = row?.donor ?? current?.donor;
-
-  return (
-    <PeekPanel
-      title={sum !== undefined ? <Money value={sum} /> : `Donation #${id}`}
-      subtitle={`Donation #${id}${donor ? ` · ${donor}` : ""}`}
-      href={`/donations/${id}`}
-      onClose={onClose}
-      actions={
-        current && <ResendReceiptDialog donationId={current.id} email={current.email} size="sm" />
-      }
-    >
-      {donation.isError ? (
-        <ErrorState error={donation.error} onRetry={() => void donation.refetch()} />
-      ) : !d ? (
-        <PropertyList labelWidth="7rem">
-          {donationPeekLabels.map((label) => (
-            <Property key={label} label={label} pending />
-          ))}
-        </PropertyList>
-      ) : (
-        <Updating active={donation.isPlaceholderData} className="grid content-start gap-6">
-          <PropertyList labelWidth="7rem">
-            <Property label="Donor">
-              <Link
-                to="/donors/$id"
-                params={{ id: String(d.donorId) }}
-                className="font-semibold text-accent hover:underline"
-              >
-                {d.donor}
-              </Link>
-            </Property>
-            <Property label="Email">{d.email}</Property>
-            <Property label="Date">
-              <DateTime value={d.timestamp} format="datetime" />
-            </Property>
-            <Property label="Method">
-              <PaymentMethodName value={d.paymentMethod} />
-            </Property>
-            <Property label="Fee">
-              <Money value={d.transactionCost} />
-            </Property>
-            <Property label="KID">
-              <Link
-                to="/distributions/$kid"
-                params={{ kid: d.KID }}
-                className="num text-accent hover:underline"
-              >
-                {d.KID}
-              </Link>
-            </Property>
-            <Property label="External ref">
-              {d.paymentExternalRef && (
-                <CopyValue value={d.paymentExternalRef} label="external reference" />
-              )}
-            </Property>
-            <Property label="Data owner">
-              {owners.data?.find((o) => o.id === d.metaOwnerId)?.name}
-            </Property>
-          </PropertyList>
-          {causeAreas.data && (
-            <section className="grid gap-3">
-              <h3 className="text-sm font-semibold">Distribution</h3>
-              <DistributionSummary
-                draft={draftFromApi(causeAreas.data, d.distribution)}
-                config={causeAreas.data}
-              />
-            </section>
-          )}
-        </Updating>
-      )}
-    </PeekPanel>
   );
 }

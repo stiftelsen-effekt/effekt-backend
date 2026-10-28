@@ -1,10 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Num } from "@/components/domain/format";
-import { Property, PropertyList } from "@/components/domain/property-list";
 import { Status } from "@/components/domain/status";
 import {
   defineList,
@@ -14,11 +13,11 @@ import {
   param,
   useListState,
 } from "@/components/filters";
-import { ListPage, PeekPanel } from "@/components/templates";
+import { ListPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import { projectStatuses, type Project } from "@/features/regranting/model";
 import { ProjectDialog } from "@/features/regranting/project-dialog";
-import { RecipientLink, useOrganizations } from "@/features/regranting/ui";
+import { useOrganizations } from "@/features/regranting/ui";
 import { usePageQuery } from "@/lib/query";
 import { projectStatus } from "@/lib/status";
 import { useTRPC } from "@/lib/trpc";
@@ -86,7 +85,6 @@ function ProjectsPage() {
     }),
   );
   const orgs = useOrganizations();
-  const [peekId, setPeekId] = useState<number | null>(null);
   const rows = useMemo(() => {
     const q = list.filters.q?.trim().toLowerCase();
     const dir = list.sort.desc ? -1 : 1;
@@ -111,7 +109,6 @@ function ProjectsPage() {
         return dir * key(a).localeCompare(key(b), "nb");
       });
   }, [query.data, org, list.filters.q, list.sort.id, list.sort.desc]);
-  const peeked = rows.find((p) => p.id === peekId);
 
   return (
     <ListPage
@@ -142,33 +139,6 @@ function ProjectsPage() {
           />
         </FilterBar>
       }
-      peek={
-        peeked && (
-          <PeekPanel
-            title={peeked.name}
-            subtitle={peeked.organizationName}
-            href={`/regranting/projects/${peeked.id}`}
-            onClose={() => setPeekId(null)}
-          >
-            <PropertyList>
-              <Property label="Recipient">
-                <RecipientLink organizationId={peeked.organizationId}>
-                  {peeked.organizationName}
-                </RecipientLink>
-              </Property>
-              <Property label="Status">
-                <Status catalog={projectStatus} value={peeked.status} />
-              </Property>
-              <Property label="Country">{peeked.country}</Property>
-              <Property label="Agreement">{peeked.agreementRef}</Property>
-              <Property label="Next report due">
-                {peeked.reportDue && <DateTime value={peeked.reportDue} />}
-              </Property>
-              <Property label="Description">{peeked.description}</Property>
-            </PropertyList>
-          </PeekPanel>
-        )
-      }
     >
       {query.isError ? (
         <div className="px-4 sm:px-6">
@@ -188,11 +158,9 @@ function ProjectsPage() {
           getRowId={(row) => String(row.id)}
           sorting={list.tableState.sorting}
           onSortingChange={list.tableState.onSortingChange}
-          onRowPeek={(row) => setPeekId(row.id)}
           onRowOpen={(row) =>
             void navigate({ to: "/regranting/projects/$id", params: { id: String(row.id) } })
           }
-          peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/regranting/projects/${row.id}`}
           pageHotkeys
           empty={
