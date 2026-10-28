@@ -3,6 +3,8 @@
   "compilerOptions": {
     "declaration": true,
     "emitDeclarationOnly": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./dist-types/tsconfig.trpc.tsbuildinfo",
     "noEmit": false,
     "outDir": "dist-types",
     "rootDir": "src",
