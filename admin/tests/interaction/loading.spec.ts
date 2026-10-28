@@ -205,6 +205,14 @@ function fixture(path: string, input: Record<string, unknown> | undefined): unkn
           count: 3,
           full_name: "Kari Nordmann",
           email: "kari.nordmann@example.org",
+          orgSplit: [
+            {
+              organizationId: 12,
+              organizationName: "Against Malaria Foundation",
+              causeAreaId: 1,
+              share: "100.000000",
+            },
+          ],
         },
       ];
     case "donors.recurring.avtalegiro":

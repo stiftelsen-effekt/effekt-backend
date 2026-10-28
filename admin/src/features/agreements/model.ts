@@ -5,6 +5,7 @@
  */
 import type { AgreementStatus } from "@/lib/status";
 import type { RouterOutputs } from "@/lib/trpc";
+import type { OrgSplitRow } from "@/features/distribution/orgs";
 
 export type AgreementType = "vipps" | "avtalegiro";
 
@@ -37,6 +38,8 @@ export type AgreementRow = {
   /** Vipps only, YYYY-MM-DD; only from agreements.list. */
   pausedUntil?: string | null;
   donorId?: number;
+  /** Organization split of the KID; only from agreements.list. */
+  orgSplit?: OrgSplitRow[];
 };
 
 const vippsStatus: Record<string, AgreementStatus> = {

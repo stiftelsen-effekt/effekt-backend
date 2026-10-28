@@ -93,6 +93,7 @@ export function fromListRow(row: AgreementListApiRow): AgreementRow {
     created: toIso(row.created),
     cancelled: toIso(row.cancelled),
     href: `/agreements/${row.provider}/${row.id}`,
+    orgSplit: row.orgSplit,
   };
 }
 
