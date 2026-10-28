@@ -7,6 +7,7 @@
   },
   "scripts": {
     "test": "cross-env DOTENV_CONFIG_PATH=.env.test TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register --require dotenv/config",
+    "test:file": "cross-env DOTENV_CONFIG_PATH=.env.test TS_NODE_TRANSPILE_ONLY=true mocha --no-config --extension ts --node-option no-experimental-strip-types --timeout 5000 --exit --require ts-node/register --require dotenv/config",
     "test-coverage": "cross-env DOTENV_CONFIG_PATH=.env.test TS_NODE_TRANSPILE_ONLY=true nyc --reporter=text mocha --require ts-node/register src/__test__",
     "typecheck": "tsc --noEmit",
     "build:types": "rimraf dist-types && tsc -p tsconfig.trpc.json",

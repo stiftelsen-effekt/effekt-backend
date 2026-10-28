@@ -46,7 +46,27 @@ The admin container hot-reloads from your checkout. To run the admin on the host
 Check every page and action in a browser against seeded data, in both themes. Mutations against the
 local database are fine.
 
-`pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:a11y` and `pnpm test:interaction` must pass in `admin/`.
+## Testing while you work
+
+The full gate takes about four minutes, so run it once, at the end, not after every change:
+
+```sh
+pnpm gate     # in admin/: typecheck, build, Vitest, then all Playwright projects in one run
+```
+
+While iterating, run only what your change touches:
+
+- `pnpm exec vitest run src/lib/money` — the unit tests for one area (about 2 s).
+- `pnpm exec playwright test tests/interaction/donors.spec.ts` or `--grep "review queue"` — one
+  spec, not a whole project. Pass several projects to one `playwright test` call rather than one
+  call per project: each call starts its own Vite server.
+- `pnpm exec playwright test --only-changed=<base branch>` — the specs whose files (or imports)
+  changed since the branch point.
+- Backend: `pnpm test:file src/__test__/<file>.spec.ts` from the repo root runs one spec. A path
+  passed to `pnpm test` is added to the spec glob in `.mocharc.json`, so the whole suite runs.
+
+Don't pipe a long run through `tail`: the output only arrives when the run ends, so a hang
+looks like slowness. Re-run a failing test on its own before assuming flakiness.
 
 ## Package manager
 

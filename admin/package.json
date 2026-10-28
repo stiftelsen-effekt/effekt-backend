@@ -15,6 +15,7 @@
     "typecheck": "pnpm types:api && tsr generate && tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "gate": "pnpm typecheck && pnpm build && vitest run && playwright test --reporter=dot",
     "test:visual": "playwright test --project=visual",
     "test:visual:update": "playwright test --project=visual --update-snapshots",
     "test:a11y": "playwright test --project=a11y",
