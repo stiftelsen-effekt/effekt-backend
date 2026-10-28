@@ -7,37 +7,63 @@ describe("DAO donations", () => {
   describe("getAll", () => {
     const sort = { id: "timestamp", desc: true };
 
+    /**
+     * getAll runs two queries side by side: the page (first call, with LIMIT/OFFSET params)
+     * and the totals over every matching donation (second call).
+     */
+    const donationRow = (overrides: { sum_confirmed: number }) => ({
+      ID: 1,
+      full_name: "Test Donor",
+      payment_name: "VIPPS",
+      transaction_cost: 2,
+      KID_fordeling: "123",
+      timestamp_confirmed: new Date("2024-01-01"),
+      tax_unit_type: "person",
+      ...overrides,
+    });
+    const totalsRow = (row: { full_count: number; full_sum: number; full_avg: number }) => row;
+
+    const stubPageAndTotals = (
+      row: ReturnType<typeof donationRow>,
+      totals: ReturnType<typeof totalsRow>,
+    ) => {
+      const queryStub = sinon.stub(DAO, "query");
+      queryStub.onFirstCall().resolves([[row], []]);
+      queryStub.onSecondCall().resolves([[totals], []]);
+      return queryStub;
+    };
+
+    const calls = (queryStub: sinon.SinonStub) => ({
+      pageSql: queryStub.firstCall.args[0] as string,
+      pageParams: queryStub.firstCall.args[1] as unknown[],
+      totalsSql: queryStub.secondCall.args[0] as string,
+    });
+
     afterEach(() => {
       sinon.restore();
     });
 
     it("uses the full donation amount when no organization filter is set", async () => {
-      const queryStub = sinon.stub(DAO, "query").resolves([
-        [
-          {
-            ID: 1,
-            full_name: "Test Donor",
-            payment_name: "VIPPS",
-            sum_confirmed: 1000,
-            transaction_cost: 2,
-            KID_fordeling: "123",
-            timestamp_confirmed: new Date("2024-01-01"),
-            tax_unit_type: "person",
-            full_count: 1,
-            full_sum: 1000,
-            full_avg: 1000,
-          },
-        ],
-        [],
-      ]);
+      const queryStub = stubPageAndTotals(
+        donationRow({ sum_confirmed: 1000 }),
+        totalsRow({ full_count: 1, full_sum: 1000, full_avg: 1000 }),
+      );
 
       const result = await DAO.donations.getAll(sort, 0, 10, {}, RequestLocale.NO);
 
-      expect(queryStub.calledOnce).to.be.true;
-      const sql = queryStub.firstCall.args[0] as string;
-      expect(sql).to.contain("Donations.sum_confirmed as sum_confirmed");
-      expect(sql).to.not.contain("selected_org_shares");
-      expect(sql).to.not.match(/ROUND\(Donations\.sum_confirmed \* selected_org_shares/);
+      expect(queryStub.calledTwice).to.be.true;
+      const { pageSql, pageParams, totalsSql } = calls(queryStub);
+      expect(pageSql).to.contain("Donations.sum_confirmed as sum_confirmed");
+      expect(pageSql).to.match(
+        /ORDER BY timestamp_confirmed DESC, Donations\.ID DESC\s+LIMIT \? OFFSET \?/,
+      );
+      expect(pageParams).to.deep.equal([10, 0]);
+      expect(totalsSql).to.contain("SUM(Donations.sum_confirmed) as full_sum");
+      expect(totalsSql).to.not.contain("LIMIT");
+      for (const sql of [pageSql, totalsSql]) {
+        expect(sql).to.not.contain("selected_org_shares");
+        expect(sql).to.not.match(/ROUND\(Donations\.sum_confirmed \* selected_org_shares/);
+      }
       expect(result.statistics).to.deep.equal({
         numDonations: 1,
         sumDonations: 1000,
@@ -47,24 +73,10 @@ describe("DAO donations", () => {
     });
 
     it("prorates table and stats amounts by selected organization shares", async () => {
-      const queryStub = sinon.stub(DAO, "query").resolves([
-        [
-          {
-            ID: 1,
-            full_name: "Test Donor",
-            payment_name: "VIPPS",
-            sum_confirmed: 400,
-            transaction_cost: 2,
-            KID_fordeling: "123",
-            timestamp_confirmed: new Date("2024-01-01"),
-            tax_unit_type: "person",
-            full_count: 1,
-            full_sum: 400,
-            full_avg: 400,
-          },
-        ],
-        [],
-      ]);
+      const queryStub = stubPageAndTotals(
+        donationRow({ sum_confirmed: 400 }),
+        totalsRow({ full_count: 1, full_sum: 400, full_avg: 400 }),
+      );
 
       const result = await DAO.donations.getAll(
         sort,
@@ -74,19 +86,24 @@ describe("DAO donations", () => {
         RequestLocale.NO,
       );
 
-      expect(queryStub.calledOnce).to.be.true;
-      const sql = queryStub.firstCall.args[0] as string;
+      expect(queryStub.calledTwice).to.be.true;
+      const { pageSql, pageParams, totalsSql } = calls(queryStub);
+      const prorated = "ROUND(Donations.sum_confirmed * selected_org_shares.selected_share, 2)";
 
-      expect(sql).to.contain("selected_org_shares AS");
-      expect(sql).to.contain("INNER JOIN selected_org_shares");
-      expect(sql).to.contain(
-        "ROUND(Donations.sum_confirmed * selected_org_shares.selected_share, 2)",
-      );
-      expect(sql).to.contain("Distribution_cause_areas.Percentage_share / 100");
-      expect(sql).to.contain("Distribution_cause_area_organizations.Percentage_share / 100");
-      expect(sql).to.contain("Organization_ID IN (12,17)");
-      expect(sql).to.not.contain("SELECT DISTINCT");
-      expect(sql).to.not.contain("LEFT JOIN Distribution_cause_areas");
+      // Both the table and the totals use the amount to the selected organizations
+      expect(pageSql).to.contain(`${prorated} as sum_confirmed`);
+      expect(totalsSql).to.contain(`SUM(${prorated}) as full_sum`);
+      expect(totalsSql).to.contain(`AVG(${prorated}) as full_avg`);
+      expect(pageParams).to.deep.equal([10, 0]);
+      for (const sql of [pageSql, totalsSql]) {
+        expect(sql).to.contain("selected_org_shares AS");
+        expect(sql).to.contain("INNER JOIN selected_org_shares");
+        expect(sql).to.contain("Distribution_cause_areas.Percentage_share / 100");
+        expect(sql).to.contain("Distribution_cause_area_organizations.Percentage_share / 100");
+        expect(sql).to.contain("Organization_ID IN (12,17)");
+        expect(sql).to.not.contain("SELECT DISTINCT");
+        expect(sql).to.not.contain("LEFT JOIN Distribution_cause_areas");
+      }
 
       expect(result.rows[0].sum).to.equal(400);
       expect(result.statistics).to.deep.equal({
@@ -120,13 +137,17 @@ describe("DAO donations", () => {
     });
 
     it("filters on the donation data owner when data owners are selected", async () => {
-      const queryStub = sinon.stub(DAO, "query").resolves([[], []]);
+      const queryStub = stubPageAndTotals(
+        donationRow({ sum_confirmed: 1000 }),
+        totalsRow({ full_count: 1, full_sum: 1000, full_avg: 1000 }),
+      );
 
       await DAO.donations.getAll(sort, 0, 10, { dataOwnerIDs: [1, 3] }, RequestLocale.NO);
 
-      expect(queryStub.calledOnce).to.be.true;
-      const sql = queryStub.firstCall.args[0] as string;
-      expect(sql).to.contain("Donations.Meta_owner_ID IN (1,3)");
+      expect(queryStub.calledTwice).to.be.true;
+      const { pageSql, totalsSql } = calls(queryStub);
+      expect(pageSql).to.contain("Donations.Meta_owner_ID IN (1,3)");
+      expect(totalsSql).to.contain("Donations.Meta_owner_ID IN (1,3)");
     });
 
     it("returns empty statistics without querying when no data owners are selected", async () => {
