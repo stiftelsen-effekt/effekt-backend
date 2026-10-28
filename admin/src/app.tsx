@@ -39,8 +39,10 @@ function RoutedApp() {
   const queryClient = useQueryClient();
   const trpc = useTRPC();
   useEffect(() => {
-    void router.invalidate();
-  }, [auth.isAuthenticated]);
+    // Not while the session is being restored: <RouterProvider> (and with it the router's
+    // context) isn't mounted yet, so route guards would run without `auth`.
+    if (!auth.isLoading) void router.invalidate();
+  }, [auth.isAuthenticated, auth.isLoading]);
 
   if (auth.isLoading) {
     // The app's frame, empty: the session is usually back before anything could be drawn.
