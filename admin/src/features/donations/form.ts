@@ -5,6 +5,7 @@
 import { TRPCClientError } from "@trpc/client";
 import { describeError } from "@/components/domain/error-state";
 import { osloDay, osloInstant, osloTime } from "@/lib/dates";
+import { compareMoney } from "@/lib/money";
 import { errorCode } from "@/lib/trpc";
 
 /**
@@ -16,6 +17,18 @@ export function parseMoneyInput(text: string): string | null {
   if (!/^\d+([.,]\d{1,2})?$/.test(cleaned)) return null;
   const [whole, fraction = ""] = cleaned.split(/[.,]/);
   return `${BigInt(whole!)}.${fraction.padEnd(2, "0")}`;
+}
+
+/**
+ * Why an amount field can't be used, or undefined when it's a positive amount. Comma or point
+ * as decimal sign, at most two decimals (the database stores øre).
+ */
+export function moneyInputError(text: string): string | undefined {
+  if (text.trim() === "") return "Enter the amount";
+  const value = parseMoneyInput(text);
+  if (value === null) return "Enter the amount in kroner with at most two decimals, like 1250,50";
+  if (compareMoney(value, 0) <= 0) return "Enter an amount above 0";
+  return undefined;
 }
 
 /** The API takes amounts as numbers; a canonical two-decimal string converts exactly. */

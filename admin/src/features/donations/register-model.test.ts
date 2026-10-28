@@ -13,7 +13,7 @@ describe("register donation", () => {
   it("requires the essentials", () => {
     expect(validateRegister(emptyRegisterDraft())).toEqual({
       KID: "Enter the KID (digits only)",
-      sum: "Enter an amount above 0",
+      sum: "Enter the amount",
       timestamp: "Enter the payment date",
       paymentId: "Choose the payment method",
       ownerId: "Choose the data owner",
@@ -22,6 +22,20 @@ describe("register donation", () => {
       donorId: "Choose the donor",
       distribution: "The distribution must add up to 100 %",
     });
+  });
+
+  it("takes øre with a comma or a point, and says what's wrong with an amount", () => {
+    const draft = { ...base, KID: "87654321" };
+    expect(registerInput({ ...draft, sum: "249,5" }).sum).toBe(249.5);
+    expect(registerInput({ ...draft, sum: "1000.05" }).sum).toBe(1000.05);
+    const sumError = (sum: string) => validateRegister({ ...draft, sum }).sum;
+    expect(sumError("  ")).toBe("Enter the amount");
+    expect(sumError("12,345")).toBe(
+      "Enter the amount in kroner with at most two decimals, like 1250,50",
+    );
+    expect(sumError("abc")).toBe(sumError("12,345"));
+    expect(sumError("-5")).toBe(sumError("12,345"));
+    expect(sumError("0,00")).toBe("Enter an amount above 0");
   });
 
   it("registers on a KID", () => {
