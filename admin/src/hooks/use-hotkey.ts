@@ -17,6 +17,24 @@ export function isTypingTarget(target: EventTarget | null) {
   );
 }
 
+/** A dialog, palette, sheet or popover is open: the page under it takes no single keys. */
+export function modalOpen() {
+  return (
+    document.querySelector("[role=dialog][data-state=open],[role=alertdialog][data-state=open]") !==
+    null
+  );
+}
+
+/**
+ * Whether a single-key shortcut (no ⌘/Ctrl) should ignore this event: typing, a modifier
+ * held, a menu or listbox focused, or a modal open over the page.
+ */
+export function ignoresSingleKey(event: KeyboardEvent) {
+  return (
+    event.altKey || event.metaKey || event.ctrlKey || isTypingTarget(event.target) || modalOpen()
+  );
+}
+
 /**
  * Global single-key or modifier shortcut. Single keys ("j", "/", "?") are ignored while
  * typing or inside dialogs; modifier combos ("mod+k") always fire.
@@ -45,7 +63,7 @@ export function useHotkey(
       if (wantsMod !== mod) return;
       if (wantsShift && !event.shiftKey) return;
       if (event.key.toLowerCase() !== key) return;
-      if (!wantsMod && (event.altKey || isTypingTarget(event.target))) return;
+      if (!wantsMod && ignoresSingleKey(event)) return;
       event.preventDefault();
       handlerRef.current(event);
     }
