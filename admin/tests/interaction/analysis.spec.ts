@@ -153,9 +153,9 @@ test("marking received sends the date and donation; reopening can be undone", as
   ]);
 
   calls.length = 0;
-  await page.getByRole("button", { name: /^Delete the pledge of 750 000 kr/ }).click();
+  await page.getByRole("button", { name: /^Delete the pledge of 750 000,00 kr/ }).click();
   const confirm = page.getByRole("alertdialog");
-  await expect(confirm).toContainText("The open pledges on the overview go down by 750 000 kr");
+  await expect(confirm).toContainText("The open pledges on the overview go down by 750 000,00 kr");
   await confirm.getByRole("button", { name: "Delete pledge" }).click();
   await expect(confirm).toBeHidden();
   expect(calls).toEqual([{ path: "delete", input: { id: 3 } }]);

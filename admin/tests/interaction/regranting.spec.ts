@@ -17,7 +17,7 @@ test("editing Pay now updates carries over, the payee and round totals, and asks
   await openBuilder(page);
   const total = page.getByTestId("round-total");
   await expect(total).toHaveText("1 500,30 kr");
-  await expect(page.getByTestId("carries-1:")).toHaveText("0 kr");
+  await expect(page.getByTestId("carries-1:")).toHaveText("0,00 kr");
 
   const input = page.getByRole("textbox", {
     name: "Pay now, GiveWell All Grants Fund, Unrestricted",
@@ -32,13 +32,13 @@ test("editing Pay now updates carries over, the payee and round totals, and asks
   await page
     .getByRole("textbox", { name: "Pay now, GiveWell Top Charities Fund, Unrestricted" })
     .fill("250");
-  await expect(page.getByTestId("carries-2:")).toHaveText("0 kr");
+  await expect(page.getByTestId("carries-2:")).toHaveText("0,00 kr");
   await expect(total).toHaveText("1 350,10 kr");
 
   await page.getByRole("button", { name: "Save 2 changes…" }).click();
   const confirm = page.getByRole("alertdialog");
   await expect(confirm).toContainText("1 000,30 kr → 600,10 kr");
-  await expect(confirm).toContainText("0 kr → 250 kr");
+  await expect(confirm).toContainText("0,00 kr → 250,00 kr");
   await confirm.getByRole("button", { name: "Cancel" }).click();
 
   await page.getByRole("button", { name: "Discard changes" }).click();

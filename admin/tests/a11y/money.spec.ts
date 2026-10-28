@@ -226,7 +226,7 @@ for (const theme of ["light", "dark"] as Theme[]) {
 
     test("donation page", async ({ page }) => {
       await open(page, "/donations/10629", theme);
-      await expect(page.getByRole("heading", { name: "700 kr" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "700,00 kr" })).toBeVisible();
       await scan(page);
     });
 
