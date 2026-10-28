@@ -57,7 +57,7 @@ type PanelsApi = {
   fullscreen: () => void;
   /**
    * The list under the panels (DataTable with `pageHotkeys`) registers here, so j/k in a
-   * single panel step to the next or previous row and swap the panel. Returns the unregister.
+   * single panel step to the next or previous row and swap the panel. Pass null to unregister.
    */
   setListNavigator: (navigator: ListNavigator | null) => void;
 };
