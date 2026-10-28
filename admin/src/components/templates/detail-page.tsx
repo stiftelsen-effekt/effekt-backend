@@ -49,17 +49,19 @@ export function DetailPage({
         meta={meta}
         actions={actions}
       />
-      <div className="grid gap-6 px-4 pb-10 sm:px-6">
+      <div className="grid grid-cols-1 gap-6 px-4 pb-10 sm:px-6">
         {stats}
         <div
           className={cn(
-            "grid items-start gap-6",
+            "grid grid-cols-1 items-start gap-6",
             aside && "xl:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,1fr)_24rem]",
           )}
         >
-          <div className="grid min-w-0 gap-6">{children}</div>
+          <div className="grid min-w-0 grid-cols-1 gap-6">{children}</div>
           {aside && (
-            <div className="grid min-w-0 gap-4 xl:sticky xl:top-4 xl:order-last">{aside}</div>
+            <div className="grid min-w-0 grid-cols-1 gap-4 xl:sticky xl:top-4 xl:order-last">
+              {aside}
+            </div>
           )}
         </div>
       </div>

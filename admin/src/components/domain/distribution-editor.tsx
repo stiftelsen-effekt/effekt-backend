@@ -158,7 +158,7 @@ export function DistributionEditor({
       data-slot="distribution-editor"
       disabled={disabled}
       aria-describedby={statusId}
-      className={cn("grid gap-0 rounded-md border border-border bg-surface", className)}
+      className={cn("grid min-w-0 gap-0 rounded-md border border-border bg-surface", className)}
     >
       <legend className="sr-only">Distribution</legend>
       <div className="grid gap-2.5 border-b border-border px-4 py-3">
@@ -315,7 +315,10 @@ export function DistributionSummary({
   const grouped = showCauseAreas(draft, config);
   const standard = used.length > 0 && used.every((area) => area.standardSplit);
   return (
-    <div data-slot="distribution-summary" className={cn("grid gap-3", className)}>
+    <div
+      data-slot="distribution-summary"
+      className={cn("grid min-w-0 grid-cols-1 gap-3", className)}
+    >
       <OrgSplitBar slices={slices} />
       {grouped ? (
         <div className="grid gap-3">
