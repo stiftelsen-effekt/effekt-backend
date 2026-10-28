@@ -36,6 +36,7 @@ import { ltvRouter } from "./routes/ltv";
 import { organizationsRouter } from "./routes/organizations";
 import { causeAreasRouter } from "./routes/causeareas";
 import { surveyRouter } from "./routes/survey";
+import { analysisRouter } from "./routes/analysis";
 import { mcpRouter } from "./routes/mcp";
 import { oauthRouter, sendAuthorizationServerMetadata } from "./routes/oauth";
 import { getProtectedResourceMetadata } from "./custom_modules/mcp/oauthProtectedResource";
@@ -245,6 +246,7 @@ DAO.connect(() => {
   app.use("/agreementfeedback", agreementfeedbackRoute);
   app.use("/ltv", ltvRoute);
   app.use("/survey", surveyRouter);
+  app.use("/analysis", analysisRouter);
 
   app.use("/static", express.static(__dirname + "/static"));
   app.use("/img", express.static(__dirname + "/views/img"));

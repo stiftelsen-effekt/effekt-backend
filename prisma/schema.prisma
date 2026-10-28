@@ -265,6 +265,7 @@ model Donations {
   AutoGiro_agreement_charges     AutoGiro_agreement_charges?
   LegacySeDistributionConnection LegacySeDistributionConnection?
   Review_queue_items             Review_queue_items[]
+  Pledges                        Pledges[]
 
   // When we delete a distribution we delete the associated donations.
   Distributions Distributions @relation(fields: [KID_fordeling], references: [KID], onDelete: Cascade, map: "fk_Donations_to_Distributions_KID")
@@ -606,6 +607,23 @@ model Donation_referral_codes {
 
   @@index([KID], map: "KID_idx")
   @@index([Referral_code], map: "Referral_code_idx")
+}
+
+/// Decided gifts that are not received yet (tilsagn). Shown as a separate layer on top of
+/// measured totals in the analysis overview, never mixed into them. Open while Received_date is null.
+/// Deliberately holds no information about who made the pledge, only the amount and dates.
+model Pledges {
+  ID            Int       @id @default(autoincrement())
+  Sum           Decimal   @db.Decimal(16, 2)
+  Decided_date  DateTime  @db.Date
+  Received_date DateTime? @db.Date
+  /// The donation that fulfilled the pledge, when it is received
+  Donation_ID   Int?
+  Inserted      DateTime  @default(now()) @db.DateTime(0)
+
+  Donations Donations? @relation(fields: [Donation_ID], references: [ID], onDelete: SetNull, map: "fk_Pledges_to_Donations_idx")
+
+  @@index([Donation_ID], map: "fk_Pledges_to_Donations_idx")
 }
 
 model Mailersend_survey_responses {

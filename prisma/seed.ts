@@ -13,6 +13,7 @@ import {
   Organizations,
   Payment,
   Payment_intent,
+  Pledges,
   PrismaClient,
   Referral_types,
   Tax_unit,
@@ -51,6 +52,7 @@ async function main() {
     "/fakeAutoGiroAgreements.json",
   );
   const fakeFundraisers: Fundraisers[] = readAndParseJsonFile("/fakeFundraisers.json");
+  const fakePledges: Pledges[] = readAndParseJsonFile("/fakePledges.json");
 
   await prisma.data_owner.createMany({ data: fakeDataOwner });
   await prisma.payment.createMany({ data: fakePayments });
@@ -71,6 +73,7 @@ async function main() {
   await prisma.payment_intent.createMany({ data: fakePaymentIntents });
   await prisma.referral_types.createMany({ data: fakeReferralTypes });
   await prisma.fundraisers.createMany({ data: fakeFundraisers });
+  await prisma.pledges.createMany({ data: fakePledges });
 }
 
 function readAndParseJsonFile(path: string) {
