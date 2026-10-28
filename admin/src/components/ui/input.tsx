@@ -4,7 +4,8 @@ import { useFieldControl } from "./field";
 
 /** Shared look for every text-like control (input, select trigger, date trigger, textarea). */
 export const controlClasses = [
-  "w-full min-w-0 rounded-sm border border-input bg-surface text-sm text-foreground",
+  // 16 px on phones so iOS doesn't zoom into a focused field.
+  "w-full min-w-0 rounded-sm border border-input bg-surface text-sm text-foreground max-sm:text-base",
   "transition-[color,border-color,box-shadow] duration-(--duration-fast) outline-none",
   "placeholder:text-faint-foreground",
   "focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring",

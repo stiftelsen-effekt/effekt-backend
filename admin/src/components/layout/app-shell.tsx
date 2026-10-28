@@ -39,7 +39,7 @@ import { ShortcutsDialog } from "./shortcuts-dialog";
 const designItem: NavItem = { to: "/design", label: "Design system", icon: PaletteIcon };
 
 const itemClasses = [
-  "group/nav flex h-8 items-center gap-2.5 rounded-sm px-2.5 text-sm text-muted-foreground",
+  "group/nav flex h-8 items-center max-lg:h-10 gap-2.5 rounded-sm px-2.5 text-sm text-muted-foreground",
   "transition-colors duration-(--duration-fast) focus-ring-inset",
   "hover:bg-hover hover:text-foreground",
   "[&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-faint-foreground",
