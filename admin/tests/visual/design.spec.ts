@@ -120,6 +120,35 @@ for (const theme of themes) {
   });
 }
 
+// Phone width: a row's panel over the list, and a detail page (donor) stacked on it.
+for (const theme of themes) {
+  test.describe(`states narrow ${theme}`, () => {
+    test.use({ viewport: viewports.narrow });
+
+    test("list with a panel, then a detail panel", async ({ page }) => {
+      await openDesign(page, "/design/list?amount=1000..&method=4,8", theme);
+      await page
+        .getByRole("table", { name: "Donations" })
+        .locator("tbody tr[data-row]")
+        .first()
+        .click();
+      const donation = page.locator("[data-slot=panel]");
+      await expect(donation).toBeVisible();
+      await settle(page);
+      await expect(page).toHaveScreenshot(`state-list-panel-narrow-${theme}.png`);
+
+      await donation
+        .getByRole("link", { name: /.+/ })
+        .filter({ hasNotText: "Donations" })
+        .first()
+        .click();
+      await expect(page.getByRole("region", { name: "Donor #1387" })).toBeVisible();
+      await settle(page);
+      await expect(page).toHaveScreenshot(`state-detail-panel-narrow-${theme}.png`);
+    });
+  });
+}
+
 test("compact density", async ({ page }) => {
   await page.setViewportSize(viewports.desktop);
   await page.addInitScript(() =>
