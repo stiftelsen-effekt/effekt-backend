@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { visiblePaymentMethods } from "@/features/donations/api";
 import { useTRPC } from "@/lib/trpc";
-import { param } from "@/components/filters";
+import { param } from "@/components/filters/list-state";
 import { queueSources } from "./model";
 
 /** What the registration form needs: active cause areas, payment methods, data owners. */

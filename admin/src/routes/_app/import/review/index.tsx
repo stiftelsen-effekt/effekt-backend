@@ -5,7 +5,8 @@ import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
 import { Status } from "@/components/domain/status";
-import { defineList, FilterBar, OptionsFilter, param, useListState } from "@/components/filters";
+import { FilterBar, OptionsFilter, useListState } from "@/components/filters";
+import { defineList, param } from "@/components/filters/list-state";
 import { ListPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import {

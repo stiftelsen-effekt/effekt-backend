@@ -1,4 +1,4 @@
-import { defineList, param, type FilterValues } from "@/components/filters";
+import { defineList, param, type FilterValues } from "@/components/filters/list-state";
 import { config } from "@/lib/config";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
 

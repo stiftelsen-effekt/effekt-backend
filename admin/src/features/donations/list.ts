@@ -2,7 +2,8 @@
  * URL state of the Donations and Distributions lists, and its translation into the filter
  * shapes of donations.list / donations.distributions.list.
  */
-import { defineList, param, type FilterValues, type HistogramBin } from "@/components/filters";
+import type { HistogramBin } from "@/components/filters/histogram-range";
+import { defineList, param, type FilterValues } from "@/components/filters/list-state";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
 
 export const taxUnitTypes = ["person", "organization", "none"] as const;

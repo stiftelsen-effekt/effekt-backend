@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ArrowRightIcon, TerminalIcon } from "lucide-react";
 import { useState } from "react";
-import { z } from "zod";
 import { useAuth, type PreviewUser } from "@/auth";
 import { ErrorState } from "@/components/domain/error-state";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,10 @@ import { config } from "@/lib/config";
 import { org } from "@/lib/org";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: z.object({ redirect: z.string().optional() }),
+  // A plain function rather than a zod schema: this route is in the first chunk, and zod would
+  // add about 75 kB to it.
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
+    typeof search.redirect === "string" ? { redirect: search.redirect } : {},
   beforeLoad: ({ context, search }) => {
     if (context.auth.isAuthenticated) throw redirect({ href: safeRedirect(search.redirect) });
   },

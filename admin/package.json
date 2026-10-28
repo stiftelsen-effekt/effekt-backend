@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "./src/main.tsx",
+    "./src/router.tsx"
+  ],
   "engines": {
     "node": ">=22"
   },
