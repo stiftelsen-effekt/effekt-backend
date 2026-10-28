@@ -5,6 +5,7 @@ import {
   FlagIcon,
   GitMergeIcon,
   MoreHorizontalIcon,
+  PlusIcon,
   Trash2Icon,
   UserXIcon,
 } from "lucide-react";
@@ -41,6 +42,7 @@ import { agreementStatus, donorStatus } from "@/lib/status";
 import { loadPage } from "@/lib/route-data";
 import { errorCode, useTRPC, type RouterOutputs } from "@/lib/trpc";
 import { PaymentMethodName } from "@/features/donations/payment-method-name";
+import { RegisterForDonorDialog } from "@/features/donations/register-for-donor";
 import { conflictingDonorId } from "@/features/donors/form-errors";
 
 const tabs = ["donations", "kids", "agreements", "tax", "referrals"] as const;
@@ -558,7 +560,26 @@ function Donor({ donorId }: { donorId: number }) {
             Referrals
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="donations" className="flex max-h-[36rem] flex-col">
+        <TabsContent value="donations" className="flex max-h-[36rem] flex-col gap-3">
+          <div className="flex justify-end">
+            {donor ? (
+              <RegisterForDonorDialog
+                donor={{ id: donor.id, name: displayName }}
+                distributions={distributions.data}
+                trigger={
+                  <Button size="sm">
+                    <PlusIcon />
+                    Add donation
+                  </Button>
+                }
+              />
+            ) : (
+              <Button size="sm" disabled>
+                <PlusIcon />
+                Add donation
+              </Button>
+            )}
+          </div>
           {donations.isError ? (
             <ErrorState error={donations.error} onRetry={() => void donations.refetch()} />
           ) : (
