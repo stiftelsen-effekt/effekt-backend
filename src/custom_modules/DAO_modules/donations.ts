@@ -246,14 +246,13 @@ async function getAll(
             .map(sqlString.escape)
             .join(",")})
           GROUP BY Distribution_cause_areas.Distribution_KID
-        ),
-        `
+        )`
       : "";
 
     const organizationJoin = hasOrganizationFilter
       ? `
         INNER JOIN selected_org_shares
-          ON Distributions.KID = selected_org_shares.Distribution_KID`
+          ON Donations.KID_fordeling = selected_org_shares.Distribution_KID`
       : "";
 
     const sumExpression = hasOrganizationFilter
@@ -266,52 +265,81 @@ async function getAll(
           ON Distributions.Fundraiser_transaction_ID = FT.ID`
       : "";
 
-    const query = `
-        WITH ${selectedOrgSharesCte}filtered_donations AS (
-          SELECT
-            Donations.ID,
-            Donors.full_name,
-            Payment.abbriv as payment_name,
-            ${sumExpression} as sum_confirmed,
-            Donations.transaction_cost,
-            Donations.KID_fordeling,
-            Donations.timestamp_confirmed,
-            ${taxUnitTypeFildDefinition} as tax_unit_type
-          FROM Donations
-          INNER JOIN Donors
-            ON Donations.Donor_ID = Donors.ID
-          INNER JOIN Payment
-            ON Donations.Payment_ID = Payment.ID  
-          INNER JOIN Distributions
-            ON Donations.KID_fordeling = Distributions.KID
-          LEFT JOIN Tax_unit
-            ON Distributions.Tax_unit_ID = Tax_unit.ID
-          ${organizationJoin}
-          ${fundraiserJoin}
-          WHERE ${where.length !== 0 ? where.join(" AND ") : "1"}
-        ),
-        statistics AS (
-          SELECT 
-            COUNT(*) as full_count,
-            SUM(sum_confirmed) as full_sum,
-            AVG(sum_confirmed) as full_avg
-          FROM filtered_donations
-        )
-        SELECT 
-          d.*,
-          s.full_count,
-          s.full_sum,
-          s.full_avg
-        FROM filtered_donations d
-        CROSS JOIN statistics s
-        ORDER BY ${sortColumn} ${sort.desc ? "DESC" : ""} 
+    const whereClause = where.length !== 0 ? where.join(" AND ") : "1";
+    const withClause = hasOrganizationFilter ? `WITH ${selectedOrgSharesCte}` : "";
+
+    // The page and the totals are two queries run side by side: one query that both sorted
+    // and aggregated had to materialise and sort every matching row (about 200 ms at 85k
+    // donations), while the page alone can walk an index and stop after `limit` rows.
+    //
+    // Sorting by a Donations column, the join order is pinned to Donations first so MySQL
+    // reads the matching index in order instead of sorting the whole join. (With an
+    // organisation filter, sum_confirmed is the computed share, not the column.)
+    const sortsOnDonations =
+      ["ID", "transaction_cost", "KID_fordeling", "timestamp_confirmed"].includes(sortColumn) ||
+      (sortColumn === "sum_confirmed" && !hasOrganizationFilter);
+    const direction = sort.desc ? "DESC" : "ASC";
+    // Donation id breaks ties (many donations share a timestamp or amount), so pages don't
+    // overlap. The secondary indexes end in the id, so this still reads an index in order.
+    const tieBreak = sortsOnDonations && sortColumn !== "ID" ? `, Donations.ID ${direction}` : "";
+    const pageQuery = `
+        ${withClause}
+        SELECT ${sortsOnDonations ? "STRAIGHT_JOIN" : ""}
+          Donations.ID,
+          Donors.full_name,
+          Payment.abbriv as payment_name,
+          ${sumExpression} as sum_confirmed,
+          Donations.transaction_cost,
+          Donations.KID_fordeling,
+          Donations.timestamp_confirmed,
+          ${taxUnitTypeFildDefinition} as tax_unit_type
+        FROM Donations
+        INNER JOIN Donors
+          ON Donations.Donor_ID = Donors.ID
+        INNER JOIN Payment
+          ON Donations.Payment_ID = Payment.ID
+        INNER JOIN Distributions
+          ON Donations.KID_fordeling = Distributions.KID
+        LEFT JOIN Tax_unit
+          ON Distributions.Tax_unit_ID = Tax_unit.ID
+        ${organizationJoin}
+        ${fundraiserJoin}
+        WHERE ${whereClause}
+        ORDER BY ${sortColumn} ${direction}${tieBreak}
         LIMIT ? OFFSET ?`;
 
-    const [donations] = await DAO.query(query, [limit, page * limit]);
+    // Every donation has a donor, a payment method and a distribution (non-null foreign keys),
+    // so the totals only join the tables the filter reads.
+    const needsDonors = Boolean(filter?.donor || filter?.query?.trim());
+    const needsDistributions = Boolean(filter?.fundraiserId || filter?.taxUnitTypes);
+    const statisticsQuery = `
+        ${withClause}
+        SELECT
+          COUNT(*) as full_count,
+          SUM(${sumExpression}) as full_sum,
+          AVG(${sumExpression}) as full_avg
+        FROM Donations
+        ${needsDonors ? "INNER JOIN Donors ON Donations.Donor_ID = Donors.ID" : ""}
+        ${
+          needsDistributions
+            ? `INNER JOIN Distributions ON Donations.KID_fordeling = Distributions.KID
+               LEFT JOIN Tax_unit ON Distributions.Tax_unit_ID = Tax_unit.ID`
+            : ""
+        }
+        ${organizationJoin}
+        ${fundraiserJoin}
+        WHERE ${whereClause}`;
 
-    const numDonations = donations.length > 0 ? donations[0]["full_count"] : 0;
-    const sumDonations = donations.length > 0 ? donations[0]["full_sum"] : 0;
-    const avgDonation = donations.length > 0 ? donations[0]["full_avg"] : 0;
+    const [[donations], [statisticsRows]] = await Promise.all([
+      DAO.query(pageQuery, [limit, page * limit]),
+      DAO.query(statisticsQuery),
+    ]);
+
+    // As before, a page past the end reports no totals.
+    const statistics = donations.length > 0 ? statisticsRows[0] : undefined;
+    const numDonations = statistics ? statistics["full_count"] : 0;
+    const sumDonations = statistics ? statistics["full_sum"] : 0;
+    const avgDonation = statistics ? statistics["full_avg"] : 0;
 
     const pages = Math.ceil(numDonations / limit);
 
