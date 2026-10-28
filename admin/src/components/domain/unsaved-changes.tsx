@@ -1,5 +1,5 @@
 import { useBlocker } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -10,6 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { modalOpen, useHotkey } from "@/hooks/use-hotkey";
 import { strings } from "@/lib/strings";
 
 /**
@@ -38,6 +39,10 @@ export function UnsavedChangesBar({
     enableBeforeUnload: () => dirty,
     withResolver: true,
   });
+  // ⌘Enter saves; not while a confirmation (or any dialog) is open over the form.
+  useHotkey("mod+enter", () => !modalOpen() && onSave(), {
+    enabled: dirty && !saving && !invalid,
+  });
 
   return (
     <>
@@ -55,7 +60,13 @@ export function UnsavedChangesBar({
           <Button onClick={onDiscard} disabled={saving}>
             {strings.actions.discard}
           </Button>
-          <Button variant="primary" onClick={onSave} pending={saving} disabled={Boolean(invalid)}>
+          <Button
+            variant="primary"
+            onClick={onSave}
+            pending={saving}
+            disabled={Boolean(invalid)}
+            title={`${saveLabel} (⌘Enter)`}
+          >
             {saveLabel}
           </Button>
         </div>
@@ -89,10 +100,23 @@ export function UnsavedChangesBar({
  */
 export function useDiscardGuard(dirty: boolean, close: () => void) {
   const [asking, setAsking] = useState(false);
-  const requestClose = () => (dirty ? setAsking(true) : close());
+  // Keep editing puts focus back in the field the person was typing in.
+  const returnTo = useRef<HTMLElement | null>(null);
+  const requestClose = () => {
+    if (!dirty) return close();
+    returnTo.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setAsking(true);
+  };
   const dialog = (
     <AlertDialog open={asking} onOpenChange={setAsking}>
-      <AlertDialogContent>
+      <AlertDialogContent
+        onCloseAutoFocus={(event) => {
+          if (!returnTo.current?.isConnected) return;
+          event.preventDefault();
+          returnTo.current.focus();
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>{strings.form.discardTitle}</AlertDialogTitle>
           <AlertDialogDescription>{strings.form.discardHint}</AlertDialogDescription>
@@ -102,6 +126,7 @@ export function useDiscardGuard(dirty: boolean, close: () => void) {
           <Button
             variant="danger"
             onClick={() => {
+              returnTo.current = null;
               setAsking(false);
               close();
             }}
