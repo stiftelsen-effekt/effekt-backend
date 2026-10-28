@@ -481,9 +481,9 @@ function Components() {
         title="Distributions"
         description="Organizations are the focus: one bar of organizations in stable colours, cause areas only when they add something. The editor is used everywhere a split is edited: donation edit, manual registration, agreements, new KID, review queue. Try the arrow keys in a percentage field (Shift for steps of 10)."
       >
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           <DistributionEditor config={causeAreas} value={distribution} onChange={setDistribution} />
-          <div className="grid gap-4">
+          <div className="grid min-w-0 grid-cols-1 gap-4">
             <Example title="Read-only summary, Global Health only" surfaceClassName="block">
               <DistributionSummary
                 config={causeAreas}

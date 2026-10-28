@@ -13,7 +13,7 @@ export function DocPage({
 }) {
   return (
     <div data-page-scroll className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto grid max-w-6xl gap-14 px-4 pt-6 pb-16 sm:px-8">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-14 px-4 pt-6 pb-16 sm:px-8">
         <header className="grid gap-2">
           <h1 className="font-display text-3xl">{title}</h1>
           <div className="max-w-2xl text-base text-muted-foreground">{intro}</div>
@@ -36,7 +36,11 @@ export function DocSection({
   children: ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="grid scroll-mt-6 gap-5">
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className="grid min-w-0 scroll-mt-6 grid-cols-1 gap-5"
+    >
       <div className="grid gap-1 border-b border-border pb-3">
         <h2 id={`${id}-title`} className="text-xl font-semibold">
           {title}
@@ -66,7 +70,7 @@ export function Example({
   surfaceClassName?: string;
 }) {
   return (
-    <div className={cn("grid content-start gap-2", className)}>
+    <div className={cn("grid min-w-0 grid-cols-1 content-start gap-2", className)}>
       <div>
         <h3 className="text-sm font-semibold">{title}</h3>
         {use && <p className="text-sm text-muted-foreground">{use}</p>}

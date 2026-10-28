@@ -30,11 +30,11 @@ export const buttonVariants = cva(
         link: "h-auto! px-0! text-accent underline decoration-accent/30 underline-offset-4 hover:decoration-accent",
       },
       size: {
-        sm: "h-7 px-2.5 text-sm",
+        sm: "h-7 px-2.5 text-sm max-sm:h-9",
         md: "h-control px-3 text-sm",
         lg: "h-10 px-4 text-base",
         icon: "size-control",
-        "icon-sm": "size-7 [&_svg:not([class*='size-'])]:size-3.5",
+        "icon-sm": "size-7 max-sm:size-9 [&_svg:not([class*='size-'])]:size-3.5",
       },
     },
     defaultVariants: { variant: "secondary", size: "md" },

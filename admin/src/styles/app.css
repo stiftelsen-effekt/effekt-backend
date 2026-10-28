@@ -331,6 +331,13 @@
   --control-h: 1.75rem;
   --cell-px: 0.5rem;
 }
+/* Phones: finger-sized controls whatever the density (text size is in controlClasses). */
+@media (width < 40rem) {
+  :root,
+  [data-density] {
+    --control-h: 2.5rem;
+  }
+}
 
 @layer base {
   *,

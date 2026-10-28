@@ -28,7 +28,7 @@ export function SettingsPage({
   return (
     <div data-page-scroll data-slot="settings-page" className="min-h-0 flex-1 overflow-y-auto">
       <PageHeader title={title} description={description} />
-      <div className="grid gap-6 px-4 pb-10 sm:px-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 px-4 pb-10 sm:px-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
         <nav aria-label="Settings sections" className="lg:sticky lg:top-4 lg:self-start">
           <ul className="flex gap-1 overflow-x-auto border-b border-border pb-2 lg:grid lg:border-b-0 lg:pb-0">
             {nav.map((item) => (
@@ -72,7 +72,7 @@ export function SettingsSection({
   return (
     <section
       data-slot="settings-section"
-      className="grid gap-4 border-b border-border pb-10 last:border-b-0 2xl:grid-cols-[18rem_minmax(0,1fr)] 2xl:gap-10"
+      className="grid grid-cols-1 gap-4 border-b border-border pb-10 last:border-b-0 2xl:grid-cols-[18rem_minmax(0,1fr)] 2xl:gap-10"
     >
       <div className="grid content-start gap-1">
         <h2 className="text-base font-semibold">{title}</h2>

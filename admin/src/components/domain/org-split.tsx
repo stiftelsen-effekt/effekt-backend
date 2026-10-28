@@ -84,7 +84,7 @@ export function OrgSwatch({
 export function OrgSplitLegend({ slices, className }: { slices: OrgSlice[]; className?: string }) {
   const amounts = slices.some((slice) => slice.amount != null);
   return (
-    <ul className={cn("grid gap-1.5 text-sm", className)}>
+    <ul className={cn("grid grid-cols-1 gap-1.5 text-sm", className)}>
       {slices.map((slice) => (
         <li key={slice.id ?? "other"} className="flex items-center gap-2">
           <OrgSwatch slice={slice} />
