@@ -139,5 +139,21 @@ describe("donation edit", () => {
     expect(
       validateEdit({ ...draft, distribution: setShare(draft.distribution, 1, 90) }, donation),
     ).toEqual({ distribution: "The distribution must add up to 100 %" });
+    expect(validateEdit({ ...draft, sum: "" }, donation)).toEqual({ sum: "Enter the amount" });
+    expect(validateEdit({ ...draft, sum: "100,123" }, donation)).toEqual({
+      sum: "Enter the amount in kroner with at most two decimals, like 1250,50",
+    });
+  });
+
+  it("keeps øre typed with a comma or a point", () => {
+    const draft = editDraftFromDonation(donation, config);
+    for (const sum of ["1250,50", "1250.5"]) {
+      const { input } = editChanges(
+        donation,
+        { ...draft, sum },
+        { config, paymentMethodName: () => undefined, ownerName: () => undefined },
+      );
+      expect(input.sum).toBe(1250.5);
+    }
   });
 });

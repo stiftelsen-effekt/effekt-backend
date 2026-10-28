@@ -22,7 +22,8 @@ import {
 } from "@/features/distribution/model";
 import { causeAreaConfigOptions, useCauseAreaConfig } from "@/features/distribution/queries";
 import {
-  defaultOwner,
+  preferredOwner,
+  rememberOwner,
   visiblePaymentMethods,
   type DataOwner,
   type PaymentMethod,
@@ -138,14 +139,15 @@ function RegisterFlow({
     [state.draft, config],
   );
 
-  // Fill in what the form can't start with: the default owner and an empty split.
+  // Fill in what the form can't start with: the owner (last used, else default) and an empty
+  // split.
   useEffect(() => {
     if (!draft.ownerId || !draft.distribution) {
       setState((current) => ({
         ...current,
         draft: {
           ...current.draft,
-          ownerId: current.draft.ownerId || String(defaultOwner(owners)?.id ?? ""),
+          ownerId: current.draft.ownerId || String(preferredOwner(owners)?.id ?? ""),
           distribution: current.draft.distribution ?? emptyDraft(config),
         },
       }));
@@ -178,6 +180,7 @@ function RegisterFlow({
     setServer({ fields: {} });
     try {
       const result = await register.mutateAsync(registerInput(draft));
+      rememberOwner(Number(draft.ownerId));
       await queryClient.invalidateQueries({ queryKey: trpc.donations.pathKey() });
       notify.success(`Registered ${formatAmount(sum!)}`, `Donation #${result.donationId}`);
       setState((current) => ({ ...current, step: "done", result: { ...result, sum: sum! } }));

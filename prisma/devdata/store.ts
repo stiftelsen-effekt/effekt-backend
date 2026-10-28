@@ -134,6 +134,7 @@ const TABLES: Record<TableName, TableMeta> = {
     numericKey: true,
     fks: { Round_ID: "Regrant_rounds", Project_ID: "Projects" },
   },
+  Pledges: { key: "ID", numericKey: true, fks: { Donation_ID: "Donations" } },
 };
 
 const keyColumns = (meta: TableMeta) => (Array.isArray(meta.key) ? meta.key : [meta.key]);

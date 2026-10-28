@@ -1,4 +1,5 @@
 import { agreementsRouter } from "./routers/agreements";
+import { analysisRouter } from "./routers/analysis";
 import { configRouter } from "./routers/config";
 import { donationsRouter } from "./routers/donations";
 import { donorsRouter } from "./routers/donors";
@@ -19,6 +20,7 @@ export const appRouter = router({
   reports: reportsRouter,
   agreements: agreementsRouter,
   regranting: regrantingRouter,
+  analysis: analysisRouter,
 });
 
 export type AppRouter = typeof appRouter;

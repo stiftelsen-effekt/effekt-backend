@@ -3,9 +3,8 @@
  * donations.register input (on an existing KID, or on a new distribution).
  */
 import { draftToApi, validateDraft, type DistributionDraft } from "@/features/distribution/model";
-import { compareMoney } from "@/lib/money";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
-import { fromDateTimeInputs, moneyToApi, parseMoneyInput } from "./form";
+import { fromDateTimeInputs, moneyInputError, moneyToApi, parseMoneyInput } from "./form";
 
 export type RegisterInput = RouterInputs["donations"]["register"];
 export type RegisterResult = RouterOutputs["donations"]["register"];
@@ -70,7 +69,6 @@ export function emptyRegisterDraft(defaults: Partial<RegisterDraft> = {}): Regis
 }
 
 export function validateRegister(draft: RegisterDraft) {
-  const sum = parseMoneyInput(draft.sum);
   const errors: Partial<Record<RegisterField, string>> = {};
   if (draft.mode === "kid") {
     if (!/^\d{1,32}$/.test(draft.KID.trim())) errors.KID = "Enter the KID (digits only)";
@@ -79,7 +77,8 @@ export function validateRegister(draft: RegisterDraft) {
     if (!draft.distribution || !validateDraft(draft.distribution).valid)
       errors.distribution = "The distribution must add up to 100 %";
   }
-  if (sum === null || compareMoney(sum, 0) <= 0) errors.sum = "Enter an amount above 0";
+  const sumError = moneyInputError(draft.sum);
+  if (sumError) errors.sum = sumError;
   if (!fromDateTimeInputs(draft.date, draft.time)) errors.timestamp = "Enter the payment date";
   if (!draft.paymentId) errors.paymentId = "Choose the payment method";
   if (draft.externalRef.trim().length > 32) errors.externalRef = "At most 32 characters";

@@ -13,7 +13,13 @@ import {
 import { formatDate, formatMoney, formatMoneyInput, formatNumber } from "@/lib/format";
 import { compareMoney } from "@/lib/money";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
-import { fromDateTimeInputs, moneyToApi, parseMoneyInput, toDateTimeInputs } from "./form";
+import {
+  fromDateTimeInputs,
+  moneyInputError,
+  moneyToApi,
+  parseMoneyInput,
+  toDateTimeInputs,
+} from "./form";
 
 export type Donation = RouterOutputs["donations"]["get"];
 export type DonationUpdate = RouterInputs["donations"]["update"];
@@ -46,10 +52,9 @@ export function editDraftFromDonation(donation: Donation, config: CauseAreaConfi
 }
 
 export function validateEdit(draft: EditDraft, original: Donation) {
-  const sum = parseMoneyInput(draft.sum);
   const cost = draft.transactionCost.trim() === "" ? null : parseMoneyInput(draft.transactionCost);
   const errors: Partial<Record<EditField, string>> = {
-    sum: sum === null || compareMoney(sum, 0) <= 0 ? "Enter an amount above 0" : undefined,
+    sum: moneyInputError(draft.sum),
     transactionCost:
       draft.transactionCost.trim() !== "" && cost === null
         ? "Enter the fee as an amount, or leave it empty"

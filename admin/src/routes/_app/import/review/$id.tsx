@@ -9,7 +9,7 @@ import { DetailPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import { Pending } from "@/components/ui/pending";
 import { SkeletonText } from "@/components/ui/skeleton";
-import { defaultOwner } from "@/features/donations/api";
+import { preferredOwner } from "@/features/donations/api";
 import { formatAmount } from "@/features/donations/edit-model";
 import {
   nextOpenId,
@@ -186,11 +186,11 @@ function ReviewItemPage() {
   const data = item.data;
   const { owners } = reference.data;
   // The owner chosen in the URL, else the one picked when the report was uploaded, else the
-  // default owner.
+  // one last used to register by hand in this browser, else the default owner.
   const known = (id: string | number | null | undefined) =>
     id != null && owners.some((o) => String(o.id) === String(id)) ? String(id) : undefined;
   const ownerId =
-    known(search.owner) ?? known(data.metaOwnerId) ?? String(defaultOwner(owners)?.id ?? "");
+    known(search.owner) ?? known(data.metaOwnerId) ?? String(preferredOwner(owners)?.id ?? "");
 
   return (
     <DetailPage

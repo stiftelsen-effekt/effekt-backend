@@ -31,7 +31,7 @@ Swedish organisation runs on its own system; Swedish features are out of scope.
   - **Review queue** (server-side, shared by the team): unmatched transactions with reason + raw
     transaction; register (prefilled form: KID or new distribution) or ignore, reopen.
   - Register a single donation manually (KID or new distribution, sum, date, method, external ref,
-    data owner, send receipt).
+    data owner, send receipt), also from the donor page on one of the donor's own KIDs.
   - Transaction report for a date range + payment methods.
 - **Agreements**: one list across providers (`agreements.list`), plus per-provider detail. Vipps
   and AvtaleGiro: amount, status, charge day, KID, start, distribution, payments; edit amount,
@@ -41,6 +41,11 @@ Swedish organisation runs on its own system; Swedish features are out of scope.
 - **Settings**: cause areas, organizations per cause area, referral types — create, edit,
   activate/deactivate, ordering, standard split percentages (must sum to 100 within a group; warn
   when not). Data owners (read-only). Vipps matching rules.
+- **Analysis**: an overview of what has been given to the recipients through time (excluding the
+  Drift share), with open pledges shown on top and never mixed in, against the 200 MNOK
+  milestone; this year's total. **Pledges** (tilsagn), decided gifts not received yet: add
+  (amount + decision date, nothing about the giver), mark received (optionally linked to the
+  donation), lower the amount after a partial payment, reopen, delete.
 - **Records**: import log list (search file content) + entry detail (JSON result + raw file);
   reports.
 - **Home**: what needs attention (review queue, missing AvtaleGiro payments, failed charges, recent

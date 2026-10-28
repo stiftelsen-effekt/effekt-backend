@@ -28,6 +28,8 @@ import { Route as DesignListRouteImport } from './routes/design/list'
 import { Route as DesignPatternsRouteImport } from './routes/design/patterns'
 import { Route as DesignSettingsRouteImport } from './routes/design/settings'
 import { Route as AppAgreementsIndexRouteImport } from './routes/_app/agreements/index'
+import { Route as AppAnalysisIndexRouteImport } from './routes/_app/analysis/index'
+import { Route as AppAnalysisPledgesRouteImport } from './routes/_app/analysis/pledges'
 import { Route as AppDistributionsIndexRouteImport } from './routes/_app/distributions/index'
 import { Route as AppDistributionsKidRouteImport } from './routes/_app/distributions/$kid'
 import { Route as AppDistributionsNewRouteImport } from './routes/_app/distributions/new'
@@ -146,6 +148,16 @@ const DesignSettingsRoute = DesignSettingsRouteImport.update({
 const AppAgreementsIndexRoute = AppAgreementsIndexRouteImport.update({
   id: '/agreements/',
   path: '/agreements/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAnalysisIndexRoute = AppAnalysisIndexRouteImport.update({
+  id: '/analysis/',
+  path: '/analysis/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAnalysisPledgesRoute = AppAnalysisPledgesRouteImport.update({
+  id: '/analysis/pledges',
+  path: '/analysis/pledges',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDistributionsIndexRoute = AppDistributionsIndexRouteImport.update({
@@ -296,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/design/patterns': typeof DesignPatternsRoute
   '/design/settings': typeof DesignSettingsRoute
   '/design/': typeof DesignIndexRoute
+  '/analysis/pledges': typeof AppAnalysisPledgesRoute
   '/distributions/$kid': typeof AppDistributionsKidRoute
   '/distributions/new': typeof AppDistributionsNewRoute
   '/donations/register': typeof AppDonationsRegisterRoute
@@ -305,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/regranting/settings': typeof AppRegrantingSettingsRoute
   '/agreements/': typeof AppAgreementsIndexRoute
+  '/analysis/': typeof AppAnalysisIndexRoute
   '/distributions/': typeof AppDistributionsIndexRoute
   '/donations/': typeof AppDonationsIndexRoute
   '/donors/': typeof AppDonorsIndexRoute
@@ -340,6 +354,7 @@ export interface FileRoutesByTo {
   '/design/settings': typeof DesignSettingsRoute
   '/': typeof AppIndexRoute
   '/design': typeof DesignIndexRoute
+  '/analysis/pledges': typeof AppAnalysisPledgesRoute
   '/distributions/$kid': typeof AppDistributionsKidRoute
   '/distributions/new': typeof AppDistributionsNewRoute
   '/donations/register': typeof AppDonationsRegisterRoute
@@ -349,6 +364,7 @@ export interface FileRoutesByTo {
   '/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/regranting/settings': typeof AppRegrantingSettingsRoute
   '/agreements': typeof AppAgreementsIndexRoute
+  '/analysis': typeof AppAnalysisIndexRoute
   '/distributions': typeof AppDistributionsIndexRoute
   '/donations': typeof AppDonationsIndexRoute
   '/donors': typeof AppDonorsIndexRoute
@@ -387,6 +403,7 @@ export interface FileRoutesById {
   '/design/settings': typeof DesignSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/design/': typeof DesignIndexRoute
+  '/_app/analysis/pledges': typeof AppAnalysisPledgesRoute
   '/_app/distributions/$kid': typeof AppDistributionsKidRoute
   '/_app/distributions/new': typeof AppDistributionsNewRoute
   '/_app/donations/register': typeof AppDonationsRegisterRoute
@@ -396,6 +413,7 @@ export interface FileRoutesById {
   '/_app/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/_app/regranting/settings': typeof AppRegrantingSettingsRoute
   '/_app/agreements/': typeof AppAgreementsIndexRoute
+  '/_app/analysis/': typeof AppAnalysisIndexRoute
   '/_app/distributions/': typeof AppDistributionsIndexRoute
   '/_app/donations/': typeof AppDonationsIndexRoute
   '/_app/donors/': typeof AppDonorsIndexRoute
@@ -434,6 +452,7 @@ export interface FileRouteTypes {
     | '/design/patterns'
     | '/design/settings'
     | '/design/'
+    | '/analysis/pledges'
     | '/distributions/$kid'
     | '/distributions/new'
     | '/donations/register'
@@ -443,6 +462,7 @@ export interface FileRouteTypes {
     | '/regranting/adjustments'
     | '/regranting/settings'
     | '/agreements/'
+    | '/analysis/'
     | '/distributions/'
     | '/donations/'
     | '/donors/'
@@ -478,6 +498,7 @@ export interface FileRouteTypes {
     | '/design/settings'
     | '/'
     | '/design'
+    | '/analysis/pledges'
     | '/distributions/$kid'
     | '/distributions/new'
     | '/donations/register'
@@ -487,6 +508,7 @@ export interface FileRouteTypes {
     | '/regranting/adjustments'
     | '/regranting/settings'
     | '/agreements'
+    | '/analysis'
     | '/distributions'
     | '/donations'
     | '/donors'
@@ -524,6 +546,7 @@ export interface FileRouteTypes {
     | '/design/settings'
     | '/_app/'
     | '/design/'
+    | '/_app/analysis/pledges'
     | '/_app/distributions/$kid'
     | '/_app/distributions/new'
     | '/_app/donations/register'
@@ -533,6 +556,7 @@ export interface FileRouteTypes {
     | '/_app/regranting/adjustments'
     | '/_app/regranting/settings'
     | '/_app/agreements/'
+    | '/_app/analysis/'
     | '/_app/distributions/'
     | '/_app/donations/'
     | '/_app/donors/'
@@ -691,6 +715,20 @@ declare module '@tanstack/react-router' {
       path: '/agreements'
       fullPath: '/agreements/'
       preLoaderRoute: typeof AppAgreementsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/analysis/': {
+      id: '/_app/analysis/'
+      path: '/analysis'
+      fullPath: '/analysis/'
+      preLoaderRoute: typeof AppAnalysisIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/analysis/pledges': {
+      id: '/_app/analysis/pledges'
+      path: '/analysis/pledges'
+      fullPath: '/analysis/pledges'
+      preLoaderRoute: typeof AppAnalysisPledgesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/distributions/': {
@@ -878,6 +916,7 @@ interface AppRouteChildren {
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAnalysisPledgesRoute: typeof AppAnalysisPledgesRoute
   AppDistributionsKidRoute: typeof AppDistributionsKidRoute
   AppDistributionsNewRoute: typeof AppDistributionsNewRoute
   AppDonationsRegisterRoute: typeof AppDonationsRegisterRoute
@@ -887,6 +926,7 @@ interface AppRouteChildren {
   AppRegrantingAdjustmentsRoute: typeof AppRegrantingAdjustmentsRoute
   AppRegrantingSettingsRoute: typeof AppRegrantingSettingsRoute
   AppAgreementsIndexRoute: typeof AppAgreementsIndexRoute
+  AppAnalysisIndexRoute: typeof AppAnalysisIndexRoute
   AppDistributionsIndexRoute: typeof AppDistributionsIndexRoute
   AppDonationsIndexRoute: typeof AppDonationsIndexRoute
   AppDonorsIndexRoute: typeof AppDonorsIndexRoute
@@ -913,6 +953,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAnalysisPledgesRoute: AppAnalysisPledgesRoute,
   AppDistributionsKidRoute: AppDistributionsKidRoute,
   AppDistributionsNewRoute: AppDistributionsNewRoute,
   AppDonationsRegisterRoute: AppDonationsRegisterRoute,
@@ -922,6 +963,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRegrantingAdjustmentsRoute: AppRegrantingAdjustmentsRoute,
   AppRegrantingSettingsRoute: AppRegrantingSettingsRoute,
   AppAgreementsIndexRoute: AppAgreementsIndexRoute,
+  AppAnalysisIndexRoute: AppAnalysisIndexRoute,
   AppDistributionsIndexRoute: AppDistributionsIndexRoute,
   AppDonationsIndexRoute: AppDonationsIndexRoute,
   AppDonorsIndexRoute: AppDonorsIndexRoute,
