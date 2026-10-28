@@ -6,6 +6,17 @@ import { Stat, StatGroup } from "@/components/domain/stat";
 import { PageSection } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import { importLogs, monthlyTotals, reviewItems } from "@/design-system/fake-data";
+import { orgColors, OTHER_COLOR, OTHER_LABEL } from "@/features/distribution/orgs";
+
+const colors = orgColors([12, 13, 15, 14, 16]);
+const monthlySeries = [
+  { key: "amf", label: "Against Malaria Foundation", color: colors.get(12) },
+  { key: "mc", label: "Malaria Consortium", color: colors.get(13) },
+  { key: "ni", label: "New Incentives", color: colors.get(15) },
+  { key: "hki", label: "Helen Keller Intl", color: colors.get(14) },
+  { key: "gd", label: "GiveDirectly", color: colors.get(16) },
+  { key: "other", label: OTHER_LABEL, color: OTHER_COLOR },
+];
 import {
   avtaleGiroCheckAttention,
   HomeView,
@@ -65,19 +76,14 @@ function HomeDemo() {
         </StatGroup>
       }
       chart={
-        <PageSection title="Last 12 months" description="By cause area">
+        <PageSection title="Last 12 months" description="By organization">
           <BarChart
             data={monthlyTotals}
             xKey="month"
             stacked
             format="money"
             xFormatter={(month) => formatDate(`${month}-01`, "month")}
-            series={[
-              { key: "health", label: "Global health" },
-              { key: "animals", label: "Animal welfare" },
-              { key: "climate", label: "Climate" },
-              { key: "operations", label: "Operations" },
-            ]}
+            series={monthlySeries}
             className="h-60"
           />
         </PageSection>

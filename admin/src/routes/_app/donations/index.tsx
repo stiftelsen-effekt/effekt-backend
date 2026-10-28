@@ -351,6 +351,7 @@ function DonationPeek({
               <DistributionSummary
                 draft={draftFromApi(causeAreas.data, d.distribution)}
                 config={causeAreas.data}
+                amount={d.sum}
               />
             </section>
           )}

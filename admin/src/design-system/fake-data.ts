@@ -183,7 +183,7 @@ const organization = (
 export const causeAreas: CauseArea[] = [
   {
     id: 1,
-    name: "Global health",
+    name: "Global Health",
     standardPercentageShare: 80,
     shortDescription: "The most cost-effective health interventions",
     longDescription: null,
@@ -192,10 +192,11 @@ export const causeAreas: CauseArea[] = [
     ordering: 1,
     organizations: [
       organization(12, 1, "Against Malaria Foundation", 25, 1),
-      organization(13, 1, "Malaria Consortium", 25, 2),
-      organization(14, 1, "Helen Keller Intl", 20, 3),
-      organization(15, 1, "New Incentives", 20, 4),
+      organization(13, 1, "Malaria Consortium", 20, 2),
+      organization(14, 1, "Helen Keller Intl", 15, 3),
+      organization(15, 1, "New Incentives", 15, 4),
       organization(16, 1, "GiveDirectly", 10, 5),
+      organization(17, 1, "GiveWell Top Charities Fund", 15, 6),
     ],
   },
   {
@@ -331,36 +332,39 @@ export const donorDonations: DonorDonation[] = Array.from({ length: 23 }, (_, in
   };
 });
 
+/** Mostly Global Health, spread over its organizations, with a little animal welfare. */
+const yearlyOrgs = [
+  {
+    ID: 12,
+    organization: "Against Malaria Foundation",
+    abbriv: "AMF",
+    causeAreaID: 1,
+    weight: 0.32,
+  },
+  { ID: 13, organization: "Malaria Consortium", abbriv: "MC", causeAreaID: 1, weight: 0.2 },
+  { ID: 15, organization: "New Incentives", abbriv: "NI", causeAreaID: 1, weight: 0.14 },
+  { ID: 14, organization: "Helen Keller Intl", abbriv: "HKI", causeAreaID: 1, weight: 0.1 },
+  { ID: 16, organization: "GiveDirectly", abbriv: "GD", causeAreaID: 1, weight: 0.08 },
+  {
+    ID: 17,
+    organization: "GiveWell Top Charities Fund",
+    abbriv: "TCF",
+    causeAreaID: 1,
+    weight: 0.06,
+  },
+  { ID: 21, organization: "The Humane League", abbriv: "THL", causeAreaID: 2, weight: 0.05 },
+  { ID: 41, organization: "Gi Effektivt drift", abbriv: "Drift", causeAreaID: 4, weight: 0.05 },
+];
+
 export const donorYearly: DonorYearly[] = [2020, 2021, 2022, 2023, 2024, 2025, 2026].flatMap(
   (year, index) => {
     const rand = mulberry32(year);
     const base = 6000 + index * 2200;
-    return [
-      {
-        ID: 12,
-        organization: "Against Malaria Foundation",
-        abbriv: "AMF",
-        causeAreaID: 1,
-        value: money(Math.round(base * (0.55 + rand() * 0.2))),
-        year,
-      },
-      {
-        ID: 21,
-        organization: "The Humane League",
-        abbriv: "THL",
-        causeAreaID: 2,
-        value: money(Math.round(base * (0.15 + rand() * 0.1))),
-        year,
-      },
-      {
-        ID: 31,
-        organization: "Clean Air Task Force",
-        abbriv: "CATF",
-        causeAreaID: 3,
-        value: money(Math.round(base * (0.1 + rand() * 0.08))),
-        year,
-      },
-    ];
+    return yearlyOrgs.map(({ weight, ...org }) => ({
+      ...org,
+      value: money(Math.round(base * weight * (0.8 + rand() * 0.4))),
+      year,
+    }));
   },
 );
 
@@ -404,23 +408,42 @@ export const avtaleGiroDetail: AvtaleGiroDetail = {
     causeAreas: [
       {
         id: 1,
-        name: "Global health",
-        standardSplit: true,
-        percentageShare: "80",
-        organizations: [],
-      },
-      {
-        id: 2,
-        name: "Animal welfare",
+        name: "Global Health",
         standardSplit: false,
-        percentageShare: "20",
+        percentageShare: "100",
         organizations: [
-          { id: 21, name: "The Humane League", percentageShare: "70" },
-          { id: 22, name: "Animal Welfare Fund", percentageShare: "30" },
+          { id: 12, name: "Against Malaria Foundation", percentageShare: "40" },
+          { id: 13, name: "Malaria Consortium", percentageShare: "25" },
+          { id: 15, name: "New Incentives", percentageShare: "15" },
+          { id: 14, name: "Helen Keller Intl", percentageShare: "10" },
+          { id: 16, name: "GiveDirectly", percentageShare: "10" },
         ],
       },
     ],
   },
+};
+
+/** A split across cause areas, where the cause area adds information. */
+export const mixedDistribution: Pick<AvtaleGiroDetail["distribution"], "causeAreas"> = {
+  causeAreas: [
+    {
+      id: 1,
+      name: "Global Health",
+      standardSplit: true,
+      percentageShare: "80",
+      organizations: [],
+    },
+    {
+      id: 2,
+      name: "Animal welfare",
+      standardSplit: false,
+      percentageShare: "20",
+      organizations: [
+        { id: 21, name: "The Humane League", percentageShare: "70" },
+        { id: 22, name: "Animal Welfare Fund", percentageShare: "30" },
+      ],
+    },
+  ],
 };
 
 // --- Agreements ---------------------------------------------------------------------------
@@ -609,17 +632,22 @@ export const monthlyTotals = [
 ].map((month, index) => {
   const rand = mulberry32(index + 7);
   const season = month.endsWith("-12") ? 2.6 : month.endsWith("-11") ? 1.4 : 1;
-  const health = Math.round((380_000 + rand() * 160_000) * season);
-  const animals = Math.round((90_000 + rand() * 60_000) * season);
-  const climate = Math.round((60_000 + rand() * 50_000) * season);
-  const operations = Math.round((25_000 + rand() * 15_000) * season);
+  const at = (base: number, spread: number) => Math.round((base + rand() * spread) * season);
+  const amf = at(150_000, 60_000);
+  const mc = at(90_000, 40_000);
+  const ni = at(60_000, 30_000);
+  const hki = at(45_000, 25_000);
+  const gd = at(35_000, 20_000);
+  const other = at(80_000, 40_000);
   return {
     month,
-    health,
-    animals,
-    climate,
-    operations,
-    total: health + animals + climate + operations,
+    amf,
+    mc,
+    ni,
+    hki,
+    gd,
+    other,
+    total: amf + mc + ni + hki + gd + other,
     donors: Math.round((1100 + rand() * 400) * (season > 2 ? 1.9 : season)),
   };
 });

@@ -19,7 +19,7 @@ import {
   greeting,
   isoDay,
   lastMonths,
-  monthlyByCauseArea,
+  monthlyByOrganization,
   monthSum,
   monthTick,
 } from "@/features/home/model";
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/_app/")({
       queryClient,
       cause,
       [q.reviewCounts, q.missingAvtaleGiro, q.failedCharges, q.monthly, q.costs],
-      [q.vippsReport, q.avtaleGiroReport, q.causeAreas, ...q.totals, q.logs],
+      [q.vippsReport, q.avtaleGiroReport, ...q.totals, q.logs],
     );
   },
   component: HomePage,
@@ -69,7 +69,6 @@ function homeQueries(trpc: ReturnType<typeof useTRPC>, today: Date) {
     costs: trpc.donations.transactionCostsReport.queryOptions(),
     vippsReport: trpc.vipps.agreements.report.queryOptions(),
     avtaleGiroReport: trpc.giro.avtalegiro.report.queryOptions(),
-    causeAreas: trpc.config.causeAreas.listAll.queryOptions(),
     totals: months.map((month) =>
       trpc.donations.total.queryOptions({ fromDate: month.fromDate, toDate: month.toDate }),
     ),
@@ -98,8 +97,7 @@ function HomePage() {
   const vippsReport = useQuery(q.vippsReport);
   const avtaleGiroReport = useQuery(q.avtaleGiroReport);
 
-  // Last 12 months by cause area
-  const causeAreas = useQuery(q.causeAreas);
+  // Last 12 months by organization
   const totals = useQueries({ queries: q.totals });
 
   const logs = useQuery(q.logs);
@@ -231,16 +229,14 @@ function HomePage() {
     </StatGroup>
   );
 
-  const chartError = causeAreas.error ?? totals.find((query) => query.error)?.error;
-  const chartLoading = causeAreas.isPending || totals.some((query) => query.isPending);
-  const chartData =
-    causeAreas.data && !chartLoading
-      ? monthlyByCauseArea(
-          months,
-          totals.map((query) => query.data),
-          causeAreas.data,
-        )
-      : undefined;
+  const chartError = totals.find((query) => query.error)?.error;
+  const chartLoading = totals.some((query) => query.isPending);
+  const chartData = !chartLoading
+    ? monthlyByOrganization(
+        months,
+        totals.map((query) => query.data),
+      )
+    : undefined;
 
   return (
     <HomeView
@@ -249,12 +245,11 @@ function HomePage() {
       attentionLoading={attentionPending && lastAttentionCount.get()}
       stats={stats}
       chart={
-        <PageSection title="Last 12 months" description="Donations by cause area">
+        <PageSection title="Last 12 months" description="Donations by organization">
           {chartError ? (
             <ErrorState
               error={chartError}
               onRetry={() => {
-                void causeAreas.refetch();
                 totals.forEach((query) => void query.refetch());
               }}
             />

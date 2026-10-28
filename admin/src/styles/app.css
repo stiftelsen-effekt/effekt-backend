@@ -203,6 +203,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+  --color-chart-9: var(--chart-9);
   --color-chart-grid: var(--border);
 
   --spacing-row: var(--row-h);
@@ -248,6 +252,12 @@
   --chart-3: #c9861a;
   --chart-4: #2a8a84;
   --chart-5: var(--color-paper-300);
+  /* Softer 1–4 for organization splits (more than four organizations); they follow the
+     theme's chart-1…4 and surface, so dark mode needs no copy. chart-5 stays "Other". */
+  --chart-6: color-mix(in oklab, var(--chart-1) 60%, var(--surface));
+  --chart-7: color-mix(in oklab, var(--chart-2) 60%, var(--surface));
+  --chart-8: color-mix(in oklab, var(--chart-3) 60%, var(--surface));
+  --chart-9: color-mix(in oklab, var(--chart-4) 60%, var(--surface));
 
   color-scheme: light;
 }

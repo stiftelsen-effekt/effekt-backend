@@ -1,18 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { greeting, lastMonths, monthlyByCauseArea, monthSum } from "./model";
-
-const area = (id: number, name: string, ordering: number, orgIds: number[]) =>
-  ({
-    id,
-    name,
-    ordering,
-    isActive: true,
-    standardPercentageShare: 0,
-    shortDescription: null,
-    longDescription: null,
-    informationUrl: null,
-    organizations: orgIds.map((orgId) => ({ id: orgId })),
-  } as never);
+import { greeting, lastMonths, monthlyByOrganization, monthSum } from "./model";
 
 describe("lastMonths", () => {
   it("returns 12 months oldest first, the current one ending today", () => {
@@ -51,49 +38,47 @@ describe("monthSum", () => {
   });
 });
 
-describe("monthlyByCauseArea", () => {
+describe("monthlyByOrganization", () => {
   const months = lastMonths(new Date(2026, 9, 27), 2);
 
-  it("sums organizations into their cause areas, in cause area order", () => {
-    const areas = [area(2, "Animals", 2, [21]), area(1, "Health", 1, [11, 12])];
-    const { series, rows } = monthlyByCauseArea(
-      months,
+  it("stacks by organization, largest first, with exact monthly sums", () => {
+    const { series, rows } = monthlyByOrganization(months, [
       [
-        [
-          { id: 11, orgName: "A", sum: "100.10" },
-          { id: 12, orgName: "B", sum: "0.20" },
-        ],
-        [{ id: 21, orgName: "C", sum: "50" }],
+        { id: 11, orgName: "AMF", sum: "100.10" },
+        { id: 11, orgName: "AMF", sum: "0.20" },
+        { id: 12, orgName: "GiveDirectly", sum: "40" },
       ],
-      areas,
-    );
-    expect(series).toEqual([
-      { key: "area-1", label: "Health" },
-      { key: "area-2", label: "Animals" },
+      [{ id: 21, orgName: "The Humane League", sum: "50" }],
     ]);
+    expect(series.map((s) => [s.key, s.label])).toEqual([
+      ["org11", "AMF"],
+      ["org21", "The Humane League"],
+      ["org12", "GiveDirectly"],
+    ]);
+    expect(series.every((s) => s.color)).toBe(true);
     expect(rows).toEqual([
-      { month: "2026-09", "area-1": 100.3, "area-2": 0 },
-      { month: "2026-10", "area-1": 0, "area-2": 50 },
+      { month: "2026-09", org11: 100.3, org21: 0, org12: 40 },
+      { month: "2026-10", org11: 0, org21: 50, org12: 0 },
     ]);
   });
 
-  it("puts unknown organizations in Other and folds the smallest areas beyond five series", () => {
-    const areas = [1, 2, 3, 4, 5, 6].map((id) => area(id, `Area ${id}`, id, [id * 10]));
-    const { series, rows } = monthlyByCauseArea(
+  it("groups the long tail as Other beyond the series limit", () => {
+    const { series, rows } = monthlyByOrganization(
       months,
       [
-        [1, 2, 3, 4, 5, 6].map((id) => ({ id: id * 10, orgName: "", sum: String(id * 100) })),
-        [{ id: 999, orgName: "Gone", sum: "7" }],
+        [1, 2, 3, 4, 5, 6, 7].map((id) => ({ id, orgName: `Org ${id}`, sum: String(id * 100) })),
+        [{ id: 1, orgName: "Org 1", sum: "7" }],
       ],
-      areas,
+      6,
     );
-    expect(series.map((s) => s.key)).toEqual(["area-3", "area-4", "area-5", "area-6", "other"]);
-    expect(rows[0]!.other).toBe(300); // areas 1 and 2
+    expect(series.map((s) => s.key)).toEqual(["org7", "org6", "org5", "org4", "org3", "other"]);
+    expect(series.at(-1)).toMatchObject({ label: "Other", color: "chart-5" });
+    expect(rows[0]!.other).toBe(300); // orgs 1 and 2
     expect(rows[1]!.other).toBe(7);
   });
 
   it("returns no series when there were no donations", () => {
-    expect(monthlyByCauseArea(months, [[], []], [area(1, "Health", 1, [11])]).series).toEqual([]);
+    expect(monthlyByOrganization(months, [[], []]).series).toEqual([]);
   });
 });
 

@@ -6,6 +6,7 @@ import { createColumns, DataTable } from "@/components/data-table";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { CopyValue } from "@/components/domain/copy-value";
 import { DistributionSummary } from "@/components/domain/distribution-editor";
+import { OrgSparkline } from "@/components/domain/org-split";
 import { DateTime, Money, Num } from "@/components/domain/format";
 import { InlineEdit } from "@/components/domain/inline-edit";
 import { Property, PropertyList } from "@/components/domain/property-list";
@@ -33,6 +34,7 @@ import {
   vippsAgreements,
   type DonorDistribution,
   type DonorDonation,
+  mixedDistribution,
 } from "@/design-system/fake-data";
 import {
   fromAvtaleGiro,
@@ -41,11 +43,12 @@ import {
   type AgreementRow,
 } from "@/features/agreements/model";
 import { draftFromApi } from "@/features/distribution/model";
+import { orgSlices, type OrgSlice } from "@/features/distribution/orgs";
 import { formatMoney } from "@/lib/format";
 import { moneyToNumber, percentOfMoney, sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
 import { agreementStatus } from "@/lib/status";
-import { maskSsn } from "@/features/donors/model";
+import { maskSsn, yearlyChart } from "@/features/donors/model";
 
 export const Route = createFileRoute("/design/detail")({
   component: DonorDemo,
@@ -101,6 +104,11 @@ const distributionColumns = distributionCol.columns([
     header: "KID",
     cell: ({ getValue }) => <CopyValue value={getValue()} label="KID" />,
   }),
+  distributionCol.display({
+    id: "split",
+    header: "Distribution",
+    cell: ({ row }) => <OrgSparkline slices={kidSplits[row.original.KID] ?? []} />,
+  }),
   distributionCol.accessor("count", { header: "Donations", meta: { numeric: true } }),
   distributionCol.accessor("sum", {
     header: "Total",
@@ -122,20 +130,18 @@ const agreements: AgreementRow[] = [
 const years = [...new Set(donorYearly.map((row) => row.year))];
 const thisYear = years.at(-1)!;
 const lastYear = years.at(-2)!;
-/** Exact total given in a year (optionally to one cause area). */
-const given = (year: number, causeAreaId?: number) =>
-  sumMoney(
-    donorYearly
-      .filter((r) => r.year === year && (causeAreaId == null || r.causeAreaID === causeAreaId))
-      .map((r) => r.value),
-  );
-/** Chart series take floats of the exact per-year totals. */
-const yearly = years.map((year) => ({
-  year: String(year),
-  health: moneyToNumber(given(year, 1)),
-  animals: moneyToNumber(given(year, 2)),
-  climate: moneyToNumber(given(year, 3)),
-}));
+/** Exact total given in a year. */
+const given = (year: number) =>
+  sumMoney(donorYearly.filter((r) => r.year === year).map((r) => r.value));
+
+/** Given per year, stacked by organization, coloured like the splits. */
+const yearly = yearlyChart(donorYearly);
+
+/** The KIDs' splits, for the compact distribution column. */
+const kidSplits: Record<string, OrgSlice[]> = {
+  "000138700015": orgSlices(draftFromApi(causeAreas, avtaleGiroDetail.distribution), causeAreas),
+  "96891492": orgSlices(draftFromApi(causeAreas, mixedDistribution), causeAreas),
+};
 
 function DonorDemo() {
   const [donor, setDonor] = useState(fakeDonor);
@@ -295,17 +301,13 @@ function DonorDemo() {
         </>
       }
     >
-      <PageSection title="Given per year" description="By cause area">
+      <PageSection title="Given per year" description="By organization">
         <BarChart
-          data={yearly}
+          data={yearly.data}
           xKey="year"
           stacked
           format="money"
-          series={[
-            { key: "health", label: "Global health" },
-            { key: "animals", label: "Animal welfare" },
-            { key: "climate", label: "Climate" },
-          ]}
+          series={yearly.series}
           className="h-56"
         />
       </PageSection>

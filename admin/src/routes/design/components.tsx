@@ -17,6 +17,8 @@ import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { JsonViewer } from "@/components/domain/json-viewer";
 import { CopyValue } from "@/components/domain/copy-value";
 import { DistributionEditor, DistributionSummary } from "@/components/domain/distribution-editor";
+import { OrgSparkline } from "@/components/domain/org-split";
+import { orgSlices } from "@/features/distribution/orgs";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
@@ -85,6 +87,7 @@ import {
   donations,
   donors,
   paymentMethods,
+  mixedDistribution,
 } from "@/design-system/fake-data";
 import { DocPage, DocSection, Example } from "@/design-system/doc";
 import { fakeDonorSearch } from "@/design-system/fake-search";
@@ -475,17 +478,39 @@ function Components() {
 
       <DocSection
         id="distribution"
-        title="Distribution editor"
-        description="Everywhere a split is edited: donation edit, manual registration, agreements, new KID, review queue. Try the arrow keys in a percentage field (Shift for steps of 10)."
+        title="Distributions"
+        description="Organizations are the focus: one bar of organizations in stable colours, cause areas only when they add something. The editor is used everywhere a split is edited: donation edit, manual registration, agreements, new KID, review queue. Try the arrow keys in a percentage field (Shift for steps of 10)."
       >
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           <DistributionEditor config={causeAreas} value={distribution} onChange={setDistribution} />
-          <Example title="Read-only summary" surfaceClassName="block">
-            <DistributionSummary
-              config={causeAreas}
-              draft={draftFromApi(causeAreas, avtaleGiroDetail.distribution)}
-            />
-          </Example>
+          <div className="grid gap-4">
+            <Example title="Read-only summary, Global Health only" surfaceClassName="block">
+              <DistributionSummary
+                config={causeAreas}
+                draft={draftFromApi(causeAreas, avtaleGiroDetail.distribution)}
+                amount="500"
+              />
+            </Example>
+            <Example title="Across cause areas" surfaceClassName="block">
+              <DistributionSummary
+                config={causeAreas}
+                draft={draftFromApi(causeAreas, mixedDistribution)}
+              />
+            </Example>
+            <Example title="In a list cell (hover for every organization)" surfaceClassName="block">
+              <div className="grid gap-2">
+                <OrgSparkline
+                  slices={orgSlices(
+                    draftFromApi(causeAreas, avtaleGiroDetail.distribution),
+                    causeAreas,
+                  )}
+                />
+                <OrgSparkline
+                  slices={orgSlices(draftFromApi(causeAreas, mixedDistribution), causeAreas)}
+                />
+              </div>
+            </Example>
+          </div>
         </div>
       </DocSection>
 

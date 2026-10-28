@@ -4,7 +4,17 @@ import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 import { formatCompact, formatMoney, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export type ChartColor = "chart-1" | "chart-2" | "chart-3" | "chart-4" | "chart-5";
+export type ChartColor =
+  | "chart-1"
+  | "chart-2"
+  | "chart-3"
+  | "chart-4"
+  | "chart-5"
+  /** Softer chart-1…4, for organization splits with more than four organizations. */
+  | "chart-6"
+  | "chart-7"
+  | "chart-8"
+  | "chart-9";
 export type ValueFormat = "money" | "number";
 
 export type ChartSeries = { key: string; label: string; color?: ChartColor };
@@ -17,6 +27,10 @@ export const swatchClasses: Record<ChartColor, string> = {
   "chart-3": "bg-chart-3",
   "chart-4": "bg-chart-4",
   "chart-5": "bg-chart-5",
+  "chart-6": "bg-chart-6",
+  "chart-7": "bg-chart-7",
+  "chart-8": "bg-chart-8",
+  "chart-9": "bg-chart-9",
 };
 
 export const colorVar = (color: ChartColor) => `var(--${color})`;

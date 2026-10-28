@@ -249,6 +249,7 @@ function DonationPage() {
             <DistributionSummary
               draft={draftFromApi(causeAreas.data, d.distribution)}
               config={causeAreas.data}
+              amount={d.sum}
             />
           ) : causeAreas.isError ? (
             <ErrorState error={causeAreas.error} onRetry={() => void causeAreas.refetch()} />

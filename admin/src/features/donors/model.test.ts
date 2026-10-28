@@ -139,10 +139,11 @@ describe("yearlyChart", () => {
       row(6, "F", 2025, "50"),
     ];
     const chart = yearlyChart(rows, 5);
-    expect(chart.series.map((s) => s.key)).toEqual(["org1", "org2", "org3", "org4", "rest"]);
+    expect(chart.series.map((s) => s.key)).toEqual(["org1", "org2", "org3", "org4", "other"]);
+    expect(chart.series.at(-1)).toMatchObject({ label: "Other", color: "chart-5" });
     expect(chart.data).toEqual([
-      { year: "2024", org1: 500, org2: 400, org3: 0, org4: 0, rest: 0 },
-      { year: "2025", org1: 0, org2: 0, org3: 300, org4: 200, rest: 150 },
+      { year: "2024", org1: 500, org2: 400, org3: 0, org4: 0, other: 0 },
+      { year: "2025", org1: 0, org2: 0, org3: 300, org4: 200, other: 150 },
     ]);
   });
 

@@ -1,4 +1,4 @@
-import { CheckIcon, CornerDownRightIcon, TriangleAlertIcon } from "lucide-react";
+import { CheckIcon, TriangleAlertIcon } from "lucide-react";
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,15 +13,16 @@ import {
   type CauseAreaConfig,
   type DistributionDraft,
 } from "@/features/distribution/model";
+import { orgSlices, showCauseAreas, type OrgSlice } from "@/features/distribution/orgs";
 import { formatNumber } from "@/lib/format";
+import type { MoneyInput } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { formatShare as pct, OrgSplitBar, OrgSplitLegend, OrgSwatch } from "./org-split";
 
-const swatches = ["bg-chart-1", "bg-chart-2", "bg-chart-3", "bg-chart-4", "bg-chart-5"];
-const swatch = (index: number) => swatches[index % swatches.length]!;
-
-const pct = (value: number) => `${formatNumber(value, { decimals: value % 1 ? 1 : 0 })}\u00a0%`;
-
-/** Stacked bar of cause area shares. Unplaced share shows as a hatched gap, overflow in red. */
+/**
+ * Stacked bar of the organizations a split gives to, in their colours. Unplaced share shows
+ * as a hatched gap, overflow in red.
+ */
 export function AllocationBar({
   draft,
   config,
@@ -32,37 +33,13 @@ export function AllocationBar({
   className?: string;
 }) {
   const total = draft.causeAreas.reduce((sum, area) => sum + area.share, 0);
-  const scale = Math.max(total, 100);
   return (
-    <div
-      role="img"
-      aria-label={
-        draft.causeAreas
-          .filter((area) => area.share > 0)
-          .map((area) => `${config.find((c) => c.id === area.id)?.name}: ${pct(area.share)}`)
-          .join(", ") || "Nothing placed yet"
-      }
-      className={cn("flex h-2.5 w-full gap-px overflow-hidden rounded-full bg-border", className)}
-    >
-      {draft.causeAreas.map((area, index) =>
-        area.share > 0 ? (
-          <div
-            key={area.id}
-            className={cn("h-full transition-[width] duration-(--duration-base)", swatch(index))}
-            style={{ width: `${(area.share / scale) * 100}%` }}
-          />
-        ) : null,
-      )}
-      {total < 100 && (
-        <div
-          className="h-full flex-1 bg-[repeating-linear-gradient(135deg,var(--border-strong)_0_3px,transparent_3px_6px)]"
-          aria-hidden
-        />
-      )}
-      {total > 100 && (
-        <div className="h-full bg-danger" style={{ width: `${((total - 100) / scale) * 100}%` }} />
-      )}
-    </div>
+    <OrgSplitBar
+      slices={orgSlices(draft, config)}
+      unplaced={Math.max(0, 100 - total)}
+      overflow={Math.max(0, total - 100)}
+      className={className}
+    />
   );
 }
 
@@ -129,6 +106,21 @@ export function PercentInput({
   );
 }
 
+/** Organizations and their share of the whole split, on one wrapping line. */
+function InlineLegend({ slices, className }: { slices: OrgSlice[]; className?: string }) {
+  return (
+    <ul className={cn("flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground", className)}>
+      {slices.map((slice) => (
+        <li key={slice.id ?? "other"} className="inline-flex items-center gap-1.5">
+          <OrgSwatch slice={slice} />
+          <span className="text-foreground">{slice.name}</span>
+          <span className="num">{pct(slice.share)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /**
  * The one way to edit a distribution, wherever it appears (registering a donation, editing
  * a donation or agreement, creating a KID, the review queue). Live totals at both levels,
@@ -157,6 +149,10 @@ export function DistributionEditor({
       : validation.error ??
         (validation.valid ? "All 100 % placed" : "Organization shares don't add up");
 
+  const slices = orgSlices(value, config);
+  const colorOf = new Map(slices.map((slice) => [slice.id, slice.color]));
+  const total = validation.total;
+
   return (
     <fieldset
       data-slot="distribution-editor"
@@ -166,7 +162,11 @@ export function DistributionEditor({
     >
       <legend className="sr-only">Distribution</legend>
       <div className="grid gap-2.5 border-b border-border px-4 py-3">
-        <AllocationBar draft={value} config={config} />
+        <OrgSplitBar
+          slices={slices}
+          unplaced={Math.max(0, 100 - total)}
+          overflow={Math.max(0, total - 100)}
+        />
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <p
             id={statusId}
@@ -192,7 +192,7 @@ export function DistributionEditor({
       </div>
 
       <ul className="divide-y divide-border">
-        {value.causeAreas.map((area, index) => {
+        {value.causeAreas.map((area) => {
           const areaConfig = config.find((c) => c.id === area.id);
           if (!areaConfig) return null;
           const areaValidation = validation.causeAreas[area.id];
@@ -203,7 +203,6 @@ export function DistributionEditor({
               className={cn("group/area grid gap-2 px-4 py-2.5", !used && "bg-muted/50")}
             >
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <span className={cn("size-2.5 shrink-0 rounded-full", swatch(index))} aria-hidden />
                 <span
                   className={cn(
                     "min-w-0 flex-1 text-sm",
@@ -243,16 +242,26 @@ export function DistributionEditor({
                   />
                 </label>
               </div>
+              {used && area.standardSplit && (
+                <InlineLegend
+                  className="ml-1.5 border-l border-border pl-4"
+                  slices={slices.filter((slice) => slice.causeAreaId === area.id)}
+                />
+              )}
               {used && !area.standardSplit && (
                 <div className="ml-1.5 grid gap-1.5 border-l border-border pl-4">
                   {area.organizations.map((org) => {
                     const orgConfig = areaConfig.organizations.find((o) => o.id === org.id);
                     return (
                       <div key={org.id} className="flex items-center gap-3">
-                        <CornerDownRightIcon
-                          className="size-3.5 text-faint-foreground"
-                          aria-hidden
-                        />
+                        {colorOf.has(org.id) ? (
+                          <OrgSwatch slice={{ color: colorOf.get(org.id)! }} />
+                        ) : (
+                          <span
+                            className="size-2.5 shrink-0 rounded-xs border border-border-strong"
+                            aria-hidden
+                          />
+                        )}
                         <span className="min-w-0 flex-1 truncate text-sm">
                           {orgConfig?.name ?? org.id}
                         </span>
@@ -283,47 +292,50 @@ export function DistributionEditor({
   );
 }
 
-/** Read-only distribution for detail pages and the peek panel. */
+/**
+ * Read-only distribution for detail pages and peeks: one bar of organizations and a legend
+ * with each one's share (and part of `amount`, when given). Cause areas appear, as small
+ * group headers, only when they add something: more than one, or one that isn't Global
+ * Health. For list cells use `OrgSparkline`.
+ */
 export function DistributionSummary({
   draft,
   config,
+  amount,
   className,
 }: {
   draft: DistributionDraft;
   config: CauseAreaConfig[];
+  /** The donation or agreement amount, to show each organization's part. */
+  amount?: MoneyInput | null;
   className?: string;
 }) {
+  const slices = orgSlices(draft, config, amount);
+  const used = draft.causeAreas.filter((area) => area.share > 0);
+  const grouped = showCauseAreas(draft, config);
+  const standard = used.length > 0 && used.every((area) => area.standardSplit);
   return (
     <div data-slot="distribution-summary" className={cn("grid gap-3", className)}>
-      <AllocationBar draft={draft} config={config} />
-      <ul className="grid gap-2 text-sm">
-        {draft.causeAreas.map((area, index) => {
-          if (area.share <= 0) return null;
-          const areaConfig = config.find((c) => c.id === area.id);
-          return (
-            <li key={area.id} className="grid gap-1">
-              <div className="flex items-center gap-2">
-                <span className={cn("size-2 shrink-0 rounded-full", swatch(index))} aria-hidden />
-                <span className="flex-1 font-semibold">{areaConfig?.name}</span>
-                <span className="num font-semibold">{pct(area.share)}</span>
-              </div>
-              <p className="pl-4 text-xs text-muted-foreground">
-                {area.standardSplit
-                  ? "Standard split"
-                  : area.organizations
-                      .filter((org) => org.share > 0)
-                      .map(
-                        (org) =>
-                          `${
-                            areaConfig?.organizations.find((o) => o.id === org.id)?.name ?? org.id
-                          } ${pct(org.share)}`,
-                      )
-                      .join(" · ")}
-              </p>
-            </li>
-          );
-        })}
-      </ul>
+      <OrgSplitBar slices={slices} />
+      {grouped ? (
+        <div className="grid gap-3">
+          {used.map((area) => (
+            <section key={area.id} className="grid gap-1.5">
+              <h4 className="flex items-baseline gap-2 text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">
+                  {config.find((c) => c.id === area.id)?.name ?? `Cause area ${area.id}`}
+                </span>
+                <span className="num">{pct(area.share)}</span>
+                {area.standardSplit && <span>· standard split</span>}
+              </h4>
+              <OrgSplitLegend slices={slices.filter((slice) => slice.causeAreaId === area.id)} />
+            </section>
+          ))}
+        </div>
+      ) : (
+        <OrgSplitLegend slices={slices} />
+      )}
+      {!grouped && standard && <p className="text-xs text-muted-foreground">Standard split</p>}
     </div>
   );
 }

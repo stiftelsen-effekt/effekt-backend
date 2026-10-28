@@ -1,14 +1,14 @@
 /**
- * Pure helpers behind Home: month windows, the per-cause-area monthly chart, and the
+ * Pure helpers behind Home: month windows, the per-organization monthly chart, and the
  * greeting. Kept out of the route so they can be unit tested.
  */
 import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import { enGB } from "date-fns/locale";
 import type { ChartSeries } from "@/components/charts/chart";
+import { orgChartSeries } from "@/features/distribution/orgs";
 import { moneyToNumber, sumMoney } from "@/lib/money";
 import type { RouterOutputs } from "@/lib/trpc";
 
-type CauseArea = RouterOutputs["config"]["causeAreas"]["listAll"][number];
 export type OrganizationTotal = RouterOutputs["donations"]["total"][number];
 type MonthlyTotal = RouterOutputs["donations"]["totalMonthly"][number];
 
@@ -48,70 +48,41 @@ export function monthSum(rows: MonthlyTotal[] | undefined, year: number, month: 
   );
 }
 
-const OTHER = "other";
-const MAX_SERIES = 5; // chart-1…5
-
 /**
  * Turns one `donations.total` result per month (sums per organization) into stacked chart
- * rows per cause area. The five colours fit five series: with more cause areas, the
- * smallest are folded into "Other". Organizations missing from the config also go to Other.
+ * rows per organization, coloured like the organization everywhere else. The largest
+ * `maxSeries − 1` organizations over the window get their own series; the rest are "Other".
  */
-export function monthlyByCauseArea(
+export function monthlyByOrganization(
   months: MonthWindow[],
   totals: (OrganizationTotal[] | undefined)[],
-  causeAreas: CauseArea[],
+  maxSeries = 6,
 ): { series: ChartSeries[]; rows: Record<string, string | number>[] } {
-  const areaOfOrg = new Map<number, number>();
-  for (const area of causeAreas) {
-    for (const org of area.organizations) areaOfOrg.set(org.id, area.id);
+  const grand = new Map<number, { label: string; sums: string[] }>();
+  for (const month of totals) {
+    for (const row of month ?? []) {
+      const entry = grand.get(row.id) ?? { label: row.orgName, sums: [] };
+      entry.sums.push(row.sum);
+      grand.set(row.id, entry);
+    }
   }
-  const keyOf = (orgId: number) => {
-    const areaId = areaOfOrg.get(orgId);
-    return areaId === undefined ? OTHER : `area-${areaId}`;
-  };
+  const { series, keyOf } = orgChartSeries(
+    [...grand].map(([id, { label, sums }]) => ({
+      id,
+      label,
+      total: moneyToNumber(sumMoney(sums)),
+    })),
+    maxSeries,
+  );
 
-  // Exact sums per month and series key.
-  const exact = months.map((_, index) => {
+  const rows = months.map((month, index) => {
     const byKey = new Map<string, string[]>();
     for (const row of totals[index] ?? []) {
       const key = keyOf(row.id);
       byKey.set(key, [...(byKey.get(key) ?? []), row.sum]);
     }
-    return new Map([...byKey].map(([key, sums]) => [key, sumMoney(sums)]));
-  });
-
-  const grand = new Map<string, number>();
-  for (const month of exact) {
-    for (const [key, sum] of month) grand.set(key, (grand.get(key) ?? 0) + moneyToNumber(sum));
-  }
-
-  const ordered = [...causeAreas]
-    .sort((a, b) => (a.ordering ?? 0) - (b.ordering ?? 0))
-    .map((area) => ({ key: `area-${area.id}`, label: area.name }))
-    .filter((series) => (grand.get(series.key) ?? 0) !== 0);
-
-  let kept = ordered;
-  const folded = new Set<string>();
-  const hasOther = (grand.get(OTHER) ?? 0) !== 0;
-  if (ordered.length + (hasOther ? 1 : 0) > MAX_SERIES) {
-    const byTotal = [...ordered].sort((a, b) => (grand.get(b.key) ?? 0) - (grand.get(a.key) ?? 0));
-    const keep = new Set(byTotal.slice(0, MAX_SERIES - 1).map((s) => s.key));
-    kept = ordered.filter((s) => keep.has(s.key));
-    ordered.filter((s) => !keep.has(s.key)).forEach((s) => folded.add(s.key));
-  }
-  const showOther = hasOther || folded.size > 0;
-
-  const series: ChartSeries[] = [...kept, ...(showOther ? [{ key: OTHER, label: "Other" }] : [])];
-
-  const rows = months.map((month, index) => {
     const row: Record<string, string | number> = { month: month.key };
-    const otherSums: string[] = [];
-    for (const [key, sum] of exact[index]!) {
-      if (key === OTHER || folded.has(key)) otherSums.push(sum);
-      else row[key] = moneyToNumber(sum);
-    }
-    for (const s of series) if (row[s.key] === undefined) row[s.key] = 0;
-    if (showOther) row[OTHER] = moneyToNumber(sumMoney(otherSums));
+    for (const s of series) row[s.key] = moneyToNumber(sumMoney(byKey.get(s.key) ?? []));
     return row;
   });
 

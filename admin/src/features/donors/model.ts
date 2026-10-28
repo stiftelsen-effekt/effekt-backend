@@ -2,8 +2,10 @@
  * Donors: list definition, filter → API mapping and the read models the donor page shows
  * (totals, yearly chart, agreements across providers). Pages never compute these inline.
  */
+import type { ChartSeries } from "@/components/charts/chart";
 import { defineList, param, type FilterValues } from "@/components/filters";
 import { fromAvtaleGiro, fromVipps, type AgreementRow } from "@/features/agreements/model";
+import { orgChartSeries } from "@/features/distribution/orgs";
 import { fromMinorUnits, moneyToNumber, sumMoney, toMinorUnits } from "@/lib/money";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
 
@@ -119,36 +121,36 @@ export function donorTotals(rows: YearlyAggregateRow[]): DonorTotals {
 
 export type YearlyChart = {
   data: Record<string, string | number>[];
-  series: { key: string; label: string }[];
+  series: ChartSeries[];
 };
 
 /**
- * Yearly totals by organization for a stacked bar chart. The chart has five colours, so the
- * four largest organizations get their own series and the rest are grouped.
+ * Yearly totals by organization for a stacked bar chart, coloured like the organization's
+ * splits elsewhere. The largest `maxSeries − 1` organizations get their own series and the
+ * rest are grouped as "Other".
  */
-export function yearlyChart(rows: YearlyAggregateRow[], maxSeries = 5): YearlyChart {
+export function yearlyChart(rows: YearlyAggregateRow[], maxSeries = 6): YearlyChart {
   const totals = new Map<number, { label: string; total: bigint }>();
   for (const row of rows) {
     const current = totals.get(row.ID) ?? { label: row.organization, total: 0n };
     current.total += toMinorUnits(row.value);
     totals.set(row.ID, current);
   }
-  const ranked = [...totals.entries()].sort(([, a], [, b]) =>
-    a.total === b.total ? 0 : a.total > b.total ? -1 : 1,
+  const { series, keyOf } = orgChartSeries(
+    [...totals].map(([id, { label, total }]) => ({
+      id,
+      label,
+      total: moneyToNumber(fromMinorUnits(total)),
+    })),
+    maxSeries,
   );
-  const grouped = ranked.length > maxSeries;
-  const named = grouped ? ranked.slice(0, maxSeries - 1) : ranked;
-  const namedIds = new Set(named.map(([id]) => id));
-  const series = named.map(([id, { label }]) => ({ key: `org${id}`, label }));
-  if (grouped) series.push({ key: "rest", label: "Remaining organizations" });
 
   const years = [...new Set(rows.map((row) => row.year))].sort((a, b) => a - b);
   const data = years.map((year) => {
     const point: Record<string, string | number> = { year: String(year) };
     for (const { key } of series) {
       const values = rows
-        .filter((row) => row.year === year)
-        .filter((row) => (key === "rest" ? !namedIds.has(row.ID) : `org${row.ID}` === key))
+        .filter((row) => row.year === year && keyOf(row.ID) === key)
         .map((row) => row.value);
       point[key] = moneyToNumber(sumMoney(values));
     }

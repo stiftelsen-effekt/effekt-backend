@@ -314,7 +314,15 @@ only these exist. Components use the semantic layer, never raw values.
   tones are lightened to keep contrast. Every text pair meets WCAG AA in both themes (checked by
   `test:a11y`).
 - **Charts.** `chart-1…5`: ink, accent blue, ochre, teal, light grey — distinguishable in both
-  themes and for common colour-vision deficiencies; the largest series is ink.
+  themes and for common colour-vision deficiencies; the largest series is ink. `chart-6…9` are
+  softer 1–4, for organization splits.
+- **Distributions: organizations first.** Gi Effektivt gives almost everything through Global
+  Health, so a split is shown as one bar of organizations, each in its own stable colour
+  (`features/distribution/orgs.ts`: home colour by id, light grey only for "Other"), with name,
+  share and amount beside it. A cause area appears, as a small group header, only when it
+  adds information: more than one is used, or the one used isn't Global Health. List cells use
+  `OrgSparkline` (small bar, largest organization, all of them in the tooltip). Charts stack by
+  organization with the long tail as "Other" (`orgChartSeries`).
 - **Type.** ES Klarheit Grotesk everywhere; ES Klarheit Kurrent only for page titles (one brand
   moment per screen). Scale: 12 / 13 / 14 / 16 / 20 / 26 / 32. Body 14, tables and controls 13.
   Tabular lining figures for every number (`num` utility; `Money`, `Num`, `DateTime` apply it).
@@ -355,21 +363,21 @@ pass children, not config objects, wherever the structure varies.
 
 ### Domain (`src/components/domain`)
 
-| Component                                                                    | Use when                                                                                                                  |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `Money`, `Num`, `DateTime`                                                   | Every amount, count, date. `DateTime` absolute in tables/forms, `relative` for activity; the other form is in the tooltip |
-| `CopyValue`                                                                  | Every id people copy: donor/donation id, KID, agreement id, external ref                                                  |
-| `Status` + `lib/status.ts`                                                   | Lifecycle state. Add new catalogs there, mapping each value to label, tone and meaning                                    |
-| `PropertyList` / `Property`                                                  | Facts about one record                                                                                                    |
-| `StatGroup` / `Stat`                                                         | 2–5 headline numbers                                                                                                      |
-| `Callout`                                                                    | A message tied to a place on the page                                                                                     |
-| `EmptyState`, `ErrorState`                                                   | Nothing to show / failed to load (with retry)                                                                             |
-| `InlineEdit`                                                                 | One low-risk field                                                                                                        |
-| `ConfirmDialog`                                                              | Irreversible or financial actions                                                                                         |
-| `UnsavedChangesBar`                                                          | Explicit-save forms (also blocks navigation while dirty)                                                                  |
-| `DistributionEditor`, `DistributionSummary`, `AllocationBar`, `PercentInput` | Every split, editing or reading                                                                                           |
-| `AttentionList`                                                              | Home, “what needs me”                                                                                                     |
-| `FileDropzone`, `JsonViewer`                                                 | Uploads, raw payloads                                                                                                     |
+| Component                                                                                    | Use when                                                                                                                  |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `Money`, `Num`, `DateTime`                                                                   | Every amount, count, date. `DateTime` absolute in tables/forms, `relative` for activity; the other form is in the tooltip |
+| `CopyValue`                                                                                  | Every id people copy: donor/donation id, KID, agreement id, external ref                                                  |
+| `Status` + `lib/status.ts`                                                                   | Lifecycle state. Add new catalogs there, mapping each value to label, tone and meaning                                    |
+| `PropertyList` / `Property`                                                                  | Facts about one record                                                                                                    |
+| `StatGroup` / `Stat`                                                                         | 2–5 headline numbers                                                                                                      |
+| `Callout`                                                                                    | A message tied to a place on the page                                                                                     |
+| `EmptyState`, `ErrorState`                                                                   | Nothing to show / failed to load (with retry)                                                                             |
+| `InlineEdit`                                                                                 | One low-risk field                                                                                                        |
+| `ConfirmDialog`                                                                              | Irreversible or financial actions                                                                                         |
+| `UnsavedChangesBar`                                                                          | Explicit-save forms (also blocks navigation while dirty)                                                                  |
+| `DistributionEditor`, `DistributionSummary`, `AllocationBar`, `PercentInput`, `OrgSparkline` | Every split, editing or reading                                                                                           |
+| `AttentionList`                                                                              | Home, “what needs me”                                                                                                     |
+| `FileDropzone`, `JsonViewer`                                                                 | Uploads, raw payloads                                                                                                     |
 
 The API sends amounts and aggregates as decimal strings. Pass them to `Money` / `formatMoney` as
 they are; for sums, averages, comparisons and sorting use `src/lib/money.ts` (exact, in øre).
