@@ -155,3 +155,28 @@ export function orgChartSeries(
   if (grouped) series.push({ key: OTHER_KEY, label: OTHER_LABEL, color: OTHER_COLOR });
   return { series, keyOf: (id) => (namedIds.has(id) ? `org${id}` : OTHER_KEY) };
 }
+
+/** One organization's share of a distribution's split, as the list procedures return it. */
+export type OrgSplitRow = {
+  organizationId: number;
+  organizationName: string;
+  causeAreaId: number;
+  /** Percent of the whole split, a decimal string */
+  share: string;
+};
+
+/**
+ * List rows' `orgSplit` as OrgSlices for OrgSparkline, in the same stable colours as everywhere
+ * else. The rows come largest first; cause area names aren't in them, so they are null.
+ */
+export function orgSlicesFromSplit(split: readonly OrgSplitRow[]): OrgSlice[] {
+  const colors = orgColors(split.map((row) => row.organizationId));
+  return split.map((row) => ({
+    id: row.organizationId,
+    name: row.organizationName,
+    share: Number(row.share),
+    causeAreaId: row.causeAreaId,
+    causeAreaName: null,
+    color: colors.get(row.organizationId)!,
+  }));
+}
