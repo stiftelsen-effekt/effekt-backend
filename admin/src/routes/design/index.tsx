@@ -33,7 +33,7 @@ const principles = [
   },
   {
     title: "Find, then act",
-    body: "⌘K finds any donor, donation, KID or agreement. Lists filter in place and keep their state in the URL. Rows peek with one click; the full page is one key away.",
+    body: "⌘K finds any donor, donation, KID or agreement. Lists filter in place and keep their state in the URL. A row opens its record as a panel over the list; panels stack, and the full page is one click away.",
   },
   {
     title: "Built for the hundredth time",
@@ -103,7 +103,7 @@ const typeScale = [
   {
     token: "text-lg",
     size: "16/24",
-    use: "Dialog and peek titles",
+    use: "Dialog titles",
     sample: "Stop this agreement?",
   },
   {

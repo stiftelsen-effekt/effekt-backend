@@ -1,7 +1,9 @@
 import { createFileRoute, Link, Outlet, type LinkProps } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/app-shell";
+import { PanelHost, validatePanelSearch } from "@/components/panels";
 import { fakeSearchProviders } from "@/design-system/fake-search";
 import { useDemoOpenCount } from "@/design-system/fake-review-queue";
+import { designPanels } from "@/design-system/record-panels";
 import { SearchProvidersProvider } from "@/features/search/providers";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +12,7 @@ import { cn } from "@/lib/utils";
  * with RouterOutputs. Visual regression and axe tests run against these routes.
  */
 export const Route = createFileRoute("/design")({
+  validateSearch: (raw: Record<string, unknown>) => validatePanelSearch(raw, designPanels),
   component: DesignLayout,
 });
 
@@ -59,7 +62,9 @@ function DesignLayout() {
             </div>
           ))}
         </nav>
-        <Outlet />
+        <PanelHost kinds={designPanels}>
+          <Outlet />
+        </PanelHost>
       </AppShell>
     </SearchProvidersProvider>
   );

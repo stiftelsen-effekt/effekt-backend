@@ -330,7 +330,7 @@ function DonorDemo() {
             columns={donationColumns}
             data={donorDonations}
             getRowId={(row) => String(row.id)}
-            onRowOpen={() => notify.info("Opens the donation page")}
+            getRowHref={(row) => `/design/donations/${row.id}`}
           />
         </TabsContent>
         <TabsContent value="agreements" className="flex flex-col">

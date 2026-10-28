@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { DownloadIcon, MailIcon, PlusIcon } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { DownloadIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import {
   createColumns,
@@ -10,7 +10,6 @@ import {
 } from "@/components/data-table";
 import { CopyValue } from "@/components/domain/copy-value";
 import { DateTime, Money, Num } from "@/components/domain/format";
-import { Property, PropertyList } from "@/components/domain/property-list";
 import {
   binValues,
   DateRangeFilter,
@@ -23,7 +22,7 @@ import {
   useListState,
   type FilterValues,
 } from "@/components/filters";
-import { ListPage, PeekPanel } from "@/components/templates";
+import { ListPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import {
   donationAmountEdges,
@@ -146,14 +145,12 @@ function DonationsDemo() {
   const list = useListState(donationsList);
   const navigate = useNavigate();
   const [selection, setSelection] = useState<RowSelectionState>({});
-  const [peekId, setPeekId] = useState<number | null>(null);
 
   const query = useQuery({
     queryKey: ["design-donations", list.filters, list.sort, list.page, list.pageSize],
     queryFn: () => fetchDonations(list.filters, list.sort, list.page, list.pageSize),
     placeholderData: keepPreviousData,
   });
-  const peeked = peekId != null ? donations.find((d) => d.id === peekId) : undefined;
   const stats = query.data?.statistics;
 
   return (
@@ -192,44 +189,6 @@ function DonationsDemo() {
           <OptionsFilter field="method" label="Payment method" options={methodOptions} />
         </FilterBar>
       }
-      peek={
-        peeked && (
-          <PeekPanel
-            title={<Money value={peeked.sum} />}
-            subtitle={`Donation #${peeked.id} · ${peeked.donor}`}
-            href="/design/detail"
-            onClose={() => setPeekId(null)}
-            actions={
-              <Button size="sm" onClick={() => notify.success("Receipt sent", peeked.email)}>
-                <MailIcon />
-                Resend receipt
-              </Button>
-            }
-          >
-            <PropertyList>
-              <Property label="Donor">
-                <Link to="/design/detail" className="font-semibold text-accent hover:underline">
-                  {peeked.donor}
-                </Link>
-              </Property>
-              <Property label="Email">{peeked.email}</Property>
-              <Property label="Date">
-                <DateTime value={peeked.timestamp} format="datetime" />
-              </Property>
-              <Property label="Method">{peeked.paymentMethod}</Property>
-              <Property label="Fee">
-                <Money value={peeked.transactionCost} />
-              </Property>
-              <Property label="KID">
-                <CopyValue value={peeked.kid} label="KID" />
-              </Property>
-              <Property label="Donation ID">
-                <CopyValue value={peeked.id} label="donation ID" />
-              </Property>
-            </PropertyList>
-          </PeekPanel>
-        )
-      }
     >
       <DataTable
         label="Donations"
@@ -248,10 +207,10 @@ function DonationsDemo() {
             Export selected
           </Button>
         )}
-        onRowPeek={(row) => setPeekId(row.id)}
-        onRowOpen={() => void navigate({ to: "/design/detail" })}
-        peekedRowId={peekId != null ? String(peekId) : null}
-        getRowHref={() => "/design/detail"}
+        onRowOpen={(row) =>
+          void navigate({ to: "/design/donations/$id", params: { id: String(row.id) } })
+        }
+        getRowHref={(row) => `/design/donations/${row.id}`}
         pageHotkeys
         summary={
           stats && (

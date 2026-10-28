@@ -207,14 +207,14 @@ function Patterns() {
 
       <DocSection
         id="list-detail"
-        title="List → peek → page"
-        description="Single click (or Space) peeks: the row opens in a side panel and the list stays put; j/k moves the peek down the list. Enter or the Open button goes to the full page. ⌘-click opens it in a new tab. No double-click anywhere."
+        title="List → panel → page"
+        description="Click, Enter or Space opens the row's own page as a panel over the list; links in it to other records stack another panel on top. Esc or Back closes the top one, clicking a lower edge or the strip of list closes everything above it, and Full page goes to the record's route. ⌘- or middle-click opens it in a new tab. No double-click anywhere."
       >
         <div className="grid gap-2 rounded-md border border-border p-4 text-sm sm:grid-cols-4">
           {[
-            ["Click / Space", "Peek"],
-            ["Enter", "Open full page"],
-            ["j / k  or ↑ / ↓", "Move (peek follows)"],
+            ["Click / Enter / Space", "Open as a panel"],
+            ["Esc  or Back", "Close the top panel"],
+            ["j / k  or ↑ / ↓", "Move between rows"],
             ["x", "Select for bulk actions"],
           ].map(([keys, action]) => (
             <div key={keys} className="grid gap-0.5">
