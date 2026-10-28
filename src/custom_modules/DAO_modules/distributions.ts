@@ -293,6 +293,61 @@ async function getByDonorId(donorId: number) {
   return distributions;
 }
 
+/** One organization's part of a distribution, as the admin lists show it */
+export type DistributionOrgShare = {
+  organizationId: number;
+  organizationName: string;
+  causeAreaId: number;
+  /** Percent of the whole distribution (0–100), a decimal string with six decimals */
+  share: string;
+};
+
+/**
+ * The organization split of several distributions in one query, grouped by KID. Shares are
+ * cause area share × organization share, largest first. KIDs without a split are absent.
+ * An empty input runs no query.
+ */
+async function getOrgSharesByKIDs(KIDs: string[]): Promise<Map<string, DistributionOrgShare[]>> {
+  const shares = new Map<string, DistributionOrgShare[]>();
+  const unique = [...new Set(KIDs)];
+  if (unique.length === 0) return shares;
+
+  const [rows] = await DAO.query<
+    {
+      KID: string;
+      organizationId: number;
+      organizationName: string;
+      causeAreaId: number;
+      share: string;
+    }[]
+  >(
+    `SELECT
+       CA.Distribution_KID AS KID,
+       O.ID AS organizationId,
+       O.full_name AS organizationName,
+       CA.Cause_area_ID AS causeAreaId,
+       CAST(ROUND(CA.Percentage_share * CAO.Percentage_share / 100, 6) AS CHAR) AS share
+     FROM Distribution_cause_areas AS CA
+       INNER JOIN Distribution_cause_area_organizations AS CAO ON CAO.Distribution_cause_area_ID = CA.ID
+       INNER JOIN Organizations AS O ON O.ID = CAO.Organization_ID
+     WHERE CA.Distribution_KID IN (?) AND CA.Percentage_share > 0 AND CAO.Percentage_share > 0
+     ORDER BY CA.Distribution_KID, CA.Percentage_share * CAO.Percentage_share DESC, O.ID`,
+    [unique],
+  );
+
+  for (const row of rows) {
+    const list = shares.get(row.KID) ?? [];
+    list.push({
+      organizationId: row.organizationId,
+      organizationName: row.organizationName,
+      causeAreaId: row.causeAreaId,
+      share: row.share,
+    });
+    shares.set(row.KID, list);
+  }
+  return shares;
+}
+
 /**
  * Checks whether given KID exists in DB
  * @param {number} KID
@@ -923,6 +978,7 @@ export const distributions = {
   getAll,
   getAllByDonor,
   getByDonorId,
+  getOrgSharesByKIDs,
   getKIDsByPrefix,
   add,
   setTaxUnit,
