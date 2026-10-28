@@ -33,6 +33,7 @@ import {
   paymentExternalRefSchema,
   transactionCostSchema,
 } from "../schemas/donations";
+import { withOrgSplits } from "../orgSplits";
 import { adminProcedure, router } from "../trpc";
 
 const DEFAULT_DONATION_SORT = { id: "timestamp", desc: true } as const;
@@ -118,16 +119,15 @@ const distributionListInput = z.strictObject({
 const distributionExportInput = distributionListInput.omit({ page: true, limit: true });
 
 const distributionsRouter = router({
-  list: adminProcedure
-    .input(distributionListInput)
-    .query(({ input }) =>
-      DAO.distributions.getAll(
-        input.page,
-        input.limit,
-        input.sort ?? DEFAULT_DISTRIBUTION_SORT,
-        input.filter ?? null,
-      ),
-    ),
+  list: adminProcedure.input(distributionListInput).query(async ({ input }) => {
+    const result = await DAO.distributions.getAll(
+      input.page,
+      input.limit,
+      input.sort ?? DEFAULT_DISTRIBUTION_SORT,
+      input.filter ?? null,
+    );
+    return { ...result, rows: await withOrgSplits(result.rows, (row) => row.KID) };
+  }),
 
   export: adminProcedure.input(distributionExportInput).query(async ({ input }) => {
     const results = await DAO.distributions.getAll(
@@ -167,9 +167,10 @@ const distributionsRouter = router({
 });
 
 export const donationsRouter = router({
-  list: adminProcedure
-    .input(donationListInput)
-    .query(({ input }) => getDonationList(input, input.page, input.limit)),
+  list: adminProcedure.input(donationListInput).query(async ({ input }) => {
+    const result = await getDonationList(input, input.page, input.limit);
+    return { ...result, rows: await withOrgSplits(result.rows, (row) => row.kid) };
+  }),
 
   export: adminProcedure.input(donationExportInput).query(async ({ input }) => {
     const results = await getDonationList(input, 0, Number.MAX_SAFE_INTEGER);

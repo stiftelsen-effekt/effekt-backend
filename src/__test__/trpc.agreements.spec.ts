@@ -84,6 +84,8 @@ describe("tRPC agreements router", () => {
         pages: 1,
       };
       const getList = sinon.stub(DAO.agreements, "getList").resolves(result);
+      sinon.stub(DAO.distributions, "getOrgSharesByKIDs").resolves(new Map());
+      const withSplit = { ...result, rows: [{ ...row, orgSplit: [] }] };
       const filter = {
         providers: ["vipps" as const, "avtalegiro" as const],
         statuses: ["active" as const, "paused" as const],
@@ -96,7 +98,7 @@ describe("tRPC agreements router", () => {
 
       expect(
         await admin().list({ page: 1, limit: 20, sort: { id: "amount", desc: false }, filter }),
-      ).to.deep.equal(result);
+      ).to.deep.equal(withSplit);
       const { created, ...rest } = filter;
       expect(getList.firstCall.args[0]).to.deep.equal({
         // Whole Oslo days: 1 January starts at 23:00 UTC the day before (CET)
