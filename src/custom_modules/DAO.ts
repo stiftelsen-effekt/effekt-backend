@@ -27,6 +27,7 @@ import { donationReferralCodes } from "./DAO_modules/donationReferralCodes";
 import { reviewqueue } from "./DAO_modules/reviewqueue";
 import { agreements } from "./DAO_modules/agreements";
 import { regranting } from "./DAO_modules/regranting";
+import { regrantingTrace } from "./DAO_modules/regrantingTrace";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -83,6 +84,7 @@ export const DAO = {
   reviewqueue: reviewqueue,
   agreements: agreements,
   regranting: regranting,
+  regrantingTrace: regrantingTrace,
 
   dbPool: undefined as mysql.Pool | undefined,
 

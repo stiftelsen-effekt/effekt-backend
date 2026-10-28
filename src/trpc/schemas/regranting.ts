@@ -107,6 +107,48 @@ export const statementInput = z
     path: ["to"],
   });
 
+/** A month, "2026-08" */
+export const monthSchema = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Expected a month like 2026-08");
+
+const monthIndex = (month: string) => {
+  const [y, m] = month.split("-").map(Number);
+  return y! * 12 + m!;
+};
+
+export const breakdownInput = z
+  .strictObject({
+    organizationId: id,
+    /** Omit for the recipient (all projects); null for unrestricted only; an id for that project */
+    projectId: id.nullable().optional(),
+    /** Default: today (Europe/Oslo). With roundId: the round's cutoff (leave it out) */
+    at: isoDateSchema.optional(),
+    /** The round builder's view: at the round's cutoff, the round's own entries shown separately */
+    roundId: id.optional(),
+  })
+  .refine((v) => v.roundId === undefined || v.at === undefined, {
+    message: "With roundId the date is the round's cutoff; leave out at",
+    path: ["at"],
+  });
+
+export const compositionInput = z.strictObject({
+  roundId: id,
+  /** Only this recipient's lines */
+  organizationId: id.optional(),
+  /** With organizationId: only this project's lines (null = unrestricted) */
+  projectId: id.nullable().optional(),
+});
+
+/** At most five years at a time */
+export const reconciliationInput = z
+  .strictObject({ from: monthSchema, to: monthSchema })
+  .refine((v) => v.to >= v.from, { message: "The period ends before it starts", path: ["to"] })
+  .refine((v) => monthIndex(v.to) - monthIndex(v.from) < 60, {
+    message: "Check at most 60 months at a time",
+    path: ["to"],
+  });
+
 //endregion
 
 //region Rounds
