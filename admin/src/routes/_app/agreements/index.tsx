@@ -76,7 +76,7 @@ const columns = col.columns([
     id: "orgSplit",
     header: "Organisations",
     meta: orgSplitColumnMeta,
-    cell: ({ getValue }) => <OrgSplitCell split={getValue() ?? []} />,
+    cell: ({ getValue }) => <OrgSplitCell split={getValue()} />,
   }),
   col.accessor("id", {
     header: "ID",

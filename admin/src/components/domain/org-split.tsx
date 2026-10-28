@@ -153,6 +153,8 @@ export const orgSplitColumnMeta = {
 } as const;
 
 /** A list row's `orgSplit` in an OrgSparkline. */
-export function OrgSplitCell({ split }: { split: readonly OrgSplitRow[] }) {
+export function OrgSplitCell({ split }: { split: readonly OrgSplitRow[] | undefined }) {
+  // An API older than the admin has no split yet: show nothing rather than fail the row.
+  if (!split?.length) return null;
   return <OrgSparkline slices={orgSlicesFromSplit(split)} />;
 }
