@@ -16,6 +16,7 @@ import { CopyValue } from "@/components/domain/copy-value";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
+import { OrgSplitCell, orgSplitColumnMeta } from "@/components/domain/org-split";
 import { InlineEdit } from "@/components/domain/inline-edit";
 import { Property, PropertyList } from "@/components/domain/property-list";
 import { Stat, StatGroup } from "@/components/domain/stat";
@@ -148,6 +149,12 @@ const distributionColumns = distributionCol.columns([
     header: "Total",
     meta: { placeholder: cellPlaceholder.money, numeric: true, cellClassName: "font-semibold" },
     cell: ({ getValue }) => <Money value={getValue() ?? 0} />,
+  }),
+  distributionCol.accessor("orgSplit", {
+    id: "orgSplit",
+    header: "Organisations",
+    meta: orgSplitColumnMeta,
+    cell: ({ getValue }) => <OrgSplitCell split={getValue()} />,
   }),
 ]);
 
