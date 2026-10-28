@@ -169,3 +169,40 @@ test("unsaved Pay now edits survive a background refetch of the builder", async 
   await expect(page.getByTestId("round-total")).toHaveText("1 100,10 kr");
   await expect(page.getByRole("button", { name: "Save 1 change…" })).toBeVisible();
 });
+
+test("a builder line explains its balance and what the payment contains, adding up", async ({
+  page,
+}) => {
+  await openBuilder(page);
+  await page
+    .getByRole("button", { name: "Explain GiveWell All Grants Fund, Unrestricted" })
+    .click();
+  const sheet = page.getByRole("dialog");
+  // What the saved Pay now contains: 100 carried over + 900,30 since the last transfer
+  await expect(sheet.getByTestId("composition-total")).toHaveText("1 000,30 kr");
+  await expect(sheet).toContainText("Carried over");
+  await expect(sheet).toContainText("Since the last transfer");
+  const link = sheet.getByRole("link", { name: /Donations 02\.08\.2026–28\.09\.2026/ });
+  await expect(link).toHaveAttribute("href", /\/donations\?.*org=1/);
+  await expect(link).toHaveAttribute("href", /date=2026-08-02\.\.2026-09-28/);
+
+  await sheet.getByRole("tab", { name: "Balance at cutoff" }).click();
+  await expect(sheet.getByTestId("breakdown-balance")).toHaveText("1 000,30 kr");
+  await expect(sheet).toContainText("Adds up, and matches the balance query.");
+  // A month whose Donations list figure differs says why
+  await sheet.locator("summary", { hasText: "Donations" }).first().click();
+  await expect(sheet).toContainText("around midnight");
+});
+
+test("check numbers shows the month totals and exports a CSV", async ({ page }) => {
+  await stubRegrantingApi(page);
+  await page.goto("/login");
+  await page.getByRole("button", { name: /dev token/i }).click();
+  await page.waitForURL("/");
+  await page.goto("/regranting/check?from=2026-08&to=2026-09");
+  await expect(page.getByText("Allocations match the donations")).toBeVisible();
+  await expect(page.getByRole("table", { name: "Per month" })).toContainText("1 250,30 kr");
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export CSV" }).click();
+  expect((await download).suggestedFilename()).toBe("tildelinger-kontroll-2026-08-2026-09.csv");
+});

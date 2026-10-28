@@ -23,6 +23,7 @@ import {
 } from "@/features/regranting/balances";
 import { CreateRoundDialog } from "@/features/regranting/create-round-dialog";
 import { recipientLabel } from "@/features/regranting/model";
+import { BalanceBreakdown } from "@/features/regranting/trace";
 import { Flags, RoundLink } from "@/features/regranting/ui";
 import { osloDay, parseIsoDay } from "@/lib/dates";
 import { sumMoney } from "@/lib/money";
@@ -397,7 +398,6 @@ function BalancePeek({
 }) {
   const r = row.recipient;
   const isProject = row.kind === "project" && row.project.projectId > 0;
-  const f = row.figures;
   return (
     <PeekPanel
       title={row.kind === "project" ? row.project.name : recipientLabel(r)}
@@ -428,36 +428,18 @@ function BalancePeek({
         </Button>
       }
     >
+      <BalanceBreakdown
+        organizationId={r.organizationId}
+        projectId={
+          row.kind === "project"
+            ? row.project.projectId > 0
+              ? row.project.projectId
+              : null
+            : undefined
+        }
+        at={at}
+      />
       <PropertyList>
-        <Property label="Balance">
-          <Money value={f.balance} signed className="font-semibold" />
-        </Property>
-        <Property label="Committed" hint="Approved, not yet paid, or paid after the date">
-          <Money value={f.committed} />
-        </Property>
-        <Property label="Available">
-          <Money value={f.available} signed />
-        </Property>
-        <Property label="Opening">
-          <Money value={f.opening} signed />
-        </Property>
-        <Property label="Donations">
-          <Money value={f.allocations} />
-        </Property>
-        <Property label="Fund grants in">
-          <Money value={f.fundGrantsIn} />
-        </Property>
-        {r.isFund && (
-          <Property label="Fund grants out">
-            <Money value={f.fundGrantsOut} signed />
-          </Property>
-        )}
-        <Property label="Transfers">
-          <Money value={f.transfers} signed />
-        </Property>
-        <Property label="Adjustments">
-          <Money value={f.adjustments} signed />
-        </Property>
         {row.kind === "recipient" && (
           <>
             <Property label="Last transfer">

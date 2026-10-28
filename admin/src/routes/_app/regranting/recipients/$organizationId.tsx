@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money } from "@/components/domain/format";
 import { Stat, StatGroup } from "@/components/domain/stat";
 import { DetailPage, PageSection } from "@/components/templates";
+import { BreakdownSheetButton } from "@/features/regranting/trace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -253,13 +254,21 @@ function Statement({ organizationId }: { organizationId: number }) {
         </Link>,
       ]}
       actions={
-        <Button
-          disabled={!s}
-          onClick={() => s && downloadText(statementFilename(s), statementCsv(s))}
-        >
-          <DownloadIcon />
-          Export CSV
-        </Button>
+        <>
+          <BreakdownSheetButton
+            organizationId={organizationId}
+            projectId={project === "all" ? undefined : project === "unrestricted" ? null : project}
+            at={to}
+            title={s ? `Balance: ${s.name}` : "Balance"}
+          />
+          <Button
+            disabled={!s}
+            onClick={() => s && downloadText(statementFilename(s), statementCsv(s))}
+          >
+            <DownloadIcon />
+            Export CSV
+          </Button>
+        </>
       }
       stats={
         // Every stat reserves a hint line while pending; Committed has one, so the strip keeps

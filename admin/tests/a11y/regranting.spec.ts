@@ -37,6 +37,11 @@ const pages = [
     path: "/regranting/recipients/1",
     heading: "Statement: GiveWell All Grants Fund",
   },
+  {
+    name: "check numbers",
+    path: "/regranting/check?from=2026-08&to=2026-09",
+    heading: "Check numbers",
+  },
   { name: "projects", path: "/regranting/projects", heading: "Projects" },
   { name: "project page", path: "/regranting/projects/3", heading: "Cash transfers in Malawi" },
   { name: "adjustments", path: "/regranting/adjustments", heading: "Adjustments" },
@@ -63,6 +68,22 @@ for (const theme of ["light", "dark"] as Theme[]) {
       await page.getByRole("button", { name: "Show projects of GiveDirectly" }).click();
       await page.getByRole("table", { name: "Balances" }).locator("tbody tr").nth(1).click();
       await expect(page.getByRole("complementary", { name: "Preview" })).toBeVisible();
+      await scan(page);
+    });
+
+    test("explain a builder line, and what each transfer contains", async ({ page }) => {
+      await open(page, "/regranting/rounds/7", theme);
+      await page.getByRole("button", { name: "Show", exact: true }).click();
+      await page.locator("summary", { hasText: "GiveWell All Grants Fund" }).first().click();
+      await scan(page);
+      await page
+        .getByRole("button", { name: "Explain GiveWell All Grants Fund, Unrestricted" })
+        .click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(page.getByTestId("composition-total").first()).toBeVisible();
+      await scan(page);
+      await page.getByRole("tab", { name: "Balance at cutoff" }).click();
+      await expect(page.getByTestId("breakdown-balance")).toBeVisible();
       await scan(page);
     });
 

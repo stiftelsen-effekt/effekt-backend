@@ -49,6 +49,12 @@ import {
   type RoundDetail,
 } from "@/features/regranting/model";
 import { Payments } from "@/features/regranting/payments";
+import {
+  ApprovalChecklist,
+  checklistItems,
+  TransferContents,
+  useChecklist,
+} from "@/features/regranting/round-trace";
 import { Transfers } from "@/features/regranting/transfers";
 import { InlineIssues, RecipientLink } from "@/features/regranting/ui";
 import { RecordDialog, textError } from "@/features/settings/record-dialog";
@@ -107,6 +113,7 @@ function Round({ roundId }: { roundId: number }) {
   const [edits, setEdits] = useState<Map<string, LineEdit>>(new Map());
   const [confirmSave, setConfirmSave] = useState(false);
   const [approvalIssues, setApprovalIssues] = useState<Issue[] | null>(null);
+  const checklist = useChecklist(roundId);
   const setLines = useMutation(trpc.regranting.transfers.setLines.mutationOptions());
   const createTransfer = useMutation(trpc.regranting.transfers.create.mutationOptions());
   if (builderQuery.isError) {
@@ -195,6 +202,15 @@ function Round({ roundId }: { roundId: number }) {
             isCreator={isCreator}
             dirty={edits.size > 0}
             onBlocked={setApprovalIssues}
+            checklistDone={
+              builder
+                ? {
+                    done: checklistItems(builder, null).filter((i) => checklist.checked.has(i.id))
+                      .length,
+                    of: checklistItems(builder, null).length,
+                  }
+                : null
+            }
           />
         )
       }
@@ -284,6 +300,8 @@ function Round({ roundId }: { roundId: number }) {
               onEditsChange={setEdits}
             />
           </PageSection>
+          <TransferContents roundId={round!.id} editable={editable} />
+          {editable && <ApprovalChecklist builder={builder} checklist={checklist} />}
           {round!.status !== "draft" && (
             <PageSection
               title={round!.status === "approved" ? "Record payments" : "Transfers"}
@@ -444,6 +462,7 @@ function RoundActions({
   isCreator,
   dirty,
   onBlocked,
+  checklistDone,
 }: {
   builder: Builder;
   /** Attached to the round (e.g. earmarks); the API deletes them with a draft */
@@ -451,6 +470,8 @@ function RoundActions({
   isCreator: boolean;
   dirty: boolean;
   onBlocked: (issues: Issue[] | null) => void;
+  /** The checklist before approval (kept in this browser) */
+  checklistDone: { done: number; of: number } | null;
 }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -528,6 +549,13 @@ function RoundActions({
               : "No fund grants",
             "The balances at the cutoff are snapshotted as the basis of the decision",
             counts.warnings > 0 ? `${counts.warnings} warnings are accepted` : "No warnings",
+            ...(checklistDone
+              ? [
+                  checklistDone.done === checklistDone.of
+                    ? "Every check before approval is ticked"
+                    : `${checklistDone.done} of ${checklistDone.of} checks before approval are ticked`,
+                ]
+              : []),
           ]}
           confirmText={totalText}
           confirmLabel={`Approve ${formatMoney(builder.totals.inRound)}`}

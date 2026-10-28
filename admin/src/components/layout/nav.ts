@@ -29,6 +29,7 @@ import {
   SmartphoneIcon,
   UsersIcon,
   type LucideIcon,
+  ListChecksIcon,
 } from "lucide-react";
 
 export type NavItem = {
@@ -117,6 +118,12 @@ export const navGroups: NavGroup[] = [
         label: "Rounds",
         icon: CoinsIcon,
         keywords: ["regranting", "tildeling", "transfers", "payout", "fund grant"],
+      },
+      {
+        to: "/regranting/check",
+        label: "Check numbers",
+        icon: ListChecksIcon,
+        keywords: ["reconciliation", "kontroll", "overview", "samlefila", "avstemming"],
       },
       {
         to: "/regranting/projects",
