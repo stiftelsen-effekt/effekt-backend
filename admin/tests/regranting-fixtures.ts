@@ -357,7 +357,270 @@ const adjustment = {
   affectsBalance: false,
 };
 
+const entry = (overrides: Record<string, unknown>) => ({
+  amount: "0.00",
+  date: null,
+  projectId: null,
+  projectName: null,
+  round: null,
+  adjustmentId: null,
+  adjustmentType: null,
+  reason: null,
+  documentRef: null,
+  linkedTransferId: null,
+  fundGrantId: null,
+  fundGrantLineId: null,
+  counterpartOrganizationId: null,
+  counterpartName: null,
+  rationale: null,
+  transferId: null,
+  transferLineId: null,
+  payeeName: null,
+  bankRef: null,
+  paidBy: null,
+  ...overrides,
+});
+
+const paidRound = {
+  id: 5,
+  name: "June 2026 regular round",
+  kind: "regular",
+  status: "paid",
+  cutoff: "2026-06-30",
+};
+
+const month = (m: string, amount: string, count: number, list = amount) => ({
+  month: m,
+  from: `${m}-01`,
+  to: m === "2026-09" ? "2026-09-30" : `${m}-31`,
+  amount,
+  donationCount: count,
+  donationsSum: amount,
+  list: {
+    link: { organizationId: 1, from: `${m}-01`, to: m === "2026-09" ? "2026-09-30" : `${m}-31` },
+    donationCount: count,
+    sum: list,
+    difference: (Number(list) - Number(amount)).toFixed(2),
+    rounding: "0.00",
+    timeZone: (Number(list) - Number(amount)).toFixed(2),
+    timeZoneDonations: list === amount ? 0 : 1,
+  },
+});
+
+/** AGF at the round's cutoff: 100 + 1 200,30 − 300 = 1 000,30, all paid now */
+export const breakdown = {
+  organizationId: 1,
+  name: "GiveWell All Grants Fund",
+  abbriv: "AGF",
+  isFund: false,
+  scope: "unrestricted",
+  projectName: null,
+  at: "2026-09-30",
+  round: { id: 7, name: round.name, kind: "regular", status: "draft", cutoff: "2026-09-30" },
+  opening: {
+    total: "100.00",
+    entries: [
+      entry({
+        amount: "100.00",
+        date: "2021-09-30",
+        adjustmentId: 1,
+        adjustmentType: "opening",
+        reason: "Carry-over from Samlefila",
+      }),
+    ],
+  },
+  allocations: {
+    total: "1200.30",
+    donationCount: 5,
+    months: [month("2026-08", "700.10", 3), month("2026-09", "500.20", 2, "550.20")],
+  },
+  fundGrantsIn: { total: "0.00", entries: [] },
+  fundGrantsOut: { total: "0.00", entries: [] },
+  transfers: {
+    total: "-300.00",
+    entries: [
+      entry({
+        amount: "-300.00",
+        date: "2026-07-10",
+        round: paidRound,
+        transferId: 50,
+        transferLineId: 51,
+        payeeName: "GiveWell",
+        paidBy: "foundation",
+      }),
+    ],
+  },
+  adjustments: { total: "0.00", entries: [] },
+  balance: "1000.30",
+  committed: { total: "0.00", entries: [] },
+  available: "1000.30",
+  inRound: {
+    fundGrants: { total: "0.00", entries: [] },
+    adjustments: { total: "0.00", entries: [] },
+    available: "1000.30",
+    payNow: { total: "1000.30", entries: [] },
+    carriesOver: "0.00",
+  },
+  check: { ledger: figures("1000.30"), matches: true, differences: [] },
+  paymentMethodIds: [2, 4, 6, 7, 8],
+};
+
+const donations = (from: string, to: string, amount: string, count: number) => ({
+  kind: "donations",
+  from,
+  to,
+  amount,
+  donationCount: count,
+  partialStart: false,
+  partialEnd: false,
+  months: [
+    {
+      month: from.slice(0, 7),
+      from,
+      to,
+      amount,
+      donationCount: count,
+      partial: false,
+      link: { organizationId: 1, from, to },
+    },
+  ],
+  link: { organizationId: 1, from, to },
+});
+
+/** What AGF's 1 000,30 contains: 100 opening carried over, 900,30 since the June round */
+export const composition = {
+  round: {
+    id: 7,
+    name: round.name,
+    kind: "regular",
+    status: "draft",
+    cutoff: "2026-09-30",
+    paidAt: null,
+  },
+  paymentMethodIds: [2, 4, 6, 7, 8],
+  lines: [
+    {
+      transferId: 70,
+      transferLineId: 701,
+      payee: givewell,
+      paidAt: null,
+      organizationId: 1,
+      organizationName: "GiveWell All Grants Fund",
+      projectId: null,
+      projectName: null,
+      amount: "1000.30",
+      previous: { round: paidRound, transferId: 50, payeeName: "GiveWell", paidAt: "2026-07-10" },
+      window: { from: "2026-07-01", to: "2026-09-30" },
+      thisRound: { amount: "0.00", items: [] },
+      carriedOver: {
+        amount: "100.00",
+        items: [
+          {
+            kind: "opening",
+            adjustmentId: 1,
+            date: "2021-09-30",
+            reason: "Carry-over from Samlefila",
+            documentRef: null,
+            amount: "100.00",
+          },
+        ],
+      },
+      sinceLastTransfer: {
+        amount: "900.30",
+        items: [donations("2026-08-02", "2026-09-28", "900.30", 4)],
+      },
+      ahead: null,
+      leftAfter: { amount: "0.00", oldest: null },
+    },
+  ],
+};
+
+export const reconciliation = {
+  from: "2026-08",
+  to: "2026-09",
+  months: ["2026-08", "2026-09"],
+  recipients: [
+    {
+      organizationId: 1,
+      name: "GiveWell All Grants Fund",
+      abbriv: "AGF",
+      isActive: true,
+      allocated: "1200.30",
+      recomputed: "1200.30",
+      difference: "0.00",
+      months: [
+        {
+          month: "2026-08",
+          allocated: "700.10",
+          recomputed: "700.10",
+          difference: "0.00",
+          donationCount: 3,
+        },
+        {
+          month: "2026-09",
+          allocated: "500.20",
+          recomputed: "500.20",
+          difference: "0.00",
+          donationCount: 2,
+        },
+      ],
+    },
+  ],
+  totals: [
+    {
+      month: "2026-08",
+      allocated: "700.10",
+      unassigned: "0.00",
+      unassignedCount: 0,
+      accounted: "700.10",
+      donations: "700.10",
+      donationCount: 3,
+      difference: "0.00",
+      splitGap: "0.00",
+      splitGapCount: 0,
+      unexplained: "0.00",
+    },
+    {
+      month: "2026-09",
+      allocated: "500.20",
+      unassigned: "50.00",
+      unassignedCount: 1,
+      accounted: "550.20",
+      donations: "550.20",
+      donationCount: 3,
+      difference: "0.00",
+      splitGap: "0.00",
+      splitGapCount: 0,
+      unexplained: "0.00",
+    },
+  ],
+  total: {
+    allocated: "1200.30",
+    unassigned: "50.00",
+    unassignedCount: 1,
+    accounted: "1250.30",
+    donations: "1250.30",
+    donationCount: 6,
+    difference: "0.00",
+    splitGap: "0.00",
+    splitGapCount: 0,
+    unexplained: "0.00",
+  },
+  splitGaps: [],
+  checks: {
+    allocationsMatch: true,
+    mismatchedCells: 0,
+    totalsMatch: true,
+    monthsWithDifference: 0,
+    monthsUnexplained: 0,
+  },
+  paymentMethodIds: [2, 4, 6, 7, 8],
+};
+
 export const fixtures: Record<string, unknown> = {
+  "regranting.balances.breakdown": breakdown,
+  "regranting.rounds.composition": composition,
+  "regranting.reconciliation.monthly": reconciliation,
   "regranting.balances.list": balances,
   "regranting.rounds.list": [
     round,

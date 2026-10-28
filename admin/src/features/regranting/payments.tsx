@@ -51,6 +51,7 @@ import {
   type Builder,
   type BuilderRecipient,
 } from "./model";
+import { ExplainLine } from "./trace";
 import { InlineIssues, ProjectLink, ProjectPicker, RecipientLink } from "./ui";
 
 export type PaymentsProps = {
@@ -277,7 +278,7 @@ function PayeeHeader({
             <Link
               to="/regranting/settings"
               search={{ section: "routing" }}
-              className="rounded-xs text-accent hover:underline focus-ring"
+              className="rounded-xs text-accent underline focus-ring"
             >
               Add a routing
             </Link>
@@ -428,11 +429,20 @@ function RecipientRows({
             className={cn(figures.changed && "bg-warning-subtle/40")}
           >
             <td className="pl-6">
-              {line.projectId === null ? (
-                <span className="text-muted-foreground">Unrestricted</span>
-              ) : (
-                <ProjectLink id={line.projectId}>{lineLabel(line)}</ProjectLink>
-              )}
+              <span className="inline-flex items-center gap-1">
+                {line.projectId === null ? (
+                  <span className="text-muted-foreground">Unrestricted</span>
+                ) : (
+                  <ProjectLink id={line.projectId}>{lineLabel(line)}</ProjectLink>
+                )}
+                <ExplainLine
+                  roundId={builder.round.id}
+                  organizationId={orgId}
+                  projectId={line.projectId}
+                  label={label}
+                  hasPayment={moneySign(savedAmount) > 0}
+                />
+              </span>
               <InlineIssues issues={lineIssues} className="mt-0.5" />
             </td>
             <td className="text-right">

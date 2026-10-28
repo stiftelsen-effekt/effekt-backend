@@ -44,6 +44,7 @@ import { Route as AppLogsIndexRouteImport } from './routes/_app/logs/index'
 import { Route as AppLogsIdRouteImport } from './routes/_app/logs/$id'
 import { Route as AppRegrantingIndexRouteImport } from './routes/_app/regranting/index'
 import { Route as AppRegrantingAdjustmentsRouteImport } from './routes/_app/regranting/adjustments'
+import { Route as AppRegrantingCheckRouteImport } from './routes/_app/regranting/check'
 import { Route as AppRegrantingSettingsRouteImport } from './routes/_app/regranting/settings'
 import { Route as AppAgreementsProviderIdRouteImport } from './routes/_app/agreements/$provider/$id'
 import { Route as AppDonationsIdIndexRouteImport } from './routes/_app/donations/$id/index'
@@ -231,6 +232,11 @@ const AppRegrantingAdjustmentsRoute =
     path: '/regranting/adjustments',
     getParentRoute: () => AppRoute,
   } as any)
+const AppRegrantingCheckRoute = AppRegrantingCheckRouteImport.update({
+  id: '/regranting/check',
+  path: '/regranting/check',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRegrantingSettingsRoute = AppRegrantingSettingsRouteImport.update({
   id: '/regranting/settings',
   path: '/regranting/settings',
@@ -316,6 +322,7 @@ export interface FileRoutesByFullPath {
   '/fundraisers/$id': typeof AppFundraisersIdRoute
   '/logs/$id': typeof AppLogsIdRoute
   '/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
+  '/regranting/check': typeof AppRegrantingCheckRoute
   '/regranting/settings': typeof AppRegrantingSettingsRoute
   '/agreements/': typeof AppAgreementsIndexRoute
   '/analysis/': typeof AppAnalysisIndexRoute
@@ -362,6 +369,7 @@ export interface FileRoutesByTo {
   '/fundraisers/$id': typeof AppFundraisersIdRoute
   '/logs/$id': typeof AppLogsIdRoute
   '/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
+  '/regranting/check': typeof AppRegrantingCheckRoute
   '/regranting/settings': typeof AppRegrantingSettingsRoute
   '/agreements': typeof AppAgreementsIndexRoute
   '/analysis': typeof AppAnalysisIndexRoute
@@ -411,6 +419,7 @@ export interface FileRoutesById {
   '/_app/fundraisers/$id': typeof AppFundraisersIdRoute
   '/_app/logs/$id': typeof AppLogsIdRoute
   '/_app/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
+  '/_app/regranting/check': typeof AppRegrantingCheckRoute
   '/_app/regranting/settings': typeof AppRegrantingSettingsRoute
   '/_app/agreements/': typeof AppAgreementsIndexRoute
   '/_app/analysis/': typeof AppAnalysisIndexRoute
@@ -460,6 +469,7 @@ export interface FileRouteTypes {
     | '/fundraisers/$id'
     | '/logs/$id'
     | '/regranting/adjustments'
+    | '/regranting/check'
     | '/regranting/settings'
     | '/agreements/'
     | '/analysis/'
@@ -506,6 +516,7 @@ export interface FileRouteTypes {
     | '/fundraisers/$id'
     | '/logs/$id'
     | '/regranting/adjustments'
+    | '/regranting/check'
     | '/regranting/settings'
     | '/agreements'
     | '/analysis'
@@ -554,6 +565,7 @@ export interface FileRouteTypes {
     | '/_app/fundraisers/$id'
     | '/_app/logs/$id'
     | '/_app/regranting/adjustments'
+    | '/_app/regranting/check'
     | '/_app/regranting/settings'
     | '/_app/agreements/'
     | '/_app/analysis/'
@@ -829,6 +841,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRegrantingAdjustmentsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/regranting/check': {
+      id: '/_app/regranting/check'
+      path: '/regranting/check'
+      fullPath: '/regranting/check'
+      preLoaderRoute: typeof AppRegrantingCheckRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/regranting/settings': {
       id: '/_app/regranting/settings'
       path: '/regranting/settings'
@@ -924,6 +943,7 @@ interface AppRouteChildren {
   AppFundraisersIdRoute: typeof AppFundraisersIdRoute
   AppLogsIdRoute: typeof AppLogsIdRoute
   AppRegrantingAdjustmentsRoute: typeof AppRegrantingAdjustmentsRoute
+  AppRegrantingCheckRoute: typeof AppRegrantingCheckRoute
   AppRegrantingSettingsRoute: typeof AppRegrantingSettingsRoute
   AppAgreementsIndexRoute: typeof AppAgreementsIndexRoute
   AppAnalysisIndexRoute: typeof AppAnalysisIndexRoute
@@ -961,6 +981,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFundraisersIdRoute: AppFundraisersIdRoute,
   AppLogsIdRoute: AppLogsIdRoute,
   AppRegrantingAdjustmentsRoute: AppRegrantingAdjustmentsRoute,
+  AppRegrantingCheckRoute: AppRegrantingCheckRoute,
   AppRegrantingSettingsRoute: AppRegrantingSettingsRoute,
   AppAgreementsIndexRoute: AppAgreementsIndexRoute,
   AppAnalysisIndexRoute: AppAnalysisIndexRoute,

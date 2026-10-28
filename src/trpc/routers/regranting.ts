@@ -43,6 +43,14 @@ import type {
   RoundSummary,
   Transfer,
 } from "../../custom_modules/regranting/types";
+import {
+  getBalanceBreakdown,
+  getMonthlyReconciliation,
+  getRoundComposition,
+  type BalanceBreakdown,
+  type MonthlyReconciliation,
+  type RoundComposition,
+} from "../../custom_modules/regranting/trace";
 import { paymentProblem } from "../../custom_modules/regranting/validation";
 import { adminIdentity } from "../identity";
 import {
@@ -50,7 +58,9 @@ import {
   adjustmentListInput,
   adjustmentUpdateInput,
   balancesListInput,
+  breakdownInput,
   byId,
+  compositionInput,
   earmarkInput,
   fundByOrganization,
   fundCreateInput,
@@ -68,6 +78,7 @@ import {
   projectListInput,
   projectUpdateInput,
   proposeInput,
+  reconciliationInput,
   recordPaymentInput,
   removeEarmarkInput,
   roundCreateInput,
@@ -87,7 +98,10 @@ import { adminProcedure, router } from "../trpc";
 
 export type {
   Adjustment,
+  BalanceBreakdown,
   BalancesView,
+  MonthlyReconciliation,
+  RoundComposition,
   Fund,
   FundGrant,
   Hold,
@@ -242,6 +256,27 @@ const balancesRouter = router({
   list: adminProcedure
     .input(balancesListInput)
     .query(({ input }): Promise<BalancesView> => getBalancesView(input ?? {})),
+
+  /**
+   * Where a balance comes from: each figure of the Balances page (or, with roundId, of the round
+   * builder's line at the round's cutoff) with the entries behind it, allocations by UTC month
+   * with what the Donations list shows for each month, and `check`, the same figures from the
+   * balance query. The figures add up exactly.
+   */
+  breakdown: adminProcedure
+    .input(breakdownInput)
+    .query(({ input }): Promise<BalanceBreakdown> => getBalanceBreakdown(input)),
+});
+
+/** The checking routine before approving a round (docs/regranting.md, "Checking the numbers") */
+const reconciliationRouter = router({
+  /**
+   * Per recipient and UTC month: allocations from the view vs a recomputation straight from the
+   * donation tables; per month: allocations + Unassigned vs confirmed donations (15/16 excluded).
+   */
+  monthly: adminProcedure
+    .input(reconciliationInput)
+    .query(({ input }): Promise<MonthlyReconciliation> => getMonthlyReconciliation(input)),
 });
 
 const statementsRouter = router({
@@ -297,6 +332,16 @@ const roundsRouter = router({
       })),
     };
   }),
+
+  /**
+   * What each transfer line contained (FIFO, docs/regranting.md): the round's own chosen
+   * donations, fund grants and adjustments, then money carried over from before the recipient's
+   * previous transfer, then money since, and anything paid ahead with what covered it later.
+   * Each line's parts add up to its amount. Drafts use their saved lines.
+   */
+  composition: adminProcedure
+    .input(compositionInput)
+    .query(({ input }): Promise<RoundComposition> => getRoundComposition(input)),
 
   /** The round builder: step 1 (own funds, fund grants), step 2 (recipients by payee), issues */
   builder: adminProcedure
@@ -1072,4 +1117,5 @@ export const regrantingRouter = router({
   funds: fundsRouter,
   holds: holdsRouter,
   statements: statementsRouter,
+  reconciliation: reconciliationRouter,
 });

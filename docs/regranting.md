@@ -254,6 +254,99 @@ dev and test use seeded data that is assumed to line up:
 4. Outputs: grant letters, payment files, statements, project reports. Donation
    tracing after that.
 
+## Tracing the numbers (Oct 2026)
+
+Built after feedback from ops, who today double-check every balance in Samlefila's regranting
+sheet against the database and Samlefila's overview page before approving, and want to see which
+donations each transfer contained. Code: `src/custom_modules/regranting/trace.ts` (with
+`fifo.ts`) and `DAO.regrantingTrace`; procedures `regranting.balances.breakdown`,
+`regranting.rounds.composition` and `regranting.reconciliation.monthly`.
+
+### Where a balance comes from
+
+`balances.breakdown({ organizationId, projectId?, at? | roundId? })` lists every entry behind each
+figure of the Balances page, with the same rules as the balance query (Dates, above):
+
+```
+  opening (adjustments, linked)
++ allocations (by UTC month; each month links to the Donations list)
++ fund grants in (linked to their rounds)   − fund grants out (own funds)
+− transfers (linked)                          ± adjustments (linked)
+= balance
+− committed (approved and unpaid lines; lines paid, granted or adjusted after the date)
+= available
+```
+
+- Sums are taken over exact decimals and rounded once. Allocation months are rounded so they add
+  up to the allocations total exactly (each month within 1 øre of its exact value).
+- `check` repeats the figures from the balance query (`getBalances`); the admin shows an error if
+  anything differs, so the breakdown can never silently disagree with the balance.
+- With `roundId` the breakdown is the round builder's line at the round's cutoff: the balance and
+  committed exclude the round, and its own fund grants and adjustments are added the way the
+  builder adds them (`available`, Pay now, Carries over).
+- **Allocations vs the Donations list.** Allocations count by the UTC day of
+  `timestamp_confirmed` and are the recipient's _share_ of each donation; the Donations list
+  filtered to an organization shows each donation's share rounded to øre, by Oslo day. Each month
+  therefore states what the list shows for its link (organization, the month's days, every payment
+  method except 15 and 16) and splits any difference into rounding per donation and donations
+  confirmed between midnight Oslo time and midnight UTC at the month's edges. The whole donations
+  (`donationsSum`) are shown next to the share.
+
+### What a transfer contained (attribution rule)
+
+Balances are fungible, so which donations a payment "contained" is a convention. The rule, per
+(recipient, project), is **FIFO with the round's own money first**:
+
+1. A transfer line first takes what its round passes on itself: the donations a `major_donor`
+   round chose (individually, with donor, date and amount), the round's own fund grants to the
+   recipient, its own adjustments (e.g. an earmark) and the donation a fronted payment in the round
+   was for. Until the round is processed, other rounds can't use that money.
+2. Then it takes the **oldest money not paid before** (opening balance, allocations by day, older
+   fund grants and positive adjustments), never anything dated after the round's cutoff.
+3. Whatever is left was **paid ahead** (the balance went negative, e.g. a fronted payment). Money
+   that arrived after the cutoff but before the payment covers it first, then the next money that
+   comes in (the fronted donation first), and the composition lists what covered it.
+
+Outflows are processed in the order they hit the ledger: paid transfers on their paid date, fund
+grants out at their round's cutoff, negative adjustments and refunds on their date; approved,
+unpaid rounds after everything paid, then the round looked at (a draft uses its saved lines).
+Each line is shown as:
+
+- **This round**: step 1 above;
+- **Carried over**: money dated on or before the cutoff of the recipient's previous transfer (in
+  any round, to any payee: routing changes don't matter), with when it came in. This is what
+  earlier rounds left unpaid: skipped recipients, `min_transfer`, holds, partial payments;
+- **Since the last transfer**: money dated after that cutoff, up to this round's cutoff, e.g.
+  "donations 01.08.2026–31.10.2026: 412 donations" with a month breakdown and Donations list links;
+- **Paid ahead**, if any, with what covered it.
+
+The parts add up to the line amount exactly; what the round left unpaid up to its cutoff is shown
+as carrying over. Donations already passed on by a `major_donor` round are taken by that round
+(they're paid earlier), so the next regular round never lists them again. Allocations are traced by
+UTC day: the first and last day of a period can be shared with the previous or next payment
+(marked as partly), and their donations are counted whole.
+
+### Checking the numbers
+
+`reconciliation.monthly({ from, to })` (admin: Regranting → Check numbers) is the routine to run
+before approving a round, and the overview to compare with Samlefila:
+
+- per recipient and UTC month: the allocations from the `Regrant_allocations` view (what balances
+  use) against a recomputation straight from `Donations` and the split tables (each KID's share
+  per organization times its monthly sum, not via the view). They must be equal to the øre;
+- per month: Σ allocations + Unassigned against Σ confirmed donations (payments 15 and 16
+  excluded). A difference is explained by splits that don't add up to 100 % (listed by KID);
+  anything else is flagged as unexplained;
+- CSV export shaped like Samlefila's monthly overview: one row per recipient, one column per
+  month, totals; Oslo dates and Norwegian decimals, separated by semicolons. Unlike the Sheets
+  export (`/reports/donationsbyorg`) it includes Drift and excludes AMF direkte (16), like
+  balances.
+
+The round page has a short checklist before approval (balances checked against the overview,
+major donations confirmed in the bank, Unassigned has splits, fund grant rationales read, payee
+accounts verified). It is a reminder kept in the browser, not stored with the round: storing it
+would need a new column, and approval by a second person is the recorded control.
+
 ## Open decisions
 
 Settled for the first build:
