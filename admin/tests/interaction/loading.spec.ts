@@ -244,10 +244,16 @@ function fixture(path: string, input: Record<string, unknown> | undefined): unkn
   }
 }
 
-async function stubApi(page: Page, latency: number) {
+type ApiStub = {
+  /** Holds every answer until the returned release() is called; then the latency applies again. */
+  holdResponses: () => () => void;
+};
+
+async function stubApi(page: Page, latency: number): Promise<ApiStub> {
   const payload = Buffer.from(JSON.stringify({ sub: "dev", name: "Dev admin" })).toString(
     "base64url",
   );
+  let hold: Promise<void> | null = null;
   await page.route("**/dev-auth/**", (route) =>
     route.fulfill({ json: { access_token: `x.${payload}.y`, expires_in: 3600 } }),
   );
@@ -261,9 +267,25 @@ async function stubApi(page: Page, latency: number) {
     const body = paths.map((path, index) => ({
       result: { data: fixture(path, url.searchParams.has("batch") ? inputs[index] : inputs) },
     }));
-    await new Promise((resolve) => setTimeout(resolve, latency));
+    if (hold) await hold;
+    else await new Promise((resolve) => setTimeout(resolve, latency));
     await route.fulfill({ json: url.searchParams.has("batch") ? body : body[0] }).catch(() => {});
   });
+  return {
+    holdResponses() {
+      let release = () => {};
+      hold = new Promise<void>((resolve) => (release = resolve));
+      return () => {
+        hold = null;
+        release();
+      };
+    },
+  };
+}
+
+/** Skeleton nodes added to the document so far (see `instrument`). */
+function skeletonCount(page: Page) {
+  return page.evaluate(() => (window as unknown as { __skeletons: number }).__skeletons);
 }
 
 /** Layout shifts and skeletons, recorded from the first paint of every document. */
@@ -326,16 +348,17 @@ async function reset(page: Page) {
   });
 }
 
-async function signIn(page: Page) {
+async function signIn(page: Page): Promise<ApiStub> {
   await page.clock.setFixedTime(NOW);
   await instrument(page);
-  await stubApi(page, LATENCY);
+  const api = await stubApi(page, LATENCY);
   await page.goto("/login");
   await page.getByRole("button", { name: /dev token/i }).click();
   await page.waitForURL("/");
   // A returning user: Home has been seen once, so it knows how many attention rows to reserve
   // (a first-ever visit reserves one).
   await settle(page);
+  return api;
 }
 
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -382,8 +405,15 @@ const firstLoads = [
 
 for (const { name, path, ready } of firstLoads) {
   test(`first load of the ${name} doesn't shift the layout`, async ({ page }) => {
-    await signIn(page);
+    const api = await signIn(page);
+    // Hold the answer until the placeholders are on screen: the check then doesn't depend on
+    // how fast the page renders under load. The data arrives after it, and the shift is measured.
+    const release = api.holdResponses();
     await page.goto(path);
+    await expect
+      .poll(() => skeletonCount(page), { message: "placeholders on first load", timeout: 10_000 })
+      .toBeGreaterThan(0);
+    release();
     await expect(ready(page)).toBeVisible();
     await settle(page);
     await page.waitForTimeout(300);
