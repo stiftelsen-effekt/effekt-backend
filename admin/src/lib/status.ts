@@ -186,3 +186,18 @@ export const statusCatalogs = {
   roundStatus,
   projectStatus,
 };
+
+/** Pledges (tilsagn): open until the money has come in. */
+export const pledgeStatus = define({
+  open: {
+    label: "Open",
+    tone: "warning",
+    description: "Decided, not received: counts on top of the measured total",
+  },
+  received: {
+    label: "Received",
+    tone: "success",
+    description: "The money came in and counts as measured",
+  },
+});
+export type PledgeStatus = keyof typeof pledgeStatus;

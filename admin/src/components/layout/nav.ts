@@ -5,6 +5,7 @@
  *   Money in     – every krone that arrives: donations, the KIDs they use, imports, review
  *   Agreements   – recurring giving, one model across Vipps / AvtaleGiro
  *   Regranting   – money out: balances, rounds, projects, adjustments, payees & funds
+ *   Analysis     – how much has been given through time, with open pledges (tilsagn)
  *   Records      – reports and the import log
  *   Settings     – cause areas, organizations, referral types, matching rules
  * See DESIGN.md › Information architecture.
@@ -14,6 +15,7 @@ import {
   BookOpenIcon,
   CoinsIcon,
   FolderKanbanIcon,
+  HandshakeIcon,
   LandmarkIcon,
   ScaleIcon,
   SlidersHorizontalIcon,
@@ -27,6 +29,7 @@ import {
   ScrollTextIcon,
   SettingsIcon,
   SmartphoneIcon,
+  TrendingUpIcon,
   UsersIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -135,6 +138,25 @@ export const navGroups: NavGroup[] = [
         label: "Payees & funds",
         icon: LandmarkIcon,
         keywords: ["payee", "routing", "own fund", "hold", "mottaker"],
+      },
+    ],
+  },
+  {
+    label: "Analysis",
+    items: [
+      {
+        to: "/analysis",
+        label: "Overview",
+        icon: TrendingUpIcon,
+        // Pledges live under /analysis/pledges and have their own item.
+        exact: true,
+        keywords: ["analysis", "analyse", "through time", "gjennom tidene", "milestone", "ticker"],
+      },
+      {
+        to: "/analysis/pledges",
+        label: "Pledges",
+        icon: HandshakeIcon,
+        keywords: ["tilsagn", "pledge", "promised", "decided gift"],
       },
     ],
   },
