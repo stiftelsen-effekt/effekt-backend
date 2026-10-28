@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useRecordParams, useRecordSearch } from "@/components/panels";
 import { DownloadIcon, ScaleIcon, ScrollTextIcon } from "lucide-react";
 import { cellPlaceholder, createColumns, DataTable } from "@/components/data-table";
 import { EmptyState } from "@/components/domain/empty-state";
@@ -101,7 +102,7 @@ function statementQueries(
 }
 
 function StatementPage() {
-  const { organizationId } = Route.useParams();
+  const { organizationId } = useRecordParams(Route);
   const id = Number(organizationId);
   if (!Number.isInteger(id) || id <= 0)
     return (
@@ -192,8 +193,7 @@ const columns = col.columns([
 
 function Statement({ organizationId }: { organizationId: number }) {
   const trpc = useTRPC();
-  const navigate = useNavigate({ from: Route.fullPath });
-  const search = Route.useSearch();
+  const [search, setRecordSearch] = useRecordSearch(Route);
   const today = osloDay();
   const { from, to, project } = statementPeriod(search, today);
   const queries = statementQueries(trpc, organizationId, search, today);
@@ -201,8 +201,7 @@ function Statement({ organizationId }: { organizationId: number }) {
   const query = usePageQuery(queries.statement);
   const projects = useQuery(queries.projects);
   const updating = query.isPlaceholderData;
-  const setSearch = (patch: Partial<Search>) =>
-    void navigate({ search: (prev) => ({ ...prev, ...patch }) });
+  const setSearch = (patch: Partial<Search>) => setRecordSearch(patch);
 
   if (query.isError && !query.data)
     return (

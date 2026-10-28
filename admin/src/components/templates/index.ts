@@ -8,4 +8,4 @@ export {
   useScrollTopOn,
   type SettingsNavItem,
 } from "./settings-page";
-export { PeekPanel } from "./peek-panel";
+export { RowDialog } from "./row-dialog";

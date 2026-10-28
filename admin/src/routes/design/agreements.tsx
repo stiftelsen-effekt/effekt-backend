@@ -1,13 +1,9 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { BanIcon, DownloadIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { DownloadIcon } from "lucide-react";
 import { createColumns, DataTable, TableSummary } from "@/components/data-table";
-import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { CopyValue } from "@/components/domain/copy-value";
-import { DistributionSummary } from "@/components/domain/distribution-editor";
 import { DateTime, Money, Num } from "@/components/domain/format";
-import { Property, PropertyList } from "@/components/domain/property-list";
 import { Status } from "@/components/domain/status";
 import {
   DateRangeFilter,
@@ -20,24 +16,18 @@ import {
   useListState,
   type FilterValues,
 } from "@/components/filters";
-import { ListPage, PageSection, PeekPanel } from "@/components/templates";
+import { usePanels } from "@/components/panels";
+import { ListPage } from "@/components/templates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  avtaleGiroAgreements,
-  avtaleGiroDetail,
-  causeAreas,
-  vippsAgreements,
-} from "@/design-system/fake-data";
+import { avtaleGiroAgreements, vippsAgreements } from "@/design-system/fake-data";
 import {
   agreementTypes,
-  describeChargeDay,
   fromAvtaleGiro,
   fromVipps,
   type AgreementRow,
   type AgreementType,
 } from "@/features/agreements/model";
-import { draftFromApi } from "@/features/distribution/model";
 import { sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
 import { agreementStatus, type AgreementStatus } from "@/lib/status";
@@ -147,14 +137,12 @@ const columns = col.columns([
 function AgreementsDemo() {
   const list = useListState(agreementsList);
   const navigate = useNavigate();
-  const [peekKey, setPeekKey] = useState<string | null>(null);
+  const panels = usePanels();
   const query = useQuery({
     queryKey: ["design-agreements", list.filters, list.sort, list.page, list.pageSize],
     queryFn: () => fetchAgreements(list.filters, list.sort, list.page, list.pageSize),
     placeholderData: keepPreviousData,
   });
-  const peeked = allAgreements.find((row) => row.key === peekKey);
-  const distribution = useMemo(() => draftFromApi(causeAreas, avtaleGiroDetail.distribution), []);
   const statusCounts = Object.fromEntries(
     statusKeys.map((status) => [status, allAgreements.filter((a) => a.status === status).length]),
   );
@@ -193,67 +181,6 @@ function AgreementsDemo() {
           <DateRangeFilter field="created" label="Created" />
         </FilterBar>
       }
-      peek={
-        peeked && (
-          <PeekPanel
-            title={peeked.donorName}
-            subtitle={`${agreementTypes[peeked.type].label} agreement · ${peeked.KID}`}
-            href="/design/detail"
-            onClose={() => setPeekKey(null)}
-            actions={
-              peeked.status === "active" && (
-                <ConfirmDialog
-                  tone="danger"
-                  title={`Stop ${peeked.donorName}'s ${
-                    agreementTypes[peeked.type].label
-                  } agreement?`}
-                  consequences={[
-                    <>
-                      No more charges of <Money value={peeked.amount} className="font-semibold" />{" "}
-                      from next month.
-                    </>,
-                    "The donor gets an email confirming the cancellation.",
-                    "This can't be undone here; the donor must sign up again.",
-                  ]}
-                  confirmLabel="Stop agreement"
-                  onConfirm={async () => {
-                    await new Promise((resolve) => setTimeout(resolve, 500));
-                    notify.success("Agreement stopped", peeked.donorName);
-                  }}
-                  trigger={
-                    <Button size="sm">
-                      <BanIcon />
-                      Stop agreement
-                    </Button>
-                  }
-                />
-              )
-            }
-          >
-            <PropertyList>
-              <Property label="Status">
-                <Status catalog={agreementStatus} value={peeked.status} />
-              </Property>
-              <Property label="Monthly">
-                <Money value={peeked.amount} className="font-semibold" />
-              </Property>
-              <Property label="Charged">{describeChargeDay(peeked.chargeDay)}</Property>
-              <Property label="KID">
-                <CopyValue value={peeked.KID} label="KID" />
-              </Property>
-              <Property label="Agreement ID">
-                <CopyValue value={peeked.id} label="agreement ID" />
-              </Property>
-              <Property label="Created">
-                <DateTime value={peeked.created} />
-              </Property>
-            </PropertyList>
-            <PageSection title="Distribution">
-              <DistributionSummary draft={distribution} config={causeAreas} />
-            </PageSection>
-          </PeekPanel>
-        )
-      }
     >
       <DataTable
         label="Agreements"
@@ -264,9 +191,10 @@ function AgreementsDemo() {
         isFetching={query.isFetching}
         getRowId={(row) => row.key}
         {...list.tableState}
-        onRowPeek={(row) => setPeekKey(row.key)}
-        onRowOpen={() => void navigate({ to: "/design/detail" })}
-        peekedRowId={peekKey}
+        // Every demo agreement belongs to the one demo donor: open that page as a panel.
+        onRowOpen={() => {
+          if (!panels?.open("/design/detail")) void navigate({ to: "/design/detail" });
+        }}
         pageHotkeys
         summary={
           query.data && (

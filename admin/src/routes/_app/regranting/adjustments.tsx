@@ -16,7 +16,7 @@ import {
   param,
   useListState,
 } from "@/components/filters";
-import { ListPage, PeekPanel } from "@/components/templates";
+import { ListPage, RowDialog } from "@/components/templates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -133,7 +133,7 @@ function AdjustmentsPage() {
     }),
   );
   const orgs = useOrganizations();
-  const [peekId, setPeekId] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<number | null>(null);
   const rows = useMemo(() => {
     const q = list.filters.q?.trim().toLowerCase();
     const dir = list.sort.desc ? -1 : 1;
@@ -155,7 +155,7 @@ function AdjustmentsPage() {
           : dir * a.effectiveAt.localeCompare(b.effectiveAt) || dir * (a.id - b.id),
       );
   }, [query.data, org, list.filters.q, list.sort.id, list.sort.desc]);
-  const peeked = rows.find((a) => a.id === peekId);
+  const opened = rows.find((a) => a.id === openId);
 
   return (
     <ListPage
@@ -186,8 +186,8 @@ function AdjustmentsPage() {
           <DateRangeFilter field="date" label="Counts from" />
         </FilterBar>
       }
-      peek={peeked && <AdjustmentPeek adjustment={peeked} onClose={() => setPeekId(null)} />}
     >
+      {opened && <AdjustmentDetails adjustment={opened} onClose={() => setOpenId(null)} />}
       {query.isError ? (
         <div className="px-4 sm:px-6">
           <ErrorState
@@ -206,9 +206,7 @@ function AdjustmentsPage() {
           getRowId={(row) => String(row.id)}
           sorting={list.tableState.sorting}
           onSortingChange={list.tableState.onSortingChange}
-          onRowPeek={(row) => setPeekId(row.id)}
-          onRowOpen={(row) => setPeekId(row.id)}
-          peekedRowId={peekId != null ? String(peekId) : null}
+          onRowOpen={(row) => setOpenId(row.id)}
           pageHotkeys
           empty={
             <ListEmpty
@@ -241,7 +239,7 @@ function AdjustmentsPage() {
   );
 }
 
-function AdjustmentPeek({
+function AdjustmentDetails({
   adjustment: a,
   onClose,
 }: {
@@ -252,7 +250,7 @@ function AdjustmentPeek({
   const queryClient = useQueryClient();
   const remove = useMutation(trpc.regranting.adjustments.delete.mutationOptions());
   const link = useMutation(trpc.regranting.adjustments.linkDonation.mutationOptions());
-  // Follows the peeked row: keeps the previous round while the next loads, but only this
+  // Follows the opened row: keeps the previous round while the next loads, but only this
   // adjustment's own round counts.
   const roundQuery = usePageQuery({
     ...trpc.regranting.rounds.get.queryOptions({ id: a.roundId ?? 0 }),
@@ -262,10 +260,9 @@ function AdjustmentPeek({
   const locked = a.roundId !== null && ownRound !== undefined && ownRound.round.status !== "draft";
   const invalidate = () => queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
   return (
-    <PeekPanel
+    <RowDialog
       title={`${adjustmentTypeLabels[a.type]} ${formatMoney(a.amount)}`}
       subtitle={`Adjustment #${a.id} · ${a.organizationName}`}
-      href={`/regranting/recipients/${a.organizationId}`}
       onClose={onClose}
       actions={
         !locked && (
@@ -407,6 +404,6 @@ function AdjustmentPeek({
           </RecordDialog>
         </div>
       )}
-    </PeekPanel>
+    </RowDialog>
   );
 }

@@ -1,17 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ScrollTextIcon } from "lucide-react";
-import { useState } from "react";
 import { createColumns, DataTable } from "@/components/data-table";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime } from "@/components/domain/format";
-import { JsonViewer } from "@/components/domain/json-viewer";
-import { Property, PropertyList } from "@/components/domain/property-list";
 import { defineList, FilterBar, param, useListState } from "@/components/filters";
-import { ListPage, PeekPanel } from "@/components/templates";
-import { Updating } from "@/components/ui/pending";
-import { Skeleton } from "@/components/ui/skeleton";
-import { withoutFile } from "@/features/import-log/model";
+import { ListPage } from "@/components/templates";
 import { type RouterOutputs, useTRPC } from "@/lib/trpc";
 import { nextPage, usePageQuery } from "@/lib/query";
 
@@ -72,7 +66,6 @@ function ImportLogPage() {
   const list = useListState(logsList);
   const trpc = useTRPC();
   const navigate = useNavigate();
-  const [peekId, setPeekId] = useState<number | null>(null);
   const listOptions = (page: number) =>
     trpc.reports.logs.list.queryOptions({
       page: page - 1,
@@ -84,14 +77,12 @@ function ImportLogPage() {
     // The next page is fetched as soon as this one is in, so paging forward is instant.
     prefetch: (data) => nextPage(list.page, data.pages, listOptions),
   });
-  const peeked = query.data?.rows.find((row) => row.ID === peekId);
 
   return (
     <ListPage
       title="Import log"
       description="Every payment file and scheduled job the system has processed."
       filters={<FilterBar list={list} searchPlaceholder="File name or contents" />}
-      peek={peeked && <LogPeek row={peeked} onClose={() => setPeekId(null)} />}
     >
       {query.error ? (
         <div className="px-4 sm:px-6">
@@ -107,9 +98,7 @@ function ImportLogPage() {
           isFetching={query.isFetching}
           getRowId={(row) => String(row.ID)}
           {...list.tableState}
-          onRowPeek={(row) => setPeekId(row.ID)}
           onRowOpen={(row) => void navigate({ to: "/logs/$id", params: { id: String(row.ID) } })}
-          peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/logs/${row.ID}`}
           pageHotkeys
           empty={
@@ -126,39 +115,5 @@ function ImportLogPage() {
         />
       )}
     </ListPage>
-  );
-}
-
-function LogPeek({ row, onClose }: { row: LogRow; onClose: () => void }) {
-  const trpc = useTRPC();
-  // j/k moves the peek: the previous entry stays (dimmed) until the next is in.
-  const entry = usePageQuery(trpc.reports.logs.get.queryOptions({ id: row.ID }));
-  return (
-    <PeekPanel
-      title={row.displayLabel ?? "Unknown"}
-      subtitle={row.filename ? `Log #${row.ID} · ${row.filename}` : `Log #${row.ID}`}
-      href={`/logs/${row.ID}`}
-      onClose={onClose}
-    >
-      <div className="grid gap-4">
-        <PropertyList>
-          <Property label="Time">
-            <DateTime value={row.timestamp} format="datetime" />
-          </Property>
-          {(row.summary ?? row.meta) && (
-            <Property label="Summary">{row.summary ?? row.meta}</Property>
-          )}
-        </PropertyList>
-        {entry.error ? (
-          <ErrorState error={entry.error} onRetry={() => void entry.refetch()} />
-        ) : entry.data ? (
-          <Updating active={entry.isPlaceholderData}>
-            <JsonViewer data={withoutFile(entry.data.result).result} defaultExpandDepth={1} />
-          </Updating>
-        ) : (
-          <Skeleton className="h-32" />
-        )}
-      </div>
-    </PeekPanel>
   );
 }

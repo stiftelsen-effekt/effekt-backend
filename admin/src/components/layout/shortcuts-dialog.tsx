@@ -23,10 +23,15 @@ export const shortcuts: { group: string; items: { keys: string[]; label: string 
       { keys: ["/"], label: "Focus the search box" },
       { keys: ["J"], label: "Next row (also ↓)" },
       { keys: ["K"], label: "Previous row (also ↑)" },
-      { keys: ["Space"], label: "Peek at the row" },
-      { keys: ["Enter"], label: "Open the row" },
+      { keys: ["Enter"], label: "Open the row as a panel (also Space)" },
       { keys: ["X"], label: "Select the row" },
-      { keys: ["Esc"], label: "Close the peek panel" },
+    ],
+  },
+  {
+    group: "Panels",
+    items: [
+      { keys: ["Esc"], label: "Close the top panel (also Back)" },
+      { keys: ["⌘", "Click"], label: "Open a row or link in a new tab" },
     ],
   },
   {

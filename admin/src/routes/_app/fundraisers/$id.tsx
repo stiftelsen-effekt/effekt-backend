@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useRecordParams } from "@/components/panels";
 import { ArrowUpRightIcon, FlagIcon, HandHeartIcon } from "lucide-react";
 import { createColumns, DataTable } from "@/components/data-table";
 import { CopyValue } from "@/components/domain/copy-value";
@@ -60,7 +61,7 @@ const columns = col.columns([
 ]);
 
 function FundraiserPage() {
-  const { id } = Route.useParams();
+  const { id } = useRecordParams(Route);
   const fundraiserId = Number(id);
   if (!Number.isInteger(fundraiserId) || fundraiserId <= 0) {
     return (

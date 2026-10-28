@@ -4,16 +4,11 @@ import { DownloadIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { CopyValue } from "@/components/domain/copy-value";
-import { DistributionSummary } from "@/components/domain/distribution-editor";
 import { ErrorState } from "@/components/domain/error-state";
 import { Money, Num } from "@/components/domain/format";
-import { Property, PropertyList } from "@/components/domain/property-list";
 import { FilterBar, SavedViews, TextFilter, useListState, ListEmpty } from "@/components/filters";
-import { ListPage, PeekPanel } from "@/components/templates";
+import { ListPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
-import { Updating } from "@/components/ui/pending";
-import { draftFromApi } from "@/features/distribution/model";
-import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { downloadCsv } from "@/features/donations/api";
 import { distributionsList, toDistributionFilter } from "@/features/donations/list";
 import { notify } from "@/lib/notify";
@@ -62,7 +57,6 @@ function DistributionsPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [peekKid, setPeekKid] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const filter = toDistributionFilter(list.filters);
@@ -123,7 +117,6 @@ function DistributionsPage() {
           <TextFilter field="kid" label="KID" numeric />
         </FilterBar>
       }
-      peek={peekKid != null && <DistributionPeek kid={peekKid} onClose={() => setPeekKid(null)} />}
     >
       {query.isError ? (
         <ErrorState
@@ -141,11 +134,9 @@ function DistributionsPage() {
           isFetching={query.isFetching}
           getRowId={(row) => row.KID}
           {...list.tableState}
-          onRowPeek={(row) => setPeekKid(row.KID)}
           onRowOpen={(row) =>
             void navigate({ to: "/distributions/$kid", params: { kid: row.KID } })
           }
-          peekedRowId={peekKid}
           getRowHref={(row) => `/distributions/${row.KID}`}
           pageHotkeys
           empty={
@@ -163,59 +154,5 @@ function DistributionsPage() {
         />
       )}
     </ListPage>
-  );
-}
-
-function DistributionPeek({ kid, onClose }: { kid: string; onClose: () => void }) {
-  const trpc = useTRPC();
-  // j/k moves the peek: the previous KID's details stay (dimmed) until the next's are in.
-  const distribution = usePageQuery(trpc.donations.distributions.get.queryOptions({ kid }));
-  const causeAreas = useCauseAreaConfig({ includeInactive: true });
-  const d = distribution.data;
-  const updating = distribution.isPlaceholderData;
-
-  return (
-    <PeekPanel
-      title={`KID ${kid}`}
-      subtitle={updating ? undefined : d?.donor?.name ?? undefined}
-      href={`/distributions/${kid}`}
-      onClose={onClose}
-    >
-      {distribution.isError ? (
-        <ErrorState error={distribution.error} onRetry={() => void distribution.refetch()} />
-      ) : !d || !causeAreas.data ? (
-        <PropertyList labelWidth="7rem">
-          {["Donor", "Email", "Tax unit", "KID"].map((label) => (
-            <Property key={label} label={label} pending />
-          ))}
-        </PropertyList>
-      ) : (
-        <Updating active={updating} className="grid content-start gap-6">
-          <PropertyList labelWidth="7rem">
-            <Property label="Donor">
-              <Link
-                to="/donors/$id"
-                params={{ id: String(d.donorId) }}
-                className="font-semibold text-accent hover:underline"
-              >
-                {d.donor?.name ?? `#${d.donorId}`}
-              </Link>
-            </Property>
-            <Property label="Email">{d.donor?.email}</Property>
-            <Property label="Tax unit">{d.taxUnit?.name}</Property>
-            <Property label="KID">
-              <CopyValue value={kid} label="KID" />
-            </Property>
-          </PropertyList>
-          <section className="grid gap-3">
-            <h3 className="text-sm font-semibold">Split</h3>
-            <DistributionSummary
-              draft={draftFromApi(causeAreas.data, d)}
-              config={causeAreas.data}
-            />
-          </section>
-        </Updating>
-      )}
-    </PeekPanel>
   );
 }

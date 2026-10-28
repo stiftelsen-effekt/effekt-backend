@@ -13,7 +13,7 @@ Live reference: run `pnpm dev` and open `/design` (works without the API or a lo
 2. **Quiet until it matters.** Ink on paper. Colour is reserved for state: green flows, amber
    waits, red needs you. A screen with nothing wrong has almost no colour.
 3. **Find, then act.** ⌘K finds any donor, donation, KID or agreement. Lists filter in place and
-   keep their state in the URL. Rows peek with one click; the full page is one key away.
+   keep their state in the URL. A row opens its record as a panel over the list; panels stack.
 4. **Built for the hundredth time.** Keyboard paths for frequent actions, a compact density,
    flows that remember where you were.
 5. **One concept, one component.** Agreements are one model across Vipps and AvtaleGiro.
@@ -29,7 +29,7 @@ Live reference: run `pnpm dev` and open `/design` (works without the API or a lo
 | Black sidebar, notch on the active item   | Paper-coloured sidebar, active item as a raised white tab with an accent icon | The sidebar was the loudest thing on every screen; the content should be.          |
 | Page title with a thick left bar          | Display-face title, breadcrumbs above, a meta line of facts below             | The bar carried no information; breadcrumbs and facts do.                          |
 | Black filter drawer on the right          | Inline filter bar: search, chips, “Add filter”, saved views; URL-backed       | Filters were hidden and unshareable. Chips show what is applied at a glance.       |
-| Double-click a row to open                | Click/Space peeks, Enter opens, ⌘-click new tab, j/k moves                    | Double-click is undiscoverable and slow; peeking keeps your place in the list.     |
+| Double-click a row to open                | Click/Enter opens the record as a panel, ⌘-click new tab, j/k moves           | Double-click is undiscoverable and slow; a panel keeps your place in the list.     |
 | Vipps and AvtaleGiro as unrelated lists   | One Agreements list and model with a type filter                              | The job (“what does this donor give monthly?”) doesn't care about the provider.    |
 | Pages by table (Register, Reports, Logs…) | IA by job (below)                                                             | People think “money came in” not “Register”.                                       |
 | Review queue lost on reload               | Persistent queue, worked one item at a time with a prefilled form             | It was the most fragile part of the most important flow.                           |
@@ -76,7 +76,7 @@ Feature pages are built from these; don't lay out a page by hand.
 
 | Template       | Use for             | Composition                                                                                                                                                                              |
 | -------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ListPage`     | Any list of records | `title`, `actions` (≤1 primary), `filters={<FilterBar>}`, `peek={<PeekPanel>}`, child `<DataTable>` with `summary`                                                                       |
+| `ListPage`     | Any list of records | `title`, `actions` (≤1 primary), `filters={<FilterBar>}`, child `<DataTable>` with `summary` and `getRowHref` (rows open as panels)                                                      |
 | `DetailPage`   | One record          | `breadcrumbs`, `title`, `adornment` (status), `meta` (facts), `actions`, `stats={<StatGroup>}`, `aside` (`DetailPanel`s with `PropertyList`s), children = related records (tabs, charts) |
 | `FlowPage`     | Multi-step jobs     | `steps`, `current`, `footer={<FlowFooter back next info>}`, `width` narrow/wide; state in `usePersistentState`                                                                           |
 | `SettingsPage` | Configuration       | `nav` of sections, children = `SettingsSection`s; explicit save with `UnsavedChangesBar`                                                                                                 |
@@ -111,7 +111,6 @@ function DonationsPage() {
   const query = usePageQuery(listOptions(list.page), {
     prefetch: (data) => nextPage(list.page, data.pages, listOptions),
   });
-  const [peekId, setPeekId] = useState<number | null>(null);
 
   return (
     <ListPage
@@ -124,7 +123,6 @@ function DonationsPage() {
           <OptionsFilter field="method" label="Payment method" options={methods} />
         </FilterBar>
       }
-      peek={peeked && <PeekPanel title={…} href={`/donations/${peeked.id}`} onClose={() => setPeekId(null)}>…</PeekPanel>}
     >
       <DataTable
         label="Donations"
@@ -135,10 +133,8 @@ function DonationsPage() {
         isFetching={query.isFetching}
         getRowId={(row) => String(row.id)}
         {...list.tableState}
-        onRowPeek={(row) => setPeekId(row.id)}
         onRowOpen={(row) => navigate({ to: "/donations/$id", params: { id: String(row.id) } })}
-        peekedRowId={peekId != null ? String(peekId) : null}
-        getRowHref={(row) => `/donations/${row.id}`}
+        getRowHref={(row) => `/donations/${row.id}`} // opens /donations/$id as a panel
         pageHotkeys
         summary={<TableSummary items={[…]} />}
       />
@@ -168,10 +164,26 @@ function DonationsPage() {
 
 ### List → detail
 
-Click or Space peeks (side panel on wide screens, sheet on narrow), j/k or ↑/↓ moves and the
-peek follows, Enter opens the full page, ⌘/Ctrl-click opens it in a new tab, x selects, Esc
-closes the peek. There is no double-click anywhere. Bulk actions appear in the table footer while
-rows are selected.
+**Panels** (`src/components/panels`). Click, Enter or Space on a row opens the record's real
+page (its route component, not a summary) as a panel from the right, over most of the list; a
+strip of the list stays visible (64–120 px; full width on narrow screens). Inside a panel, links
+and rows that go to another record open a panel on top; lower panels show as offset edges.
+Esc or Back closes the top panel; clicking a lower edge or the strip closes everything above it.
+**Full page** goes to the record's route; **Close all** returns to the list as it was (scroll,
+cursor, the row stays marked). ⌘/Ctrl- or middle-click opens a new tab, and plain links (⌘K,
+the address bar) open the normal page. x selects; bulk actions appear in the table footer.
+
+- The stack is the `panel` search param (`?panel=donor:12,donation:345`), validated by the
+  layout route, so reload, Back/Forward and copied links keep it. The list's own params and
+  data are untouched: opening or closing a panel never refetches the list.
+- A record kind is a line in `src/features/record-panels.ts` (route id, path, label). Its page
+  reads params with `useRecordParams(Route)` and search with `useRecordSearch(Route)` instead
+  of `Route.useParams()` / `useSearch()`; in a panel the search is local to the panel.
+- Rows without a page of their own (a charge, an adjustment) open a `RowDialog`.
+- Motion: the new panel slides 32 px and fades in (200 ms, `ease-out`), the one below scales to
+  0.98 under a light dim; closing takes 140 ms. Panels already in the URL on load don't animate.
+  Reduced motion: no movement. Focus moves to the new panel and back to where it was on close;
+  only the top panel's single-key shortcuts are live (`HotkeyScope`).
 
 ### Editing, by risk
 
@@ -211,14 +223,14 @@ progress bar is a static line. Buttons keep their own rule: `pending` shows at o
 
 **Which indicator.**
 
-| Situation                                                        | What shows                                                                                      |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| First load of a page or section (no data yet)                    | The real layout with placeholder values (below)                                                 |
-| A parameter changes: day, page, filter, sort, period, peeked row | The current content stays, dimmed (`Updating`, DataTable `isFetching`), + the top progress line |
-| Navigating to another page                                       | The previous page stays, with the top progress line, until the next page's data is in (≤ 1 s)   |
-| Background refetch (after a mutation, interval)                  | Nothing, or rows dim slightly if it takes > 300 ms                                              |
-| A form or editor whose reference data is loading                 | `Pending`: its space reserved, the top progress line; no fake fields                            |
-| An action                                                        | `pending` on its button                                                                         |
+| Situation                                            | What shows                                                                                      |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| First load of a page or section (no data yet)        | The real layout with placeholder values (below)                                                 |
+| A parameter changes: day, page, filter, sort, period | The current content stays, dimmed (`Updating`, DataTable `isFetching`), + the top progress line |
+| Navigating to another page                           | The previous page stays, with the top progress line, until the next page's data is in (≤ 1 s)   |
+| Background refetch (after a mutation, interval)      | Nothing, or rows dim slightly if it takes > 300 ms                                              |
+| A form or editor whose reference data is loading     | `Pending`: its space reserved, the top progress line; no fake fields                            |
+| An action                                            | `pending` on its button                                                                         |
 
 **Keep the previous data on parameter changes.** Every query whose input comes from the URL or
 local state uses `usePageQuery` (`src/lib/query.ts`): `keepPreviousData`, reports to the top
@@ -281,16 +293,16 @@ on.
 
 ### Keyboard
 
-| Keys                     | Action                         |
-| ------------------------ | ------------------------------ |
-| ⌘K / Ctrl+K              | Search and commands            |
-| ?                        | Shortcut help                  |
-| /                        | Focus list search              |
-| j / k, ↑ / ↓, Home / End | Move between rows              |
-| Space / Enter            | Peek / open                    |
-| x                        | Select row                     |
-| Esc                      | Close peek, cancel inline edit |
-| ⌘Enter                   | Register (review), save        |
+| Keys                     | Action                       |
+| ------------------------ | ---------------------------- |
+| ⌘K / Ctrl+K              | Search and commands          |
+| ?                        | Shortcut help                |
+| /                        | Focus list search            |
+| j / k, ↑ / ↓, Home / End | Move between rows            |
+| Enter / Space            | Open the row as a panel      |
+| x                        | Select row                   |
+| Esc                      | Close top panel, cancel edit |
+| ⌘Enter                   | Register (review), save      |
 
 Single-key shortcuts are ignored while typing or inside dialogs (`useHotkey`).
 
@@ -308,7 +320,7 @@ only these exist. Components use the semantic layer, never raw values.
   `faint-foreground` (≥4.5:1, placeholders and icons), `border`, `border-strong`, `input`
   (≥3:1, control outlines). **Primary is ink**, not blue: the main action reads as the strongest
   thing on the page without adding a colour. **Accent (blue)** means only “interactive / you are
-  here”: links, focus rings, the active nav icon, selection, peeked row, current step. **Tones**
+  here”: links, focus rings, the active nav icon, selection, the open row, current step. **Tones**
   `success`/`warning`/`danger` (+ `-subtle` fills) carry state and nothing else. Dark mode is
   not inverted light mode: surfaces are warm near-blacks (#121211–#252422), text is off-white,
   tones are lightened to keep contrast. Every text pair meets WCAG AA in both themes (checked by
@@ -332,7 +344,7 @@ only these exist. Components use the semantic layer, never raw values.
 - **Radii.** 2 (badges, kbd), 4 (controls), 6 (panels), 10 (dialogs, content sheet). Small but
   not zero: softer than the old square look, still precise.
 - **Elevation.** Borders separate; only floating things (menus, dialogs, toasts) cast
-  `shadow-overlay`. The peek panel has a soft edge shadow.
+  `shadow-overlay`. Record panels have a soft edge shadow (`shadow-panel`).
 - **Motion.** 100 / 160 / 240 ms, ease-out, only to show where something came from. Off with
   reduced motion.
 - **Density.** `--row-h`, `--control-h`, `--cell-px` switch between comfortable (40/32/12) and
@@ -356,7 +368,7 @@ pass children, not config objects, wherever the structure varies.
 | `Checkbox` / `Switch` / `SegmentedControl` / `ChoiceCards`                | independent options / immediate settings / 2–4 modes / a choice that needs a sentence each                                                       | Use a Switch inside a form that saves later |
 | `Badge`                                                                   | Category labels (agreement type, “Default”)                                                                                                      | Show lifecycle state (use `Status`)         |
 | `Tabs`                                                                    | Related records of one parent                                                                                                                    | Top-level navigation                        |
-| `Dialog`, `AlertDialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip`    | Short focused task / via ConfirmDialog / navigation on narrow, peek / filter editors / secondary actions / icon-only buttons                     | Put long forms in dialogs                   |
+| `Dialog`, `AlertDialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip`    | Short focused task / via ConfirmDialog / navigation on narrow / filter editors / secondary actions / icon-only buttons                           | Put long forms in dialogs                   |
 | `Kbd`                                                                     | Keys in UI copy                                                                                                                                  |                                             |
 | `Skeleton`, `SkeletonText`                                                | First-load placeholders inside real components (see Loading); `Skeleton` only to reserve a fixed-size box                                        | Draw a page layout out of skeleton bars     |
 | `Updating`, `Pending`, `ProgressBar`                                      | A region showing kept data while the next loads / a form still loading / the top progress line (in the app shell)                                | Show a spinner                              |

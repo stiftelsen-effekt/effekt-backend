@@ -26,13 +26,23 @@ for (const theme of themes) {
   test.describe(`states ${theme}`, () => {
     test.use({ viewport: viewports.desktop });
 
-    test("list with peek and filters", async ({ page }) => {
+    test("list with stacked panels", async ({ page }) => {
       await openDesign(page, "/design/list?amount=1000..&method=4,8", theme);
-      await page.getByRole("table", { name: "Donations" }).locator("tbody tr").first().click();
-      await expect(page.getByRole("complementary", { name: "Preview" })).toBeVisible();
-      await page.keyboard.press("j");
+      await page
+        .getByRole("table", { name: "Donations" })
+        .locator("tbody tr[data-row]")
+        .first()
+        .click();
+      const donation = page.locator("[data-slot=panel]");
+      await expect(donation).toBeVisible();
+      await donation
+        .getByRole("link", { name: /.+/ })
+        .filter({ hasNotText: "Donations" })
+        .first()
+        .click();
+      await expect(page.getByRole("region", { name: "Donor #1387" })).toBeVisible();
       await settle(page);
-      await expect(page).toHaveScreenshot(`state-list-peek-${theme}.png`);
+      await expect(page).toHaveScreenshot(`state-list-panels-${theme}.png`);
     });
 
     test("filter editor", async ({ page }) => {

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useRecordParams } from "@/components/panels";
 import { ArrowUpRightIcon, FolderIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { EmptyState } from "@/components/domain/empty-state";
@@ -36,7 +37,7 @@ export const Route = createFileRoute("/_app/regranting/projects/$id")({
 });
 
 function ProjectRoute() {
-  const { id } = Route.useParams();
+  const { id } = useRecordParams(Route);
   const projectId = Number(id);
   if (!Number.isInteger(projectId) || projectId <= 0)
     return (

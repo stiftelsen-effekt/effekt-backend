@@ -54,7 +54,7 @@ describe("DataTable", () => {
     expect(onSortingChange).toHaveBeenCalledWith([{ id: "name", desc: false }]);
   });
 
-  it("opens a row on single click and on Enter when there is no peek", async () => {
+  it("opens a row on click, Enter and Space when there is no panel host", async () => {
     const onRowOpen = vi.fn();
     renderTable({ onRowOpen });
     await userEvent.click(rowFor("Grace"));
@@ -62,29 +62,15 @@ describe("DataTable", () => {
     expect(onRowOpen.mock.calls[0]![0]).toEqual(rows[1]);
     rowFor("Grace").focus();
     await userEvent.keyboard("{Enter}");
-    expect(onRowOpen).toHaveBeenCalledTimes(2);
-  });
-
-  it("peeks on click and Space, opens on Enter, when a peek is available", async () => {
-    const onRowOpen = vi.fn();
-    const onRowPeek = vi.fn();
-    renderTable({ onRowOpen, onRowPeek });
-    await userEvent.click(rowFor("Ada"));
-    expect(onRowPeek).toHaveBeenLastCalledWith(rows[0]);
-    expect(onRowOpen).not.toHaveBeenCalled();
     await userEvent.keyboard(" ");
-    expect(onRowPeek).toHaveBeenCalledTimes(2);
-    await userEvent.keyboard("{Enter}");
-    expect(onRowOpen).toHaveBeenCalledWith(rows[0], expect.anything());
+    expect(onRowOpen).toHaveBeenCalledTimes(3);
   });
 
-  it("moves between rows with arrow keys and j/k, and the peek follows", async () => {
-    const onRowPeek = vi.fn();
-    renderTable({ onRowPeek, peekedRowId: "1" });
+  it("moves between rows with arrow keys and j/k", async () => {
+    renderTable({ onRowOpen: vi.fn() });
     rowFor("Ada").focus();
     await userEvent.keyboard("{ArrowDown}");
     expect(rowFor("Grace")).toHaveFocus();
-    expect(onRowPeek).toHaveBeenLastCalledWith(rows[1]);
     await userEvent.keyboard("j");
     expect(rowFor("Linus")).toHaveFocus();
     await userEvent.keyboard("k");

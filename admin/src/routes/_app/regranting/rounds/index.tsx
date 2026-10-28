@@ -1,11 +1,9 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
-import { Property, PropertyList } from "@/components/domain/property-list";
 import { Status } from "@/components/domain/status";
 import {
   defineList,
@@ -15,7 +13,7 @@ import {
   param,
   useListState,
 } from "@/components/filters";
-import { ListPage, PeekPanel } from "@/components/templates";
+import { ListPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import { CreateRoundDialog } from "@/features/regranting/create-round-dialog";
 import { roundKindLabels, roundKinds, type RoundSummary } from "@/features/regranting/model";
@@ -100,14 +98,12 @@ function RoundsPage() {
   const trpc = useTRPC();
   const navigate = useNavigate();
   const list = useListState(roundsList);
-  const queryClient = useQueryClient();
   const query = usePageQuery(
     trpc.regranting.rounds.list.queryOptions({
       statuses: list.filters.status,
       kinds: list.filters.kind,
     }),
   );
-  const [peekId, setPeekId] = useState<number | null>(null);
 
   const rows = useMemo(() => {
     const q = list.filters.q?.trim().toLowerCase();
@@ -128,19 +124,6 @@ function RoundsPage() {
       }
     });
   }, [query.data, list.filters.q, list.sort.id, list.sort.desc]);
-  const peeked = rows.find((r) => r.id === peekId);
-
-  // While peeking, Enter opens the round and j/k move to the next or previous one: warm the
-  // round pages of the peeked row and its neighbours (rows also preload on hover).
-  const peekIndex = peeked ? rows.indexOf(peeked) : -1;
-  const nearby = peekIndex < 0 ? [] : rows.slice(Math.max(0, peekIndex - 1), peekIndex + 2);
-  const nearbyKey = nearby.map((r) => r.id).join(",");
-  useEffect(() => {
-    for (const r of nearby) {
-      void queryClient.prefetchQuery(trpc.regranting.rounds.builder.queryOptions({ id: r.id }));
-      void queryClient.prefetchQuery(trpc.regranting.rounds.get.queryOptions({ id: r.id }));
-    }
-  }, [nearbyKey, queryClient, trpc]);
 
   return (
     <ListPage
@@ -170,54 +153,6 @@ function RoundsPage() {
           />
         </FilterBar>
       }
-      peek={
-        peeked && (
-          <PeekPanel
-            title={peeked.name}
-            subtitle={`${roundKindLabels[peeked.kind]} · round #${peeked.id}`}
-            href={`/regranting/rounds/${peeked.id}`}
-            onClose={() => setPeekId(null)}
-          >
-            <PropertyList>
-              <Property label="Status">
-                <Status catalog={roundStatus} value={peeked.status} />
-              </Property>
-              <Property label="Cutoff">
-                <DateTime value={peeked.cutoff} />
-              </Property>
-              <Property label="To pay">
-                <Money value={peeked.totalNok} className="font-semibold" />
-              </Property>
-              <Property label="Transfers">
-                <Num value={peeked.transferCount} />
-              </Property>
-              <Property label="Fund grants">
-                {peeked.fundGrantCount > 0 && (
-                  <>
-                    <Money value={peeked.fundGrantTotal} /> in {peeked.fundGrantCount}
-                  </>
-                )}
-              </Property>
-              <Property label="Minimum transfer">
-                <Money value={peeked.minTransfer} />
-              </Property>
-              <Property label="Created">
-                {peeked.createdBy} · <DateTime value={peeked.createdAt} format="datetime" />
-              </Property>
-              <Property label="Approved">
-                {peeked.approvedBy && (
-                  <>
-                    {peeked.approvedBy} · <DateTime value={peeked.approvedAt} format="datetime" />
-                  </>
-                )}
-              </Property>
-              <Property label="Paid">
-                {peeked.paidAt && <DateTime value={peeked.paidAt} />}
-              </Property>
-            </PropertyList>
-          </PeekPanel>
-        )
-      }
     >
       {query.isError ? (
         <div className="px-4 sm:px-6">
@@ -237,11 +172,9 @@ function RoundsPage() {
           getRowId={(row) => String(row.id)}
           sorting={list.tableState.sorting}
           onSortingChange={list.tableState.onSortingChange}
-          onRowPeek={(row) => setPeekId(row.id)}
           onRowOpen={(row) =>
             void navigate({ to: "/regranting/rounds/$id", params: { id: String(row.id) } })
           }
-          peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/regranting/rounds/${row.id}`}
           pageHotkeys
           empty={

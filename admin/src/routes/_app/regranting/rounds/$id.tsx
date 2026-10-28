@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useRecordParams } from "@/components/panels";
 import {
   CircleAlertIcon,
   PencilIcon,
@@ -84,7 +85,7 @@ function roundQueries(trpc: ReturnType<typeof useTRPC>, roundId: number) {
 }
 
 function RoundPage() {
-  const { id } = Route.useParams();
+  const { id } = useRecordParams(Route);
   const roundId = Number(id);
   if (!Number.isInteger(roundId) || roundId <= 0)
     return (

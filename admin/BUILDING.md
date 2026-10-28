@@ -12,11 +12,14 @@ is the workflow. Read, in order: `DESIGN.md`, `FEATURES.md`, the template demos 
   local state; a `loader` with `loadPage` for pages reached from a list; first-load
   placeholders from the components (`DataTable isLoading`, `Stat pending`, `Property pending`,
   `SkeletonText`), never hand-drawn skeleton layouts.
-- **Templates and components**: `ListPage`, `DetailPage`, `FlowPage`, `SettingsPage`, `PeekPanel`,
+- **Templates and components**: `ListPage`, `DetailPage`, `FlowPage`, `SettingsPage`, `RowDialog`,
   `defineList` / `useListState` / `FilterBar` / `DataTable`. If a generic component is genuinely
   missing, add it to `src/components` following DESIGN.md and show it on `/design/components`.
 - **Lists**: URL-backed filters, sort and page, exactly like the List demo. Register ⌘K search
   providers for your entities.
+- **Record pages** open as panels over lists (DESIGN.md › List → detail): add the route to
+  `src/features/record-panels.ts`, read params with `useRecordParams(Route)` and search with
+  `useRecordSearch(Route)`, and give list rows `getRowHref`.
 - **Money**: API amounts are decimal strings. Format with `Money`; do arithmetic with
   `src/lib/money.ts`, never floats. Currency is NOK; numbers and dates use `nb-NO`.
 - **Mutations**: follow DESIGN.md's risk ladder (inline edit for low-risk fields, explicit save for

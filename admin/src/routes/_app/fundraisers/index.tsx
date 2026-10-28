@@ -1,12 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowUpRightIcon, PlusIcon } from "lucide-react";
-import { useState } from "react";
 import { createColumns, DataTable, TableSummary } from "@/components/data-table";
-import { CopyValue } from "@/components/domain/copy-value";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
-import { Property, PropertyList } from "@/components/domain/property-list";
 import {
   DateRangeFilter,
   FilterBar,
@@ -16,7 +13,7 @@ import {
   useListState,
   ListEmpty,
 } from "@/components/filters";
-import { ListPage, PeekPanel } from "@/components/templates";
+import { ListPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
 import { CreateFundraiserDialog } from "@/features/fundraisers/create-fundraiser-dialog";
 import {
@@ -91,7 +88,6 @@ function FundraisersPage() {
   const trpc = useTRPC();
   const navigate = useNavigate();
   const list = useListState(fundraisersList);
-  const [peekId, setPeekId] = useState<number | null>(null);
 
   const listOptions = (page: number) =>
     trpc.reports.fundraisers.list.queryOptions({
@@ -106,7 +102,6 @@ function FundraisersPage() {
   });
   const organizations = useQuery(trpc.config.organizations.listAll.queryOptions());
   const rows = query.data?.rows;
-  const peeked = peekId != null ? rows?.find((row) => row.id === peekId) : undefined;
   const stats = query.data?.statistics;
 
   return (
@@ -138,57 +133,6 @@ function FundraisersPage() {
           />
         </FilterBar>
       }
-      peek={
-        peeked && (
-          <PeekPanel
-            title={`Fundraiser #${peeked.id}`}
-            subtitle={peeked.donor.name ?? `Donor #${peeked.donor.id}`}
-            href={`/fundraisers/${peeked.id}`}
-            onClose={() => setPeekId(null)}
-            actions={
-              peeked.secret && (
-                <Button size="sm" asChild>
-                  <a href={dashboardUrl(peeked.secret)} target="_blank" rel="noopener noreferrer">
-                    Open dashboard
-                    <ArrowUpRightIcon />
-                    <span className="sr-only">(opens in a new tab)</span>
-                  </a>
-                </Button>
-              )
-            }
-          >
-            <PropertyList>
-              <Property label="Raised">
-                <Money value={peeked.statistics.totalSum} className="font-semibold" />
-              </Property>
-              <Property label="Donations">
-                <Num value={peeked.statistics.donationCount} />
-              </Property>
-              <Property label="Average">
-                <Money value={peeked.statistics.averageDonation} />
-              </Property>
-              <Property label="Owner">
-                <Link
-                  to="/donors/$id"
-                  params={{ id: String(peeked.donor.id) }}
-                  className="rounded-xs font-semibold text-accent hover:underline focus-ring"
-                >
-                  {peeked.donor.name ?? `Donor #${peeked.donor.id}`}
-                </Link>
-              </Property>
-              <Property label="Created">
-                <DateTime value={peeked.registered} format="datetime" />
-              </Property>
-              <Property label="Last updated">
-                <DateTime value={peeked.lastUpdated} format="datetime" />
-              </Property>
-              <Property label="Fundraiser ID">
-                <CopyValue value={peeked.id} prefix="#" label="fundraiser ID" />
-              </Property>
-            </PropertyList>
-          </PeekPanel>
-        )
-      }
     >
       {query.isError ? (
         <div className="px-4 sm:px-6">
@@ -208,11 +152,9 @@ function FundraisersPage() {
           isFetching={query.isFetching}
           getRowId={(row) => String(row.id)}
           {...list.tableState}
-          onRowPeek={(row) => setPeekId(row.id)}
           onRowOpen={(row) =>
             void navigate({ to: "/fundraisers/$id", params: { id: String(row.id) } })
           }
-          peekedRowId={peekId != null ? String(peekId) : null}
           getRowHref={(row) => `/fundraisers/${row.id}`}
           pageHotkeys
           empty={

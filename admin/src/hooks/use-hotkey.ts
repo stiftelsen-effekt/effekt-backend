@@ -1,4 +1,10 @@
-import { useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
+
+/**
+ * Whether the hotkeys below are live. Panels (components/panels) turn off the page under
+ * them, and every panel but the top one, so j/k and page shortcuts act on what's in front.
+ */
+export const HotkeyScope = createContext(true);
 
 /** True when the event comes from somewhere typing happens. */
 export function isTypingTarget(target: EventTarget | null) {
@@ -23,6 +29,8 @@ export function useHotkey(
 ) {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
+  const scopeActive = useContext(HotkeyScope);
+  enabled = enabled && scopeActive;
 
   useEffect(() => {
     if (!enabled) return;

@@ -46,6 +46,7 @@ import { Route as AppRegrantingIndexRouteImport } from './routes/_app/regranting
 import { Route as AppRegrantingAdjustmentsRouteImport } from './routes/_app/regranting/adjustments'
 import { Route as AppRegrantingCheckRouteImport } from './routes/_app/regranting/check'
 import { Route as AppRegrantingSettingsRouteImport } from './routes/_app/regranting/settings'
+import { Route as DesignDonationsIdRouteImport } from './routes/design/donations.$id'
 import { Route as AppAgreementsProviderIdRouteImport } from './routes/_app/agreements/$provider/$id'
 import { Route as AppDonationsIdIndexRouteImport } from './routes/_app/donations/$id/index'
 import { Route as AppDonationsIdEditRouteImport } from './routes/_app/donations/$id/edit'
@@ -242,6 +243,11 @@ const AppRegrantingSettingsRoute = AppRegrantingSettingsRouteImport.update({
   path: '/regranting/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const DesignDonationsIdRoute = DesignDonationsIdRouteImport.update({
+  id: '/donations/$id',
+  path: '/donations/$id',
+  getParentRoute: () => DesignRoute,
+} as any)
 const AppAgreementsProviderIdRoute = AppAgreementsProviderIdRouteImport.update({
   id: '/agreements/$provider/$id',
   path: '/agreements/$provider/$id',
@@ -324,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/regranting/check': typeof AppRegrantingCheckRoute
   '/regranting/settings': typeof AppRegrantingSettingsRoute
+  '/design/donations/$id': typeof DesignDonationsIdRoute
   '/agreements/': typeof AppAgreementsIndexRoute
   '/analysis/': typeof AppAnalysisIndexRoute
   '/distributions/': typeof AppDistributionsIndexRoute
@@ -371,6 +378,7 @@ export interface FileRoutesByTo {
   '/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/regranting/check': typeof AppRegrantingCheckRoute
   '/regranting/settings': typeof AppRegrantingSettingsRoute
+  '/design/donations/$id': typeof DesignDonationsIdRoute
   '/agreements': typeof AppAgreementsIndexRoute
   '/analysis': typeof AppAnalysisIndexRoute
   '/distributions': typeof AppDistributionsIndexRoute
@@ -421,6 +429,7 @@ export interface FileRoutesById {
   '/_app/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/_app/regranting/check': typeof AppRegrantingCheckRoute
   '/_app/regranting/settings': typeof AppRegrantingSettingsRoute
+  '/design/donations/$id': typeof DesignDonationsIdRoute
   '/_app/agreements/': typeof AppAgreementsIndexRoute
   '/_app/analysis/': typeof AppAnalysisIndexRoute
   '/_app/distributions/': typeof AppDistributionsIndexRoute
@@ -471,6 +480,7 @@ export interface FileRouteTypes {
     | '/regranting/adjustments'
     | '/regranting/check'
     | '/regranting/settings'
+    | '/design/donations/$id'
     | '/agreements/'
     | '/analysis/'
     | '/distributions/'
@@ -518,6 +528,7 @@ export interface FileRouteTypes {
     | '/regranting/adjustments'
     | '/regranting/check'
     | '/regranting/settings'
+    | '/design/donations/$id'
     | '/agreements'
     | '/analysis'
     | '/distributions'
@@ -567,6 +578,7 @@ export interface FileRouteTypes {
     | '/_app/regranting/adjustments'
     | '/_app/regranting/check'
     | '/_app/regranting/settings'
+    | '/design/donations/$id'
     | '/_app/agreements/'
     | '/_app/analysis/'
     | '/_app/distributions/'
@@ -855,6 +867,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRegrantingSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/design/donations/$id': {
+      id: '/design/donations/$id'
+      path: '/donations/$id'
+      fullPath: '/design/donations/$id'
+      preLoaderRoute: typeof DesignDonationsIdRouteImport
+      parentRoute: typeof DesignRoute
+    }
     '/_app/agreements/$provider/$id': {
       id: '/_app/agreements/$provider/$id'
       path: '/agreements/$provider/$id'
@@ -1017,6 +1036,7 @@ interface DesignRouteChildren {
   DesignPatternsRoute: typeof DesignPatternsRoute
   DesignSettingsRoute: typeof DesignSettingsRoute
   DesignIndexRoute: typeof DesignIndexRoute
+  DesignDonationsIdRoute: typeof DesignDonationsIdRoute
 }
 
 const DesignRouteChildren: DesignRouteChildren = {
@@ -1029,6 +1049,7 @@ const DesignRouteChildren: DesignRouteChildren = {
   DesignPatternsRoute: DesignPatternsRoute,
   DesignSettingsRoute: DesignSettingsRoute,
   DesignIndexRoute: DesignIndexRoute,
+  DesignDonationsIdRoute: DesignDonationsIdRoute,
 }
 
 const DesignRouteWithChildren =
