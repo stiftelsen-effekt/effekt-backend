@@ -59,7 +59,7 @@ background command, write your report while it runs, and if it fails fix the pro
 only what failed:
 
 ```sh
-pnpm gate                               # in admin/: typecheck, Vitest, interaction + visual (background it)
+pnpm gate                               # in admin/: typecheck, Vitest, interaction + visual, Auth0 prod-build smoke (background it)
 pnpm exec playwright test --last-failed # after a failure: only the tests that failed
 ```
 
