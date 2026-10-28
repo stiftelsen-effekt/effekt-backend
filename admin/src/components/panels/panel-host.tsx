@@ -55,6 +55,19 @@ type PanelsApi = {
   closeAll: () => void;
   /** Replaces the stack with the top panel's own page. */
   fullscreen: () => void;
+  /**
+   * The list under the panels (DataTable with `pageHotkeys`) registers here, so j/k in a
+   * single panel step to the next or previous row and swap the panel. Returns the unregister.
+   */
+  setListNavigator: (navigator: ListNavigator | null) => void;
+};
+
+/**
+ * Steps the list's open row by `delta`: the next row's href and element (focus returns to it
+ * when the panel closes), or null at either end of the page.
+ */
+export type ListNavigator = {
+  step: (delta: 1 | -1) => { href: string; element?: HTMLElement } | null;
 };
 
 const PanelsContext = createContext<PanelsApi | null>(null);
@@ -171,6 +184,9 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
 
   // Focus goes into a new panel; closing it puts focus back where it was when it opened.
   const returnFocus = useRef(new Map<number, HTMLElement>());
+  const navigator = useRef<ListNavigator | null>(null);
+  // The panel swapped in by j/k appears in place, without the slide.
+  const swapped = useRef<string | null>(null);
 
   const close = useCallback(
     (n = 1) => {
@@ -189,6 +205,7 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
       open: (href) => {
         const entry = entryFor(href);
         if (!entry) return false;
+        swapped.current = null;
         const existing = entries.findIndex((e) => sameEntry(e, entry));
         if (existing >= 0) {
           close(count - 1 - existing);
@@ -210,11 +227,27 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
         const top = entries.at(-1);
         if (top) void navigate({ to: panelPath(top, kinds) as LinkProps["to"] });
       },
+      setListNavigator: (next) => {
+        navigator.current = next;
+      },
     }),
     [entries, entryFor, close, count, router, setStack, pushes, navigate, kinds],
   );
 
   useHotkey("escape", () => close(1), { enabled: count > 0 });
+  useHotkey("f", () => api.fullscreen(), { enabled: count > 0 });
+
+  // j/k with one panel open: the next or previous row of the list underneath, in place.
+  function step(delta: 1 | -1) {
+    const next = navigator.current?.step(delta);
+    const entry = next ? entryFor(next.href) : null;
+    if (!entry || sameEntry(entry, entries[0]!)) return;
+    if (next?.element) returnFocus.current.set(0, next.element);
+    swapped.current = `0:${tokenOf(entry)}`;
+    setStack([entry], { replace: true, pushes });
+  }
+  useHotkey("j", () => step(1), { enabled: count === 1 });
+  useHotkey("k", () => step(-1), { enabled: count === 1 });
 
   // Closed panels stay a moment for their exit animation.
   const live = useMemo<Rendered[]>(
@@ -229,7 +262,9 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
     return () => timers.forEach(clearTimeout);
   }, []);
   useLayoutEffect(() => {
-    const gone = previous.current.filter((p) => !live.some((l) => l.key === p.key));
+    // A j/k swap replaces the panel in place: the old one leaves without its exit animation.
+    const isSwap = swapped.current !== null && live.some((l) => l.key === swapped.current);
+    const gone = isSwap ? [] : previous.current.filter((p) => !live.some((l) => l.key === p.key));
     previous.current = live;
     setClosing((current) => [
       ...current.filter((c) => !live.some((l) => l.key === c.key)),
@@ -251,11 +286,12 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
 
   const root = useRef<HTMLDivElement>(null);
   const previousCount = useRef(0);
+  const topKey = live.at(-1)?.key;
   useEffect(() => {
     const before = previousCount.current;
     previousCount.current = count;
     const top = root.current?.querySelector<HTMLElement>(`[data-panel-index="${count - 1}"]`);
-    if (count > before) {
+    if (count >= before && count > 0) {
       top?.focus({ preventScroll: true });
     } else if (count < before) {
       const target = returnFocus.current.get(count);
@@ -264,7 +300,7 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
       if (target?.isConnected) target.focus({ preventScroll: true });
       else top?.focus({ preventScroll: true });
     }
-  }, [count]);
+  }, [count, topKey]);
 
   // Each panel's own search params (a donor's tab, a statement's period) live here.
   const [panelSearch, setPanelSearch] = useState<Record<string, Record<string, unknown>>>({});
@@ -310,7 +346,7 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
                   index={item.index}
                   isTop={!isClosing && item.index === count - 1}
                   isClosing={isClosing}
-                  animate={animate}
+                  animate={animate && item.key !== swapped.current}
                   canCloseAll={count > 1}
                   onCloseAbove={() => close(count - 1 - item.index)}
                   search={panelSearch[item.key] ?? {}}
@@ -428,7 +464,7 @@ function Panel({
               size="sm"
               onClick={api.fullscreen}
               aria-label={strings.actions.openFullPage}
-              title={strings.actions.openFullPage}
+              title={`${strings.actions.openFullPage} (F)`}
             >
               <Maximize2Icon />
               <span className="max-sm:sr-only">Full page</span>
