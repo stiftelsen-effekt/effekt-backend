@@ -2,7 +2,7 @@
  * URL state of the Agreements list and its translation into the `agreements.list` filter.
  * The admin is Norway-only: the list always asks for Vipps and AvtaleGiro agreements.
  */
-import { defineList, param, type FilterValues } from "@/components/filters";
+import { defineList, param, type FilterValues } from "@/components/filters/list-state";
 import type { AgreementStatus } from "@/lib/status";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
 import type { AgreementRow } from "./model";
@@ -93,6 +93,7 @@ export function fromListRow(row: AgreementListApiRow): AgreementRow {
     created: toIso(row.created),
     cancelled: toIso(row.cancelled),
     href: `/agreements/${row.provider}/${row.id}`,
+    orgSplit: row.orgSplit,
   };
 }
 

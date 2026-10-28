@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { Money } from "@/components/domain/format";
-import { shortcuts } from "@/components/layout/shortcuts-dialog";
+import { navGroups, settingsItem } from "@/components/layout/nav";
+import { shortcutGroups } from "@/components/layout/shortcuts";
+
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -18,6 +20,8 @@ import {
 import { DocPage, DocSection, Example } from "@/design-system/doc";
 import { formatMoney } from "@/lib/format";
 import { notify } from "@/lib/notify";
+
+const shortcuts = shortcutGroups([...navGroups.flatMap((group) => group.items), settingsItem]);
 
 export const Route = createFileRoute("/design/patterns")({
   component: Patterns,

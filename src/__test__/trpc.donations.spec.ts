@@ -148,6 +148,7 @@ describe("tRPC donations router", () => {
         statistics: { numDonations: 1, sumDonations: "10.00", avgDonation: "10.000000" },
       } as any);
 
+      sinon.stub(DAO.distributions, "getOrgSharesByKIDs").resolves(new Map());
       const res = await admin().donations.list({
         page: 2,
         limit: 25,
@@ -159,7 +160,7 @@ describe("tRPC donations router", () => {
       });
 
       expect(res).to.deep.equal({
-        rows: [row],
+        rows: [{ ...row, orgSplit: [] }],
         pages: 1,
         statistics: { numDonations: 1, sumDonations: "10.00", avgDonation: "10.000000" },
       });
@@ -519,6 +520,7 @@ describe("tRPC donations router", () => {
         pages: 1,
       });
 
+      sinon.stub(DAO.distributions, "getOrgSharesByKIDs").resolves(new Map());
       const list = await admin().donations.distributions.list({
         page: 0,
         limit: 10,

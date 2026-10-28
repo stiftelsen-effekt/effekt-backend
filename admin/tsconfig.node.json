@@ -12,5 +12,5 @@
     "tsBuildInfoFile": "node_modules/.cache/tsc/node.tsbuildinfo",
     "verbatimModuleSyntax": true
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "tests"]
+  "include": ["vite.config.ts", "playwright.config.ts", "playwright.prod-smoke.config.ts", "tests"]
 }

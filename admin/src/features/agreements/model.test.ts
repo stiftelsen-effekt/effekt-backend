@@ -73,6 +73,7 @@ describe("fromListRow", () => {
       lastUpdated: null,
       cancelled: null,
       pausedUntil: "2026-12-01",
+      orgSplit: [],
     });
     expect(row).toMatchObject({
       key: "vipps:agr_1",

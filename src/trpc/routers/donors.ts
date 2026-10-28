@@ -9,6 +9,7 @@ import {
   validateTaxUnitSsn,
 } from "../../custom_modules/donorService";
 import { RequestLocale } from "../../middleware/locale";
+import { withOrgSplits } from "../orgSplits";
 import { osloDayRange } from "../../custom_modules/osloDays";
 import { csvExport } from "../csv";
 import { adminProcedure, router } from "../trpc";
@@ -402,16 +403,17 @@ export const donorsRouter = router({
    * Distributions (KIDs) with donation sum and count. sum is a decimal string, null when the
    * distribution has no donations.
    */
-  distributionsAggregated: adminProcedure.input(donorIdInput).query(async ({ input }) =>
-    (await DAO.distributions.getByDonorId(input.donorId)).map((distribution) => {
+  distributionsAggregated: adminProcedure.input(donorIdInput).query(async ({ input }) => {
+    const rows = (await DAO.distributions.getByDonorId(input.donorId)).map((distribution) => {
       const { sum, count } = distribution as { sum: unknown; count: unknown };
       return {
         ...distribution,
         sum: sum === null || sum === undefined ? null : String(sum),
         count: Number(count ?? 0),
       };
-    }),
-  ),
+    });
+    return withOrgSplits(rows, (row) => row.KID);
+  }),
 
   referrals: adminProcedure.input(donorIdInput).query(async ({ input }) =>
     (await DAO.referrals.getDonorAnswers(input.donorId)).map((answer) => ({

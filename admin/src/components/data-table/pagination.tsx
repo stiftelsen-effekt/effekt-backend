@@ -73,6 +73,7 @@ export function DataTablePagination({
             variant="ghost"
             size="icon-sm"
             aria-label="Previous page"
+            title="Previous page ( [ )"
             disabled={pageIndex === 0}
             onClick={() => go(pageIndex - 1)}
           >
@@ -85,6 +86,7 @@ export function DataTablePagination({
             variant="ghost"
             size="icon-sm"
             aria-label="Next page"
+            title="Next page ( ] )"
             disabled={pageIndex >= pageCount - 1}
             onClick={() => go(pageIndex + 1)}
           >

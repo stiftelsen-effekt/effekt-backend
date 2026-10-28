@@ -14,6 +14,10 @@ export function Toaster(props: ToasterProps) {
     <Sonner
       theme={resolvedTheme}
       position="bottom-right"
+      // Clear of the sticky footers at the bottom of lists and flows (pagination, the flow's
+      // primary action), which a toast would otherwise cover right after a save.
+      offset={{ bottom: 64, right: 24 }}
+      mobileOffset={{ bottom: 64 }}
       gap={8}
       icons={{
         success: <CircleCheckIcon className="size-4 text-success" />,

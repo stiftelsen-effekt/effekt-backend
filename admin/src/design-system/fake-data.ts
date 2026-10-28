@@ -271,6 +271,22 @@ export const donors: FakeDonor[] = Array.from({ length: 400 }, (_, index) => {
   };
 });
 
+/** The organization split the list procedures return for a typical Global Health KID. */
+const fakeOrgSplit = [
+  {
+    organizationId: 12,
+    organizationName: "Against Malaria Foundation",
+    causeAreaId: 1,
+    share: "60.000000",
+  },
+  {
+    organizationId: 13,
+    organizationName: "Malaria Consortium",
+    causeAreaId: 1,
+    share: "40.000000",
+  },
+];
+
 /** Donation rows plus the donor id the real list joins in on the detail call. */
 export type FakeDonation = DonationRow & { donorId: number; email: string; methodId: number };
 
@@ -296,6 +312,7 @@ export const donations: FakeDonation[] = Array.from({ length: 1240 }, (_, index)
     timestamp: daysAgo(Math.floor(rand() * 540), rand),
     kid: String(10_000_000 + Math.floor(rand() * 89_999_999)),
     taxUnitType: rand() < 0.08 ? ORGANIZATION : rand() < 0.7 ? PERSON : null,
+    orgSplit: fakeOrgSplit,
   };
 }).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
@@ -369,8 +386,22 @@ export const donorYearly: DonorYearly[] = [2020, 2021, 2022, 2023, 2024, 2025, 2
 );
 
 export const donorDistributions: DonorDistribution[] = [
-  { KID: "96891492", email: donor.email, full_name: donor.name, sum: "48210.00", count: 14 },
-  { KID: "000138700015", email: donor.email, full_name: donor.name, sum: "4500.00", count: 9 },
+  {
+    KID: "96891492",
+    email: donor.email,
+    full_name: donor.name,
+    sum: "48210.00",
+    count: 14,
+    orgSplit: fakeOrgSplit,
+  },
+  {
+    KID: "000138700015",
+    email: donor.email,
+    full_name: donor.name,
+    sum: "4500.00",
+    count: 9,
+    orgSplit: fakeOrgSplit,
+  },
 ];
 
 export const donorTaxUnits: TaxUnit[] = [

@@ -8,6 +8,7 @@ import {
   agreementsFilter,
   agreementsListInput,
 } from "../schemas/agreements";
+import { withOrgSplits } from "../orgSplits";
 import { adminProcedure, router } from "../trpc";
 
 const DEFAULT_SORT = { id: "created", desc: true } as const;
@@ -24,14 +25,15 @@ const toDaoFilter = (filter: z.infer<typeof agreementsFilter> | undefined): Agre
  * mapping. The provider routers (vipps.agreements, giro.*) have the provider-specific details.
  */
 export const agreementsRouter = router({
-  list: adminProcedure.input(agreementsListInput).query(({ input }) =>
-    DAO.agreements.getList({
+  list: adminProcedure.input(agreementsListInput).query(async ({ input }) => {
+    const result = await DAO.agreements.getList({
       filter: toDaoFilter(input.filter),
       sort: input.sort ?? DEFAULT_SORT,
       page: input.page,
       limit: input.limit,
-    }),
-  ),
+    });
+    return { ...result, rows: await withOrgSplits(result.rows, (row) => row.KID) };
+  }),
 
   export: adminProcedure.input(agreementsExportInput).query(async ({ input }) => {
     const { rows } = await DAO.agreements.getList({

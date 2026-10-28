@@ -59,7 +59,7 @@ function ImportLogEntryPage() {
           <SkeletonText key="time">00.00.0000 00:00</SkeletonText>,
         ]}
       >
-        <Tabs value="result">
+        <Tabs defaultValue="result">
           <TabsList>
             <TabsTrigger value="result">Result</TabsTrigger>
             <TabsTrigger value="file" disabled>

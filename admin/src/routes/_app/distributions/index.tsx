@@ -6,6 +6,7 @@ import { createColumns, DataTable, TableSummary } from "@/components/data-table"
 import { CopyValue } from "@/components/domain/copy-value";
 import { ErrorState } from "@/components/domain/error-state";
 import { Money, Num } from "@/components/domain/format";
+import { OrgSplitCell, orgSplitColumnMeta } from "@/components/domain/org-split";
 import { FilterBar, SavedViews, TextFilter, useListState, ListEmpty } from "@/components/filters";
 import { ListPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,12 @@ const columns = col.columns([
     header: "Total",
     meta: { numeric: true, cellClassName: "font-semibold" },
     cell: ({ getValue }) => <Money value={getValue()} />,
+  }),
+  col.accessor("orgSplit", {
+    id: "orgSplit",
+    header: "Organisations",
+    meta: orgSplitColumnMeta,
+    cell: ({ getValue }) => <OrgSplitCell split={getValue()} />,
   }),
 ]);
 

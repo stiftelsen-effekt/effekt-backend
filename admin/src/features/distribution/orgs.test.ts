@@ -8,6 +8,7 @@ import {
   orgChartSeries,
   orgColors,
   orgSlices,
+  orgSlicesFromSplit,
   OTHER_COLOR,
   showCauseAreas,
 } from "./orgs";
@@ -147,5 +148,36 @@ describe("orgChartSeries", () => {
     expect(series[0]!.color).toBe(orgColors([2]).get(2));
     expect(keyOf(1)).toBe("other");
     expect(keyOf(3)).toBe("org3");
+  });
+});
+
+describe("orgSlicesFromSplit", () => {
+  it("turns list rows into slices with the stable colour of each organization", () => {
+    const slices = orgSlicesFromSplit([
+      { organizationId: 3, organizationName: "GiveDirectly", causeAreaId: 1, share: "62.500000" },
+      { organizationId: 9, organizationName: "The Humane League", causeAreaId: 2, share: "37.5" },
+    ]);
+    expect(slices).toEqual([
+      {
+        id: 3,
+        name: "GiveDirectly",
+        share: 62.5,
+        causeAreaId: 1,
+        causeAreaName: null,
+        color: orgColors([3, 9]).get(3),
+      },
+      {
+        id: 9,
+        name: "The Humane League",
+        share: 37.5,
+        causeAreaId: 2,
+        causeAreaName: null,
+        color: orgColors([3, 9]).get(9),
+      },
+    ]);
+  });
+
+  it("is empty for a KID without a split", () => {
+    expect(orgSlicesFromSplit([])).toEqual([]);
   });
 });

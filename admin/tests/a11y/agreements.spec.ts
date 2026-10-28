@@ -100,6 +100,14 @@ const fixtures: Record<string, unknown> = {
         lastUpdated: null,
         cancelled: null,
         pausedUntil: null,
+        orgSplit: [
+          {
+            organizationId: 12,
+            organizationName: "Against Malaria Foundation",
+            causeAreaId: 1,
+            share: "100.000000",
+          },
+        ],
       },
       {
         provider: "avtalegiro",
@@ -115,6 +123,14 @@ const fixtures: Record<string, unknown> = {
         lastUpdated: "2025-11-12T17:31:28.000Z",
         cancelled: "2025-11-13T00:00:00.000Z",
         pausedUntil: null,
+        orgSplit: [
+          {
+            organizationId: 12,
+            organizationName: "Against Malaria Foundation",
+            causeAreaId: 1,
+            share: "100.000000",
+          },
+        ],
       },
     ],
     statistics: { count: 2, activeCount: 1, activeMonthlySum: 500 },

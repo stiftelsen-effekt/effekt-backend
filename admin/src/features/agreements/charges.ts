@@ -2,7 +2,7 @@
  * Vipps recurring charges: URL state of the charges list, its `vipps.charges.list` filter and
  * which charges can be refunded.
  */
-import { defineList, param, type FilterValues } from "@/components/filters";
+import { defineList, param, type FilterValues } from "@/components/filters/list-state";
 import { chargeStatus, type ChargeStatus } from "@/lib/status";
 import type { RouterInputs, RouterOutputs } from "@/lib/trpc";
 import { isVippsAgreementId } from "@/features/search/providers";

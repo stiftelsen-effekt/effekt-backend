@@ -84,6 +84,14 @@ const fixtures: Record<string, unknown> = {
       count: 1,
       full_name: "Kari Nordmann",
       email: "kari.nordmann@example.org",
+      orgSplit: [
+        {
+          organizationId: 12,
+          organizationName: "Against Malaria Foundation",
+          causeAreaId: 1,
+          share: "100.000000",
+        },
+      ],
     },
   ],
   "donors.recurring.avtalegiro": [

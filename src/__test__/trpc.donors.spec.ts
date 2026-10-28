@@ -447,6 +447,7 @@ describe("tRPC donors router", () => {
       sinon.stub(DAO.donations, "getByDonorId").resolves(donations as any);
       sinon.stub(DAO.donations, "getYearlyAggregateByDonorId").resolves(yearly);
       sinon.stub(DAO.distributions, "getByDonorId").resolves(distributions as any);
+      sinon.stub(DAO.distributions, "getOrgSharesByKIDs").resolves(new Map());
       sinon.stub(DAO.referrals, "getDonorAnswers").resolves([referral]);
       sinon.stub(DAO.avtalegiroagreements, "getByDonorId").resolves(avtalegiro as any);
       sinon.stub(DAO.autogiroagreements, "getAgreementsByDonorId").resolves(autogiro as any);
@@ -456,8 +457,8 @@ describe("tRPC donors router", () => {
       expect(await caller.donors.donations({ donorId: 7 })).to.deep.equal(donations);
       expect(await caller.donors.donationsAggregated({ donorId: 7 })).to.deep.equal(yearly);
       expect(await caller.donors.distributionsAggregated({ donorId: 7 })).to.deep.equal([
-        distributions[0],
-        { ...distributions[1], count: 0 },
+        { ...distributions[0], orgSplit: [] },
+        { ...distributions[1], count: 0, orgSplit: [] },
       ]);
       expect(await caller.donors.referrals({ donorId: 7 })).to.deep.equal([
         { ...referral, active: true },

@@ -6,6 +6,7 @@ import { createColumns, DataTable, TableSummary } from "@/components/data-table"
 import { CopyValue } from "@/components/domain/copy-value";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
+import { OrgSplitCell, orgSplitColumnMeta } from "@/components/domain/org-split";
 import {
   DateRangeFilter,
   FilterBar,
@@ -76,6 +77,12 @@ const columns = col.columns([
     header: "Tax unit",
     meta: { cellClassName: "text-muted-foreground" },
     cell: ({ getValue }) => taxUnitTypeLabels[getValue() ?? "none"],
+  }),
+  col.accessor("orgSplit", {
+    id: "orgSplit",
+    header: "Organisations",
+    meta: orgSplitColumnMeta,
+    cell: ({ getValue }) => <OrgSplitCell split={getValue()} />,
   }),
 ]);
 

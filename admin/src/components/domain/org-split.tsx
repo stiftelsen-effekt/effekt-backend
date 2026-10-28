@@ -1,6 +1,11 @@
 import { swatchClasses } from "@/components/charts/chart";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { groupOther, type OrgSlice } from "@/features/distribution/orgs";
+import {
+  groupOther,
+  orgSlicesFromSplit,
+  type OrgSlice,
+  type OrgSplitRow,
+} from "@/features/distribution/orgs";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Money } from "./format";
@@ -135,4 +140,21 @@ export function OrgSparkline({ slices, className }: { slices: OrgSlice[]; classN
       </TooltipContent>
     </Tooltip>
   );
+}
+
+/**
+ * Column meta for a list's "Organisations" column: about 120 px, hidden below `sm` where the
+ * table is too wide. Use with `OrgSplitCell`.
+ */
+export const orgSplitColumnMeta = {
+  headerClassName: "w-30 max-sm:hidden",
+  cellClassName: "w-30 max-sm:hidden",
+  placeholder: "Organisation +2",
+} as const;
+
+/** A list row's `orgSplit` in an OrgSparkline. */
+export function OrgSplitCell({ split }: { split: readonly OrgSplitRow[] | undefined }) {
+  // An API older than the admin has no split yet: show nothing rather than fail the row.
+  if (!split?.length) return null;
+  return <OrgSparkline slices={orgSlicesFromSplit(split)} />;
 }
