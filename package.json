@@ -55,7 +55,7 @@
     "chalk": "^2.4.2",
     "chardet": "^2.0.0",
     "compression": "^1.8.2",
-    "csv-parse": "^5.3.3",
+    "csv-parse": "^7.0.2",
     "decimal.js": "^10.4.3",
     "dotenv": "^16.0.3",
     "express": "^4.17.1",
