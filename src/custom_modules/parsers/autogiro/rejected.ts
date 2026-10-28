@@ -49,7 +49,7 @@ export const parseRejectedCharges = (lines: string[], openingRecord: AutoGiroOpe
   return result;
 };
 
-interface AutoGiroParsedRejectedChargesResult extends AutoGiroParsedResult {
+export interface AutoGiroParsedRejectedChargesResult extends AutoGiroParsedResult {
   reportContents: AutoGiroContent.REJECTED_CHARGES;
   rejectedCharges: AutoGiroRejectedChargeRecord[];
 }

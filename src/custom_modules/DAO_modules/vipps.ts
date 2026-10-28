@@ -232,7 +232,7 @@ interface VippsAgreementFilters {
   agreementID?: string;
 }
 
-interface VippsAgreementRow {
+export interface VippsAgreementRow {
   ID: string;
   status: string;
   amount: number;
@@ -243,7 +243,7 @@ interface VippsAgreementRow {
   full_name: string;
 }
 
-interface VippsAgreementStatistics {
+export interface VippsAgreementStatistics {
   numAgreements: number;
   sumAgreements: number;
   avgAgreement: number;

@@ -45,7 +45,7 @@ export const parseMandates = (lines: string[], openingRecord: AutoGiroOpeningRec
   return result;
 };
 
-interface AutoGiroParsedMandatesResult extends AutoGiroParsedResult {
+export interface AutoGiroParsedMandatesResult extends AutoGiroParsedResult {
   reportContents: AutoGiroContent.MANDATES;
   mandates: AutoGiroMandateAddOrDeleteRecord[];
 }

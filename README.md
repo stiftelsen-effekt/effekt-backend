@@ -6,15 +6,16 @@ The API is also responsible for handling payment processing.
 
 ## Local environment
 
-One command runs the API with a seeded MySQL and a local OIDC issuer in Docker. Nothing touches Auth0 or any staging/production resource, and all third-party integrations are blank ([`.env.docker`](.env.docker)). Requires Docker.
+One command runs the API and the new admin with a seeded MySQL and a local OIDC issuer in Docker. The admin is on http://localhost:3001 (already signed in as an admin), the API on http://localhost:5050. Nothing touches Auth0 or any staging/production resource, and all third-party integrations are blank ([`.env.docker`](.env.docker)). Requires Docker.
 
 ```bash
-pnpm dev:env:up       # build + start db, auth, migrate+seed, api; waits until healthy
+pnpm dev:env:up       # build + start db, auth, migrate+seed, api, admin; waits until healthy
 pnpm -s dev:token     # admin access token (all permissions)
 pnpm -s dev:token -- --donor 27   # non-admin token for donor 27
 pnpm dev:env:logs     # follow API logs
 pnpm dev:env:down     # stop (keeps the database)
 pnpm dev:env:reset    # wipe the database, re-migrate and re-seed
+pnpm dev:data:topup   # bring the generated data up to today (needs the env running)
 ```
 
 ```bash
@@ -24,7 +25,11 @@ curl -X POST localhost:5050/donors/list/ -H "Authorization: Bearer $(pnpm -s dev
 ```
 
 - API on `localhost:5050` (nodemon; edits under `src/` reload). MySQL on `localhost:3307` (`root` / `effekt-local`, database `EffektDonasjonDB_Local`). Issuer on `localhost:8090/effekt`. Override ports with `DEV_API_PORT`, `DEV_DB_PORT`, `DEV_AUTH_PORT`.
-- The seed loads the committed fake data in `prisma/fakedata/json` once (skipped if donors exist).
+- The database is filled with generated fake data that ends **today**: five years of donations with growth, December peaks, AvtaleGiro claims (a few missing every day), Vipps agreements and charges, fundraisers, import logs and a handful of open review queue items. The shape (volumes, payment method mix, amounts, statuses, churn) follows rounded production aggregates recorded in [`prisma/devdata/config.ts`](prisma/devdata/config.ts); all people, emails (`example.org`/`.com`/`.net`) and national ids (synthetic Tenor numbers) are fake. Seeding takes a few seconds.
+- **Regranting:** the data also has years of regranting history ([`prisma/devdata/regranting.ts`](prisma/devdata/regranting.ts), design in [`docs/regranting.md`](docs/regranting.md)): a paid regular round every three months, the last with its cutoff about three months before the seed day, so a new regular round opened today has realistic amounts to propose; major-donor rounds, an extraordinary round paid before the donation arrived (`fronted`), off-schedule and yearly grants from the own fund GEBF, payees and dated routings (Malaria Consortium moved from GiveWell to direct), GiveDirectly projects, holds, and every adjustment type. One approved, unpaid major-donor round and one fund-grant draft are left open. Rounds are built with the backend's own proposal and validation rules from the generated donations, staff are fake `@example.org` addresses. Nothing is scheduled after the seed day: top-ups add donations but no rounds, so new rounds are yours to run in the admin.
+- **Pledges (tilsagn)** for the analysis overview: four open pledges of different sizes and ages (one partly paid, its sum lowered to what remains), two received ones linked to the bank donation that fulfilled them and one received without a link. Open pledges are never closed by a top-up.
+- **Keeping it current:** every `pnpm dev:env:up` tops the data up with the days since it was generated (or since the last top-up), so "this month", the AvtaleGiro check and the charge lists always look like a live system. Records you created or edited by hand are kept: the top-up only inserts new generated rows (above the highest existing ids) and updates the state columns of generated rows that changed in the meantime (agreement cancelled, charge charged, review item handled). Run `pnpm dev:data:topup` to do the same without restarting. If the generator itself has changed since the database was seeded, the top-up says so and leaves the data alone; run `pnpm dev:env:reset`.
+- Generator knobs (environment variables for `prisma db seed` / the top-up): `SEED_NOW=2026-10-27` pretends today is another day (reproducible snapshots), `SEED_SCALE=0.5` halves all volumes, `SEED` changes the random seed. The seed's settings and id mapping are kept in a separate `dev_seed_meta` schema, so Prisma never sees an extra table.
 - Token claims are configured in [`compose.dev.yml`](compose.dev.yml) (`auth` service). The issuer is taken from the `Host` header, so tokens must be requested with `Host: auth:8080`; [`scripts/dev-token.sh`](scripts/dev-token.sh) does this.
 - Changes to `package.json` or `prisma/schema.prisma` need a rebuild: run `pnpm dev:env:up` again.
 
@@ -306,15 +311,19 @@ Alternatively download and connect with a visual database tool like `MySQL Workb
 
 #### Add test data to your local MySQL instance
 
-Test data is automatically seeded with the `pnpm exec prisma migrate reset` command (unless `--skip-seed` flag was passed), and is generated from [seed.ts](/prisma/seed.ts)
-
-You can add test-data inside [seed.ts](/prisma/seed.ts) to suit your needs, and manually seed the database with:
+Test data is automatically seeded with the `pnpm exec prisma migrate reset` command (unless `--skip-seed` flag was passed). [seed.ts](/prisma/seed.ts) generates it with the deterministic generator in [prisma/devdata](/prisma/devdata/) (see [Local environment](#local-environment)); it refuses to run against a database that already has donors. To seed an empty database manually:
 
 ```sh
 pnpm exec prisma db seed
 ```
 
-The test-data is stored in the folder [prisma/fakedata/json](/prisma/fakedata/json/). To add more random test-data to the json files, run [addFakeDataScript.ts](/prisma/fakedata/addFakeDataScript.ts), and modify it to your needs. If you want to delete the test-data from the json files, make sure to at least leave an empty array.
+To bring a database seeded this way up to today later, without losing what you added:
+
+```sh
+DB_URL=mysql://user:password@localhost:3306/database pnpm exec ts-node prisma/devdata/topup.ts
+```
+
+The volumes and distributions are tuned in [prisma/devdata/config.ts](/prisma/devdata/config.ts).
 
 You can also manually add test-data with a graphical tool like [`Prisma Studio` etc.](#view-the-database-with-gui)
 

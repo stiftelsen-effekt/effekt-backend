@@ -69,7 +69,7 @@ export const parsePaymentSpecification = (
   return result;
 };
 
-interface AutoGiroParsedTransactionsResult extends AutoGiroParsedResult {
+export interface AutoGiroParsedTransactionsResult extends AutoGiroParsedResult {
   reportContents: AutoGiroContent.PAYMENT_SPECIFICATION_AND_STOP;
   deposits: AutoGiroDepositRecord[];
   withdrawals: AutoGiroWithdrawalRecord[];

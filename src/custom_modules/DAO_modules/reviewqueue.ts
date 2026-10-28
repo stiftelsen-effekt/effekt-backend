@@ -334,7 +334,7 @@ async function claimForRegistration(id: number, resolvedBy: string): Promise<boo
 async function releaseRegistrationClaim(id: number): Promise<void> {
   await DAO.query(
     `UPDATE Review_queue_items
-     SET Status = 'open', Resolved_by = NULL, Resolved_at = NULL
+     SET Status = 'open', Resolved_by = NULL, Resolved_at = NULL, Note = NULL
      WHERE ID = ? AND Status = 'registered' AND Donation_ID IS NULL`,
     [id],
   );

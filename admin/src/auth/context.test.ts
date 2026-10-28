@@ -1,0 +1,15 @@
+import { describe, expect, it } from "vitest";
+import { givenNameFrom } from "./context";
+
+describe("givenNameFrom", () => {
+  it("prefers given_name, else the first word of a real name", () => {
+    expect(givenNameFrom({ given_name: "Kari", name: "Kari Nordmann" })).toBe("Kari");
+    expect(givenNameFrom({ name: "Ola Nordmann" })).toBe("Ola");
+  });
+
+  it("never greets an email address or an id", () => {
+    expect(givenNameFrom({ name: "ola@example.org" })).toBeUndefined();
+    expect(givenNameFrom({ name: "auth0|12345" })).toBeUndefined();
+    expect(givenNameFrom({})).toBeUndefined();
+  });
+});

@@ -701,7 +701,7 @@ describe("tRPC reports router", () => {
       get.withArgs(7).resolves(entry);
       get.resolves(null);
 
-      expect(await admin().logs.get({ id: 7 })).to.deep.equal(entry);
+      expect(await admin().logs.get({ id: 7 })).to.deep.equal({ ...entry, displayLabel: "OCR" });
       await expectTrpcError(admin().logs.get({ id: 8 }), "NOT_FOUND");
     });
   });

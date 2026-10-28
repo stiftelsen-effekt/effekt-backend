@@ -75,7 +75,7 @@ export const parseCancellationAndAmendment = (
   return result;
 };
 
-interface AutoGiroParsedCancellationsAmendmentsResult extends AutoGiroParsedResult {
+export interface AutoGiroParsedCancellationsAmendmentsResult extends AutoGiroParsedResult {
   reportContents: AutoGiroContent.CANCELLATION_AND_AMENDMENT;
   cancellations: AutoGiroCancellationRecord[];
   amendments: unknown[];

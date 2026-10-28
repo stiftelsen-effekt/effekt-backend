@@ -42,12 +42,26 @@ import { getProtectedResourceMetadata } from "./custom_modules/mcp/oauthProtecte
 import { startWebSocketServer } from "./websocket";
 import { mountTrpc } from "./trpc/express";
 import { skipForTrpc } from "./trpc/reportsMultipart";
+import { isPreviewMode } from "./custom_modules/preview/previewMode";
+import { enforcePreviewEnvironment } from "./custom_modules/preview/environmentGuard";
+import {
+  noIndex,
+  previewAdmin,
+  previewDisabled,
+  PREVIEW_DISABLED_PATHS,
+} from "./custom_modules/preview/previewHttp";
+import { createPreviewRouter } from "./routes/preview";
 
 // Defence in depth: log stray rejections instead of letting Node's default
 // (--unhandled-rejections=throw) terminate the whole API process.
 process.on("unhandledRejection", (reason) => {
   console.error("Unhandled promise rejection", reason);
 });
+
+// Preview environments (docs/preview-environments.md): refuse to start unless this is a
+// throwaway database on the previews instance with every production integration unset.
+const previewMode = isPreviewMode();
+if (previewMode) enforcePreviewEnvironment();
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -61,8 +75,17 @@ DAO.connect(() => {
   //Setup express
   const app = express();
 
+  if (previewMode) app.use(noIndex);
+
   //Setup request logging
   logging(app);
+
+  if (previewMode) {
+    app.use(PREVIEW_DISABLED_PATHS, previewDisabled);
+    // The admin build in the preview image, same origin as the API
+    const admin = previewAdmin(process.env.PREVIEW_ADMIN_DIR);
+    if (admin) app.use(admin);
+  }
 
   app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification));
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, swaggerOptions));
@@ -216,6 +239,8 @@ DAO.connect(() => {
   const agreementfeedbackRoute = agreementfeedbackRouter;
   const fundraisersRoute = fundraisersRouter;
   const ltvRoute = ltvRouter;
+
+  if (previewMode) app.use("/preview", createPreviewRouter());
 
   mountTrpc(app);
 

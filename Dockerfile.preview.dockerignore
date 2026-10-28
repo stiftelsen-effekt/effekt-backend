@@ -1,0 +1,25 @@
+# Build context of Dockerfile.preview (unlike .dockerignore, this one keeps admin/).
+**/node_modules
+**/.DS_Store
+.git
+.github
+.husky
+.idea
+.vscode
+.env
+.env.*
+**/.env
+**/.env.*
+dist
+dist-types
+dist-seed
+admin/dist
+admin/test-results
+admin/playwright-report
+admin/tests
+functions
+certs
+docs
+Dockerfile
+.dockerignore
+.pnpm-store

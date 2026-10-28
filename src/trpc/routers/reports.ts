@@ -38,6 +38,7 @@ import type {
   ReviewQueueSource,
 } from "../../custom_modules/DAO_modules/reviewqueue";
 import { registerDonation } from "../donationRegistration";
+import { adminIdentity } from "../identity";
 import { moneySchema } from "../schemas/common";
 import { paymentExternalRefSchema } from "../schemas/donations";
 import {
@@ -235,17 +236,6 @@ const uploadContext = (
   auth: JWTPayload,
 ): UploadContext => ({ filename: report.name, file, metaOwnerID, uploadedBy: adminIdentity(auth) });
 
-/**
- * Who resolved a review item or uploaded a report: the token's email claim (plain or
- * namespaced, if the Auth0 tenant adds one), otherwise its subject.
- */
-const adminIdentity = (auth: JWTPayload): string => {
-  const emailClaim = Object.entries(auth).find(
-    ([key, value]) => (key === "email" || key.endsWith("/email")) && typeof value === "string",
-  );
-  return (emailClaim?.[1] as string | undefined) ?? auth.sub ?? "unknown";
-};
-
 //endregion
 
 /**
@@ -439,7 +429,8 @@ const logsRouter = router({
   get: adminProcedure.input(idInput).query(async ({ input }) => {
     const entry = await DAO.logging.get(input.id);
     if (!entry) throw new TRPCError({ code: "NOT_FOUND" });
-    return entry;
+    const upload = entry.label ? uploadDisplayLabels[entry.label] : undefined;
+    return { ...entry, displayLabel: upload?.label ?? entry.label };
   }),
 });
 

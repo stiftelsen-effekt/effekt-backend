@@ -369,7 +369,7 @@ async function exists(KID) {
   else return false;
 }
 
-interface AvtaleGiroFilters {
+export interface AvtaleGiroFilters {
   amount?: { from?: number; to?: number };
   KID?: string;
   paymentDate?: { from?: number; to?: number };

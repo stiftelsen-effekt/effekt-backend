@@ -9,13 +9,13 @@ import {
 } from "../../config";
 import authorizationPermissions from "../../enums/authorizationPermissions";
 import { createJwtCheck } from "./jwtIssuers";
+import { selectJwtCheck } from "../preview/previewMode";
 
 // Defaulting to "default" to enable tests to run
 const additionalIssuers = authIssuerBaseURL ? authAdditionalIssuers : [];
-const checkJwt = createJwtCheck(
-  authAudience || "default",
-  authIssuerBaseURL || "default",
-  additionalIssuers,
+// With PREVIEW_MODE=true (preview environments only) this is the preview session check instead.
+const checkJwt = selectJwtCheck(() =>
+  createJwtCheck(authAudience || "default", authIssuerBaseURL || "default", additionalIssuers),
 );
 
 // Claude Tag user-login tokens are issued for the MCP resource URL (…/mcp).
