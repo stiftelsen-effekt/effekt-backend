@@ -342,13 +342,13 @@ function AvtaleGiroCheckPage() {
                     <th scope="col" className="py-2 font-normal">
                       Date
                     </th>
-                    <th scope="col" className="py-2 pl-2 text-right font-normal">
+                    <th scope="col" className="py-2 pl-1.5 text-right font-normal">
                       Expected
                     </th>
-                    <th scope="col" className="py-2 pl-2 text-right font-normal">
+                    <th scope="col" className="py-2 pl-1.5 text-right font-normal">
                       Received
                     </th>
-                    <th scope="col" className="py-2 pl-2 font-normal">
+                    <th scope="col" className="py-2 pl-1.5 font-normal">
                       <span className="sr-only">Status</span>
                     </th>
                   </tr>
@@ -360,13 +360,13 @@ function AvtaleGiroCheckPage() {
                           <td className="py-1.5">
                             <SkeletonText>00.00.0000</SkeletonText>
                           </td>
-                          <td className="py-1.5 pl-2 text-right">
+                          <td className="py-1.5 pl-1.5 text-right">
                             <SkeletonText>00 000 kr</SkeletonText>
                           </td>
-                          <td className="py-1.5 pl-2 text-right">
+                          <td className="py-1.5 pl-1.5 text-right">
                             <SkeletonText>00 000 kr</SkeletonText>
                           </td>
-                          <td className="py-1.5 pl-2">
+                          <td className="py-1.5 pl-1.5">
                             <SkeletonText>Some missing</SkeletonText>
                           </td>
                         </tr>
@@ -397,13 +397,13 @@ function AvtaleGiroCheckPage() {
                                 <span className="num">{shortChargeDay(Number(row.date))}</span>
                               )}
                             </td>
-                            <td className="py-1.5 pl-2 text-right">
-                              <Money value={row.expected} />
+                            <td className="py-1.5 pl-1.5 text-right">
+                              <Money value={row.expected} precision="whole" />
                             </td>
-                            <td className="py-1.5 pl-2 text-right">
-                              <Money value={row.actual} />
+                            <td className="py-1.5 pl-1.5 text-right">
+                              <Money value={row.actual} precision="whole" />
                             </td>
-                            <td className="py-1.5 pl-2">
+                            <td className="py-1.5 pl-1.5">
                               <Status catalog={avtaleGiroDayStatus} value={validationState(row)} />
                             </td>
                           </tr>
