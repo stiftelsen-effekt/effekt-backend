@@ -34,6 +34,7 @@ import {
   type LucideIcon,
   ListChecksIcon,
 } from "lucide-react";
+import { config } from "@/lib/config";
 
 export type NavItem = {
   to: string;
@@ -47,7 +48,7 @@ export type NavItem = {
 };
 export type NavGroup = { label?: string; items: NavItem[] };
 
-export const navGroups: NavGroup[] = [
+const allNavGroups: NavGroup[] = [
   { items: [{ to: "/", label: "Home", icon: HouseIcon, exact: true, keywords: ["dashboard"] }] },
   {
     label: "Donors",
@@ -180,6 +181,10 @@ export const navGroups: NavGroup[] = [
     ],
   },
 ];
+
+export const navGroups = allNavGroups.filter(
+  (group) => group.label !== "Regranting" || config.features.regranting,
+);
 
 export const settingsItem: NavItem = {
   to: "/settings",

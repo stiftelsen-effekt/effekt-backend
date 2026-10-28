@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_AUTH_AUDIENCE?: string;
   readonly VITE_AUTH_SCOPE?: string;
   readonly VITE_DEV_AUTH_TOKEN_URL?: string;
+  readonly VITE_FEATURE_REGRANTING?: string;
 }
 
 interface ImportMeta {
