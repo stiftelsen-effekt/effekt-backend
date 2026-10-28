@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { registerReference, splitFor } from "../donor-register-fixtures";
 import { NOW, settle, type Theme } from "../helpers";
 
 /**
@@ -20,6 +21,8 @@ const donorRow = (id: number, name: string) => ({
 });
 
 const fixtures: Record<string, unknown> = {
+  ...registerReference,
+  "donations.distributions.get": splitFor({ kid: "000569937638223" }),
   "donors.list": {
     rows: [donorRow(569, "Kari Nordmann"), donorRow(570, "Ola Hansen")],
     pages: 1,
@@ -205,6 +208,16 @@ for (const theme of ["light", "dark"] as Theme[]) {
     test("donor page", async ({ page }) => {
       await open(page, "/donors/569", theme);
       await expect(page.getByRole("heading", { name: "Kari Nordmann" })).toBeVisible();
+      await scan(page);
+    });
+
+    test("add donation dialog", async ({ page }) => {
+      await open(page, "/donors/569", theme);
+      await page.getByRole("button", { name: "Add donation" }).click();
+      const dialog = page.getByRole("dialog", { name: "Add donation for Kari Nordmann" });
+      await expect(dialog.getByRole("combobox", { name: "KID" })).toContainText("000569937638223");
+      await dialog.getByRole("button", { name: "Check" }).click();
+      await expect(dialog.getByText("Enter the amount")).toBeVisible();
       await scan(page);
     });
 
