@@ -59,6 +59,9 @@ Regranting
   Projects                 list → project page (facts, everything sent to it)
   Adjustments              ledger entries with a reason (corrections, fees, fronted …)
   Payees & funds           payees, dated routing, own funds, holds
+Analysis
+  Overview                 given through time with open pledges, progress to the 200 MNOK milestone
+  Pledges                  decided gifts not received yet (tilsagn): add, mark received, change amount
 Records
   Reports                  transaction report
   Import log
