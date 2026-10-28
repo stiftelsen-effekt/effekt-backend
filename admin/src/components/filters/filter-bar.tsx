@@ -205,6 +205,16 @@ function SearchBox({
             } else inputRef.current?.blur();
           }
           if (event.key === "Enter") onChange(draft.trim() || undefined);
+          // ↓ goes from the search box to the list's row cursor.
+          if (event.key === "ArrowDown") {
+            const row = document.querySelector<HTMLElement>(
+              "[data-slot=data-table] tr[data-row][tabindex='0']",
+            );
+            if (row) {
+              event.preventDefault();
+              row.focus();
+            }
+          }
         }}
       />
       {draft ? (

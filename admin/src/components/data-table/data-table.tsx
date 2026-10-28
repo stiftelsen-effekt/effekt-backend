@@ -84,7 +84,10 @@ export type DataTableProps<TData extends RowData> = {
   onRowOpen?: (row: TData, event: MouseEvent | KeyboardEvent) => void;
   /** The row's page: opens as a panel when it can, ⌘/Ctrl- and middle-click open a new tab. */
   getRowHref?: (row: TData) => string;
-  /** Listen for j/k on the whole page (the page's main table only). */
+  /**
+   * The page's main table: j/k anywhere on the page move the row cursor, [ and ] page, and
+   * with a row's panel open j/k swap it for the next or previous row's.
+   */
   pageHotkeys?: boolean;
 
   /** Totals for the current filter, left of the pagination. */
@@ -223,8 +226,31 @@ export function DataTable<TData extends RowData>({
   useEffect(() => {
     if (openRowId == null) return;
     const index = rows.findIndex((row) => row.id === openRowId);
-    if (index >= 0) setCursor(index);
+    if (index < 0) return;
+    setCursor(index);
+    rowElement(index)?.scrollIntoView({ block: "nearest" });
   }, [openRowId, rows]);
+
+  // j/k in the row's panel (components/panels) step through this list.
+  const stepRef = useRef<(delta: 1 | -1) => { href: string; element?: HTMLElement } | null>(
+    () => null,
+  );
+  stepRef.current = (delta) => {
+    const from = rows.findIndex((row) => row.id === openRowId);
+    const index = (from < 0 ? cursor : from) + delta;
+    const row = rows[index];
+    const href = row && getRowHref?.(row.original);
+    if (!href) return null;
+    setCursor(index);
+    return { href, element: rowElement(index) };
+  };
+  useEffect(() => {
+    if (!pageHotkeys || !panels || !getRowHref) return;
+    panels.setListNavigator({ step: (delta) => stepRef.current(delta) });
+    return () => panels.setListNavigator(null);
+    // Register once per table; the step reads the latest rows through the ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageHotkeys, panels?.setListNavigator, Boolean(getRowHref)]);
 
   function openRow(row: TData, event: MouseEvent | KeyboardEvent) {
     const href = getRowHref?.(row);
@@ -235,12 +261,16 @@ export function DataTable<TData extends RowData>({
     setCursor((current) => Math.min(current, Math.max(rows.length - 1, 0)));
   }, [rows.length]);
 
+  function rowElement(index: number) {
+    return bodyRef.current?.querySelectorAll<HTMLTableRowElement>("tr[data-row]")[index];
+  }
+
   function focusRow(index: number) {
     const clamped = Math.min(Math.max(index, 0), rows.length - 1);
     if (clamped < 0) return;
     setCursor(clamped);
-    const element = bodyRef.current?.querySelectorAll<HTMLTableRowElement>("tr[data-row]")[clamped];
-    element?.focus({ preventScroll: false });
+    const element = rowElement(clamped);
+    element?.focus({ preventScroll: true });
     element?.scrollIntoView({ block: "nearest" });
     const row = rows[clamped];
     if (row) preloadRow(row.original);
@@ -253,6 +283,21 @@ export function DataTable<TData extends RowData>({
   useHotkey("k", () => focusRow(focusInside() ? cursor - 1 : cursor), {
     enabled: pageHotkeys && navigable,
   });
+
+  // [ and ] page; the cursor starts at the top of the new page.
+  const pageCount = pagination
+    ? Math.max(1, Math.ceil((rowCount ?? data?.length ?? 0) / pagination.pageSize))
+    : 1;
+  function turnPage(delta: 1 | -1) {
+    if (!pagination || !onPaginationChange) return;
+    const pageIndex = pagination.pageIndex + delta;
+    if (pageIndex < 0 || pageIndex >= pageCount) return;
+    setCursor(0);
+    onPaginationChange({ ...pagination, pageIndex });
+  }
+  const pagerKeys = pageHotkeys && pagination !== undefined && onPaginationChange !== undefined;
+  useHotkey("]", () => turnPage(1), { enabled: pagerKeys });
+  useHotkey("[", () => turnPage(-1), { enabled: pagerKeys });
 
   function onRowKeyDown(event: KeyboardEvent, row: Row<DataTableFeatures, TData>, index: number) {
     if ((event.target as HTMLElement) !== event.currentTarget) return;
@@ -401,6 +446,7 @@ export function DataTable<TData extends RowData>({
                   <TableRow
                     key={row.id}
                     data-row
+                    data-row-id={row.id}
                     data-state={row.getIsSelected() ? "selected" : undefined}
                     data-open={open || undefined}
                     aria-current={open || undefined}

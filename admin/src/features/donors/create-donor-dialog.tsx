@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Callout } from "@/components/domain/callout";
+import { useDiscardGuard } from "@/components/domain/unsaved-changes";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -52,8 +53,12 @@ export function CreateDonorDialog({ trigger }: { trigger: ReactNode }) {
     }),
   );
 
+  const dirty = Object.values(values).some((value) => value.trim() !== "");
+  const guard = useDiscardGuard(dirty, () => setOpen(false));
+
   function onOpenChange(next: boolean) {
     if (create.isPending) return;
+    if (!next) return guard.requestClose();
     setOpen(next);
     if (next) {
       setValues({ email: "", name: "", ssn: "" });
@@ -154,6 +159,7 @@ export function CreateDonorDialog({ trigger }: { trigger: ReactNode }) {
           </Button>
         </DialogFooter>
       </DialogContent>
+      {guard.dialog}
     </Dialog>
   );
 }

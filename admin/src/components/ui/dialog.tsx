@@ -22,10 +22,33 @@ export function DialogOverlay({
   );
 }
 
+/**
+ * ⌘/Ctrl+Enter in a dialog: submits its form, or presses its primary button when it has
+ * no form (a confirm step). Disabled or pending buttons stay unpressed.
+ */
+function submitOnModEnter(event: React.KeyboardEvent<HTMLDivElement>) {
+  if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey) || event.defaultPrevented) return;
+  const content = event.currentTarget;
+  if (!content.contains(event.target as Node)) return; // a portal inside (a popover) has its own keys
+  const form = content.querySelector("form");
+  // The form's own submit button (possibly in the footer, `form="…"`), else the primary one.
+  const button = form
+    ? [...content.querySelectorAll<HTMLButtonElement>("button[type=submit]")].find(
+        (b) => b.form === form,
+      )
+    : [...content.querySelectorAll<HTMLButtonElement>("button[data-variant=primary]")].at(-1);
+  if (!form && !button) return;
+  event.preventDefault();
+  if (button && (button.disabled || button.dataset.pending !== undefined)) return;
+  if (form) form.requestSubmit(button ?? undefined);
+  else button?.click();
+}
+
 export function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onKeyDown,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & { showCloseButton?: boolean }) {
   return (
@@ -40,6 +63,10 @@ export function DialogContent({
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-[0.98]",
           className,
         )}
+        onKeyDown={(event) => {
+          onKeyDown?.(event);
+          submitOnModEnter(event);
+        }}
         {...props}
       >
         {children}

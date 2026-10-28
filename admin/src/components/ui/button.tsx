@@ -62,6 +62,7 @@ export function Button({
   return (
     <Comp
       data-slot="button"
+      data-variant={variant ?? "secondary"}
       data-pending={pending || undefined}
       aria-busy={pending || undefined}
       disabled={asChild ? undefined : disabled || pending}

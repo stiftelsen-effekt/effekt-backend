@@ -238,18 +238,24 @@ optional note (undoable; ignored items can be reopened). If someone else resolve
 
 ### Keyboard
 
-| Keys                     | Action                       |
-| ------------------------ | ---------------------------- |
-| ⌘K / Ctrl+K              | Search and commands          |
-| ?                        | Shortcut help                |
-| /                        | Focus list search            |
-| j / k, ↑ / ↓, Home / End | Move between rows            |
-| Enter / Space            | Open the row as a panel      |
-| x                        | Select row                   |
-| Esc                      | Close top panel, cancel edit |
-| ⌘Enter                   | Register (review), save      |
+| Keys                     | Action                                                                                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ⌘K / Ctrl+K              | Search and commands (every page, common actions)                                                                                                    |
+| ?                        | Shortcut help                                                                                                                                       |
+| g, then a letter         | Go to: h home, d donors, f fundraisers, o donations, k KID, i import, r review queue, a agreements, c charges, b balances, l import log, s settings |
+| /                        | Focus list search; ↓ from it returns to the rows                                                                                                    |
+| j / k, ↑ / ↓, Home / End | Move the row cursor                                                                                                                                 |
+| Enter / Space            | Open the row as a panel                                                                                                                             |
+| x                        | Select row                                                                                                                                          |
+| [ / ]                    | Previous / next page                                                                                                                                |
+| j / k in a panel         | Swap the panel for the next / previous row's                                                                                                        |
+| f in a panel             | Full page                                                                                                                                           |
+| Esc                      | Close top panel, cancel edit (dialogs with changes ask)                                                                                             |
+| ⌘Enter                   | Register (review), save (`UnsavedChangesBar`), submit a dialog's form or primary button                                                             |
 
-Every page supports these. Single-key shortcuts are ignored while typing or in dialogs (`useHotkey`).
+Every page supports these. Single-key shortcuts are ignored while typing, in menus, or while any dialog or popover is
+open (`useHotkey`). The list keys live in `DataTable` (`pageHotkeys` on the page's main table), not in pages; the ?
+dialog is generated from `components/layout/shortcuts.ts` and the nav's `goKey`s, so add new shortcuts there.
 
 **Rows arriving.** `DataTable` fades rows in while they settle 4 px into place (180 ms), staggered 10 ms per row, capped at
 400 ms. It plays only when rows mount (first load, new page or filter); refetches and re-sorting reuse rows and don't replay it.

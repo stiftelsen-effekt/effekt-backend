@@ -7,51 +7,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
+import type { NavItem } from "./nav";
+import { shortcutGroups } from "./shortcuts";
 
-/** The shortcuts every page supports. Keep in sync with DESIGN.md › Keyboard. */
-export const shortcuts: { group: string; items: { keys: string[]; label: string }[] }[] = [
-  {
-    group: "Anywhere",
-    items: [
-      { keys: ["⌘", "K"], label: "Search and commands" },
-      { keys: ["?"], label: "Show shortcuts" },
-    ],
-  },
-  {
-    group: "Lists",
-    items: [
-      { keys: ["/"], label: "Focus the search box" },
-      { keys: ["J"], label: "Next row (also ↓)" },
-      { keys: ["K"], label: "Previous row (also ↑)" },
-      { keys: ["Enter"], label: "Open the row as a panel (also Space)" },
-      { keys: ["X"], label: "Select the row" },
-    ],
-  },
-  {
-    group: "Panels",
-    items: [
-      { keys: ["Esc"], label: "Close the top panel (also Back)" },
-      { keys: ["⌘", "Click"], label: "Open a row or link in a new tab" },
-    ],
-  },
-  {
-    group: "Forms and review",
-    items: [
-      { keys: ["⌘", "Enter"], label: "Save / register" },
-      { keys: ["J"], label: "Next open review item" },
-      { keys: ["K"], label: "Previous open review item" },
-      { keys: ["Esc"], label: "Cancel inline edit" },
-    ],
-  },
-];
-
+/** Lists the shortcuts that exist (`shortcuts.ts`). Opens with ?, or from ⌘K. */
 export function ShortcutsDialog({
   open,
   onOpenChange,
+  navItems,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pages with a go-to shortcut. */
+  navItems: NavItem[];
 }) {
+  const shortcuts = shortcutGroups(navItems);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
