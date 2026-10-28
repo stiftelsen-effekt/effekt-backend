@@ -102,6 +102,8 @@ export const GENERATED_TABLES = [
   "Fund_grant_lines",
   "Regrant_adjustments",
   "Regrant_round_balances",
+  // Pledges (tilsagn) for the analysis overview
+  "Pledges",
 ] as const;
 export type TableName = (typeof GENERATED_TABLES)[number];
 
@@ -199,6 +201,8 @@ class Simulation {
   /** Organization shares per KID (pct of cause area × pct of organization) for regranting */
   private readonly kidShares = new Map<string, { orgId: number; share: number }[]>();
   private readonly regranting: RegrantingHistory;
+  /** The day of the first seed; pledges, like the regranting history, are laid out from it */
+  private readonly anchor: number;
   /** GiveDirectly's Zakat fund closes: new splits stop choosing it */
   private readonly gdzfClosed: number | null;
   private readonly agreementsByPaymentDay = new Map<number, AvtaleGiro[]>();
@@ -225,6 +229,7 @@ class Simulation {
       Row[]
     >;
     const regrantingAnchor = anchor ?? end;
+    this.anchor = regrantingAnchor;
     this.gdzfClosed = gdzfClosedDay(start, regrantingAnchor);
     this.regranting = new RegrantingHistory(
       {
@@ -242,6 +247,7 @@ class Simulation {
     const initialEnd = start + Math.round(config.years * 365.25);
     this.operationalFrom = initialEnd - config.operationalLogDays;
     this.reviewFrom = initialEnd - 150;
+    this.schedulePledges();
   }
 
   run(): Dataset {
@@ -1090,6 +1096,111 @@ class Simulation {
         externalId: this.externalId(PAYMENT.BANK, arrival),
       });
       onArrival(id);
+    });
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Pledges (tilsagn): decided gifts that haven't arrived yet, for the analysis overview
+
+  /**
+   * A handful of pledges around the anchor: open ones of different sizes and ages, received ones
+   * linked to the bank donation that fulfilled them (one without a link), and one partly paid,
+   * its sum lowered to what remains. Open pledges get no scheduled payment, so top-ups never
+   * close them; that's for the developer to do in the admin.
+   */
+  private schedulePledges() {
+    const A = this.anchor;
+    const AMF = 6;
+    const GD = 7;
+    this.pledge("pl-amf", A - 430, 1_500_000, [{ orgId: AMF, pct: 100 }], [A - 380]);
+    this.pledge("pl-company", A - 520, 250_000, [{ orgId: ORG.TCF, pct: 100 }], [A - 490], {
+      link: false,
+    });
+    this.pledge(
+      "pl-givewell",
+      A - 230,
+      600_000,
+      [
+        { orgId: ORG.TCF, pct: 50 },
+        { orgId: ORG.AGF, pct: 50 },
+      ],
+      [A - 170],
+    );
+    // 2 MNOK, of which 800 000 arrived: 1 200 000 still open
+    this.pledge("pl-partial", A - 120, 2_000_000, [{ orgId: GD, pct: 100 }], [A - 60], {
+      amounts: [800_000],
+    });
+    this.pledge("pl-aging", A - 270, 750_000, [{ orgId: AMF, pct: 100 }], []);
+    this.pledge("pl-large", A - 45, 2_500_000, [{ orgId: ORG.AGF, pct: 100 }], []);
+    this.pledge("pl-recent", A - 9, 350_000, [{ orgId: AMF, pct: 100 }], []);
+  }
+
+  /**
+   * A pledge decided on `decided`, paid by bank on the given days (the whole remaining sum on
+   * the last one unless `amounts` says otherwise). Each payment lowers the pledge's sum to what
+   * remains; the payment that clears it marks the pledge received, linked to that donation.
+   */
+  private pledge(
+    tag: string,
+    decided: number,
+    sum: number,
+    split: { orgId: number; pct: number }[],
+    paymentDays: number[],
+    { amounts = [], link = true }: { amounts?: number[]; link?: boolean } = {},
+  ) {
+    const day = nextBankDay(decided);
+    if (day < this.start) return;
+    this.at(day, () => {
+      const rng = this.rng("pledge", tag);
+      const id = this.id("Pledges");
+      const row = this.add("Pledges", {
+        ID: id,
+        Sum: money(sum),
+        Decided_date: isoDate(day),
+        Received_date: null,
+        Donation_ID: null,
+        Inserted: timestamp(day, rng.int(9, 16) * 3600),
+      });
+      if (paymentDays.length === 0) return;
+
+      // The donor and KID are registered the bank day before the first payment
+      const first = nextBankDay(paymentDays[0]);
+      let gift: { donorId: number; KID: string; ownerId: number } | null = null;
+      this.at(first - 1, () => {
+        const seconds = rng.int(9, 15) * 3600;
+        const donor = this.newDonor(rng, first - 1, seconds, "bigGift", rng.chance(0.5));
+        const { KID, ownerId } = this.newDistribution(rng, donor, first - 1, seconds + 60, {
+          split: [{ causeAreaId: 1, standard: false, orgs: split }],
+          ownerId: 3,
+        });
+        gift = { donorId: donor.id, KID, ownerId };
+      });
+
+      let remaining = sum;
+      paymentDays.forEach((paymentDay, i) => {
+        const arrival = nextBankDay(paymentDay);
+        this.at(arrival, () => {
+          const amount = Math.min(amounts[i] ?? remaining, remaining);
+          const donationId = this.donation({
+            donorId: gift!.donorId,
+            KID: gift!.KID,
+            paymentId: PAYMENT.BANK,
+            amount,
+            day: arrival,
+            seconds: 0,
+            ownerId: gift!.ownerId,
+            externalId: this.externalId(PAYMENT.BANK, arrival),
+          });
+          remaining -= amount;
+          if (remaining > 0) {
+            row.Sum = money(remaining);
+          } else {
+            row.Sum = money(amount);
+            row.Received_date = isoDate(arrival);
+            row.Donation_ID = link ? donationId : null;
+          }
+        });
+      });
     });
   }
 
