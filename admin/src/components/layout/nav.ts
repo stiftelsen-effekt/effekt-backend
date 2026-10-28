@@ -45,30 +45,56 @@ export type NavItem = {
   badge?: "reviewQueue";
   /** Words the command palette also matches on. */
   keywords?: string[];
+  /** The second key of its go-to shortcut: g then this key. */
+  goKey?: string;
 };
 export type NavGroup = { label?: string; items: NavItem[] };
 
 const allNavGroups: NavGroup[] = [
-  { items: [{ to: "/", label: "Home", icon: HouseIcon, exact: true, keywords: ["dashboard"] }] },
+  {
+    items: [
+      { to: "/", label: "Home", goKey: "h", icon: HouseIcon, exact: true, keywords: ["dashboard"] },
+    ],
+  },
   {
     label: "Donors",
     items: [
-      { to: "/donors", label: "Donors", icon: UsersIcon, keywords: ["people", "givere"] },
-      { to: "/fundraisers", label: "Fundraisers", icon: FlagIcon, keywords: ["innsamling"] },
+      {
+        to: "/donors",
+        goKey: "d",
+        label: "Donors",
+        icon: UsersIcon,
+        keywords: ["people", "givere"],
+      },
+      {
+        to: "/fundraisers",
+        goKey: "f",
+        label: "Fundraisers",
+        icon: FlagIcon,
+        keywords: ["innsamling"],
+      },
     ],
   },
   {
     label: "Money in",
     items: [
-      { to: "/donations", label: "Donations", icon: HandCoinsIcon, keywords: ["donasjoner"] },
+      {
+        to: "/donations",
+        goKey: "o",
+        label: "Donations",
+        icon: HandCoinsIcon,
+        keywords: ["donasjoner"],
+      },
       {
         to: "/distributions",
+        goKey: "k",
         label: "Distributions",
         icon: KeyRoundIcon,
         keywords: ["kid", "split", "fordeling"],
       },
       {
         to: "/import",
+        goKey: "i",
         label: "Import",
         icon: ArrowDownToLineIcon,
         // The review queue lives under /import/review and has its own item.
@@ -77,6 +103,7 @@ const allNavGroups: NavGroup[] = [
       },
       {
         to: "/import/review",
+        goKey: "r",
         label: "Review queue",
         icon: InboxIcon,
         badge: "reviewQueue",
@@ -89,12 +116,14 @@ const allNavGroups: NavGroup[] = [
     items: [
       {
         to: "/agreements",
+        goKey: "a",
         label: "Agreements",
         icon: RepeatIcon,
         keywords: ["recurring", "vipps", "avtalegiro", "avtaler"],
       },
       {
         to: "/charges",
+        goKey: "c",
         label: "Vipps charges",
         icon: SmartphoneIcon,
         keywords: ["refund"],
@@ -112,6 +141,7 @@ const allNavGroups: NavGroup[] = [
     items: [
       {
         to: "/regranting",
+        goKey: "b",
         label: "Balances",
         icon: ScaleIcon,
         exact: true,
@@ -177,7 +207,7 @@ const allNavGroups: NavGroup[] = [
         icon: BookOpenIcon,
         keywords: ["transaction report", "accounting"],
       },
-      { to: "/logs", label: "Import log", icon: ScrollTextIcon, keywords: ["logs"] },
+      { to: "/logs", goKey: "l", label: "Import log", icon: ScrollTextIcon, keywords: ["logs"] },
     ],
   },
 ];
@@ -188,6 +218,7 @@ export const navGroups = allNavGroups.filter(
 
 export const settingsItem: NavItem = {
   to: "/settings",
+  goKey: "s",
   label: "Settings",
   icon: SettingsIcon,
   keywords: ["cause areas", "organizations", "referral types", "matching rules"],

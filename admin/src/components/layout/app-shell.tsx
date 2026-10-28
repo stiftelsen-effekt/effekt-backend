@@ -2,6 +2,8 @@ import { PreviewBanner } from "./preview-banner";
 import { Link, useNavigate, useRouterState, type LinkProps } from "@tanstack/react-router";
 import {
   ChevronsUpDownIcon,
+  HandCoinsIcon,
+  KeyRoundIcon,
   KeyboardIcon,
   LogInIcon,
   LogOutIcon,
@@ -34,6 +36,7 @@ import { strings } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { CommandPalette, type PaletteCommand } from "./command-palette";
 import { navGroups, settingsItem, type NavGroup, type NavItem } from "./nav";
+import { useGoToShortcuts } from "./shortcuts";
 import { ShortcutsDialog } from "./shortcuts-dialog";
 
 const designItem: NavItem = { to: "/design", label: "Design system", icon: PaletteIcon };
@@ -262,18 +265,40 @@ export function AppShell({
   useHotkey("mod+k", () => setPaletteOpen((open) => !open));
   useHotkey("?", () => setShortcutsOpen(true));
 
-  const commands = useMemo<PaletteCommand[]>(() => {
+  const navItems = useMemo(() => {
     const items = [...groups.flatMap((group) => group.items), settingsItem];
     if (showDesign) items.push(designItem);
+    return items;
+  }, [groups, showDesign]);
+  useGoToShortcuts(navItems, (item) => void navigate({ to: item.to as LinkProps["to"] }));
+
+  const commands = useMemo<PaletteCommand[]>(() => {
     return [
-      ...items.map<PaletteCommand>((item) => ({
+      ...navItems.map<PaletteCommand>((item) => ({
         id: `nav:${item.to}`,
         label: item.label,
         group: "Go to",
         icon: item.icon,
         keywords: item.keywords,
+        shortcut: item.goKey ? `G ${item.goKey.toUpperCase()}` : undefined,
         run: () => void navigate({ to: item.to as LinkProps["to"] }),
       })),
+      {
+        id: "action:register-donation",
+        label: "Register donation",
+        group: "Actions",
+        icon: HandCoinsIcon,
+        keywords: ["new donation", "add donation", "manual"],
+        run: () => void navigate({ to: "/donations/register" as LinkProps["to"] }),
+      },
+      {
+        id: "action:new-kid",
+        label: "New distribution (KID)",
+        group: "Actions",
+        icon: KeyRoundIcon,
+        keywords: ["kid", "split", "fordeling"],
+        run: () => void navigate({ to: "/distributions/new" as LinkProps["to"] }),
+      },
       {
         id: "action:shortcuts",
         label: "Keyboard shortcuts",
@@ -299,7 +324,7 @@ export function AppShell({
         run: prefs.toggleDensity,
       },
     ];
-  }, [groups, showDesign, navigate, prefs]);
+  }, [navItems, navigate, prefs]);
 
   return (
     <div className="flex min-h-dvh bg-canvas">
@@ -371,7 +396,7 @@ export function AppShell({
       </div>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
-      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} navItems={navItems} />
     </div>
   );
 }
