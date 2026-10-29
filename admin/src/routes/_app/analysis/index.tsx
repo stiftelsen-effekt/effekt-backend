@@ -6,6 +6,8 @@ import { Stat, StatGroup } from "@/components/domain/stat";
 import { DetailPage, PageSection } from "@/components/templates";
 import { SkeletonText } from "@/components/ui/skeleton";
 import { CountUpMoney } from "@/features/analysis/count-up";
+import { NEW_DONOR_MONTHS } from "@/features/analysis/donor-cohorts";
+import { CohortsSection, NewDonorsSection } from "@/features/analysis/donor-sections";
 import { milestoneLabel, progress, type Overview } from "@/features/analysis/model";
 import { formatMoney } from "@/lib/format";
 import { loadPage } from "@/lib/route-data";
@@ -13,7 +15,10 @@ import { useTRPC } from "@/lib/trpc";
 
 export const Route = createFileRoute("/_app/analysis/")({
   loader: ({ context: { queryClient, trpc }, cause }) =>
-    loadPage(queryClient, cause, trpc.analysis.overview.queryOptions()),
+    loadPage(queryClient, cause, trpc.analysis.overview.queryOptions(), [
+      trpc.analysis.newDonors.queryOptions({ months: NEW_DONOR_MONTHS }),
+      trpc.analysis.cohorts.queryOptions(),
+    ]),
   component: AnalysisOverviewPage,
 });
 
@@ -86,6 +91,8 @@ function AnalysisOverviewPage() {
       ) : (
         <ThroughTime overview={data} />
       )}
+      <NewDonorsSection />
+      <CohortsSection />
     </DetailPage>
   );
 }

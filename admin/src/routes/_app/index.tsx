@@ -25,6 +25,7 @@ import {
   monthTick,
 } from "@/features/home/model";
 import { RECENT_IMPORTS } from "@/features/home/home-view";
+import { NewDonorsCard } from "@/features/home/new-donors-card";
 import { reviewQueueCountsOptions } from "@/features/home/review-queue-counts";
 import { awaitingFirstPaymentAttention } from "@/features/intents/attention";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -304,6 +305,7 @@ function HomePage() {
       attention={attention}
       attentionLoading={attentionPending && lastAttentionCount.get()}
       stats={stats}
+      newDonors={<NewDonorsCard />}
       chart={
         <PageSection title="Last 12 months" description="Donations by organization">
           {chartError ? (

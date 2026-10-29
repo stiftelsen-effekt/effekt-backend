@@ -55,3 +55,8 @@ export const pledgeMarkReceivedInput = z.strictObject({
 });
 
 export const pledgeByIdInput = z.strictObject({ id: idSchema });
+
+/** New first-time donors per month: how many months back, the current one included */
+export const newDonorsInput = z
+  .strictObject({ months: z.number().int().min(1).max(120).default(24) })
+  .default({ months: 24 });
