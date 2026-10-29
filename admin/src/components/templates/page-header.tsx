@@ -97,22 +97,35 @@ export function PageHeader({
   );
 }
 
-/** A titled block inside a page body. */
+/**
+ * A titled block inside a page body. `fill` (in a DetailPage, for one long table): from lg up
+ * the section takes the height left in the page, at least 24rem, and its content (a DataTable
+ * in a `flex flex-col` wrapper) fills it and scrolls inside.
+ */
 export function PageSection({
   title,
   description,
   actions,
+  fill,
   className,
   children,
 }: {
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
+  fill?: boolean;
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <section data-slot="page-section" className={cn("grid min-w-0 content-start gap-3", className)}>
+    <section
+      data-slot="page-section"
+      className={cn(
+        "grid min-w-0 gap-3",
+        fill ? "grid-rows-[auto_minmax(0,1fr)] lg:min-h-96 lg:grow lg:basis-0" : "content-start",
+        className,
+      )}
+    >
       <div className="flex min-h-7 flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <div className="min-w-0">
           <h2 className="text-base font-semibold">{title}</h2>

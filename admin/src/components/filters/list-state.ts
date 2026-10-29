@@ -213,6 +213,25 @@ export type ListState<F extends FilterCodecs = FilterCodecs, S extends string = 
   };
 };
 
+/**
+ * The `sort` URL value after a header click: undefined when the result is the default sort,
+ * so the URL stays clean. TanStack's toggle cycle ends by clearing the sort, which here means
+ * the default; clearing the default sort itself would change nothing, so that click flips its
+ * direction instead. The default column toggles asc ↔ desc on every click; other columns cycle
+ * asc/desc → default, as before.
+ */
+export function sortParam(
+  next: SortingState,
+  current: { id: string; desc: boolean },
+  defaultSort: { id: string; desc: boolean },
+): string | undefined {
+  const isCurrentDefault = current.id === defaultSort.id && current.desc === defaultSort.desc;
+  const target =
+    next[0] ?? (isCurrentDefault ? { id: defaultSort.id, desc: !defaultSort.desc } : defaultSort);
+  if (target.id === defaultSort.id && target.desc === defaultSort.desc) return undefined;
+  return `${target.desc ? "-" : ""}${target.id}`;
+}
+
 export function useListState<F extends FilterCodecs, S extends string>(
   list: ListDefinition<F, S>,
 ): ListState<F, S> {
@@ -299,12 +318,7 @@ export function useListState<F extends FilterCodecs, S extends string>(
     applySearch: (search) => void navigate({ to: ".", search: () => ({ ...search }) }),
     tableState: {
       sorting: [{ id: sort.id, desc: sort.desc }],
-      onSortingChange: (next) => {
-        const first = next[0];
-        const isDefault =
-          !first || (first.id === list.defaultSort.id && first.desc === list.defaultSort.desc);
-        update({ sort: isDefault || !first ? undefined : `${first.desc ? "-" : ""}${first.id}` });
-      },
+      onSortingChange: (next) => update({ sort: sortParam(next, sort, list.defaultSort) }),
       pagination: { pageIndex: page - 1, pageSize },
       pageSizeOptions: list.pageSizes,
       onPaginationChange: (next) =>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defineList, param } from "./list-state";
+import { defineList, param, sortParam } from "./list-state";
 
 describe("list param codecs", () => {
   it("round-trips ranges, including open ends", () => {
@@ -43,5 +43,45 @@ describe("list param codecs", () => {
       page: 2,
       sort: "-id",
     });
+  });
+});
+
+describe("sortParam", () => {
+  const byDateDesc = { id: "timestamp", desc: true };
+
+  it("omits the default sort from the URL", () => {
+    expect(
+      sortParam([{ id: "timestamp", desc: true }], { id: "timestamp", desc: false }, byDateDesc),
+    ).toBeUndefined();
+    expect(sortParam([], { id: "sum", desc: true }, byDateDesc)).toBeUndefined();
+  });
+
+  it("encodes other sorts", () => {
+    expect(sortParam([{ id: "sum", desc: true }], byDateDesc, byDateDesc)).toBe("-sum");
+    expect(sortParam([{ id: "timestamp", desc: false }], byDateDesc, byDateDesc)).toBe("timestamp");
+  });
+
+  it("flips the default column when the toggle would clear it", () => {
+    // TanStack clears a column whose sort isn't its first direction; clearing the default
+    // would leave it as it is, so the click flips it instead.
+    expect(sortParam([], byDateDesc, byDateDesc)).toBe("timestamp");
+    expect(sortParam([], { id: "id", desc: false }, { id: "id", desc: false })).toBe("-id");
+  });
+
+  it("toggles the default column both ways", () => {
+    let current = byDateDesc;
+    const decode = (raw: string | undefined) =>
+      raw ? { id: raw.replace(/^-/, ""), desc: raw.startsWith("-") } : byDateDesc;
+    // Whatever TanStack proposes (flip or clear), each click lands on the other direction.
+    for (const proposal of [
+      [],
+      [{ id: "timestamp", desc: true }],
+      [],
+      [{ id: "timestamp", desc: true }],
+    ]) {
+      const before = current.desc;
+      current = decode(sortParam(proposal, current, byDateDesc));
+      expect(current).toEqual({ id: "timestamp", desc: !before });
+    }
   });
 });

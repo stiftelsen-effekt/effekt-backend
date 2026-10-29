@@ -66,3 +66,22 @@ test("refining a search replaces its entry; Back clears the search", async ({ pa
   await expect(page).toHaveURL(/\/design\/list$/);
   await expect(search).toHaveValue("");
 });
+
+test("the default sort column toggles both ways, keeping the default out of the URL", async ({
+  page,
+}) => {
+  await openList(page);
+  const table = page.getByRole("table", { name: "Donations" });
+  const date = table.getByRole("columnheader", { name: "Date" });
+  await expect(date).toHaveAttribute("aria-sort", "descending");
+
+  for (const [sort, url] of [
+    ["ascending", /[?&]sort=timestamp(&|$)/],
+    ["descending", /\/design\/list$/],
+    ["ascending", /[?&]sort=timestamp(&|$)/],
+  ] as const) {
+    await date.getByRole("button", { name: "Date" }).click();
+    await expect(date).toHaveAttribute("aria-sort", sort);
+    await expect(page).toHaveURL(url);
+  }
+});
