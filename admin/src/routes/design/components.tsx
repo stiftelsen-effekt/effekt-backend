@@ -24,6 +24,7 @@ import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
 import { InlineEdit } from "@/components/domain/inline-edit";
 import { Property, PropertyList } from "@/components/domain/property-list";
+import { Sparkline } from "@/components/domain/sparkline";
 import { Stat, StatGroup } from "@/components/domain/stat";
 import { Status } from "@/components/domain/status";
 import {
@@ -111,6 +112,17 @@ const demoList = defineList({
   sortable: ["id"],
   defaultSort: { id: "id", desc: true },
 });
+
+const demoMonths = Array.from({ length: 13 }, (_, index) => {
+  const month = ((9 + index) % 12) + 1;
+  return `${index < 3 ? 2025 : 2026}-${String(month).padStart(2, "0")}`;
+});
+const demoDonations = [
+  1_494_000, 1_486_000, 2_981_000, 1_485_000, 1_568_000, 1_914_000, 1_653_000, 1_613_000, 1_715_000,
+  1_688_000, 1_679_000, 1_486_000, 1_212_000,
+];
+const demoStarted = [46, 43, 39, 54, 32, 39, 47, 47, 47, 49, 53, 43, 37];
+const demoStopped = [11, 19, 16, 15, 17, 13, 20, 16, 19, 17, 19, 19, 24];
 
 export const Route = createFileRoute("/design/components")({
   validateSearch: demoList.validateSearch,
@@ -471,6 +483,60 @@ function Components() {
               />
               <Stat label="Donors" value={<Num value={1394} />} hint="gave this month" />
               <Stat label="Average" value={<Money value={870} />} />
+            </StatGroup>
+          </Example>
+          <Example
+            title="Sparkline"
+            use="A month-by-month trend beside a Stat's number: 96 × 32, no axes, hover or arrow keys for a month. The running month is dashed. Hidden where the stat is too narrow."
+            surfaceClassName="block"
+            className="lg:col-span-2"
+          >
+            <StatGroup>
+              <Stat
+                label="Donations in Oct"
+                value={<Money value={1_212_000} />}
+                hint={
+                  <>
+                    <Money value={1_486_000} /> in Sep
+                  </>
+                }
+                chart={
+                  <Sparkline
+                    label="Donations, last 13 months"
+                    months={demoMonths}
+                    series={[{ label: "Donations", values: demoDonations }]}
+                    format="money"
+                    partialLast
+                  />
+                }
+              />
+              <Stat
+                label="Agreements started"
+                value={<Num value={37} />}
+                hint={
+                  <>
+                    <Num value={24} /> stopped this month
+                  </>
+                }
+                chart={
+                  <Sparkline
+                    label="Agreements started and stopped, last 13 months"
+                    months={demoMonths}
+                    series={[
+                      { label: "Started", values: demoStarted, color: "chart-2" },
+                      { label: "Stopped", values: demoStopped, color: "muted" },
+                    ]}
+                    partialLast
+                  />
+                }
+              />
+              <div data-static>
+                <Stat
+                  label="First load"
+                  pending
+                  chart={<Sparkline label="Loading" months={undefined} series={[]} />}
+                />
+              </div>
             </StatGroup>
           </Example>
         </div>

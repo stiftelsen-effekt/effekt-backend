@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { NOW, settle } from "../helpers";
+import { homeTrendsFixture, NOW, settle } from "../helpers";
 import { fixtures as regrantingFixtures } from "../regranting-fixtures";
 
 /**
@@ -121,6 +121,8 @@ function fixture(path: string, input: Record<string, unknown> | undefined): unkn
         activatedThisMonth: 15,
         stoppedThisMonth: 13,
       };
+    case "home.trends":
+      return homeTrendsFixture();
     case "config.causeAreas.listAll":
     case "config.causeAreas.listActive":
       return causeAreas;

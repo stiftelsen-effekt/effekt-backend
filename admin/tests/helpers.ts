@@ -60,3 +60,24 @@ export async function growToContent(page: Page, width: number) {
   await page.setViewportSize({ width, height: Math.min(Math.max(height, 900), 14_000) });
   await settle(page);
 }
+
+/** A `home.trends` answer (13 months to Oct 2026), for specs that stub the API and open Home. */
+export function homeTrendsFixture() {
+  const months = Array.from({ length: 13 }, (_, index) => {
+    const month = ((9 + index) % 12) + 1;
+    return `${index < 3 ? 2025 : 2026}-${String(month).padStart(2, "0")}`;
+  });
+  const series = <T>(value: (index: number) => T) => ({
+    points: months.map((month, index) => ({ month, value: value(index) })),
+    estimated: false,
+  });
+  return {
+    months,
+    partialLast: true as const,
+    donations: { ...series((index) => `${2_000_000 + index * 40_000}.00`), counts: [] },
+    transactionCosts: series((index) => `${15_000 + index * 300}.00`),
+    activeAgreements: series((index) => 1290 + index * 26),
+    agreementsStarted: series((index) => 40 + (index % 5)),
+    agreementsStopped: series((index) => 15 + (index % 4)),
+  };
+}

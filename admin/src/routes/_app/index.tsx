@@ -7,6 +7,7 @@ import { BarChart } from "@/components/charts";
 import type { AttentionItem } from "@/components/domain/attention-list";
 import { ErrorState } from "@/components/domain/error-state";
 import { Money, Num } from "@/components/domain/format";
+import { Sparkline } from "@/components/domain/sparkline";
 import { Stat, StatGroup } from "@/components/domain/stat";
 import { PageSection } from "@/components/templates";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export const Route = createFileRoute("/_app/")({
       queryClient,
       cause,
       [q.reviewCounts, q.missingAvtaleGiro, q.failedCharges, q.intents, q.monthly, q.costs],
-      [q.vippsReport, q.avtaleGiroReport, ...q.totals, q.logs],
+      [q.vippsReport, q.avtaleGiroReport, q.trends, ...q.totals, q.logs],
     );
   },
   component: HomePage,
@@ -71,6 +72,7 @@ function homeQueries(trpc: ReturnType<typeof useTRPC>, today: Date) {
     costs: trpc.donations.transactionCostsReport.queryOptions(),
     vippsReport: trpc.vipps.agreements.report.queryOptions(),
     avtaleGiroReport: trpc.giro.avtalegiro.report.queryOptions(),
+    trends: trpc.home.trends.queryOptions(),
     totals: months.map((month) =>
       trpc.donations.total.queryOptions({ fromDate: month.fromDate, toDate: month.toDate }),
     ),
@@ -99,6 +101,8 @@ function HomePage() {
   const costs = useQuery(q.costs);
   const vippsReport = useQuery(q.vippsReport);
   const avtaleGiroReport = useQuery(q.avtaleGiroReport);
+  // Sparklines beside the stats; they fade in on their own and never hold up the numbers.
+  const trends = useQuery(q.trends);
 
   // Last 12 months by organization
   const totals = useQueries({ queries: q.totals });
@@ -167,6 +171,23 @@ function HomePage() {
         }
       : undefined;
 
+  const trendMonths = trends.data?.months;
+  const values = <T,>(series: { points: { value: T }[] } | undefined, map: (value: T) => number) =>
+    series?.points.map((point) => map(point.value)) ?? [];
+  const sparkline = (
+    label: string,
+    series: { label: string; values: number[]; color?: "chart-1" | "chart-2" | "muted" }[],
+    format: "money" | "number" = "number",
+  ) => (
+    <Sparkline
+      label={`${label}, last ${trendMonths?.length ?? 13} months`}
+      months={trendMonths}
+      series={series}
+      format={format}
+      partialLast={trends.data?.partialLast}
+    />
+  );
+
   const statsError = monthly.error ?? costs.error;
   // The four stats are always there, each a placeholder until its own data is in, so the
   // strip has its final layout from the start.
@@ -185,6 +206,11 @@ function HomePage() {
         label={`Donations in ${monthName(thisMonth.key)}`}
         pending={monthly.isPending}
         value={<Money value={thisMonthSum} />}
+        chart={sparkline(
+          "Donations",
+          [{ label: "Donations", values: values(trends.data?.donations, moneyToNumber) }],
+          "money",
+        )}
         hint={
           <>
             <Money value={lastMonthSum} /> in {monthName(lastMonth.key)}
@@ -195,6 +221,16 @@ function HomePage() {
         label="Transaction costs"
         pending={costs.isPending || monthly.isPending}
         value={<Money value={costThisMonth} />}
+        chart={sparkline(
+          "Transaction costs",
+          [
+            {
+              label: trends.data?.transactionCosts.estimated ? "Costs (partly estimated)" : "Costs",
+              values: values(trends.data?.transactionCosts, moneyToNumber),
+            },
+          ],
+          "money",
+        )}
         hint={
           costShare !== undefined ? (
             <>
@@ -211,6 +247,9 @@ function HomePage() {
           pending={agreementsPending}
           placeholder="0 000"
           value={agreements && <Num value={agreements.count} />}
+          chart={sparkline("Active agreements", [
+            { label: "Active", values: values(trends.data?.activeAgreements, Number) },
+          ])}
           hint={
             agreements && (
               <>
@@ -226,6 +265,18 @@ function HomePage() {
           pending={agreementsPending}
           placeholder="00"
           value={agreements && <Num value={agreements.started} />}
+          chart={sparkline("Agreements started and stopped", [
+            {
+              label: "Started",
+              values: values(trends.data?.agreementsStarted, Number),
+              color: "chart-2",
+            },
+            {
+              label: "Stopped",
+              values: values(trends.data?.agreementsStopped, Number),
+              color: "muted",
+            },
+          ])}
           hint={
             agreements && (
               <>
