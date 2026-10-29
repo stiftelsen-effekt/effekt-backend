@@ -20,9 +20,11 @@ import { instantRangeClauses, type InstantRange } from "../osloDays";
  *
  * A *new donor* intent is one where the donor had no donation confirmed before the intent's day.
  *
- * Both are decided from the donor's first and last confirmed donation (one GROUP BY over
- * Donations), so filtering and counting by status needs no per-intent subqueries. The matched
- * donation and follow-ups are looked up only for the rows on the page.
+ * Both are decided from the donor's first and last confirmed donation. When the status or
+ * new-donor flag is filtered on, they come from one GROUP BY over Donations (a skip scan of the
+ * `Donor_ID, timestamp_confirmed` index), so filtering and counting needs no per-intent subqueries.
+ * Otherwise the page is sorted, counted and limited first and only its rows get the two values (one
+ * index dive each). The matched donation and follow-ups are looked up only for the rows on the page.
  */
 
 export const intentStatuses = ["awaiting", "received", "expired"] as const;
@@ -73,10 +75,24 @@ const sortExpressions: Record<IntentSortColumn, string> = {
 const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 /**
- * The intents with status and new-donor flag, as a derived table `I`, plus the WHERE clause over
- * it. Filters on intent columns go inside, so the status is only computed for those rows.
+ * Status and new-donor flag from `S.firstDonation` / `S.lastDonation` (the donor's first and last
+ * confirmed donation) and the intent's created time. One parameter: awaitingDays.
  */
-function buildBase(filter: IntentFilter, awaitingDays: number) {
+const statusColumns = (created: string) => `
+      CASE
+        WHEN S.lastDonation >= DATE(${created}) THEN 'received'
+        WHEN ${created} < NOW() - INTERVAL ? DAY THEN 'expired'
+        ELSE 'awaiting'
+      END AS status,
+      (S.firstDonation IS NULL OR S.firstDonation >= DATE(${created})) AS newDonor`;
+
+/**
+ * The intents, as a derived table `I`, plus the WHERE clause over it. Filters on intent columns go
+ * inside. With `withStatus` (needed when filtering on status or new donor), `I` has the status and
+ * new-donor flag, from one grouped pass over Donations, computed only for the filtered intents.
+ * Without it, `I` has only the intent columns; see `statusColumns` and `pageDonationSpan`.
+ */
+function buildBase(filter: IntentFilter, awaitingDays: number, withStatus = true) {
   const inner: string[] = [];
   const innerParams: unknown[] = [];
   const outer: string[] = [];
@@ -118,28 +134,28 @@ function buildBase(filter: IntentFilter, awaitingDays: number) {
       Donors.full_name AS donorName,
       PI.Payment_amount AS amount,
       PI.Payment_method AS methodId,
-      PI.timestamp AS created,
-      CASE
-        WHEN S.lastDonation >= DATE(PI.timestamp) THEN 'received'
-        WHEN PI.timestamp < NOW() - INTERVAL ? DAY THEN 'expired'
-        ELSE 'awaiting'
-      END AS status,
-      (S.firstDonation IS NULL OR S.firstDonation >= DATE(PI.timestamp)) AS newDonor
+      PI.timestamp AS created${withStatus ? `,${statusColumns("PI.timestamp")}` : ""}
     FROM Payment_intent PI
     INNER JOIN Distributions D ON D.KID = PI.KID_fordeling
     INNER JOIN Donors ON Donors.ID = D.Donor_ID
-    LEFT JOIN (
+    ${
+      withStatus
+        ? `LEFT JOIN (
       SELECT Donor_ID, MIN(timestamp_confirmed) AS firstDonation, MAX(timestamp_confirmed) AS lastDonation
       FROM Donations ${donationScope}
       GROUP BY Donor_ID
-    ) S ON S.Donor_ID = D.Donor_ID
+    ) S ON S.Donor_ID = D.Donor_ID`
+        : ""
+    }
     ${inner.length ? `WHERE ${inner.join(" AND ")}` : ""}
   ) I`;
 
   return {
     from,
     where: outer.length ? `WHERE ${outer.join(" AND ")}` : "",
-    params: [awaitingDays, ...scopeParams, ...innerParams, ...outerParams],
+    params: withStatus
+      ? [awaitingDays, ...scopeParams, ...innerParams, ...outerParams]
+      : [...innerParams, ...outerParams],
   };
 }
 
@@ -174,15 +190,42 @@ async function getList(options: {
   page?: number;
   limit?: number;
 }): Promise<{ rows: IntentRow[]; count: number; pages: number }> {
-  const { from, where, params } = buildBase(
-    options.filter,
-    options.awaitingDays ?? DEFAULT_AWAITING_DAYS,
-  );
+  const awaitingDays = options.awaitingDays ?? DEFAULT_AWAITING_DAYS;
+  // Without a status or new-donor filter, sorting, counting and paging don't need the status, so
+  // a page gets it for its rows only. For all rows (no limit) the grouped pass is cheaper.
+  const withStatus =
+    options.limit === undefined ||
+    Boolean(options.filter.statuses?.length || options.filter.newDonorsOnly);
+  const { from, where, params } = buildBase(options.filter, awaitingDays, withStatus);
   const direction = options.sort.desc ? "DESC" : "ASC";
   const order = `${sortExpressions[options.sort.id]} ${direction}, I.id ${direction}`;
   const paging = options.limit !== undefined ? "LIMIT ? OFFSET ?" : "";
   const pagingParams =
     options.limit !== undefined ? [options.limit, (options.page ?? 0) * options.limit] : [];
+
+  const page = `
+       SELECT I.*, COUNT(*) OVER () AS total
+       FROM ${from}
+       ${where}
+       ORDER BY ${order}
+       ${paging}`;
+  // The page's rows, with status: computed in `I` already, or here for just these rows from the
+  // donor's first and last donation (the same values as the grouped pass in buildBase)
+  const pageWithStatus = withStatus
+    ? page
+    : `
+       SELECT Pg.*, ${statusColumns("Pg.created")}
+       FROM (${page}) AS Pg
+       LEFT JOIN LATERAL (
+         SELECT
+           (SELECT timestamp_confirmed FROM Donations WHERE Donor_ID = Pg.donorId
+            ORDER BY timestamp_confirmed LIMIT 1) AS firstDonation,
+           (SELECT timestamp_confirmed FROM Donations WHERE Donor_ID = Pg.donorId
+            ORDER BY timestamp_confirmed DESC LIMIT 1) AS lastDonation
+       ) AS S ON TRUE`;
+  const pageParams = withStatus
+    ? [...params, ...pagingParams]
+    : [awaitingDays, ...params, ...pagingParams];
 
   const [rows] = await DAO.query<IntentQueryRow[]>(
     `SELECT
@@ -193,13 +236,7 @@ async function getList(options: {
        M.sum_confirmed AS matchedSum,
        F.followUps,
        F.lastFollowUp
-     FROM (
-       SELECT I.*, COUNT(*) OVER () AS total
-       FROM ${from}
-       ${where}
-       ORDER BY ${order}
-       ${paging}
-     ) AS P
+     FROM (${pageWithStatus}) AS P
      LEFT JOIN Payment ON Payment.ID = P.methodId
      LEFT JOIN LATERAL (
        SELECT X.ID, X.timestamp_confirmed, X.sum_confirmed
@@ -215,7 +252,7 @@ async function getList(options: {
        WHERE Payment_intent_id = P.id
      ) AS F ON TRUE
      ORDER BY ${order.replace(/\bI\./g, "P.")}`,
-    [...params, ...pagingParams],
+    pageParams,
   );
 
   // An empty page past the end has no row to carry the total; that is rare enough to count again
