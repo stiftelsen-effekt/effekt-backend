@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DocumentLinks } from "@/features/regranting/documents";
 import type { StatementEntry } from "@/features/regranting/model";
 import {
   describeEntry,
@@ -160,7 +161,14 @@ const columns = col.columns([
     id: "description",
     header: "Description",
     meta: { placeholder: "Transfer via GiveWell, REF-123", cellClassName: "max-w-md truncate" },
-    cell: ({ row: { original: e } }) => <span title={describeEntry(e)}>{describeEntry(e)}</span>,
+    cell: ({ row: { original: e } }) => (
+      <span className="flex items-center gap-2">
+        <span className="truncate" title={describeEntry(e)}>
+          {describeEntry(e)}
+        </span>
+        <DocumentLinks documents={e.documents} className="shrink-0 flex-nowrap" />
+      </span>
+    ),
   }),
   col.accessor("roundName", {
     header: "Round",

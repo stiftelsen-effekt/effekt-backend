@@ -209,6 +209,27 @@ export type RoundSummary = Round & {
   fundGrantTotal: Money;
 };
 
+/**
+ * A link to a document (bilag, receipt, bank confirmation; usually Google Drive) for exactly one
+ * round, transfer or adjustment. Documentation, not money: addable and removable in any status.
+ */
+export type RegrantDocument = {
+  id: number;
+  url: string;
+  label: string | null;
+  roundId: number | null;
+  transferId: number | null;
+  adjustmentId: number | null;
+  createdBy: string;
+  createdAt: Date;
+};
+
+/** What a document belongs to: exactly one of the three */
+export type RegrantDocumentParent =
+  | { roundId: number; transferId?: undefined; adjustmentId?: undefined }
+  | { roundId?: undefined; transferId: number; adjustmentId?: undefined }
+  | { roundId?: undefined; transferId?: undefined; adjustmentId: number };
+
 export type TransferLine = {
   id: number;
   transferId: number;
@@ -234,6 +255,8 @@ export type Transfer = {
   bankRef: string | null;
   paidBy: PaidBy;
   lines: TransferLine[];
+  /** Bank confirmations, bilag */
+  documents: RegrantDocument[];
 };
 
 export type FundGrantLine = {
@@ -288,7 +311,8 @@ export type Adjustment = {
   roundId: number | null;
   linkedTransferId: number | null;
   linkedDonationId: number | null;
-  documentRef: string | null;
+  /** Bilag */
+  documents: RegrantDocument[];
   createdBy: string;
   createdAt: Date;
   /** Earmarks: the other half of the pair (unrestricted −X ↔ project +X) */

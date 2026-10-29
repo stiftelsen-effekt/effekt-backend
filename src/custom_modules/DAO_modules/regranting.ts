@@ -19,6 +19,8 @@ import type {
   PayeeRef,
   PayeeRouting,
   Project,
+  RegrantDocument,
+  RegrantDocumentParent,
   ProjectStatus,
   Round,
   RoundBalanceSnapshot,
@@ -1208,6 +1210,11 @@ async function loadTransfers(
     `${lineSelect} WHERE tl.Transfer_ID IN (?) ORDER BY o.full_name, tl.Project_ID IS NOT NULL, pr.name, tl.ID`,
     [transfers.map((t) => t.id)],
   );
+  const documents = await documentsFor(
+    "transferId",
+    transfers.map((t) => t.id),
+    conn,
+  );
   return transfers.map((t) => ({
     id: t.id,
     roundId: t.roundId,
@@ -1223,6 +1230,7 @@ async function loadTransfers(
     lines: lines
       .filter((l) => l.transferId === t.id)
       .map((l): TransferLine => ({ ...l, amountNok: money(l.amountNok) })),
+    documents: documents.get(t.id) ?? [],
   }));
 }
 
@@ -1470,7 +1478,7 @@ const adjustmentSelect = `SELECT a.ID AS id, a.Organization_ID AS organizationId
     ${isoDate(
       "a.effective_at",
     )} AS effectiveAt, a.Round_ID AS roundId, a.linked_transfer_ID AS linkedTransferId,
-    a.linked_donation_ID AS linkedDonationId, a.document_ref AS documentRef, a.created_by AS createdBy,
+    a.linked_donation_ID AS linkedDonationId, a.created_by AS createdBy,
     ${dbClockColumn(
       "a.created_at",
       "createdAt",
@@ -1480,10 +1488,11 @@ const adjustmentSelect = `SELECT a.ID AS id, a.Organization_ID AS organizationId
   LEFT JOIN Projects pr ON pr.ID = a.Project_ID
   LEFT JOIN Regrant_rounds ar ON ar.ID = a.Round_ID`;
 
-const mapAdjustment = (r: any): Adjustment => {
+const mapAdjustment = (r: any, documents: Map<number, RegrantDocument[]>): Adjustment => {
   const pending = r.roundStatus === "draft";
   return {
     ...r,
+    documents: documents.get(r.id) ?? [],
     amount: money(r.amount),
     roundStatus: r.roundStatus ?? null,
     pending,
@@ -1501,7 +1510,6 @@ export type AdjustmentInput = {
   roundId: number | null;
   linkedTransferId: number | null;
   linkedDonationId: number | null;
-  documentRef: string | null;
 };
 
 async function listAdjustments(filter: {
@@ -1530,12 +1538,16 @@ async function listAdjustments(filter: {
      ORDER BY a.effective_at DESC, a.ID DESC`,
     params,
   );
-  return result.map(mapAdjustment);
+  const documents = await documentsFor(
+    "adjustmentId",
+    result.map((r) => r.id),
+  );
+  return result.map((r) => mapAdjustment(r, documents));
 }
 
 async function getAdjustment(id: number, conn?: Queryable): Promise<Adjustment | null> {
   const [row] = await rows<any>(conn, `${adjustmentSelect} WHERE a.ID = ?`, [id]);
-  return row ? mapAdjustment(row) : null;
+  return row ? mapAdjustment(row, await documentsFor("adjustmentId", [id], conn)) : null;
 }
 
 const adjustmentValues = (a: AdjustmentInput) => [
@@ -1548,7 +1560,6 @@ const adjustmentValues = (a: AdjustmentInput) => [
   a.roundId,
   a.linkedTransferId,
   a.linkedDonationId,
-  a.documentRef,
 ];
 
 async function createAdjustment(
@@ -1560,7 +1571,7 @@ async function createAdjustment(
     await exec(
       conn,
       `INSERT INTO Regrant_adjustments (Organization_ID, Project_ID, amount, type, reason, effective_at, Round_ID,
-         linked_transfer_ID, linked_donation_ID, document_ref, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         linked_transfer_ID, linked_donation_ID, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [...adjustmentValues(input), createdBy],
     )
   ).insertId;
@@ -1570,7 +1581,7 @@ async function updateAdjustment(id: number, input: AdjustmentInput, conn?: Query
   await exec(
     conn,
     `UPDATE Regrant_adjustments SET Organization_ID = ?, Project_ID = ?, amount = ?, type = ?, reason = ?,
-       effective_at = ?, Round_ID = ?, linked_transfer_ID = ?, linked_donation_ID = ?, document_ref = ? WHERE ID = ?`,
+       effective_at = ?, Round_ID = ?, linked_transfer_ID = ?, linked_donation_ID = ? WHERE ID = ?`,
     [...adjustmentValues(input), id],
   );
 }
@@ -1616,6 +1627,108 @@ async function deleteAdjustment(id: number, conn?: Queryable): Promise<boolean> 
   return (
     (await exec(conn, `DELETE FROM Regrant_adjustments WHERE ID = ?`, [id])).affectedRows === 1
   );
+}
+
+//endregion
+
+//region Documents
+
+const documentSelect = `SELECT d.ID AS id, d.url, d.label, d.Round_ID AS roundId, d.Transfer_ID AS transferId,
+    d.Adjustment_ID AS adjustmentId, d.created_by AS createdBy, ${dbClockColumn(
+      "d.created_at",
+      "createdAt",
+    )}
+  FROM Regrant_documents d`;
+
+const documentParentColumns = {
+  roundId: "Round_ID",
+  transferId: "Transfer_ID",
+  adjustmentId: "Adjustment_ID",
+} as const;
+type DocumentParentKey = keyof typeof documentParentColumns;
+
+/** The one parent set, or an Error naming the problem */
+function documentParent(parent: {
+  roundId?: number | null;
+  transferId?: number | null;
+  adjustmentId?: number | null;
+}): { key: DocumentParentKey; id: number } {
+  const set = (Object.keys(documentParentColumns) as DocumentParentKey[]).filter(
+    (k) => parent[k] !== undefined && parent[k] !== null,
+  );
+  if (set.length !== 1) {
+    throw new Error(
+      `A document belongs to exactly one round, transfer or adjustment (got ${
+        set.length ? set.join(", ") : "none"
+      })`,
+    );
+  }
+  return { key: set[0], id: parent[set[0]] as number };
+}
+
+/** Documents of several rounds, transfers or adjustments, by parent id, oldest first */
+async function documentsFor(
+  key: DocumentParentKey,
+  ids: number[],
+  conn?: Queryable,
+): Promise<Map<number, RegrantDocument[]>> {
+  const byParent = new Map<number, RegrantDocument[]>();
+  if (ids.length === 0) return byParent;
+  const result = await rows<RegrantDocument>(
+    conn,
+    `${documentSelect} WHERE d.${documentParentColumns[key]} IN (?) ORDER BY d.ID`,
+    [ids],
+  );
+  for (const d of result) {
+    const parentId = d[key] as number;
+    byParent.set(parentId, [...(byParent.get(parentId) ?? []), d]);
+  }
+  return byParent;
+}
+
+/** The documents of one round (the round's own, not its transfers'), transfer or adjustment */
+async function listDocuments(
+  parent: RegrantDocumentParent,
+  conn?: Queryable,
+): Promise<RegrantDocument[]> {
+  const { key, id } = documentParent(parent);
+  return (await documentsFor(key, [id], conn)).get(id) ?? [];
+}
+
+async function getDocument(id: number, conn?: Queryable): Promise<RegrantDocument | null> {
+  const [row] = await rows<RegrantDocument>(conn, `${documentSelect} WHERE d.ID = ?`, [id]);
+  return row ?? null;
+}
+
+export type DocumentInput = RegrantDocumentParent & { url: string; label: string | null };
+
+/** Throws unless exactly one of roundId, transferId, adjustmentId is set */
+async function addDocument(
+  input: DocumentInput,
+  createdBy: string,
+  conn?: Queryable,
+): Promise<number> {
+  const { key, id } = documentParent(input);
+  const parent = (k: DocumentParentKey) => (k === key ? id : null);
+  return (
+    await exec(
+      conn,
+      `INSERT INTO Regrant_documents (url, label, Round_ID, Transfer_ID, Adjustment_ID, created_by)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        input.url,
+        input.label,
+        parent("roundId"),
+        parent("transferId"),
+        parent("adjustmentId"),
+        createdBy,
+      ],
+    )
+  ).insertId;
+}
+
+async function deleteDocument(id: number, conn?: Queryable): Promise<boolean> {
+  return (await exec(conn, `DELETE FROM Regrant_documents WHERE ID = ?`, [id])).affectedRows === 1;
 }
 
 //endregion
@@ -1867,6 +1980,12 @@ export const regranting = {
   pairAdjustments,
   deleteAdjustments,
   moveRoundEarmarks,
+  // documents
+  documentsFor,
+  listDocuments,
+  getDocument,
+  addDocument,
+  deleteDocument,
   // statements
   getStatementRows,
   getCommittedLines,

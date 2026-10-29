@@ -81,6 +81,7 @@ export const transfer = {
   paidAt: null,
   bankRef: null,
   paidBy: "foundation",
+  documents: [],
   lines: [
     transferLine(701, 1, "GiveWell All Grants Fund", null, "1000.30"),
     transferLine(702, 5, "Malaria Consortium", null, "500.00"),
@@ -349,7 +350,18 @@ const adjustment = {
   roundId: null,
   linkedTransferId: null,
   linkedDonationId: null,
-  documentRef: "Bilag 2026-118",
+  documents: [
+    {
+      id: 3,
+      url: "https://drive.google.com/file/d/bilag-2026-118/view",
+      label: "Bilag 2026-118",
+      roundId: null,
+      transferId: null,
+      adjustmentId: 11,
+      createdBy: "ops@example.org",
+      createdAt: "2026-08-12T10:00:00.000Z",
+    },
+  ],
   createdBy: "ops@example.org",
   createdAt: "2026-08-12T10:00:00.000Z",
   pairedAdjustmentId: null,
@@ -646,6 +658,7 @@ export const fixtures: Record<string, unknown> = {
     adjustments: [],
     donations: [],
     includeDirectOverrides: [],
+    documents: [],
   },
   "regranting.statements.recipient": {
     organizationId: 1,
@@ -681,6 +694,7 @@ export const fixtures: Record<string, unknown> = {
         reason: null,
         createdBy: null,
         pending: false,
+        documents: [],
       },
       {
         date: "2026-07-10",
@@ -707,6 +721,7 @@ export const fixtures: Record<string, unknown> = {
         reason: null,
         createdBy: "approver@example.org",
         pending: false,
+        documents: [],
       },
     ],
     closingBalance: "12000.50",

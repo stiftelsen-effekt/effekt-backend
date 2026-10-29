@@ -23,6 +23,7 @@ import {
   type Adjustment,
   type AdjustmentType,
 } from "./model";
+import { validateDocument } from "./documents";
 import { OrganizationPicker, ProjectPicker } from "./ui";
 
 export type AdjustmentForm = {
@@ -35,7 +36,8 @@ export type AdjustmentForm = {
   roundId: string;
   linkedTransferId: string;
   linkedDonationId: string;
-  documentRef: string;
+  /** New adjustments only: a first document link (more on the adjustment afterwards) */
+  documentUrl: string;
 };
 
 /** Signed kroner: "-1500", "249,50", "1 000". Null if it isn't an amount. */
@@ -71,7 +73,9 @@ export function validateAdjustment(v: AdjustmentForm) {
         ? "Link the paid transfer this corrects"
         : undefined),
     linkedDonationId: idError(v.linkedDonationId),
-    documentRef: textError(v.documentRef, { label: "the document reference", max: 512 }),
+    documentUrl: v.documentUrl.trim()
+      ? validateDocument({ url: v.documentUrl, label: "" }).url
+      : undefined,
   };
 }
 
@@ -86,7 +90,6 @@ export function toAdjustmentInput(v: AdjustmentForm) {
     roundId: v.roundId ? Number(v.roundId) : null,
     linkedTransferId: v.type === "correction" ? optionalId(v.linkedTransferId) : null,
     linkedDonationId: v.type === "fronted" ? optionalId(v.linkedDonationId) : null,
-    documentRef: v.documentRef.trim() || null,
   };
 }
 
@@ -100,7 +103,7 @@ export const emptyAdjustment = (patch: Partial<AdjustmentForm> = {}): Adjustment
   roundId: "",
   linkedTransferId: "",
   linkedDonationId: "",
-  documentRef: "",
+  documentUrl: "",
   ...patch,
 });
 
@@ -116,7 +119,7 @@ export const adjustmentForm = (a: Adjustment): AdjustmentForm => ({
   roundId: a.roundId ? String(a.roundId) : "",
   linkedTransferId: a.linkedTransferId ? String(a.linkedTransferId) : "",
   linkedDonationId: a.linkedDonationId ? String(a.linkedDonationId) : "",
-  documentRef: a.documentRef ?? "",
+  documentUrl: "",
 });
 
 /** Create (or, with `adjustment`, edit) an adjustment of any type. */
@@ -135,6 +138,7 @@ export function AdjustmentDialog({
   const queryClient = useQueryClient();
   const create = useMutation(trpc.regranting.adjustments.create.mutationOptions());
   const update = useMutation(trpc.regranting.adjustments.update.mutationOptions());
+  const addDocument = useMutation(trpc.regranting.documents.add.mutationOptions());
   const drafts = useQuery(trpc.regranting.rounds.list.queryOptions({ statuses: ["draft"] }));
 
   return (
@@ -149,7 +153,14 @@ export function AdjustmentDialog({
       onSave={async (v) => {
         const input = toAdjustmentInput(v);
         if (adjustment) await update.mutateAsync({ id: adjustment.id, ...input });
-        else await create.mutateAsync(input);
+        else {
+          const saved = await create.mutateAsync(input);
+          // The adjustment is saved either way: a failed link mustn't make Save create it twice
+          if (v.documentUrl.trim())
+            await addDocument
+              .mutateAsync({ adjustmentId: saved.id, url: v.documentUrl.trim() })
+              .catch((err) => notify.error(err, "The adjustment was added, but not its link"));
+        }
         await queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
         notify.success(
           adjustment ? "Adjustment updated" : "Adjustment added",
@@ -265,12 +276,20 @@ export function AdjustmentDialog({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Document (bilag)" error={errors.documentRef}>
-              <Input
-                value={values.documentRef}
-                onChange={(e) => set({ documentRef: e.target.value })}
-              />
-            </Field>
+            {!adjustment && (
+              <Field
+                label="Document link (bilag)"
+                error={errors.documentUrl}
+                hint="Add more links on the adjustment afterwards"
+              >
+                <Input
+                  type="url"
+                  placeholder="https://drive.google.com/…"
+                  value={values.documentUrl}
+                  onChange={(e) => set({ documentUrl: e.target.value })}
+                />
+              </Field>
+            )}
           </div>
         </>
       )}

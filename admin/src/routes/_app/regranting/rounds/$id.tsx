@@ -39,6 +39,7 @@ import {
   type LineEdit,
 } from "@/features/regranting/builder-model";
 import { DonationChooser } from "@/features/regranting/create-round-dialog";
+import { DocumentLinks } from "@/features/regranting/documents";
 import { FundGrants } from "@/features/regranting/fund-grants";
 import {
   countIssues,
@@ -317,6 +318,18 @@ function Round({ roundId }: { roundId: number }) {
           )}
           {detail.data && detail.data.adjustments.length > 0 && (
             <RoundAdjustments adjustments={detail.data.adjustments} editable={editable} />
+          )}
+          {detail.data && (
+            <PageSection
+              title="Documents"
+              description="Links to the decision, board minutes and other bilag for the round. Transfers and adjustments have their own. They can be added in any status."
+            >
+              <DocumentLinks
+                documents={detail.data.documents}
+                parent={{ roundId: detail.data.round.id }}
+                what={detail.data.round.name}
+              />
+            </PageSection>
           )}
           {detail.data && detail.data.snapshot.length > 0 && (
             <Snapshot snapshot={detail.data.snapshot} />
@@ -906,6 +919,11 @@ function RoundAdjustments({
               )}
               <span className="text-muted-foreground">{a.reason}</span>
               {a.pending && <Badge tone="outline">Pending</Badge>}
+              <DocumentLinks
+                documents={a.documents}
+                parent={{ adjustmentId: a.id }}
+                what={`adjustment #${a.id}`}
+              />
               {editable && earmark && (
                 <ConfirmDialog
                   trigger={

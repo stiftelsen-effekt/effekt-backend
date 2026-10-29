@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { DAO } from "../../custom_modules/DAO";
 import type {
   AdjustmentInput,
+  DocumentInput,
   ProjectFundGrantLine,
   ProjectTransferLine,
   Queryable,
@@ -38,6 +39,7 @@ import type {
   Payee,
   PayeeRouting,
   Project,
+  RegrantDocument,
   RoundBalanceSnapshot,
   RoundDonation,
   RoundSummary,
@@ -61,6 +63,8 @@ import {
   breakdownInput,
   byId,
   compositionInput,
+  documentAddInput,
+  documentListInput,
   earmarkInput,
   fundByOrganization,
   fundCreateInput,
@@ -109,6 +113,7 @@ export type {
   Payee,
   PayeeRouting,
   Project,
+  RegrantDocument,
   RoundBuilder,
   RoundSummary,
   Statement,
@@ -301,6 +306,8 @@ export type RoundDetail = {
   /** major_donor only */
   donations: RoundDonation[];
   includeDirectOverrides: { organizationId: number; includeDirect: boolean }[];
+  /** The round's own documents (decision, board minutes); transfers and adjustments carry theirs */
+  documents: RegrantDocument[];
 };
 
 const roundsRouter = router({
@@ -311,14 +318,16 @@ const roundsRouter = router({
   /** Round history: the round with its snapshot, transfers and fund grants */
   get: adminProcedure.input(byId).query(async ({ input }): Promise<RoundDetail> => {
     const round = await summaryOrThrow(input.id);
-    const [snapshot, transfers, fundGrants, adjustments, donations, overrides] = await Promise.all([
-      dao().getSnapshot(round.id),
-      dao().getTransfers(round.id),
-      dao().getFundGrants(round.id),
-      dao().listAdjustments({ roundId: round.id }),
-      round.kind === "major_donor" ? dao().getRoundDonations(round.id) : Promise.resolve([]),
-      dao().getIncludeDirectOverrides(round.id),
-    ]);
+    const [snapshot, transfers, fundGrants, adjustments, donations, overrides, documents] =
+      await Promise.all([
+        dao().getSnapshot(round.id),
+        dao().getTransfers(round.id),
+        dao().getFundGrants(round.id),
+        dao().listAdjustments({ roundId: round.id }),
+        round.kind === "major_donor" ? dao().getRoundDonations(round.id) : Promise.resolve([]),
+        dao().getIncludeDirectOverrides(round.id),
+        dao().listDocuments({ roundId: round.id }),
+      ]);
     return {
       round,
       snapshot,
@@ -330,6 +339,7 @@ const roundsRouter = router({
         organizationId,
         includeDirect,
       })),
+      documents,
     };
   }),
 
@@ -836,6 +846,55 @@ const adjustmentsRouter = router({
 
 //endregion
 
+//region Documents
+
+/** The round, transfer or adjustment a document input points at exists */
+const assertDocumentParent = async (parent: {
+  roundId?: number;
+  transferId?: number;
+  adjustmentId?: number;
+}) => {
+  if (parent.roundId !== undefined && !(await dao().getRound(parent.roundId)))
+    throw badRequest(`Round #${parent.roundId} doesn't exist`);
+  if (parent.transferId !== undefined && !(await dao().getTransfer(parent.transferId)))
+    throw badRequest(`Transfer #${parent.transferId} doesn't exist`);
+  if (parent.adjustmentId !== undefined && !(await dao().getAdjustment(parent.adjustmentId)))
+    throw badRequest(`Adjustment #${parent.adjustmentId} doesn't exist`);
+};
+
+/**
+ * Links to documents (bilag, receipts, bank confirmations; usually Google Drive) on a round, a
+ * transfer or an adjustment. Documentation, not money: they can be added and removed in any
+ * status, also on approved and paid rounds.
+ */
+const documentsRouter = router({
+  /** The documents of exactly one round (its own, not its transfers'), transfer or adjustment */
+  list: adminProcedure
+    .input(documentListInput)
+    .query(async ({ input }): Promise<RegrantDocument[]> => {
+      await assertDocumentParent(input);
+      return dao().listDocuments(input as DocumentInput);
+    }),
+
+  /** Adds a link to exactly one round, transfer or adjustment */
+  add: adminProcedure
+    .input(documentAddInput)
+    .mutation(async ({ input, ctx }): Promise<RegrantDocument> => {
+      await assertDocumentParent(input);
+      const id = await dao().addDocument(input as DocumentInput, adminIdentity(ctx.auth));
+      const document = await dao().getDocument(id);
+      if (!document) throw notFound(`Document #${id} not found`);
+      return document;
+    }),
+
+  remove: adminProcedure.input(byId).mutation(async ({ input }) => {
+    if (!(await dao().deleteDocument(input.id))) throw notFound(`Document #${input.id} not found`);
+    return { id: input.id };
+  }),
+});
+
+//endregion
+
 //region Payees and routing
 
 const getPayeeNotFound = async (id: number) => {
@@ -1111,6 +1170,7 @@ export const regrantingRouter = router({
   transfers: transfersRouter,
   fundGrants: fundGrantsRouter,
   adjustments: adjustmentsRouter,
+  documents: documentsRouter,
   payees: payeesRouter,
   routings: routingsRouter,
   projects: projectsRouter,

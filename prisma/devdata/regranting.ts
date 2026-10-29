@@ -1450,6 +1450,7 @@ export class RegrantingHistory {
       paidAt: null,
       bankRef: null,
       paidBy: "foundation",
+      documents: [],
       lines: t.lines.map((l) => ({
         id: l.id,
         transferId: t.id,

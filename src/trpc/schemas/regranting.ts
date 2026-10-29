@@ -318,8 +318,6 @@ const adjustmentFields = {
   linkedTransferId: id.nullable().default(null),
   /** fronted only: the expected donation (can be linked later with linkDonation) */
   linkedDonationId: id.nullable().default(null),
-  /** Bilag */
-  documentRef: optionalText(512).default(null),
 };
 
 const refineAdjustment = (
@@ -507,5 +505,51 @@ export const holdUpdateInput = z.strictObject({
   reason: reasonText.optional(),
   until: isoDateSchema.nullable().optional(),
 });
+
+//endregion
+
+//region Documents
+
+/** What a document belongs to: exactly one of roundId, transferId, adjustmentId */
+const documentParentFields = {
+  roundId: id.optional(),
+  transferId: id.optional(),
+  adjustmentId: id.optional(),
+};
+
+const exactlyOneParent = (
+  d: { roundId?: number; transferId?: number; adjustmentId?: number },
+  ctx: z.core.$RefinementCtx,
+) => {
+  const set = [d.roundId, d.transferId, d.adjustmentId].filter((v) => v !== undefined).length;
+  if (set !== 1) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Give exactly one of roundId, transferId and adjustmentId",
+    });
+  }
+};
+
+export const documentListInput = z.strictObject(documentParentFields).superRefine(exactlyOneParent);
+
+export const documentAddInput = z
+  .strictObject({
+    ...documentParentFields,
+    /** A link, usually Google Drive */
+    url: z
+      .string()
+      .trim()
+      .min(1, "Required")
+      .max(1024)
+      .refine(
+        (v) => /^https?:\/\/\S+$/i.test(v),
+        "Must be a link starting with http:// or https://",
+      ),
+    /** e.g. "Bilag 16-043" */
+    label: optionalText(255)
+      .default(null)
+      .transform((v) => v || null),
+  })
+  .superRefine(exactlyOneParent);
 
 //endregion

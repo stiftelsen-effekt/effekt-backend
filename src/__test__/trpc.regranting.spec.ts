@@ -43,12 +43,14 @@ const arrayResults = new Set([
   "getStatementRows",
   "getCommittedLines",
   "deleteRoundLinesFor",
+  "listDocuments",
 ]);
 const mapResults = new Set([
   "getPayeesAt",
   "getIncludeDirectOverrides",
   "getProjectOrganizations",
   "getProjectNames",
+  "documentsFor",
 ]);
 
 type Stubs = Record<keyof typeof DAO.regranting, sinon.SinonStub>;
@@ -107,6 +109,7 @@ const transfer = (overrides: Partial<Transfer> = {}): Transfer => ({
   paidAt: null,
   bankRef: null,
   paidBy: "foundation",
+  documents: [],
   lines: [
     {
       id: 700,
@@ -271,7 +274,6 @@ describe("tRPC regranting", () => {
         projectId: null,
         roundId: null,
         linkedTransferId: null,
-        documentRef: null,
       });
     });
   });
@@ -662,7 +664,7 @@ describe("tRPC regranting", () => {
       roundId: 7,
       linkedTransferId: null,
       linkedDonationId: null,
-      documentRef: null,
+      documents: [],
       createdBy: "alice@example.org",
       createdAt: new Date("2026-10-01"),
       pairedAdjustmentId: null,

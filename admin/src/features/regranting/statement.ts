@@ -69,7 +69,7 @@ export function statementCsv(statement: Statement): string {
       balance: e.balanceAfter,
       counts_in_balance: e.affectsBalance ? "yes" : e.pending ? "pending" : "no",
       round: e.roundName ?? "",
-      reference: e.bankRef ?? "",
+      reference: [e.bankRef, ...e.documents.map((d) => d.url)].filter(Boolean).join(" "),
     })),
     {
       date: statement.to,
