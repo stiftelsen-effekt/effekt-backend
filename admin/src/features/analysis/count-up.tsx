@@ -8,19 +8,22 @@ import { countUpValue } from "./model";
 const DURATION_MS = 900;
 
 /**
- * A whole-kroner amount that counts up from 0 the first time it is shown, then follows the
- * value without animating. The final value reserves the width (stacked underneath, invisible),
- * so nothing moves while the digits roll; screen readers get only the final value. Under
- * reduced motion it shows the value at once.
+ * A whole-kroner amount that counts up from 0 the first time it is shown, and from the old to
+ * the new value whenever it changes (the overview refreshes every minute). The final value
+ * reserves the width (stacked underneath, invisible), so nothing moves while the digits roll;
+ * screen readers get only the final value. Under reduced motion it shows the value at once.
  */
 export function CountUpMoney({ value, className }: { value: string; className?: string }) {
   const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
   const target = Math.round(moneyToNumber(value));
-  const played = useRef(false);
   const [shown, setShown] = useState(() => (reduced ? target : 0));
+  // What is on screen, so a new value counts on from there (also from mid-count)
+  const current = useRef(shown);
+  current.current = shown;
 
   useEffect(() => {
-    if (played.current || reduced) {
+    const from = current.current;
+    if (reduced || from === target) {
       setShown(target);
       return;
     }
@@ -28,10 +31,9 @@ export function CountUpMoney({ value, className }: { value: string; className?: 
     let start: number | null = null;
     const step = (time: number) => {
       start ??= time;
-      const next = countUpValue(target, time - start, DURATION_MS);
+      const next = countUpValue(target, time - start, DURATION_MS, from);
       setShown(next);
       if (next !== target) frame = requestAnimationFrame(step);
-      else played.current = true;
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);

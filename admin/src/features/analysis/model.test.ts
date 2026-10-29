@@ -36,6 +36,14 @@ describe("overview", () => {
     expect(countUpValue(170245588, 900, 900)).toBe(170245588);
     expect(countUpValue(170245588, 5000, 900)).toBe(170245588);
   });
+
+  it("counts on from the old value when a refresh brings a new one", () => {
+    expect(countUpValue(170_250_000, 0, 900, 170_245_588)).toBe(170_245_588);
+    const halfway = countUpValue(170_250_000, 450, 900, 170_245_588);
+    expect(halfway).toBeGreaterThan(170_245_588);
+    expect(halfway).toBeLessThan(170_250_000);
+    expect(countUpValue(170_250_000, 900, 900, 170_245_588)).toBe(170_250_000);
+  });
 });
 
 describe("pledge forms", () => {
