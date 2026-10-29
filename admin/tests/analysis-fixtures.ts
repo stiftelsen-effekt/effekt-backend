@@ -1,4 +1,5 @@
 import type { Page, Route } from "@playwright/test";
+import { homeTrendsFixture } from "./helpers";
 
 /**
  * Fixtures shaped like the analysis.* router outputs, and a stubbed API (dev sign-in + tRPC) for
@@ -58,6 +59,7 @@ export const donationFixture = {
 
 const fixtures: Record<string, unknown> = {
   "analysis.overview": overviewFixture(),
+  "home.trends": homeTrendsFixture(),
   "analysis.pledges.list": pledgesFixture(),
   "donations.get": donationFixture,
 };
