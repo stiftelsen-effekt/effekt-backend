@@ -285,6 +285,7 @@ model Donations {
   Regrant_adjustments     Regrant_adjustments[]
 
   @@index([KID_fordeling, timestamp_confirmed], map: "KidAndTimestamp")
+  @@index([KID_fordeling, timestamp_confirmed, Payment_ID, sum_confirmed], map: "KidTimestampPaymentSum")
   @@index([timestamp_confirmed], map: "Timestamp")
   @@index([Donor_ID], map: "fk_Donations_Donors_KID_idx")
   @@index([Donor_ID, timestamp_confirmed])
