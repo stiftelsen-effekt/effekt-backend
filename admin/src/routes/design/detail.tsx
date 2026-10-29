@@ -311,7 +311,7 @@ function DonorDemo() {
           className="h-56"
         />
       </PageSection>
-      <Tabs defaultValue="donations">
+      <Tabs fill defaultValue="donations">
         <TabsList>
           <TabsTrigger value="donations" count={donorDonations.length}>
             Donations
@@ -326,7 +326,7 @@ function DonorDemo() {
             Tax deductions <Badge tone="neutral">2025</Badge>
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="donations" className="flex max-h-[32rem] flex-col">
+        <TabsContent value="donations" className="flex flex-col">
           <DataTable
             label="Donations by this donor"
             columns={donationColumns}

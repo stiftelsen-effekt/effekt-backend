@@ -314,7 +314,12 @@ function AgreementLayout({
     >
       {callout}
       {distribution}
-      <PageSection title={paymentsTitle} description={paymentsDescription} actions={paymentsLink}>
+      <PageSection
+        fill
+        title={paymentsTitle}
+        description={paymentsDescription}
+        actions={paymentsLink}
+      >
         {paymentsError ? (
           <ErrorState error={paymentsError} onRetry={onRetryPayments} />
         ) : payments && payments.length === 0 ? (
@@ -323,7 +328,7 @@ function AgreementLayout({
             description="Payments show up here once the first charge on this agreement is registered."
           />
         ) : (
-          <div className="flex max-h-[32rem] flex-col">
+          <div className="flex min-h-0 flex-col">
             <DataTable
               label={paymentsTitle}
               columns={paymentColumns(withStatus)}

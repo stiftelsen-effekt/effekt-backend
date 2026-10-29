@@ -557,7 +557,7 @@ function Donor({ donorId }: { donorId: number }) {
           !aggregated.isError && <p className="text-sm text-muted-foreground">No donations yet.</p>
         )}
       </PageSection>
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs fill value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="donations" count={pendingCount(donations)}>
             Donations
@@ -581,7 +581,7 @@ function Donor({ donorId }: { donorId: number }) {
             Referrals
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="donations" className="flex max-h-[36rem] flex-col gap-3">
+        <TabsContent value="donations" className="flex flex-col gap-3">
           <div className="flex justify-end">
             {donor ? (
               <RegisterForDonorDialog
@@ -622,7 +622,7 @@ function Donor({ donorId }: { donorId: number }) {
             />
           )}
         </TabsContent>
-        <TabsContent value="kids" className="flex max-h-[36rem] flex-col">
+        <TabsContent value="kids" className="flex flex-col">
           {distributions.isError ? (
             <ErrorState error={distributions.error} onRetry={() => void distributions.refetch()} />
           ) : (
@@ -666,7 +666,7 @@ function Donor({ donorId }: { donorId: number }) {
             />
           )}
         </TabsContent>
-        <TabsContent value="intents" className="flex max-h-[36rem] flex-col">
+        <TabsContent value="intents" className="flex flex-col">
           {intents.isError ? (
             <ErrorState error={intents.error} onRetry={() => void intents.refetch()} />
           ) : (

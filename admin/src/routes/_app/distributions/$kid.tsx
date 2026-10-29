@@ -119,10 +119,11 @@ function DistributionPage() {
         }
       >
         <PageSection
+          fill
           title="Donations"
           description="Every donation registered on this KID, newest first."
         >
-          <div className="flex max-h-[36rem] flex-col">
+          <div className="flex min-h-0 flex-col">
             <DataTable
               label="Donations on this KID"
               columns={columns}
@@ -237,7 +238,10 @@ function DistributionPage() {
         </>
       }
     >
+      {/* Intents (few rows, when there are any) go first so the donations, last, can fill. */}
+      <KidIntents kid={kid} />
       <PageSection
+        fill
         title="Donations"
         description="Every donation registered on this KID, newest first."
       >
@@ -249,7 +253,7 @@ function DistributionPage() {
             description="Donations show up here once a payment with this KID is registered."
           />
         ) : (
-          <div className="flex max-h-[36rem] flex-col">
+          <div className="flex min-h-0 flex-col">
             <DataTable
               label="Donations on this KID"
               columns={columns}
@@ -265,7 +269,6 @@ function DistributionPage() {
           </div>
         )}
       </PageSection>
-      <KidIntents kid={kid} />
     </DetailPage>
   );
 }
