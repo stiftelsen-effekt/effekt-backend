@@ -64,8 +64,9 @@ export function DetailPage({
           className={cn(
             "grid grow grid-cols-1 items-start gap-6",
             aside
-              ? "grid-rows-[1fr_auto] xl:grid-cols-[minmax(0,1fr)_22rem] xl:grid-rows-1 2xl:grid-cols-[minmax(0,1fr)_24rem]"
-              : "grid-rows-1",
+              ? // Stacked (below xl), the aside follows the main column's content.
+                "content-start xl:grid-cols-[minmax(0,1fr)_22rem] xl:grid-rows-[1fr] xl:content-stretch 2xl:grid-cols-[minmax(0,1fr)_24rem]"
+              : "grid-rows-[1fr]",
           )}
         >
           <div className="flex min-w-0 flex-col gap-6 self-stretch [&>*]:shrink-0">{children}</div>
