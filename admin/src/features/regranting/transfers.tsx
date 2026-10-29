@@ -5,7 +5,7 @@
  * with correction adjustments in a later round.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, PlusIcon } from "lucide-react";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { DateTime, Money } from "@/components/domain/format";
 import { Badge } from "@/components/ui/badge";
@@ -21,8 +21,8 @@ import { formatMoney, formatMoneyInput } from "@/lib/format";
 import { notify } from "@/lib/notify";
 import { useTRPC } from "@/lib/trpc";
 import { AdjustmentDialog } from "./adjustment-dialog";
-import { DocumentLinks } from "./documents";
-import { EditNotesDialog, NotesText } from "./notes";
+import { AddDocumentDialog } from "./documents";
+import { EditNotesDialog, NotesAndDocuments } from "./notes";
 import { TransferOnward, useIntermediaryPayees } from "./onward";
 import { lineLabel, type RoundSummary, type Transfer } from "./model";
 import { parsePreciseDecimal, validatePayment, type PaymentForm } from "./payment-form";
@@ -140,66 +140,65 @@ export function Transfers({ round, transfers }: { round: RoundSummary; transfers
             )}
             <tr className="[&>td]:py-1.5">
               <td colSpan={8} className="pl-6">
-                <div className="flex flex-wrap items-start gap-x-6 gap-y-1">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <span className="text-xs text-muted-foreground">Documents</span>
-                    <DocumentLinks
-                      documents={t.documents}
-                      parent={{ transferId: t.id }}
-                      what={`transfer #${t.id}`}
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Notes</span>
+                <NotesAndDocuments
+                  notes={t.notes}
+                  documents={t.documents}
+                  parent={{ transferId: t.id }}
+                  what={`transfer #${t.id}`}
+                  actions={
+                    <>
                       <EditNotesDialog
                         target={{ transferId: t.id }}
                         notes={t.notes}
                         what={`transfer #${t.id}`}
                       />
-                    </div>
-                    {t.notes && <NotesText notes={t.notes} className="mt-0.5" />}
-                  </div>
-                  <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
-                    {round.status === "approved" && (
-                      <>
-                        <RecordPaymentDialog transfer={t} />
-                        {t.paidAt && (
-                          <ConfirmDialog
-                            trigger={
-                              <Button size="sm" variant="ghost">
-                                Clear payment
-                              </Button>
-                            }
-                            title={`Clear the payment of transfer #${t.id}?`}
-                            consequences={[
-                              "The paid date, amounts, fee and reference are removed",
-                              "The round can't be marked paid until it's recorded again",
-                            ]}
-                            confirmLabel="Clear payment"
-                            onConfirm={async () => {
-                              await clear.mutateAsync({ id: t.id });
-                              await invalidate();
-                              notify.success("Payment cleared", `Transfer #${t.id}`);
-                            }}
-                          />
-                        )}
-                      </>
-                    )}
-                    {round.status === "paid" && (
-                      <AdjustmentDialog
-                        title={`Correct transfer #${t.id}`}
-                        trigger={<Button size="sm">Add correction…</Button>}
-                        initial={{
-                          type: "correction",
-                          linkedTransferId: String(t.id),
-                          organizationId: t.lines.length === 1 ? t.lines[0]!.organizationId : null,
-                          reason: `Correction of transfer #${t.id} in ${round.name}`,
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
+                      <AddDocumentDialog parent={{ transferId: t.id }} what={`transfer #${t.id}`} />
+                      {round.status === "approved" && (
+                        <>
+                          <RecordPaymentDialog transfer={t} />
+                          {t.paidAt && (
+                            <ConfirmDialog
+                              trigger={
+                                <Button size="sm" variant="ghost">
+                                  Clear payment
+                                </Button>
+                              }
+                              title={`Clear the payment of transfer #${t.id}?`}
+                              consequences={[
+                                "The paid date, amounts, fee and reference are removed",
+                                "The round can't be marked paid until it's recorded again",
+                              ]}
+                              confirmLabel="Clear payment"
+                              onConfirm={async () => {
+                                await clear.mutateAsync({ id: t.id });
+                                await invalidate();
+                                notify.success("Payment cleared", `Transfer #${t.id}`);
+                              }}
+                            />
+                          )}
+                        </>
+                      )}
+                      {round.status === "paid" && (
+                        <AdjustmentDialog
+                          title={`Correct transfer #${t.id}`}
+                          trigger={
+                            <Button size="sm" variant="ghost" className="text-muted-foreground">
+                              <PlusIcon />
+                              Add correction…
+                            </Button>
+                          }
+                          initial={{
+                            type: "correction",
+                            linkedTransferId: String(t.id),
+                            organizationId:
+                              t.lines.length === 1 ? t.lines[0]!.organizationId : null,
+                            reason: `Correction of transfer #${t.id} in ${round.name}`,
+                          }}
+                        />
+                      )}
+                    </>
+                  }
+                />
               </td>
             </tr>
           </tbody>

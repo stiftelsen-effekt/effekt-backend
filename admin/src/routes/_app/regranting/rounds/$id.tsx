@@ -39,8 +39,8 @@ import {
   type LineEdit,
 } from "@/features/regranting/builder-model";
 import { DonationChooser } from "@/features/regranting/create-round-dialog";
-import { DocumentLinks } from "@/features/regranting/documents";
-import { EditNotesDialog, NotesText } from "@/features/regranting/notes";
+import { AddDocumentDialog, DocumentLinks } from "@/features/regranting/documents";
+import { EditNotesDialog, NotesAndDocuments } from "@/features/regranting/notes";
 import { FundGrants } from "@/features/regranting/fund-grants";
 import {
   countIssues,
@@ -273,25 +273,42 @@ function Round({ roundId }: { roundId: number }) {
           />
         </Callout>
       )}
-      {detail.data && (
+      {/* Its place is held while the round loads, so the builder below doesn't move */}
+      {!detail.error && (
         <section
-          aria-label="Notes on the round"
-          className="rounded-md border border-border bg-surface px-3 py-2.5 text-sm"
+          aria-label="Notes and documents"
+          className="rounded-md border border-border bg-surface px-3 py-2.5"
         >
-          <div className="flex items-center gap-2">
-            <h2 className="text-xs font-semibold text-muted-foreground">Notes</h2>
-            <EditNotesDialog
-              target={{ roundId: detail.data.round.id }}
+          {detail.data ? (
+            <NotesAndDocuments
               notes={detail.data.round.notes}
+              empty={
+                <p className="text-muted-foreground">
+                  {detail.data.documents.length > 0
+                    ? "No notes."
+                    : "No notes or documents. Add explanations and links to the decision and bilag for the record."}
+                </p>
+              }
+              documents={detail.data.documents}
+              parent={{ roundId: detail.data.round.id }}
               what={detail.data.round.name}
+              actions={
+                <>
+                  <EditNotesDialog
+                    target={{ roundId: detail.data.round.id }}
+                    notes={detail.data.round.notes}
+                    what={detail.data.round.name}
+                  />
+                  <AddDocumentDialog
+                    parent={{ roundId: detail.data.round.id }}
+                    what={detail.data.round.name}
+                  />
+                </>
+              }
             />
-          </div>
-          {detail.data.round.notes ? (
-            <NotesText notes={detail.data.round.notes} className="mt-1" />
           ) : (
-            <p className="mt-1 text-muted-foreground">
-              No notes. Add explanations for the record, e.g. calculation errors or held-back
-              amounts.
+            <p className="text-sm">
+              <SkeletonText>No notes or documents. Add explanations and links.</SkeletonText>
             </p>
           )}
         </section>
@@ -342,18 +359,6 @@ function Round({ roundId }: { roundId: number }) {
           )}
           {detail.data && detail.data.adjustments.length > 0 && (
             <RoundAdjustments adjustments={detail.data.adjustments} editable={editable} />
-          )}
-          {detail.data && (
-            <PageSection
-              title="Documents"
-              description="Links to the decision, board minutes and other bilag for the round. Transfers and adjustments have their own. They can be added in any status."
-            >
-              <DocumentLinks
-                documents={detail.data.documents}
-                parent={{ roundId: detail.data.round.id }}
-                what={detail.data.round.name}
-              />
-            </PageSection>
           )}
           {detail.data && detail.data.snapshot.length > 0 && (
             <Snapshot snapshot={detail.data.snapshot} />
@@ -933,51 +938,61 @@ function RoundAdjustments({
         {shown.map((a) => {
           const earmark = a.pairedAdjustmentId !== null;
           return (
-            <li key={a.id} className="flex flex-wrap items-center gap-2">
-              <Money value={a.amount} signed className="w-28 text-right" />
-              <RecipientLink organizationId={a.organizationId}>{a.organizationName}</RecipientLink>
-              {a.projectName && (
-                <span className="text-muted-foreground">
-                  {earmark ? `Unrestricted → ${a.projectName}` : a.projectName}
-                </span>
-              )}
-              <span className="text-muted-foreground">{a.reason}</span>
-              {a.pending && <Badge tone="outline">Pending</Badge>}
+            <li key={a.id} className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
+                <Money value={a.amount} signed className="w-28 text-right" />
+                <RecipientLink organizationId={a.organizationId}>
+                  {a.organizationName}
+                </RecipientLink>
+                {a.projectName && (
+                  <span className="text-muted-foreground">
+                    {earmark ? `Unrestricted → ${a.projectName}` : a.projectName}
+                  </span>
+                )}
+                <span className="text-muted-foreground">{a.reason}</span>
+                {a.pending && <Badge tone="outline">Pending</Badge>}
+              </span>
               <DocumentLinks
                 documents={a.documents}
                 parent={{ adjustmentId: a.id }}
                 what={`adjustment #${a.id}`}
+                add={false}
+                align="end"
+                className="sm:max-w-[min(50%,30rem)]"
               />
-              {editable && earmark && (
-                <ConfirmDialog
-                  trigger={
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto px-1 py-0 text-xs"
-                      aria-label={`Remove the earmark of ${formatMoney(a.amount)} to ${
-                        a.projectName ?? "the project"
-                      }`}
-                    >
-                      Remove earmark
-                    </Button>
-                  }
-                  tone="danger"
-                  title={`Remove the earmark of ${formatMoney(a.amount)} to ${
-                    a.projectName ?? "the project"
-                  }?`}
-                  consequences={[
-                    "Both entries (unrestricted and project) are deleted",
-                    "Pay now moves back from the project line to the unrestricted line",
-                  ]}
-                  confirmLabel="Remove earmark"
-                  onConfirm={async () => {
-                    await removeEarmark.mutateAsync({ adjustmentId: a.id });
-                    await queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
-                    notify.success("Earmark removed", a.projectName ?? undefined);
-                  }}
-                />
-              )}
+              <span className="flex shrink-0 items-center gap-0.5">
+                <AddDocumentDialog parent={{ adjustmentId: a.id }} what={`adjustment #${a.id}`} />
+                {editable && earmark && (
+                  <ConfirmDialog
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground"
+                        aria-label={`Remove the earmark of ${formatMoney(a.amount)} to ${
+                          a.projectName ?? "the project"
+                        }`}
+                      >
+                        Remove earmark
+                      </Button>
+                    }
+                    tone="danger"
+                    title={`Remove the earmark of ${formatMoney(a.amount)} to ${
+                      a.projectName ?? "the project"
+                    }?`}
+                    consequences={[
+                      "Both entries (unrestricted and project) are deleted",
+                      "Pay now moves back from the project line to the unrestricted line",
+                    ]}
+                    confirmLabel="Remove earmark"
+                    onConfirm={async () => {
+                      await removeEarmark.mutateAsync({ adjustmentId: a.id });
+                      await queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
+                      notify.success("Earmark removed", a.projectName ?? undefined);
+                    }}
+                  />
+                )}
+              </span>
             </li>
           );
         })}

@@ -4,14 +4,16 @@
  * round status, also on approved and paid rounds.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpRightIcon, PlusIcon, XIcon } from "lucide-react";
+import { FilePlusIcon, FileTextIcon, XIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
-import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { RecordDialog, textError } from "@/features/settings/record-dialog";
 import { notify } from "@/lib/notify";
 import { useTRPC, type RouterInputs, type RouterOutputs } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
+import { IconAction } from "./ui";
 
 export type RegrantDocument = RouterOutputs["regranting"]["documents"]["list"][number];
 /** Exactly one of roundId, transferId, adjustmentId */
@@ -38,78 +40,101 @@ export function validateDocument(v: DocumentForm) {
   };
 }
 
-function DocumentLink({ document: d }: { document: RegrantDocument }) {
+/**
+ * One document as a small bordered chip: icon and label, opening in a new tab. A long label is
+ * truncated, the whole label (or the link) in its tooltip. `remove`, if given, sits inside the
+ * chip after the link.
+ */
+function DocumentChip({ document: d, remove }: { document: RegrantDocument; remove?: ReactNode }) {
+  const text = documentText(d);
   return (
-    <a
-      href={d.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={d.url}
-      className="inline-flex max-w-64 items-center gap-0.5 rounded-xs text-accent hover:underline focus-ring"
-    >
-      <span className="truncate">{documentText(d)}</span>
-      <ArrowUpRightIcon className="size-3.5 shrink-0" aria-hidden />
-      <span className="sr-only">(opens in a new tab)</span>
-    </a>
+    <li className="inline-flex h-6 max-w-56 min-w-0 items-center rounded-sm border border-border bg-surface text-xs">
+      <a
+        href={d.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={d.label ?? d.url}
+        className="inline-flex h-full min-w-0 items-center gap-1 rounded-sm px-1.5 text-foreground hover:bg-hover focus-ring"
+      >
+        <FileTextIcon className="size-3.5 shrink-0 text-faint-foreground" aria-hidden />
+        <span className="truncate">{text}</span>
+        <span className="sr-only">(opens in a new tab)</span>
+      </a>
+      {remove}
+    </li>
   );
 }
 
 /**
- * The links, each opening in a new tab. With `parent`, also Add link and a remove button per
- * link; `what` names the parent in dialogs ("transfer #12").
+ * The documents as chips, wrapping within their own box (right-aligned with `align="end"`).
+ * With `parent`, each chip has a remove button and, unless `add` is false, an Add document
+ * button follows the chips; `what` names the parent in dialogs ("transfer #12").
  */
 export function DocumentLinks({
   documents,
   parent,
   what,
+  add = true,
+  align = "start",
   className,
 }: {
   documents: RegrantDocument[];
   parent?: DocumentParent;
   what?: string;
+  /** Show Add document after the chips (with `parent`). Off where the row groups its actions. */
+  add?: boolean;
+  align?: "start" | "end";
   className?: string;
 }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const remove = useMutation(trpc.regranting.documents.remove.mutationOptions());
-  if (!parent && documents.length === 0) return null;
+  const showAdd = Boolean(parent) && add;
+  if (documents.length === 0 && !showAdd) return null;
   return (
     <ul
-      className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-sm ${className ?? ""}`}
+      className={cn(
+        "flex flex-wrap items-center gap-1",
+        align === "end" && "justify-end",
+        className,
+      )}
       aria-label={what ? `Documents of ${what}` : "Documents"}
     >
       {documents.map((d) => (
-        <li key={d.id} className="inline-flex items-center gap-0.5">
-          <DocumentLink document={d} />
-          {parent && (
-            <ConfirmDialog
-              trigger={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto px-0.5 py-0 text-muted-foreground"
-                  aria-label={`Remove the link ${documentText(d)}`}
-                >
-                  <XIcon className="size-3.5" />
-                </Button>
-              }
-              tone="danger"
-              title={`Remove the link ${documentText(d)}?`}
-              description={`Only the link${
-                what ? ` on ${what}` : ""
-              } is removed; the document itself stays where it is.`}
-              confirmLabel="Remove link"
-              onConfirm={async () => {
-                await remove.mutateAsync({ id: d.id });
-                await queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
-                notify.success("Link removed", documentText(d));
-              }}
-            />
-          )}
-        </li>
+        <DocumentChip
+          key={d.id}
+          document={d}
+          remove={
+            parent && (
+              <ConfirmDialog
+                trigger={
+                  <button
+                    type="button"
+                    className="mr-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-xs text-faint-foreground hover:bg-hover hover:text-foreground focus-ring"
+                    aria-label={`Remove the link ${documentText(d)}`}
+                    title="Remove link"
+                  >
+                    <XIcon className="size-3" aria-hidden />
+                  </button>
+                }
+                tone="danger"
+                title={`Remove the link ${documentText(d)}?`}
+                description={`Only the link${
+                  what ? ` on ${what}` : ""
+                } is removed; the document itself stays where it is.`}
+                confirmLabel="Remove link"
+                onConfirm={async () => {
+                  await remove.mutateAsync({ id: d.id });
+                  await queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
+                  notify.success("Link removed", documentText(d));
+                }}
+              />
+            )
+          }
+        />
       ))}
-      {parent && (
-        <li>
+      {showAdd && parent && (
+        <li className="inline-flex">
           <AddDocumentDialog parent={parent} what={what} />
         </li>
       )}
@@ -124,10 +149,9 @@ export function AddDocumentDialog({ parent, what }: { parent: DocumentParent; wh
   return (
     <RecordDialog<DocumentForm>
       trigger={
-        <Button size="sm" variant="ghost" className="h-auto px-1 py-0 text-xs">
-          <PlusIcon />
-          Add link
-        </Button>
+        <IconAction label={`Add a document${what ? ` to ${what}` : ""}`}>
+          <FilePlusIcon />
+        </IconAction>
       }
       title={`Add a document${what ? ` to ${what}` : ""}`}
       description="A link to the bilag, receipt or bank confirmation, usually in Google Drive."

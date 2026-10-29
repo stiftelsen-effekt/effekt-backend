@@ -970,3 +970,103 @@ export async function stubRegrantingApi(
     await route.fulfill({ json: batched ? results : results[0] });
   });
 }
+
+const doc = (id: number, label: string | null, parent: Record<string, number | null>) => ({
+  id,
+  url: `https://drive.google.com/file/d/bilag-${id}/view`,
+  label,
+  roundId: null,
+  transferId: null,
+  adjustmentId: null,
+  createdBy: "finance@example.org",
+  createdAt: "2026-07-10T15:00:00.000Z",
+  ...parent,
+});
+
+/**
+ * A paid round documented like the backfill: 7 round documents (one with a long label, one
+ * without) and multi-paragraph notes with a bullet list; transfers with 1–3 documents and a
+ * one-line note, one with neither; a correction adjustment with its bilag.
+ */
+export function documentedPaidRoundOverrides(): Record<string, Override> {
+  const paid = {
+    ...round,
+    status: "paid",
+    approvedBy: "approver@example.org",
+    approvedAt: "2026-10-01T10:00:00.000Z",
+    paidAt: "2026-10-10",
+    notes: [
+      "Calculated from the balances at 30.09.2026; checked against Samlefila before approval.",
+      "Held back or changed by hand:",
+      "- Helen Keller Intl: 1 800 kr held back until GiveWell confirms the previous correction",
+      "- Family Empowerment Media: paid by EA Norway from its own account, entered as external",
+      "",
+      "The bank fee on the USD transfer was charged to the operating account, not the round.",
+    ].join("\n"),
+  };
+  const roundDocs = [
+    "Styrevedtak september 2026",
+    "Tildelingsoversikt (Samlefila)",
+    "Saldoavstemming per mottaker",
+    "Betalingsoppdrag DNB",
+    "Bekreftelse fra GiveWell på mottatt overføring og fordeling mellom fondene",
+    null,
+    "Signert protokoll",
+  ].map((label, i) => doc(100 + i, label, { roundId: paid.id }));
+  const paidTransfer = (id: number, extra: Record<string, unknown>) => ({
+    ...transfer,
+    id,
+    paidAt: "2026-10-10",
+    bankRef: `DNB 20261010-${id}`,
+    ...extra,
+  });
+  const transfers = [
+    paidTransfer(70, {
+      notes: "Exchange rate and bank fee from DNB's confirmation.",
+      documents: [
+        doc(201, "Bilag 2026/273", { transferId: 70 }),
+        doc(202, "Kvittering GiveWell", { transferId: 70 }),
+        doc(203, "Valutabekreftelse", { transferId: 70 }),
+      ],
+    }),
+    paidTransfer(71, {
+      payee: { id: 2, name: "GiveDirectly", currency: "USD" },
+      notes: null,
+      documents: [doc(204, "Bilag 2026/274", { transferId: 71 })],
+      lines: [{ ...transfer.lines[1]!, id: 711, transferId: 71 }],
+    }),
+    paidTransfer(72, {
+      notes: "Paid the day before the foreign transfers, as usual.",
+      documents: [],
+      lines: [{ ...transfer.lines[0]!, id: 721, transferId: 72 }],
+    }),
+    paidTransfer(73, {
+      notes: null,
+      documents: [],
+      lines: [{ ...transfer.lines[1]!, id: 731, transferId: 73 }],
+    }),
+  ];
+  const builder = { ...builderFixture(), round: paid, transfers };
+  const get = fixtures["regranting.rounds.get"] as Record<string, unknown>;
+  return {
+    "regranting.rounds.builder": () => builder,
+    "regranting.rounds.get": () => ({
+      ...get,
+      round: paid,
+      transfers,
+      documents: roundDocs,
+      adjustments: [
+        {
+          ...adjustment,
+          id: 12,
+          type: "correction",
+          amount: "-1800.00",
+          reason: "Correction of transfer #50 in June 2026 regular round",
+          roundId: paid.id,
+          linkedTransferId: 50,
+          documents: [doc(301, "Bilag 2026/118", { adjustmentId: 12 })],
+        },
+      ],
+    }),
+  };
+}
