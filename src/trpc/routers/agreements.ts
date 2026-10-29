@@ -7,6 +7,7 @@ import {
   agreementsExportInput,
   agreementsFilter,
   agreementsListInput,
+  cancelledAgreementsListInput,
 } from "../schemas/agreements";
 import { withOrgSplits } from "../orgSplits";
 import { adminProcedure, router } from "../trpc";
@@ -34,6 +35,39 @@ export const agreementsRouter = router({
     });
     return { ...result, rows: await withOrgSplits(result.rows, (row) => row.KID) };
   }),
+
+  /**
+   * Cancelled Vipps and AvtaleGiro agreements, newest cancellation first, with the donor's other
+   * active agreements, donation stats and the reasons they gave. `summary` covers every row
+   * matching the filter, not just the page.
+   */
+  cancelled: adminProcedure.input(cancelledAgreementsListInput).query(async ({ input }) => {
+    const result = await DAO.cancelledAgreements.getList({
+      filter: input.filter ?? {},
+      sort: input.sort ?? { id: "cancelled", desc: true },
+      page: input.page,
+      limit: input.limit,
+    });
+    const rows = await withOrgSplits(result.rows, (row) => row.KID);
+    return {
+      ...result,
+      rows: rows.map((row) => ({
+        ...row,
+        created: row.created?.toISOString() ?? null,
+        donorStats: {
+          ...row.donorStats,
+          latestDonation: row.donorStats.latestDonation?.toISOString() ?? null,
+        },
+        reasons: row.reasons.map((reason) => ({
+          ...reason,
+          recorded: reason.recorded?.toISOString() ?? null,
+        })),
+      })),
+    };
+  }),
+
+  /** The reasons donors can give when they stop an agreement, in the form's order */
+  cancellationReasons: adminProcedure.query(() => DAO.cancelledAgreements.getReasonOptions()),
 
   export: adminProcedure.input(agreementsExportInput).query(async ({ input }) => {
     const { rows } = await DAO.agreements.getList({
