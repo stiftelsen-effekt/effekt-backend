@@ -52,6 +52,8 @@ model Organizations {
   Funds                                 Funds?
   Fund_grant_lines                      Fund_grant_lines[]
   Regrant_holds                         Regrant_holds[]
+  Regranting_funds                      Regranting_funds?
+  Onward_allocations                    Onward_allocations[]
 }
 
 model AvtaleGiro_replaced_distributions {
@@ -831,6 +833,7 @@ model Payees {
 
   Organization_payees Organization_payees[]
   Regrant_transfers   Regrant_transfers[]
+  Intermediary_payees Intermediary_payees?
 }
 
 /// Which payee handles a recipient, dated (valid_to inclusive, null = open-ended)
@@ -869,6 +872,7 @@ model Projects {
   Regrant_adjustments    Regrant_adjustments[]
   Fund_grant_lines       Fund_grant_lines[]
   Regrant_holds          Regrant_holds[]
+  Onward_allocations     Onward_allocations[]
 
   @@index([Organization_ID], map: "fk_Projects_to_Organizations_idx")
 }
@@ -979,6 +983,8 @@ model Regrant_transfer_lines {
   Project_ID      Int?
   amount_nok      Decimal @db.Decimal(16, 2)
 
+  Onward_allocations Onward_allocations[]
+
   Regrant_transfers Regrant_transfers @relation(fields: [Transfer_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_transfer_lines_to_Regrant_transfers")
   Organizations     Organizations     @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_transfer_lines_to_Organizations")
   Projects          Projects?         @relation(fields: [Project_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_transfer_lines_to_Projects")
@@ -1023,22 +1029,107 @@ model Regrant_adjustments {
 
 /// A link to a document (bilag, receipt, bank confirmation; usually Google Drive) for exactly one round, transfer or adjustment
 model Regrant_documents {
-  ID            Int      @id @default(autoincrement())
-  url           String   @db.VarChar(1024)
-  label         String?  @db.VarChar(255) /// e.g. "Bilag 16-043"; the admin shows the URL's host without one
-  Round_ID      Int?
-  Transfer_ID   Int?
-  Adjustment_ID Int?
-  created_by    String   @db.VarChar(255)
-  created_at    DateTime @default(now()) @db.DateTime(0)
+  ID               Int      @id @default(autoincrement())
+  url              String   @db.VarChar(1024)
+  label            String?  @db.VarChar(255) /// e.g. "Bilag 16-043"; the admin shows the URL's host without one
+  Round_ID         Int?
+  Transfer_ID      Int?
+  Adjustment_ID    Int?
+  created_by       String   @db.VarChar(255)
+  created_at       DateTime @default(now()) @db.DateTime(0)
+  Onward_report_ID Int?
 
   Regrant_rounds      Regrant_rounds?      @relation(fields: [Round_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_documents_to_Regrant_rounds")
   Regrant_transfers   Regrant_transfers?   @relation(fields: [Transfer_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_documents_to_Regrant_transfers")
   Regrant_adjustments Regrant_adjustments? @relation(fields: [Adjustment_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_documents_to_Regrant_adjustments")
+  Onward_reports      Onward_reports?      @relation(fields: [Onward_report_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_documents_to_Onward_reports")
 
   @@index([Round_ID], map: "fk_Regrant_documents_to_Regrant_rounds_idx")
   @@index([Transfer_ID], map: "fk_Regrant_documents_to_Regrant_transfers_idx")
   @@index([Adjustment_ID], map: "fk_Regrant_documents_to_Regrant_adjustments_idx")
+  @@index([Onward_report_ID], map: "fk_Regrant_documents_to_Onward_reports_idx")
+}
+
+/// Marks a payee as an intermediary (GiveWell): it forwards or regrants what we send, and every paid line to it gets an onward status
+model Intermediary_payees {
+  Payee_ID Int     @id
+  currency String  @default("USD") @db.VarChar(8) /// What it usually forwards and reports in
+  notes    String? @db.Text
+
+  Payees         Payees           @relation(fields: [Payee_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Intermediary_payees_to_Payees")
+  Onward_reports Onward_reports[]
+}
+
+/// Marks a recipient the intermediary regrants by its own decision (TCF, AGF): its lines can go to any grantee
+model Regranting_funds {
+  Organization_ID Int     @id
+  notes           String? @db.Text
+
+  Organizations Organizations @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regranting_funds_to_Organizations")
+}
+
+/// A grantee of a regranting fund that is not one of our recipients (an AGF-funded RCT). Never donor-facing.
+model External_grantees {
+  ID         Int      @id @default(autoincrement())
+  name       String   @unique @db.VarChar(255)
+  country    String?  @db.VarChar(64)
+  url        String?  @db.VarChar(512)
+  notes      String?  @db.Text
+  created_by String   @db.VarChar(255)
+  created_at DateTime @default(now()) @db.DateTime(0)
+
+  Onward_allocations Onward_allocations[]
+}
+
+/// One report or statement from an intermediary; can cover several of our transfers
+model Onward_reports {
+  ID          Int      @id @default(autoincrement())
+  Payee_ID    Int
+  reported_at DateTime @db.Date
+  reference   String?  @db.VarChar(255)
+  notes       String?  @db.Text
+  created_by  String   @db.VarChar(255)
+  created_at  DateTime @default(now()) @db.DateTime(0)
+
+  Intermediary_payees Intermediary_payees  @relation(fields: [Payee_ID], references: [Payee_ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_reports_to_Intermediary_payees")
+  Onward_allocations  Onward_allocations[]
+  Regrant_documents   Regrant_documents[]
+
+  @@index([Payee_ID, reported_at], map: "Payee_reported_at_idx")
+}
+
+/// The intermediary sending (part of) one of our transfer lines onward. Beside the ledger, never in it.
+model Onward_allocations {
+  ID                  Int       @id @default(autoincrement())
+  Transfer_line_ID    Int
+  kind                String    @db.VarChar(16) /// grant | retained
+  basis               String    @db.VarChar(16) /// reported | assumed (backfill of pass-through lines only)
+  Organization_ID     Int? /// grant: one of our recipients
+  External_grantee_ID Int? /// grant: an outside grantee
+  Project_ID          Int? /// Only with Organization_ID, a project of it
+  currency            String    @db.VarChar(8)
+  amount_foreign      Decimal?  @db.Decimal(24, 8)
+  amount_nok          Decimal   @db.Decimal(16, 2) /// The share of our transfer line
+  forwarded_at        DateTime  @db.Date /// When the intermediary sent it to the target ("received by recipient")
+  Report_ID           Int?
+  purpose             String?   @db.VarChar(255)
+  note                String?   @db.Text
+  created_by          String    @db.VarChar(255)
+  created_at          DateTime  @default(now()) @db.DateTime(0)
+  updated_by          String?   @db.VarChar(255)
+  updated_at          DateTime? @db.DateTime(0)
+
+  Regrant_transfer_lines Regrant_transfer_lines @relation(fields: [Transfer_line_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_allocations_to_Regrant_transfer_lines")
+  Organizations          Organizations?         @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_allocations_to_Organizations")
+  External_grantees      External_grantees?     @relation(fields: [External_grantee_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_allocations_to_External_grantees")
+  Projects               Projects?              @relation(fields: [Project_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_allocations_to_Projects")
+  Onward_reports         Onward_reports?        @relation(fields: [Report_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_allocations_to_Onward_reports")
+
+  @@index([Transfer_line_ID], map: "fk_Onward_allocations_to_Regrant_transfer_lines_idx")
+  @@index([Organization_ID, Project_ID], map: "fk_Onward_allocations_to_Organizations_idx")
+  @@index([External_grantee_ID], map: "fk_Onward_allocations_to_External_grantees_idx")
+  @@index([Project_ID], map: "fk_Onward_allocations_to_Projects_idx")
+  @@index([Report_ID], map: "fk_Onward_allocations_to_Onward_reports_idx")
 }
 
 /// Marks a recipient as one of our own funds: never paid directly, granted through Fund_grants

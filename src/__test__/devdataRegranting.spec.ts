@@ -1,6 +1,8 @@
 import { expect } from "chai";
 import { toDay } from "../../prisma/devdata/calendar";
 import { generate, type Dataset } from "../../prisma/devdata/generate";
+import { onwardFigures } from "../custom_modules/regranting/onward";
+import type { OnwardBasis } from "../custom_modules/regranting/types";
 
 /**
  * The regranting history in the local dev data (prisma/devdata/regranting.ts). The generator
@@ -65,9 +67,55 @@ describe("dev data: regranting history", function () {
     );
   });
 
+  it("has GiveWell lines forwarded, partly forwarded, assumed and awaiting, and one TCF split", () => {
+    const givewell = data.Intermediary_payees.map((i) => i.Payee_ID);
+    expect(givewell).to.have.length(1);
+    const paid = data.Regrant_transfers.filter((t) => t.Payee_ID === givewell[0] && t.paid_at);
+    const lines = data.Regrant_transfer_lines.filter((l) =>
+      paid.some((t) => t.ID === l.Transfer_ID),
+    );
+    const statuses = new Map<string, number>();
+    for (const line of lines) {
+      const allocations = data.Onward_allocations.filter((a) => a.Transfer_line_ID === line.ID);
+      const figures = onwardFigures(
+        Number(line.amount_nok).toFixed(2),
+        allocations.map((a) => ({
+          basis: a.basis as OnwardBasis,
+          amountNok: String(a.amount_nok),
+        })),
+      );
+      expect(Number(figures.awaitingNok), `line ${line.ID}`).to.be.at.least(0);
+      statuses.set(figures.status, (statuses.get(figures.status) ?? 0) + 1);
+    }
+    expect([...statuses.keys()].sort()).to.deep.equal([
+      "awaiting",
+      "forwarded",
+      "forwarded_assumed",
+      "partly_forwarded",
+    ]);
+    const grantee = data.Onward_allocations.filter((a) => a.External_grantee_ID !== null);
+    expect(grantee).to.have.length(1);
+    const tcfLine = data.Regrant_transfer_lines.find((l) => l.ID === grantee[0].Transfer_line_ID)!;
+    expect(tcfLine.Organization_ID).to.equal(2);
+    expect(data.Onward_allocations.filter((a) => a.Transfer_line_ID === tcfLine.ID)).to.have.length(
+      5,
+    );
+    expect(data.Onward_allocations.every((a) => a.basis === "reported" || a.Report_ID === null)).to
+      .be.true;
+    expect(data.Regrant_documents.filter((d) => d.Onward_report_ID !== null)).to.have.length(
+      data.Onward_reports.length,
+    );
+  });
+
   it("reproduces the same history when topped up later", () => {
     const later = generate({ seed: "effekt-dev", start, end: end + 30, scale: 0.3, anchor: end });
-    for (const table of ["Regrant_rounds", "Regrant_transfers", "Regrant_adjustments"]) {
+    for (const table of [
+      "Regrant_rounds",
+      "Regrant_transfers",
+      "Regrant_adjustments",
+      "Onward_reports",
+      "Onward_allocations",
+    ]) {
       expect(later[table], table).to.deep.equal(data[table]);
     }
   });

@@ -222,15 +222,37 @@ export type RegrantDocument = {
   roundId: number | null;
   transferId: number | null;
   adjustmentId: number | null;
+  onwardReportId: number | null;
   createdBy: string;
   createdAt: Date;
 };
 
-/** What a document belongs to: exactly one of the three */
+/** What a document belongs to: exactly one of the four */
 export type RegrantDocumentParent =
-  | { roundId: number; transferId?: undefined; adjustmentId?: undefined }
-  | { roundId?: undefined; transferId: number; adjustmentId?: undefined }
-  | { roundId?: undefined; transferId?: undefined; adjustmentId: number };
+  | {
+      roundId: number;
+      transferId?: undefined;
+      adjustmentId?: undefined;
+      onwardReportId?: undefined;
+    }
+  | {
+      roundId?: undefined;
+      transferId: number;
+      adjustmentId?: undefined;
+      onwardReportId?: undefined;
+    }
+  | {
+      roundId?: undefined;
+      transferId?: undefined;
+      adjustmentId: number;
+      onwardReportId?: undefined;
+    }
+  | {
+      roundId?: undefined;
+      transferId?: undefined;
+      adjustmentId?: undefined;
+      onwardReportId: number;
+    };
 
 export type TransferLine = {
   id: number;
@@ -384,5 +406,122 @@ export type Issue = {
   fundGrantLineId: number | null;
   donationId: number | null;
 };
+
+//endregion
+
+//region Downstream regrants (docs/regranting-downstream.md)
+
+/** grant: sent to a target; retained: the intermediary kept it (fees, FX loss) */
+export const onwardKinds = ["grant", "retained"] as const;
+export type OnwardKind = (typeof onwardKinds)[number];
+
+/** reported: from an intermediary's report; assumed: backfill of pass-through lines only */
+export const onwardBases = ["reported", "assumed"] as const;
+export type OnwardBasis = (typeof onwardBases)[number];
+
+/**
+ * Calculated per paid line to an intermediary payee: awaiting (nothing entered), partly
+ * forwarded, forwarded (nothing awaiting), forwarded_assumed (nothing awaiting, some assumed)
+ */
+export const onwardStatuses = [
+  "awaiting",
+  "partly_forwarded",
+  "forwarded",
+  "forwarded_assumed",
+] as const;
+export type OnwardStatus = (typeof onwardStatuses)[number];
+
+export type IntermediaryPayee = {
+  payeeId: number;
+  name: string;
+  currency: string;
+  notes: string | null;
+};
+
+export type RegrantingFund = { organizationId: number; name: string; notes: string | null };
+
+export type ExternalGrantee = {
+  id: number;
+  name: string;
+  country: string | null;
+  url: string | null;
+  notes: string | null;
+  createdBy: string;
+  createdAt: Date;
+  allocationCount: number;
+};
+
+export type OnwardAllocation = {
+  id: number;
+  transferLineId: number;
+  transferId: number;
+  kind: OnwardKind;
+  basis: OnwardBasis;
+  organizationId: number | null;
+  organizationName: string | null;
+  externalGranteeId: number | null;
+  externalGranteeName: string | null;
+  projectId: number | null;
+  projectName: string | null;
+  currency: string;
+  amountForeign: string | null;
+  amountNok: Money;
+  forwardedAt: IsoDate;
+  reportId: number | null;
+  reportReference: string | null;
+  reportedAt: IsoDate | null;
+  purpose: string | null;
+  note: string | null;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string | null;
+  updatedAt: Date | null;
+};
+
+export type OnwardReport = {
+  id: number;
+  payeeId: number;
+  payeeName: string;
+  reportedAt: IsoDate;
+  reference: string | null;
+  notes: string | null;
+  createdBy: string;
+  createdAt: Date;
+  allocationCount: number;
+  allocationTotalNok: Money;
+  documents: RegrantDocument[];
+};
+
+/** A transfer line as onward records see it: its transfer, payee and recipient */
+export type OnwardLineRef = {
+  id: number;
+  transferId: number;
+  roundId: number;
+  roundName: string;
+  payeeId: number;
+  payeeName: string;
+  /** The transfer's payee is in Intermediary_payees */
+  intermediary: boolean;
+  paidAt: IsoDate | null;
+  transferCurrency: string;
+  transferAmountForeign: string | null;
+  fxRate: string | null;
+  organizationId: number;
+  organizationName: string;
+  projectId: number | null;
+  projectName: string | null;
+  amountNok: Money;
+  /** The line's recipient is in Regranting_funds (TCF, AGF); otherwise a pass-through line */
+  regrantingFund: boolean;
+};
+
+export type OnwardFigures = {
+  reportedNok: Money;
+  assumedNok: Money;
+  awaitingNok: Money;
+  status: OnwardStatus;
+};
+
+export type OnwardLine = OnwardLineRef & OnwardFigures & { allocations: OnwardAllocation[] };
 
 //endregion

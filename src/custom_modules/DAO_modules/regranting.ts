@@ -1652,7 +1652,7 @@ async function deleteAdjustment(id: number, conn?: Queryable): Promise<boolean> 
 //region Documents
 
 const documentSelect = `SELECT d.ID AS id, d.url, d.label, d.Round_ID AS roundId, d.Transfer_ID AS transferId,
-    d.Adjustment_ID AS adjustmentId, d.created_by AS createdBy, ${dbClockColumn(
+    d.Adjustment_ID AS adjustmentId, d.Onward_report_ID AS onwardReportId, d.created_by AS createdBy, ${dbClockColumn(
       "d.created_at",
       "createdAt",
     )}
@@ -1662,6 +1662,7 @@ const documentParentColumns = {
   roundId: "Round_ID",
   transferId: "Transfer_ID",
   adjustmentId: "Adjustment_ID",
+  onwardReportId: "Onward_report_ID",
 } as const;
 type DocumentParentKey = keyof typeof documentParentColumns;
 
@@ -1670,13 +1671,14 @@ function documentParent(parent: {
   roundId?: number | null;
   transferId?: number | null;
   adjustmentId?: number | null;
+  onwardReportId?: number | null;
 }): { key: DocumentParentKey; id: number } {
   const set = (Object.keys(documentParentColumns) as DocumentParentKey[]).filter(
     (k) => parent[k] !== undefined && parent[k] !== null,
   );
   if (set.length !== 1) {
     throw new Error(
-      `A document belongs to exactly one round, transfer or adjustment (got ${
+      `A document belongs to exactly one round, transfer, adjustment or onward report (got ${
         set.length ? set.join(", ") : "none"
       })`,
     );
@@ -1684,7 +1686,7 @@ function documentParent(parent: {
   return { key: set[0], id: parent[set[0]] as number };
 }
 
-/** Documents of several rounds, transfers or adjustments, by parent id, oldest first */
+/** Documents of several rounds, transfers, adjustments or onward reports, by parent id, oldest first */
 async function documentsFor(
   key: DocumentParentKey,
   ids: number[],
@@ -1720,7 +1722,7 @@ async function getDocument(id: number, conn?: Queryable): Promise<RegrantDocumen
 
 export type DocumentInput = RegrantDocumentParent & { url: string; label: string | null };
 
-/** Throws unless exactly one of roundId, transferId, adjustmentId is set */
+/** Throws unless exactly one of roundId, transferId, adjustmentId, onwardReportId is set */
 async function addDocument(
   input: DocumentInput,
   createdBy: string,
@@ -1731,14 +1733,15 @@ async function addDocument(
   return (
     await exec(
       conn,
-      `INSERT INTO Regrant_documents (url, label, Round_ID, Transfer_ID, Adjustment_ID, created_by)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO Regrant_documents (url, label, Round_ID, Transfer_ID, Adjustment_ID, Onward_report_ID, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         input.url,
         input.label,
         parent("roundId"),
         parent("transferId"),
         parent("adjustmentId"),
+        parent("onwardReportId"),
         createdBy,
       ],
     )

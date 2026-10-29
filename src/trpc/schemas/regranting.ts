@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
   adjustmentTypes,
+  onwardBases,
+  onwardKinds,
   paidByValues,
   projectStatuses,
   roundKinds,
@@ -526,22 +528,25 @@ export const holdUpdateInput = z.strictObject({
 
 //region Documents
 
-/** What a document belongs to: exactly one of roundId, transferId, adjustmentId */
+/** What a document belongs to: exactly one of roundId, transferId, adjustmentId, onwardReportId */
 const documentParentFields = {
   roundId: id.optional(),
   transferId: id.optional(),
   adjustmentId: id.optional(),
+  onwardReportId: id.optional(),
 };
 
 const exactlyOneParent = (
-  d: { roundId?: number; transferId?: number; adjustmentId?: number },
+  d: { roundId?: number; transferId?: number; adjustmentId?: number; onwardReportId?: number },
   ctx: z.core.$RefinementCtx,
 ) => {
-  const set = [d.roundId, d.transferId, d.adjustmentId].filter((v) => v !== undefined).length;
+  const set = [d.roundId, d.transferId, d.adjustmentId, d.onwardReportId].filter(
+    (v) => v !== undefined,
+  ).length;
   if (set !== 1) {
     ctx.addIssue({
       code: "custom",
-      message: "Give exactly one of roundId, transferId and adjustmentId",
+      message: "Give exactly one of roundId, transferId, adjustmentId and onwardReportId",
     });
   }
 };
@@ -567,5 +572,111 @@ export const documentAddInput = z
       .transform((v) => v || null),
   })
   .superRefine(exactlyOneParent);
+
+//endregion
+
+//region Downstream regrants (docs/regranting-downstream.md)
+
+export const onwardKindSchema = z.enum(onwardKinds);
+export const onwardBasisSchema = z.enum(onwardBases);
+
+/** Paid dates from, to (inclusive) and one intermediary payee; all optional */
+const onwardLineFilterFields = {
+  from: isoDateSchema.optional(),
+  to: isoDateSchema.optional(),
+  payeeId: id.optional(),
+};
+
+export const onwardTransferInput = z.strictObject({ transferId: id });
+
+export const onwardLineInput = z.strictObject({ transferLineId: id });
+
+export const onwardAwaitingInput = z.strictObject(onwardLineFilterFields).optional();
+
+/**
+ * Bulk backfill: an `assumed` allocation for every paid pass-through line to an intermediary
+ * payee that has none yet. `dryRun` lists them without writing.
+ */
+export const onwardAssumeInput = z.strictObject({
+  ...onwardLineFilterFields,
+  dryRun: z.boolean().default(false),
+});
+
+const allocationFields = {
+  kind: onwardKindSchema.default("grant"),
+  basis: onwardBasisSchema.default("reported"),
+  /** grant: one of our recipients… */
+  organizationId: id.nullable().default(null),
+  /** …or an external grantee */
+  externalGranteeId: id.nullable().default(null),
+  /** Only with organizationId, a project of it */
+  projectId: id.nullable().default(null),
+  currency: currencySchema,
+  /** As the intermediary reports it */
+  amountForeign: preciseDecimal(16).nullable().default(null),
+  /** The share of our line in kroner; null = amountForeign × the transfer's fx_rate */
+  amountNok: moneySchema.nullable().default(null),
+  forwardedAt: isoDateSchema,
+  /** Required for basis reported */
+  reportId: id.nullable().default(null),
+  purpose: optionalText(255)
+    .default(null)
+    .transform((v) => v || null),
+  note: notesSchema.default(null),
+};
+
+export const allocationCreateInput = z.strictObject({ transferLineId: id, ...allocationFields });
+
+/** Replaces every field of the allocation; the line stays */
+export const allocationUpdateInput = z.strictObject({ id, ...allocationFields });
+
+export const onwardReportListInput = z.strictObject({ payeeId: id.optional() }).optional();
+
+const reportFields = {
+  payeeId: id,
+  reportedAt: isoDateSchema,
+  /** e.g. "GiveWell forwarding statement Q2 2025" */
+  reference: optionalText(255)
+    .default(null)
+    .transform((v) => v || null),
+  notes: notesSchema.default(null),
+};
+
+export const onwardReportCreateInput = z.strictObject(reportFields);
+
+export const onwardReportUpdateInput = z.strictObject({
+  id,
+  payeeId: id.optional(),
+  reportedAt: isoDateSchema.optional(),
+  reference: optionalText(255)
+    .transform((v) => v || null)
+    .optional(),
+  notes: notesSchema.optional(),
+});
+
+const granteeFields = {
+  name: text(255),
+  country: optionalText(64)
+    .default(null)
+    .transform((v) => v || null),
+  url: optionalText(512)
+    .default(null)
+    .transform((v) => v || null),
+  notes: notesSchema.default(null),
+};
+
+export const granteeCreateInput = z.strictObject(granteeFields);
+
+export const granteeUpdateInput = z.strictObject({
+  id,
+  name: text(255).optional(),
+  country: optionalText(64)
+    .transform((v) => v || null)
+    .optional(),
+  url: optionalText(512)
+    .transform((v) => v || null)
+    .optional(),
+  notes: notesSchema.optional(),
+});
 
 //endregion

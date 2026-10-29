@@ -23,6 +23,7 @@ import { useTRPC } from "@/lib/trpc";
 import { AdjustmentDialog } from "./adjustment-dialog";
 import { DocumentLinks } from "./documents";
 import { EditNotesDialog, NotesText } from "./notes";
+import { TransferOnward, useIntermediaryPayees } from "./onward";
 import { lineLabel, type RoundSummary, type Transfer } from "./model";
 import { parsePreciseDecimal, validatePayment, type PaymentForm } from "./payment-form";
 import { ForeignAmount, RecipientLink } from "./ui";
@@ -32,6 +33,7 @@ export function Transfers({ round, transfers }: { round: RoundSummary; transfers
   const queryClient = useQueryClient();
   const clear = useMutation(trpc.regranting.transfers.clearPayment.mutationOptions());
   const invalidate = () => queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
+  const intermediaries = useIntermediaryPayees();
 
   if (transfers.length === 0)
     return (
@@ -129,6 +131,13 @@ export function Transfers({ round, transfers }: { round: RoundSummary; transfers
                 <td colSpan={5} />
               </tr>
             ))}
+            {t.paidAt && intermediaries.has(t.payee.id) && (
+              <tr className="[&>td]:py-2">
+                <td colSpan={8} className="pl-6">
+                  <TransferOnward transferId={t.id} payeeId={t.payee.id} />
+                </td>
+              </tr>
+            )}
             <tr className="[&>td]:py-1.5">
               <td colSpan={8} className="pl-6">
                 <div className="flex flex-wrap items-start gap-x-6 gap-y-1">

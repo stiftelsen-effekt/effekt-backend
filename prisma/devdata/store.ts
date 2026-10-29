@@ -129,6 +129,20 @@ const TABLES: Record<TableName, TableMeta> = {
       linked_donation_ID: "Donations",
     },
   },
+  Intermediary_payees: { key: "Payee_ID", numericKey: false, fks: { Payee_ID: "Payees" } },
+  Regranting_funds: { key: "Organization_ID", numericKey: false },
+  External_grantees: { key: "ID", numericKey: true },
+  Onward_reports: { key: "ID", numericKey: true, fks: { Payee_ID: "Payees" } },
+  Onward_allocations: {
+    key: "ID",
+    numericKey: true,
+    fks: {
+      Transfer_line_ID: "Regrant_transfer_lines",
+      External_grantee_ID: "External_grantees",
+      Project_ID: "Projects",
+      Report_ID: "Onward_reports",
+    },
+  },
   Regrant_documents: {
     key: "ID",
     numericKey: true,
@@ -136,6 +150,7 @@ const TABLES: Record<TableName, TableMeta> = {
       Round_ID: "Regrant_rounds",
       Transfer_ID: "Regrant_transfers",
       Adjustment_ID: "Regrant_adjustments",
+      Onward_report_ID: "Onward_reports",
     },
   },
   Regrant_round_balances: {

@@ -101,6 +101,12 @@ export const GENERATED_TABLES = [
   "Fund_grants",
   "Fund_grant_lines",
   "Regrant_adjustments",
+  // Downstream regrants (docs/regranting-downstream.md)
+  "Intermediary_payees",
+  "Regranting_funds",
+  "External_grantees",
+  "Onward_reports",
+  "Onward_allocations",
   "Regrant_documents",
   "Regrant_round_balances",
   // Pledges (tilsagn) for the analysis overview
