@@ -32,6 +32,7 @@ export function Stat({
   delta,
   deltaLabel,
   hint,
+  chart,
   className,
 }: {
   label: ReactNode;
@@ -47,16 +48,18 @@ export function Stat({
   delta?: number;
   deltaLabel?: ReactNode;
   hint?: ReactNode;
+  /**
+   * A small trend to the right of the number (`Sparkline`). It shows only where the stat is
+   * wide enough for it (a container query), so the numbers never wrap to make room. Pass it
+   * while `pending` too, with no data, so its space is reserved.
+   */
+  chart?: ReactNode;
   className?: string;
 }) {
   const up = delta !== undefined && delta >= 0;
   if (pending) {
     return (
-      <div
-        data-slot="stat"
-        aria-busy
-        className={cn("grid content-start gap-1 px-4 py-3", className)}
-      >
+      <StatFrame aria-busy className={className} chart={chart}>
         <span className="text-sm text-muted-foreground">{label}</span>
         <span className="num text-xl font-semibold tracking-tight">
           <SkeletonText>{placeholder}</SkeletonText>
@@ -64,11 +67,11 @@ export function Stat({
         <span className="text-xs">
           <SkeletonText>00 agreements</SkeletonText>
         </span>
-      </div>
+      </StatFrame>
     );
   }
   return (
-    <div data-slot="stat" className={cn("grid content-start gap-1 px-4 py-3", className)}>
+    <StatFrame className={className} chart={chart}>
       <span className="text-sm text-muted-foreground">{label}</span>
       <span className="num text-xl font-semibold tracking-tight">
         <MoneyPrecisionProvider precision="whole">{value}</MoneyPrecisionProvider>
@@ -93,6 +96,40 @@ export function Stat({
           </MoneyPrecisionProvider>
         </span>
       )}
+    </StatFrame>
+  );
+}
+
+function StatFrame({
+  className,
+  chart,
+  children,
+  ...props
+}: {
+  className?: string;
+  chart?: ReactNode;
+  children: ReactNode;
+  "aria-busy"?: boolean;
+}) {
+  if (!chart) {
+    return (
+      <div
+        data-slot="stat"
+        className={cn("grid content-start gap-1 px-4 py-3", className)}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+  return (
+    <div data-slot="stat" className={cn("@container px-4 py-3", className)} {...props}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="grid min-w-0 content-start gap-1">{children}</div>
+        <div data-slot="stat-chart" className="hidden shrink-0 @min-[15rem]:block">
+          {chart}
+        </div>
+      </div>
     </div>
   );
 }

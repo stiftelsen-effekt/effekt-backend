@@ -4,6 +4,7 @@ import { configRouter } from "./routers/config";
 import { donationsRouter } from "./routers/donations";
 import { donorsRouter } from "./routers/donors";
 import { giroRouter } from "./routers/giro";
+import { homeRouter } from "./routers/home";
 import { intentsRouter } from "./routers/intents";
 import { metaRouter } from "./routers/meta";
 import { regrantingRouter } from "./routers/regranting";
@@ -23,6 +24,7 @@ export const appRouter = router({
   regranting: regrantingRouter,
   analysis: analysisRouter,
   intents: intentsRouter,
+  home: homeRouter,
 });
 
 export type AppRouter = typeof appRouter;

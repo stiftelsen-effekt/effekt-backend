@@ -1,4 +1,5 @@
 import type { Page, Route } from "@playwright/test";
+import { homeTrendsFixture } from "./helpers";
 
 /**
  * Small regranting fixtures shaped like the regranting.* router outputs, and a stubbed API
@@ -618,6 +619,7 @@ export const reconciliation = {
 };
 
 export const fixtures: Record<string, unknown> = {
+  "home.trends": homeTrendsFixture(),
   "regranting.balances.breakdown": breakdown,
   "regranting.rounds.composition": composition,
   "regranting.reconciliation.monthly": reconciliation,
