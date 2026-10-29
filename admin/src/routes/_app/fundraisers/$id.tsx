@@ -114,10 +114,11 @@ function Fundraiser({ fundraiserId }: { fundraiserId: number }) {
         }
       >
         <PageSection
+          fill
           title="Donations"
           description="Names are shown only where the giver chose to show them on the fundraiser."
         >
-          <div className="flex max-h-[40rem] flex-col">
+          <div className="flex min-h-0 flex-col">
             <DataTable
               label="Donations to this fundraiser"
               columns={columns}
@@ -224,10 +225,11 @@ function Fundraiser({ fundraiserId }: { fundraiserId: number }) {
       }
     >
       <PageSection
+        fill
         title="Donations"
         description="Names are shown only where the giver chose to show them on the fundraiser."
       >
-        <div className="flex max-h-[40rem] flex-col">
+        <div className="flex min-h-0 flex-col">
           <DataTable
             label="Donations to this fundraiser"
             columns={columns}

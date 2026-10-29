@@ -21,8 +21,9 @@ import { PageHeader, type Breadcrumb } from "./page-header";
  * what is related to it (donations, agreements, history). The body scrolls; the header
  * scrolls with it.
  *
- * A long related table goes in `<PageSection fill>`: from lg up it takes the height left in
- * the page (or panel), at least 24rem, and scrolls inside with a sticky header, like a list.
+ * A long related table goes in `<PageSection fill>` (or `<Tabs fill>` for tabbed tables), on
+ * the last section only: from lg up it takes the height left in the page (or panel), at least
+ * 24rem, and scrolls inside with a sticky header, like a list. A short table keeps its height.
  */
 export function DetailPage({
   title,

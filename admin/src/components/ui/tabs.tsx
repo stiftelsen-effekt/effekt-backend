@@ -3,11 +3,26 @@ import type * as React from "react";
 import { SkeletonText } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-export function Tabs({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Root>) {
+/**
+ * `fill` (in a DetailPage, when the tabs are the last thing on the page): from lg up the tabs
+ * take the height left in the page, at least 24rem, like `<PageSection fill>`. The active panel
+ * (a `flex flex-col` TabsContent around a DataTable) shrinks to fit and scrolls inside; a short
+ * table keeps its natural height.
+ */
+export function Tabs({
+  className,
+  fill,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Root> & { fill?: boolean }) {
   return (
     <TabsPrimitive.Root
       data-slot="tabs"
-      className={cn("flex flex-col gap-4", className)}
+      className={cn(
+        "flex flex-col gap-4",
+        fill &&
+          "lg:min-h-96 lg:grow lg:basis-0 [&>[data-slot=tabs-content]]:min-h-0 [&>[data-slot=tabs-list]]:shrink-0",
+        className,
+      )}
       {...props}
     />
   );
