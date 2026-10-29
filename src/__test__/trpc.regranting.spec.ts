@@ -87,6 +87,7 @@ const round = (overrides: Partial<Round> = {}): Round => ({
   approvedBy: null,
   approvedAt: null,
   paidAt: null,
+  notes: null,
   ...overrides,
 });
 const summary = (r: Round): RoundSummary => ({
@@ -109,6 +110,7 @@ const transfer = (overrides: Partial<Transfer> = {}): Transfer => ({
   paidAt: null,
   bankRef: null,
   paidBy: "foundation",
+  notes: null,
   documents: [],
   lines: [
     {
@@ -361,6 +363,55 @@ describe("tRPC regranting", () => {
       expect(stubs.replaceTransferLines.called).to.be.false;
       expect(stubs.deleteTransfer.called).to.be.false;
       expect(stubs.setIncludeDirect.called).to.be.false;
+    });
+
+    it("notes can be set and cleared in any status, also on paid rounds", async () => {
+      const stubs = stubDao();
+      stubs.getRoundSummary.resolves(summary(round({ status: "paid", notes: "AMF got more" })));
+      stubs.getTransfer.resolves(transfer({ paidAt: "2016-04-10", notes: "Held back 500 kr" }));
+      stubs.lockRound.resolves(round({ status: "paid" }));
+
+      const r = await admin().rounds.setNotes({ id: 7, notes: "  AMF got more\nsee bilag  " });
+      expect(r.notes).to.equal("AMF got more");
+      expect(stubs.setRoundNotes.firstCall.args.slice(0, 2)).to.deep.equal([
+        7,
+        "AMF got more\nsee bilag",
+      ]);
+      await admin().rounds.setNotes({ id: 7, notes: "   " });
+      expect(stubs.setRoundNotes.secondCall.args.slice(0, 2)).to.deep.equal([7, null]);
+
+      const t = await admin().transfers.setNotes({ id: 70, notes: "Held back 500 kr" });
+      expect(t.notes).to.equal("Held back 500 kr");
+      await admin().transfers.setNotes({ id: 70, notes: null });
+      expect(stubs.setTransferNotes.args.map((a) => a.slice(0, 2))).to.deep.equal([
+        [70, "Held back 500 kr"],
+        [70, null],
+      ]);
+      // No round lock: notes are documentation, not money
+      expect(stubs.lockRound.called).to.be.false;
+
+      await expectTrpcError(
+        admin().rounds.setNotes({ id: 7, notes: "x".repeat(5001) }),
+        "BAD_REQUEST",
+      );
+      stubs.getRoundSummary.resolves(null);
+      await expectTrpcError(admin().rounds.setNotes({ id: 8, notes: "x" }), "NOT_FOUND");
+      stubs.getTransfer.resolves(null);
+      await expectTrpcError(admin().transfers.setNotes({ id: 71, notes: "x" }), "NOT_FOUND");
+    });
+
+    it("draft transfers take notes on create and update", async () => {
+      const stubs = stubDao();
+      stubs.getPayee.resolves({ id: 10, name: "GiveWell", currency: "NOK" } as any);
+      stubs.lockRound.resolves(round());
+      stubs.createTransfer.resolves(70);
+      stubs.getTransfer.resolves(transfer());
+      await admin().transfers.create({ roundId: 7, payeeId: 10, notes: " Mis-keyed KID " });
+      expect(stubs.createTransfer.firstCall.args[1].notes).to.equal("Mis-keyed KID");
+      await admin().transfers.update({ id: 70, notes: "" });
+      expect(stubs.setTransferNotes.firstCall.args.slice(0, 2)).to.deep.equal([70, null]);
+      await admin().transfers.update({ id: 70, currency: "USD" });
+      expect(stubs.setTransferNotes.calledOnce).to.be.true;
     });
 
     it("payments are recorded on approved rounds only, and all before marking paid", async () => {
@@ -974,6 +1025,7 @@ describe("tRPC regranting", () => {
         transferLineId: null,
         payeeName: null,
         bankRef: null,
+        transferNotes: null,
         fundGrantId: null,
         fundGrantLineId: null,
         counterpartOrganizationId: null,

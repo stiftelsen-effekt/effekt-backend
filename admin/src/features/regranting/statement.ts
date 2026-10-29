@@ -56,6 +56,7 @@ export function statementCsv(statement: Statement): string {
       counts_in_balance: "",
       round: "",
       reference: "",
+      notes: "",
     },
     ...statement.entries.map((e) => ({
       date: e.date,
@@ -70,6 +71,7 @@ export function statementCsv(statement: Statement): string {
       counts_in_balance: e.affectsBalance ? "yes" : e.pending ? "pending" : "no",
       round: e.roundName ?? "",
       reference: [e.bankRef, ...e.documents.map((d) => d.url)].filter(Boolean).join(" "),
+      notes: e.transferNotes ?? "",
     })),
     {
       date: statement.to,
@@ -81,6 +83,7 @@ export function statementCsv(statement: Statement): string {
       counts_in_balance: "",
       round: "",
       reference: "",
+      notes: "",
     },
   ];
   return toCsv(rows);

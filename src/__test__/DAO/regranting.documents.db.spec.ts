@@ -244,4 +244,27 @@ const drive = (id: string) => `https://drive.google.com/file/d/${id}/view`;
       await expectTrpcError(alice.documents.list({}), "BAD_REQUEST");
     });
   });
+
+  describe("notes", () => {
+    it("sets and clears notes on rounds and transfers, also on a paid round", async () => {
+      const text = "Calculation error in this round:\nAMF got ~1,065 kr more";
+      const summary = await alice.rounds.setNotes({ id: paidRound, notes: `  ${text}  ` });
+      expect(summary.notes).to.equal(text);
+      expect((await dao().getRound(paidRound))?.notes).to.equal(text);
+      expect((await dao().listRounds({})).find((r) => r.id === paidRound)?.notes).to.equal(text);
+      expect((await dao().getRound(draftRound))?.notes).to.equal(null);
+
+      const t = await alice.transfers.setNotes({ id: transfer, notes: "Held back 500 kr" });
+      expect(t.notes).to.equal("Held back 500 kr");
+      expect(t.bankRef).to.equal(null);
+      expect((await dao().getTransfers(paidRound))[0].notes).to.equal("Held back 500 kr");
+
+      expect((await alice.rounds.setNotes({ id: paidRound, notes: "" })).notes).to.equal(null);
+      expect((await alice.transfers.setNotes({ id: transfer, notes: null })).notes).to.equal(null);
+      expect((await dao().getTransfer(transfer))?.notes).to.equal(null);
+
+      await expectTrpcError(alice.rounds.setNotes({ id: 999999, notes: "x" }), "NOT_FOUND");
+      await expectTrpcError(alice.transfers.setNotes({ id: 999999, notes: "x" }), "NOT_FOUND");
+    });
+  });
 });

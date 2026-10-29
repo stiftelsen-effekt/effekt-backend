@@ -90,6 +90,7 @@ import {
   roundListInput,
   roundUpdateInput,
   routingCreateInput,
+  setNotesInput,
   routingListInput,
   routingUpdateInput,
   statementInput,
@@ -452,6 +453,15 @@ const roundsRouter = router({
       ({ input, ctx }): Promise<ApproveResult> => approveRound(input.id, adminIdentity(ctx.auth)),
     ),
 
+  /** Notes for the record. Documentation, not money: allowed in any status, also paid. */
+  setNotes: adminProcedure
+    .input(setNotesInput)
+    .mutation(async ({ input }): Promise<RoundSummary> => {
+      // affectedRows can't tell "missing" from "unchanged"; summaryOrThrow reports a missing round
+      await dao().setRoundNotes(input.id, input.notes);
+      return summaryOrThrow(input.id);
+    }),
+
   /** approved → draft, while no payment is recorded */
   reopen: adminProcedure.input(byId).mutation(async ({ input }): Promise<RoundSummary> => {
     await reopenRound(input.id);
@@ -530,6 +540,7 @@ const transfersRouter = router({
           payeeId: payee.id,
           currency: input.currency ?? payee.currency,
           amountNok: 0,
+          notes: input.notes ?? null,
         });
         const lines = (input.lines ?? []).map((l) => ({ ...l, amount: l.amountNok }));
         await dao().replaceTransferLines(conn, transferId, lines, true);
@@ -550,6 +561,7 @@ const transfersRouter = router({
           currency: input.currency ?? transfer.currency,
           amountNok: input.amountNok ?? transfer.amountNok,
         });
+        if (input.notes !== undefined) await dao().setTransferNotes(transfer.id, input.notes, conn);
       });
       return getTransferOrThrow(input.id);
     }),
@@ -648,6 +660,12 @@ const transfersRouter = router({
       });
       return getTransferOrThrow(input.id);
     }),
+
+  /** Notes for the record. Documentation, not money: allowed in any status, also paid. */
+  setNotes: adminProcedure.input(setNotesInput).mutation(async ({ input }): Promise<Transfer> => {
+    await dao().setTransferNotes(input.id, input.notes);
+    return getTransferOrThrow(input.id);
+  }),
 
   /** Clears a recorded payment while the round is still approved */
   clearPayment: adminProcedure.input(byId).mutation(async ({ input }): Promise<Transfer> => {

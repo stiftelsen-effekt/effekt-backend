@@ -46,6 +46,7 @@ export type LedgerEntryRow = {
   payeeName: string | null;
   bankRef: string | null;
   paidBy: PaidBy | null;
+  transferNotes: string | null;
   fundGrantId: number | null;
   fundGrantLineId: number | null;
   /** fund_grant_in: the fund; fund_grant_out: the recipient */
@@ -82,7 +83,7 @@ async function getLedgerEntries(
            ${isoDate("a.effective_at")} AS date,
            ${roundCols.replace(/r\./g, "ar.")},
            NULL AS transferId, NULL AS transferLineId, NULL AS payeeId, NULL AS payeeName, NULL AS bankRef,
-           NULL AS paidBy, NULL AS fundGrantId, NULL AS fundGrantLineId, NULL AS counterpartOrganizationId,
+           NULL AS paidBy, NULL AS transferNotes, NULL AS fundGrantId, NULL AS fundGrantLineId, NULL AS counterpartOrganizationId,
            NULL AS counterpartProjectId, NULL AS rationale, a.ID AS adjustmentId, a.type AS adjustmentType,
            a.reason, a.linked_transfer_ID AS linkedTransferId, a.linked_donation_ID AS linkedDonationId,
            (SELECT GROUP_CONCAT(COALESCE(d.label, d.url) ORDER BY d.ID SEPARATOR ', ')
@@ -95,21 +96,21 @@ async function getLedgerEntries(
 
     UNION ALL
     SELECT 'fund_grant_in', l.Organization_ID, l.Project_ID, l.amount, ${isoDate("r.cutoff")},
-           ${roundCols}, NULL, NULL, NULL, NULL, NULL, NULL, g.ID, l.ID, g.Fund_ID, NULL, g.rationale,
+           ${roundCols}, NULL, NULL, NULL, NULL, NULL, NULL, NULL, g.ID, l.ID, g.Fund_ID, NULL, g.rationale,
            NULL, NULL, NULL, NULL, NULL, NULL, NULL
     FROM Fund_grant_lines l JOIN Fund_grants g ON g.ID = l.Fund_grant_ID JOIN Regrant_rounds r ON r.ID = g.Round_ID
     WHERE l.Organization_ID IN (?) AND (r.status IN ('approved', 'paid') OR r.ID = ?)
 
     UNION ALL
     SELECT 'fund_grant_out', g.Fund_ID, NULL, l.amount, ${isoDate("r.cutoff")},
-           ${roundCols}, NULL, NULL, NULL, NULL, NULL, NULL, g.ID, l.ID, l.Organization_ID, l.Project_ID,
+           ${roundCols}, NULL, NULL, NULL, NULL, NULL, NULL, NULL, g.ID, l.ID, l.Organization_ID, l.Project_ID,
            g.rationale, NULL, NULL, NULL, NULL, NULL, NULL, NULL
     FROM Fund_grant_lines l JOIN Fund_grants g ON g.ID = l.Fund_grant_ID JOIN Regrant_rounds r ON r.ID = g.Round_ID
     WHERE g.Fund_ID IN (?) AND (r.status IN ('approved', 'paid') OR r.ID = ?)
 
     UNION ALL
     SELECT 'transfer', tl.Organization_ID, tl.Project_ID, tl.amount_nok, ${isoDate("t.paid_at")},
-           ${roundCols}, t.ID, tl.ID, p.ID, p.name, t.bank_ref, t.paid_by, NULL, NULL, NULL, NULL, NULL,
+           ${roundCols}, t.ID, tl.ID, p.ID, p.name, t.bank_ref, t.paid_by, t.notes, NULL, NULL, NULL, NULL, NULL,
            NULL, NULL, NULL, NULL, NULL, NULL, NULL
     FROM Regrant_transfer_lines tl JOIN Regrant_transfers t ON t.ID = tl.Transfer_ID
     JOIN Regrant_rounds r ON r.ID = t.Round_ID JOIN Payees p ON p.ID = t.Payee_ID

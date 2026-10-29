@@ -856,7 +856,7 @@ const roundColumns = (alias = "r") => `${alias}.ID AS id, ${alias}.name, ${alias
   ${alias}.approved_by AS approvedBy, ${dbClockColumn(
   `${alias}.approved_at`,
   "approvedAt",
-)}, ${isoDate(`${alias}.paid_at`)} AS paidAt`;
+)}, ${isoDate(`${alias}.paid_at`)} AS paidAt, ${alias}.notes`;
 const mapRound = (r: any): Round => ({
   id: r.id,
   name: r.name,
@@ -869,6 +869,7 @@ const mapRound = (r: any): Round => ({
   approvedBy: r.approvedBy,
   approvedAt: r.approvedAt,
   paidAt: r.paidAt,
+  notes: r.notes ?? null,
 });
 
 async function getRound(id: number, conn?: Queryable): Promise<Round | null> {
@@ -1182,7 +1183,7 @@ const transferSelect = `SELECT t.ID AS id, t.Round_ID AS roundId, p.ID AS payeeI
     t.fx_rate AS fxRate, t.bank_fee AS bankFee, ${isoDate(
       "t.paid_at",
     )} AS paidAt, t.bank_ref AS bankRef,
-    t.paid_by AS paidBy
+    t.paid_by AS paidBy, t.notes
   FROM Regrant_transfers t JOIN Payees p ON p.ID = t.Payee_ID`;
 
 const lineSelect = `SELECT tl.ID AS id, tl.Transfer_ID AS transferId, tl.Organization_ID AS organizationId,
@@ -1227,6 +1228,7 @@ async function loadTransfers(
     paidAt: t.paidAt,
     bankRef: t.bankRef,
     paidBy: t.paidBy as PaidBy,
+    notes: t.notes ?? null,
     lines: lines
       .filter((l) => l.transferId === t.id)
       .map((l): TransferLine => ({ ...l, amountNok: money(l.amountNok) })),
@@ -1244,13 +1246,19 @@ async function getTransfer(id: number, conn?: Queryable): Promise<Transfer | nul
 
 async function createTransfer(
   conn: Queryable,
-  input: { roundId: number; payeeId: number; currency: string; amountNok: string | number },
+  input: {
+    roundId: number;
+    payeeId: number;
+    currency: string;
+    amountNok: string | number;
+    notes?: string | null;
+  },
 ): Promise<number> {
   return (
     await exec(
       conn,
-      `INSERT INTO Regrant_transfers (Round_ID, Payee_ID, amount_nok, currency) VALUES (?, ?, ?, ?)`,
-      [input.roundId, input.payeeId, input.amountNok, input.currency],
+      `INSERT INTO Regrant_transfers (Round_ID, Payee_ID, amount_nok, currency, notes) VALUES (?, ?, ?, ?, ?)`,
+      [input.roundId, input.payeeId, input.amountNok, input.currency, input.notes ?? null],
     )
   ).insertId;
 }
@@ -1265,6 +1273,16 @@ async function updateTransfer(
     `UPDATE Regrant_transfers SET Payee_ID = ?, currency = ?, amount_nok = ? WHERE ID = ?`,
     [input.payeeId, input.currency, input.amountNok, id],
   );
+}
+
+/** Notes are documentation, not money: callers allow them in any round status */
+async function setRoundNotes(id: number, notes: string | null, conn?: Queryable): Promise<void> {
+  await exec(conn, `UPDATE Regrant_rounds SET notes = ? WHERE ID = ?`, [notes, id]);
+}
+
+/** Notes are documentation, not money: callers allow them in any round status */
+async function setTransferNotes(id: number, notes: string | null, conn?: Queryable): Promise<void> {
+  await exec(conn, `UPDATE Regrant_transfers SET notes = ? WHERE ID = ?`, [notes, id]);
 }
 
 async function deleteTransfer(conn: Queryable, id: number): Promise<void> {
@@ -1747,6 +1765,8 @@ export type StatementRow = {
   transferLineId: number | null;
   payeeName: string | null;
   bankRef: string | null;
+  /** Transfers: the transfer's notes */
+  transferNotes: string | null;
   fundGrantId: number | null;
   fundGrantLineId: number | null;
   /** The fund (for fund_grant_in) or the recipient (for fund_grant_out) */
@@ -1791,6 +1811,7 @@ async function getStatementRows(
              "adjustmentType",
              "reason",
              "createdBy",
+             "transferNotes",
            ])},
            0 AS pending, 0 AS sortKind, 0 AS sortId
     FROM Regrant_allocations a
@@ -1801,7 +1822,7 @@ async function getStatementRows(
     SELECT ${isoDate(
       "r.cutoff",
     )}, 'fund_grant_in', l.Project_ID, l.amount, NULL, r.ID, r.name, NULL, NULL, NULL, NULL,
-           g.ID, l.ID, g.Fund_ID, g.rationale, NULL, NULL, NULL, g.created_by, 0, 1, l.ID
+           g.ID, l.ID, g.Fund_ID, g.rationale, NULL, NULL, NULL, g.created_by, NULL, 0, 1, l.ID
     FROM Fund_grant_lines l JOIN Fund_grants g ON g.ID = l.Fund_grant_ID JOIN Regrant_rounds r ON r.ID = g.Round_ID
     WHERE l.Organization_ID = ? AND r.status IN ('approved', 'paid') AND r.cutoff BETWEEN ? AND ?
 
@@ -1809,7 +1830,7 @@ async function getStatementRows(
     SELECT ${isoDate(
       "r.cutoff",
     )}, 'fund_grant_out', l.Project_ID, -l.amount, NULL, r.ID, r.name, NULL, NULL, NULL, NULL,
-           g.ID, l.ID, l.Organization_ID, g.rationale, NULL, NULL, NULL, g.created_by, 0, 2, l.ID
+           g.ID, l.ID, l.Organization_ID, g.rationale, NULL, NULL, NULL, g.created_by, NULL, 0, 2, l.ID
     FROM Fund_grant_lines l JOIN Fund_grants g ON g.ID = l.Fund_grant_ID JOIN Regrant_rounds r ON r.ID = g.Round_ID
     WHERE g.Fund_ID = ? AND r.status IN ('approved', 'paid') AND r.cutoff BETWEEN ? AND ?
 
@@ -1817,7 +1838,7 @@ async function getStatementRows(
     SELECT ${isoDate(
       "adj.effective_at",
     )}, 'adjustment', adj.Project_ID, adj.amount, NULL, adj.Round_ID, rr.name, NULL, NULL,
-           NULL, NULL, NULL, NULL, NULL, NULL, adj.ID, adj.type, adj.reason, adj.created_by,
+           NULL, NULL, NULL, NULL, NULL, NULL, adj.ID, adj.type, adj.reason, adj.created_by, NULL,
            COALESCE(rr.status = 'draft', 0), 3, adj.ID
     FROM Regrant_adjustments adj LEFT JOIN Regrant_rounds rr ON rr.ID = adj.Round_ID
     WHERE adj.Organization_ID = ? AND adj.effective_at BETWEEN ? AND ?
@@ -1826,7 +1847,7 @@ async function getStatementRows(
     SELECT ${isoDate(
       "t.paid_at",
     )}, 'transfer', tl.Project_ID, -tl.amount_nok, NULL, r.ID, r.name, t.ID, tl.ID, p.name,
-           t.bank_ref, NULL, NULL, NULL, NULL, NULL, NULL, NULL, r.approved_by, 0, 4, tl.ID
+           t.bank_ref, NULL, NULL, NULL, NULL, NULL, NULL, NULL, r.approved_by, t.notes, 0, 4, tl.ID
     FROM Regrant_transfer_lines tl JOIN Regrant_transfers t ON t.ID = tl.Transfer_ID
     JOIN Regrant_rounds r ON r.ID = t.Round_ID JOIN Payees p ON p.ID = t.Payee_ID
     WHERE tl.Organization_ID = ? AND r.status = 'paid' AND t.paid_at BETWEEN ? AND ?
@@ -1980,6 +2001,9 @@ export const regranting = {
   pairAdjustments,
   deleteAdjustments,
   moveRoundEarmarks,
+  // notes
+  setRoundNotes,
+  setTransferNotes,
   // documents
   documentsFor,
   listDocuments,
