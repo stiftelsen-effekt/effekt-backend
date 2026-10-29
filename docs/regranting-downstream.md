@@ -21,8 +21,8 @@ reached the ultimate recipient**.
 > AMF 15.07.2025.
 
 Used for recipient statements ("sent by us" vs "received by the recipient"), project pages (HKI's
-Vitamin A Supplementation shows money that reached it via TCF), reporting, donor-facing impact and
-audits.
+Vitamin A Supplementation shows money that reached it via TCF), reporting and audits, all in the
+admin. Donor-facing impact builds on it later, as a separate project.
 
 ## Principles
 
@@ -32,7 +32,7 @@ audits.
 2. **The intermediary tells us; we record it.** GiveWell (and other intermediaries) report where
    our money went and when. Ops enters it by hand, with the report attached. We never estimate
    or spread amounts ourselves. The one exception is a clearly marked _assumed_ entry for old
-   pass-through lines (see Backfill).
+   pass-through lines until GiveWell confirms them (see Backfill).
 3. **Calculated where possible.** Whether a line still awaits a report is calculated from the
    line and its onward records; no "pending" rows are stored.
 4. **Everything has an author and a source**: who entered it, when, and the intermediary's report.
@@ -218,7 +218,7 @@ the line's reported split (step 3). A donation that was 1 000 kr of the 1 200 00
 above went 437.50 kr to MC, 262.50 kr to AMF, 131.25 kr to HKI, 87.50 kr to NI, and 81.25 kr is
 awaiting report. A donation in the HKI line reached HKI 75 % on 15.07 and 25 % on 01.09.2025. We
 never spread one line's money over another line's report. Nothing is stored per donation. Admin
-first ("Where did it go?" on a donation), donors later.
+only ("Where did it go?" on a donation); donor-facing is a later, separate project.
 
 ### Reporting
 
@@ -232,27 +232,33 @@ first ("Where did it go?" on a donation), donors later.
 Yes. A balance answers "what do we still owe this recipient", which ends when we pay the payee,
 as agreed in regranting.md; the bank reconciliation and the accounts follow our payments, not
 GiveWell's. Forwarding dates answer a different question ("when did it arrive") and are reported
-beside the ledger. If money GiveWell retained (fees) should ever be made good by us, that is an
+beside the ledger. We assume GiveWell covers transaction costs; if a report shows it retained
+something and that should ever be made good by us, that is an
 ordinary `fee` or `correction` adjustment in a later round, decided by people, not created by the
 onward records.
 
 ## Backfill
 
-Onward records hang off transfer lines, so they can only be backfilled as far back as transfer
-history is in the system. regranting.md leaves the history import out of the first build; until
-it's done, there's nothing to attach older forwards to.
+Onward records hang off transfer lines. Transfer history for 2016–2021 is now in prod and 2022
+onwards is being added, so backfill can follow it.
 
-Minimum per historical pass-through line: the line itself, a forwarded date and the amount. For
-lines where no GiveWell statement can be found, an `assumed` allocation is acceptable if clearly
-marked: target = the line's recipient, full amount, `forwarded_at` = our `paid_at` (or a fixed lag
-after it, open question 3), note "assumed forwarded in full; no report found". A bulk action
-creates them for a payee and date range. They:
+Scope (decided): **every line paid via GiveWell from 2019 onwards**, pass-through and regranting
+fund lines alike.
 
-- are allowed only on pass-through lines, never for regranting funds (assuming TCF grantees would
-  be inventing GiveWell's decisions);
-- show as _assumed_ everywhere (statements, trace, the ultimate-grantee report) and are never shown
-  to donors as a date;
-- are replaced (deleted and re-entered as `reported`) when a statement turns up.
+- **Pass-through lines:** where a GiveWell statement exists, enter it as `reported`. Otherwise a
+  bulk action creates one `assumed` allocation per line: target = the line's recipient (and
+  project), the full amount, `forwarded_at` = our `paid_at` unless better information exists,
+  note "assumed forwarded in full; no report found".
+- **Regranting fund lines (TCF/AGF):** only `reported` allocations. Without a report the line stays
+  _awaiting report_; assuming TCF grantees would be inventing GiveWell's decisions.
+
+`assumed` allocations:
+
+- are allowed only on pass-through lines, with target = the line's recipient;
+- show as _assumed_ everywhere in the admin (statements, trace, the ultimate-grantee report, the
+  Awaiting report list, where they are listed separately);
+- are replaced (deleted and re-entered as `reported`, linked to the report) when GiveWell confirms
+  the exact data.
 
 ## What does not change
 
@@ -264,30 +270,42 @@ creates them for a payee and date range. They:
 - Tax receipts and the "given to charities" figures.
 - TCF and AGF remain ordinary recipients that donors choose and we pay.
 
+## Decisions (29 Oct 2026)
+
+1. **Assumed entries: yes.** Old pass-through lines are filled with reasonable data until GiveWell
+   confirms exact figures: forwarded in full, `forwarded_at` = our `paid_at` unless better
+   information exists. Always marked `assumed` and replaceable.
+2. **GiveWell covers transaction costs.** Pass-through forwards are recorded in full by default.
+   The `retained` kind stays for when a report shows GiveWell kept something; no `retained` row is
+   ever created by assumption.
+3. **Backfill is comprehensive:** every line paid via GiveWell from 2019 onwards. Transfer history
+   2016–2021 is in prod; 2022 onwards is being added.
+4. **Admin only for now.** The first build is about getting the data and the model right.
+   Donor-facing trace and received dates are a later, separate project.
+
 ## Phases
 
 1. **MVP (admin).** Tables; mark GiveWell as an intermediary payee and TCF/AGF as regranting
    funds; onward status and entry on the transfer card (prefilled pass-through confirmation,
    grants, retained), onward reports with documents; the Awaiting report list.
-2. **Statements, projects, reports.** Sent/received dates on recipient statements and project
-   pages, _Via regranting funds_ sections, the ultimate-grantee report (CSV). Backfill (reported,
-   then assumed) once transfer history is imported.
-3. **Donation forward trace** in the admin, then donor-facing (Min Side / annual impact summary).
+2. **Backfill.** Bulk `assumed` allocations for pass-through lines via GiveWell from 2019, then
+   GiveWell's statements entered as `reported` as they are found or received, following the
+   transfer history import (2016–2021 now, 2022 onwards as it lands).
+3. **Statements, projects, reports.** Sent/received dates on recipient statements and project
+   pages, _Via regranting funds_ sections, the ultimate-grantee report (CSV), and the donation
+   forward trace in the admin.
+
+**Later, separate project (out of scope for the first build):** donor-facing trace and received
+dates (Min Side, annual impact summary).
 
 ## Open questions
 
 1. **Grantees.** Target is `Organizations` for our recipients and `External_grantees` only for the
    rest (recommended), or one grantee table for all?
 2. **GiveWell statements.** Can GiveWell send a regular forwarding statement per transfer (date and
-   USD per recipient) and a regranting report for TCF/AGF lines? What do we already have?
-3. **Assumed entries.** Acceptable for old pass-through lines as described? Default date: our
-   `paid_at`, or `paid_at` + a fixed lag?
-4. **Backfill.** How far back: from 2019 (opening balances) or 2016? It depends on importing
-   transfer history first.
-5. **Retained money.** Record intermediary fees/FX loss as `retained` (proposed), or just leave it
-   as awaiting with a note?
-6. **Redirected pass-through.** If GiveWell forwards a pass-through line to someone other than the
+   USD per recipient) and a regranting report for TCF/AGF lines? What do we already have, to
+   replace assumed entries?
+3. **Redirected pass-through.** If GiveWell forwards a pass-through line to someone other than the
    line's recipient: warning with note (proposed), or error?
-7. **Donor visibility.** Should donors see the trace and received dates, and where?
-8. **Rounding.** `apportion` so NOK shares add up to the line exactly (proposed), or round each
+4. **Rounding.** `apportion` so NOK shares add up to the line exactly (proposed), or round each
    `amount_foreign × fx_rate` on its own and show a few øre of remainder?
