@@ -224,7 +224,14 @@ function GrantRows({
         issues={issuesFor(builder.issues, { fundGrantId: grant.id })}
         className="mt-1"
       />
-      <table className="mt-2 w-full text-sm" aria-label={`Lines of grant #${grant.id}`}>
+      {/* Fixed layout and one column template, so recipients, projects and amounts line up
+          across the grants. */}
+      <table className="mt-2 w-full table-fixed text-sm" aria-label={`Lines of grant #${grant.id}`}>
+        <colgroup>
+          <col className="w-2/5" />
+          <col />
+          <col className="w-36" />
+        </colgroup>
         <thead className="sr-only">
           <tr>
             <th>Recipient</th>
