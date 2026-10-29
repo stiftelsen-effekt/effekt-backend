@@ -55,7 +55,7 @@ Swedish organisation runs on its own system; Swedish features are out of scope.
 - **Records**: import log list (search file content) + entry detail (JSON result + raw file);
   reports.
 - **Home**: what needs attention (review queue, missing AvtaleGiro payments, failed charges, recent
-  imports) and headline numbers.
+  imports) and headline numbers, each with a 13-month sparkline (`home.trends`).
 
 ## Distributions
 
