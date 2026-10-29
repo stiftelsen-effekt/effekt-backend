@@ -998,7 +998,6 @@ model Regrant_adjustments {
   Round_ID             Int?
   linked_transfer_ID   Int? /// correction: the transfer it corrects
   linked_donation_ID   Int? /// fronted: the expected donation, once registered
-  document_ref         String?  @db.VarChar(512) /// Deprecated: copied to Regrant_documents (20261029130000), no longer read or written
   created_by           String   @db.VarChar(255)
   created_at           DateTime @default(now()) @db.DateTime(0)
   Paired_adjustment_ID Int? /// Earmarks: the other half of the pair (unrestricted −X ↔ project +X)

@@ -129,6 +129,15 @@ const TABLES: Record<TableName, TableMeta> = {
       linked_donation_ID: "Donations",
     },
   },
+  Regrant_documents: {
+    key: "ID",
+    numericKey: true,
+    fks: {
+      Round_ID: "Regrant_rounds",
+      Transfer_ID: "Regrant_transfers",
+      Adjustment_ID: "Regrant_adjustments",
+    },
+  },
   Regrant_round_balances: {
     key: "ID",
     numericKey: true,
