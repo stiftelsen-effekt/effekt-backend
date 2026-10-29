@@ -1,5 +1,5 @@
 import { DAO } from "../DAO";
-import { instantRangeClauses, type InstantRange } from "../osloDays";
+import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 
 /**
  * Recurring agreements across providers (Vipps and AvtaleGiro in NO, AutoGiro in SE) in one
@@ -119,8 +119,8 @@ const providerQueries: Record<AgreementProvider, string> = {
         ELSE 'pending'
       END`)} AS status,
       ${str("COALESCE(VA.status, '')")} AS providerStatus,
-      VA.timestamp_created AS created,
-      CAST(NULL AS DATETIME) AS lastUpdated,
+      VA.timestamp_created AS createdDb,
+      CAST(NULL AS DATETIME) AS lastUpdatedDb,
       CAST(VA.cancellation_date AS DATETIME) AS cancelled,
       ${str("VA.paused_until_date")} AS pausedUntil
     FROM Vipps_agreements VA
@@ -142,8 +142,8 @@ const providerQueries: Record<AgreementProvider, string> = {
         ELSE 'pending'
       END`)} AS status,
       ${str("IF(AG.active = 1, 'active', 'inactive')")} AS providerStatus,
-      AG.created AS created,
-      AG.last_updated AS lastUpdated,
+      AG.created AS createdDb,
+      AG.last_updated AS lastUpdatedDb,
       CAST(AG.cancelled AS DATETIME) AS cancelled,
       ${str("NULL")} AS pausedUntil
     FROM Avtalegiro_agreements AG
@@ -169,8 +169,8 @@ const providerQueries: Record<AgreementProvider, string> = {
       ${str(
         "CONCAT(IF(AG.active = 1, 'active', 'inactive'), ', mandate ', COALESCE(M.status, 'missing'))",
       )} AS providerStatus,
-      AG.created AS created,
-      AG.last_updated AS lastUpdated,
+      AG.created AS createdDb,
+      AG.last_updated AS lastUpdatedDb,
       CAST(AG.cancelled AS DATETIME) AS cancelled,
       ${str("NULL")} AS pausedUntil
     FROM AutoGiro_agreements AG
@@ -188,8 +188,8 @@ const sortExpressions: Record<AgreementSortColumn, string[]> = {
   amount: ["amount"],
   chargeDay: ["chargeDay"],
   status: ["status"],
-  created: ["created"],
-  lastUpdated: ["lastUpdated"],
+  created: ["createdDb"],
+  lastUpdated: ["lastUpdatedDb"],
   cancelled: ["cancelled"],
 };
 
@@ -212,9 +212,9 @@ function buildQuery(filter: AgreementFilter) {
   if (filter.amount?.to !== undefined) add("amount <= ?", filter.amount.to);
   if (filter.chargeDay?.from !== undefined) add("chargeDay >= ?", filter.chargeDay.from);
   if (filter.chargeDay?.to !== undefined) add("chargeDay <= ?", filter.chargeDay.to);
-  if (filter.created?.from) add("created >= ?", filter.created.from);
-  if (filter.created?.to) add("created < DATE_ADD(?, INTERVAL 1 DAY)", filter.created.to);
-  for (const clause of instantRangeClauses("created", filter.createdRange, "db")) add(clause);
+  if (filter.created?.from) add("createdDb >= ?", filter.created.from);
+  if (filter.created?.to) add("createdDb < DATE_ADD(?, INTERVAL 1 DAY)", filter.created.to);
+  for (const clause of instantRangeClauses("createdDb", filter.createdRange, "db")) add(clause);
   if (filter.donor) {
     const pattern = `%${escapeLike(filter.donor)}%`;
     add("(donorName LIKE ? OR donorEmail LIKE ?)", pattern, pattern);
@@ -230,7 +230,12 @@ function buildQuery(filter: AgreementFilter) {
 }
 
 /** amount is a DECIMAL, which mysql2 returns as a string */
-type AgreementQueryRow = Omit<AgreementRow, "amount"> & { amount: string };
+type AgreementQueryRow = Omit<AgreementRow, "amount"> & {
+  amount: string;
+  /** created and lastUpdated in the DB clock (column defaults), see osloDays.ts */
+  createdDb: Date | null;
+  lastUpdatedDb: Date | null;
+};
 
 async function getList(options: {
   filter: AgreementFilter;
@@ -246,7 +251,11 @@ async function getList(options: {
     options.limit !== undefined ? [options.limit, (options.page ?? 0) * options.limit] : [];
 
   const [rows] = await DAO.query<AgreementQueryRow[]>(
-    `SELECT * FROM ${from}
+    `SELECT *, ${dbClockColumn("createdDb", "created")}, ${dbClockColumn(
+      "lastUpdatedDb",
+      "lastUpdated",
+    )}
+     FROM ${from}
      ${where}
      ORDER BY ${[...sortExpressions[options.sort.id], "provider", "CHAR_LENGTH(id)", "id"]
        .map((expression) => `${expression} ${direction}`)

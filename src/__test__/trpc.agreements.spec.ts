@@ -180,7 +180,13 @@ describe("tRPC agreements router", () => {
       expect(sql).to.contain("FROM AutoGiro_agreements AG");
       expect(sql.match(/UNION ALL/g)).to.have.length(2);
       expect(sql).to.contain("CAST(AG.amount / 100 AS DECIMAL(16, 2))");
-      expect(sql).to.match(/ORDER BY created DESC, provider DESC/);
+      expect(sql).to.match(/ORDER BY createdDb DESC, provider DESC/);
+      // The created columns are filled by MySQL defaults (DB clock), returned as UTC
+      expect(sql).to.contain("VA.timestamp_created AS createdDb");
+      expect(sql).to.contain("CONVERT_TZ(createdDb, @@session.time_zone, '+00:00') AS created");
+      expect(sql).to.contain(
+        "CONVERT_TZ(lastUpdatedDb, @@session.time_zone, '+00:00') AS lastUpdated",
+      );
       expect(params).to.deep.equal([10, 0]);
 
       expect(result).to.deep.equal({

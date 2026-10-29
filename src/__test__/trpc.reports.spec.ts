@@ -608,7 +608,25 @@ describe("tRPC reports router", () => {
       expect(query.firstCall.args[0]).to.match(/ORDER BY label ASC, ID ASC\s+LIMIT/);
 
       await DAO.logging.getEntries(25, 0, null);
-      expect(query.thirdCall.args[0]).to.match(/ORDER BY timestamp DESC\s+LIMIT/);
+      expect(query.thirdCall.args[0]).to.match(/ORDER BY Import_logs.timestamp DESC\s+LIMIT/);
+    });
+
+    it("reads the DB-filled timestamp as UTC in the list and the detail", async () => {
+      const query = sinon.stub(DAO, "query");
+      query.resolves([[{ count: 0 }], []] as any);
+      const convert =
+        "CONVERT_TZ(Import_logs.timestamp, @@session.time_zone, '+00:00') AS timestamp";
+
+      await DAO.logging.getEntries(25, 0, null, { id: "timestamp", desc: true });
+      // Sorted by the column itself (indexed), not the converted alias
+      expect(query.firstCall.args[0]).to.contain(convert);
+      expect(query.firstCall.args[0]).to.match(/ORDER BY Import_logs.timestamp DESC, ID DESC/);
+
+      query.resetHistory();
+      query.resolves([[], []] as any);
+      await DAO.logging.get(7);
+      expect(query.firstCall.args[0]).to.contain(convert);
+      expect(query.firstCall.args[0]).not.to.contain("SELECT *");
     });
 
     it("labels upload entries with the admin's source names and a summary", async () => {

@@ -1,5 +1,6 @@
 import type { ResultSetHeader } from "mysql2";
 import { DAO } from "../DAO";
+import { dbClockColumn } from "../osloDays";
 
 /**
  * Review_queue_items: transactions from payment reports that could not be registered
@@ -71,7 +72,8 @@ export type ReviewQueueSortColumn = "id" | "created" | "date" | "amount" | "sour
 
 const sortColumns: Record<ReviewQueueSortColumn, string> = {
   id: "ID",
-  created: "Created",
+  // Qualified, so it sorts by the column (indexed) rather than the converted `created` alias
+  created: "Review_queue_items.Created",
   date: "Transaction_date",
   amount: "Amount",
   source: "Source",
@@ -94,10 +96,10 @@ const itemColumns = `
   Meta_owner_ID AS metaOwnerId,
   Status AS status,
   Resolved_by AS resolvedBy,
-  Resolved_at AS resolvedAt,
+  ${dbClockColumn("Resolved_at", "resolvedAt")},
   Note AS note,
   Donation_ID AS donationId,
-  Created AS created`;
+  ${dbClockColumn("Created", "created")}`;
 
 const emptyCounts = (): ReviewQueueStatusCounts => ({ open: 0, registered: 0, ignored: 0 });
 

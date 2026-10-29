@@ -1,5 +1,6 @@
 import { Donors, Referral_records, Referral_types } from "@prisma/client";
 import { DAO } from "../DAO";
+import { dbClockColumn } from "../osloDays";
 
 //region Get
 
@@ -106,7 +107,10 @@ async function getDonorAnswers(donorID: Donors["ID"]): Promise<DonorReferralAnsw
   let [answers] = await DAO.query<DonorReferralAnswer[]>(
     `
         SELECT
-          r.id AS id, t.id AS typeId, r.DonorID AS donorId, r.Registered AS timestamp, r.website_session AS session, t.is_active AS active,
+          r.id AS id, t.id AS typeId, r.DonorID AS donorId, ${dbClockColumn(
+            "r.Registered",
+            "timestamp",
+          )}, r.website_session AS session, t.is_active AS active,
           CASE r.ReferralID
             WHEN 10 THEN r.other_comment
             ELSE t.name END
