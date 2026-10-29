@@ -1,4 +1,5 @@
 import { DAO } from "../DAO";
+import { dbClockColumn } from "../osloDays";
 
 /**
  * Cancelled recurring agreements (Vipps and AvtaleGiro, Norway) with what we know about why and
@@ -332,7 +333,7 @@ async function getReasons(
     }[]
   >(
     `SELECT R.vippsAgreementID, R.avtalegiroAgreementID, R.reasonID AS reasonId, RS.name,
-       RS.isOther, R.otherComment, R.timestamp
+       RS.isOther, R.otherComment, ${dbClockColumn("R.timestamp")}
      FROM Recurring_agreement_stopped R
      INNER JOIN Recurring_agreement_stopped_reasons RS ON RS.ID = R.reasonID
      WHERE R.vippsAgreementID IN (?) OR R.avtalegiroAgreementID IN (?)

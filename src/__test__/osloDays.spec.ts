@@ -1,5 +1,7 @@
 import { expect } from "chai";
 import {
+  dbClockColumn,
+  dbClockToUtc,
   instantRangeClauses,
   osloDateOrInstantRange,
   osloDayEnd,
@@ -53,5 +55,18 @@ describe("osloDays", () => {
     expect(db).to.have.length(1);
     expect(db[0]).to.contain("TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), NOW())");
     expect(instantRangeClauses("x", undefined)).to.deep.equal([]);
+  });
+
+  it("reads DB-clock columns as UTC with the session's own zone", () => {
+    expect(dbClockToUtc("PI.timestamp")).to.equal(
+      "CONVERT_TZ(PI.timestamp, @@session.time_zone, '+00:00')",
+    );
+    // Aliased to the column's name by default, so row shapes don't change
+    expect(dbClockColumn("Import_logs.timestamp")).to.equal(
+      "CONVERT_TZ(Import_logs.timestamp, @@session.time_zone, '+00:00') AS timestamp",
+    );
+    expect(dbClockColumn("Created", "created")).to.equal(
+      "CONVERT_TZ(Created, @@session.time_zone, '+00:00') AS created",
+    );
   });
 });

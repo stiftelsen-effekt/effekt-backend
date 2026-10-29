@@ -211,9 +211,12 @@ describe("DAO paymentIntents", () => {
     expect(sql).to.contain("WHEN PI.timestamp < NOW() - INTERVAL ? DAY THEN 'expired'");
     // New donor: nothing confirmed before the intent's day
     expect(sql).to.contain("(S.firstDonation IS NULL OR S.firstDonation >= DATE(PI.timestamp))");
-    expect(sql).to.contain("X.timestamp_confirmed >= DATE(P.created)");
+    expect(sql).to.contain("X.timestamp_confirmed >= DATE(P.createdDb)");
+    // Payment_intent.timestamp is filled by MySQL (DB clock): returned as UTC, compared in the DB clock
+    expect(sql).to.contain("PI.timestamp AS createdDb");
+    expect(sql).to.contain("CONVERT_TZ(P.createdDb, @@session.time_zone, '+00:00') AS created");
     expect(sql).to.contain("I.status IN (?) AND I.newDonor = 1");
-    expect(sql).to.contain("ORDER BY P.created DESC, P.id DESC");
+    expect(sql).to.contain("ORDER BY P.createdDb DESC, P.id DESC");
     expect(params).to.deep.equal([14, [2, 7], ["awaiting"], 20, 20]);
 
     expect(result).to.deep.equal({
@@ -255,8 +258,10 @@ describe("DAO paymentIntents", () => {
     const [sql, params] = query.firstCall.args as [string, unknown[]];
     expect(sql).not.to.contain("GROUP BY Donor_ID");
     // The same status expressions, over the page's rows
-    expect(sql).to.contain("WHEN S.lastDonation >= DATE(Pg.created) THEN 'received'");
-    expect(sql).to.contain("(S.firstDonation IS NULL OR S.firstDonation >= DATE(Pg.created))");
+    expect(sql).to.contain("WHEN S.lastDonation >= DATE(Pg.createdDb) THEN 'received'");
+    expect(sql).to.contain("WHEN Pg.createdDb < NOW() - INTERVAL ? DAY THEN 'expired'");
+    expect(sql).to.contain("(S.firstDonation IS NULL OR S.firstDonation >= DATE(Pg.createdDb))");
+    expect(sql).to.contain("CONVERT_TZ(P.createdDb, @@session.time_zone, '+00:00') AS created");
     expect(sql).to.contain("ORDER BY timestamp_confirmed DESC LIMIT 1) AS lastDonation");
     expect(params).to.deep.equal([14, 7, 500, 0]);
     expect(result.count).to.equal(41);

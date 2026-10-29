@@ -28,6 +28,9 @@ export interface CreateAdjustmentInput {
   inflationPercentage: number;
 }
 
+// `expires` is written by the app (UTC wall clock), so it is compared with UTC_TIMESTAMP(): NOW() is
+// the DB session's clock (UTC+2 in production), which made proposals expire two hours early.
+// `created` and `updated` are filled by MySQL and hold the session clock; see docs/timestamps.md.
 export const inflationadjustments = {
   /**
    * Create a new adjustment proposal
@@ -113,7 +116,7 @@ export const inflationadjustments = {
        SET status = 'rejected', updated = NOW()
        WHERE token = ? 
        AND status = 'pending' 
-       AND expires > NOW()`,
+       AND expires > UTC_TIMESTAMP()`,
       [token],
     );
 
@@ -132,7 +135,7 @@ export const inflationadjustments = {
        WHERE agreement_ID = ? 
        AND agreement_type = ?
        AND status = 'pending'
-       AND expires > NOW()`,
+       AND expires > UTC_TIMESTAMP()`,
       [agreementId.toString(), agreementType],
     );
 
@@ -147,7 +150,7 @@ export const inflationadjustments = {
       `UPDATE Agreement_inflation_adjustments 
        SET status = 'expired', updated = NOW()
        WHERE status = 'pending' 
-       AND expires < NOW()`,
+       AND expires < UTC_TIMESTAMP()`,
     );
 
     return result.affectedRows;

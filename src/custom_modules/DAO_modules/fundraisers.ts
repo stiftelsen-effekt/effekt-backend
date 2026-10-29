@@ -1,7 +1,7 @@
 import { Donors, Fundraisers, Organizations } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
 import * as crypto from "crypto";
-import { instantRangeClauses, type InstantRange } from "../osloDays";
+import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 
 type FundraiserListFilter = {
   registrationDate?: { from?: Date; to?: Date };
@@ -358,8 +358,8 @@ export const fundraisers = {
         -- This CTE calculates per-fundraiser stats and applies filters
         SELECT
             f.ID AS fundraiser_id,
-            f.Inserted AS fundraiser_registered,
-            f.Last_updated AS fundraiser_last_updated,
+            ${dbClockColumn("f.Inserted", "fundraiser_registered")},
+            ${dbClockColumn("f.Last_updated", "fundraiser_last_updated")},
             ${includeSecrets ? "f.Secret AS fundraiser_secret," : ""}
             d.ID AS donor_id,
             d.full_name AS donor_name,
@@ -502,7 +502,11 @@ export const fundraisers = {
         Inserted: Date;
         Last_updated: Date;
       }[]
-    >(`SELECT ID, Donor_ID, Secret, Inserted, Last_updated FROM Fundraisers WHERE ID = ?`, [id]);
+    >(
+      `SELECT ID, Donor_ID, Secret, ${dbClockColumn("Inserted")}, ${dbClockColumn("Last_updated")}
+       FROM Fundraisers WHERE ID = ?`,
+      [id],
+    );
 
     if (rows.length === 0) {
       return null;

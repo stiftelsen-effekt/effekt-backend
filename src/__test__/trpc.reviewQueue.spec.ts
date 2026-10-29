@@ -134,6 +134,22 @@ describe("tRPC reports.reviewQueue", () => {
     });
   });
 
+  describe("DB-filled times", () => {
+    it("reads Created and Resolved_at as UTC and sorts by the column", async () => {
+      const query = sinon.stub(DAO, "query");
+      query.onFirstCall().resolves([[], []] as any);
+      query.onSecondCall().resolves([[{ total: 0 }], []] as any);
+      query.onThirdCall().resolves([[], []] as any);
+      await DAO.reviewqueue.getList({ page: 0, limit: 10, sort: { id: "created", desc: true } });
+      const sql = query.firstCall.args[0] as string;
+      expect(sql).to.contain("CONVERT_TZ(Created, @@session.time_zone, '+00:00') AS created");
+      expect(sql).to.contain(
+        "CONVERT_TZ(Resolved_at, @@session.time_zone, '+00:00') AS resolvedAt",
+      );
+      expect(sql).to.contain("ORDER BY Review_queue_items.Created DESC, ID DESC");
+    });
+  });
+
   describe("search", () => {
     it("passes the trimmed query and a default limit", async () => {
       const search = sinon.stub(DAO.reviewqueue, "search").resolves([item()]);
