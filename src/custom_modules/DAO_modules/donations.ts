@@ -12,6 +12,7 @@ import { DateTime } from "luxon";
 import { Donations, Prisma } from "@prisma/client";
 import { RequestLocale } from "../../middleware/locale";
 import { publishEvent } from "../daoEvents";
+import { toOrgChartColor, type OrgChartColor } from "../orgChartColors";
 import { enqueueTidbytDonationConfirmed } from "../../tidbyt/tidbytWorkerEnqueue";
 
 /** @typedef Donation
@@ -604,7 +605,7 @@ async function getAggregateByTime(
    * default (REST) both are calendar dates of the stored wall clock, inclusive.
    */
   options: { exclusiveEnd?: boolean } = {},
-): Promise<Array<{ id: number; orgName: string; sum: string }>> {
+): Promise<Array<{ id: number; orgName: string; chartColor: OrgChartColor | null; sum: string }>> {
   const range = options.exclusiveEnd
     ? "Donations.timestamp_confirmed >= ? AND Donations.timestamp_confirmed < ?"
     : "DATE(Donations.timestamp_confirmed) >= DATE(?) AND DATE(Donations.timestamp_confirmed) <= DATE(?)";
@@ -612,11 +613,14 @@ async function getAggregateByTime(
   // queries the Combining_table/Distribution tables dropped in 20230731130928_multiple_cause_areas.
   // An organization's share of a donation is its share within the cause area times the
   // cause area's share of the distribution.
-  const [rows] = await DAO.query<Array<{ id: number; orgName: string; sum: string }>>(
+  const [rows] = await DAO.query<
+    Array<{ id: number; orgName: string; chartColor: string | null; sum: string }>
+  >(
     `
     SELECT
       Organizations.ID AS id,
       Organizations.full_name AS orgName,
+      Organizations.chart_color AS chartColor,
       ROUND(
         SUM(
           Donations.sum_confirmed
@@ -633,12 +637,12 @@ async function getAggregateByTime(
       INNER JOIN Organizations
         ON Organizations.ID = Distribution_cause_area_organizations.Organization_ID
     WHERE ${range}
-    GROUP BY Organizations.ID, Organizations.full_name
+    GROUP BY Organizations.ID, Organizations.full_name, Organizations.chart_color
     `,
     [startTime, endTime],
   );
 
-  return rows;
+  return rows.map((row) => ({ ...row, chartColor: toOrgChartColor(row.chartColor) }));
 }
 
 /**
@@ -1128,6 +1132,7 @@ async function getYearlyAggregateByDonorId(donorId) {
       organization: string;
       abbriv: string;
       causeAreaID: number;
+      chartColor: string | null;
       value: string;
       year: number;
     }[]
@@ -1137,6 +1142,7 @@ async function getYearlyAggregateByDonorId(donorId) {
     O.ID as ID,
     O.full_name as organization,
     O.abbriv,
+    O.chart_color as chartColor,
     O.Cause_area_ID as causeAreaID,
     SUM(Donations.sum_confirmed * (CA.percentage_share / 100) * (CAO.percentage_share / 100)) as value,
     YEAR(Donations.timestamp_confirmed) as \`year\`
@@ -1157,7 +1163,7 @@ async function getYearlyAggregateByDonorId(donorId) {
     [donorId],
   );
 
-  return res;
+  return res.map((row) => ({ ...row, chartColor: toOrgChartColor(row.chartColor) }));
 }
 
 /**

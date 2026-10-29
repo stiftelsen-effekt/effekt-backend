@@ -36,6 +36,8 @@ model Organizations {
   std_percentage_share Int?    @default(0) @db.TinyInt /// The percentage share of the standard distribution, determined by Effekt. Updated about twice a year
   is_active            Int?    @db.TinyInt
   ordering             Int?    @db.TinyInt
+  /// Chart colour in the admin: a palette token name such as "chart-3" (src/custom_modules/orgChartColors.ts), not a raw colour, so light and dark themes keep working. Null: derived from the id.
+  chart_color          String? @db.VarChar(16)
 
   Cause_areas                           Cause_areas                             @relation(fields: [cause_area_ID], references: [ID], onDelete: Cascade, map: "fk_Organizations_to_Cause_areas_idx")
   Distribution_cause_area_organizations Distribution_cause_area_organizations[]

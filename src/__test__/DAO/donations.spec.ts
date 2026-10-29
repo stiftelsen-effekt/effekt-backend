@@ -245,12 +245,19 @@ describe("DAO donations", () => {
     };
 
     it("getAggregateByTime sums each organization's share of the cause area share", async () => {
-      const rows = [{ id: 1, orgName: "Org", sum: "12.50" }];
+      const rows = [
+        { id: 1, orgName: "Org", chartColor: "chart-3", sum: "12.50" },
+        { id: 2, orgName: "Other org", chartColor: "teal", sum: "1.00" },
+      ];
       const queryStub = sinon.stub(DAO, "query").resolves([rows, []]);
       const from = new Date("2024-01-01");
       const to = new Date("2024-12-31");
 
-      expect(await DAO.donations.getAggregateByTime(from, to)).to.deep.equal(rows);
+      // Stored chart colours pass through; values outside the palette read as null.
+      expect(await DAO.donations.getAggregateByTime(from, to)).to.deep.equal([
+        rows[0],
+        { ...rows[1], chartColor: null },
+      ]);
 
       const [sql, params] = queryStub.firstCall.args;
       expectCurrentSchema(sql);

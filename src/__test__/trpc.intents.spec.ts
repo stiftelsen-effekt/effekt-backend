@@ -87,7 +87,13 @@ describe("tRPC intents router", () => {
       .stub(DAO.paymentIntents, "getList")
       .resolves({ rows: [row], count: 1, pages: 1 });
     const split = [
-      { organizationId: 1, organizationName: "AMF", causeAreaId: 1, share: "100.000000" },
+      {
+        organizationId: 1,
+        organizationName: "AMF",
+        causeAreaId: 1,
+        chartColor: null,
+        share: "100.000000",
+      },
     ];
     const shares = sinon
       .stub(DAO.distributions, "getOrgSharesByKIDs")

@@ -14,7 +14,14 @@ export type ChartColor =
   | "chart-6"
   | "chart-7"
   | "chart-8"
-  | "chart-9";
+  | "chart-9"
+  /** Violet, rose, olive, and softer versions: more organization colours. */
+  | "chart-10"
+  | "chart-11"
+  | "chart-12"
+  | "chart-13"
+  | "chart-14"
+  | "chart-15";
 export type ValueFormat = "money" | "number";
 
 export type ChartSeries = { key: string; label: string; color?: ChartColor };
@@ -31,6 +38,12 @@ export const swatchClasses: Record<ChartColor, string> = {
   "chart-7": "bg-chart-7",
   "chart-8": "bg-chart-8",
   "chart-9": "bg-chart-9",
+  "chart-10": "bg-chart-10",
+  "chart-11": "bg-chart-11",
+  "chart-12": "bg-chart-12",
+  "chart-13": "bg-chart-13",
+  "chart-14": "bg-chart-14",
+  "chart-15": "bg-chart-15",
 };
 
 export const colorVar = (color: ChartColor) => `var(--${color})`;

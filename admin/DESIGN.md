@@ -277,7 +277,9 @@ semantic layer, never raw values.
   - Dark mode is not inverted: warm near-blacks (#121211–#252422), off-white text, tones lightened for contrast.
     Every text pair meets WCAG AA in both themes (`test:a11y`).
 - **Charts.** `chart-1…5`: ink, accent blue, ochre, teal, light grey (distinguishable in both themes and for common
-  colour-vision deficiencies); largest series is ink. `chart-6…9` are softer 1–4, for organization splits.
+  colour-vision deficiencies); largest series is ink. `chart-6…9` are softer 1–4. `chart-10…12` (violet, rose, olive;
+  lighter in dark mode) and `chart-13…15` (softer 10–12) exist so every active organization can have its own colour.
+  Organizations use 1–4, 10–12, then 6–9, 13–15; never `chart-5`, which is "Other".
 - **Type.** ES Klarheit Grotesk everywhere; ES Klarheit Kurrent only for page titles (one brand moment per screen).
   Scale 12 / 13 / 14 / 16 / 20 / 26 / 32; body 14, tables and controls 13. Tabular lining figures for every number
   (`num`; `Money`, `Num`, `DateTime` apply it). Sentence case; no all-caps labels.
@@ -291,7 +293,13 @@ semantic layer, never raw values.
 ### Distributions
 
 Organizations first. Gi Effektivt gives almost everything through Global Health, so a split is one bar of organizations,
-each in its stable colour (`features/distribution/orgs.ts`: colour by id; light grey only for "Other"), with name, share and amount beside it.
+each in its own colour, with name, share and amount beside it.
+
+- **Colour is stored on the organization** (`Organizations.chart_color`, a palette token; set in Settings → Cause areas →
+  edit organization, which shows who else uses each colour). Always colour an organization with `orgColor(org)`
+  (`features/distribution/orgs.ts`): the stored token, or, only when none is stored, one derived from the id. Never
+  reassign colours per view, even when two organizations shown together share one. Light grey only for "Other".
+- Procedures that return organizations, `orgSplit` rows or per-organization totals include `chartColor`; pass it on.
 
 - A cause area appears as a small group header only when it adds information: more than one is used, or the one used isn't Global Health.
 - List cells use `OrgSparkline` (small bar; all organizations in the tooltip).

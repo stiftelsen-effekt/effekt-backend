@@ -1,8 +1,8 @@
 import { Cause_areas, Organizations } from "@prisma/client";
 import type { ResultSetHeader } from "mysql2";
 import { DAO } from "../DAO";
-import { CauseArea, Organization } from "../../schemas/types";
-import { mapOrganization } from "./organizations";
+import { CauseArea } from "../../schemas/types";
+import { mapOrganization, type MappedOrganization } from "./organizations";
 
 export const causeareas = {
   getById: async function (id: number): Promise<CauseArea> {
@@ -80,7 +80,7 @@ export const causeareas = {
     return mapped;
   },
   getActiveWithOrganizations: async function (): Promise<
-    (CauseArea & { organizations: Organization[] })[]
+    (CauseArea & { organizations: MappedOrganization[] })[]
   > {
     type PrefixedCauseAreaResult = {
       [Property in keyof Cause_areas as `CA_${Property}`]: Cause_areas[Property];
@@ -113,7 +113,8 @@ export const causeareas = {
           Organizations.is_active AS O_is_active,
           Organizations.ordering AS O_ordering,
           Organizations.info_url AS O_info_url,
-          Organizations.std_percentage_share AS O_std_percentage_share
+          Organizations.std_percentage_share AS O_std_percentage_share,
+          Organizations.chart_color AS O_chart_color
           
           FROM Cause_areas 
             INNER JOIN Organizations ON Organizations.cause_area_id = Cause_areas.ID
@@ -123,7 +124,7 @@ export const causeareas = {
       `,
     );
 
-    const causeAreas: (CauseArea & { organizations: Organization[] })[] = [];
+    const causeAreas: (CauseArea & { organizations: MappedOrganization[] })[] = [];
     for (const row of result) {
       const causeArea = mapCauseArea({
         ID: row.CA_ID,
@@ -150,6 +151,7 @@ export const causeareas = {
         ordering: row.O_ordering,
         cause_area_ID: row.CA_ID,
         std_percentage_share: row.O_std_percentage_share,
+        chart_color: row.O_chart_color,
       });
       const existingCauseArea = causeAreas.find((ca) => ca.id === causeArea.id);
       if (existingCauseArea) {

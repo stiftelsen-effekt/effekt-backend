@@ -5,16 +5,18 @@ import { Money, Num } from "@/components/domain/format";
 import { Stat, StatGroup } from "@/components/domain/stat";
 import { PageSection } from "@/components/templates";
 import { Button } from "@/components/ui/button";
-import { importLogs, monthlyTotals, reviewItems } from "@/design-system/fake-data";
-import { orgColors, OTHER_COLOR, OTHER_LABEL } from "@/features/distribution/orgs";
+import { causeAreas, importLogs, monthlyTotals, reviewItems } from "@/design-system/fake-data";
+import { orgColor, OTHER_COLOR, OTHER_LABEL } from "@/features/distribution/orgs";
 
-const colors = orgColors([12, 13, 15, 14, 16]);
+/** In each demo organization's stored colour, as on the real Home. */
+const colorOf = (id: number) =>
+  orgColor(causeAreas.flatMap((area) => area.organizations).find((org) => org.id === id)!);
 const monthlySeries = [
-  { key: "amf", label: "Against Malaria Foundation", color: colors.get(12) },
-  { key: "mc", label: "Malaria Consortium", color: colors.get(13) },
-  { key: "ni", label: "New Incentives", color: colors.get(15) },
-  { key: "hki", label: "Helen Keller Intl", color: colors.get(14) },
-  { key: "gd", label: "GiveDirectly", color: colors.get(16) },
+  { key: "amf", label: "Against Malaria Foundation", color: colorOf(12) },
+  { key: "mc", label: "Malaria Consortium", color: colorOf(13) },
+  { key: "ni", label: "New Incentives", color: colorOf(15) },
+  { key: "hki", label: "Helen Keller Intl", color: colorOf(14) },
+  { key: "gd", label: "GiveDirectly", color: colorOf(16) },
   { key: "other", label: OTHER_LABEL, color: OTHER_COLOR },
 ];
 import {

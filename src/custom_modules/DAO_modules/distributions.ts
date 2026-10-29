@@ -18,6 +18,7 @@ import {
 } from "../../schemas/types";
 import { PoolConnection } from "mysql2/promise";
 import { sumWithPrecision } from "../rounding";
+import { toOrgChartColor, type OrgChartColor } from "../orgChartColors";
 
 //region GET
 export interface DistributionFilters {
@@ -311,6 +312,8 @@ export type DistributionOrgShare = {
   organizationId: number;
   organizationName: string;
   causeAreaId: number;
+  /** Chart colour token; null: derived from the id */
+  chartColor: OrgChartColor | null;
   /** Percent of the whole distribution (0–100), a decimal string with six decimals */
   share: string;
 };
@@ -331,6 +334,7 @@ async function getOrgSharesByKIDs(KIDs: string[]): Promise<Map<string, Distribut
       organizationId: number;
       organizationName: string;
       causeAreaId: number;
+      chartColor: string | null;
       share: string;
     }[]
   >(
@@ -339,6 +343,7 @@ async function getOrgSharesByKIDs(KIDs: string[]): Promise<Map<string, Distribut
        O.ID AS organizationId,
        O.full_name AS organizationName,
        CA.Cause_area_ID AS causeAreaId,
+       O.chart_color AS chartColor,
        CAST(ROUND(CA.Percentage_share * CAO.Percentage_share / 100, 6) AS CHAR) AS share
      FROM Distribution_cause_areas AS CA
        INNER JOIN Distribution_cause_area_organizations AS CAO ON CAO.Distribution_cause_area_ID = CA.ID
@@ -354,6 +359,7 @@ async function getOrgSharesByKIDs(KIDs: string[]): Promise<Map<string, Distribut
       organizationId: row.organizationId,
       organizationName: row.organizationName,
       causeAreaId: row.causeAreaId,
+      chartColor: toOrgChartColor(row.chartColor),
       share: row.share,
     });
     shares.set(row.KID, list);

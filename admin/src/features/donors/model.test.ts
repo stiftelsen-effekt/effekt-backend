@@ -104,6 +104,7 @@ const row = (ID: number, abbriv: string, year: number, value: string): YearlyAgg
   organization: `Org ${abbriv}`,
   abbriv,
   causeAreaID: 1,
+  chartColor: null,
   value,
   year,
 });

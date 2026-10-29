@@ -44,11 +44,11 @@ describe("monthlyByOrganization", () => {
   it("stacks by organization, largest first, with exact monthly sums", () => {
     const { series, rows } = monthlyByOrganization(months, [
       [
-        { id: 11, orgName: "AMF", sum: "100.10" },
-        { id: 11, orgName: "AMF", sum: "0.20" },
-        { id: 12, orgName: "GiveDirectly", sum: "40" },
+        { id: 11, orgName: "AMF", chartColor: null, sum: "100.10" },
+        { id: 11, orgName: "AMF", chartColor: null, sum: "0.20" },
+        { id: 12, orgName: "GiveDirectly", chartColor: null, sum: "40" },
       ],
-      [{ id: 21, orgName: "The Humane League", sum: "50" }],
+      [{ id: 21, orgName: "The Humane League", chartColor: null, sum: "50" }],
     ]);
     expect(series.map((s) => [s.key, s.label])).toEqual([
       ["org11", "AMF"],
@@ -66,8 +66,13 @@ describe("monthlyByOrganization", () => {
     const { series, rows } = monthlyByOrganization(
       months,
       [
-        [1, 2, 3, 4, 5, 6, 7].map((id) => ({ id, orgName: `Org ${id}`, sum: String(id * 100) })),
-        [{ id: 1, orgName: "Org 1", sum: "7" }],
+        [1, 2, 3, 4, 5, 6, 7].map((id) => ({
+          id,
+          orgName: `Org ${id}`,
+          chartColor: null,
+          sum: String(id * 100),
+        })),
+        [{ id: 1, orgName: "Org 1", chartColor: null, sum: "7" }],
       ],
       6,
     );

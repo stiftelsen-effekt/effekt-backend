@@ -58,18 +58,23 @@ export function monthlyByOrganization(
   totals: (OrganizationTotal[] | undefined)[],
   maxSeries = 6,
 ): { series: ChartSeries[]; rows: Record<string, string | number>[] } {
-  const grand = new Map<number, { label: string; sums: string[] }>();
+  const grand = new Map<number, { label: string; chartColor?: string | null; sums: string[] }>();
   for (const month of totals) {
     for (const row of month ?? []) {
-      const entry = grand.get(row.id) ?? { label: row.orgName, sums: [] };
+      const entry = grand.get(row.id) ?? {
+        label: row.orgName,
+        chartColor: row.chartColor,
+        sums: [],
+      };
       entry.sums.push(row.sum);
       grand.set(row.id, entry);
     }
   }
   const { series, keyOf } = orgChartSeries(
-    [...grand].map(([id, { label, sums }]) => ({
+    [...grand].map(([id, { label, chartColor, sums }]) => ({
       id,
       label,
+      chartColor,
       total: moneyToNumber(sumMoney(sums)),
     })),
     maxSeries,

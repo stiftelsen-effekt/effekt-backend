@@ -346,7 +346,7 @@ describe("tRPC donations router", () => {
     it("returns histogram, transaction cost report, totals and donations by KID", async () => {
       const bucket = { bucket: "5000", items: 1, bar: 0 } as any;
       const report = { donationsCount: 1, costYTD: "1" } as any;
-      const aggregate = { id: 1, orgName: "Org", sum: "1.00" };
+      const aggregate = { id: 1, orgName: "Org", chartColor: null, sum: "1.00" };
       const month = { year: 2025, month: 1, sum: "1.00" };
       sinon.stub(DAO.donations, "getHistogramBySum").resolves([bucket]);
       sinon.stub(DAO.donations, "getTransactionCostsReport").resolves(report);

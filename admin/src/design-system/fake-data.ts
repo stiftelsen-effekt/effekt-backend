@@ -2,6 +2,7 @@
  * Deterministic fake data for /design, typed with the real API output types so demos break
  * the build when the API changes shape. Names are random combinations, not real donors.
  */
+import type { OrgColor } from "@/features/distribution/orgs";
 import type { ReviewItem } from "@/features/review-queue/model";
 import { percentOfMoney, toMoneyString } from "@/lib/money";
 import type { RouterOutputs } from "@/lib/trpc";
@@ -167,6 +168,7 @@ const organization = (
   name: string,
   standardShare: number,
   ordering: number,
+  chartColor: OrgColor | null,
 ) => ({
   id,
   causeAreaId,
@@ -174,6 +176,7 @@ const organization = (
   standardShare,
   isActive: true,
   ordering,
+  chartColor,
   abbreviation: name
     .split(" ")
     .map((w) => w[0])
@@ -191,12 +194,12 @@ export const causeAreas: CauseArea[] = [
     isActive: true,
     ordering: 1,
     organizations: [
-      organization(12, 1, "Against Malaria Foundation", 25, 1),
-      organization(13, 1, "Malaria Consortium", 20, 2),
-      organization(14, 1, "Helen Keller Intl", 15, 3),
-      organization(15, 1, "New Incentives", 15, 4),
-      organization(16, 1, "GiveDirectly", 10, 5),
-      organization(17, 1, "GiveWell Top Charities Fund", 15, 6),
+      organization(12, 1, "Against Malaria Foundation", 25, 1, "chart-1"),
+      organization(13, 1, "Malaria Consortium", 20, 2, "chart-2"),
+      organization(14, 1, "Helen Keller Intl", 15, 3, "chart-3"),
+      organization(15, 1, "New Incentives", 15, 4, "chart-4"),
+      organization(16, 1, "GiveDirectly", 10, 5, "chart-10"),
+      organization(17, 1, "GiveWell Top Charities Fund", 15, 6, "chart-11"),
     ],
   },
   {
@@ -209,8 +212,8 @@ export const causeAreas: CauseArea[] = [
     isActive: true,
     ordering: 2,
     organizations: [
-      organization(21, 2, "The Humane League", 50, 1),
-      organization(22, 2, "Animal Welfare Fund", 50, 2),
+      organization(21, 2, "The Humane League", 50, 1, "chart-12"),
+      organization(22, 2, "Animal Welfare Fund", 50, 2, "chart-6"),
     ],
   },
   {
@@ -222,7 +225,7 @@ export const causeAreas: CauseArea[] = [
     informationUrl: null,
     isActive: true,
     ordering: 3,
-    organizations: [organization(31, 3, "Clean Air Task Force", 100, 1)],
+    organizations: [organization(31, 3, "Clean Air Task Force", 100, 1, "chart-7")],
   },
   {
     id: 4,
@@ -233,7 +236,7 @@ export const causeAreas: CauseArea[] = [
     informationUrl: null,
     isActive: true,
     ordering: 4,
-    organizations: [organization(41, 4, "Gi Effektivt drift", 100, 1)],
+    organizations: [organization(41, 4, "Gi Effektivt drift", 100, 1, "chart-8")],
   },
 ];
 
@@ -277,12 +280,14 @@ const fakeOrgSplit = [
     organizationId: 12,
     organizationName: "Against Malaria Foundation",
     causeAreaId: 1,
+    chartColor: "chart-1" as const,
     share: "60.000000",
   },
   {
     organizationId: 13,
     organizationName: "Malaria Consortium",
     causeAreaId: 1,
+    chartColor: "chart-2" as const,
     share: "40.000000",
   },
 ];
@@ -379,6 +384,9 @@ export const donorYearly: DonorYearly[] = [2020, 2021, 2022, 2023, 2024, 2025, 2
     const base = 6000 + index * 2200;
     return yearlyOrgs.map(({ weight, ...org }) => ({
       ...org,
+      chartColor:
+        causeAreas.flatMap((area) => area.organizations).find((o) => o.id === org.ID)?.chartColor ??
+        null,
       value: money(Math.round(base * weight * (0.8 + rand() * 0.4))),
       year,
     }));
