@@ -473,3 +473,64 @@ describe("POST /initiate-follow-ups", function () {
     expect(addPaymentFollowUpStub.callCount).to.equal(0);
   });
 });
+
+describe("POST /scheduled/mailchimp/newsletter/sync", function () {
+  let server;
+
+  beforeEach(function () {
+    sinon.replace(authMiddleware, "isAdmin", []);
+    const scheduledRoute = require("../routes/scheduled");
+    server = express();
+    server.use("/scheduled", scheduledRoute);
+  });
+
+  afterEach(function () {
+    sinon.restore();
+  });
+
+  it("reads donors with a sort and logs the sync", async function () {
+    const mailchimp = require("@mailchimp/mailchimp_marketing");
+    sinon.stub(mailchimp, "setConfig");
+    sinon.stub(mailchimp.lists, "getListMembersInfo").resolves({
+      members: [{ email_address: "subscribed@example.org", status: "subscribed" }],
+    });
+    const getAll = sinon.stub(donors, "getAll").callsFake(async (sort, page) => {
+      if (!sort) throw new Error("No sort provided for getAllDonors");
+      return {
+        rows:
+          page === 0
+            ? [
+                {
+                  id: 1,
+                  email: "subscribed@example.org",
+                  newsletter: false,
+                  registered: new Date(),
+                },
+              ]
+            : [],
+      } as any;
+    });
+    const updateNewsletter = sinon.stub(donors, "updateNewsletter").resolves();
+    const log = sinon.stub(DAO.logging, "add").resolves();
+
+    const response = await request(server).post("/scheduled/mailchimp/newsletter/sync");
+
+    expect(response.status).to.equal(200);
+    expect(getAll.firstCall.args[0]).to.deep.equal({ id: "id", desc: false });
+    expect(updateNewsletter.calledOnceWith(1, true)).to.be.true;
+    expect(log.firstCall.args[0]).to.equal("MailChimp sync");
+  });
+
+  it("records the error and answers when the sync fails", async function () {
+    const mailchimp = require("@mailchimp/mailchimp_marketing");
+    sinon.stub(mailchimp, "setConfig");
+    sinon.stub(mailchimp.lists, "getListMembersInfo").rejects(new Error("Mailchimp is down"));
+    const log = sinon.stub(DAO.logging, "add").resolves();
+
+    const response = await request(server).post("/scheduled/mailchimp/newsletter/sync");
+
+    expect(response.status).to.equal(500);
+    expect(log.firstCall.args[0]).to.equal("(Failed - Partial) Mailchimp sync");
+    expect(log.firstCall.args[1].error).to.equal("Mailchimp is down");
+  });
+});

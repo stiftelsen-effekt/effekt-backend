@@ -338,10 +338,11 @@ function Statement({ organizationId }: { organizationId: number }) {
         </Field>
       </div>
       <PageSection
+        fill
         title="Entries"
         description="Every entry in the period with the running balance. Donations are summed per day."
       >
-        <div className="flex max-h-[44rem] flex-col">
+        <div className="flex min-h-0 flex-col">
           <DataTable
             label="Statement entries"
             columns={columns}

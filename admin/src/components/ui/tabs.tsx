@@ -17,8 +17,11 @@ export function TabsList({ className, ...props }: React.ComponentProps<typeof Ta
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
+      // Scrolls sideways on narrow screens. The baseline is an inset shadow, not a border, so
+      // the active tab's underline sits inside the box (painted over the line) instead of
+      // overhanging it by a pixel, which made the strip scroll vertically.
       className={cn(
-        "flex w-full items-end gap-6 overflow-x-auto border-b border-border",
+        "flex w-full items-end gap-6 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--color-border)]",
         className,
       )}
       {...props}
@@ -42,7 +45,7 @@ export function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "group relative -mb-px inline-flex h-9 shrink-0 items-center gap-1.5 border-b-2 border-transparent text-sm font-semibold whitespace-nowrap text-muted-foreground",
+        "group relative inline-flex h-9 shrink-0 items-center gap-1.5 border-b-2 border-transparent text-sm font-semibold whitespace-nowrap text-muted-foreground",
         "transition-colors outline-none hover:text-foreground",
         "focus-visible:rounded-xs focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
         "data-[state=active]:border-accent data-[state=active]:text-foreground",

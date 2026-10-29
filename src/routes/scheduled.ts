@@ -341,7 +341,15 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
     let donors: any[] = [];
     let page = 0;
     while (true) {
-      const newDonors = await DAO.donors.getAll(null, page, count, null, RequestLocale.NO);
+      // getAll requires a sort since the donor list rewrite (2025-05-09); passing null made
+      // every sync fail from then on.
+      const newDonors = await DAO.donors.getAll(
+        { id: "id", desc: false },
+        page,
+        count,
+        null,
+        RequestLocale.NO,
+      );
       if (newDonors.rows.length === 0) break;
       donors = donors.concat(newDonors.rows);
       if (donors.length < count) break;
@@ -434,8 +442,12 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
       },
     });
   } catch (ex) {
+    // Record what went wrong (the log used to keep only the counters) and answer the
+    // scheduler, which otherwise waits until it times out.
+    console.error("Mailchimp sync failed", ex);
     try {
       await DAO.logging.add("(Failed - Partial) Mailchimp sync", {
+        error: ex instanceof Error ? ex.message : String(ex),
         addedToMailchimp,
         addedToDonor,
         removedFromDonor,
@@ -444,9 +456,8 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
       });
     } catch (loggingException) {
       console.error(loggingException);
-      next({ ex });
-      return;
     }
+    next(ex);
   }
 });
 
