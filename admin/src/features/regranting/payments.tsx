@@ -1,13 +1,14 @@
 /**
- * Step 2 of the round builder: payments grouped by payee. One table per payee (one transfer per
- * payee and currency); per recipient its lines (unrestricted + projects) with balance at
+ * Step 2 of the round builder: payments grouped by payee, in one table so the columns line up
+ * across payees (a header row per payee with its transfers, one transfer per payee and
+ * currency); per recipient its lines (unrestricted + projects) with balance at
  * cutoff, fund grant in, the round's adjustments (earmarks), available, Pay now (editable in a
  * draft), Carries over and flags.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { PlusIcon, Trash2Icon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { Money } from "@/components/domain/format";
 import { Badge } from "@/components/ui/badge";
@@ -80,7 +81,7 @@ export function Payments({ builder, editable, edits, onEditsChange }: PaymentsPr
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-3">
       {editable && hidden > 0 && (
         <div className="flex items-center gap-2 text-sm">
           <Switch id="show-all-recipients" checked={showAll} onCheckedChange={setShowAll} />
@@ -89,70 +90,70 @@ export function Payments({ builder, editable, edits, onEditsChange }: PaymentsPr
           </label>
         </div>
       )}
-      {builder.payeeGroups.map((group) => {
-        // Approved and paid rounds show only what the round pays
-        const recipients = group.organizationIds
-          .map((id) => byId.get(id))
-          .filter((r): r is BuilderRecipient => r !== undefined)
-          .filter((r) => (editable ? showAll || inRound(r) : moneySign(r.totals.inRound) !== 0));
-        if (recipients.length === 0) return null;
-        const transfers = builder.transfers.filter((t) =>
-          group.payee ? t.payee.id === group.payee.id : false,
-        );
-        const totals = sumTotals(
-          recipients.map((r) => recipientTotals(r, saved, edits, builder.transfers)),
-        );
-        const groupLabel = group.payee ? group.payee.name : "No payee";
-        return (
-          <section
-            key={group.payee?.id ?? "none"}
-            aria-label={`Payments to ${groupLabel}`}
-            className="min-w-0 rounded-md border border-border bg-surface"
-          >
-            <PayeeHeader
-              builder={builder}
-              group={group}
-              transfers={transfers}
-              payNow={totals.payNow}
-              editable={editable}
-              dirty={edits.size > 0}
-            />
-            <div className="overflow-x-auto">
-              <table
-                className="w-full border-separate border-spacing-0 text-sm"
-                aria-label={`Recipients paid via ${groupLabel}`}
+      {/* One table for every payee, so the columns line up down the page like a spreadsheet;
+          each payee is a group of row groups: header, recipients, total. */}
+      <div className="min-w-0 overflow-x-auto rounded-md border border-border bg-surface">
+        <table
+          className="w-full border-separate border-spacing-0 text-sm"
+          aria-label="Payments by payee"
+        >
+          <thead>
+            <tr className="text-left text-xs text-muted-foreground [&>th]:border-b [&>th]:border-border [&>th]:px-3 [&>th]:py-2 [&>th]:font-semibold">
+              <th scope="col">Recipient / project</th>
+              <th scope="col" className="text-right">
+                Balance at cutoff
+              </th>
+              <th scope="col" className="text-right">
+                Committed
+              </th>
+              <th scope="col" className="text-right">
+                Fund grant in
+              </th>
+              <th
+                scope="col"
+                className="text-right"
+                title="This round's adjustments, e.g. earmarks. They count in balances once the round is approved."
               >
-                <thead>
-                  <tr className="text-left text-xs text-muted-foreground [&>th]:border-b [&>th]:border-border [&>th]:px-3 [&>th]:py-2 [&>th]:font-semibold">
-                    <th scope="col">Recipient / project</th>
-                    <th scope="col" className="text-right">
-                      Balance at cutoff
-                    </th>
-                    <th scope="col" className="text-right">
-                      Committed
-                    </th>
-                    <th scope="col" className="text-right">
-                      Fund grant in
-                    </th>
-                    <th
-                      scope="col"
-                      className="text-right"
-                      title="This round's adjustments, e.g. earmarks. They count in balances once the round is approved."
-                    >
-                      Adjustments
-                    </th>
-                    <th scope="col" className="text-right">
-                      Available
-                    </th>
-                    <th scope="col" className="w-40 text-right">
-                      Pay now
-                    </th>
-                    <th scope="col" className="text-right">
-                      Carries over
-                    </th>
-                    <th scope="col">Flags</th>
-                  </tr>
-                </thead>
+                Adjustments
+              </th>
+              <th scope="col" className="text-right">
+                Available
+              </th>
+              <th scope="col" className="w-40 text-right">
+                Pay now
+              </th>
+              <th scope="col" className="text-right">
+                Carries over
+              </th>
+              <th scope="col">Flags</th>
+            </tr>
+          </thead>
+          {builder.payeeGroups.map((group) => {
+            // Approved and paid rounds show only what the round pays
+            const recipients = group.organizationIds
+              .map((id) => byId.get(id))
+              .filter((r): r is BuilderRecipient => r !== undefined)
+              .filter((r) =>
+                editable ? showAll || inRound(r) : moneySign(r.totals.inRound) !== 0,
+              );
+            if (recipients.length === 0) return null;
+            const transfers = builder.transfers.filter((t) =>
+              group.payee ? t.payee.id === group.payee.id : false,
+            );
+            const totals = sumTotals(
+              recipients.map((r) => recipientTotals(r, saved, edits, builder.transfers)),
+            );
+            const groupLabel = group.payee ? group.payee.name : "No payee";
+            return (
+              <Fragment key={group.payee?.id ?? "none"}>
+                <PayeeHeader
+                  builder={builder}
+                  group={group}
+                  transfers={transfers}
+                  payNow={totals.payNow}
+                  editable={editable}
+                  dirty={edits.size > 0}
+                />
                 {recipients.map((recipient) => (
                   <RecipientRows
                     key={recipient.organizationId}
@@ -164,8 +165,8 @@ export function Payments({ builder, editable, edits, onEditsChange }: PaymentsPr
                     onEditsChange={onEditsChange}
                   />
                 ))}
-                <tfoot>
-                  <tr className="font-semibold [&>td]:border-t [&>td]:border-border-strong [&>td]:px-3 [&>td]:py-2">
+                <tbody>
+                  <tr className="font-semibold [&>td]:border-b [&>td]:border-border-strong [&>td]:px-3 [&>td]:py-2">
                     <td>Total {groupLabel}</td>
                     <td />
                     <td />
@@ -185,12 +186,12 @@ export function Payments({ builder, editable, edits, onEditsChange }: PaymentsPr
                     </td>
                     <td />
                   </tr>
-                </tfoot>
-              </table>
-            </div>
-          </section>
-        );
-      })}
+                </tbody>
+              </Fragment>
+            );
+          })}
+        </table>
+      </div>
     </div>
   );
 }
@@ -217,127 +218,140 @@ function PayeeHeader({
   const invalidate = () => queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
   const payee = group.payee;
   return (
-    <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-3 py-2.5">
-      <div className="grid min-w-0 flex-1 gap-0.5">
-        <h3 className="text-base font-semibold">
-          {payee ? payee.name : "No payee"}
-          {payee && (
-            <span className="ml-2 text-sm font-normal text-muted-foreground">{payee.currency}</span>
-          )}
-        </h3>
-        {payee ? (
-          <ul
-            className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground"
-            aria-label="Transfers"
-          >
-            {transfers.length === 0 && (
-              <li>
-                Not in this round{moneySign(payNow) > 0 ? " yet (saving creates a transfer)" : ""}
-              </li>
-            )}
-            {transfers.map((t) => (
-              <li key={t.id} className="inline-flex items-center gap-1">
-                Transfer #{t.id} · {t.currency} ·{" "}
-                <Money value={t.amountNok} className="text-foreground" />
-                <InlineIssues issues={issuesFor(builder.issues, { transferId: t.id })} />
-                {editable && (
-                  <ConfirmDialog
-                    trigger={
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="size-6"
-                        aria-label={`Remove transfer #${t.id}`}
-                        disabled={dirty}
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    }
-                    tone="danger"
-                    title={`Remove transfer #${t.id} to ${t.payee.name}?`}
-                    consequences={[
-                      `Its ${t.lines.length} lines (${formatMoney(
-                        t.amountNok,
-                      )}) are taken out of the round`,
-                      "The money stays in the recipients' balances",
-                    ]}
-                    confirmLabel="Remove transfer"
-                    onConfirm={async () => {
-                      await remove.mutateAsync({ id: t.id });
-                      await invalidate();
-                      notify.success("Transfer removed", `#${t.id} to ${t.payee.name}`);
-                    }}
-                  />
+    <tbody aria-label={`Payments to ${payee ? payee.name : "No payee"}`}>
+      <tr className="bg-muted [&>td]:border-b [&>td]:border-border [&>td]:px-3 [&>td]:py-2.5">
+        <td colSpan={6}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="grid min-w-0 flex-1 gap-0.5">
+              <h3 className="text-base font-semibold">
+                {payee ? payee.name : "No payee"}
+                {payee && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    {payee.currency}
+                  </span>
                 )}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            These recipients can't be paid until they have a payee at the cutoff.{" "}
-            <Link
-              to="/regranting/settings"
-              search={{ section: "routing" }}
-              className="rounded-xs text-accent underline focus-ring"
-            >
-              Add a routing
-            </Link>
-          </p>
-        )}
-      </div>
-      {payee && (
-        <span className="text-sm">
-          Pay now <Money value={payNow} className="font-semibold" />
-        </span>
-      )}
-      {payee && editable && (
-        <RecordDialog<{ currency: string }>
-          trigger={
-            <Button
-              size="sm"
-              disabled={dirty}
-              title={dirty ? "Save or discard your changes first" : undefined}
-            >
-              <PlusIcon />
-              Add transfer
-            </Button>
-          }
-          title={`New transfer to ${payee.name}`}
-          description="A separate bank transaction, e.g. in another currency. Move lines to it with the Transfer column."
-          initial={() => ({ currency: payee.currency })}
-          validate={(v) => ({
-            currency: /^[A-Z]{3,8}$/.test(v.currency.trim())
-              ? undefined
-              : "Enter a currency code like NOK, EUR or BTC",
-          })}
-          saveLabel="Add transfer"
-          onSave={async (v) => {
-            await create.mutateAsync({
-              roundId: builder.round.id,
-              payeeId: payee.id,
-              currency: v.currency.trim(),
-            });
-            await invalidate();
-            notify.success("Transfer added", `${payee.name} · ${v.currency.trim()}`);
-          }}
-        >
-          {({ values, set, errors }) => (
-            <Field
-              label="Currency"
-              required
-              error={errors.currency}
-              hint="Lines are always in NOK; the paid amount in this currency is recorded with the payment"
-            >
-              <Input
-                className="num w-32"
-                value={values.currency}
-                onChange={(e) => set({ currency: e.target.value.toUpperCase() })}
-              />
-            </Field>
+              </h3>
+              {payee ? (
+                <ul
+                  className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground"
+                  aria-label="Transfers"
+                >
+                  {transfers.length === 0 && (
+                    <li>
+                      Not in this round
+                      {moneySign(payNow) > 0 ? " yet (saving creates a transfer)" : ""}
+                    </li>
+                  )}
+                  {transfers.map((t) => (
+                    <li key={t.id} className="inline-flex items-center gap-1">
+                      Transfer #{t.id} · {t.currency} ·{" "}
+                      <Money value={t.amountNok} className="text-foreground" />
+                      <InlineIssues issues={issuesFor(builder.issues, { transferId: t.id })} />
+                      {editable && (
+                        <ConfirmDialog
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="size-6"
+                              aria-label={`Remove transfer #${t.id}`}
+                              disabled={dirty}
+                            >
+                              <Trash2Icon />
+                            </Button>
+                          }
+                          tone="danger"
+                          title={`Remove transfer #${t.id} to ${t.payee.name}?`}
+                          consequences={[
+                            `Its ${t.lines.length} lines (${formatMoney(
+                              t.amountNok,
+                            )}) are taken out of the round`,
+                            "The money stays in the recipients' balances",
+                          ]}
+                          confirmLabel="Remove transfer"
+                          onConfirm={async () => {
+                            await remove.mutateAsync({ id: t.id });
+                            await invalidate();
+                            notify.success("Transfer removed", `#${t.id} to ${t.payee.name}`);
+                          }}
+                        />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  These recipients can't be paid until they have a payee at the cutoff.{" "}
+                  <Link
+                    to="/regranting/settings"
+                    search={{ section: "routing" }}
+                    className="rounded-xs text-accent underline focus-ring"
+                  >
+                    Add a routing
+                  </Link>
+                </p>
+              )}
+            </div>
+            {payee && editable && (
+              <RecordDialog<{ currency: string }>
+                trigger={
+                  <Button
+                    size="sm"
+                    disabled={dirty}
+                    title={dirty ? "Save or discard your changes first" : undefined}
+                  >
+                    <PlusIcon />
+                    Add transfer
+                  </Button>
+                }
+                title={`New transfer to ${payee.name}`}
+                description="A separate bank transaction, e.g. in another currency. Move lines to it with the Transfer column."
+                initial={() => ({ currency: payee.currency })}
+                validate={(v) => ({
+                  currency: /^[A-Z]{3,8}$/.test(v.currency.trim())
+                    ? undefined
+                    : "Enter a currency code like NOK, EUR or BTC",
+                })}
+                saveLabel="Add transfer"
+                onSave={async (v) => {
+                  await create.mutateAsync({
+                    roundId: builder.round.id,
+                    payeeId: payee.id,
+                    currency: v.currency.trim(),
+                  });
+                  await invalidate();
+                  notify.success("Transfer added", `${payee.name} · ${v.currency.trim()}`);
+                }}
+              >
+                {({ values, set, errors }) => (
+                  <Field
+                    label="Currency"
+                    required
+                    error={errors.currency}
+                    hint="Lines are always in NOK; the paid amount in this currency is recorded with the payment"
+                  >
+                    <Input
+                      className="num w-32"
+                      value={values.currency}
+                      onChange={(e) => set({ currency: e.target.value.toUpperCase() })}
+                    />
+                  </Field>
+                )}
+              </RecordDialog>
+            )}
+          </div>
+        </td>
+        <td className="text-right font-semibold">
+          {payee && (
+            <>
+              <span className="sr-only">Pay now </span>
+              <Money value={payNow} />
+            </>
           )}
-        </RecordDialog>
-      )}
-    </header>
+        </td>
+        <td colSpan={2} />
+      </tr>
+    </tbody>
   );
 }
 
