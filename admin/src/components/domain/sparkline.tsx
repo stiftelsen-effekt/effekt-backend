@@ -6,7 +6,7 @@ import {
   type ValueFormat,
 } from "@/components/charts/chart";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { formatDate } from "@/lib/format";
+import { formatCompact, formatDate, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export type SparklineSeries = {
@@ -16,28 +16,47 @@ export type SparklineSeries = {
   color?: ChartColor | "muted";
 };
 
-const WIDTH = 96;
+/** The line itself; the min/max labels to its left take the rest of the old 96 px */
+const WIDTH = 76;
 const HEIGHT = 32;
 /** Room for the stroke and the end dot at the edges */
 const PAD = 3;
+
+/** Scale labels: money as compact whole kroner ("350k", "1,2M"), counts in full */
+const scaleLabel = (value: number, format: ValueFormat) =>
+  format === "money" ? formatCompact(Math.round(value)) : formatNumber(Math.round(value));
+
+const swatch = (color: SparklineSeries["color"]) => (
+  <span
+    className={cn(
+      "h-0.5 w-2.5 shrink-0 rounded-full",
+      color === "muted" ? "bg-faint-foreground" : swatchClasses[color ?? "chart-1"],
+    )}
+  />
+);
+
+/** Fixed width, so the line doesn't move when the labels change; as tall as the line */
+const scaleClasses =
+  "num flex h-8 min-w-7 flex-col justify-between py-px text-right text-[10px] leading-none text-muted-foreground";
 
 const strokeColor = (color: SparklineSeries["color"]) =>
   color === "muted" ? "var(--faint-foreground)" : `var(--${color ?? "chart-1"})`;
 
 /**
- * A small trend line (96 × 32) with no axes, for a `Stat`. Months are "YYYY-MM", oldest first.
+ * A small trend line (about 104 × 32), for a `Stat`: no axes, just its lowest and highest value
+ * in tiny type at the left edge. Months are "YYYY-MM", oldest first.
  * With `partialLast`, the last month is still running: its segment is dashed and lighter, and
  * the readout says "so far". Hover, or focus and the arrow keys, show a month's value.
  *
  * `months` undefined reserves the box (first load), so the stat doesn't move when it arrives.
- * Several series share one scale from zero; one series is scaled to its own range.
+ * Several series share one scale from zero (labels 0 and max); one series is scaled to its own
+ * range (labels min and max). There is no legend: the readout names each series.
  */
 export function Sparkline({
   months,
   series,
   format = "number",
   partialLast = false,
-  legend = series.length > 1,
   label,
   className,
 }: {
@@ -45,8 +64,6 @@ export function Sparkline({
   series: SparklineSeries[];
   format?: ValueFormat;
   partialLast?: boolean;
-  /** A tiny legend under the line; on by default for two or more series */
-  legend?: boolean;
   /** Accessible name, e.g. "Donations, last 13 months" */
   label: string;
   className?: string;
@@ -54,29 +71,11 @@ export function Sparkline({
   const [active, setActive] = useState<number | null>(null);
   const count = months?.length ?? 0;
 
-  const legendRow = legend && (
-    <span className="flex w-24 flex-wrap justify-end gap-x-2 text-xs leading-4 text-muted-foreground">
-      {series.map((item) => (
-        <span key={item.label} className="inline-flex items-center gap-1">
-          <span
-            className={cn(
-              "h-0.5 w-2.5 rounded-full",
-              item.color === "muted"
-                ? "bg-faint-foreground"
-                : swatchClasses[item.color ?? "chart-1"],
-            )}
-          />
-          {item.label}
-        </span>
-      ))}
-    </span>
-  );
-
   if (!months || count < 2) {
     return (
-      <span data-slot="sparkline" aria-hidden className={cn("grid gap-1", className)}>
+      <span data-slot="sparkline" aria-hidden className={cn("flex gap-1", className)}>
+        <span className={scaleClasses} />
         <span className="block" style={{ width: WIDTH, height: HEIGHT }} />
-        {legendRow}
       </span>
     );
   }
@@ -84,7 +83,8 @@ export function Sparkline({
   const all = series.flatMap((item) => item.values);
   const shared = series.length > 1;
   const min = shared ? 0 : Math.min(...all);
-  const max = Math.max(...all, min + 1);
+  const top = Math.max(...all);
+  const max = Math.max(top, min + 1);
   const x = (index: number) => PAD + (index / (count - 1)) * (WIDTH - 2 * PAD);
   const y = (value: number) => HEIGHT - PAD - ((value - min) / (max - min)) * (HEIGHT - 2 * PAD);
   const path = (values: number[], from: number, to: number) =>
@@ -118,7 +118,12 @@ export function Sparkline({
   };
 
   return (
-    <span data-slot="sparkline" className={cn("grid gap-1", className)}>
+    <span data-slot="sparkline" className={cn("flex gap-1", className)}>
+      <span aria-hidden className={scaleClasses}>
+        {/* A flat line sits on its minimum: then there is no separate top */}
+        <span>{top > min ? scaleLabel(top, format) : ""}</span>
+        <span>{scaleLabel(min, format)}</span>
+      </span>
       <Tooltip open={active !== null} delayDuration={0}>
         <TooltipTrigger asChild>
           <svg
@@ -182,16 +187,7 @@ export function Sparkline({
           <span className="font-semibold">{monthLabel(shown)}</span>
           {series.map((item) => (
             <span key={item.label} className="flex items-center gap-2">
-              {shared && (
-                <span
-                  className={cn(
-                    "h-0.5 w-2.5 rounded-full",
-                    item.color === "muted"
-                      ? "bg-faint-foreground"
-                      : swatchClasses[item.color ?? "chart-1"],
-                  )}
-                />
-              )}
+              {shared && swatch(item.color)}
               <span className="text-muted-foreground">{item.label}</span>
               <span className="num ml-auto font-semibold">
                 {formatValue(item.values[shown] ?? 0, format)}
@@ -200,7 +196,6 @@ export function Sparkline({
           ))}
         </TooltipContent>
       </Tooltip>
-      {legendRow}
     </span>
   );
 }
