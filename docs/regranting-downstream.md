@@ -6,170 +6,259 @@ Status: **proposal, for review** (29 Oct 2026). Nothing here is built. Extends
 ## Goal
 
 Today our ledger stops at the payee: "External funds (GiveWell TCF/AGF) are ordinary
-recipients; our ledger stops at the payee" ([regranting.md](regranting.md), Own funds). This
-proposal records what an **intermediary fund** (first GiveWell's Top Charities Fund and All
-Grants Fund) did with the money _after_ we paid it, as the intermediary reports it to us, so a
-donation can be followed all the way to the ultimate grantee:
+recipients; our ledger stops at the payee" ([regranting.md](regranting.md), Own funds). But much
+of what we pay doesn't go straight to the recipient. GiveWell receives money from us for TCF and
+AGF, which it regrants by its own decision, and for AMF, Malaria Consortium, HKI, New Incentives,
+END and others, which it forwards. This proposal records what the **intermediary payee** did with
+each of our transfer lines, as it reports to us: to whom, how much and **when the money actually
+reached the ultimate recipient**.
 
-> 1 000 kr to TCF, March 2025 → our transfer to GiveWell 20.05.2025 → GiveWell reported that
-> transfer as granted to Malaria Consortium (SMC, Chad) 50 %, AMF 25 %, … → your 1 000 kr:
-> MC 500 kr, AMF 250 kr, …
+> 1 000 kr to TCF, March 2025 → our transfer to GiveWell 20.05.2025 → GiveWell reported that line
+> as granted to Malaria Consortium (SMC, Chad) 43.75 %, AMF 26.25 %, … → your 1 000 kr: MC
+> 437.50 kr, AMF 262.50 kr, …
+>
+> 1 000 kr to AMF, March 2025 → our transfer to GiveWell 20.05.2025 → forwarded by GiveWell to
+> AMF 15.07.2025.
 
-Used for reporting, donor-facing impact, audits and the project pages (e.g. Helen Keller
-International's Vitamin A Supplementation should show money that reached it via TCF, not only
-what we paid directly).
+Used for recipient statements ("sent by us" vs "received by the recipient"), project pages (HKI's
+Vitamin A Supplementation shows money that reached it via TCF), reporting, donor-facing impact and
+audits.
 
 ## Principles
 
-1. **Our balances don't change.** Nothing in this proposal is a ledger entry. Balances, proposals,
-   validation, rounds and transfers are calculated exactly as today. A transfer line to TCF is
-   final for our books when it is paid.
+1. **Our balances don't change.** Nothing here is a ledger entry. A balance is what we owe a
+   recipient, and it goes down when we pay the payee, as today. Proposals, validation, rounds,
+   transfers and the FIFO composition are untouched. Onward records sit beside the ledger.
 2. **The intermediary tells us; we record it.** GiveWell (and other intermediaries) report where
-   our money went. Ops enters that report by hand against our transfer, with the report attached.
-   We never estimate or spread amounts ourselves: what isn't reported is shown as not reported.
-3. **Everything has an author and a source**, as in regranting.md: who entered it, when, and the
-   intermediary's report or letter.
-4. **GiveWell first, general shape.** GiveDirectly programmes or the DIV Fund use the same tables.
+   our money went and when. Ops enters it by hand, with the report attached. We never estimate
+   or spread amounts ourselves. The one exception is a clearly marked _assumed_ entry for old
+   pass-through lines (see Backfill).
+3. **Calculated where possible.** Whether a line still awaits a report is calculated from the
+   line and its onward records; no "pending" rows are stored.
+4. **Everything has an author and a source**: who entered it, when, and the intermediary's report.
+5. **GiveWell first, general shape.** Any payee that forwards or regrants (a fiscal sponsor,
+   GiveDirectly programmes, the DIV Fund) uses the same tables.
 
 ## Concepts
 
-| Term                 | Meaning                                                                                                                                                                                                           |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Intermediary fund    | A recipient in `Organizations` that regrants money onward by its own decision: TCF (ID 12, the Maximum Impact Fund before Sept 2022) and AGF (ID 15). Paid through the payee GiveWell, like today.                |
-| Ultimate grantee     | Whoever the intermediary granted our money to: AMF, Malaria Consortium, HKI, New Incentives, but also AGF grantees we've never funded (a research group running an RCT). May or may not be one of our recipients. |
-| Project              | Our existing `Projects` row. An onward allocation can point at one (HKI → Vitamin A Supplementation), so the project page shows it.                                                                               |
-| Onward allocation    | One line of the intermediary's report: this much of _our transfer line_ went to this grantee (and optionally project). Entered by hand.                                                                           |
-| Awaiting report      | The part of a paid transfer line to an intermediary that has no onward allocation yet.                                                                                                                            |
-| Own fund (unchanged) | GEBF etc.: _our_ decision, recorded as `Fund_grants`, part of the ledger and balances. An intermediary fund is the opposite: a normal recipient whose money leaves our ledger when paid. The two never mix.       |
+| Term                 | Meaning                                                                                                                                                                                      |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Intermediary payee   | A row in `Payees` that doesn't keep what we send but forwards or regrants it: GiveWell. Every transfer line paid to it gets an onward status.                                                |
+| Pass-through line    | A line to an intermediary payee whose recipient is the end recipient (AMF, MC, HKI, NI, END…). The intermediary is expected to forward it to the line's own recipient (and project, if any). |
+| Regranting fund      | A recipient that the intermediary regrants by its own decision: TCF (ID 12, the Maximum Impact Fund before Sept 2022) and AGF (ID 15). A line to it can end up with many grantees.           |
+| Onward allocation    | One record of the intermediary sending (part of) one of our transfer lines onward: target, amount, date. Several per line allowed (several grantees, or partial forwards).                   |
+| Onward report        | One report or statement from the intermediary (a letter, an email, a forwarding statement). Can cover several of our transfers; documents attach to it.                                      |
+| Awaiting report      | The part of a paid line to an intermediary payee that has no onward allocation yet. Calculated.                                                                                              |
+| Ultimate grantee     | Who the money ended up with: one of our recipients (`Organizations`), or, for regranting funds, an outside grantee we've never funded (an AGF-funded RCT).                                   |
+| Own fund (unchanged) | GEBF etc.: _our_ decision, recorded as `Fund_grants`, part of the ledger. A regranting fund is the opposite: a normal recipient whose money leaves our ledger when paid. The two never mix.  |
 
-Lines to AMF, MC, HKI and NI that we pay _through_ the payee GiveWell are already direct recipients
-(GiveWell only passes them on). Only lines whose recipient is an intermediary fund (TCF, AGF) get
-onward allocations (see open question 4).
+Lines paid to an ordinary payee (the recipient's own account; MC since it went direct in Aug 2026) need nothing: the money reached the recipient on our `paid_at`.
 
 ## Data model
 
 New tables, `?` nullable. No existing table changes shape except one nullable column on
 `Regrant_documents`.
 
-| Table                | Columns                                                                                                                                                                            | Notes                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Intermediary_funds` | Organization_ID (PK, FK `Organizations`), publisher, currency (default `USD`), notes?                                                                                              | Marks a recipient as an intermediary, like `Funds` marks an own fund. A recipient can't be both. `publisher` is shown in the UI ("awaiting report from GiveWell"); `currency` is what the intermediary usually reports in.                                                                                                                                                                                            |
-| `External_grantees`  | ID, name (unique), Organization_ID?, country?, url?, notes?, created_by, created_at                                                                                                | Ultimate grantees. `Organization_ID` set when the grantee is also one of our recipients (AMF, MC, HKI, NI), so recipient and project pages can find it. AGF's one-off grantees live only here, so they never appear in donor-facing lists, the widget or under `Organizations`' constraints (45-char names, unique 10-char `abbriv`).                                                                                 |
-| `Onward_allocations` | ID, Transfer_line_ID, Grantee_ID (FK `External_grantees`), Project_ID?, currency, amount_foreign?, amount_nok, allocated_at?, reported_at, purpose?, note?, created_by, created_at | One line of the intermediary's report against one of our transfer lines to an intermediary fund. `amount_foreign` + `currency` as reported (e.g. USD). `amount_nok` is the share of _our_ transfer line (see Amounts). `allocated_at`: when the intermediary granted it, if reported; `reported_at`: the date of the report. `Project_ID` only if the grantee has an `Organization_ID` and the project belongs to it. |
-| `Regrant_documents`  | + Onward_allocation_ID?                                                                                                                                                            | Reuses the existing documents list for the intermediary's report or letter (Drive PDF, email). Still exactly one parent. A report covering a whole transfer can also be attached to the transfer (existing `Transfer_ID`).                                                                                                                                                                                            |
+| Table                 | Columns                                                                                                                                                                                                                    | Notes                                                                                                                                                                 |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Intermediary_payees` | Payee_ID (PK, FK `Payees`), currency (default `USD`), notes?                                                                                                                                                               | Marks a payee as an intermediary. `currency`: what it usually forwards and reports in. A marker table rather than a column on `Payees`, like `Funds` marks own funds. |
+| `Regranting_funds`    | Organization_ID (PK, FK `Organizations`), notes?                                                                                                                                                                           | Marks TCF and AGF: their lines can go to any grantee. A recipient can't be both an own fund and a regranting fund.                                                    |
+| `External_grantees`   | ID, name (unique), country?, url?, notes?, created_by, created_at                                                                                                                                                          | Only grantees that are **not** our recipients (AGF's one-off grantees). Never shown in donor-facing lists or the widget.                                              |
+| `Onward_reports`      | ID, Payee_ID (FK `Intermediary_payees`), reported_at, reference?, notes?, created_by, created_at                                                                                                                           | One statement from the intermediary. GiveWell often confirms several months of forwarding at once: one report, many allocations across several of our transfers.      |
+| `Onward_allocations`  | ID, Transfer_line_ID, kind, basis, Organization_ID?, External_grantee_ID?, Project_ID?, currency, amount_foreign?, amount_nok, forwarded_at, Report_ID?, purpose?, note?, created_by, created_at, updated_by?, updated_at? | See below.                                                                                                                                                            |
+| `Regrant_documents`   | + Onward_report_ID?                                                                                                                                                                                                        | The intermediary's report or letter (Drive PDF, email). Still exactly one parent.                                                                                     |
 
-Why a separate grantee table, not `Organizations` with a flag: `Organizations` is donor-facing
-(widget, distributions, standard split, tax and reporting queries all read it), its name and
-abbreviation constraints don't fit many AGF grantees, and a flag would have to be added to every
-query that lists recipients. `External_grantees.Organization_ID` gives the overlap (AMF is both)
-without that risk. Projects stay ours: a project still belongs to one of our recipients, and an
-onward allocation just points at it.
+`Onward_allocations` columns:
 
-Allocations hang off the **transfer line**, not the transfer, because one GiveWell transfer
-usually carries TCF, AGF and pass-through lines, and GiveWell reports per fund.
+- `kind`: `grant` (money sent to a target) or `retained` (the intermediary kept it: processing
+  fees, FX loss; no target, note required).
+- `basis`: `reported` (from a report; `Report_ID` set) or `assumed` (backfill only, see below).
+- Target, exactly one for `grant`: `Organization_ID` (one of our recipients) or
+  `External_grantee_ID`. `Project_ID` only with `Organization_ID`, and the project must belong to
+  it (HKI → Vitamin A Supplementation).
+- `currency` + `amount_foreign` as the intermediary reports; `amount_nok` is the share of _our_
+  transfer line (see Amounts).
+- `forwarded_at`: when the intermediary sent the money to the target (for a TCF grant: when it
+  paid the grant, or the grant date if that's all it reports). This is the "received by
+  recipient" date.
+
+### Grantees: recommendation
+
+Every target that is one of our recipients is an `Organizations` row, referenced directly;
+`External_grantees` holds only the rest. Pass-through targets are always our recipients, and TCF
+mostly grants to them too (AMF, MC, HKI, NI), so this avoids two identities for the same charity
+and lets recipient and project pages query one column. The alternatives are worse:
+`External_grantees` for everyone (with a link back to `Organizations`) duplicates every recipient;
+adding AGF grantees to `Organizations` puts them in donor-facing queries and under its name
+constraints (45 characters, unique 10-character `abbriv`). If an external grantee later becomes a
+recipient, its allocations are re-pointed to the new `Organizations` row and the grantee deleted.
+
+### Onward status of a line (calculated)
+
+For each **paid** transfer line whose transfer's payee is in `Intermediary_payees`:
+
+```
+reported   = Σ amount_nok of its allocations with basis = reported
+assumed    = Σ amount_nok of its allocations with basis = assumed
+awaiting   = line amount_nok − reported − assumed
+```
+
+Status: _awaiting report_ (nothing entered), _partly forwarded_, _forwarded_ (awaiting = 0,
+some assumed: _forwarded (assumed)_). Lines to other payees have no onward status.
+
+No "pending" row is created per line. For a pass-through line the transfer card prefills the
+expected allocation (target = the line's recipient and project, full amount, our transfer's
+currency) so ops only enters the date (and amount, if it differs) and picks the report. A stored
+pending row would have to be kept in step with lines and adds nothing the calculation doesn't
+give.
 
 ### Amounts
 
-- **Our transfer paid in the reported currency** (e.g. USD, with `fx_rate` on the transfer):
-  ops enters `amount_foreign`; `amount_nok = amount_foreign × fx_rate` of our transfer, so the NOK
-  shares are of what we actually paid, not of today's rate.
-- **Our transfer paid in NOK**, or reported in a currency other than the transfer's: ops enters
-  `amount_nok` directly (and `amount_foreign` for the record, if reported). The admin warns on a
-  currency mismatch and shows what share of the line each amount is.
-- **Rounding:** when the onward allocations cover the whole line, the NOK amounts are rounded with
-  the existing `apportion`, so they add up to the line amount exactly (open question 5).
+- **Our transfer paid in the reported currency** (usually USD, with `fx_rate` on the transfer):
+  ops enters `amount_foreign`; `amount_nok = amount_foreign × fx_rate` of our transfer, so NOK
+  shares are of what we paid, not at a later rate.
+- **Our transfer paid in NOK, or forwarded in another currency** (GiveWell paying MC in GBP): ops
+  enters `amount_nok` directly as the share of our line, plus `amount_foreign` for the record. The
+  admin warns on the currency mismatch.
+- **Partial forwards:** several allocations on one line with different `forwarded_at`; the rest
+  stays awaiting.
+- **Batches:** one GiveWell forward covering several of our transfers is one `Onward_report` with
+  one allocation per line of ours, all with the same `forwarded_at`.
+- **Rounding:** when a line's allocations cover all of it, NOK amounts are rounded with the
+  existing `apportion` so they add up to the line exactly.
 
 ### Validation
 
-- The transfer line's recipient is an intermediary fund, and its round is `paid`.
-- Σ `amount_nok` of a line's onward allocations ≤ the line's `amount_nok` (error). The rest is
-  _awaiting report from {publisher}_.
-- If the transfer has `amount_foreign`, Σ reported `amount_foreign` ≤ the line's foreign amount
+- The line is paid and its transfer's payee is an intermediary (error).
+- Σ `amount_nok` of a line's allocations ≤ the line (error). If the transfer has
+  `amount_foreign`, Σ reported `amount_foreign` ≤ the line's foreign amount
   (`amount_nok / fx_rate`), within rounding (warning).
-- Currency differs from the transfer's currency (warning: enter NOK directly).
-- A project must belong to the grantee's organisation (error).
+- `grant` has exactly one target; `retained` has none and a note (error).
+- Pass-through line (recipient not in `Regranting_funds`): target is the line's own recipient
+  (warning if not, e.g. GiveWell redirected money from a charity that lost top-charity status;
+  the note must explain).
+- `forwarded_at` before our transfer's `paid_at` (warning).
+- Currency differs from the transfer's (warning: enter NOK directly).
+- Project belongs to the target organisation (error). `assumed` only on pass-through lines, with
+  target = the line's recipient (error).
 
-Onward allocations are documentation of what someone else did, not our money: they can be added,
-edited and removed after the round is paid, like documents, and never lock or reopen the round.
+Onward records document what someone else did; they can be added, edited and removed after the
+round is paid, like documents, and never lock or reopen the round.
 
-## Worked example (TCF, 2025)
+## Worked example (GiveWell, 2025; figures invented)
 
-Round "Regular Q1 2025", cutoff 31.03.2025, paid 20.05.2025. Its transfer to payee GiveWell is in
-USD at `fx_rate` 10.50 and has a TCF line of **1 200 000 kr** (114 285.71 USD). In August 2025
-GiveWell writes that our May transfer to TCF was granted as below (figures invented). Ops enters
-four onward allocations on the TCF line and attaches GiveWell's letter:
+Round "Regular Q1 2025", paid 20.05.2025. Its transfer to payee GiveWell is in USD at `fx_rate`
+10.50:
 
-| Grantee            | Project (ours)            | Reported (USD) | × 10.50 = NOK |
-| ------------------ | ------------------------- | -------------: | ------------: |
-| Malaria Consortium | SMC expansion, Chad       |      50 000.00 |       525 000 |
-| AMF                | –                         |      30 000.00 |       315 000 |
-| HKI                | Vitamin A Supplementation |      15 000.00 |       157 500 |
-| New Incentives     | –                         |      10 000.00 |       105 000 |
-| **Reported**       |                           | **105 000.00** | **1 102 500** |
-| Awaiting report    |                           |       9 285.71 |    **97 500** |
+| Line                    |       NOK |        USD |
+| ----------------------- | --------: | ---------: |
+| TCF                     | 1 200 000 | 114 285.71 |
+| AMF                     |   420 000 |  40 000.00 |
+| HKI (Vitamin A project) |   210 000 |  20 000.00 |
 
-- The TCF line shows 1 102 500 kr reported, 97 500 kr awaiting report from GiveWell. When GiveWell
-  reports the rest, ops adds a fifth line and the remainder goes to 0.
-- Before August 2025 the whole line showed "1 200 000 kr awaiting report from GiveWell".
-- HKI's Vitamin A project page lists "via GiveWell TCF: 157 500 kr (transfer 20.05.2025, reported
-  August 2025)" next to our direct transfers, outside the project's balance.
+**Pass-through.** GiveWell's forwarding statement of 20.07.2025 (one `Onward_report`, which also
+covers the AMF line of our February transfer) says it sent AMF 40 000 USD on 15.07.2025 and HKI
+15 000 USD on 15.07.2025. A second statement says HKI got the remaining 5 000 USD on 01.09.2025.
+
+| Line | Target          | Forwarded  |    USD |     NOK | Status after                      |
+| ---- | --------------- | ---------- | -----: | ------: | --------------------------------- |
+| AMF  | AMF             | 15.07.2025 | 40 000 | 420 000 | forwarded                         |
+| HKI  | HKI · Vitamin A | 15.07.2025 | 15 000 | 157 500 | partly forwarded (52 500 waiting) |
+| HKI  | HKI · Vitamin A | 01.09.2025 |  5 000 |  52 500 | forwarded                         |
+
+**Regranting fund.** In August 2025 GiveWell reports how our TCF line was granted:
+
+| Target             | Project (ours)            | Granted    |       USD |        NOK |
+| ------------------ | ------------------------- | ---------- | --------: | ---------: |
+| Malaria Consortium | SMC expansion, Chad       | 30.06.2025 | 50 000.00 |    525 000 |
+| AMF                | –                         | 30.06.2025 | 30 000.00 |    315 000 |
+| HKI                | Vitamin A Supplementation | 30.06.2025 | 15 000.00 |    157 500 |
+| New Incentives     | –                         | 30.06.2025 | 10 000.00 |    105 000 |
+| Awaiting report    |                           |            |  9 285.71 | **97 500** |
+
+HKI's Vitamin A project page then shows: direct via GiveWell 210 000 kr (sent 20.05.2025,
+received 15.07 and 01.09.2025) and via GiveWell TCF 157 500 kr (granted 30.06.2025).
 
 ## Data sources
 
-- **Primary: the intermediary's report to us**, entered by hand and attached as a document.
-  GiveWell is to tell us where our donations went; other intermediaries likewise.
+- **Primary: the intermediary's reports**, entered by hand and attached to an `Onward_report`.
+  We should ask GiveWell for a regular forwarding statement per transfer (open question 2).
 - **Reference only:** GiveWell's public pages (the Top Charities Fund grant table at
   https://www.givewell.org/top-charities-fund, the All Grants Fund page and the grants database
-  linked from https://www.givewell.org/research/all-grants) help ops name grantees and link grant
-  write-ups (`url` on the grantee, `purpose` on the allocation). They are not imported and nothing
-  is derived from them.
+  linked from https://www.givewell.org/research/all-grants) help ops name grantees and link
+  write-ups. Nothing is imported or derived from them.
 
 ## Effects on tracing and reporting
 
 ### Admin
 
-- **Transfer card** (round page): a paid line to an intermediary fund gets an _Onward_ section:
-  its onward allocations, the documents, "Add allocation", and reported / awaiting report totals.
-  The existing composition (which donations the line contained) is unchanged.
-- **Project page:** a _Via intermediaries_ section listing onward allocations pointing at the
-  project. Not part of the project's balance or statement total.
-- **Recipient page** for a recipient that is also an external grantee (AMF): the same, as a
-  separate block under the statement ("also received via GiveWell TCF: …").
-- **Awaiting report** list: paid intermediary lines with a remainder, oldest first, to chase the
-  intermediary.
+- **Transfer card** (round page): for a paid transfer to an intermediary payee, each line shows its
+  onward status and allocations; "Confirm forwarded" (prefilled for pass-through lines), "Add
+  grant" (regranting funds), "Add retained". Reports and their documents are picked or created
+  inline. The existing composition (which donations the line contained) is unchanged.
+- **Recipient statement:** each transfer line shows "sent by us" (`paid_at`, to which payee) and,
+  via an intermediary, "received" (`forwarded_at`, or _awaiting report_). Money a recipient got
+  through a regranting fund (AMF via TCF) appears in a separate block, outside the running balance.
+- **Project page:** the same two dates per line, and a _Via regranting funds_ section.
+- **Awaiting report** list: paid lines to intermediary payees with something awaiting, oldest
+  first, grouped by payee, to chase GiveWell. Assumed amounts listed separately.
+- **Onward reports** page: reports per payee, their allocations and documents.
 
 ### Donation trace
 
-The existing trace runs backwards (transfer line → donations, FIFO). A donation-level forward
-trace (nice-to-have in regranting.md) chains three steps:
+The forward trace is now uniform for every recipient:
 
 1. donation → its allocation per recipient (the `Regrant_allocations` view);
-2. allocation → the transfer line(s) that took it under the existing FIFO rule (a day's
-   allocations can be split across two lines);
-3. transfer line → its onward allocations, if the recipient is an intermediary fund.
+2. allocation → the transfer line(s) that took it under the existing FIFO rule;
+3. line → reached the recipient on `paid_at` (ordinary payee), or → its onward allocations
+   (intermediary payee): target and `forwarded_at`, or _awaiting report_.
 
-**The only pro-rata step is inside our own line.** The donor's share of the line (step 2) is
-multiplied by the reported split of that same line (step 3): a donation that was 1 000 kr of the
-1 200 000 kr line above "went" 437.50 kr to MC, 262.50 kr to AMF, 131.25 kr to HKI, 87.50 kr to NI,
-and 81.25 kr is awaiting report. We never spread one transfer's money over another transfer's
-report. Nothing is stored per donation.
-
-The admin gets it first (a "Where did it go?" panel on the donation); donor-facing text later, e.g.
-"GiveWell reported that the transfer containing your donation went to: …".
+**The only pro-rata step is inside our own line**: the donor's share of the line (step 2) times
+the line's reported split (step 3). A donation that was 1 000 kr of the 1 200 000 kr TCF line
+above went 437.50 kr to MC, 262.50 kr to AMF, 131.25 kr to HKI, 87.50 kr to NI, and 81.25 kr is
+awaiting report. A donation in the HKI line reached HKI 75 % on 15.07 and 25 % on 01.09.2025. We
+never spread one line's money over another line's report. Nothing is stored per donation. Admin
+first ("Where did it go?" on a donation), donors later.
 
 ### Reporting
 
-- **"Given to charities" is unchanged** (direct allocations + fund grants). TCF and AGF stay
-  recipients there.
-- **New: by ultimate grantee.** A report where each intermediary line is replaced by its onward
-  allocations plus an "awaiting report" row, so it always sums to the same total as the existing
-  report. Never add the two together: that double counts.
+- **"Given to charities" is unchanged** (direct allocations + fund grants, as paid by us).
+- **New: by ultimate grantee and date received.** Each line via an intermediary is replaced by its
+  onward allocations plus _retained_, _assumed_ and _awaiting report_ rows, so it always sums to
+  the same total as the existing report. Never add the two together: that double counts.
+
+### Is the ledger still unchanged?
+
+Yes. A balance answers "what do we still owe this recipient", which ends when we pay the payee,
+as agreed in regranting.md; the bank reconciliation and the accounts follow our payments, not
+GiveWell's. Forwarding dates answer a different question ("when did it arrive") and are reported
+beside the ledger. If money GiveWell retained (fees) should ever be made good by us, that is an
+ordinary `fee` or `correction` adjustment in a later round, decided by people, not created by the
+onward records.
+
+## Backfill
+
+Onward records hang off transfer lines, so they can only be backfilled as far back as transfer
+history is in the system. regranting.md leaves the history import out of the first build; until
+it's done, there's nothing to attach older forwards to.
+
+Minimum per historical pass-through line: the line itself, a forwarded date and the amount. For
+lines where no GiveWell statement can be found, an `assumed` allocation is acceptable if clearly
+marked: target = the line's recipient, full amount, `forwarded_at` = our `paid_at` (or a fixed lag
+after it, open question 3), note "assumed forwarded in full; no report found". A bulk action
+creates them for a payee and date range. They:
+
+- are allowed only on pass-through lines, never for regranting funds (assuming TCF grantees would
+  be inventing GiveWell's decisions);
+- show as _assumed_ everywhere (statements, trace, the ultimate-grantee report) and are never shown
+  to donors as a date;
+- are replaced (deleted and re-entered as `reported`) when a statement turns up.
 
 ## What does not change
 
 - Balances, the `Regrant_allocations` view, proposals, validation, round lifecycle, approvals.
-- `Regrant_transfers`, `Regrant_transfer_lines`, adjustments, own funds, fund grants, holds.
-- The FIFO composition and balance breakdown.
+- `Regrant_transfers`, `Regrant_transfer_lines`, adjustments, own funds, fund grants, holds, the
+  FIFO composition and balance breakdown.
 - `Organizations`, `Payees`, `Organization_payees`, distributions and donor-facing recipient
   lists. AGF grantees are not added as recipients.
 - Tax receipts and the "given to charities" figures.
@@ -177,23 +266,28 @@ The admin gets it first (a "Where did it go?" panel on the donation); donor-faci
 
 ## Phases
 
-1. **MVP (admin).** Tables; mark TCF and AGF as intermediary funds; manual entry on the transfer
-   card with documents; reported / awaiting report per line; the Awaiting report list.
-2. **Projects and recipients.** _Via intermediaries_ sections on project and recipient pages;
-   ultimate-grantee report (CSV). Backfill reports we already have, as far back as agreed.
+1. **MVP (admin).** Tables; mark GiveWell as an intermediary payee and TCF/AGF as regranting
+   funds; onward status and entry on the transfer card (prefilled pass-through confirmation,
+   grants, retained), onward reports with documents; the Awaiting report list.
+2. **Statements, projects, reports.** Sent/received dates on recipient statements and project
+   pages, _Via regranting funds_ sections, the ultimate-grantee report (CSV). Backfill (reported,
+   then assumed) once transfer history is imported.
 3. **Donation forward trace** in the admin, then donor-facing (Min Side / annual impact summary).
 
 ## Open questions
 
-1. **Grantee entity.** Separate `External_grantees` linked to `Organizations` (proposed), or reuse
-   `Organizations` with a flag?
-2. **Backfill.** How far back do we enter reports (TCF since our first transfer in 2016, or from
-   2019 like the regranting opening balances)? Do we have past GiveWell reports to enter?
-3. **Donor visibility.** Should the forward trace be shown to donors, and where (Min Side, annual
-   summary, receipts)?
-4. **Pass-through payments.** Do lines to AMF, MC, HKI and NI paid via the GiveWell payee need
-   onward records too (e.g. to confirm GiveWell passed them on), or are they final as direct
-   recipients (proposed)?
-5. **Rounding.** When allocations cover a whole line, `apportion` so the NOK shares add up to the
-   line exactly (proposed), or keep each `amount_foreign × fx_rate` rounded on its own and show a
-   rounding remainder of a few øre?
+1. **Grantees.** Target is `Organizations` for our recipients and `External_grantees` only for the
+   rest (recommended), or one grantee table for all?
+2. **GiveWell statements.** Can GiveWell send a regular forwarding statement per transfer (date and
+   USD per recipient) and a regranting report for TCF/AGF lines? What do we already have?
+3. **Assumed entries.** Acceptable for old pass-through lines as described? Default date: our
+   `paid_at`, or `paid_at` + a fixed lag?
+4. **Backfill.** How far back: from 2019 (opening balances) or 2016? It depends on importing
+   transfer history first.
+5. **Retained money.** Record intermediary fees/FX loss as `retained` (proposed), or just leave it
+   as awaiting with a note?
+6. **Redirected pass-through.** If GiveWell forwards a pass-through line to someone other than the
+   line's recipient: warning with note (proposed), or error?
+7. **Donor visibility.** Should donors see the trace and received dates, and where?
+8. **Rounding.** `apportion` so NOK shares add up to the line exactly (proposed), or round each
+   `amount_foreign × fx_rate` on its own and show a few øre of remainder?
