@@ -58,6 +58,7 @@ export type LedgerEntryRow = {
   reason: string | null;
   linkedTransferId: number | null;
   linkedDonationId: number | null;
+  /** The adjustment's documents (Regrant_documents): labels, or URLs without one, comma-separated */
   documentRef: string | null;
   pairedAdjustmentId: number | null;
 };
@@ -84,7 +85,9 @@ async function getLedgerEntries(
            NULL AS paidBy, NULL AS fundGrantId, NULL AS fundGrantLineId, NULL AS counterpartOrganizationId,
            NULL AS counterpartProjectId, NULL AS rationale, a.ID AS adjustmentId, a.type AS adjustmentType,
            a.reason, a.linked_transfer_ID AS linkedTransferId, a.linked_donation_ID AS linkedDonationId,
-           a.document_ref AS documentRef, a.Paired_adjustment_ID AS pairedAdjustmentId
+           (SELECT GROUP_CONCAT(COALESCE(d.label, d.url) ORDER BY d.ID SEPARATOR ', ')
+              FROM Regrant_documents d WHERE d.Adjustment_ID = a.ID) AS documentRef,
+           a.Paired_adjustment_ID AS pairedAdjustmentId
     FROM Regrant_adjustments a
     LEFT JOIN Regrant_rounds ar ON ar.ID = a.Round_ID
     WHERE a.Organization_ID IN (?)

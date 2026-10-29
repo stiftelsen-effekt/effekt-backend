@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { AdjustmentDialog } from "@/features/regranting/adjustment-dialog";
+import { DocumentLinks } from "@/features/regranting/documents";
 import {
   adjustmentTypeLabels,
   adjustmentTypes,
@@ -107,10 +108,11 @@ const columns = col.columns([
         <Badge tone="warning">Donation not linked</Badge>
       ) : null,
   }),
-  col.accessor("documentRef", {
+  col.display({
+    id: "documents",
     header: "Bilag",
-    enableSorting: false,
-    meta: { cellClassName: "max-w-32 truncate" },
+    meta: { cellClassName: "max-w-48" },
+    cell: ({ row: { original: a } }) => <DocumentLinks documents={a.documents} />,
   }),
   col.accessor("createdBy", {
     header: "By",
@@ -143,7 +145,7 @@ function AdjustmentsPage() {
           !q ||
           a.reason.toLowerCase().includes(q) ||
           a.organizationName.toLowerCase().includes(q) ||
-          (a.documentRef ?? "").toLowerCase().includes(q) ||
+          a.documents.some((d) => `${d.label ?? ""} ${d.url}`.toLowerCase().includes(q)) ||
           String(a.id) === q,
       )
       .sort((a, b) =>
@@ -358,7 +360,13 @@ function AdjustmentDetails({
             </Link>
           )}
         </Property>
-        <Property label="Bilag">{a.documentRef}</Property>
+        <Property label="Bilag">
+          <DocumentLinks
+            documents={a.documents}
+            parent={{ adjustmentId: a.id }}
+            what={`adjustment #${a.id}`}
+          />
+        </Property>
         <Property label="Entered">
           {a.createdBy} · <DateTime value={a.createdAt} format="datetime" />
         </Property>

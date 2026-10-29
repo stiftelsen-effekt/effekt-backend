@@ -893,6 +893,7 @@ model Regrant_rounds {
   Regrant_transfers        Regrant_transfers[]
   Regrant_adjustments      Regrant_adjustments[]
   Fund_grants              Fund_grants[]
+  Regrant_documents        Regrant_documents[]
 
   @@index([status, cutoff], map: "Status_cutoff_idx")
 }
@@ -962,6 +963,7 @@ model Regrant_transfers {
   Payees                 Payees                   @relation(fields: [Payee_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_transfers_to_Payees")
   Regrant_transfer_lines Regrant_transfer_lines[]
   Regrant_adjustments    Regrant_adjustments[]
+  Regrant_documents      Regrant_documents[]
 
   @@index([Round_ID], map: "fk_Regrant_transfers_to_Regrant_rounds_idx")
   @@index([Payee_ID], map: "fk_Regrant_transfers_to_Payees_idx")
@@ -996,13 +998,14 @@ model Regrant_adjustments {
   Round_ID             Int?
   linked_transfer_ID   Int? /// correction: the transfer it corrects
   linked_donation_ID   Int? /// fronted: the expected donation, once registered
-  document_ref         String?  @db.VarChar(512) /// Bilag
+  document_ref         String?  @db.VarChar(512) /// Deprecated: copied to Regrant_documents (20261029130000), no longer read or written
   created_by           String   @db.VarChar(255)
   created_at           DateTime @default(now()) @db.DateTime(0)
   Paired_adjustment_ID Int? /// Earmarks: the other half of the pair (unrestricted −X ↔ project +X)
 
   Paired            Regrant_adjustments?  @relation("Regrant_adjustment_pairs", fields: [Paired_adjustment_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_paired")
   Paired_by         Regrant_adjustments[] @relation("Regrant_adjustment_pairs")
+  Regrant_documents Regrant_documents[]
   Organizations     Organizations         @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Organizations")
   Projects          Projects?             @relation(fields: [Project_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Projects")
   Regrant_rounds    Regrant_rounds?       @relation(fields: [Round_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Regrant_rounds")
@@ -1015,6 +1018,26 @@ model Regrant_adjustments {
   @@index([linked_transfer_ID], map: "fk_Regrant_adjustments_to_Regrant_transfers_idx")
   @@index([linked_donation_ID], map: "fk_Regrant_adjustments_to_Donations_idx")
   @@index([Paired_adjustment_ID], map: "fk_Regrant_adjustments_to_paired_idx")
+}
+
+/// A link to a document (bilag, receipt, bank confirmation; usually Google Drive) for exactly one round, transfer or adjustment
+model Regrant_documents {
+  ID            Int      @id @default(autoincrement())
+  url           String   @db.VarChar(1024)
+  label         String?  @db.VarChar(255) /// e.g. "Bilag 16-043"; the admin shows the URL's host without one
+  Round_ID      Int?
+  Transfer_ID   Int?
+  Adjustment_ID Int?
+  created_by    String   @db.VarChar(255)
+  created_at    DateTime @default(now()) @db.DateTime(0)
+
+  Regrant_rounds      Regrant_rounds?      @relation(fields: [Round_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_documents_to_Regrant_rounds")
+  Regrant_transfers   Regrant_transfers?   @relation(fields: [Transfer_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_documents_to_Regrant_transfers")
+  Regrant_adjustments Regrant_adjustments? @relation(fields: [Adjustment_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_documents_to_Regrant_adjustments")
+
+  @@index([Round_ID], map: "fk_Regrant_documents_to_Regrant_rounds_idx")
+  @@index([Transfer_ID], map: "fk_Regrant_documents_to_Regrant_transfers_idx")
+  @@index([Adjustment_ID], map: "fk_Regrant_documents_to_Regrant_adjustments_idx")
 }
 
 /// Marks a recipient as one of our own funds: never paid directly, granted through Fund_grants

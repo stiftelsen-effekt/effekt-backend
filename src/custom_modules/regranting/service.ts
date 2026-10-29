@@ -30,6 +30,7 @@ import type {
   Transfer,
   Unassigned,
   Adjustment,
+  RegrantDocument,
   StatementEntryKind,
 } from "./types";
 import { hasErrors, validateRound } from "./validation";
@@ -960,7 +961,6 @@ export async function earmark(input: EarmarkInput, createdBy: string): Promise<E
       roundId: round.id,
       linkedTransferId: null,
       linkedDonationId: null,
-      documentRef: null,
     };
     const fromAdjustmentId = await dao().createAdjustment(
       { ...common, projectId: null, amount: amount.negated().toNumber() },
@@ -1091,6 +1091,8 @@ export type StatementEntry = {
   reason: string | null;
   /** Adjustments and fund grants: who entered them; transfers: who approved the round */
   createdBy: string | null;
+  /** Transfers and adjustments: their documents (bilag, bank confirmations) */
+  documents: RegrantDocument[];
 };
 
 export type Statement = {
@@ -1139,6 +1141,13 @@ export async function getStatement(input: {
     dao().getCommittedLines(org.id),
   ]);
   const names = new Map(organizations.map((o) => [o.id, o.name]));
+  const ids = (key: "transferId" | "adjustmentId") => [
+    ...new Set(rows.map((r) => r[key]).filter((id): id is number => id !== null)),
+  ];
+  const [transferDocuments, adjustmentDocuments] = await Promise.all([
+    dao().documentsFor("transferId", ids("transferId")),
+    dao().documentsFor("adjustmentId", ids("adjustmentId")),
+  ]);
 
   const opening = sum(openingRows.filter((r) => inProject(r.projectId)).map(rowBalance));
   let running = opening;
@@ -1156,6 +1165,12 @@ export async function getStatement(input: {
           r.counterpartOrganizationId === null
             ? null
             : names.get(r.counterpartOrganizationId) ?? null,
+        documents:
+          (r.transferId !== null
+            ? transferDocuments.get(r.transferId)
+            : r.adjustmentId !== null
+            ? adjustmentDocuments.get(r.adjustmentId)
+            : undefined) ?? [],
       };
     });
 

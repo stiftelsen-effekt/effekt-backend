@@ -20,6 +20,7 @@ import { formatMoney, formatMoneyInput } from "@/lib/format";
 import { notify } from "@/lib/notify";
 import { useTRPC } from "@/lib/trpc";
 import { AdjustmentDialog } from "./adjustment-dialog";
+import { DocumentLinks } from "./documents";
 import { lineLabel, type RoundSummary, type Transfer } from "./model";
 import { parsePreciseDecimal, validatePayment, type PaymentForm } from "./payment-form";
 import { ForeignAmount, RecipientLink } from "./ui";
@@ -125,6 +126,14 @@ export function Transfers({ round, transfers }: { round: RoundSummary; transfers
               </div>
             </dl>
           )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-3 py-2">
+            <span className="text-xs text-muted-foreground">Documents</span>
+            <DocumentLinks
+              documents={t.documents}
+              parent={{ transferId: t.id }}
+              what={`transfer #${t.id}`}
+            />
+          </div>
           <table className="w-full text-sm" aria-label={`Lines of transfer #${t.id}`}>
             <thead>
               <tr className="text-left text-xs text-muted-foreground [&>th]:px-3 [&>th]:py-1.5 [&>th]:font-semibold">
