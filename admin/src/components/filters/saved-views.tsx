@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDiscardGuard } from "@/components/domain/unsaved-changes";
 import { createPersistentStore } from "@/lib/persistent-store";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
@@ -50,6 +51,10 @@ export function SavedViews({
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
   const current = views.find((view) => sameSearch(view.search, list.search));
+  const guard = useDiscardGuard(name.trim() !== "", () => {
+    setNaming(false);
+    setName("");
+  });
 
   function save() {
     const trimmed = name.trim();
@@ -116,7 +121,10 @@ export function SavedViews({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Dialog open={naming} onOpenChange={setNaming}>
+      <Dialog
+        open={naming}
+        onOpenChange={(next) => (next ? setNaming(true) : guard.requestClose())}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Save view</DialogTitle>
@@ -139,7 +147,7 @@ export function SavedViews({
               />
             </div>
             <DialogFooter>
-              <Button type="button" onClick={() => setNaming(false)}>
+              <Button type="button" onClick={() => guard.requestClose()}>
                 {strings.actions.cancel}
               </Button>
               <Button type="submit" variant="primary" disabled={!name.trim()}>
@@ -148,6 +156,7 @@ export function SavedViews({
             </DialogFooter>
           </form>
         </DialogContent>
+        {guard.dialog}
       </Dialog>
     </>
   );

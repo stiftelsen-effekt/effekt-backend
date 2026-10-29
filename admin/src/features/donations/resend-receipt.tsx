@@ -3,6 +3,7 @@ import { MailIcon } from "lucide-react";
 import { useState } from "react";
 import { Callout } from "@/components/domain/callout";
 import { describeError } from "@/components/domain/error-state";
+import { useDiscardGuard } from "@/components/domain/unsaved-changes";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -40,15 +41,15 @@ export function ResendReceiptDialog({
   const target = override.trim() || email;
   const invalid = override.trim() !== "" && !isEmail(override.trim());
   const errorInfo = resend.error ? receiptError(resend.error) : null;
+  const guard = useDiscardGuard(override.trim() !== "", () => setOpen(false));
 
   function onOpenChange(next: boolean) {
     if (resend.isPending) return;
-    setOpen(next);
-    if (next) {
-      setOverride("");
-      setTouched(false);
-      resend.reset();
-    }
+    if (!next) return guard.requestClose();
+    setOpen(true);
+    setOverride("");
+    setTouched(false);
+    resend.reset();
   }
 
   async function send() {
@@ -120,6 +121,7 @@ export function ResendReceiptDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {guard.dialog}
     </Dialog>
   );
 }
