@@ -273,38 +273,44 @@ function Round({ roundId }: { roundId: number }) {
           />
         </Callout>
       )}
-      {detail.data && (
+      {/* Its place is held while the round loads, so the builder below doesn't move */}
+      {!detail.error && (
         <section
           aria-label="Notes and documents"
           className="rounded-md border border-border bg-surface px-3 py-2.5"
         >
-          <h2 className="mb-1 text-xs font-semibold text-muted-foreground">Notes and documents</h2>
-          <NotesAndDocuments
-            notes={detail.data.round.notes}
-            empty={
-              <p className="text-muted-foreground">
-                {detail.data.documents.length > 0
-                  ? "No notes."
-                  : "No notes or documents yet. Add explanations for the record (calculation errors, held-back amounts) and links to the decision, board minutes and other bilag."}
-              </p>
-            }
-            documents={detail.data.documents}
-            parent={{ roundId: detail.data.round.id }}
-            what={detail.data.round.name}
-            actions={
-              <>
-                <EditNotesDialog
-                  target={{ roundId: detail.data.round.id }}
-                  notes={detail.data.round.notes}
-                  what={detail.data.round.name}
-                />
-                <AddDocumentDialog
-                  parent={{ roundId: detail.data.round.id }}
-                  what={detail.data.round.name}
-                />
-              </>
-            }
-          />
+          {detail.data ? (
+            <NotesAndDocuments
+              notes={detail.data.round.notes}
+              empty={
+                <p className="text-muted-foreground">
+                  {detail.data.documents.length > 0
+                    ? "No notes."
+                    : "No notes or documents. Add explanations and links to the decision and bilag for the record."}
+                </p>
+              }
+              documents={detail.data.documents}
+              parent={{ roundId: detail.data.round.id }}
+              what={detail.data.round.name}
+              actions={
+                <>
+                  <EditNotesDialog
+                    target={{ roundId: detail.data.round.id }}
+                    notes={detail.data.round.notes}
+                    what={detail.data.round.name}
+                  />
+                  <AddDocumentDialog
+                    parent={{ roundId: detail.data.round.id }}
+                    what={detail.data.round.name}
+                  />
+                </>
+              }
+            />
+          ) : (
+            <p className="text-sm">
+              <SkeletonText>No notes or documents. Add explanations and links.</SkeletonText>
+            </p>
+          )}
         </section>
       )}
       {/* The builder has no shape worth sketching: its space is reserved (taller than the
