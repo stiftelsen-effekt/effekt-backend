@@ -30,5 +30,7 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     css: false,
     include: ["src/**/*.test.{ts,tsx}"],
+    // The admin is used in Norway and the tests assume Oslo time; CI (Cloud Build) runs in UTC.
+    env: { TZ: "Europe/Oslo" },
   },
 });
