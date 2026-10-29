@@ -57,7 +57,70 @@ export const donationFixture = {
   distribution: { kid: "000569937638223", donorId: 569, taxUnitId: null, causeAreas: [] },
 };
 
+/** analysis.newDonors: 24 months ending October 2026, two referral sources */
+export const newDonorsFixture = () => {
+  const months = Array.from({ length: 24 }, (_, i) => {
+    const index = 2024 * 12 + 10 + i; // Nov 2024 … Oct 2026
+    const month = `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
+    const donors = 80 + ((i * 37) % 60);
+    return {
+      month,
+      donors,
+      volume: `${donors * 2500}.00`,
+      bySource: {
+        "ref-1": Math.floor(donors / 3),
+        "ref-7": Math.floor(donors / 4),
+        other: donors - Math.floor(donors / 3) - Math.floor(donors / 4),
+      },
+    };
+  });
+  return {
+    months,
+    sources: [
+      { key: "ref-1", label: "Bekjent" },
+      { key: "ref-7", label: "Effektiv altruisme" },
+      { key: "other", label: "Other / unknown" },
+    ],
+    partialMonth: "2026-10",
+  };
+};
+
+/** analysis.cohorts: 2024–2026 */
+export const cohortsFixture = () => ({
+  years: [2024, 2025, 2026],
+  partialYear: 2026,
+  cohorts: [
+    {
+      year: 2024,
+      size: 2000,
+      firstYearVolume: "9000000.00",
+      cells: [
+        { year: 2024, donors: 2000, share: 1, volume: "9000000.00" },
+        { year: 2025, donors: 700, share: 0.35, volume: "4000000.00" },
+        { year: 2026, donors: 500, share: 0.25, volume: "2500000.00" },
+      ],
+    },
+    {
+      year: 2025,
+      size: 1800,
+      firstYearVolume: "12000000.00",
+      cells: [
+        { year: 2025, donors: 1800, share: 1, volume: "12000000.00" },
+        { year: 2026, donors: 540, share: 0.3, volume: "3000000.00" },
+      ],
+    },
+    {
+      year: 2026,
+      size: 1200,
+      firstYearVolume: "8000000.00",
+      cells: [{ year: 2026, donors: 1200, share: 1, volume: "8000000.00" }],
+    },
+  ],
+});
+
 const fixtures: Record<string, unknown> = {
+  "analysis.newDonors": newDonorsFixture(),
+  "analysis.cohorts": cohortsFixture(),
   "analysis.overview": overviewFixture(),
   "home.trends": homeTrendsFixture(),
   "analysis.pledges.list": pledgesFixture(),

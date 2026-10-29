@@ -29,6 +29,7 @@ import { agreements } from "./DAO_modules/agreements";
 import { cancelledAgreements } from "./DAO_modules/cancelledAgreements";
 import { regranting } from "./DAO_modules/regranting";
 import { analysis } from "./DAO_modules/analysis";
+import { donorCohorts } from "./DAO_modules/donorCohorts";
 import { pledges } from "./DAO_modules/pledges";
 import { regrantingTrace } from "./DAO_modules/regrantingTrace";
 import { paymentIntents } from "./DAO_modules/paymentIntents";
@@ -91,6 +92,7 @@ export const DAO = {
   cancelledAgreements: cancelledAgreements,
   regranting: regranting,
   analysis: analysis,
+  donorCohorts: donorCohorts,
   pledges: pledges,
   regrantingTrace: regrantingTrace,
   paymentIntents: paymentIntents,

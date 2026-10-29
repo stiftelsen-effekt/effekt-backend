@@ -160,3 +160,23 @@ test("marking received sends the date and donation; reopening can be undone", as
   await expect(confirm).toBeHidden();
   expect(calls).toEqual([{ path: "delete", input: { id: 3 } }]);
 });
+
+test("cohorts switch between donors and volume, and new donors stack by referral", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.getByRole("link", { name: "Overview", exact: true }).click();
+  const table = page.getByRole("table", { name: "Donor cohorts" });
+  const row2024 = table.getByRole("row", { name: /^2024/ });
+  await expect(row2024).toContainText("35 %");
+  await expect(table.getByRole("columnheader", { name: "2026 (so far)" })).toBeVisible();
+
+  await page.getByRole("radio", { name: "Volume" }).click();
+  await expect(row2024).toContainText("4 000 000".replace(/ /g, " "));
+  await expect(row2024).not.toContainText("35 %");
+
+  await expect(page.getByText("Effektiv altruisme")).toHaveCount(0);
+  await page.getByRole("radio", { name: "By referral" }).click();
+  await expect(page.getByText("Effektiv altruisme")).toBeVisible();
+  await expect(page.getByText("Other / unknown", { exact: true })).toBeVisible();
+});
