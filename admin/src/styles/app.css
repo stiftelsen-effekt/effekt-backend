@@ -224,6 +224,12 @@
   --color-chart-7: var(--chart-7);
   --color-chart-8: var(--chart-8);
   --color-chart-9: var(--chart-9);
+  --color-chart-10: var(--chart-10);
+  --color-chart-11: var(--chart-11);
+  --color-chart-12: var(--chart-12);
+  --color-chart-13: var(--chart-13);
+  --color-chart-14: var(--chart-14);
+  --color-chart-15: var(--chart-15);
   --color-chart-grid: var(--border);
 
   --spacing-row: var(--row-h);
@@ -275,6 +281,14 @@
   --chart-7: color-mix(in oklab, var(--chart-2) 60%, var(--surface));
   --chart-8: color-mix(in oklab, var(--chart-3) 60%, var(--surface));
   --chart-9: color-mix(in oklab, var(--chart-4) 60%, var(--surface));
+  /* More organization colours (organizations store one, so there must be enough for every
+     active one): violet, rose, olive, and their softer versions. */
+  --chart-10: #7a4cc2;
+  --chart-11: #c23f6e;
+  --chart-12: #6b8a1f;
+  --chart-13: color-mix(in oklab, var(--chart-10) 60%, var(--surface));
+  --chart-14: color-mix(in oklab, var(--chart-11) 60%, var(--surface));
+  --chart-15: color-mix(in oklab, var(--chart-12) 60%, var(--surface));
 
   color-scheme: light;
 }
@@ -315,6 +329,9 @@
   --chart-3: #e0a640;
   --chart-4: #5cc2ba;
   --chart-5: var(--color-paper-700);
+  --chart-10: #b89cf0;
+  --chart-11: #f08fb0;
+  --chart-12: #a8c95a;
 
   color-scheme: dark;
 }

@@ -11,6 +11,7 @@ import {
   toggleCauseAreaActive,
   toggleOrganizationActive,
 } from "../../custom_modules/configService";
+import { ORG_CHART_COLORS } from "../../custom_modules/orgChartColors";
 import { idSchema as id } from "../schemas/common";
 import { adminProcedure, router } from "../trpc";
 
@@ -132,6 +133,10 @@ const causeAreasRouter = router({
 });
 
 const abbreviationText = z.string().min(1).max(10);
+/** A palette token name (src/custom_modules/orgChartColors.ts); null: derived from the id. */
+const chartColor = z.enum(ORG_CHART_COLORS, {
+  error: `Chart colour must be one of ${ORG_CHART_COLORS.join(", ")}`,
+});
 
 const organizationCreateInput = z.strictObject({
   name: nameText,
@@ -142,6 +147,7 @@ const organizationCreateInput = z.strictObject({
   ordering: ordering.optional(),
   standardShare: share.optional(),
   causeAreaId: id,
+  chartColor: chartColor.nullable().optional(),
 });
 
 const organizationUpdateInput = z.strictObject({
@@ -156,6 +162,7 @@ const organizationUpdateInput = z.strictObject({
   ordering: ordering.nullable().optional(),
   standardShare: share.nullable().optional(),
   causeAreaId: id.optional(),
+  chartColor: chartColor.nullable().optional(),
 });
 
 const organizationsRouter = router({

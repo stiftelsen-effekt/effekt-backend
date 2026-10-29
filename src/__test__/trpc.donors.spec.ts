@@ -425,7 +425,15 @@ describe("tRPC donors router", () => {
     it("returns donations, aggregates, referrals and agreements", async () => {
       const donations = [{ id: 1 }];
       const yearly = [
-        { ID: 1, organization: "AMF", abbriv: "AMF", causeAreaID: 1, value: "10", year: 2024 },
+        {
+          ID: 1,
+          organization: "AMF",
+          abbriv: "AMF",
+          causeAreaID: 1,
+          chartColor: null,
+          value: "10",
+          year: 2024,
+        },
       ];
       const distributions = [
         { KID: "123", sum: "10.00", count: 1, full_name: "J", email: "j@x" },

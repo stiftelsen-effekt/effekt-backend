@@ -130,16 +130,21 @@ export type YearlyChart = {
  * rest are grouped as "Other".
  */
 export function yearlyChart(rows: YearlyAggregateRow[], maxSeries = 6): YearlyChart {
-  const totals = new Map<number, { label: string; total: bigint }>();
+  const totals = new Map<number, { label: string; chartColor?: string | null; total: bigint }>();
   for (const row of rows) {
-    const current = totals.get(row.ID) ?? { label: row.organization, total: 0n };
+    const current = totals.get(row.ID) ?? {
+      label: row.organization,
+      chartColor: row.chartColor,
+      total: 0n,
+    };
     current.total += toMinorUnits(row.value);
     totals.set(row.ID, current);
   }
   const { series, keyOf } = orgChartSeries(
-    [...totals].map(([id, { label, total }]) => ({
+    [...totals].map(([id, { label, chartColor, total }]) => ({
       id,
       label,
+      chartColor,
       total: moneyToNumber(fromMinorUnits(total)),
     })),
     maxSeries,

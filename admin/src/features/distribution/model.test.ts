@@ -20,6 +20,7 @@ const org = (id: number, causeAreaId: number, standardShare: number) => ({
   standardShare,
   isActive: true,
   ordering: id,
+  chartColor: null,
 });
 
 const config: CauseAreaConfig[] = [

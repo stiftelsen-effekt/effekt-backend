@@ -1,6 +1,7 @@
 import type { Organizations } from "@prisma/client";
 import type { CauseArea } from "../schemas/types";
 import { DAO, type SqlResult } from "./DAO";
+import { toOrgChartColor, type OrgChartColor } from "./orgChartColors";
 
 /**
  * Shared create/update/toggle logic for cause areas and organizations, used by both the
@@ -72,6 +73,7 @@ export type OrganizationCreateInput = {
   ordering?: number;
   standardShare?: number;
   causeAreaId: number;
+  chartColor?: OrgChartColor | null;
 };
 
 export type OrganizationPatch = {
@@ -84,6 +86,7 @@ export type OrganizationPatch = {
   ordering?: number | null;
   standardShare?: number | null;
   causeAreaId?: number;
+  chartColor?: OrgChartColor | null;
 };
 
 export const buildNewOrganization = (input: OrganizationCreateInput) => ({
@@ -96,6 +99,7 @@ export const buildNewOrganization = (input: OrganizationCreateInput) => ({
   ordering: input.ordering || 99,
   standardShare: input.standardShare || 0,
   causeAreaId: input.causeAreaId,
+  chartColor: input.chartColor ?? null,
 });
 
 /** Merges a patch onto an existing Organizations row (as returned by DAO.organizations.getByID). */
@@ -116,6 +120,8 @@ export const mergeOrganizationUpdate = (
   standardShare:
     patch.standardShare !== undefined ? patch.standardShare : existing.std_percentage_share,
   causeAreaId: patch.causeAreaId !== undefined ? patch.causeAreaId : existing.cause_area_ID,
+  chartColor:
+    patch.chartColor !== undefined ? patch.chartColor : toOrgChartColor(existing.chart_color),
 });
 
 export const toggleOrganizationActive = (id: number, existing: SqlResult<Organizations>) =>

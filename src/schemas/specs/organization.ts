@@ -47,6 +47,8 @@ export interface components {
       isActive: boolean;
       /** @description The ordering of the organization within the cause area (used for sorting frontend) */
       ordering: number | null;
+      /** @description The organization's chart colour in the admin, a palette token name such as "chart-3" */
+      chartColor?: string | null;
     };
   };
   responses: never;
