@@ -238,9 +238,19 @@ export const reviewQueueRegisterInput = z
     message: "Provide either a KID or a distribution, not both",
   });
 
-export const reviewQueueIgnoreInput = z.strictObject({
-  id,
-  note: z.string().trim().min(1).max(2000).optional(),
+const ignoreNote = z.string().trim().min(1).max(2000).optional();
+
+export const reviewQueueIgnoreInput = z.strictObject({ id, note: ignoreNote });
+
+/** Several items at once, e.g. after a wrong upload; at most 500 per call */
+export const reviewQueueIgnoreManyInput = z.strictObject({
+  ids: z.array(id).min(1).max(500),
+  note: ignoreNote,
 });
+
+/** Every open item from one import (Import_logs id), however many pages they fill */
+export const reviewQueueIgnoreImportInput = z.strictObject({ importLogId: id, note: ignoreNote });
+
+export const reviewQueueImportInput = z.strictObject({ importLogId: id });
 
 //endregion

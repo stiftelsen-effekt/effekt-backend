@@ -1,6 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { ArrowRightIcon, InboxIcon, UploadIcon } from "lucide-react";
-import { createColumns, DataTable, TableSummary } from "@/components/data-table";
+import {
+  createColumns,
+  DataTable,
+  TableSummary,
+  type RowSelectionState,
+} from "@/components/data-table";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
@@ -9,6 +15,7 @@ import { FilterBar, OptionsFilter, useListState } from "@/components/filters";
 import { defineList, param } from "@/components/filters/list-state";
 import { ListPage } from "@/components/templates";
 import { Button } from "@/components/ui/button";
+import { BulkIgnoreActions } from "@/features/review-queue/bulk-ignore";
 import {
   queueSources,
   reviewStatuses,
@@ -88,6 +95,8 @@ function ReviewQueuePage() {
   const trpc = useTRPC();
   const navigate = useNavigate();
   const sources = list.filters.source;
+  // Ticked rows, for ignoring several at once (e.g. a report uploaded by mistake)
+  const [selection, setSelection] = useState<RowSelectionState>({});
 
   const listOptions = (page: number) =>
     trpc.reports.reviewQueue.list.queryOptions({
@@ -180,6 +189,15 @@ function ReviewQueuePage() {
           isFetching={query.isFetching}
           getRowId={(row) => String(row.id)}
           {...list.tableState}
+          rowSelection={selection}
+          onRowSelectionChange={setSelection}
+          selectionActions={(ids) => (
+            <BulkIgnoreActions
+              selectedIds={ids}
+              rows={query.data?.rows}
+              onDone={() => setSelection({})}
+            />
+          )}
           onRowOpen={openItem}
           getRowHref={(row) =>
             `/import/review/${row.id}${sourceSearch ? `?source=${sourceSearch}` : ""}`
