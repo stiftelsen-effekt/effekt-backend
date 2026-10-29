@@ -44,6 +44,20 @@ const preciseDecimal = (integerDigits: number) =>
 
 export const byId = z.strictObject({ id });
 
+/**
+ * Free-text notes on a round or transfer (calculation errors, held-back amounts, mis-keyed
+ * donations): trimmed, blank → null
+ */
+export const notesSchema = z
+  .string()
+  .trim()
+  .max(5000)
+  .nullable()
+  .transform((v) => (v ? v : null));
+
+/** Sets or clears (null or blank) the notes of a round or transfer, in any round status */
+export const setNotesInput = z.strictObject({ id, notes: notesSchema });
+
 //region Lines
 
 const lineFields = {
@@ -243,6 +257,7 @@ export const transferCreateInput = z.strictObject({
   currency: currencySchema.optional(),
   /** Default: none. amount_nok is set to their sum. */
   lines: transferLinesSchema.optional(),
+  notes: notesSchema.optional(),
 });
 
 export const transferUpdateInput = z.strictObject({
@@ -251,6 +266,7 @@ export const transferUpdateInput = z.strictObject({
   currency: currencySchema.optional(),
   /** Set the bank amount explicitly (validation checks the lines sum to it) */
   amountNok: nonNegativeMoneySchema.optional(),
+  notes: notesSchema.optional(),
 });
 
 export const transferSetLinesInput = z.strictObject({

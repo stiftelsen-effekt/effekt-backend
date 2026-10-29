@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRecordParams, useRecordSearch } from "@/components/panels";
-import { DownloadIcon, ScaleIcon, ScrollTextIcon } from "lucide-react";
+import { DownloadIcon, ScaleIcon, ScrollTextIcon, StickyNoteIcon } from "lucide-react";
 import { cellPlaceholder, createColumns, DataTable } from "@/components/data-table";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
@@ -166,6 +166,16 @@ const columns = col.columns([
         <span className="truncate" title={describeEntry(e)}>
           {describeEntry(e)}
         </span>
+        {e.transferNotes && (
+          <span
+            className="inline-flex shrink-0 text-muted-foreground"
+            title={e.transferNotes}
+            aria-label={`Notes: ${e.transferNotes}`}
+            role="img"
+          >
+            <StickyNoteIcon className="size-3.5" aria-hidden />
+          </span>
+        )}
         <DocumentLinks documents={e.documents} className="shrink-0 flex-nowrap" />
       </span>
     ),

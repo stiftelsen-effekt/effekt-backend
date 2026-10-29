@@ -21,6 +21,7 @@ import { notify } from "@/lib/notify";
 import { useTRPC } from "@/lib/trpc";
 import { AdjustmentDialog } from "./adjustment-dialog";
 import { DocumentLinks } from "./documents";
+import { EditNotesDialog, NotesText } from "./notes";
 import { lineLabel, type RoundSummary, type Transfer } from "./model";
 import { parsePreciseDecimal, validatePayment, type PaymentForm } from "./payment-form";
 import { ForeignAmount, RecipientLink } from "./ui";
@@ -133,6 +134,17 @@ export function Transfers({ round, transfers }: { round: RoundSummary; transfers
               parent={{ transferId: t.id }}
               what={`transfer #${t.id}`}
             />
+          </div>
+          <div className="border-b border-border px-3 py-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Notes</span>
+              <EditNotesDialog
+                target={{ transferId: t.id }}
+                notes={t.notes}
+                what={`transfer #${t.id}`}
+              />
+            </div>
+            {t.notes && <NotesText notes={t.notes} className="mt-0.5" />}
           </div>
           <table className="w-full text-sm" aria-label={`Lines of transfer #${t.id}`}>
             <thead>

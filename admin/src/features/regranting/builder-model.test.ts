@@ -79,6 +79,7 @@ const transfer = (
   paidAt: null,
   bankRef: null,
   paidBy: "foundation",
+  notes: null,
   documents: [],
   lines: lines.map(([organizationId, projectId, amountNok], i) => ({
     id: id * 100 + i,

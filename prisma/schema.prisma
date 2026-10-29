@@ -886,6 +886,7 @@ model Regrant_rounds {
   approved_by  String?   @db.VarChar(255)
   approved_at  DateTime? @db.DateTime(0)
   paid_at      DateTime? @db.Date
+  notes        String?   @db.Text /// Free text for the record; editable in any status
 
   Regrant_round_donations  Regrant_round_donations[]
   Regrant_round_recipients Regrant_round_recipients[]
@@ -956,8 +957,9 @@ model Regrant_transfers {
   fx_rate        Decimal?  @db.Decimal(18, 8) /// NOK per unit of currency
   bank_fee       Decimal?  @db.Decimal(16, 2) /// NOK, paid by operations; doesn't reduce the recipient's balance
   paid_at        DateTime? @db.Date
-  bank_ref       String?   @db.VarChar(255)
+  bank_ref       String?   @db.VarChar(255) /// The bank's reference only; explanations go in notes
   paid_by        String    @default("foundation") @db.VarChar(16) /// foundation | external
+  notes          String?   @db.Text /// Free text for the record; editable in any status
 
   Regrant_rounds         Regrant_rounds           @relation(fields: [Round_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_transfers_to_Regrant_rounds")
   Payees                 Payees                   @relation(fields: [Payee_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_transfers_to_Payees")

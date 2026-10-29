@@ -47,6 +47,7 @@ export const round = {
   approvedBy: null,
   approvedAt: null,
   paidAt: null,
+  notes: null,
   totalNok: "1500.30",
   transferCount: 1,
   fundGrantCount: 1,
@@ -81,6 +82,7 @@ export const transfer = {
   paidAt: null,
   bankRef: null,
   paidBy: "foundation",
+  notes: null,
   documents: [],
   lines: [
     transferLine(701, 1, "GiveWell All Grants Fund", null, "1000.30"),
@@ -391,6 +393,7 @@ const entry = (overrides: Record<string, unknown>) => ({
   payeeName: null,
   bankRef: null,
   paidBy: null,
+  transferNotes: null,
   ...overrides,
 });
 
@@ -684,6 +687,7 @@ export const fixtures: Record<string, unknown> = {
         transferLineId: null,
         payeeName: null,
         bankRef: null,
+        transferNotes: null,
         fundGrantId: null,
         fundGrantLineId: null,
         counterpartOrganizationId: null,
@@ -711,6 +715,7 @@ export const fixtures: Record<string, unknown> = {
         transferLineId: 500,
         payeeName: "GiveWell",
         bankRef: "REF-123",
+        transferNotes: null,
         fundGrantId: null,
         fundGrantLineId: null,
         counterpartOrganizationId: null,

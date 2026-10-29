@@ -198,6 +198,8 @@ export type Round = {
   approvedBy: string | null;
   approvedAt: Date | null;
   paidAt: IsoDate | null;
+  /** Free text for the record (calculation errors, held-back amounts…); editable in any status */
+  notes: string | null;
 };
 
 export type RoundSummary = Round & {
@@ -252,8 +254,11 @@ export type Transfer = {
   fxRate: string | null;
   bankFee: Money | null;
   paidAt: IsoDate | null;
+  /** The bank's reference only */
   bankRef: string | null;
   paidBy: PaidBy;
+  /** Free text for the record; editable in any status */
+  notes: string | null;
   lines: TransferLine[];
   /** Bank confirmations, bilag */
   documents: RegrantDocument[];

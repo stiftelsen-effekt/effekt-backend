@@ -1080,6 +1080,8 @@ export type StatementEntry = {
   transferLineId: number | null;
   payeeName: string | null;
   bankRef: string | null;
+  /** Transfers: the transfer's notes */
+  transferNotes: string | null;
   fundGrantId: number | null;
   fundGrantLineId: number | null;
   /** fund_grant_in: the fund; fund_grant_out: the recipient */

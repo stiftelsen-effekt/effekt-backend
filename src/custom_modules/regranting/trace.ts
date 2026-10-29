@@ -82,6 +82,8 @@ export type BreakdownEntry = {
   payeeName: string | null;
   bankRef: string | null;
   paidBy: PaidBy | null;
+  /** transfers: the transfer's notes */
+  transferNotes: string | null;
 };
 
 export type CommittedReason =
@@ -184,6 +186,7 @@ const emptyEntry = (): BreakdownEntry => ({
   payeeName: null,
   bankRef: null,
   paidBy: null,
+  transferNotes: null,
 });
 
 const roundOf = (row: LedgerEntryRow): BreakdownRound | null =>
@@ -331,6 +334,7 @@ export async function getBalanceBreakdown(input: {
           payeeName: row.payeeName,
           bankRef: row.bankRef,
           paidBy: row.paidBy,
+          transferNotes: row.transferNotes,
         };
         if (own) roundLines.push({ ...entry, amount: fmt(amount) });
         else if (row.roundStatus === "approved")

@@ -40,6 +40,7 @@ import {
 } from "@/features/regranting/builder-model";
 import { DonationChooser } from "@/features/regranting/create-round-dialog";
 import { DocumentLinks } from "@/features/regranting/documents";
+import { EditNotesDialog, NotesText } from "@/features/regranting/notes";
 import { FundGrants } from "@/features/regranting/fund-grants";
 import {
   countIssues,
@@ -271,6 +272,29 @@ function Round({ roundId }: { roundId: number }) {
             className="mt-1"
           />
         </Callout>
+      )}
+      {detail.data && (
+        <section
+          aria-label="Notes on the round"
+          className="rounded-md border border-border bg-surface px-3 py-2.5 text-sm"
+        >
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-semibold text-muted-foreground">Notes</h2>
+            <EditNotesDialog
+              target={{ roundId: detail.data.round.id }}
+              notes={detail.data.round.notes}
+              what={detail.data.round.name}
+            />
+          </div>
+          {detail.data.round.notes ? (
+            <NotesText notes={detail.data.round.notes} className="mt-1" />
+          ) : (
+            <p className="mt-1 text-muted-foreground">
+              No notes. Add explanations for the record, e.g. calculation errors or held-back
+              amounts.
+            </p>
+          )}
+        </section>
       )}
       {/* The builder has no shape worth sketching: its space is reserved (taller than the
           window, so the totals bar stays put at the bottom) until it arrives whole. */}
