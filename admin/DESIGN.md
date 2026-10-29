@@ -28,6 +28,7 @@ Money in
   Review queue  [n]        unmatched transactions, worked one by one
 Agreements
   Agreements               Vipps + AvtaleGiro, one list
+  Cancelled agreements     newest cancellation first, reasons, donor stats
   Vipps charges            charges, refunds
   AvtaleGiro check         daily expected vs received
 Regranting

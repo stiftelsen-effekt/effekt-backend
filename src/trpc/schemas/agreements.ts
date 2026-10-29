@@ -4,7 +4,11 @@ import {
   agreementSortColumns,
   agreementStatuses,
 } from "../../custom_modules/DAO_modules/agreements";
-import { isoDateSchema, paginationFields, sortSchema } from "./common";
+import {
+  cancelledAgreementProviders,
+  cancelledAgreementSortColumns,
+} from "../../custom_modules/DAO_modules/cancelledAgreements";
+import { idSchema, isoDateSchema, paginationFields, sortSchema } from "./common";
 import { chargeDay } from "./giro";
 
 const range = <T extends z.ZodType>(schema: T) =>
@@ -43,3 +47,22 @@ const agreementsQuery = {
 
 export const agreementsListInput = z.strictObject({ ...paginationFields, ...agreementsQuery });
 export const agreementsExportInput = z.strictObject(agreementsQuery);
+
+export const cancelledAgreementsFilter = z.strictObject({
+  /** Vipps and AvtaleGiro when omitted */
+  providers: z.array(z.enum(cancelledAgreementProviders)).min(1).optional(),
+  /** Cancellation days, inclusive */
+  cancelled: range(isoDateSchema).optional(),
+  /** Agreements with at least one of these reasons recorded */
+  reasonIds: z.array(idSchema).min(1).max(100).optional(),
+  /** Whether the donor has another active Vipps or AvtaleGiro agreement */
+  hasOtherActiveAgreement: z.boolean().optional(),
+  /** Partial name or email; all digits also matches a donor id exactly or part of a KID */
+  donor: z.string().trim().min(1).max(200).optional(),
+});
+
+export const cancelledAgreementsListInput = z.strictObject({
+  ...paginationFields,
+  sort: sortSchema(cancelledAgreementSortColumns).optional(),
+  filter: cancelledAgreementsFilter.optional(),
+});

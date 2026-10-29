@@ -26,6 +26,7 @@ import { fundraisers } from "./DAO_modules/fundraisers";
 import { donationReferralCodes } from "./DAO_modules/donationReferralCodes";
 import { reviewqueue } from "./DAO_modules/reviewqueue";
 import { agreements } from "./DAO_modules/agreements";
+import { cancelledAgreements } from "./DAO_modules/cancelledAgreements";
 import { regranting } from "./DAO_modules/regranting";
 import { analysis } from "./DAO_modules/analysis";
 import { pledges } from "./DAO_modules/pledges";
@@ -86,6 +87,7 @@ export const DAO = {
   donationReferralCodes: donationReferralCodes,
   reviewqueue: reviewqueue,
   agreements: agreements,
+  cancelledAgreements: cancelledAgreements,
   regranting: regranting,
   analysis: analysis,
   pledges: pledges,
