@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Callout } from "@/components/domain/callout";
 import { PercentInput } from "@/components/domain/distribution-editor";
 import { ErrorState } from "@/components/domain/error-state";
+import { OrgSwatch } from "@/components/domain/org-split";
 import { Status } from "@/components/domain/status";
 import { UnsavedChangesBar } from "@/components/domain/unsaved-changes";
 import { SettingsSection } from "@/components/templates";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { notify } from "@/lib/notify";
+import { orgColor, type OrgColor } from "@/features/distribution/orgs";
 import { activeStatus } from "@/lib/status";
 import { type RouterOutputs, useTRPC } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -42,6 +44,7 @@ import {
   shareProblems,
   type Patches,
 } from "./drafts";
+import { freeOrgColor, OrgColorPicker, orgColorNames } from "./org-color-picker";
 import { RecordDialog, textError } from "./record-dialog";
 
 type CauseArea = RouterOutputs["config"]["causeAreas"]["listAll"][number];
@@ -260,6 +263,11 @@ export function CauseAreasSection() {
                             />
                           </TableCell>
                           <TableCell>
+                            <OrgSwatch
+                              slice={{ color: orgColor(org) }}
+                              className="mr-2 inline-block align-[-1px]"
+                            />
+                            <span className="sr-only">{orgColorNames[orgColor(org)]}: </span>
                             <span
                               className={cn(
                                 "font-semibold",
@@ -298,6 +306,7 @@ export function CauseAreasSection() {
                               organization={allServerOrgs.find((o) => o.id === org.id)}
                               causeAreaId={area.id}
                               causeAreas={serverAreas}
+                              allOrganizations={allServerOrgs}
                               trigger={
                                 <Button
                                   variant="ghost"
@@ -317,6 +326,7 @@ export function CauseAreasSection() {
                           <OrganizationDialog
                             causeAreaId={area.id}
                             causeAreas={serverAreas}
+                            allOrganizations={allServerOrgs}
                             trigger={
                               <Button variant="ghost" size="sm">
                                 <PlusIcon />
@@ -499,18 +509,25 @@ function CauseAreaDialog({
   );
 }
 
-type OrganizationForm = CauseAreaForm & { abbreviation: string; causeAreaId: string };
+type OrganizationForm = CauseAreaForm & {
+  abbreviation: string;
+  causeAreaId: string;
+  chartColor: OrgColor;
+};
 
 function OrganizationDialog({
   organization,
   causeAreaId,
   causeAreas,
+  allOrganizations,
   trigger,
   onSaved,
 }: {
   organization?: Organization;
   causeAreaId: number;
   causeAreas: CauseArea[];
+  /** Every organization, to show which chart colours are taken. */
+  allOrganizations: Organization[];
   trigger: React.ReactNode;
   onSaved: () => Promise<unknown>;
 }) {
@@ -522,9 +539,10 @@ function OrganizationDialog({
     <RecordDialog<OrganizationForm>
       trigger={trigger}
       title={organization ? `Edit ${organization.name}` : `Add organization to ${areaName}`}
+      contentClassName="sm:max-w-xl"
       description={
         organization
-          ? "Name and texts shown to donors. Share and status are set in the standard split."
+          ? "Name and texts shown to donors, and its colour in the admin's charts. Share and status are set in the standard split."
           : "New organizations are active straight away with a 0 % share. Set their share in the standard split."
       }
       initial={() => ({
@@ -534,6 +552,7 @@ function OrganizationDialog({
         longDescription: organization?.longDescription ?? "",
         informationUrl: organization?.informationUrl ?? "",
         causeAreaId: String(organization?.causeAreaId ?? causeAreaId),
+        chartColor: organization ? orgColor(organization) : freeOrgColor(allOrganizations),
       })}
       validate={(values) => ({
         name: textError(values.name, { label: "a name", max: 45, required: true }),
@@ -561,6 +580,7 @@ function OrganizationDialog({
             longDescription: values.longDescription.trim(),
             informationUrl: cleanText(values.informationUrl) ?? null,
             causeAreaId: Number(values.causeAreaId),
+            chartColor: values.chartColor,
           });
         } else {
           await create.mutateAsync({
@@ -570,6 +590,7 @@ function OrganizationDialog({
             shortDescription: cleanText(values.shortDescription),
             longDescription: cleanText(values.longDescription),
             informationUrl: cleanText(values.informationUrl),
+            chartColor: values.chartColor,
           });
         }
         await onSaved();
@@ -638,6 +659,13 @@ function OrganizationDialog({
               onChange={(e) => set({ informationUrl: e.target.value })}
             />
           </Field>
+          <OrgColorPicker
+            value={values.chartColor}
+            onChange={(chartColor) => set({ chartColor })}
+            organizations={allOrganizations}
+            selfId={organization?.id}
+          />
+          {errors.chartColor && <p className="text-sm text-danger">{errors.chartColor}</p>}
         </>
       )}
     </RecordDialog>

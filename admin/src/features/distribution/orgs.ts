@@ -1,6 +1,6 @@
 /**
  * Organizations as the visual focus of a split (DESIGN.md › Distributions): the effective
- * share of each organization, a stable organization → colour mapping, the long tail grouped
+ * share of each organization, each organization's colour (`orgColor`), the long tail grouped
  * as "Other", and whether the cause area adds anything worth showing.
  *
  * Gi Effektivt gives almost everything through Global Health, so "100 % Global Health" says
@@ -10,8 +10,34 @@ import type { ChartColor, ChartSeries } from "@/components/charts/chart";
 import { percentOfMoney, toMinorUnits, fromMinorUnits, type MoneyInput } from "@/lib/money";
 import type { CauseAreaConfig, DistributionDraft } from "./model";
 
-/** Colours for organizations, in preference order. `chart-5` (light grey) is kept for Other. */
-export const ORG_COLORS: readonly ChartColor[] = [
+/**
+ * Colours an organization can have, as stored on it (`Organizations.chart_color`, chosen in
+ * Settings → Cause areas). Same tokens and order as the API's `ORG_CHART_COLORS`: strong
+ * colours first, then their softer versions. `chart-5` (light grey) is kept for Other.
+ */
+export const ORG_COLORS = [
+  "chart-1",
+  "chart-2",
+  "chart-3",
+  "chart-4",
+  "chart-10",
+  "chart-11",
+  "chart-12",
+  "chart-6",
+  "chart-7",
+  "chart-8",
+  "chart-9",
+  "chart-13",
+  "chart-14",
+  "chart-15",
+] as const satisfies readonly ChartColor[];
+export type OrgColor = (typeof ORG_COLORS)[number];
+export const OTHER_COLOR: ChartColor = "chart-5";
+export const OTHER_KEY = "other";
+export const OTHER_LABEL = "Other";
+
+/** Colours for organizations without a stored one, by id (the colours before they were stored). */
+const FALLBACK_COLORS: readonly OrgColor[] = [
   "chart-1",
   "chart-2",
   "chart-3",
@@ -21,29 +47,21 @@ export const ORG_COLORS: readonly ChartColor[] = [
   "chart-8",
   "chart-9",
 ];
-export const OTHER_COLOR: ChartColor = "chart-5";
-export const OTHER_KEY = "other";
-export const OTHER_LABEL = "Other";
+
+export const isOrgColor = (value: unknown): value is OrgColor =>
+  typeof value === "string" && (ORG_COLORS as readonly string[]).includes(value);
+
+/** An organization as the API returns it: anything with its id and stored colour. */
+export type ColoredOrg = { id: number; chartColor?: string | null };
 
 /**
- * Colour per organization: each id has a home colour (`id mod 8`), so an organization looks
- * the same on every page. When organizations shown together share a home colour, the one
- * with the lower id keeps it and the other takes the next free colour; the result depends
- * only on which organizations are shown, never on their order or shares. Beyond eight,
- * colours repeat.
+ * An organization's colour, the same on every page: the one stored on it, or, when none is
+ * stored, one derived from its id. Never depends on which other organizations are shown.
  */
-export function orgColors(ids: readonly number[]): Map<number, ChartColor> {
-  const colors = new Map<number, ChartColor>();
-  const taken = new Set<ChartColor>();
-  const n = ORG_COLORS.length;
-  for (const id of [...new Set(ids)].sort((a, b) => a - b)) {
-    const home = ((id % n) + n) % n;
-    let color = ORG_COLORS[home]!;
-    for (let step = 1; step < n && taken.has(color); step++) color = ORG_COLORS[(home + step) % n]!;
-    colors.set(id, color);
-    taken.add(color);
-  }
-  return colors;
+export function orgColor(org: ColoredOrg): OrgColor {
+  if (isOrgColor(org.chartColor)) return org.chartColor;
+  const n = FALLBACK_COLORS.length;
+  return FALLBACK_COLORS[((org.id % n) + n) % n]!;
 }
 
 export type OrgSlice = {
@@ -71,18 +89,20 @@ export function orgSlices(
   config: CauseAreaConfig[],
   amount?: MoneyInput | null,
 ): OrgSlice[] {
-  const slices: Omit<OrgSlice, "color">[] = [];
+  const slices: OrgSlice[] = [];
   for (const area of draft.causeAreas) {
     if (area.share <= 0) continue;
     const areaConfig = config.find((c) => c.id === area.id);
     for (const org of area.organizations) {
       if (org.share <= 0) continue;
+      const orgConfig = areaConfig?.organizations.find((o) => o.id === org.id);
       slices.push({
         id: org.id,
-        name: areaConfig?.organizations.find((o) => o.id === org.id)?.name ?? `#${org.id}`,
+        name: orgConfig?.name ?? `#${org.id}`,
         share: round((area.share * org.share) / 100),
         causeAreaId: area.id,
         causeAreaName: areaConfig?.name ?? null,
+        color: orgColor({ id: org.id, chartColor: orgConfig?.chartColor }),
       });
     }
   }
@@ -93,8 +113,7 @@ export function orgSlices(
     parts[0]! += rest;
     slices.forEach((slice, index) => (slice.amount = fromMinorUnits(parts[index]!)));
   }
-  const colors = orgColors(slices.map((slice) => slice.id!));
-  return slices.map((slice) => ({ ...slice, color: colors.get(slice.id!)! }));
+  return slices;
 }
 
 /** At most `max` slices: the largest `max − 1` and the rest summed as "Other". */
@@ -135,22 +154,21 @@ export function showCauseAreas(draft: DistributionDraft, config: CauseAreaConfig
 
 /**
  * Series for a chart stacked by organization: the largest `max − 1` by total get their own
- * series (coloured like everywhere else), the rest go to "Other". `keyOf` maps an
+ * series (in the organization's colour), the rest go to "Other". `keyOf` maps an
  * organization id to its series key.
  */
 export function orgChartSeries(
-  totals: readonly { id: number; label: string; total: number }[],
+  totals: readonly { id: number; label: string; total: number; chartColor?: string | null }[],
   max = 6,
 ): { series: ChartSeries[]; keyOf: (id: number) => string } {
   const ranked = [...totals].filter((t) => t.total !== 0).sort((a, b) => b.total - a.total);
   const grouped = ranked.length > max;
   const named = grouped ? ranked.slice(0, max - 1) : ranked;
-  const colors = orgColors(named.map((t) => t.id));
   const namedIds = new Set(named.map((t) => t.id));
   const series: ChartSeries[] = named.map((t) => ({
     key: `org${t.id}`,
     label: t.label,
-    color: colors.get(t.id),
+    color: orgColor(t),
   }));
   if (grouped) series.push({ key: OTHER_KEY, label: OTHER_LABEL, color: OTHER_COLOR });
   return { series, keyOf: (id) => (namedIds.has(id) ? `org${id}` : OTHER_KEY) };
@@ -161,22 +179,23 @@ export type OrgSplitRow = {
   organizationId: number;
   organizationName: string;
   causeAreaId: number;
+  /** The organization's stored colour; null: derived from the id */
+  chartColor?: string | null;
   /** Percent of the whole split, a decimal string */
   share: string;
 };
 
 /**
- * List rows' `orgSplit` as OrgSlices for OrgSparkline, in the same stable colours as everywhere
- * else. The rows come largest first; cause area names aren't in them, so they are null.
+ * List rows' `orgSplit` as OrgSlices for OrgSparkline, in each organization's colour. The rows
+ * come largest first; cause area names aren't in them, so they are null.
  */
 export function orgSlicesFromSplit(split: readonly OrgSplitRow[]): OrgSlice[] {
-  const colors = orgColors(split.map((row) => row.organizationId));
   return split.map((row) => ({
     id: row.organizationId,
     name: row.organizationName,
     share: Number(row.share),
     causeAreaId: row.causeAreaId,
     causeAreaName: null,
-    color: colors.get(row.organizationId)!,
+    color: orgColor({ id: row.organizationId, chartColor: row.chartColor }),
   }));
 }

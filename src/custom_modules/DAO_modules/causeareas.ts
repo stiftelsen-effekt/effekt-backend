@@ -1,8 +1,8 @@
 import { Cause_areas, Organizations } from "@prisma/client";
 import type { ResultSetHeader } from "mysql2";
 import { DAO } from "../DAO";
-import { CauseArea, Organization } from "../../schemas/types";
-import { mapOrganization } from "./organizations";
+import { CauseArea } from "../../schemas/types";
+import { mapOrganization, type MappedOrganization } from "./organizations";
 
 export const causeareas = {
   getById: async function (id: number): Promise<CauseArea> {
@@ -80,7 +80,7 @@ export const causeareas = {
     return mapped;
   },
   getActiveWithOrganizations: async function (): Promise<
-    (CauseArea & { organizations: Organization[] })[]
+    (CauseArea & { organizations: MappedOrganization[] })[]
   > {
     type PrefixedCauseAreaResult = {
       [Property in keyof Cause_areas as `CA_${Property}`]: Cause_areas[Property];
@@ -124,7 +124,7 @@ export const causeareas = {
       `,
     );
 
-    const causeAreas: (CauseArea & { organizations: Organization[] })[] = [];
+    const causeAreas: (CauseArea & { organizations: MappedOrganization[] })[] = [];
     for (const row of result) {
       const causeArea = mapCauseArea({
         ID: row.CA_ID,

@@ -157,9 +157,10 @@ async function deleteById(id: number) {
  * @param {Object} org A line from a database query representing an organization
  * @returns {Object} A mapping with JS like syntax instead of the db fields, camel case instead of underscore and so on
  */
-export const mapOrganization = (
-  org: SqlResult<Organizations>,
-): Organization & { chartColor: OrgChartColor | null } => {
+/** An organization as mapOrganization returns it, with its chart colour narrowed to the palette. */
+export type MappedOrganization = Organization & { chartColor: OrgChartColor | null };
+
+export const mapOrganization = (org: SqlResult<Organizations>): MappedOrganization => {
   return {
     id: org.ID,
     name: org.full_name,
