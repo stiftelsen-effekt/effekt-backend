@@ -335,7 +335,9 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
     }, {});
 
     // Go through db donors and update mailchimp status
-    const subscibersToAdd = Math.max(Math.round(Math.random() * 4 - 1), 0);
+    // Test cap while catching up on the backlog from the broken sync (May 2025 – Oct 2026);
+    // was a random 0–3 per run. To be removed once the first runs look right.
+    const subscibersToAdd = 10;
     console.log("Adding max", subscibersToAdd, "subscribers to mailchimp");
 
     let donors: any[] = [];
