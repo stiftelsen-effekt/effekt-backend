@@ -35,6 +35,7 @@ export function HomeView({
   attention,
   attentionLoading = false,
   stats,
+  newDonors,
   chart,
   recentImports,
   recentImportsError,
@@ -49,6 +50,8 @@ export function HomeView({
    */
   attentionLoading?: boolean | number;
   stats?: ReactNode;
+  /** New first-time donors this month (NewDonorsCard) */
+  newDonors?: ReactNode;
   chart?: ReactNode;
   recentImports: ImportLogRow[] | undefined;
   /** Shown in place of the recent imports when they failed to load. */
@@ -73,6 +76,7 @@ export function HomeView({
           />
         </PageSection>
         {stats && <PageSection title="This month">{stats}</PageSection>}
+        {newDonors}
         <div className="grid gap-8 xl:grid-cols-2">
           {chart}
           <PageSection
