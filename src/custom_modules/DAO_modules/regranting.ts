@@ -273,18 +273,26 @@ async function getBalances(query: BalanceQuery, conn?: Queryable): Promise<Balan
   }));
 }
 
-/** Donations up to `at` (payments 15/16 excluded) whose KID has no split: "Unassigned" */
+/**
+ * Donations up to `at` (payments 15/16 excluded) whose KID has no split: "Unassigned". Summed per
+ * KID first (from the covering KidTimestampPaymentSum index), so the split is looked up once per
+ * KID rather than once per donation.
+ */
 async function getUnassigned(at: IsoDate): Promise<Unassigned> {
   const [row] = await rows<any>(
     undefined,
-    `SELECT COUNT(*) AS donationCount, ROUND(COALESCE(SUM(d.sum_confirmed), 0), 2) AS amount
-     FROM Donations d
-     WHERE d.Payment_ID NOT IN (15, 16)
-       AND d.timestamp_confirmed < DATE_ADD(?, INTERVAL 1 DAY)
-       AND NOT EXISTS (
-         SELECT 1 FROM Distribution_cause_areas dca
-         JOIN Distribution_cause_area_organizations dcao ON dcao.Distribution_cause_area_ID = dca.ID
-         WHERE dca.Distribution_KID = d.KID_fordeling)`,
+    `SELECT COALESCE(SUM(k.donationCount), 0) AS donationCount, ROUND(COALESCE(SUM(k.amount), 0), 2) AS amount
+     FROM (
+       SELECT d.KID_fordeling, COUNT(*) AS donationCount, SUM(d.sum_confirmed) AS amount
+       FROM Donations d
+       WHERE d.Payment_ID NOT IN (15, 16)
+         AND d.timestamp_confirmed < DATE_ADD(?, INTERVAL 1 DAY)
+       GROUP BY d.KID_fordeling
+     ) k
+     WHERE NOT EXISTS (
+       SELECT 1 FROM Distribution_cause_areas dca
+       JOIN Distribution_cause_area_organizations dcao ON dcao.Distribution_cause_area_ID = dca.ID
+       WHERE dca.Distribution_KID = k.KID_fordeling)`,
     [at],
   );
   return { amount: money(row.amount), donationCount: Number(row.donationCount) };

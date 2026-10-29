@@ -233,14 +233,33 @@ describe("DAO paymentIntents", () => {
   it("scopes the donation aggregate to one donor", async () => {
     const query = sinon.stub(DAO, "query").resolves([[], []] as any);
     await DAO.paymentIntents.getList({
-      filter: { donorId: 7 },
+      filter: { donorId: 7, statuses: ["received"] },
       sort: { id: "created", desc: true },
       page: 0,
       limit: 500,
     });
     const [sql, params] = query.firstCall.args as [string, unknown[]];
     expect(sql).to.match(/FROM Donations WHERE Donor_ID = \?\s+GROUP BY Donor_ID/);
-    expect(params).to.deep.equal([30, 7, 7, 500, 0]);
+    expect(params).to.deep.equal([30, 7, 7, ["received"], 500, 0]);
+  });
+
+  it("without a status filter, pages first and gets the status for the page's rows only", async () => {
+    const query = sinon.stub(DAO, "query").resolves([[dbRow], []] as any);
+    const result = await DAO.paymentIntents.getList({
+      filter: { donorId: 7 },
+      sort: { id: "created", desc: true },
+      awaitingDays: 14,
+      page: 0,
+      limit: 500,
+    });
+    const [sql, params] = query.firstCall.args as [string, unknown[]];
+    expect(sql).not.to.contain("GROUP BY Donor_ID");
+    // The same status expressions, over the page's rows
+    expect(sql).to.contain("WHEN S.lastDonation >= DATE(Pg.created) THEN 'received'");
+    expect(sql).to.contain("(S.firstDonation IS NULL OR S.firstDonation >= DATE(Pg.created))");
+    expect(sql).to.contain("ORDER BY timestamp_confirmed DESC LIMIT 1) AS lastDonation");
+    expect(params).to.deep.equal([14, 7, 500, 0]);
+    expect(result.count).to.equal(41);
   });
 
   it("counts again for an empty page past the end", async () => {
