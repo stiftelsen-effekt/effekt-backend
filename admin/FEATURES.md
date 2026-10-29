@@ -42,7 +42,9 @@ Swedish organisation runs on its own system; Swedish features are out of scope.
 - **Agreements**: one list across providers (`agreements.list`), plus per-provider detail. Vipps
   and AvtaleGiro: amount, status, charge day, KID, start, distribution, payments; edit amount,
   charge day, status, distribution. Vipps: charges (+refund), matching rules. AvtaleGiro: daily
-  check (expected vs received vs missing).
+  check (expected vs received vs missing). Cancelled agreements (`agreements.cancelled`): newest
+  cancellation first, with the donor's other active agreement, donation stats and the reason
+  given; summary of count, share with another active agreement and top reasons.
 - **Fundraisers**: list + filter + stats; detail; create for a donor.
 - **Settings**: cause areas, organizations per cause area, referral types — create, edit,
   activate/deactivate, ordering, standard split percentages (must sum to 100 within a group; warn
