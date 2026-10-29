@@ -1,6 +1,7 @@
 import type { ResultSetHeader } from "mysql2";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
+import { dbClockColumn } from "../osloDays";
 
 export type ImportLogSummary = {
   ID: number;
@@ -49,8 +50,9 @@ export type ImportLogEntry = {
  */
 export type ImportLogSortColumn = "timestamp" | "label" | "id";
 
+// Qualified: unqualified `timestamp` would sort by the converted select alias, without the index
 const logSortColumns: Record<ImportLogSortColumn, string> = {
-  timestamp: "timestamp",
+  timestamp: "Import_logs.timestamp",
   label: "label",
   id: "ID",
 };
@@ -70,7 +72,7 @@ async function getEntries(
 ): Promise<{ results: ImportLogSummary[]; pages: number; total: number }> {
   const orderBy = sort
     ? `${logSortColumns[sort.id]} ${sort.desc ? "DESC" : "ASC"}, ID ${sort.desc ? "DESC" : "ASC"}`
-    : "timestamp DESC";
+    : "Import_logs.timestamp DESC";
 
   const pattern = sqlString.escape("%" + filesearch + "%");
   const where =
@@ -94,7 +96,7 @@ async function getEntries(
   let [res] = await DAO.query<ImportLogSummary[]>(
     `
       SELECT 
-        ID, label, timestamp,
+        ID, label, ${dbClockColumn("Import_logs.timestamp")},
         (CASE 
           WHEN JSON_CONTAINS_PATH(result, 'one', '$.upload') THEN 
             CONCAT(
@@ -164,7 +166,7 @@ async function getEntries(
 async function get(id: number): Promise<ImportLogEntry | null> {
   let [res] = await DAO.query<ImportLogEntry[]>(
     `
-      SELECT *
+      SELECT ID, label, result, ${dbClockColumn("Import_logs.timestamp")}
       
       FROM Import_logs
       

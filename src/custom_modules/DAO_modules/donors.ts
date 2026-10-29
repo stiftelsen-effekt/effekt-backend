@@ -4,7 +4,7 @@ import { DAO } from "../DAO";
 import * as sqlString from "sqlstring";
 import { RequestLocale } from "../../middleware/locale";
 import { normalizeDonorEmail } from "../donorEmail";
-import { instantRangeClauses, type InstantRange } from "../osloDays";
+import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 
 //region Get
 
@@ -407,7 +407,7 @@ async function getAll(
         Donors.ID,
         Donors.full_name,
         Donors.email,
-        Donors.date_registered,
+        ${dbClockColumn("Donors.date_registered")},
         Donors.newsletter,
         Aggregates.last_donation_date,
         Aggregates.donations_count,
@@ -487,7 +487,11 @@ async function getIDbyEmail(email): Promise<number | null> {
  * @returns {Donor | null} A donor object
  */
 async function getByID(ID): Promise<Donor | null> {
-  var [result] = await DAO.execute(`SELECT * FROM Donors where ID = ? LIMIT 1`, [ID]);
+  var [result] = await DAO.execute(
+    `SELECT ID, full_name, email, newsletter, trash, ${dbClockColumn("date_registered")}
+     FROM Donors where ID = ? LIMIT 1`,
+    [ID],
+  );
 
   if (result.length > 0)
     return {
@@ -512,7 +516,7 @@ async function getByKID(KID) {
             ID,
             email, 
             full_name,
-            date_registered
+            ${dbClockColumn("date_registered")}
             
             FROM Donors 
             

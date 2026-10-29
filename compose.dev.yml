@@ -42,6 +42,9 @@ services:
       - --innodb-buffer-pool-size=192M
       - --performance-schema=OFF
       - --skip-log-bin
+      # Like production Cloud SQL (flag default_time_zone=+02:00, no DST), so values filled by
+      # DEFAULT CURRENT_TIMESTAMP / NOW() hold UTC+2 here too. See docs/timestamps.md.
+      - --default-time-zone=+02:00
     environment:
       # Must match DB_* in .env.docker
       MYSQL_ROOT_PASSWORD: effekt-local

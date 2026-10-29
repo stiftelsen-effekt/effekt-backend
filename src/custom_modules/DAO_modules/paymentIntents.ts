@@ -1,5 +1,5 @@
 import { DAO } from "../DAO";
-import { instantRangeClauses, type InstantRange } from "../osloDays";
+import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 
 /**
  * Payment intents (what a donor said they'd give in the donation widget) with whether the money
@@ -17,6 +17,11 @@ import { instantRangeClauses, type InstantRange } from "../osloDays";
  * donation by the donor, with any KID, amount or method, whose `DATE(timestamp_confirmed)` is on or
  * after `DATE(intent.timestamp)`. The job stops reminding a donor exactly when this says received.
  * The matched donation is the first such donation.
+ *
+ * Payment_intent.timestamp is filled by the column default, so it holds the DB session's wall clock
+ * (UTC+2 in production; see osloDays.ts). Inside the query it stays in that clock as `createdDb`:
+ * the expiry check compares it with NOW() (same clock), and its DATE() is the day the job uses.
+ * Only the returned `created` is converted to UTC.
  *
  * A *new donor* intent is one where the donor had no donation confirmed before the intent's day.
  *
@@ -67,7 +72,7 @@ export type IntentRow = {
 };
 
 const sortExpressions: Record<IntentSortColumn, string> = {
-  created: "I.created",
+  created: "I.createdDb",
   amount: "I.amount",
   donorName: "I.donorName",
 };
@@ -134,7 +139,7 @@ function buildBase(filter: IntentFilter, awaitingDays: number, withStatus = true
       Donors.full_name AS donorName,
       PI.Payment_amount AS amount,
       PI.Payment_method AS methodId,
-      PI.timestamp AS created${withStatus ? `,${statusColumns("PI.timestamp")}` : ""}
+      PI.timestamp AS createdDb${withStatus ? `,${statusColumns("PI.timestamp")}` : ""}
     FROM Payment_intent PI
     INNER JOIN Distributions D ON D.KID = PI.KID_fordeling
     INNER JOIN Donors ON Donors.ID = D.Donor_ID
@@ -167,6 +172,9 @@ type IntentQueryRow = {
   amount: string | null;
   methodId: number | null;
   method: string | null;
+  /** Payment_intent.timestamp in the DB clock, see the module comment */
+  createdDb: Date;
+  /** The same, as UTC */
   created: Date;
   status: IntentStatus;
   newDonor: number;
@@ -214,7 +222,7 @@ async function getList(options: {
   const pageWithStatus = withStatus
     ? page
     : `
-       SELECT Pg.*, ${statusColumns("Pg.created")}
+       SELECT Pg.*, ${statusColumns("Pg.createdDb")}
        FROM (${page}) AS Pg
        LEFT JOIN LATERAL (
          SELECT
@@ -230,6 +238,7 @@ async function getList(options: {
   const [rows] = await DAO.query<IntentQueryRow[]>(
     `SELECT
        P.*,
+       ${dbClockColumn("P.createdDb", "created")},
        Payment.payment_name AS method,
        M.ID AS matchedId,
        M.timestamp_confirmed AS matchedDate,
@@ -242,7 +251,7 @@ async function getList(options: {
        SELECT X.ID, X.timestamp_confirmed, X.sum_confirmed
        FROM Donations X
        WHERE P.status = 'received' AND X.Donor_ID = P.donorId
-         AND X.timestamp_confirmed >= DATE(P.created)
+         AND X.timestamp_confirmed >= DATE(P.createdDb)
        ORDER BY X.timestamp_confirmed, X.ID
        LIMIT 1
      ) AS M ON TRUE

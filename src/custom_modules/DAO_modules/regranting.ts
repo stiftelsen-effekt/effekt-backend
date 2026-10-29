@@ -1,6 +1,7 @@
 import type { ResultSetHeader } from "mysql2";
 import type { PoolConnection } from "mysql2/promise";
 import { DAO } from "../DAO";
+import { dbClockColumn } from "../osloDays";
 import type {
   AdjustmentType,
   Adjustment,
@@ -382,7 +383,10 @@ async function getFronted(at: IsoDate, organizationIds?: number[]): Promise<Fron
 //region Payees and routing
 
 const payeeColumns = `ID AS id, name, currency, bank_account AS bankAccount, iban, swift, wallet,
-  payment_reference_template AS paymentReferenceTemplate, is_active AS isActive, created_at AS createdAt`;
+  payment_reference_template AS paymentReferenceTemplate, is_active AS isActive, ${dbClockColumn(
+    "created_at",
+    "createdAt",
+  )}`;
 const mapPayee = (r: any): Payee => ({ ...r, isActive: Boolean(r.isActive) });
 
 export type PayeeInput = {
@@ -545,9 +549,10 @@ async function getPayeesAt(at: IsoDate): Promise<Map<number, PayeeRef>> {
 const projectSelect = `SELECT pr.ID AS id, pr.Organization_ID AS organizationId, o.full_name AS organizationName,
     pr.name, pr.description, pr.country, ${isoDate("pr.start_date")} AS startDate,
     ${isoDate("pr.end_date")} AS endDate, pr.status, pr.agreement_ref AS agreementRef,
-    ${isoDate(
-      "pr.report_due",
-    )} AS reportDue, pr.documents_url AS documentsUrl, pr.created_at AS createdAt
+    ${isoDate("pr.report_due")} AS reportDue, pr.documents_url AS documentsUrl, ${dbClockColumn(
+  "pr.created_at",
+  "createdAt",
+)}
   FROM Projects pr JOIN Organizations o ON o.ID = pr.Organization_ID`;
 
 export type ProjectInput = {
@@ -777,9 +782,10 @@ async function deleteFund(organizationId: number): Promise<boolean> {
 //region Holds
 
 const holdSelect = `SELECT ID AS id, Organization_ID AS organizationId, Project_ID AS projectId, reason,
-  ${isoDate(
-    "until",
-  )} AS until, created_by AS createdBy, created_at AS createdAt FROM Regrant_holds`;
+  ${isoDate("until")} AS until, created_by AS createdBy, ${dbClockColumn(
+  "created_at",
+  "createdAt",
+)} FROM Regrant_holds`;
 
 export type HoldInput = {
   organizationId: number;
@@ -844,8 +850,11 @@ async function deleteHold(id: number): Promise<boolean> {
 
 const roundColumns = (alias = "r") => `${alias}.ID AS id, ${alias}.name, ${alias}.kind,
   ${isoDate(`${alias}.cutoff`)} AS cutoff, ${alias}.status, ${alias}.min_transfer AS minTransfer,
-  ${alias}.created_by AS createdBy, ${alias}.created_at AS createdAt, ${alias}.approved_by AS approvedBy,
-  ${alias}.approved_at AS approvedAt, ${isoDate(`${alias}.paid_at`)} AS paidAt`;
+  ${alias}.created_by AS createdBy, ${dbClockColumn(`${alias}.created_at`, "createdAt")},
+  ${alias}.approved_by AS approvedBy, ${dbClockColumn(
+  `${alias}.approved_at`,
+  "approvedAt",
+)}, ${isoDate(`${alias}.paid_at`)} AS paidAt`;
 const mapRound = (r: any): Round => ({
   id: r.id,
   name: r.name,
@@ -1385,8 +1394,8 @@ async function loadFundGrants(
   const grants = await rows<any>(
     conn,
     `SELECT g.ID AS id, g.Fund_ID AS fundId, o.full_name AS fundName, g.Round_ID AS roundId, g.rationale,
-            g.approved_by AS approvedBy, g.approved_at AS approvedAt, g.created_by AS createdBy,
-            g.created_at AS createdAt
+            g.approved_by AS approvedBy, ${dbClockColumn("g.approved_at", "approvedAt")},
+            g.created_by AS createdBy, ${dbClockColumn("g.created_at", "createdAt")}
      FROM Fund_grants g JOIN Organizations o ON o.ID = g.Fund_ID
      WHERE ${where} ORDER BY o.full_name, g.ID`,
     params,
@@ -1462,7 +1471,10 @@ const adjustmentSelect = `SELECT a.ID AS id, a.Organization_ID AS organizationId
       "a.effective_at",
     )} AS effectiveAt, a.Round_ID AS roundId, a.linked_transfer_ID AS linkedTransferId,
     a.linked_donation_ID AS linkedDonationId, a.document_ref AS documentRef, a.created_by AS createdBy,
-    a.created_at AS createdAt, a.Paired_adjustment_ID AS pairedAdjustmentId, ar.status AS roundStatus
+    ${dbClockColumn(
+      "a.created_at",
+      "createdAt",
+    )}, a.Paired_adjustment_ID AS pairedAdjustmentId, ar.status AS roundStatus
   FROM Regrant_adjustments a
   JOIN Organizations o ON o.ID = a.Organization_ID
   LEFT JOIN Projects pr ON pr.ID = a.Project_ID

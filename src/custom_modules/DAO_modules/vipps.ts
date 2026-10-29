@@ -1,7 +1,7 @@
 import { distributions } from "./distributions";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
-import { instantRangeClauses, type InstantRange } from "../osloDays";
+import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 import type { ResultSetHeader } from "mysql2";
 import { Vipps_agreements, Vipps_order_transaction_statuses, Vipps_orders } from "@prisma/client";
 
@@ -200,7 +200,9 @@ async function getRecentOrder() {
 async function getAgreement(agreementID): Promise<VippsAgreement | false> {
   let [res] = await DAO.query(
     `
-        SELECT ID, status, donorID, KID, timestamp_created, monthly_charge_day, force_charge_date, paused_until_date, amount, agreement_url_code FROM 
+        SELECT ID, status, donorID, KID, ${dbClockColumn(
+          "timestamp_created",
+        )}, monthly_charge_day, force_charge_date, paused_until_date, amount, agreement_url_code FROM 
             Vipps_agreements
         WHERE 
             ID = ?
@@ -340,7 +342,7 @@ export async function getAgreements(
         VA.amount,
         VA.KID,
         VA.monthly_charge_day,
-        VA.timestamp_created,
+        ${dbClockColumn("VA.timestamp_created")},
         VA.agreement_url_code,
         Donors.full_name
       FROM Vipps_agreements as VA
@@ -462,10 +464,10 @@ async function getPaymentsByAgreementId(
       timestamp_created: Date | null;
     }>
   >(
-    `SELECT chargeID, amountNOK, KID, dueDate, status, type, timestamp_created
+    `SELECT chargeID, amountNOK, KID, dueDate, status, type, ${dbClockColumn("timestamp_created")}
      FROM Vipps_agreement_charges
      WHERE agreementID = ?
-     ORDER BY dueDate DESC, timestamp_created DESC`,
+     ORDER BY dueDate DESC, Vipps_agreement_charges.timestamp_created DESC`,
     [agreementId],
   );
 
@@ -541,7 +543,7 @@ async function getAgreementsByDonorId(
                 donorID,
                 Donors.full_name,
                 KID, 
-                timestamp_created, 
+                ${dbClockColumn("timestamp_created")}, 
                 monthly_charge_day, 
                 force_charge_date, 
                 paused_until_date, 
@@ -584,7 +586,9 @@ async function getCharges(
     avgCharge: string;
   };
 }> {
-  const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)![1];
+  const mappedColumn = jsDBmapping.find((map) => map[0] === sort.id)![1];
+  // The charge's own column, not the converted `timestamp_created` alias, so the sort can use an index
+  const sortColumn = mappedColumn === "timestamp_created" ? "VC.timestamp_created" : mappedColumn;
   const sortDirection = sort.desc ? "DESC" : "ASC";
   const offset = page * limit;
 
@@ -640,7 +644,7 @@ async function getCharges(
     VC.type,
     VC.amountNOK,
     VC.KID,
-    VC.timestamp_created,
+    ${dbClockColumn("VC.timestamp_created")},
     VC.dueDate,
     Donors.full_name
   `;

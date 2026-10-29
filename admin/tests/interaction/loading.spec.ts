@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { homeTrendsFixture, NOW, settle } from "../helpers";
+import { newDonorsFixture } from "../analysis-fixtures";
 import { fixtures as regrantingFixtures } from "../regranting-fixtures";
 
 /**
@@ -123,6 +124,8 @@ function fixture(path: string, input: Record<string, unknown> | undefined): unkn
       };
     case "home.trends":
       return homeTrendsFixture();
+    case "analysis.newDonors":
+      return newDonorsFixture();
     case "config.causeAreas.listAll":
     case "config.causeAreas.listActive":
       return causeAreas;

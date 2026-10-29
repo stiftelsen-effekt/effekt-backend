@@ -4,13 +4,15 @@
  * How timestamps are stored:
  * - The mysql2 pool uses `timezone: "+00:00"`, so a JS Date is written as its UTC wall clock and
  *   a stored value is read back as UTC. The pool doesn't set the session time zone, so MySQL
- *   uses the server's (+02:00 in production, SYSTEM/UTC in local and test databases).
+ *   uses the server's: +02:00 in production and in the dev compose DB, often SYSTEM/UTC elsewhere.
  * - Values the app writes (Donations.timestamp_confirmed, review items, ...) therefore hold the
  *   UTC wall clock of the instant, and comparisons with Dates from the app are exact.
- * - Values filled by a column DEFAULT (CURRENT_TIMESTAMP) hold the *session* wall clock: in
- *   production UTC+2 all year. Donors.date_registered, the agreements' created columns,
- *   Fundraisers.registered and Import_logs.timestamp are such columns. Compare them with
- *   `clock: "db"`, which shifts the bound by the session's UTC offset in SQL.
+ * - Values filled by a column DEFAULT (CURRENT_TIMESTAMP) or by NOW() in SQL hold the *session*
+ *   wall clock: in production UTC+2 all year. Donors.date_registered, the agreements' created
+ *   columns, Payment_intent.timestamp and Import_logs.timestamp are such columns; the full list is
+ *   in docs/timestamps.md. Read them with `dbClockColumn` (or `dbClockToUtc`), which converts them
+ *   to the UTC wall clock the pool expects, and compare them with `clock: "db"`, which shifts the
+ *   bound by the session's UTC offset in SQL.
  *
  * Date-only payments (OCR, bank, AvtaleGiro, Vipps recurring due dates) are stored as UTC
  * midnight of the payment day, which lies inside the Oslo day of the same date.
@@ -87,6 +89,24 @@ export const sqlInstant = (instant: Date, clock: ColumnClock = "app"): string =>
     ? `(${utc} + INTERVAL TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), NOW()) SECOND)`
     : utc;
 };
+
+/**
+ * SQL converting a "db"-clock column (or expression) to the UTC wall clock, so the pool reads it as
+ * the right instant. Uses the session's own zone, so it stays right if the server's zone changes.
+ * Don't use it in WHERE clauses (it hides the column from indexes): compare the raw column with
+ * `sqlInstant(..., "db")` instead.
+ */
+export const dbClockToUtc = (column: string): string =>
+  `CONVERT_TZ(${column}, @@session.time_zone, '+00:00')`;
+
+/**
+ * A select-list item reading a "db"-clock column as UTC, aliased to the column's own name (or
+ * `alias`): `CONVERT_TZ(T.created, @@session.time_zone, '+00:00') AS created`.
+ * ORDER BY resolves an unqualified name to this alias, so order by the qualified column (`T.created`)
+ * to keep the index.
+ */
+export const dbClockColumn = (column: string, alias = column.split(".").pop()!): string =>
+  `${dbClockToUtc(column)} AS ${alias}`;
 
 /** WHERE clauses limiting `column` to the range (none for an open or missing range) */
 export function instantRangeClauses(

@@ -2,7 +2,7 @@ import { DateTime } from "luxon";
 import { DAO, SqlResult } from "../DAO";
 
 import sqlString from "sqlstring";
-import { instantRangeClauses, type InstantRange } from "../osloDays";
+import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 import { OkPacket, ResultSetHeader } from "mysql2/promise";
 import { Avtalegiro_agreements } from "@prisma/client";
 import { Distribution, DistributionInput } from "../../schemas/types";
@@ -498,9 +498,9 @@ async function getAgreements(
         AG.active,
         AG.KID,
         AG.payment_date,
-        AG.created,
+        ${dbClockColumn("AG.created")},
         AG.cancelled,
-        AG.last_updated,
+        ${dbClockColumn("AG.last_updated")},
         AG.notice,
         Donors.full_name as full_name,
         AG.amount
@@ -591,9 +591,9 @@ async function getAgreement(id: string | number): Promise<AvtaleGiroAgreementDet
             ROUND(AG.amount / 100, 0) as amount,
             AG.KID,
             AG.payment_date,
-            AG.created,
+            ${dbClockColumn("AG.created")},
             AG.cancelled,
-            AG.last_updated,
+            ${dbClockColumn("AG.last_updated")},
             AG.notice,
             Donors.full_name,
             Donors.ID as donorId
@@ -623,9 +623,9 @@ async function getByDonorId(donorId) {
                 ROUND(AG.amount / 100, 0) as amount,
                 AG.KID,
                 AG.payment_date,
-                AG.created,
+                ${dbClockColumn("AG.created")},
                 AG.cancelled,
-                AG.last_updated,
+                ${dbClockColumn("AG.last_updated")},
                 AG.notice,
                 Donors.full_name
             FROM Avtalegiro_agreements as AG
@@ -803,8 +803,8 @@ async function getMissingForDate(date: Date): Promise<MissingAvtaleGiroAgreement
       CAST(ROUND(AG.amount / 100) AS SIGNED) as amount,
       AG.KID,
       AG.payment_date,
-      AG.created,
-      AG.last_updated,
+      ${dbClockColumn("AG.created")},
+      ${dbClockColumn("AG.last_updated")},
       AG.cancelled,
       AG.active
     FROM Avtalegiro_agreements as AG

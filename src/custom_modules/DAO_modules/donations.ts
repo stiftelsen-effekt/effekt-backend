@@ -1402,6 +1402,9 @@ async function add(
   }
 
   if (typeof registeredDate === "string") registeredDate = new Date(registeredDate);
+  // Always sent: the column's DEFAULT CURRENT_TIMESTAMP would store the DB session's clock (UTC+2 in
+  // production) instead of the UTC wall clock every other donation has. See docs/timestamps.md.
+  registeredDate ??= new Date();
 
   var donorID = donorIDQuery[0].Donor_ID;
 
