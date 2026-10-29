@@ -8,8 +8,36 @@ import { cn } from "@/lib/utils";
 /**
  * Headline numbers in one strip with hairline dividers (not a row of boxed cards).
  * Keep to 2–5 stats; the first is usually the one that matters.
+ *
+ * `columns={4}` makes it a grid instead of one row: 2 columns on small screens, 4 from `md`,
+ * and stats can span columns (`className="md:col-span-2"`). Plan the spans so each row is full.
  */
-export function StatGroup({ className, children }: { className?: string; children: ReactNode }) {
+export function StatGroup({
+  columns,
+  className,
+  children,
+}: {
+  columns?: 4;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (columns) {
+    // Each stat draws its right and bottom hairline; the grid pokes 1px past the clipped frame,
+    // so the outer ones disappear under the frame's own border, whatever the spans.
+    return (
+      <div className="overflow-hidden rounded-md border border-border bg-surface">
+        <div
+          data-slot="stat-group"
+          className={cn(
+            "-mr-px -mb-px grid grid-cols-2 md:grid-cols-4 [&>*]:border-r [&>*]:border-b [&>*]:border-border",
+            className,
+          )}
+        >
+          {children}
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       data-slot="stat-group"

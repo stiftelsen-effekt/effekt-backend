@@ -487,7 +487,7 @@ function Components() {
           </Example>
           <Example
             title="Sparkline"
-            use="A month-by-month trend beside a Stat's number: 96 × 32, no axes, hover or arrow keys for a month. The running month is dashed. Hidden where the stat is too narrow."
+            use="A month-by-month trend beside a Stat's number: about 104 × 32, no axes, just its lowest and highest value at the left (0 and the highest when series share a scale). Hover or arrow keys for a month; the readout names each series, so there is no legend. The running month is dashed. Hidden where the stat is too narrow."
             surfaceClassName="block"
             className="lg:col-span-2"
           >

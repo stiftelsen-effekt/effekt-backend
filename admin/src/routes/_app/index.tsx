@@ -25,7 +25,7 @@ import {
   monthTick,
 } from "@/features/home/model";
 import { RECENT_IMPORTS } from "@/features/home/home-view";
-import { NewDonorsCard } from "@/features/home/new-donors-card";
+import { NewDonorsStat } from "@/features/home/new-donors-stat";
 import { reviewQueueCountsOptions } from "@/features/home/review-queue-counts";
 import { awaitingFirstPaymentAttention } from "@/features/intents/attention";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -202,8 +202,11 @@ function HomePage() {
       }}
     />
   ) : (
-    <StatGroup>
+    // Four columns from md: donations (the headline) wide beside costs and agreements, then the
+    // two "who came and went" stats side by side. Two columns below md, new donors full width.
+    <StatGroup columns={4}>
       <Stat
+        className="md:col-span-2"
         label={`Donations in ${monthName(thisMonth.key)}`}
         pending={monthly.isPending}
         value={<Money value={thisMonthSum} />}
@@ -262,6 +265,7 @@ function HomePage() {
       )}
       {(agreements || agreementsPending) && (
         <Stat
+          className="md:col-span-2"
           label="Agreements started"
           pending={agreementsPending}
           placeholder="00"
@@ -287,6 +291,7 @@ function HomePage() {
           }
         />
       )}
+      <NewDonorsStat className="col-span-2" />
     </StatGroup>
   );
 
@@ -305,7 +310,6 @@ function HomePage() {
       attention={attention}
       attentionLoading={attentionPending && lastAttentionCount.get()}
       stats={stats}
-      newDonors={<NewDonorsCard />}
       chart={
         <PageSection title="Last 12 months" description="Donations by organization">
           {chartError ? (
