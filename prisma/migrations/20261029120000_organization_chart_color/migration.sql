@@ -7,7 +7,7 @@
 -- AlterTable
 ALTER TABLE `Organizations` ADD COLUMN `chart_color` VARCHAR(16) NULL;
 
--- Backfill: rank every organization by all-time donation volume (its share of each confirmed
+-- Backfill: active organizations first, then rank by all-time donation volume (its share of each confirmed
 -- donation), ties and organizations without donations by id, and give them the palette in
 -- order, strong colours first. The largest organizations get distinct colours; past the 14th
 -- the palette repeats. Deterministic: the same data gives the same colours.
@@ -20,10 +20,11 @@ UPDATE `Organizations` AS O
   INNER JOIN (
     SELECT
       volumes.ID,
-      ROW_NUMBER() OVER (ORDER BY volumes.volume DESC, volumes.ID ASC) AS position
+      ROW_NUMBER() OVER (ORDER BY volumes.is_active DESC, volumes.volume DESC, volumes.ID ASC) AS position
     FROM (
       SELECT
         Org.ID,
+        Org.is_active,
         COALESCE(
           SUM(D.sum_confirmed * CA.Percentage_share / 100 * CAO.Percentage_share / 100),
           0
@@ -32,7 +33,7 @@ UPDATE `Organizations` AS O
         LEFT JOIN `Distribution_cause_area_organizations` AS CAO ON CAO.Organization_ID = Org.ID
         LEFT JOIN `Distribution_cause_areas` AS CA ON CA.ID = CAO.Distribution_cause_area_ID
         LEFT JOIN `Donations` AS D ON D.KID_fordeling = CA.Distribution_KID
-      GROUP BY Org.ID
+      GROUP BY Org.ID, Org.is_active
     ) AS volumes
   ) AS ranked ON ranked.ID = O.ID
 SET O.chart_color = ELT(

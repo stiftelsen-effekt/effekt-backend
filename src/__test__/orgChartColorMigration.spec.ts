@@ -36,7 +36,7 @@ describe("organization chart colour migration", () => {
   it("ranks by donation volume with an id tie-break and fills only empty colours", () => {
     const update = statements[2]!;
     expect(update).to.include(
-      "ROW_NUMBER() OVER (ORDER BY volumes.volume DESC, volumes.ID ASC) AS position",
+      "ROW_NUMBER() OVER (ORDER BY volumes.is_active DESC, volumes.volume DESC, volumes.ID ASC) AS position",
     );
     expect(update).to.include(
       "SUM(D.sum_confirmed * CA.Percentage_share / 100 * CAO.Percentage_share / 100)",
