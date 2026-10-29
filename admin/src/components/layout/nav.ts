@@ -35,6 +35,8 @@ import {
   UsersIcon,
   type LucideIcon,
   ListChecksIcon,
+  FileTextIcon,
+  SendIcon,
 } from "lucide-react";
 import { config } from "@/lib/config";
 
@@ -186,6 +188,18 @@ const allNavGroups: NavGroup[] = [
         label: "Adjustments",
         icon: SlidersHorizontalIcon,
         keywords: ["correction", "fee", "opening balance", "fronted", "reallocation"],
+      },
+      {
+        to: "/regranting/onward",
+        label: "Awaiting report",
+        icon: SendIcon,
+        keywords: ["onward", "givewell", "forwarded", "videreført", "downstream"],
+      },
+      {
+        to: "/regranting/onward-reports",
+        label: "Onward reports",
+        icon: FileTextIcon,
+        keywords: ["givewell", "forwarding statement", "grantee", "downstream"],
       },
       {
         to: "/regranting/settings",

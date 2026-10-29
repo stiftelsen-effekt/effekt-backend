@@ -462,6 +462,9 @@ export class RegrantingHistory {
       });
     }
 
+    // Downstream regrants: ops backfills old GiveWell pass-through lines as assumed
+    this.at(A - 30, 9, () => this.assumeOld(A - 30, A - 730));
+
     // Around the anchor: an approved, unpaid major-donor round and a fund grant draft
     this.majorDonorRound(
       "mg-pending",
@@ -797,6 +800,15 @@ export class RegrantingHistory {
     this.routing(O.DRIFT, ops, since);
 
     this.host.add("Funds", { Organization_ID: O.GEBF, max_hold_days: 365 });
+    // Downstream regrants: GiveWell forwards pass-through lines and regrants TCF/AGF lines
+    this.givewellId = givewell.id;
+    this.host.add("Intermediary_payees", {
+      Payee_ID: givewell.id,
+      currency: "USD",
+      notes: "Forwards pass-through lines and regrants TCF/AGF lines",
+    });
+    for (const org of [O.AGF, O.TCF])
+      this.host.add("Regranting_funds", { Organization_ID: org, notes: null });
 
     // Carry-over from the sheet into the history
     const rng = this.rng("opening");
@@ -951,6 +963,7 @@ export class RegrantingHistory {
         Round_ID: null,
         Transfer_ID: null,
         Adjustment_ID: id,
+        Onward_report_ID: null,
         created_by: a.createdBy ?? OPS,
         created_at: timestamp(day, 11 * 3600 + (id % 3600)),
       });
@@ -1534,9 +1547,204 @@ export class RegrantingHistory {
       });
       t.paidDay = paidDay;
       last = Math.max(last, paidDay);
+      this.planOnward(t);
     });
     round.status = "paid";
     Object.assign(round.row, { status: "paid", paid_at: isoDate(last) });
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Downstream regrants (docs/regranting-downstream.md): what GiveWell did with our lines
+
+  private givewellId = 0;
+  private readonly givewellTransfers: TransferState[] = [];
+  private partialForwardDone = false;
+  private tcfSplitPlanned = false;
+
+  /**
+   * After a GiveWell transfer is paid: transfers more than two years before the anchor are
+   * backfilled as `assumed` (assumeOld), those up to four months before it get GiveWell's
+   * forwarding statement 75 days later (`reported`; one HKI line only partly), the newest stay
+   * awaiting. The first TCF line in the reported window gets a regranting report split over
+   * our recipients and one external grantee, with a little left awaiting.
+   */
+  private planOnward(t: TransferState) {
+    if (t.payee.id !== this.givewellId || t.paidDay === null) return;
+    this.givewellTransfers.push(t);
+    const A = this.anchor;
+    const paid = t.paidDay;
+    if (paid < A - 730 || paid >= A - 120) return;
+    if (paid + 75 < A) this.at(paid + 75, 1, () => this.forwardingStatement(t, paid + 75));
+    const tcf = t.lines.find((l) => l.orgId === O.TCF);
+    if (tcf && !this.tcfSplitPlanned && paid + 100 < A) {
+      this.tcfSplitPlanned = true;
+      this.at(paid + 100, 1, () => this.tcfReport(t, tcf, paid + 100));
+    }
+  }
+
+  private onwardReport(day: number, reference: string, document: string): number {
+    const id = this.host.id("Onward_reports");
+    this.host.add("Onward_reports", {
+      ID: id,
+      Payee_ID: this.givewellId,
+      reported_at: isoDate(day),
+      reference,
+      notes: null,
+      created_by: OPS,
+      created_at: timestamp(day, 10 * 3600 + (id % 3600)),
+    });
+    this.host.add("Regrant_documents", {
+      ID: this.host.id("Regrant_documents"),
+      url: `https://drive.example.org/regranting/givewell/${document}`,
+      label: reference,
+      Round_ID: null,
+      Transfer_ID: null,
+      Adjustment_ID: null,
+      Onward_report_ID: id,
+      created_by: OPS,
+      created_at: timestamp(day, 10 * 3600 + (id % 3600)),
+    });
+    return id;
+  }
+
+  private onwardAllocation(
+    t: TransferState,
+    line: TransferState["lines"][number],
+    a: {
+      cents: number;
+      basis: "reported" | "assumed";
+      orgId: number | null;
+      projectId: number | null;
+      granteeId?: number;
+      forwarded: number;
+      reportId: number | null;
+      note?: string;
+      day: number;
+    },
+  ) {
+    const id = this.host.id("Onward_allocations");
+    const fx = t.row.fx_rate === null ? null : Number(t.row.fx_rate);
+    this.host.add("Onward_allocations", {
+      ID: id,
+      Transfer_line_ID: line.id,
+      kind: "grant",
+      basis: a.basis,
+      Organization_ID: a.orgId,
+      External_grantee_ID: a.granteeId ?? null,
+      Project_ID: a.projectId,
+      currency: t.row.currency,
+      amount_foreign: fx === null ? null : (a.cents / 100 / fx).toFixed(2),
+      amount_nok: nok(a.cents),
+      forwarded_at: isoDate(a.forwarded),
+      Report_ID: a.reportId,
+      purpose: null,
+      note: a.note ?? null,
+      created_by: OPS,
+      created_at: timestamp(a.day, 10 * 3600 + 600 + (id % 3000)),
+      updated_by: null,
+      updated_at: null,
+    });
+  }
+
+  private forwardingStatement(t: TransferState, day: number) {
+    const rng = this.rng("onward", t.id);
+    const passThrough = t.lines.filter((l) => l.orgId !== O.TCF && l.orgId !== O.AGF);
+    if (passThrough.length === 0) return;
+    const report = this.onwardReport(
+      day,
+      `GiveWell forwarding statement, ${monthYear(day)}`,
+      `forwarding-${isoDate(day)}.pdf`,
+    );
+    const forwarded = bankDays(t.paidDay! + rng.int(20, 45), 0);
+    for (const line of passThrough) {
+      let cents = line.cents;
+      if (line.orgId === O.HKI && !this.partialForwardDone) {
+        // GiveWell forwarded HKI in two parts; the second isn't reported yet
+        this.partialForwardDone = true;
+        cents = Math.round(line.cents * 0.75);
+      }
+      this.onwardAllocation(t, line, {
+        cents,
+        basis: "reported",
+        orgId: line.orgId,
+        projectId: line.projectId,
+        forwarded,
+        reportId: report,
+        day,
+      });
+    }
+  }
+
+  private tcfReport(t: TransferState, line: TransferState["lines"][number], day: number) {
+    const report = this.onwardReport(
+      day,
+      `GiveWell Top Charities Fund grants report, ${monthYear(day)}`,
+      `tcf-grants-${isoDate(day)}.pdf`,
+    );
+    const granteeId = this.host.id("External_grantees");
+    this.host.add("External_grantees", {
+      ID: granteeId,
+      name: "Evidence Action: Dispensers for Safe Water",
+      country: "Kenya",
+      url: "https://www.evidenceaction.org/dispensers-for-safe-water",
+      notes: "Granted by GiveWell's Top Charities Fund; not one of our recipients",
+      created_by: OPS,
+      created_at: timestamp(day, 9 * 3600),
+    });
+    const nigeria = this.projects.get("nigeria");
+    const granted = bankDays(t.paidDay! + 40, 0);
+    // 5 % stays awaiting: GiveWell hasn't allocated all of it yet
+    const split: {
+      pct: number;
+      orgId: number | null;
+      projectId: number | null;
+      grantee?: number;
+    }[] = [
+      { pct: 40, orgId: O.MC, projectId: null },
+      { pct: 25, orgId: O.AMF, projectId: null },
+      {
+        pct: 15,
+        orgId: O.HKI,
+        projectId: nigeria && nigeria.row.status === "active" ? nigeria.id : null,
+      },
+      { pct: 10, orgId: O.NI, projectId: null },
+      { pct: 5, orgId: null, projectId: null, grantee: granteeId },
+    ];
+    for (const s of split) {
+      this.onwardAllocation(t, line, {
+        cents: Math.floor((line.cents * s.pct) / 100),
+        basis: "reported",
+        orgId: s.orgId,
+        projectId: s.projectId,
+        granteeId: s.grantee,
+        forwarded: granted,
+        reportId: report,
+        day,
+      });
+    }
+  }
+
+  /**
+   * The backfill as ops runs it (regranting.onward.assume): pass-through lines of GiveWell
+   * transfers paid before `before` are assumed forwarded in full on our paid date
+   */
+  private assumeOld(day: number, before: number) {
+    for (const t of this.givewellTransfers) {
+      if (t.paidDay === null || t.paidDay >= before) continue;
+      for (const line of t.lines) {
+        if (line.orgId === O.TCF || line.orgId === O.AGF || line.cents <= 0) continue;
+        this.onwardAllocation(t, line, {
+          cents: line.cents,
+          basis: "assumed",
+          orgId: line.orgId,
+          projectId: line.projectId,
+          forwarded: t.paidDay,
+          reportId: null,
+          note: "Assumed forwarded in full; no report found",
+          day,
+        });
+      }
+    }
   }
 
   /** NOK per unit, drifting slowly over the history */

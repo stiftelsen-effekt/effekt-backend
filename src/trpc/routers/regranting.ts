@@ -100,6 +100,7 @@ import {
   transferUpdateInput,
 } from "../schemas/regranting";
 import { adminProcedure, router } from "../trpc";
+import { onwardRouter } from "./regrantingOnward";
 
 export type {
   Adjustment,
@@ -871,7 +872,13 @@ const assertDocumentParent = async (parent: {
   roundId?: number;
   transferId?: number;
   adjustmentId?: number;
+  onwardReportId?: number;
 }) => {
+  if (
+    parent.onwardReportId !== undefined &&
+    !(await DAO.regrantingOnward.getReport(parent.onwardReportId))
+  )
+    throw badRequest(`Onward report #${parent.onwardReportId} doesn't exist`);
   if (parent.roundId !== undefined && !(await dao().getRound(parent.roundId)))
     throw badRequest(`Round #${parent.roundId} doesn't exist`);
   if (parent.transferId !== undefined && !(await dao().getTransfer(parent.transferId)))
@@ -882,11 +889,11 @@ const assertDocumentParent = async (parent: {
 
 /**
  * Links to documents (bilag, receipts, bank confirmations; usually Google Drive) on a round, a
- * transfer or an adjustment. Documentation, not money: they can be added and removed in any
+ * transfer, an adjustment or an onward report. Documentation, not money: they can be added and removed in any
  * status, also on approved and paid rounds.
  */
 const documentsRouter = router({
-  /** The documents of exactly one round (its own, not its transfers'), transfer or adjustment */
+  /** The documents of exactly one round (its own, not its transfers'), transfer, adjustment or onward report */
   list: adminProcedure
     .input(documentListInput)
     .query(async ({ input }): Promise<RegrantDocument[]> => {
@@ -894,7 +901,7 @@ const documentsRouter = router({
       return dao().listDocuments(input as DocumentInput);
     }),
 
-  /** Adds a link to exactly one round, transfer or adjustment */
+  /** Adds a link to exactly one round, transfer, adjustment or onward report */
   add: adminProcedure
     .input(documentAddInput)
     .mutation(async ({ input, ctx }): Promise<RegrantDocument> => {
@@ -1127,6 +1134,10 @@ const fundsRouter = router({
     const names = await assertOrganizations([input.organizationId]);
     if (await dao().getFund(input.organizationId))
       throw conflict(`${names.get(input.organizationId)} is already an own fund`);
+    if (await DAO.regrantingOnward.isRegrantingFund(input.organizationId))
+      throw conflict(
+        `${names.get(input.organizationId)} is a regranting fund; it can't also be an own fund`,
+      );
     await dao().createFund(input.organizationId, input.maxHoldDays);
     return getFundOrThrow(input.organizationId);
   }),
@@ -1196,4 +1207,5 @@ export const regrantingRouter = router({
   holds: holdsRouter,
   statements: statementsRouter,
   reconciliation: reconciliationRouter,
+  onward: onwardRouter,
 });

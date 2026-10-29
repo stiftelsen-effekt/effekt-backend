@@ -371,6 +371,11 @@ Still open:
   an opening balance into 2019.) How far back to import transfer history?
 - What is "Annet" (`Organizations.ID = 18`) used for, and where does its money go?
 
+## Downstream regrants
+
+What an intermediary payee (GiveWell) did with our lines after we paid it is recorded beside the
+ledger, never in it: see [regranting-downstream.md](regranting-downstream.md).
+
 ## First build (Oct 2026)
 
 Backend: migration `20261027150000_regranting`, `DAO.regranting`

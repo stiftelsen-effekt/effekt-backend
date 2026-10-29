@@ -633,7 +633,130 @@ export const reconciliation = {
   paymentMethodIds: [2, 4, 6, 7, 8],
 };
 
+const onwardLine = (
+  id: number,
+  organizationId: number,
+  organizationName: string,
+  amountNok: string,
+  extra: Record<string, unknown>,
+) => ({
+  id,
+  transferId: 70,
+  roundId: 7,
+  roundName: round.name,
+  payeeId: 1,
+  payeeName: "GiveWell",
+  intermediary: true,
+  paidAt: "2026-10-01",
+  transferCurrency: "USD",
+  transferAmountForeign: "150.03",
+  fxRate: "10",
+  organizationId,
+  organizationName,
+  projectId: null,
+  projectName: null,
+  amountNok,
+  regrantingFund: false,
+  reportedNok: "0.00",
+  assumedNok: "0.00",
+  awaitingNok: amountNok,
+  status: "awaiting",
+  allocations: [],
+  forwardedPrefill: null,
+  ...extra,
+});
+
+const onwardReport = {
+  id: 4,
+  payeeId: 1,
+  payeeName: "GiveWell",
+  reportedAt: "2026-10-20",
+  reference: "GiveWell grants report October 2026",
+  notes: null,
+  createdBy: "ops@example.org",
+  createdAt: "2026-10-20T10:00:00.000Z",
+  allocationCount: 1,
+  allocationTotalNok: "400.00",
+  documents: [],
+};
+
+/** regranting.onward.transfer for transfer 70 paid to GiveWell: AGF partly granted, MC awaiting */
+export const onwardTransferFixture = {
+  reportId: onwardReport.id,
+  data: {
+    transferId: 70,
+    intermediary: true,
+    paid: true,
+    lines: [
+      onwardLine(701, 1, "GiveWell All Grants Fund", "1000.30", {
+        regrantingFund: true,
+        reportedNok: "400.00",
+        awaitingNok: "600.30",
+        status: "partly_forwarded",
+        allocations: [
+          {
+            id: 90,
+            transferLineId: 701,
+            transferId: 70,
+            kind: "grant",
+            basis: "reported",
+            organizationId: null,
+            organizationName: null,
+            externalGranteeId: 3,
+            externalGranteeName: "IDinsight",
+            projectId: null,
+            projectName: null,
+            currency: "USD",
+            amountForeign: "40",
+            amountNok: "400.00",
+            forwardedAt: "2026-10-12",
+            reportId: onwardReport.id,
+            reportReference: onwardReport.reference,
+            reportedAt: onwardReport.reportedAt,
+            purpose: null,
+            note: null,
+            createdBy: "ops@example.org",
+            createdAt: "2026-10-20T10:00:00.000Z",
+            updatedBy: null,
+            updatedAt: null,
+          },
+        ],
+      }),
+      onwardLine(702, 5, "Malaria Consortium", "500.00", {
+        forwardedPrefill: {
+          kind: "grant",
+          basis: "reported",
+          organizationId: 5,
+          projectId: null,
+          currency: "USD",
+          amountForeign: "50.00",
+          amountNok: "500.00",
+        },
+      }),
+    ],
+  },
+};
+
 export const fixtures: Record<string, unknown> = {
+  "regranting.onward.settings": {
+    intermediaries: [{ payeeId: 1, name: "GiveWell", currency: "USD", notes: null }],
+    regrantingFunds: [
+      { organizationId: 1, name: "GiveWell All Grants Fund", notes: null },
+      { organizationId: 2, name: "GiveWell Top Charities Fund", notes: null },
+    ],
+  },
+  "regranting.onward.transfer": onwardTransferFixture.data,
+  "regranting.onward.reports.list": [onwardReport],
+  "regranting.onward.grantees.list": [],
+  "regranting.onward.awaiting": [
+    {
+      payeeId: 1,
+      payeeName: "GiveWell",
+      awaitingNok: "1100.30",
+      assumedNok: "0.00",
+      lines: onwardTransferFixture.data.lines.map(({ forwardedPrefill: _p, ...line }) => line),
+    },
+  ],
   "home.trends": homeTrendsFixture(),
   "regranting.balances.breakdown": breakdown,
   "regranting.rounds.composition": composition,

@@ -32,6 +32,7 @@ import { analysis } from "./DAO_modules/analysis";
 import { donorCohorts } from "./DAO_modules/donorCohorts";
 import { pledges } from "./DAO_modules/pledges";
 import { regrantingTrace } from "./DAO_modules/regrantingTrace";
+import { regrantingOnward } from "./DAO_modules/regrantingOnward";
 import { paymentIntents } from "./DAO_modules/paymentIntents";
 import { homeTrends } from "./DAO_modules/homeTrends";
 
@@ -95,6 +96,7 @@ export const DAO = {
   donorCohorts: donorCohorts,
   pledges: pledges,
   regrantingTrace: regrantingTrace,
+  regrantingOnward: regrantingOnward,
   paymentIntents: paymentIntents,
   homeTrends: homeTrends,
 

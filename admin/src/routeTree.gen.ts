@@ -48,6 +48,8 @@ import { Route as AppLogsIdRouteImport } from './routes/_app/logs/$id'
 import { Route as AppRegrantingIndexRouteImport } from './routes/_app/regranting/index'
 import { Route as AppRegrantingAdjustmentsRouteImport } from './routes/_app/regranting/adjustments'
 import { Route as AppRegrantingCheckRouteImport } from './routes/_app/regranting/check'
+import { Route as AppRegrantingOnwardRouteImport } from './routes/_app/regranting/onward'
+import { Route as AppRegrantingOnwardReportsRouteImport } from './routes/_app/regranting/onward-reports'
 import { Route as AppRegrantingSettingsRouteImport } from './routes/_app/regranting/settings'
 import { Route as DesignDonationsIdRouteImport } from './routes/design/donations.$id'
 import { Route as AppAgreementsProviderIdRouteImport } from './routes/_app/agreements/$provider/$id'
@@ -256,6 +258,17 @@ const AppRegrantingCheckRoute = AppRegrantingCheckRouteImport.update({
   path: '/check',
   getParentRoute: () => AppRegrantingRouteRoute,
 } as any)
+const AppRegrantingOnwardRoute = AppRegrantingOnwardRouteImport.update({
+  id: '/onward',
+  path: '/onward',
+  getParentRoute: () => AppRegrantingRouteRoute,
+} as any)
+const AppRegrantingOnwardReportsRoute =
+  AppRegrantingOnwardReportsRouteImport.update({
+    id: '/onward-reports',
+    path: '/onward-reports',
+    getParentRoute: () => AppRegrantingRouteRoute,
+  } as any)
 const AppRegrantingSettingsRoute = AppRegrantingSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -349,6 +362,8 @@ export interface FileRoutesByFullPath {
   '/logs/$id': typeof AppLogsIdRoute
   '/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/regranting/check': typeof AppRegrantingCheckRoute
+  '/regranting/onward': typeof AppRegrantingOnwardRoute
+  '/regranting/onward-reports': typeof AppRegrantingOnwardReportsRoute
   '/regranting/settings': typeof AppRegrantingSettingsRoute
   '/design/donations/$id': typeof DesignDonationsIdRoute
   '/agreements/': typeof AppAgreementsIndexRoute
@@ -399,6 +414,8 @@ export interface FileRoutesByTo {
   '/logs/$id': typeof AppLogsIdRoute
   '/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/regranting/check': typeof AppRegrantingCheckRoute
+  '/regranting/onward': typeof AppRegrantingOnwardRoute
+  '/regranting/onward-reports': typeof AppRegrantingOnwardReportsRoute
   '/regranting/settings': typeof AppRegrantingSettingsRoute
   '/design/donations/$id': typeof DesignDonationsIdRoute
   '/agreements': typeof AppAgreementsIndexRoute
@@ -453,6 +470,8 @@ export interface FileRoutesById {
   '/_app/logs/$id': typeof AppLogsIdRoute
   '/_app/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/_app/regranting/check': typeof AppRegrantingCheckRoute
+  '/_app/regranting/onward': typeof AppRegrantingOnwardRoute
+  '/_app/regranting/onward-reports': typeof AppRegrantingOnwardReportsRoute
   '/_app/regranting/settings': typeof AppRegrantingSettingsRoute
   '/design/donations/$id': typeof DesignDonationsIdRoute
   '/_app/agreements/': typeof AppAgreementsIndexRoute
@@ -507,6 +526,8 @@ export interface FileRouteTypes {
     | '/logs/$id'
     | '/regranting/adjustments'
     | '/regranting/check'
+    | '/regranting/onward'
+    | '/regranting/onward-reports'
     | '/regranting/settings'
     | '/design/donations/$id'
     | '/agreements/'
@@ -557,6 +578,8 @@ export interface FileRouteTypes {
     | '/logs/$id'
     | '/regranting/adjustments'
     | '/regranting/check'
+    | '/regranting/onward'
+    | '/regranting/onward-reports'
     | '/regranting/settings'
     | '/design/donations/$id'
     | '/agreements'
@@ -610,6 +633,8 @@ export interface FileRouteTypes {
     | '/_app/logs/$id'
     | '/_app/regranting/adjustments'
     | '/_app/regranting/check'
+    | '/_app/regranting/onward'
+    | '/_app/regranting/onward-reports'
     | '/_app/regranting/settings'
     | '/design/donations/$id'
     | '/_app/agreements/'
@@ -915,6 +940,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRegrantingCheckRouteImport
       parentRoute: typeof AppRegrantingRouteRoute
     }
+    '/_app/regranting/onward': {
+      id: '/_app/regranting/onward'
+      path: '/onward'
+      fullPath: '/regranting/onward'
+      preLoaderRoute: typeof AppRegrantingOnwardRouteImport
+      parentRoute: typeof AppRegrantingRouteRoute
+    }
+    '/_app/regranting/onward-reports': {
+      id: '/_app/regranting/onward-reports'
+      path: '/onward-reports'
+      fullPath: '/regranting/onward-reports'
+      preLoaderRoute: typeof AppRegrantingOnwardReportsRouteImport
+      parentRoute: typeof AppRegrantingRouteRoute
+    }
     '/_app/regranting/settings': {
       id: '/_app/regranting/settings'
       path: '/settings'
@@ -1005,6 +1044,8 @@ declare module '@tanstack/react-router' {
 interface AppRegrantingRouteRouteChildren {
   AppRegrantingAdjustmentsRoute: typeof AppRegrantingAdjustmentsRoute
   AppRegrantingCheckRoute: typeof AppRegrantingCheckRoute
+  AppRegrantingOnwardRoute: typeof AppRegrantingOnwardRoute
+  AppRegrantingOnwardReportsRoute: typeof AppRegrantingOnwardReportsRoute
   AppRegrantingSettingsRoute: typeof AppRegrantingSettingsRoute
   AppRegrantingIndexRoute: typeof AppRegrantingIndexRoute
   AppRegrantingProjectsIdRoute: typeof AppRegrantingProjectsIdRoute
@@ -1017,6 +1058,8 @@ interface AppRegrantingRouteRouteChildren {
 const AppRegrantingRouteRouteChildren: AppRegrantingRouteRouteChildren = {
   AppRegrantingAdjustmentsRoute: AppRegrantingAdjustmentsRoute,
   AppRegrantingCheckRoute: AppRegrantingCheckRoute,
+  AppRegrantingOnwardRoute: AppRegrantingOnwardRoute,
+  AppRegrantingOnwardReportsRoute: AppRegrantingOnwardReportsRoute,
   AppRegrantingSettingsRoute: AppRegrantingSettingsRoute,
   AppRegrantingIndexRoute: AppRegrantingIndexRoute,
   AppRegrantingProjectsIdRoute: AppRegrantingProjectsIdRoute,

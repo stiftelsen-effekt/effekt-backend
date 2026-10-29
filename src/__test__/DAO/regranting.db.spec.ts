@@ -71,6 +71,11 @@ const NOPAYEE = 7;
     sql = async (q, p) => (await pool.query(q, p as any))[0];
 
     for (const table of [
+      "Onward_allocations",
+      "Onward_reports",
+      "External_grantees",
+      "Intermediary_payees",
+      "Regranting_funds",
       "Regrant_round_balances",
       "Regrant_round_recipients",
       "Regrant_round_donations",
