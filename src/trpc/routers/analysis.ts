@@ -1,8 +1,19 @@
 import { TRPCError } from "@trpc/server";
+import { DateTime } from "luxon";
 import { DAO } from "../../custom_modules/DAO";
 import { buildOverview } from "../../custom_modules/DAO_modules/analysis";
-import type { Pledge, PledgeInput } from "../../custom_modules/DAO_modules/pledges";
 import {
+  buildCohorts,
+  buildNewDonors,
+  FIRST_COHORT_YEAR,
+  monthsEndingWith,
+  type Cohorts,
+  type NewDonors,
+} from "../../custom_modules/DAO_modules/donorCohortsModel";
+import type { Pledge, PledgeInput } from "../../custom_modules/DAO_modules/pledges";
+import { OSLO_ZONE } from "../../custom_modules/osloDays";
+import {
+  newDonorsInput,
   pledgeByIdInput,
   pledgeCreateInput,
   pledgeMarkReceivedInput,
@@ -133,6 +144,29 @@ const pledgesRouter = router({
   }),
 });
 
+/**
+ * Donor cohort numbers scan every donation (~0.2–0.4 s on the seeded DB), and are analysis, not
+ * bookkeeping: they are kept for a few minutes per input. Keyed by the Oslo month too, so a new
+ * month starts a new entry.
+ */
+const CACHE_MS = 5 * 60 * 1000;
+const cache = new Map<string, { at: number; value: Promise<unknown> }>();
+
+function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.value as Promise<T>;
+  const value = load();
+  cache.set(key, { at: Date.now(), value });
+  // A failed load isn't kept
+  value.catch(() => cache.get(key)?.value === value && cache.delete(key));
+  return value;
+}
+
+/** For tests: forget cached donor cohort numbers */
+export const clearAnalysisCache = () => cache.clear();
+
+const osloNow = () => DateTime.now().setZone(OSLO_ZONE);
+
 export const analysisRouter = router({
   /** Same numbers as GET /analysis/overview in Nicolai's backend PR #825 */
   overview: adminProcedure.query(async (): Promise<AnalysisOverview> => {
@@ -154,6 +188,34 @@ export const analysisRouter = router({
         passed: withPledges.passed,
       },
     };
+  }),
+
+  /**
+   * New first-time donors per month (Oslo time), the last `months` months including the current,
+   * partial one: how many, their donations in that first month, and how many per referral source
+   * (top six, the rest and donors without an answer as "Other / unknown").
+   */
+  newDonors: adminProcedure.input(newDonorsInput).query(({ input }): Promise<NewDonors> => {
+    const currentMonth = osloNow().toFormat("yyyy-MM");
+    return cached(`newDonors:${currentMonth}:${input.months}`, async () => {
+      const [from] = monthsEndingWith(currentMonth, input.months);
+      const [rows, types] = await Promise.all([
+        DAO.donorCohorts.getNewDonorRows(from!),
+        DAO.donorCohorts.getReferralTypes(),
+      ]);
+      return buildNewDonors(rows, types, { currentMonth, months: input.months });
+    });
+  }),
+
+  /**
+   * Yearly cohorts by the year of the first donation (from 2016): per later calendar year, how
+   * many of the cohort gave and how much. The current year is partial.
+   */
+  cohorts: adminProcedure.query((): Promise<Cohorts> => {
+    const now = osloNow();
+    return cached(`cohorts:${now.toFormat("yyyy-MM")}`, async () =>
+      buildCohorts(await DAO.donorCohorts.getCohortRows(FIRST_COHORT_YEAR), now.year),
+    );
   }),
 
   pledges: pledgesRouter,

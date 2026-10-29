@@ -28,6 +28,7 @@ import { reviewqueue } from "./DAO_modules/reviewqueue";
 import { agreements } from "./DAO_modules/agreements";
 import { regranting } from "./DAO_modules/regranting";
 import { analysis } from "./DAO_modules/analysis";
+import { donorCohorts } from "./DAO_modules/donorCohorts";
 import { pledges } from "./DAO_modules/pledges";
 import { regrantingTrace } from "./DAO_modules/regrantingTrace";
 import { paymentIntents } from "./DAO_modules/paymentIntents";
@@ -88,6 +89,7 @@ export const DAO = {
   agreements: agreements,
   regranting: regranting,
   analysis: analysis,
+  donorCohorts: donorCohorts,
   pledges: pledges,
   regrantingTrace: regrantingTrace,
   paymentIntents: paymentIntents,
