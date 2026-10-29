@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useDiscardGuard } from "@/components/domain/unsaved-changes";
 import { Field } from "@/components/ui/field";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
@@ -48,14 +49,16 @@ export function CreateFundraiserDialog({
     }),
   );
 
+  // Dirty once the owner differs from the preselected one (or the default, when none).
+  const guard = useDiscardGuard((owner?.id ?? null) !== (donor?.id ?? null), () => setOpen(false));
+
   function onOpenChange(next: boolean) {
     if (create.isPending) return;
-    setOpen(next);
-    if (next) {
-      setOwner(donor ?? null);
-      setMissing(false);
-      create.reset();
-    }
+    if (!next) return guard.requestClose();
+    setOpen(true);
+    setOwner(donor ?? null);
+    setMissing(false);
+    create.reset();
   }
 
   const error = create.error ? describeError(create.error) : null;
@@ -96,6 +99,7 @@ export function CreateFundraiserDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {guard.dialog}
     </Dialog>
   );
 }
