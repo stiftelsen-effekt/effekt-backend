@@ -20,6 +20,7 @@ import {
   ScaleIcon,
   SlidersHorizontalIcon,
   CalendarCheckIcon,
+  CircleOffIcon,
   FlagIcon,
   HandCoinsIcon,
   HourglassIcon,
@@ -126,7 +127,15 @@ const allNavGroups: NavGroup[] = [
         goKey: "a",
         label: "Agreements",
         icon: RepeatIcon,
+        // Cancelled agreements live under /agreements/cancelled and have their own item.
+        exact: true,
         keywords: ["recurring", "vipps", "avtalegiro", "avtaler"],
+      },
+      {
+        to: "/agreements/cancelled",
+        label: "Cancelled agreements",
+        icon: CircleOffIcon,
+        keywords: ["cancelled", "stopped", "avsluttet", "stoppet", "churn", "reasons", "årsak"],
       },
       {
         to: "/charges",
