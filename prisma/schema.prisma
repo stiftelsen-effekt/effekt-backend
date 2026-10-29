@@ -287,6 +287,7 @@ model Donations {
   @@index([KID_fordeling, timestamp_confirmed], map: "KidAndTimestamp")
   @@index([timestamp_confirmed], map: "Timestamp")
   @@index([Donor_ID], map: "fk_Donations_Donors_KID_idx")
+  @@index([Donor_ID, timestamp_confirmed])
   @@index([Payment_ID], map: "fk_Donations_to_Donors_idx")
 }
 
