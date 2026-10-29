@@ -172,3 +172,35 @@ test("dialogs focus the first field, submit on ⌘Enter and ask before Esc drops
   await page.keyboard.press("ControlOrMeta+Enter");
   await expect.poll(() => created).toEqual([{ email: "kari@example.org", name: "Kari Nordmann" }]);
 });
+
+test("Esc asks before dropping a typed saved-view name; a clean fundraiser dialog closes at once", async ({
+  page,
+}) => {
+  await stubAnalysisApi(page, {
+    extra: { "donors.list": { rows: [], pages: 0, total: 0 } },
+  });
+  await page.goto("/login");
+  await page.getByRole("button", { name: /dev token/i }).click();
+  await page.waitForURL("/");
+
+  // Saved views: typed name, Esc asks, Keep editing keeps the text
+  await page.goto("/donors");
+  await page.getByRole("button", { name: "Views" }).click();
+  await page.getByRole("menuitem", { name: "Save current view…" }).click();
+  const naming = page.getByRole("dialog", { name: "Save view" });
+  await naming.getByRole("textbox", { name: "View name" }).fill("Big gifts");
+  await page.keyboard.press("Escape");
+  const discard = page.getByRole("alertdialog");
+  await expect(discard).toBeVisible();
+  await discard.getByRole("button", { name: /keep editing/i }).click();
+  await expect(naming.getByRole("textbox", { name: "View name" })).toHaveValue("Big gifts");
+
+  // Clean create-fundraiser dialog: Esc closes without asking
+  await page.goto("/fundraisers");
+  await page.getByRole("button", { name: "Create fundraiser" }).first().click();
+  const fundraiser = page.getByRole("dialog", { name: "Create fundraiser" });
+  await expect(fundraiser).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(fundraiser).toBeHidden();
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
+});
