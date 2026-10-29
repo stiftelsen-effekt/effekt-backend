@@ -8,11 +8,12 @@ Status: **proposal, for review** (29 Oct 2026). Nothing here is built. Extends
 Today our ledger stops at the payee: "External funds (GiveWell TCF/AGF) are ordinary
 recipients; our ledger stops at the payee" ([regranting.md](regranting.md), Own funds). This
 proposal records what an **intermediary fund** (first GiveWell's Top Charities Fund and All
-Grants Fund) does with the money _after_ we pay it, so a donation can be followed all the way to
-the ultimate grantee:
+Grants Fund) did with the money _after_ we paid it, as the intermediary reports it to us, so a
+donation can be followed all the way to the ultimate grantee:
 
-> 1 000 kr to TCF, March 2025 → paid to GiveWell 20.05.2025 → GiveWell's TCF allocation for
-> donations received April–June 2025 → Malaria Consortium (SMC, Chad) 445 kr, AMF 300 kr, …
+> 1 000 kr to TCF, March 2025 → our transfer to GiveWell 20.05.2025 → GiveWell reported that
+> transfer as granted to Malaria Consortium (SMC, Chad) 50 %, AMF 25 %, … → your 1 000 kr:
+> MC 500 kr, AMF 250 kr, …
 
 Used for reporting, donor-facing impact, audits and the project pages (e.g. Helen Keller
 International's Vitamin A Supplementation should show money that reached it via TCF, not only
@@ -23,209 +24,146 @@ what we paid directly).
 1. **Our balances don't change.** Nothing in this proposal is a ledger entry. Balances, proposals,
    validation, rounds and transfers are calculated exactly as today. A transfer line to TCF is
    final for our books when it is paid.
-2. **Not our decision, so we record, not decide.** The intermediary decides. We copy what it
-   publishes, with a source link, and never edit it into something it didn't say.
-3. **Attribution is a convention, stated openly.** Money is fungible. Unless the intermediary
-   tells us explicitly, our share of its grants is pro-rata by period, and every screen and
-   donor-facing text says so.
-4. **Calculated, not typed** (as in regranting.md). We store what the intermediary published and
-   the few explicit overrides; our share is computed.
-5. **GiveWell first, general shape.** GiveDirectly programmes or the DIV Fund later use the same
-   tables with a different attribution method.
+2. **The intermediary tells us; we record it.** GiveWell (and other intermediaries) report where
+   our money went. Ops enters that report by hand against our transfer, with the report attached.
+   We never estimate or spread amounts ourselves: what isn't reported is shown as not reported.
+3. **Everything has an author and a source**, as in regranting.md: who entered it, when, and the
+   intermediary's report or letter.
+4. **GiveWell first, general shape.** GiveDirectly programmes or the DIV Fund use the same tables.
 
 ## Concepts
 
-| Term                 | Meaning                                                                                                                                                                                                       |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Intermediary fund    | A recipient in `Organizations` that regrants money onward by its own decision: TCF (ID 12, the Maximum Impact Fund before Sept 2022) and AGF (ID 15). Paid through the payee GiveWell, like today.            |
-| Ultimate grantee     | Whoever the intermediary grants to: AMF, Malaria Consortium, HKI, New Incentives, but also many AGF grantees we've never heard of (a research group running an RCT). May or may not be one of our recipients. |
-| Project              | Our existing `Projects` row. An external grant can point at one (HKI → Vitamin A Supplementation), so the project page shows it.                                                                              |
-| Allocation period    | A window of the intermediary's _incoming_ donations that it allocates together. GiveWell publishes these for TCF ("donations received April to June 2025").                                                   |
-| External grant       | One grant the intermediary published: grantee, amount from the fund, period, purpose, source link.                                                                                                            |
-| Attribution          | Our share of the external grants: which part of one of our transfer lines to an intermediary fund ended up with which grantee. Computed.                                                                      |
-| Own fund (unchanged) | GEBF etc.: _our_ decision, recorded as `Fund_grants`, part of the ledger and balances. An intermediary fund is the opposite: a normal recipient whose money leaves our ledger when paid. The two never mix.   |
+| Term                 | Meaning                                                                                                                                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Intermediary fund    | A recipient in `Organizations` that regrants money onward by its own decision: TCF (ID 12, the Maximum Impact Fund before Sept 2022) and AGF (ID 15). Paid through the payee GiveWell, like today.                |
+| Ultimate grantee     | Whoever the intermediary granted our money to: AMF, Malaria Consortium, HKI, New Incentives, but also AGF grantees we've never funded (a research group running an RCT). May or may not be one of our recipients. |
+| Project              | Our existing `Projects` row. An onward allocation can point at one (HKI → Vitamin A Supplementation), so the project page shows it.                                                                               |
+| Onward allocation    | One line of the intermediary's report: this much of _our transfer line_ went to this grantee (and optionally project). Entered by hand.                                                                           |
+| Awaiting report      | The part of a paid transfer line to an intermediary that has no onward allocation yet.                                                                                                                            |
+| Own fund (unchanged) | GEBF etc.: _our_ decision, recorded as `Fund_grants`, part of the ledger and balances. An intermediary fund is the opposite: a normal recipient whose money leaves our ledger when paid. The two never mix.       |
 
-Note: lines to AMF, MC, HKI and NI that we pay _through_ the payee GiveWell are already direct
-recipients (GiveWell only passes them on). They need nothing new. Only lines whose recipient is an
-intermediary fund (TCF, AGF) are attributed onward.
-
-## What GiveWell publishes
-
-Researched on givewell.org (public pages only, Oct 2026):
-
-- **TCF page** (https://www.givewell.org/top-charities-fund): a table of every TCF grant since
-  2014 with _date approved_, _donations received_ (the allocation period, e.g. "April to June
-  2025"), _amount_, _recipient(s)_ and a link to the grant write-up ("Grant page forthcoming"
-  until it exists). Footnotes give the full grant size when TCF paid only part ("$8.9 million,
-  part of a $10.4 million grant"). Example row: approved June 2025, donations received April–June
-  2025, Malaria Consortium, SMC expansion in Chad, $8.9M from TCF. GiveWell grants 100 % of TCF
-  donations (minus payment processor fees) and commits them within about six months; in recent
-  years allocation has been roughly quarterly.
-- **AGF page** (https://www.givewell.org/all-grants-fund): rolling grants, with a selected list
-  (date, recipient, amount, location, purpose). It does **not** say which donations paid for which
-  grant: there is no period mapping.
-- **Grants database**: an Airtable view linked as "List of Grants" from
-  https://www.givewell.org/research/all-grants (date, grantee, amount, location, purpose), and an
-  impact spreadsheet for grants from 2020 onward linked from the TCF page. Whether these state the
-  funding source (TCF / AGF / other) per grant needs checking before we rely on them for AGF.
-- No API. Entry is manual or a paste/CSV import from those tables.
-
-So TCF can be attributed by period with published data; AGF cannot, without a convention or
-information from GiveWell (see AGF below).
+Lines to AMF, MC, HKI and NI that we pay _through_ the payee GiveWell are already direct recipients
+(GiveWell only passes them on). Only lines whose recipient is an intermediary fund (TCF, AGF) get
+onward allocations (see open question 4).
 
 ## Data model
 
 New tables, `?` nullable. No existing table changes shape except one nullable column on
 `Regrant_documents`.
 
-| Table                   | Columns                                                                                                                                                                | Notes                                                                                                                                                                                                                                                                                                                                                                                          |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Intermediary_funds`    | Organization_ID (PK, FK `Organizations`), publisher, currency (default `USD`), method, receipt_lag_days (default 7), source_url?, notes?                               | Marks a recipient as an intermediary, like `Funds` marks an own fund. A recipient can't be both. `method`: `period_share` (TCF), `window_share` (AGF, if agreed), `explicit_only` (attribute only what the intermediary tells us). `receipt_lag_days`: days between our `paid_at` and the intermediary counting the money as received.                                                         |
-| `External_grantees`     | ID, name (unique), Organization_ID?, country?, url?, notes?, created_by, created_at                                                                                    | Ultimate grantees. `Organization_ID` set when the grantee is also one of our recipients (AMF, MC, HKI, NI), so recipient and project pages can find it. AGF's many one-off grantees live only here, so they never appear in donor-facing lists, the widget or `Organizations` constraints (45-char names, unique 10-char `abbriv`).                                                            |
-| `External_periods`      | ID, Fund_ID (FK `Intermediary_funds`), donations_from, donations_to, status, fund_received?, currency, published_at?, source_url?, notes?, created_by, created_at      | One allocation period as the intermediary publishes it. Unique (Fund_ID, donations_from); periods of a fund don't overlap. `status`: `open` (nothing published), `partial` (some grants published), `complete` (we've entered all of it). `fund_received`: the fund's total intake for the period, only if published; makes unallocated money visible.                                         |
-| `External_grants`       | ID, Period_ID, Grantee_ID (FK `External_grantees`), Project_ID?, amount_from_fund, grant_total?, approved_on, purpose?, location?, source_url?, created_by, created_at | One published grant, in the period's currency, as published. `amount_from_fund` is what the fund paid (the share we attribute against); `grant_total` the full grant when larger. `Project_ID` only if the grantee has an `Organization_ID` and the project belongs to it (validated). `approved_on` is the first day of the published month when only the month is given.                     |
-| `External_attributions` | ID, Transfer_line_ID, Period_ID?, External_grant_ID?, amount_nok?, reason, created_by, created_at                                                                      | **Overrides only**, exactly one kind per row, enforced by the API. (a) `Period_ID` alone: count this line in that period instead of the one its date falls in (GiveWell received it late, or told us). (b) `External_grant_ID` + `amount_nok`: GiveWell said explicitly that this much of our money went to that grant. Reason required. Lines without overrides are attributed by the method. |
-| `Regrant_documents`     | + External_period_ID?                                                                                                                                                  | Reuses the existing documents list: GiveWell's page snapshot (PDF/Drive), emails confirming an allocation. Still exactly one parent.                                                                                                                                                                                                                                                           |
+| Table                | Columns                                                                                                                                                                            | Notes                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Intermediary_funds` | Organization_ID (PK, FK `Organizations`), publisher, currency (default `USD`), notes?                                                                                              | Marks a recipient as an intermediary, like `Funds` marks an own fund. A recipient can't be both. `publisher` is shown in the UI ("awaiting report from GiveWell"); `currency` is what the intermediary usually reports in.                                                                                                                                                                                            |
+| `External_grantees`  | ID, name (unique), Organization_ID?, country?, url?, notes?, created_by, created_at                                                                                                | Ultimate grantees. `Organization_ID` set when the grantee is also one of our recipients (AMF, MC, HKI, NI), so recipient and project pages can find it. AGF's one-off grantees live only here, so they never appear in donor-facing lists, the widget or under `Organizations`' constraints (45-char names, unique 10-char `abbriv`).                                                                                 |
+| `Onward_allocations` | ID, Transfer_line_ID, Grantee_ID (FK `External_grantees`), Project_ID?, currency, amount_foreign?, amount_nok, allocated_at?, reported_at, purpose?, note?, created_by, created_at | One line of the intermediary's report against one of our transfer lines to an intermediary fund. `amount_foreign` + `currency` as reported (e.g. USD). `amount_nok` is the share of _our_ transfer line (see Amounts). `allocated_at`: when the intermediary granted it, if reported; `reported_at`: the date of the report. `Project_ID` only if the grantee has an `Organization_ID` and the project belongs to it. |
+| `Regrant_documents`  | + Onward_allocation_ID?                                                                                                                                                            | Reuses the existing documents list for the intermediary's report or letter (Drive PDF, email). Still exactly one parent. A report covering a whole transfer can also be attached to the transfer (existing `Transfer_ID`).                                                                                                                                                                                            |
 
 Why a separate grantee table, not `Organizations` with a flag: `Organizations` is donor-facing
 (widget, distributions, standard split, tax and reporting queries all read it), its name and
-abbreviation constraints don't fit hundreds of AGF grantees, and a flag would have to be added to
-every existing query that lists recipients. Linking `External_grantees.Organization_ID` gives the
-overlap (AMF is both) without that risk. Projects stay ours: a project still belongs to one of our
-recipients, and an external grant just points at it.
+abbreviation constraints don't fit many AGF grantees, and a flag would have to be added to every
+query that lists recipients. `External_grantees.Organization_ID` gives the overlap (AMF is both)
+without that risk. Projects stay ours: a project still belongs to one of our recipients, and an
+onward allocation just points at it.
 
-## Attribution
+Allocations hang off the **transfer line**, not the transfer, because one GiveWell transfer
+usually carries TCF, AGF and pass-through lines, and GiveWell reports per fund.
 
-### Period share (TCF)
+### Amounts
 
-For each paid transfer line whose recipient is an intermediary fund with `method = period_share`:
+- **Our transfer paid in the reported currency** (e.g. USD, with `fx_rate` on the transfer):
+  ops enters `amount_foreign`; `amount_nok = amount_foreign × fx_rate` of our transfer, so the NOK
+  shares are of what we actually paid, not of today's rate.
+- **Our transfer paid in NOK**, or reported in a currency other than the transfer's: ops enters
+  `amount_nok` directly (and `amount_foreign` for the record, if reported). The admin warns on a
+  currency mismatch and shows what share of the line each amount is.
+- **Rounding:** when the onward allocations cover the whole line, the NOK amounts are rounded with
+  the existing `apportion`, so they add up to the line amount exactly (open question 5).
 
-1. **Period.** The line's period is its override (a), otherwise the fund's period containing
-   `paid_at + receipt_lag_days`. No period entered yet → _awaiting publication_.
-2. **Explicit first.** Override (b) rows for the line are taken as stated.
-3. **Pro-rata for the rest.** The remainder `R` is shared over the period's grants by
-   `amount_from_fund`:
+### Validation
 
-   ```
-   share(grant) = R × amount_from_fund(grant) / D
-   D = fund_received            if published and ≥ Σ amount_from_fund
-     = Σ amount_from_fund        otherwise
-   ```
+- The transfer line's recipient is an intermediary fund, and its round is `paid`.
+- Σ `amount_nok` of a line's onward allocations ≤ the line's `amount_nok` (error). The rest is
+  _awaiting report from {publisher}_.
+- If the transfer has `amount_foreign`, Σ reported `amount_foreign` ≤ the line's foreign amount
+  (`amount_nok / fx_rate`), within rounding (warning).
+- Currency differs from the transfer's currency (warning: enter NOK directly).
+- A project must belong to the grantee's organisation (error).
 
-   When `D = fund_received`, the part `R × (1 − Σ amount_from_fund / fund_received)` is shown as
-   _not allocated by GiveWell in this period_ (held, rolled over, processing fees).
+Onward allocations are documentation of what someone else did, not our money: they can be added,
+edited and removed after the round is paid, like documents, and never lock or reopen the round.
 
-4. **Status.** While the period is `open` or `partial`, whatever isn't attributed yet is shown as
-   _awaiting GiveWell's allocation for {period}_, with the grants entered so far listed as
-   "so far". Shares are only final once the period is `complete`.
-5. **Rounding.** Shares are computed on exact decimals and rounded with the existing `apportion`
-   so they add up to the line amount to the øre.
+## Worked example (TCF, 2025)
 
-Shares are expressed in **NOK of our transfer line**: the attribution is a proportion, so no FX
-rate is needed and the numbers always add up to what we paid. USD figures are shown beside them
-only as context: if the transfer was paid in USD, `amount_foreign` × share; otherwise none. The
-intermediary's own amounts are stored and shown in its currency, as published.
+Round "Regular Q1 2025", cutoff 31.03.2025, paid 20.05.2025. Its transfer to payee GiveWell is in
+USD at `fx_rate` 10.50 and has a TCF line of **1 200 000 kr** (114 285.71 USD). In August 2025
+GiveWell writes that our May transfer to TCF was granted as below (figures invented). Ops enters
+four onward allocations on the TCF line and attaches GiveWell's letter:
 
-### Worked example (TCF, Q2 2025)
+| Grantee            | Project (ours)            | Reported (USD) | × 10.50 = NOK |
+| ------------------ | ------------------------- | -------------: | ------------: |
+| Malaria Consortium | SMC expansion, Chad       |      50 000.00 |       525 000 |
+| AMF                | –                         |      30 000.00 |       315 000 |
+| HKI                | Vitamin A Supplementation |      15 000.00 |       157 500 |
+| New Incentives     | –                         |      10 000.00 |       105 000 |
+| **Reported**       |                           | **105 000.00** | **1 102 500** |
+| Awaiting report    |                           |       9 285.71 |    **97 500** |
 
-Figures other than the Malaria Consortium grant are invented for illustration.
+- The TCF line shows 1 102 500 kr reported, 97 500 kr awaiting report from GiveWell. When GiveWell
+  reports the rest, ops adds a fifth line and the remainder goes to 0.
+- Before August 2025 the whole line showed "1 200 000 kr awaiting report from GiveWell".
+- HKI's Vitamin A project page lists "via GiveWell TCF: 157 500 kr (transfer 20.05.2025, reported
+  August 2025)" next to our direct transfers, outside the project's balance.
 
-- Round "Regular Q1 2025", cutoff 31.03.2025, paid 20.05.2025. Its transfer to payee GiveWell has
-  a TCF line of **1 200 000 kr** (paid in USD, 114 286 USD at 10.50).
-- `paid_at + 7 days` = 27.05.2025 → TCF period **April–June 2025**.
-- GiveWell approved in June 2025 for that period (amounts from TCF):
+## Data sources
 
-  | Grantee            | Project (ours)            | From TCF (USD) |  Share | Our share (kr) |
-  | ------------------ | ------------------------- | -------------: | -----: | -------------: |
-  | Malaria Consortium | SMC expansion, Chad       |          8.9 M | 44.5 % |        534 000 |
-  | AMF                | –                         |          6.0 M | 30.0 % |        360 000 |
-  | HKI                | Vitamin A Supplementation |          3.1 M | 15.5 % |        186 000 |
-  | New Incentives     | –                         |          2.0 M | 10.0 % |        120 000 |
-  | **Total**          |                           |     **20.0 M** |        |  **1 200 000** |
-
-- If GiveWell had also published `fund_received` = 22.0 M USD, each share would be divided by
-  22.0 M instead and 109 091 kr (9.1 %) would show as not allocated in this period.
-- Before GiveWell published (May–July 2025), the line showed "1 200 000 kr awaiting GiveWell's
-  allocation for April–June 2025".
-- HKI's Vitamin A project page then lists "via GiveWell TCF: 186 000 kr (April–June 2025, pro-rata
-  share)" next to our direct transfers.
-
-Timing: our quarterly round pays one to two months after its cutoff, GiveWell allocates the
-quarter's money at or shortly after the quarter's end, and the write-up often follows later. A
-donation can therefore take 6–9 months to reach a final ultimate grantee; the trace shows each
-step's date.
-
-### AGF
-
-GiveWell doesn't publish which donations paid for which AGF grant. Options, to decide (open
-question 4):
-
-- **MVP: list only.** An AGF line shows "GiveWell's All Grants Fund made these grants in the 12
-  months after receiving it" (list of grants, no amounts per line). Honest, cheap.
-- **Window share.** `method = window_share`: periods are windows we define (e.g. calendar years),
-  and our line is shared pro-rata over AGF grants approved in the window after receipt. Gives
-  numbers but is our convention more than GiveWell's.
-- **Ask GiveWell.** If GiveWell can give partner organisations a per-donor allocation, enter it as
-  explicit attributions (`explicit_only`).
-
-### Other intermediaries
-
-Same tables. GiveDirectly programmes or the DIV Fund get an `Intermediary_funds` row, periods as
-they report them, and usually `explicit_only` (they often tell partners where the money went).
-
-## Data entry
-
-- **Manual entry first.** Regranting → Intermediaries → TCF → new period: dates from GiveWell's
-  "donations received" column, then grants pasted from the TCF table (tab-separated paste:
-  grantee, amount, purpose, link), each grantee matched to an existing `External_grantees` row or
-  created, optionally linked to one of our recipients/projects. Ops checks each row against the
-  page before marking the period `complete`.
-- **Documents.** Each period gets the GiveWell page URL as `source_url`, and a saved copy (PDF in
-  the regranting Drive folder) as a `Regrant_documents` row, because GiveWell edits its pages
-  (footnotes, "forthcoming" → write-up link).
-- **Import later.** A CSV import from GiveWell's grants spreadsheet/Airtable export, if it proves to
-  carry the funding source per grant. No scraping of givewell.org.
-- **Backfill.** TCF periods only need entering back to our first transfer we want to trace; the
-  TCF table goes back to 2014 (Maximum Impact Fund, same organisation ID 12).
+- **Primary: the intermediary's report to us**, entered by hand and attached as a document.
+  GiveWell is to tell us where our donations went; other intermediaries likewise.
+- **Reference only:** GiveWell's public pages (the Top Charities Fund grant table at
+  https://www.givewell.org/top-charities-fund, the All Grants Fund page and the grants database
+  linked from https://www.givewell.org/research/all-grants) help ops name grantees and link grant
+  write-ups (`url` on the grantee, `purpose` on the allocation). They are not imported and nothing
+  is derived from them.
 
 ## Effects on tracing and reporting
 
 ### Admin
 
-- **Round page / composition.** A paid transfer line to an intermediary fund gets an _Onward_
-  section: period, status, the attributed grants (with links), awaiting/unallocated parts. The
-  existing composition (which donations the line contained) is unchanged; onward attribution is
-  shown after it.
-- **Project page.** A _Via intermediaries_ section: external grants pointing at the project and our
-  attributed share, with period and status. Not part of the project's balance or statement total.
+- **Transfer card** (round page): a paid line to an intermediary fund gets an _Onward_ section:
+  its onward allocations, the documents, "Add allocation", and reported / awaiting report totals.
+  The existing composition (which donations the line contained) is unchanged.
+- **Project page:** a _Via intermediaries_ section listing onward allocations pointing at the
+  project. Not part of the project's balance or statement total.
 - **Recipient page** for a recipient that is also an external grantee (AMF): the same, as a
   separate block under the statement ("also received via GiveWell TCF: …").
-- **Intermediaries page** (new): funds, periods with status, our lines per period and how much is
-  still awaiting publication.
+- **Awaiting report** list: paid intermediary lines with a remainder, oldest first, to chase the
+  intermediary.
 
 ### Donation trace
 
-The existing trace runs backwards (transfer line → donations, FIFO). A donation-level forward trace
-(listed as nice-to-have in regranting.md) chains three steps:
+The existing trace runs backwards (transfer line → donations, FIFO). A donation-level forward
+trace (nice-to-have in regranting.md) chains three steps:
 
-1. donation → its allocations per recipient (the `Regrant_allocations` view);
-2. allocation → the transfer line(s) that took it under the FIFO rule (a day's allocations can be
-   split across two lines; the donation's share is apportioned the same way);
-3. transfer line → onward attribution, if the recipient is an intermediary fund.
+1. donation → its allocation per recipient (the `Regrant_allocations` view);
+2. allocation → the transfer line(s) that took it under the existing FIFO rule (a day's
+   allocations can be split across two lines);
+3. transfer line → its onward allocations, if the recipient is an intermediary fund.
 
-Each step is computed from existing data plus the new tables; nothing is stored per donation. The
-admin gets it first (a "Where did it go?" panel on the donation). Donor-facing text, when we get
-there, keeps the convention visible: "GiveWell allocated the Top Charities Fund money it received
-April–June 2025 to: Malaria Consortium 44.5 %, AMF 30 %, … Your 1 000 kr counts proportionally."
+**The only pro-rata step is inside our own line.** The donor's share of the line (step 2) is
+multiplied by the reported split of that same line (step 3): a donation that was 1 000 kr of the
+1 200 000 kr line above "went" 437.50 kr to MC, 262.50 kr to AMF, 131.25 kr to HKI, 87.50 kr to NI,
+and 81.25 kr is awaiting report. We never spread one transfer's money over another transfer's
+report. Nothing is stored per donation.
+
+The admin gets it first (a "Where did it go?" panel on the donation); donor-facing text later, e.g.
+"GiveWell reported that the transfer containing your donation went to: …".
 
 ### Reporting
 
 - **"Given to charities" is unchanged** (direct allocations + fund grants). TCF and AGF stay
   recipients there.
-- **New: by ultimate grantee.** A report where intermediary funds are replaced by their attributed
-  grantees, plus "awaiting publication" and "not allocated by intermediary" rows, so it always sums
-  to the same total as the existing report for the same period. Never add the two together: that
-  double counts.
+- **New: by ultimate grantee.** A report where each intermediary line is replaced by its onward
+  allocations plus an "awaiting report" row, so it always sums to the same total as the existing
+  report. Never add the two together: that double counts.
 
 ## What does not change
 
@@ -239,33 +177,23 @@ April–June 2025 to: Malaria Consortium 44.5 %, AMF 30 %, … Your 1 000 kr cou
 
 ## Phases
 
-1. **MVP (TCF, admin only).** Tables; Intermediaries page with manual period and grant entry
-   (paste), documents; computed period-share attribution; _Onward_ section on paid TCF lines.
-   Enter TCF periods for 2025–2026 and check the shares against GiveWell's table.
+1. **MVP (admin).** Tables; mark TCF and AGF as intermediary funds; manual entry on the transfer
+   card with documents; reported / awaiting report per line; the Awaiting report list.
 2. **Projects and recipients.** _Via intermediaries_ sections on project and recipient pages;
-   ultimate-grantee report (CSV). Backfill TCF periods as far back as we want to report.
-3. **Donation forward trace** in the admin, then donor-facing (Min Side / annual impact summary),
-   with the wording agreed.
-4. **AGF and other intermediaries** (method as decided), CSV import from GiveWell's grant data if it
-   carries the funding source.
+   ultimate-grantee report (CSV). Backfill reports we already have, as far back as agreed.
+3. **Donation forward trace** in the admin, then donor-facing (Min Side / annual impact summary).
 
 ## Open questions
 
 1. **Grantee entity.** Separate `External_grantees` linked to `Organizations` (proposed), or reuse
    `Organizations` with a flag?
-2. **Convention.** Is pro-rata by GiveWell's period acceptable as _the_ attribution for reports and
-   donor-facing statements, and how should the caveat be worded?
-3. **Which date.** Our `paid_at` + a fixed lag (proposed, 7 days), or GiveWell's receipt date
-   entered per transfer?
-4. **AGF.** List only, a window share (which window?), or ask GiveWell for an explicit allocation?
-5. **Freeze or compute.** Keep attributions always computed (proposed), or snapshot them when a
-   period is marked `complete`, for audits, in case GiveWell later edits its table?
-6. **GiveWell contact.** Can GiveWell give us a per-period statement of our own money (and of
-   `fund_received`)? Our amounts are small relative to the fund, so pro-rata is likely all they can
-   offer.
-7. **Rollovers.** When GiveWell carries TCF money into a later period, show it as "not allocated"
-   (proposed) or attribute it to the later period?
-8. **Scope.** How far back to backfill (TCF since our first transfer in 2016, or since 2019 like the
-   regranting opening balances)? Donor-facing at all, and where?
-9. **Pass-through lines.** Confirm that lines to AMF, MC, HKI, NI paid via payee GiveWell are 100 %
-   passed through and need no onward record.
+2. **Backfill.** How far back do we enter reports (TCF since our first transfer in 2016, or from
+   2019 like the regranting opening balances)? Do we have past GiveWell reports to enter?
+3. **Donor visibility.** Should the forward trace be shown to donors, and where (Min Side, annual
+   summary, receipts)?
+4. **Pass-through payments.** Do lines to AMF, MC, HKI and NI paid via the GiveWell payee need
+   onward records too (e.g. to confirm GiveWell passed them on), or are they final as direct
+   recipients (proposed)?
+5. **Rounding.** When allocations cover a whole line, `apportion` so the NOK shares add up to the
+   line exactly (proposed), or keep each `amount_foreign × fx_rate` rounded on its own and show a
+   rounding remainder of a few øre?
