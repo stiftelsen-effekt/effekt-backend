@@ -1169,6 +1169,7 @@ export class RegrantingHistory {
       approved_by: null,
       approved_at: null,
       paid_at: null,
+      notes: null,
     });
     const round: RoundState = {
       id,
@@ -1238,6 +1239,7 @@ export class RegrantingHistory {
         paid_at: null,
         bank_ref: null,
         paid_by: "foundation",
+        notes: null,
       });
       const transfer: TransferState = {
         id: transferId,
@@ -1551,6 +1553,72 @@ export class RegrantingHistory {
     });
     round.status = "paid";
     Object.assign(round.row, { status: "paid", paid_at: isoDate(last) });
+    this.documentRound(round, last);
+  }
+
+  /**
+   * Bilag and notes in the shape of the backfill: a regular round has 5–8 documents and, every
+   * other round, multi-paragraph notes with a bullet list; a transfer has 1–3 documents and
+   * sometimes a one-line note.
+   */
+  private documentRound(round: RoundState, day: number) {
+    const rng = this.rng("documents", round.id);
+    const { year } = parts(round.cutoff);
+    const at = timestamp(day, 15 * 3600);
+    const add = (label: string, parent: { round?: number; transfer?: number }) =>
+      this.host.add("Regrant_documents", {
+        ID: this.host.id("Regrant_documents"),
+        url: `https://drive.example.org/regranting/${year}/${encodeURIComponent(label)}`,
+        label,
+        Round_ID: parent.round ?? null,
+        Transfer_ID: parent.transfer ?? null,
+        Adjustment_ID: null,
+        Onward_report_ID: null,
+        created_by: FINANCE,
+        created_at: at,
+      });
+    if (round.kind === "regular") {
+      const roundDocs = [
+        `Styrevedtak ${round.name}`,
+        "Tildelingsoversikt (Samlefila)",
+        "Saldoavstemming per mottaker",
+        "Betalingsoppdrag DNB",
+        "Kontoutskrift DNB",
+        `Bilag ${year}/${100 + (round.id % 97)} valutakjøp`,
+        "Bekreftelse fra GiveWell på mottatt overføring og fordeling",
+        "Signert protokoll",
+      ];
+      for (const label of roundDocs.slice(0, rng.int(5, 8))) add(label, { round: round.id });
+      if (round.id % 2 === 0) {
+        round.row.notes = [
+          `Calculated from the balances at ${isoDate(
+            round.cutoff,
+          )}; checked against Samlefila before approval.`,
+          "Held back or changed by hand:",
+          "- Helen Keller Intl: 1 800 kr held back until GiveWell confirms the previous correction",
+          "- Family Empowerment Media: paid by EA Norway from its own account, entered as external",
+          "- GiveDirectly: the Malawi project line paid in full although below the minimum transfer",
+          "",
+          "The bank fee on the USD transfer was charged to the foundation's operating account, not the round.",
+        ].join("\n");
+      }
+    }
+    for (const t of round.transfers) {
+      if (t.row.paid_at === null) continue;
+      const count = rng.int(1, 3);
+      const labels = [
+        `Bilag ${year}/${200 + (t.id % 97)}`,
+        `Kvittering ${t.payee.name}`,
+        "Valutabekreftelse",
+      ];
+      for (const label of labels.slice(0, count)) add(label, { transfer: t.id });
+      if (rng.chance(0.4)) {
+        t.row.notes =
+          t.payee.currency === "NOK"
+            ? "Paid the day before the foreign transfers, as usual."
+            : "Exchange rate and bank fee from DNB's confirmation.";
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------------------------

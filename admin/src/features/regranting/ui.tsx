@@ -6,7 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CircleAlertIcon, TriangleAlertIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatNumber } from "@/lib/format";
 import { useTRPC } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -236,5 +238,33 @@ export function PayeePicker({
         hint: p.isActive ? undefined : "Inactive",
       }))}
     />
+  );
+}
+
+/**
+ * A quiet icon-only action (ghost, small) with its name in a tooltip. Spreads the rest of its
+ * props onto the button, so it works as a dialog trigger (`asChild`).
+ */
+export function IconAction({
+  label,
+  children,
+  className,
+  ...props
+}: Omit<ButtonProps, "variant" | "size"> & { label: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={label}
+          className={cn("text-muted-foreground hover:text-foreground", className)}
+          {...props}
+        >
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }

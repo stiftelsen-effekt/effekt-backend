@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { DocumentLinks } from "@/features/regranting/documents";
+import { AddDocumentDialog } from "@/features/regranting/documents";
+import { NotesAndDocuments } from "@/features/regranting/notes";
 import { ForeignAmount, RoundLink } from "@/features/regranting/ui";
 import { RecordDialog, textError } from "@/features/settings/record-dialog";
 import { osloDay } from "@/lib/dates";
@@ -102,15 +103,14 @@ function ReportCard({ report: r }: { report: Report }) {
           <DeleteReport report={r} />
         </span>
       </div>
-      {r.notes && <p className="mt-1 whitespace-pre-line text-sm">{r.notes}</p>}
-      <div className="mt-2 flex flex-wrap items-center gap-x-3">
-        <span className="text-xs text-muted-foreground">Documents</span>
-        <DocumentLinks
-          documents={r.documents}
-          parent={{ onwardReportId: r.id }}
-          what={`this report`}
-        />
-      </div>
+      <NotesAndDocuments
+        className="mt-2"
+        notes={r.notes}
+        documents={r.documents}
+        parent={{ onwardReportId: r.id }}
+        what="this report"
+        actions={<AddDocumentDialog parent={{ onwardReportId: r.id }} what="this report" />}
+      />
       {r.allocationCount > 0 && (
         <details className="mt-2" onToggle={(e) => setOpen(e.currentTarget.open)}>
           <summary className="cursor-pointer rounded-xs text-sm text-accent focus-ring">
