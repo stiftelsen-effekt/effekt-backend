@@ -20,6 +20,9 @@ import { PageHeader, type Breadcrumb } from "./page-header";
  * Facts about the record live in the aside (right) as PropertyLists; the main column is for
  * what is related to it (donations, agreements, history). The body scrolls; the header
  * scrolls with it.
+ *
+ * A long related table goes in `<PageSection fill>`: from lg up it takes the height left in
+ * the page (or panel), at least 24rem, and scrolls inside with a sticky header, like a list.
  */
 export function DetailPage({
   title,
@@ -41,7 +44,11 @@ export function DetailPage({
   children: ReactNode;
 }) {
   return (
-    <div data-page-scroll data-slot="detail-page" className="min-h-0 flex-1 overflow-y-auto">
+    <div
+      data-page-scroll
+      data-slot="detail-page"
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+    >
       <PageHeader
         title={title}
         breadcrumbs={breadcrumbs}
@@ -49,15 +56,19 @@ export function DetailPage({
         meta={meta}
         actions={actions}
       />
-      <div className="grid grid-cols-1 gap-6 px-4 pb-10 sm:px-6">
+      {/* The body grows to the bottom of the scroller and hands the height left to the main
+          column, so a PageSection with fill can take it; other children stay at the top. */}
+      <div className="flex shrink-0 grow flex-col gap-6 px-4 pb-10 sm:px-6 [&>*]:shrink-0">
         {stats}
         <div
           className={cn(
-            "grid grid-cols-1 items-start gap-6",
-            aside && "xl:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,1fr)_24rem]",
+            "grid grow grid-cols-1 items-start gap-6",
+            aside
+              ? "grid-rows-[1fr_auto] xl:grid-cols-[minmax(0,1fr)_22rem] xl:grid-rows-1 2xl:grid-cols-[minmax(0,1fr)_24rem]"
+              : "grid-rows-1",
           )}
         >
-          <div className="grid min-w-0 grid-cols-1 gap-6">{children}</div>
+          <div className="flex min-w-0 flex-col gap-6 self-stretch [&>*]:shrink-0">{children}</div>
           {aside && (
             <div className="grid min-w-0 grid-cols-1 gap-4 xl:sticky xl:top-4 xl:order-last">
               {aside}
