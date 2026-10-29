@@ -741,14 +741,14 @@ function AvtaleGiroAgreementPage({ id }: { id: string }) {
   const subject = { type: "avtalegiro" as const, ...facts };
 
   const payments: Payment[] | undefined = donations.data?.donations
-    .map((donation) => ({
+    ?.map((donation) => ({
       key: String(donation.id),
       date: toIso(donation.timestamp),
       amount: donation.sum,
       reference: String(donation.id),
       href: `/donations/${donation.id}`,
     }))
-    .sort((x, y) => String(y.date ?? "").localeCompare(String(x.date ?? "")));
+    ?.sort((x, y) => String(y.date ?? "").localeCompare(String(x.date ?? "")));
 
   const run = async (action: Promise<unknown>, message: string) => {
     await action;
