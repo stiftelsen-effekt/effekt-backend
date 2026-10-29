@@ -101,6 +101,7 @@ export const GENERATED_TABLES = [
   "Fund_grants",
   "Fund_grant_lines",
   "Regrant_adjustments",
+  "Regrant_documents",
   "Regrant_round_balances",
   // Pledges (tilsagn) for the analysis overview
   "Pledges",

@@ -940,10 +940,21 @@ export class RegrantingHistory {
       Round_ID: a.roundId ?? null,
       linked_transfer_ID: a.linkedTransferId ?? null,
       linked_donation_ID: null,
-      document_ref: a.documentRef ?? null,
       created_by: a.createdBy ?? OPS,
       created_at: timestamp(day, 11 * 3600 + (id % 3600)),
     });
+    if (a.documentRef) {
+      this.host.add("Regrant_documents", {
+        ID: this.host.id("Regrant_documents"),
+        url: `https://example.org/bilag/${encodeURIComponent(a.documentRef)}`,
+        label: a.documentRef,
+        Round_ID: null,
+        Transfer_ID: null,
+        Adjustment_ID: id,
+        created_by: a.createdBy ?? OPS,
+        created_at: timestamp(day, 11 * 3600 + (id % 3600)),
+      });
+    }
     const state: AdjustmentState = {
       id,
       orgId: a.orgId,
