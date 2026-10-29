@@ -335,10 +335,6 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
     }, {});
 
     // Go through db donors and update mailchimp status
-    // Test cap while catching up on the backlog from the broken sync (May 2025 – Oct 2026);
-    // was a random 0–3 per run. To be removed once the first runs look right.
-    const subscibersToAdd = 10;
-    console.log("Adding max", subscibersToAdd, "subscribers to mailchimp");
 
     let donors: any[] = [];
     let page = 0;
@@ -380,11 +376,6 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
         } else {
           // Donor has newsletter set to true on their DB donor, but are not subscribed in mailchimp
           // add them
-          if (subscibersToAdd <= addedToMailchimp) {
-            console.log("Added max subscribers to mailchimp");
-            continue;
-          }
-
           console.log("Adding", donor.email, "to mailchimp");
           try {
             await mailchimp.lists.addListMember("4c98331f9d", {
