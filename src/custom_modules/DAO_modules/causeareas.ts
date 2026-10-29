@@ -113,7 +113,8 @@ export const causeareas = {
           Organizations.is_active AS O_is_active,
           Organizations.ordering AS O_ordering,
           Organizations.info_url AS O_info_url,
-          Organizations.std_percentage_share AS O_std_percentage_share
+          Organizations.std_percentage_share AS O_std_percentage_share,
+          Organizations.chart_color AS O_chart_color
           
           FROM Cause_areas 
             INNER JOIN Organizations ON Organizations.cause_area_id = Cause_areas.ID
@@ -150,6 +151,7 @@ export const causeareas = {
         ordering: row.O_ordering,
         cause_area_ID: row.CA_ID,
         std_percentage_share: row.O_std_percentage_share,
+        chart_color: row.O_chart_color,
       });
       const existingCauseArea = causeAreas.find((ca) => ca.id === causeArea.id);
       if (existingCauseArea) {

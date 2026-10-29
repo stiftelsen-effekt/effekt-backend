@@ -2,6 +2,7 @@ import type { ResultSetHeader } from "mysql2";
 import { Organizations } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
 import { Organization } from "../../schemas/types";
+import { toOrgChartColor, type OrgChartColor } from "../orgChartColors";
 
 //region Get
 
@@ -76,10 +77,11 @@ async function add(organization: {
   ordering: number;
   standardShare: number;
   causeAreaId: number;
+  chartColor?: OrgChartColor | null;
 }): Promise<number> {
   const [result] = await DAO.query<ResultSetHeader>(
-    `INSERT INTO Organizations (full_name, abbriv, short_desc, long_desc, info_url, is_active, ordering, std_percentage_share, cause_area_ID)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO Organizations (full_name, abbriv, short_desc, long_desc, info_url, is_active, ordering, std_percentage_share, cause_area_ID, chart_color)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       organization.name,
       organization.abbreviation,
@@ -90,6 +92,7 @@ async function add(organization: {
       organization.ordering,
       organization.standardShare,
       organization.causeAreaId,
+      organization.chartColor ?? null,
     ],
   );
   return result.insertId;
@@ -113,11 +116,12 @@ async function updateById(organization: {
   ordering: number | null;
   standardShare: number | null;
   causeAreaId: number;
+  chartColor: OrgChartColor | null;
 }) {
   await DAO.query(
     `UPDATE Organizations SET 
      full_name = ?, abbriv = ?, short_desc = ?, long_desc = ?, info_url = ?, 
-     is_active = ?, ordering = ?, std_percentage_share = ?, cause_area_ID = ?
+     is_active = ?, ordering = ?, std_percentage_share = ?, cause_area_ID = ?, chart_color = ?
      WHERE ID = ?`,
     [
       organization.name,
@@ -129,6 +133,7 @@ async function updateById(organization: {
       organization.ordering,
       organization.standardShare,
       organization.causeAreaId,
+      organization.chartColor,
       organization.id,
     ],
   );
@@ -152,7 +157,9 @@ async function deleteById(id: number) {
  * @param {Object} org A line from a database query representing an organization
  * @returns {Object} A mapping with JS like syntax instead of the db fields, camel case instead of underscore and so on
  */
-export const mapOrganization = (org: SqlResult<Organizations>): Organization => {
+export const mapOrganization = (
+  org: SqlResult<Organizations>,
+): Organization & { chartColor: OrgChartColor | null } => {
   return {
     id: org.ID,
     name: org.full_name,
@@ -166,6 +173,7 @@ export const mapOrganization = (org: SqlResult<Organizations>): Organization => 
     isActive: org.is_active === 1,
     ordering: org.ordering,
     causeAreaId: org.cause_area_ID,
+    chartColor: toOrgChartColor(org.chart_color),
   };
 };
 

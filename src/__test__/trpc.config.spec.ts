@@ -47,6 +47,7 @@ const organization = (id: number, causeAreaId: number, ordering: number) => ({
   isActive: true,
   ordering,
   causeAreaId,
+  chartColor: null,
 });
 
 const orgRow = {
@@ -62,6 +63,7 @@ const orgRow = {
   std_percentage_share: 40,
   is_active: 1,
   ordering: 2,
+  chart_color: "chart-3",
 };
 
 describe("tRPC config router", () => {
@@ -214,6 +216,7 @@ describe("tRPC config router", () => {
         ordering: 99,
         standardShare: 0,
         causeAreaId: 1,
+        chartColor: null,
       });
     });
 
@@ -249,8 +252,49 @@ describe("tRPC config router", () => {
         ordering: 2,
         standardShare: 60,
         causeAreaId: 1,
+        chartColor: "chart-3",
       });
       expect(result.abbreviation).to.equal("AMF");
+      expect(result.chartColor).to.equal("chart-3");
+    });
+
+    it("sets and clears an organization's chart colour from the palette", async () => {
+      sinon.stub(DAO.organizations, "getByID").resolves(orgRow);
+      const update = sinon.stub(DAO.organizations, "updateById").resolves();
+      await admin().config.organizations.update({ id: 7, chartColor: "chart-11" });
+      expect(update.firstCall.args[0]).to.include({ chartColor: "chart-11", standardShare: 40 });
+      await admin().config.organizations.update({ id: 7, chartColor: null });
+      expect(update.secondCall.args[0]).to.include({ chartColor: null });
+    });
+
+    it("rejects chart colours outside the organization palette", async () => {
+      sinon.stub(DAO.organizations, "getByID").resolves(orgRow);
+      const update = sinon.stub(DAO.organizations, "updateById").resolves();
+      const add = sinon.stub(DAO.organizations, "add").resolves(7);
+      // chart-5 is "Other"; raw colours would break the dark theme
+      for (const chartColor of ["chart-5", "#2f48c8", "chart-16", ""]) {
+        await expectCode(
+          admin().config.organizations.update({ id: 7, chartColor: chartColor as never }),
+          "BAD_REQUEST",
+        );
+      }
+      await expectCode(
+        admin().config.organizations.create({
+          name: "New",
+          abbreviation: "N",
+          causeAreaId: 1,
+          chartColor: "red" as never,
+        }),
+        "BAD_REQUEST",
+      );
+      expect(update.called).to.be.false;
+      expect(add.called).to.be.false;
+    });
+
+    it("maps unknown stored chart colours to null", async () => {
+      sinon.stub(DAO.organizations, "getByID").resolves({ ...orgRow, chart_color: "teal" });
+      const result = await admin().config.organizations.get({ id: 7 });
+      expect(result.chartColor).to.equal(null);
     });
 
     it("toggles active and 404s on missing organizations", async () => {

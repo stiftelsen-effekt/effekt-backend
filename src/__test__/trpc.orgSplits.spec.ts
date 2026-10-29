@@ -2,6 +2,7 @@ import { expect } from "chai";
 import type { Request, Response } from "express";
 import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
+import type { DistributionOrgShare } from "../custom_modules/DAO_modules/distributions";
 import { appRouter } from "../trpc/router";
 import { createCallerFactory } from "../trpc/trpc";
 
@@ -14,9 +15,21 @@ const admin = () =>
     auth: { permissions: ["admin"] },
   });
 
-const split = [
-  { organizationId: 3, organizationName: "GiveDirectly", causeAreaId: 1, share: "62.500000" },
-  { organizationId: 5, organizationName: "The Humane League", causeAreaId: 2, share: "37.500000" },
+const split: DistributionOrgShare[] = [
+  {
+    organizationId: 3,
+    organizationName: "GiveDirectly",
+    causeAreaId: 1,
+    chartColor: "chart-3",
+    share: "62.500000",
+  },
+  {
+    organizationId: 5,
+    organizationName: "The Humane League",
+    causeAreaId: 2,
+    chartColor: null,
+    share: "37.500000",
+  },
 ];
 
 describe("tRPC list procedures with organization splits", () => {

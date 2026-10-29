@@ -46,6 +46,10 @@ components:
           type: number
           nullable: true
           description: The ordering of the organization within the cause area (used for sorting frontend)
+        chartColor:
+          type: string
+          nullable: true
+          description: The organization's chart colour in the admin, a palette token name such as "chart-3"
       required:
         - id
         - causeAreaId
