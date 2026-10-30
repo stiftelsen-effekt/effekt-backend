@@ -57,22 +57,10 @@ describe("Agreements page", () => {
     });
 
     cy.fixture("kids_agreements").then((kids) => {
-      cy.intercept("GET", "/donors/*/distributions/*", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: kids,
-        },
-      }).as("getDistribution");
+      cy.interceptTrpc("minside.distributions", kids).as("getDistribution");
 
       cy.fixture("taxunits").then((units) => {
-        cy.intercept("GET", "/donors/*/taxunits/", {
-          statusCode: 200,
-          body: {
-            status: 200,
-            content: units,
-          },
-        }).as("getTaxUnits");
+        cy.interceptTrpc("minside.taxUnits", units).as("getTaxUnits");
       });
     });
 
@@ -365,65 +353,59 @@ describe("Agreements page", () => {
     });
 
     cy.fixture("kids_agreements").then((kids) => {
-      cy.intercept("GET", "/donors/*/distributions/*", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: [
-            ...kids.filter((dist) => dist.kid != "95231965"),
+      cy.interceptTrpc("minside.distributions", [
+        ...kids.filter((dist) => dist.kid != "95231965"),
+        {
+          kid: newKid,
+          shares: [
             {
-              kid: newKid,
-              shares: [
-                {
-                  id: 12,
-                  name: "GiveWells tildelingsfond",
-                  share: "25.000000000000",
-                },
-                {
-                  id: 1,
-                  name: "Against Malaria Foundation",
-                  share: "20.000000000000",
-                },
-                {
-                  id: 10,
-                  name: "Hellen Keller International",
-                  share: "25.000000000000",
-                },
-                {
-                  id: 4,
-                  name: "Malaria Consortium",
-                  share: "0.000000000000",
-                },
-                {
-                  id: 2,
-                  name: "Schistosomiasis Control Initiative",
-                  share: "30.000000000000",
-                },
-                {
-                  id: 7,
-                  name: "GiveDirectly",
-                  share: "0.000000000000",
-                },
-                {
-                  id: 13,
-                  name: "GiveDirectly Borgerlønn",
-                  share: "0.000000000000",
-                },
-                {
-                  id: 14,
-                  name: "New Incentives",
-                  share: "0.000000000000",
-                },
-                {
-                  id: 11,
-                  name: "Drift av gieffektivt.no",
-                  share: "0.000000000000",
-                },
-              ],
+              id: 12,
+              name: "GiveWells tildelingsfond",
+              share: "25.000000000000",
+            },
+            {
+              id: 1,
+              name: "Against Malaria Foundation",
+              share: "20.000000000000",
+            },
+            {
+              id: 10,
+              name: "Hellen Keller International",
+              share: "25.000000000000",
+            },
+            {
+              id: 4,
+              name: "Malaria Consortium",
+              share: "0.000000000000",
+            },
+            {
+              id: 2,
+              name: "Schistosomiasis Control Initiative",
+              share: "30.000000000000",
+            },
+            {
+              id: 7,
+              name: "GiveDirectly",
+              share: "0.000000000000",
+            },
+            {
+              id: 13,
+              name: "GiveDirectly Borgerlønn",
+              share: "0.000000000000",
+            },
+            {
+              id: 14,
+              name: "New Incentives",
+              share: "0.000000000000",
+            },
+            {
+              id: 11,
+              name: "Drift av gieffektivt.no",
+              share: "0.000000000000",
             },
           ],
         },
-      }).as("getDistribution");
+      ]).as("getDistribution");
     });
 
     // Save agreement

@@ -1,6 +1,7 @@
 import { User } from "@auth0/auth0-react";
 import { mutate } from "swr";
 import { getUserId } from "../../lib/user";
+import { minsideKeys } from "../../_queries";
 import { Donor, FacebookDonationRegistration, TaxUnit } from "../../models";
 
 export const saveDonor = async (data: Donor, user: User, token: string) => {
@@ -78,7 +79,7 @@ export const createTaxUnit = async (
 
     if (response.status === 200) {
       const data = await response.json();
-      mutate(`/donors/${getUserId(user)}/taxunits/`);
+      mutate(minsideKeys.taxUnits(getUserId(user)));
       return data.content;
     } else {
       const data = await response.json();
@@ -112,7 +113,7 @@ export const updateTaxUnit = async (
 
     if (response.status === 200) {
       const data = await response.json();
-      mutate(`/donors/${getUserId(user)}/taxunits/`);
+      mutate(minsideKeys.taxUnits(getUserId(user)));
       return data.content;
     } else {
       const data = await response.json();
@@ -146,7 +147,7 @@ export const deleteTaxUnit = async (
 
     if (response.status === 200) {
       const data = await response.json();
-      mutate(`/donors/${getUserId(user)}/taxunits/`);
+      mutate(minsideKeys.taxUnits(getUserId(user)));
       return true;
     } else {
       const data = await response.json();

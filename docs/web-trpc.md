@@ -1,15 +1,24 @@
 # tRPC on the website (apps/web)
 
 The website's Min Side is moving from hand-written REST calls (`_queries.ts`) to the backend's
-tRPC router, one call at a time. The first call migrated is the donor profile
-(`minside.profile`, formerly `GET /donors/:id`, used by `DonorProvider`).
+tRPC router, one call at a time. Migrated so far, all read-only:
+
+| Procedure                     | Formerly                                | Hook                                             |
+| ----------------------------- | --------------------------------------- | ------------------------------------------------ |
+| `minside.profile`             | `GET /donors/:id`                       | `useDonor` (`DonorProvider`)                     |
+| `minside.taxUnits`            | `GET /donors/:id/taxunits`              | `useTaxUnits`                                    |
+| `minside.donationsAggregated` | `GET /donors/:id/donations/aggregated`  | `useAggregatedDonations`                         |
+| `minside.donations`           | `GET /donors/:id/donations`             | `useDonations`                                   |
+| `minside.distributions`       | `GET /donors/:id/distributions/?kids=…` | `useDistributions`, `useAgreementsDistributions` |
+
+SWR keys are in `minsideKeys` (`_queries.ts`); revalidate with `mutate(minsideKeys.taxUnits(id))`.
 
 ## Pieces
 
 | Piece                                 | Where                                                                        |
 | ------------------------------------- | ---------------------------------------------------------------------------- |
 | Donor-facing procedures               | `src/trpc/routers/minside.ts` (mounted as `minside` in `src/trpc/router.ts`) |
-| `donorProcedure(permission)`          | `src/trpc/trpc.ts`                                                           |
+| `donorProcedure(permission, input?)`  | `src/trpc/trpc.ts`                                                           |
 | Schemas shared with the web (runtime) | `src/trpc/shared/minside.ts` (may only import `zod`)                         |
 | `@effekt/api` workspace package       | `packages/api`: `AppRouter` type + `@effekt/api/minside` schemas             |
 | Web client and links                  | `apps/web/lib/trpc/` (`client.ts`, `restLink.ts`, `useTrpcClient.ts`)        |
@@ -86,6 +95,11 @@ The `restRoutes` table in `restLink.ts` maps procedures to REST routes:
   and makes no request. Hide or disable the feature on Danish Min Side.
 - The Danish backend finds the donor by the token's email claim and ignores `:id`. It answers
   `id: 0`, which is why the profile schema allows 0.
+- Its Postgres driver sends numeric columns as numbers and `COUNT(*)` as strings, where our
+  backend sends MySQL decimals as strings. The schemas accept both (`decimal` in
+  `src/trpc/shared/minside.ts`), and Min Side parses either. It also sends a few fields ours
+  doesn't (`impact` on donations, `amount` on distributions), which the schemas declare as
+  optional.
 
 ## Adding a procedure
 
@@ -93,7 +107,9 @@ The `restRoutes` table in `restLink.ts` maps procedures to REST routes:
    procedure an explicit `.output()`, which strips fields you don't declare. Only add fields Min
    Side uses.
 2. Add the procedure to `src/trpc/routers/minside.ts` with `donorProcedure(<the REST route's
-permission>)`. Use `.query` for reads and `.mutation` for writes.
+permission>)`. For more input fields than `donorId`, pass a schema that extends `donorInput`:
+   `donorProcedure(permission, donorInput.extend({ … }))` (`donorInput` is strict, so a chained
+   `.input()` would reject the extra fields). Use `.query` for reads and `.mutation` for writes.
 3. Test it in `src/__test__/trpc.minside.spec.ts`: anonymous (401), another donor (403),
    missing permission, bad input (400), the donor and an admin (200), and the output shape.
 4. If the Danish backend implements the REST route (check
@@ -113,12 +129,15 @@ permission>)`. Use `.query` for reads and `.mutation` for writes.
       other code calls `mutate(key)` (update those calls too)
 - [ ] apps/web: `pnpm typecheck`, `pnpm lint`, `pnpm test`; check the main-site and giv-effektivt
       previews
-- [ ] Norwegian Cypress tests (`apps/web/cypress/e2e/no`) intercept the tRPC request, not the
-      REST route. httpBatchLink sends `GET /trpc/<path>?batch=1&input=…` and expects
-      `[{ "result": { "data": … } }]`; `cy.interceptDonorProfile` shows the pattern. Calls made
-      in the same tick are batched into one request (`/trpc/a,b`), so add
-      `{ pathname: "/trpc/minside.profile,…" }` or match on the path list when that happens.
-      The Danish tests keep intercepting REST.
+- [ ] Norwegian Cypress tests (`apps/web/cypress/e2e/no`) stub the tRPC request, not the REST
+      route: `cy.interceptTrpc("minside.<name>", data)`. httpBatchLink sends
+      `GET /trpc/<path>?batch=1&input=…`, or `/trpc/a,b?batch=1` for calls made in the same tick,
+      and expects one `{ "result": { "data": … } }` per path. `interceptTrpc` matches the path
+      inside a batch and answers every path of the batch from the test's stubs. The Danish tests
+      keep intercepting REST.
+- [ ] Full-stack Cypress tests (`apps/web/cypress/e2e/fullstack`) wait on the real request with
+      `cy.intercept("GET", trpcUrl("minside.<name>"))` and read its data with `trpcData()`
+      (`cypress/support/trpc.js`).
 - [ ] Keep the REST route: the Danish site and older clients still use it
 
 ## Deployment notes

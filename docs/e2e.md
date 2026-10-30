@@ -38,8 +38,9 @@ from `pnpm dev:env:up`, so both stacks can run at once.
 - `migrate`: migrations and the generated dev data, with `SEED_NOW` fixed.
 - `seed-e2e`: `prisma/e2e/seed.mjs`, a deterministic donor (id 900001) with Vipps (2 active,
   1 stopped), AvtaleGiro (2), AutoGiro (1) agreements, donations from 2022–2025 and two tax
-  units. Ids and KIDs live in `prisma/e2e/data.mjs`, which specs import. The Cypress task
-  `resetE2EData` re-runs the seed (~0.2 s), and specs call it in `beforeEach`.
+  units (the bank transfers go to the second). Ids and KIDs live in `prisma/e2e/data.mjs`,
+  which specs import. The Cypress task `resetE2EData` re-runs the seed (~0.2 s), and specs call
+  it in `beforeEach`.
 - `auth` + `oidc`: the mock OIDC issuer behind a small nginx (see below).
 - `api`: the backend, accepting tokens from the local issuer.
 

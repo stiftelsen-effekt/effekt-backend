@@ -78,6 +78,103 @@ describe("restLink", () => {
     expect(err.message).toMatch(/unexpected response from the REST API/);
   });
 
+  /**
+   * Responses shaped like the Danish backend's (giveffektivt/donation-platform, app/donors/[id]/…):
+   * numeric columns as numbers, COUNT(*) as a string, donorId 0, tax units numbered 1, 2, …
+   */
+  describe("Danish Min Side responses", () => {
+    const dkTaxUnit = {
+      id: 1,
+      donorId: 0,
+      name: "Anonym",
+      ssn: "",
+      registered: "2024-03-01T12:00:00.000Z",
+      archived: null,
+      sumDonations: 1500,
+      numDonations: "3",
+      taxDeductions: [{ year: 2024, sumDonations: 1500, deduction: 1500, benefit: 390 }],
+    };
+    const dkDonation = {
+      id: 1,
+      donor: "",
+      donorId: 0,
+      email: "donor@example.org",
+      sum: 500,
+      transactionCost: 0,
+      paymentMethod: "MobilePay",
+      KID: "6c4a8d9e-0000-4000-8000-000000000001",
+      taxUnitId: 1,
+      timestamp: "2024-03-01T12:00:00.000Z",
+      impact: [
+        {
+          recipient: "Against Malaria Foundation",
+          unit: null,
+          organization: "Myggenet mod malaria",
+          amount: 500,
+          count: 83.3,
+        },
+      ],
+    };
+    const dkDistribution = {
+      id: "6c4a8d9e-0000-4000-8000-000000000001",
+      kid: "6c4a8d9e-0000-4000-8000-000000000001",
+      donorId: 0,
+      taxUnitId: 1,
+      causeAreas: [
+        {
+          id: 1,
+          name: "Global sundhed og fattigdom",
+          standardSplit: false,
+          amount: 500,
+          percentageShare: 100,
+          organizations: [{ id: 2, name: "Myggenet", amount: 500, percentageShare: 100 }],
+        },
+      ],
+    };
+
+    it("maps minside.taxUnits to GET /donors/:id/taxunits/", async () => {
+      const fetchImpl = respond(200, { status: 200, content: [dkTaxUnit] });
+      const result = await clientWith(fetchImpl).minside.taxUnits.query({ donorId: 42 });
+      expect(result).toEqual([dkTaxUnit]);
+      expect(fetchImpl.mock.calls[0][0]).toBe("https://api.example.org/donors/42/taxunits/");
+    });
+
+    it("maps minside.donationsAggregated to GET /donors/:id/donations/aggregated", async () => {
+      const rows = [{ organization: "Myggenet mod malaria", value: 500, year: 2024 }];
+      const fetchImpl = respond(200, { status: 200, content: rows });
+      const result = await clientWith(fetchImpl).minside.donationsAggregated.query({
+        donorId: 42,
+      });
+      expect(result).toEqual(rows);
+      expect(fetchImpl.mock.calls[0][0]).toBe(
+        "https://api.example.org/donors/42/donations/aggregated",
+      );
+    });
+
+    it("maps minside.donations to GET /donors/:id/donations/", async () => {
+      const fetchImpl = respond(200, { status: 200, content: [dkDonation] });
+      const result = await clientWith(fetchImpl).minside.donations.query({ donorId: 42 });
+      expect(result).toEqual([dkDonation]);
+      expect(fetchImpl.mock.calls[0][0]).toBe("https://api.example.org/donors/42/donations/");
+    });
+
+    it("maps minside.distributions to GET /donors/:id/distributions/?kids=…", async () => {
+      const fetchImpl = respond(200, { status: 200, content: [dkDistribution] });
+      const result = await clientWith(fetchImpl).minside.distributions.query({
+        donorId: 42,
+        kids: [dkDistribution.kid, "other"],
+      });
+      // The Danish backend's extra `id` is not part of the schema
+      const { id: _id, ...expected } = dkDistribution;
+      expect(result).toEqual([expected]);
+      expect(fetchImpl.mock.calls[0][0]).toBe(
+        `https://api.example.org/donors/42/distributions/?kids=${encodeURIComponent(
+          `${dkDistribution.kid},other`,
+        )}`,
+      );
+    });
+  });
+
   it("fails unmapped procedures without calling the API", async () => {
     const fetchImpl = respond(200, {});
     const err = await caught(clientWith(fetchImpl).meta.owners.query());

@@ -13,7 +13,7 @@
  * Ids, KIDs and amounts the tests assert on live in ./data.mjs (imported by the Cypress specs).
  */
 import mysql from "mysql2/promise";
-import { AGF, AMF, DONOR_ID, HKI, KIDS, NI } from "./data.mjs";
+import { AGF, AMF, DONOR_ID, HKI, KIDS, NI, TAX_UNITS } from "./data.mjs";
 
 /** [KID, [[causeAreaId, percent, standardSplit, [[orgId, percent], ...]], ...]] */
 const DISTRIBUTIONS = [
@@ -99,18 +99,20 @@ export async function seedE2E(conn) {
       [DONOR_ID],
     );
 
+    const { main, spouse } = TAX_UNITS;
     await conn.query(
       `INSERT INTO Tax_unit (ID, Donor_ID, ssn, full_name, registered, archived) VALUES
-         (900001, ?, '15868510045', 'E2E Testgiver', '2022-01-10 10:00:00', NULL),
-         (900002, ?, '15868510126', 'E2E Ektefelle', '2023-01-10 10:00:00', NULL)`,
-      [DONOR_ID, DONOR_ID],
+         (?, ?, ?, ?, '2022-01-10 10:00:00', NULL),
+         (?, ?, ?, ?, '2023-01-10 10:00:00', NULL)`,
+      [main.id, DONOR_ID, main.ssn, main.name, spouse.id, DONOR_ID, spouse.ssn, spouse.name],
     );
 
     for (const [KID, causeAreas] of DISTRIBUTIONS) {
+      const taxUnitId = KID === KIDS.bank ? spouse.id : main.id;
       await conn.query(
         `INSERT INTO Distributions (KID, Donor_ID, Tax_unit_ID, inserted, last_updated)
-         VALUES (?, ?, 900001, '2022-01-10 10:00:00', '2022-01-10 10:00:00')`,
-        [KID, DONOR_ID],
+         VALUES (?, ?, ?, '2022-01-10 10:00:00', '2022-01-10 10:00:00')`,
+        [KID, DONOR_ID, taxUnitId],
       );
       for (const [causeAreaId, share, standardSplit, orgs] of causeAreas) {
         const [res] = await conn.query(
