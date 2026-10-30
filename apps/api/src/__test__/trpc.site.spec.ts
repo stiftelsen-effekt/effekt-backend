@@ -12,6 +12,7 @@ import { mountTrpc } from "../trpc/express";
 import { appRouter } from "../trpc/router";
 import {
   siteDailyDonationsOutput,
+  siteFundraiserOutput,
   siteMonthlyOutputsOutput,
   siteReferralSumsOutput,
   siteResultsHeadlineOutput,
@@ -305,6 +306,23 @@ describe("tRPC site router", () => {
         .resolves(fundraiser());
       await anonymous().fundraiser({ id: "37" });
       expect(getFundraiserByID.firstCall.args).to.deep.equal([37]);
+    });
+
+    it("accepts the Danish backend's fundraiser (UUID transaction ids)", () => {
+      const dk = {
+        totalSum: 4250,
+        donationCount: 1,
+        transactions: [
+          {
+            id: "0b8a6f3e-1d2c-4b5a-9e8f-7a6b5c4d3e2f",
+            name: null,
+            message: null,
+            amount: 4250,
+            date: "2025-12-10T11:12:08.523Z",
+          },
+        ],
+      };
+      expect(siteFundraiserOutput.parse(dk)).to.deep.equal(dk);
     });
 
     it("answers NOT_FOUND for an unknown fundraiser", async () => {

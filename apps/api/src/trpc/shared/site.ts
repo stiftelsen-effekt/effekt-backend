@@ -120,13 +120,17 @@ export const siteFundraiserInput = z.strictObject({
   ]),
 });
 
-/** site.fundraiser (REST GET /fundraisers/:id): the totals and gifts shown on a fundraiser page */
+/**
+ * site.fundraiser (REST GET /fundraisers/:id): the totals and gifts shown on a fundraiser page. The
+ * Danish backend answers the same shape for its (UUID) fundraiser ids.
+ */
 export const siteFundraiserOutput = z.object({
   totalSum: z.number(),
   donationCount: z.number().int(),
   transactions: z.array(
     z.object({
-      id: z.number().int(),
+      // The Danish backend's transaction ids are UUIDs
+      id: z.union([z.number().int(), z.string()]),
       name: z.string().nullable(),
       message: z.string().nullable(),
       amount: z.number(),
