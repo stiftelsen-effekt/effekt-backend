@@ -37,7 +37,7 @@ FROM node:24.22.1
 WORKDIR /usr/src/app
 RUN corepack enable
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CHECKPOINT_DISABLE=1 NO_UPDATE_NOTIFIER=1
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml prisma.config.ts ./
 COPY prisma ./prisma
 
 # Production dependencies of the backend only. Prisma's engines (for `migrate deploy` and

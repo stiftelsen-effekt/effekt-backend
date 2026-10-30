@@ -153,7 +153,8 @@ docker compose up -d # Sets up MySQL and the database: EffektDonasjonDB_Local
 then:
 
 ```sh
-pnpm exec prisma migrate reset # Migrates schemas and tables to the database and seeds test-data
+pnpm exec prisma migrate reset # Migrates schemas and tables to the database
+pnpm exec prisma db seed       # Seeds test-data
 ```
 
 Read on if you are unfamiliar with these commands.
@@ -257,9 +258,10 @@ The schema is defined by prisma in [prisma/schema.prisma](prisma/schema.prisma).
 
 ```sh
 pnpm exec prisma migrate reset
+pnpm exec prisma db seed
 ```
 
-Use the `--skip-seed` flag, if you want the database to be empty (no test-data will be added).
+Leave out `prisma db seed` if you want the database to be empty (since Prisma 7, `migrate reset` no longer seeds).
 
 Now, let's double check that the schema is correct! Try:
 
@@ -311,7 +313,7 @@ Alternatively download and connect with a visual database tool like `MySQL Workb
 
 #### Add test data to your local MySQL instance
 
-Test data is automatically seeded with the `pnpm exec prisma migrate reset` command (unless `--skip-seed` flag was passed). [seed.ts](/prisma/seed.ts) generates it with the deterministic generator in [prisma/devdata](/prisma/devdata/) (see [Local environment](#local-environment)); it refuses to run against a database that already has donors. To seed an empty database manually:
+Test data is seeded with `pnpm exec prisma db seed` (since Prisma 7, `migrate reset` and `migrate dev` no longer seed). [seed.ts](/prisma/seed.ts) generates it with the deterministic generator in [prisma/devdata](/prisma/devdata/) (see [Local environment](#local-environment)); it refuses to run against a database that already has donors. To seed an empty database:
 
 ```sh
 pnpm exec prisma db seed
