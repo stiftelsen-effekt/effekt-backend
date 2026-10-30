@@ -286,6 +286,7 @@ async function upsertReference(conn: mysql.Connection) {
     const columns = Object.keys(rows[0]);
     const values = rows.map((row) => columns.map((c) => row[c]));
     const updates = columns.map((c) => `\`${c}\` = VALUES(\`${c}\`)`).join(", ");
+    // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- dev seed script; column names come from the reference data in code and are backtick-quoted
     await conn.query(`INSERT INTO ?? (??) VALUES ? ON DUPLICATE KEY UPDATE ${updates}`, [
       table,
       columns,
@@ -405,6 +406,7 @@ async function apply(
       const where = columns.map((c) => dbRow[c]);
       for (const c of columns) delete dbRow[c];
       if (Object.keys(dbRow).length === 0) continue;
+      // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- dev seed script; only ??/? placeholders are interpolated, values are bound
       await conn.query(`UPDATE ?? SET ? WHERE ${columns.map(() => "?? = ?").join(" AND ")}`, [
         table,
         dbRow,

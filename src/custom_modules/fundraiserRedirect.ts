@@ -45,7 +45,7 @@ export async function getFundraiserRedirectUrl(
       `Fundraiser revalidation for fundraiser ${fundraiserId} returned status ${response.status}`,
     );
   } catch (ex) {
-    console.error(`Fundraiser revalidation for fundraiser ${fundraiserId} failed`, ex);
+    console.error("Fundraiser revalidation for fundraiser %s failed", fundraiserId, ex);
   }
   return fallbackUrl;
 }

@@ -99,8 +99,9 @@ router.get(
   },
   async (req, res, next) => {
     try {
-      if (!req.params.donorID) res.status(400).json({ status: 400, content: "No KID provided" });
-      let { distributions, donorID } = await DAO.distributions.getAllByDonor(req.params.donorID);
+      const requestedDonorID = parseInt(req.params.donorID);
+      if (!requestedDonorID) res.status(400).json({ status: 400, content: "No KID provided" });
+      let { distributions, donorID } = await DAO.distributions.getAllByDonor(requestedDonorID);
 
       return res.json({
         status: 200,

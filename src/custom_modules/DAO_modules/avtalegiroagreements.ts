@@ -529,6 +529,7 @@ async function getAgreements(
     LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(page * limit)};
   `;
 
+  // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- filter values go through sqlString.escape, the sort column comes from the jsDBmapping allowlist
   const [resultRows]: [any[], any] = await DAO.query(query, []);
 
   const numAgreements = resultRows.length > 0 ? resultRows[0]["total_agreements_count"] : 0;

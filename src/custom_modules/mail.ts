@@ -619,11 +619,14 @@ export function formatInternalAlert(
 ): { text: string; html: string } {
   const text = [title, "", ...rows.map(([label, value]) => `${label}: ${value}`)].join("\n");
   const html =
-    `<p><strong>${escapeHtml(title)}</strong></p>` +
+    "<p><strong>" +
+    escapeHtml(title) +
+    "</strong></p>" +
     "<ul>" +
     rows
       .map(
-        ([label, value]) => `<li><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</li>`,
+        ([label, value]) =>
+          "<li><strong>" + escapeHtml(label) + ":</strong> " + escapeHtml(value) + "</li>",
       )
       .join("") +
     "</ul>";
@@ -1062,7 +1065,7 @@ export async function sendMissingTaxUnitNotice(
         );
       } catch (err) {
         // Impact estimates may fail for some orgs, continue without them
-        console.warn(`Could not get impact estimates for donation ${donation.id}:`, err);
+        console.warn("Could not get impact estimates for donation %s:", donation.id, err);
       }
 
       // Aggregate by organization

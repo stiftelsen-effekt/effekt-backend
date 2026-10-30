@@ -590,7 +590,10 @@ router.post("/webhooks/v1/recurring", async (req: any, res, next) => {
     const { eventType, agreementId, actor } = req.body;
 
     if (eventType === "recurring.agreement-stopped.v1") {
-      console.log(`Vipps agreement ${agreementId} stopped by ${actor ?? "unknown"}`);
+      if (typeof agreementId !== "string" || !agreementId) {
+        return res.status(400).json({ status: 400, content: "agreementId must be a string" });
+      }
+      console.log("Vipps agreement %s stopped by %s", agreementId, actor ?? "unknown");
 
       await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED");
       await DAO.vipps.updateAgreementCancellationDate(agreementId);

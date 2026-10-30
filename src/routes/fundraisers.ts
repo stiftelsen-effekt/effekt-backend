@@ -2,8 +2,29 @@ import { Router } from "express";
 import { DAO } from "../custom_modules/DAO";
 import { DateTime } from "luxon";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
+import { describeIssues, fundraiserListSchema } from "../schemas/publicRequests";
 
 export const fundraisersRouter = Router();
+
+const DASHBOARD_PAGE_START = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      pre {
+        white-space: pre;
+        overflow-x: auto;
+        word-wrap: normal;
+        font-family: monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <pre>`;
+const DASHBOARD_PAGE_END = `</pre>
+  </body>
+</html>
+    `;
 
 /**
  * Escapes text for safe inclusion in HTML. The fundraiser dashboard includes donor-supplied
@@ -52,24 +73,8 @@ fundraisersRouter.get("/dashboard/:secret", async (req, res, next) => {
     // The dashboard contains donor-supplied text; never allow scripts on the API origin
     res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'");
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.send(`
-<!DOCTYPE html>
-<html>
-  <head>
-    <style>
-      pre {
-        white-space: pre;
-        overflow-x: auto;
-        word-wrap: normal;
-        font-family: monospace;
-      }
-    </style>
-  </head>
-  <body>
-    <pre>${escapeHtml(dashboard)}</pre>
-  </body>
-</html>
-    `);
+    // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format -- the dashboard text is HTML-escaped and the page is served with a no-script CSP
+    res.send(DASHBOARD_PAGE_START + escapeHtml(dashboard) + DASHBOARD_PAGE_END);
   } catch (error) {
     console.error("Error generating fundraiser dashboard:", error);
     res.status(500).send("Error generating fundraiser dashboard");
@@ -77,12 +82,17 @@ fundraisersRouter.get("/dashboard/:secret", async (req, res, next) => {
 });
 
 fundraisersRouter.post("/list", async (req, res, next) => {
+  const parsed = fundraiserListSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ status: 400, content: describeIssues(parsed.error) });
+  }
+  const { pagination, filter } = parsed.data;
   try {
     const fundraisers = await DAO.fundraisers.getList(
-      req.body.pagination.page,
-      req.body.pagination.limit,
-      req.body.filter,
-      req.body.pagination.sort,
+      pagination.page,
+      pagination.limit,
+      filter,
+      pagination.sort,
     );
     return res.json({
       status: 200,

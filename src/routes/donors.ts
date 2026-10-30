@@ -162,17 +162,18 @@ const requireAuth0RegisterToken: express.RequestHandler = (req, res, next) =>
 
 router.post("/auth0/register", requireAuth0RegisterToken, async (req, res, next) => {
   try {
-    if (!req.body.email) {
+    const email = req.body.email;
+    if (typeof email !== "string" || !email) {
       return res.status(400).json({
         status: 400,
         content: "email is missing in request body",
       });
     }
 
-    let donorID = await DAO.donors.getIDbyEmail(req.body.email);
+    let donorID = await DAO.donors.getIDbyEmail(email);
 
     if (donorID === null) {
-      donorID = await DAO.donors.add({ email: req.body.email, full_name: null, newsletter: false });
+      donorID = await DAO.donors.add({ email, full_name: null, newsletter: false });
     }
 
     res.json({
@@ -843,12 +844,11 @@ router.put(
   },
   async (req, res, next) => {
     try {
-      const id = req.params.id;
+      const donorId = parseInt(req.params.id);
       const taxUnitId = parseInt(req.params.taxunitid);
-      const taxUnit = req.body.taxUnit;
-      const ssn = taxUnit.ssn;
+      const body = req.body.taxUnit;
 
-      if (!id || !taxUnitId || !taxUnit) {
+      if (!donorId || !taxUnitId || !body) {
         res.status(400).json({
           status: 400,
           content: "Missing parameters id or taxUnitid or taxUnit in json body",
@@ -856,13 +856,21 @@ router.put(
         return;
       }
 
-      if (!taxUnit.name || !taxUnit.ssn) {
+      if (!body.name || !body.ssn) {
         res.status(400).json({
           status: 400,
           content: "Missing parameters name or ssn on tax unit",
         });
         return;
       }
+      if (typeof body.name !== "string" || typeof body.ssn !== "string") {
+        return res.status(400).json({
+          status: 400,
+          content: "name and ssn on the tax unit must be strings",
+        });
+      }
+      const taxUnit = body;
+      const ssn: string = body.ssn;
 
       if (ssn.length === 11) {
         // Birth number is 11 digits
@@ -883,11 +891,11 @@ router.put(
         });
       }
 
-      const donor = await DAO.donors.getByID(req.params.id);
+      const donor = await DAO.donors.getByID(donorId);
       if (!donor) {
         return res.status(404).json({
           status: 404,
-          content: "No donor found with ID " + req.params.id,
+          content: "No donor found with ID " + donorId,
         });
       }
 
@@ -901,7 +909,12 @@ router.put(
         });
       }
 
-      const changed = await DAO.tax.updateTaxUnit(taxUnitId, taxUnit);
+      // Only name and ssn are updated; the rest of the object Min Side sends back is ignored
+      const changed = await DAO.tax.updateTaxUnit(taxUnitId, {
+        ...existingTaxUnit,
+        name: body.name as string,
+        ssn,
+      });
       if (changed) {
         res.json({
           status: 200,
@@ -1730,53 +1743,59 @@ router.put(
           content: "Couldn't find donor by id",
         });
       }
+      const { name, newsletter, trash } = req.body;
+
       // Check for name
-      if (req.body.name) {
-        if (typeof req.body.name !== "string") {
-          return res.status(400).json({
-            status: 400,
-            content: "The name must be a string",
-          });
-        }
-      } else {
+      if (!name) {
         return res.status(400).json({
           status: 400,
           content: "The name cannot be null",
         });
       }
-
-      // Check for newsletter
-      if (req.body.newsletter) {
-        if (typeof req.body.newsletter !== "boolean") {
-          return res.status(400).json({
-            status: 400,
-            content: "The newsletter must be a boolean",
-          });
-        }
+      if (typeof name !== "string") {
+        return res.status(400).json({
+          status: 400,
+          content: "The name must be a string",
+        });
       }
 
-      let email;
-      // Check for email
-      if (req.body.email) {
-        if (typeof req.body.email !== "string") {
+      // Newsletter and trash are optional booleans
+      let newsletterFlag: boolean | null = null;
+      if (typeof newsletter === "boolean") {
+        newsletterFlag = newsletter;
+      } else if (newsletter != null) {
+        return res.status(400).json({
+          status: 400,
+          content: "The newsletter must be a boolean",
+        });
+      }
+      // GET /donors/:id returns trash as 0/1, and Min Side sends the donor object back as is
+      if (typeof trash !== "boolean" && trash != null && trash !== 0 && trash !== 1) {
+        return res.status(400).json({
+          status: 400,
+          content: "Trash must be a boolean",
+        });
+      }
+
+      // If no email is provided, keep the existing email
+      let email: string = donor.email;
+      const bodyEmail = req.body.email;
+      if (bodyEmail) {
+        if (typeof bodyEmail !== "string") {
           return res.status(400).json({
             status: 400,
             content: "The email must be a string",
           });
-        } else {
-          email = req.body.email;
         }
-      } else {
-        // If no email is provided, use the existing email
-        email = donor.email;
+        email = bodyEmail;
       }
 
       const updated = await DAO.donors.update(
         req.params.id,
-        req.body.name,
+        name,
         email,
-        req.body.newsletter,
-        req.body.trash,
+        newsletterFlag,
+        trash == null ? undefined : Boolean(trash),
       );
       if (updated) {
         return res.json({

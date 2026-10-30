@@ -68,6 +68,7 @@ export async function runReadOnlyQuery<T = any>(
     await conn.query(`SET SESSION max_execution_time = ${MAX_EXECUTION_TIME_MS}`);
     await conn.query("START TRANSACTION READ ONLY");
     try {
+      // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- runs analyst SQL by design: SELECT-only DB user, READ ONLY transaction, query vetted in analysisMcpServer.ts
       const [rows, fields] = await conn.query(sql, params);
       await conn.query("COMMIT");
       return { rows: rows as T[], fields };

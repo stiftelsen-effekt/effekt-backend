@@ -322,6 +322,7 @@ if new "role/${PREVIEW_DEPLOYER_ROLE_ID}"; then
     --description "Deploy, list and delete per-PR preview Cloud Run services and jobs. ${PREVIEW_MARKER_TEXT}" \
     --stage GA \
     --permissions "$(
+      # nosemgrep: bash.lang.security.ifs-tampering.ifs-tampering -- set inside a command substitution subshell to join the list, so it does not leak into the script
       IFS=,
       echo "${deployer_permissions[*]}"
     )"

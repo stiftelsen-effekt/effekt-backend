@@ -26,4 +26,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter stiftelsen-effekt-backend
 
 EXPOSE 5050
+# The app only reads from its directory; run it as the unprivileged user from the node image
+USER node
 CMD [ "npm", "start" ]

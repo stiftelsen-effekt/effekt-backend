@@ -126,6 +126,7 @@ function stripComments(sql: string): string {
 }
 
 function containsWord(haystackLower: string, word: string): boolean {
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- word comes from the fixed keyword/table/column lists in this file
   return new RegExp(`\\b${word}\\b`, "i").test(haystackLower);
 }
 

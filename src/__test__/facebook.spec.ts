@@ -52,6 +52,7 @@ describe("POST /facebook/register/payment", () => {
     ]);
     delete require.cache[require.resolve("../routes/facebook")];
     const facebookRouter = require("../routes/facebook");
+    // nosemgrep: javascript.express.security.audit.express-check-csurf-middleware-usage.express-check-csurf-middleware-usage -- test app for supertest; the API authenticates with bearer tokens, not cookies
     server = express();
     server.use(express.json());
     server.use("/facebook", facebookRouter);

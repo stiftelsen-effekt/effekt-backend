@@ -22,16 +22,19 @@ import { regranting, type Queryable } from "./regranting";
  */
 
 const pool = (): Queryable => ({
+  // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- pass-through wrapper; callers build SQL from constant fragments and bind values as parameters
   query: (sql: any, params?: any) => DAO.query(sql, params) as any,
 });
 const db = (conn?: Queryable) => conn ?? pool();
 
 async function rows<T>(conn: Queryable | undefined, sql: string, params: unknown[] = []) {
+  // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- pass-through wrapper; callers build SQL from constant fragments and bind values as parameters
   const [result] = await db(conn).query(sql, params);
   return result as unknown as T[];
 }
 
 async function exec(conn: Queryable | undefined, sql: string, params: unknown[] = []) {
+  // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- pass-through wrapper; callers build SQL from constant fragments and bind values as parameters
   const [result] = await db(conn).query(sql, params);
   return result as unknown as ResultSetHeader;
 }

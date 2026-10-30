@@ -95,7 +95,8 @@ describe("donations", () => {
         const body = {
           distributionCauseAreas: [
             {
-              causeAreaID: 1,
+              id: 1,
+              standardSplit: false,
               percentageShare: 100,
               organizations: [
                 {
@@ -141,7 +142,8 @@ describe("donations", () => {
         const body = {
           distributionCauseAreas: [
             {
-              causeAreaID: 1,
+              id: 1,
+              standardSplit: false,
               percentageShare: 100,
               organizations: [
                 {
@@ -175,7 +177,8 @@ describe("donations", () => {
         const body = {
           distributionCauseAreas: [
             {
-              causeAreaID: 1,
+              id: 1,
+              standardSplit: false,
               percentageShare: 100,
               organizations: [
                 {
@@ -210,7 +213,8 @@ describe("donations", () => {
         const body = {
           distributionCauseAreas: [
             {
-              causeAreaID: 1,
+              id: 1,
+              standardSplit: false,
               percentageShare: 100,
               organizations: [
                 {
@@ -266,7 +270,8 @@ describe("donations", () => {
         const body = {
           distributionCauseAreas: [
             {
-              causeAreaID: 1,
+              id: 1,
+              standardSplit: false,
               percentageShare: 100,
               organizations: [
                 {
@@ -299,7 +304,8 @@ describe("donations", () => {
         const body = {
           distributionCauseAreas: [
             {
-              causeAreaID: 1,
+              id: 1,
+              standardSplit: false,
               percentageShare: 100,
               organizations: [
                 {
@@ -330,7 +336,8 @@ describe("donations", () => {
           .send({
             distributionCauseAreas: [
               {
-                causeAreaID: 1,
+                id: 1,
+                standardSplit: false,
                 percentageShare: 100,
                 organizations: [{ id: 1, percentageShare: 100 }],
               },

@@ -1,0 +1,84 @@
+rules:
+  - id: request-input-to-sql-without-type-check
+    # Taint rule: values from req.body / req.query that reach a database call
+    # (DAO.query/execute, DAO.<module>.<fn>, or <pool>.query/execute) without a
+    # type check on the way. Request bodies can carry arrays and objects where
+    # the code expects a string or number; mysql2 then binds them differently
+    # than intended. The pool sets stringifyObjects: true, which limits the
+    # impact; the rule still blocks CI so new routes check their input.
+    #
+    # Routes that run authMiddleware.isAdmin are not scanned.
+    #
+    # Accepted as a check (sanitizer): parseInt/Number/String/Boolean
+    # conversions, Number.isInteger/isFinite/isSafeInteger, typeof comparisons
+    # against "string"/"number"/"boolean", and RegExp .test() on the value.
+    # Guards sanitize "by side effect", i.e. once the check appears the value is
+    # treated as checked for the rest of the function. Semgrep CE taint is
+    # intra-procedural, so helpers that query the DB internally are listed as
+    # sinks explicitly.
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Request input reaches a database call without a type check. Validate the
+      type (e.g. Number.isInteger, typeof === "string") or convert it before
+      passing it on.
+    metadata:
+      category: security
+      cwe: "CWE-20: Improper Input Validation"
+    mode: taint
+    options:
+      # Return values of function calls are not treated as tainted (e.g. a
+      # donor id read back from the database). JSON.parse is the exception.
+      taint_assume_safe_functions: true
+    pattern-propagators:
+      - pattern: $TO = JSON.parse($FROM)
+        from: $FROM
+        to: $TO
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: req.body
+              - pattern: req.query
+          # Admin-only routes are out of scope: admins are trusted to send
+          # well-formed input, and including them buries the public and donor
+          # routes in noise.
+          - pattern-not-inside: $ROUTER.$METHOD(..., authMiddleware.isAdmin, ...)
+          - pattern-not-inside: $ROUTER.$METHOD(..., isAdmin, ...)
+    pattern-sanitizers:
+      - patterns:
+          - pattern-either:
+              - pattern: parseInt(...)
+              - pattern: parseFloat(...)
+              - pattern: Number(...)
+              - pattern: Number.parseInt(...)
+              - pattern: Number.parseFloat(...)
+              - pattern: String(...)
+              - pattern: Boolean(...)
+              - pattern: new Date(...)
+      - by-side-effect: true
+        patterns:
+          - pattern-either:
+              - pattern: Number.isInteger($V)
+              - pattern: Number.isFinite($V)
+              - pattern: Number.isSafeInteger($V)
+              - pattern: $RE.test($V)
+              - patterns:
+                  - pattern-either:
+                      - pattern: typeof $V === $T
+                      - pattern: typeof $V !== $T
+                      - pattern: typeof $V == $T
+                      - pattern: typeof $V != $T
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^["'](string|number|boolean)["']$
+          - focus-metavariable: $V
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: DAO.query($Q, $ARG, ...)
+              - pattern: DAO.execute($Q, $ARG, ...)
+              - pattern: $POOL.query($Q, $ARG, ...)
+              - pattern: $POOL.execute($Q, $ARG, ...)
+              - pattern: DAO.$MOD.$FN(..., $ARG, ...)
+              - pattern: sendDonationRegistered(..., $ARG, ...)
+          - focus-metavariable: $ARG

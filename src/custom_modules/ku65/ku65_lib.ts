@@ -124,82 +124,83 @@ export function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
+/** One XML element on its own line, with the text content escaped */
+function xmlElement(
+  indent: number,
+  name: string,
+  value: string | number,
+  attributes: Record<string, string> = {},
+): string {
+  const attrs = Object.entries(attributes)
+    .map(([key, attrValue]) => " " + key + '="' + escapeXml(attrValue) + '"')
+    .join("");
+  return (
+    " ".repeat(indent) + "<" + name + attrs + ">" + escapeXml(String(value)) + "</" + name + ">"
+  );
+}
+
 export function buildKu65Xml(config: Config, reportingYear: number, entries: Ku65Entry[]): string {
   const created = config.created ?? formatLocalDateTime(new Date());
   const schemaLocation = config.schemaLocation ?? DEFAULT_SCHEMA_LOCATION;
   const orgNr = normalizeOrgNr(config.orgNr);
+  const avsandare = config.avsandareContact;
+  const uppgiftslamnare = config.uppgiftslamnareContact;
 
   const lines: string[] = [];
   lines.push('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
   lines.push(
-    `<Skatteverket xmlns="${NS_INSTANS}" xmlns:gm="${NS_GM}" xmlns:ku="${NS_KU}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" omrade="Kontrolluppgifter" xsi:schemaLocation="${schemaLocation}">`,
+    '<Skatteverket xmlns="' +
+      escapeXml(NS_INSTANS) +
+      '" xmlns:gm="' +
+      escapeXml(NS_GM) +
+      '" xmlns:ku="' +
+      escapeXml(NS_KU) +
+      '" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" omrade="Kontrolluppgifter" xsi:schemaLocation="' +
+      escapeXml(schemaLocation) +
+      '">',
   );
   lines.push("  <ku:Avsandare>");
-  lines.push(`    <ku:Programnamn>${escapeXml(config.programName)}</ku:Programnamn>`);
-  lines.push(`    <ku:Organisationsnummer>${escapeXml(orgNr)}</ku:Organisationsnummer>`);
+  lines.push(xmlElement(4, "ku:Programnamn", config.programName));
+  lines.push(xmlElement(4, "ku:Organisationsnummer", orgNr));
   lines.push("    <ku:TekniskKontaktperson>");
-  lines.push(`      <ku:Namn>${escapeXml(config.avsandareContact.name)}</ku:Namn>`);
-  lines.push(`      <ku:Telefon>${escapeXml(config.avsandareContact.phone)}</ku:Telefon>`);
-  lines.push(`      <ku:Epostadress>${escapeXml(config.avsandareContact.email)}</ku:Epostadress>`);
-  lines.push(
-    `      <ku:Utdelningsadress1>${escapeXml(
-      config.avsandareContact.address1 ?? "",
-    )}</ku:Utdelningsadress1>`,
-  );
-  lines.push(
-    `      <ku:Postnummer>${escapeXml(config.avsandareContact.postNumber ?? "")}</ku:Postnummer>`,
-  );
-  lines.push(`      <ku:Postort>${escapeXml(config.avsandareContact.postCity ?? "")}</ku:Postort>`);
+  lines.push(xmlElement(6, "ku:Namn", avsandare.name));
+  lines.push(xmlElement(6, "ku:Telefon", avsandare.phone));
+  lines.push(xmlElement(6, "ku:Epostadress", avsandare.email));
+  lines.push(xmlElement(6, "ku:Utdelningsadress1", avsandare.address1 ?? ""));
+  lines.push(xmlElement(6, "ku:Postnummer", avsandare.postNumber ?? ""));
+  lines.push(xmlElement(6, "ku:Postort", avsandare.postCity ?? ""));
   lines.push("    </ku:TekniskKontaktperson>");
-  lines.push(`    <ku:Skapad>${escapeXml(created)}</ku:Skapad>`);
+  lines.push(xmlElement(4, "ku:Skapad", created));
   lines.push("  </ku:Avsandare>");
   lines.push("  <ku:Blankettgemensamt>");
   lines.push("    <ku:Uppgiftslamnare>");
-  lines.push(
-    `      <ku:UppgiftslamnarePersOrgnr>${escapeXml(orgNr)}</ku:UppgiftslamnarePersOrgnr>`,
-  );
+  lines.push(xmlElement(6, "ku:UppgiftslamnarePersOrgnr", orgNr));
   lines.push("      <ku:Kontaktperson>");
-  lines.push(`        <ku:Namn>${escapeXml(config.uppgiftslamnareContact.name)}</ku:Namn>`);
-  lines.push(`        <ku:Telefon>${escapeXml(config.uppgiftslamnareContact.phone)}</ku:Telefon>`);
-  lines.push(
-    `        <ku:Epostadress>${escapeXml(config.uppgiftslamnareContact.email)}</ku:Epostadress>`,
-  );
-  lines.push(
-    `        <ku:Sakomrade>${escapeXml(
-      config.uppgiftslamnareContact.sakomrade ?? "",
-    )}</ku:Sakomrade>`,
-  );
+  lines.push(xmlElement(8, "ku:Namn", uppgiftslamnare.name));
+  lines.push(xmlElement(8, "ku:Telefon", uppgiftslamnare.phone));
+  lines.push(xmlElement(8, "ku:Epostadress", uppgiftslamnare.email));
+  lines.push(xmlElement(8, "ku:Sakomrade", uppgiftslamnare.sakomrade ?? ""));
   lines.push("      </ku:Kontaktperson>");
   lines.push("    </ku:Uppgiftslamnare>");
   lines.push("  </ku:Blankettgemensamt>");
 
   entries.forEach((entry) => {
-    lines.push(`  <ku:Blankett nummer="2314">`);
+    lines.push('  <ku:Blankett nummer="2314">');
     lines.push("    <ku:Arendeinformation>");
-    lines.push(`      <ku:Arendeagare>${escapeXml(orgNr)}</ku:Arendeagare>`);
-    lines.push(`      <ku:Period>${reportingYear}</ku:Period>`);
+    lines.push(xmlElement(6, "ku:Arendeagare", orgNr));
+    lines.push(xmlElement(6, "ku:Period", reportingYear));
     lines.push("    </ku:Arendeinformation>");
     lines.push("    <ku:Blankettinnehall>");
     lines.push("      <ku:KU65>");
     lines.push("        <ku:UppgiftslamnareKU65>");
-    lines.push(
-      `          <ku:UppgiftslamnarId faltkod="201">${escapeXml(orgNr)}</ku:UppgiftslamnarId>`,
-    );
-    lines.push(
-      `          <ku:NamnUppgiftslamnare faltkod="202">${escapeXml(
-        config.orgName,
-      )}</ku:NamnUppgiftslamnare>`,
-    );
+    lines.push(xmlElement(10, "ku:UppgiftslamnarId", orgNr, { faltkod: "201" }));
+    lines.push(xmlElement(10, "ku:NamnUppgiftslamnare", config.orgName, { faltkod: "202" }));
     lines.push("        </ku:UppgiftslamnareKU65>");
-    lines.push(`        <ku:Inkomstar faltkod="203">${reportingYear}</ku:Inkomstar>`);
-    lines.push(
-      `        <ku:MottagetGavobelopp faltkod="621">${entry.amount}</ku:MottagetGavobelopp>`,
-    );
-    lines.push(
-      `        <ku:Specifikationsnummer faltkod="570">${entry.specNumber}</ku:Specifikationsnummer>`,
-    );
+    lines.push(xmlElement(8, "ku:Inkomstar", reportingYear, { faltkod: "203" }));
+    lines.push(xmlElement(8, "ku:MottagetGavobelopp", entry.amount, { faltkod: "621" }));
+    lines.push(xmlElement(8, "ku:Specifikationsnummer", entry.specNumber, { faltkod: "570" }));
     lines.push("        <ku:InkomsttagareKU65>");
-    lines.push(`          <ku:Inkomsttagare faltkod="215">${entry.person}</ku:Inkomsttagare>`);
+    lines.push(xmlElement(10, "ku:Inkomsttagare", entry.person, { faltkod: "215" }));
     lines.push("        </ku:InkomsttagareKU65>");
     lines.push("      </ku:KU65>");
     lines.push("    </ku:Blankettinnehall>");

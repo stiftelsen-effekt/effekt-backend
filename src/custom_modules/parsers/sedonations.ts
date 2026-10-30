@@ -318,7 +318,13 @@ export const parseSwedishDonationsReport = (report): ExtractedDonor[] => {
         donation.distribution.animal.sum +
         donation.distribution.operations.sum;
       if (sum !== donation.amount) {
-        console.error(donor.name, donor.email);
+        // Reference number only: the donor's name and email don't belong in the logs
+        console.error(
+          "Donation %s: cause area sums (%s) don't add up to the amount (%s)",
+          donation.referenceNumber,
+          sum,
+          donation.amount,
+        );
         numberOfErrors++;
       }
     }

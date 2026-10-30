@@ -20,6 +20,7 @@ const baseline: Record<string, { result?: unknown; error?: string }> = JSON.pars
 
 const loadInput = (key: string): string => {
   const [file, variant] = key.split("#");
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-fs-filename.detect-non-literal-fs-filename, javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal -- test fixture file names are literals in this spec
   const content = fs.readFileSync(path.join(DATA_DIR, file)).toString();
   if (variant === "bom") return "﻿" + content;
   if (variant === "leading-ws") return "\n  " + content;

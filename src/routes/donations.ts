@@ -16,6 +16,7 @@ import { confirmDonation, updateDonation } from "../custom_modules/donationsServ
 import { localeMiddleware, LocaleRequest } from "../middleware/locale";
 import { exportCsv } from "../custom_modules/csvexport";
 import { MAX_REFERRAL_CODE_LENGTH, normalizeReferralCode } from "../custom_modules/referralCode";
+import { describeIssues, registerDonationSchema } from "../schemas/publicRequests";
 
 const config = require("../config");
 
@@ -51,43 +52,15 @@ router.get("/status", async (req, res, next) => {
  *    description: Registers a pending donation
  */
 router.post("/register", async (req, res, next) => {
-  let parsedData = req.body as {
-    distributionCauseAreas: DistributionCauseArea[];
-    donor: {
-      email: string;
-      name: string;
-      newsletter: boolean;
-      ssn?: string;
-    };
-    method: number;
-    recurring: boolean;
-    amount: string | number;
-    fundraiser?: {
-      id: number;
-      message?: string | null;
-      messageSenderName?: string | null;
-      showName: boolean;
-    };
-    referralCode?: string;
-  };
-
-  // Validate input
-  if (!parsedData.distributionCauseAreas || parsedData.distributionCauseAreas.length === 0)
-    return res.status(400).send("No cause areas provided");
-  if (parsedData.donor && (typeof parsedData.donor.email !== "string" || !parsedData.donor.email))
-    return res.status(400).send("Invalid donor data");
-  if (!parsedData.method) return res.status(400).send("No payment method provided");
-  if (!parsedData.amount) return res.status(400).send("No amount provided");
+  const parsed = registerDonationSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ status: 400, content: describeIssues(parsed.error) });
+  }
+  const parsedData = parsed.data;
 
   if (parsedData.method === methods.SWISH) {
     if (parsedData.recurring)
       return res.status(400).send("Recurring donations not supported with Swish");
-  }
-
-  if (parsedData.fundraiser) {
-    if (!parsedData.fundraiser.id) return res.status(400).send("No fundraiser ID provided");
-    if (typeof parsedData.fundraiser.showName === "undefined")
-      return res.status(400).send("No showName provided");
   }
 
   if (parsedData.referralCode != null && parsedData.referralCode !== "") {
@@ -136,7 +109,7 @@ router.post("/register", async (req, res, next) => {
         donationObject.taxUnitId = await DAO.tax.addTaxUnit(
           donationObject.donorID,
           donor.ssn,
-          donor.name,
+          donor.name ?? "",
         );
       } else {
         donationObject.taxUnitId = null;
@@ -152,7 +125,7 @@ router.post("/register", async (req, res, next) => {
           donationObject.taxUnitId = await DAO.tax.addTaxUnit(
             donationObject.donorID,
             donor.ssn,
-            donor.name,
+            donor.name ?? "",
           );
         }
       }
@@ -318,7 +291,7 @@ router.post("/register", async (req, res, next) => {
       try {
         await DAO.donationReferralCodes.add(donationObject.KID, referralCode);
       } catch (error) {
-        console.error(`Failed to store referral code for KID ${donationObject.KID}:`, error);
+        console.error("Failed to store referral code for KID %s:", donationObject.KID, error);
       }
     }
   } catch (ex) {

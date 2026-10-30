@@ -191,7 +191,9 @@ export async function getAll(
     ${whereStatement}`;
 
   const [[resultRows], [countRows]]: [[any[], any], [any[], any]] = await Promise.all([
+    // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- filter values go through sqlString.escape, the sort column comes from the jsDBmapping allowlist; organisation abbreviations are escaped with escape/escapeId
     DAO.query(query),
+    // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- filter values go through sqlString.escape, the sort column comes from the jsDBmapping allowlist
     DAO.query(countQuery),
   ]);
 
@@ -564,6 +566,7 @@ async function getKIDbySplit(
     HAVING SUM(CauseAreasOrgSum) = 100;
   `;
 
+  // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- split values go through sqlString.escape; /donations/register validates their types (schemas/publicRequests.ts)
   const [res] = await DAO.query(query, [input.donorId, input.taxUnitId, input.taxUnitId]);
 
   const filteredDistributions = res.filter(

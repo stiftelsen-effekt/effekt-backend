@@ -33,11 +33,16 @@ router.post("/draft", async (req, res, next) => {
   if (!req.body) return res.sendStatus(400);
 
   const parsedData = req.body;
-  const KID = parsedData.KID;
-  const amount = parsedData.amount;
-  if (amount <= 0) return res.sendStatus(400);
+  // The widget sends the KID from /donations/register (a string of digits) and the amount in NOK
+  const KID = typeof parsedData.KID === "number" ? String(parsedData.KID) : parsedData.KID;
+  if (typeof KID !== "string" || !/^\d{1,32}$/.test(KID)) return res.sendStatus(400);
+  const amount = Number(parsedData.amount);
+  if (!Number.isFinite(amount) || amount <= 0) return res.sendStatus(400);
 
-  const dueDay = parsedData.dueDay <= 28 ? parsedData.dueDay : 0;
+  const dueDay =
+    Number.isInteger(parsedData.dueDay) && parsedData.dueDay >= 0 && parsedData.dueDay <= 28
+      ? parsedData.dueDay
+      : 0;
 
   try {
     // Amount is given in NOK in Widget, but øre is used for agreements
@@ -420,7 +425,7 @@ router.post(
 
       const response = await setAvtaleGiroStatus(KID, active);
 
-      res.send(response);
+      res.json(response);
     } catch (ex) {
       next({ ex });
     }
@@ -464,7 +469,7 @@ router.post(
 
       const response = await updateAvtaleGiroAmount(KID, amount);
 
-      res.send(response);
+      res.json(response);
     } catch (ex) {
       next({ ex });
     }
@@ -510,7 +515,7 @@ router.post(
 
       const response = await updateAvtaleGiroPaymentDate(KID, paymentDate);
 
-      res.send(response);
+      res.json(response);
     } catch (ex) {
       next({ ex });
     }
