@@ -14,6 +14,6 @@
     "fast-xml-parser": "5.11.2",
     "fflate": "0.8.3",
     "imapflow": "2.3.0",
-    "mailparser": "3.9.37"
+    "mailparser": "3.12.4"
   }
 }
