@@ -11,6 +11,7 @@ import { minsideRouter } from "./routers/minside";
 import { regrantingRouter } from "./routers/regranting";
 import { reportsRouter } from "./routers/reports";
 import { vippsRouter } from "./routers/vipps";
+import { widgetRouter } from "./routers/widget";
 import { router } from "./trpc";
 
 export const appRouter = router({
@@ -28,6 +29,8 @@ export const appRouter = router({
   home: homeRouter,
   // Donor-facing (Min Side on the website); everything above is admin-only
   minside: minsideRouter,
+  // The public donation widget on the website (no login)
+  widget: widgetRouter,
 });
 
 export type AppRouter = typeof appRouter;

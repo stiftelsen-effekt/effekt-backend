@@ -1,22 +1,17 @@
 import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { donationHelpers } from "../custom_modules/donationHelpers";
-import {
-  sendAutoGiroRegistered,
-  sendDonationReceipt,
-  sendDonationRegistered,
-} from "../custom_modules/mail";
-import * as swish from "../custom_modules/swish";
-import methods from "../enums/methods";
+import { sendDonationReceipt, sendDonationRegistered } from "../custom_modules/mail";
 import bodyParser from "body-parser";
 import apicache from "apicache";
-import { Distribution, DistributionCauseArea, DistributionInput } from "../schemas/types";
 import { confirmDonation, updateDonation } from "../custom_modules/donationsService";
 import { localeMiddleware, LocaleRequest } from "../middleware/locale";
 import { exportCsv } from "../custom_modules/csvexport";
-import { MAX_REFERRAL_CODE_LENGTH, normalizeReferralCode } from "../custom_modules/referralCode";
 import { describeIssues, registerDonationSchema } from "../schemas/publicRequests";
+import {
+  PendingDonationResult,
+  registerPendingDonation,
+} from "../custom_modules/pendingDonationRegistration";
 
 const config = require("../config");
 
@@ -24,7 +19,6 @@ const router = express.Router();
 const urlEncodeParser = bodyParser.urlencoded({ extended: true });
 const cache = apicache.middleware;
 
-const vipps = require("../custom_modules/vipps");
 const dateRangeHelper = require("../custom_modules/dateRangeHelper");
 
 /**
@@ -58,265 +52,17 @@ router.post("/register", async (req, res, next) => {
   }
   const parsedData = parsed.data;
 
-  if (parsedData.method === methods.SWISH) {
-    if (parsedData.recurring)
-      return res.status(400).send("Recurring donations not supported with Swish");
-  }
-
-  if (parsedData.referralCode != null && parsedData.referralCode !== "") {
-    if (typeof parsedData.referralCode !== "string") {
-      return res.status(400).send("Invalid referral code");
-    }
-    if (parsedData.referralCode.trim().length > MAX_REFERRAL_CODE_LENGTH) {
-      return res.status(400).send("Referral code is too long");
-    }
-  }
-
-  let donor = parsedData.donor;
-  let paymentProviderUrl = "";
-  let swishOrderID: string | null = null;
-  let swishPaymentRequestToken: string | null = null;
-  let recurring = parsedData.recurring;
-  const fundraiser = parsedData.fundraiser;
-
+  let result: PendingDonationResult;
   try {
-    var donationObject: Pick<typeof parsedData, "amount" | "method" | "recurring"> & {
-      KID: string | null;
-      donorID: number | null;
-      taxUnitId: number | null;
-      fundraiserTransactionId: number | null;
-    } = {
-      amount: parsedData.amount,
-      method: parsedData.method,
-      recurring: parsedData.recurring,
-      KID: null, //Set later in code
-      donorID: null, //Set later in code
-      taxUnitId: null, //Set later in code
-      fundraiserTransactionId: null,
-    };
-
-    //Check if existing donor
-    donationObject.donorID = await DAO.donors.getIDbyEmail(donor.email);
-
-    if (donationObject.donorID == null) {
-      //Donor does not exist, create donor
-      donationObject.donorID = await DAO.donors.add({
-        email: donor.email,
-        full_name: donor.name,
-        newsletter: donor.newsletter,
-      });
-      if (donor.ssn != null && donor.ssn !== "") {
-        donationObject.taxUnitId = await DAO.tax.addTaxUnit(
-          donationObject.donorID,
-          donor.ssn,
-          donor.name ?? "",
-        );
-      } else {
-        donationObject.taxUnitId = null;
-      }
-    } else {
-      //Check for existing tax unit if SSN provided
-      if (typeof donor.ssn !== "undefined" && donor.ssn != null && donor.ssn !== "") {
-        const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(donationObject.donorID, donor.ssn);
-
-        if (existingTaxUnit) {
-          donationObject.taxUnitId = existingTaxUnit.id;
-        } else {
-          donationObject.taxUnitId = await DAO.tax.addTaxUnit(
-            donationObject.donorID,
-            donor.ssn,
-            donor.name ?? "",
-          );
-        }
-      }
-
-      // Check that name is registered and update name if no name set
-      const dbDonor = await DAO.donors.getByID(donationObject.donorID);
-      if (dbDonor!.name === "" || dbDonor!.name === null) {
-        await DAO.donors.updateName(donationObject.donorID, donor.name);
-      }
-
-      //Check if registered for newsletter
-      if (typeof donor.newsletter !== "undefined" && donor.newsletter != null) {
-        let dbDonor = await DAO.donors.getByID(donationObject.donorID);
-        if (!dbDonor!.newsletter) {
-          //Not registered for newsletter, updating donor
-          await DAO.donors.updateNewsletter(donationObject.donorID, donor.newsletter);
-        }
-      }
-    }
-
-    /* Construct distribution object */
-    const draftDistribution: DistributionInput = {
-      donorId: donationObject.donorID,
-      taxUnitId: donationObject.taxUnitId,
-      causeAreas: parsedData.distributionCauseAreas,
-    };
-
-    /* Get the standard shares of the organizations for all cause areas with standard split */
-    for (const causeArea of draftDistribution.causeAreas) {
-      if (causeArea.standardSplit) {
-        const standardShareOrganizations =
-          await DAO.distributions.getStandardDistributionByCauseAreaID(causeArea.id);
-        causeArea.organizations = standardShareOrganizations;
-      } else {
-        causeArea.organizations = causeArea.organizations.filter(
-          (o) => parseFloat(o.percentageShare) > 0,
-        );
-      }
-    }
-
-    /** Use new KID for avtalegiro */
-    if (donationObject.method == methods.AVTALEGIRO) {
-      if (fundraiser) {
-        // Every charge on the agreement uses this KID, so they all count towards the fundraiser
-        donationObject.fundraiserTransactionId = await DAO.fundraisers.addFundraiserTransaction({
-          fundraiserId: fundraiser.id,
-          message: fundraiser.message ?? null,
-          messageSenderName: fundraiser.messageSenderName ?? null,
-          showName: fundraiser.showName,
-        });
-      }
-
-      //Create unique KID for each AvtaleGiro to prevent duplicates causing conflicts
-      donationObject.KID = await donationHelpers.createAvtaleGiroKID();
-      await DAO.distributions.add({
-        ...draftDistribution,
-        kid: donationObject.KID,
-        fundraiserTransactionId: donationObject.fundraiserTransactionId ?? null,
-      });
-    } else if (donationObject.method == methods.AUTOGIRO) {
-      if (fundraiser) {
-        return res.status(400).send("Fundraisers are not supported with AutoGiro");
-      }
-
-      donationObject.KID = await donationHelpers.createKID(8);
-      await DAO.distributions.add({
-        ...draftDistribution,
-        kid: donationObject.KID,
-      });
-
-      // Draft AutoGiro
-      await DAO.autogiroagreements.draftAgreement({
-        KID: donationObject.KID,
-        amount:
-          typeof donationObject.amount === "string"
-            ? parseFloat(donationObject.amount)
-            : donationObject.amount,
-        payment_date: 27,
-      });
-
-      try {
-        await sendAutoGiroRegistered(donationObject.KID, donor.email);
-      } catch (ex) {
-        console.error(`Failed to send AutoGiro registered email for KID ${donationObject.KID}`);
-      }
-    } else {
-      //Try to get existing KID if not a fundraiser
-      // For fundraisers, we always create a new KID to store the message and fundraiser ID
-      if (!fundraiser) {
-        donationObject.KID = await DAO.distributions.getKIDbySplit(
-          {
-            donorId: donationObject.donorID,
-            taxUnitId: donationObject.taxUnitId,
-            causeAreas: draftDistribution.causeAreas,
-          },
-          0,
-          8,
-        );
-      }
-
-      //Split does not exist create new KID and split
-      if (donationObject.KID == null) {
-        if (fundraiser) {
-          // Add a fundraiser transaction ID to store the fundraiser ID and message
-          donationObject.fundraiserTransactionId = await DAO.fundraisers.addFundraiserTransaction({
-            fundraiserId: fundraiser.id,
-            message: fundraiser.message ?? null,
-            messageSenderName: fundraiser.messageSenderName ?? null,
-            showName: fundraiser.showName,
-          });
-        }
-
-        donationObject.KID = await donationHelpers.createKID();
-
-        let distribution: Distribution = {
-          kid: donationObject.KID,
-          fundraiserTransactionId: donationObject.fundraiserTransactionId ?? null,
-          ...draftDistribution,
-        };
-
-        await DAO.distributions.add(distribution);
-      }
-    }
-
-    switch (donationObject.method) {
-      case methods.VIPPS: {
-        if (recurring == false) {
-          const res = await vipps.initiateOrder(donationObject.KID, donationObject.amount);
-          paymentProviderUrl = res.externalPaymentUrl;
-
-          //Start polling for updates (move this to inside initiateOrder?)
-          vipps.pollOrder(res.orderId);
-        }
-        break;
-      }
-      case methods.SWISH: {
-        if (recurring == false) {
-          const res = await swish.initiateOrder(donationObject.KID, {
-            amount:
-              typeof donationObject.amount === "string"
-                ? parseInt(donationObject.amount)
-                : donationObject.amount,
-          });
-          swishOrderID = res.orderID;
-          swishPaymentRequestToken = res.paymentRequestToken;
-        }
-        break;
-      }
-    }
-
-    try {
-      await DAO.initialpaymentmethod.addPaymentIntent(
-        donationObject.amount,
-        donationObject.method,
-        donationObject.KID,
-      );
-    } catch (error) {
-      console.error(error);
-    }
-
-    const referralCode = normalizeReferralCode(parsedData.referralCode);
-    if (referralCode && donationObject.KID) {
-      try {
-        await DAO.donationReferralCodes.add(donationObject.KID, referralCode);
-      } catch (error) {
-        console.error("Failed to store referral code for KID %s:", donationObject.KID, error);
-      }
-    }
+    result = await registerPendingDonation(parsedData);
   } catch (ex) {
     return next(ex);
   }
-
-  try {
-    var hasAnsweredReferral = await DAO.referrals.getDonorAnswered(donationObject.donorID);
-  } catch (ex) {
-    console.error(
-      `Could not get whether donor answered referral for donorID ${donationObject.donorID}`,
-    );
-    hasAnsweredReferral = false;
-  }
+  if (!result.ok) return res.status(400).send(result.message);
 
   res.json({
     status: 200,
-    content: {
-      KID: donationObject.KID,
-      donorID: donationObject.donorID,
-      hasAnsweredReferral,
-      paymentProviderUrl,
-      swishOrderID,
-      swishPaymentRequestToken,
-    },
+    content: result.content,
   });
 });
 
