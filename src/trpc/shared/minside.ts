@@ -31,3 +31,121 @@ export const donorProfileOutput = z.object({
 });
 
 export type DonorProfile = z.output<typeof donorProfileOutput>;
+
+/**
+ * Decimal amounts. Our backend sends MySQL DECIMAL columns as strings ("500.00"); the Danish
+ * backend sends numbers. Min Side parses both, so both pass through unchanged.
+ */
+const decimal = z.union([z.string(), z.number()]);
+
+/** GET /donors/:id/taxunits (Min Side tax units). NO and SV use our backend; the default is NO. */
+export const taxUnitsInput = donorInput.extend({ locale: z.enum(["NO", "SV"]).optional() });
+
+export const taxUnitOutput = z.object({
+  // The Danish backend numbers the donor's tax units 1, 2, …; donorId is 0 there
+  id: z.number().int().nonnegative(),
+  donorId: z.number().int().nonnegative(),
+  name: z.string(),
+  ssn: z.string(),
+  registered: isoDateTime.nullable(),
+  archived: isoDateTime.nullable(),
+  sumDonations: decimal,
+  // A COUNT(*) on the Danish backend, which its Postgres driver sends as a string
+  numDonations: z.union([z.number(), z.string()]),
+  taxDeductions: z
+    .array(
+      z.object({
+        year: z.number(),
+        sumDonations: z.number(),
+        deduction: z.number(),
+        benefit: z.number(),
+      }),
+    )
+    .optional(),
+});
+
+export const taxUnitsOutput = z.array(taxUnitOutput);
+
+/**
+ * GET /donors/:id/donations/aggregated: the donor's donations per organization and year. Rows
+ * whose distribution has no organization come back with nulls, as from REST.
+ */
+export const donationsAggregatedOutput = z.array(
+  z.object({
+    organization: z.string().nullable(),
+    // Only our backend sends it; Min Side doesn't read it, but it's in the web's type
+    abbriv: z.string().nullable().optional(),
+    value: decimal.nullable(),
+    year: z.number(),
+  }),
+);
+
+/** One entry of a Danish donation's impact (only the Danish backend sends `impact`) */
+const donationImpactEntry = z.object({
+  recipient: z.string(),
+  unit: z.string().nullable(),
+  organization: z.string().nullable(),
+  amount: z.number(),
+  count: z.number().nullable(),
+});
+
+/**
+ * GET /donors/:id/donations. Every field is kept: the Min Side donation table's columns are
+ * configured in Sanity and can show any of them.
+ */
+export const donationsOutput = z.array(
+  z.object({
+    id: z.number().int(),
+    KID: z.string(),
+    donor: z.string().nullable(),
+    donorId: z.number().int().nonnegative(),
+    email: z.string().nullable(),
+    sum: decimal,
+    transactionCost: decimal.nullable(),
+    timestamp: isoDateTime,
+    paymentMethod: z.string(),
+    taxUnitId: z.number().int().nullable(),
+    // Only our backend sends metaOwnerId, only the Danish backend sends impact
+    metaOwnerId: z.number().int().optional(),
+    impact: z.array(donationImpactEntry).optional(),
+  }),
+);
+
+/**
+ * GET /donors/:id/distributions/?kids=…: the donor's distributions, only those with the given
+ * KIDs when `kids` is set (REST: a comma separated query parameter).
+ */
+export const distributionsInput = donorInput.extend({
+  kids: z.array(z.string().min(1).max(64)).max(5000).optional(),
+});
+
+export const distributionsOutput = z.array(
+  z.object({
+    kid: z.string(),
+    donorId: z.number().int().nonnegative(),
+    taxUnitId: z.number().int().nullable(),
+    causeAreas: z.array(
+      z.object({
+        id: z.number().int(),
+        name: z.string().optional(),
+        standardSplit: z.boolean(),
+        percentageShare: decimal,
+        // Only the Danish backend sends amounts
+        amount: z.number().optional(),
+        organizations: z.array(
+          z.object({
+            id: z.number().int(),
+            name: z.string().optional(),
+            percentageShare: decimal,
+            amount: z.number().optional(),
+          }),
+        ),
+      }),
+    ),
+  }),
+);
+
+export type TaxUnit = z.output<typeof taxUnitOutput>;
+export type DonationsAggregated = z.output<typeof donationsAggregatedOutput>;
+export type Donations = z.output<typeof donationsOutput>;
+export type Distributions = z.output<typeof distributionsOutput>;
