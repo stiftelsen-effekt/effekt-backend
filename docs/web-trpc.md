@@ -66,9 +66,11 @@ permission or another donor's id is `FORBIDDEN` (403; REST answers 401 for both)
 `pnpm build:types` (root) emits the router's declarations to `apps/api/dist-types/`, as for the admin.
 `packages/api/index.d.ts` re-exports `AppRouter` from there, and apps/web has `@effekt/api` as a
 workspace dev dependency. apps/web runs the type build itself: `pnpm typecheck` and `pnpm build`
-both start with `pnpm types:api`. This works on Vercel because its install
-(`pnpm install --frozen-lockfile --filter main-site`) also installs the workspace root's
-dependencies and runs its `postinstall` (`prisma generate`), which is all `build:types` needs.
+both start with `pnpm types:api`, which compiles with the API package's dependencies. So every
+install that builds the web must include the API package: Vercel's install command and the CI
+workflows use `pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend`.
+With `--filter main-site` alone, `next build` fails with `Cannot find module 'typescript/bin/tsc'`
+(the API's dependencies moved out of the workspace root in the `apps/api` restructure).
 Nothing generated is committed.
 
 The output schemas are needed at runtime on the web (see the Danish site below), so they live in
