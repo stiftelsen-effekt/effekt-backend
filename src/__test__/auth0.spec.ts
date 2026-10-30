@@ -112,7 +112,7 @@ describe("auth0 Management API helpers", function () {
       expect(result.skipped).to.deep.equal([]);
 
       const patchCall = fetchStub.getCalls().find((call) => call.args[1]?.method === "PATCH");
-      expect(patchCall).to.not.equal(undefined);
+      if (!patchCall) throw new Error("Expected a PATCH request to Auth0");
       expect(String(patchCall.args[0])).to.equal(
         "https://gieffektivt.eu.auth0.com/api/v2/users/auth0%7Cabc",
       );
