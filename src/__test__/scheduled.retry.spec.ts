@@ -7,6 +7,7 @@ import express from "express";
 import { expect } from "chai";
 import request from "supertest";
 import { DateTime } from "luxon";
+import * as avtalegiroDeletions from "../custom_modules/avtalegiro/deletions";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 const mail = require("../custom_modules/mail");
@@ -58,6 +59,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
   let claimedKIDsStub;
   let addChargesStub;
   let untrackedStub;
+  let deletionsStub;
 
   const receiptsOnServer = (shipmentIDs: number[]) => {
     getConnectionStub.resolves({
@@ -68,6 +70,8 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
   before(function () {
     sinon.replace(authMiddleware, "isAdmin", []);
+
+    deletionsStub = sinon.stub(avtalegiroDeletions, "processAvtaleGiroDeletions").resolves({});
 
     avtalegiroFileStub = sinon
       .stub(avtalegiro, "generateAvtaleGiroFile")
@@ -224,7 +228,16 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
     expect(sendFileStub.calledOnce).to.be.true;
     expect(sendFileStub.firstCall.args[1]).to.equal("DIRREM100523.170523.700");
-    expect(loggingStub.callCount).to.equal(2);
+    expect(loggingStub.withArgs("AvtaleGiro - Retry").callCount).to.equal(2);
+  });
+
+  it("Processes deletions and sends unaccepted deletion files again", async () => {
+    dueDateStub.returns([]);
+
+    await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-10").expect(200);
+
+    expect(deletionsStub.calledOnce).to.be.true;
+    expect(deletionsStub.firstCall.args[1]).to.be.true;
   });
 
   it("Skips the retry on the day of the deploy if shipments were sent before charges were recorded", async () => {
@@ -238,9 +251,11 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     expect(supersedeStub.called).to.be.false;
     expect(addChargesStub.called).to.be.false;
     expect(sendFileStub.called).to.be.false;
-    sinon.assert.calledOnce(loggingStub);
-    expect(loggingStub.firstCall.args[0]).to.equal("AvtaleGiro - Retry");
-    expect(loggingStub.firstCall.args[1].untrackedShipmentIDs).to.deep.equal([640, 641]);
+    const retryLogs = loggingStub.withArgs("AvtaleGiro - Retry");
+    sinon.assert.calledOnce(retryLogs);
+    expect(retryLogs.firstCall.args[1].untrackedShipmentIDs).to.deep.equal([640, 641]);
+    // Deletions are still processed
+    expect(deletionsStub.calledOnce).to.be.true;
   });
 
   it("Does not look for untracked shipments on days without claim dates", async () => {

@@ -8,6 +8,7 @@ import workdays from "norwegian-workdays";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { donationHelpers } from "./donationHelpers";
 import { DistributionInput } from "../schemas/types";
+import { requestDeletionOfUpcomingCharges } from "./avtalegiro/deletions";
 
 /**
  * Generates a claims file to claim payments for AvtaleGiro agreements
@@ -61,6 +62,39 @@ export async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
   const fileBuffer = Buffer.from(fileContents, "utf8");
 
   return fileBuffer;
+}
+
+/**
+ * Generates a file with deletion requests for claims we have already sent. A deletion request is the
+ * original claim with transaction type 93 instead of 02, so it identifies the claim by KID, amount
+ * and due date. Each deletion gets its own assignment, like the claims do.
+ * @param shipmentID A shipment ID from the database
+ * @param deletions The claims to delete, with amounts in øre
+ * @returns The file buffer
+ */
+export async function generateAvtaleGiroDeletionFile(
+  shipmentID: number,
+  deletions: Array<{ KID: string; amount: number; dueDate: DateTime }>,
+): Promise<Buffer> {
+  if (deletions.length === 0) throw new Error("Cannot generate a deletion file without deletions");
+
+  let fileContents = "";
+  fileContents += writer.startRecordTransmission(shipmentID);
+
+  for (let i = 0; i < deletions.length; i++) {
+    const deletion = deletions[i];
+    fileContents += writer.startRecordDeletionRequest(i, shipmentID);
+
+    const donor = await DAO.donors.getByKID(deletion.KID);
+    fileContents += writer.firstAndSecondLine(deletion, donor, "93", 1, deletion.dueDate);
+
+    fileContents += writer.endRecordDeletionRequest([deletion], deletion.dueDate, deletion.dueDate);
+  }
+
+  const earliestDueDate = DateTime.min(...deletions.map((deletion) => deletion.dueDate));
+  fileContents += writer.endRecordTransmission([], deletions, earliestDueDate);
+
+  return Buffer.from(fileContents, "utf8");
 }
 
 /**
@@ -298,10 +332,33 @@ export async function replaceAvtaleGiroDistribution(
 
 /**
  * Sets the active status of an AvtaleGiro agreement, notifying the donor on cancellation
- * (only when active is exactly 0, as sent by the REST API).
+ * (only when active is exactly 0, as sent by the REST API and the admin).
+ *
+ * Cancelling also requests deletion of claims already sent to MPS, where there's still time.
+ * Reactivating takes back deletion requests that haven't been sent yet.
  */
 export async function setAvtaleGiroStatus(KID: string, active: unknown) {
   const response = await DAO.avtalegiroagreements.setActive(KID, active);
+
+  if (active === 0 || active === false) {
+    // A failure here must not stop the cancellation
+    try {
+      const { deletable, tooLate } = await requestDeletionOfUpcomingCharges(KID, DateTime.now());
+      if (deletable.length > 0 || tooLate.length > 0) {
+        console.log(
+          `AvtaleGiro ${KID} cancelled: deleting claims due ${deletable
+            .map((charge) => charge.dueDate)
+            .join(", ")}; too late for ${tooLate.map((charge) => charge.dueDate).join(", ")}`,
+        );
+      }
+    } catch (ex) {
+      console.error(`Failed to request deletion of AvtaleGiro claims for ${KID}`, ex);
+    }
+  } else if (active === 1 || active === true) {
+    // Deletions not yet sent are no longer wanted
+    await DAO.avtalegirocharges.restoreDeletionRequestsByKID(KID);
+  }
+
   if (active === 0) await sendAvtaleGiroChange(KID, "CANCELLED");
   return response;
 }
