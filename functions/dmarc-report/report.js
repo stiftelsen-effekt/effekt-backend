@@ -61,8 +61,8 @@ function classify(row) {
   )
     return "HubSpot";
   if (
-    selectors.includes("k1") &&
-    spfDomains.some((d) => d.endsWith("mcdlv.net") || d.endsWith("mcsv.net"))
+    selectors.includes("k1") ||
+    spfDomains.some((d) => /(^|\.)(mcdlv|mcsv|rsgsv)\.net$|(^|\.)mandrillapp\.com$/.test(d))
   )
     return "Mailchimp";
   return "Other";
