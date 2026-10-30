@@ -22,8 +22,8 @@ describe("AvtaleGiro deletion file generation", () => {
 
   before(async function () {
     const donorStub = sinon.stub(DAO.donors, "getByKID");
-    donorStub.withArgs("002556289731589").resolves({ name: "Maria Brækkelie" });
-    donorStub.withArgs("000638723319577").resolves({ name: "Kristian Jørgensen" });
+    donorStub.withArgs("002556289731589").resolves({ name: "Maria Brækkelie" } as any);
+    donorStub.withArgs("000638723319577").resolves({ name: "Kristian Jørgensen" } as any);
 
     config.nets_customer_id = "00230456";
 

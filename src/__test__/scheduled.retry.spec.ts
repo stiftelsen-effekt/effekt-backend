@@ -71,7 +71,9 @@ describe("POST /scheduled/avtalegiro/retry", function () {
   before(function () {
     sinon.replace(authMiddleware, "isAdmin", []);
 
-    deletionsStub = sinon.stub(avtalegiroDeletions, "processAvtaleGiroDeletions").resolves({});
+    deletionsStub = sinon
+      .stub(avtalegiroDeletions, "processAvtaleGiroDeletions")
+      .resolves({} as any);
 
     avtalegiroFileStub = sinon
       .stub(avtalegiro, "generateAvtaleGiroFile")

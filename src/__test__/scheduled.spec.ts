@@ -60,7 +60,9 @@ describe("POST /scheduled/avtalegiro", function () {
   before(function () {
     authStub = sinon.replace(authMiddleware, "isAdmin", []);
 
-    deletionsStub = sinon.stub(avtalegiroDeletions, "processAvtaleGiroDeletions").resolves({});
+    deletionsStub = sinon
+      .stub(avtalegiroDeletions, "processAvtaleGiroDeletions")
+      .resolves({} as any);
 
     claimedKIDsStub = sinon.stub(DAO.avtalegirocharges, "getClaimedKIDsForMonth");
     addChargesStub = sinon.stub(DAO.avtalegirocharges, "addCharges").resolves();
