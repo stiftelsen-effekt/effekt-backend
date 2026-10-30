@@ -183,3 +183,17 @@ export function resolverName(
   if (isUser) return user.name ? `you (${user.name})` : "you";
   return resolvedBy;
 }
+
+/**
+ * The import the selected items all come from, or null when they come from several imports, or
+ * from none (manual or older items). Only rows on the current page are known; a selection with
+ * rows from other pages counts as several.
+ */
+export function importOfSelection(selectedIds: string[], rows: ReviewItem[] | undefined) {
+  if (!rows || selectedIds.length === 0) return null;
+  const byId = new Map(rows.map((row) => [String(row.id), row]));
+  const imports = new Set(selectedIds.map((id) => byId.get(id)?.importLogId ?? null));
+  if (imports.size !== 1) return null;
+  const [only] = imports;
+  return only ?? null;
+}

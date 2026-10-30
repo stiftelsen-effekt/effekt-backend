@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CauseAreaConfig } from "@/features/distribution/model";
 import {
   draftForItem,
+  importOfSelection,
   isResolvedElsewhere,
   nextOpenId,
   previousOpenId,
@@ -160,5 +161,22 @@ describe("queueOutcome", () => {
       added: 3,
       skipped: 2,
     });
+  });
+});
+
+describe("importOfSelection", () => {
+  const row = (id: number, importLogId: number | null) => ({ id, importLogId } as never);
+  const rows = [row(1, 88), row(2, 88), row(3, 90), row(4, null)];
+
+  it("is the import when every selected row comes from it", () => {
+    expect(importOfSelection(["1", "2"], rows)).toBe(88);
+  });
+
+  it("is null for several imports, items without one, rows not on the page, or nothing selected", () => {
+    expect(importOfSelection(["1", "3"], rows)).toBeNull();
+    expect(importOfSelection(["4"], rows)).toBeNull();
+    expect(importOfSelection(["1", "99"], rows)).toBeNull();
+    expect(importOfSelection([], rows)).toBeNull();
+    expect(importOfSelection(["1"], undefined)).toBeNull();
   });
 });

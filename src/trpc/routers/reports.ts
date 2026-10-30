@@ -25,7 +25,10 @@ import {
   ku65Input,
   logsListInput,
   reportUploadInput,
+  reviewQueueIgnoreImportInput,
   reviewQueueIgnoreInput,
+  reviewQueueIgnoreManyInput,
+  reviewQueueImportInput,
   reviewQueueListInput,
   reviewQueueRegisterInput,
   reviewQueueSearchInput,
@@ -590,6 +593,37 @@ const reviewQueueRouter = router({
     }
     return getReviewItemOrThrow(input.id);
   }),
+
+  /**
+   * Ignores several open items at once with one note. Items already resolved are skipped, not an
+   * error, so a list that changed meanwhile still works; `ignored` says how many were ignored.
+   */
+  ignoreMany: adminProcedure.input(reviewQueueIgnoreManyInput).mutation(async ({ input, ctx }) => {
+    const ids = [...new Set(input.ids)];
+    const ignored = await DAO.reviewqueue.ignoreMany(
+      ids,
+      adminIdentity(ctx.auth),
+      input.note ?? null,
+    );
+    return { ignored, skipped: ids.length - ignored };
+  }),
+
+  /** How many items from one import are still open, for "Ignore all from this import" */
+  importOpenCount: adminProcedure.input(reviewQueueImportInput).query(async ({ input }) => ({
+    importLogId: input.importLogId,
+    open: await DAO.reviewqueue.getOpenCountForImport(input.importLogId),
+  })),
+
+  /** Ignores every open item queued by one import, e.g. a report uploaded by mistake */
+  ignoreImport: adminProcedure
+    .input(reviewQueueIgnoreImportInput)
+    .mutation(async ({ input, ctx }) => ({
+      ignored: await DAO.reviewqueue.ignoreImport(
+        input.importLogId,
+        adminIdentity(ctx.auth),
+        input.note ?? null,
+      ),
+    })),
 
   /**
    * Reopens an ignored item, or a registered one whose donation has been deleted. CONFLICT for

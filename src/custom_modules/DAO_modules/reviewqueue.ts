@@ -361,6 +361,46 @@ async function ignore(id: number, resolvedBy: string, note: string | null): Prom
 }
 
 /**
+ * Ignores the given items in one statement, e.g. after a wrong upload. Items that aren't open
+ * (already registered or ignored, perhaps by someone else meanwhile) are left alone. Returns how
+ * many were ignored.
+ */
+async function ignoreMany(ids: number[], resolvedBy: string, note: string | null): Promise<number> {
+  if (ids.length === 0) return 0;
+  const [result] = await DAO.query<ResultSetHeader>(
+    `UPDATE Review_queue_items
+     SET Status = 'ignored', Resolved_by = ?, Resolved_at = NOW(), Note = ?
+     WHERE ID IN (?) AND Status = 'open'`,
+    [resolvedBy, note, ids],
+  );
+  return result.affectedRows;
+}
+
+/** Ignores every open item queued by one import (all pages). Returns how many were ignored. */
+async function ignoreImport(
+  importLogId: number,
+  resolvedBy: string,
+  note: string | null,
+): Promise<number> {
+  const [result] = await DAO.query<ResultSetHeader>(
+    `UPDATE Review_queue_items
+     SET Status = 'ignored', Resolved_by = ?, Resolved_at = NOW(), Note = ?
+     WHERE Import_log_ID = ? AND Status = 'open'`,
+    [resolvedBy, note, importLogId],
+  );
+  return result.affectedRows;
+}
+
+/** How many items from one import are still open */
+async function getOpenCountForImport(importLogId: number): Promise<number> {
+  const [[{ count }]] = await DAO.query<{ count: number }[]>(
+    `SELECT COUNT(*) AS count FROM Review_queue_items WHERE Import_log_ID = ? AND Status = 'open'`,
+    [importLogId],
+  );
+  return Number(count);
+}
+
+/**
  * Reopens an ignored item, or a registered one whose donation has since been deleted, clearing
  * who resolved it and the ignore note. Returns false otherwise (open items, and registered
  * items whose donation still exists).
@@ -388,5 +428,8 @@ export const reviewqueue = {
   releaseRegistrationClaim,
   setDonation,
   ignore,
+  ignoreMany,
+  ignoreImport,
+  getOpenCountForImport,
   reopen,
 };
