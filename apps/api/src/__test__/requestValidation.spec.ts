@@ -132,34 +132,16 @@ describe("request validation", () => {
   });
 
   describe("POST /avtalegiro/draft", () => {
-    let server: express.Express;
-
-    beforeEach(function () {
-      server = express();
+    it("is gone: the widget drafts through widget.draftAvtaleGiro with a registration token", async function () {
+      const server = express();
       server.use(express.json());
       server.use("/avtalegiro", require("../routes/avtalegiro"));
-    });
-
-    for (const body of [
-      { KID: { KID: 1 }, amount: 100, dueDay: 5 },
-      { KID: "12a45", amount: 100, dueDay: 5 },
-      { KID: "12345", amount: { a: 1 }, dueDay: 5 },
-      { KID: "12345", amount: -1, dueDay: 5 },
-    ]) {
-      it(`rejects ${JSON.stringify(body)}`, async function () {
-        const add = sinon.stub(DAO.avtalegiroagreements, "add").resolves();
-        await request(server).post("/avtalegiro/draft").send(body).expect(400);
-        expect(add.called).to.equal(false);
-      });
-    }
-
-    it("accepts the widget's payload", async function () {
       const add = sinon.stub(DAO.avtalegiroagreements, "add").resolves();
       await request(server)
         .post("/avtalegiro/draft")
-        .send({ KID: "12345678", amount: 250, dueDay: 31 })
-        .expect(200);
-      expect(add.calledOnceWith("12345678", 25000, 0, true)).to.equal(true);
+        .send({ KID: "12345678", amount: 250, dueDay: 5 })
+        .expect(404);
+      expect(add.called).to.equal(false);
     });
   });
 });

@@ -25,12 +25,14 @@ export function* fetchReferrals(action: Action<undefined>): SagaIterator<void> {
 }
 
 export function* submitReferral(action: Action<ReferralData>): SagaIterator<void> {
+  const registrationToken = yield select((state: State) => state.donation.registrationToken);
   const donorID = yield select((state: State) => state.donation.donor?.donorID);
   const websiteSession = yield select((state: State) => state.referrals.websiteSession);
 
   try {
     const data = {
       referralID: action.payload.referralID,
+      registrationToken,
       donorID,
       active: action.payload.active,
       comment: action.payload.comment,

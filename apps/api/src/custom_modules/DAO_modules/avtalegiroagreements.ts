@@ -180,6 +180,64 @@ async function add(KID, amount, paymentDate, notice) {
   );
 }
 
+/**
+ * The agreement rows for a KID as the widget's draft call sees them: how many there are and
+ * whether the only one is a draft (not active and never cancelled)
+ */
+async function getDraftState(KID: string): Promise<{ rows: number; draft: boolean }> {
+  const [rows] = await DAO.execute<any[]>(
+    `SELECT active, cancelled FROM Avtalegiro_agreements WHERE KID = ?`,
+    [KID],
+  );
+  return {
+    rows: rows.length,
+    draft: rows.length === 1 && !rows[0].active && rows[0].cancelled == null,
+  };
+}
+
+/**
+ * Adds a draft agreement (with notice) unless the KID already has an agreement row. Two
+ * concurrent calls for the same KID cannot both insert: the loser inserts nothing or fails with
+ * a lock conflict.
+ * @returns Whether the draft was added
+ */
+async function addDraftIfNone(KID: string, amount: number, paymentDate: number): Promise<boolean> {
+  const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
+    `INSERT INTO Avtalegiro_agreements (KID, amount, payment_date, notice)
+      SELECT ?, ?, ?, 1 FROM DUAL
+      WHERE NOT EXISTS (SELECT 1 FROM Avtalegiro_agreements WHERE KID = ?)`,
+    [KID, amount, paymentDate, KID],
+  );
+  return result.affectedRows > 0;
+}
+
+/**
+ * Updates the amount (øre) and payment date of an agreement that is still a draft
+ * @returns Whether a draft was updated
+ */
+async function updateDraft(KID: string, amount: number, paymentDate: number): Promise<boolean> {
+  const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
+    `UPDATE Avtalegiro_agreements SET amount = ?, payment_date = ?
+      WHERE KID = ? AND active = 0 AND cancelled IS NULL`,
+    [amount, paymentDate, KID],
+  );
+  return result.affectedRows > 0;
+}
+
+/**
+ * Marks that the "agreement registered" email was sent for the KID's agreement, unless it
+ * already was
+ * @returns True only for the call that marked it, so the email goes out at most once
+ */
+async function claimRegisteredMail(KID: string): Promise<boolean> {
+  const [result] = await DAO.execute<ResultSetHeader | OkPacket>(
+    `UPDATE Avtalegiro_agreements SET registered_mail_sent = NOW()
+      WHERE KID = ? AND registered_mail_sent IS NULL`,
+    [KID],
+  );
+  return result.affectedRows > 0;
+}
+
 async function updateNotification(KID, notice) {
   let res = await DAO.query(`UPDATE Avtalegiro_agreements SET notice = ? where KID = ?`, [
     notice,
@@ -1182,6 +1240,10 @@ const jsDBmapping: Array<[string, string]> = [
 
 export const avtalegiroagreements = {
   add,
+  getDraftState,
+  addDraftIfNone,
+  updateDraft,
+  claimRegisteredMail,
   setActive,
   isActive,
   cancelAgreement,

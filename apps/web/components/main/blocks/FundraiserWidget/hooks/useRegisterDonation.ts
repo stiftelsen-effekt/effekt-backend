@@ -44,10 +44,16 @@ interface UseRegisterDonationProps {
 // has the day
 const todayAsChargeDay = () => Math.min(new Date().getDate(), 28);
 
-const draftVippsAgreement = async (trpc: TrpcClient, kid: string, amount: number) => {
+const draftVippsAgreement = async (
+  trpc: TrpcClient,
+  kid: string,
+  amount: number,
+  registrationToken: string,
+) => {
   const { vippsConfirmationUrl } = await trpc.widget.draftVippsAgreement.mutate({
     KID: kid,
     amount,
+    registrationToken,
     initialCharge: true,
     monthlyChargeDay: todayAsChargeDay(),
   });
@@ -55,11 +61,17 @@ const draftVippsAgreement = async (trpc: TrpcClient, kid: string, amount: number
   window.location.href = vippsConfirmationUrl;
 };
 
-const draftAvtaleGiro = async (trpc: TrpcClient, kid: string, amount: number) => {
+const draftAvtaleGiro = async (
+  trpc: TrpcClient,
+  kid: string,
+  amount: number,
+  registrationToken: string,
+) => {
   try {
     await trpc.widget.draftAvtaleGiro.mutate({
       KID: kid,
       amount,
+      registrationToken,
       dueDay: getFirstAvtaleGiroCharge().dueDay,
     });
   } catch (err) {
@@ -91,7 +103,14 @@ const draftAvtaleGiro = async (trpc: TrpcClient, kid: string, amount: number) =>
 };
 
 type RegisterResult =
-  | { ok: true; content: { KID?: string | null; paymentProviderUrl?: string | null } }
+  | {
+      ok: true;
+      content: {
+        KID?: string | null;
+        paymentProviderUrl?: string | null;
+        registrationToken?: string | null;
+      };
+    }
   | { ok: false; error: unknown };
 
 /**
@@ -208,11 +227,12 @@ export function useRegisterDonation({
           return;
         }
         const receivedKid = result.content.KID as string;
+        const registrationToken = result.content.registrationToken ?? "";
         setKid(receivedKid);
         if (isMonthly && method === PaymentMethod.VIPPS) {
-          await draftVippsAgreement(trpc, receivedKid, formData.amount!);
+          await draftVippsAgreement(trpc, receivedKid, formData.amount!, registrationToken);
         } else if (method === PaymentMethod.AVTALEGIRO) {
-          await draftAvtaleGiro(trpc, receivedKid, formData.amount!);
+          await draftAvtaleGiro(trpc, receivedKid, formData.amount!, registrationToken);
         } else if (
           result.content.paymentProviderUrl &&
           result.content.paymentProviderUrl.length > 0

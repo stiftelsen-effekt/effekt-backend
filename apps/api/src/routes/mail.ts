@@ -9,7 +9,10 @@ import {
 } from "../custom_modules/mail";
 
 import express from "express";
-import { requireMailerSendSignature } from "../custom_modules/webhookAuth";
+import {
+  requireMailerSendSignature,
+  requireSanityWebhookSignature,
+} from "../custom_modules/webhookAuth";
 const router = express.Router();
 const config = require("../config");
 const authMiddleware = require("../custom_modules/authorization/authMiddleware");
@@ -299,60 +302,78 @@ export type SanitySecurityNoticeVariables = {
   sanityUser: string;
 };
 
-router.post("/mailersend/security/sanitynotification", async (req, res, next) => {
-  try {
-    if (!req.body) {
-      res.status(400).json({
-        status: 400,
-        content: "No request body",
-      });
-      return;
-    }
-    if (!req.body.fields || !req.body.document || !req.body.sanityUser) {
-      res.status(400).json({
-        status: 400,
-        content: "Missing required fields in request body",
-      });
-      return;
-    }
-    if (!Array.isArray(req.body.fields)) {
-      res.status(400).json({
-        status: 400,
-        content: "Fields must be an array",
-      });
-      return;
-    }
-    if (req.body.fields.some((field) => !field.name || !field.prev || !field.new)) {
-      res.status(400).json({
-        status: 400,
-        content: "Missing required property on object in fields array",
-      });
-      return;
-    }
+const verifySanitySecurityWebhook = requireSanityWebhookSignature(
+  () => config.sanity_security_webhook_secret,
+  "SANITY_SECURITY_WEBHOOK_SECRET",
+);
 
-    const variables: SanitySecurityNoticeVariables = {
-      document: req.body.document,
-      fields: req.body.fields,
-      sanityUser: req.body.sanityUser,
-    };
+const fieldValue = (value: unknown) => (value == null ? "" : String(value));
 
-    const success = await sendSanitySecurityNotice(variables);
+/**
+ * A Sanity webhook (signed, see requireSanityWebhookSignature) on publishing a bank or autogiro
+ * document whose account number changed. The webhook's projection sends the document type, the
+ * user and every watched field with its value before and after; fields that did not change are
+ * left out of the email.
+ */
+router.post(
+  "/mailersend/security/sanitynotification",
+  verifySanitySecurityWebhook,
+  async (req, res, next) => {
+    try {
+      const body = req.body;
+      if (
+        !body ||
+        typeof body.document !== "string" ||
+        !body.document ||
+        !body.sanityUser ||
+        !Array.isArray(body.fields) ||
+        body.fields.length > 50 ||
+        body.fields.some((field) => !field || typeof field.name !== "string" || !field.name)
+      ) {
+        res.status(400).json({
+          status: 400,
+          content: "Missing or invalid fields in request body",
+        });
+        return;
+      }
 
-    if (success) {
-      res.json({
-        status: 200,
-        content: "OK",
-      });
-    } else {
-      res.status(500).json({
-        status: 500,
-        content: "Failed to send email",
-      });
+      const fields = body.fields
+        .map((field) => ({
+          name: field.name,
+          prev: fieldValue(field.prev),
+          new: fieldValue(field.new),
+        }))
+        .filter((field) => field.prev !== field.new);
+
+      if (fields.length === 0) {
+        res.json({ status: 200, content: "No sensitive field changed" });
+        return;
+      }
+
+      const variables: SanitySecurityNoticeVariables = {
+        document: body.document,
+        fields,
+        sanityUser: String(body.sanityUser),
+      };
+
+      const success = await sendSanitySecurityNotice(variables);
+
+      if (success) {
+        res.json({
+          status: 200,
+          content: "OK",
+        });
+      } else {
+        res.status(500).json({
+          status: 500,
+          content: "Failed to send email",
+        });
+      }
+    } catch (ex) {
+      next(ex);
     }
-  } catch (ex) {
-    next(ex);
-  }
-});
+  },
+);
 
 module.exports = router;
 

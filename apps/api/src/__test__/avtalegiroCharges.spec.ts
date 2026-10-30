@@ -90,6 +90,22 @@ describe("AvtaleGiro charges", () => {
       expect(alreadyClaimed).to.have.length(1);
     });
 
+    it("claims a KID with several active rows once, with its most recent row", () => {
+      // Older double submissions left two active rows for KID 111 (ids 4 and 9)
+      for (const agreements of [
+        [agreement(4, "111"), agreement(2, "222"), agreement(9, "111")],
+        [agreement(9, "111"), agreement(2, "222"), agreement(4, "111")],
+      ]) {
+        const { toClaim, alreadyClaimed } = excludeAgreementsClaimedThisMonth(
+          agreements,
+          new Set(),
+        );
+
+        expect(toClaim.map((a) => a.id).sort()).to.deep.equal([2, 9]);
+        expect(alreadyClaimed.map((a) => a.id)).to.deep.equal([4]);
+      }
+    });
+
     it("ignores claimed KIDs that are not among the agreements", () => {
       const agreements = [agreement(1, "111")];
 

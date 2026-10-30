@@ -2,7 +2,6 @@ import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendAvtalegiroRegistered } from "../custom_modules/mail";
-import { draftAvtaleGiroAgreement } from "../custom_modules/avtalegiro";
 import moment from "moment";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { encodePlausibleData } from "../custom_modules/plausible";
@@ -12,30 +11,6 @@ import { exportCsv } from "../custom_modules/csvexport";
 const config = require("../config");
 
 const router = express.Router();
-
-router.post("/draft", async (req, res, next) => {
-  if (!req.body) return res.sendStatus(400);
-
-  const parsedData = req.body;
-  // The widget sends the KID from /donations/register (a string of digits) and the amount in NOK
-  const KID = typeof parsedData.KID === "number" ? String(parsedData.KID) : parsedData.KID;
-  if (typeof KID !== "string" || !/^\d{1,32}$/.test(KID)) return res.sendStatus(400);
-  const amount = Number(parsedData.amount);
-  if (!Number.isFinite(amount) || amount <= 0) return res.sendStatus(400);
-
-  const dueDay =
-    Number.isInteger(parsedData.dueDay) && parsedData.dueDay >= 0 && parsedData.dueDay <= 28
-      ? parsedData.dueDay
-      : 0;
-
-  try {
-    await draftAvtaleGiroAgreement(KID, amount, dueDay);
-  } catch (ex) {
-    return next(ex);
-  }
-
-  res.json({ status: 200 });
-});
 
 router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
   try {
@@ -208,14 +183,22 @@ router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
+/**
+ * Where Nets sends the donor back after signing (or not) the AvtaleGiro agreement. The
+ * "agreement registered" email goes out the first time only, however often the URL is opened.
+ */
 router.get("/:KID/redirect", async (req, res, next) => {
   try {
     if (req.query.status && (req.query.status as string).toUpperCase() === "OK") {
       const agreement = await DAO.avtalegiroagreements.getByKID(req.params.KID);
-      await sendAvtalegiroRegistered(agreement!);
+      if (!agreement) return res.redirect("https://gieffektivt.no/avtale-feilet");
+
+      if (await DAO.avtalegiroagreements.claimRegisteredMail(req.params.KID)) {
+        await sendAvtalegiroRegistered(agreement);
+      }
 
       const plausible = encodePlausibleData({
-        revenue: Math.round(agreement!.amount / 100).toString(),
+        revenue: Math.round(agreement.amount / 100).toString(),
         method: "avtalegiro",
         recurring: true,
         kid: req.params.KID,

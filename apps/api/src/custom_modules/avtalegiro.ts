@@ -10,6 +10,9 @@ import { donationHelpers } from "./donationHelpers";
 import { DistributionInput } from "../schemas/types";
 import { requestDeletionOfUpcomingCharges } from "./avtalegiro/deletions";
 import { assertDistributionOwnedBy } from "./distributionOwnership";
+import { registrationFor } from "./registrationToken";
+import methods from "../enums/methods";
+import { WIDGET_MAX_AMOUNT } from "../trpc/shared/widget";
 
 /**
  * Generates a claims file to claim payments for AvtaleGiro agreements
@@ -385,12 +388,54 @@ export async function updateAvtaleGiroPaymentDate(KID: string, paymentDate: any)
   return response;
 }
 
+export type WidgetDraftResult = { ok: true } | { ok: false; status: 400 | 403; message: string };
+
 /**
  * Drafts an AvtaleGiro agreement for a KID the widget just registered, before the donor signs it
- * at Nets (REST POST /avtalegiro/draft and tRPC widget.draftAvtaleGiro)
+ * at Nets (REST POST /avtalegiro/draft and tRPC widget.draftAvtaleGiro).
+ *
+ * Only for a KID registered for AvtaleGiro by the same client in the last couple of hours (the
+ * registrationToken from registerDonation) that has no agreement yet. Sending the draft again
+ * for that KID, as the widget does when the donor retries, updates the draft.
+ *
  * @param amountKroner The monthly amount in NOK, as the widget sends it; stored in øre
  * @param dueDay Day of the month, 0 = last day
  */
-export async function draftAvtaleGiroAgreement(KID: string, amountKroner: number, dueDay: number) {
-  await DAO.avtalegiroagreements.add(KID, amountKroner * 100, dueDay, true);
+export async function draftAvtaleGiroAgreement(
+  KID: string,
+  amountKroner: number,
+  dueDay: number,
+  registrationToken: unknown,
+): Promise<WidgetDraftResult> {
+  if (!registrationFor(registrationToken, KID, [methods.AVTALEGIRO])) {
+    return { ok: false, status: 403, message: "Not a new AvtaleGiro registration" };
+  }
+
+  const amount = Math.round(amountKroner * 100);
+  if (!Number.isSafeInteger(amount) || amount <= 0 || amount > WIDGET_MAX_AMOUNT * 100) {
+    return { ok: false, status: 400, message: "Invalid amount" };
+  }
+  if (!Number.isInteger(dueDay) || dueDay < 0 || dueDay > 28) {
+    return { ok: false, status: 400, message: "Invalid due day" };
+  }
+
+  let existing = await DAO.avtalegiroagreements.getDraftState(KID);
+  if (existing.rows === 0) {
+    try {
+      if (await DAO.avtalegiroagreements.addDraftIfNone(KID, amount, dueDay)) return { ok: true };
+    } catch (ex: any) {
+      // A concurrent draft for the same KID (a double click) won the race
+      if (ex?.code !== "ER_LOCK_DEADLOCK" && ex?.code !== "ER_DUP_ENTRY") throw ex;
+    }
+    existing = await DAO.avtalegiroagreements.getDraftState(KID);
+  }
+
+  // The same registration sending its draft again (a retry, or the donor going back to change
+  // the due day before signing at Nets): the one draft row is updated, never a second added.
+  // A KID whose agreement is or has been active is never touched.
+  if (existing.draft) {
+    await DAO.avtalegiroagreements.updateDraft(KID, amount, dueDay);
+    return { ok: true };
+  }
+  return { ok: false, status: 403, message: "Not a new AvtaleGiro registration" };
 }

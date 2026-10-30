@@ -1,7 +1,6 @@
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { sendVippsAgreementChange, sendVippsProblemReport } from "../custom_modules/mail";
+import { sendVippsAgreementChange } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
-import permissions from "../enums/authorizationPermissions";
 
 import express from "express";
 const router = express.Router();
@@ -15,25 +14,6 @@ import crypto from "crypto";
 const config = require("../config");
 const vipps = require("../custom_modules/vipps");
 import * as vippsService from "../custom_modules/vippsService";
-
-router.post("/agreement/draft", jsonBody, async (req, res, next) => {
-  const body = req.body;
-  const KID = body.KID;
-  const amount = body.amount;
-  const initialCharge = body.initialCharge;
-  const monthlyChargeDay = body.monthlyChargeDay > 28 ? 28 : body.monthlyChargeDay;
-
-  try {
-    const content = await vipps.draftAgreement(KID, amount, initialCharge, monthlyChargeDay);
-
-    res.json({
-      status: 200,
-      content,
-    });
-  } catch (ex) {
-    next({ ex });
-  }
-});
 
 router.get("/agreement/minside/:urlcode", async (req, res, next) => {
   try {
@@ -70,23 +50,19 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
   }
 });
 
-router.get(
-  "/agreement/:id",
-  authMiddleware.auth(permissions.read_vipps_api),
-  async (req, res, next) => {
-    try {
-      const agreementId = req.params.id;
+router.get("/agreement/:id", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const agreementId = req.params.id;
 
-      // Synchronize EffektDB with Vipps database
-      const response = await vippsService.syncAndGetAgreement(agreementId);
+    // Synchronize EffektDB with Vipps database
+    const response = await vippsService.syncAndGetAgreement(agreementId);
 
-      //TODO: Check for false
-      res.json(response);
-    } catch (ex) {
-      next({ ex });
-    }
-  },
-);
+    //TODO: Check for false
+    res.json(response);
+  } catch (ex) {
+    next({ ex });
+  }
+});
 
 router.get("/matchingrules", authMiddleware.isAdmin, async (req, res, next) => {
   try {
@@ -265,7 +241,7 @@ router.post("/charges", authMiddleware.isAdmin, async (req, res, next) => {
 
 router.post(
   "/agreement/charge/create",
-  authMiddleware.auth(permissions.write_vipps_api),
+  authMiddleware.isAdmin,
   jsonBody,
   async (req, res, next) => {
     try {
@@ -281,27 +257,23 @@ router.post(
   },
 );
 
-router.get(
-  "/agreements/all",
-  authMiddleware.auth(permissions.read_vipps_api),
-  async (req, res, next) => {
-    try {
-      let agreements = [];
+router.get("/agreements/all", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    let agreements = [];
 
-      // Vipps does not allow fetching all statuses in a single request
-      const active = await vipps.getAgreements("ACTIVE");
-      const pending = await vipps.getAgreements("PENDING");
-      const stopped = await vipps.getAgreements("STOPPED");
-      const expired = await vipps.getAgreements("EXPIRED");
+    // Vipps does not allow fetching all statuses in a single request
+    const active = await vipps.getAgreements("ACTIVE");
+    const pending = await vipps.getAgreements("PENDING");
+    const stopped = await vipps.getAgreements("STOPPED");
+    const expired = await vipps.getAgreements("EXPIRED");
 
-      agreements = agreements.concat(active, pending, stopped, expired);
+    agreements = agreements.concat(active, pending, stopped, expired);
 
-      res.json(agreements);
-    } catch (ex) {
-      next({ ex });
-    }
-  },
-);
+    res.json(agreements);
+  } catch (ex) {
+    next({ ex });
+  }
+});
 
 router.get("/agreementredirect/:urlcode", async (req, res, next) => {
   try {
@@ -367,7 +339,7 @@ router.get("/agreementredirect/:urlcode", async (req, res, next) => {
 
 router.get(
   "/agreement/:agreementId/charge/:chargeId",
-  authMiddleware.auth(permissions.read_vipps_api),
+  authMiddleware.isAdmin,
   jsonBody,
   async (req, res, next) => {
     try {
@@ -385,7 +357,7 @@ router.get(
 
 router.get(
   "/agreement/:agreementId/charges",
-  authMiddleware.auth(permissions.read_vipps_api),
+  authMiddleware.isAdmin,
   jsonBody,
   async (req, res, next) => {
     try {
@@ -402,7 +374,7 @@ router.get(
 
 router.post(
   "/agreement/:agreementId/charge/:chargeId/refund",
-  authMiddleware.auth(permissions.write_vipps_api),
+  authMiddleware.isAdmin,
   jsonBody,
   async (req, res, next) => {
     try {
@@ -420,7 +392,7 @@ router.post(
 
 router.post(
   "/agreement/:agreementId/charge/:chargeId/cancel",
-  authMiddleware.auth(permissions.write_vipps_api),
+  authMiddleware.isAdmin,
   jsonBody,
   async (req, res, next) => {
     try {
@@ -444,21 +416,6 @@ router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
     const newValue = req.body.newValue;
 
     const response = await sendVippsAgreementChange(agreementCode, change, newValue);
-
-    res.json(response);
-  } catch (ex) {
-    next({ ex });
-  }
-});
-
-router.post("/agreement/report/problem", jsonBody, async (req, res, next) => {
-  try {
-    const senderUrl = req.body.senderUrl;
-    const donorEmail = req.body.email;
-    const donorMessage = req.body.donorMessage;
-    const agreement = req.body.agreement;
-
-    const response = await sendVippsProblemReport(senderUrl, donorEmail, donorMessage, agreement);
 
     res.json(response);
   } catch (ex) {
@@ -696,54 +653,46 @@ router.get("/integration-test/:linkToken", async (req, res, next) => {
   }
 });
 
-router.post(
-  "/refund/:orderId",
-  authMiddleware.auth(permissions.write_vipps_api),
-  async (req, res, next) => {
-    try {
-      let refunded = await vipps.refundOrder(req.params.orderId);
+router.post("/refund/:orderId", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    let refunded = await vipps.refundOrder(req.params.orderId);
 
-      if (refunded) {
-        return res.json({
-          status: 200,
-          content: "OK",
-        });
-      } else {
-        return res.status(409).json({
-          status: 409,
-          content:
-            "Could not refund the order. This might be because the order has not been captured.",
-        });
-      }
-    } catch (ex) {
-      next(ex);
+    if (refunded) {
+      return res.json({
+        status: 200,
+        content: "OK",
+      });
+    } else {
+      return res.status(409).json({
+        status: 409,
+        content:
+          "Could not refund the order. This might be because the order has not been captured.",
+      });
     }
-  },
-);
+  } catch (ex) {
+    next(ex);
+  }
+});
 
-router.put(
-  "/cancel/:orderId",
-  authMiddleware.auth(permissions.write_vipps_api),
-  async (req, res, next) => {
-    try {
-      let cancelled = await vipps.cancelOrder(req.params.orderId);
+router.put("/cancel/:orderId", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    let cancelled = await vipps.cancelOrder(req.params.orderId);
 
-      if (cancelled) {
-        return res.json({
-          status: 200,
-          content: "OK",
-        });
-      } else {
-        return res.status(409).json({
-          status: 409,
-          content: "Could not cancel the order. This might be because the order has been captured.",
-        });
-      }
-    } catch (ex) {
-      next(ex);
+    if (cancelled) {
+      return res.json({
+        status: 200,
+        content: "OK",
+      });
+    } else {
+      return res.status(409).json({
+        status: 409,
+        content: "Could not cancel the order. This might be because the order has been captured.",
+      });
     }
-  },
-);
+  } catch (ex) {
+    next(ex);
+  }
+});
 
 //Helper for integration test
 function delay(t) {

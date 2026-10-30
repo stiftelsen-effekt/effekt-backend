@@ -62,6 +62,7 @@ export function* draftVippsAgreement(): SagaIterator<void> {
       amount: breakdown.totalAmount,
       initialCharge,
       monthlyChargeDay,
+      registrationToken: donation.registrationToken,
     };
 
     let vippsConfirmationUrl: string;
@@ -108,6 +109,7 @@ export function* draftAvtaleGiro(): SagaIterator<void> {
       KID: donation.kid,
       amount: breakdown.totalAmount,
       dueDay,
+      registrationToken: donation.registrationToken,
     };
 
     try {
@@ -145,7 +147,12 @@ export function* registerBankPending(): SagaIterator<void> {
       donation.smartDistributionTotal,
     );
 
-    yield call(registerBankPendingRequest, donation.kid, breakdown.totalAmount);
+    yield call(
+      registerBankPendingRequest,
+      donation.kid,
+      breakdown.totalAmount,
+      donation.registrationToken,
+    );
   } catch (ex) {
     console.error(ex);
   }

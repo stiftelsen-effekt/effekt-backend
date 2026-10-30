@@ -30,6 +30,11 @@ module.exports = {
   auth0_register_token: process.env.AUTH0_REGISTER_TOKEN,
   //Signing secret of the MailerSend survey_submitted webhook
   mailersend_survey_webhook_secret: process.env.MAILERSEND_SURVEY_WEBHOOK_SECRET,
+  //Signing secret of the Sanity webhook that reports changes to sensitive fields (bank accounts)
+  sanity_security_webhook_secret: process.env.SANITY_SECURITY_WEBHOOK_SECRET,
+  //Key for the short-lived tokens the donation widget gets from registerDonation. Optional:
+  //without it the key is derived from DB_PASS (see custom_modules/registrationToken.ts)
+  widget_registration_token_secret: process.env.WIDGET_REGISTRATION_TOKEN_SECRET,
 
   //Insert db connection values
   db_host: process.env.DB_HOST,

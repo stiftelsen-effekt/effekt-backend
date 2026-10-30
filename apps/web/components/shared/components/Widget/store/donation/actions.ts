@@ -303,7 +303,10 @@ export function setOperationsConfig(config: {
 
 export type RegisterDonationResponse = {
   KID: string;
-  donorID: number;
+  /** Only from the Danish backend */
+  donorID?: number;
+  /** Only from our backend: sent with the follow-up calls for this registration */
+  registrationToken?: string | null;
   hasAnsweredReferral: boolean;
   paymentProviderUrl: string;
   swishOrderID: string;

@@ -131,7 +131,7 @@ export async function archiveTaxUnit(
 /**
  * Norwegian organisasjonsnummer: 9 digits, mod 11 check digit.
  */
-function isValidNorwegianOrgNr(value: string): boolean {
+export function isValidNorwegianOrgNr(value: string): boolean {
   if (!/^\d{9}$/.test(value)) return false;
   const weights = [3, 2, 7, 6, 5, 4, 3, 2];
   const sum = weights.reduce((acc, weight, i) => acc + weight * Number(value[i]), 0);

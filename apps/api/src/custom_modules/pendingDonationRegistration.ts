@@ -6,13 +6,22 @@ import methods from "../enums/methods";
 import { Distribution, DistributionInput } from "../schemas/types";
 import { MAX_REFERRAL_CODE_LENGTH, normalizeReferralCode } from "./referralCode";
 import type { RegisterDonationBody } from "../schemas/publicRequests";
+import { idnr } from "@navikt/fnrvalidator";
+import { isValidNorwegianOrgNr } from "./donorService";
+import { isValidPersonnummer } from "./ku65/ku65_lib";
+import { createRegistrationToken } from "./registrationToken";
 
 const vipps = require("./vipps");
 
 export type PendingDonationRegistered = {
   KID: string | null;
-  donorID: number | null;
+  /**
+   * Always false: whether a donor has answered before would tell anyone who knows an email
+   * address that it belongs to a donor. submitReferral ignores repeat answers instead.
+   */
   hasAnsweredReferral: boolean;
+  /** Lets the widget's follow-up calls act on this registration (see registrationToken.ts) */
+  registrationToken: string | null;
   paymentProviderUrl: string;
   swishOrderID: string | null;
   swishPaymentRequestToken: string | null;
@@ -22,6 +31,24 @@ export type PendingDonationResult =
   { ok: true; content: PendingDonationRegistered } | { ok: false; message: string };
 
 const rejected = (message: string): PendingDonationResult => ({ ok: false, message });
+
+/**
+ * A donor created this long ago or less may still get a tax unit from the widget: the donor who
+ * goes back in the widget to add their ssn after a first registration
+ */
+const FRESH_DONOR_MS = 30 * 60 * 1000;
+
+/**
+ * Whether the widget may register this ssn: what the widgets accept, a Norwegian fødselsnummer,
+ * D- or H-number (11 digits) or organisasjonsnummer (9 digits), or a Swedish personnummer or
+ * organisationsnummer (10 or 12 digits, optionally with - or + before the last four)
+ */
+export function isValidWidgetSsn(ssn: string): boolean {
+  if (/^\d{9}$/.test(ssn)) return isValidNorwegianOrgNr(ssn);
+  if (/^\d{11}$/.test(ssn)) return idnr(ssn).status === "valid";
+  if (/^(\d{6}|\d{8})[-+]?\d{4}$/.test(ssn)) return isValidPersonnummer(ssn);
+  return false;
+}
 
 /**
  * Registers a pending donation from the donation widget or the fundraiser widget: finds or
@@ -50,6 +77,10 @@ export async function registerPendingDonation(
   }
 
   let donor = parsedData.donor;
+  if (donor.ssn != null && donor.ssn !== "") {
+    donor = { ...donor, ssn: donor.ssn.trim() };
+    if (!isValidWidgetSsn(donor.ssn!)) return rejected("Invalid ssn");
+  }
   let paymentProviderUrl = "";
   let swishOrderID: string | null = null;
   let swishPaymentRequestToken: string | null = null;
@@ -91,33 +122,29 @@ export async function registerPendingDonation(
       donationObject.taxUnitId = null;
     }
   } else {
-    //Check for existing tax unit if SSN provided
-    if (typeof donor.ssn !== "undefined" && donor.ssn != null && donor.ssn !== "") {
+    /*
+     * An existing donor. Anyone can type any email address into the widget, so this request
+     * must not change the donor: their name, newsletter choice and tax units stay as they are.
+     * A donation for an ssn the donor already has a tax unit for is registered on that unit;
+     * a new ssn only gets a tax unit for a donor created moments ago (the same donor going back
+     * in the widget to add it). Otherwise the donation is registered without a tax unit, and the
+     * donor can add the unit in Min Side.
+     */
+    if (donor.ssn != null && donor.ssn !== "") {
       const existingTaxUnit = await DAO.tax.getByDonorIdAndSsn(donationObject.donorID, donor.ssn);
 
       if (existingTaxUnit) {
         donationObject.taxUnitId = existingTaxUnit.id;
       } else {
-        donationObject.taxUnitId = await DAO.tax.addTaxUnit(
-          donationObject.donorID,
-          donor.ssn,
-          donor.name ?? "",
-        );
-      }
-    }
-
-    // Check that name is registered and update name if no name set
-    const dbDonor = await DAO.donors.getByID(donationObject.donorID);
-    if (dbDonor!.name === "" || dbDonor!.name === null) {
-      await DAO.donors.updateName(donationObject.donorID, donor.name);
-    }
-
-    //Check if registered for newsletter
-    if (typeof donor.newsletter !== "undefined" && donor.newsletter != null) {
-      let dbDonor = await DAO.donors.getByID(donationObject.donorID);
-      if (!dbDonor!.newsletter) {
-        //Not registered for newsletter, updating donor
-        await DAO.donors.updateNewsletter(donationObject.donorID, donor.newsletter);
+        const dbDonor = await DAO.donors.getByID(donationObject.donorID);
+        const registered = dbDonor?.registered ? new Date(dbDonor.registered).getTime() : NaN;
+        if (Date.now() - registered <= FRESH_DONOR_MS) {
+          donationObject.taxUnitId = await DAO.tax.addTaxUnit(
+            donationObject.donorID,
+            donor.ssn,
+            donor.name ?? "",
+          );
+        }
       }
     }
   }
@@ -271,21 +298,21 @@ export async function registerPendingDonation(
     }
   }
 
-  try {
-    var hasAnsweredReferral = await DAO.referrals.getDonorAnswered(donationObject.donorID);
-  } catch (ex) {
-    console.error(
-      `Could not get whether donor answered referral for donorID ${donationObject.donorID}`,
-    );
-    hasAnsweredReferral = false;
-  }
+  const registrationToken = donationObject.KID
+    ? createRegistrationToken({
+        kid: donationObject.KID,
+        method: donationObject.method,
+        donorId: donationObject.donorID,
+        amount: Number(donationObject.amount),
+      })
+    : null;
 
   return {
     ok: true,
     content: {
       KID: donationObject.KID,
-      donorID: donationObject.donorID,
-      hasAnsweredReferral,
+      hasAnsweredReferral: false,
+      registrationToken,
       paymentProviderUrl,
       swishOrderID,
       swishPaymentRequestToken,

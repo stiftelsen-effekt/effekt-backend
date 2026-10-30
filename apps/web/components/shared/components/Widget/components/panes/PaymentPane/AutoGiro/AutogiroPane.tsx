@@ -39,11 +39,13 @@ export const AutogiroPane: React.FC<{
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
-    if (!donation.kid) return;
-    setAutoGiroDraftPaymentDateRequest(donation.kid, AUTOGIRO_PAYMENT_DATE).catch((err) =>
-      console.error(err),
-    );
-  }, [donation.kid]);
+    if (!donation.kid || !donation.registrationToken) return;
+    setAutoGiroDraftPaymentDateRequest(
+      donation.kid,
+      AUTOGIRO_PAYMENT_DATE,
+      donation.registrationToken,
+    ).catch((err) => console.error(err));
+  }, [donation.kid, donation.registrationToken]);
 
   const breakdown = calculateDonationBreakdown(
     donation.causeAreaAmounts ?? {},
