@@ -14,6 +14,7 @@ on:
       - "packages/api/**"
       - "apps/api/scripts/build-types.mjs"
       - "apps/api/tsconfig.trpc.json"
+      - "packages/config/**"
   push:
     branches: [main]
     paths:
@@ -26,6 +27,7 @@ on:
       - "packages/api/**"
       - "apps/api/scripts/build-types.mjs"
       - "apps/api/tsconfig.trpc.json"
+      - "packages/config/**"
 concurrency:
   group: web-checks-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

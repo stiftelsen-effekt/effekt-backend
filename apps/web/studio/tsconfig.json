@@ -3,16 +3,15 @@
   // The actual transpilation is done by the Sanity CLI (Vite).
   "include": ["./**/*.ts", "./**/*.tsx", "./**/*.js", "./**/*.jsx"],
   "exclude": ["node_modules", ".sanity"],
+  // A separate npm project, so the shared base comes by path rather than as a package
+  "extends": "../../../packages/config/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "module": "Preserve",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "esModuleInterop": true,
-    "skipLibCheck": true,
     "noEmit": true,
-    "strict": true,
     "allowJs": true,
     "checkJs": false,
     "resolveJsonModule": true,

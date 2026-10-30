@@ -1,5 +1,6 @@
 # Build context of apps/api/Dockerfile (the repository root). The Dockerfile only copies the root
-# package files and apps/api; this keeps everything else, and local secrets, out of the context.
+# package files, apps/api and packages/config; this keeps everything else, and local secrets, out
+# of the context.
 **/node_modules
 **/.DS_Store
 .git

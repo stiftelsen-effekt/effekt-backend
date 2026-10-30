@@ -78,6 +78,7 @@
   },
   "devDependencies": {
     "@effekt/api": "workspace:*",
+    "@effekt/config": "workspace:*",
     "@types/d3": "^7.4.3",
     "@types/luxon": "^3.7.6",
     "@types/node": "^22.20.5",
