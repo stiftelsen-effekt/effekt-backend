@@ -198,6 +198,9 @@ async function getRecentOrder() {
  * @return {VippsAgreement | false}
  */
 async function getAgreement(agreementID): Promise<VippsAgreement | false> {
+  // ID is a VARCHAR: MySQL coerces non-numeric IDs to 0, so `ID = false` matches every row
+  if (!agreementID) return false;
+
   let [res] = await DAO.query(
     `
         SELECT ID, status, donorID, KID, ${dbClockColumn(
