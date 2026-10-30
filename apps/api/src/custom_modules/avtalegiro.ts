@@ -384,3 +384,13 @@ export async function updateAvtaleGiroPaymentDate(KID: string, paymentDate: any)
   await sendAvtaleGiroChange(KID, "CHARGEDAY", paymentDate);
   return response;
 }
+
+/**
+ * Drafts an AvtaleGiro agreement for a KID the widget just registered, before the donor signs it
+ * at Nets (REST POST /avtalegiro/draft and tRPC widget.draftAvtaleGiro)
+ * @param amountKroner The monthly amount in NOK, as the widget sends it; stored in øre
+ * @param dueDay Day of the month, 0 = last day
+ */
+export async function draftAvtaleGiroAgreement(KID: string, amountKroner: number, dueDay: number) {
+  await DAO.avtalegiroagreements.add(KID, amountKroner * 100, dueDay, true);
+}

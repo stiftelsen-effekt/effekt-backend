@@ -1,7 +1,10 @@
 import * as express from "express";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import permissions from "../enums/authorizationPermissions";
-import { replaceAutoGiroDistribution } from "../custom_modules/autogiro";
+import {
+  replaceAutoGiroDistribution,
+  setDraftedAutoGiroPaymentDate,
+} from "../custom_modules/autogiro";
 import {
   checkDonorOwnsDistribution,
   isAdmin,
@@ -263,16 +266,10 @@ router.post("/:KID/paymentdate", authMiddleware.isAdmin, async (req, res, next) 
       });
     }
 
-    const agreement = await DAO.autogiroagreements.getAgreementByKID(req.params.KID);
-
-    if (!agreement) {
-      return res.status(404).json({
-        status: 404,
-        content: "Agreement not found",
-      });
+    const result = await setDraftedAutoGiroPaymentDate(req.params.KID, paymentDate);
+    if (!result.ok) {
+      return res.status(result.status).json({ status: result.status, content: result.message });
     }
-
-    await DAO.autogiroagreements.setAgreementPaymentDateByKID(req.params.KID, paymentDate);
 
     res.json({
       status: 200,
@@ -371,19 +368,9 @@ router.put("/:KID/drafted/paymentdate", async (req, res, next) => {
       });
     }
 
-    const agreement = await DAO.autogiroagreements.getAgreementByKID(req.params.KID);
-
-    if (!agreement) {
-      return res.status(404).json({ status: 404, content: "Agreement not found" });
-    }
-
-    if (agreement.active === false) {
-      await DAO.autogiroagreements.setAgreementPaymentDateByKID(req.params.KID, paymentDate);
-    } else {
-      return res.status(400).json({
-        status: 400,
-        content: "Agreement is not in drafted state",
-      });
+    const result = await setDraftedAutoGiroPaymentDate(req.params.KID, paymentDate);
+    if (!result.ok) {
+      return res.status(result.status).json({ status: result.status, content: result.message });
     }
 
     res.json({

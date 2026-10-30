@@ -3,15 +3,26 @@ import { DAO } from "../../custom_modules/DAO";
 import { getAllCauseAreasWithOrganizations } from "../../custom_modules/configService";
 import { sendDonationRegistered } from "../../custom_modules/mail";
 import { registerPendingDonation } from "../../custom_modules/pendingDonationRegistration";
+import { draftAvtaleGiroAgreement } from "../../custom_modules/avtalegiro";
+import { setDraftedAutoGiroPaymentDate } from "../../custom_modules/autogiro";
+import { getSwishOrder } from "../../custom_modules/swish";
 import { registerDonationSchema } from "../../schemas/publicRequests";
 import { publicProcedure, router } from "../trpc";
 import {
+  widgetAutoGiroDraftPaymentDateInput,
   widgetBankPendingInput,
   widgetCauseAreasOutput,
+  widgetDraftAvtaleGiroInput,
+  widgetDraftVippsAgreementInput,
+  widgetDraftVippsAgreementOutput,
+  widgetSwishOrderStatusInput,
+  widgetSwishOrderStatusOutput,
   widgetReferralTypesOutput,
   widgetRegisterDonationOutput,
   widgetSubmitReferralInput,
 } from "../shared/widget";
+
+const vipps = require("../../custom_modules/vipps");
 
 /** The "Other" referral type, whose answer carries a free-text comment */
 const OTHER_REFERRAL_ID = 10;
@@ -89,4 +100,63 @@ export const widgetRouter = router({
     }
     return true;
   }),
+
+  /**
+   * POST /vipps/agreement/draft: drafts a monthly Vipps agreement for a KID from registerDonation
+   * and returns the Vipps page where the donor confirms it. Same call (vipps.draftAgreement) as
+   * REST, which also caps the charge day at 28.
+   */
+  draftVippsAgreement: publicProcedure
+    .input(widgetDraftVippsAgreementInput)
+    .output(widgetDraftVippsAgreementOutput)
+    .mutation(async ({ input }) => {
+      const monthlyChargeDay = Math.min(input.monthlyChargeDay, 28);
+      const draft = await vipps.draftAgreement(
+        input.KID,
+        input.amount,
+        input.initialCharge,
+        monthlyChargeDay,
+      );
+      // REST answers 200 with `content: false` here, which the widget can't use either
+      if (!draft) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not draft the Vipps agreement",
+        });
+      }
+      return draft;
+    }),
+
+  /**
+   * POST /avtalegiro/draft: drafts an AvtaleGiro agreement for a KID from registerDonation, before
+   * the widget hands the donor over to Nets to sign it. The amount is in NOK.
+   */
+  draftAvtaleGiro: publicProcedure.input(widgetDraftAvtaleGiroInput).mutation(async ({ input }) => {
+    await draftAvtaleGiroAgreement(input.KID, input.amount, input.dueDay ?? 0);
+    return true;
+  }),
+
+  /** GET /swish/orders/:id/status: the widget polls this while the donor pays in Swish */
+  swishOrderStatus: publicProcedure
+    .input(widgetSwishOrderStatusInput)
+    .output(widgetSwishOrderStatusOutput)
+    .query(async ({ input }) => {
+      const order = await getSwishOrder(Number(input.orderId));
+      if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Swish order not found" });
+      return { status: order.status };
+    }),
+
+  /** PUT /autogiro/:KID/drafted/paymentdate: the payment date of a not yet signed AutoGiro agreement */
+  setAutoGiroDraftPaymentDate: publicProcedure
+    .input(widgetAutoGiroDraftPaymentDateInput)
+    .mutation(async ({ input }) => {
+      const result = await setDraftedAutoGiroPaymentDate(input.KID, input.paymentDate);
+      if (!result.ok) {
+        throw new TRPCError({
+          code: result.status === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+          message: result.message,
+        });
+      }
+      return true;
+    }),
 });

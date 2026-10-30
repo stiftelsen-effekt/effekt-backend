@@ -10,6 +10,7 @@ import { metaRouter } from "./routers/meta";
 import { minsideRouter } from "./routers/minside";
 import { regrantingRouter } from "./routers/regranting";
 import { reportsRouter } from "./routers/reports";
+import { siteRouter } from "./routers/site";
 import { vippsRouter } from "./routers/vipps";
 import { widgetRouter } from "./routers/widget";
 import { router } from "./trpc";
@@ -31,6 +32,8 @@ export const appRouter = router({
   minside: minsideRouter,
   // The public donation widget on the website (no login)
   widget: widgetRouter,
+  // Public reads for the rest of the website: results, fundraisers, LTV (no login)
+  site: siteRouter,
 });
 
 export type AppRouter = typeof appRouter;
