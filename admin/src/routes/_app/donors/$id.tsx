@@ -261,7 +261,7 @@ function Donor({ donorId }: { donorId: number }) {
   const displayName = donor ? donor.name || donor.email : "";
 
   /**
-   * Flag changes are optimistic with undo (docs/admin-design.md › Optimism, undo and feedback). Undoing
+   * Flag changes are optimistic with undo (DESIGN.md › Optimism, undo and feedback). Undoing
    * confirms with a plain toast: an undo of the undo would only go round in circles.
    */
   function setFlag(

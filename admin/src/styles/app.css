@@ -40,7 +40,7 @@
 }
 
 /*
- * Tokens. See docs/admin-design.md › Tokens for the reasoning behind each value.
+ * Tokens. See DESIGN.md › Tokens for the reasoning behind each value.
  *
  * Layer 1 (raw): a warm-neutral "paper" scale plus a few hues. Nothing outside this file
  * uses raw values; every default Tailwind colour, size, radius and shadow is removed.

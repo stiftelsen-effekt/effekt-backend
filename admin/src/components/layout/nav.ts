@@ -8,7 +8,7 @@
  *   Analysis     – how much has been given through time, with open pledges (tilsagn)
  *   Records      – reports and the import log
  *   Settings     – cause areas, organizations, referral types, matching rules
- * See docs/admin-design.md › Information architecture.
+ * See DESIGN.md › Information architecture.
  */
 import {
   ArrowDownToLineIcon,

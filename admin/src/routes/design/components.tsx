@@ -695,7 +695,7 @@ function Components() {
             Nothing shows for loads under 300 ms. A first load draws the real layout with
             placeholder values; a change of day, page, filter or row keeps what is on screen,
             dimmed, with the progress line along the top; a route change keeps the previous page
-            until the next one's record is in. See docs/admin-design.md › Loading.
+            until the next one's record is in. See DESIGN.md › Loading.
           </>
         }
       >

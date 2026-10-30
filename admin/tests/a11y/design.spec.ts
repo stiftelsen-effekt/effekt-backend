@@ -5,7 +5,7 @@ import { designRoutes, openDesign, viewports, type Theme } from "../helpers";
 /**
  * Automated WCAG 2.1 A/AA checks with axe on every /design page and the main interaction
  * states, in both themes. Automated checks catch roughly a third of issues; keyboard and
- * screen reader checks are in docs/admin-design.md › Accessibility.
+ * screen reader checks are in DESIGN.md › Accessibility.
  */
 const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 

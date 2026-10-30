@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 /*
- * Conventions from docs/admin-design.md › Loading that a type checker can't see: pages keep their data
+ * Conventions from DESIGN.md › Loading that a type checker can't see: pages keep their data
  * on parameter changes through usePageQuery, and never build skeleton layouts by hand.
  */
 const pages = import.meta.glob<string>("../routes/_app/**/*.tsx", {

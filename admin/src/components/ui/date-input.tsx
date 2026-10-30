@@ -9,7 +9,7 @@ import { Input } from "./input";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
 /*
- * Dates are typed or picked as dd.mm.yyyy (docs/admin-design.md › Money, numbers and dates). Values are
+ * Dates are typed or picked as dd.mm.yyyy (DESIGN.md › Money, numbers and dates). Values are
  * YYYY-MM-DD strings; "" means no date. Native <input type="date"> isn't used: its format
  * follows the browser's locale, not Norway's.
  */

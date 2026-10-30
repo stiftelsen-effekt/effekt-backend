@@ -4,7 +4,7 @@ import { newDonorsFixture } from "../analysis-fixtures";
 import { fixtures as regrantingFixtures } from "../regranting-fixtures";
 
 /**
- * Loading is calm (docs/admin-design.md › Loading): against a slow stubbed API, first loads of key pages
+ * Loading is calm (DESIGN.md › Loading): against a slow stubbed API, first loads of key pages
  * don't shift the layout when the data arrives, and changing the AvtaleGiro day, the Balances
  * date or a statement's period keeps the current data on screen (no skeletons, no shift).
  *

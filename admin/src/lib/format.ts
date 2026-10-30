@@ -21,7 +21,7 @@ function numberFormat(options: Intl.NumberFormatOptions) {
 }
 
 /**
- * How an amount is shown (docs/admin-design.md › Money):
+ * How an amount is shown (DESIGN.md › Money):
  * - `exact` (the default): always two decimals, `1 500,00 kr`. Tables, record fields, inputs,
  *   statements, confirmations: anything read as a figure or scanned in a right-aligned column.
  * - `whole`: rounded to whole kroner, `1 500 kr`. Aggregates meant to be glanced at: stat
