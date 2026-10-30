@@ -37,6 +37,14 @@ export const config = {
     missedClaim: 0.028,
     /** Share with notice before each claim */
     notice: 0.77,
+    /**
+     * Claims are recorded per agreement and due date (Avtalegiro_agreement_charges) for this many
+     * recent days, sent this many banking days before the due date
+     */
+    chargeHistoryDays: 120,
+    claimBankDaysAhead: 4,
+    /** Share of claim days where MPS rejects the first file and a retry sends the claims again */
+    rejectedShipment: 0.05,
     /** Monthly amount in NOK -> weight (prod: most common amounts among active agreements) */
     amounts: {
       1000: 123,

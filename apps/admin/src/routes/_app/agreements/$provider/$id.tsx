@@ -28,10 +28,17 @@ import {
 } from "@/features/agreements/agreement-distribution";
 import { listProviders, toListStatus, type ListProvider } from "@/features/agreements/list";
 import { agreementTypes, describeChargeDay } from "@/features/agreements/model";
+import { isOverdue, type AvtaleGiroChargeRow } from "@/features/agreements/avtalegiro-charges";
+import { osloDay } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
 import { sumMoney } from "@/lib/money";
 import { notify } from "@/lib/notify";
-import { agreementStatus, chargeStatus, type AgreementStatus } from "@/lib/status";
+import {
+  agreementStatus,
+  avtaleGiroChargeStatus,
+  chargeStatus,
+  type AgreementStatus,
+} from "@/lib/status";
 import { loadPage } from "@/lib/route-data";
 import { unbatched, useTRPC, type RouterOutputs } from "@/lib/trpc";
 
@@ -47,6 +54,7 @@ export const Route = createFileRoute("/_app/agreements/$provider/$id")({
     if (provider !== "avtalegiro" || !(Number.isInteger(numericId) && numericId > 0)) return;
     return loadPage(queryClient, cause, trpc.giro.avtalegiro.get.queryOptions({ id: numericId }), [
       trpc.giro.avtalegiro.payments.queryOptions({ agreementId: numericId }),
+      trpc.giro.avtalegiro.charges.byAgreement.queryOptions({ agreementId: numericId }),
       { ...trpc.config.causeAreas.listAll.queryOptions(), staleTime: 5 * 60_000 },
     ]);
   },
@@ -171,6 +179,7 @@ function AgreementLayout({
   providerPanel,
   callout,
   distribution,
+  sections,
   payments,
   paymentsTitle,
   paymentsDescription,
@@ -185,6 +194,8 @@ function AgreementLayout({
   providerPanel?: ReactNode;
   callout?: ReactNode;
   distribution: ReactNode;
+  /** Provider-specific sections between the distribution and the payments */
+  sections?: ReactNode;
   payments: Payment[] | undefined;
   paymentsTitle: string;
   paymentsDescription: string;
@@ -314,6 +325,7 @@ function AgreementLayout({
     >
       {callout}
       {distribution}
+      {sections}
       <PageSection
         fill
         title={paymentsTitle}
@@ -693,6 +705,10 @@ function AvtaleGiroAgreementPage({ id }: { id: string }) {
     ...trpc.giro.avtalegiro.payments.queryOptions({ agreementId: numericId }),
     enabled: valid,
   });
+  const charges = useQuery({
+    ...trpc.giro.avtalegiro.charges.byAgreement.queryOptions({ agreementId: numericId }),
+    enabled: valid,
+  });
   const updateAmount = useMutation(trpc.giro.avtalegiro.updateAmount.mutationOptions());
   const updateStatus = useMutation(trpc.giro.avtalegiro.updateStatus.mutationOptions());
   const updatePaymentDate = useMutation(trpc.giro.avtalegiro.updatePaymentDate.mutationOptions());
@@ -822,6 +838,14 @@ function AvtaleGiroAgreementPage({ id }: { id: string }) {
           }}
         />
       }
+      sections={
+        <AvtaleGiroChargesSection
+          agreementId={numericId}
+          charges={charges.data}
+          error={charges.error}
+          onRetry={() => void charges.refetch()}
+        />
+      }
       payments={payments}
       paymentsError={donations.error}
       onRetryPayments={() => void donations.refetch()}
@@ -834,6 +858,106 @@ function AvtaleGiroAgreementPage({ id }: { id: string }) {
           : "Donations from this agreement, newest first."
       }
     />
+  );
+}
+
+/** The latest claims shown on the agreement; the rest are in the charges list */
+const RECENT_CHARGES = 6;
+
+const chargeCol = createColumns<AvtaleGiroChargeRow>();
+const chargeColumns = (today: string) =>
+  chargeCol.columns([
+    chargeCol.accessor("dueDate", {
+      header: "Due",
+      cell: ({ getValue }) => <DateTime value={getValue()} />,
+    }),
+    chargeCol.accessor("status", {
+      header: "Status",
+      cell: ({ row }) => (
+        <span className="inline-flex items-center gap-2">
+          <Status catalog={avtaleGiroChargeStatus} value={row.original.status} />
+          {isOverdue(row.original, today) && (
+            <span className="text-xs text-warning">No payment</span>
+          )}
+        </span>
+      ),
+    }),
+    chargeCol.accessor("amount", {
+      header: "Amount",
+      meta: { numeric: true, cellClassName: "font-semibold" },
+      cell: ({ getValue }) => <Money value={getValue()} />,
+    }),
+    chargeCol.accessor("donationId", {
+      header: "Donation",
+      meta: { cellClassName: "text-muted-foreground" },
+      cell: ({ getValue }) => {
+        const id = getValue();
+        return id == null ? "–" : <CopyValue value={id} label="donation ID" />;
+      },
+    }),
+    chargeCol.accessor("shipmentId", {
+      header: "Shipment",
+      meta: { cellClassName: "num text-muted-foreground" },
+    }),
+  ]);
+
+/**
+ * The claims sent to the bank for this agreement, newest due date first. A paid claim opens its
+ * donation; the others open the charges list for the agreement.
+ */
+function AvtaleGiroChargesSection({
+  agreementId,
+  charges,
+  error,
+  onRetry,
+}: {
+  agreementId: number;
+  charges: AvtaleGiroChargeRow[] | undefined;
+  error: unknown;
+  onRetry: () => void;
+}) {
+  const navigate = useNavigate();
+  const today = osloDay();
+  const listHref = `/avtalegiro-charges?agreement=${agreementId}`;
+  const hrefOf = (row: AvtaleGiroChargeRow) =>
+    row.donationId != null ? `/donations/${row.donationId}` : listHref;
+  const more = charges && charges.length > RECENT_CHARGES ? charges.length - RECENT_CHARGES : 0;
+  return (
+    <PageSection
+      title="Charges"
+      description={
+        more > 0
+          ? `Claims sent to the bank, newest first. Showing the latest ${RECENT_CHARGES} of ${charges!.length}.`
+          : "Claims sent to the bank, newest first."
+      }
+      actions={
+        <Button asChild size="sm" variant="ghost">
+          <Link to="/avtalegiro-charges" search={{ agreement: agreementId }}>
+            All charges
+            <ArrowUpRightIcon />
+          </Link>
+        </Button>
+      }
+    >
+      {error ? (
+        <ErrorState error={error} title="Couldn't load the charges" onRetry={onRetry} />
+      ) : charges && charges.length === 0 ? (
+        <EmptyState
+          title="No charges recorded"
+          description="A charge is recorded when the daily claims run sends this agreement's claim to the bank. Claims sent before charges were tracked (October 2026) aren't listed."
+        />
+      ) : (
+        <DataTable
+          label="Charges"
+          columns={chargeColumns(today)}
+          data={charges?.slice(0, RECENT_CHARGES)}
+          isLoading={charges === undefined}
+          getRowId={(row) => String(row.id)}
+          getRowHref={hrefOf}
+          onRowOpen={(row) => void navigate({ to: hrefOf(row) as LinkProps["to"] })}
+        />
+      )}
+    </PageSection>
   );
 }
 

@@ -61,6 +61,44 @@ export const chargeStatus = define({
 });
 export type ChargeStatus = keyof typeof chargeStatus;
 
+/**
+ * AvtaleGiro claims sent to Mastercard Payment Services (AvtaleGiroChargeStatus in the API's
+ * avtalegiro/charges.ts).
+ */
+export const avtaleGiroChargeStatus = define({
+  CLAIMED: {
+    label: "Claimed",
+    tone: "accent",
+    description: "Sent to the bank; the payment hasn't been matched yet",
+  },
+  COMPLETED: {
+    label: "Paid",
+    tone: "success",
+    description: "The payment arrived in an OCR file and is linked to its donation",
+  },
+  SUPERSEDED: {
+    label: "Superseded",
+    tone: "neutral",
+    description: "The bank didn't accept the file; a retry sent the claim again",
+  },
+  DELETION_REQUESTED: {
+    label: "Deletion requested",
+    tone: "warning",
+    description: "The agreement was cancelled; the claim goes in the next deletion file",
+  },
+  DELETION_SENT: {
+    label: "Deletion sent",
+    tone: "warning",
+    description: "Sent in a deletion file; waiting for the bank to accept it",
+  },
+  DELETED: {
+    label: "Deleted",
+    tone: "neutral",
+    description: "The bank accepted the deletion; the donor isn't charged",
+  },
+});
+export type AvtaleGiroChargeStatus = keyof typeof avtaleGiroChargeStatus;
+
 /** One charge day in the AvtaleGiro check: did the expected money come in? */
 export const avtaleGiroDayStatus = define({
   complete: {
@@ -199,6 +237,7 @@ export type ProjectStatus = keyof typeof projectStatus;
 export const statusCatalogs = {
   agreementStatus,
   chargeStatus,
+  avtaleGiroChargeStatus,
   avtaleGiroDayStatus,
   importStatus,
   reviewStatus,

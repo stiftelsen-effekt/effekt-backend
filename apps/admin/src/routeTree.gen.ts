@@ -14,6 +14,7 @@ import { Route as DesignRouteImport } from './routes/design'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
+import { Route as AppAvtalegiroChargesRouteImport } from './routes/_app/avtalegiro-charges'
 import { Route as AppAvtalegiroCheckRouteImport } from './routes/_app/avtalegiro-check'
 import { Route as AppChargesRouteImport } from './routes/_app/charges'
 import { Route as AppRegrantingRouteRouteImport } from './routes/_app/regranting/route'
@@ -85,6 +86,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppSplatRoute = AppSplatRouteImport.update({
   id: '/$',
   path: '/$',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAvtalegiroChargesRoute = AppAvtalegiroChargesRouteImport.update({
+  id: '/avtalegiro-charges',
+  path: '/avtalegiro-charges',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAvtalegiroCheckRoute = AppAvtalegiroCheckRouteImport.update({
@@ -339,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/regranting': typeof AppRegrantingRouteRouteWithChildren
   '/$': typeof AppSplatRoute
+  '/avtalegiro-charges': typeof AppAvtalegiroChargesRoute
   '/avtalegiro-check': typeof AppAvtalegiroCheckRoute
   '/charges': typeof AppChargesRoute
   '/reports': typeof AppReportsRoute
@@ -390,6 +397,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/avtalegiro-charges': typeof AppAvtalegiroChargesRoute
   '/avtalegiro-check': typeof AppAvtalegiroCheckRoute
   '/charges': typeof AppChargesRoute
   '/reports': typeof AppReportsRoute
@@ -446,6 +454,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/regranting': typeof AppRegrantingRouteRouteWithChildren
   '/_app/$': typeof AppSplatRoute
+  '/_app/avtalegiro-charges': typeof AppAvtalegiroChargesRoute
   '/_app/avtalegiro-check': typeof AppAvtalegiroCheckRoute
   '/_app/charges': typeof AppChargesRoute
   '/_app/reports': typeof AppReportsRoute
@@ -503,6 +512,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/regranting'
     | '/$'
+    | '/avtalegiro-charges'
     | '/avtalegiro-check'
     | '/charges'
     | '/reports'
@@ -554,6 +564,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/$'
+    | '/avtalegiro-charges'
     | '/avtalegiro-check'
     | '/charges'
     | '/reports'
@@ -609,6 +620,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/regranting'
     | '/_app/$'
+    | '/_app/avtalegiro-charges'
     | '/_app/avtalegiro-check'
     | '/_app/charges'
     | '/_app/reports'
@@ -700,6 +712,13 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof AppSplatRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/avtalegiro-charges': {
+      id: '/_app/avtalegiro-charges'
+      path: '/avtalegiro-charges'
+      fullPath: '/avtalegiro-charges'
+      preLoaderRoute: typeof AppAvtalegiroChargesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/avtalegiro-check': {
@@ -1076,6 +1095,7 @@ const AppRegrantingRouteRouteWithChildren =
 interface AppRouteChildren {
   AppRegrantingRouteRoute: typeof AppRegrantingRouteRouteWithChildren
   AppSplatRoute: typeof AppSplatRoute
+  AppAvtalegiroChargesRoute: typeof AppAvtalegiroChargesRoute
   AppAvtalegiroCheckRoute: typeof AppAvtalegiroCheckRoute
   AppChargesRoute: typeof AppChargesRoute
   AppReportsRoute: typeof AppReportsRoute
@@ -1108,6 +1128,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppRegrantingRouteRoute: AppRegrantingRouteRouteWithChildren,
   AppSplatRoute: AppSplatRoute,
+  AppAvtalegiroChargesRoute: AppAvtalegiroChargesRoute,
   AppAvtalegiroCheckRoute: AppAvtalegiroCheckRoute,
   AppChargesRoute: AppChargesRoute,
   AppReportsRoute: AppReportsRoute,
