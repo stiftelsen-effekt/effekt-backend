@@ -9,7 +9,9 @@ steps:
     args: ["scripts/deploy/guard.sh"]
 
   # The API image (apps/api/Dockerfile), built from the repository root. BuildKit, for
-  # apps/api/Dockerfile.dockerignore.
+  # apps/api/Dockerfile.dockerignore. Every later step uses the image by this build's own tag,
+  # effektapi:$BUILD_ID, never by :latest: a parallel older build may push :latest after this
+  # one, and deploying by a shared tag would then ship its image (docs/deploy.md).
   - name: "gcr.io/cloud-builders/docker"
     env: ["DOCKER_BUILDKIT=1"]
     entrypoint: "bash"
@@ -20,19 +22,33 @@ steps:
       - "-f"
       - "apps/api/Dockerfile"
       - "-t"
+      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
+      - "-t"
       - "gcr.io/$PROJECT_ID/effektapi:latest"
       - "."
 
-  # Check again before touching production (the shared :latest tag included): a newer merge may
-  # have landed during the image build.
+  # Publishing the build's own tag changes nothing in production
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-build-tag"
+    entrypoint: "bash"
+    args:
+      [
+        "scripts/deploy/unless-skipped.sh",
+        "docker",
+        "push",
+        "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID",
+      ]
+
+  # Check again before touching production: a newer merge may have landed during the image build
   - name: "gcr.io/cloud-builders/git"
     id: "guard-before-release"
     entrypoint: "bash"
     env: ["COMMIT_SHA=$COMMIT_SHA"]
     args: ["scripts/deploy/guard.sh"]
 
+  # :latest is a convenience tag for people (docker pull); nothing deploys from it
   - name: "gcr.io/cloud-builders/docker"
-    id: "build"
+    id: "push-latest"
     waitFor: ["guard-before-release"]
     entrypoint: "bash"
     args:
@@ -40,17 +56,20 @@ steps:
 
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-norway"
-    waitFor: ["build"]
+    waitFor: ["push-latest"]
     entrypoint: "bash"
     args:
       - "scripts/deploy/unless-skipped.sh"
       - "gcloud"
       - "run"
       - "jobs"
-      - "execute"
+      - "update"
       - "effektapi-db-migrate"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
       - "--region"
       - "europe-north1"
+      - "--execute-now"
       - "--wait"
 
   - name: "gcr.io/cloud-builders/gcloud"
@@ -64,7 +83,7 @@ steps:
       - "deploy"
       - "effektapi"
       - "--image"
-      - "gcr.io/$PROJECT_ID/effektapi:latest"
+      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
       - "--region"
       - "europe-north1"
       - "--platform"
@@ -79,10 +98,13 @@ steps:
       - "gcloud"
       - "run"
       - "jobs"
-      - "execute"
+      - "update"
       - "geeffektivt-db-migrate"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
       - "--region"
       - "europe-north1"
+      - "--execute-now"
       - "--wait"
 
   - name: "gcr.io/cloud-builders/gcloud"
@@ -96,7 +118,7 @@ steps:
       - "deploy"
       - "geeffektivt"
       - "--image"
-      - "gcr.io/$PROJECT_ID/effektapi:latest"
+      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
       - "--region"
       - "europe-north1"
       - "--platform"
