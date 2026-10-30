@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import type { Request, Response } from "express";
 import sinon from "sinon";
+import * as auth0 from "../custom_modules/auth0";
 import { DAO } from "../custom_modules/DAO";
 import * as taxModule from "../custom_modules/tax";
 import { validateTaxUnitSsn } from "../custom_modules/donorService";
@@ -394,18 +395,35 @@ describe("tRPC donors router", () => {
       expect(add.called).to.be.false;
     });
 
-    it("merges donors", async () => {
+    it("merges donors, re-pointing Auth0 to the destination first", async () => {
       sinon.stub(DAO.donors, "getByID").resolves(donor as any);
       const merge = sinon.stub(DAO.donors, "mergeDonors").resolves();
+      const repoint = sinon
+        .stub(auth0, "repointAuth0DonorIdOnMerge")
+        .resolves({ updated: [], skipped: [] });
 
       expect(await admin().donors.merge({ originId: 7, destinationId: 8 })).to.equal(true);
       expect(merge.firstCall.args).to.deep.equal([7, 8]);
+      expect(repoint.firstCall.args).to.deep.equal([7, 8, donor.email]);
+      expect(repoint.calledBefore(merge)).to.be.true;
+    });
+
+    it("still merges when re-pointing Auth0 fails", async () => {
+      sinon.stub(DAO.donors, "getByID").resolves(donor as any);
+      const merge = sinon.stub(DAO.donors, "mergeDonors").resolves();
+      sinon.stub(console, "error");
+      sinon.stub(auth0, "repointAuth0DonorIdOnMerge").rejects(new Error("Auth0 unavailable"));
+
+      expect(await admin().donors.merge({ originId: 7, destinationId: 8 })).to.equal(true);
+      expect(merge.calledOnce).to.be.true;
     });
 
     it("refuses to merge a donor into itself", async () => {
       const merge = sinon.stub(DAO.donors, "mergeDonors").resolves();
+      const repoint = sinon.stub(auth0, "repointAuth0DonorIdOnMerge");
       await expectTrpcError(admin().donors.merge({ originId: 7, destinationId: 7 }), "BAD_REQUEST");
       expect(merge.called).to.be.false;
+      expect(repoint.called).to.be.false;
     });
 
     it("returns NOT_FOUND when merging a missing donor", async () => {
@@ -416,8 +434,10 @@ describe("tRPC donors router", () => {
         .withArgs(7)
         .resolves(donor as any);
       const merge = sinon.stub(DAO.donors, "mergeDonors").resolves();
+      const repoint = sinon.stub(auth0, "repointAuth0DonorIdOnMerge");
       await expectTrpcError(admin().donors.merge({ originId: 7, destinationId: 8 }), "NOT_FOUND");
       expect(merge.called).to.be.false;
+      expect(repoint.called).to.be.false;
     });
   });
 
