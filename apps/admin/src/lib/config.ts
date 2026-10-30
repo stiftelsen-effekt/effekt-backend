@@ -17,7 +17,10 @@ export const config = {
     domain: env.VITE_AUTH_DOMAIN ?? "",
     clientId: env.VITE_AUTH_CLIENT_ID ?? "",
     audience: env.VITE_AUTH_AUDIENCE ?? "",
-    scope: env.VITE_AUTH_SCOPE || undefined,
+    // Never undefined: auth0-spa-js merges `authorizationParams` over its defaults, so an
+    // explicit `scope: undefined` drops its "openid profile email" and Auth0 is asked for just
+    // "openid", an ID token with only `sub` (no name or email for the sidebar).
+    scope: env.VITE_AUTH_SCOPE || "openid profile email",
     devTokenUrl: env.VITE_DEV_AUTH_TOKEN_URL || "/dev-auth/effekt/token",
   },
   features: {

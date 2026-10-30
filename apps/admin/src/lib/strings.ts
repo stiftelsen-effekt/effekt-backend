@@ -70,6 +70,11 @@ export const strings = {
     notFound: "Not found",
     notFoundHint: "It may have been deleted or merged into another record.",
   },
+  account: {
+    signedOut: "Signed out",
+    signedIn: "Signed in",
+    loading: "Signing in…",
+  },
   preferences: {
     theme: "Theme",
     light: "Light",

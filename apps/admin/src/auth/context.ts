@@ -80,3 +80,22 @@ export function givenNameFrom(claims: { given_name?: unknown; name?: unknown }) 
   if (!name || name.includes("@") || /\d/.test(name)) return undefined;
   return name.split(/\s+/)[0];
 }
+
+type IdTokenClaims = {
+  sub?: string;
+  name?: string;
+  given_name?: string;
+  email?: string;
+  picture?: string;
+};
+
+/** The ID token's claims as an AuthUser. With only the `openid` scope there is just `sub`. */
+export function authUserFromClaims(claims: IdTokenClaims): AuthUser {
+  return {
+    id: claims.sub ?? "",
+    name: claims.name,
+    givenName: givenNameFrom(claims),
+    email: claims.email,
+    picture: claims.picture,
+  };
+}

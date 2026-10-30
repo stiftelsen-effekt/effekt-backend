@@ -33,6 +33,7 @@ import { useHotkey } from "@/hooks/use-hotkey";
 import { org } from "@/lib/org";
 import { usePreferences, type Density, type ThemePreference } from "@/lib/preferences";
 import { strings } from "@/lib/strings";
+import { userIdentity } from "./user-identity";
 import { cn } from "@/lib/utils";
 import { CommandPalette, type PaletteCommand } from "./command-palette";
 import { navGroups, settingsItem, type NavGroup, type NavItem } from "./nav";
@@ -87,13 +88,7 @@ function NavLink({
 function UserMenu() {
   const auth = useAuth();
   const prefs = usePreferences();
-  const name = auth.user?.name ?? "Signed out";
-  const initials = name
-    .split(/\s+/)
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const { label, detail, initials } = userIdentity(auth);
 
   return (
     <DropdownMenu>
@@ -104,10 +99,8 @@ function UserMenu() {
           {initials || "?"}
         </span>
         <span className="grid min-w-0 flex-1 text-left leading-tight">
-          <span className="truncate font-semibold">{name}</span>
-          {auth.user?.email && (
-            <span className="truncate text-xs text-muted-foreground">{auth.user.email}</span>
-          )}
+          <span className="truncate font-semibold">{label}</span>
+          {detail && <span className="truncate text-xs text-muted-foreground">{detail}</span>}
         </span>
         <ChevronsUpDownIcon />
       </DropdownMenuTrigger>
