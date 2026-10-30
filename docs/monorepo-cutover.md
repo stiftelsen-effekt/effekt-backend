@@ -8,9 +8,16 @@ This document lists everything that has to change outside the repository, in ord
 to undo it. Steps marked **(admin)** need access to Vercel, GitHub repository settings, GCP or
 the Semgrep/Cypress dashboards.
 
+**Overall order:** merge the import PR → [1](#1-freeze-main-site-and-final-sync) freeze →
+[2](#2-github-secrets-access-and-branch-protection) secrets, access and branch protection →
+[3](#3-cloud-build-triggers) Cloud Build → [8](#8-repo-rename-effekt-backend-to-effekt-platform)
+rename to `effekt-platform` → final sync (step 1.3) → [4](#4-vercel) Vercel, connecting
+`effekt-platform` directly → [6](#6-archive-main-site) archive main-site. Vercel links
+repositories by id, so renaming first means the Vercel step never has to be redone.
+
 - [What the import changed](#what-the-import-changed)
 - [1. Freeze main-site and final sync](#1-freeze-main-site-and-final-sync)
-- [2. GitHub secrets](#2-github-secrets)
+- [2. GitHub secrets, access and branch protection](#2-github-secrets-access-and-branch-protection)
 - [3. Cloud Build triggers](#3-cloud-build-triggers)
 - [4. Vercel](#4-vercel)
 - [5. Sanity Studio](#5-sanity-studio)
@@ -66,7 +73,7 @@ yet, so no matching `deployment_status` events arrive.
    If a synced commit touches `apps/web/pnpm-lock.yaml` or `apps/web/pnpm-workspace.yaml`,
    delete them again (they live at the root now) and regenerate the root lockfile.
 
-## 2. GitHub secrets
+## 2. GitHub secrets, access and branch protection
 
 **(admin)** Create these repository secrets on `stiftelsen-effekt/effekt-backend` with the same
 values as on main-site (GitHub can't copy secret values; take them from the password manager or
@@ -91,10 +98,47 @@ gh secret set CYPRESS_RECORD_KEY    -R stiftelsen-effekt/effekt-backend
 Cypress Cloud: in the project's settings, connect the GitHub integration to this repository so
 the "cypress: GiEffektivt e2e tests" status check keeps appearing on commits.
 
-Branch protection on main-site requires "Vercel – main-site", "Vercel – ge-effektivt" and
-"cypress: GiEffektivt e2e tests". This repository only requires "QualityAssurance
-(hidden-display-243419)". Decide after the cutover whether to require the Vercel checks here
-too (Vercel reports a skipped build as successful, so backend-only PRs would not be blocked).
+`claude.yml` reads `ANTHROPIC_API_KEY`, which isn't a repository secret here yet; add it if the
+`@claude` workflow should run.
+
+### Access
+
+**(admin)** Website contributors need write access here, or GitHub ignores them as code owners
+and they can't open branches. Write access to this repository covers the backend and admin
+too; code-owner review on `master` (below) keeps those merges with fellmirr.
+
+```sh
+R=stiftelsen-effekt/effekt-backend
+for u in EliseAndresen jadypamella Sumiya-Sayeed max-baz; do
+  gh api -X PUT "repos/$R/collaborators/$u" -f permission=push
+done
+gh api "repos/$R/codeowners/errors?ref=master" -q '.errors | length'   # expect 0 once invites are accepted
+```
+
+`max-baz` is admin on main-site; here he gets write, without admin or review bypass. New
+collaborators must accept the invitation before they count as code owners.
+
+### Branch protection
+
+**(admin)** main-site requires 1 approval with code-owner review (bypass: fellmirr, max-baz).
+Here: 1 approval with code-owner review, bypass for fellmirr only. `CODEOWNERS` gives fellmirr
+everything except Elise's areas in `apps/web`, so backend and admin PRs need fellmirr, and
+display components, styles and Sanity schemas can be approved by Elise. fellmirr's own PRs
+need the admin bypass (GitHub doesn't allow approving your own PR).
+
+```sh
+gh api -X PATCH repos/stiftelsen-effekt/effekt-backend/branches/master/protection/required_pull_request_reviews \
+  --input - <<'JSON'
+{"required_approving_review_count": 1, "require_code_owner_reviews": true,
+ "dismiss_stale_reviews": false, "bypass_pull_request_allowances": {"users": ["fellmirr"]}}
+JSON
+```
+
+If `required_pull_request_reviews` isn't enabled yet, the PATCH returns 404; use
+`PUT .../branches/master/protection` with the full body instead (keep the existing required
+check "QualityAssurance (hidden-display-243419)", `enforce_admins: false`). main-site's
+"Vercel – …" and "cypress: GiEffektivt e2e tests" checks are not carried over as required:
+Vercel reports skipped builds as successful, but Cypress only runs for website deployments.
 
 ## 3. Cloud Build triggers
 
@@ -102,12 +146,12 @@ too (Vercel reports a skipped build as successful, so backend-only PRs would not
 (GitHub app) triggers. Current state and the change needed so commits that only touch the
 website don't redeploy the backend:
 
-| Trigger                                                         | Config                  | Branch             | Files filter now                                                               | Change                                                                                                                                                                                                               |
-| --------------------------------------------------------------- | ----------------------- | ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BackendDeploy`                                                 | `cloud.deploy.yaml`     | `^master$`         | none                                                                           | add ignored files `apps/web/**`                                                                                                                                                                                      |
-| `AdminDeploy`                                                   | `cloudbuild.admin.yaml` | `^master$`         | included: `admin/**`, `src/trpc/**`, `pnpm-lock.yaml`, `cloudbuild.admin.yaml` | none required. Website dependency bumps also change `pnpm-lock.yaml` and so redeploy the admin; that is harmless.                                                                                                    |
-| `QualityAssurance`                                              | `cloud.qa.yaml`         | not `dev`/`master` | none                                                                           | none. It is the required status check, so it must keep running on every PR (an ignored-files filter would leave website-only PRs without the check and block them). It installs only the backend's dependencies now. |
-| `BackendDeploy-Stage`, `BackendDeploy-Dev`, unnamed `1e3a4aa9…` |                         |                    |                                                                                | disabled; no change                                                                                                                                                                                                  |
+| Trigger                                                                           | Config                  | Branch             | Files filter now                                                               | Change                                                                                                                                                                                                               |
+| --------------------------------------------------------------------------------- | ----------------------- | ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BackendDeploy`                                                                   | `cloud.deploy.yaml`     | `^master$`         | none                                                                           | add ignored files `apps/web/**`                                                                                                                                                                                      |
+| `AdminDeploy`                                                                     | `cloudbuild.admin.yaml` | `^master$`         | included: `admin/**`, `src/trpc/**`, `pnpm-lock.yaml`, `cloudbuild.admin.yaml` | none required. Website dependency bumps also change `pnpm-lock.yaml` and so redeploy the admin; that is harmless.                                                                                                    |
+| `QualityAssurance`                                                                | `cloud.qa.yaml`         | not `dev`/`master` | none                                                                           | none. It is the required status check, so it must keep running on every PR (an ignored-files filter would leave website-only PRs without the check and block them). It installs only the backend's dependencies now. |
+| `BackendDeploy-Stage`, `BackendDeploy-Dev`, `BackendDeploy-Secrets` (`1e3a4aa9…`) |                         |                    |                                                                                | disabled; no change                                                                                                                                                                                                  |
 
 ```sh
 gcloud builds triggers update github BackendDeploy \
@@ -130,37 +174,62 @@ default install and build commands, no ignored build step.
 Do one project first (suggested: `ge-effektivt`, lowest traffic), check its production
 deployment, then the other two.
 
+**Before starting (admin):** the Vercel GitHub app is installed on selected repositories; add
+`effekt-platform` to its selection (GitHub → Settings → Applications → Vercel → Configure),
+or the repository won't show up under Connect. The Cypress and Semgrep apps likewise.
+
+**Deploy hooks are per repository and branch.** Today: `main-site` has `sanity-hook` and
+`scheduler-hook`, `giv-effektivt` has `Sanity deploy hook`, `ge-effektivt` has `sanity`, all
+on ref `main`. Vercel drops a project's deploy hooks when its repository is disconnected, and
+`main` doesn't exist here. Write down which systems call each hook URL (the Sanity webhooks
+for each dataset, and whatever calls `scheduler-hook`) before step 1 below.
+
 ### Dashboard, for each project
 
-1. **Settings → Git → Connected Git Repository**: Disconnect `main-site`, then Connect
-   `stiftelsen-effekt/effekt-backend`.
-2. **Settings → Git → Production Branch**: `master`.
-3. **Settings → Build and Deployment → Root Directory**: `apps/web`. Keep **Include files
+Change the build settings **before** connecting the new repository: once it is connected, any
+push to `master` builds, and with the old settings that builds the repository root.
+
+1. **Settings → Build and Deployment → Root Directory**: `apps/web`. Keep **Include files
    outside the root directory in the Build Step** on (it is needed for the root lockfile and
-   workspace file).
-4. **Settings → Build and Deployment → Install Command** (override on):
+   workspace file). This only affects new deployments; production keeps serving the current one.
+2. **Settings → Build and Deployment → Install Command** (override on):
    `pnpm install --frozen-lockfile --filter main-site`
    Without the filter, pnpm installs the whole workspace (backend and admin included, and runs
    the backend's `prisma generate`). pnpm's version comes from `packageManager` (12.15.0); the
    root and `apps/web` declare the same one.
-5. **Build Command**: leave the default (`pnpm run build`; pnpm runs the `prebuild` script that
-   builds the Studio). **Node.js version**: `apps/web/package.json` `engines` (24.x) wins over
-   the project setting, as today.
-6. **Settings → Git → Ignored Build Step** → Custom command (runs in `apps/web`; exit 0 skips
-   the build):
+3. **Build Command**: leave the default (`pnpm run build`; pnpm runs the `prebuild` script that
+   builds the Studio). **Node.js version**: set 24.x (it is 22.x today; `apps/web/package.json`
+   `engines` 24.x already wins in the build, but keep them consistent).
+4. **Settings → Git → Ignored Build Step** → Custom command (runs in `apps/web`; exit 0 skips
+   the build, exit 1 builds):
 
    ```sh
-   git diff --quiet "${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}" HEAD -- . ../../pnpm-lock.yaml ../../pnpm-workspace.yaml
+   [ "$VERCEL_ENV" = production ] || [ -z "$VERCEL_GIT_PREVIOUS_SHA" ] && exit 1; git diff --quiet "$VERCEL_GIT_PREVIOUS_SHA" HEAD -- . ../../pnpm-lock.yaml ../../pnpm-workspace.yaml
    ```
 
-   If the previous SHA is not in Vercel's shallow clone, `git diff` fails and the build runs,
-   which is the safe default. `npx turbo-ignore` is not an option without Turborepo.
+   Production always builds, as today: deploy hooks (Sanity publishes, scheduled content)
+   rebuild without a code change, and skipping those would leave content stale. Previews build
+   only when `apps/web` or the root workspace files changed since the branch's last deployment,
+   and always on a branch's first deployment. If the previous SHA isn't in Vercel's shallow
+   clone, `git diff` fails and the build runs. Backend-only merges to `master` therefore still
+   rebuild the websites (a few minutes, no behaviour change).
 
-7. Environment variables, domains, deployment protection: unchanged (they belong to the
+5. **Settings → Git → Connected Git Repository**: Disconnect `main-site`, then Connect
+   `stiftelsen-effekt/effekt-platform` (or `effekt-backend` if the rename hasn't happened).
+6. **Settings → Git → Production Branch**: `master`. Check it after connecting; connecting
+   may reset it to the repository's default branch, which is `master` here anyway.
+7. **Settings → Git → Deploy Hooks**: recreate each hook from the list above with branch
+   `master`, and replace the URL wherever it is called (Sanity → API → Webhooks for each
+   dataset; the scheduler). Trigger one hook by hand and check a production deployment starts.
+8. **`giv-effektivt` only — Settings → Environments → `api-dev`** (serves
+   `dev.giveffektivt.dk`): its branch rule is "starts with `main`"; change it to the branch that
+   should feed the DK dev environment here (for example `master`, or a `dk-dev` branch). With
+   no matching branch it stops updating.
+9. Environment variables, domains, deployment protection: unchanged (they belong to the
    project, not the repository).
-8. Deploy: merge something under `apps/web` to `master`, or **Deployments → Create
-   Deployment** from `master`. Check the build log for the root directory and the filtered
-   install, then the site.
+10. Deploy: **Deployments → Create Deployment** from `master`, or merge something under
+    `apps/web`. Check the build log for the root directory and the filtered install, then the
+    site.
 
 ### CLI and API equivalent
 
@@ -172,17 +241,20 @@ build settings with `vercel api` (Vercel CLI 55+, REST API with the CLI's login)
 P=ge-effektivt; T=--scope=effective-altruism-norway
 D=$(mktemp -d) && cd "$D" && vercel link --yes --project "$P" $T
 vercel api "/v9/projects/$P" $T --raw | jq '{rootDirectory, installCommand, commandForIgnoringBuildStep, sourceFilesOutsideRootDirectory, link: .link | {repo, repoId, productionBranch}}'  # before
-vercel git disconnect $T
-vercel git connect https://github.com/stiftelsen-effekt/effekt-backend $T
 vercel api "/v9/projects/$P" -X PATCH $T --input - <<'JSON'
 {
   "rootDirectory": "apps/web",
   "sourceFilesOutsideRootDirectory": true,
+  "nodeVersion": "24.x",
   "installCommand": "pnpm install --frozen-lockfile --filter main-site",
-  "commandForIgnoringBuildStep": "git diff --quiet \"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\" HEAD -- . ../../pnpm-lock.yaml ../../pnpm-workspace.yaml"
+  "commandForIgnoringBuildStep": "[ \"$VERCEL_ENV\" = production ] || [ -z \"$VERCEL_GIT_PREVIOUS_SHA\" ] && exit 1; git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- . ../../pnpm-lock.yaml ../../pnpm-workspace.yaml"
 }
 JSON
+vercel git disconnect $T
+vercel git connect https://github.com/stiftelsen-effekt/effekt-platform $T
 ```
+
+Deploy hooks and the `api-dev` environment are dashboard steps (7 and 8 above).
 
 The production branch (`master`) is set in the dashboard (Settings → Git); the public API has
 no documented field for it. Run the "before" query again afterwards to check.
@@ -232,7 +304,9 @@ Until main-site is archived, rollback is a settings change per Vercel project:
    production branch `main`.
 2. Root Directory: empty (repository root). Install Command and Ignored Build Step: back to
    default/off.
-3. Redeploy production from main-site `main`, or use **Instant Rollback** to the last
+3. Recreate the deploy hooks with branch `main` and put the URLs back in Sanity and the
+   scheduler; for `giv-effektivt`, set the `api-dev` branch rule back to "starts with `main`".
+4. Redeploy production from main-site `main`, or use **Instant Rollback** to the last
    production deployment built from main-site (faster, no build).
 
 CLI/API: the same commands as above with `vercel git connect
@@ -325,7 +399,7 @@ repository, and changing it touches every build at once. If the backend later mo
 
 | Integration                                                                                                 | After the rename                                                                                                                                                                                                                                                                                                                                                   |
 | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Vercel                                                                                                      | Linked by repository id (`repoId`). Do the Vercel cutover (section 4) **after** the rename and connect `effekt-platform` directly; then check that Settings → Git shows the new name. If the cutover was done before, check that pushes still create deployments and reconnect if not.                                                                             |
+| Vercel                                                                                                      | Linked by repository id (`repoId`). The overall order does the rename before the Vercel cutover (section 4), so Vercel connects `effekt-platform` directly. If it ever runs the other way round, check that pushes still create deployments and reconnect if not.                                                                                                  |
 | Semgrep app                                                                                                 | `semgrep ci` names the project after `GITHUB_REPOSITORY`, so the first scan after the rename creates a new project `stiftelsen-effekt/effekt-platform` without the old one's triage history. Rename the existing project in the Semgrep app (Projects → settings) right after the rename, before the next scan, or accept the new project and archive the old one. |
 | Dependabot, branch protection, rulesets, Actions secrets and variables, environments, webhooks, deploy keys | Move with the repository; no change.                                                                                                                                                                                                                                                                                                                               |
 | Claude GitHub app                                                                                           | Installed per repository (by id); keeps working. Check under the org's installed apps that it lists `effekt-platform`.                                                                                                                                                                                                                                             |
@@ -384,6 +458,9 @@ Before the Vercel cutover:
 - [ ] main-site has had no merges since the final sync (`git log HEAD..web/main` is empty).
 - [ ] `CYPRESS_*` secrets exist on this repository.
 - [ ] `BackendDeploy` ignores `apps/web/**`.
+- [ ] Website contributors have write access and `codeowners/errors` is empty.
+- [ ] Branch protection: 1 approval, code-owner review, bypass fellmirr.
+- [ ] Deploy hook URLs and their callers are written down.
 
 Per Vercel project after the cutover:
 
@@ -393,6 +470,7 @@ Per Vercel project after the cutover:
       and Min side login works.
 - [ ] For `main-site` and `giv-effektivt`: `web-ci` runs Cypress against the deployment and
       it passes in Cypress Cloud.
-- [ ] A backend-only commit to `master` shows the website build as skipped (ignored build
-      step) and does not redeploy the website.
+- [ ] Each recreated deploy hook starts a production deployment, and a Sanity publish does too.
+- [ ] `giv-effektivt`: `dev.giveffektivt.dk` updates from its new branch.
+- [ ] A preview for a backend-only PR is skipped (ignored build step); production always builds.
 - [ ] A website-only commit to `master` does not run BackendDeploy.
