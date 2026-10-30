@@ -1,4 +1,7 @@
-name: ci
+name: web-ci
+# e2e tests against Vercel deployments of apps/web. Vercel reports a deployment_status for each
+# deployment; the project name in the URL picks the test suite. Deployments of other projects,
+# and other deployment statuses in this repository, run nothing.
 # https://docs.github.com/en/actions/reference/events-that-trigger-workflows
 on: [deployment_status]
 permissions: {}
@@ -8,12 +11,10 @@ jobs:
     if: github.event.deployment_status.state == 'success' && contains(github.event.deployment_status.target_url, 'main-site')
     permissions:
       contents: read
-    uses: $/.github/workflows/e2e.yml
+    uses: $/.github/workflows/web-e2e.yml
     with:
       group: "GiEffektivt e2e tests"
-      # The production Min Side Auth0 app only allows exact callbacks, so production
-      # deployments are tested on the custom domain instead of their *.vercel.app URL
-      base-url: ${{ startsWith(github.event.deployment_status.environment, 'Production') && 'https://gieffektivt.no' || github.event.deployment_status.target_url }}
+      base-url: ${{ github.event.deployment_status.target_url }}
       config-file: "cypress-no.config.ts"
     secrets:
       CYPRESS_AUTH_DOMAIN: ${{ secrets.CYPRESS_AUTH_DOMAIN }}
@@ -25,7 +26,7 @@ jobs:
     if: github.event.deployment_status.state == 'success' && contains(github.event.deployment_status.target_url, 'giv-effektivt')
     permissions:
       contents: read
-    uses: $/.github/workflows/e2e.yml
+    uses: $/.github/workflows/web-e2e.yml
     with:
       group: "GivEffektivt e2e tests"
       base-url: ${{ github.event.deployment_status.target_url }}

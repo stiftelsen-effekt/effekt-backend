@@ -10,7 +10,7 @@
 name: Preview
 
 on:
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] -- needed for credentials; PR code is only built, see the header
     types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled, closed]
 
 permissions: {}
@@ -86,7 +86,8 @@ jobs:
           GH_TOKEN: ""
           REGION: ${{ vars.PREVIEW_GCP_REGION }}
           PROJECT: ${{ vars.PREVIEW_GCP_PROJECT }}
-        run: |
+        # IMAGE is built from repository variables and the PR number and head SHA only
+        run: | # zizmor: ignore[github-env]
           image="${REGION}-docker.pkg.dev/${PROJECT}/effekt-previews/backend:pr-${PR}-${SHA}"
           echo "IMAGE=${image}" >> "$GITHUB_ENV"
           DOCKER_BUILDKIT=1 docker build -f pr/Dockerfile.preview -t "$image" pr
