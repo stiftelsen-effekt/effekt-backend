@@ -140,3 +140,27 @@ export const siteFundraiserOutput = z.object({
 });
 
 export type SiteFundraiser = z.output<typeof siteFundraiserOutput>;
+
+const optionalText = z.string().nullish();
+
+/**
+ * site.organizations (REST GET /organizations/all): every organization, inactive ones included, so
+ * Min Side can name the recipients of old donations. The Danish backend leaves out or nulls most
+ * descriptions; its catalog also has a "Smart fordeling" entry outside any cause area.
+ */
+export const siteOrganizationsOutput = z.array(
+  z.object({
+    id: z.number().int(),
+    causeAreaId: z.number().int(),
+    name: z.string(),
+    widgetDisplayName: optionalText,
+    widgetContext: optionalText,
+    abbreviation: optionalText,
+    shortDescription: optionalText,
+    longDescription: optionalText,
+    informationUrl: optionalText,
+    standardShare: z.number().nullish(),
+    isActive: z.boolean(),
+    ordering: z.number().nullish(),
+  }),
+);

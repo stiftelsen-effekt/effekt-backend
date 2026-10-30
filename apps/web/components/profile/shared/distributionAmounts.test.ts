@@ -38,8 +38,8 @@ const distribution: Distribution = {
   ],
 };
 
-const sumPercentages = (items: { percentageShare: string }[]) =>
-  items.reduce((sum, item) => sum + parseFloat(item.percentageShare), 0);
+const sumPercentages = (items: { percentageShare: string | number }[]) =>
+  items.reduce((sum, item) => sum + Number(item.percentageShare), 0);
 
 it("orders distributions using the cause area configuration", () => {
   const ordered = orderDistributionCauseAreas(

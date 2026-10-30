@@ -90,7 +90,7 @@ export const DKAgreementDetails: React.FC<{
     data: systemCauseAreas,
     error: causeAreasError,
     loading: causeAreasLoading,
-  } = useCauseAreas(getAccessTokenSilently);
+  } = useCauseAreas();
 
   // Reset local state when the agreement props change, by adjusting state during render
   // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)

@@ -94,11 +94,14 @@ function MyApp({
     return <Component {...pageProps} />;
   }
 
-  if (pageProps.draftMode) {
-    if (!pageProps.token) {
-      pageProps.token = process.env.NEXT_PUBLIC_SANITY_API_READ_TOKEN || "";
-    }
+  // In draft mode getStaticProps passes the server-only SANITY_API_READ_TOKEN as pageProps.token
+  // (only after /api/draft validated Sanity's preview secret), so the token never ships in the
+  // JavaScript bundle. A page in draft mode without one renders published content.
+  if (pageProps.draftMode && !pageProps.token) {
+    console.warn("Draft mode without a Sanity token in pageProps; showing published content");
+  }
 
+  if (pageProps.draftMode && pageProps.token) {
     return (
       <PreviewProvider token={pageProps.token}>
         <PlausibleProvider enabled={tracking}>

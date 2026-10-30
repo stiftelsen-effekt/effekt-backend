@@ -35,13 +35,7 @@ describe("Donations page", () => {
     });
 
     cy.fixture("organizations").then((orgs) => {
-      cy.intercept("GET", "/organizations/all", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: orgs,
-        },
-      }).as("getOrganizations");
+      cy.interceptTrpc("site.organizations", orgs).as("getOrganizations");
     });
 
     cy.fixture("taxunits").then((units) => {

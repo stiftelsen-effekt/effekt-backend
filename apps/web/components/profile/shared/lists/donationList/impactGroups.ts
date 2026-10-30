@@ -40,7 +40,7 @@ export const groupDonationImpactByCauseArea = (
             ? {
                 ...candidate,
                 amount: candidate.amount + entry.amount,
-                count: candidate.count + entry.count,
+                count: (candidate.count ?? 0) + (entry.count ?? 0),
               }
             : candidate,
         ),

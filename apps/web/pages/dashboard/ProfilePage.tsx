@@ -36,6 +36,8 @@ export const ProfilePage = withStaticProps(
     return {
       appStaticProps,
       draftMode,
+      preview: draftMode,
+      token: draftMode ? (token ?? null) : null,
       navbarData: await Navbar.getStaticProps({ dashboard: true, draftMode }),
       data: {
         result: result,

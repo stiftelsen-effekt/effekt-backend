@@ -1,5 +1,44 @@
 import { DAO } from "../DAO";
 
+/** MySQL errors for a schema the connecting user can't read or that doesn't exist */
+const ANALYSIS_DB_UNAVAILABLE = new Set(["ER_TABLEACCESS_DENIED_ERROR", "ER_NO_SUCH_TABLE"]);
+
+const isAnalysisDbUnavailable = (err: unknown) =>
+  ANALYSIS_DB_UNAVAILABLE.has((err as { code?: string } | null)?.code ?? "");
+
+/**
+ * The overall number of donors and all time donations to recommended organizations, from the
+ * EffektAnalysisDB.Only_rec_orgs_Donations table the nightly analysis fills
+ */
+const getHeadlineFigures = async () => {
+  const [donations] = await DAO.query<
+    {
+      totalDonationsToRecommendedOrgs: number;
+    }[]
+  >(
+    "SELECT SUM(Sum_confirmed) as totalDonationsToRecommendedOrgs FROM EffektAnalysisDB.Only_rec_orgs_Donations",
+  );
+
+  const [donors] = await DAO.query<{ numberOfDonors: number }[]>(
+    "SELECT COUNT(DISTINCT Donor_ID) as numberOfDonors FROM EffektAnalysisDB.Only_rec_orgs_Donations",
+  );
+
+  // Get any row from Only_rec_orgs_Donations and look at Inserted to find the last updated date
+  const [updated] = await DAO.query<{ Inserted: string }[]>(
+    "SELECT Inserted FROM EffektAnalysisDB.Only_rec_orgs_Donations LIMIT 1",
+  );
+
+  if (donations.length === 0 || donors.length === 0 || updated.length === 0) {
+    return null;
+  }
+
+  return {
+    totalDonationsToRecommendedOrgs: donations[0].totalDonationsToRecommendedOrgs,
+    numberOfDonors: donors[0].numberOfDonors,
+    lastUpdated: updated[0].Inserted,
+  };
+};
+
 export const results = {
   getDailyDonations: async () => {
     const [res] = await DAO.query("SELECT * FROM EffektAnalysisDB.v_Daily_donations");
@@ -19,32 +58,17 @@ export const results = {
    * Get the overall number of donors and all time donations to recommended organizations
    */
   getHeadlineFigures: async () => {
-    const [donations] = await DAO.query<
-      {
-        totalDonationsToRecommendedOrgs: number;
-      }[]
-    >(
-      "SELECT SUM(Sum_confirmed) as totalDonationsToRecommendedOrgs FROM EffektAnalysisDB.Only_rec_orgs_Donations",
-    );
-
-    const [donors] = await DAO.query<{ numberOfDonors: number }[]>(
-      "SELECT COUNT(DISTINCT Donor_ID) as numberOfDonors FROM EffektAnalysisDB.Only_rec_orgs_Donations",
-    );
-
-    // Get any row from Only_rec_orgs_Donations and look at Inserted to find the last updated date
-    const [updated] = await DAO.query<{ Inserted: string }[]>(
-      "SELECT Inserted FROM EffektAnalysisDB.Only_rec_orgs_Donations LIMIT 1",
-    );
-
-    if (donations.length === 0 || donors.length === 0 || updated.length === 0) {
-      return null;
+    try {
+      return await getHeadlineFigures();
+    } catch (err) {
+      // The Swedish API's database user has no access to EffektAnalysisDB (Sweden is being phased
+      // out, so it won't get any): answer "no figures" instead of failing the results teaser.
+      if (isAnalysisDbUnavailable(err)) {
+        console.warn(`Results headline unavailable: ${(err as Error).message}`);
+        return null;
+      }
+      throw err;
     }
-
-    return {
-      totalDonationsToRecommendedOrgs: donations[0].totalDonationsToRecommendedOrgs,
-      numberOfDonors: donors[0].numberOfDonors,
-      lastUpdated: updated[0].Inserted,
-    };
   },
   /*
    * Get the number of donors all time

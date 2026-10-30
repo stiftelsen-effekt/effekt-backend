@@ -1,3 +1,4 @@
+import { toNumber } from "../../../util/decimal";
 import { Distribution, DistributionCauseArea } from "../../../models";
 import { distributeSharesWithRemainder } from "../../shared/components/Widget/utils/donationCalculations";
 import { CauseArea } from "../../shared/components/Widget/types/CauseArea";
@@ -72,11 +73,14 @@ export const setCauseAreaStandardSplit = (
   ),
 });
 
-const allocateTotal = <T extends { percentageShare: string }>(total: number, items: T[]) => {
+const allocateTotal = <T extends { percentageShare: string | number }>(
+  total: number,
+  items: T[],
+) => {
   if (items.length === 0) return [];
 
   const roundedTotal = Math.max(0, Math.round(total));
-  const weights = items.map((item) => Math.max(0, parseFloat(item.percentageShare) || 0));
+  const weights = items.map((item) => Math.max(0, toNumber(item.percentageShare) || 0));
   const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
   const effectiveWeights =
     weightTotal > 0 ? weights : items.map((_, index) => (index === 0 ? 1 : 0));

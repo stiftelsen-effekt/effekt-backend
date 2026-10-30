@@ -14,6 +14,7 @@ import {
   siteDailyDonationsOutput,
   siteFundraiserOutput,
   siteMonthlyOutputsOutput,
+  siteOrganizationsOutput,
   siteReferralSumsOutput,
   siteResultsHeadlineOutput,
 } from "../trpc/shared/site";
@@ -39,6 +40,7 @@ const restApp = () => {
   app.use("/results", require("../routes/results").resultsRouter);
   app.use("/ltv", require("../routes/ltv").ltvRouter);
   app.use("/fundraisers", require("../routes/fundraisers").fundraisersRouter);
+  app.use("/organizations", require("../routes/organizations").organizationsRouter);
   return app;
 };
 
@@ -146,6 +148,26 @@ describe("tRPC site router", () => {
     it("returns null without figures, like REST", async () => {
       sinon.stub(DAO.results, "getHeadlineFigures").resolves(null);
       expect(await anonymous().resultsHeadline()).to.equal(null);
+    });
+
+    it("answers null when the analysis database can't be read (the Swedish API)", async () => {
+      sinon.stub(console, "error");
+      const warn = sinon.stub(console, "warn");
+      const denied = Object.assign(
+        new Error(
+          "SELECT command denied to user 'geeffektivt_api'@'x' for table 'Only_rec_orgs_Donations'",
+        ),
+        { code: "ER_TABLEACCESS_DENIED_ERROR", errno: 1142 },
+      );
+      sinon.stub(DAO, "query").rejects(denied);
+      expect(await anonymous().resultsHeadline()).to.equal(null);
+      expect(warn.calledOnce).to.equal(true);
+    });
+
+    it("still fails on other database errors", async () => {
+      sinon.stub(console, "error");
+      sinon.stub(DAO, "query").rejects(Object.assign(new Error("gone"), { code: "ECONNREFUSED" }));
+      await expectTrpcError(anonymous().resultsHeadline(), "INTERNAL_SERVER_ERROR");
     });
 
     it("accepts the Danish backend's headline", () => {
@@ -379,6 +401,72 @@ describe("tRPC site router", () => {
         .rejects(new Error("ER_ACCESS_DENIED for user x"));
       const res = await request(app).get("/trpc/site.dailyDonations").expect(500);
       expect(JSON.stringify(res.body)).not.to.contain("ER_ACCESS_DENIED");
+    });
+  });
+
+  describe("organizations", () => {
+    const rows = [
+      {
+        id: 1,
+        name: "Against Malaria Foundation",
+        widgetDisplayName: null,
+        widgetContext: null,
+        abbreviation: "AMF",
+        shortDescription: "Myggnett",
+        longDescription: "",
+        standardShare: 0,
+        informationUrl: "https://gieffektivt.no/amf",
+        isActive: true,
+        ordering: 1,
+        causeAreaId: 1,
+        chartColor: null,
+      },
+      {
+        id: 7,
+        name: "Deworm the World",
+        widgetDisplayName: null,
+        widgetContext: null,
+        abbreviation: "DtW",
+        shortDescription: null,
+        longDescription: null,
+        standardShare: 0,
+        informationUrl: null,
+        isActive: false,
+        ordering: 9,
+        causeAreaId: 1,
+        chartColor: null,
+      },
+    ];
+
+    it("returns every organization, inactive ones included, like GET /organizations/all", async () => {
+      sinon.stub(DAO.organizations, "getAll").resolves(rows as any);
+      const trpc = await anonymous().organizations();
+      const rest = await request(restApp()).get("/organizations/all").expect(200);
+      // REST also sends chartColor, which Min Side doesn't read
+      expect(trpc).to.deep.equal(
+        rest.body.content.map(({ chartColor, ...org }: { chartColor: unknown }) => org),
+      );
+      expect(trpc.map((org) => org.isActive)).to.deep.equal([true, false]);
+    });
+
+    it("accepts the Danish backend's organizations", () => {
+      // giveffektivt/donation-platform app/organizations/all (buildOrganizations in norway-shim)
+      const dk = [
+        {
+          id: -1,
+          name: "Smart fordeling",
+          widgetDisplayName: null,
+          widgetContext: null,
+          shortDescription: "Din donation fordeles efter Giv Effektivts anbefalinger",
+          longDescription: "Din donation fordeles efter Giv Effektivts anbefalinger",
+          informationUrl: "/smart-fordeling",
+          standardShare: 100,
+          isActive: true,
+          ordering: 1,
+          causeAreaId: -1,
+        },
+      ];
+      expect(siteOrganizationsOutput.parse(dk)).to.deep.equal(dk);
     });
   });
 

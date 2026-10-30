@@ -32,6 +32,7 @@ const buildDonation = (
   email: "test@example.com",
   id: 1,
   paymentMethod: "bank",
+  taxUnitId: null,
   transactionCost: "0",
   metaOwnerId: META_OWNER.EFFEKT,
   ...overrides,

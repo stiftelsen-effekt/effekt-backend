@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import styles from "./NewsletterSignup.module.scss";
+import { useMainLocale } from "../../../../context/MainLocaleContext";
 
 export const NewsletterSignup: React.FC<{
   header?: string;
@@ -11,6 +12,7 @@ export const NewsletterSignup: React.FC<{
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const mainLocale = useMainLocale();
 
   const handleDKSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +90,12 @@ export const NewsletterSignup: React.FC<{
       </form>
     );
   } else if (locale === "dk") {
+    // The Danish form posts to /api/newsletter, which only the Danish backend has. A block set to
+    // "dk" on another site would post to our API, so it renders nothing there.
+    if (mainLocale !== "dk") {
+      console.warn(`NewsletterSignup: the Danish form is only available on the Danish site`);
+      return null;
+    }
     return (
       <form className={`${styles.category} ${styles.newsletter}`} onSubmit={handleDKSubmit}>
         <fieldset>

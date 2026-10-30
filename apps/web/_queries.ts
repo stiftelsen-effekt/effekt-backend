@@ -12,11 +12,13 @@ import type {
   TaxYearlyReport,
   VippsAgreement,
 } from "./models";
-import { CauseArea } from "./components/shared/components/Widget/types/CauseArea";
 import { widgetContentQuery } from "./components/shared/components/Widget/components/Widget";
 import { groq } from "next-sanity";
 import { TRPCClientError } from "@trpc/client";
 import { useTrpcClient } from "./lib/trpc/useTrpcClient";
+import { publicTrpcFor } from "./lib/trpc/client";
+import { toCauseArea, toOrganization } from "./lib/trpc/causeAreas";
+import { useMainLocale } from "./context/MainLocaleContext";
 
 export interface Query<T> {
   (
@@ -49,11 +51,6 @@ const trpcFetch = async <T>(call: () => Promise<T>): Promise<T> => {
 /**
  * SWR keys of the Min Side tRPC queries. Revalidate with `mutate(minsideKeys.taxUnits(donorId))`.
  * useDistributions and useAgreementsDistributions share a key, as they shared a URL before.
- */
-/**
- * The hooks below return the website's model types (models.ts), as their callers expect. The
- * procedures' output schemas validate the responses; the models are older and looser (some
- * fields are declared as one type where a site sends string or number), so the data is cast to them.
  */
 export const minsideKeys = {
   profile: (donorId: number) => ["minside.profile", donorId] as const,
@@ -112,11 +109,10 @@ export const useAggregatedDonations = (
   const { data, error, isValidating } = useSWR(
     user ? minsideKeys.donationsAggregated(getUserId(user)) : null,
     ([, donorId]) =>
-      trpcFetch(
-        async () =>
-          (await trpc.minside.donationsAggregated.query({
-            donorId,
-          })) as unknown as AggregatedDonations[],
+      trpcFetch(() =>
+        trpc.minside.donationsAggregated.query({
+          donorId,
+        }),
       ),
   );
 
@@ -141,8 +137,7 @@ export const useDonations = (user: User | undefined, fetchToken: getAccessTokenS
   const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
     user ? minsideKeys.donations(getUserId(user)) : null,
-    ([, donorId]) =>
-      trpcFetch(async () => (await trpc.minside.donations.query({ donorId })) as Donation[]),
+    ([, donorId]) => trpcFetch(() => trpc.minside.donations.query({ donorId })),
   );
 
   const loading = isPending(data, error);
@@ -175,12 +170,11 @@ export const useDistributions = (
   const { data, error, isValidating } = useSWR(
     condition && user ? minsideKeys.distributions(getUserId(user), Array.from(kids)) : null,
     ([, donorId, kidList]) =>
-      trpcFetch(
-        async () =>
-          (await trpc.minside.distributions.query({
-            donorId,
-            kids: kidList ? kidList.split(",") : [],
-          })) as Distribution[],
+      trpcFetch(() =>
+        trpc.minside.distributions.query({
+          donorId,
+          kids: kidList ? kidList.split(",") : [],
+        }),
       ),
   );
 
@@ -204,12 +198,11 @@ export const useAgreementsDistributions = (
   const { data, error, isValidating } = useSWR(
     condition && user ? minsideKeys.distributions(getUserId(user), Array.from(kids)) : null,
     ([, donorId, kidList]) =>
-      trpcFetch(
-        async () =>
-          (await trpc.minside.distributions.query({
-            donorId,
-            kids: kidList ? kidList.split(",") : [],
-          })) as Distribution[],
+      trpcFetch(() =>
+        trpc.minside.distributions.query({
+          donorId,
+          kids: kidList ? kidList.split(",") : [],
+        }),
       ),
   );
 
@@ -235,11 +228,10 @@ export const useAvtalegiroAgreements = (
   const { data, error, isValidating } = useSWR(
     user ? minsideKeys.avtaleGiroAgreements(getUserId(user)) : null,
     ([, donorId]) =>
-      trpcFetch(
-        async () =>
-          (await trpc.minside.avtaleGiroAgreements.query({
-            donorId,
-          })) as unknown as AvtaleGiroAgreement[],
+      trpcFetch(() =>
+        trpc.minside.avtaleGiroAgreements.query({
+          donorId,
+        }),
       ),
   );
 
@@ -265,11 +257,10 @@ export const useAutogiroAgreements = (
   const { data, error, isValidating } = useSWR(
     user ? minsideKeys.autoGiroAgreements(getUserId(user)) : null,
     ([, donorId]) =>
-      trpcFetch(
-        async () =>
-          (await trpc.minside.autoGiroAgreements.query({
-            donorId,
-          })) as unknown as AutoGiroAgreement[],
+      trpcFetch(() =>
+        trpc.minside.autoGiroAgreements.query({
+          donorId,
+        }),
       ),
   );
 
@@ -291,11 +282,7 @@ export const useVippsAgreements = (user: User | undefined, fetchToken: getAccess
   const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
     user ? minsideKeys.vippsAgreements(getUserId(user)) : null,
-    ([, donorId]) =>
-      trpcFetch(
-        async () =>
-          (await trpc.minside.vippsAgreements.query({ donorId })) as unknown as VippsAgreement[],
-      ),
+    ([, donorId]) => trpcFetch(() => trpc.minside.vippsAgreements.query({ donorId })),
   );
 
   const loading = isPending(data, error);
@@ -342,9 +329,14 @@ export const useAgreementFeedbackTypes = () => {
   };
 };
 
-export const useOrganizations = (fetchToken: getAccessTokenSilently) => {
-  const { data, error, isValidating } = useSWR(`/organizations/active/`, (url) =>
-    fetcher(url, fetchToken),
+/**
+ * Every cause area with its organizations. Public tRPC widget.causeAreas, as the donation widget
+ * uses; on the Danish site the REST link maps it to GET /causeareas/all/.
+ */
+export const useCauseAreas = () => {
+  const trpc = publicTrpcFor(useMainLocale());
+  const { data, error, isValidating } = useSWR(["widget.causeAreas"], () =>
+    trpcFetch(async () => (await trpc.widget.causeAreas.query()).map(toCauseArea)),
   );
 
   const loading = isPending(data, error);
@@ -357,24 +349,14 @@ export const useOrganizations = (fetchToken: getAccessTokenSilently) => {
   };
 };
 
-export const useCauseAreas = (fetchToken: getAccessTokenSilently) => {
-  const { data, error, isValidating } = useSWR<CauseArea[]>(`/causeareas/all/`, (url: string) =>
-    fetcher(url, fetchToken),
-  );
-
-  const loading = isPending(data, error);
-
-  return {
-    loading,
-    isValidating,
-    data,
-    error,
-  };
-};
-
-export const useAllOrganizations = (fetchToken: getAccessTokenSilently) => {
-  const { data, error, isValidating } = useSWR(`/organizations/all/`, (url) =>
-    fetcher(url, fetchToken),
+/**
+ * Every organization, inactive ones included. Public tRPC site.organizations; on the Danish site
+ * the REST link maps it to GET /organizations/all/.
+ */
+export const useAllOrganizations = () => {
+  const trpc = publicTrpcFor(useMainLocale());
+  const { data, error, isValidating } = useSWR(["site.organizations"], () =>
+    trpcFetch(async () => (await trpc.site.organizations.query()).map(toOrganization)),
   );
 
   const loading = isPending(data, error);
@@ -416,8 +398,7 @@ export const useTaxUnits = (user: User | undefined, fetchToken: getAccessTokenSi
   const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
     user ? minsideKeys.taxUnits(getUserId(user)) : null,
-    ([, donorId]) =>
-      trpcFetch(async () => (await trpc.minside.taxUnits.query({ donorId })) as TaxUnit[]),
+    ([, donorId]) => trpcFetch(() => trpc.minside.taxUnits.query({ donorId })),
   );
 
   const loading = isPending(data, error);
@@ -438,10 +419,7 @@ export const useYearlyTaxReports = (user: User | undefined, fetchToken: getAcces
   const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
     user ? minsideKeys.taxReports(getUserId(user)) : null,
-    ([, donorId]) =>
-      trpcFetch(
-        async () => (await trpc.minside.taxReports.query({ donorId })) as TaxYearlyReport[],
-      ),
+    ([, donorId]) => trpcFetch(() => trpc.minside.taxReports.query({ donorId })),
   );
 
   const loading = isPending(data, error);

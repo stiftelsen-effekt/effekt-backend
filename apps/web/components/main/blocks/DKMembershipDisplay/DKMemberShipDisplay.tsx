@@ -3,13 +3,17 @@ import { Dkmembershipdisplay } from "../../../../studio/sanity.types";
 import { useEffect, useState } from "react";
 import { PortableText } from "@portabletext/react";
 import { customComponentRenderers } from "../Paragraph/Citation";
+import { useMainLocale } from "../../../../context/MainLocaleContext";
 
 export const DKMembershipDisplay: React.FC<
   Pick<Dkmembershipdisplay, "membership_count_subtitle" | "description">
 > = ({ membership_count_subtitle, description }) => {
   const [memberships, setMemeberships] = useState<number | null>(null);
+  // The membership count comes from the Danish backend's /api/kpi; other sites have no such route
+  const isDanishSite = useMainLocale() === "dk";
 
   useEffect(() => {
+    if (!isDanishSite) return;
     fetch(`${process.env.NEXT_PUBLIC_EFFEKT_API}/api/kpi`)
       .then((response) => {
         if (response.ok) {
@@ -21,7 +25,9 @@ export const DKMembershipDisplay: React.FC<
       .catch((error) => {
         console.error("Error fetching data:", error);
       });
-  }, []);
+  }, [isDanishSite]);
+
+  if (!isDanishSite) return null;
 
   return (
     <div className={styles.container}>

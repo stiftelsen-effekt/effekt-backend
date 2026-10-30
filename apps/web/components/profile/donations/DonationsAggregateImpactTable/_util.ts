@@ -1,6 +1,7 @@
 import { Distribution, Donation, GiveWellGrant, ImpactEvaluation } from "../../../../models";
 import { GIVEWELL_TOP_CHARITIES_FUND_ID, mapNameToOrgAbbriv } from "../../../../util/mappings";
 import { AggregatedImpactTableConfiguration } from "./DonationsAggregateImpactTable";
+import { toNumber } from "../../../../util/decimal";
 
 export type OrganizationsAggregatedSums = {
   // Organization name
@@ -70,7 +71,7 @@ export const aggregateOrgSumByYearAndMonth = (
 
     const orgs = globalHealthCauseArea?.organizations ?? [];
     const globalHealthDistributionShare =
-      parseFloat(globalHealthCauseArea?.percentageShare ?? "0") / 100;
+      toNumber(globalHealthCauseArea?.percentageShare ?? "0") / 100;
 
     if (orgs) {
       orgs.forEach((org) => {
@@ -103,9 +104,7 @@ export const aggregateOrgSumByYearAndMonth = (
                   // The share we add to the organization is equivalent to the share of givewell grant * the share of the allotment
                   // E.g. GiveWell is 20% of donation distribution, AMF is 40% of the total grant, so the share we add to AMF is .2 * .4 = .08
                   percentageShare:
-                    parseFloat(org.percentageShare) *
-                    globalHealthDistributionShare *
-                    allotmentShare,
+                    toNumber(org.percentageShare) * globalHealthDistributionShare * allotmentShare,
                 },
                 true,
                 allotment.converted_cost_per_output,
@@ -121,7 +120,7 @@ export const aggregateOrgSumByYearAndMonth = (
             month,
             {
               name: org.name as string,
-              percentageShare: parseFloat(org.percentageShare) * globalHealthDistributionShare,
+              percentageShare: toNumber(org.percentageShare) * globalHealthDistributionShare,
             },
             false,
           );
@@ -179,7 +178,7 @@ const addToAggregated = (
     };
   }
 
-  const amount = Math.round((org.percentageShare / 100) * parseFloat(donation.sum));
+  const amount = Math.round((org.percentageShare / 100) * toNumber(donation.sum));
 
   // Add to the total sum of the organization, regardless of period
   aggregated[org.name].sum += amount;

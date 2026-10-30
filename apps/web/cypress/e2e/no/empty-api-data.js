@@ -29,13 +29,7 @@ describe("Profile and dashboard empty API data", () => {
     cy.interceptTrpc("minside.distributions", []).as("getDistribution");
 
     cy.fixture("organizations").then((organizations) => {
-      cy.intercept("GET", "/organizations/all", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: organizations,
-        },
-      }).as("getOrganizations");
+      cy.interceptTrpc("site.organizations", organizations).as("getOrganizations");
     });
 
     cy.interceptTrpc("minside.taxUnits", []).as("getTaxUnits");

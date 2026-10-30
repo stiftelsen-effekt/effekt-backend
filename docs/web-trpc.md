@@ -138,13 +138,13 @@ The donation widget (`components/shared/components/Widget`) calls the public `wi
 (`apps/api/src/trpc/routers/widget.ts`, schemas in `apps/api/src/trpc/shared/widget.ts`, exported
 as `@effekt/api/widget`). No login, no token.
 
-| Procedure                    | Formerly                       | Saga                                     |
-| ---------------------------- | ------------------------------ | ---------------------------------------- |
-| `widget.causeAreas`          | `GET /causeareas/all/`         | `layout/saga.ts` `fetchCauseAreas`       |
-| `widget.referralTypes`       | `GET /referrals/types`         | `referrals/saga.ts` `fetchReferrals`     |
-| `widget.registerDonation`    | `POST /donations/register`     | `donation/saga.ts` `registerDonation`    |
-| `widget.registerBankPending` | `POST /donations/bank/pending` | `donation/saga.ts` `registerBankPending` |
-| `widget.submitReferral`      | `POST /referrals`              | `referrals/saga.ts` `submitReferral`     |
+| Procedure                    | Formerly                       | Saga                                                                |
+| ---------------------------- | ------------------------------ | ------------------------------------------------------------------- |
+| `widget.causeAreas`          | `GET /causeareas/all/`         | `layout/saga.ts` `fetchCauseAreas`; also Min Side's `useCauseAreas` |
+| `widget.referralTypes`       | `GET /referrals/types`         | `referrals/saga.ts` `fetchReferrals`                                |
+| `widget.registerDonation`    | `POST /donations/register`     | `donation/saga.ts` `registerDonation`                               |
+| `widget.registerBankPending` | `POST /donations/bank/pending` | `donation/saga.ts` `registerBankPending`                            |
+| `widget.submitReferral`      | `POST /referrals`              | `referrals/saga.ts` `submitReferral`                                |
 
 Payment steps after registration (Norway and Sweden only; the Danish backend has none of these
 routes, so the REST link leaves them unmapped and they fail without a request on the Danish site):
@@ -191,6 +191,7 @@ main layout now provides too.
 | `site.monthlyOutputs`  | `GET /results/donations/monthly/outputs` | `ResultsPage` (build)                             | REST link, same route                |
 | `site.fundraiser`      | `GET /fundraisers/:id`                   | `FundraiserPage` (build)                          | REST link, same route (UUID ids)     |
 | `site.ltvEstimate`     | `GET /ltv/recentestimate`                | `util/ltv.ts` (widget, `PlausibleRevenueTracker`) | unmapped (no route; the LTV is null) |
+| `site.organizations`   | `GET /organizations/all/`                | Min Side `useAllOrganizations`                    | REST link, same route                |
 
 - Each procedure runs the same code as its REST route: the monthly outputs and the LTV estimate
   moved into `custom_modules/monthlyOutputs.ts` and `custom_modules/ltv.ts`, which both call.
@@ -198,13 +199,19 @@ main layout now provides too.
 - The schemas accept both backends (our MySQL decimals as strings, the Danish numbers; the Danish
   fundraiser transactions have UUID ids). Live responses from both were checked against them.
 - `site.fundraiser` takes the Sanity `fundraiser_database_id` as a number or a string of digits.
+  A Danish response the schema rejects gets HTTP status 502 from the REST link, so the fundraiser
+  page shows "no data" instead of failing the build.
+- `site.resultsHeadline` answers `null` when the API's database user can't read
+  `EffektAnalysisDB` (the Swedish API, `geeffektivt_api`): Sweden is being phased out and gets no
+  grant, so the teaser shows 0 there instead of a 500.
+- Min Side's `useCauseAreas` and `useAllOrganizations` use the public client (`publicTrpcFor`) and
+  map the output to the widget's `CauseArea`/`Organization` types (`lib/trpc/causeAreas.ts`). The
+  Danish backend's `/organizations/all` also has a "Smart fordeling" entry outside any cause area,
+  so the organizations aren't derived from the cause areas.
 
 Still REST, on purpose:
 
 - `POST /forms/submit` (`SplitViewForm`): only the Danish backend has it.
-- Min Side's `useCauseAreas` and `useAllOrganizations` (`_queries.ts`): `GET /causeareas/all/`
-  and `GET /organizations/all/`. The Norwegian specs stub the first with `cy.interceptCauseAreas`,
-  which stubs `widget.causeAreas` as well.
 - The fundraiser page's live updates are a WebSocket, not REST.
 - Sanity Studio's calls (`/causeareas/all`, `/fundraisers/list`, `/results/...`, `/mail/...`).
 
@@ -282,7 +289,8 @@ Kept, although Min Side and the widget no longer call them:
   `/recurring/{vipps,avtalegiro,autogiro}`, `PUT /donors/:id` and the tax unit writes: the Swedish
   admin calls them.
 - `GET /referrals/types`: the Swedish admin's client still references it.
-- `GET /causeareas/all`: Min Side (`useCauseAreas`), Sanity Studio and the Swedish admin.
+- `GET /causeareas/all`: Sanity Studio and the Swedish admin.
+- `GET /organizations/all`: the REST contract the Danish backend implements for `site.organizations`.
 - `PUT /autogiro/:KID/`: Swedish Min Side's AutoGiro changes are still REST.
 
 ## Deployment notes

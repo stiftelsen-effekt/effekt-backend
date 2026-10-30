@@ -13,12 +13,14 @@ import { useState } from "react";
 import { StoppedAgreementFeedback } from "../../../agreements/StoppedAgreementFeedback/StoppedAgreementFeedback";
 import { Lightbox } from "../../../../shared/components/Lightbox/Lightbox";
 import { thousandize } from "../../../../../util/formatting";
+import { toNumber } from "../../../../../util/decimal";
 
 export type AgreementTypes = "Vipps" | "AvtaleGiro" | "AutoGiro";
 
 type AgreementRow = {
-  ID: number;
-  status: string | boolean;
+  // Vipps agreement ids are strings ("agr_…"), AvtaleGiro and AutoGiro ids numbers
+  ID: number | string;
+  status: string | boolean | null;
   KID: string;
   date: number;
   amount: number;
@@ -83,7 +85,7 @@ export const AgreementList: React.FC<{
     status: entry.active == 1,
     KID: entry.KID,
     date: entry.payment_date,
-    amount: parseFloat(entry.amount),
+    amount: toNumber(entry.amount),
     type: "AvtaleGiro",
     endpoint: entry.KID,
   }));
@@ -93,7 +95,7 @@ export const AgreementList: React.FC<{
     status: entry.active,
     KID: entry.KID,
     date: entry.payment_date,
-    amount: parseFloat(entry.amount),
+    amount: toNumber(entry.amount),
     type: "AutoGiro",
     endpoint: entry.KID,
   }));
@@ -182,7 +184,7 @@ const formatColumnValue = (column: AgreementListConfigurationColumn, value: any)
     case "string":
       return value;
     case "sum":
-      return thousandize(Math.round(parseFloat(value))) + " kr";
+      return thousandize(Math.round(toNumber(value))) + " kr";
     case "date":
       return value === 0
         ? column.payment_date_last_day_of_month_template

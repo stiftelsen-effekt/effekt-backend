@@ -128,10 +128,11 @@ export const DonationsAggregateImpactTable: React.FC<{
           impact[DK_OPERATIONS_KEY] ??= { outputs: 0, constituents: {} };
           impact[DK_OPERATIONS_KEY].outputs += entry.amount;
         } else {
-          impact[entry.unit] ??= { outputs: 0, constituents: {} };
-          impact[entry.unit].outputs += entry.count;
-          impact[entry.unit].constituents[entry.recipient] ??= 0;
-          impact[entry.unit].constituents[entry.recipient] += entry.amount;
+          const unit = entry.unit ?? "";
+          impact[unit] ??= { outputs: 0, constituents: {} };
+          impact[unit].outputs += entry.count ?? 0;
+          impact[unit].constituents[entry.recipient] ??= 0;
+          impact[unit].constituents[entry.recipient] += entry.amount;
         }
       });
     });

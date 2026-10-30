@@ -116,7 +116,7 @@ export const AgreementDetails: React.FC<{
     error: causeAreasError,
     loading: causeAreasLoading,
     isValidating: causeAreasIsValidating,
-  } = useCauseAreas(getAccessTokenSilently);
+  } = useCauseAreas();
 
   // Sync local state when the agreement props or system cause areas change, by adjusting
   // state during render (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes).

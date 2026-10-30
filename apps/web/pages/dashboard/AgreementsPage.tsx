@@ -422,18 +422,21 @@ const NordicAgreementsPageContent: React.FC<{
   const vippsPending = vipps.filter(
     (agreement: VippsAgreement) =>
       agreement.status === "PENDING" &&
+      agreement.timestamp_created !== null &&
       DateTime.fromISO(agreement.timestamp_created).diff(DateTime.now(), "days").days > -7,
   );
   const avtalegiroPending = avtaleGiro.filter(
     (agreement: AvtaleGiroAgreement) =>
       agreement.active === 0 &&
       agreement.cancelled === null &&
+      agreement.created !== null &&
       DateTime.fromISO(agreement.created).diff(DateTime.now(), "days").days > -7,
   );
   const autoGiroPending = autoGiro.filter(
     (agreement: AutoGiroAgreement) =>
       !agreement.active &&
       agreement.cancelled === null &&
+      agreement.created !== null &&
       DateTime.fromISO(agreement.created).diff(DateTime.now(), "days").days > -7,
   );
   const pendingCount = vippsPending.length + avtalegiroPending.length + autoGiroPending.length;
