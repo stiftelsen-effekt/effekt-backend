@@ -4,10 +4,25 @@
  * same tick, and the response has one entry per path, in order.
  */
 
+/**
+ * URL matchers per procedure: the path alone or anywhere in a batch's path list. Literal regexes
+ * (no `new RegExp(path)`); add a procedure here when a test stubs or waits on it.
+ */
+const TRPC_URLS = {
+  "minside.profile": /\/trpc\/(?:[^/?]*,)?minside\.profile(?:,[^/?]*)?(?:\?|$)/,
+  "minside.taxUnits": /\/trpc\/(?:[^/?]*,)?minside\.taxUnits(?:,[^/?]*)?(?:\?|$)/,
+  "minside.donationsAggregated":
+    /\/trpc\/(?:[^/?]*,)?minside\.donationsAggregated(?:,[^/?]*)?(?:\?|$)/,
+  "minside.donations": /\/trpc\/(?:[^/?]*,)?minside\.donations(?:,[^/?]*)?(?:\?|$)/,
+  "minside.distributions": /\/trpc\/(?:[^/?]*,)?minside\.distributions(?:,[^/?]*)?(?:\?|$)/,
+};
+
 /** Matches a tRPC request URL that includes `path`, alone or batched with other procedures */
 export const trpcUrl = (path) => {
-  const escaped = path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`/trpc/(?:[^/?]*,)?${escaped}(?:,[^/?]*)?(?:\\?|$)`);
+  if (!Object.prototype.hasOwnProperty.call(TRPC_URLS, path)) {
+    throw new Error(`No URL matcher for ${path}: add it to TRPC_URLS in cypress/support/trpc.js`);
+  }
+  return TRPC_URLS[path];
 };
 
 /** The procedure paths of a tRPC request URL, in batch order */

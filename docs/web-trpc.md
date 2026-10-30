@@ -137,7 +137,7 @@ permission>)`. For more input fields than `donorId`, pass a schema that extends 
       keep intercepting REST.
 - [ ] Full-stack Cypress tests (`apps/web/cypress/e2e/fullstack`) wait on the real request with
       `cy.intercept("GET", trpcUrl("minside.<name>"))` and read its data with `trpcData()`
-      (`cypress/support/trpc.js`).
+      (`cypress/support/trpc.js`). Add a new procedure to `TRPC_URLS` there first.
 - [ ] Keep the REST route: the Danish site and older clients still use it
 
 ## Deployment notes
