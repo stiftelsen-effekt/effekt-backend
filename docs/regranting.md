@@ -259,7 +259,7 @@ dev and test use seeded data that is assumed to line up:
 
 Built after feedback from ops, who today double-check every balance in Samlefila's regranting
 sheet against the database and Samlefila's overview page before approving, and want to see which
-donations each transfer contained. Code: `src/custom_modules/regranting/trace.ts` (with
+donations each transfer contained. Code: `apps/api/src/custom_modules/regranting/trace.ts` (with
 `fifo.ts`) and `DAO.regrantingTrace`; procedures `regranting.balances.breakdown`,
 `regranting.rounds.composition` and `regranting.reconciliation.monthly`.
 
@@ -379,9 +379,9 @@ ledger, never in it: see [regranting-downstream.md](regranting-downstream.md).
 ## First build (Oct 2026)
 
 Backend: migration `20261027150000_regranting`, `DAO.regranting`
-(`src/custom_modules/DAO_modules/regranting.ts`), the round logic in
-`src/custom_modules/regranting/` and the tRPC router `regranting.*`
-(`src/trpc/routers/regranting.ts`). Decisions made while building it:
+(`apps/api/src/custom_modules/DAO_modules/regranting.ts`), the round logic in
+`apps/api/src/custom_modules/regranting/` and the tRPC router `regranting.*`
+(`apps/api/src/trpc/routers/regranting.ts`). Decisions made while building it:
 
 - **Dates.** A cutoff is a day: entries dated on or before it count. Allocations count by the
   UTC day of `timestamp_confirmed` (as the Sheets export). Transfer lines count from the transfer's
@@ -452,7 +452,7 @@ Backend: migration `20261027150000_regranting`, `DAO.regranting`
 - **Outputs** (grant letters, payment files) are not built. They should read `regranting.rounds.get`
   (an approved round's transfers with payees, lines, fund grants and snapshot) and
   `Payees.payment_reference_template`.
-- **Dev data.** The local seed (`prisma/devdata/regranting.ts`) generates the history described in
+- **Dev data.** The local seed (`apps/api/prisma/devdata/regranting.ts`) generates the history described in
   the README's Local environment section by running `proposeRound` and `validateRound` on the
   generated donations, so the seeded rounds are what the system would have proposed (plus a few
   scripted edits).

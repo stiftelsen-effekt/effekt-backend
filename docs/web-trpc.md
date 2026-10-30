@@ -15,13 +15,13 @@ SWR keys are in `minsideKeys` (`_queries.ts`); revalidate with `mutate(minsideKe
 
 ## Pieces
 
-| Piece                                 | Where                                                                        |
-| ------------------------------------- | ---------------------------------------------------------------------------- |
-| Donor-facing procedures               | `src/trpc/routers/minside.ts` (mounted as `minside` in `src/trpc/router.ts`) |
-| `donorProcedure(permission, input?)`  | `src/trpc/trpc.ts`                                                           |
-| Schemas shared with the web (runtime) | `src/trpc/shared/minside.ts` (may only import `zod`)                         |
-| `@effekt/api` workspace package       | `packages/api`: `AppRouter` type + `@effekt/api/minside` schemas             |
-| Web client and links                  | `apps/web/lib/trpc/` (`client.ts`, `restLink.ts`, `useTrpcClient.ts`)        |
+| Piece                                 | Where                                                                                          |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Donor-facing procedures               | `apps/api/src/trpc/routers/minside.ts` (mounted as `minside` in `apps/api/src/trpc/router.ts`) |
+| `donorProcedure(permission, input?)`  | `apps/api/src/trpc/trpc.ts`                                                                    |
+| Schemas shared with the web (runtime) | `apps/api/src/trpc/shared/minside.ts` (may only import `zod`)                                  |
+| `@effekt/api` workspace package       | `packages/api`: `AppRouter` type + `@effekt/api/minside` schemas                               |
+| Web client and links                  | `apps/web/lib/trpc/` (`client.ts`, `restLink.ts`, `useTrpcClient.ts`)                          |
 
 ### Auth
 
@@ -34,7 +34,7 @@ permission or another donor's id is `FORBIDDEN` (403; REST answers 401 for both)
 
 ### Types
 
-`pnpm build:types` (root) emits the router's declarations to `dist-types/`, as for the admin.
+`pnpm build:types` (root) emits the router's declarations to `apps/api/dist-types/`, as for the admin.
 `packages/api/index.d.ts` re-exports `AppRouter` from there, and apps/web has `@effekt/api` as a
 workspace dev dependency. apps/web runs the type build itself: `pnpm typecheck` and `pnpm build`
 both start with `pnpm types:api`. This works on Vercel because its install
@@ -43,7 +43,7 @@ dependencies and runs its `postinstall` (`prisma generate`), which is all `build
 Nothing generated is committed.
 
 The output schemas are needed at runtime on the web (see the Danish site below), so they live in
-`src/trpc/shared/` and are bundled into the web through `@effekt/api/minside` (listed in
+`apps/api/src/trpc/shared/` and are bundled into the web through `@effekt/api/minside` (listed in
 `transpilePackages`). A backend test fails if that folder imports anything but `zod`.
 
 ### Client
@@ -97,20 +97,20 @@ The `restRoutes` table in `restLink.ts` maps procedures to REST routes:
   `id: 0`, which is why the profile schema allows 0.
 - Its Postgres driver sends numeric columns as numbers and `COUNT(*)` as strings, where our
   backend sends MySQL decimals as strings. The schemas accept both (`decimal` in
-  `src/trpc/shared/minside.ts`), and Min Side parses either. It also sends a few fields ours
+  `apps/api/src/trpc/shared/minside.ts`), and Min Side parses either. It also sends a few fields ours
   doesn't (`impact` on donations, `amount` on distributions), which the schemas declare as
   optional.
 
 ## Adding a procedure
 
-1. Put the input and output schemas in `src/trpc/shared/minside.ts` (only `zod`). Give every
+1. Put the input and output schemas in `apps/api/src/trpc/shared/minside.ts` (only `zod`). Give every
    procedure an explicit `.output()`, which strips fields you don't declare. Only add fields Min
    Side uses.
-2. Add the procedure to `src/trpc/routers/minside.ts` with `donorProcedure(<the REST route's
+2. Add the procedure to `apps/api/src/trpc/routers/minside.ts` with `donorProcedure(<the REST route's
 permission>)`. For more input fields than `donorId`, pass a schema that extends `donorInput`:
    `donorProcedure(permission, donorInput.extend({ … }))` (`donorInput` is strict, so a chained
    `.input()` would reject the extra fields). Use `.query` for reads and `.mutation` for writes.
-3. Test it in `src/__test__/trpc.minside.spec.ts`: anonymous (401), another donor (403),
+3. Test it in `apps/api/src/__test__/trpc.minside.spec.ts`: anonymous (401), another donor (403),
    missing permission, bad input (400), the donor and an admin (200), and the output shape.
 4. If the Danish backend implements the REST route (check
    `gh api repos/giveffektivt/donation-platform/contents/app/donors/[id]`), add it to
@@ -122,7 +122,7 @@ permission>)`. For more input fields than `donorId`, pass a schema that extends 
 ## Migration checklist (per Min Side area)
 
 - [ ] Read the REST route and copy its permission and ownership check exactly
-- [ ] Shared schemas in `src/trpc/shared/`, declaring only the fields the web uses
+- [ ] Shared schemas in `apps/api/src/trpc/shared/`, declaring only the fields the web uses
 - [ ] Procedure and tests (see above); `pnpm test`, `npx tsc -p tsconfig.build.json --noEmit`
 - [ ] Map it in `restRoutes` if the Danish backend has it; otherwise it fails on Danish Min Side
 - [ ] Web hook migrated with the same loading and error states, and the same SWR key wherever
@@ -143,7 +143,7 @@ permission>)`. For more input fields than `donorId`, pass a schema that extends 
 ## Deployment notes
 
 - Vercel's ignored build step only checks `apps/web`, `pnpm-lock.yaml` and
-  `pnpm-workspace.yaml`. A change to `src/trpc/shared/` or `packages/api/` alone changes what the
+  `pnpm-workspace.yaml`. A change to `apps/api/src/trpc/shared/` or `packages/api/` alone changes what the
   web bundles, but it does not redeploy the website. Either add
   `../../src/trpc/shared ../../packages/api` to that command in the main-site, giv-effektivt and
   ge-effektivt project settings, or touch apps/web in the same PR.

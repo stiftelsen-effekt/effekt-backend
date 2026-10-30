@@ -1,6 +1,6 @@
 # Deploying the new admin
 
-Proposal for running the new admin (`admin/`) in production next to the old one, then replacing it.
+Proposal for running the new admin (`apps/admin/`) in production next to the old one, then replacing it.
 
 ## Today
 
@@ -26,9 +26,9 @@ Proposal for running the new admin (`admin/`) in production next to the old one,
 | Auth0           | Add `https://admin-next.gieffektivt.no` to Allowed Callback URLs, Allowed Logout URLs and Allowed Web Origins of the admin SPA client.                                                                                       | You (Auth0)      |
 | API CORS        | Append `https://admin-next.gieffektivt.no` to `ALLOWED_PRODUCTION_ORIGINS` on `effektapi`.                                                                                                                                   | Claude (gcloud)  |
 | Build + publish | `cloudbuild.admin.yaml`: install, typecheck, test, build with production Auth0 settings, upload assets (immutable) then `index.html` (no-cache).                                                                             | In the repo      |
-| Trigger         | Cloud Build trigger `AdminDeploy` on pushes to `main` touching `admin/**`, `src/trpc/**`, `pnpm-lock.yaml`, `cloudbuild.admin.yaml`; substitutions `_BUCKET`, `_API_URL`, `_AUTH_*`.                                         | Claude (gcloud)  |
+| Trigger         | Cloud Build trigger `AdminDeploy` on pushes to `main` touching `apps/admin/**`, `apps/api/src/trpc/**`, `pnpm-lock.yaml`, `cloudbuild.admin.yaml`; substitutions `_BUCKET`, `_API_URL`, `_AUTH_*`.                           | Claude (gcloud)  |
 
-Merging `admin/` into `main` doesn't affect the backend image: `.dockerignore` excludes `admin/`
+Merging `apps/admin/` into `main` doesn't affect the backend image: `apps/api/Dockerfile.dockerignore` excludes `apps/admin/`
 and the image installs with `--filter stiftelsen-effekt-backend` (checked with the admin package
 present in the lockfile and absent from the build context).
 

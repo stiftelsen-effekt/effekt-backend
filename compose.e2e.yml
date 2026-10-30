@@ -37,14 +37,14 @@ services:
       # Fixed "today" for the generated background data, so runs are reproducible
       SEED_NOW: "2026-06-30"
 
-  # Deterministic e2e donor (prisma/e2e/seed.mjs) on top of the generated data
+  # Deterministic e2e donor (apps/api/prisma/e2e/seed.mjs) on top of the generated data
   seed-e2e:
     image: effekt-backend-dev:local # built by the migrate/api services
     pull_policy: never
     env_file: .env.docker
     command: ["node", "prisma/e2e/seed.mjs"]
     volumes:
-      - ./prisma/e2e:/app/prisma/e2e:ro
+      - ./apps/api/prisma/e2e:/app/apps/api/prisma/e2e:ro
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -155,7 +155,7 @@ configs:
           rewrite ^ /web/token break;
           proxy_pass http://auth:8080;
         }
-        # JWKS for the API's additional-issuer check (src/custom_modules/authorization/jwtIssuers.ts)
+        # JWKS for the API's additional-issuer check (apps/api/src/custom_modules/authorization/jwtIssuers.ts)
         location = /.well-known/jwks.json {
           rewrite ^ /web/jwks break;
           proxy_pass http://auth:8080;

@@ -26,8 +26,8 @@ reproduce this. It now starts with `--default-time-zone=+02:00` like production;
 
 ## Audit (2026-10-29)
 
-60 DATETIME/TIMESTAMP columns have `@default(now())` in `prisma/schema.prisma`; none has `ON UPDATE`. No
-INSERT in `src/` names any of them except `Donations.timestamp_confirmed`; no UPDATE sets any of them except
+60 DATETIME/TIMESTAMP columns have `@default(now())` in `apps/api/prisma/schema.prisma`; none has `ON UPDATE`. No
+INSERT in `apps/api/src/` names any of them except `Donations.timestamp_confirmed`; no UPDATE sets any of them except
 `AutoGiro_shipments.sent_date`. Prisma isn't used for writes.
 
 | Category                                      | Columns                                   |

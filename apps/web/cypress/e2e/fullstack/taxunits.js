@@ -1,10 +1,10 @@
 /**
  * Full-stack Min Side tax units (Skatt): the tax units and their yearly sums come from the real API
- * (tRPC minside.taxUnits) and database, for the e2e donor written by prisma/e2e/seed.mjs. The bank
+ * (tRPC minside.taxUnits) and database, for the e2e donor written by apps/api/prisma/e2e/seed.mjs. The bank
  * transfers (500 kr in 2022, 1 000 kr in 2023, 2 500 kr in 2025) belong to the second tax unit,
  * the Vipps and AvtaleGiro donations (700 kr in 2024, 500 kr in 2025) to the first.
  */
-import { DONOR_ID, TAX_UNITS } from "../../../../../prisma/e2e/data.mjs";
+import { DONOR_ID, TAX_UNITS } from "../../../../../apps/api/prisma/e2e/data.mjs";
 import { trpcData, trpcUrl } from "../../support/trpc";
 
 /** The visible (desktop) list of one tax unit */

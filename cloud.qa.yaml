@@ -2,17 +2,21 @@ steps:
   - name: "node:24.22.1"
     entrypoint: bash
     id: install
-    # Backend only: admin and apps/web have their own checks.
+    # The API (apps/api) and the workspace root (Prettier): admin and apps/web have their own
+    # checks.
     args:
-      ["-c", "corepack enable && pnpm install --frozen-lockfile --filter stiftelsen-effekt-backend"]
+      [
+        "-c",
+        "corepack enable && pnpm install --frozen-lockfile --filter effekt-platform --filter stiftelsen-effekt-backend",
+      ]
   - name: "node:24.22.1"
     entrypoint: bash
     waitFor: ["install"]
-    args: ["-c", "corepack enable && pnpm run test"]
+    args: ["-c", "corepack enable && pnpm --filter stiftelsen-effekt-backend test"]
   - name: "node:24.22.1"
     entrypoint: bash
     waitFor: ["install"]
-    args: ["-c", "corepack enable && pnpm run typecheck"]
+    args: ["-c", "corepack enable && pnpm --filter stiftelsen-effekt-backend typecheck"]
   - name: "node:24.22.1"
     entrypoint: bash
     waitFor: ["install"]

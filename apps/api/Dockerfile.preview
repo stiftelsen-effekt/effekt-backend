@@ -1,0 +1,71 @@
+# Preview image: one per pull request (docs/preview-environments.md).
+# The API in PREVIEW_MODE plus the built admin (apps/admin/dist), served by Express on one origin.
+# The same image runs the migrate + seed job (scripts/preview/migrate-and-seed.sh).
+#
+#   docker build -f apps/api/Dockerfile.preview -t effekt-preview .
+#
+# Built from the repository root. Uses apps/api/Dockerfile.preview.dockerignore (BuildKit picks it
+# over the context's .dockerignore), so the production Dockerfile, its dockerignore (which excludes
+# apps/admin) and its image are unchanged.
+
+# ---- Build ----
+FROM node:24.22.1 AS build
+
+WORKDIR /usr/src/app
+RUN corepack enable
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CHECKPOINT_DISABLE=1
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/admin/package.json apps/admin/package.json
+
+# --ignore-scripts: prisma generate runs below once the schema is there; husky is not wanted.
+# Filtered to the backend and admin: apps/web is not in the build context.
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter stiftelsen-effekt-backend --filter effekt-admin-v2
+
+COPY . .
+WORKDIR /usr/src/app/apps/api
+RUN pnpm exec prisma generate
+RUN pnpm run build
+
+# The seed (prisma/seed.ts -> prisma/devdata, which imports src/custom_modules/regranting)
+# compiled to plain JS, so the release image needs neither ts-node nor typescript.
+RUN pnpm exec tsc --outDir dist-seed --rootDir . --module commonjs --target ES2022 \
+      --esModuleInterop --skipLibCheck --strictNullChecks --allowJs false prisma/seed.ts
+
+# Admin: preview auth ("Continue as…"), same-origin API. Allowed only with --mode preview.
+WORKDIR /usr/src/app
+RUN VITE_AUTH_MODE=preview pnpm --dir apps/admin run build:preview
+
+# ---- Release ----
+FROM node:24.22.1
+
+WORKDIR /usr/src/app
+RUN corepack enable
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CHECKPOINT_DISABLE=1 NO_UPDATE_NOTIFIER=1
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/prisma.config.ts apps/api/
+COPY apps/api/prisma ./apps/api/prisma
+
+# Production dependencies of the backend only. Prisma's engines (for `migrate deploy` and
+# `db execute` in the seed job) are fetched by rebuilding just the Prisma packages.
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter stiftelsen-effekt-backend \
+    && pnpm --dir apps/api rebuild prisma @prisma/engines @prisma/client
+
+COPY --from=build /usr/src/app/apps/api/dist ./apps/api/dist
+COPY --from=build /usr/src/app/apps/api/dist-seed ./apps/api/dist-seed
+COPY --from=build /usr/src/app/apps/admin/dist ./admin-dist
+# At the path the preview deploy (scripts/preview/deploy.sh) runs it from; it works in apps/api
+COPY --from=build /usr/src/app/scripts/preview/migrate-and-seed.sh ./scripts/preview/migrate-and-seed.sh
+
+# Previews always run in preview mode; the startup guard refuses anything that isn't a safe
+# preview (apps/api/src/custom_modules/preview/environmentGuard.ts). Cloud Run provides PORT.
+ENV NODE_ENV=preview \
+    PREVIEW_MODE=true \
+    PREVIEW_ADMIN_DIR=/usr/src/app/admin-dist \
+    EFFEKT_HOST=0.0.0.0 \
+    TRUST_PROXY_HOPS=1
+
+WORKDIR /usr/src/app/apps/api
+USER node
+EXPOSE 8080
+CMD ["node", "dist/server.js"]

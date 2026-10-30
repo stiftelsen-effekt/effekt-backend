@@ -1,12 +1,12 @@
 /**
  * Full-stack version of cypress/e2e/no/agreements.js: the page talks to the real API and
  * database (compose.e2e.yml), so the assertions are against the e2e donor written by
- * prisma/e2e/seed.mjs. The data is reset before every test.
+ * apps/api/prisma/e2e/seed.mjs. The data is reset before every test.
  *
  * Not covered here: changing the amount of, or cancelling, a Vipps agreement. Both call the Vipps
  * API first, which the local stack has no credentials or stub for (see docs/e2e.md).
  */
-import { DONOR_ID, KIDS } from "../../../../../prisma/e2e/data.mjs";
+import { DONOR_ID, KIDS } from "../../../../../apps/api/prisma/e2e/data.mjs";
 
 const activeTable = () => cy.get("[data-cy=generic-list-table]").first();
 const inactiveTable = () => cy.get("[data-cy=generic-list-table]").last();

@@ -10,6 +10,6 @@
     "./minside": "./minside.ts"
   },
   "scripts": {
-    "build": "pnpm --dir ../.. build:types"
+    "build": "pnpm --dir ../../apps/api build:types"
   }
 }

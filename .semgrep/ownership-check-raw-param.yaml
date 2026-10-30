@@ -7,7 +7,7 @@ rules:
     #
     # Files that validate the parameter up front with
     # router.param("X", <middleware>) are not flagged: the raw value is already
-    # constrained there (see requireIntegerParam in src/routes/donors.ts).
+    # constrained there (see requireIntegerParam in apps/api/src/routes/donors.ts).
     # Prefer parsing once and reusing the parsed value in the handler.
     #
     # Known limitation: if the handler declares a local variable with the same

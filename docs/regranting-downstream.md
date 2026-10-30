@@ -316,9 +316,9 @@ dates (Min Side, annual impact summary).
 Backend: migration `20261029170000_regrant_onward` (the five tables, `Regrant_documents.Onward_report_ID`,
 and the markers: the payee named `GiveWell` as an intermediary in USD; Organizations 12 and 15
 as regranting funds where they exist, are GiveWell funds by name and aren't own funds),
-`DAO.regrantingOnward` (`src/custom_modules/DAO_modules/regrantingOnward.ts`), the rules in
-`src/custom_modules/regranting/onward.ts` and the tRPC router `regranting.onward.*`
-(`src/trpc/routers/regrantingOnward.ts`):
+`DAO.regrantingOnward` (`apps/api/src/custom_modules/DAO_modules/regrantingOnward.ts`), the rules in
+`apps/api/src/custom_modules/regranting/onward.ts` and the tRPC router `regranting.onward.*`
+(`apps/api/src/trpc/routers/regrantingOnward.ts`):
 
 - `settings`; `transfer({ transferId })` (lines with status, figures, allocations and a "Confirm
   forwarded" prefill); `line`; `prefill`; `awaiting({ from?, to?, payeeId? })` (grouped by payee,

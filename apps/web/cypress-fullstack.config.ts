@@ -19,9 +19,9 @@ export default defineConfig({
     setupNodeEvents(on, config) {
       require("cypress-fail-fast/plugin")(on, config);
       on("task", {
-        /** Rewrites the e2e donor's rows (prisma/e2e/seed.mjs), undoing earlier tests' changes */
+        /** Rewrites the e2e donor's rows (apps/api/prisma/e2e/seed.mjs), undoing earlier tests' changes */
         resetE2EData() {
-          execFileSync("node", [path.join(repoRoot, "prisma/e2e/seed.mjs")], {
+          execFileSync("node", [path.join(repoRoot, "apps/api/prisma/e2e/seed.mjs")], {
             env: { ...process.env, DB_URL: dbUrl },
             stdio: "pipe",
           });
