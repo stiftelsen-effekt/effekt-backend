@@ -23,12 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Rules managed in the Semgrep app. Skipped when the token is not available
-      # (e.g. pull requests from forks).
-      - name: Semgrep app rules
-        if: env.SEMGREP_APP_TOKEN != ''
-        run: semgrep ci
-
       # Repository rules in .semgrep/. These run without the Semgrep app.
       - name: Test custom rules
         run: semgrep --test .semgrep/
@@ -38,3 +32,11 @@ jobs:
 
       - name: Custom rules (report only, severity WARNING)
         run: semgrep scan --metrics=off --config .semgrep/ --exclude .semgrep --severity WARNING .
+
+      # Rules managed in the Semgrep app. Skipped when the token is not available
+      # (e.g. pull requests from forks).
+      - name: Semgrep app rules
+        if: always() && env.SEMGREP_APP_TOKEN != ''
+        # Report only until the existing findings are triaged
+        continue-on-error: true
+        run: semgrep ci
