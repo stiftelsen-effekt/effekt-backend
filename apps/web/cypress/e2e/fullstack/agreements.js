@@ -7,6 +7,7 @@
  * API first, which the local stack has no credentials or stub for (see docs/e2e.md).
  */
 import { DONOR_ID, KIDS } from "../../../../../apps/api/prisma/e2e/data.mjs";
+import { trpcData, trpcUrl } from "../../support/trpc";
 
 const activeTable = () => cy.get("[data-cy=generic-list-table]").first();
 const inactiveTable = () => cy.get("[data-cy=generic-list-table]").last();
@@ -31,11 +32,47 @@ describe("Agreements page (full stack)", () => {
     cy.task("resetE2EData");
     cy.loginFullstack(DONOR_ID);
 
-    cy.intercept("GET", "**/donors/*/recurring/vipps/").as("getVipps");
-    cy.intercept("GET", "**/donors/*/recurring/avtalegiro/").as("getAvtalegiro");
+    cy.intercept("GET", trpcUrl("minside.vippsAgreements")).as("getVipps");
+    cy.intercept("GET", trpcUrl("minside.avtaleGiroAgreements")).as("getAvtalegiro");
+    cy.intercept("GET", trpcUrl("minside.autoGiroAgreements")).as("getAutogiro");
 
     cy.visit("/min-side/avtaler/");
-    cy.wait(["@getVipps", "@getAvtalegiro"], { timeout: 30000 });
+    cy.wait(["@getVipps", "@getAvtalegiro", "@getAutogiro"], { timeout: 30000 });
+  });
+
+  it("gets the agreement lists from the API through tRPC", () => {
+    cy.get("@getVipps").then((interception) => {
+      const vipps = trpcData(interception, "minside.vippsAgreements");
+      expect(
+        vipps.map((a) => [a.KID, a.status, a.amount, a.monthly_charge_day]),
+      ).to.have.deep.members([
+        [KIDS.vippsCustom, "ACTIVE", 100, 10],
+        [KIDS.vippsStandard, "ACTIVE", 250, 20],
+        [KIDS.vippsStopped, "STOPPED", 400, 11],
+      ]);
+      // The Vipps agreement link's code stays on the server
+      vipps.forEach((a) => expect(a).not.to.have.property("agreement_url_code"));
+    });
+    cy.get("@getAvtalegiro").then((interception) => {
+      const avtaleGiro = trpcData(interception, "minside.avtaleGiroAgreements");
+      expect(
+        avtaleGiro.map((a) => [a.KID, a.active, Number(a.amount), a.payment_date, a.cancelled]),
+      ).to.have.deep.members([
+        [KIDS.avtalegiro, 1, 500, 15, null],
+        [KIDS.avtalegiroToCancel, 1, 300, 5, null],
+      ]);
+    });
+    cy.get("@getAutogiro").then((interception) => {
+      const autoGiro = trpcData(interception, "minside.autoGiroAgreements");
+      expect(autoGiro).to.have.length(1);
+      expect(autoGiro[0]).to.deep.include({
+        KID: KIDS.autogiro,
+        active: true,
+        amount: 200,
+        payment_date: 25,
+        cancelled: null,
+      });
+    });
   });
 
   it("lists the donor's active and inactive agreements", () => {

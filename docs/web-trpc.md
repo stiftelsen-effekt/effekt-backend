@@ -3,15 +3,23 @@
 The website's Min Side is moving from hand-written REST calls (`_queries.ts`) to the backend's
 tRPC router, one call at a time. Migrated so far, all read-only:
 
-| Procedure                     | Formerly                                | Hook                                             |
-| ----------------------------- | --------------------------------------- | ------------------------------------------------ |
-| `minside.profile`             | `GET /donors/:id`                       | `useDonor` (`DonorProvider`)                     |
-| `minside.taxUnits`            | `GET /donors/:id/taxunits`              | `useTaxUnits`                                    |
-| `minside.donationsAggregated` | `GET /donors/:id/donations/aggregated`  | `useAggregatedDonations`                         |
-| `minside.donations`           | `GET /donors/:id/donations`             | `useDonations`                                   |
-| `minside.distributions`       | `GET /donors/:id/distributions/?kids=…` | `useDistributions`, `useAgreementsDistributions` |
+| Procedure                      | Formerly                                | Hook                                             |
+| ------------------------------ | --------------------------------------- | ------------------------------------------------ |
+| `minside.profile`              | `GET /donors/:id`                       | `useDonor` (`DonorProvider`)                     |
+| `minside.taxUnits`             | `GET /donors/:id/taxunits`              | `useTaxUnits`                                    |
+| `minside.donationsAggregated`  | `GET /donors/:id/donations/aggregated`  | `useAggregatedDonations`                         |
+| `minside.donations`            | `GET /donors/:id/donations`             | `useDonations`                                   |
+| `minside.distributions`        | `GET /donors/:id/distributions/?kids=…` | `useDistributions`, `useAgreementsDistributions` |
+| `minside.vippsAgreements`      | `GET /donors/:id/recurring/vipps`       | `useVippsAgreements`                             |
+| `minside.avtaleGiroAgreements` | `GET /donors/:id/recurring/avtalegiro`  | `useAvtalegiroAgreements`                        |
+| `minside.autoGiroAgreements`   | `GET /donors/:id/recurring/autogiro`    | `useAutogiroAgreements`                          |
+| `minside.taxReports`           | `GET /donors/:id/taxreports`            | `useYearlyTaxReports`                            |
 
 SWR keys are in `minsideKeys` (`_queries.ts`); revalidate with `mutate(minsideKeys.taxUnits(id))`.
+
+The agreement lists and tax reports have no Danish REST route, so `restLink` leaves them unmapped.
+The Danish agreements page lists its own agreements with `useDKAgreements` (REST
+`GET /donors/:id/recurring`, not migrated), and the Danish site has no yearly tax reports.
 
 ## Pieces
 
