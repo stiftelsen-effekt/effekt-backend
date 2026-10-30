@@ -18,6 +18,7 @@ admin/test-results
 admin/playwright-report
 admin/tests
 functions
+apps
 certs
 docs
 Dockerfile

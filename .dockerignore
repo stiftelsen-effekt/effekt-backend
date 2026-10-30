@@ -8,3 +8,4 @@ Dockerfile
 .dockerignore
 functions/
 admin/
+apps/

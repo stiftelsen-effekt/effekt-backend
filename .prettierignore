@@ -1,3 +1,5 @@
 dist/**/*
 *.html
 admin/src/routeTree.gen.ts
+# apps/web has its own Prettier version and config (apps/web/.prettierrc)
+apps/
