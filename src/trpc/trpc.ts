@@ -2,15 +2,18 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import type { JWTPayload } from "express-oauth2-jwt-bearer";
 import { z } from "zod";
 import authorizationPermissions from "../enums/authorizationPermissions";
+import { userIsAllowedToManageDonor } from "../custom_modules/authorization/authMiddleware";
 import type { Context } from "./context";
 import { toInputError } from "./errors";
+import { donorInput } from "./shared/minside";
 
 const isDev = process.env.NODE_ENV === "development";
 
 const t = initTRPC.context<Context>().create({
   isDev,
   errorFormatter: ({ shape, error }) => {
-    if (error.cause instanceof z.ZodError) {
+    // Field details only for invalid input; a failed output schema is an internal error
+    if (error.cause instanceof z.ZodError && error.code === "BAD_REQUEST") {
       return {
         ...shape,
         message: z.prettifyError(error.cause),
@@ -51,3 +54,22 @@ export const adminProcedure = authedProcedure.use(({ ctx, next }) => {
   }
   return next();
 });
+
+/**
+ * A procedure on one donor's own data, for Min Side. Mirrors the REST donor routes
+ * (`authMiddleware.auth(permission)` + `checkAdminOrTheDonor(id)`): the token must carry
+ * `permission`, and its user id claim must be `input.donorId` unless the token is an admin's.
+ * The input includes `donorId` (a positive integer, like the REST `:id` param); chain `.input()`
+ * to add more fields. Unlike REST, which answers 401 to both, a missing permission or another
+ * donor's id is FORBIDDEN (403); no or an invalid token is UNAUTHORIZED (401).
+ */
+export const donorProcedure = (permission: string) =>
+  authedProcedure.input(donorInput).use(({ ctx, input, next }) => {
+    if (
+      !hasPermission(ctx.auth, permission) ||
+      !userIsAllowedToManageDonor(ctx.auth, input.donorId)
+    ) {
+      throw new TRPCError({ code: "FORBIDDEN" });
+    }
+    return next();
+  });
