@@ -1,5 +1,6 @@
 -- CreateTable
 -- One row per claim sent to Mastercard Payment Services (Nets) for an AvtaleGiro agreement
+-- Same collation as Avtalegiro_agreements.KID and Distributions.KID, so KIDs can be compared across tables
 CREATE TABLE `Avtalegiro_agreement_charges` (
     `ID` INTEGER NOT NULL AUTO_INCREMENT,
     `agreementID` INTEGER NOT NULL,
@@ -17,7 +18,7 @@ CREATE TABLE `Avtalegiro_agreement_charges` (
     INDEX `fk_Avtalegiro_agreement_charges_to_shipment_idx`(`shipmentID`),
     INDEX `fk_Avtalegiro_agreement_charges_to_agreements_idx`(`agreementID`),
     PRIMARY KEY (`ID`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 -- AddForeignKey
 ALTER TABLE `Avtalegiro_agreement_charges` ADD CONSTRAINT `fk_Avtalegiro_agreement_charges_to_agreements_idx` FOREIGN KEY (`agreementID`) REFERENCES `Avtalegiro_agreements`(`ID`) ON DELETE RESTRICT ON UPDATE CASCADE;
