@@ -3,6 +3,7 @@ import type { AnyRouter } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { TRPC_ERROR_CODES_BY_KEY, type TRPC_ERROR_CODE_KEY } from "@trpc/server/rpc";
 import {
+  changedTaxUnitOutput,
   distributionsOutput,
   donationsAggregatedOutput,
   donationsOutput,
@@ -19,14 +20,22 @@ import {
  */
 
 type RestRoute = {
-  method: "GET";
+  /** GET answers a query; any other method a mutation */
+  method: "GET" | "POST" | "PUT" | "DELETE";
   /** Path below NEXT_PUBLIC_EFFEKT_API, from the procedure input */
   path: (input: any) => string;
+  /** The JSON request body, from the procedure input (mutations only) */
+  body?: (input: any) => unknown;
   /** The procedure's output schema; parses the REST response's `content` */
   output: { parse: (data: unknown) => unknown };
 };
 
-/** Procedure path → REST route. Keep in sync with apps/api/src/trpc/routers/minside.ts */
+/**
+ * Procedure path → REST route. Keep in sync with apps/api/src/trpc/routers/minside.ts. Of the
+ * mutations, the Danish backend only has the tax unit create and update routes; saving the profile,
+ * deleting a tax unit and the Vipps/AvtaleGiro agreement changes are unmapped (the Danish site edits
+ * its agreements through its own REST routes, see DKAgreementDetails).
+ */
 export const restRoutes: Record<string, RestRoute> = {
   "minside.profile": {
     method: "GET",
@@ -56,6 +65,21 @@ export const restRoutes: Record<string, RestRoute> = {
       `/donors/${input.donorId}/distributions/` +
       (input.kids ? `?kids=${encodeURIComponent(input.kids.join(","))}` : ""),
     output: distributionsOutput,
+  },
+  "minside.createTaxUnit": {
+    method: "POST",
+    path: (input: { donorId: number }) => `/donors/${input.donorId}/taxunits`,
+    body: (input: { name: string; ssn: string }) => ({ name: input.name, ssn: input.ssn }),
+    output: changedTaxUnitOutput,
+  },
+  "minside.updateTaxUnit": {
+    method: "PUT",
+    path: (input: { donorId: number; taxUnitId: number }) =>
+      `/donors/${input.donorId}/taxunits/${input.taxUnitId}`,
+    body: (input: { name: string; ssn: string }) => ({
+      taxUnit: { name: input.name, ssn: input.ssn },
+    }),
+    output: changedTaxUnitOutput,
   },
 };
 
@@ -108,7 +132,8 @@ export const restLink =
         : undefined;
 
       const run = async () => {
-        if (!route || op.type !== "query") {
+        const opType = route?.method === "GET" ? "query" : "mutation";
+        if (!route || op.type !== opType) {
           throw restError(
             op.path,
             "NOT_IMPLEMENTED",
@@ -116,11 +141,13 @@ export const restLink =
             `${op.path} is not available on this site`,
           );
         }
-        const response = await (fetchImpl ?? fetch)(url + route.path(op.input), {
-          method: route.method,
-          headers: { Authorization: `Bearer ${await getToken()}` },
-          signal: op.signal ?? undefined,
-        });
+        const headers: Record<string, string> = { Authorization: `Bearer ${await getToken()}` };
+        const init: RequestInit = { method: route.method, headers, signal: op.signal ?? undefined };
+        if (route.body) {
+          headers["Content-Type"] = "application/json";
+          init.body = JSON.stringify(route.body(op.input));
+        }
+        const response = await (fetchImpl ?? fetch)(url + route.path(op.input), init);
         const body = await response.json().catch(() => null);
         if (!response.ok) {
           const message =

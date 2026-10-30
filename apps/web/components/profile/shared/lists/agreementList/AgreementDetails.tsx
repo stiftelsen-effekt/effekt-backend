@@ -15,6 +15,7 @@ import {
 } from "./_queries";
 import { useAuth0 } from "@auth0/auth0-react";
 import { getAccessToken } from "../../../../../hooks/useApi";
+import { useTrpcClient } from "../../../../../lib/trpc/useTrpcClient";
 import { useSWRConfig } from "swr";
 import { AlertCircle, Check, Info } from "react-feather";
 import style from "./AgreementDetails.module.scss";
@@ -92,6 +93,7 @@ export const AgreementDetails: React.FC<{
   configuration,
 }) => {
   const { getAccessTokenSilently, user } = useAuth0();
+  const trpc = useTrpcClient(getAccessTokenSilently);
   const { mutate } = useSWRConfig();
   // Parse and stringify to make a deep copy of the object
   const [distribution, setDistribution] = useState<Distribution>(() =>
@@ -226,19 +228,19 @@ export const AgreementDetails: React.FC<{
       let result = null;
 
       if (sumChanged) {
-        result = await updateVippsAgreementPrice(getUserId(user), agreementId, agreementSum, token);
+        result = await updateVippsAgreementPrice(trpc, getUserId(user), agreementId, agreementSum);
       }
 
       if (dayChanged) {
-        result = await updateVippsAgreementDay(getUserId(user), agreementId, day, token);
+        result = await updateVippsAgreementDay(trpc, getUserId(user), agreementId, day);
       }
 
       if (distributionChanged || sumChanged) {
         result = await updateVippsAgreementDistribution(
+          trpc,
           getUserId(user),
           agreementId,
           distributionPayload,
-          token,
         );
       }
 
@@ -255,15 +257,20 @@ export const AgreementDetails: React.FC<{
       let result = null;
 
       if (sumChanged) {
-        result = await updateAvtaleagreementAmount(endpoint, agreementSum * 100, token);
+        result = await updateAvtaleagreementAmount(trpc, getUserId(user), endpoint, agreementSum);
       }
 
       if (dayChanged) {
-        result = await updateAvtaleagreementPaymentDay(endpoint, day, token);
+        result = await updateAvtaleagreementPaymentDay(trpc, getUserId(user), endpoint, day);
       }
 
       if (distributionChanged || sumChanged) {
-        result = await updateAvtalegiroAgreementDistribution(endpoint, distributionPayload, token);
+        result = await updateAvtalegiroAgreementDistribution(
+          trpc,
+          getUserId(user),
+          endpoint,
+          distributionPayload,
+        );
       }
 
       if (result !== null) {
@@ -305,7 +312,7 @@ export const AgreementDetails: React.FC<{
     setLightboxOpen(false);
     const token = await getAccessToken(getAccessTokenSilently);
     if (type === "Vipps") {
-      const cancelled = await cancelVippsAgreement(getUserId(user), agreementId, token);
+      const cancelled = await cancelVippsAgreement(trpc, getUserId(user), agreementId);
       if (cancelled) {
         successToast(configuration.toasts_configuration.success_text);
         agreementCancelled(type, agreementId, agreementKid);
@@ -314,7 +321,7 @@ export const AgreementDetails: React.FC<{
         failureToast(configuration.toasts_configuration.failure_text);
       }
     } else if (type === "AvtaleGiro") {
-      const cancelled = await cancelAvtaleGiroAgreement(endpoint, token);
+      const cancelled = await cancelAvtaleGiroAgreement(trpc, getUserId(user), endpoint);
       if (cancelled) {
         successToast(configuration.toasts_configuration.success_text);
         agreementCancelled(type, agreementId, agreementKid);

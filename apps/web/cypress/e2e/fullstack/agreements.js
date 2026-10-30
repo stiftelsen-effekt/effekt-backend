@@ -1,13 +1,14 @@
 /**
  * Full-stack version of cypress/e2e/no/agreements.js: the page talks to the real API and
  * database (compose.e2e.yml), so the assertions are against the e2e donor written by
- * apps/api/prisma/e2e/seed.mjs. The data is reset before every test.
+ * apps/api/prisma/e2e/seed.mjs. The data is reset before every test. Reads and changes go
+ * through the tRPC minside procedures.
  *
  * Not covered here: changing the amount of, or cancelling, a Vipps agreement. Both call the Vipps
  * API first, which the local stack has no credentials or stub for (see docs/e2e.md).
  */
 import { DONOR_ID, KIDS } from "../../../../../apps/api/prisma/e2e/data.mjs";
-import { trpcData, trpcUrl } from "../../support/trpc";
+import { trpcData, trpcInput, trpcUrl } from "../../support/trpc";
 
 const activeTable = () => cy.get("[data-cy=generic-list-table]").first();
 const inactiveTable = () => cy.get("[data-cy=generic-list-table]").last();
@@ -135,12 +136,18 @@ describe("Agreements page (full stack)", () => {
     organizationInput(KIDS.vippsCustom, "All Grants").clear().type("25");
     organizationInput(KIDS.vippsCustom, "Helen Keller").clear().type("20");
 
-    cy.intercept("PUT", "**/donors/*/recurring/vipps/*/distribution").as("saveDistribution");
+    cy.intercept("POST", trpcUrl("minside.updateVippsAgreementDistribution")).as(
+      "saveDistribution",
+    );
     save(KIDS.vippsCustom);
 
-    cy.wait("@saveDistribution").then(({ response }) => {
-      expect(response.statusCode).to.equal(200);
-      const newKid = response.body.content.KID;
+    cy.wait("@saveDistribution").then((interception) => {
+      expect(interception.response.statusCode).to.equal(200);
+      const input = trpcInput(interception, "minside.updateVippsAgreementDistribution");
+      expect(input).to.deep.include({ donorId: DONOR_ID });
+      // Only the split goes to the API: no names, amounts or donor
+      expect(input.distribution).to.have.keys(["taxUnitId", "causeAreas"]);
+      const newKid = trpcData(interception, "minside.updateVippsAgreementDistribution").KID;
       expect(newKid).to.match(/^\d+$/).and.not.equal(KIDS.vippsCustom);
 
       cy.get(".Toastify").contains("Lagret");
@@ -170,9 +177,15 @@ describe("Agreements page (full stack)", () => {
       .find("[data-cy=date-picker-input]")
       .should("contain.value", "13.");
 
-    cy.intercept("PUT", "**/donors/*/recurring/vipps/*/chargeday").as("saveChargeDay");
+    cy.intercept("POST", trpcUrl("minside.updateVippsAgreementChargeDay")).as("saveChargeDay");
     save(KIDS.vippsStandard);
-    cy.wait("@saveChargeDay").its("response.statusCode").should("equal", 200);
+    cy.wait("@saveChargeDay").then((interception) => {
+      expect(interception.response.statusCode).to.equal(200);
+      expect(trpcInput(interception, "minside.updateVippsAgreementChargeDay")).to.deep.include({
+        donorId: DONOR_ID,
+        chargeDay: 13,
+      });
+    });
 
     cy.get(".Toastify").contains("Lagret");
     cy.reload();
@@ -192,9 +205,17 @@ describe("Agreements page (full stack)", () => {
       .find("[data-cy=agreement-list-amount-input]")
       .should("contain.text", "750");
 
-    cy.intercept("POST", "**/avtalegiro/*/amount").as("saveAmount");
+    cy.intercept("POST", trpcUrl("minside.updateAvtaleGiroAmount")).as("saveAmount");
     save(KIDS.avtalegiro);
-    cy.wait("@saveAmount").its("response.statusCode").should("equal", 200);
+    cy.wait("@saveAmount").then((interception) => {
+      expect(interception.response.statusCode).to.equal(200);
+      // Whole kroner; the API stores øre
+      expect(trpcInput(interception, "minside.updateAvtaleGiroAmount")).to.deep.equal({
+        donorId: DONOR_ID,
+        KID: KIDS.avtalegiro,
+        amount: 750,
+      });
+    });
 
     cy.get(".Toastify").contains("Lagret");
     cy.reload();
@@ -207,7 +228,9 @@ describe("Agreements page (full stack)", () => {
     agreementRow(activeTable, KIDS.avtalegiroToCancel)
       .find("[data-cy=btn-cancel-agreement]")
       .click();
+    cy.intercept("POST", trpcUrl("minside.cancelAvtaleGiroAgreement")).as("cancel");
     cy.get("[data-cy=lightbox-confirm]").click();
+    cy.wait("@cancel").its("response.statusCode").should("equal", 200);
 
     activeTable().find("tbody").should("have.length", 4);
     inactiveTable().find("tbody").should("have.length", 2);
@@ -215,5 +238,29 @@ describe("Agreements page (full stack)", () => {
 
     cy.reload();
     agreementRow(inactiveTable, KIDS.avtalegiroToCancel).should("exist");
+  });
+
+  it("changes the payment date of an AvtaleGiro agreement", () => {
+    expand(KIDS.avtalegiro);
+
+    agreementRow(activeTable, KIDS.avtalegiro).find("[data-cy=date-picker-input]").click();
+    agreementRow(activeTable, KIDS.avtalegiro)
+      .find("[data-cy=date-picker-button-20]")
+      .click({ force: true });
+
+    cy.intercept("POST", trpcUrl("minside.updateAvtaleGiroPaymentDate")).as("savePaymentDate");
+    save(KIDS.avtalegiro);
+    cy.wait("@savePaymentDate").then((interception) => {
+      expect(interception.response.statusCode).to.equal(200);
+      expect(trpcInput(interception, "minside.updateAvtaleGiroPaymentDate")).to.deep.equal({
+        donorId: DONOR_ID,
+        KID: KIDS.avtalegiro,
+        paymentDate: 20,
+      });
+    });
+
+    cy.get(".Toastify").contains("Lagret");
+    cy.reload();
+    agreementRow(activeTable, KIDS.avtalegiro).should("contain.text", "Den 20. hver måned");
   });
 });

@@ -1,29 +1,20 @@
 import { User } from "@auth0/auth0-react";
+import { TRPCClientError } from "@trpc/client";
 import { mutate } from "swr";
+import type { TrpcClient } from "../../lib/trpc/client";
 import { getUserId } from "../../lib/user";
 import { minsideKeys } from "../../_queries";
 import { Donor, FacebookDonationRegistration, TaxUnit } from "../../models";
 
-export const saveDonor = async (data: Donor, user: User, token: string) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-
+/** Saves the donor's name and newsletter choice (tRPC minside.updateProfile). Null on failure. */
+export const saveDonor = async (data: Donor, user: User, trpc: TrpcClient) => {
   try {
-    const response = await fetch(`${api}/donors/${getUserId(user)}/`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-      body: JSON.stringify(data),
+    await trpc.minside.updateProfile.mutate({
+      donorId: getUserId(user),
+      name: data.name ?? "",
+      newsletter: data.newsletter,
     });
-
-    const donor: Donor = await response.json();
-    if (response.status !== 200) {
-      return null;
-    } else {
-      return donor;
-    }
+    return data;
   } catch (e) {
     return null;
   }
@@ -56,105 +47,73 @@ export const registerFacebookDonation = async (
   }
 };
 
+/** The error message to show for a failed tax unit change, or false if there is none */
+const errorMessage = (e: unknown): string | false => {
+  console.error(e);
+  return e instanceof TRPCClientError && e.message ? e.message : false;
+};
+
+/**
+ * Creates a tax unit (tRPC minside.createTaxUnit) and revalidates the tax units. Returns the new
+ * unit, the error message, or false.
+ */
 export const createTaxUnit = async (
   data: Partial<TaxUnit>,
   user: User,
-  token: string,
+  trpc: TrpcClient,
 ): Promise<TaxUnit | string | false> => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-
   try {
-    const response = await fetch(`${api}/donors/${getUserId(user)}/taxunits`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        name: data.name,
-        ssn: data.ssn,
-      }),
+    const taxUnit = await trpc.minside.createTaxUnit.mutate({
+      donorId: getUserId(user),
+      name: data.name ?? "",
+      ssn: data.ssn ?? "",
     });
-
-    if (response.status === 200) {
-      const data = await response.json();
-      mutate(minsideKeys.taxUnits(getUserId(user)));
-      return data.content;
-    } else {
-      const data = await response.json();
-      return data.content;
-    }
+    mutate(minsideKeys.taxUnits(getUserId(user)));
+    // Without the sums, which the revalidated list has
+    return taxUnit as TaxUnit;
   } catch (e) {
-    console.error(e);
-    return false;
+    return errorMessage(e);
   }
 };
 
+/** Changes a tax unit's name and ssn (tRPC minside.updateTaxUnit); like createTaxUnit */
 export const updateTaxUnit = async (
   data: TaxUnit,
   user: User,
-  token: string,
+  trpc: TrpcClient,
 ): Promise<TaxUnit | string | false> => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-
   try {
-    const response = await fetch(`${api}/donors/${getUserId(user)}/taxunits/${data.id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        taxUnit: data,
-      }),
+    const taxUnit = await trpc.minside.updateTaxUnit.mutate({
+      donorId: getUserId(user),
+      taxUnitId: data.id,
+      name: data.name,
+      ssn: data.ssn,
     });
-
-    if (response.status === 200) {
-      const data = await response.json();
-      mutate(minsideKeys.taxUnits(getUserId(user)));
-      return data.content;
-    } else {
-      const data = await response.json();
-      return data.content;
-    }
+    mutate(minsideKeys.taxUnits(getUserId(user)));
+    return { ...data, ...taxUnit } as TaxUnit;
   } catch (e) {
-    console.error(e);
-    return false;
+    return errorMessage(e);
   }
 };
 
+/**
+ * Archives a tax unit (tRPC minside.deleteTaxUnit), optionally moving this year's donations to
+ * `transferUnit`. Returns true, the error message, or false.
+ */
 export const deleteTaxUnit = async (
   data: { unit: TaxUnit; transferUnit: TaxUnit | null },
   user: User,
-  token: string,
+  trpc: TrpcClient,
 ): Promise<string | boolean> => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-
   try {
-    const response = await fetch(`${api}/donors/${getUserId(user)}/taxunits/${data.unit.id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        transferId: data.transferUnit?.id || null,
-      }),
+    await trpc.minside.deleteTaxUnit.mutate({
+      donorId: getUserId(user),
+      taxUnitId: data.unit.id,
+      transferTaxUnitId: data.transferUnit?.id ?? null,
     });
-
-    if (response.status === 200) {
-      const data = await response.json();
-      mutate(minsideKeys.taxUnits(getUserId(user)));
-      return true;
-    } else {
-      const data = await response.json();
-      return data.content;
-    }
+    mutate(minsideKeys.taxUnits(getUserId(user)));
+    return true;
   } catch (e) {
-    console.error(e);
-    return false;
+    return errorMessage(e);
   }
 };

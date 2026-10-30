@@ -1,5 +1,5 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { getAccessToken } from "../../../../hooks/useApi";
+import { useTrpcClient } from "../../../../lib/trpc/useTrpcClient";
 import { useContext, useState } from "react";
 import { AlertCircle, Check } from "react-feather";
 import { toast } from "react-toastify";
@@ -25,6 +25,7 @@ export const ProfileInfo: React.FC<{
   titleTemplate: string;
 }> = ({ config, titleTemplate }) => {
   const { getAccessTokenSilently, user } = useAuth0();
+  const trpc = useTrpcClient(getAccessTokenSilently);
 
   const { donor: initialDonor, setDonor: setGlobalDonor } = useContext(DonorContext);
   const [editedDonor, setDonor] = useState<Donor | null>(initialDonor);
@@ -34,8 +35,7 @@ export const ProfileInfo: React.FC<{
   if (!donor || !user) return <ErrorMessage />;
 
   const save = async () => {
-    const token = await getAccessToken(getAccessTokenSilently);
-    const result = await saveDonor(donor, user, token);
+    const result = await saveDonor(donor, user, trpc);
     if (result === null) {
       failureToast(config.failure_message);
     } else {
@@ -68,6 +68,7 @@ export const ProfileInfo: React.FC<{
         </div>
         <div className={style.inputContainer}>
           <EffektCheckbox
+            dataCy="checkbox-newsletter"
             checked={donor.newsletter}
             onChange={() => {
               setDonor({ ...donor, newsletter: !donor.newsletter });

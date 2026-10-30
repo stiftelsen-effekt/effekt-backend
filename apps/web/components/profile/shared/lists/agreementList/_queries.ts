@@ -1,212 +1,99 @@
+import type { TrpcClient } from "../../../../../lib/trpc/client";
 import { Distribution } from "../../../../../models";
 import { AgreementTypes } from "./AgreementList";
 
-const vippsAgreementUrl = (api: string, donorId: number, agreementId: string, action: string) =>
-  `${api}/donors/${donorId}/recurring/vipps/${encodeURIComponent(agreementId)}/${action}`;
+/** The split the agreement mutations take: the donor is the agreement's, names and amounts are left out */
+const toAgreementDistribution = (distribution: Distribution) => ({
+  taxUnitId: distribution.taxUnitId ?? null,
+  causeAreas: distribution.causeAreas.map((causeArea) => ({
+    id: causeArea.id,
+    standardSplit: causeArea.standardSplit,
+    percentageShare: String(causeArea.percentageShare),
+    organizations: causeArea.organizations.map((organization) => ({
+      id: organization.id,
+      percentageShare: String(organization.percentageShare),
+    })),
+  })),
+});
 
-export const updateVippsAgreementDistribution = async (
-  donorId: number,
-  agreementId: string,
-  distribution: Distribution,
-  token: string,
-) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-
+/** Runs a Min Side mutation; true when it succeeded, null when it failed (as the REST calls did) */
+const succeeded = async (mutation: Promise<unknown>): Promise<true | null> => {
   try {
-    const response = await fetch(vippsAgreementUrl(api, donorId, agreementId, "distribution"), {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        distribution: distribution,
-      }),
-    });
-
-    const result = await response.json();
-    if (response.status !== 200) {
-      return null;
-    } else {
-      return true;
-    }
+    await mutation;
+    return true;
   } catch (e) {
+    console.error(e);
     return null;
   }
 };
 
-export const updateVippsAgreementPrice = async (
+export const updateVippsAgreementDistribution = (
+  trpc: TrpcClient,
+  donorId: number,
+  agreementId: string,
+  distribution: Distribution,
+) =>
+  succeeded(
+    trpc.minside.updateVippsAgreementDistribution.mutate({
+      donorId,
+      agreementId,
+      distribution: toAgreementDistribution(distribution),
+    }),
+  );
+
+/** `sum` in whole kroner */
+export const updateVippsAgreementPrice = (
+  trpc: TrpcClient,
   donorId: number,
   agreementId: string,
   sum: number,
-  token: string,
-) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
+) =>
+  succeeded(trpc.minside.updateVippsAgreementPrice.mutate({ donorId, agreementId, amount: sum }));
 
-  try {
-    const response = await fetch(vippsAgreementUrl(api, donorId, agreementId, "price"), {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        price: sum * 100,
-      }),
-    });
-
-    if (response.status !== 200) {
-      return null;
-    } else {
-      return true;
-    }
-  } catch (e) {
-    return null;
-  }
-};
-
-export const updateVippsAgreementDay = async (
+export const updateVippsAgreementDay = (
+  trpc: TrpcClient,
   donorId: number,
   agreementId: string,
   day: number,
-  token: string,
-) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
+) =>
+  succeeded(
+    trpc.minside.updateVippsAgreementChargeDay.mutate({ donorId, agreementId, chargeDay: day }),
+  );
 
-  try {
-    const response = await fetch(vippsAgreementUrl(api, donorId, agreementId, "chargeday"), {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        chargeDay: day,
-      }),
-    });
+export const cancelVippsAgreement = (trpc: TrpcClient, donorId: number, agreementId: string) =>
+  succeeded(trpc.minside.cancelVippsAgreement.mutate({ donorId, agreementId }));
 
-    const result = await response.json();
-    if (response.status !== 200) {
-      return null;
-    } else {
-      return true;
-    }
-  } catch (e) {
-    return null;
-  }
-};
-
-export const cancelVippsAgreement = async (donorId: number, agreementId: string, token: string) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-
-  try {
-    const response = await fetch(vippsAgreementUrl(api, donorId, agreementId, "cancel"), {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-    });
-
-    const result = await response.json();
-    if (response.status !== 200) {
-      return null;
-    } else {
-      return true;
-    }
-  } catch (e) {
-    return null;
-  }
-};
-
-export const updateAvtalegiroAgreementDistribution = async (
+export const updateAvtalegiroAgreementDistribution = (
+  trpc: TrpcClient,
+  donorId: number,
   kid: string,
   distribution: Distribution,
-  token: string,
-) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
+) =>
+  succeeded(
+    trpc.minside.updateAvtaleGiroDistribution.mutate({
+      donorId,
+      KID: kid,
+      distribution: toAgreementDistribution(distribution),
+    }),
+  );
 
-  try {
-    const response = await fetch(`${api}/avtalegiro/${kid}/distribution`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        distribution: distribution,
-      }),
-    });
+export const updateAvtaleagreementPaymentDay = (
+  trpc: TrpcClient,
+  donorId: number,
+  kid: string,
+  day: number,
+) =>
+  succeeded(
+    trpc.minside.updateAvtaleGiroPaymentDate.mutate({ donorId, KID: kid, paymentDate: day }),
+  );
 
-    const result = await response.json();
-    if (response.status !== 200) {
-      return null;
-    } else {
-      return true;
-    }
-  } catch (e) {
-    return null;
-  }
-};
-
-export const updateAvtaleagreementPaymentDay = async (kid: string, day: number, token: string) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-
-  try {
-    const response = await fetch(`${api}/avtalegiro/${kid}/paymentdate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        paymentDate: day,
-      }),
-    });
-
-    const result = await response.json();
-    if (response.status !== 200) {
-      return null;
-    } else {
-      return result.content;
-    }
-  } catch (e) {
-    return null;
-  }
-};
-
-export const updateAvtaleagreementAmount = async (kid: string, sum: number, token: string) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-
-  try {
-    const response = await fetch(`${api}/avtalegiro/${kid}/amount`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        amount: sum,
-      }),
-    });
-
-    const result = await response.json();
-    if (response.status !== 200) {
-      return null;
-    } else {
-      return result.content;
-    }
-  } catch (e) {
-    return null;
-  }
-};
+/** `sum` in whole kroner */
+export const updateAvtaleagreementAmount = (
+  trpc: TrpcClient,
+  donorId: number,
+  kid: string,
+  sum: number,
+) => succeeded(trpc.minside.updateAvtaleGiroAmount.mutate({ donorId, KID: kid, amount: sum }));
 
 export const updateAutoGiroAgreement = async (
   kid: string,
@@ -300,32 +187,8 @@ export const cancelDKAgreement = async (donorId: number, agreementId: string, to
   }
 };
 
-export const cancelAvtaleGiroAgreement = async (kid: string, token: string) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-
-  try {
-    const response = await fetch(`${api}/avtalegiro/${kid}/status`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        active: 0,
-      }),
-    });
-
-    const result = await response.json();
-    if (response.status !== 200) {
-      return null;
-    } else {
-      return true;
-    }
-  } catch (e) {
-    return null;
-  }
-};
+export const cancelAvtaleGiroAgreement = (trpc: TrpcClient, donorId: number, kid: string) =>
+  succeeded(trpc.minside.cancelAvtaleGiroAgreement.mutate({ donorId, KID: kid }));
 
 export const cancelAutoGiroAgreement = async (kid: string, token: string) => {
   const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";

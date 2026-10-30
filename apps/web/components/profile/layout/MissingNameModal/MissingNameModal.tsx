@@ -4,7 +4,7 @@ import { Lightbox } from "../../../shared/components/Lightbox/Lightbox";
 import { EffektTextInput } from "../../../shared/components/EffektTextInput/EffektTextInput";
 import { saveDonor } from "../../_queries";
 import { useAuth0 } from "@auth0/auth0-react";
-import { getAccessToken } from "../../../../hooks/useApi";
+import { useTrpcClient } from "../../../../lib/trpc/useTrpcClient";
 import { AlertCircle, Check } from "react-feather";
 import { toast } from "react-toastify";
 
@@ -22,6 +22,7 @@ export type MissingNameModalConfig = {
 export const MissingNameModal: React.FC<{ config: MissingNameModalConfig }> = ({ config }) => {
   const { donor, setDonor } = useContext(DonorContext);
   const { user, getAccessTokenSilently } = useAuth0();
+  const trpc = useTrpcClient(getAccessTokenSilently);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -31,8 +32,7 @@ export const MissingNameModal: React.FC<{ config: MissingNameModalConfig }> = ({
     setLoading(true);
     if (donor && user) {
       const updatedDonor = { ...donor, name };
-      const token = await getAccessToken(getAccessTokenSilently);
-      const result = await saveDonor(updatedDonor, user, token);
+      const result = await saveDonor(updatedDonor, user, trpc);
       if (result === null) {
         failureToast(config.failure_message);
       } else {

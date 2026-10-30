@@ -166,35 +166,59 @@ Cypress.Commands.add("pickAnonymous", pickAnonymous);
 Cypress.Commands.add("inputDonorValues", inputDonorValues);
 
 /**
- * Stubbed tRPC procedures of the current test: procedure path -> data. Min Side calls the backend's
- * tRPC router on the Norwegian site; see ./trpc.js for the request format.
+ * Stubbed tRPC procedures of the current test: procedure path -> { data } or { error }. Min Side
+ * calls the backend's tRPC router on the Norwegian site; see ./trpc.js for the request format.
  */
 const trpcStubs = new Map();
 beforeEach(() => trpcStubs.clear());
 
-const trpcBatchEntry = (path) =>
-  trpcStubs.has(path)
-    ? { result: { data: trpcStubs.get(path) } }
-    : {
-        error: {
-          message: `${path} is not stubbed in this test`,
-          code: -32603,
-          data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500, path },
-        },
-      };
+const trpcBatchEntry = (path) => {
+  const stub = trpcStubs.get(path);
+  if (stub && "error" in stub) return { error: stub.error };
+  if (stub) return { result: { data: stub.data } };
+  return {
+    error: {
+      message: `${path} is not stubbed in this test`,
+      code: -32603,
+      data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500, path },
+    },
+  };
+};
 
 /**
- * Answers the tRPC procedure `path` with `data`, also when it is batched with other procedures.
- * The batch's other procedures get the data of their own interceptTrpc call, or an error. Calling
- * it again for the same path replaces the data. Returns the intercept, so `.as()` works.
+ * Answers the requests for `path` from the stubs: queries (GET) and mutations (POST), also when
+ * batched with other procedures, whose entries come from their own stubs or are errors.
  */
-Cypress.Commands.add("interceptTrpc", (path, data) => {
-  trpcStubs.set(path, data);
-  return cy.intercept({ method: "GET", url: trpcUrl(path) }, (req) => {
+const interceptTrpcPath = (path) =>
+  cy.intercept({ url: trpcUrl(path) }, (req) => {
     const body = trpcPaths(req.url).map(trpcBatchEntry);
     req.reply({ statusCode: body.some((entry) => entry.error) ? 207 : 200, body });
   });
+
+/**
+ * Answers the tRPC procedure `path` (a query or a mutation) with `data`. Calling it again for the
+ * same path replaces the data. Returns the intercept, so `.as()` works.
+ */
+Cypress.Commands.add("interceptTrpc", (path, data) => {
+  trpcStubs.set(path, { data });
+  return interceptTrpcPath(path);
 });
+
+/** Makes the tRPC procedure `path` fail, like a server error with this code and status */
+const TRPC_ERROR_CODES = { BAD_REQUEST: -32600, NOT_FOUND: -32004, INTERNAL_SERVER_ERROR: -32603 };
+Cypress.Commands.add(
+  "interceptTrpcError",
+  (path, { code = "INTERNAL_SERVER_ERROR", httpStatus = 500, message = "Failed" } = {}) => {
+    trpcStubs.set(path, {
+      error: {
+        message,
+        code: TRPC_ERROR_CODES[code] ?? -32603,
+        data: { code, httpStatus, path },
+      },
+    });
+    return interceptTrpcPath(path);
+  },
+);
 
 Cypress.Commands.add("interceptDonorProfile", (donor) =>
   cy.interceptTrpc("minside.profile", donor),
