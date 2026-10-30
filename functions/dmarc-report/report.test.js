@@ -27,6 +27,8 @@ const xml = `<?xml version="1.0"?>
   ${record("5.6.7.8", 2, "pass", "fail", "hs1-8642229", "bounce.hubspotemail.net")}
   ${record("203.0.113.9", 4, "fail", "fail", null, "evil.example")}
   ${record("35.174.145.124", 1, "fail", "fail", "k1", "mail22.suw11.mcdlv.net")}
+  ${record("198.2.129.210", 3, "pass", "fail", "k1", "mail210.atl81.rsgsv.net")}
+  ${record("2a01:5b40:0:2205::1", 2, "pass", "fail", "k1", "srs.domeneshop.no")}
 </feedback>`;
 
 test("extracts XML from gzip, zip and plain attachments", () => {
@@ -57,6 +59,8 @@ test("classifies known senders", () => {
     "HubSpot",
     "Other",
     "Mailchimp",
+    "Mailchimp",
+    "Mailchimp",
   ]);
 });
 
@@ -65,6 +69,7 @@ test("counts DMARC passes and lists failures", () => {
   assert.deepEqual(senders.get("Google Workspace"), { pass: 10, fail: 0 });
   assert.deepEqual(senders.get("HubSpot"), { pass: 2, fail: 0 });
   assert.deepEqual(senders.get("Other"), { pass: 0, fail: 4 });
+  assert.deepEqual(senders.get("Mailchimp"), { pass: 5, fail: 1 });
   assert.equal(failures.length, 2);
   assert.equal(failures[0].ip, "203.0.113.9");
   assert.equal(failures[0].reporter, "google.com");
