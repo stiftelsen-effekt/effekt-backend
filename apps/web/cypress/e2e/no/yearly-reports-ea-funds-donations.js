@@ -38,25 +38,13 @@ describe("Tax reports page with ea funds donations", () => {
 
     cy.fixture("donations")
       .then((donations) => {
-        cy.intercept("GET", "/donors/*/donations", {
-          statusCode: 200,
-          body: {
-            status: 200,
-            content: donations,
-          },
-        });
+        cy.interceptTrpc("minside.donations", donations);
       })
       .as("getDonations");
 
     cy.fixture("kids_donations")
       .then((kids) => {
-        cy.intercept("GET", "/donors/*/distributions/*", {
-          statusCode: 200,
-          body: {
-            status: 200,
-            content: kids,
-          },
-        });
+        cy.interceptTrpc("minside.distributions", kids);
       })
       .as("getDistribution");
 

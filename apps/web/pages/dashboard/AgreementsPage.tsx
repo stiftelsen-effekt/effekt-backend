@@ -412,9 +412,10 @@ const NordicAgreementsPageContent: React.FC<{
     (agreement: VippsAgreement) => agreement.status === "ACTIVE",
   );
 
-  // A map with kid as key and distribution as value
+  // A map with kid as key and distribution as value. Undefined only if the request failed,
+  // as before the hook was typed (tRPC)
   const distributionsMap = new Map<string, Distribution>();
-  resolvedDistributions.forEach((distribution: Distribution) => {
+  resolvedDistributions!.forEach((distribution: Distribution) => {
     distributionsMap.set(distribution.kid, distribution);
   });
 

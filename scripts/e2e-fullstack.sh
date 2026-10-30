@@ -68,8 +68,10 @@ export NEXT_TELEMETRY_DISABLED=1
 if [ "${E2E_SKIP_BUILD:-0}" != "1" ]; then
   t=$(timer)
   echo "==> Building apps/web (next build)"
-  # `next build` directly: the package's prebuild step builds the Sanity studio, not needed here
-  pnpm --filter main-site exec next build >"$LOG_DIR/web-build.log" 2>&1 || {
+  # `next build` directly: the package's prebuild step builds the Sanity studio, not needed here.
+  # The type build first, as `pnpm build` does: without dist-types the tRPC client is untyped
+  # (docs/web-trpc.md)
+  { pnpm build:types && pnpm --filter main-site exec next build; } >"$LOG_DIR/web-build.log" 2>&1 || {
     tail -50 "$LOG_DIR/web-build.log" >&2
     exit 1
   }

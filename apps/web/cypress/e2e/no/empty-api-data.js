@@ -22,29 +22,11 @@ describe("Profile and dashboard empty API data", () => {
       cy.interceptDonorProfile(donor).as("getDonor");
     });
 
-    cy.intercept("GET", "/donors/*/donations", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: [],
-      },
-    }).as("getDonations");
+    cy.interceptTrpc("minside.donations", []).as("getDonations");
 
-    cy.intercept("GET", "/donors/*/donations/aggregated", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: [],
-      },
-    }).as("getAggregated");
+    cy.interceptTrpc("minside.donationsAggregated", []).as("getAggregated");
 
-    cy.intercept("GET", "/donors/*/distributions/*", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: [],
-      },
-    }).as("getDistribution");
+    cy.interceptTrpc("minside.distributions", []).as("getDistribution");
 
     cy.fixture("organizations").then((organizations) => {
       cy.intercept("GET", "/organizations/all", {
@@ -56,13 +38,7 @@ describe("Profile and dashboard empty API data", () => {
       }).as("getOrganizations");
     });
 
-    cy.intercept("GET", "/donors/*/taxunits/", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: [],
-      },
-    }).as("getTaxUnits");
+    cy.interceptTrpc("minside.taxUnits", []).as("getTaxUnits");
 
     cy.visit({
       url: "/min-side/",
@@ -110,21 +86,9 @@ describe("Profile and dashboard empty API data", () => {
       },
     }).as("getAutogiro");
 
-    cy.intercept("GET", "/donors/*/distributions/*", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: [],
-      },
-    }).as("getDistribution");
+    cy.interceptTrpc("minside.distributions", []).as("getDistribution");
 
-    cy.intercept("GET", "/donors/*/taxunits/", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: [],
-      },
-    }).as("getTaxUnits");
+    cy.interceptTrpc("minside.taxUnits", []).as("getTaxUnits");
 
     cy.visit({
       url: "/min-side/avtaler/",

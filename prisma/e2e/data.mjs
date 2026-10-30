@@ -34,6 +34,12 @@ export const KIDS = {
   bank: kid(7),
 };
 
+/** The donor's tax units. KIDS.bank belongs to the second one, every other KID to the first. */
+export const TAX_UNITS = {
+  main: { id: 900001, name: "E2E Testgiver", ssn: "15868510045" },
+  spouse: { id: 900002, name: "E2E Ektefelle", ssn: "15868510126" },
+};
+
 // Cause area 1 (Global helse) organization ids from prisma/devdata/reference.ts
 export const AGF = 1;
 export const HKI = 3;

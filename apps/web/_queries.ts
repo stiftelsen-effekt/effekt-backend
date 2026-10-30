@@ -1,8 +1,8 @@
 import { User } from "@auth0/auth0-react";
 import useSWR from "swr";
 import { apiResult, getAccessToken, getAccessTokenSilently } from "./hooks/useApi";
-import { TaxUnit } from "./models";
 import { getUserId } from "./lib/user";
+import type { AggregatedDonations, Distribution, Donation, TaxUnit } from "./models";
 import { CauseArea } from "./components/shared/components/Widget/types/CauseArea";
 import { widgetContentQuery } from "./components/shared/components/Widget/components/Widget";
 import { groq } from "next-sanity";
@@ -21,6 +21,39 @@ export interface Query<T> {
 }
 
 const isPending = (data: unknown, error: unknown) => typeof data === "undefined" && !error;
+
+/**
+ * Runs a tRPC call from an SWR fetcher. A failure throws the same error object as fetcher(), which
+ * these hooks used before: `info` is the error body, `status` the HTTP status.
+ */
+const trpcFetch = async <T>(call: () => Promise<T>): Promise<T> => {
+  try {
+    return await call();
+  } catch (err) {
+    const error = new Error("An error occurred while fetching the data.", { cause: err });
+    (error as any).info = err instanceof TRPCClientError ? err.shape : undefined;
+    (error as any).status = err instanceof TRPCClientError ? err.data?.httpStatus : undefined;
+    throw error;
+  }
+};
+
+/**
+ * SWR keys of the Min Side tRPC queries. Revalidate with `mutate(minsideKeys.taxUnits(donorId))`.
+ * useDistributions and useAgreementsDistributions share a key, as they shared a URL before.
+ */
+/**
+ * The hooks below return the website's model types (models.ts), as their callers expect. The
+ * procedures' output schemas validate the responses; the models are older and looser (some
+ * fields are declared as one type where a site sends string or number), so the data is cast to them.
+ */
+export const minsideKeys = {
+  profile: (donorId: number) => ["minside.profile", donorId] as const,
+  taxUnits: (donorId: number) => ["minside.taxUnits", donorId] as const,
+  donationsAggregated: (donorId: number) => ["minside.donationsAggregated", donorId] as const,
+  donations: (donorId: number) => ["minside.donations", donorId] as const,
+  distributions: (donorId: number, kids: string[]) =>
+    ["minside.distributions", donorId, kids.join(",")] as const,
+};
 
 const fetcher = async (
   url: string,
@@ -52,7 +85,8 @@ const fetcher = async (
 };
 
 /**
- * Get total sum donated to each charity
+ * Get total sum donated to each charity, per year. Through tRPC (minside.donationsAggregated); on
+ * the Danish site the REST link maps it to GET /donors/:id/donations/aggregated.
  *
  * @param {User} user - Which user's data to fetch
  * @param {String} fetchToken - Access token
@@ -61,9 +95,16 @@ export const useAggregatedDonations = (
   user: User | undefined,
   fetchToken: getAccessTokenSilently,
 ) => {
+  const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
-    user ? `/donors/${getUserId(user)}/donations/aggregated` : null,
-    (url) => fetcher(url, fetchToken),
+    user ? minsideKeys.donationsAggregated(getUserId(user)) : null,
+    ([, donorId]) =>
+      trpcFetch(
+        async () =>
+          (await trpc.minside.donationsAggregated.query({
+            donorId,
+          })) as unknown as AggregatedDonations[],
+      ),
   );
 
   const loading = isPending(data, error);
@@ -77,15 +118,18 @@ export const useAggregatedDonations = (
 };
 
 /**
- * Gets entire donation history
+ * Gets entire donation history. Through tRPC (minside.donations); on the Danish site the REST link
+ * maps it to GET /donors/:id/donations/.
  *
  * @param {User} user - Which user's data to fetch
  * @param {String} getAccessTokenSilently - Retrieves access token
  * */
 export const useDonations = (user: User | undefined, fetchToken: getAccessTokenSilently) => {
+  const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
-    user ? `/donors/${getUserId(user)}/donations/` : null,
-    (url) => fetcher(url, fetchToken),
+    user ? minsideKeys.donations(getUserId(user)) : null,
+    ([, donorId]) =>
+      trpcFetch(async () => (await trpc.minside.donations.query({ donorId })) as Donation[]),
   );
 
   const loading = isPending(data, error);
@@ -99,7 +143,9 @@ export const useDonations = (user: User | undefined, fetchToken: getAccessTokenS
 };
 
 /**
- * Gets distribution of money between organizations in a donation
+ * Gets distribution of money between organizations in a donation. Through tRPC
+ * (minside.distributions); on the Danish site the REST link maps it to
+ * GET /donors/:id/distributions/?kids=….
  *
  * @param {User} user - Which user's data to fetch
  * @param {String} fetchToken - Access token
@@ -112,13 +158,17 @@ export const useDistributions = (
   condition: boolean,
   kids: string[],
 ) => {
+  const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
-    condition && user
-      ? `/donors/${getUserId(user)}/distributions/?kids=${encodeURIComponent(
-          Array.from(kids).join(","),
-        )}`
-      : null,
-    (url) => fetcher(url, fetchToken),
+    condition && user ? minsideKeys.distributions(getUserId(user), Array.from(kids)) : null,
+    ([, donorId, kidList]) =>
+      trpcFetch(
+        async () =>
+          (await trpc.minside.distributions.query({
+            donorId,
+            kids: kidList ? kidList.split(",") : [],
+          })) as Distribution[],
+      ),
   );
 
   const loading = isPending(data, error);
@@ -137,13 +187,17 @@ export const useAgreementsDistributions = (
   condition: boolean,
   kids: string[],
 ) => {
+  const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
-    condition && user
-      ? `/donors/${getUserId(user)}/distributions/?kids=${encodeURIComponent(
-          Array.from(kids).join(","),
-        )}`
-      : null,
-    (url) => fetcher(url, fetchToken),
+    condition && user ? minsideKeys.distributions(getUserId(user), Array.from(kids)) : null,
+    ([, donorId, kidList]) =>
+      trpcFetch(
+        async () =>
+          (await trpc.minside.distributions.query({
+            donorId,
+            kids: kidList ? kidList.split(",") : [],
+          })) as Distribution[],
+      ),
   );
 
   const loading = isPending(data, error);
@@ -296,18 +350,8 @@ export const useAllOrganizations = (fetchToken: getAccessTokenSilently) => {
 export const useDonor = (user: User | undefined, fetchToken: getAccessTokenSilently) => {
   const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
-    user ? ["minside.profile", getUserId(user)] : null,
-    async ([, donorId]) => {
-      try {
-        return await trpc.minside.profile.query({ donorId });
-      } catch (err) {
-        // Same error as fetcher(), which this used before
-        const error = new Error("An error occurred while fetching the data.", { cause: err });
-        (error as any).info = err instanceof TRPCClientError ? err.shape : undefined;
-        (error as any).status = err instanceof TRPCClientError ? err.data?.httpStatus : undefined;
-        throw error;
-      }
-    },
+    user ? minsideKeys.profile(getUserId(user)) : null,
+    ([, donorId]) => trpcFetch(() => trpc.minside.profile.query({ donorId })),
   );
 
   const loading = isPending(data, error);
@@ -320,10 +364,16 @@ export const useDonor = (user: User | undefined, fetchToken: getAccessTokenSilen
   };
 };
 
+/**
+ * Gets the donor's tax units. Through tRPC (minside.taxUnits); on the Danish site the REST link maps
+ * it to GET /donors/:id/taxunits/.
+ */
 export const useTaxUnits = (user: User | undefined, fetchToken: getAccessTokenSilently) => {
-  const { data, error, isValidating } = useSWR<TaxUnit[]>(
-    user ? `/donors/${getUserId(user)}/taxunits/` : null,
-    (url: string) => fetcher(url, fetchToken),
+  const trpc = useTrpcClient(fetchToken);
+  const { data, error, isValidating } = useSWR(
+    user ? minsideKeys.taxUnits(getUserId(user)) : null,
+    ([, donorId]) =>
+      trpcFetch(async () => (await trpc.minside.taxUnits.query({ donorId })) as TaxUnit[]),
   );
 
   const loading = isPending(data, error);

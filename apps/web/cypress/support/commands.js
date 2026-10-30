@@ -1,3 +1,4 @@
+import { trpcPaths, trpcUrl } from "./trpc";
 import "cypress-localstorage-commands";
 
 Cypress.Commands.add("login", () => {
@@ -164,13 +165,39 @@ Cypress.Commands.add("pickSingleDonation", pickSingleDonation);
 Cypress.Commands.add("pickAnonymous", pickAnonymous);
 Cypress.Commands.add("inputDonorValues", inputDonorValues);
 
-// The donor profile comes from the tRPC procedure minside.profile (lib/trpc, docs/web-trpc.md)
-// on the Norwegian site. The response is in the httpBatchLink format.
+/**
+ * Stubbed tRPC procedures of the current test: procedure path -> data. Min Side calls the backend's
+ * tRPC router on the Norwegian site; see ./trpc.js for the request format.
+ */
+const trpcStubs = new Map();
+beforeEach(() => trpcStubs.clear());
+
+const trpcBatchEntry = (path) =>
+  trpcStubs.has(path)
+    ? { result: { data: trpcStubs.get(path) } }
+    : {
+        error: {
+          message: `${path} is not stubbed in this test`,
+          code: -32603,
+          data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500, path },
+        },
+      };
+
+/**
+ * Answers the tRPC procedure `path` with `data`, also when it is batched with other procedures.
+ * The batch's other procedures get the data of their own interceptTrpc call, or an error. Calling
+ * it again for the same path replaces the data. Returns the intercept, so `.as()` works.
+ */
+Cypress.Commands.add("interceptTrpc", (path, data) => {
+  trpcStubs.set(path, data);
+  return cy.intercept({ method: "GET", url: trpcUrl(path) }, (req) => {
+    const body = trpcPaths(req.url).map(trpcBatchEntry);
+    req.reply({ statusCode: body.some((entry) => entry.error) ? 207 : 200, body });
+  });
+});
+
 Cypress.Commands.add("interceptDonorProfile", (donor) =>
-  cy.intercept(
-    { method: "GET", pathname: "/trpc/minside.profile" },
-    { statusCode: 200, body: [{ result: { data: donor } }] },
-  ),
+  cy.interceptTrpc("minside.profile", donor),
 );
 
 Cypress.Commands.add("ignorePlausibleTracking", () => {

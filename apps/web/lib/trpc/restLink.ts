@@ -2,7 +2,13 @@ import { TRPCClientError, type TRPCLink } from "@trpc/client";
 import type { AnyRouter } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { TRPC_ERROR_CODES_BY_KEY, type TRPC_ERROR_CODE_KEY } from "@trpc/server/rpc";
-import { donorProfileOutput } from "@effekt/api/minside";
+import {
+  distributionsOutput,
+  donationsAggregatedOutput,
+  donationsOutput,
+  donorProfileOutput,
+  taxUnitsOutput,
+} from "@effekt/api/minside";
 
 /**
  * A tRPC link for the Danish site, whose backend (giveffektivt/donation-platform) implements the
@@ -26,6 +32,30 @@ export const restRoutes: Record<string, RestRoute> = {
     method: "GET",
     path: (input: { donorId: number }) => `/donors/${input.donorId}/`,
     output: donorProfileOutput,
+  },
+  "minside.taxUnits": {
+    method: "GET",
+    path: (input: { donorId: number; locale?: string }) =>
+      `/donors/${input.donorId}/taxunits/` +
+      (input.locale ? `?locale=${encodeURIComponent(input.locale)}` : ""),
+    output: taxUnitsOutput,
+  },
+  "minside.donationsAggregated": {
+    method: "GET",
+    path: (input: { donorId: number }) => `/donors/${input.donorId}/donations/aggregated`,
+    output: donationsAggregatedOutput,
+  },
+  "minside.donations": {
+    method: "GET",
+    path: (input: { donorId: number }) => `/donors/${input.donorId}/donations/`,
+    output: donationsOutput,
+  },
+  "minside.distributions": {
+    method: "GET",
+    path: (input: { donorId: number; kids?: string[] }) =>
+      `/donors/${input.donorId}/distributions/` +
+      (input.kids ? `?kids=${encodeURIComponent(input.kids.join(","))}` : ""),
+    output: distributionsOutput,
   },
 };
 
