@@ -27,7 +27,7 @@ Previews are opt-in: add the `preview` label to a PR to deploy one. Pushes redep
 ```
 PR labelled `preview` / pushed ──► .github/workflows/preview.yml (pull_request_target, runs the main copy)
                          1. sticky PR comment: Building
-                         2. docker build Dockerfile.preview (PR code, no credentials yet)
+                         2. docker build apps/api/Dockerfile.preview (PR code, no credentials yet)
                          3. log in to GCP (workload identity, no keys)
                          4. limit check (PREVIEW_MAX)        ── over: comment "Not created", stop
                          5. push image  ─► Artifact Registry effekt-previews
@@ -43,21 +43,21 @@ every night ───────────► .github/workflows/preview-janit
   the PR's lifetime. A push cancels the PR's run in flight (concurrency group
   `preview-pr-<n>`), cancels a seed still running, deploys the new commit and re-seeds the
   database from scratch.
-- **One image, two roles.** `Dockerfile.preview` builds the backend, compiles the seed, and
+- **One image, two roles.** `apps/api/Dockerfile.preview` builds the backend, compiles the seed, and
   builds the admin with `vite build --mode preview`. Express serves the admin at `/` from the
-  same origin as the API (`src/custom_modules/preview/previewHttp.ts`): hashed assets under
+  same origin as the API (`apps/api/src/custom_modules/preview/previewHttp.ts`): hashed assets under
   `/assets`, and `index.html` for browser navigations (requests that accept `text/html`), so
   admin paths such as `/donors/12` work although `/donors` is also a REST prefix. API calls
-  don't ask for HTML and still reach the API. The production `Dockerfile`, `.dockerignore`
-  (which excludes `admin/`) and image are unchanged: the preview build uses its own
-  `Dockerfile.preview.dockerignore`.
+  don't ask for HTML and still reach the API. The production `apps/api/Dockerfile`, its
+  `Dockerfile.dockerignore` (which excludes `apps/admin`) and image are unchanged: the preview
+  build uses its own `apps/api/Dockerfile.preview.dockerignore`.
 - **Database per PR.** All previews share the Cloud SQL instance `effekt-previews` (never
   `effekt-db`), one database `preview_pr_<n>` each. The seed is the synthetic dev data from
-  `prisma/devdata`: five years of donors, donations, agreements and regranting history, dated
+  `apps/api/prisma/devdata`: five years of donors, donations, agreements and regranting history, dated
   relative to the seed day, so a preview always looks current. Seeding takes about 10 seconds.
 - **Why a Cloud Run Job for migrate + seed** (and not the Cloud SQL Auth Proxy on the runner):
   the job uses the same image and the same Cloud SQL socket as the service (and as production,
-  see `CLOUD_SQL_CONNECTION_NAME` in `src/custom_modules/DAO.ts`), the database password never
+  see `CLOUD_SQL_CONNECTION_NAME` in `apps/api/src/custom_modules/DAO.ts`), the database password never
   leaves Google Cloud, the CI identity needs no Cloud SQL permission at all, and the instance
   needs no authorised networks. The cost is one extra Cloud Run resource per PR, deleted with
   the preview.
@@ -155,8 +155,8 @@ password or data.
 
 **The preview itself (`PREVIEW_MODE=true`)**
 
-- **Startup guard** (`src/custom_modules/preview/environmentGuard.ts`, tests in
-  `src/__test__/preview.spec.ts`): with `PREVIEW_MODE=true` the server, and every step of the
+- **Startup guard** (`apps/api/src/custom_modules/preview/environmentGuard.ts`, tests in
+  `apps/api/src/__test__/preview.spec.ts`): with `PREVIEW_MODE=true` the server, and every step of the
   seed job, refuses to start unless _all_ of these hold:
   - `PREVIEW_JWT_SECRET` is set (≥ 32 characters);
   - `DB_NAME` starts with `preview_` (and `DB_URL`, if set, names the same database);
@@ -177,12 +177,12 @@ password or data.
   (`selectJwtCheck`); with it off they are built exactly as before. Tokens carry the admin
   permissions, never `analysis_mcp`. The admin only offers "Continue as…" in builds made with
   `--mode preview`; production builds keep refusing dev and preview auth
-  (`admin/src/auth/mode.ts`).
+  (`apps/admin/src/auth/mode.ts`).
 - **Off in previews:** `/scheduled/*` (no Cloud Scheduler jobs exist for previews either),
   `/mcp`, `/oauth` and the OAuth discovery documents.
 - **Every response** carries `X-Robots-Tag: noindex, nofollow`.
 - **Rate limiting, honeypot, CORS and the rest of the middleware stay as they are.**
-- **Synthetic data only:** the seed is generated (`prisma/devdata`); no production rows exist
+- **Synthetic data only:** the seed is generated (`apps/api/prisma/devdata`); no production rows exist
   anywhere in the previews instance.
 
 What the guard is not: a PR can change the guard itself, since it is part of the PR's code.
@@ -285,7 +285,7 @@ backend PR, and passing `PREVIEW_*` facts to the site for its own banner.
 ## Running a preview locally
 
 ```sh
-docker build -f Dockerfile.preview -t effekt-preview:local .
+docker build -f apps/api/Dockerfile.preview -t effekt-preview:local .
 docker network create preview-net
 docker run -d --name preview-mysql --network preview-net -e MYSQL_ROOT_PASSWORD=pw \
   mysql:8.4.11 --innodb-buffer-pool-size=192M --performance-schema=OFF

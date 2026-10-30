@@ -62,12 +62,17 @@ jobs:
           persist-credentials: false
 
       # Branches from before the preview setup (no Dockerfile.preview) get no preview and no
-      # comment; only a file check runs on the PR's checkout here.
+      # comment; only a file check runs on the PR's checkout here. Branches from before the
+      # apps/ restructure still have it at the repository root; both build from the root.
       - name: Check that the branch supports previews
         id: support
         run: |
-          if [[ -f pr/Dockerfile.preview ]]; then
+          if [[ -f pr/apps/api/Dockerfile.preview ]]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "dockerfile=pr/apps/api/Dockerfile.preview" >> "$GITHUB_OUTPUT"
+          elif [[ -f pr/Dockerfile.preview ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "dockerfile=pr/Dockerfile.preview" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "::notice::No Dockerfile.preview on this branch; skipping the preview."
@@ -86,11 +91,12 @@ jobs:
           GH_TOKEN: ""
           REGION: ${{ vars.PREVIEW_GCP_REGION }}
           PROJECT: ${{ vars.PREVIEW_GCP_PROJECT }}
+          DOCKERFILE: ${{ steps.support.outputs.dockerfile }}
         # IMAGE is built from repository variables and the PR number and head SHA only
         run: | # zizmor: ignore[github-env]
           image="${REGION}-docker.pkg.dev/${PROJECT}/effekt-previews/backend:pr-${PR}-${SHA}"
           echo "IMAGE=${image}" >> "$GITHUB_ENV"
-          DOCKER_BUILDKIT=1 docker build -f pr/Dockerfile.preview -t "$image" pr
+          DOCKER_BUILDKIT=1 docker build -f "$DOCKERFILE" -t "$image" pr
 
       - name: Authenticate to Google Cloud
         if: steps.support.outputs.enabled == 'true'

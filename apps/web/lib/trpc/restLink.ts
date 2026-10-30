@@ -26,7 +26,7 @@ type RestRoute = {
   output: { parse: (data: unknown) => unknown };
 };
 
-/** Procedure path → REST route. Keep in sync with src/trpc/routers/minside.ts */
+/** Procedure path → REST route. Keep in sync with apps/api/src/trpc/routers/minside.ts */
 export const restRoutes: Record<string, RestRoute> = {
   "minside.profile": {
     method: "GET",

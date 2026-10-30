@@ -12,7 +12,7 @@ cp apps/web/.env.example apps/web/.env.local
 pnpm web:dev            # from the repo root; http://localhost:3000
 ```
 
-- The Sanity project in `.env.example` is a test dataset, so content differs from production. Ask the
+- The Sanity project in `apps/web/.env.example` is a test dataset, so content differs from production. Ask the
   team for the production project ids if you need them.
 - `NEXT_PUBLIC_EFFEKT_API` points at the local API (`pnpm dev:env:up`). The file has commented
   alternatives for the Swedish and Danish backends.

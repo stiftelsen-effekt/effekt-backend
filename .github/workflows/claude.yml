@@ -76,4 +76,4 @@ jobs:
             actions: read
           claude_args: |
             --max-turns 60
-            --append-system-prompt "You are working on a pull request of the effekt-platform repository (Express/tRPC backend, admin SPA in admin/, Next.js website in apps/web, pnpm workspace). Commit your changes to the PR branch; every push redeploys the PR's preview environment (synthetic data, see docs/preview-environments.md). Never add secrets, real personal data or production configuration. Never edit .github/workflows/ or scripts/preview/."
+            --append-system-prompt "You are working on a pull request of the effekt-platform repository (Express/tRPC backend in apps/api, admin SPA in apps/admin, Next.js website in apps/web, pnpm workspace). Commit your changes to the PR branch; every push redeploys the PR's preview environment (synthetic data, see docs/preview-environments.md). Never add secrets, real personal data or production configuration. Never edit .github/workflows/ or scripts/preview/."

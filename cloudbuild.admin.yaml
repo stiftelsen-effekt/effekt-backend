@@ -1,5 +1,5 @@
-# Builds the admin (admin/) and publishes it to its bucket behind the effekt-load-balancer.
-# Trigger: push to main touching admin/**, src/trpc/**, pnpm-lock.yaml or this file.
+# Builds the admin (apps/admin) and publishes it to its bucket behind the effekt-load-balancer.
+# Trigger: push to main touching apps/admin/**, apps/api/src/trpc/**, pnpm-lock.yaml or this file.
 # Substitutions (set on the trigger): _BUCKET, _API_URL, _AUTH_DOMAIN, _AUTH_CLIENT_ID, _AUTH_AUDIENCE,
 # _FEATURE_REGRANTING ("false" hides Regranting), _REGRANTING_BACKFILLED ("false" shows a notice
 # on the regranting pages that past rounds aren't imported yet)
@@ -18,13 +18,13 @@ steps:
     name: "node:24.22.1"
     entrypoint: bash
     waitFor: ["install"]
-    args: ["-c", "corepack enable && pnpm --dir admin typecheck"]
+    args: ["-c", "corepack enable && pnpm --dir apps/admin typecheck"]
 
   - id: test
     name: "node:24.22.1"
     entrypoint: bash
     waitFor: ["install"]
-    args: ["-c", "corepack enable && pnpm --dir admin test"]
+    args: ["-c", "corepack enable && pnpm --dir apps/admin test"]
 
   - id: build
     name: "node:24.22.1"
@@ -38,7 +38,7 @@ steps:
       - "VITE_AUTH_AUDIENCE=${_AUTH_AUDIENCE}"
       - "VITE_FEATURE_REGRANTING=${_FEATURE_REGRANTING}"
       - "VITE_REGRANTING_BACKFILLED=${_REGRANTING_BACKFILLED}"
-    args: ["-c", "corepack enable && pnpm --dir admin build"]
+    args: ["-c", "corepack enable && pnpm --dir apps/admin build"]
 
   # Hashed assets are immutable; index.html must always be revalidated so a deploy takes effect
   # immediately. Assets are uploaded first so a new index.html never points at missing files.
@@ -51,7 +51,7 @@ steps:
       - "Cache-Control:public, max-age=31536000, immutable"
       - "rsync"
       - "-r"
-      - "admin/dist/assets"
+      - "apps/admin/dist/assets"
       - "gs://${_BUCKET}/assets"
 
   - id: publish-index
@@ -65,7 +65,7 @@ steps:
       - "-r"
       - "-x"
       - "^assets/"
-      - "admin/dist"
+      - "apps/admin/dist"
       - "gs://${_BUCKET}"
 
 options:

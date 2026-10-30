@@ -2,10 +2,10 @@
 
 The website (`apps/web`) has two Cypress suites:
 
-| Suite      | Config                                         | Runs against                                             | Data                                           | Login                          |
-| ---------- | ---------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------- | ------------------------------ |
-| Deployment | `cypress-no.config.ts`, `cypress-dk.config.ts` | Vercel deployments (`web-ci.yml` → `web-e2e.yml`)        | `cy.intercept` fixtures in `cypress/fixtures/` | real Auth0 test user (secrets) |
-| Full stack | `cypress-fullstack.config.ts`                  | local web → API → MySQL (`web-e2e-fullstack.yml` on PRs) | the real API and DB, seeded by `prisma/e2e/`   | local OIDC issuer, no secrets  |
+| Suite      | Config                                         | Runs against                                             | Data                                                  | Login                          |
+| ---------- | ---------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------------- | ------------------------------ |
+| Deployment | `cypress-no.config.ts`, `cypress-dk.config.ts` | Vercel deployments (`web-ci.yml` → `web-e2e.yml`)        | `cy.intercept` fixtures in `cypress/fixtures/`        | real Auth0 test user (secrets) |
+| Full stack | `cypress-fullstack.config.ts`                  | local web → API → MySQL (`web-e2e-fullstack.yml` on PRs) | the real API and DB, seeded by `apps/api/prisma/e2e/` | local OIDC issuer, no secrets  |
 
 ## Running the full-stack suite
 
@@ -36,9 +36,9 @@ from `pnpm dev:env:up`, so both stacks can run at once.
 
 - `db`: MySQL 8.4 in tmpfs (gone on `down`).
 - `migrate`: migrations and the generated dev data, with `SEED_NOW` fixed.
-- `seed-e2e`: `prisma/e2e/seed.mjs`, a deterministic donor (id 900001) with Vipps (2 active,
+- `seed-e2e`: `apps/api/prisma/e2e/seed.mjs`, a deterministic donor (id 900001) with Vipps (2 active,
   1 stopped), AvtaleGiro (2), AutoGiro (1) agreements, donations from 2022–2025 and two tax
-  units (the bank transfers go to the second). Ids and KIDs live in `prisma/e2e/data.mjs`,
+  units (the bank transfers go to the second). Ids and KIDs live in `apps/api/prisma/e2e/data.mjs`,
   which specs import. The Cypress task `resetE2EData` re-runs the seed (~0.2 s), and specs call
   it in `beforeEach`.
 - `auth` + `oidc`: the mock OIDC issuer behind a small nginx (see below).
@@ -82,7 +82,7 @@ the API: `POST http://localhost:8191/oauth/token` with `grant_type=client_creden
 
 1. Copy it to `cypress/e2e/fullstack/` and drop the `cy.intercept` stubs and fixtures. Keep
    intercepts only as aliases to wait on real responses.
-2. Add whatever the spec needs to `prisma/e2e/seed.mjs` and `data.mjs`, then assert on those
+2. Add whatever the spec needs to `apps/api/prisma/e2e/seed.mjs` and `data.mjs`, then assert on those
    values.
 3. Call `cy.task("resetE2EData")` and `cy.loginFullstack(DONOR_ID)` in `beforeEach`.
 4. Calls to third parties are not available locally. The backend runs without Vipps, Nets,

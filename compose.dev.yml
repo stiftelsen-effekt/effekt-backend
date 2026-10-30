@@ -23,17 +23,21 @@ x-backend: &backend
       WORKDIR /app
       RUN corepack enable
       COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+      COPY apps/api/package.json apps/api/package.json
       RUN pnpm install --frozen-lockfile --ignore-scripts --filter stiftelsen-effekt-backend
-      COPY prisma/schema.prisma prisma/schema.prisma
+      WORKDIR /app/apps/api
+      COPY apps/api/prisma/schema.prisma prisma/schema.prisma
       RUN pnpm exec prisma generate
   env_file: .env.docker
+  # The API package; the commands below run here
+  working_dir: /app/apps/api
   volumes:
-    - ./src:/app/src:ro
-    - ./prisma:/app/prisma:ro
-    - ./certs:/app/certs:ro
-    - ./tsconfig.json:/app/tsconfig.json:ro
+    - ./apps/api/src:/app/apps/api/src:ro
+    - ./apps/api/prisma:/app/apps/api/prisma:ro
+    - ./apps/api/certs:/app/apps/api/certs:ro
+    - ./apps/api/tsconfig.json:/app/apps/api/tsconfig.json:ro
     # Prisma 7 reads the datasource URL and seed command from here
-    - ./prisma.config.ts:/app/prisma.config.ts:ro
+    - ./apps/api/prisma.config.ts:/app/apps/api/prisma.config.ts:ro
 
 services:
   db:
@@ -73,7 +77,7 @@ services:
     environment:
       # aud must equal AUTH_AUDIENCE and the user-id claim AUTH_USER_ID_CLAIM in .env.docker.
       # Admin: client_credentials with scope=admin -> every permission in
-      #   src/enums/authorizationPermissions.js.
+      #   apps/api/src/enums/authorizationPermissions.js.
       # Donor: authorization_code via the (interactive) login form; the numeric user-id claim
       #   is posted as a login claim, the mapping below adds aud + donor permissions.
       # $$ escapes compose interpolation; the server sees ${subject}.
@@ -140,8 +144,8 @@ services:
 
   migrate:
     <<: *backend
-    # Applies migrations. An empty DB gets generated fake data ending today (prisma/seed.ts ->
-    # prisma/devdata); a DB seeded earlier is topped up with the days since (prisma/devdata/topup.ts),
+    # Applies migrations. An empty DB gets generated fake data ending today (apps/api/prisma/seed.ts
+    # -> prisma/devdata); a DB seeded earlier is topped up with the days since (prisma/devdata/topup.ts),
     # keeping records created by hand. A failed top-up only prints a warning.
     command:
       - sh
@@ -181,12 +185,12 @@ services:
       retries: 60
       start_period: 30s
 
-  # The new admin (admin/) on http://localhost:3001, signed in with the local issuer.
+  # The new admin (apps/admin) on http://localhost:3001, signed in with the local issuer.
   # Source is bind-mounted for hot reload; node_modules live in volumes so the container gets
   # Linux builds of native packages instead of the host's.
   admin:
     image: node:24.22.1
-    working_dir: /repo/admin
+    working_dir: /repo/apps/admin
     command:
       - sh
       - -c
@@ -204,7 +208,7 @@ services:
     volumes:
       - .:/repo
       - admin-root-node-modules:/repo/node_modules
-      - admin-node-modules:/repo/admin/node_modules
+      - admin-node-modules:/repo/apps/admin/node_modules
     ports:
       - "${DEV_ADMIN_PORT:-3001}:3001"
     depends_on:

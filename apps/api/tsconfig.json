@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ES2022",
+    "sourceMap": false,
+    "outDir": "dist",
+    "allowJs": true,
+    "checkJs": false,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "strictNullChecks": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "dist-types"]
+}

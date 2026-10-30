@@ -1,12 +1,20 @@
 /**
  * Full-stack Min Side donations page: the donations, the yearly aggregates and the distributions
  * come from the real API (tRPC minside.donations, minside.donationsAggregated and
- * minside.distributions) and database, for the e2e donor written by prisma/e2e/seed.mjs.
+ * minside.distributions) and database, for the e2e donor written by apps/api/prisma/e2e/seed.mjs.
  */
-import { DONOR_ID, KIDS, TAX_UNITS, AGF, HKI, NI, AMF } from "../../../../../prisma/e2e/data.mjs";
+import {
+  DONOR_ID,
+  KIDS,
+  TAX_UNITS,
+  AGF,
+  HKI,
+  NI,
+  AMF,
+} from "../../../../../apps/api/prisma/e2e/data.mjs";
 import { trpcData, trpcUrl } from "../../support/trpc";
 
-// The seeded donations (prisma/e2e/seed.mjs): 7 donations, 5 200 kr in total, 2022–2025
+// The seeded donations (apps/api/prisma/e2e/seed.mjs): 7 donations, 5 200 kr in total, 2022–2025
 const TOTAL = 5200;
 const YEARS = [2022, 2023, 2024, 2025];
 

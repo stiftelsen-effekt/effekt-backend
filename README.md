@@ -23,21 +23,21 @@
 
 One repository, one [pnpm](https://pnpm.io) workspace.
 
-| Path                           | What                                                                                         | Runs on                                              |
-| ------------------------------ | -------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| [`apps/web`](apps/web)         | The websites and Min Side (donor pages). Next.js, content in Sanity, Sanity Studio built in. | Vercel                                               |
-| [`admin`](admin)               | The internal admin for the ops team. Vite + React SPA.                                       | [admin.gieffektivt.no](https://admin.gieffektivt.no) |
-| [`src`](src)                   | The API: Express + tRPC, payments, recurring agreements, receipts, scheduled jobs.           | Cloud Run behind a load balancer                     |
-| [`prisma`](prisma)             | MySQL schema and migrations, plus the generated dev and e2e data.                            | Cloud SQL                                            |
-| [`packages/api`](packages/api) | `@effekt/api`: the API's tRPC types and shared schemas for the website.                      | –                                                    |
-| [`functions`](functions)       | Small Cloud Functions: the scheduler dispatcher, DMARC reports, the old Min Side redirect.   | Cloud Functions                                      |
+| Path                                 | What                                                                                         | Runs on                                              |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| [`apps/web`](apps/web)               | The websites and Min Side (donor pages). Next.js, content in Sanity, Sanity Studio built in. | Vercel                                               |
+| [`apps/admin`](apps/admin)           | The internal admin for the ops team. Vite + React SPA.                                       | [admin.gieffektivt.no](https://admin.gieffektivt.no) |
+| [`apps/api`](apps/api)               | The API: Express + tRPC, payments, recurring agreements, receipts, scheduled jobs.           | Cloud Run behind a load balancer                     |
+| [`apps/api/prisma`](apps/api/prisma) | MySQL schema and migrations, plus the generated dev and e2e data.                            | Cloud SQL                                            |
+| [`packages/api`](packages/api)       | `@effekt/api`: the API's tRPC types and shared schemas for the website.                      | –                                                    |
+| [`functions`](functions)             | Small Cloud Functions: the scheduler dispatcher, DMARC reports, the old Min Side redirect.   | Cloud Functions                                      |
 
 ```mermaid
 flowchart LR
   donor([Donors]) --> web[apps/web<br/>Next.js]
-  staff([Staff]) --> admin[admin<br/>Vite SPA]
+  staff([Staff]) --> admin[apps/admin<br/>Vite SPA]
   web -- content --> sanity[(Sanity)]
-  web -- "tRPC / REST" --> api[API<br/>Express + tRPC]
+  web -- "tRPC / REST" --> api[apps/api<br/>Express + tRPC]
   admin -- tRPC --> api
   api --> db[(MySQL)]
   api --> pay[Payment providers]
@@ -62,7 +62,7 @@ pnpm web:dev       # the website on :3000 (copy apps/web/.env.example to .env.lo
 The admin opens already signed in, and nothing local touches Auth0 or production.
 `pnpm -s dev:token` prints an API token, `pnpm dev:env:down` stops the stack and
 `pnpm dev:env:reset` starts over with fresh data. Run the tests with `pnpm test` (API),
-`pnpm web:test` and `pnpm --dir admin test`.
+`pnpm web:test` and `pnpm --dir apps/admin test`.
 
 ## How we work
 

@@ -1,0 +1,25 @@
+# Build context of apps/api/Dockerfile.preview (the repository root; unlike
+# apps/api/Dockerfile.dockerignore, this one keeps apps/admin).
+**/node_modules
+**/.DS_Store
+.git
+.github
+.husky
+.idea
+.vscode
+.env
+.env.*
+**/.env
+**/.env.*
+apps/api/dist
+apps/api/dist-types
+apps/api/dist-seed
+apps/api/certs
+apps/admin/dist
+apps/admin/test-results
+apps/admin/playwright-report
+apps/admin/tests
+apps/web
+functions
+docs
+.pnpm-store

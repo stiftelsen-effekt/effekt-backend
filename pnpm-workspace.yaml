@@ -1,6 +1,5 @@
 packages:
-  - admin
-  - apps/web
+  - apps/*
   - packages/*
 
 # Dependency install scripts pnpm may run. Prisma needs its own; cypress (apps/web) downloads its
@@ -20,7 +19,7 @@ allowBuilds:
   ssh2: false
   unrs-resolver: true
 
-# From apps/web (formerly main-site). Overrides apply to the whole workspace; admin pins
+# From apps/web (formerly main-site). Overrides apply to the whole workspace; apps/admin pins
 # @types/react 19.3.0, which satisfies ^19.3.0.
 overrides:
   "@types/react": ^19.3.0

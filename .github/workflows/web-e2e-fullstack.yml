@@ -9,8 +9,7 @@ on:
   pull_request:
     paths:
       - "apps/web/**"
-      - "src/**"
-      - "prisma/**"
+      - "apps/api/**"
       - "compose.dev.yml"
       - "compose.e2e.yml"
       - ".env.docker"
@@ -41,8 +40,9 @@ jobs:
           node-version-file: apps/web/.nvmrc
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-      # The website (and Cypress), plus the root package for mysql2, which the Cypress
-      # resetE2EData task uses to rewrite the seed data (prisma/e2e/seed.mjs).
+      # The website (and Cypress), plus the API package for mysql2, which the Cypress
+      # resetE2EData task uses to rewrite the seed data (apps/api/prisma/e2e/seed.mjs), and for
+      # the tRPC type build (pnpm build:types).
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend
       # Brings the stack up, builds and serves the web app, runs Cypress and tears down.

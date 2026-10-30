@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs inside the preview image (Dockerfile.preview) as the Cloud Run Job
+# Runs inside the preview image (apps/api/Dockerfile.preview) as the Cloud Run Job
 # effekt-preview-seed-pr-<n>, or locally against a throwaway MySQL:
 #
 #   migrate-and-seed.sh          drop + create DB_NAME, apply migrations, seed synthetic data
@@ -9,7 +9,8 @@
 # on the effekt-previews instance, with no production integration configured.
 set -euo pipefail
 
-cd "$(dirname "$0")/../.."
+# Works in the API package (apps/api): its dist/, node_modules/ and prisma/ are used below
+cd "$(dirname "$0")/../../apps/api"
 command="${1:-reset}"
 cli=(node dist/custom_modules/preview/databaseCli.js)
 
