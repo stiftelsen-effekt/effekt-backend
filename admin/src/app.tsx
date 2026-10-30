@@ -10,9 +10,12 @@ import { router } from "./router";
 function ApiProvider({ children }: { children: ReactNode }) {
   const { getAccessToken, isAuthenticated } = useAuth();
   const getAccessTokenRef = useLatest(getAccessToken);
+  const isAuthenticatedRef = useLatest(isAuthenticated);
   const [queryClient] = useState(createQueryClient);
+  // Signed in but no token (e.g. the session ended): fail the call rather than send it
+  // without one. The auth provider takes the user to the login.
   const [trpcClient] = useState(() =>
-    createApiClient(() => getAccessTokenRef.current().catch(() => null)),
+    createApiClient(async () => (isAuthenticatedRef.current ? getAccessTokenRef.current() : null)),
   );
 
   useEffect(() => {

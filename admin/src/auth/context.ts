@@ -54,6 +54,20 @@ export function useOptionalUser(): AuthUser | null {
   return useContext(AuthContext)?.user ?? null;
 }
 
+const sessionEndedCodes = new Set([
+  "login_required",
+  "consent_required",
+  "interaction_required",
+  "missing_refresh_token",
+  "invalid_grant",
+]);
+
+/** An Auth0 token error meaning the user has to sign in again (not e.g. a network error). */
+export function isSessionEndedError(error: unknown) {
+  const code = (error as { error?: unknown } | null)?.error;
+  return typeof code === "string" && sessionEndedCodes.has(code);
+}
+
 /**
  * A first name from identity claims: `given_name` when present, else the first word of
  * `name`, unless that is really an email address (Auth0 sets name = email for password
