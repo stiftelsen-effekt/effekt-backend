@@ -149,9 +149,22 @@ export function excludeAgreementsClaimedThisMonth(
   const alreadyClaimed: AvtaleGiroAgreement[] = [];
   const seenKIDs = new Set<string>();
 
+  // A KID can have more than one active agreement row (older double submissions from the
+  // widget). It is claimed once, with its most recent row (the highest id).
+  const latestIdByKID = new Map<string, number>();
+  for (const agreement of agreements) {
+    const latest = latestIdByKID.get(agreement.KID);
+    if (latest === undefined || agreement.id > latest)
+      latestIdByKID.set(agreement.KID, agreement.id);
+  }
+
   for (const agreement of agreements) {
     // Also guards against the same KID appearing twice in the agreements passed in
-    if (claimedKIDs.has(agreement.KID) || seenKIDs.has(agreement.KID)) {
+    if (
+      claimedKIDs.has(agreement.KID) ||
+      seenKIDs.has(agreement.KID) ||
+      agreement.id !== latestIdByKID.get(agreement.KID)
+    ) {
       alreadyClaimed.push(agreement);
     } else {
       toClaim.push(agreement);

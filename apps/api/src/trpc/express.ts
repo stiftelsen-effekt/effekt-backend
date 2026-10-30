@@ -31,7 +31,25 @@ export const rejectBatchedWidgetMutations: RequestHandler = (req, res, next) => 
   next();
 };
 
-export const mountTrpc = (app: Express) => {
+/**
+ * Runs the limiter for single (unbatched) calls of the public widget mutations
+ */
+const limitPublicMutations =
+  (limiter: RequestHandler): RequestHandler =>
+  (req, res, next) => {
+    const path = decodeURIComponent(req.path.replace(/^\//, ""));
+    if (req.method === "POST" && publicMutations.has(path)) return limiter(req, res, next);
+    next();
+  };
+
+/**
+ * @param options.publicMutationLimiter Per-IP limiter for the public widget mutations
+ *   (server.ts passes the one it also uses for the public REST donation routes)
+ */
+export const mountTrpc = (
+  app: Express,
+  options: { publicMutationLimiter?: RequestHandler } = {},
+) => {
   // tRPC doesn't answer CORS preflights; the CORS headers are set by the global middleware
   app.options("/trpc/*", (req, res) => {
     res.sendStatus(204);
@@ -40,6 +58,7 @@ export const mountTrpc = (app: Express) => {
   app.use(
     "/trpc",
     rejectBatchedWidgetMutations,
+    ...(options.publicMutationLimiter ? [limitPublicMutations(options.publicMutationLimiter)] : []),
     passMultipartBodyToTrpc,
     createExpressMiddleware({
       router: appRouter,

@@ -74,15 +74,17 @@ model AutoGiro_replaced_distributions {
 }
 
 model Avtalegiro_agreements {
-  ID           Int       @id @default(autoincrement())
-  KID          String    @db.VarChar(32)
-  amount       Int
-  payment_date Int
-  notice       Boolean
-  active       Boolean   @default(false)
-  last_updated DateTime? @default(now()) @db.DateTime(0)
-  created      DateTime? @default(now()) @db.DateTime(0)
-  cancelled    DateTime? @db.Date
+  ID                   Int       @id @default(autoincrement())
+  KID                  String    @db.VarChar(32)
+  amount               Int
+  payment_date         Int
+  notice               Boolean
+  active               Boolean   @default(false)
+  last_updated         DateTime? @default(now()) @db.DateTime(0)
+  created              DateTime? @default(now()) @db.DateTime(0)
+  cancelled            DateTime? @db.Date
+  /// When the "agreement registered" email was sent (the donor's return from Nets); it is sent once
+  registered_mail_sent DateTime? @db.DateTime(0)
 
   // If we delete a distribution there should be no agreements with that distribution. Therefore we restrict on deletion of a distribution.
   Distributions Distributions @relation(fields: [KID], references: [KID], onDelete: Restrict, map: "fk_Avtalegiro_agreements_to_Distributions_idx")

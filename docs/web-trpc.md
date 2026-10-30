@@ -172,6 +172,13 @@ routes, so the REST link leaves them unmapped and they fail without a request on
 - The fundraiser widget (`FundraiserWidget/hooks/useRegisterDonation.ts`) registers gifts with
   `widget.registerDonation` too; on the Danish site it keeps its REST request, like the widget.
 - The batch guard covers every `widget.*` mutation: `publicMutations` is read from the router.
+- `widget.registerDonation` returns a short-lived signed `registrationToken`
+  (`apps/api/src/custom_modules/registrationToken.ts`) instead of the donor's id. Every follow-up
+  call (`registerBankPending`, `submitReferral`, the three drafts) must send it and only acts on
+  the KID, method and donor it was issued for. The REST draft routes (`POST /vipps/agreement/draft`,
+  `POST /avtalegiro/draft`, `PUT /autogiro/:KID/drafted/paymentdate`) are gone.
+- Every `widget.*` mutation also has a stricter per-IP limit (`publicMutationLimiter`,
+  `apps/api/src/middleware/publicMutationRateLimit.ts`).
 - Stays REST for good: anything a payment provider, bank or email calls or links to
   (`/avtalegiro/:kid/redirect`, `/swish/qr/:token`, `/vipps/*` callbacks, `/donations/status`).
 

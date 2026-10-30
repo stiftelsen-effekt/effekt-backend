@@ -7,6 +7,9 @@ import { draftAvtaleGiroAgreement } from "../../custom_modules/avtalegiro";
 import { setDraftedAutoGiroPaymentDate } from "../../custom_modules/autogiro";
 import { getSwishOrder } from "../../custom_modules/swish";
 import { registerDonationSchema } from "../../schemas/publicRequests";
+import { registrationFor, verifyRegistrationToken } from "../../custom_modules/registrationToken";
+import { sendBankPendingOnce } from "../../custom_modules/bankPendingMail";
+import methods from "../../enums/methods";
 import { publicProcedure, router } from "../trpc";
 import {
   widgetAutoGiroDraftPaymentDateInput,
@@ -26,6 +29,10 @@ const vipps = require("../../custom_modules/vipps");
 
 /** The "Other" referral type, whose answer carries a free-text comment */
 const OTHER_REFERRAL_ID = 10;
+
+/** One answer for a token that is not valid for the KID, whether or not the KID exists */
+const invalidRegistration = () =>
+  new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired registration" });
 
 /**
  * The public donation widget on the website (no login). Each procedure does what its REST route
@@ -58,9 +65,16 @@ export const widgetRouter = router({
       return result.content;
     }),
 
-  /** POST /donations/bank/pending: emails the donor how to pay a one-off bank transfer */
+  /**
+   * POST /donations/bank/pending: emails the donor how to pay a one-off bank transfer, for a bank
+   * donation this client just registered (registrationToken). The email states the amount
+   * registered, and goes out once per KID.
+   */
   registerBankPending: publicProcedure.input(widgetBankPendingInput).mutation(async ({ input }) => {
-    const success = await sendDonationRegistered(input.KID, input.sum);
+    const registration = registrationFor(input.registrationToken, input.KID, [methods.BANK]);
+    if (!registration) throw invalidRegistration();
+
+    const success = await sendBankPendingOnce(input.KID, registration.amount);
     if (!success) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -72,11 +86,16 @@ export const widgetRouter = router({
 
   /**
    * POST /referrals: records (active) or removes (not active) the donor's answer to "how did you
-   * hear about us" for this widget session. An existing answer only has its comment updated, and
-   * only for "Other".
+   * hear about us" for this widget session, for the donor of the registration (registrationToken).
+   * An existing answer only has its comment updated, and only for "Other". A donor who answered
+   * in an earlier session isn't asked to be counted twice: the new answer is accepted and not
+   * stored (the widget can't tell, since registerDonation no longer says who answered before).
    */
   submitReferral: publicProcedure.input(widgetSubmitReferralInput).mutation(async ({ input }) => {
-    const { referralID, donorID, session } = input;
+    const registration = verifyRegistrationToken(input.registrationToken);
+    if (!registration) throw invalidRegistration();
+    const donorID = registration.donorId;
+    const { referralID, session } = input;
     const comment = input.comment ?? null;
 
     if (!input.active) {
@@ -95,6 +114,8 @@ export const widgetRouter = router({
       return true;
     }
 
+    if (await DAO.referrals.hasAnsweredInOtherSession(donorID, session)) return true;
+
     if (!(await DAO.referrals.addRecord(referralID, donorID, session, comment))) {
       throw new Error("Failed to add record");
     }
@@ -110,6 +131,9 @@ export const widgetRouter = router({
     .input(widgetDraftVippsAgreementInput)
     .output(widgetDraftVippsAgreementOutput)
     .mutation(async ({ input }) => {
+      if (!registrationFor(input.registrationToken, input.KID, [methods.VIPPS])) {
+        throw invalidRegistration();
+      }
       const monthlyChargeDay = Math.min(input.monthlyChargeDay, 28);
       const draft = await vipps.draftAgreement(
         input.KID,
@@ -129,10 +153,20 @@ export const widgetRouter = router({
 
   /**
    * POST /avtalegiro/draft: drafts an AvtaleGiro agreement for a KID from registerDonation, before
-   * the widget hands the donor over to Nets to sign it. The amount is in NOK.
+   * the widget hands the donor over to Nets to sign it. The amount is in NOK. Only for a KID this
+   * client registered for AvtaleGiro (registrationToken) that has no agreement yet.
    */
   draftAvtaleGiro: publicProcedure.input(widgetDraftAvtaleGiroInput).mutation(async ({ input }) => {
-    await draftAvtaleGiroAgreement(input.KID, input.amount, input.dueDay ?? 0);
+    const result = await draftAvtaleGiroAgreement(
+      input.KID,
+      input.amount,
+      input.dueDay ?? 0,
+      input.registrationToken,
+    );
+    if (!result.ok) {
+      if (result.status === 403) throw invalidRegistration();
+      throw new TRPCError({ code: "BAD_REQUEST", message: result.message });
+    }
     return true;
   }),
 
@@ -150,6 +184,9 @@ export const widgetRouter = router({
   setAutoGiroDraftPaymentDate: publicProcedure
     .input(widgetAutoGiroDraftPaymentDateInput)
     .mutation(async ({ input }) => {
+      if (!registrationFor(input.registrationToken, input.KID, [methods.AUTOGIRO])) {
+        throw invalidRegistration();
+      }
       const result = await setDraftedAutoGiroPaymentDate(input.KID, input.paymentDate);
       if (!result.ok) {
         throw new TRPCError({

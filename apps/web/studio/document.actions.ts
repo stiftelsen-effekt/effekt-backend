@@ -10,7 +10,7 @@ export const documentActions: (
   prev: DocumentActionComponent[],
   context: DocumentActionsContext,
 ) => DocumentActionComponent[] = (prev, context) => {
-  const { schemaType, currentUser } = context;
+  const { schemaType } = context;
 
   if (sensitiveFields[schemaType]) {
     const publish = prev.find((item) => item.action === "publish");
@@ -59,20 +59,12 @@ export const documentActions: (
             ", ",
           )}. This will notify the administrators for security reasons. Are you sure you want to publish?`,
           onCancel: () => setDialogOpen(false),
-          onConfirm: async () => {
+          // The administrators are notified by a signed Sanity webhook on publish (see
+          // POST /mail/mailersend/security/sanitynotification in the API), so the notice can't
+          // be skipped by publishing some other way
+          onConfirm: () => {
             setDialogOpen(false);
-
-            const notificationSent = await sendSecurityEmail(
-              props,
-              changedFields,
-              `${currentUser?.name} (${currentUser?.email})`,
-            );
-
-            if (notificationSent) {
-              publishAction.onHandle?.();
-            } else {
-              alert("Failed to send security email");
-            }
+            publishAction.onHandle?.();
           },
           color: "info",
         },
@@ -88,33 +80,3 @@ export const documentActions: (
 function getNestedValue(obj: any, path: string) {
   return path.split(".").reduce((prev, curr) => prev && prev[curr], obj);
 }
-
-const sendSecurityEmail = async (
-  props: DocumentActionProps,
-  changedFields: string[],
-  user: string,
-) => {
-  const api = process.env.SANITY_STUDIO_EFFEKT_API_URL;
-
-  const result = await fetch(`${api}/mail/mailersend/security/sanitynotification`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      document: props.type,
-      sanityUser: user,
-      fields: changedFields.map((field) => ({
-        name: field,
-        prev: getNestedValue(props.published, field),
-        new: getNestedValue(props.draft, field),
-      })),
-    }),
-  });
-
-  if (result.status === 200) {
-    return true;
-  } else {
-    return false;
-  }
-};

@@ -155,6 +155,21 @@ async function addRecord(referralTypeID, donorID, session, otherComment) {
  * @param {string} session Used to isolate referrals of the a single session in the widget. We need this to seperate anonymous donors.
  * @returns {boolean} Indicates whether the record is exist
  */
+/**
+ * Whether the donor answered in another widget session. Not for the shared anonymous donor,
+ * whose sessions are different people.
+ */
+async function hasAnsweredInOtherSession(donorID: number, session: string): Promise<boolean> {
+  const [rows] = await DAO.query<{ count: number }[]>(
+    `SELECT COUNT(*) AS count
+        FROM Referral_records r
+        INNER JOIN Donors d ON d.ID = r.DonorID
+        WHERE r.DonorID = ? AND NOT (r.website_session <=> ?) AND d.email <> 'anon@gieffektivt.no'`,
+    [donorID, session],
+  );
+  return rows[0].count > 0;
+}
+
 async function checkRecordExist(referralTypeID, donorID, session) {
   let [result] = await DAO.query(
     `select * from Referral_records where ReferralID = ? and DonorID = ? and website_session = ?`,
@@ -315,6 +330,7 @@ export const referrals = {
   addRecord,
   updateRecordComment,
   checkRecordExist,
+  hasAnsweredInOtherSession,
   deleteRecord,
   createType,
   updateType,

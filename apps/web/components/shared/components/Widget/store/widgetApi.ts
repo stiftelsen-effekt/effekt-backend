@@ -95,7 +95,11 @@ export const registerDonationRequest = async (data: object): Promise<RegisterDon
 };
 
 /** Emails the donor the bank details for a one-off bank transfer. Throws on failure. */
-export const registerBankPendingRequest = async (KID: string, sum: number) => {
+export const registerBankPendingRequest = async (
+  KID: string,
+  sum: number,
+  registrationToken: string,
+) => {
   if (flavor === "rest") {
     const request = await fetch(`${API_URL}/donations/bank/pending`, {
       method: "POST",
@@ -109,19 +113,26 @@ export const registerBankPendingRequest = async (KID: string, sum: number) => {
     if (result.status !== 200) throw new Error(result.content as string);
     return;
   }
-  await widgetTrpc().widget.registerBankPending.mutate({ KID, sum });
+  await widgetTrpc().widget.registerBankPending.mutate({ KID, sum, registrationToken });
 };
 
 export type ReferralAnswer = {
   referralID: number;
-  donorID: number;
+  /** Our backend: from registerDonation, the answer is stored for that registration's donor */
+  registrationToken?: string;
+  /** The Danish backend: the donor id its registration returned */
+  donorID?: number | string;
   active: boolean;
   comment?: string;
   session: string;
 };
 
 /** Records or removes the donor's "how did you hear about us" answer. Throws on failure. */
-export const submitReferralRequest = async (data: ReferralAnswer) => {
+export const submitReferralRequest = async ({
+  registrationToken,
+  donorID,
+  ...answer
+}: ReferralAnswer) => {
   if (flavor === "rest") {
     const request = await fetch(`${API_URL}/referrals/`, {
       method: "POST",
@@ -129,13 +140,16 @@ export const submitReferralRequest = async (data: ReferralAnswer) => {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...answer, donorID }),
     });
     const result: IServerResponse<boolean> = await request.json();
     if (result.status !== 200) throw new Error(result.content as string);
     return;
   }
-  await widgetTrpc().widget.submitReferral.mutate(data);
+  await widgetTrpc().widget.submitReferral.mutate({
+    ...answer,
+    registrationToken: registrationToken ?? "",
+  });
 };
 
 /*
@@ -154,6 +168,7 @@ export const draftVippsAgreementRequest = async (input: {
   amount: number;
   initialCharge: boolean;
   monthlyChargeDay: number;
+  registrationToken: string;
 }) => {
   const { vippsConfirmationUrl } = await widgetTrpc().widget.draftVippsAgreement.mutate(input);
   return vippsConfirmationUrl;
@@ -167,6 +182,7 @@ export const draftAvtaleGiroRequest = async (input: {
   KID: string;
   amount: number;
   dueDay?: number;
+  registrationToken: string;
 }) => {
   await widgetTrpc().widget.draftAvtaleGiro.mutate(input);
 };
@@ -176,5 +192,9 @@ export const swishOrderStatusRequest = (orderId: string) =>
   widgetTrpc().widget.swishOrderStatus.query({ orderId });
 
 /** Sets the payment date (0–28) of the AutoGiro agreement drafted for the KID */
-export const setAutoGiroDraftPaymentDateRequest = (KID: string, paymentDate: number) =>
-  widgetTrpc().widget.setAutoGiroDraftPaymentDate.mutate({ KID, paymentDate });
+export const setAutoGiroDraftPaymentDateRequest = (
+  KID: string,
+  paymentDate: number,
+  registrationToken: string,
+) =>
+  widgetTrpc().widget.setAutoGiroDraftPaymentDate.mutate({ KID, paymentDate, registrationToken });

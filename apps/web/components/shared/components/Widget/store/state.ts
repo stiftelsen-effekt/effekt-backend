@@ -29,6 +29,8 @@ export interface DonationInput {
 
 export interface Donation extends DonationInput {
   kid?: string;
+  /** From registerDonation: sent with the calls that act on the registered KID */
+  registrationToken?: string;
   paymentProviderURL?: string;
   swishOrderID?: string;
   swishPaymentRequestToken?: string;

@@ -21,6 +21,7 @@ import http from "http";
 import logging from "./handlers/loggingHandler.js";
 import pretty from "express-prettify";
 import rateLimit from "express-rate-limit";
+import { createPublicMutationLimiter } from "./middleware/publicMutationRateLimit";
 import errorHandler from "./handlers/errorHandler";
 import { importRouter } from "./routes/import";
 import { resultsRouter } from "./routes/results";
@@ -232,7 +233,12 @@ DAO.connect(() => {
 
   if (previewMode) app.use("/preview", createPreviewRouter());
 
-  mountTrpc(app);
+  //The public donation mutations: the widget's tRPC mutations and their REST counterparts
+  const publicMutationLimiter = createPublicMutationLimiter();
+  app.use(["/donations/register", "/vipps/agreement/notify/change"], (req, res, next) =>
+    req.method === "POST" ? publicMutationLimiter(req, res, next) : next(),
+  );
+  mountTrpc(app, { publicMutationLimiter });
 
   app.use("/donors", donorsRoute);
   app.use("/donations", donationsRoute);

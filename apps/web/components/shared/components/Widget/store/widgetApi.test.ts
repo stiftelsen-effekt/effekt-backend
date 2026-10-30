@@ -119,14 +119,23 @@ describe("widget API on our backend (tRPC)", () => {
 
   it("sends the bank pending email through widget.registerBankPending", async () => {
     fetchMock.mockResolvedValueOnce(trpcData(true));
-    await registerBankPendingRequest("12345678", 500);
+    await registerBankPendingRequest("12345678", 500, "token");
     const { url, init } = call();
     expect(url).toBe(`${API}/trpc/widget.registerBankPending`);
-    expect(JSON.parse(init.body as string)).toEqual({ KID: "12345678", sum: 500 });
+    expect(JSON.parse(init.body as string)).toEqual({
+      KID: "12345678",
+      sum: 500,
+      registrationToken: "token",
+    });
   });
 
   it("submits referral answers through widget.submitReferral and throws on errors", async () => {
-    const answer = { referralID: 1, donorID: 42, active: true, session: "1730000000000" };
+    const answer = {
+      referralID: 1,
+      registrationToken: "token",
+      active: true,
+      session: "1730000000000",
+    };
     fetchMock.mockResolvedValueOnce(trpcData(true));
     await submitReferralRequest(answer);
     expect(call().url).toBe(`${API}/trpc/widget.submitReferral`);
@@ -144,7 +153,13 @@ describe("widget payment calls on our backend (tRPC)", () => {
     fetchMock.mockResolvedValueOnce(
       trpcData({ vippsConfirmationUrl: "https://api.vipps.no/v2/register/x" }),
     );
-    const input = { KID: "12345678", amount: 300, initialCharge: true, monthlyChargeDay: 5 };
+    const input = {
+      KID: "12345678",
+      amount: 300,
+      initialCharge: true,
+      monthlyChargeDay: 5,
+      registrationToken: "token",
+    };
     expect(await draftVippsAgreementRequest(input)).toBe("https://api.vipps.no/v2/register/x");
     expect(call().url).toBe(`${API}/trpc/widget.draftVippsAgreement`);
     expect(call().init.method).toBe("POST");
@@ -157,18 +172,27 @@ describe("widget payment calls on our backend (tRPC)", () => {
       trpcError(500, "INTERNAL_SERVER_ERROR", "Could not draft the Vipps agreement"),
     );
     await expect(
-      draftVippsAgreementRequest({ KID: "1", amount: 1, initialCharge: true, monthlyChargeDay: 1 }),
+      draftVippsAgreementRequest({
+        KID: "1",
+        amount: 1,
+        initialCharge: true,
+        monthlyChargeDay: 1,
+        registrationToken: "token",
+      }),
     ).rejects.toThrow("Could not draft the Vipps agreement");
   });
 
   it("drafts the AvtaleGiro agreement through widget.draftAvtaleGiro", async () => {
     fetchMock.mockResolvedValueOnce(trpcData(true));
-    await draftAvtaleGiroRequest({ KID: "12345678", amount: 300, dueDay: 20 });
+    const input = { KID: "12345678", amount: 300, dueDay: 20, registrationToken: "token" };
+    await draftAvtaleGiroRequest(input);
     expect(call().url).toBe(`${API}/trpc/widget.draftAvtaleGiro`);
-    expect(bodyOf()).toEqual({ KID: "12345678", amount: 300, dueDay: 20 });
+    expect(bodyOf()).toEqual(input);
 
     fetchMock.mockResolvedValueOnce(trpcError(400, "BAD_REQUEST", "Invalid input"));
-    await expect(draftAvtaleGiroRequest({ KID: "x", amount: 300 })).rejects.toThrow();
+    await expect(
+      draftAvtaleGiroRequest({ KID: "x", amount: 300, registrationToken: "token" }),
+    ).rejects.toThrow();
   });
 
   it("polls the Swish status with a GET", async () => {
@@ -182,9 +206,9 @@ describe("widget payment calls on our backend (tRPC)", () => {
 
   it("sets the drafted AutoGiro payment date", async () => {
     fetchMock.mockResolvedValueOnce(trpcData(true));
-    await setAutoGiroDraftPaymentDateRequest("12345678", 27);
+    await setAutoGiroDraftPaymentDateRequest("12345678", 27, "token");
     expect(call().url).toBe(`${API}/trpc/widget.setAutoGiroDraftPaymentDate`);
-    expect(bodyOf()).toEqual({ KID: "12345678", paymentDate: 27 });
+    expect(bodyOf()).toEqual({ KID: "12345678", paymentDate: 27, registrationToken: "token" });
   });
 });
 
@@ -234,25 +258,31 @@ describe("widget API on the Danish site (REST)", () => {
 
   it("keeps the REST bank pending and referral requests", async () => {
     fetchMock.mockImplementation(async () => json(200, { status: 200, content: "OK" }));
-    await registerBankPendingRequest("12345678", 500);
+    await registerBankPendingRequest("12345678", 500, "");
     expect(call(0).url).toBe(`${API}/donations/bank/pending`);
     expect(call(0).init.body).toBe('data={"KID":"12345678", "sum":500}');
 
     const answer = { referralID: 1, donorID: 42, active: true, session: "s" };
     await submitReferralRequest(answer);
     expect(call(1).url).toBe(`${API}/referrals/`);
-    expect(call(1).init.body).toBe(JSON.stringify(answer));
+    expect(JSON.parse(String(call(1).init.body))).toEqual(answer);
   });
 
   it("doesn't send the Norwegian and Swedish payment calls anywhere", async () => {
     await expect(
-      draftVippsAgreementRequest({ KID: "1", amount: 1, initialCharge: true, monthlyChargeDay: 1 }),
+      draftVippsAgreementRequest({
+        KID: "1",
+        amount: 1,
+        initialCharge: true,
+        monthlyChargeDay: 1,
+        registrationToken: "t",
+      }),
     ).rejects.toThrow("widget.draftVippsAgreement is not available on this site");
-    await expect(draftAvtaleGiroRequest({ KID: "1", amount: 1 })).rejects.toThrow(
-      "not available on this site",
-    );
+    await expect(
+      draftAvtaleGiroRequest({ KID: "1", amount: 1, registrationToken: "t" }),
+    ).rejects.toThrow("not available on this site");
     await expect(swishOrderStatusRequest("1")).rejects.toThrow("not available on this site");
-    await expect(setAutoGiroDraftPaymentDateRequest("1", 27)).rejects.toThrow(
+    await expect(setAutoGiroDraftPaymentDateRequest("1", 27, "t")).rejects.toThrow(
       "not available on this site",
     );
     expect(fetchMock).not.toHaveBeenCalled();

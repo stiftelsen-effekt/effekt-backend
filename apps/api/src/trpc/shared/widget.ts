@@ -58,8 +58,9 @@ export const widgetReferralTypesOutput = z.array(
  */
 export const widgetRegisterDonationOutput = z.object({
   KID: z.string().nullish(),
-  donorID: z.number().int().nullish(),
   hasAnsweredReferral: z.boolean(),
+  /** Sent back with the follow-up calls below; the Danish backend has none */
+  registrationToken: z.string().nullish(),
   paymentProviderUrl: z.string().nullish(),
   swishOrderID: z.string().nullish(),
   swishPaymentRequestToken: z.string().nullish(),
@@ -68,10 +69,27 @@ export const widgetRegisterDonationOutput = z.object({
 /** A positive database id (INT) */
 const dbId = z.number().int().positive().max(2147483647);
 
+/**
+ * The registrationToken from widget.registerDonation. The calls that act on a registered KID or
+ * donor take it, and only act on the KID and donor it was issued for, for a couple of hours.
+ */
+const registrationToken = z.string().min(1).max(2048);
+
+/** The largest amount (NOK or SEK) the widget's follow-up calls accept */
+export const WIDGET_MAX_AMOUNT = 10_000_000;
+
+/** A positive amount with at most two decimals (whole øre), as the widget's breakdown gives it */
+const widgetAmount = z
+  .number()
+  .finite()
+  .positive()
+  .max(WIDGET_MAX_AMOUNT)
+  .refine((n) => Math.abs(Math.round(n * 100) - n * 100) < 1e-6, "At most two decimals");
+
 /** widget.submitReferral input (REST POST /referrals) */
 export const widgetSubmitReferralInput = z.object({
   referralID: dbId,
-  donorID: dbId,
+  registrationToken,
   active: z.boolean(),
   /** The widget's session id (Referral_records.website_session is VARCHAR(45)) */
   session: z.string().min(1).max(45),
@@ -81,14 +99,16 @@ export const widgetSubmitReferralInput = z.object({
 /** widget.registerBankPending input (REST POST /donations/bank/pending `data`) */
 export const widgetBankPendingInput = z.object({
   KID: z.string().regex(/^\d{1,32}$/),
-  sum: z.number().finite(),
+  /** The email states the amount registered with the KID; this is only checked */
+  sum: widgetAmount,
+  registrationToken,
 });
 
 /** A KID as the widget gets it from registerDonation: a string of digits */
 const kid = z.string().regex(/^\d{1,32}$/);
 
-/** A monthly amount in whole or fractional NOK, as the widget's donation breakdown gives it */
-const nokAmount = z.number().finite().positive().max(1_000_000_000);
+/** A monthly amount in NOK, as the widget's donation breakdown gives it */
+const nokAmount = widgetAmount;
 
 /**
  * widget.draftVippsAgreement input (REST POST /vipps/agreement/draft). The REST route takes any
@@ -99,6 +119,7 @@ export const widgetDraftVippsAgreementInput = z.strictObject({
   amount: nokAmount,
   initialCharge: z.boolean(),
   monthlyChargeDay: z.number().int().min(0).max(31),
+  registrationToken,
 });
 
 /** widget.draftVippsAgreement: where to send the donor to confirm the agreement in Vipps */
@@ -114,6 +135,7 @@ export const widgetDraftAvtaleGiroInput = z.strictObject({
   KID: kid,
   amount: nokAmount,
   dueDay: z.number().int().min(0).max(28).optional(),
+  registrationToken,
 });
 
 /** widget.swishOrderStatus input: the order id from registerDonation (swishOrderID) */
@@ -131,4 +153,5 @@ export const widgetSwishOrderStatusOutput = z.object({ status: z.string().nullab
 export const widgetAutoGiroDraftPaymentDateInput = z.strictObject({
   KID: kid,
   paymentDate: z.number().int().min(0).max(28),
+  registrationToken,
 });

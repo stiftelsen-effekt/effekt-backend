@@ -128,6 +128,7 @@ describe("donations", () => {
         expect(response.body).to.deep.equal({
           content: {
             hasAnsweredReferral: false,
+            registrationToken: null,
             paymentProviderUrl: "",
             swishOrderID: null,
             swishPaymentRequestToken: null,
@@ -157,7 +158,7 @@ describe("donations", () => {
           donor: {
             name: "Test Testsson",
             email: "test@testeson.no",
-            ssn: "1234567890",
+            ssn: "15019010063",
           },
           method: methods.BANK,
           amount: 100,
@@ -192,7 +193,7 @@ describe("donations", () => {
           donor: {
             name: "Test Testsson",
             email: "test@testesen.no",
-            ssn: "1234567890",
+            ssn: "15019010063",
           },
           method: methods.BANK,
           amount: 100,

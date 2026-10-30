@@ -73,3 +73,50 @@ export function requireMailerSendSignature(
     next();
   };
 }
+
+/** How far a Sanity webhook's signed timestamp may be from now */
+const SANITY_SIGNATURE_TOLERANCE_MS = 5 * 60 * 1000;
+
+/**
+ * Middleware that verifies a Sanity GROQ webhook signature: the "sanity-webhook-signature" header
+ * is `t=<timestamp ms>,v1=<signature>`, where the signature is the base64url HMAC-SHA256 of
+ * `<timestamp>.<raw body>` keyed with the webhook's secret (as @sanity/webhook signs it).
+ * Requests signed more than five minutes from now are refused, so a captured request can't be
+ * replayed later. Requires req.rawBody. Fails closed (401) when the secret is not configured.
+ */
+export function requireSanityWebhookSignature(
+  getSecret: () => string | undefined,
+  envName: string,
+): RequestHandler {
+  return (req: any, res, next) => {
+    const secret = getSecret();
+    if (!secret) {
+      console.error(`${envName} is not configured, rejecting webhook request to ${req.path}`);
+      return res.status(401).json({ status: 401, content: "Unauthorized" });
+    }
+
+    const header = req.get("sanity-webhook-signature") || "";
+    const match = /^t=(\d+),v1=([A-Za-z0-9_-]+)$/.exec(header.trim());
+    const rawBody: string | undefined = req.rawBody;
+    if (!match || typeof rawBody !== "string") {
+      console.warn(`Rejected webhook request to ${req.path}: missing signature or body`);
+      return res.status(401).json({ status: 401, content: "Unauthorized" });
+    }
+
+    const [, timestamp, signature] = match;
+    if (Math.abs(Date.now() - Number(timestamp)) > SANITY_SIGNATURE_TOLERANCE_MS) {
+      console.warn(`Rejected webhook request to ${req.path}: signature timestamp out of range`);
+      return res.status(401).json({ status: 401, content: "Unauthorized" });
+    }
+
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(`${timestamp}.${rawBody}`, "utf8")
+      .digest("base64url");
+    if (!safeEqual(signature, expected)) {
+      console.warn(`Rejected webhook request to ${req.path}: invalid signature`);
+      return res.status(401).json({ status: 401, content: "Unauthorized" });
+    }
+    next();
+  };
+}
