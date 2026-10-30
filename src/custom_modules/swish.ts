@@ -184,7 +184,7 @@ export async function handleOrderStatusUpdate(
     }
     case FinalSwishOrderStatus.DECLINED:
     case FinalSwishOrderStatus.ERROR: {
-      // TODO: Send error mail (https://github.com/stiftelsen-effekt/effekt-backend/issues/552)
+      // TODO: Send error mail (https://github.com/stiftelsen-effekt/effekt-platform/issues/552)
     }
   }
 }

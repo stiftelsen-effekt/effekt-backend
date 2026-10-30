@@ -92,7 +92,7 @@ preview comment goes back to _Building_, then _Ready_.
   repository, checked twice (a first step asks the GitHub API, and the action checks again).
   The repository is public, so comments from anyone else are ignored. Fork PRs are refused.
 - **One-time setup (repository admin):**
-  1. Install the Claude GitHub app on `stiftelsen-effekt/effekt-backend`:
+  1. Install the Claude GitHub app on `stiftelsen-effekt/effekt-platform`:
      <https://github.com/apps/claude>. Its token is what lets Claude's commits start the Preview
      workflow (pushes made with the workflow's own `GITHUB_TOKEN` don't trigger workflows).
   2. Add the repository secret `ANTHROPIC_API_KEY` (Settings → Secrets and variables →
