@@ -58,6 +58,45 @@ Cypress.Commands.add("login", () => {
   cy.ignorePlausibleTracking();
 });
 
+/**
+ * Full-stack suite only (cypress-fullstack.config.ts): logs in as `donorId` through the local
+ * OIDC issuer from compose.e2e.yml. Its login form takes any username plus extra claims as JSON;
+ * the numeric user-id claim is what the website and the API read.
+ */
+Cypress.Commands.add("loginFullstack", (donorId) => {
+  Cypress.log({ name: "loginFullstack", message: donorId });
+
+  cy.session(
+    ["fullstack", donorId],
+    () => {
+      cy.visit("/min-side/");
+
+      cy.origin(Cypress.expose("E2E_AUTH_ORIGIN"), { args: { donorId } }, ({ donorId }) => {
+        cy.get("input[name=username]").type(`e2e-donor-${donorId}`);
+        cy.get("textarea[name=claims]").type(
+          JSON.stringify({ "https://gieffektivt.no/user-id": donorId }),
+          { parseSpecialCharSequences: false, delay: 0 },
+        );
+        cy.get("input[type=submit]").click();
+      });
+
+      cy.location("pathname").should("include", "/min-side");
+      cy.getCookies().should((cookies) => {
+        expect(cookies.some(isAuthenticatedCookie)).to.equal(true);
+      });
+    },
+    {
+      validate() {
+        cy.getCookies().should((cookies) => {
+          expect(cookies.some(isAuthenticatedCookie)).to.equal(true);
+        });
+      },
+    },
+  );
+
+  cy.ignorePlausibleTracking();
+});
+
 const isAuthenticatedCookie = (cookie) => /^auth0\..+\.is\.authenticated$/.test(cookie.name);
 
 const getState = () => cy.window().its("store").invoke("getState");

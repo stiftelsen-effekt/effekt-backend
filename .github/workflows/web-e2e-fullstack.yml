@@ -1,0 +1,61 @@
+name: web-e2e-fullstack
+# Full-stack Cypress tests for apps/web: the website built against a local API, MySQL with seed
+# data and a local OIDC issuer (compose.dev.yml + compose.e2e.yml). Needs no secrets; content is
+# read from the public production Sanity dataset. The Vercel-deployment e2e (web-ci.yml) is
+# separate and unchanged. See docs/e2e.md.
+permissions:
+  contents: read
+on:
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "src/**"
+      - "prisma/**"
+      - "compose.dev.yml"
+      - "compose.e2e.yml"
+      - ".env.docker"
+      - "scripts/e2e-fullstack.sh"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/web-e2e-fullstack.yml"
+concurrency:
+  group: web-e2e-fullstack-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  e2e:
+    name: Full-stack e2e (web)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The pnpm version comes from packageManager in the root package.json.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: apps/web/.nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      # The website (and Cypress), plus the root package for mysql2, which the Cypress
+      # resetE2EData task uses to rewrite the seed data (prisma/e2e/seed.mjs).
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend
+      # Brings the stack up, builds and serves the web app, runs Cypress and tears down.
+      - name: Run full-stack e2e
+        run: pnpm e2e:fullstack
+      - name: Upload screenshots and logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-e2e-fullstack-${{ github.run_id }}
+          path: |
+            apps/web/cypress/screenshots
+            apps/web/cypress/videos
+            apps/web/cypress/logs
+          if-no-files-found: ignore
+          retention-days: 7

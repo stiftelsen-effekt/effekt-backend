@@ -53,3 +53,8 @@ cypress.env.json
 .claude/
 
 .beads
+
+# Full-stack e2e (scripts/e2e-fullstack.sh)
+/cypress/logs
+/cypress/screenshots
+/cypress/videos
