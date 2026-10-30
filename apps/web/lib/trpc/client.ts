@@ -1,4 +1,4 @@
-import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client";
+import { createTRPCClient, httpBatchLink, httpLink, type TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@effekt/api";
 import type { MainLocale } from "../../context/MainLocaleContext";
 import { restLink } from "./restLink";
@@ -37,4 +37,20 @@ export const createWebTrpcClient = ({
             headers: async () => ({ Authorization: `Bearer ${await getToken()}` }),
           }),
     ],
+  });
+
+/**
+ * A client for the public donation widget: no token, and no batching (the backend refuses widget
+ * mutations inside a batch so the per-IP rate limit counts each one). On the Danish site it is the
+ * REST link, which only maps the widget's public reads.
+ */
+export const createPublicTrpcClient = ({
+  flavor,
+  url = apiUrl(),
+}: {
+  flavor: ApiFlavor;
+  url?: string;
+}): TrpcClient =>
+  createTRPCClient<AppRouter>({
+    links: [flavor === "rest" ? restLink<AppRouter>({ url }) : httpLink({ url: `${url}/trpc` })],
   });

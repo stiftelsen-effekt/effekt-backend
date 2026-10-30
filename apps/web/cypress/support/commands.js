@@ -1,4 +1,4 @@
-import { trpcPaths, trpcUrl } from "./trpc";
+import { isTrpcBatch, trpcPaths, trpcUrl } from "./trpc";
 import "cypress-localstorage-commands";
 
 Cypress.Commands.add("login", () => {
@@ -191,6 +191,12 @@ const trpcBatchEntry = (path) => {
  */
 const interceptTrpcPath = (path) =>
   cy.intercept({ url: trpcUrl(path) }, (req) => {
+    if (!isTrpcBatch(req.url)) {
+      // The donation widget's httpLink: one procedure, one entry, the error's own status
+      const entry = trpcBatchEntry(path);
+      req.reply({ statusCode: entry.error ? entry.error.data.httpStatus : 200, body: entry });
+      return;
+    }
     const body = trpcPaths(req.url).map(trpcBatchEntry);
     req.reply({ statusCode: body.some((entry) => entry.error) ? 207 : 200, body });
   });

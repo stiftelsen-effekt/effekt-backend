@@ -1,3 +1,4 @@
+import { trpcUrl } from "../../support/trpc";
 // This platform's real cause-area data (cause_areas.json) has only one active
 // cause area, which routes the widget straight into SingleCauseAreaPane (see
 // widget.js). That leaves the SelectionPane + multi-cause-area AmountPane
@@ -6,23 +7,11 @@
 describe("Widget multiple cause areas", () => {
   beforeEach(() => {
     cy.fixture("cause_areas_multiple").then((causeAreas) => {
-      cy.intercept("GET", "/causeareas/all", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: causeAreas,
-        },
-      }).as("getCauseAreas");
+      cy.interceptTrpc("widget.causeAreas", causeAreas).as("getCauseAreas");
     });
 
     cy.fixture("referrals").then((referrals) => {
-      cy.intercept("GET", "/referrals/types", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: referrals,
-        },
-      }).as("getReferrals");
+      cy.interceptTrpc("widget.referralTypes", referrals).as("getReferrals");
     });
 
     cy.visit({
@@ -52,26 +41,14 @@ describe("Widget multiple cause areas", () => {
 
     cy.pickAnonymous();
 
-    cy.intercept("POST", "/donations/register", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: {
-          KID: "87397824",
-          donorID: 1464,
-          hasAnsweredReferral: false,
-          paymentProviderUrl: "",
-        },
-      },
+    cy.interceptTrpc("widget.registerDonation", {
+      KID: "87397824",
+      donorID: 1464,
+      hasAnsweredReferral: false,
+      paymentProviderUrl: "",
     }).as("registerDonation");
 
-    cy.intercept("POST", "donations/bank/pending", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: "OK",
-      },
-    }).as("bankPending");
+    cy.interceptTrpc("widget.registerBankPending", true).as("bankPending");
 
     cy.get("[data-cy=payment-method-bank]").click({ force: true });
 
@@ -96,26 +73,14 @@ describe("Widget multiple cause areas", () => {
 
     cy.pickAnonymous();
 
-    cy.intercept("POST", "/donations/register", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: {
-          KID: "87397824",
-          donorID: 1464,
-          hasAnsweredReferral: false,
-          paymentProviderUrl: "",
-        },
-      },
+    cy.interceptTrpc("widget.registerDonation", {
+      KID: "87397824",
+      donorID: 1464,
+      hasAnsweredReferral: false,
+      paymentProviderUrl: "",
     }).as("registerDonation");
 
-    cy.intercept("POST", "donations/bank/pending", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: "OK",
-      },
-    }).as("bankPending");
+    cy.interceptTrpc("widget.registerBankPending", true).as("bankPending");
 
     cy.get("[data-cy=payment-method-bank]").click({ force: true });
 
@@ -139,7 +104,7 @@ describe("Widget multiple cause areas", () => {
     cy.nextWidgetPane();
     cy.pickAnonymous();
 
-    cy.intercept("POST", "/donations/register", (req) => {
+    cy.intercept("POST", trpcUrl("widget.registerDonation"), (req) => {
       expect(req.body.amount).to.eq(1000);
       expect(req.body.distributionCauseAreas).to.have.length(1);
       expect(req.body.distributionCauseAreas[0].id).to.eq(4);
@@ -148,24 +113,19 @@ describe("Widget multiple cause areas", () => {
       req.reply({
         statusCode: 200,
         body: {
-          status: 200,
-          content: {
-            KID: "87397824",
-            donorID: 1464,
-            hasAnsweredReferral: false,
-            paymentProviderUrl: "",
+          result: {
+            data: {
+              KID: "87397824",
+              donorID: 1464,
+              hasAnsweredReferral: false,
+              paymentProviderUrl: "",
+            },
           },
         },
       });
     }).as("registerDonation");
 
-    cy.intercept("POST", "donations/bank/pending", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: "OK",
-      },
-    }).as("bankPending");
+    cy.interceptTrpc("widget.registerBankPending", true).as("bankPending");
 
     cy.get("[data-cy=payment-method-bank]").click({ force: true });
 

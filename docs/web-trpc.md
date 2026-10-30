@@ -130,6 +130,44 @@ The `restRoutes` table in `restLink.ts` maps procedures to REST routes:
   doesn't (`impact` on donations, `amount` on distributions), which the schemas declare as
   optional.
 
+## The donation widget
+
+The donation widget (`components/shared/components/Widget`) calls the public `widget` router
+(`apps/api/src/trpc/routers/widget.ts`, schemas in `apps/api/src/trpc/shared/widget.ts`, exported
+as `@effekt/api/widget`). No login, no token.
+
+| Procedure                    | Formerly                       | Saga                                     |
+| ---------------------------- | ------------------------------ | ---------------------------------------- |
+| `widget.causeAreas`          | `GET /causeareas/all/`         | `layout/saga.ts` `fetchCauseAreas`       |
+| `widget.referralTypes`       | `GET /referrals/types`         | `referrals/saga.ts` `fetchReferrals`     |
+| `widget.registerDonation`    | `POST /donations/register`     | `donation/saga.ts` `registerDonation`    |
+| `widget.registerBankPending` | `POST /donations/bank/pending` | `donation/saga.ts` `registerBankPending` |
+| `widget.submitReferral`      | `POST /referrals`              | `referrals/saga.ts` `submitReferral`     |
+
+- `widget.registerDonation` runs the same code as the REST route (`registerPendingDonation` in
+  `apps/api/src/custom_modules/pendingDonationRegistration.ts`) with the same input schema
+  (`registerDonationSchema`). Its output schema is lenient (nullish fields): it is checked after the
+  donation is registered and the payment started, so it must not turn a registration into an error.
+- The widget's client (`createPublicTrpcClient`) uses `httpLink`, not `httpBatchLink`: the backend
+  refuses a batch that contains a widget mutation (`rejectBatchedWidgetMutations` in
+  `apps/api/src/trpc/express.ts`), so the per-IP rate limit counts each registration.
+- All calls go through `Widget/store/widgetApi.ts`. `Widget.tsx` sets the site from the widget's
+  `locale` (Sanity `main_locale`) on mount. On the Danish site the two reads go through `restLink`
+  (`/causeareas/all/`, `/referrals/types` on the Danish backend), and the three writes keep the
+  original REST requests: the Danish `/donations/register` takes and answers a different shape
+  (string donor ids, no KID for card payments, an empty 500 on errors), and the Danish backend has no
+  bank-pending or referral route.
+- Not migrated yet (REST, Norway/Sweden only): `POST /vipps/agreement/draft`,
+  `POST /avtalegiro/draft`, `GET /autogiro/:kid/drafted/paymentdate`, Swish status polling, and
+  the fundraiser widget (`FundraiserWidget/hooks/useRegisterDonation.ts`).
+- Stays REST for good: anything a payment provider, bank or email calls or links to
+  (`/avtalegiro/:kid/redirect`, `/swish/qr/:token`, `/vipps/*` callbacks, `/donations/status`).
+
+Cypress: the Norwegian widget specs stub `cy.interceptTrpc("widget.<name>", data)`; `interceptTrpc`
+answers an unbatched (httpLink) request with a single entry. The Danish widget specs keep
+intercepting REST. `cypress/e2e/fullstack/widget.js` registers a bank donation against the local
+stack and checks the rows with the `queryE2EDb` task.
+
 ## Adding a procedure
 
 1. Put the input and output schemas in `apps/api/src/trpc/shared/minside.ts` (only `zod`). Give every
