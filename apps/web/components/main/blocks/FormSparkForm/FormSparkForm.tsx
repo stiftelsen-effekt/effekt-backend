@@ -1,0 +1,256 @@
+import React, { useState, useSyncExternalStore } from "react";
+import Head from "next/head";
+import Script from "next/script";
+
+import { Formsparkform } from "../../../../studio/sanity.types";
+import styles from "./FormSparkForm.module.scss";
+import {
+  EffektButton,
+  EffektButtonVariant,
+} from "../../../shared/components/EffektButton/EffektButton";
+import { RadioButton } from "../../../shared/components/RadioButton/RadioButton";
+import { EffektCheckbox } from "../../../shared/components/EffektCheckbox/EffektCheckbox";
+
+import { redirectUrlFor, wasSubmitted } from "./formsparkRedirect";
+
+// Type definitions for form state
+type FormState = Record<string, string | boolean>;
+
+// Type guard to check if a field has options
+const hasOptions = (field: any): field is { options: Array<{ value: string; label: string }> } => {
+  return field.options && Array.isArray(field.options);
+};
+
+// Initial state for the controlled inputs
+const getInitialFormState = (fields: Formsparkform["fields"]): FormState => {
+  const initialState: FormState = {};
+  fields?.forEach((field) => {
+    if (field.field_type === "checkbox") {
+      initialState[field.field_name || ""] = false;
+    } else {
+      initialState[field.field_name || ""] = "";
+    }
+  });
+  return initialState;
+};
+
+// There is no event for URL changes to subscribe to; the URL is read again on every render
+const subscribeToNothing = () => () => {};
+const getPageUrl = () => window.location.href;
+const getServerPageUrl = () => null;
+
+export const FormsparkForm: React.FC<{ formData: Formsparkform }> = ({ formData }) => {
+  const [formState, setFormState] = useState<FormState>(() => getInitialFormState(formData.fields));
+
+  // Reset the controlled inputs when the fields change
+  const [prevFields, setPrevFields] = useState(formData.fields);
+  if (formData.fields !== prevFields) {
+    setPrevFields(formData.fields);
+    setFormState(getInitialFormState(formData.fields));
+  }
+
+  // Formspark shows its own thank-you page unless the form sends _redirect, so send the
+  // visitor back to this page and show the success message there.
+  // The page URL is only known in the browser, so nothing is rendered for it on the server.
+  const pageUrl = useSyncExternalStore(subscribeToNothing, getPageUrl, getServerPageUrl);
+  const formId = formData.form_id;
+  const submitted = !!pageUrl && !!formId && wasSubmitted(pageUrl, formId);
+  const redirectUrl = pageUrl && formId ? redirectUrlFor(pageUrl, formId) : undefined;
+
+  const handleInputChange = (fieldName: string, value: string | boolean) => {
+    setFormState((prev) => ({
+      ...prev,
+      [fieldName]: value,
+    }));
+  };
+
+  const renderField = (field: any) => {
+    const fieldName = field.field_name || "";
+    const validation = field.validation || {};
+
+    const commonProps: any = {
+      name: fieldName,
+      id: fieldName,
+      required: validation.required,
+    };
+
+    // Add HTML5 validation attributes
+    if (validation.min_length) commonProps.minLength = validation.min_length;
+    if (validation.max_length) commonProps.maxLength = validation.max_length;
+    if (validation.pattern) {
+      commonProps.pattern = validation.pattern;
+      if (validation.pattern_message) {
+        commonProps.title = validation.pattern_message;
+      }
+    }
+
+    if (field.autocomplete) {
+      commonProps.autoComplete = field.autocomplete;
+    }
+
+    switch (field.field_type) {
+      case "textarea":
+        return (
+          <textarea
+            {...commonProps}
+            value={(formState[fieldName] as string) || ""}
+            onChange={(e) => handleInputChange(fieldName, e.target.value)}
+            placeholder={field.placeholder}
+            rows={field.rows || 4}
+          />
+        );
+
+      case "select":
+        return (
+          <select
+            {...commonProps}
+            value={(formState[fieldName] as string) || ""}
+            onChange={(e) => handleInputChange(fieldName, e.target.value)}
+          >
+            <option value="">Choose an option</option>
+            {hasOptions(field) &&
+              field.options.map((option, index) => (
+                <option key={index} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+          </select>
+        );
+
+      case "radio":
+        return (
+          <div
+            role="radiogroup"
+            aria-labelledby={`${fieldName}-label`}
+            className={styles.radioGroup}
+          >
+            {hasOptions(field) &&
+              field.options.map((option, index) => (
+                <div key={index}>
+                  <RadioButton
+                    name={fieldName}
+                    selected={formState[fieldName] === option.value}
+                    onSelect={() => handleInputChange(fieldName, option.value)}
+                    title={option.label}
+                    data_cy={`${fieldName}-${index}`}
+                    required={
+                      index === 0 &&
+                      (formState[fieldName] === "" || formState[fieldName] === undefined)
+                    }
+                  />
+                </div>
+              ))}
+          </div>
+        );
+
+      case "checkbox":
+        return (
+          <div>
+            <EffektCheckbox
+              required={commonProps.required}
+              checked={!!formState[fieldName]}
+              onChange={(checked) => handleInputChange(fieldName, checked)}
+            >
+              {field.field_label}
+            </EffektCheckbox>
+          </div>
+        );
+
+      case "number":
+        const numberProps = { ...commonProps };
+        if (validation.min_value !== undefined) numberProps.min = validation.min_value;
+        if (validation.max_value !== undefined) numberProps.max = validation.max_value;
+
+        return (
+          <input
+            {...numberProps}
+            type="number"
+            value={(formState[fieldName] as string) || ""}
+            onChange={(e) => handleInputChange(fieldName, e.target.value)}
+            placeholder={field.placeholder}
+          />
+        );
+
+      default:
+        return (
+          <input
+            {...commonProps}
+            type={field.field_type || "text"}
+            value={(formState[fieldName] as string) || ""}
+            onChange={(e) => handleInputChange(fieldName, e.target.value)}
+            placeholder={field.placeholder}
+          />
+        );
+    }
+  };
+
+  if (!formData || !formData.fields) {
+    return <div>No form data provided</div>;
+  }
+
+  return (
+    <>
+      {formData.turnstile_site_key && (
+        <>
+          <Head>
+            <link rel="preconnect" href="https://challenges.cloudflare.com" />
+          </Head>
+          <Script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            strategy="afterInteractive"
+          />
+        </>
+      )}
+      <div className={styles.wrapper} id={`form-${formData.form_id}`}>
+        {submitted && formData.success_message ? (
+          <p className={styles.success} role="status">
+            {formData.success_message}
+          </p>
+        ) : (
+          <form
+            action={`https://submit-form.com/${formData.form_id}`}
+            method="POST"
+            target={formData.submit_target || "_self"}
+            className={styles.form}
+          >
+            {redirectUrl && <input type="hidden" name="_redirect" value={redirectUrl} />}
+
+            {formData.fields.map((field, index) => {
+              const fieldName = field.field_name || "";
+              return (
+                <div key={index} className={styles.fieldWrapper}>
+                  {field.field_type !== "checkbox" && (
+                    <label htmlFor={fieldName} id={`${fieldName}-label`}>
+                      {field.field_label}
+                    </label>
+                  )}
+
+                  {renderField(field)}
+                </div>
+              );
+            })}
+
+            {formData.turnstile_site_key && (
+              <div className="cf-turnstile" data-sitekey={formData.turnstile_site_key} />
+            )}
+
+            {/* Honeypot field for spam protection */}
+            {formData.honeypot_field && (
+              <input
+                type="text"
+                name="_gotcha"
+                style={{ display: "none" }}
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            )}
+
+            <EffektButton variant={EffektButtonVariant.PRIMARY} type="submit">
+              {formData.submit_button_text || "Submit"}
+            </EffektButton>
+          </form>
+        )}
+      </div>
+    </>
+  );
+};

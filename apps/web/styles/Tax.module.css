@@ -1,0 +1,27 @@
+.header {
+  margin-top: 200px;
+  margin-bottom: 100px;
+}
+
+@media only screen and (max-width: 1520px) and (min-width: 1181px) {
+  .header {
+    margin-top: 140px;
+    margin-bottom: 60px;
+  }
+}
+
+@media only screen and (max-width: 1180px) {
+  .container {
+    padding-top: 40px;
+  }
+
+  .header {
+    display: none;
+  }
+}
+
+@media print {
+  .header {
+    display: none;
+  }
+}

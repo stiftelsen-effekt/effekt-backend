@@ -1,0 +1,56 @@
+.infoBox {
+  background-color: var(--primary);
+  color: var(--secondary);
+  display: flex;
+  flex-direction: column;
+  max-height: 100vh;
+  padding: 1.5rem 0;
+  overflow-x: visible;
+  z-index: 2;
+  margin-bottom: 50px;
+  position: relative;
+}
+
+.infoBox::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -100vw;
+  width: 100vw;
+  height: 100%;
+  background-color: var(--primary);
+}
+
+.infoBox::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100vw;
+  width: 100vw;
+  height: 100%;
+  background-color: var(--primary);
+}
+
+.infoBox header {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.infoBox header svg {
+  margin-right: 12px;
+}
+
+.infoBox p {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+@media only screen and (max-width: 1180px) {
+  .infoBox {
+    margin-top: 20px;
+    margin-bottom: 30px;
+  }
+}

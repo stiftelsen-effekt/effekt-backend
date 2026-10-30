@@ -1,0 +1,50 @@
+.wrapper {
+  position: relative;
+  width: 400px;
+  display: flex;
+  flex-direction: row;
+  margin: 20px 0;
+}
+
+.bars {
+  width: 120px;
+}
+
+.bar {
+  height: 36px;
+  background: var(--primary);
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.label {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  height: 36px;
+  margin-bottom: 20px;
+  padding-left: 12px;
+  text-align: left;
+}
+
+.label div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  line-height: 135%;
+}
+
+.label div:last-child {
+  font-size: 12px;
+}
+
+@media only screen and (max-width: 1180px) {
+  .wrapper {
+    width: 100%;
+  }
+
+  .label {
+    max-width: calc(100vw - 10vw - 120px);
+  }
+}

@@ -1,0 +1,396 @@
+.container {
+  width: 100%;
+  padding: 0px 5vw;
+  max-width: 1920px;
+  margin: 0 auto;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: padding 200ms ease-in-out;
+  padding: 20px 0;
+}
+
+.navbar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.navbar ul li {
+  cursor: default;
+  display: inline-block;
+  text-decoration: none;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  position: relative;
+}
+
+.navbar ul li:last-child {
+  margin-right: 0;
+  margin-left: 0;
+  padding-right: 0;
+}
+
+.navbar ul li .submenu {
+  position: absolute;
+  min-width: 100%;
+  top: 100%;
+  left: 0;
+  background: var(--secondary);
+  top: -1000px;
+  padding-bottom: 20px;
+  padding-top: 0.4rem;
+}
+
+.navbar ul li .submenu:focus-within,
+.navbar ul li:hover .submenu,
+.navbar ul li:focus .submenu,
+.navbar ul li.expandedSubmenu .submenu {
+  display: block;
+  top: auto;
+}
+
+.navbar ul li .submenu ul li {
+  padding: 0 0.875rem;
+  font-size: 0.8rem;
+  display: block;
+  padding-bottom: 0;
+  white-space: nowrap;
+}
+
+.navbar a.icon {
+  display: none;
+}
+
+.expandBtn {
+  display: none;
+}
+
+.navbar .logoWrapper {
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  height: 35px;
+  width: 250px;
+  position: relative;
+}
+
+.navbar .logoWrapper:active {
+  outline: none;
+}
+
+.navbar .logoWrapper:focus-within {
+  outline: 2px solid var(--secondary);
+}
+
+.navbar .logoWrapperImage {
+  width: 100%;
+  height: 100%;
+
+  a {
+    border-bottom: none;
+  }
+}
+
+.navbar ul li.expandedSubmenu button::after {
+  content: "↓";
+  display: inline-block;
+  margin-left: 10px;
+}
+
+.navbar ul li.collapsedSubmenu button::after {
+  content: "↓";
+  display: inline-block;
+  margin-left: 10px;
+}
+
+.navbar ul li button:focus + div .submenu {
+  display: block;
+}
+
+.navbar ul li.buttonsWrapper a {
+  border-bottom: none;
+}
+
+/* Mobile */
+@media only screen and (max-width: 1180px) {
+  .navbarExpanded {
+    background: var(--primary);
+    color: var(--secondary);
+    position: static;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(100dvh - var(--header-active-general-banner-height, 0px));
+    touch-action: none;
+  }
+
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    height: auto;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .navbarExpanded .navbar {
+    padding-bottom: calc(var(--cookie-banner-height, 0px) + 2rem);
+  }
+
+  .expandBtn {
+    display: flex;
+  }
+
+  .navbar .logoWrapper {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    height: auto;
+    align-items: center;
+  }
+
+  .navbar .logoWrapperImage {
+    height: 25px;
+    width: 160px;
+    position: relative;
+  }
+
+  .navbar ul {
+    display: none;
+  }
+
+  .navbarExpanded .navbar > ul {
+    padding: 0;
+    flex-grow: 1;
+    width: 100%;
+    font-weight: normal;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 2rem;
+    padding-top: 0.5rem;
+  }
+
+  .navbarExpanded .logoWrapper {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    -moz-backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+    -moz-transform: translate3d(0, 0, 0);
+  }
+
+  .navbar ul li {
+    display: block;
+    padding: 0;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .navbar ul li a {
+    display: inline-block;
+    width: 100%;
+  }
+
+  .navbar ul li a:hover {
+    border-bottom: none;
+  }
+
+  .navbar ul li .submenu {
+    display: block;
+    position: static;
+    flex-grow: 1;
+    width: 100%;
+    padding-left: 1rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0;
+    background: none;
+  }
+
+  .navbarExpanded ul li .submenu ul {
+    display: block;
+  }
+
+  .navbarExpanded ul li .submenu ul li {
+    font-size: 1rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    white-space: normal;
+  }
+
+  .navbarExpanded ul li .submenu ul li a {
+    display: inline-block;
+    width: 100%;
+  }
+
+  .navbar ul li.expandedSubmenu button::after {
+    transform: rotate(180deg);
+    transition: 180ms all;
+  }
+
+  .navbar ul li.collapsedSubmenu button::after {
+    transform: rotate(0deg);
+    transition: 180ms all;
+  }
+
+  /* Style the active link (or home/logo) */
+  .active {
+    color: var(--primary);
+  }
+
+  .close {
+    font-size: 46px;
+    font-weight: bold;
+  }
+
+  .hide {
+    display: none;
+  }
+
+  .navbar ul li.buttonsWrapper {
+    padding-top: 1.5rem;
+    margin-left: 0;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    margin-top: auto;
+  }
+
+  .navbar ul li.buttonsWrapper a {
+    width: 100%;
+  }
+
+  .navbar ul li.buttonsWrapper button {
+    font-size: 1.125rem;
+    min-height: 52px;
+    padding: 14px 28px;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .navbarExpanded .navbar > ul > li {
+    opacity: 0;
+    animation: slideIn 0.3s ease-out forwards;
+  }
+
+  /* Stagger the animations for each list item */
+  .navbarExpanded .navbar > ul > li:nth-child(1) {
+    animation-delay: 0.025s;
+  }
+  .navbarExpanded .navbar > ul > li:nth-child(2) {
+    animation-delay: 0.05s;
+  }
+  .navbarExpanded .navbar > ul > li:nth-child(3) {
+    animation-delay: 0.075s;
+  }
+  .navbarExpanded .navbar > ul > li:nth-child(4) {
+    animation-delay: 0.1s;
+  }
+  .navbarExpanded .navbar > ul > li:nth-child(5) {
+    animation-delay: 0.125s;
+  }
+  .navbarExpanded .navbar > ul > li:nth-child(6) {
+    animation-delay: 0.15s;
+  }
+
+  .navbarExpanded .navbar > ul > li:last-child {
+    animation: slideUp 0.3s ease-out forwards;
+    animation-delay: 0s;
+  }
+}
+
+/* Laoptop */
+@media only screen and (max-width: 1520px) and (min-width: 1181px) {
+  .navbar .logoWrapper {
+    width: 160px;
+  }
+}
+
+/* Over mobile */
+@media only screen and (min-width: 1180px) {
+  .navbar ul li > div {
+    height: auto !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+  }
+
+  .navbar ul li > div > div {
+    display: block !important;
+    opacity: 1 !important;
+  }
+
+  .navbar ul li .submenu:focus-within,
+  .navbar ul li:hover .submenu,
+  .navbar ul li:focus .submenu,
+  .navbar ul li.expandedSubmenu .submenu {
+    ul li {
+      animation: slideIn 0.2s ease-out forwards;
+    }
+  }
+
+  .navbar ul li .submenu ul li {
+    opacity: 0;
+    transform: translateY(-1rem);
+
+    @for $i from 1 through 10 {
+      &:nth-child(#{$i}) {
+        animation-delay: 0.025s * $i;
+      }
+    }
+  }
+}
+
+/* Large desktop */
+@media only screen and (min-width: 1920px) {
+  .container {
+    max-width: 1714px;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media print {
+  .navbar {
+    margin-top: 40px;
+  }
+
+  .navbar ul {
+    display: none;
+  }
+
+  .navbar .logoWrapper {
+    height: 26px;
+    width: 176px;
+  }
+}
+
+/* Animation keyframes for sliding in from right */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

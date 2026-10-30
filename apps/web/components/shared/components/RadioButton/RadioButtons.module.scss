@@ -1,0 +1,102 @@
+.radiobuttonwrapper {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  align-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  cursor: pointer;
+}
+
+.radiobuttonwrapper:has(.radiobutton:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.radiobutton {
+  position: relative;
+  width: 0;
+  height: 0;
+  margin: 0;
+  opacity: 0;
+}
+
+.radiobutton:focus + label {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
+.radiobutton:active {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
+.radiobuttonlabel {
+  height: calc(1.5em + 2px);
+  padding-left: 2em;
+  line-height: calc(1.5em + 2px);
+  position: relative;
+  cursor: inherit;
+  display: inline-block;
+  vertical-align: top;
+  margin-right: 16px;
+  font-size: 1em;
+}
+
+.radiobuttonlabel::before {
+  content: "";
+  width: 1.5em;
+  height: 1.5em;
+  border: 1px solid var(--primary);
+  background: var(--secondary);
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.radiobutton + .radiobuttonlabel:after {
+  content: "";
+  width: 1.1em;
+  height: 1.1em;
+  background: var(--primary);
+  position: absolute;
+  top: 0.25em;
+  left: 0.25em;
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: all 100ms;
+}
+
+.radiobutton:checked + .radiobuttonlabel:after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.radiobuttongroup {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.radiobuttongroup__withcontent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 20px;
+
+  & > div {
+    width: 100%;
+  }
+}
+
+.radiobuttongroup__content {
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+}

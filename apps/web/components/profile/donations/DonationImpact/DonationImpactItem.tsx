@@ -1,0 +1,338 @@
+import React, { useEffect, useState } from "react";
+import style from "./DonationImpactItem.module.scss";
+import { thousandize, thousandizeString } from "../../../../util/formatting";
+import useSWR from "swr";
+import { ImpactEvaluation } from "../../../../models";
+import AnimateHeight from "react-animate-height";
+import { LinkType, Links } from "../../../main/blocks/Links/Links";
+import { PortableText } from "@portabletext/react";
+import { NavLink } from "../../../shared/components/Navbar/Navbar";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+const DEFAULT_GIVEWELL_ALL_GRANTS_TEXT =
+  "All Grants Fund lar GiveWells eksperter investere i de mest lovende mulighetene på tvers av deres arbeid. Fordi fondet kombinerer både velprøvde og mer eksperimentelle tiltak, oppnår det høyere forventet effekt enn fokus på færre, kjente interventioner alene. Fondet støtter for eksempel utrulling av nye malariavaksiner i Afrika og prosesser som kan få nye legemidler raskere ut til dem som trenger det. Når du donerer til All Grants Fund, stoler du på GiveWells analysekompetanse, og får maksimal effekt per krone.";
+
+const DEFAULT_GIVEWELL_ALL_GRANTS_LINKS: LinkType[] = [
+  {
+    _type: "link",
+    _key: "givewell-all-grants-fund",
+    title: "Les mer hos GiveWell",
+    url: "https://www.givewell.org/all-grants-fund",
+    newtab: true,
+  },
+];
+
+export type ImpactItemConfiguration = {
+  output_subheading_format_string: string;
+  missing_evaluation_header: string;
+  missing_impact_evaluation_text: any[];
+  about_org_link_title_format_string: string;
+  about_org_link_url_format_string: string;
+  currency: string;
+  locale: string;
+  givewell_all_grants_fund_header?: string;
+  givewell_all_grants_fund_text?: any[];
+  givewell_all_grants_fund_links?: (LinkType | NavLink)[];
+};
+
+const renderGiveWellAllGrantsFundContent = (configuration: ImpactItemConfiguration) => {
+  const customText = configuration.givewell_all_grants_fund_text;
+  const customLinks = configuration.givewell_all_grants_fund_links;
+  const linksToRender =
+    customLinks && customLinks.length > 0 ? customLinks : DEFAULT_GIVEWELL_ALL_GRANTS_LINKS;
+
+  return (
+    <>
+      {customText && customText.length > 0 ? (
+        <PortableText value={customText} />
+      ) : (
+        <p>{DEFAULT_GIVEWELL_ALL_GRANTS_TEXT}</p>
+      )}
+      {linksToRender.length > 0 && <Links links={linksToRender} />}
+    </>
+  );
+};
+
+const ExpandableLabel: React.FC<{ text: string }> = ({ text }) => {
+  const trimmed = text.trim();
+  const lastSpace = trimmed.lastIndexOf(" ");
+  if (lastSpace === -1) {
+    return <span className={style.arrowAnchor}>{trimmed}</span>;
+  }
+
+  return (
+    <>
+      {trimmed.slice(0, lastSpace + 1)}
+      <span className={style.arrowAnchor}>{trimmed.slice(lastSpace + 1)}</span>
+    </>
+  );
+};
+
+export type PreComputedImpact = {
+  output: number;
+  shortDescription: string;
+  longDescription: string;
+  charityName: string;
+  orgUrl: string;
+};
+
+export const DonationImpactItem: React.FC<{
+  orgAbriv: string;
+  orgName: string;
+  sumToOrg: number;
+  // Portion of `sumToOrg` routed via a GiveWell grant, and the outputs it bought
+  // using the grant's own cost-per-output
+  smartDistributionSum?: number;
+  smartDistributionOutput?: number;
+  donationTimestamp: Date;
+  precision: number;
+  signalRequiredPrecision: (precision: number) => void;
+  configuration: ImpactItemConfiguration;
+  preComputedImpact?: PreComputedImpact;
+  /**
+   * Items without an impact estimate (operations, funds and organizations without an
+   * evaluation) render as a single line in addition to the number, with the expand
+   * arrow placed on that single line (see donation overview design).
+   */
+  isOperations?: boolean;
+  singleLineLabelOverride?: string;
+  expandedContentOverride?: React.ReactNode;
+  /**
+   * Funds (All Grants Fund, Top Charities Fund) have no per-charity estimate.
+   * Their explanation is shown by default so donors see why the row is a single line.
+   */
+  isFund?: boolean;
+}> = ({
+  orgAbriv,
+  orgName,
+  sumToOrg,
+  smartDistributionSum,
+  smartDistributionOutput,
+  donationTimestamp,
+  precision,
+  signalRequiredPrecision,
+  configuration,
+  preComputedImpact,
+  isOperations,
+  singleLineLabelOverride,
+  expandedContentOverride,
+  isFund,
+}) => {
+  const isFundItem = Boolean(isFund) || orgAbriv === "AGF" || orgAbriv === "GiveWell";
+  const { data, error, isValidating } = useSWR<{ evaluations: ImpactEvaluation[] }>(
+    preComputedImpact || isOperations || isFundItem
+      ? null
+      : `https://impact.gieffektivt.no/api/evaluations?charity_abbreviation=${orgAbriv}&currency=${
+          configuration.currency
+        }&language=${
+          configuration.locale
+        }&donation_year=${donationTimestamp.getFullYear()}&donation_month=${
+          donationTimestamp.getMonth() + 1
+        }`,
+    fetcher,
+    {
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    },
+  );
+  const [showDetails, setShowDetails] = useState(isFundItem);
+  const [requiredPrecision, setRequiredPrecision] = useState(0);
+
+  useEffect(() => {
+    if (precision < requiredPrecision) {
+      signalRequiredPrecision(requiredPrecision);
+    }
+  }, [precision, requiredPrecision, signalRequiredPrecision]);
+
+  if (!preComputedImpact && !isOperations && !isFundItem) {
+    if (!data || isValidating) {
+      return (
+        <tr key={`loading`}>
+          <td>Loading...</td>
+        </tr>
+      );
+    }
+    if (error) {
+      return (
+        <tr key={`error`}>
+          <td>{error}</td>
+        </tr>
+      );
+    }
+  }
+
+  /**
+   * Sort evaluations by start time
+   * Then return the first evaluation that has a start year and month less than or equal to the donation
+   * This will be the most recent relevant evaluation to calculate the impact
+   */
+  const relevantEvaluation = data?.evaluations[0];
+  // Grant portion uses grant-derived outputs; the direct portion uses the evaluation.
+  const grantOutput = smartDistributionOutput ?? 0;
+  const directSum = sumToOrg - (smartDistributionSum ?? 0);
+  const resolvedImpact: {
+    output: number;
+    shortDescription: string;
+    longDescription: string;
+    charityName: string;
+    orgUrl: string;
+  } | null = isFundItem
+    ? null
+    : preComputedImpact
+    ? preComputedImpact
+    : relevantEvaluation
+      ? {
+          output: grantOutput + directSum / relevantEvaluation.converted_cost_per_output,
+          shortDescription: relevantEvaluation.intervention.short_description,
+          longDescription: relevantEvaluation.intervention.long_description,
+          charityName: relevantEvaluation.charity.charity_name,
+          orgUrl: configuration.about_org_link_url_format_string
+            .replace("{{org}}", relevantEvaluation.charity.charity_name)
+            .replaceAll(" ", "_"),
+        }
+      : null;
+
+  const isGiveWellAllGrantsFund = orgAbriv === "AGF";
+
+  if (!resolvedImpact) {
+    /**
+     * No impact estimate (operations, funds and organizations without an evaluation).
+     * The design calls for a single line in addition to the number, with the expand
+     * arrow placed on that single line. The sum is already shown as the number, so we
+     * strip {{sum}} from the format string to avoid showing the amount twice.
+     */
+    const singleLineText =
+      singleLineLabelOverride ??
+      configuration.output_subheading_format_string
+        .replace("{{sum}}", "")
+        .replace("{{org}}", orgName)
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const expandedContent =
+      expandedContentOverride ??
+      (isGiveWellAllGrantsFund
+        ? renderGiveWellAllGrantsFundContent(configuration)
+        : configuration.missing_impact_evaluation_text && (
+            <PortableText value={configuration.missing_impact_evaluation_text} />
+          ));
+
+    const hasExpandableContent = Boolean(expandedContent);
+
+    return (
+      <>
+        <tr
+          className={[style.overview, style.singleLineOverview].join(" ")}
+          data-cy="donation-impact-list-item-overview"
+        >
+          <td>
+            <span className={style.impactOutput} data-cy="donation-impact-list-item-output">
+              {thousandize(Math.round(sumToOrg))}
+            </span>
+          </td>
+          <td>
+            <span
+              className={[
+                style.impactDetailsSingleLine,
+                hasExpandableContent ? style.expandable : "",
+                hasExpandableContent && showDetails ? style.expanded : "",
+              ].join(" ")}
+              onClick={hasExpandableContent ? () => setShowDetails(!showDetails) : undefined}
+            >
+              {hasExpandableContent ? <ExpandableLabel text={singleLineText} /> : singleLineText}
+            </span>
+          </td>
+        </tr>
+        <tr className={style.details}>
+          <td colSpan={Number.MAX_SAFE_INTEGER}>
+            {/* Strange hack required to not have table reflow when showing the animated area */}
+            <AnimateHeight duration={300} animateOpacity height={showDetails ? "auto" : 0}>
+              <div>{expandedContent}</div>
+            </AnimateHeight>
+          </td>
+        </tr>
+        <tr className={style.spacerRow}>
+          <td colSpan={Number.MAX_SAFE_INTEGER}></td>
+        </tr>
+      </>
+    );
+  }
+
+  const output = resolvedImpact.output;
+
+  let tmpRequiredPrecision = 0;
+  while (parseFloat(output.toFixed(tmpRequiredPrecision)) === 0 && tmpRequiredPrecision < 3) {
+    tmpRequiredPrecision += 1;
+  }
+  if (requiredPrecision < tmpRequiredPrecision) {
+    setRequiredPrecision(tmpRequiredPrecision);
+  }
+
+  const formattedOutput = thousandizeString(
+    (Math.round(output * Math.pow(10, requiredPrecision)) / Math.pow(10, requiredPrecision))
+      .toFixed(precision)
+      .replace(/\./, ","),
+  );
+
+  return (
+    <>
+      <tr className={style.overview} data-cy="donation-impact-list-item-overview">
+        <td>
+          <span className={style.impactOutput} data-cy="donation-impact-list-item-output">
+            {formattedOutput}
+          </span>
+        </td>
+        <td>
+          <div className={style.impactContext}>
+            <span className={style.impactDetailsDescription}>
+              {resolvedImpact.shortDescription}
+            </span>
+            <span
+              className={[style.impactDetailsExpandText, showDetails ? style.expanded : ""].join(
+                " ",
+              )}
+              onClick={() => setShowDetails(!showDetails)}
+            >
+              <ExpandableLabel
+                text={configuration.output_subheading_format_string
+                  .replace("{{sum}}", thousandize(Math.round(sumToOrg)))
+                  .replace("{{org}}", resolvedImpact.charityName)}
+              />
+            </span>
+          </div>
+        </td>
+      </tr>
+      <tr className={style.details}>
+        <td colSpan={Number.MAX_SAFE_INTEGER}>
+          {/* Strange hack required to not have table reflow when showing the animated area */}
+          <AnimateHeight duration={300} animateOpacity height={showDetails ? "auto" : 0}>
+            <div>
+              <p>{resolvedImpact.longDescription}</p>
+              <div>
+                <Links
+                  links={[
+                    {
+                      _type: "link",
+                      _key: "charity_description",
+                      title: configuration.about_org_link_title_format_string.replace(
+                        "{{org}}",
+                        resolvedImpact.charityName,
+                      ),
+                      url: resolvedImpact.orgUrl,
+                      newtab: true,
+                    },
+                  ]}
+                />
+              </div>
+            </div>
+          </AnimateHeight>
+        </td>
+      </tr>
+      <tr className={style.spacerRow}>
+        <td colSpan={Number.MAX_SAFE_INTEGER}></td>
+      </tr>
+    </>
+  );
+};

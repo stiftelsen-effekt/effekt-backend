@@ -1,0 +1,142 @@
+[
+  {
+    "id": 1,
+    "name": "Global sundhed",
+    "widgetDisplayName": "Global sundhed",
+    "widgetContext": null,
+    "shortDescription": "Global sundhed",
+    "longDescription": "Global sundhed",
+    "informationUrl": "https://giveffektivt.dk/global-sundhed",
+    "isActive": true,
+    "ordering": 1,
+    "standardPercentageShare": 60,
+    "organizations": [
+      {
+        "id": 1,
+        "name": "Smart fordeling",
+        "widgetDisplayName": "Smart fordeling",
+        "widgetContext": null,
+        "abbreviation": "Smart fordeling",
+        "shortDescription": "Din donation fordeles efter Giv Effektivts anbefalinger for at skabe den størst mulige effekt.",
+        "longDescription": "Smart fordeling",
+        "standardShare": 100,
+        "informationUrl": "https://giveffektivt.dk/anbefalinger",
+        "isActive": true,
+        "ordering": 1,
+        "causeAreaId": 1
+      },
+      {
+        "id": 2,
+        "name": "Myggenet mod malaria",
+        "widgetDisplayName": "Myggenet mod malaria",
+        "widgetContext": null,
+        "abbreviation": "AMF",
+        "shortDescription": "Myggenet beskytter familier imod malariamyg, mens de sover.",
+        "longDescription": "Myggenet mod malaria",
+        "standardShare": 0,
+        "informationUrl": "https://giveffektivt.dk/myggenet",
+        "isActive": true,
+        "ordering": 2,
+        "causeAreaId": 1
+      },
+      {
+        "id": 3,
+        "name": "Medicin mod malaria",
+        "widgetDisplayName": "Medicin mod malaria",
+        "widgetContext": null,
+        "abbreviation": "MC",
+        "shortDescription": "Der uddeles forebyggende malariamedicin i perioder, hvor smittetallet er særligt højt.",
+        "longDescription": "Medicin mod malaria",
+        "standardShare": 0,
+        "informationUrl": "https://giveffektivt.dk/malariamedicin",
+        "isActive": true,
+        "ordering": 3,
+        "causeAreaId": 1
+      },
+      {
+        "id": 4,
+        "name": "Vitamin mod mangelsygdomme",
+        "widgetDisplayName": "Vitamin mod mangelsygdomme",
+        "widgetContext": null,
+        "abbreviation": "HKI",
+        "shortDescription": "A-vitamin til børn under 5 år reducerer børnedødelighed i 21 lande.",
+        "longDescription": "Vitamin mod mangelsygdomme",
+        "standardShare": 0,
+        "informationUrl": "https://giveffektivt.dk/a-vitamin",
+        "isActive": true,
+        "ordering": 4,
+        "causeAreaId": 1
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Dyrevelfærd",
+    "widgetDisplayName": "Dyrevelfærd",
+    "widgetContext": null,
+    "shortDescription": "Dyrevelfærd",
+    "longDescription": "Dyrevelfærd",
+    "informationUrl": "https://giveffektivt.dk/dyrevelfaerd",
+    "isActive": true,
+    "ordering": 2,
+    "standardPercentageShare": 40,
+    "organizations": [
+      {
+        "id": 10,
+        "name": "Smart fordeling",
+        "widgetDisplayName": "Smart fordeling",
+        "widgetContext": null,
+        "abbreviation": "Smart fordeling",
+        "shortDescription": "Din donation fordeles efter Giv Effektivts anbefalinger for at skabe den størst mulige effekt.",
+        "longDescription": "Smart fordeling",
+        "standardShare": 100,
+        "informationUrl": "https://giveffektivt.dk/anbefalinger",
+        "isActive": true,
+        "ordering": 1,
+        "causeAreaId": 2
+      },
+      {
+        "id": 11,
+        "name": "The Humane League",
+        "widgetDisplayName": "The Humane League",
+        "widgetContext": null,
+        "abbreviation": "THL",
+        "shortDescription": "The Humane League arbejder for at forbedre forholdene for dyr i landbruget.",
+        "longDescription": "The Humane League",
+        "standardShare": 0,
+        "informationUrl": "https://giveffektivt.dk/the-humane-league",
+        "isActive": true,
+        "ordering": 2,
+        "causeAreaId": 2
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Drift",
+    "widgetDisplayName": "Drift",
+    "widgetContext": null,
+    "shortDescription": "Giv Effektivts arbejde og vækst",
+    "longDescription": "Din støtte til Giv Effektivts arbejde bidrager til vores drift og sikrer ca. 7x mere i donationer til vores anbefalede velgørenhedsformål.",
+    "informationUrl": "https://giveffektivt.dk/x-faktor",
+    "isActive": true,
+    "ordering": 3,
+    "standardPercentageShare": 0,
+    "organizations": [
+      {
+        "id": 7,
+        "name": "Giv Effektivts arbejde og vækst",
+        "widgetDisplayName": "Drift",
+        "widgetContext": null,
+        "abbreviation": "Drift",
+        "shortDescription": "Giv Effektivts arbejde og vækst",
+        "longDescription": "Giv Effektivts arbejde og vækst",
+        "standardShare": 100,
+        "informationUrl": "https://giveffektivt.dk/x-faktor",
+        "isActive": true,
+        "ordering": 1,
+        "causeAreaId": 4
+      }
+    ]
+  }
+]

@@ -1,0 +1,426 @@
+import { PortableText } from "@portabletext/react";
+import React, { useMemo } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useClickOutsideAlerter } from "../../../../hooks/useClickOutsideAlerter";
+import { LinkComponent } from "../Links/Links";
+import elements from "./Paragraph.module.scss";
+import "katex/dist/katex.min.css";
+
+export const formatHarvardCitation = ({
+  type,
+  author,
+  title,
+  year,
+  url,
+  publisher,
+  address,
+  edition,
+  accessed,
+  pages,
+  volume,
+  number,
+  journal,
+  timestamp,
+  serie,
+  number_in_serie,
+  note,
+  tabindex = -1,
+}: any) => {
+  const authorString = author ? `${author} ` : "";
+  const titleString = title ? `"${title}"` : "";
+  const yearString = year ? `(${year}) ` : "";
+  const publisherString = publisher ? `${publisher} ` : "";
+  const addressString = address ? `${address}: ` : "";
+  const accessDateString = accessed
+    ? ` (Hentet: ${Intl.DateTimeFormat("no-NB").format(new Date(accessed))}).`
+    : "";
+  const pagesString = pages ? `s. ${pages}` : "";
+  const volumeString = volume ? `vol. ${volume}, ` : "";
+  const numberString = number ? `no. ${number}, ` : "";
+  const journalString = journal ? `${journal}, ` : "";
+  const timestampString = timestamp ? ` (Tidsstempel: ${timestamp}) ` : "";
+  const editionString = edition ? ` ${edition}. utgave, ` : "";
+  const noteString = note ? `${note}` : "";
+  const serieString = serie ? ` ${serie} ` : "";
+  const numberInSerieString = number_in_serie ? `No. ${number_in_serie}. ` : "";
+
+  return (
+    <span className={elements.citation}>
+      {type === "article" && (
+        <>
+          <span>{authorString} </span>
+          <span style={{ whiteSpace: "nowrap" }}>{yearString}</span>
+          {url ? (
+            <a
+              href={url}
+              className={elements.citationLink}
+              target="_blank"
+              tabIndex={tabindex}
+              rel="noreferrer"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.currentTarget.blur();
+              }}
+            >
+              {titleString}
+            </a>
+          ) : (
+            <i>{titleString}</i>
+          )}
+          ,&nbsp;
+          <i>{journalString}</i>
+          <span style={{ whiteSpace: "nowrap" }}>{volumeString}</span>
+          <span style={{ whiteSpace: "nowrap" }}>{numberString}</span>
+          <span style={{ whiteSpace: "nowrap" }}>{pagesString}</span>
+        </>
+      )}
+      {type === "book" && (
+        <>
+          <span>{authorString} </span>
+          <span style={{ whiteSpace: "nowrap" }}>{yearString}</span>
+          <i>{titleString}</i>,&nbsp;
+          <span>{editionString}</span>
+          <span>{addressString}</span>
+          <span>{publisherString}</span>
+        </>
+      )}
+      {type === "website" && (
+        <>
+          <span>{authorString} </span>
+          <span style={{ whiteSpace: "nowrap" }}>{yearString}</span>
+          {url ? (
+            <a
+              href={url}
+              className={elements.citationLink}
+              target="_blank"
+              tabIndex={tabindex}
+              rel="noreferrer"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.currentTarget.blur();
+              }}
+            >
+              {titleString}
+            </a>
+          ) : (
+            <i>{titleString}</i>
+          )}
+          <span>{accessDateString}</span>
+        </>
+      )}
+      {type === "video" && (
+        <>
+          <span>{authorString} </span>
+          <span style={{ whiteSpace: "nowrap" }}>{yearString}</span>
+          {url ? (
+            <a
+              href={url}
+              className={elements.citationLink}
+              target="_blank"
+              tabIndex={tabindex}
+              rel="noreferrer"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.currentTarget.blur();
+              }}
+            >
+              {titleString}
+            </a>
+          ) : (
+            <i>{titleString}</i>
+          )}
+          <span>{timestampString}</span>
+          <span>{accessDateString}</span>
+        </>
+      )}
+      {type === "podcast" && (
+        <>
+          <span>{authorString} </span>
+          <span style={{ whiteSpace: "nowrap" }}>{yearString}</span>
+          {url ? (
+            <a
+              href={url}
+              className={elements.citationLink}
+              target="_blank"
+              tabIndex={tabindex}
+              rel="noreferrer"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.currentTarget.blur();
+              }}
+            >
+              {titleString}
+            </a>
+          ) : (
+            <i>{titleString}</i>
+          )}
+          <span>{timestampString}</span>
+          <span>{accessDateString}</span>
+        </>
+      )}
+      {type === "misc" && (
+        <>
+          <span>{authorString} </span>
+          <span style={{ whiteSpace: "nowrap" }}>{yearString}</span>
+          {url ? (
+            <a
+              href={url}
+              className={elements.citationLink}
+              target="_blank"
+              tabIndex={tabindex}
+              rel="noreferrer"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.currentTarget.blur();
+              }}
+            >
+              {titleString}
+            </a>
+          ) : (
+            <i>{titleString}</i>
+          )}
+        </>
+      )}
+      {type === "workingpaper" && (
+        <>
+          <span>{authorString} </span>
+          <span style={{ whiteSpace: "nowrap" }}>{yearString}</span>
+          {url ? (
+            <a
+              href={url}
+              className={elements.citationLink}
+              target="_blank"
+              tabIndex={tabindex}
+              rel="noreferrer"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.currentTarget.blur();
+              }}
+            >
+              {titleString}
+            </a>
+          ) : (
+            <i>{titleString}</i>
+          )}
+          <span>{serieString}</span>
+          <span style={{ whiteSpace: "nowrap" }}>{numberInSerieString}</span>
+          <span>{accessDateString}</span>
+        </>
+      )}
+      {type === "note" && <PortableText value={note} />}
+    </span>
+  );
+};
+
+export const getRemInPixels = () => parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+export const reflowCitations = () => {
+  if ((window as any)._citationReflowFrame) {
+    cancelAnimationFrame((window as any)._citationReflowFrame);
+  }
+  (window as any)._citationReflowFrame = requestAnimationFrame(reflowCitationsExecute);
+};
+
+const reflowCitationsExecute = () => {
+  if (typeof window === "undefined") return;
+  if (window.innerWidth < 1180) return;
+
+  let citations = Array.from(document.querySelectorAll<HTMLSpanElement>(".extendedcitation"));
+  // First reset them to the default offset from the stylesheet
+  citations.forEach((citation) => {
+    citation.style.transform = "";
+  });
+  citations = citations.filter((citation) => citation.offsetParent !== null);
+
+  // Measure everything in one pass, then write, to avoid a forced layout per citation
+  const rects = citations.map((citation) => citation.getBoundingClientRect());
+  const rem = getRemInPixels();
+  const defaultOffset = rem * 1.5;
+  let prevBottom = -Infinity;
+  const transforms = rects.map((rect) => {
+    if (prevBottom + rem * 1.5 > rect.top) {
+      const offset = prevBottom - rect.top;
+      prevBottom = prevBottom + defaultOffset + rect.height;
+      return `translateY(${offset}px)`;
+    }
+    prevBottom = rect.bottom;
+    return "";
+  });
+  citations.forEach((citation, i) => {
+    citation.style.transform = transforms[i];
+  });
+};
+
+// One shared observer for all paragraphs, since reflowing is page-wide anyway.
+// reflowCitations is coalesced to at most once per animation frame.
+let layoutObservers = 0;
+let resizeObserver: ResizeObserver | null = null;
+
+export const observeCitationLayout = () => {
+  layoutObservers++;
+  if (!resizeObserver) {
+    resizeObserver = new ResizeObserver(reflowCitations);
+    resizeObserver.observe(document.body);
+    window.addEventListener("resize", reflowCitations);
+  }
+  return () => {
+    layoutObservers--;
+    if (layoutObservers === 0 && resizeObserver) {
+      resizeObserver.disconnect();
+      resizeObserver = null;
+      window.removeEventListener("resize", reflowCitations);
+    }
+  };
+};
+
+export const Citation = (props: any) => {
+  const [index, setIndex] = useState(1);
+  const [highlighted, setHighlighted] = useState(false);
+  const extendedRef = useRef<HTMLElement | null>(null);
+
+  const setCitationIndex = () => {
+    if (extendedRef.current) {
+      const citations = document.querySelectorAll(".citation");
+
+      let k = 0;
+      for (let i = 0; i < citations.length; i++) {
+        if (citations[i] === extendedRef.current) {
+          if (i > 0) {
+            setIndex(k + 1);
+          }
+        }
+        k += citations[i].querySelectorAll(".extendedcitation").length;
+      }
+    }
+  };
+  useEffect(setCitationIndex, [extendedRef]);
+  useClickOutsideAlerter(extendedRef, () => setHighlighted(false));
+
+  const highlighCitation = useCallback(() => {
+    if (extendedRef.current) {
+      if (window.innerWidth > 1180) {
+        const firstExtended = extendedRef.current.querySelector(".extendedcitation");
+        let offset = 0;
+        if (firstExtended) {
+          offset = firstExtended.getBoundingClientRect().top;
+        }
+        window.scrollTo({
+          top: window.scrollY + offset - getRemInPixels() * 5,
+          behavior: "smooth",
+        });
+      }
+      extendedRef.current?.focus();
+      setHighlighted(true);
+    }
+  }, [extendedRef]);
+
+  return (
+    <>
+      <cite
+        style={{ cursor: "pointer" }}
+        ref={extendedRef}
+        className={"citation"}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.currentTarget.blur();
+            highlighCitation();
+          }
+        }}
+        onClick={(e) => {
+          e.currentTarget.blur();
+          highlighCitation();
+        }}
+      >
+        {props.children}
+
+        <sup>
+          {props.value.citations &&
+            props.value.citations.map((citation: any, i: number) => index + i).join(",")}
+        </sup>
+
+        {props.value.citations &&
+          props.value.citations.map((citation: any, i: number) =>
+            citation != null ? (
+              <span
+                key={citation._id}
+                className={[
+                  "extendedcitation",
+                  highlighted ? elements.citationHighlighted : "",
+                ].join(" ")}
+                onBlur={() => setHighlighted(false)}
+              >
+                <strong>{index + i}.</strong>
+                {formatHarvardCitation({ ...citation, tabindex: highlighted ? 0 : -1 })}
+              </span>
+            ) : null,
+          )}
+      </cite>
+    </>
+  );
+};
+
+// Renders in the browser only when the build-time HTML from renderLatexInData is missing,
+// which happens for live draft previews. katex is loaded lazily so it stays out of page bundles.
+const useClientKatex = (latex: string | undefined, enabled: boolean) => {
+  const [html, setHtml] = useState<string>();
+  useEffect(() => {
+    if (!enabled || latex === undefined) return;
+    import("katex").then((katex) => {
+      try {
+        setHtml(katex.default.renderToString(latex, { throwOnError: false }));
+      } catch (e: any) {
+        setHtml(`<span style="color: red;">${e.message}</span>`);
+      }
+    });
+  }, [latex, enabled]);
+  return html;
+};
+
+const Latex: React.FC<{ value: { latex?: string; html?: string } }> = ({ value }) => {
+  const clientHtml = useClientKatex(value.latex, value.html === undefined);
+  return (
+    <span
+      dangerouslySetInnerHTML={{ __html: value.html ?? clientHtml ?? "" }}
+      style={{
+        padding: "3rem",
+        textAlign: "center",
+        display: "block",
+        width: "100%",
+      }}
+    ></span>
+  );
+};
+
+const RenderedMath: React.FC<{ value: { html: string } }> = ({ value }) => (
+  <span
+    dangerouslySetInnerHTML={{ __html: value.html }}
+    style={{
+      display: "inline-block",
+      fontSize: "1rem",
+    }}
+  ></span>
+);
+
+// Fallback for math spans that renderLatexInData has not replaced, e.g. in live draft previews
+const RenderLatex: React.FC<any> = ({ text }) => (
+  <RenderedMath value={{ html: useClientKatex(text, true) ?? "" }} />
+);
+
+export const customComponentRenderers = {
+  block: {
+    normal: (props: any) => (
+      <div style={{ marginBlockStart: "1em", marginBlockEnd: "1rem" }}>{props.children}</div>
+    ),
+  },
+  marks: {
+    citation: Citation,
+    link: (props: any) => <LinkComponent link={props.value}>{props.children}</LinkComponent>,
+    navitem: (props: any) => <LinkComponent link={props.value}>{props.children}</LinkComponent>,
+    math: RenderLatex,
+  },
+  types: {
+    latex: Latex,
+    renderedMath: RenderedMath,
+  },
+};

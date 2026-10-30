@@ -1,0 +1,158 @@
+import { defineType, defineField } from "sanity";
+import { CauseAreaSelectInput } from "../../components/causeAreaSelectInput";
+
+export default defineType({
+  name: "donationstabledetailsconfiguration",
+  description: "Configuration for the expanded view of the donations table",
+  type: "object",
+  fields: [
+    defineField({
+      name: "impact_estimate_header",
+      title: "Impact estimate header",
+      type: "string",
+    }),
+    defineField({
+      name: "cause_area_impact_estimates",
+      title: "Cause-specific impact estimates",
+      type: "array",
+      of: [
+        {
+          type: "object",
+          name: "cause_area_impact_estimate",
+          fields: [
+            defineField({
+              name: "cause_area_id",
+              title: "Cause area",
+              type: "number",
+              components: { input: CauseAreaSelectInput },
+              validation: (rule) => rule.required(),
+            }),
+            defineField({
+              name: "impact_estimate_explanation_title",
+              title: "Impact estimate explanation title",
+              type: "string",
+            }),
+            defineField({
+              name: "impact_estimate_explanation_text",
+              title: "Impact estimate explanation text",
+              type: "array",
+              of: [{ type: "block" }],
+            }),
+            defineField({
+              name: "impact_estimate_explanation_links",
+              title: "Impact estimate explanation links",
+              type: "array",
+              of: [{ type: "link" }, { type: "navitem" }],
+            }),
+          ],
+          preview: {
+            select: { causeAreaId: "cause_area_id" },
+            prepare: ({ causeAreaId }) => ({ title: `Cause area ID ${causeAreaId}` }),
+          },
+        },
+      ],
+      validation: (rule) =>
+        rule.custom((items: Array<{ cause_area_id?: number }> | undefined) => {
+          const causeAreaIds = (items ?? [])
+            .map((item) => item.cause_area_id)
+            .filter((id): id is number => id !== undefined);
+          return new Set(causeAreaIds).size === causeAreaIds.length
+            ? true
+            : "Only one impact estimate can be configured per cause area";
+        }),
+    }),
+    defineField({
+      name: "impact_items_configuration",
+      title: "Impact items configuration",
+      type: "object",
+      fields: [
+        defineField({
+          name: "operations_label",
+          title: "Operations label",
+          type: "string",
+        }),
+        defineField({
+          name: "operations_section_title",
+          title: "Operations section title",
+          type: "string",
+          description:
+            "Title for the separate operations section shown when a donation has more than one cause area",
+        }),
+        defineField({
+          name: "operations_text",
+          title: "Operations text",
+          type: "array",
+          of: [{ type: "block" }],
+          description: "Portable text shown when expanding an operations item",
+        }),
+        defineField({
+          name: "operations_links",
+          title: "Operations links",
+          type: "array",
+          of: [{ type: "link" }, { type: "navitem" }],
+        }),
+        defineField({
+          name: "impact_item_configuration",
+          title: "Impact item configuration",
+          type: "object",
+          fields: [
+            defineField({
+              name: "output_subheading_format_string",
+              title: "Output subheading format string",
+              type: "string",
+              description:
+                "Use {{sum}} insert the donation sum to the organization, and {{org}} to insert the organization name",
+            }),
+            defineField({
+              name: "missing_evaluation_header",
+              title: "Missing evaluation header",
+              type: "string",
+            }),
+            defineField({
+              name: "missing_impact_evaluation_text",
+              title: "Missing impact evaluation text",
+              type: "array",
+              of: [{ type: "block" }],
+            }),
+            defineField({
+              name: "about_org_link_title_format_string",
+              title: "About org link title format string",
+              type: "string",
+              description: "Use {{org}} to insert the organization name",
+            }),
+            defineField({
+              name: "about_org_link_url_format_string",
+              title: "About org link url format string",
+              type: "string",
+              description: "Use {{org}} to insert the organization name",
+            }),
+            defineField({
+              name: "givewell_all_grants_fund_header",
+              title: "GiveWell All Grants Fund header",
+              type: "string",
+              description: "Overrides the missing evaluation header for the All Grants Fund row",
+            }),
+            defineField({
+              name: "givewell_all_grants_fund_text",
+              title: "GiveWell All Grants Fund text",
+              type: "array",
+              of: [{ type: "block" }],
+              description:
+                "Portable text shown when there is no impact estimate for the All Grants Fund",
+            }),
+            defineField({
+              name: "givewell_all_grants_fund_links",
+              title: "GiveWell All Grants Fund links",
+              type: "array",
+              of: [{ type: "link" }, { type: "navitem" }],
+            }),
+          ],
+        }),
+      ],
+    }),
+  ],
+  options: {
+    collapsible: true,
+    collapsed: true,
+  },
+});

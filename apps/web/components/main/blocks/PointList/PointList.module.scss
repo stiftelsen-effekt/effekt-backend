@@ -1,0 +1,106 @@
+@use "sass:math";
+
+.pointlistwrapper {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  column-gap: 40px;
+  row-gap: 2rem;
+  width: 100%;
+  margin-top: 80px;
+  margin-bottom: 110px;
+
+  &.top {
+    column-gap: 50px;
+    margin-top: 95px;
+    margin-bottom: 180px;
+    font-family: "ESKlarheitKurrent";
+  }
+}
+
+.autogrid {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-auto-flow: row;
+  row-gap: 3rem;
+}
+
+@media only screen and (min-width: 1520px) {
+  @for $i from 4 through 12 {
+    $columns-per-row: null;
+    @if $i % 4 == 0 {
+      $columns-per-row: 4;
+    } @else {
+      @if $i % 3 == 0 {
+        $columns-per-row: 3;
+      } @else {
+        @if $i % 4 > $i % 3 {
+          $columns-per-row: 4;
+        } @else {
+          $columns-per-row: 3;
+        }
+      }
+    }
+
+    @for $j from $i through 1 {
+      $row: math.ceil(math.div($j, $columns-per-row));
+
+      .pointlistwrapper div:first-child:nth-last-child(#{$i}) ~ div:nth-child(#{$j}) {
+        grid-row: $row;
+        grid-column: $j % $columns-per-row;
+      }
+    }
+  }
+}
+
+@media only screen and (max-width: 1520px) and (min-width: 1181px) {
+  @for $i from 3 through 12 {
+    $columns-per-row: null;
+    @if $i % 3 == 0 {
+      $columns-per-row: 3;
+    } @else {
+      @if $i % 2 == 0 {
+        $columns-per-row: 2;
+      } @else {
+        @if $i % 3 > $i % 2 {
+          $columns-per-row: 3;
+        } @else {
+          $columns-per-row: 2;
+        }
+      }
+    }
+
+    @for $j from $i through 1 {
+      $row: math.ceil(math.div($j, $columns-per-row));
+
+      .pointlistwrapper div:first-child:nth-last-child(#{$i}) ~ div:nth-child(#{$j}) {
+        grid-row: $row;
+        grid-column: $j % $columns-per-row;
+      }
+    }
+  }
+
+  .pointlistwrapper {
+    &.top {
+      margin-top: 80px;
+      margin-bottom: 120px;
+    }
+  }
+}
+
+@media only screen and (max-width: 1180px) {
+  .pointlistwrapper {
+    display: grid;
+    grid-template-columns: auto;
+    grid-auto-flow: row;
+    row-gap: 20px;
+    width: 100%;
+    margin-bottom: 30px;
+    margin-top: 0;
+  }
+
+  .pointlistwrapper.top {
+    row-gap: 30px;
+    margin-bottom: 30px;
+    margin-top: 0;
+  }
+}

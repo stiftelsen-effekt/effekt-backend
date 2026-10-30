@@ -1,0 +1,89 @@
+import { useAuth0, User } from "@auth0/auth0-react";
+import { useRef, useState } from "react";
+import { ChevronDown } from "react-feather";
+import { useClickOutsideAlerter } from "../../../../hooks/useClickOutsideAlerter";
+import { TaxUnit } from "../../../../models";
+import { useTaxUnits } from "../../../../_queries";
+
+import styles from "./TaxUnitSelector.module.scss";
+
+export const TaxUnitSelector: React.FC<{
+  selected: TaxUnit | null;
+  exclude?: TaxUnit[];
+  onChange: (selectedTaxUnit: TaxUnit) => void;
+  onAddNew: () => void;
+  placeholder?: string;
+  addNewLabel?: string;
+  loadingLabel?: string;
+  errorLabel?: string;
+}> = ({
+  selected,
+  exclude = [],
+  onChange,
+  onAddNew,
+  placeholder = "Velg skatteenhet",
+  addNewLabel = "Legg til ny enhet",
+  loadingLabel = "Laster...",
+  errorLabel = "En feil oppstod",
+}) => {
+  const { getAccessTokenSilently, user } = useAuth0();
+
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const actionRef = useRef<HTMLDivElement>(null);
+  useClickOutsideAlerter(actionRef, () => setMenuOpen(false));
+
+  const { data, loading, isValidating, error } = useTaxUnits(user as User, getAccessTokenSilently);
+
+  return (
+    <div className={styles.container} ref={actionRef}>
+      <button onClick={() => setMenuOpen(!menuOpen)} className={styles.button}>
+        <div className={styles.left}>
+          <div className={styles.name}>{selected ? selected.name : placeholder}</div>
+        </div>
+        <div className={styles.right}>
+          <div className={styles.ssn}>{selected ? selected.ssn : ""}</div>
+          <div className={styles.arrow}>
+            <ChevronDown size={"1.2rem"}></ChevronDown>
+          </div>
+        </div>
+      </button>
+      {menuOpen && (
+        <div className={styles.menu}>
+          {loading && <div>{loadingLabel}</div>}
+          {error && <div>{errorLabel}</div>}
+          {data &&
+            data
+              .filter((taxUnit) => taxUnit.archived === null)
+              .filter((taxUnit) => !exclude.map((u) => u.id).includes(taxUnit.id))
+              .map((taxUnit) => (
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onChange(taxUnit);
+                  }}
+                  className={styles.menuItem}
+                  key={taxUnit.id}
+                >
+                  <div className={styles.inner}>
+                    <div className={styles.name}>{taxUnit.name}</div>
+                    <div className={styles.ssn}>{taxUnit.ssn}</div>
+                  </div>
+                </button>
+              ))}
+          <button
+            onClick={() => {
+              setMenuOpen(false);
+              onAddNew();
+            }}
+            className={styles.menuItem}
+          >
+            <div className={styles.inner}>
+              <div className={styles.name}>{addNewLabel}</div>
+            </div>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};

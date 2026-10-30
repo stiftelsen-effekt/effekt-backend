@@ -1,0 +1,181 @@
+.button {
+  border: none;
+  border-radius: 48px;
+  font-family: "ESKlarheitGrotesk";
+  font-size: 20x;
+  padding: 8px 24px;
+  cursor: pointer;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  min-width: 7em;
+  transition: all 0.2s ease;
+  background-clip: padding-box;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.button.useCheckmark::before {
+  content: "✓";
+  width: 0;
+  opacity: 0;
+  transition: all 100ms;
+}
+
+.buttonprimary {
+  background: var(--primary);
+  color: var(--secondary);
+  border: 1px solid var(--secondary);
+  background-clip: padding-box;
+}
+
+.buttonprimary:focus {
+  border: 1px solid var(--secondary) !important;
+  outline: 2px solid var(--primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .buttonprimary:hover,
+  .buttonprimary:active {
+    color: var(--primary);
+    background-color: var(--secondary);
+    border: 1px solid var(--primary) !important;
+    outline: none;
+  }
+}
+
+.buttonsecondary {
+  color: var(--primary);
+  background: var(--secondary);
+  /* !! dashed 1px is too small value 
+  to match the aperance in the design criteria */
+  border: 1px solid var(--primary);
+  background-clip: padding-box;
+}
+
+.buttonsecondary:focus {
+  border: 1px solid var(--secondary) !important;
+  outline: 2px solid var(--primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .buttonsecondary:hover,
+  .buttonsecondary:active {
+    color: var(--secondary);
+    background-color: var(--primary);
+    /* !! dashed 1px is too small value 
+    to match the aperance in the design criteria */
+    border: 1px solid var(--secondary) !important;
+    outline: none;
+  }
+}
+
+.buttonsecondary--selected {
+  color: var(--secondary);
+  background-color: var(--primary);
+}
+
+.buttontertiary {
+  color: var(--secondary);
+  background-color: var(--primary);
+  /* !! dashed 1px is too small value 
+  to match the aperance in the design criteria */
+  border: 1px dashed var(--secondary);
+  outline: none;
+}
+
+.buttontertiary:hover,
+.buttontertiary:active,
+.buttontertiary:focus {
+  color: var(--primary);
+  background-color: var(--secondary);
+  /* !! dashed 1px is too small value 
+  to match the aperance in the design criteria */
+  border: 1px dashed var(--primary);
+}
+
+.buttonaccent {
+  background: var(--accent-color);
+  color: var(--secondary);
+  border: 1px solid var(--accent-color);
+  background-clip: padding-box;
+}
+
+.buttonaccent:focus {
+  border: 1px solid var(--accent-color) !important;
+  outline: 2px solid var(--primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .buttonaccent:hover,
+  .buttonaccent:active {
+    background-color: var(--secondary);
+    color: var(--primary);
+    border: 1px solid var(--primary) !important;
+    outline: none;
+  }
+}
+
+.selected {
+  color: var(--secondary);
+  background-color: var(--primary);
+  border: 1px solid var(--secondary);
+}
+
+.selected.useCheckmark {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.selected.useCheckmark::before {
+  width: 20px;
+  opacity: 1;
+  margin-right: 4px;
+}
+
+.button__squared {
+  border-radius: 10px;
+}
+
+.extraMargin {
+  margin-left: 25px;
+}
+
+.noMinWidth {
+  min-width: 0;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.disabledBtn {
+  opacity: 0.5;
+}
+
+@media only screen and (max-width: 1180px) {
+  .button {
+    font-size: 14px;
+  }
+}
+
+@media only screen and (max-width: 1520px) and (min-width: 1181px) {
+  .button {
+    font-size: 14px;
+    padding: 8px 18px;
+  }
+
+  .selected.useCheckmark {
+    padding-left: 10px;
+    padding-right: 8px;
+  }
+
+  .selected.useCheckmark::before {
+    width: 10px;
+  }
+}

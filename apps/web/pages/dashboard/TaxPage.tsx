@@ -1,0 +1,251 @@
+import { groq } from "next-sanity";
+import Head from "next/head";
+import { useContext } from "react";
+import "react-toastify/dist/ReactToastify.css";
+import { linksContentQuery } from "../../_queries";
+import { LinksProps } from "../../components/main/blocks/Links/Links";
+import { PageContent } from "../../components/profile/layout/PageContent/PageContent";
+import { DonorContext } from "../../components/profile/layout/donorProvider";
+import { ErrorMessage } from "../../components/profile/shared/ErrorMessage/ErrorMessage";
+import { FacebookTab } from "../../components/profile/tax/FacebookTab/FacebookTab";
+import { TaxDeductionsTab } from "../../components/profile/tax/TaxDeductionsTab/TaxDeductionsTab";
+import { AggregatedImpactTableConfiguration } from "../../components/profile/donations/DonationsAggregateImpactTable/DonationsAggregateImpactTable";
+import TaxMenu from "../../components/profile/tax/TaxMenu/TaxMenu";
+import { TaxUnitsTab } from "../../components/profile/tax/TaxUnitsTab/TaxUnitsTab";
+import { YearlyReportsTab } from "../../components/profile/tax/YearlyReportsTab/YearlyReportsTab";
+import { MainHeader } from "../../components/shared/layout/Header/Header";
+import { getClient } from "../../lib/sanity.client";
+import style from "../../styles/Tax.module.css";
+import { withStaticProps } from "../../util/withStaticProps";
+import { GeneralPageProps, LayoutType, getAppStaticProps } from "../_app.page";
+import { getTaxPagePath } from "./paths";
+import { Navbar } from "../../components/shared/components/Navbar/Navbar";
+import { token } from "../../token";
+import { ConsentState } from "../../proxy.page";
+
+export const TaxPage = withStaticProps(
+  async ({
+    draftMode = false,
+    path,
+    consentState,
+  }: {
+    draftMode: boolean;
+    path: string[];
+    consentState: ConsentState;
+  }) => {
+    const appStaticProps = await getAppStaticProps({
+      draftMode,
+      consentState,
+      layout: LayoutType.Profile,
+    });
+    const result = await getClient(draftMode ? token : undefined).fetch<FetchTaxPageResult>(
+      fetchTaxPage,
+    );
+
+    const taxPath = await getTaxPagePath();
+
+    const subpath = (taxPath && taxPath.length < path.length && path[taxPath.length]) || "";
+
+    return {
+      appStaticProps,
+      draftMode,
+      preview: draftMode,
+      token: draftMode ? (token ?? null) : null,
+      navbarData: await Navbar.getStaticProps({ dashboard: true, draftMode }),
+      subpath,
+      data: {
+        result: result,
+        query: fetchTaxPage,
+        queryParams: {},
+      },
+    } satisfies GeneralPageProps;
+  },
+)(({ data, subpath, navbarData, draftMode }) => {
+  const page = data.result.page;
+
+  if (!page) return <ErrorMessage>Missing tax page</ErrorMessage>;
+
+  const menuChoice =
+    page.features?.find((f) => f.slug.current == subpath) ||
+    page.features?.find((f) => f._type === "taxunits") ||
+    null;
+
+  const { donor } = useContext(DonorContext);
+
+  if (!page.features) return <ErrorMessage>No features defined for tax page</ErrorMessage>;
+
+  const taxUnitLabels =
+    menuChoice?._type === "taxunits"
+      ? {
+          numberOfDonationsLabel: menuChoice.number_of_donations_label || "Antall donasjoner",
+          sumDonationsLabel: menuChoice.sum_donations_label || "Sum donasjoner",
+          sumTaxDeductionsLabel: menuChoice.sum_tax_deductions_label || "Sum skattefradrag",
+          sumTaxBenefitLabel: menuChoice.sum_tax_benefit_label || "Sum skattefordel",
+        }
+      : {
+          numberOfDonationsLabel: "Antall donasjoner",
+          sumDonationsLabel: "Sum donasjoner",
+          sumTaxDeductionsLabel: "Sum skattefradrag",
+          sumTaxBenefitLabel: "Sum skattefordel",
+        };
+
+  let pageContent = null;
+  if (!menuChoice || menuChoice?._type == "taxunits") {
+    pageContent = (
+      <TaxUnitsTab
+        title={menuChoice?.tax_units_title}
+        createButtonLabel={menuChoice?.create_tax_unit_button_label}
+        emptyStateDescription={menuChoice?.empty_tax_units_description}
+        emptyStateLinkLabel={menuChoice?.empty_tax_units_link_label}
+        numberOfDonationsLabel={taxUnitLabels.numberOfDonationsLabel}
+        sumDonationsLabel={taxUnitLabels.sumDonationsLabel}
+        sumTaxDeductionsLabel={taxUnitLabels.sumTaxDeductionsLabel}
+        sumTaxBenefitLabel={taxUnitLabels.sumTaxBenefitLabel}
+      />
+    );
+  } else if (menuChoice?._type == "taxstatements") {
+    pageContent = (
+      <YearlyReportsTab aggregatedImpactConfiguration={menuChoice.aggregate_estimated_impact} />
+    );
+  } else if (menuChoice?._type == "metareceipt") {
+    if (!donor) return <ErrorMessage>Missing donor</ErrorMessage>;
+    pageContent = (
+      <FacebookTab
+        donor={donor}
+        description={menuChoice.facebook_description || []}
+        links={
+          menuChoice.facebook_description_links ? menuChoice.facebook_description_links.links : []
+        }
+      />
+    );
+  } else if (menuChoice?._type == "abouttaxdeductions") {
+    pageContent = (
+      <TaxDeductionsTab
+        description={menuChoice.about || []}
+        links={menuChoice.links ? menuChoice.links.links : []}
+      />
+    );
+  }
+
+  return (
+    <>
+      <Head>
+        <title>
+          {data.result.settings[0].title} | {page.title}
+        </title>
+        <meta name="description" content="Generated by create next app" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
+      <MainHeader hideOnScroll={false}>
+        <Navbar {...navbarData} />
+        <TaxMenu mobile selected={menuChoice} choices={page.features}></TaxMenu>
+      </MainHeader>
+
+      <PageContent>
+        <div className={style.container}>
+          <h3 className={style.header}>{page.title}</h3>
+
+          <TaxMenu selected={menuChoice} choices={page.features}></TaxMenu>
+
+          {pageContent || <ErrorMessage>Missing page content</ErrorMessage>}
+        </div>
+      </PageContent>
+    </>
+  );
+});
+
+type FetchTaxPageResult = {
+  settings: Array<{
+    main_currency?: string;
+    title?: string;
+  }>;
+  page: {
+    title?: string;
+    features?: TaxPageFeature[];
+    slug?: {
+      current?: string;
+    };
+  };
+  dashboard: Array<{ dashboard_slug?: { current?: string } }>;
+};
+
+export interface TaxFeatureProps {
+  _type: string;
+  title: string;
+  slug: {
+    current: string;
+  };
+}
+
+export type TaxUnitsData = TaxFeatureProps & {
+  _type: "taxunits";
+  tax_units_title?: string;
+  create_tax_unit_button_label?: string;
+  empty_tax_units_description?: string;
+  empty_tax_units_link_label?: string;
+  number_of_donations_label?: string;
+  sum_donations_label?: string;
+  sum_tax_deductions_label?: string;
+  sum_tax_benefit_label?: string;
+};
+
+export type TaxDeductionData = TaxFeatureProps & {
+  _type: "abouttaxdeductions";
+  about?: any[];
+  links?: LinksProps;
+};
+
+export type TaxStatementsData = TaxFeatureProps & {
+  _type: "taxstatements";
+  aggregate_estimated_impact: AggregatedImpactTableConfiguration;
+};
+
+export type MetaReceiptData = TaxFeatureProps & {
+  _type: "metareceipt";
+  facebook_description?: any[];
+  facebook_description_links?: {
+    links: any[];
+  };
+};
+
+export type TaxPageFeature = TaxUnitsData | TaxDeductionData | TaxStatementsData | MetaReceiptData;
+
+const fetchTaxPage = groq`
+{
+  "settings": *[_type == "site_settings"] {
+    main_currency,
+    title,
+  },
+  "dashboard": *[_id == "dashboard"] {
+    dashboard_slug {
+      current
+    },
+  },
+  "page": *[_type == "tax"][0] {
+    ...,
+    title,
+    features[] {
+      ...,
+      _type == "abouttaxdeductions" => {
+        ...,
+        links {
+          ...,
+          ${linksContentQuery}
+        }
+      },
+      _type == "taxstatements" => {
+        ...,
+        aggregate_estimated_impact -> {
+          ...,
+          "currency": *[ _type == "site_settings"][0].main_currency,
+          "locale": *[ _type == "site_settings"][0].main_locale,
+        }
+      },
+    },
+    slug {
+      current
+    },
+  },
+}
+`;
