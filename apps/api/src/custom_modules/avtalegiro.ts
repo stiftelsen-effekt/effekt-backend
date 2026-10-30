@@ -9,6 +9,7 @@ import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { donationHelpers } from "./donationHelpers";
 import { DistributionInput } from "../schemas/types";
 import { requestDeletionOfUpcomingCharges } from "./avtalegiro/deletions";
+import { assertDistributionOwnedBy } from "./distributionOwnership";
 
 /**
  * Generates a claims file to claim payments for AvtaleGiro agreements
@@ -321,6 +322,7 @@ export async function replaceAvtaleGiroDistribution(
   validatedDistribution: DistributionInput,
 ) {
   const originalDistribution = await DAO.distributions.getSplitByKID(KID);
+  await assertDistributionOwnedBy(originalDistribution.donorId, validatedDistribution);
   const newKid = await donationHelpers.createAvtaleGiroKID();
   await DAO.avtalegiroagreements.replaceDistribution(
     originalDistribution,

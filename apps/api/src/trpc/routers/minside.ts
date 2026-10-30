@@ -70,7 +70,7 @@ const assertValidSsn = (ssn: string) => {
 /** The donor's tax unit, or NOT_FOUND (also for another donor's unit) */
 const getOwnTaxUnit = async (donorId: number, taxUnitId: number) => {
   const taxUnit = await DAO.tax.getById(taxUnitId);
-  if (!taxUnit || taxUnit.donorId !== donorId) {
+  if (!taxUnit || taxUnit.donorId !== donorId || taxUnit.archived) {
     throw notFound("No tax unit found with ID " + taxUnitId + " for donor " + donorId);
   }
   return taxUnit;
