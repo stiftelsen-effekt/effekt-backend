@@ -55,8 +55,9 @@ export const getFundraisersPath = async () => {
 
 /**
  * The fundraiser's totals and gifts (tRPC site.fundraiser; on the Danish site the REST link maps it
- * to GET /fundraisers/:id with the fundraiser's UUID). Null if the backend answered with an error,
- * which shows "Failed to fetch fundraiser data"; a network failure throws, as fetch did.
+ * to GET /fundraisers/:id with the fundraiser's UUID). Null if the backend answered with an error
+ * or a response the schema rejects (the REST link gives that a 502), which shows "Failed to fetch
+ * fundraiser data" instead of failing the page build; a network failure throws, as fetch did.
  */
 const fetchFundraiserData = async (
   fundraiserId: string | number | null | undefined,
@@ -67,7 +68,12 @@ const fetchFundraiserData = async (
     return await publicTrpcFor(stegaClean(mainLocale)).site.fundraiser.query({ id: fundraiserId });
   } catch (err) {
     if (err instanceof TRPCClientError && err.data?.httpStatus !== undefined) {
-      console.warn("Failed to fetch fundraiser %s:", fundraiserId, err.message);
+      console.warn(
+        "Failed to fetch fundraiser %s (HTTP %s):",
+        fundraiserId,
+        err.data.httpStatus,
+        err.message,
+      );
       return null;
     }
     throw err;
