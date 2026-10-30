@@ -25,7 +25,7 @@ provider.
 Previews are opt-in: add the `preview` label to a PR to deploy one. Pushes redeploy while the label is on; removing the label or closing the PR tears it down.
 
 ```
-PR labelled `preview` / pushed ──► .github/workflows/preview.yml (pull_request_target, runs the master copy)
+PR labelled `preview` / pushed ──► .github/workflows/preview.yml (pull_request_target, runs the main copy)
                          1. sticky PR comment: Building
                          2. docker build Dockerfile.preview (PR code, no credentials yet)
                          3. log in to GCP (workload identity, no keys)
@@ -99,7 +99,7 @@ preview comment goes back to _Building_, then _Ready_.
      Actions). `CLAUDE_CODE_OAUTH_TOKEN` or Anthropic workload identity federation work too; see
      the action's setup guide.
 - Claude is told not to touch `.github/workflows/` or `scripts/preview/`; even if it did, those
-  files only take effect after review and merge to `master` (see [Guardrails](#guardrails)).
+  files only take effect after review and merge to `main` (see [Guardrails](#guardrails)).
 
 ## Limit and clean-up
 
@@ -127,10 +127,10 @@ environment must be harmless. The layers, from the outside in:
 **Who can deploy what (GitHub + Google Cloud)**
 
 - `preview.yml` uses `pull_request_target`, so the workflow file and `scripts/preview/*` always
-  come from `master`. The workload identity provider only accepts tokens from this repository
-  (by numeric id), from `refs/heads/master`, and from `preview.yml` or `preview-janitor.yml`.
+  come from `main`. The workload identity provider only accepts tokens from this repository
+  (by numeric id), from `refs/heads/main`, and from `preview.yml` or `preview-janitor.yml`.
   A PR that edits the workflow or the scripts can't get cloud credentials with its edit.
-  (`master` is protected: pushes are restricted.)
+  (`main` is protected: pushes are restricted.)
 - The PR's own code is only _built_ (before any credentials exist; checkouts keep no tokens)
   and _run on Cloud Run_ as `effekt-preview-run`.
 - Fork PRs never deploy: every job requires
@@ -145,7 +145,7 @@ environment must be harmless. The layers, from the outside in:
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `effekt-preview-run` (runtime)            | `roles/cloudsql.client` on the project **with an IAM condition**: only the `effekt-previews` instance                                                 | Connects the services and seed jobs to their databases. Can't connect to `effekt-db`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 |                                           | `roles/secretmanager.secretAccessor` on the secret `effekt-preview-db-password` only                                                                  | The preview MySQL password, mounted as `DB_PASS`. (A resource-level grant on one secret; the alternative, a plain env var set by CI, would put the password in the CI logs' reach and the service config.)                                                                                                                                                                                                                                                                                                                                                  |
-| `effekt-preview-ci` (GitHub Actions, WIF) | custom role `effektPreviewDeployer` (project): create/update/delete/list Cloud Run services, jobs, executions, revisions; `run.services.setIamPolicy` | Cloud Run has no IAM conditions on resource names, and the services don't exist before the first deploy, so this is project-wide. `setIamPolicy` is needed for `--no-invoker-iam-check` (public URL). **Limit:** it can't change what a production service runs: any deploy needs `iam.serviceAccounts.actAs` on the service's runtime account, and the CI account has that only on `effekt-preview-run`. It could delete another service; only the master copies of the preview workflows can use it, and the scripts only touch `effekt-preview-*` names. |
+| `effekt-preview-ci` (GitHub Actions, WIF) | custom role `effektPreviewDeployer` (project): create/update/delete/list Cloud Run services, jobs, executions, revisions; `run.services.setIamPolicy` | Cloud Run has no IAM conditions on resource names, and the services don't exist before the first deploy, so this is project-wide. `setIamPolicy` is needed for `--no-invoker-iam-check` (public URL). **Limit:** it can't change what a production service runs: any deploy needs `iam.serviceAccounts.actAs` on the service's runtime account, and the CI account has that only on `effekt-preview-run`. It could delete another service; only the main-branch copies of the preview workflows can use it, and the scripts only touch `effekt-preview-*` names. |
 |                                           | `roles/artifactregistry.repoAdmin` on the repository `effekt-previews` only                                                                           | Push images, delete a closed PR's images.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 |                                           | `roles/iam.serviceAccountUser` on `effekt-preview-run` only                                                                                           | Deploy services/jobs that run as the runtime account, and as no other account.                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 |                                           | `roles/iam.workloadIdentityUser` (on itself) for the WIF principal set of this repository                                                             | GitHub Actions logs in without keys.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -208,7 +208,7 @@ federation) if it's off.
 | Artifact Registry repository | `effekt-previews` (docker, europe-north1)                                                                                                                 | cleanup policy: untagged after 1 day, everything after 30 days                                    |
 | Service accounts             | `effekt-preview-run`, `effekt-preview-ci`                                                                                                                 | roles in [Guardrails](#guardrails)                                                                |
 | Custom role                  | `effektPreviewDeployer`                                                                                                                                   |                                                                                                   |
-| Workload identity pool       | `github-effekt-previews`, provider `effekt-backend`                                                                                                       | condition: repository id, `refs/heads/master`, the two preview workflows                          |
+| Workload identity pool       | `github-effekt-previews`, provider `effekt-backend`                                                                                                       | condition: repository id, `refs/heads/main`, the two preview workflows                          |
 | GitHub variables             | `PREVIEW_MAX`, `PREVIEW_IDLE_WARN_DAYS`, `PREVIEW_IDLE_DELETE_DAYS`, `PREVIEW_GCP_PROJECT`, `PREVIEW_GCP_REGION`, `PREVIEW_WIF_PROVIDER`, `PREVIEW_CI_SA` | existing ones are left as they are                                                                |
 
 Per PR, created and deleted by the workflows: service `effekt-preview-pr-<n>`, job
@@ -241,7 +241,7 @@ and a slimmer base image.
 
 ## Going live
 
-1. Review and merge this to `master`. The workflows run from `master` (`pull_request_target`),
+1. Review and merge this to `main`. The workflows run from `main` (`pull_request_target`),
    so nothing happens on PRs before that, and nothing works before step 2 (every job is skipped
    while `PREVIEW_WIF_PROVIDER` is unset).
 2. A project owner runs `scripts/preview/provision.sh`, reads the dry run, then

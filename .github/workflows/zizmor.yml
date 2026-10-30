@@ -7,7 +7,7 @@ on:
       - ".github/dependabot.yml"
       - ".github/zizmor.yml"
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - ".github/workflows/**"
       - ".github/dependabot.yml"

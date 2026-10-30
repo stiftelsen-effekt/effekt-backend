@@ -10,7 +10,7 @@ on:
       - "pnpm-workspace.yaml"
       - ".github/workflows/web-checks.yml"
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - "apps/web/**"
       - "pnpm-lock.yaml"

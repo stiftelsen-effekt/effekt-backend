@@ -83,7 +83,7 @@ curl -X POST localhost:5050/donors/list/ -H "Authorization: Bearer $(pnpm -s dev
 
 ## API endpoints
 
-Our API endpoints are described in the swagger documentation available [here (production)](https://data.gieffektivt.no/api-docs/) or [here (development)](https://dev.data.gieffektivt.no/api-docs/)).
+Our API endpoints are described in the swagger documentation available [here (production)](https://data.gieffektivt.no/api-docs/), or at http://localhost:5050/api-docs/ when running locally.
 
 We are currently working on improving this documentation.
 
@@ -393,23 +393,17 @@ which will yield something like this
 
 ## Build and deployment
 
-We have three main branches in the repository, `master`, `stage` and `dev`. Any commit to any of these branches will be automatically deployed to their respective environments, given that the build pipeline succeeds.
+Merges to `main` deploy to production through Cloud Build:
 
-### Environments
+| What    | Trigger                                 | Deploys                                                     |
+| ------- | --------------------------------------- | ----------------------------------------------------------- |
+| Backend | `BackendDeploy` (`cloud.deploy.yaml`)   | https://data.gieffektivt.no (migrate, then Cloud Run)       |
+| Admin   | `AdminDeploy` (`cloudbuild.admin.yaml`) | https://admin.gieffektivt.no (only when admin files change) |
+| Website | Vercel (`apps/web`)                     | gieffektivt.no, giveffektivt.dk, geeffektivt.se             |
 
-**Production** or live is deployed from the `master` branch. The url for the deployment is https://data.gieffektivt.no. This is the environment used by our actual donors.
-
-**Stage** is deployed from the `stage` branch. The url for the deployment is https://stage.data.gieffektivt.no. This environment is identical to production in terms of configuration, and uses the live production database. The intended usecase is to test new functionality in the same environment as the production api, whithout having to deploy the code to our users. Stage is espe
-
-**Dev** is deployed from the `dev` branch. The url for the deployment is https://dev.data.gieffektivt.no. This environment uses the development database, and is unstable. If you wish to test that your code runs in the google cloud environment, you may merge your changes into the dev branch.
-
-| Branch   | Url                               | Database               | Environment variables |
-| -------- | --------------------------------- | ---------------------- | --------------------- |
-| `Master` | https://data.gieffektivt.no       | `EffektDonasjonDB`     | Production            |
-| `Stage`  | https://stage.data.gieffektivt.no | `EffektDonasjonDB`     | Production            |
-| `Dev`    | https://dev.data.gieffektivt.no   | `EffektDonasjonDB_Dev` | Development           |
-
-### Google cloud build
+Every other branch gets the `QualityAssurance` build (`cloud.qa.yaml`) as a required check.
+PRs with the `preview` label get a preview environment ([docs/preview-environments.md](docs/preview-environments.md)).
+There is no separate dev or stage environment.
 
 ## Code Structure & Implementation Details
 
@@ -493,93 +487,102 @@ This section contains a brief overview of some of the most important database ta
 The organizations we support donations to.
 
 Main Columns
-| Name | Type | Description | Example |
+
+| Name        | Type   | Description | Example                      |
 | ----------- | ------ | ----------- | ---------------------------- |
-| `ID` | int | | 1 |
-| `full_name` | string | | "Against Malaria Foundation" |
-| `abbriv` | string | | "AMF" |
+| `ID`        | int    |             | 1                            |
+| `full_name` | string |             | "Against Malaria Foundation" |
+| `abbriv`    | string |             | "AMF"                        |
 
 **Donors**
 
 One record for each donor. Personal info (name, ssn), credentials (email, password for users who can log in), and configuration.
 
 Main Columns
-| Name | Type | Description | Example |
+
+| Name            | Type   | Description            | Example             |
 | --------------- | ------ | ---------------------- | ------------------- |
-| `ID` | int | | 2 |
-| `full_name` | string | | "Malcolm T. Madiba" |
-| `ssn` | string | Social Security Number | 0123456789012 |
-| `email` | string | | "x@z.org" |
-| `password_hash` | string | | |
-| `password_salt` | string | | |
-| `newsletter` | bool | | true |
+| `ID`            | int    |                        | 2                   |
+| `full_name`     | string |                        | "Malcolm T. Madiba" |
+| `ssn`           | string | Social Security Number | 0123456789012       |
+| `email`         | string |                        | "x@z.org"           |
+| `password_hash` | string |                        |                     |
+| `password_salt` | string |                        |                     |
+| `newsletter`    | bool   |                        | true                |
 
 **Payment**
 
 One record for each payment type / payment processor, plus some metadata
 
 Main Columns
-| Name | Type | Description | Example |
+
+| Name             | Type    | Description | Example |
 | ---------------- | ------- | ----------- | ------- |
-| `ID` | int | | 3 |
-| `payment_name` | string | | "Vipps" |
-| `flat_fee` | decimal | | 2.00 |
-| `percentage_fee` | decimal | | 1.50 |
+| `ID`             | int     |             | 3       |
+| `payment_name`   | string  |             | "Vipps" |
+| `flat_fee`       | decimal |             | 2.00    |
+| `percentage_fee` | decimal |             | 1.50    |
 
 **Donations**
 
 One record for each donation.
 
 Main Columns
-| Name | Type | Description | Example |
+
+| Name                 | Type    | Description                                                               | Example    |
 | -------------------- | ------- | ------------------------------------------------------------------------- | ---------- |
-| `ID` | int | | 4 |
-| `Donor_ID` | int | | 2 |
-| `Payment_ID` | int | | 3 |
-| `PaymentExternal_ID` | string | Payment ID in external system (ex: Vipps) | "1351351" |
-| `sum_confirmed` | decimal | donation amount (NOK) | 500.00 |
-| `KID_fordeling` | string | Same as KID. Used to join to Combining_table for distribution percentages | "12345678" |
+| `ID`                 | int     |                                                                           | 4          |
+| `Donor_ID`           | int     |                                                                           | 2          |
+| `Payment_ID`         | int     |                                                                           | 3          |
+| `PaymentExternal_ID` | string  | Payment ID in external system (ex: Vipps)                                 | "1351351"  |
+| `sum_confirmed`      | decimal | donation amount (NOK)                                                     | 500.00     |
+| `KID_fordeling`      | string  | Same as KID. Used to join to Combining_table for distribution percentages | "12345678" |
 
 **Distribution**
 
 One record for each (org, %) combination ever used.
 
 Main Columns
-| Name | Type | Description | Example |
+
+| Name               | Type    | Description | Example |
 | ------------------ | ------- | ----------- | ------- |
-| `ID` | int | | 5 |
-| `OrgID` | int | | 1 |
-| `percentage_share` | decimal | | 15.00 |
+| `ID`               | int     |             | 5       |
+| `OrgID`            | int     |             | 1       |
+| `percentage_share` | decimal |             | 15.00   |
 
 **Combining_table**
 
 Join table to connect each KID to several Distributions. There will be multiple records for each KID with varying Distribution IDs. Percentage shares of the distributions for a given KID should sum to 100%.
 
 Main Columns
-| Name | Type | Description | Example |
+
+| Name              | Type   | Description | Example    |
 | ----------------- | ------ | ----------- | ---------- |
-| `KID` | string | | "12345678" |
-| `Donor_ID` | int | | 1 |
-| `Distribution_ID` | int | | 15.00 |
+| `KID`             | string |             | "12345678" |
+| `Donor_ID`        | int    |             | 1          |
+| `Distribution_ID` | int    |             | 15.00      |
 
 Example for donor 11 doing a one-time donation, and distributing 40% to AMF and 60% to GiveWell, which results in KID 1234:
 
 Donations (1 record)
-| ID | Donor_ID | KID_fordeling |
+
+| ID   | Donor_ID | KID_fordeling |
 | ---- | -------- | ------------- |
-| 6332 | 11 | "1234" |
+| 6332 | 11       | "1234"        |
 
 Combining Table (2 records):
-| KID | Donor_ID | Distribution_ID |
+
+| KID    | Donor_ID | Distribution_ID |
 | ------ | -------- | --------------- |
-| "1234" | 11 | 511 |
-| "1234" | 11 | 512 |
+| "1234" | 11       | 511             |
+| "1234" | 11       | 512             |
 
 Distributions (2 records)
-| ID | OrgID | percentage_share |
+
+| ID  | OrgID | percentage_share |
 | --- | ----- | ---------------- |
-| 511 | 1 | 40.00 |
-| 512 | 2 | 60.00 |
+| 511 | 1     | 40.00            |
+| 512 | 2     | 60.00            |
 
 **A few other tables worth mentioning:**
 
