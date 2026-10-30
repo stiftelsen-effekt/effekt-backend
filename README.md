@@ -83,7 +83,7 @@ curl -X POST localhost:5050/donors/list/ -H "Authorization: Bearer $(pnpm -s dev
 
 ## API endpoints
 
-Our API endpoints are described in the swagger documentation available [here (production)](https://data.gieffektivt.no/api-docs/) or [here (development)](https://dev.data.gieffektivt.no/api-docs/)).
+Our API endpoints are described in the swagger documentation available [here (production)](https://data.gieffektivt.no/api-docs/), or at http://localhost:5050/api-docs/ when running locally.
 
 We are currently working on improving this documentation.
 
