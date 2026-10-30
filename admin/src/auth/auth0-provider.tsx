@@ -1,9 +1,12 @@
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
-import { useMemo, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { config } from "@/lib/config";
-import { AuthContext, givenNameFrom, type AuthState } from "./context";
+import { AuthContext, givenNameFrom, isSessionEndedError, type AuthState } from "./context";
 
 type AppState = { returnTo?: string };
+
+const currentPath = () =>
+  `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
 function Auth0Bridge({ children }: { children: ReactNode }) {
   const auth0 = useAuth0();
@@ -16,6 +19,30 @@ function Auth0Bridge({ children }: { children: ReactNode }) {
     logout,
     getAccessTokenSilently,
   } = auth0;
+
+  const getAccessToken = useCallback(async () => {
+    try {
+      const token = await getAccessTokenSilently();
+      if (!token) throw new Error("No access token");
+      return token;
+    } catch (error) {
+      // The Auth0 session ended: back to the login, then to this page.
+      if (isSessionEndedError(error)) {
+        void loginWithRedirect({ appState: { returnTo: currentPath() } });
+      }
+      throw error;
+    }
+  }, [getAccessTokenSilently, loginWithRedirect]);
+
+  // Check when the tab comes back, so an ended session goes to the login before the next click.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const check = () => {
+      if (document.visibilityState === "visible") getAccessToken().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", check);
+    return () => document.removeEventListener("visibilitychange", check);
+  }, [isAuthenticated, getAccessToken]);
 
   const value = useMemo<AuthState>(
     () => ({
@@ -33,13 +60,9 @@ function Auth0Bridge({ children }: { children: ReactNode }) {
         : null,
       login: ({ returnTo } = {}) => loginWithRedirect({ appState: { returnTo } }),
       logout: () => void logout({ logoutParams: { returnTo: window.location.origin } }),
-      getAccessToken: async () => {
-        const token = await getAccessTokenSilently();
-        if (!token) throw new Error("No access token");
-        return token;
-      },
+      getAccessToken,
     }),
-    [isAuthenticated, isLoading, user, error, loginWithRedirect, logout, getAccessTokenSilently],
+    [isAuthenticated, isLoading, user, error, loginWithRedirect, logout, getAccessToken],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
