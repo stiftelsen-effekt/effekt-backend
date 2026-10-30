@@ -181,7 +181,7 @@ export async function repointAuth0DonorIdOnMerge(
         await updateUserMetadata(user.user_id, { [metadataKey]: winnerDonorId });
         updated.push(user.user_id);
       } catch (error) {
-        console.error(`Failed to re-point Auth0 user ${user.user_id}:`, error);
+        console.error("Failed to re-point Auth0 user %s:", user.user_id, error);
       }
     }
 
@@ -194,7 +194,9 @@ export async function repointAuth0DonorIdOnMerge(
     }
   } catch (error) {
     console.error(
-      `Failed to re-point Auth0 users from donor ${loserDonorId} to ${winnerDonorId}:`,
+      "Failed to re-point Auth0 users from donor %s to %s:",
+      loserDonorId,
+      winnerDonorId,
       error,
     );
   }
