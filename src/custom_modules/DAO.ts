@@ -11,6 +11,7 @@ import { referrals } from "./DAO_modules/referrals";
 import { meta } from "./DAO_modules/meta";
 import { initialpaymentmethod } from "./DAO_modules/initialpaymentmethod";
 import { avtalegiroagreements } from "./DAO_modules/avtalegiroagreements";
+import { avtalegirocharges } from "./DAO_modules/avtalegirocharges";
 import { logging } from "./DAO_modules/logging";
 import { organizations } from "./DAO_modules/organizations";
 import * as mysql from "mysql2/promise";
@@ -77,6 +78,7 @@ export const DAO = {
   meta: meta,
   initialpaymentmethod: initialpaymentmethod,
   avtalegiroagreements: avtalegiroagreements,
+  avtalegirocharges: avtalegirocharges,
   autogiroagreements: autogiroagreements,
   facebook: facebook,
   tax: tax,
