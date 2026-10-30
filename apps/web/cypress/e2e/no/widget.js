@@ -348,13 +348,7 @@ describe("Widget", () => {
   it("End-2-End for existing donor", () => {
     cy.login();
 
-    cy.intercept("GET", "/donors/*/", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: mockDonor,
-      },
-    }).as("getDonor");
+    cy.interceptDonorProfile(mockDonor).as("getDonor");
 
     cy.fixture("donations")
       .then((donations) => {

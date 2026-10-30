@@ -1,0 +1,15 @@
+{
+  "name": "@effekt/api",
+  "private": true,
+  "version": "0.0.0",
+  "description": "The backend's tRPC contract for apps/web: the AppRouter type and the shared Min Side schemas",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts"
+    },
+    "./minside": "./minside.ts"
+  },
+  "scripts": {
+    "build": "pnpm --dir ../.. build:types"
+  }
+}

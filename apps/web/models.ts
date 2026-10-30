@@ -104,8 +104,8 @@ export type DistributionCauseArea = {
 };
 
 export type Donor = {
-  id: string;
-  name: string;
+  id: number;
+  name: string | null;
   email: string;
   newsletter: boolean;
   registered: string;

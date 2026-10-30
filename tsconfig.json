@@ -11,5 +11,5 @@
     "strictNullChecks": true
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist", "dist-types", "admin", "apps"]
+  "exclude": ["node_modules", "dist", "dist-types", "admin", "apps", "packages"]
 }

@@ -55,7 +55,7 @@ export const ProfileInfo: React.FC<{
           <input
             id="name"
             type="text"
-            defaultValue={donor.name}
+            defaultValue={donor.name ?? undefined}
             className={style.input}
             onChange={(e) => {
               setDonor({ ...donor, name: e.target.value });
