@@ -57,11 +57,19 @@ export default defineType({
       name: "adoveoFundraiserId",
       type: "string",
       title: "Adoveo fundraiser ID",
+      // The website stopped showing the Vipps number total: the backend route behind it was
+      // removed in March 2025. Kept so the pages that still set it don't get unknown-field warnings.
+      readOnly: true,
+      deprecated: { reason: "No longer shown on the website" },
     }),
     defineField({
       name: "vippsNumber",
       type: "string",
       title: "Vipps number",
+      // The website stopped showing the Vipps number total: the backend route behind it was
+      // removed in March 2025. Kept so the pages that still set it don't get unknown-field warnings.
+      readOnly: true,
+      deprecated: { reason: "No longer shown on the website" },
     }),
   ],
 });

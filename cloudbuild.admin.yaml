@@ -4,12 +4,24 @@
 # _FEATURE_REGRANTING ("false" hides Regranting), _REGRANTING_BACKFILLED ("false" shows a notice
 # on the regranting pages that past rounds aren't imported yet)
 steps:
+  # Skip the whole deploy when a newer commit has reached main since this build started: its
+  # own build publishes instead (scripts/deploy/guard.sh, docs/deploy.md). Every later step runs
+  # through scripts/deploy/unless-skipped.sh.
+  - id: guard
+    name: "gcr.io/cloud-builders/git"
+    entrypoint: bash
+    env: ["COMMIT_SHA=$COMMIT_SHA"]
+    args: ["scripts/deploy/guard.sh"]
+
   - id: install
     name: "node:24.22.1"
     entrypoint: bash
+    waitFor: ["guard"]
     # The admin and the backend (pnpm build:types); apps/web is not needed here.
     args:
       [
+        "scripts/deploy/unless-skipped.sh",
+        "bash",
         "-c",
         "corepack enable && pnpm install --frozen-lockfile --filter stiftelsen-effekt-backend --filter effekt-admin-v2",
       ]
@@ -18,13 +30,25 @@ steps:
     name: "node:24.22.1"
     entrypoint: bash
     waitFor: ["install"]
-    args: ["-c", "corepack enable && pnpm --dir apps/admin typecheck"]
+    args:
+      [
+        "scripts/deploy/unless-skipped.sh",
+        "bash",
+        "-c",
+        "corepack enable && pnpm --dir apps/admin typecheck",
+      ]
 
   - id: test
     name: "node:24.22.1"
     entrypoint: bash
     waitFor: ["install"]
-    args: ["-c", "corepack enable && pnpm --dir apps/admin test"]
+    args:
+      [
+        "scripts/deploy/unless-skipped.sh",
+        "bash",
+        "-c",
+        "corepack enable && pnpm --dir apps/admin test",
+      ]
 
   - id: build
     name: "node:24.22.1"
@@ -38,14 +62,31 @@ steps:
       - "VITE_AUTH_AUDIENCE=${_AUTH_AUDIENCE}"
       - "VITE_FEATURE_REGRANTING=${_FEATURE_REGRANTING}"
       - "VITE_REGRANTING_BACKFILLED=${_REGRANTING_BACKFILLED}"
-    args: ["-c", "corepack enable && pnpm --dir apps/admin build"]
+    args:
+      [
+        "scripts/deploy/unless-skipped.sh",
+        "bash",
+        "-c",
+        "corepack enable && pnpm --dir apps/admin build",
+      ]
+
+  # Check again before publishing: a newer merge may have landed during the build
+  - id: guard-before-publish
+    name: "gcr.io/cloud-builders/git"
+    waitFor: ["build"]
+    entrypoint: bash
+    env: ["COMMIT_SHA=$COMMIT_SHA"]
+    args: ["scripts/deploy/guard.sh"]
 
   # Hashed assets are immutable; index.html must always be revalidated so a deploy takes effect
   # immediately. Assets are uploaded first so a new index.html never points at missing files.
   - id: publish-assets
     name: "gcr.io/cloud-builders/gsutil"
-    waitFor: ["build"]
+    waitFor: ["guard-before-publish"]
+    entrypoint: bash
     args:
+      - "scripts/deploy/unless-skipped.sh"
+      - "gsutil"
       - "-m"
       - "-h"
       - "Cache-Control:public, max-age=31536000, immutable"
@@ -57,7 +98,10 @@ steps:
   - id: publish-index
     name: "gcr.io/cloud-builders/gsutil"
     waitFor: ["publish-assets"]
+    entrypoint: bash
     args:
+      - "scripts/deploy/unless-skipped.sh"
+      - "gsutil"
       - "-m"
       - "-h"
       - "Cache-Control:no-cache"

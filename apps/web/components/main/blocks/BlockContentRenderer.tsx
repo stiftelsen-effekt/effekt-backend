@@ -164,8 +164,6 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
                 links={block.links}
                 code={block.htmlcode}
                 darktext={block.darktext}
-                adoveoFundraiserId={block.adoveoFundraiserId}
-                vippsNumber={block.vippsNumber}
               />
             );
           case "fullimage":

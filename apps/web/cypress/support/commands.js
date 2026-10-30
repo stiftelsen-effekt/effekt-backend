@@ -226,6 +226,20 @@ Cypress.Commands.add(
   },
 );
 
+/**
+ * Stubs the cause areas for both callers: the donation widget's `widget.causeAreas` (tRPC) and
+ * Min Side's `useCauseAreas`, which still calls `GET /causeareas/all/` (REST). Without the REST
+ * stub, Min Side renders the live API's cause areas instead of the fixture. Returns the tRPC
+ * intercept, so `.as()` works as before; Min Side's request is aliased `getMinSideCauseAreas`.
+ */
+Cypress.Commands.add("interceptCauseAreas", (causeAreas) => {
+  cy.intercept("GET", /\/causeareas\/all\/?(?:\?|$)/, {
+    statusCode: 200,
+    body: { status: 200, content: causeAreas },
+  }).as("getMinSideCauseAreas");
+  return cy.interceptTrpc("widget.causeAreas", causeAreas);
+});
+
 Cypress.Commands.add("interceptDonorProfile", (donor) =>
   cy.interceptTrpc("minside.profile", donor),
 );
