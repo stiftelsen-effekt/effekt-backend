@@ -40,6 +40,7 @@ import { InfoBox } from "../../components/shared/components/Infobox/Infobox";
 import { Info } from "react-feather";
 import { token } from "../../token";
 import { ConsentState } from "../../proxy.page";
+import { toNumber } from "../../util/decimal";
 import { getDonationsPagePath } from "./paths";
 
 export const DonationsPage = withStaticProps(
@@ -168,9 +169,9 @@ export const DonationsPage = withStaticProps(
     loading: organizationsloading,
     isValidating: organizationsValidation,
     error: organizationsError,
-  } = useAllOrganizations(getAccessTokenSilently);
+  } = useAllOrganizations();
 
-  const { data: causeAreas, loading: causeAreasLoading } = useCauseAreas(getAccessTokenSilently);
+  const { data: causeAreas, loading: causeAreasLoading } = useCauseAreas();
 
   const {
     data: taxUnits,
@@ -535,17 +536,19 @@ const fetchDonationsPage = groq`
 }
 `;
 
+/** Rows without an organization (a distribution with none) are left out of the per-organization charts */
+const withOrganization = (aggregated: AggregatedDonations[]) =>
+  aggregated.filter(
+    (row): row is AggregatedDonations & { organization: string } => row.organization !== null,
+  );
+
 const getTotalDistribution = (
   aggregated: AggregatedDonations[],
 ): { org: string; sum: number }[] => {
   const distribution = [];
 
-  const summed = aggregated.reduce((acc: { [key: string]: number }, curr) => {
-    if (curr.organization in acc) {
-      acc[curr.organization] += parseFloat(curr.value);
-    } else {
-      acc[curr.organization] = parseFloat(curr.value);
-    }
+  const summed = withOrganization(aggregated).reduce((acc: { [key: string]: number }, curr) => {
+    acc[curr.organization] = (acc[curr.organization] ?? 0) + toNumber(curr.value);
     return acc;
   }, {});
 
@@ -560,9 +563,9 @@ const getYearlyDistribution = (
   aggregated: AggregatedDonations[],
   year: number,
 ): { org: string; sum: number }[] => {
-  return aggregated
+  return withOrganization(aggregated)
     .filter((el) => el.year === year)
-    .map((el) => ({ org: el.organization, sum: parseFloat(el.value) }));
+    .map((el) => ({ org: el.organization, sum: toNumber(el.value) }));
 };
 
 const getYearlySum = (
@@ -572,7 +575,7 @@ const getYearlySum = (
   return years.map((year) => ({
     year: year.toString(),
     sum: aggregated.reduce(
-      (acc, curr) => (curr.year == year ? acc + parseFloat(curr.value) : acc),
+      (acc, curr) => (curr.year == year ? acc + toNumber(curr.value) : acc),
       0,
     ),
   }));
@@ -595,7 +598,7 @@ const getYears = (donor: Donor, donations: Donation[]) => {
 const getDonationSum = (aggregatedDonations: AggregatedDonations[], year?: string) => {
   return Math.round(
     aggregatedDonations.reduce(
-      (acc, curr) => (year === curr.year.toString() || !year ? acc + parseFloat(curr.value) : acc),
+      (acc, curr) => (year === curr.year.toString() || !year ? acc + toNumber(curr.value) : acc),
       0,
     ),
   );

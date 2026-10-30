@@ -1,10 +1,13 @@
 import { createTRPCClient, httpBatchLink, httpLink, type TRPCClient } from "@trpc/client";
+import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@effekt/api";
 import type { MainLocale } from "../../context/MainLocaleContext";
 import { restLink } from "./restLink";
 
 export type { AppRouter };
 export type TrpcClient = TRPCClient<AppRouter>;
+/** What each procedure returns (after its output schema), e.g. RouterOutputs["minside"]["donations"] */
+export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 /**
  * Which backend the site talks to. The Danish site's backend (giveffektivt/donation-platform) has

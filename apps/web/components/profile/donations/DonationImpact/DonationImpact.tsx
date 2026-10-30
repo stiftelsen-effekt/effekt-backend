@@ -9,13 +9,14 @@ import {
   ImpactDistributionEntry,
 } from "./DonationImpactList";
 import { isFundOrganizationId, mapNameToOrgAbbriv } from "../../../../util/mappings";
+import { toNumber } from "../../../../util/decimal";
 
 export type { DonationImpactItemsConfiguration };
 
 const isOperationsOrg = (name: string) => name === "Drift" || mapNameToOrgAbbriv(name) === "Drift";
 
 const toDistributionEntry = (
-  org: { id: number; name?: string; percentageShare: string },
+  org: { id: number; name?: string; percentageShare: string | number },
   donationSum: number,
   causeAreaShare: number,
 ): ImpactDistributionEntry => ({
@@ -23,7 +24,7 @@ const toDistributionEntry = (
   orgName: org.name ?? "unknown",
   isFund: isFundOrganizationId(org.id),
   isOperations: isOperationsOrg(org.name as string),
-  sum: donationSum * (parseFloat(org.percentageShare) / 100) * causeAreaShare,
+  sum: donationSum * (toNumber(org.percentageShare) / 100) * causeAreaShare,
 });
 
 const DonationImpact: React.FC<{
@@ -64,8 +65,8 @@ const DonationImpact: React.FC<{
                   signalRequiredPrecision={updatePrecision}
                   configuration={configuration.impact_item_configuration}
                   preComputedImpact={{
-                    output: entry.count,
-                    shortDescription: entry.unit,
+                    output: entry.count ?? 0,
+                    shortDescription: entry.unit ?? "",
                     longDescription: matchedOrg?.shortDescription ?? "",
                     charityName: entry.recipient,
                     orgUrl: matchedOrg?.informationUrl ?? "",
@@ -80,7 +81,7 @@ const DonationImpact: React.FC<{
   }
 
   const multipleCauseAreas = distribution.causeAreas.length > 1;
-  const donationSum = parseFloat(donation.sum);
+  const donationSum = toNumber(donation.sum);
 
   /**
    * When a donation spans multiple cause areas, operations (Drift) is pulled out of the
@@ -89,12 +90,12 @@ const DonationImpact: React.FC<{
    */
   const operationsSum = multipleCauseAreas
     ? distribution.causeAreas.reduce((total, causeArea) => {
-        const causeAreaShare = parseFloat(causeArea.percentageShare) / 100;
+        const causeAreaShare = toNumber(causeArea.percentageShare) / 100;
         const causeAreaOperations = causeArea.organizations
           .filter((org) => isOperationsOrg(org.name as string))
           .reduce(
             (sum, org) =>
-              sum + donationSum * (parseFloat(org.percentageShare) / 100) * causeAreaShare,
+              sum + donationSum * (toNumber(org.percentageShare) / 100) * causeAreaShare,
             0,
           );
         return total + causeAreaOperations;
@@ -104,7 +105,7 @@ const DonationImpact: React.FC<{
   return (
     <>
       {distribution.causeAreas.map((causeArea: DistributionCauseArea) => {
-        const causeAreaShare = parseFloat(causeArea.percentageShare) / 100;
+        const causeAreaShare = toNumber(causeArea.percentageShare) / 100;
         const organizations = multipleCauseAreas
           ? causeArea.organizations.filter((org) => !isOperationsOrg(org.name as string))
           : causeArea.organizations;

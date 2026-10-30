@@ -1,5 +1,6 @@
 import { TaxUnit } from "../../../../../models";
 import { thousandize } from "../../../../../util/formatting";
+import { toNumber } from "../../../../../util/decimal";
 import style from "./TaxUnitMobileDetails.module.scss";
 
 export const TaxUnitMobileDetails: React.FC<{
@@ -13,11 +14,11 @@ export const TaxUnitMobileDetails: React.FC<{
       <tbody>
         <tr>
           <td>{numberOfDonationsLabel}</td>
-          <td>{thousandize(Math.round(taxUnit.numDonations))}</td>
+          <td>{thousandize(Math.round(toNumber(taxUnit.numDonations)))}</td>
         </tr>
         <tr>
           <td>{sumDonationsLabel}</td>
-          <td>{thousandize(Math.round(taxUnit.sumDonations))} kr</td>
+          <td>{thousandize(Math.round(toNumber(taxUnit.sumDonations)))} kr</td>
         </tr>
         <tr>
           <td>{sumTaxDeductionsLabel}</td>

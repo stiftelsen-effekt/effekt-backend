@@ -1,7 +1,7 @@
 import React from "react";
 import style from "./DonationsChart.module.scss";
 import { thousandize } from "../../../../util/formatting";
-import { Organization } from "../../../../models";
+import type { Organization } from "../../../shared/components/Widget/types/Organization";
 
 const DonationsChart: React.FC<{
   distribution: { org: string; sum: number }[];

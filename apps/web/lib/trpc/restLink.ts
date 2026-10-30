@@ -15,6 +15,7 @@ import {
   siteDailyDonationsOutput,
   siteFundraiserOutput,
   siteMonthlyOutputsOutput,
+  siteOrganizationsOutput,
   siteReferralSumsOutput,
   siteResultsHeadlineOutput,
 } from "@effekt/api/site";
@@ -123,6 +124,11 @@ export const restRoutes: Record<string, RestRoute> = {
     path: () => "/results/donations/monthly/outputs",
     output: siteMonthlyOutputsOutput,
   },
+  "site.organizations": {
+    method: "GET",
+    path: () => "/organizations/all/",
+    output: siteOrganizationsOutput,
+  },
   "site.fundraiser": {
     method: "GET",
     path: (input: { id: string | number }) =>
@@ -211,8 +217,14 @@ export const restLink =
         try {
           return route.output.parse(body?.content);
         } catch (cause) {
-          throw TRPCClientError.from<AnyRouter>(
-            new Error(`${op.path}: unexpected response from the REST API`, { cause }),
+          // An answer the schema rejects is the backend's fault, like a 5xx, so it gets an HTTP
+          // status too (502): callers that treat an HTTP error as "no data" handle it the same way
+          console.error(`${op.path}: unexpected response from the REST API`, cause);
+          throw restError(
+            op.path,
+            "INTERNAL_SERVER_ERROR",
+            502,
+            `${op.path}: unexpected response from the REST API`,
           );
         }
       };

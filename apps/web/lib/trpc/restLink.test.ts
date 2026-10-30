@@ -76,6 +76,18 @@ describe("restLink", () => {
     );
     expect(err).toBeInstanceOf(TRPCClientError);
     expect(err.message).toMatch(/unexpected response from the REST API/);
+    // An HTTP status, so callers that turn backend errors into "no data" handle it too
+    expect(err.data?.httpStatus).toBe(502);
+  });
+
+  it("gives a Danish fundraiser that fails the schema an HTTP status (fundraiser pages show no data)", async () => {
+    const err = await caught(
+      clientWith(
+        respond(200, { status: 200, content: { totalSum: "x", donationCount: 1 } }),
+      ).site.fundraiser.query({ id: "8d0c2d7e-1a51-4e0e-9d55-2f3b8b9d6c11" }),
+    );
+    expect(err).toBeInstanceOf(TRPCClientError);
+    expect(err.data?.httpStatus).toBe(502);
   });
 
   /**
@@ -313,7 +325,7 @@ describe("restLink", () => {
         ],
       });
 
-    it("maps the results procedures to the same REST routes as before, without a token", async () => {
+    it("maps the results procedures and site.organizations to the same REST routes as before, without a token", async () => {
       const cases: Array<[() => Promise<unknown>, string, unknown]> = [];
       const fetchImpl = vi.fn(async (url: string, _init?: RequestInit) => {
         const content = cases.find(([, path]) => url.endsWith(path))![2];
@@ -334,6 +346,26 @@ describe("restLink", () => {
         ],
         [() => trpc.site.referralSums.query(), "/results/referrals/sums", []],
         [() => trpc.site.monthlyOutputs.query(), "/results/donations/monthly/outputs", []],
+        [
+          () => trpc.site.organizations.query(),
+          "/organizations/all/",
+          // giveffektivt/donation-platform app/organizations/all (buildOrganizations)
+          [
+            {
+              id: -1,
+              name: "Smart fordeling",
+              widgetDisplayName: "Smart fordeling",
+              widgetContext: null,
+              shortDescription: "Din donation fordeles efter Giv Effektivts anbefalinger",
+              longDescription: "Smart fordeling",
+              standardShare: 100,
+              informationUrl: "/smart-fordeling",
+              isActive: true,
+              ordering: 1,
+              causeAreaId: -1,
+            },
+          ],
+        ],
       );
       for (const [query, path, content] of cases) {
         fetchImpl.mockClear();

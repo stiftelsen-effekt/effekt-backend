@@ -12,7 +12,7 @@ export const DistributionController: React.FC<{
 }> = ({ causeArea, savedCauseArea = causeArea, onChange }) => {
   const { getAccessTokenSilently } = useAuth0();
 
-  const { data: causeAreas, loading: causeArasLoading } = useCauseAreas(getAccessTokenSilently);
+  const { data: causeAreas, loading: causeArasLoading } = useCauseAreas();
 
   if (causeArasLoading) return <div>Loading cause areas...</div>;
 

@@ -1,16 +1,17 @@
 import style from "./DonationsDistributionGraph.module.scss";
 import { Distribution } from "../../../../models";
 import { thousandize } from "../../../../util/formatting";
+import { toNumber } from "../../../../util/decimal";
 
 export const DonationsDistributionGraph: React.FC<{ sum: string; distribution: Distribution }> = ({
   sum,
   distribution,
 }) => {
   const max = Math.max(
-    ...distribution.causeAreas[0].organizations.map((org) => parseFloat(org.percentageShare)),
+    ...distribution.causeAreas[0].organizations.map((org) => toNumber(org.percentageShare)),
   );
   const organizations = [...distribution.causeAreas[0].organizations].sort(
-    (a, b) => parseFloat(b.percentageShare) - parseFloat(a.percentageShare),
+    (a, b) => toNumber(b.percentageShare) - toNumber(a.percentageShare),
   );
 
   return (
@@ -20,16 +21,13 @@ export const DonationsDistributionGraph: React.FC<{ sum: string; distribution: D
           <div
             key={dist.name}
             className={style.bar}
-            style={{ width: `${(parseFloat(dist.percentageShare) / max) * 100}%` }}
+            style={{ width: `${(toNumber(dist.percentageShare) / max) * 100}%` }}
             data-cy="donation-distribution-graph-bar"
           >
             <div key={dist.name} className={style.label}>
               <div>{dist.name}</div>
               <div>
-                {thousandize(
-                  Math.round((parseFloat(dist.percentageShare) / 100) * parseFloat(sum)),
-                )}{" "}
-                kr
+                {thousandize(Math.round((toNumber(dist.percentageShare) / 100) * toNumber(sum)))} kr
               </div>
             </div>
           </div>

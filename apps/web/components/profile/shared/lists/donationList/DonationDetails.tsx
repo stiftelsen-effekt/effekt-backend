@@ -20,7 +20,7 @@ export type DonationDetailsConfiguration = {
 };
 
 export const DonationDetails: React.FC<{
-  sum: string;
+  sum: string | number;
   donation: Donation;
   distribution: Distribution;
   timestamp: Date;

@@ -1,3 +1,21 @@
+/**
+ * Expands the first agreement and waits for the cause areas its details need. Two components load
+ * them through `widget.causeAreas`: the donation widget, which the beforeEach waits for, and the
+ * agreement details (useCauseAreas), which render a spinner until theirs arrives. The details mount
+ * when the row scrolls into view or is expanded, so their request comes either with the widget's
+ * or after the click; this second wait covers both. Asserting right after the click raced it.
+ */
+const expandFirstAgreement = () => {
+  cy.get("[data-cy=generic-list-table]")
+    .first()
+    .find("tbody")
+    .first()
+    .find("[data-cy=generic-list-row-expand]")
+    .first()
+    .click();
+  cy.wait("@getCauseAreas");
+};
+
 describe("Agreements page", () => {
   beforeEach(() => {
     cy.login();
@@ -110,14 +128,7 @@ describe("Agreements page", () => {
   });
 
   it("Should display correct information in expanded view", () => {
-    // Expand the first agreement
-    cy.get("[data-cy=generic-list-table]")
-      .first()
-      .find("tbody")
-      .first()
-      .find("[data-cy=generic-list-row-expand]")
-      .first()
-      .click();
+    expandFirstAgreement();
 
     // Check cause area input
     cy.get("[data-cy=generic-list-table]")
@@ -171,14 +182,7 @@ describe("Agreements page", () => {
   });
 
   it("Should calculate the cause area amount from organization amounts", () => {
-    // Expand the first agreement
-    cy.get("[data-cy=generic-list-table]")
-      .first()
-      .find("tbody")
-      .first()
-      .find("[data-cy=generic-list-row-expand]")
-      .first()
-      .click();
+    expandFirstAgreement();
 
     cy.get("[data-cy=generic-list-table]")
       .first()
@@ -200,14 +204,7 @@ describe("Agreements page", () => {
 
   // TODO: https://github.com/stiftelsen-effekt/main-site/issues/899
   xit("Should error when trying to save inconsistent agreement state", () => {
-    // Expand the first agreement
-    cy.get("[data-cy=generic-list-table]")
-      .first()
-      .find("tbody")
-      .first()
-      .find("[data-cy=generic-list-row-expand]")
-      .first()
-      .click();
+    expandFirstAgreement();
 
     // Create inconsistent distribution
     cy.get("[data-cy=generic-list-table]")
@@ -243,14 +240,7 @@ describe("Agreements page", () => {
   });
 
   it("Should be possible to change the agreement distribution", () => {
-    // Expand the first agreement
-    cy.get("[data-cy=generic-list-table]")
-      .first()
-      .find("tbody")
-      .first()
-      .find("[data-cy=generic-list-row-expand]")
-      .first()
-      .click();
+    expandFirstAgreement();
 
     // Create a consistent new distribution
     cy.get("[data-cy=generic-list-table]")
@@ -376,14 +366,7 @@ describe("Agreements page", () => {
   });
 
   it("Should be possible to change the agreement date", () => {
-    // Expand the first agreement
-    cy.get("[data-cy=generic-list-table]")
-      .first()
-      .find("tbody")
-      .first()
-      .find("[data-cy=generic-list-row-expand]")
-      .first()
-      .click();
+    expandFirstAgreement();
 
     // Change the payment date
     cy.get("[data-cy=generic-list-table]")
@@ -451,14 +434,7 @@ describe("Agreements page", () => {
   });
 
   it("Should update the agreement sum from the distribution amounts", () => {
-    // Expand the first agreement
-    cy.get("[data-cy=generic-list-table]")
-      .first()
-      .find("tbody")
-      .first()
-      .find("[data-cy=generic-list-row-expand]")
-      .first()
-      .click();
+    expandFirstAgreement();
 
     cy.get("[data-cy=generic-list-table]")
       .first()
@@ -525,14 +501,7 @@ describe("Agreements page", () => {
   });
 
   it("Should move agreement to inaktive list when cancelling agreement", () => {
-    // Expand the first agreement
-    cy.get("[data-cy=generic-list-table]")
-      .first()
-      .find("tbody")
-      .first()
-      .find("[data-cy=generic-list-row-expand]")
-      .first()
-      .click();
+    expandFirstAgreement();
 
     /**
      * Mock returned agreements on mutate

@@ -1,65 +1,29 @@
-import type { SanityAsset } from "@sanity/image-url";
+import type { RouterOutputs } from "./lib/trpc/client";
+
+/*
+ * Min Side's data, as the procedures' output schemas (apps/api/src/trpc/shared/minside.ts) return
+ * it, on every site: the Danish REST link validates with the same schemas.
+ */
+type Minside = RouterOutputs["minside"];
+export type Donation = Minside["donations"][number];
+/** One entry of a Danish donation's precomputed impact */
+export type DonationImpactEntry = NonNullable<Donation["impact"]>[number];
+export type AvtaleGiroAgreement = Minside["avtaleGiroAgreements"][number];
+export type AutoGiroAgreement = Minside["autoGiroAgreements"][number];
+export type VippsAgreement = Minside["vippsAgreements"][number];
+export type Distribution = Minside["distributions"][number];
+export type DistributionCauseArea = Distribution["causeAreas"][number];
+export type Donor = Minside["profile"];
+export type AggregatedDonations = Minside["donationsAggregated"][number];
+export type TaxUnit = Minside["taxUnits"][number];
+export type TaxYearlyReport = Minside["taxReports"][number];
+export type TaxYearlyReportUnits = TaxYearlyReport["units"][number];
 
 export enum META_OWNER {
   EFFEKT = 1,
   EAN = 2,
   EFFEKTANDEAN = 3,
 }
-
-export type DonationImpactEntry = {
-  recipient: string;
-  unit: string;
-  amount: number;
-  count: number;
-  organization: string;
-};
-
-export type Donation = {
-  KID: string;
-  donor: string;
-  donorId: number;
-  email: string;
-  id: number;
-  paymentMethod: string;
-  sum: string;
-  timestamp: string;
-  transactionCost: string;
-  metaOwnerId: META_OWNER;
-  impact?: DonationImpactEntry[];
-};
-
-/**
- * Recurring agreements as Min Side gets them (minside.*Agreements). Only the fields Min Side reads;
- * the procedures' output schemas (apps/api/src/trpc/shared/minside.ts) strip the rest.
- */
-export type AvtaleGiroAgreement = {
-  ID: number;
-  active: number;
-  amount: string;
-  KID: string;
-  payment_date: number;
-  created: string;
-  cancelled: string | null;
-};
-
-export type AutoGiroAgreement = {
-  ID: number;
-  KID: string;
-  amount: string;
-  payment_date: number;
-  active: boolean;
-  created: string;
-  cancelled: string | null;
-};
-
-export type VippsAgreement = {
-  ID: number;
-  status: "EXPIRED" | "PENDING" | "ACTIVE" | "STOPPED";
-  KID: string;
-  timestamp_created: string;
-  monthly_charge_day: number;
-  amount: number;
-};
 
 export type DKPaymentMethod = "MobilePay" | "Credit card" | "Bank transfer";
 
@@ -76,54 +40,8 @@ export type DKAgreement = {
   is_payment_expired: boolean;
 };
 
-export type Distribution = {
-  kid: string;
-  donorId: number;
-  taxUnitId: number | null;
-  causeAreas: DistributionCauseArea[];
-};
-
-export type DistributionCauseArea = {
-  id: number;
-  name?: string;
-  standardSplit: boolean;
-  percentageShare: string;
-  amount?: number;
-  organizations: {
-    id: number;
-    name?: string;
-    percentageShare: string;
-    amount?: number;
-  }[];
-};
-
-export type Donor = {
-  id: number;
-  name: string | null;
-  email: string;
-  newsletter: boolean;
-  registered: string;
-};
-
-export type AggregatedDonations = {
-  abbriv: string;
-  organization: string;
-  organizationId: number;
-  value: string;
-  year: number;
-};
-
 export type DonationGraphData = {
   name: string;
-};
-
-export type Organization = {
-  id: number;
-  name: string;
-  abbriv: string;
-  shortDesc: string;
-  standardShare: number;
-  infoUrl: string;
 };
 
 export type SEOMeta = {
@@ -142,68 +60,6 @@ export type FacebookDonationRegistration = {
   paymentID: string;
   name: string;
   ssn: string;
-};
-
-export type TaxUnit = {
-  id: number;
-  donorId: number;
-  ssn: string;
-  name: string;
-  numDonations: number;
-  sumDonations: number;
-  registered: string;
-  archived: string | null;
-  taxDeductions?: { year: number; sumDonations: number; deduction: number; benefit: number }[];
-};
-
-export type TaxYearlyReport = {
-  /** @description The year the report is for */
-  year: number;
-  /** @description The tax units for the year */
-  units: TaxYearlyReportUnits[];
-  /** @description The sum of all donations for the year not connected to a tax unit */
-  sumDonationsWithoutTaxUnit: {
-    /** @description The sum of all donations for the year not connected to a tax unit */
-    sumDonations: number;
-    /** @description The channels for the year */
-    channels: {
-      /** @description The channel (or entity the donations where given to) for the year and channel */
-      channel: string;
-      /** @description The sum of all donations for the year and channel */
-      sumDonations: number;
-    }[];
-  };
-  /** @description The sum of all non deductible donations for the year and type */
-  sumNonDeductibleDonationsByType: {
-    /** @description The type of non deductible donation */
-    type: string;
-    /** @description The sum of all non deductible donations for the year and type */
-    sumNonDeductibleDonations: number;
-  }[];
-  /** @description The sum of all tax deductions for the year */
-  sumTaxDeductions: number;
-  /** @description The sum of all donations for the year */
-  sumDonations: number;
-};
-
-export type TaxYearlyReportUnits = {
-  /** @description The Auto-generated id for a tax unit */
-  id: number;
-  /** @description Full name of the tax unit (either a personal name or a business entity) */
-  name: string;
-  /** @description Either a personal number or the number for the business entity */
-  ssn: string;
-  /** @description The sum of all donations for the tax unit for the year and channel */
-  sumDonations: number;
-  /** @description The tax deduction for the tax unit for the year and channel */
-  taxDeduction: number;
-  /** @description The channels for the tax unit for the year */
-  channels: {
-    /** @description The channel (or entity the donations where given to) for the tax unit for the year and channel */
-    channel: string;
-    /** @description The sum of all donations for the tax unit for the year and channel */
-    sumDonations: number;
-  }[];
 };
 
 export type ImpactCharity = {

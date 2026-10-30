@@ -8,6 +8,7 @@ import { GenericList } from "../GenericList";
 import { ListRow } from "../GenericListRow";
 import { DonationDetails, DonationDetailsConfiguration } from "./DonationDetails";
 import { ReactNode } from "react";
+import { toNumber } from "../../../../../util/decimal";
 
 export type TableFieldTypes = "string" | "sum" | "date" | "paymentmethod";
 
@@ -147,7 +148,7 @@ const formatField: (field: any, type: TableFieldTypes) => string = (field, type)
     case "string":
       return field;
     case "sum":
-      return thousandize(Math.round(parseFloat(field))) + " kr";
+      return thousandize(Math.round(toNumber(field))) + " kr";
     case "date":
       return onlyDate(field);
     case "paymentmethod":
