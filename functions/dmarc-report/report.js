@@ -60,6 +60,11 @@ function classify(row) {
     spfDomains.some((d) => d.endsWith("hubspotemail.net"))
   )
     return "HubSpot";
+  if (
+    selectors.includes("k1") &&
+    spfDomains.some((d) => d.endsWith("mcdlv.net") || d.endsWith("mcsv.net"))
+  )
+    return "Mailchimp";
   return "Other";
 }
 
