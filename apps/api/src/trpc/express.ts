@@ -1,8 +1,35 @@
-import type { Express } from "express";
+import type { Express, RequestHandler } from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { createContext } from "./context";
 import { passMultipartBodyToTrpc, TRPC_MAX_BODY_SIZE } from "./reportsMultipart";
 import { appRouter } from "./router";
+
+/**
+ * The public widget mutations (widget.registerDonation etc.) create donors and start payments
+ * without a login, so the per-IP rate limit has to count each one. A batch request
+ * (`/trpc/a,b?batch=1`) would run many procedures in one counted request, so a batch that
+ * includes one of them is refused. The website's widget client never batches.
+ */
+const publicMutations = new Set([
+  "widget.registerDonation",
+  "widget.registerBankPending",
+  "widget.submitReferral",
+]);
+
+export const rejectBatchedWidgetMutations: RequestHandler = (req, res, next) => {
+  const paths = decodeURIComponent(req.path.replace(/^\//, "")).split(",");
+  if (paths.length > 1 && paths.some((path) => publicMutations.has(path))) {
+    res.status(400).json({
+      error: {
+        message: "Widget mutations cannot be batched",
+        code: -32600,
+        data: { code: "BAD_REQUEST", httpStatus: 400 },
+      },
+    });
+    return;
+  }
+  next();
+};
 
 export const mountTrpc = (app: Express) => {
   // tRPC doesn't answer CORS preflights; the CORS headers are set by the global middleware
@@ -12,6 +39,7 @@ export const mountTrpc = (app: Express) => {
 
   app.use(
     "/trpc",
+    rejectBatchedWidgetMutations,
     passMultipartBodyToTrpc,
     createExpressMiddleware({
       router: appRouter,
