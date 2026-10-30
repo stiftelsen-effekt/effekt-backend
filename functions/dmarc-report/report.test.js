@@ -11,7 +11,7 @@ const record = (ip, count, dkim, spf, selector, spfDomain) => `
     <identifiers><header_from>gieffektivt.no</header_from></identifiers>
     <auth_results>
       ${
-        selector
+        selector // nosemgrep: javascript.lang.security.html-in-template-string.html-in-template-string -- test fixture XML
           ? `<dkim><domain>gieffektivt.no</domain><selector>${selector}</selector><result>${dkim}</result></dkim>`
           : ""
       }

@@ -116,7 +116,7 @@ module.exports = {
       await DAO.avtalegirocharges.markCompleted(charge.id, donationID);
       return charge.id;
     } catch (ex) {
-      console.error(`Failed to link AvtaleGiro charge for donation ${donationID}`, ex);
+      console.error("Failed to link AvtaleGiro charge for donation %s", donationID, ex);
       return null;
     }
   },
