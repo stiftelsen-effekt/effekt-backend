@@ -1,39 +1,27 @@
 import { describe, it, beforeAll, afterAll, beforeEach } from "vitest";
 import sinon from "sinon";
 import { expect } from "chai";
-import express from "express";
-import bodyParser from "body-parser";
-import request from "supertest";
 import { DAO } from "../custom_modules/DAO";
-import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import * as avtalegiroDeletions from "../custom_modules/avtalegiro/deletions";
 
 const mail = require("../custom_modules/mail");
 
-describe("POST /avtalegiro/:KID/status", () => {
-  let server: express.Express;
+describe("setAvtaleGiroStatus", () => {
+  let setAvtaleGiroStatus: (KID: string, active: unknown) => Promise<unknown>;
   let setActiveStub: sinon.SinonStub;
   let requestDeletionStub: sinon.SinonStub;
   let restoreStub: sinon.SinonStub;
   let changeMailStub: sinon.SinonStub;
 
   beforeAll(() => {
-    // These must be stubbed before importing the routes
-    sinon.stub(authMiddleware, "auth").returns([]);
-    sinon.stub(authMiddleware, "checkDonorOwnsDistribution").callsFake((_, req, res, next) => {
-      next();
-    });
-
+    // These must be stubbed before importing the module
     setActiveStub = sinon.stub(DAO.avtalegiroagreements, "setActive").resolves(true);
     requestDeletionStub = sinon.stub(avtalegiroDeletions, "requestDeletionOfUpcomingCharges");
     restoreStub = sinon.stub(DAO.avtalegirocharges, "restoreDeletionRequestsByKID").resolves();
     changeMailStub = sinon.stub(mail, "sendAvtaleGiroChange").resolves(false);
     sinon.stub(console, "log");
 
-    const avtalegiroRouter = require("../routes/avtalegiro");
-    server = express();
-    server.use(bodyParser.json());
-    server.use("/avtalegiro", avtalegiroRouter);
+    ({ setAvtaleGiroStatus } = require("../custom_modules/avtalegiro"));
   });
 
   beforeEach(() => {
@@ -51,12 +39,9 @@ describe("POST /avtalegiro/:KID/status", () => {
       tooLate: [],
     });
 
-    const response = await request(server)
-      .post("/avtalegiro/111/status")
-      .send({ active: 0 })
-      .expect(200);
+    const response = await setAvtaleGiroStatus("111", 0);
 
-    expect(response.body).to.equal(true);
+    expect(response).to.equal(true);
     sinon.assert.calledOnceWithExactly(setActiveStub, "111", 0);
     expect(requestDeletionStub.calledOnce).to.be.true;
     expect(requestDeletionStub.firstCall.args[0]).to.equal("111");
@@ -65,13 +50,13 @@ describe("POST /avtalegiro/:KID/status", () => {
   });
 
   it("deactivates the agreement before requesting deletions", async () => {
-    await request(server).post("/avtalegiro/111/status").send({ active: 0 }).expect(200);
+    await setAvtaleGiroStatus("111", 0);
 
     expect(setActiveStub.calledBefore(requestDeletionStub)).to.be.true;
   });
 
   it("also requests deletions when cancelled with false", async () => {
-    await request(server).post("/avtalegiro/111/status").send({ active: false }).expect(200);
+    await setAvtaleGiroStatus("111", false);
 
     expect(requestDeletionStub.calledOnce).to.be.true;
   });
@@ -80,19 +65,16 @@ describe("POST /avtalegiro/:KID/status", () => {
     requestDeletionStub.rejects(new Error("Database is down"));
     const consoleStub = sinon.stub(console, "error");
 
-    const response = await request(server)
-      .post("/avtalegiro/111/status")
-      .send({ active: 0 })
-      .expect(200);
+    const response = await setAvtaleGiroStatus("111", 0);
 
     consoleStub.restore();
-    expect(response.body).to.equal(true);
+    expect(response).to.equal(true);
     expect(setActiveStub.calledOnce).to.be.true;
     expect(changeMailStub.calledOnce).to.be.true;
   });
 
   it("keeps unsent deletions from going out when the agreement is reactivated", async () => {
-    await request(server).post("/avtalegiro/111/status").send({ active: 1 }).expect(200);
+    await setAvtaleGiroStatus("111", 1);
 
     sinon.assert.calledOnceWithExactly(restoreStub, "111");
     expect(requestDeletionStub.called).to.be.false;
@@ -100,7 +82,7 @@ describe("POST /avtalegiro/:KID/status", () => {
   });
 
   it("does nothing with charges when the status is missing", async () => {
-    await request(server).post("/avtalegiro/111/status").send({}).expect(200);
+    await setAvtaleGiroStatus("111", undefined);
 
     expect(requestDeletionStub.called).to.be.false;
     expect(restoreStub.called).to.be.false;

@@ -1,7 +1,7 @@
 import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { sendDonationReceipt, sendDonationRegistered } from "../custom_modules/mail";
+import { sendDonationReceipt } from "../custom_modules/mail";
 import bodyParser from "body-parser";
 import apicache from "apicache";
 import { confirmDonation, updateDonation } from "../custom_modules/donationsService";
@@ -94,43 +94,6 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
   } catch (ex) {
     next(ex);
   }
-});
-
-/**
- * @openapi
- * /donations/bank/pending:
- *   post:
- *    tags: [Donations]
- *    description: Registers a pending bank donation (sends an email with a notice to pay)
- */
-router.post("/bank/pending", urlEncodeParser, async (req, res, next) => {
-  let parsedData;
-  try {
-    parsedData = JSON.parse(req.body?.data);
-  } catch (ex) {
-    parsedData = null;
-  }
-  if (
-    !parsedData ||
-    typeof parsedData !== "object" ||
-    typeof parsedData.KID !== "string" ||
-    !/^\d+$/.test(parsedData.KID) ||
-    typeof parsedData.sum !== "number" ||
-    !Number.isFinite(parsedData.sum)
-  ) {
-    return res.status(400).json({ status: 400, content: "Invalid data" });
-  }
-
-  if (config.env === "production" || true)
-    var success = await sendDonationRegistered(parsedData.KID, parsedData.sum);
-  else success = true;
-
-  if (success) res.json({ status: 200, content: "OK" });
-  else
-    res.status(500).json({
-      status: 500,
-      content: "Could not send bank donation pending email",
-    });
 });
 
 /**

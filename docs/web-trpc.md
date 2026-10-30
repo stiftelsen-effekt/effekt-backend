@@ -251,7 +251,38 @@ permission>)`. For more input fields than `donorId`, pass a schema that extends 
 - [ ] Full-stack Cypress tests (`apps/web/cypress/e2e/fullstack`) wait on the real request with
       `cy.intercept("GET", trpcUrl("minside.<name>"))` and read its data with `trpcData()`
       (`cypress/support/trpc.js`). Add a new procedure to `TRPC_URLS` there first.
-- [ ] Keep the REST route: the Danish site and older clients still use it
+- [ ] Leave the REST route in place until the web deploy has settled, then remove it (see below)
+      unless something else still calls it. The Danish site never calls our API: its paths are
+      served by its own backend, so `restRoutes` documents that contract, not our routes.
+
+## Removing REST routes
+
+Remove a route once nothing calls it: search the repository (apps/web including Studio, apps/admin,
+functions, scripts) and check production traffic since the web deploy. Norway goes through the load
+balancer (`resource.type="http_load_balancer"`, host `data.gieffektivt.no`); Sweden's
+`api.geeffektivt.se` is a Cloud Run domain mapping, so check the `geeffektivt` service's request logs.
+Sweden runs the same API image, and its admin (`admin.geeffektivt.se`) still uses the old REST
+admin client, so check its referer too.
+
+Removed after the Min Side and widget migrations:
+
+| Route                                                                                | Replaced by                                                      |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `GET /donors/:id/distributions/`                                                     | `minside.distributions`                                          |
+| `GET /donors/:id/taxreports`                                                         | `minside.taxReports`                                             |
+| `PUT /donors/:id/recurring/vipps/:agreementId/{cancel,price,chargeday,distribution}` | `minside.cancelVippsAgreement`, `minside.updateVippsAgreement*`  |
+| `POST /avtalegiro/:KID/{amount,paymentdate,distribution,status}`                     | `minside.cancelAvtaleGiroAgreement`, `minside.updateAvtaleGiro*` |
+| `POST /donations/bank/pending`                                                       | `widget.registerBankPending`                                     |
+| `POST /referrals`                                                                    | `widget.submitReferral`                                          |
+
+Kept, although Min Side and the widget no longer call them:
+
+- `GET /donors/:id`, `/donors/:id/donations`, `/donations/aggregated`, `/taxunits`,
+  `/recurring/{vipps,avtalegiro,autogiro}`, `PUT /donors/:id` and the tax unit writes: the Swedish
+  admin calls them.
+- `GET /referrals/types`: the Swedish admin's client still references it.
+- `GET /causeareas/all`: Sanity Studio and the Swedish admin.
+- `PUT /autogiro/:KID/`: Swedish Min Side's AutoGiro changes are still REST.
 
 ## Deployment notes
 

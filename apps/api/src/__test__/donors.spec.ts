@@ -8,6 +8,8 @@ import request from "supertest";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import * as auth0 from "../custom_modules/auth0";
+import { getYearlyTaxReports } from "../custom_modules/taxReports";
+import { RequestLocale } from "../middleware/locale";
 
 let donorUpdateStub: sinon.SinonStub;
 let agreementStub: sinon.SinonStub;
@@ -379,7 +381,7 @@ describe("donors", () => {
       });
     });
 
-    describe("GET /donors/:id/taxreports", function () {
+    describe("getYearlyTaxReports (minside.taxReports)", function () {
       const donation = (
         id: number,
         sum: string,
@@ -445,9 +447,9 @@ describe("donors", () => {
       });
 
       it("counts EA Norge donations once, as EAN Giverportal", async function () {
-        const response = await request(server).get("/donors/237/taxreports").expect(200);
+        const reports = await getYearlyTaxReports(237, RequestLocale.NO);
 
-        const report = response.body.content.find((r) => r.year === 2024);
+        const report = reports.find((r) => r.year === 2024)!;
         expect(report).to.not.be.undefined;
 
         expect(report.units).to.have.length(1);
