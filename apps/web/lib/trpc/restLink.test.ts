@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import { describe, expect, it, vi } from "vitest";
 import { createTRPCClient, TRPCClientError } from "@trpc/client";
 import type { AppRouter } from "@effekt/api";
 import { restLink } from "./restLink";
@@ -12,7 +12,7 @@ const profile = {
 };
 
 const respond = (status: number, body: unknown) =>
-  jest.fn(
+  vi.fn(
     async (_url: string, _init?: RequestInit) => new Response(JSON.stringify(body), { status }),
   );
 

@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { formatGiftCardPrice } from "./formatGiftCardPrice";
 
 const normalize = (s: string) => s.replace(/\s/g, " ");
