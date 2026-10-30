@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { DAO, SqlResult } from "../DAO";
 
 import sqlString from "sqlstring";
+import { MONTHLY_CLAIM_STATUSES } from "../avtalegiro/charges";
 import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 import { OkPacket, ResultSetHeader } from "mysql2/promise";
 import { Avtalegiro_agreements } from "@prisma/client";
@@ -828,9 +829,19 @@ async function getMissingForDate(date: Date): Promise<MissingAvtaleGiroAgreement
           AND Donations.timestamp_confirmed >= DATE(?)
           AND Donations.timestamp_confirmed < DATE_ADD(DATE(?), interval 1 month)
       )
+      # Not claimed this month on another date, e.g. before the donor moved the payment date.
+      # The claims job skips those (see avtalegiro/charges.ts)
+      AND NOT EXISTS (
+        SELECT 1 FROM Avtalegiro_agreement_charges AS C
+        WHERE
+          C.KID = AG.KID
+          AND C.due_date BETWEEN DATE_FORMAT(DATE(?), '%Y-%m-01') AND LAST_DAY(DATE(?))
+          AND C.due_date <> DATE(?)
+          AND C.status IN (?)
+      )
     ORDER BY AG.ID
     `,
-    [day, day, day, day, day],
+    [day, day, day, day, day, day, day, day, MONTHLY_CLAIM_STATUSES],
   );
 
   return res;

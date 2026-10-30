@@ -57,6 +57,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
   let supersedeStub;
   let claimedKIDsStub;
   let addChargesStub;
+  let untrackedStub;
 
   const receiptsOnServer = (shipmentIDs: number[]) => {
     getConnectionStub.resolves({
@@ -82,6 +83,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     supersedeStub = sinon.stub(DAO.avtalegirocharges, "supersedeShipments").resolves();
     claimedKIDsStub = sinon.stub(DAO.avtalegirocharges, "getClaimedKIDsForMonth");
     addChargesStub = sinon.stub(DAO.avtalegirocharges, "addCharges").resolves();
+    untrackedStub = sinon.stub(DAO.avtalegirocharges, "getUntrackedShipmentIDs");
 
     getConnectionStub = sinon.stub<any, "getConnection">(sftp, "getConnection");
 
@@ -101,6 +103,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     agreementsStub.resolves(mockAgreements);
     claimedKIDsStub.resolves(new Set());
     shipmentsForDueDateStub.resolves([]);
+    untrackedStub.resolves([]);
     receiptsOnServer([]);
   });
 
@@ -222,6 +225,30 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     expect(sendFileStub.calledOnce).to.be.true;
     expect(sendFileStub.firstCall.args[1]).to.equal("DIRREM100523.170523.700");
     expect(loggingStub.callCount).to.equal(2);
+  });
+
+  it("Skips the retry on the day of the deploy if shipments were sent before charges were recorded", async () => {
+    dueDateStub.returns([DateTime.fromISO("2023-05-16"), DateTime.fromISO("2023-05-17")]);
+    untrackedStub.resolves([640, 641]);
+
+    await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-10").expect(200);
+
+    expect(untrackedStub.firstCall.args[0].toISODate()).to.equal("2023-05-10");
+    expect(shipmentsForDueDateStub.called).to.be.false;
+    expect(supersedeStub.called).to.be.false;
+    expect(addChargesStub.called).to.be.false;
+    expect(sendFileStub.called).to.be.false;
+    sinon.assert.calledOnce(loggingStub);
+    expect(loggingStub.firstCall.args[0]).to.equal("AvtaleGiro - Retry");
+    expect(loggingStub.firstCall.args[1].untrackedShipmentIDs).to.deep.equal([640, 641]);
+  });
+
+  it("Does not look for untracked shipments on days without claim dates", async () => {
+    dueDateStub.returns([]);
+
+    await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-13").expect(200);
+
+    expect(untrackedStub.called).to.be.false;
   });
 
   it("Does not notify donors again", async () => {

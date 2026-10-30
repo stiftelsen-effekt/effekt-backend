@@ -31,12 +31,17 @@ describe("DAO avtalegirocharges", () => {
       expect(queryStub.calledOnce).to.be.true;
       const [sql, params] = queryStub.firstCall.args;
       expect(sql).to.contain("INSERT INTO Avtalegiro_agreement_charges");
-      expect(params).to.deep.equal([
-        [
-          [1, 42, "111", "2026-10-27", 50000, "CLAIMED"],
-          [2, 42, "222", "2026-10-27", 340000, "CLAIMED"],
-        ],
+      const [rows] = params;
+      expect(rows.map((row) => row.slice(0, 6))).to.deep.equal([
+        [1, 42, "111", "2026-10-27", 50000, "CLAIMED"],
+        [2, 42, "222", "2026-10-27", 340000, "CLAIMED"],
       ]);
+      // created and last_updated are written from the app (UTC), not by the column default
+      expect(sql).to.contain("created, last_updated");
+      for (const row of rows) {
+        expect(row[6]).to.be.instanceOf(Date);
+        expect(row[7]).to.equal(row[6]);
+      }
     });
 
     it("does nothing without agreements", async () => {
@@ -47,7 +52,7 @@ describe("DAO avtalegirocharges", () => {
   });
 
   describe("getClaimedKIDsForMonth", () => {
-    it("queries the whole month and leaves out superseded claims", async () => {
+    it("queries the whole month and counts only claimed and completed charges", async () => {
       queryStub.resolves([[{ KID: "111" }, { KID: "222" }], []]);
 
       const claimed = await avtalegirocharges.getClaimedKIDsForMonth(
@@ -57,7 +62,7 @@ describe("DAO avtalegirocharges", () => {
       expect(claimed).to.deep.equal(new Set(["111", "222"]));
       const [sql, params] = queryStub.firstCall.args;
       expect(sql).to.contain("due_date BETWEEN ? AND ?");
-      expect(params).to.deep.equal(["2026-10-01", "2026-10-31", "SUPERSEDED"]);
+      expect(params).to.deep.equal(["2026-10-01", "2026-10-31", ["CLAIMED", "COMPLETED"]]);
     });
 
     it("returns an empty set when nothing is claimed", async () => {
@@ -68,7 +73,11 @@ describe("DAO avtalegirocharges", () => {
       );
 
       expect(claimed.size).to.equal(0);
-      expect(queryStub.firstCall.args[1]).to.deep.equal(["2026-02-01", "2026-02-28", "SUPERSEDED"]);
+      expect(queryStub.firstCall.args[1]).to.deep.equal([
+        "2026-02-01",
+        "2026-02-28",
+        ["CLAIMED", "COMPLETED"],
+      ]);
     });
   });
 
@@ -85,6 +94,22 @@ describe("DAO avtalegirocharges", () => {
       const [sql, params] = queryStub.firstCall.args;
       expect(sql).to.contain("DATE(S.generated) = ?");
       expect(params).to.deep.equal(["2026-10-24", "2026-10-20", "SUPERSEDED"]);
+    });
+  });
+
+  describe("getUntrackedShipmentIDs", () => {
+    it("finds the day's shipments sent before the first recorded charge", async () => {
+      queryStub.resolves([[{ ID: 640 }, { ID: 641 }], []]);
+
+      const shipmentIDs = await avtalegirocharges.getUntrackedShipmentIDs(
+        DateTime.fromISO("2026-10-20T11:00:00"),
+      );
+
+      expect(shipmentIDs).to.deep.equal([640, 641]);
+      const [sql, params] = queryStub.firstCall.args;
+      expect(sql).to.contain("NOT EXISTS");
+      expect(sql).to.contain("MIN(shipmentID)");
+      expect(params).to.deep.equal(["2026-10-20"]);
     });
   });
 

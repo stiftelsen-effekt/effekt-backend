@@ -186,6 +186,22 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
     }
 
     const claimDates = getDueDates(today);
+
+    // Shipments sent before charges were recorded (only on the day of the deploy) can't be
+    // matched to a claim date, so we can't tell which were accepted. Sending them again could
+    // charge donors twice, so the retry is skipped and the shipments are logged for a manual check.
+    if (claimDates.length > 0) {
+      const untrackedShipmentIDs = await DAO.avtalegirocharges.getUntrackedShipmentIDs(today);
+      if (untrackedShipmentIDs.length > 0) {
+        await DAO.logging.add("AvtaleGiro - Retry", {
+          skipped: "Shipments sent before charges were recorded. Check their receipts manually.",
+          untrackedShipmentIDs,
+        });
+        res.send("OK");
+        return;
+      }
+    }
+
     for (let claimDate of claimDates) {
       /**
        * Check if we have recieved an "accepted" reciept from MasterCard (Nets) for any of

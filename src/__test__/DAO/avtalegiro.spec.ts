@@ -225,7 +225,18 @@ describe("DAO avtalegiroagreements", () => {
       const [sql, params] = queryStub.firstCall.args;
       expect(sql).to.not.match(/Combining_table|call /i);
       expect(sql).to.contain("INNER JOIN Distributions");
-      expect(params).to.deep.equal(Array(5).fill("2024-11-19"));
+      expect(params).to.deep.equal([...Array(8).fill("2024-11-19"), ["CLAIMED", "COMPLETED"]]);
+    });
+
+    it("getMissingForDate leaves out agreements claimed on another date that month", async () => {
+      const queryStub = sinon.stub(DAO, "query").resolves([[], []]);
+
+      await DAO.avtalegiroagreements.getMissingForDate(new Date(2024, 10, 19));
+
+      const [sql] = queryStub.firstCall.args;
+      expect(sql).to.contain("FROM Avtalegiro_agreement_charges AS C");
+      expect(sql).to.contain("C.due_date <> DATE(?)");
+      expect(sql).to.contain("C.status IN (?)");
     });
 
     it("getRecievedDonationsForDate maps donations", async () => {

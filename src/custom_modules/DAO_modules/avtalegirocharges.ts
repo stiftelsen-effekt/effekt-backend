@@ -4,6 +4,7 @@ import {
   AvtaleGiroChargeStatus,
   AvtaleGiroOpenCharge,
   getMonthBounds,
+  MONTHLY_CLAIM_STATUSES,
 } from "../avtalegiro/charges";
 import { AvtaleGiroAgreement } from "./avtalegiroagreements";
 
@@ -20,6 +21,8 @@ async function addCharges(
 ): Promise<void> {
   if (agreements.length === 0) return;
 
+  // Written from the app, not by the column default, so they are UTC (see docs/timestamps.md)
+  const now = new Date();
   const rows = agreements.map((agreement) => [
     agreement.id,
     shipmentID,
@@ -27,11 +30,13 @@ async function addCharges(
     dueDate.toISODate(),
     agreement.amount,
     AvtaleGiroChargeStatus.CLAIMED,
+    now,
+    now,
   ]);
 
   await DAO.query(
     `INSERT INTO Avtalegiro_agreement_charges
-      (agreementID, shipmentID, KID, due_date, amount, status)
+      (agreementID, shipmentID, KID, due_date, amount, status, created, last_updated)
       VALUES ?`,
     [rows],
   );
@@ -46,8 +51,8 @@ async function getClaimedKIDsForMonth(dueDate: DateTime): Promise<Set<string>> {
 
   const [rows] = await DAO.query<{ KID: string }[]>(
     `SELECT DISTINCT KID FROM Avtalegiro_agreement_charges
-      WHERE due_date BETWEEN ? AND ? AND status <> ?`,
-    [start, end, AvtaleGiroChargeStatus.SUPERSEDED],
+      WHERE due_date BETWEEN ? AND ? AND status IN (?)`,
+    [start, end, MONTHLY_CLAIM_STATUSES],
   );
 
   return new Set(rows.map((row) => row.KID));
@@ -74,13 +79,32 @@ async function getShipmentIDsForDueDate(
 }
 
 /**
+ * Gets the shipments generated on a day that were sent before charges were recorded, i.e. by the
+ * claims job as it was before this table existed. Only possible on the day of the deploy: every
+ * later shipment is created right before its charges. A shipment created after the first recorded
+ * one, but with no charges (because recording them failed), is not counted, since nothing was sent.
+ */
+async function getUntrackedShipmentIDs(generatedOn: DateTime): Promise<number[]> {
+  const [rows] = await DAO.query<{ ID: number }[]>(
+    `SELECT S.ID FROM Avtalegiro_shipment S
+      WHERE DATE(S.generated) = ?
+        AND NOT EXISTS (SELECT 1 FROM Avtalegiro_agreement_charges C WHERE C.shipmentID = S.ID)
+        AND S.ID < COALESCE((SELECT MIN(shipmentID) FROM Avtalegiro_agreement_charges), 2147483647)
+      ORDER BY S.ID`,
+    [generatedOn.toISODate()],
+  );
+
+  return rows.map((row) => row.ID);
+}
+
+/**
  * Marks the claims in shipments as superseded, before a retry sends them again
  */
 async function supersedeShipments(shipmentIDs: number[]): Promise<void> {
   if (shipmentIDs.length === 0) return;
 
   await DAO.query(
-    `UPDATE Avtalegiro_agreement_charges SET status = ?
+    `UPDATE Avtalegiro_agreement_charges SET status = ?, last_updated = UTC_TIMESTAMP()
       WHERE shipmentID IN (?) AND status = ?`,
     [AvtaleGiroChargeStatus.SUPERSEDED, shipmentIDs, AvtaleGiroChargeStatus.CLAIMED],
   );
@@ -105,7 +129,8 @@ async function getOpenChargesByKID(KID: string): Promise<AvtaleGiroOpenCharge[]>
  */
 async function markCompleted(chargeID: number, donationID: number): Promise<boolean> {
   const [result] = await DAO.query(
-    `UPDATE Avtalegiro_agreement_charges SET status = ?, donationID = ?
+    `UPDATE Avtalegiro_agreement_charges
+      SET status = ?, donationID = ?, last_updated = UTC_TIMESTAMP()
       WHERE ID = ? AND status = ? AND donationID IS NULL`,
     [AvtaleGiroChargeStatus.COMPLETED, donationID, chargeID, AvtaleGiroChargeStatus.CLAIMED],
   );
@@ -117,6 +142,7 @@ export const avtalegirocharges = {
   addCharges,
   getClaimedKIDsForMonth,
   getShipmentIDsForDueDate,
+  getUntrackedShipmentIDs,
   supersedeShipments,
   getOpenChargesByKID,
   markCompleted,

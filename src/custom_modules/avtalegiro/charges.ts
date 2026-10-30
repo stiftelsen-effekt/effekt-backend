@@ -10,6 +10,14 @@ export enum AvtaleGiroChargeStatus {
   SUPERSEDED = "SUPERSEDED",
 }
 
+/**
+ * Statuses that count as "claimed this month": the agreement is not claimed again that month
+ */
+export const MONTHLY_CLAIM_STATUSES: AvtaleGiroChargeStatus[] = [
+  AvtaleGiroChargeStatus.CLAIMED,
+  AvtaleGiroChargeStatus.COMPLETED,
+];
+
 export type AvtaleGiroOpenCharge = {
   id: number;
   /** ISO date, e.g. 2026-10-27 */
@@ -29,8 +37,8 @@ export const MAX_DAYS_PAYMENT_BEFORE_DUE_DATE = 3;
  */
 export function getMonthBounds(dueDate: DateTime): { start: string; end: string } {
   return {
-    start: dueDate.startOf("month").toISODate(),
-    end: dueDate.endOf("month").toISODate(),
+    start: dueDate.startOf("month").toISODate()!,
+    end: dueDate.endOf("month").toISODate()!,
   };
 }
 
@@ -90,7 +98,10 @@ export function findChargeForPayment(
 
     const distance = Math.abs(daysAfterDueDate);
     // On a tie, prefer the earlier due date, since it has been waiting longest
-    if (distance < bestDistance || (distance === bestDistance && charge.dueDate < best.dueDate)) {
+    if (
+      distance < bestDistance ||
+      (distance === bestDistance && best !== null && charge.dueDate < best.dueDate)
+    ) {
       best = charge;
       bestDistance = distance;
     }
