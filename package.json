@@ -35,14 +35,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fellmirr/effekt-backend.git"
+    "url": "git+https://github.com/stiftelsen-effekt/effekt-platform.git"
   },
   "author": "Håkon Harnes",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/fellmirr/effekt-backend/issues"
+    "url": "https://github.com/stiftelsen-effekt/effekt-platform/issues"
   },
-  "homepage": "https://github.com/fellmirr/effekt-backend#readme",
+  "homepage": "https://github.com/stiftelsen-effekt/effekt-platform#readme",
   "dependencies": {
     "@mailchimp/mailchimp_marketing": "^3.0.80",
     "@navikt/fnrvalidator": "^1.2.0",

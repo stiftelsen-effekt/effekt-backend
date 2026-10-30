@@ -101,7 +101,7 @@ To run the API locally, follow these setup steps:
 Clone this repository to your local machine:
 
 ```sh
-git clone https://github.com/stiftelsen-effekt/effekt-backend.git
+git clone https://github.com/stiftelsen-effekt/effekt-platform.git
 ```
 
 > **Note** To clone the repository, you must have access and be part of the [Stiftelsen Effekt github organization](https://github.com/stiftelsen-effekt). You must also be logged in on git on your local machine. If you do not have access to clone the repository, enquire on our [tech](https://effektteam.slack.com/archives/G011BE3BG3H) channel.
