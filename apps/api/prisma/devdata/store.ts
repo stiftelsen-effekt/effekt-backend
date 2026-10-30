@@ -87,6 +87,16 @@ const TABLES: Record<TableName, TableMeta> = {
     fks: { Import_log_ID: "Import_logs", Donation_ID: "Donations" },
   },
   Avtalegiro_shipment: { key: "ID", numericKey: true },
+  Avtalegiro_agreement_charges: {
+    key: "ID",
+    numericKey: true,
+    fks: {
+      agreementID: "Avtalegiro_agreements",
+      shipmentID: "Avtalegiro_shipment",
+      deletion_shipmentID: "Avtalegiro_shipment",
+      donationID: "Donations",
+    },
+  },
   Payees: { key: "ID", numericKey: true },
   Organization_payees: { key: "ID", numericKey: true, fks: { Payee_ID: "Payees" } },
   Projects: { key: "ID", numericKey: true },

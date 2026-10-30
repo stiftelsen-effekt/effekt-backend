@@ -36,6 +36,7 @@ import {
   type LucideIcon,
   ListChecksIcon,
   FileTextIcon,
+  ReceiptTextIcon,
   SendIcon,
 } from "lucide-react";
 import { config } from "@/lib/config";
@@ -145,6 +146,12 @@ const allNavGroups: NavGroup[] = [
         label: "Vipps charges",
         icon: SmartphoneIcon,
         keywords: ["refund"],
+      },
+      {
+        to: "/avtalegiro-charges",
+        label: "AvtaleGiro charges",
+        icon: ReceiptTextIcon,
+        keywords: ["claims", "trekk", "krav", "mps", "nets", "deletion", "sletting", "shipment"],
       },
       {
         to: "/avtalegiro-check",

@@ -3,6 +3,7 @@ import { osloToday } from "../../custom_modules/osloDays";
 import { z } from "zod";
 import { DAO } from "../../custom_modules/DAO";
 import type { AvtaleGiroAgreementPayments } from "../../custom_modules/DAO_modules/avtalegiroagreements";
+import type { AvtaleGiroChargeListRow } from "../../custom_modules/DAO_modules/avtalegirocharges";
 import {
   replaceAvtaleGiroDistribution,
   setAvtaleGiroStatus,
@@ -21,9 +22,14 @@ import {
   AVTALEGIRO_MAX_NOK,
   autoGiroExportInput,
   autoGiroListInput,
+  avtaleGiroAgreementChargesInput,
+  avtaleGiroAgreementChargesOutput,
+  avtaleGiroChargeListInput,
+  avtaleGiroChargeListOutput,
   avtaleGiroExportInput,
   avtaleGiroListInput,
   chargeDay,
+  defaultAvtaleGiroChargeSort,
   isoDate,
   mandateListInput,
   toLocalDate,
@@ -88,7 +94,49 @@ const getAvtaleGiroAgreements = async (
   };
 };
 
+const toIsoOrNull = (value: Date | null) => value?.toISOString() ?? null;
+
+const toChargeOutput = (row: AvtaleGiroChargeListRow) => ({
+  ...row,
+  created: toIsoOrNull(row.created),
+  lastUpdated: toIsoOrNull(row.lastUpdated),
+});
+
+/**
+ * The claims sent to Mastercard Payment Services (Avtalegiro_agreement_charges): one per
+ * agreement and due date, with the payment it was matched to and any deletion after a cancellation.
+ */
+const avtalegiroChargesRouter = router({
+  /** A page of charges, newest due date first by default, with counts and sums for the filter */
+  list: adminProcedure
+    .input(avtaleGiroChargeListInput)
+    .output(avtaleGiroChargeListOutput)
+    .query(async ({ input }) => {
+      const result = await DAO.avtalegirocharges.getList({
+        filter: input.filter ?? {},
+        sort: input.sort ?? defaultAvtaleGiroChargeSort,
+        page: input.page,
+        limit: input.limit,
+      });
+      return { ...result, rows: result.rows.map(toChargeOutput) };
+    }),
+
+  /** Every charge on one agreement, newest due date first. NOT_FOUND for an unknown agreement. */
+  byAgreement: adminProcedure
+    .input(avtaleGiroAgreementChargesInput)
+    .output(avtaleGiroAgreementChargesOutput)
+    .query(async ({ input }) => {
+      const rows = await DAO.avtalegirocharges.getByAgreementId(input.agreementId);
+      if (rows.length === 0 && !(await DAO.avtalegiroagreements.getAgreement(input.agreementId))) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Agreement not found" });
+      }
+      return rows.map(toChargeOutput);
+    }),
+});
+
 const avtalegiroRouter = router({
+  charges: avtalegiroChargesRouter,
+
   /** POST /avtalegiro/agreements. Amounts in NOK. */
   list: adminProcedure
     .input(avtaleGiroListInput)

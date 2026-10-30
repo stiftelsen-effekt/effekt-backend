@@ -87,6 +87,7 @@ export const GENERATED_TABLES = [
   "Import_logs",
   "Review_queue_items",
   "Avtalegiro_shipment",
+  "Avtalegiro_agreement_charges",
   // Regranting (prisma/devdata/regranting.ts)
   "Payees",
   "Organization_payees",
@@ -162,6 +163,13 @@ type VippsAgreement = {
   urlCode: string;
 };
 
+/** A claim sent to MPS for an agreement and due date (Avtalegiro_agreement_charges) */
+type AvtaleGiroCharge = {
+  row: Row;
+  agreement: AvtaleGiro;
+  due: number;
+};
+
 type Charge = {
   row: Row;
   due: number;
@@ -218,6 +226,13 @@ class Simulation {
   private readonly vipps: VippsAgreement[] = [];
   private readonly charges: Charge[] = [];
   private readonly reviewItems: ReviewItem[] = [];
+  /** The live claim per `${agreementId}:${dueDay}` (a superseded one is replaced by its retry) */
+  private readonly agCharges = new Map<string, AvtaleGiroCharge>();
+  private readonly agChargesByAgreement = new Map<number, AvtaleGiroCharge[]>();
+  /** Deletion requests waiting for the next run, with the day they were requested */
+  private agDeletionQueue: { charge: AvtaleGiroCharge; requested: number }[] = [];
+  /** The claims shipment generated each day (10:00 run) */
+  private readonly claimShipments = new Map<number, Row>();
   private stats: DayStats = this.emptyStats();
   private activeAvtaleGiro = 0;
   private activeVipps = 0;
@@ -225,6 +240,8 @@ class Simulation {
   /** Import logs, shipments and review items only exist for recent days (anchored at start) */
   private readonly operationalFrom: number;
   private readonly reviewFrom: number;
+  /** AvtaleGiro claims are recorded per charge from this day */
+  private readonly chargesFrom: number;
 
   constructor({ seed, start, end, scale, anchor }: GenerateOptions) {
     this.seed = seed;
@@ -254,6 +271,7 @@ class Simulation {
     const initialEnd = start + Math.round(config.years * 365.25);
     this.operationalFrom = initialEnd - config.operationalLogDays;
     this.reviewFrom = initialEnd - 150;
+    this.chargesFrom = initialEnd - config.avtaleGiro.chargeHistoryDays;
     this.schedulePledges();
   }
 
@@ -267,6 +285,7 @@ class Simulation {
       this.drainQueue();
       this.newAgreements();
       this.avtaleGiroClaims();
+      this.avtaleGiroChargeRun();
       this.vippsCharges();
       this.oneOffDonations();
       this.fundraisers();
@@ -805,6 +824,7 @@ class Simulation {
         this.activeAvtaleGiro--;
         this.stats.agTerminated++;
         this.stopFeedback(this.rng("ag-stop", id), { avtalegiroAgreementID: id }, cancelled);
+        this.requestChargeDeletions(id, cancelled);
       });
     }
   }
@@ -822,8 +842,9 @@ class Simulation {
       const rng = this.rng("ag-claim", agreement.id, this.day);
       if (rng.chance(config.avtaleGiro.missedClaim)) continue;
       const booked = nextBankDay(this.day);
-      this.at(booked, () =>
-        this.donation({
+      const due = this.day;
+      this.at(booked, () => {
+        const donationId = this.donation({
           donorId: this.distributionDonor(agreement.KID),
           KID: agreement.KID,
           paymentId: PAYMENT.AVTALEGIRO,
@@ -831,9 +852,161 @@ class Simulation {
           day: booked,
           seconds: 0,
           externalId: this.externalId(PAYMENT.AVTALEGIRO, booked),
-        }),
-      );
+        });
+        this.completeCharge(agreement.id, due, donationId, booked);
+      });
     }
+  }
+
+  // AvtaleGiro charges: the claims job, deletions after a cancellation and OCR matching, as in
+  // src/custom_modules/avtalegiro (see PRs #781/#782). Recorded from `chargesFrom` on.
+
+  /** The banking day the claims for a due date are sent: `claimBankDaysAhead` banking days before */
+  private claimDay(due: number): number {
+    let day = due;
+    for (let n = 0; n < config.avtaleGiro.claimBankDaysAhead;) {
+      day--;
+      if (isBankDay(day)) n++;
+    }
+    return day;
+  }
+
+  private claimShipment(day: number): Row {
+    let shipment = this.claimShipments.get(day);
+    if (!shipment) {
+      shipment = this.add("Avtalegiro_shipment", {
+        ID: this.id("Avtalegiro_shipment"),
+        num_claims: 0,
+        generated: timestamp(day, 10 * 3600),
+      });
+      this.claimShipments.set(day, shipment);
+    }
+    return shipment;
+  }
+
+  /** A shipment other than the day's claims shipment: a retry or a deletion file */
+  private extraShipment(day: number, seconds: number, numClaims: number): number {
+    const id = this.id("Avtalegiro_shipment");
+    this.add("Avtalegiro_shipment", {
+      ID: id,
+      num_claims: numClaims,
+      generated: timestamp(day, seconds),
+    });
+    return id;
+  }
+
+  private chargeRow(agreement: AvtaleGiro, due: number, shipmentId: number, at: string): Row {
+    return this.add("Avtalegiro_agreement_charges", {
+      ID: this.id("Avtalegiro_agreement_charges"),
+      agreementID: agreement.id,
+      shipmentID: shipmentId,
+      KID: agreement.KID,
+      due_date: isoDate(due),
+      amount: agreement.amount * 100,
+      status: "CLAIMED",
+      donationID: null,
+      deletion_shipmentID: null,
+      last_updated: at,
+      created: at,
+    });
+  }
+
+  /** The 10:00 run on banking days: claims for the due dates whose claim day is today, then deletions */
+  private avtaleGiroChargeRun() {
+    const today = this.day;
+    if (today < this.chargesFrom || !isBankDay(today)) return;
+
+    const claims: { agreement: AvtaleGiro; due: number }[] = [];
+    for (let due = today + 1; due <= today + 14; due++) {
+      if (this.claimDay(due) !== today) continue;
+      const { dom } = parts(due);
+      const candidates = [...(this.agreementsByPaymentDay.get(dom) ?? [])];
+      if (isLastDayOfMonth(due)) candidates.push(...(this.agreementsByPaymentDay.get(0) ?? []));
+      for (const agreement of candidates) {
+        // The same agreements avtaleGiroClaims() books a payment for on the due date
+        if (agreement.activated === null || agreement.activated > due - 3) continue;
+        if (agreement.created >= due - 6) continue;
+        if (agreement.cancelled !== null && agreement.cancelled <= today) continue;
+        claims.push({ agreement, due });
+      }
+    }
+
+    if (claims.length > 0) {
+      const shipment = this.claimShipment(today);
+      const sent = timestamp(today, 8 * 3600 + 5);
+      const rejected = this.rng("ag-shipment", today).chance(config.avtaleGiro.rejectedShipment);
+      let shipmentId = shipment.ID as number;
+      if (rejected) {
+        // MPS never accepted the first file: the 11:00 retry supersedes it and sends a new one
+        for (const { agreement, due } of claims) {
+          const row = this.chargeRow(agreement, due, shipmentId, sent);
+          row.status = "SUPERSEDED";
+          row.last_updated = timestamp(today, 9 * 3600 + 5);
+        }
+        shipmentId = this.extraShipment(today, 11 * 3600, claims.length);
+      }
+      shipment.num_claims = claims.length;
+      const at = rejected ? timestamp(today, 9 * 3600 + 5) : sent;
+      for (const { agreement, due } of claims) {
+        const charge = { row: this.chargeRow(agreement, due, shipmentId, at), agreement, due };
+        this.agCharges.set(`${agreement.id}:${due}`, charge);
+        const list = this.agChargesByAgreement.get(agreement.id) ?? [];
+        list.push(charge);
+        this.agChargesByAgreement.set(agreement.id, list);
+      }
+    }
+
+    this.sendChargeDeletions();
+  }
+
+  /** A cancelled agreement's claims that aren't due yet are queued for deletion */
+  private requestChargeDeletions(agreementId: number, cancelled: number) {
+    for (const charge of this.agChargesByAgreement.get(agreementId) ?? []) {
+      if (charge.row.status !== "CLAIMED" || charge.due <= cancelled) continue;
+      charge.row.status = "DELETION_REQUESTED";
+      charge.row.last_updated = timestamp(cancelled, 14 * 3600);
+      this.agDeletionQueue.push({ charge, requested: cancelled });
+    }
+  }
+
+  /**
+   * Sends earlier days' deletion requests in one file, if MPS gets it by the banking day before the
+   * due date; later ones go back to claimed. MPS accepts the file by the 11:00 retry, so only
+   * today's file (the last day generated) is still waiting for its receipt.
+   */
+  private sendChargeDeletions() {
+    const today = this.day;
+    const ready = this.agDeletionQueue.filter((r) => r.requested < today);
+    this.agDeletionQueue = this.agDeletionQueue.filter((r) => r.requested >= today);
+    const inTime = ready.filter(({ charge }) => {
+      let lastDay = nextBankDay(charge.due) - 1;
+      while (!isBankDay(lastDay)) lastDay--;
+      return today <= lastDay;
+    });
+    for (const { charge } of ready) {
+      if (charge.row.status !== "DELETION_REQUESTED") continue;
+      if (!inTime.some((r) => r.charge === charge)) {
+        charge.row.status = "CLAIMED";
+        charge.row.last_updated = timestamp(today, 8 * 3600 + 10);
+      }
+    }
+    const toSend = inTime.filter(({ charge }) => charge.row.status === "DELETION_REQUESTED");
+    if (toSend.length === 0) return;
+    const shipmentId = this.extraShipment(today, 10 * 3600 + 10, toSend.length);
+    for (const { charge } of toSend) {
+      charge.row.deletion_shipmentID = shipmentId;
+      charge.row.status = today === this.end ? "DELETION_SENT" : "DELETED";
+      charge.row.last_updated = timestamp(today, today === this.end ? 8 * 3600 + 10 : 9 * 3600);
+    }
+  }
+
+  /** The OCR import links the payment to its claim */
+  private completeCharge(agreementId: number, due: number, donationId: number, day: number) {
+    const charge = this.agCharges.get(`${agreementId}:${due}`);
+    if (!charge || charge.row.donationID !== null || charge.row.status === "SUPERSEDED") return;
+    charge.row.status = "COMPLETED";
+    charge.row.donationID = donationId;
+    charge.row.last_updated = timestamp(day, 18 * 3600);
   }
 
   private distributionDonor(KID: string): number {
@@ -1447,11 +1620,9 @@ class Simulation {
     const day = this.day;
     const s = this.stats;
 
-    this.add("Avtalegiro_shipment", {
-      ID: this.id("Avtalegiro_shipment"),
-      num_claims: s.agClaims,
-      generated: timestamp(day, 10 * 3600),
-    });
+    // From chargesFrom on, the claims run fills in the shipment's claims
+    const shipment = this.claimShipment(day);
+    if (day < this.chargesFrom) shipment.num_claims = s.agClaims;
     this.add("Import_logs", {
       ID: this.id("Import_logs"),
       label: "AvtaleGiro",

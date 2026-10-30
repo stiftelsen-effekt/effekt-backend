@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { osloDayRange } from "../../custom_modules/osloDays";
-import { isoDateSchema, paginationFields, sortSchema } from "./common";
+import {
+  avtaleGiroChargeSortColumns,
+  avtaleGiroChargeStatuses,
+} from "../../custom_modules/DAO_modules/avtalegirocharges";
+import { idSchema, isoDateSchema, paginationFields, sortSchema } from "./common";
 
 /** ISO date (YYYY-MM-DD), converted to local midnight like the REST API's date strings were. */
 export const isoDate = isoDateSchema;
@@ -121,4 +125,80 @@ export const mandateListInput = z.strictObject({
     })
     .optional(),
 });
+// endregion
+
+// region AvtaleGiro charges
+const chargeStatusSchema = z.enum(avtaleGiroChargeStatuses);
+
+/** Mirrors AvtaleGiroChargeFilter in DAO_modules/avtalegirocharges.ts */
+export const avtaleGiroChargeFilter = z.strictObject({
+  /** An empty array matches nothing */
+  statuses: z.array(chargeStatusSchema).optional(),
+  /** Due date, inclusive. The column is a plain date, so no time zone is involved. */
+  dueDate: range(isoDate).optional(),
+  /** In NOK */
+  amount: range(z.number().min(0)).optional(),
+  /** Partial match */
+  KID: z.string().max(32).optional(),
+  agreementId: idSchema.optional(),
+  /** Partial match on the donor's name */
+  donor: z.string().max(255).optional(),
+  donorId: idSchema.optional(),
+  /** The shipment that sent the claim or its deletion */
+  shipmentId: idSchema.optional(),
+  /** Linked to a donation (an OCR payment) or not */
+  matched: z.boolean().optional(),
+});
+
+export const avtaleGiroChargeListInput = z.strictObject({
+  ...paginationFields,
+  sort: sortSchema(avtaleGiroChargeSortColumns).optional(),
+  filter: avtaleGiroChargeFilter.optional(),
+});
+
+export const defaultAvtaleGiroChargeSort = { id: "dueDate", desc: true } as const;
+
+/** NOK with two decimals, e.g. "500.00" */
+const nokString = z.string().regex(/^-?\d+\.\d{2}$/);
+
+export const avtaleGiroChargeRow = z.strictObject({
+  id: z.number().int(),
+  agreementId: z.number().int(),
+  KID: z.string(),
+  /** YYYY-MM-DD */
+  dueDate: z.string(),
+  amount: nokString,
+  status: chargeStatusSchema,
+  /** The claims shipment that sent the charge */
+  shipmentId: z.number().int(),
+  /** The shipment that sent its deletion, once sent */
+  deletionShipmentId: z.number().int().nullable(),
+  /** The donation that paid it, once the payment is in an OCR file */
+  donationId: z.number().int().nullable(),
+  donorId: z.number().int().nullable(),
+  donorName: z.string().nullable(),
+  /** ISO instant */
+  created: z.string().nullable(),
+  /** ISO instant */
+  lastUpdated: z.string().nullable(),
+});
+
+export const avtaleGiroChargeListOutput = z.strictObject({
+  rows: z.array(avtaleGiroChargeRow),
+  pages: z.number().int(),
+  summary: z.strictObject({
+    count: z.number().int(),
+    sum: nokString,
+    byStatus: z.array(
+      z.strictObject({
+        status: chargeStatusSchema,
+        count: z.number().int(),
+        sum: nokString,
+      }),
+    ),
+  }),
+});
+
+export const avtaleGiroAgreementChargesInput = z.strictObject({ agreementId: idSchema });
+export const avtaleGiroAgreementChargesOutput = z.array(avtaleGiroChargeRow);
 // endregion
