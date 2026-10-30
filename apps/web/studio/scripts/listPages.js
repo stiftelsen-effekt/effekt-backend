@@ -26,15 +26,14 @@ const childProcess = spawn(
   [
     "documents",
     "query",
-    `'*[_type == "generic_page"] {
+    `*[_type == "generic_page"] {
       _id,
       slug { current }
-    }'`,
+    }`,
     ...(isExplicitDataset ? ["--dataset", dataset] : []),
   ],
-  {
-    shell: true,
-  },
+  // No shell: the arguments go to the sanity CLI as they are (so the query needs no quoting)
+  {},
 );
 
 childProcess.stdout.on("data", (data) => {

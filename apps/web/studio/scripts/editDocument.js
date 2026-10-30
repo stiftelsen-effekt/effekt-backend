@@ -43,6 +43,5 @@ spawn(
   {
     cwd: process.cwd(),
     stdio: "inherit",
-    shell: true,
   },
 );
