@@ -226,6 +226,142 @@ export const taxReportsOutput = z.array(
   }),
 );
 
+/*
+ * Min Side mutations. Each mirrors a REST route's permission and ownership check; the schemas are
+ * at least as strict as the REST validation (the rest, such as the shares summing to 100, is
+ * checked by the same backend code REST uses).
+ */
+
+/** Whole kroner, as Min Side edits agreement sums */
+const wholeKroner = (max: number) => z.number().int().min(1).max(max);
+
+/** A KID: digits only (REST takes it from the path) */
+export const kidSchema = z.string().regex(/^\d{1,32}$/, "KID must be 1 to 32 digits");
+
+/** Day of month an agreement is charged: 1-28, or 0 for the last day of the month */
+export const chargeDaySchema = z.number().int().min(0).max(28);
+
+/** Mutations without a result answer `true`, as the REST routes' `content` mostly did */
+export const mutationOkOutput = z.literal(true);
+
+/** PUT /donors/:id from Min Side: name and newsletter. The email can't be changed there. */
+export const updateProfileInput = donorInput.extend({
+  // Donors.full_name is a TINYTEXT
+  name: z.string().min(1).max(255),
+  newsletter: z.boolean().optional(),
+});
+
+/**
+ * A tax unit's ssn as the REST routes accept it: a fødselsnummer (11 digits, checked with
+ * @navikt/fnrvalidator by the procedure), an organisasjonsnummer (9 digits) or, on create only, a
+ * Swedish number of 13 characters (YYYYMMDD-NNNN).
+ */
+const norwegianSsn = z.string().regex(/^(\d{9}|\d{11})$/, "ssn must be 9 or 11 digits");
+
+/** Tax_unit.full_name is a VARCHAR(128) */
+const taxUnitName = z.string().min(1).max(128);
+
+/** POST /donors/:id/taxunits */
+export const createTaxUnitInput = donorInput.extend({
+  name: taxUnitName,
+  ssn: z
+    .string()
+    .regex(/^(\d{9}|\d{11}|\d{8}-\d{4})$/, "ssn must be 9 or 11 digits, or YYYYMMDD-NNNN"),
+  locale: z.enum(["NO", "SV"]).optional(),
+});
+
+/** PUT /donors/:id/taxunits/:taxunitid: only name and ssn change */
+export const updateTaxUnitInput = donorInput.extend({
+  taxUnitId: donorIdSchema,
+  name: taxUnitName,
+  ssn: norwegianSsn,
+});
+
+/** DELETE /donors/:id/taxunits/:taxunitid, optionally moving this year's donations to another unit */
+export const deleteTaxUnitInput = donorInput.extend({
+  taxUnitId: donorIdSchema,
+  transferTaxUnitId: donorIdSchema.nullable().optional(),
+});
+
+/** The created or updated tax unit. The Danish backend numbers its units 1, 2, … and sends donorId 0. */
+export const changedTaxUnitOutput = z.object({
+  id: z.number().int().nonnegative(),
+  donorId: z.number().int().nonnegative(),
+  name: z.string(),
+  ssn: z.string(),
+  archived: isoDateTime.nullable().optional(),
+});
+
+export type ChangedTaxUnit = z.output<typeof changedTaxUnitOutput>;
+
+/** A share in percent as a decimal string, as the distributions are stored ("33.333333333333") */
+const percentageShare = z
+  .string()
+  .max(32)
+  .regex(/^\d+(\.\d+)?$/, "Percentage share must be a non-negative decimal string");
+
+/**
+ * The new split of an agreement's distribution. The donor is the agreement's (input.donorId), so
+ * it isn't part of the split; the tax unit must be one of the donor's.
+ */
+export const agreementDistributionSchema = z.strictObject({
+  taxUnitId: donorIdSchema.nullable(),
+  causeAreas: z
+    .array(
+      z.strictObject({
+        id: donorIdSchema,
+        standardSplit: z.boolean(),
+        percentageShare,
+        organizations: z
+          .array(z.strictObject({ id: donorIdSchema, percentageShare }))
+          .min(1)
+          .max(100),
+      }),
+    )
+    .min(1)
+    .max(50),
+});
+
+export type AgreementDistribution = z.input<typeof agreementDistributionSchema>;
+
+/** Vipps' agreement id, such as "agr_5kSeqz" (Vipps_agreements.ID is a VARCHAR(20)) */
+const vippsAgreementId = z.string().min(1).max(20);
+
+/** The donor-scoped Vipps routes PUT /donors/:id/recurring/vipps/:agreementId/… */
+export const vippsAgreementInput = donorInput.extend({ agreementId: vippsAgreementId });
+
+export const updateVippsAgreementPriceInput = vippsAgreementInput.extend({
+  // REST takes øre; Min Side only sends whole kroner. Same cap as the admin's price change.
+  amount: wholeKroner(1_000_000),
+});
+
+export const updateVippsAgreementChargeDayInput = vippsAgreementInput.extend({
+  chargeDay: chargeDaySchema,
+});
+
+export const updateVippsAgreementDistributionInput = vippsAgreementInput.extend({
+  distribution: agreementDistributionSchema,
+});
+
+/** The agreement's KID after a distribution change (an existing matching KID or a new one) */
+export const updateVippsAgreementDistributionOutput = z.object({ KID: z.string() });
+
+/** The AvtaleGiro routes POST /avtalegiro/:KID/…, which check that the donor owns the KID */
+export const avtaleGiroAgreementInput = donorInput.extend({ KID: kidSchema });
+
+export const updateAvtaleGiroAmountInput = avtaleGiroAgreementInput.extend({
+  // REST takes øre; stored in øre in a signed INT, so this is the largest whole NOK that fits
+  amount: wholeKroner(21_474_836),
+});
+
+export const updateAvtaleGiroPaymentDateInput = avtaleGiroAgreementInput.extend({
+  paymentDate: chargeDaySchema,
+});
+
+export const updateAvtaleGiroDistributionInput = avtaleGiroAgreementInput.extend({
+  distribution: agreementDistributionSchema,
+});
+
 export type TaxUnit = z.output<typeof taxUnitOutput>;
 export type DonationsAggregated = z.output<typeof donationsAggregatedOutput>;
 export type Donations = z.output<typeof donationsOutput>;
