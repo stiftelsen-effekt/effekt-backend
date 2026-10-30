@@ -193,7 +193,7 @@ push to `master` builds, and with the old settings that builds the repository ro
    outside the root directory in the Build Step** on (it is needed for the root lockfile and
    workspace file). This only affects new deployments; production keeps serving the current one.
 2. **Settings → Build and Deployment → Install Command** (override on):
-   `pnpm install --frozen-lockfile --filter main-site`
+   `pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend`
    Without the filter, pnpm installs the whole workspace (backend and admin included, and runs
    the backend's `prisma generate`). pnpm's version comes from `packageManager` (12.15.0); the
    root and `apps/web` declare the same one.
@@ -246,7 +246,7 @@ vercel api "/v9/projects/$P" -X PATCH $T --input - <<'JSON'
   "rootDirectory": "apps/web",
   "sourceFilesOutsideRootDirectory": true,
   "nodeVersion": "24.x",
-  "installCommand": "pnpm install --frozen-lockfile --filter main-site",
+  "installCommand": "pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend",
   "commandForIgnoringBuildStep": "[ \"$VERCEL_ENV\" = production ] || [ -z \"$VERCEL_GIT_PREVIOUS_SHA\" ] && exit 1; git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- . ../../pnpm-lock.yaml ../../pnpm-workspace.yaml"
 }
 JSON
@@ -464,7 +464,7 @@ Before the Vercel cutover:
 
 Per Vercel project after the cutover:
 
-- [ ] Build log: root directory `apps/web`, `pnpm install --frozen-lockfile --filter main-site`,
+- [ ] Build log: root directory `apps/web`, `pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend`,
       "Building Sanity to public/studio", `next build` succeeds.
 - [ ] Production domain serves the new deployment; `/studio` loads; a donation widget loads
       and Min side login works.

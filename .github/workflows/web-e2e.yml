@@ -55,7 +55,9 @@ jobs:
       # The lockfile is at the repository root, so the Cypress action can't install from
       # apps/web by itself. This also downloads the Cypress binary (allowBuilds: cypress).
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter main-site
+        # Same as the Vercel projects' install command: the web build compiles the tRPC types
+        # with the API package's dependencies (docs/web-trpc.md). Keep the two in sync.
+        run: pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend
       - name: Run Cypress 🌲
         uses: cypress-io/github-action@c541a95ea92d9239347a2355f2e895cd4b3f8060 # v7.4.6
         with:
