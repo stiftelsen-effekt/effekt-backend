@@ -822,3 +822,29 @@ export async function replaceAutoGiroDistribution(
     validatedDistribution,
   );
 }
+
+export type DraftedPaymentDateResult =
+  { ok: true } | { ok: false; status: 400 | 404; message: string };
+
+/**
+ * Sets the payment date of an AutoGiro agreement the widget drafted and the donor hasn't signed
+ * yet (REST PUT /autogiro/:KID/drafted/paymentdate and tRPC widget.setAutoGiroDraftPaymentDate).
+ * An active agreement is left alone. The caller checks that paymentDate is a number from 0 to 28.
+ */
+export async function setDraftedAutoGiroPaymentDate(
+  KID: string,
+  paymentDate: number,
+): Promise<DraftedPaymentDateResult> {
+  const agreement = await DAO.autogiroagreements.getAgreementByKID(KID);
+
+  if (!agreement) {
+    return { ok: false, status: 404, message: "Agreement not found" };
+  }
+
+  if (agreement.active !== false) {
+    return { ok: false, status: 400, message: "Agreement is not in drafted state" };
+  }
+
+  await DAO.autogiroagreements.setAgreementPaymentDateByKID(KID, paymentDate);
+  return { ok: true };
+}

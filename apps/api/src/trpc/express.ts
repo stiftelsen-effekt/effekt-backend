@@ -5,16 +5,16 @@ import { passMultipartBodyToTrpc, TRPC_MAX_BODY_SIZE } from "./reportsMultipart"
 import { appRouter } from "./router";
 
 /**
- * The public widget mutations (widget.registerDonation etc.) create donors and start payments
- * without a login, so the per-IP rate limit has to count each one. A batch request
- * (`/trpc/a,b?batch=1`) would run many procedures in one counted request, so a batch that
- * includes one of them is refused. The website's widget client never batches.
+ * The public widget mutations (widget.registerDonation, widget.draftVippsAgreement etc.) create
+ * donors, agreements and payments without a login, so the per-IP rate limit has to count each one.
+ * A batch request (`/trpc/a,b?batch=1`) would run many procedures in one counted request, so a
+ * batch that includes one of them is refused. The website's widget client never batches.
  */
-const publicMutations = new Set([
-  "widget.registerDonation",
-  "widget.registerBankPending",
-  "widget.submitReferral",
-]);
+export const publicMutations = new Set(
+  Object.entries(appRouter._def.procedures as unknown as Record<string, { _def: { type: string } }>)
+    .filter(([path, procedure]) => path.startsWith("widget.") && procedure._def.type === "mutation")
+    .map(([path]) => path),
+);
 
 export const rejectBatchedWidgetMutations: RequestHandler = (req, res, next) => {
   const paths = decodeURIComponent(req.path.replace(/^\//, "")).split(",");

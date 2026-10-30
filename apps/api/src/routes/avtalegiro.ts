@@ -4,6 +4,7 @@ import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendAvtalegiroRegistered } from "../custom_modules/mail";
 import {
+  draftAvtaleGiroAgreement,
   replaceAvtaleGiroDistribution,
   setAvtaleGiroStatus,
   updateAvtaleGiroAmount,
@@ -45,8 +46,7 @@ router.post("/draft", async (req, res, next) => {
       : 0;
 
   try {
-    // Amount is given in NOK in Widget, but øre is used for agreements
-    await DAO.avtalegiroagreements.add(KID, amount * 100, dueDay, true);
+    await draftAvtaleGiroAgreement(KID, amount, dueDay);
   } catch (ex) {
     return next(ex);
   }
