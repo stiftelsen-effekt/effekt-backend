@@ -65,7 +65,7 @@ A KID maps to a donor + optional tax unit + split: per cause area a % share, eit
 split" (organization shares from settings) or custom per-organization % shares; all sum to 100.
 Distributions are edited in several places (donation edit, single registration, review queue,
 agreements, create distribution) — always with the one distribution editor in
-`src/features/distribution`.
+`admin/src/features/distribution`.
 
 ## Old admin problems not to repeat
 

@@ -45,7 +45,7 @@ Vite, React 19, TanStack Router (file-based, typed search params for filters), T
 
 ### Design system
 
-See `admin/DESIGN.md` (principles, IA, templates, patterns, tokens, components) and the live
+See `docs/admin-design.md` (principles, IA, templates, patterns, tokens, components) and the live
 reference at `/design`. In short: calm paper/ink neutrals with one accent and three state tones,
 light and dark, comfortable/compact density; IA grouped by job (Donors · Money in · Agreements ·
 Records · Settings) with a Home that lists what needs attention; ⌘K search; URL-backed filter

@@ -10,10 +10,7 @@
 	style="enable-background:new 0 0 1000 500;" 
 	xml:space="preserve">
 <style type="text/css">
-	.st0{fill:#000000;}
-	@media (prefers-color-scheme: dark) {
-		.st0{fill:#ffffff;}
-	}
+	.st0{fill:#ffffff;}
 </style>
 <g>
 	<path class="st0" d="M974.859,193.727l44.4,104h17.8l44.2-104h-17.8l-35.2,86l-35.2-86H974.859z M942.495,297.727h16.4v-104h-16.4

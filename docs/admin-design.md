@@ -1,6 +1,6 @@
 # Admin design system
 
-Rules for the internal admin. Live reference: `pnpm dev`, then `/design` (no API or login needed).
+Rules for the internal admin (`admin/`; code paths below are relative to it). Live reference: `pnpm dev` in `admin/`, then `/design` (no API or login needed).
 
 ## Principles
 
