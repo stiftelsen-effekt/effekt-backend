@@ -23,6 +23,7 @@ import {
 import { AutogiroChargeToBeAmended } from "./DAO_modules/autogiroagreements";
 import { donationHelpers } from "./donationHelpers";
 import { DistributionInput } from "../schemas/types";
+import { assertDistributionOwnedBy } from "./distributionOwnership";
 
 /**
  * Generates a claims file to claim payments for AutoGiro agreements
@@ -813,6 +814,7 @@ export async function replaceAutoGiroDistribution(
   validatedDistribution: DistributionInput,
 ) {
   const originalDistribution = await DAO.distributions.getSplitByKID(KID);
+  await assertDistributionOwnedBy(originalDistribution.donorId, validatedDistribution);
   const newKid = await donationHelpers.createKID();
   await DAO.autogiroagreements.replaceAgreementDistribution(
     originalDistribution,

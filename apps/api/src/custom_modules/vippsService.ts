@@ -4,6 +4,7 @@ import { validateDistribution } from "./distribution";
 import * as mail from "./mail";
 import { DistributionInput } from "../schemas/types";
 import type { VippsAgreement } from "./DAO_modules/vipps";
+import { assertDistributionOwnedBy, DistributionOwnershipError } from "./distributionOwnership";
 
 // Accessed through the module object (not destructured) so tests can stub its methods
 const vipps = require("./vipps");
@@ -110,8 +111,12 @@ export async function updateAgreementDistribution(
     return { ok: false, status: 400, message: ex.message };
   }
 
-  if (validatedDistribution.donorId !== existingAgreement.donorID) {
-    return { ok: false, status: 400, message: "Donor ID mismatch" };
+  try {
+    await assertDistributionOwnedBy(existingAgreement.donorID, validatedDistribution);
+  } catch (ex) {
+    if (ex instanceof DistributionOwnershipError)
+      return { ok: false, status: 400, message: ex.message };
+    throw ex;
   }
 
   let KID: string;
