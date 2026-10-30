@@ -395,8 +395,7 @@ function Panel({
   const router = useRouter();
   const route = (router.routesById as unknown as Record<string, AnyRoute>)[kind.routeId];
   const Component = route?.options.component as
-    | (React.ComponentType & { preload?: () => Promise<unknown> })
-    | undefined;
+    (React.ComponentType & { preload?: () => Promise<unknown> }) | undefined;
   const label = kind.label(entry.params);
   // Route components are code-split: load the chunk before rendering it, rather than
   // suspending inside the panel.

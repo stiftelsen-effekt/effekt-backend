@@ -568,8 +568,8 @@ function RoundActions({
                 isCreator
                   ? "You created this round; someone else must approve it"
                   : dirty
-                  ? "Save or discard your changes first"
-                  : undefined
+                    ? "Save or discard your changes first"
+                    : undefined
               }
             >
               Approve round

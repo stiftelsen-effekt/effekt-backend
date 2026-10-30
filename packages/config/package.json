@@ -1,0 +1,9 @@
+{
+  "name": "@effekt/config",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Shared tooling configuration for the workspace: the TypeScript base config",
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json"
+  }
+}

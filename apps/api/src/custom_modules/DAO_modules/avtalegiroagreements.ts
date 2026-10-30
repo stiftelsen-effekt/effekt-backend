@@ -1073,15 +1073,13 @@ async function getByPaymentDate(dayInMonth): Promise<Array<AvtaleGiroAgreement>>
     [dayInMonth],
   );
 
-  return (agreements as any[]).map(
-    (agreement): AvtaleGiroAgreement => ({
-      id: agreement.ID,
-      paymentDate: agreement.payment_date,
-      notice: agreement.notice,
-      amount: agreement.amount,
-      KID: agreement.KID,
-    }),
-  );
+  return (agreements as any[]).map((agreement): AvtaleGiroAgreement => ({
+    id: agreement.ID,
+    paymentDate: agreement.payment_date,
+    notice: agreement.notice,
+    amount: agreement.amount,
+    KID: agreement.KID,
+  }));
 }
 
 /**

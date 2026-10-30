@@ -156,8 +156,8 @@ function ReportAllocations({ id }: { id: number }) {
               {a.kind === "retained"
                 ? "Retained by the payee"
                 : a.externalGranteeName
-                ? `${a.externalGranteeName} (external)`
-                : `${a.organizationName}${a.projectName ? ` · ${a.projectName}` : ""}`}
+                  ? `${a.externalGranteeName} (external)`
+                  : `${a.organizationName}${a.projectName ? ` · ${a.projectName}` : ""}`}
             </td>
             <td className="whitespace-nowrap">
               <DateTime value={a.forwardedAt} />

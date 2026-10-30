@@ -486,8 +486,8 @@ function VippsAgreementPage({ id }: { id: string }) {
       (upper === "ACTIVE"
         ? "active"
         : upper === "STOPPED" || upper === "EXPIRED"
-        ? "stopped"
-        : "pending"),
+          ? "stopped"
+          : "pending"),
     providerStatus: listRow?.providerStatus ?? upper,
     created: toIso(row.timestamp_created),
     lastUpdated: null,

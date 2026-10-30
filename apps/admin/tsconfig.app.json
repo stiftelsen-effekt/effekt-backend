@@ -1,4 +1,5 @@
 {
+  "extends": "@effekt/config/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
@@ -6,14 +7,11 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "types": ["vite/client"],
-    "strict": true,
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "skipLibCheck": true,
     "noEmit": true,
     "incremental": true,
     "tsBuildInfoFile": "node_modules/.cache/tsc/app.tsbuildinfo",

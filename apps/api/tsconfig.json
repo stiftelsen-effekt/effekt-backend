@@ -1,4 +1,5 @@
 {
+  "extends": "@effekt/config/tsconfig.base.json",
   "compilerOptions": {
     "module": "CommonJS",
     "target": "ES2022",
@@ -6,8 +7,9 @@
     "outDir": "dist",
     "allowJs": true,
     "checkJs": false,
-    "esModuleInterop": true,
     "downlevelIteration": true,
+    // Not fully strict yet: only strictNullChecks of the base's strict family
+    "strict": false,
     "strictNullChecks": true
   },
   "include": ["**/*.ts"],

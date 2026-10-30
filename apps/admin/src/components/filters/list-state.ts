@@ -39,8 +39,8 @@ const str = (raw: unknown) =>
   typeof raw === "string"
     ? raw
     : typeof raw === "number" || typeof raw === "boolean"
-    ? String(raw)
-    : undefined;
+      ? String(raw)
+      : undefined;
 
 const toNumber = (value: string | undefined) => {
   if (value === undefined || value.trim() === "") return undefined;

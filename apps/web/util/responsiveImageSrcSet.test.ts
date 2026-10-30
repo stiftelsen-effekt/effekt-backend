@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, test } from "vitest";
 import { buildResponsiveSrcSet } from "./responsiveImageSrcSet";
 
 const baseUrl = "https://cdn.sanity.io/images/project/dataset/";

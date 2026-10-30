@@ -21,7 +21,10 @@ const httpStatusByKind: Record<DonorServiceErrorKind, number> = {
 };
 
 export class DonorServiceError extends Error {
-  constructor(public readonly kind: DonorServiceErrorKind, message: string) {
+  constructor(
+    public readonly kind: DonorServiceErrorKind,
+    message: string,
+  ) {
     super(message);
     this.name = "DonorServiceError";
   }

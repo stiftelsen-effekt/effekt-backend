@@ -50,7 +50,7 @@ Publishing in the `production` dataset triggers a rebuild of the site.
 
 Run in `apps/web` (or `pnpm web:test`, `pnpm web:lint`, `pnpm web:typecheck` from the root):
 
-- `pnpm test`: Jest unit tests (`*.test.ts` next to the code).
+- `pnpm test`: Vitest unit tests (`*.test.ts` next to the code; `pnpm test:watch` to rerun on change).
 - `pnpm lint`: ESLint. Errors that predate CI are recorded in `eslint-suppressions.json`; don't add
   new ones, and prune stale entries with `pnpm exec eslint . --prune-suppressions`.
 - `pnpm typecheck`.

@@ -531,7 +531,7 @@ async function getLogHistogramBySum(count: number): Promise<SumHistogramBucket[]
   for (let i = 1; i < edges.length; i++) {
     // Sums equal to the last edge (INTERVAL index edges.length) belong to the last bucket
     const items =
-      (itemsByIndex.get(i) ?? 0) + (i === edges.length - 1 ? itemsByIndex.get(i + 1) ?? 0 : 0);
+      (itemsByIndex.get(i) ?? 0) + (i === edges.length - 1 ? (itemsByIndex.get(i + 1) ?? 0) : 0);
     buckets.push({ bucket: edges[i - 1], bucketEnd: edges[i], items, bar: bar(items) });
   }
   return buckets;

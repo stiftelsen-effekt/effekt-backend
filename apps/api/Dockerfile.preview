@@ -17,6 +17,8 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CHECKPOINT_DISABLE=1
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/admin/package.json apps/admin/package.json
+# The shared tsconfig base the API and admin extend
+COPY packages/config packages/config
 
 # --ignore-scripts: prisma generate runs below once the schema is there; husky is not wanted.
 # Filtered to the backend and admin: apps/web is not in the build context.

@@ -14,6 +14,8 @@ on:
       - "packages/api/**"
       - "apps/api/scripts/build-types.mjs"
       - "apps/api/tsconfig.trpc.json"
+      - "packages/config/**"
+      - ".nvmrc"
   push:
     branches: [main]
     paths:
@@ -26,6 +28,8 @@ on:
       - "packages/api/**"
       - "apps/api/scripts/build-types.mjs"
       - "apps/api/tsconfig.trpc.json"
+      - "packages/config/**"
+      - ".nvmrc"
 concurrency:
   group: web-checks-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -47,7 +51,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version-file: apps/web/.nvmrc
+          node-version-file: .nvmrc
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       # Only the web package's dependencies (not the backend's or the admin's).

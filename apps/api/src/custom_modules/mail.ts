@@ -732,8 +732,8 @@ export async function sendVippsErrorWarning(errorType, errorMessage, inputData) 
     errorType === "DRAFT"
       ? "Oppretting av Vipps betalingsavtale feilet"
       : errorType === "CHARGE"
-      ? "Trekk av Vipps betalingsavtale feilet"
-      : `Ukjent Vipps-feil (${errorType})`;
+        ? "Trekk av Vipps betalingsavtale feilet"
+        : `Ukjent Vipps-feil (${errorType})`;
 
   const { text, html } = formatInternalAlert(errorDesc, [
     ["Tidspunkt", formatTimestamp(new Date())],

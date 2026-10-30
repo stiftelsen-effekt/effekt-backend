@@ -66,24 +66,24 @@ export function validatePayment(v: PaymentForm, amountNok: string) {
       v.amountForeign.trim() !== "" && foreign === null
         ? "Enter a positive amount with at most 8 decimals"
         : isNok && foreign !== null
-        ? "A NOK transfer has no foreign amount; clear it or change the currency"
-        : !isNok && foreign === null
-        ? `Enter the amount paid in ${currency || "the currency"}`
-        : converted && !converted.ok
-        ? `${foreign?.replace(".", ",")} ${currency} at ${rate?.replace(".", ",")} is ${formatMoney(
-            converted.nok,
-          )}, but the transfer is ${formatMoney(amountNok)} (more than ${formatMoney(
-            converted.allowed,
-          )} apart)`
-        : undefined,
+          ? "A NOK transfer has no foreign amount; clear it or change the currency"
+          : !isNok && foreign === null
+            ? `Enter the amount paid in ${currency || "the currency"}`
+            : converted && !converted.ok
+              ? `${foreign?.replace(".", ",")} ${currency} at ${rate?.replace(".", ",")} is ${formatMoney(
+                  converted.nok,
+                )}, but the transfer is ${formatMoney(amountNok)} (more than ${formatMoney(
+                  converted.allowed,
+                )} apart)`
+              : undefined,
     fxRate:
       v.fxRate.trim() !== "" && rate === null
         ? "Enter NOK per unit, e.g. 11,6234"
         : isNok && rate !== null
-        ? "A NOK transfer has no FX rate; clear it or change the currency"
-        : !isNok && rate === null
-        ? `Enter NOK per ${currency || "unit"}`
-        : undefined,
+          ? "A NOK transfer has no FX rate; clear it or change the currency"
+          : !isNok && rate === null
+            ? `Enter NOK per ${currency || "unit"}`
+            : undefined,
     bankFee:
       v.bankFee.trim() === "" ||
       (parseMoneyInput(v.bankFee) !== null && moneySign(parseMoneyInput(v.bankFee)!) >= 0)

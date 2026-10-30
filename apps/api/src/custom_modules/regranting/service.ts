@@ -631,9 +631,9 @@ export async function getRoundBuilder(roundId: number): Promise<RoundBuilder> {
           ...amounts([p]),
           projectId: p.projectId,
           projectName:
-            p.projectId === null ? null : state.projectNames.get(p.projectId)?.name ?? null,
+            p.projectId === null ? null : (state.projectNames.get(p.projectId)?.name ?? null),
           projectStatus:
-            p.projectId === null ? null : state.projectNames.get(p.projectId)?.status ?? null,
+            p.projectId === null ? null : (state.projectNames.get(p.projectId)?.status ?? null),
           hold: p.projectId === null ? null : holdFor(org.id, p.projectId),
           held: p.held,
         }),
@@ -732,8 +732,8 @@ export async function lockRoundIn(
       round.status === "paid"
         ? "it is paid; paid rounds are never edited (record a correction adjustment in a later round)"
         : round.status === "approved"
-        ? "it is approved (reopen it as a draft first)"
-        : "it is still a draft (approve it first)";
+          ? "it is approved (reopen it as a draft first)"
+          : "it is still a draft (approve it first)";
     throw conflict(`Can't ${action} ${roundLabel(round)}: ${why}`, {
       roundId: round.id,
       status: round.status,
@@ -1160,19 +1160,19 @@ export async function getStatement(input: {
       if (affectsBalance) running = running.plus(r.amount);
       return {
         ...r,
-        projectName: r.projectId === null ? null : projectNames.get(r.projectId)?.name ?? null,
+        projectName: r.projectId === null ? null : (projectNames.get(r.projectId)?.name ?? null),
         affectsBalance,
         balanceAfter: fmt(running),
         counterpartName:
           r.counterpartOrganizationId === null
             ? null
-            : names.get(r.counterpartOrganizationId) ?? null,
+            : (names.get(r.counterpartOrganizationId) ?? null),
         documents:
           (r.transferId !== null
             ? transferDocuments.get(r.transferId)
             : r.adjustmentId !== null
-            ? adjustmentDocuments.get(r.adjustmentId)
-            : undefined) ?? [],
+              ? adjustmentDocuments.get(r.adjustmentId)
+              : undefined) ?? [],
       };
     });
 

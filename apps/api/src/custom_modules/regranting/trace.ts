@@ -238,8 +238,8 @@ export async function getBalanceBreakdown(input: {
     input.projectId === undefined
       ? "all"
       : input.projectId === null
-      ? "unrestricted"
-      : input.projectId;
+        ? "unrestricted"
+        : input.projectId;
   if (typeof scope === "number") {
     const owners = await dao().getProjectOrganizations([scope]);
     if (owners.get(scope) !== org.id) {
@@ -274,7 +274,7 @@ export async function getBalanceBreakdown(input: {
       ...emptyEntry(),
       date: row.date,
       projectId: row.projectId,
-      projectName: row.projectId === null ? null : projects.get(row.projectId)?.name ?? null,
+      projectName: row.projectId === null ? null : (projects.get(row.projectId)?.name ?? null),
       round: roundOf(row),
     };
     const own = round !== null && row.roundId === round.id;
@@ -316,7 +316,7 @@ export async function getBalanceBreakdown(input: {
           counterpartName:
             row.counterpartOrganizationId === null
               ? null
-              : names.get(row.counterpartOrganizationId) ?? null,
+              : (names.get(row.counterpartOrganizationId) ?? null),
           rationale: row.rationale,
         };
         if (own) roundGrants.push(entry);
@@ -438,7 +438,7 @@ export async function getBalanceBreakdown(input: {
     abbriv: org.abbriv,
     isFund: funds.some((f) => f.organizationId === org.id),
     scope,
-    projectName: typeof scope === "number" ? projects.get(scope)?.name ?? null : null,
+    projectName: typeof scope === "number" ? (projects.get(scope)?.name ?? null) : null,
     at,
     round,
     opening: { total: mine.opening, entries: opening },
@@ -866,7 +866,7 @@ export async function getRoundComposition(input: {
       organizationId: tag.organizationId,
       organizationName: names.get(tag.organizationId) ?? `Recipient #${tag.organizationId}`,
       projectId: tag.projectId,
-      projectName: tag.projectId === null ? null : projects.get(tag.projectId)?.name ?? null,
+      projectName: tag.projectId === null ? null : (projects.get(tag.projectId)?.name ?? null),
       amount: fmt(dec(res.outflow.amount)),
       previous: previous
         ? {

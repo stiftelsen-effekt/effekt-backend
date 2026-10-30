@@ -1374,7 +1374,7 @@ export class RegrantingHistory {
     const lines: Line[] = [];
     let rest = total;
     targets.forEach((t, i) => {
-      const projectId = t.project ? this.projects.get(t.project)?.id ?? null : null;
+      const projectId = t.project ? (this.projects.get(t.project)?.id ?? null) : null;
       const cents =
         i === targets.length - 1 ? rest : Math.floor((total * t.pct) / 100 / 100_000) * 100_000;
       rest -= cents;

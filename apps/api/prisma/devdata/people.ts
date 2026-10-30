@@ -177,8 +177,8 @@ export function fakePerson(rng: Rng, n: number, isCompany = false): FakePerson {
     style === 0
       ? `${ascii(first)}.${ascii(last)}`
       : style === 1
-      ? `${ascii(first)}${ascii(last)}`
-      : `${ascii(first)}`;
+        ? `${ascii(first)}${ascii(last)}`
+        : `${ascii(first)}`;
   return { fullName: `${first} ${last}`, email: `${local}.${n}@${domain}`, isCompany };
 }
 

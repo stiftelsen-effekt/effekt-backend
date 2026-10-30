@@ -373,8 +373,8 @@ export function DataTable<TData extends RowData>({
                         sorted === "asc"
                           ? "ascending"
                           : sorted === "desc"
-                          ? "descending"
-                          : undefined
+                            ? "descending"
+                            : undefined
                       }
                       className={cn(alignment(meta), meta?.headerClassName)}
                     >
@@ -560,8 +560,8 @@ function selectionColumn<TData extends RowData>(): DataTableColumn<TData> {
           table.getIsAllPageRowsSelected()
             ? true
             : table.getIsSomePageRowsSelected()
-            ? "indeterminate"
-            : false
+              ? "indeterminate"
+              : false
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(Boolean(value))}
       />

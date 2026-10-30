@@ -1229,7 +1229,7 @@ class Simulation {
     const rng = this.rng("fundraiser", id);
     const seconds = rng.int(8, 22) * 3600;
     const owner = rng.chance(0.4)
-      ? this.existingDonor(rng) ?? this.newDonor(rng, this.day, seconds, "oneOff")
+      ? (this.existingDonor(rng) ?? this.newDonor(rng, this.day, seconds, "oneOff"))
       : this.newDonor(rng, this.day, seconds, "oneOff");
     this.add("Fundraisers", {
       ID: id,
@@ -1287,8 +1287,8 @@ class Simulation {
       who === "anonymous"
         ? this.anonymousDonor()
         : who === "existing"
-        ? this.existingDonor(rng)!
-        : this.newDonor(rng, day, seconds - 200, "oneOff");
+          ? this.existingDonor(rng)!
+          : this.newDonor(rng, day, seconds - 200, "oneOff");
     const showName = rng.chance(c.showNameShare);
     const transactionId = this.id("Fundraiser_transactions");
     this.add("Fundraiser_transactions", {

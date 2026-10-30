@@ -633,14 +633,17 @@ const conditionalFollowUpConfig: ConditionalFollowUpConfig[] = [
 function groupPaymentIntentsByKID(
   paymentIntents: Payment_intent[],
 ): Record<string, Payment_intent[]> {
-  return paymentIntents.reduce((acc, intent) => {
-    const kid = intent.KID_fordeling!;
-    if (!acc[kid]) {
-      acc[kid] = [];
-    }
-    acc[kid].push(intent);
-    return acc;
-  }, {} as Record<string, Payment_intent[]>);
+  return paymentIntents.reduce(
+    (acc, intent) => {
+      const kid = intent.KID_fordeling!;
+      if (!acc[kid]) {
+        acc[kid] = [];
+      }
+      acc[kid].push(intent);
+      return acc;
+    },
+    {} as Record<string, Payment_intent[]>,
+  );
 }
 
 function getMostRecentIntent(intents: Payment_intent[]): Payment_intent {

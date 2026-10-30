@@ -78,8 +78,8 @@ function statementPeriod(search: Search, today: string) {
     search.project === undefined
       ? "all"
       : search.project === "unrestricted"
-      ? "unrestricted"
-      : Number(search.project);
+        ? "unrestricted"
+        : Number(search.project);
   return { from, to, project };
 }
 

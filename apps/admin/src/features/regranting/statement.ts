@@ -64,7 +64,7 @@ export function statementCsv(statement: Statement): string {
         e.kind === "adjustment" && e.adjustmentType
           ? adjustmentTypeLabels[e.adjustmentType]
           : entryKindLabels[e.kind],
-      project: e.projectId === null ? "Unrestricted" : e.projectName ?? `Project ${e.projectId}`,
+      project: e.projectId === null ? "Unrestricted" : (e.projectName ?? `Project ${e.projectId}`),
       description: describeEntry(e),
       amount: e.amount,
       balance: e.balanceAfter,

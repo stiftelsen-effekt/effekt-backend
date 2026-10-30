@@ -46,16 +46,16 @@ export function validateMatchingRule(form: MatchingRuleForm) {
       form.salesLocation.trim() === ""
         ? "Enter the sales location"
         : form.salesLocation.trim().length > 45
-        ? "At most 45 characters"
-        : undefined,
+          ? "At most 45 characters"
+          : undefined,
     message: form.message.trim().length > 45 ? "At most 45 characters" : undefined,
     resolveKID: /^\d{1,32}$/.test(form.KID.trim()) ? undefined : "Enter a KID (digits only)",
     periodFrom: !form.from ? "Enter the first day (dd.mm.yyyy)" : undefined,
     periodTo: !form.to
       ? "Enter the last day (dd.mm.yyyy)"
       : form.from && form.from >= form.to
-      ? "The last day must be after the first"
-      : undefined,
+        ? "The last day must be after the first"
+        : undefined,
     precedence:
       precedence === "" || /^-?\d+$/.test(precedence) ? undefined : "Enter a whole number",
   };

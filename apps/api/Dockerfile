@@ -13,6 +13,8 @@ WORKDIR /usr/src/app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
+# The shared tsconfig base (apps/api/tsconfig.json extends it)
+COPY packages/config packages/config
 
 # --ignore-scripts to prevent prisma generate from running.
 # No use until we got the source code

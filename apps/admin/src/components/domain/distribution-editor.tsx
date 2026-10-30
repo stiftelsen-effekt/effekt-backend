@@ -146,8 +146,8 @@ export function DistributionEditor({
   const status =
     validation.total === 0
       ? "Nothing placed yet: give each cause area a share"
-      : validation.error ??
-        (validation.valid ? "All 100 % placed" : "Organization shares don't add up");
+      : (validation.error ??
+        (validation.valid ? "All 100 % placed" : "Organization shares don't add up"));
 
   const slices = orgSlices(value, config);
   const colorOf = new Map(slices.map((slice) => [slice.id, slice.color]));

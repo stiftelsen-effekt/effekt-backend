@@ -37,8 +37,8 @@ export function DonorPicker({
     value == null
       ? null
       : donor.data
-      ? { id: donor.data.id, name: donor.data.name, email: donor.data.email }
-      : { id: value, name: null, email: "" };
+        ? { id: donor.data.id, name: donor.data.name, email: donor.data.email }
+        : { id: value, name: null, email: "" };
 
   return (
     <SharedDonorPicker

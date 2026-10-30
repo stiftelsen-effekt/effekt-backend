@@ -181,18 +181,18 @@ export const DonationImpactItem: React.FC<{
   } | null = isFundItem
     ? null
     : preComputedImpact
-    ? preComputedImpact
-    : relevantEvaluation
-      ? {
-          output: grantOutput + directSum / relevantEvaluation.converted_cost_per_output,
-          shortDescription: relevantEvaluation.intervention.short_description,
-          longDescription: relevantEvaluation.intervention.long_description,
-          charityName: relevantEvaluation.charity.charity_name,
-          orgUrl: configuration.about_org_link_url_format_string
-            .replace("{{org}}", relevantEvaluation.charity.charity_name)
-            .replaceAll(" ", "_"),
-        }
-      : null;
+      ? preComputedImpact
+      : relevantEvaluation
+        ? {
+            output: grantOutput + directSum / relevantEvaluation.converted_cost_per_output,
+            shortDescription: relevantEvaluation.intervention.short_description,
+            longDescription: relevantEvaluation.intervention.long_description,
+            charityName: relevantEvaluation.charity.charity_name,
+            orgUrl: configuration.about_org_link_url_format_string
+              .replace("{{org}}", relevantEvaluation.charity.charity_name)
+              .replaceAll(" ", "_"),
+          }
+        : null;
 
   const isGiveWellAllGrantsFund = orgAbriv === "AGF";
 

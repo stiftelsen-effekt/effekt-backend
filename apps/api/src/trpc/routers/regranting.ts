@@ -450,8 +450,8 @@ const roundsRouter = router({
    */
   approve: adminProcedure
     .input(byId)
-    .mutation(
-      ({ input, ctx }): Promise<ApproveResult> => approveRound(input.id, adminIdentity(ctx.auth)),
+    .mutation(({ input, ctx }): Promise<ApproveResult> =>
+      approveRound(input.id, adminIdentity(ctx.auth)),
     ),
 
   /** Notes for the record. Documentation, not money: allowed in any status, also paid. */

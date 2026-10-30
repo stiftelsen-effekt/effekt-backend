@@ -675,7 +675,7 @@ function IncludeDirectSwitch({
       await queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
       if (announce)
         notify.undo(
-          `Direct donations ${includeDirect ?? kindDefault ? "included" : "left out"} for ${
+          `Direct donations ${(includeDirect ?? kindDefault) ? "included" : "left out"} for ${
             recipient.name
           }`,
           () => void apply(before, false).then(() => notify.success("Change undone")),
@@ -835,8 +835,8 @@ function EarmarkDialog({
             amount === null || moneySign(amount) <= 0
               ? "Enter an amount in kroner, like 1000 or 249,50"
               : compareMoney(amount, available) > 0
-              ? `At most ${formatMoney(available)} is available`
-              : undefined,
+                ? `At most ${formatMoney(available)} is available`
+                : undefined,
           note: v.note.length > 1000 ? "Keep the note under 1000 characters" : undefined,
         };
       }}

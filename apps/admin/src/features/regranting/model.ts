@@ -84,7 +84,7 @@ export const recipientLabel = (r: { name: string; abbriv?: string | null }) =>
 
 /** "Unrestricted" or the project's name, for a line. */
 export const lineLabel = (line: { projectId: number | null; projectName: string | null }) =>
-  line.projectId === null ? "Unrestricted" : line.projectName ?? `Project #${line.projectId}`;
+  line.projectId === null ? "Unrestricted" : (line.projectName ?? `Project #${line.projectId}`);
 
 export type IssueTarget = {
   organizationId?: number | null;
@@ -125,4 +125,4 @@ export const countIssues = (issues: readonly Issue[]) => ({
 
 /** "who" as the API records it: the token's email, else its subject (src/trpc/identity.ts). */
 export const identityOf = (user: { id: string; email?: string } | null | undefined) =>
-  user ? user.email ?? user.id : null;
+  user ? (user.email ?? user.id) : null;

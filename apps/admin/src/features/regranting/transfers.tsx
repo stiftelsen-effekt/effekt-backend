@@ -94,7 +94,7 @@ export function Transfers({ round, transfers }: { round: RoundSummary; transfers
               <td className="text-right">
                 {t.paidAt ? <ForeignAmount value={t.amountForeign} currency={t.currency} /> : null}
               </td>
-              <td className="num text-right">{t.paidAt ? t.fxRate ?? "–" : null}</td>
+              <td className="num text-right">{t.paidAt ? (t.fxRate ?? "–") : null}</td>
               <td className="text-right">{t.paidAt ? <Money value={t.bankFee} /> : null}</td>
               <td className="whitespace-nowrap">
                 {t.paidAt ? (

@@ -514,8 +514,8 @@ const reviewQueueRouter = router({
    */
   search: adminProcedure
     .input(reviewQueueSearchInput)
-    .query(
-      ({ input }): Promise<ReviewQueueItem[]> => DAO.reviewqueue.search(input.query, input.limit),
+    .query(({ input }): Promise<ReviewQueueItem[]> =>
+      DAO.reviewqueue.search(input.query, input.limit),
     ),
 
   /** Items per status, e.g. for a badge with the number of open items */

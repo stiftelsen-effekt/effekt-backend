@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
 import { getFirstAvtaleGiroCharge } from "./avtaleGiroFirstCharge";
 
 // Instants are given in UTC; the calendar day is read in Oslo

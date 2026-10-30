@@ -15,7 +15,7 @@ if (!window.matchMedia) {
       addListener: () => {},
       removeListener: () => {},
       dispatchEvent: () => false,
-    } as MediaQueryList);
+    }) as MediaQueryList;
 }
 
 globalThis.ResizeObserver ??= class {

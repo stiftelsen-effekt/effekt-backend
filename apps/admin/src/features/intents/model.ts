@@ -34,7 +34,7 @@ const methodById = new Map<number, IntentMethod>(
 export const methodKeyOf = (id: number | null) => (id === null ? undefined : methodById.get(id));
 export const methodLabel = (id: number | null, name: string | null) => {
   const key = methodKeyOf(id);
-  return key ? intentMethods[key].label : name ?? "–";
+  return key ? intentMethods[key].label : (name ?? "–");
 };
 
 export const intentsList = defineList({

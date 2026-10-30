@@ -58,8 +58,8 @@ const donation = {
 
 const lookups = {
   config,
-  paymentMethodName: (id: number) => ({ 2: "Bank", 4: "Vipps" }[id]),
-  ownerName: (id: number) => ({ 3: "Gi Effektivt", 1: "Effekt" }[id]),
+  paymentMethodName: (id: number) => ({ 2: "Bank", 4: "Vipps" })[id],
+  ownerName: (id: number) => ({ 3: "Gi Effektivt", 1: "Effekt" })[id],
 };
 
 describe("donation edit", () => {
