@@ -24,7 +24,6 @@
     "typecheck": "pnpm types:api && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "format": "prettier --write \"./**/*{js,ts,jsx,tsx,json,md,css,scss,yml}\"",
     "analyze": "next experimental-analyze",
     "generate:wealthmountain": "npx tsx components/main/blocks/WealthCalculator/data/processInput.ts"
   },
@@ -94,14 +93,9 @@
     "eslint": "^10.13.0",
     "eslint-config-next": "^16.4.2",
     "eslint-config-prettier": "^10.1.8",
-    "lint-staged": "^17.6.0",
-    "prettier": "3.9.10",
     "typescript": "^5.9.3",
     "typescript-fsa": "^3.0.0",
     "vitest": "5.0.5"
-  },
-  "lint-staged": {
-    "*.{js,ts,jsx,tsx,json,md,css,scss,yml}": "prettier --write"
   },
   "packageManager": "pnpm@12.15.0"
 }
