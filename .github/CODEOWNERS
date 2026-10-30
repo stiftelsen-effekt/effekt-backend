@@ -1,12 +1,11 @@
-# apps/web (formerly the main-site repository). Paths are relative to the repository root.
-# The backend and admin have no code owners.
+# Paths are relative to the repository root. apps/web is the former main-site repository.
 
 # The last matching pattern wins, so later lines override earlier ones.
 # A PR needs an approval from an owner of every file it touches.
 
-# Everything not listed below: payments, Min side, API routes, lib, util,
-# Studio config and plugins, dependencies, CI and config.
-/apps/web/  @fellmirr
+# Everything not listed below: the backend, the admin, CI and config, and in apps/web
+# payments, Min side, API routes, lib, util, Studio config and plugins, and dependencies.
+*  @fellmirr
 
 # Display components, styling, forms, e2e tests, and the Sanity schemas and
 # queries that new blocks need. Elise can approve these after checking the
