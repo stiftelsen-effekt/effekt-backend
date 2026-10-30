@@ -7,7 +7,12 @@ steps:
   - id: install
     name: "node:24.22.1"
     entrypoint: bash
-    args: ["-c", "corepack enable && pnpm install --frozen-lockfile"]
+    # The admin and the backend (pnpm build:types); apps/web is not needed here.
+    args:
+      [
+        "-c",
+        "corepack enable && pnpm install --frozen-lockfile --filter stiftelsen-effekt-backend --filter effekt-admin-v2",
+      ]
 
   - id: typecheck
     name: "node:24.22.1"

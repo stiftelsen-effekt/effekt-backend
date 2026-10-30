@@ -1,0 +1,35 @@
+.container {
+  padding: 0 0;
+  margin: 0 auto;
+}
+
+.modalOpen {
+  overflow: hidden;
+}
+
+.main {
+  min-height: 60vh;
+  color: var(--primary);
+  background: var(--secondary);
+}
+
+.dark {
+  --primary: #fafafa;
+  --secondary: black;
+  --primary-filter: invert(1);
+  --primary-hover: #ccc;
+  background: var(--secondary);
+}
+
+@media only screen and (max-width: 1180px) {
+  .container {
+    // padding-top: 72px;
+    // margin-top: 20px;
+  }
+}
+
+@media print {
+  .container {
+    min-height: 100vh;
+  }
+}

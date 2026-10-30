@@ -1,0 +1,59 @@
+import React from "react";
+import Head from "next/head";
+import { generateNextSeo } from "next-seo/pages";
+import { SEOMeta } from "../../../models";
+
+export const SEO: React.FC<SEOMeta> = ({
+  title,
+  titleTemplate = "Gi Effektivt. | %s",
+  description,
+  canonicalurl,
+  imageAssetUrl,
+  keywords,
+  siteName,
+  noIndex = false,
+}) => {
+  const images = [];
+  if (imageAssetUrl)
+    images.push({
+      url: imageAssetUrl + "?w=1200&h=630&fit=crop",
+      width: 1200,
+      height: 630,
+      alt: title,
+    });
+
+  const additionalMetaTags = [];
+  if (keywords)
+    additionalMetaTags.push({
+      name: "keywords",
+      content: keywords,
+    });
+  if (noIndex)
+    additionalMetaTags.push({
+      name: "robots",
+      content: "noindex, nofollow",
+    });
+
+  return (
+    <Head>
+      {generateNextSeo({
+        title,
+        titleTemplate,
+        description,
+        canonical: canonicalurl,
+        openGraph: {
+          url: canonicalurl,
+          title,
+          description,
+          images,
+          siteName,
+        },
+        twitter: {
+          site: "@gieffektivt",
+          cardType: "summary_large_image",
+        },
+        additionalMetaTags,
+      })}
+    </Head>
+  );
+};

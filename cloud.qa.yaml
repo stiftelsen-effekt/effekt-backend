@@ -2,7 +2,9 @@ steps:
   - name: "node:24.22.1"
     entrypoint: bash
     id: install
-    args: ["-c", "corepack enable && pnpm install --frozen-lockfile"]
+    # Backend only: admin and apps/web have their own checks.
+    args:
+      ["-c", "corepack enable && pnpm install --frozen-lockfile --filter stiftelsen-effekt-backend"]
   - name: "node:24.22.1"
     entrypoint: bash
     waitFor: ["install"]

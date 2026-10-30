@@ -1,0 +1,75 @@
+.datepicker-wrapper {
+  width: 280px;
+  height: 220px;
+  background: var(--primary);
+  display: block;
+  color: var(--secondary);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  row-gap: 10px;
+  column-gap: 10px;
+  padding: 30px 20px 20px 20px;
+  box-sizing: border-box;
+  box-shadow: 0 0 5px 0px rgba(0, 0, 0, 0.3);
+}
+
+.datepicker-button {
+  width: 26px;
+  height: 26px;
+  margin: 0px;
+  border-radius: 50%;
+  color: var(--secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  user-select: none;
+  cursor: pointer;
+}
+
+.datepicker-button--selected {
+  background: var(--secondary);
+  color: var(--primary);
+}
+
+.datepicker-button:focus {
+  outline: 2px solid var(--secondary);
+}
+
+.datepicker-button:active {
+  outline: none;
+}
+
+.datepicker-last-row {
+  grid-column-start: 1;
+  grid-column-end: 8;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.datepicker-button-last {
+  color: var(--secondary);
+  font-size: 10px;
+  user-select: none;
+  cursor: pointer;
+  margin-right: 6px;
+  display: flex;
+  align-items: center;
+  border-radius: 30px;
+  margin-bottom: 15px;
+  padding: 5px 10px;
+}
+
+.datepicker-button-last--selected {
+  background: var(--secondary);
+  color: var(--primary);
+}
+
+.datepicker-button-last:focus {
+  outline: 2px solid var(--secondary);
+}
+
+.datepicker-button-last:active {
+  outline: none;
+}

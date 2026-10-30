@@ -1,0 +1,74 @@
+name: web-e2e
+# Cypress tests for apps/web, called by web-ci.yml.
+on:
+  workflow_call:
+    inputs:
+      group:
+        required: true
+        type: string
+      config-file:
+        required: true
+        type: string
+      base-url:
+        required: true
+        type: string
+    secrets:
+      CYPRESS_AUTH_DOMAIN:
+        required: true
+      CYPRESS_AUTH_USERNAME:
+        required: true
+      CYPRESS_AUTH_PASSWORD:
+        required: true
+      CYPRESS_RECORD_KEY:
+        required: true
+permissions: {}
+defaults:
+  run:
+    working-directory: apps/web
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      # when one test fails, DO NOT cancel the other
+      # containers, because this will kill Cypress processes
+      # leaving Cypress Cloud hanging ...
+      # https://github.com/cypress-io/github-action/issues/48
+      fail-fast: false
+      matrix:
+        containers: [1, 2, 3, 4, 5, 6]
+    steps:
+      - name: Checkout 🛎
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      # Cypress 16 requires Node 22/24; install from .nvmrc rather than
+      # relying on whatever Node the runner image ships with.
+      # The pnpm version comes from packageManager in the root package.json.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: apps/web/.nvmrc
+      # The lockfile is at the repository root, so the Cypress action can't install from
+      # apps/web by itself. This also downloads the Cypress binary (allowBuilds: cypress).
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter main-site
+      - name: Run Cypress 🌲
+        uses: cypress-io/github-action@c541a95ea92d9239347a2355f2e895cd4b3f8060 # v7.4.6
+        with:
+          working-directory: apps/web
+          install: false
+          config-file: ${{ inputs.config-file }}
+          record: true
+          parallel: true
+          group: ${{ inputs.group }}
+          ci-build-id: ${{ github.run_id }}-${{ inputs.group }}
+        env:
+          CYPRESS_BASE_URL: ${{ inputs.base-url }}
+          CYPRESS_AUTH_DOMAIN: ${{ secrets.CYPRESS_AUTH_DOMAIN }}
+          CYPRESS_AUTH_USERNAME: ${{ secrets.CYPRESS_AUTH_USERNAME }}
+          CYPRESS_AUTH_PASSWORD: ${{ secrets.CYPRESS_AUTH_PASSWORD }}
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}

@@ -1,0 +1,85 @@
+.lightboxWrapper {
+  position: fixed;
+  display: flex;
+  top: 0;
+  left: 0;
+  background-color: rgba(255, 255, 255, 0.25);
+  min-width: 100vw;
+  min-height: 100vh;
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  cursor: default;
+}
+
+.lightboxCloseButton {
+  display: none;
+}
+
+.lightbox {
+  background-color: var(--secondary);
+  color: var(--primary);
+  display: flex;
+  flex-direction: column;
+  margin: 0 5vw;
+  max-height: 100vh;
+  max-width: 760px;
+  padding: 2rem 3rem 3rem 3rem;
+  border-radius: 10px;
+  overflow-y: visible;
+  z-index: 2;
+}
+
+.button {
+  background: var(--primary);
+  box-shadow: none;
+  color: var(--secondary);
+  font-family: "ESKlarheitGrotesk";
+  border: none;
+  font-size: 1em;
+  cursor: pointer;
+  padding: 5px;
+  margin: 10px;
+  width: 130px;
+}
+
+.buttonWrapper {
+  padding-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+
+  & > button {
+    margin-left: 0.5rem;
+  }
+}
+
+.textWrapper {
+  text-align: left;
+}
+
+@media only screen and (max-width: 1180px) {
+  .lightboxWrapper {
+    width: 100vw;
+    height: 100vh;
+    left: 0;
+
+    .lightboxCloseButton {
+      display: block;
+      position: absolute;
+      top: 3rem;
+      right: 5vw;
+    }
+
+    .lightbox {
+      width: 100vw;
+      height: 100vh;
+      max-width: none;
+      padding: 0;
+      border-radius: 0;
+      overflow-y: auto;
+      margin: 0;
+      padding: 0 5vw;
+      box-sizing: border-box;
+    }
+  }
+}

@@ -1,0 +1,337 @@
+import { useEffect, useRef, useState } from "react";
+import AnimateHeight from "react-animate-height";
+import { useDebouncedCallback } from "use-debounce";
+import {
+  AreaChart,
+  WealthCalculatorPeriodAdjustment,
+} from "../../../shared/components/Graphs/Area/AreaGraph";
+import { BlockContentRenderer } from "../BlockContentRenderer";
+import { LoadingButtonSpinner } from "../../../shared/components/Spinner/LoadingButtonSpinner";
+import { wealthMountainGraphData } from "./data";
+import styles from "./WealthCalculator.module.scss";
+import { WealthCalculatorInput, WealthCalculatorInputConfiguration } from "./WealthCalculatorInput";
+import {
+  TaxJurisdiction,
+  calculateWealthPercentile,
+  equvivalizeIncome,
+  getCachedPostTaxIncome,
+  getEstimatedPostTaxIncome,
+} from "./_util";
+import { WealthCalculatorSlider, WealthCalculatorSliderConfig } from "./WealthCalculatorSlider";
+import { WealthCalculatorImpact, WealthCalculatorImpactConfig } from "./WealthCalculatorImpact";
+import {
+  AdjustedPPPFactorResult,
+  getDanishAdjustedPPPconversionFactor,
+  getNorwegianAdjustedPPPconversionFactor,
+  getSwedishAdjustedPPPconversionFactor,
+} from "./_queries";
+
+export type WealthCalculatorConfiguration = {
+  calculator_input_configuration: WealthCalculatorInputConfiguration;
+  slider_configuration: WealthCalculatorSliderConfig;
+  income_percentile_label_template_string: string;
+  income_percentile_after_donation_label_template_string: string;
+  default_donation_percentage?: number;
+  data_explanation_label?: string;
+  data_explanation?: any;
+  x_axis_label?: string;
+  chart_label?: string;
+};
+
+type WealthCalculatorProps = {
+  title: string;
+  configuration: WealthCalculatorConfiguration;
+  impactConfiguration?: WealthCalculatorImpactConfig;
+  periodAdjustment: WealthCalculatorPeriodAdjustment;
+  locale: string;
+};
+
+export const WealthCalculator: React.FC<WealthCalculatorProps> = ({
+  title,
+  configuration,
+  impactConfiguration,
+  periodAdjustment,
+  locale,
+}) => {
+  const {
+    calculator_input_configuration,
+    slider_configuration,
+    income_percentile_label_template_string,
+    income_percentile_after_donation_label_template_string,
+    default_donation_percentage,
+    data_explanation_label,
+    data_explanation,
+    x_axis_label,
+    chart_label,
+  } = configuration;
+
+  const [incomeInputs, setIncomeInputs] = useState<number[] | undefined>();
+  const incomes = incomeInputs || [0];
+  const [numberOfChildren, setNumberOfChildren] = useState(0);
+  const [numberOfAdults, setNumberOfParents] = useState(1);
+  const [donationPercentage, setDonationPercentage] = useState(default_donation_percentage || 10);
+  const [loadingPostTaxIncome, setLoadingPostTaxIncome] = useState(false);
+  /**
+   * The post tax income is stored together with the number of adults it was estimated for. Until a new
+   * estimate is ready we keep equvivalizing with the old number of adults, so the output updates once
+   * instead of jumping to an intermediate value when the number of adults changes.
+   */
+  const [postTaxEstimate, setPostTaxEstimate] = useState({ postTaxIncome: 0, numberOfAdults: 1 });
+  const postTaxIncome = postTaxEstimate.postTaxIncome;
+  const latestEstimateRequest = useRef(0);
+  const [explanationOpen, setExplanationOpen] = useState(false);
+  const [pppConversion, setPppConversion] = useState<AdjustedPPPFactorResult>({
+    adjustedPPPfactor: 7,
+    cumulativeInflation: 0,
+    pppFactor: 7,
+  });
+
+  /**
+   * Get the adjusted PPP conversion factor for the locale.
+   */
+  useEffect(() => {
+    if (locale === "no") {
+      getNorwegianAdjustedPPPconversionFactor().then((res) => {
+        setPppConversion(res);
+      });
+    } else if (locale === "sv") {
+      getSwedishAdjustedPPPconversionFactor().then((res) => {
+        setPppConversion(res);
+      });
+    } else if (locale === "dk") {
+      getDanishAdjustedPPPconversionFactor().then((res) => {
+        setPppConversion(res);
+      });
+    } else {
+      console.error("Unsupported locale", locale);
+    }
+  }, [locale]);
+
+  const taxJurisdiction: TaxJurisdiction | undefined =
+    locale === "no"
+      ? TaxJurisdiction.NO
+      : locale === "sv"
+        ? TaxJurisdiction.SV
+        : locale === "dk"
+          ? TaxJurisdiction.DK
+          : undefined;
+
+  const sumIncomes = (values: number[]) => values.reduce((total, value) => total + value, 0);
+
+  /**
+   * Calculate the post tax income. We use a debounced callback to avoid calculating the post tax income
+   * too many times when the user is typing.
+   */
+  const calculatePostTaxIncome = useDebouncedCallback((requestId: number, adults: number) => {
+    if (!taxJurisdiction) {
+      console.error("Unsupported locale", locale);
+      return;
+    }
+    Promise.all(
+      incomes.map((adultIncome) =>
+        getEstimatedPostTaxIncome(adultIncome, periodAdjustment, taxJurisdiction),
+      ),
+    )
+      .then((postTaxIncomes) => {
+        // Ignore estimates that have been superseded by a newer input
+        if (requestId !== latestEstimateRequest.current) return;
+        setPostTaxEstimate({ postTaxIncome: sumIncomes(postTaxIncomes), numberOfAdults: adults });
+      })
+      .catch((error) => {
+        console.error("Failed to calculate post-tax income", error);
+      })
+      .finally(() => {
+        if (requestId === latestEstimateRequest.current) setLoadingPostTaxIncome(false);
+      });
+  }, 250);
+
+  /**
+   * When the inputs change, show the estimate right away if every adult's estimate is cached (or there
+   * is no income yet). Otherwise show the loading spinner until the estimate below is ready.
+   */
+  const [estimateInputs, setEstimateInputs] = useState({
+    incomeInputs,
+    numberOfAdults,
+    cached: true,
+  });
+  if (
+    estimateInputs.incomeInputs !== incomeInputs ||
+    estimateInputs.numberOfAdults !== numberOfAdults
+  ) {
+    const cached = taxJurisdiction
+      ? incomes.map((adultIncome) =>
+          getCachedPostTaxIncome(adultIncome, periodAdjustment, taxJurisdiction),
+        )
+      : [];
+    const allCached = !!taxJurisdiction && cached.every((value) => typeof value !== "undefined");
+    setEstimateInputs({ incomeInputs, numberOfAdults, cached: allCached });
+    if (allCached) {
+      setPostTaxEstimate({ postTaxIncome: sumIncomes(cached as number[]), numberOfAdults });
+      setLoadingPostTaxIncome(false);
+    } else {
+      setLoadingPostTaxIncome(true);
+    }
+  }
+
+  useEffect(() => {
+    const requestId = ++latestEstimateRequest.current;
+    if (estimateInputs.cached) {
+      calculatePostTaxIncome.cancel();
+      return;
+    }
+    calculatePostTaxIncome(requestId, estimateInputs.numberOfAdults);
+  }, [estimateInputs, calculatePostTaxIncome]);
+
+  /**
+   * Calculate the equvivalized income. This is the income after tax and adjusted for the number of adults and children
+   * in the household. We use the OECD modified scale to calculate the equvivalized income.
+   */
+  const equvivalizedIncome = equvivalizeIncome(
+    postTaxIncome,
+    numberOfChildren,
+    postTaxEstimate.numberOfAdults,
+  );
+
+  return (
+    <div className={styles.wrapper}>
+      <div className={styles.calculator} data-cy="wealthcalculator-container">
+        <WealthCalculatorInput
+          title={title}
+          incomeInput={incomeInputs}
+          setIncomeInput={setIncomeInputs}
+          numberOfChildren={numberOfChildren}
+          setNumberOfChildren={setNumberOfChildren}
+          numberOfAdults={numberOfAdults}
+          setNumberOfParents={setNumberOfParents}
+          loadingPostTaxIncome={loadingPostTaxIncome}
+          config={calculator_input_configuration}
+        ></WealthCalculatorInput>
+        <WealthCalculatorSlider
+          donationPercentage={donationPercentage}
+          setDonationPercentage={setDonationPercentage}
+          postTaxIncome={postTaxIncome}
+          wealthMountainGraphData={wealthMountainGraphData}
+          equvivalizedIncome={equvivalizedIncome}
+          periodAdjustment={periodAdjustment}
+          adjustedPppFactor={pppConversion.adjustedPPPfactor}
+          config={slider_configuration}
+        />
+
+        <div className={styles.calculator__output} data-cy="wealthcalculator-graph">
+          {/**
+           * The chart is absolutely positioned so it fills the space defined by the inputs, without
+           * contributing to the grid row heights itself. Otherwise the chart keeps the rows at their
+           * tallest height (e.g. after adding a second adult income input) and leaves a gap when the
+           * inputs shrink again.
+           */}
+          <div className={styles.calculator__output__chart}>
+            <AreaChart
+              data={wealthMountainGraphData}
+              lineInput={equvivalizedIncome || 0}
+              donationPercentage={donationPercentage / 100}
+              wealthPercentile={calculateWealthPercentile(
+                wealthMountainGraphData,
+                equvivalizedIncome || 0,
+                periodAdjustment,
+                pppConversion?.adjustedPPPfactor,
+              )}
+              afterDonationWealthPercentile={calculateWealthPercentile(
+                wealthMountainGraphData,
+                equvivalizedIncome * (1 - donationPercentage / 100),
+                periodAdjustment,
+                pppConversion?.adjustedPPPfactor,
+              )}
+              label={chart_label}
+              afterDonationPercentileLabelTemplateString={
+                income_percentile_after_donation_label_template_string
+              }
+              incomePercentileLabelTemplateString={income_percentile_label_template_string}
+              adjustedPPPConversionFactor={pppConversion?.adjustedPPPfactor}
+              periodAdjustment={periodAdjustment}
+            />
+          </div>
+          {loadingPostTaxIncome && (
+            <div
+              className={styles.calculator__output__spinner}
+              data-cy="wealthcalculator-loading-spinner"
+            >
+              <LoadingButtonSpinner />
+            </div>
+          )}
+        </div>
+        <div
+          className={
+            styles.calculator__explanation__toggle +
+            " " +
+            (explanationOpen ? styles.calculator__explanation__toggle_open : "")
+          }
+          data-cy="wealthcalculator-explanation-toggle"
+          onClick={() => setExplanationOpen(!explanationOpen)}
+        >
+          {data_explanation_label || "Explanation"}
+        </div>
+        <div className={styles.calculator__axis__label}>
+          <span>{x_axis_label || "Yearly income (log scale)"} →</span>
+        </div>
+      </div>
+      <AnimateHeight height={explanationOpen ? "auto" : 0} duration={500}>
+        {/** Debug factors */}
+        {/** 
+        <div>
+          <strong>Factors used in the calculation:</strong>
+          <table>
+            <tr>
+              <td>
+                <strong>
+                  Cumulative inflation 2017 - {DateTime.now().year} for {locale}
+                </strong>
+              </td>
+              <td>{pppConversion.cumulativeInflation.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>
+                  PPP conversion factor for 2017 {currency} to 2017 international dollar
+                </strong>
+              </td>
+              <td>{pppConversion.pppFactor.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Total adjusted ppp conversion factor</strong>
+              </td>
+              <td>{pppConversion.adjustedPPPfactor.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Estimated taxation</strong>
+              </td>
+              <td>{thousandize(income - postTaxIncome)}</td>
+            </tr>
+          </table>
+        </div>
+        */}
+        <div data-cy="wealthcalculator-explanation">
+          <BlockContentRenderer content={[data_explanation]} />
+        </div>
+      </AnimateHeight>
+      {impactConfiguration && (
+        <WealthCalculatorImpact
+          donationPercentage={donationPercentage}
+          setDonationPercentage={setDonationPercentage}
+          postTaxIncome={postTaxIncome}
+          config={{
+            ...impactConfiguration,
+            intervention_configuration: {
+              ...impactConfiguration.intervention_configuration,
+              output_configuration: {
+                ...impactConfiguration.intervention_configuration.output_configuration,
+                donate_button: false, // Override the donate button to not show on wealth calculator, since there is already a donate button in the calculator
+              },
+            },
+          }}
+        />
+      )}
+    </div>
+  );
+};

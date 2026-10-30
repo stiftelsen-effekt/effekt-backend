@@ -1,0 +1,51 @@
+# Paths are relative to the repository root. apps/web is the former main-site repository.
+
+# The last matching pattern wins, so later lines override earlier ones.
+# A PR needs an approval from an owner of every file it touches.
+
+# Everything not listed below: the backend, the admin, CI and config, and in apps/web
+# payments, Min side, API routes, lib, util, Studio config and plugins, and dependencies.
+*  @fellmirr
+
+# Display components, styling, forms, e2e tests, and the Sanity schemas and
+# queries that new blocks need. Elise can approve these after checking the
+# Vercel preview.
+/apps/web/_queries.ts                             @EliseAndresen @fellmirr
+/apps/web/studio/schemas/                         @EliseAndresen @fellmirr
+/apps/web/studio/components/                      @EliseAndresen @fellmirr
+/apps/web/studio/validators/                      @EliseAndresen @fellmirr
+/apps/web/components/main/blocks/                 @EliseAndresen @fellmirr
+/apps/web/components/main/layout/                 @EliseAndresen @fellmirr
+/apps/web/components/shared/components/           @EliseAndresen @fellmirr
+/apps/web/components/shared/layout/               @EliseAndresen @fellmirr
+/apps/web/components/shared/responsiveimage.tsx   @EliseAndresen @fellmirr
+/apps/web/styles/                                 @EliseAndresen @fellmirr
+/apps/web/cypress/                                @EliseAndresen @fellmirr
+
+# Exceptions inside those folders: donations and payments, raw HTML, previews,
+# and tracking and consent.
+/apps/web/components/main/blocks/DonationWidgetBlock/     @fellmirr
+/apps/web/components/main/blocks/DKMembershipDisplay/     @fellmirr
+/apps/web/components/main/blocks/DKMembershipWidget/      @fellmirr
+/apps/web/components/main/blocks/DKRenewPayment/          @fellmirr
+/apps/web/components/main/blocks/DKGavebrevTaxWidget/     @fellmirr
+/apps/web/components/main/blocks/TaxDeductionWidget/      @fellmirr
+/apps/web/components/main/blocks/PlausibleRevenueTracker/ @fellmirr
+/apps/web/components/main/blocks/HTMLEmbed/               @fellmirr
+/apps/web/components/main/blocks/SplitViewHtml/           @fellmirr
+/apps/web/components/main/layout/PreviewBlock/            @fellmirr
+/apps/web/components/main/layout/WidgetPane/              @fellmirr
+/apps/web/components/shared/layout/Layout/                @fellmirr
+/apps/web/components/shared/layout/CookieBanner/          @fellmirr
+/apps/web/components/shared/layout/GoogleAnalytics.tsx    @fellmirr
+/apps/web/components/shared/layout/GoogleTagManager.tsx   @fellmirr
+/apps/web/components/shared/layout/HotJar.tsx             @fellmirr
+/apps/web/components/shared/layout/MetaPixel.tsx          @fellmirr
+
+# Stylesheets anywhere, including Min side and the exceptions above.
+/apps/web/**/*.module.scss  @EliseAndresen @fellmirr
+/apps/web/**/*.module.css   @EliseAndresen @fellmirr
+
+# The donation widgets stay with fellmirr, stylesheets included.
+/apps/web/components/shared/components/Widget/      @fellmirr
+/apps/web/components/main/blocks/FundraiserWidget/  @fellmirr

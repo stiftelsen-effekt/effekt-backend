@@ -1,0 +1,242 @@
+.table {
+  width: 100%;
+  border-spacing: 0;
+}
+
+.table th {
+  text-align: left;
+}
+
+.table tr td {
+  margin-left: 0px;
+  text-align: left;
+  padding: 0.25rem 0rem;
+  vertical-align: top;
+}
+
+.table tr td .cellContent {
+  display: inline-flex;
+  align-items: center;
+  flex-direction: row;
+  vertical-align: middle;
+}
+
+.table tr td svg.extraInfoIcon {
+  margin-left: 0.5rem;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 100%;
+}
+
+.table tr td.rightAlignCell {
+  text-align: right;
+}
+
+.table .expandableRow {
+  cursor: pointer;
+}
+
+.table .expandableRow + tr > td {
+  padding: 0;
+}
+
+.table .expandableRow:hover {
+  color: var(--secondary);
+  background-color: var(--primary);
+
+  svg.iconChevronUp polyline,
+  svg.iconChevronDown polyline {
+    -webkit-filter: invert(1);
+    filter: invert(1);
+  }
+}
+
+.table td.rowAction {
+  cursor: pointer;
+  text-align: right;
+  vertical-align: top;
+  padding-left: 0.5rem;
+  padding-right: 0;
+  white-space: nowrap;
+}
+
+.table td.rowAction .actionContainer {
+  display: inline-flex;
+  margin-left: 1rem;
+  vertical-align: top;
+}
+
+.gridContainer {
+  display: grid;
+  justify-content: space-between;
+  word-break: keep-all;
+  margin-bottom: 100px;
+}
+
+.gridContainer section {
+  border-top: 1px solid var(--primary);
+  padding-top: 16px;
+}
+
+.gridContainer section.header h3 {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.gridContainer section.header p {
+  margin: 0;
+}
+
+.gridContainer section.header p div {
+  display: inline-block;
+}
+
+.gridContainer.linedRows > section > .table {
+  & > tbody > tr:first-child > td {
+    border-top: 1px solid var(--primary);
+    padding: 0.6rem 0rem;
+  }
+  & {
+    border-bottom: 1px solid var(--primary);
+  }
+}
+
+table td svg.iconChevronUp,
+table td svg.iconChevronDown {
+  cursor: pointer;
+  transition: transform 120ms ease-in-out;
+  user-select: none;
+  filter: var(--primary-filter);
+  float: right;
+}
+
+table td svg.iconChevronUp {
+  transform: rotate(180deg);
+}
+
+table td svg.iconChevronDown {
+  transition: transform 120ms ease-in-out;
+}
+
+table tr .detailRowCell {
+  width: 100%;
+}
+
+.expanderContent {
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.expanderContent .contextMenu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.expanderContent .contextMenu a {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.expanderContent .contextMenu a svg {
+  margin-right: 5px;
+}
+
+.contextDropdownWrapper {
+  display: block;
+  position: relative;
+}
+
+.contextDropdownContainer {
+  display: flex;
+  flex-direction: column;
+  background: var(--primary);
+  color: var(--secondary);
+  position: absolute;
+  top: 0.5em;
+  right: -1px;
+  border-radius: 8px 0px 8px 8px;
+  border: 1px solid var(--secondary);
+}
+
+.contextDropdownItem {
+  padding: 0.1rem 0.9rem;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.8rem;
+  user-select: none;
+}
+
+.contextDropdownItem:first-child {
+  padding-top: 0.5rem;
+}
+
+.contextDropdownItem:last-child {
+  padding-bottom: 0.5rem;
+}
+
+.contextDropdownItem:hover {
+  text-decoration: underline;
+}
+
+@media only screen and (max-width: 1180px) {
+  .table .expandableRow:hover {
+    color: var(--primary);
+    background-color: var(--secondary);
+
+    svg.iconChevronUp polyline,
+    svg.iconChevronDown polyline {
+      -webkit-filter: none;
+      filter: none;
+    }
+  }
+
+  .gridContainer {
+    grid-template-columns: 1fr !important;
+    margin-bottom: 3rem;
+  }
+
+  .gridContainer section {
+    border-top: none;
+  }
+
+  .gridContainer section.header {
+    display: none;
+  }
+
+  .gridContainer.supplementalOnMobile section.header {
+    display: block;
+  }
+
+  .gridContainer tr th {
+    padding-bottom: 16px;
+  }
+
+  .gridContainer tr td {
+    padding-bottom: 4px;
+  }
+
+  .table td.rowAction {
+    padding-left: 0;
+  }
+
+  .table td.rowAction .actionContainer {
+    margin-left: 0.5rem;
+  }
+
+  .gridContainer tr td:last-child {
+    display: table-cell;
+  }
+
+  .cellTooltipContent {
+    padding-top: 5rem;
+    padding-bottom: 3rem;
+  }
+}

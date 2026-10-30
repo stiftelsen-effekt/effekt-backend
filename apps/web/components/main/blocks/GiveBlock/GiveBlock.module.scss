@@ -1,0 +1,136 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: var(--primary);
+  color: var(--secondary);
+  width: 100%;
+  position: relative;
+  padding: 0 10rem;
+}
+
+.container::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 45px;
+  background: var(--primary);
+  position: absolute;
+  top: -45px;
+  left: 0;
+}
+
+.container::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 45px;
+  background: var(--primary);
+  position: absolute;
+  bottom: -45px;
+  left: 0;
+}
+
+.container h3 {
+  max-width: 690px;
+  text-align: center;
+  margin-top: 90px;
+  margin-bottom: 50px;
+}
+
+.button {
+  background: var(--secondary);
+  color: var(--primary);
+  font-size: 1.5rem;
+  font-family: "ESKlarheitKurrent";
+  font-weight: 400;
+  margin-top: 60px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.75rem 2.5rem;
+  border-radius: 5rem;
+  margin-bottom: 30px;
+  border: 1px solid var(--secondary);
+  transition: all 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover,
+  .button:active {
+    color: var(--secondary);
+    background: var(--primary);
+    border: 1px solid var(--secondary);
+  }
+}
+
+.buttonAccent {
+  background: var(--accent-color);
+  color: var(--secondary);
+  border: 1px solid var(--accent-color);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .buttonAccent:hover,
+  .buttonAccent:active {
+    background-color: var(--primary);
+    color: var(--secondary);
+    border: 1px solid var(--secondary);
+  }
+}
+
+.button:focus {
+  border: 1px solid var(--primary);
+  outline: 2px solid var(--secondary);
+}
+
+@media only screen and (max-width: 1520px) and (min-width: 1181px) {
+  .container h3 {
+    max-width: 456px;
+    margin-top: 30px;
+    margin-bottom: 20px;
+  }
+
+  .button {
+    margin-top: 40px;
+    margin-bottom: 0;
+  }
+}
+
+@media only screen and (max-width: 1180px) {
+  .container {
+    padding: 0 5vw;
+    width: 100vw;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .container h3 {
+    margin-top: 30px;
+    margin-bottom: 20px;
+    font-size: 2rem;
+    text-align: left;
+  }
+
+  .container p {
+    margin-bottom: 0;
+    margin-top: 0;
+    font-size: 1rem;
+  }
+
+  .container::before {
+    height: 45px;
+    top: -45px;
+  }
+
+  .container::after {
+    height: 45px;
+    bottom: -45px;
+  }
+
+  .button {
+    font-size: 1rem;
+  }
+}

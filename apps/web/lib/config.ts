@@ -1,0 +1,27 @@
+import { ClientConfig } from "next-sanity";
+
+export const projectConfig: ClientConfig = {
+  /**
+   * Find your project ID and dataset in `sanity.json` in your studio project.
+   * These are considered “public”, but you can use environment variables
+   * if you want differ between local dev and production.
+   *
+   * https://nextjs.org/docs/basic-features/environment-variables
+   **/
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || "dev",
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "",
+  apiVersion: "2024-05-05",
+};
+
+export function getClientConfig(previewToken?: string): ClientConfig {
+  return {
+    ...projectConfig,
+    useCdn: !previewToken,
+    perspective: previewToken ? "previewDrafts" : "published",
+    stega: {
+      enabled: previewToken ? true : false,
+      studioUrl: "http://localhost:3333",
+    },
+    token: previewToken,
+  };
+}

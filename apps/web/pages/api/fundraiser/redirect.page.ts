@@ -1,0 +1,72 @@
+import type { NextApiRequest, NextApiResponse } from "next";
+import { ConsentState } from "../../../proxy.page";
+import { getClient } from "../../../lib/sanity.client";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Check for secret to confirm this is a valid request. Reject everything if the token isn't
+  // configured, otherwise a request without a secret would match the missing token.
+  const token = process.env.REVALIDATE_TOKEN;
+  if (!token || req.query.secret !== token) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+
+  if (!req.query.fundraiserId || typeof req.query.fundraiserId !== "string") {
+    return res.status(400).json({ message: "Missing fundraiser id" });
+  }
+
+  const fundraiserId = req.query.fundraiserId;
+
+  // Get page slug by fundraiser id
+  const client = getClient();
+  let fundraiser = await client.fetch(
+    `*[_type == "fundraiser_page" && fundraiser_database_id == $id][0] { slug { current } }`,
+    { id: fundraiserId },
+  );
+
+  if (!fundraiser?.slug?.current) {
+    let numericFundraiserId = parseInt(req.query.fundraiserId, 10);
+    if (!isNaN(numericFundraiserId)) {
+      fundraiser = await client.fetch(
+        `*[_type == "fundraiser_page" && fundraiser_database_id == $id][0] { slug { current } }`,
+        { id: numericFundraiserId },
+      );
+    }
+  }
+
+  const slug = fundraiser?.slug?.current;
+  if (!slug) {
+    return res.status(404).json({ message: "Fundraiser not found" });
+  }
+
+  const siteSettings = await client.fetch(
+    `*[_type == "site_settings"][0] { fundraiser_page_slug }`,
+  );
+  const fundraiserPath = siteSettings?.fundraiser_page_slug;
+  if (!fundraiserPath) {
+    return res.status(404).json({ message: "Fundraiser page not found" });
+  }
+
+  try {
+    const consentStates: ConsentState[] = ["accepted", "rejected", "undecided"];
+    const promises = consentStates.map((consentState) => {
+      return res.revalidate(`/${consentState}/${fundraiserPath}/${slug}`);
+    });
+    await Promise.all(promises);
+
+    // Set cache control headers to prevent caching
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+
+    const plausible = req.query.plausible
+      ? `?plausible=${encodeURIComponent(String(req.query.plausible))}`
+      : "";
+    // nosemgrep: javascript.express.web.tainted-redirect-express.tainted-redirect-express -- a same-site path built from Sanity slugs (staff-edited); the query value is encoded, and the endpoint requires the revalidation secret
+    res.redirect(307, `/${fundraiserPath}/${slug}${plausible}`);
+  } catch (err) {
+    console.error(err);
+    // If there was an error, Next.js will continue
+    // to show the last successfully generated page
+    return res.status(500).send("Error revalidating");
+  }
+}

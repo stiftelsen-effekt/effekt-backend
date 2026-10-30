@@ -1,15 +1,32 @@
 packages:
   - admin
+  - apps/web
 
-# Only prisma needs its install scripts; ssh2 and cpu-features have JS fallbacks
+# Dependency install scripts pnpm may run. Prisma needs its own; cypress (apps/web) downloads its
+# binary; esbuild and unrs-resolver set up their platform binaries. ssh2 and cpu-features have JS
+# fallbacks, @parcel/watcher only builds from source when asked to, and browser-tabs-lock and
+# @scarf/scarf only print a banner.
 allowBuilds:
+  "@parcel/watcher": false
   "@prisma/client": true
   "@prisma/engines": true
   "@scarf/scarf": false
   browser-tabs-lock: false
   cpu-features: false
+  cypress: true
+  esbuild: true
   prisma: true
   ssh2: false
+  unrs-resolver: true
+
+# From apps/web (formerly main-site). Overrides apply to the whole workspace; admin pins
+# @types/react 19.3.0, which satisfies ^19.3.0.
+overrides:
+  "@types/react": ^19.3.0
+  "@module-federation/vite>@module-federation/dts-plugin": ^2.9.2
+  "@vercel/frameworks>js-yaml": ^3.15.2
+  "@vercel/frameworks>smol-toml": ^1.9.0
+  typeid-js>uuid: ^11.1.1
 
 minimumReleaseAgeExclude:
   - "@tanstack/query-core@5.105.0"

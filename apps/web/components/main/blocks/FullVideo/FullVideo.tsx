@@ -1,0 +1,72 @@
+import styles from "./FullVideo.module.scss";
+import type { SanityAsset } from "@sanity/image-url";
+import React, { useEffect, useRef, useState } from "react";
+import { Play } from "react-feather";
+
+export const FullVideo: React.FC<{ video: SanityAsset; alt: string }> = ({ video, alt }) => {
+  const videoPlayerRef = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  const playPause = () => {
+    if (!playing) {
+      videoPlayerRef.current?.play();
+      setPlaying(true);
+    } else {
+      videoPlayerRef.current?.pause();
+      setPlaying(false);
+    }
+  };
+
+  return (
+    <div className={styles.wrapper}>
+      <div className={styles.videoWrapper}>
+        <div className={styles.playbutton} onClick={playPause}>
+          {!playing && (
+            <div className={styles.playbuttoninner}>
+              <Play size={78}></Play>
+            </div>
+          )}
+        </div>
+
+        <VideoProgress videoPlayerRef={videoPlayerRef} playing={playing}></VideoProgress>
+        <video
+          ref={videoPlayerRef}
+          onEnded={() => {
+            (videoPlayerRef.current as any).currentTime = 0;
+            setPlaying(false);
+          }}
+          playsInline
+          preload="metadata"
+        >
+          <source src={`${video.url}#t=0.01`} type={"video/mp4"}></source>
+        </video>
+      </div>
+      <span className="caption">{alt}</span>
+    </div>
+  );
+};
+
+/**
+ * @param progress A number between 0 and 1
+ */
+const VideoProgress: React.FC<{ videoPlayerRef: any; playing: boolean }> = ({
+  videoPlayerRef,
+  playing,
+}) => {
+  const [progress, setProgress] = useState(0);
+
+  // Update the progress every frame while playing. When stopped, update it once more, so it
+  // shows where the video stopped (or the start again after the video ended).
+  useEffect(() => {
+    let frame: number;
+    const updateProgress = () => {
+      const video = videoPlayerRef.current;
+      if (video?.duration) setProgress(video.currentTime / video.duration);
+      if (playing) frame = requestAnimationFrame(updateProgress);
+    };
+    frame = requestAnimationFrame(updateProgress);
+    return () => cancelAnimationFrame(frame);
+  }, [playing, videoPlayerRef]);
+
+  return <div className={styles.videoProgressBar} style={{ width: `${progress * 100}%` }}></div>;
+};

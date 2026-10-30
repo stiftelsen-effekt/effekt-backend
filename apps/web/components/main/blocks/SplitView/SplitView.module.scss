@@ -1,0 +1,164 @@
+.splitview {
+  display: grid;
+  grid-template-columns: 6fr 4fr;
+  width: 100%;
+  margin: 50px 0;
+}
+
+.splitviewimage {
+  position: relative;
+  width: 100%;
+}
+
+.splitviewtext {
+  padding: 0 4rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: 100%;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.splitviewtext > div {
+  width: 100%;
+}
+
+.splitviewtext p {
+  font-weight: normal;
+  line-height: 180%;
+  white-space: pre-wrap;
+  margin-top: 3rem;
+  max-width: 75%;
+}
+
+.richtext {
+  line-height: 180%;
+  margin-top: 3rem;
+  max-width: 75%;
+}
+
+.form {
+  margin-top: 2rem;
+  width: 100%;
+  max-width: 75%;
+}
+
+.form label {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.formControls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.formControls input[type="email"] {
+  background: var(--secondary);
+  border: none;
+  border-bottom: 1px solid var(--primary);
+  border-radius: 0;
+  color: var(--primary);
+  font-family: "ESKlarheitGrotesk";
+  font-size: 24px;
+  outline: none;
+  padding: 10px 0;
+  width: 100%;
+}
+
+.formControls button {
+  background: var(--primary);
+  border: 1px solid var(--secondary);
+  border-radius: 48px;
+  color: var(--secondary);
+  cursor: pointer;
+  padding: 0.85rem 1.5rem;
+  width: 100%;
+}
+
+.formControls button:disabled,
+.formControls input:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.formMessage {
+  margin-top: 0.75rem !important;
+}
+
+.splitviewtext button {
+  margin-left: 0;
+}
+
+.swapped {
+  grid-template-columns: 4fr 6fr;
+}
+
+.swapped .splitviewtext {
+  grid-column: 2 / 2;
+  grid-row: 1 / 1;
+}
+
+.swapped .splitviewimage {
+  grid-column: 1 / 1;
+  grid-row: 1 / 1;
+}
+
+.darktext .splitviewtext {
+  color: var(--secondary);
+  background: var(--primary);
+}
+
+@media screen and (max-width: 1180px) {
+  .splitview {
+    grid-template-columns: 1fr;
+    grid-template-rows: max-content max-content;
+  }
+
+  .darktext {
+    width: calc(100% + 10vw);
+    position: relative;
+    left: 0;
+  }
+
+  .swapped:not(.rowSwapped) .splitviewtext,
+  .splitviewtext {
+    grid-column: auto;
+    grid-row: 2/2;
+  }
+
+  .swapped:not(.rowSwapped) .splitviewimage,
+  .splitviewimage {
+    grid-column: auto;
+    grid-row: 1/1;
+  }
+
+  .rowSwapped .splitviewtext {
+    grid-column: auto;
+    grid-row: 1/1;
+  }
+
+  .rowSwapped .splitviewimage {
+    grid-column: auto;
+    grid-row: 2/2;
+  }
+
+  .splitviewtext {
+    padding: 4rem 5vw;
+  }
+
+  /* Without the dark background, side padding only pushes the text in from the image edges */
+  .splitview:not(.darktext) .splitviewtext {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .splitviewtext p,
+  .richtext,
+  .form {
+    max-width: 100%;
+  }
+}

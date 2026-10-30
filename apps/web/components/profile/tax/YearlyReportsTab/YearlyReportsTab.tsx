@@ -1,0 +1,157 @@
+import { useAuth0, User } from "@auth0/auth0-react";
+import { useContext, useMemo } from "react";
+import { Info } from "react-feather";
+import { Distribution, Donation, TaxYearlyReport, TaxYearlyReportUnits } from "../../../../models";
+import {
+  useDistributions,
+  useDonations,
+  useTaxUnits,
+  useYearlyTaxReports,
+} from "../../../../_queries";
+import { InfoBox } from "../../../shared/components/Infobox/Infobox";
+import { Spinner } from "../../../shared/components/Spinner/Spinner";
+import { DonorContext } from "../../layout/donorProvider";
+import { ErrorMessage } from "../../shared/ErrorMessage/ErrorMessage";
+import { TaxYearlyReportList } from "../../shared/lists/taxYearlyReportsList/TaxYearlyReportList";
+import { TaxYearlyReportMobileList } from "../../shared/lists/taxYearlyReportsList/TaxYearlyReportMobileList";
+import styles from "./YearlyReportsTab.module.scss";
+import { AggregatedImpactTableConfiguration } from "../../donations/DonationsAggregateImpactTable/DonationsAggregateImpactTable";
+
+export const YearlyReportsTab: React.FC<{
+  aggregatedImpactConfiguration: AggregatedImpactTableConfiguration;
+}> = ({ aggregatedImpactConfiguration }) => {
+  const { getAccessTokenSilently, user } = useAuth0();
+
+  const { donor } = useContext(DonorContext);
+
+  const {
+    loading: reportsLoading,
+    isValidating: reportsIsValidating,
+    data: reportsData,
+    error: reportsError,
+  } = useYearlyTaxReports(user as User, getAccessTokenSilently);
+
+  const {
+    loading: donationsLoading,
+    data: donations,
+    isValidating: donationsIsValidating,
+    error: donationsError,
+  } = useDonations(user as User, getAccessTokenSilently);
+
+  const kids = useMemo(() => {
+    const kidsSet = new Set<string>();
+    donations?.forEach((donation: Donation) => kidsSet.add(donation.KID));
+    return Array.from(kidsSet);
+  }, [donations]);
+
+  const shouldFetchDistributions = !donationsLoading && donations !== undefined && kids.length > 0;
+
+  const {
+    loading: distributionsLoading,
+    data: distributions,
+    isValidating: distributionsValidating,
+    error: distributionsError,
+  } = useDistributions(user as User, getAccessTokenSilently, shouldFetchDistributions, kids);
+  const donationsLoaded = Array.isArray(donations);
+  const reportsLoaded = Array.isArray(reportsData);
+  const resolvedDistributions = shouldFetchDistributions ? distributions : [];
+  const distributionsLoaded = Array.isArray(resolvedDistributions);
+
+  const dataAvailable = donationsLoaded && reportsLoaded && distributionsLoaded;
+  const loading =
+    donationsLoading || (shouldFetchDistributions && distributionsLoading) || reportsLoading;
+
+  if (reportsError) {
+    return (
+      <div className={styles.container}>
+        <h4 className={styles.header}>Dine årsoppgaver</h4>
+        <p>
+          Henting av dine årsrapporter feilet. Våre utviklere er varlset om feilen og er på saken.
+          Kontakt oss gjerne på donasjon@gieffektivt.no så finner vi ut av det!{" "}
+        </p>
+        <ErrorMessage>{JSON.stringify(reportsError, null, 2)}</ErrorMessage>
+      </div>
+    );
+  }
+
+  if (loading || !dataAvailable || !donor) {
+    return (
+      <div className={styles.container}>
+        <h4 className={styles.header}>Dine årsoppgaver</h4>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <Spinner />
+        </div>
+      </div>
+    );
+  }
+
+  if (reportsData.length === 0) {
+    return (
+      <div className={styles.container}>
+        <h4 className={styles.header}>Dine årsoppgaver</h4>
+        <p>No data available.</p>
+      </div>
+    );
+  }
+
+  const distributionsMap = new Map<string, Distribution>();
+  resolvedDistributions.map((dist: Distribution) => distributionsMap.set(dist.kid, dist));
+
+  return (
+    <div className={styles.container}>
+      <h4 className={styles.header}>Dine årsoppgaver</h4>
+
+      {reportsData.map((report: TaxYearlyReport) => {
+        const filteredDonations = donations.filter(
+          (donation: Donation) => new Date(donation.timestamp).getFullYear() === report.year,
+        );
+
+        const currentYear = new Date().getFullYear();
+
+        return (
+          <>
+            {report.sumDonationsWithoutTaxUnit.sumDonations > 0 &&
+              report.year === currentYear - 1 && (
+                <InfoBox>
+                  <header>
+                    <Info />
+                    Donasjoner mangler skattenhet
+                  </header>
+                  <p>
+                    {/*Du har donasjoner for skatteåret som kvalifiserer til skattefradrag, men mangler
+                  skatteenhet. Vi har rapportert alle donasjoner for 2022 til skattemyndighetene,
+            men i 2023 vil du få skattefradrag på donasjoner du knytter til en skatteenhet.*/}
+                    {report.units.length == 0
+                      ? 'Registrer en skatteenhet i fanen til venstre i menyen under "skatt" og alle donasjoner vil knyttes til den. Ta kontakt på donasjon@gieffektivt.no om du ønsker å knytte donasjonene dine til flere skatteenheter.'
+                      : "Du har allerede en eller flere skatteenheter. Kontakt oss på donasjon@gieffektivt.no for å knytte donasjonene dine til rett skatteenhet."}
+                  </p>
+                </InfoBox>
+              )}
+            <div className={styles.desktopList}>
+              <TaxYearlyReportList
+                key={report.year}
+                donations={filteredDonations}
+                distribtionMap={distributionsMap}
+                report={report}
+                aggregateImpactConfig={aggregatedImpactConfiguration}
+              />
+            </div>
+            <div className={styles.mobileList}>
+              <TaxYearlyReportMobileList
+                key={report.year}
+                donations={donations.filter(
+                  (donation: Donation) =>
+                    new Date(donation.timestamp).getFullYear() === report.year &&
+                    distributionsMap.get(donation.KID)?.taxUnitId,
+                )}
+                distribtionMap={distributionsMap}
+                report={report}
+                aggregateImpactConfig={aggregatedImpactConfiguration}
+              />
+            </div>
+          </>
+        );
+      })}
+    </div>
+  );
+};

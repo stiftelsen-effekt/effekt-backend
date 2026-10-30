@@ -1,0 +1,569 @@
+import Head from "next/head";
+import "react-toastify/dist/ReactToastify.css";
+import { AgreementList } from "../../components/profile/shared/lists/agreementList/AgreementList";
+import { DKAgreementList } from "../../components/profile/shared/lists/agreementList/DKAgreementList";
+import {
+  AutoGiroAgreement,
+  AvtaleGiroAgreement,
+  DKAgreement,
+  Distribution,
+  VippsAgreement,
+} from "../../models";
+import { useAuth0 } from "@auth0/auth0-react";
+import {
+  pageBannersContentQuery,
+  useAgreementsDistributions,
+  useAutogiroAgreements,
+  useAvtalegiroAgreements,
+  useDKAgreements,
+  useTaxUnits,
+  useVippsAgreements,
+} from "../../_queries";
+import { useMemo, useState } from "react";
+import { InfoBox } from "../../components/shared/components/Infobox/Infobox";
+import { Clock } from "react-feather";
+import AgreementsMenu, {
+  AgreementsMenuOptions,
+} from "../../components/profile/agreements/AgreementsMenu/AgreementsMenu";
+import styles from "../../styles/Agreements.module.css";
+import { PageContent } from "../../components/profile/layout/PageContent/PageContent";
+import { getClient } from "../../lib/sanity.client";
+import { groq } from "next-sanity";
+import { Spinner } from "../../components/shared/components/Spinner/Spinner";
+import { MainHeader } from "../../components/shared/layout/Header/Header";
+import { DateTime } from "luxon";
+import { withStaticProps } from "../../util/withStaticProps";
+import { GeneralPageProps, LayoutType, getAppStaticProps } from "../_app.page";
+import { Navbar } from "../../components/shared/components/Navbar/Navbar";
+import { token } from "../../token";
+import { ConsentState } from "../../proxy.page";
+import { CookieBannerQueryResult } from "../../studio/sanity.types";
+import { CauseAreaContext } from "../../components/shared/components/Widget/types/WidgetProps";
+
+export const AgreementsPage = withStaticProps(
+  async ({
+    draftMode = false,
+    consentState,
+  }: {
+    slug: string[];
+    draftMode: boolean;
+    consentState: ConsentState;
+  }) => {
+    const appStaticProps = await getAppStaticProps({
+      draftMode,
+      consentState,
+      layout: LayoutType.Profile,
+    });
+    const result = await getClient(draftMode ? token : undefined).fetch<FetchAgreementsPageResult>(
+      fetchAgreementsPage,
+    );
+
+    return {
+      appStaticProps,
+      draftMode,
+      preview: draftMode,
+      token: draftMode ? (token ?? null) : null,
+      navbarData: await Navbar.getStaticProps({ dashboard: true, draftMode }),
+      data: {
+        result: result,
+        query: fetchAgreementsPage,
+        queryParams: {},
+      },
+    } satisfies GeneralPageProps;
+  },
+)(({ navbarData, data, draftMode }) => {
+  const page = data.result.page;
+  const cookieBannerConfig = data.result.settings[0].cookie_banner_configuration;
+  const locale = data.result.settings[0].main_locale;
+  const isDK = locale === "dk";
+
+  if (isDK) {
+    return (
+      <DKAgreementsPageContent
+        navbarData={navbarData}
+        page={page}
+        cookieBannerConfig={cookieBannerConfig}
+        settings={data.result.settings[0]}
+        causeAreaContexts={data.result.causeAreaContexts ?? []}
+      />
+    );
+  }
+
+  return (
+    <NordicAgreementsPageContent
+      navbarData={navbarData}
+      page={page}
+      cookieBannerConfig={cookieBannerConfig}
+      settings={data.result.settings[0]}
+    />
+  );
+});
+
+// DK-specific agreements page content
+const DKAgreementsPageContent: React.FC<{
+  navbarData: any;
+  page: AgreementsPageData | undefined;
+  cookieBannerConfig: CookieBannerQueryResult | undefined;
+  settings: { title?: string };
+  causeAreaContexts: CauseAreaContext[];
+}> = ({ navbarData, page, cookieBannerConfig, settings, causeAreaContexts }) => {
+  const { getAccessTokenSilently, user } = useAuth0();
+  const [selected, setSelected] = useState<AgreementsMenuOptions>(
+    AgreementsMenuOptions.ACTIVE_AGREEMENTS,
+  );
+
+  const {
+    loading: dkAgreementsLoading,
+    data: dkAgreements,
+    error: dkAgreementsError,
+  } = useDKAgreements(user, getAccessTokenSilently);
+  const dkAgreementsLoaded = Array.isArray(dkAgreements);
+  const resolvedAgreements = useMemo(
+    () => (dkAgreementsLoaded ? dkAgreements : []),
+    [dkAgreementsLoaded, dkAgreements],
+  );
+  const activeAgreementKids = useMemo(
+    () => Array.from(new Set(resolvedAgreements.map((agreement: DKAgreement) => agreement.kid))),
+    [resolvedAgreements],
+  );
+  const shouldFetchDistributions = dkAgreementsLoaded && activeAgreementKids.length > 0;
+
+  const {
+    loading: distributionsLoading,
+    data: distributions,
+    error: distributionsError,
+  } = useAgreementsDistributions(
+    user,
+    getAccessTokenSilently,
+    shouldFetchDistributions,
+    activeAgreementKids,
+  );
+
+  const {
+    loading: taxUnitsLoading,
+    data: taxUnits,
+    error: taxUnitsError,
+  } = useTaxUnits(user, getAccessTokenSilently);
+  const taxUnitsLoaded = Array.isArray(taxUnits);
+  const resolvedDistributions = shouldFetchDistributions ? (distributions ?? []) : [];
+
+  if (!cookieBannerConfig) return null;
+
+  if (!page) {
+    return (
+      <>
+        <Head>
+          <title>{settings.title} | Aftaler</title>
+          <meta name="description" content="Generated by create next app" />
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        <MainHeader hideOnScroll={false}>
+          <Navbar {...navbarData} />
+        </MainHeader>
+
+        <PageContent>
+          <div className={styles.container}>
+            <h3 className={styles.header}>Missing page configuration</h3>
+          </div>
+        </PageContent>
+      </>
+    );
+  }
+
+  if (
+    dkAgreementsLoading ||
+    !dkAgreementsLoaded ||
+    taxUnitsLoading ||
+    !taxUnitsLoaded ||
+    (shouldFetchDistributions && distributionsLoading)
+  ) {
+    return (
+      <>
+        <Head>
+          <title>{settings.title} | Aftaler</title>
+          <meta name="description" content="Generated by create next app" />
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        <MainHeader hideOnScroll={false}>
+          <Navbar {...navbarData} />
+          <AgreementsMenu
+            selected={selected}
+            activeLabel={page.active_list_configuration?.title}
+            inactiveLabel={page.inactive_list_configuration?.title}
+            onChange={(selected) => setSelected(selected)}
+          />
+        </MainHeader>
+
+        <PageContent>
+          <div className={styles.container}>
+            <h3 className={styles.header}>Faste aftaler</h3>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <Spinner />
+            </div>
+          </div>
+        </PageContent>
+      </>
+    );
+  }
+
+  const activeAgreements = resolvedAgreements.filter(
+    (agreement: DKAgreement) => !agreement.cancelled,
+  );
+  const inactiveAgreements = resolvedAgreements.filter(
+    (agreement: DKAgreement) => agreement.cancelled,
+  );
+  const distributionsMap = new Map<string, Distribution>();
+  resolvedDistributions.forEach((distribution: Distribution) => {
+    distributionsMap.set(distribution.kid, distribution);
+  });
+
+  return (
+    <>
+      <Head>
+        <title>{settings.title} | Aftaler</title>
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
+      <MainHeader hideOnScroll={false}>
+        <Navbar {...navbarData} />
+        <AgreementsMenu
+          selected={selected}
+          activeLabel={page.active_list_configuration?.title}
+          inactiveLabel={page.inactive_list_configuration?.title}
+          onChange={(selected) => setSelected(selected)}
+        />
+      </MainHeader>
+
+      <PageContent>
+        <div className={styles.container}>
+          <h3 className={styles.header}>{page?.title}</h3>
+
+          {window.innerWidth > 1180 || selected === AgreementsMenuOptions.ACTIVE_AGREEMENTS ? (
+            <DKAgreementList
+              agreements={activeAgreements}
+              distributions={distributionsMap}
+              taxUnits={taxUnits}
+              expandable={true}
+              configuration={page?.active_list_configuration}
+              causeAreaContexts={causeAreaContexts}
+            />
+          ) : null}
+
+          {window.innerWidth > 1180 || selected === AgreementsMenuOptions.INACTIVE_AGREEMENTS ? (
+            <DKAgreementList
+              agreements={inactiveAgreements}
+              distributions={distributionsMap}
+              taxUnits={taxUnits}
+              expandable={false}
+              configuration={page?.inactive_list_configuration}
+              causeAreaContexts={causeAreaContexts}
+            />
+          ) : null}
+        </div>
+      </PageContent>
+    </>
+  );
+};
+
+// NO/SE agreements page content (original logic)
+const NordicAgreementsPageContent: React.FC<{
+  navbarData: any;
+  page: AgreementsPageData | undefined;
+  cookieBannerConfig: CookieBannerQueryResult | undefined;
+  settings: { title?: string };
+}> = ({ navbarData, page, cookieBannerConfig, settings }) => {
+  const { getAccessTokenSilently, user } = useAuth0();
+  const [selected, setSelected] = useState<AgreementsMenuOptions>(
+    AgreementsMenuOptions.ACTIVE_AGREEMENTS,
+  );
+
+  const {
+    loading: avtaleGiroLoading,
+    data: avtaleGiro,
+    isValidating: avtaleGiroRefreshing,
+    error: avtaleGiroError,
+  } = useAvtalegiroAgreements(user, getAccessTokenSilently);
+
+  const {
+    loading: vippsLoading,
+    data: vipps,
+    isValidating: vippsRefreshing,
+    error: vippsError,
+  } = useVippsAgreements(user, getAccessTokenSilently);
+
+  const {
+    loading: autoGiroLoading,
+    data: autoGiro,
+    isValidating: autoGiroRefreshing,
+    error: autoGiroError,
+  } = useAutogiroAgreements(user, getAccessTokenSilently);
+
+  const kids = useMemo(() => {
+    if (!vipps || !avtaleGiro || !autoGiro) return [];
+    const kidsSet = new Set<string>();
+    [
+      ...vipps.map((a: VippsAgreement) => a.KID),
+      ...avtaleGiro.map((a: AvtaleGiroAgreement) => a.KID),
+      ...autoGiro.map((a: AutoGiroAgreement) => a.KID),
+    ].forEach((kid) => kidsSet.add(kid));
+    return Array.from(kidsSet);
+  }, [vipps, avtaleGiro, autoGiro]);
+
+  const shouldFetchDistributions =
+    !vippsLoading &&
+    !avtaleGiroLoading &&
+    !autoGiroLoading &&
+    vipps !== undefined &&
+    avtaleGiro !== undefined &&
+    autoGiro !== undefined &&
+    kids.length > 0;
+
+  const {
+    loading: distributionsLoading,
+    data: distributions,
+    isValidating: distributionsRefreshing,
+    error: distributionsError,
+  } = useAgreementsDistributions(user, getAccessTokenSilently, shouldFetchDistributions, kids);
+
+  const {
+    loading: taxUnitsLoading,
+    data: taxUnits,
+    isValidating: taxUnitsRefreshing,
+    error: taxUnitsError,
+  } = useTaxUnits(user, getAccessTokenSilently);
+  const vippsLoaded = Array.isArray(vipps);
+  const avtaleGiroLoaded = Array.isArray(avtaleGiro);
+  const autoGiroLoaded = Array.isArray(autoGiro);
+  const taxUnitsLoaded = Array.isArray(taxUnits);
+  const resolvedDistributions = shouldFetchDistributions ? distributions : [];
+
+  const loading =
+    vippsLoading ||
+    avtaleGiroLoading ||
+    (shouldFetchDistributions && distributionsLoading) ||
+    taxUnitsLoading ||
+    autoGiroLoading;
+
+  if (!cookieBannerConfig) return null;
+
+  if (!page) {
+    return (
+      <>
+        <Head>
+          <title>{settings.title} | Avtaler</title>
+          <meta name="description" content="Generated by create next app" />
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        <MainHeader hideOnScroll={false}>
+          <Navbar {...navbarData} />
+        </MainHeader>
+
+        <PageContent>
+          <div className={styles.container}>
+            <h3 className={styles.header}>Missing page configuration</h3>
+          </div>
+        </PageContent>
+      </>
+    );
+  }
+
+  if (loading || !vippsLoaded || !avtaleGiroLoaded || !taxUnitsLoaded || !autoGiroLoaded)
+    return (
+      <>
+        <Head>
+          <title>{settings.title} | Avtaler</title>
+          <meta name="description" content="Generated by create next app" />
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        <MainHeader hideOnScroll={false}>
+          <Navbar {...navbarData} />
+          <AgreementsMenu
+            selected={selected}
+            activeLabel={page.active_list_configuration?.title}
+            inactiveLabel={page.inactive_list_configuration?.title}
+            onChange={(selected) => setSelected(selected)}
+          />
+        </MainHeader>
+
+        <PageContent>
+          <div className={styles.container}>
+            <h3 className={styles.header}>Faste avtaler</h3>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <Spinner />
+            </div>
+          </div>
+        </PageContent>
+      </>
+    );
+
+  const activeAvtalegiroAgreements: AvtaleGiroAgreement[] = avtaleGiro.filter(
+    (agreement: AvtaleGiroAgreement) => agreement.active === 1,
+  );
+
+  const activeAutogiroAgreements: AutoGiroAgreement[] = autoGiro.filter(
+    (agreement: AutoGiroAgreement) => agreement.active === true,
+  );
+
+  const activeVippsAgreements: VippsAgreement[] = vipps.filter(
+    (agreement: VippsAgreement) => agreement.status === "ACTIVE",
+  );
+
+  // A map with kid as key and distribution as value
+  const distributionsMap = new Map<string, Distribution>();
+  resolvedDistributions.forEach((distribution: Distribution) => {
+    distributionsMap.set(distribution.kid, distribution);
+  });
+
+  const vippsPending = vipps.filter(
+    (agreement: VippsAgreement) =>
+      agreement.status === "PENDING" &&
+      DateTime.fromISO(agreement.timestamp_created).diff(DateTime.now(), "days").days > -7,
+  );
+  const avtalegiroPending = avtaleGiro.filter(
+    (agreement: AvtaleGiroAgreement) =>
+      agreement.active === 0 &&
+      agreement.cancelled === null &&
+      DateTime.fromISO(agreement.created).diff(DateTime.now(), "days").days > -7,
+  );
+  const autoGiroPending = autoGiro.filter(
+    (agreement: AutoGiroAgreement) =>
+      !agreement.active &&
+      agreement.cancelled === null &&
+      DateTime.fromISO(agreement.created).diff(DateTime.now(), "days").days > -7,
+  );
+  const pendingCount = vippsPending.length + avtalegiroPending.length + autoGiroPending.length;
+
+  return (
+    <>
+      <Head>
+        <title>{settings.title} | Avtaler</title>
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
+      <MainHeader hideOnScroll={false}>
+        <Navbar {...navbarData} />
+        <AgreementsMenu
+          selected={selected}
+          activeLabel={page.active_list_configuration?.title}
+          inactiveLabel={page.inactive_list_configuration?.title}
+          onChange={(selected) => setSelected(selected)}
+        />
+      </MainHeader>
+
+      <PageContent>
+        <div className={styles.container}>
+          <h3 className={styles.header}>{page?.title}</h3>
+
+          {pendingCount >= 1 && (
+            <InfoBox>
+              <header>
+                <Clock size={24} color={"black"} />
+                {pendingCount === 1
+                  ? page?.pending_agreements_box_configuration.single_pending_agreement_title
+                  : page?.pending_agreements_box_configuration.multiple_pending_agreements_title_template.replace(
+                      "{{count}}",
+                      pendingCount.toString(),
+                    )}
+              </header>
+              <p>
+                {pendingCount === 1
+                  ? page?.pending_agreements_box_configuration.single_pending_agreement_text
+                  : page?.pending_agreements_box_configuration.multiple_pending_agreements_text_template.replace(
+                      "{{count}}",
+                      pendingCount.toString(),
+                    )}
+              </p>
+            </InfoBox>
+          )}
+
+          {window.innerWidth > 1180 || selected === AgreementsMenuOptions.ACTIVE_AGREEMENTS ? (
+            <AgreementList
+              vipps={activeVippsAgreements}
+              avtalegiro={activeAvtalegiroAgreements}
+              autogiro={activeAutogiroAgreements}
+              distributions={distributionsMap}
+              taxUnits={taxUnits}
+              expandable={true}
+              configuration={page?.active_list_configuration}
+            />
+          ) : null}
+
+          {window.innerWidth > 1180 || selected === AgreementsMenuOptions.INACTIVE_AGREEMENTS ? (
+            <AgreementList
+              vipps={vipps.filter((agreement: VippsAgreement) => agreement.status !== "ACTIVE")}
+              avtalegiro={avtaleGiro.filter(
+                (agreement: AvtaleGiroAgreement) => agreement.cancelled !== null,
+              )}
+              autogiro={autoGiro.filter(
+                (agreement: AutoGiroAgreement) => agreement.cancelled !== null,
+              )}
+              distributions={distributionsMap}
+              taxUnits={taxUnits}
+              expandable={false}
+              configuration={page?.inactive_list_configuration}
+            />
+          ) : null}
+        </div>
+      </PageContent>
+    </>
+  );
+};
+
+type AgreementsPageData = {
+  title?: string;
+  pending_agreements_box_configuration: {
+    single_pending_agreement_title: string;
+    multiple_pending_agreements_title_template: string;
+    single_pending_agreement_text: string;
+    multiple_pending_agreements_text_template: string;
+  };
+  active_list_configuration?: any;
+  inactive_list_configuration?: any;
+  slug?: { current?: string };
+};
+
+type FetchAgreementsPageResult = {
+  settings: Array<{
+    title?: string;
+    main_locale?: "no" | "sv" | "dk" | "en" | "et";
+    cookie_banner_configuration?: CookieBannerQueryResult;
+  }>;
+  dashboard: Array<{ dashboard_slug?: { current?: string } }>;
+  page?: AgreementsPageData;
+  causeAreaContexts?: CauseAreaContext[];
+};
+
+const fetchAgreementsPage = groq`
+{
+  "settings": *[_type == "site_settings"] {
+    title,
+    main_locale,
+    ${pageBannersContentQuery}
+  },
+  "dashboard": *[_id == "dashboard"] {
+    dashboard_slug {
+      current
+    },
+  },
+  "causeAreaContexts": *[_type == "donationwidget"][0].cause_area_display_config.cause_area_contexts,
+  "page": *[_id == "agreements"][0] {
+    ...,
+    active_list_configuration {
+      ...,
+      details_configuration {
+        ...,
+        date_selector_configuration->{
+          ...,
+        }
+      }
+    },
+    slug {
+      current
+    }
+  }
+}
+`;

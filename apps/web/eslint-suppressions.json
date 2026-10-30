@@ -1,0 +1,17 @@
+{
+  "components/profile/donations/DonationsAggregateImpactTable/DonationsAggregateImpactTable.tsx": {
+    "react-hooks/refs": {
+      "count": 4
+    }
+  },
+  "components/shared/components/Widget/components/Carousel.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "components/shared/components/Widget/components/hooks.ts": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  }
+}

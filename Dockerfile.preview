@@ -16,8 +16,9 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CHECKPOINT_DISABLE=1
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY admin/package.json admin/package.json
 
-# --ignore-scripts: prisma generate runs below once the schema is there; husky is not wanted
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# --ignore-scripts: prisma generate runs below once the schema is there; husky is not wanted.
+# Filtered to the backend and admin: apps/web is not in the build context.
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter stiftelsen-effekt-backend --filter effekt-admin-v2
 
 COPY . .
 RUN pnpm exec prisma generate

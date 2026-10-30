@@ -25,6 +25,11 @@
     "generate-types-from-schema": "cd src && openapi-typescript \"specs/**/*.yaml\" --output schemas/",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
+    "web:dev": "pnpm --filter main-site dev",
+    "web:build": "pnpm --filter main-site build",
+    "web:typecheck": "pnpm --filter main-site typecheck",
+    "web:test": "pnpm --filter main-site test",
+    "web:lint": "pnpm --filter main-site lint",
     "prepare": "husky install",
     "postinstall": "prisma generate"
   },
