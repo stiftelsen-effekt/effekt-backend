@@ -175,6 +175,110 @@ describe("restLink", () => {
     });
   });
 
+  describe("Danish Min Side mutations", () => {
+    const dkTaxUnit = {
+      id: 2,
+      donorId: 0,
+      name: "Firma ApS",
+      ssn: "12345678",
+      registered: "2024-03-01T12:00:00.000Z",
+      archived: null,
+      sumDonations: 0,
+      numDonations: "0",
+    };
+    const changed = { id: 2, donorId: 0, name: "Firma ApS", ssn: "12345678", archived: null };
+
+    it("maps minside.createTaxUnit to POST /donors/:id/taxunits with a JSON body", async () => {
+      const fetchImpl = respond(200, { status: 200, content: dkTaxUnit });
+      const result = await clientWith(fetchImpl).minside.createTaxUnit.mutate({
+        donorId: 42,
+        name: "Firma ApS",
+        ssn: "12345678",
+      });
+      expect(result).toEqual(changed);
+      const [url, init] = fetchImpl.mock.calls[0];
+      expect(url).toBe("https://api.example.org/donors/42/taxunits");
+      expect(init?.method).toBe("POST");
+      expect(init?.headers).toEqual({
+        Authorization: "Bearer token-123",
+        "Content-Type": "application/json",
+      });
+      expect(JSON.parse(init?.body as string)).toEqual({ name: "Firma ApS", ssn: "12345678" });
+    });
+
+    it("maps minside.updateTaxUnit to PUT /donors/:id/taxunits/:taxUnitId", async () => {
+      const fetchImpl = respond(200, { status: 200, content: dkTaxUnit });
+      const result = await clientWith(fetchImpl).minside.updateTaxUnit.mutate({
+        donorId: 42,
+        taxUnitId: 2,
+        name: "Firma ApS",
+        ssn: "12345678",
+      });
+      expect(result).toEqual(changed);
+      const [url, init] = fetchImpl.mock.calls[0];
+      expect(url).toBe("https://api.example.org/donors/42/taxunits/2");
+      expect(init?.method).toBe("PUT");
+      expect(JSON.parse(init?.body as string)).toEqual({
+        taxUnit: { name: "Firma ApS", ssn: "12345678" },
+      });
+    });
+
+    it("passes the Danish validation error on", async () => {
+      const err = await caught(
+        clientWith(
+          respond(400, { message: "Validation failed", errors: [] }),
+        ).minside.createTaxUnit.mutate({ donorId: 42, name: "X", ssn: "1" }),
+      );
+      expect(err.data?.code).toBe("BAD_REQUEST");
+      expect(err.message).toBe("Validation failed");
+    });
+
+    it("leaves the mutations without a Danish route unmapped", async () => {
+      const fetchImpl = respond(200, {});
+      const client = clientWith(fetchImpl);
+      const calls = [
+        client.minside.updateProfile.mutate({ donorId: 42, name: "Donor" }),
+        client.minside.deleteTaxUnit.mutate({ donorId: 42, taxUnitId: 1 }),
+        client.minside.cancelVippsAgreement.mutate({ donorId: 42, agreementId: "agr_1" }),
+        client.minside.updateVippsAgreementPrice.mutate({
+          donorId: 42,
+          agreementId: "agr_1",
+          amount: 100,
+        }),
+        client.minside.updateVippsAgreementChargeDay.mutate({
+          donorId: 42,
+          agreementId: "agr_1",
+          chargeDay: 5,
+        }),
+        client.minside.cancelAvtaleGiroAgreement.mutate({ donorId: 42, KID: "123" }),
+        client.minside.updateAvtaleGiroAmount.mutate({ donorId: 42, KID: "123", amount: 100 }),
+        client.minside.updateAvtaleGiroPaymentDate.mutate({
+          donorId: 42,
+          KID: "123",
+          paymentDate: 5,
+        }),
+      ];
+      for (const call of calls) {
+        expect((await caught(call)).data?.code).toBe("NOT_IMPLEMENTED");
+      }
+      expect(fetchImpl).not.toHaveBeenCalled();
+    });
+
+    it("doesn't run a mapped query as a mutation", async () => {
+      const fetchImpl = respond(200, {});
+      const link = restLink<AppRouter>({
+        url: "https://api.example.org",
+        getToken: async () => "token-123",
+        fetch: fetchImpl as unknown as typeof fetch,
+        routes: { "minside.updateProfile": { ...restRoutes["minside.profile"] } },
+      });
+      const client = createTRPCClient<AppRouter>({ links: [link] });
+      const err = await caught(client.minside.updateProfile.mutate({ donorId: 42, name: "D" }));
+      expect(err.data?.code).toBe("NOT_IMPLEMENTED");
+      expect(fetchImpl).not.toHaveBeenCalled();
+    });
+  });
+
   it("fails unmapped procedures without calling the API", async () => {
     const fetchImpl = respond(200, {});
     const err = await caught(clientWith(fetchImpl).meta.owners.query());

@@ -65,7 +65,7 @@ export const TaxUnitsTab: React.FC<TaxUnitsTabProps> = ({
             </div>
 
             <div className={styles.buttonContainer}>
-              <EffektButton onClick={() => setCreateModalOpen(true)}>
+              <EffektButton onClick={() => setCreateModalOpen(true)} cy="btn-create-tax-unit">
                 {createButtonLabel}
               </EffektButton>
             </div>

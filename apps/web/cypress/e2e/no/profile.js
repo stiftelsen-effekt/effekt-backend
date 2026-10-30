@@ -29,13 +29,7 @@ describe("Profile page", () => {
   });
 
   it("Should update profile information correctly", () => {
-    cy.intercept("PUT", "/donors/*/", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: true,
-      },
-    });
+    cy.interceptTrpc("minside.updateProfile", true).as("saveProfile");
 
     const newName = "Keef";
     cy.get("#name").clear().type(newName);

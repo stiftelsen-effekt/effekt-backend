@@ -1,5 +1,5 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { getAccessToken } from "../../../../hooks/useApi";
+import { useTrpcClient } from "../../../../lib/trpc/useTrpcClient";
 import { useCallback, useContext, useState } from "react";
 import AnimateHeight from "react-animate-height";
 import { AlertCircle, Check } from "react-feather";
@@ -25,6 +25,7 @@ export const TaxUnitDeleteModal: React.FC<{
   onClose: () => void;
 }> = ({ open, taxUnit, onSuccess, onFailure, onClose }) => {
   const { getAccessTokenSilently, user } = useAuth0();
+  const trpc = useTrpcClient(getAccessTokenSilently);
   const failureToast = useFailureToast();
 
   const [error, setError] = useState("");
@@ -35,7 +36,6 @@ export const TaxUnitDeleteModal: React.FC<{
 
   const deleteUnit = useCallback(async () => {
     setLoading(true);
-    const token = await getAccessToken(getAccessTokenSilently);
 
     if (!user) {
       return;
@@ -43,7 +43,7 @@ export const TaxUnitDeleteModal: React.FC<{
 
     const transferUnit = transferDonations ? selectedTaxUnit : null;
 
-    const result = await deleteTaxUnit({ unit: taxUnit, transferUnit: transferUnit }, user, token);
+    const result = await deleteTaxUnit({ unit: taxUnit, transferUnit: transferUnit }, user, trpc);
 
     if (result && typeof result !== "string") {
       successToast();
@@ -60,16 +60,7 @@ export const TaxUnitDeleteModal: React.FC<{
       setLoading(false);
       setError("");
     }
-  }, [
-    getAccessTokenSilently,
-    user,
-    taxUnit,
-    selectedTaxUnit,
-    transferDonations,
-    onSuccess,
-    onFailure,
-    failureToast,
-  ]);
+  }, [trpc, user, taxUnit, selectedTaxUnit, transferDonations, onSuccess, onFailure, failureToast]);
 
   return (
     <Lightbox open={open} onConfirm={deleteUnit} onCancel={onClose} loading={loading}>

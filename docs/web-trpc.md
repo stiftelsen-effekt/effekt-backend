@@ -15,6 +15,27 @@ tRPC router, one call at a time. Migrated so far, all read-only:
 | `minside.autoGiroAgreements`   | `GET /donors/:id/recurring/autogiro`    | `useAutogiroAgreements`                          |
 | `minside.taxReports`           | `GET /donors/:id/taxreports`            | `useYearlyTaxReports`                            |
 
+Mutations (the web helpers take the client from `useTrpcClient`):
+
+| Procedure                                  | Formerly                                                    | Danish REST route                     |
+| ------------------------------------------ | ----------------------------------------------------------- | ------------------------------------- |
+| `minside.updateProfile`                    | `PUT /donors/:id`                                           | none                                  |
+| `minside.createTaxUnit`                    | `POST /donors/:id/taxunits`                                 | `POST /donors/:id/taxunits`           |
+| `minside.updateTaxUnit`                    | `PUT /donors/:id/taxunits/:taxunitid`                       | `PUT /donors/:id/taxunits/:taxUnitId` |
+| `minside.deleteTaxUnit`                    | `DELETE /donors/:id/taxunits/:taxunitid`                    | none                                  |
+| `minside.cancelVippsAgreement`             | `PUT /donors/:id/recurring/vipps/:agreementId/cancel`       | none                                  |
+| `minside.updateVippsAgreementPrice`        | `PUT /donors/:id/recurring/vipps/:agreementId/price`        | none                                  |
+| `minside.updateVippsAgreementChargeDay`    | `PUT /donors/:id/recurring/vipps/:agreementId/chargeday`    | none                                  |
+| `minside.updateVippsAgreementDistribution` | `PUT /donors/:id/recurring/vipps/:agreementId/distribution` | none                                  |
+| `minside.updateAvtaleGiroAmount`           | `POST /avtalegiro/:KID/amount`                              | none                                  |
+| `minside.updateAvtaleGiroPaymentDate`      | `POST /avtalegiro/:KID/paymentdate`                         | none                                  |
+| `minside.updateAvtaleGiroDistribution`     | `POST /avtalegiro/:KID/distribution`                        | none                                  |
+| `minside.cancelAvtaleGiroAgreement`        | `POST /avtalegiro/:KID/status` (`active: 0`)                | none                                  |
+
+Amounts are whole kroner (the procedures convert to øre). Still on REST: AutoGiro changes (Swedish),
+the stopped-agreement feedback (`/agreementfeedback`), the Facebook payment registration and the
+Danish agreement routes (`useDKAgreements`, `updateDKAgreement`, `cancelDKAgreement`).
+
 SWR keys are in `minsideKeys` (`_queries.ts`); revalidate with `mutate(minsideKeys.taxUnits(id))`.
 
 The agreement lists and tax reports have no Danish REST route, so `restLink` leaves them unmapped.
@@ -122,8 +143,8 @@ permission>)`. For more input fields than `donorId`, pass a schema that extends 
    missing permission, bad input (400), the donor and an admin (200), and the output shape.
 4. If the Danish backend implements the REST route (check
    `gh api repos/giveffektivt/donation-platform/contents/app/donors/[id]`), add it to
-   `restRoutes` and to `restLink.test.ts`. If it doesn't, leave it unmapped. `restLink` only
-   handles queries today. Before mapping a mutation, extend it with the method and body.
+   `restRoutes` and to `restLink.test.ts`. If it doesn't, leave it unmapped. A mutation's
+   route has a non-GET `method` and a `body(input)`.
 5. Switch the web hook to `trpc.minside.<name>.query(...)`. Keep its return shape and error
    object, and remove the REST fetch.
 
@@ -141,7 +162,9 @@ permission>)`. For more input fields than `donorId`, pass a schema that extends 
       route: `cy.interceptTrpc("minside.<name>", data)`. httpBatchLink sends
       `GET /trpc/<path>?batch=1&input=…`, or `/trpc/a,b?batch=1` for calls made in the same tick,
       and expects one `{ "result": { "data": … } }` per path. `interceptTrpc` matches the path
-      inside a batch and answers every path of the batch from the test's stubs. The Danish tests
+      inside a batch and answers every path of the batch from the test's stubs. Mutations are
+      `POST /trpc/<path>?batch=1` with the body `{"0": input}`; `interceptTrpc` stubs them too, and
+      `cy.interceptTrpcError(path, { code, httpStatus, message })` makes one fail. The Danish tests
       keep intercepting REST.
 - [ ] Full-stack Cypress tests (`apps/web/cypress/e2e/fullstack`) wait on the real request with
       `cy.intercept("GET", trpcUrl("minside.<name>"))` and read its data with `trpcData()`

@@ -1,5 +1,5 @@
 import { useAuth0, User } from "@auth0/auth0-react";
-import { getAccessToken } from "../../../../hooks/useApi";
+import { useTrpcClient } from "../../../../lib/trpc/useTrpcClient";
 import { useCallback, useState } from "react";
 import { TaxUnit } from "../../../../models";
 import { Lightbox } from "../../../shared/components/Lightbox/Lightbox";
@@ -22,6 +22,7 @@ export const DKTaxUnitEditModal: React.FC<{
   onClose: () => void;
 }> = ({ open, initial, onSuccess, onFailure, onClose }) => {
   const { getAccessTokenSilently, user } = useAuth0();
+  const trpc = useTrpcClient(getAccessTokenSilently);
 
   const {
     data: existingUnits,
@@ -41,13 +42,12 @@ export const DKTaxUnitEditModal: React.FC<{
 
   const create = useCallback(async () => {
     setLoading(true);
-    const token = await getAccessToken(getAccessTokenSilently);
 
     if (!user) {
       return;
     }
     const ssnDigits = ssn.replace(/\D/g, "");
-    const result = await updateTaxUnit({ ...initial, name: name, ssn: ssnDigits }, user, token);
+    const result = await updateTaxUnit({ ...initial, name: name, ssn: ssnDigits }, user, trpc);
 
     if (result && typeof result !== "string") {
       successToast();
@@ -64,7 +64,7 @@ export const DKTaxUnitEditModal: React.FC<{
       setLoading(false);
       setError("");
     }
-  }, [name, ssn, user, getAccessTokenSilently, initial, onSuccess, onFailure]);
+  }, [name, ssn, user, trpc, initial, onSuccess, onFailure]);
 
   if (loadingUnits) {
     return <Spinner />;

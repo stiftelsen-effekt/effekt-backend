@@ -1,5 +1,5 @@
 import { useAuth0, User } from "@auth0/auth0-react";
-import { getAccessToken } from "../../../../hooks/useApi";
+import { useTrpcClient } from "../../../../lib/trpc/useTrpcClient";
 import { useState } from "react";
 import { TaxUnit } from "../../../../models";
 import { Lightbox } from "../../../shared/components/Lightbox/Lightbox";
@@ -27,6 +27,7 @@ const TaxUnitCreateModalStandard: React.FC<{
   onClose: () => void;
 }> = ({ open, onSuccess, onFailure, onClose }) => {
   const { getAccessTokenSilently, user } = useAuth0();
+  const trpc = useTrpcClient(getAccessTokenSilently);
   const failureToast = useFailureToast();
 
   const {
@@ -44,13 +45,12 @@ const TaxUnitCreateModalStandard: React.FC<{
 
   const create = async () => {
     setLoading(true);
-    const token = await getAccessToken(getAccessTokenSilently);
 
     if (!user) {
       return;
     }
     const ssnDigits = ssn.replace(/\D/g, "");
-    const result = await createTaxUnit({ name, ssn: ssnDigits }, user, token);
+    const result = await createTaxUnit({ name, ssn: ssnDigits }, user, trpc);
 
     if (result && typeof result !== "string") {
       successToast();

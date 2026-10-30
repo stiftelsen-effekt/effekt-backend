@@ -231,24 +231,18 @@ describe("Agreements page", () => {
       .clear()
       .type("35");
 
-    cy.fixture("agreement_distribution_error").then((distributionError) => {
-      cy.intercept("PUT", "/donors/*/recurring/vipps/*/distribution", {
-        statusCode: 400,
-        body: distributionError,
-      });
+    cy.interceptTrpcError("minside.updateVippsAgreementDistribution", {
+      code: "BAD_REQUEST",
+      httpStatus: 400,
+      message: "Distribution cause areas do not sum to 100",
     });
 
     /**
      * Stub methods that are not relevant to the update
      */
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/chargeday", {
-      statusCode: 200,
-      body: true,
-    });
+    cy.interceptTrpc("minside.updateVippsAgreementChargeDay", true);
 
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/price", {
-      statusCode: 200,
-    });
+    cy.interceptTrpc("minside.updateVippsAgreementPrice", true);
 
     cy.get("[data-cy=generic-list-table]")
       .first()
@@ -290,22 +284,16 @@ describe("Agreements page", () => {
       .type("20");
 
     const newKid = "000027123123";
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/distribution", {
-      statusCode: 200,
-      body: { KID: newKid },
-    }).as("saveDistribution");
+    cy.interceptTrpc("minside.updateVippsAgreementDistribution", { KID: newKid }).as(
+      "saveDistribution",
+    );
 
     /**
      * Stub methods that are not relevant to the update
      */
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/chargeday", {
-      statusCode: 200,
-      body: true,
-    });
+    cy.interceptTrpc("minside.updateVippsAgreementChargeDay", true);
 
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/price", {
-      statusCode: 200,
-    });
+    cy.interceptTrpc("minside.updateVippsAgreementPrice", true);
 
     /**
      * Stub fetching of agreements with updated information
@@ -452,22 +440,14 @@ describe("Agreements page", () => {
       ]).as("getVipps");
     });
 
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/distribution", {
-      statusCode: 200,
-      body: { KID: "95231965" },
-    });
+    cy.interceptTrpc("minside.updateVippsAgreementDistribution", { KID: "95231965" });
 
     /**
      * Stub methods that are not relevant to the update
      */
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/chargeday", {
-      statusCode: 200,
-      body: true,
-    });
+    cy.interceptTrpc("minside.updateVippsAgreementChargeDay", true);
 
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/price", {
-      statusCode: 200,
-    });
+    cy.interceptTrpc("minside.updateVippsAgreementPrice", true);
 
     // Save agreement
     cy.get("[data-cy=generic-list-table]")
@@ -529,22 +509,16 @@ describe("Agreements page", () => {
       ]).as("getVipps");
     });
 
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/distribution", {
-      statusCode: 200,
-      body: { KID: "95231965" },
-    }).as("saveDistributionStub");
+    cy.interceptTrpc("minside.updateVippsAgreementDistribution", { KID: "95231965" }).as(
+      "saveDistributionStub",
+    );
 
     /**
      * Stub methods that are not relevant to the update
      */
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/chargeday", {
-      statusCode: 200,
-      body: true,
-    }).as("changeChargeDayStub");
+    cy.interceptTrpc("minside.updateVippsAgreementChargeDay", true).as("changeChargeDayStub");
 
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/price", {
-      statusCode: 200,
-    }).as("changePriceStub");
+    cy.interceptTrpc("minside.updateVippsAgreementPrice", true).as("changePriceStub");
 
     // Save agreement
     cy.get("[data-cy=generic-list-table]")
@@ -596,10 +570,7 @@ describe("Agreements page", () => {
     /**
      * Stub methods that are not relevant to the update
      */
-    cy.intercept("PUT", "/donors/*/recurring/vipps/*/cancel", {
-      statusCode: 200,
-      body: true,
-    });
+    cy.interceptTrpc("minside.cancelVippsAgreement", true);
 
     // Save agreement
     cy.get("[data-cy=generic-list-table]")
