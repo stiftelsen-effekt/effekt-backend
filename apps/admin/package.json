@@ -9,7 +9,7 @@
     "./src/router.tsx"
   ],
   "engines": {
-    "node": ">=22"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "vite",
@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.11.0",
+    "@effekt/config": "workspace:*",
     "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/router-cli": "1.167.46",

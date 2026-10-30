@@ -1,0 +1,12 @@
+{
+  // Compiler options every app shares. Apps set their own target, module, lib and paths, and
+  // override what they can't adopt yet (apps/api is not fully strict).
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}

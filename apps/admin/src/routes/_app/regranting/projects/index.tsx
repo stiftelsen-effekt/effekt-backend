@@ -96,10 +96,10 @@ function ProjectsPage() {
           list.sort.id === "recipient"
             ? p.organizationName
             : list.sort.id === "reportDue"
-            ? p.reportDue ?? "9999"
-            : list.sort.id === "startDate"
-            ? p.startDate ?? ""
-            : p.name;
+              ? (p.reportDue ?? "9999")
+              : list.sort.id === "startDate"
+                ? (p.startDate ?? "")
+                : p.name;
         return dir * key(a).localeCompare(key(b), "nb");
       });
   }, [query.data, org, list.filters.q, list.sort.id, list.sort.desc]);

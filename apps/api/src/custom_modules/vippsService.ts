@@ -88,8 +88,7 @@ export async function updateAgreementChargeDay(agreementId: string, chargeDay: n
 }
 
 export type UpdateAgreementDistributionResult =
-  | { ok: true; KID: string }
-  | { ok: false; status: 400 | 404; message: string };
+  { ok: true; KID: string } | { ok: false; status: 400 | 404; message: string };
 
 /**
  * Points the agreement at a distribution matching the input (reusing an existing KID or
@@ -155,8 +154,7 @@ export type MatchingRuleInput = {
 };
 
 export type CreateMatchingRuleResult =
-  | { ok: true; result: number | false }
-  | { ok: false; status: 400; message: string };
+  { ok: true; result: number | false } | { ok: false; status: 400; message: string };
 
 /**
  * Validates and inserts a Vipps matching rule. The caller checks that resolveKID, periodFrom
@@ -196,9 +194,7 @@ async function validateMatchingRule(
 }
 
 export type UpdateMatchingRuleResult =
-  | { ok: true }
-  | MatchingRuleValidationError
-  | { ok: false; status: 404; message: string };
+  { ok: true } | MatchingRuleValidationError | { ok: false; status: 404; message: string };
 
 /** Validates like createMatchingRule and replaces the fields of an existing rule */
 export async function updateMatchingRule(

@@ -1,4 +1,4 @@
-import { expect, it } from "@jest/globals";
+import { expect, it } from "vitest";
 import { fundraiserSubmitButtonText } from "./fundraiserSubmitButtonText";
 import { PaymentMethodString } from "./hooks/useFundraiserForm";
 import { RecurringDonation } from "../../../shared/components/Widget/types/Enums";

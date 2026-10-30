@@ -22,8 +22,8 @@
     "cypress:dk": "cross-env CYPRESS_PATH=node_modules/.bin/cypress cypress open --config-file cypress-dk.config.ts",
     "types:api": "pnpm --dir ../api build:types",
     "typecheck": "pnpm types:api && tsc --noEmit",
-    "test": "jest",
-    "format": "prettier --write \"./**/*{js,ts,jsx,tsx,json,md,css,scss,yml}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "analyze": "next experimental-analyze",
     "generate:wealthmountain": "npx tsx components/main/blocks/WealthCalculator/data/processInput.ts"
   },
@@ -78,11 +78,10 @@
   },
   "devDependencies": {
     "@effekt/api": "workspace:*",
-    "@jest/globals": "^30.5.2",
+    "@effekt/config": "workspace:*",
     "@types/d3": "^7.4.3",
-    "@types/jest": "^30.0.0",
     "@types/luxon": "^3.7.6",
-    "@types/node": "^22.20.5",
+    "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "babel-plugin-react-compiler": "^1.0.0",
     "cross-env": "^10.1.0",
@@ -95,15 +94,9 @@
     "eslint": "^10.13.0",
     "eslint-config-next": "^16.4.2",
     "eslint-config-prettier": "^10.1.8",
-    "jest": "^30.5.2",
-    "lint-staged": "^17.6.0",
-    "prettier": "3.9.10",
-    "ts-jest": "^29.4.15",
     "typescript": "^5.9.3",
-    "typescript-fsa": "^3.0.0"
-  },
-  "lint-staged": {
-    "*.{js,ts,jsx,tsx,json,md,css,scss,yml}": "prettier --write"
+    "typescript-fsa": "^3.0.0",
+    "vitest": "5.0.5"
   },
   "packageManager": "pnpm@12.15.0"
 }

@@ -303,8 +303,8 @@ export const donations: FakeDonation[] = Array.from({ length: 1240 }, (_, index)
   const transactionCost = method.percentageFee
     ? percentOfMoney(sum, method.percentageFee)
     : method.flatFee
-    ? money(method.flatFee)
-    : null;
+      ? money(method.flatFee)
+      : null;
   return {
     id: 98_000 + 1240 - index,
     donor: donor.name,

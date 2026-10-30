@@ -72,7 +72,7 @@ const line = (overrides: Partial<CompositionLine> = {}): CompositionLine =>
     ahead: null,
     leftAfter: { amount: "10.00", oldest: "2026-07-30" },
     ...overrides,
-  } as CompositionLine);
+  }) as CompositionLine;
 
 describe("tracing", () => {
   it("links the Donations list to an organization, Oslo days and the counted payment methods", () => {

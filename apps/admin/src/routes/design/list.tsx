@@ -79,10 +79,10 @@ async function fetchDonations(
     sort.id === "sum"
       ? (a, b) => compareMoney(a.sum, b.sum)
       : sort.id === "donor"
-      ? (a, b) => ascending(a.donor, b.donor)
-      : sort.id === "id"
-      ? (a, b) => a.id - b.id
-      : (a, b) => ascending(a.timestamp, b.timestamp);
+        ? (a, b) => ascending(a.donor, b.donor)
+        : sort.id === "id"
+          ? (a, b) => a.id - b.id
+          : (a, b) => ascending(a.timestamp, b.timestamp);
   const sorted = [...rows].sort((a, b) => dir * compare(a, b));
   const sums = rows.map((row) => row.sum);
   const statistics: DonationStats & { median: string } = {

@@ -964,7 +964,7 @@ export async function stubRegrantingApi(
     const batched = url.searchParams.get("batch") === "1";
     const results = paths.map((path, i) => {
       const input = batched ? (inputs as Record<string, unknown>)[String(i)] : inputs;
-      const data = overrides[path] ? overrides[path]!(input) : fixtures[path] ?? [];
+      const data = overrides[path] ? overrides[path]!(input) : (fixtures[path] ?? []);
       return { result: { data } };
     });
     await route.fulfill({ json: batched ? results : results[0] });

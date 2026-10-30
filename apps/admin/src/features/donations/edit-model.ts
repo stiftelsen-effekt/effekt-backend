@@ -59,15 +59,15 @@ export function validateEdit(draft: EditDraft, original: Donation) {
       draft.transactionCost.trim() !== "" && cost === null
         ? "Enter the fee as an amount, or leave it empty"
         : draft.transactionCost.trim() === "" && original.transactionCost != null
-        ? "The fee can't be removed; enter 0 instead"
-        : undefined,
+          ? "The fee can't be removed; enter 0 instead"
+          : undefined,
     timestamp: fromDateTimeInputs(draft.date, draft.time) ? undefined : "Enter a valid date",
     externalRef:
       draft.externalRef.trim() === "" && original.paymentExternalRef
         ? "The external reference can't be removed"
         : draft.externalRef.trim().length > 32
-        ? "At most 32 characters"
-        : undefined,
+          ? "At most 32 characters"
+          : undefined,
     distribution: validateDraft(draft.distribution).valid
       ? undefined
       : "The distribution must add up to 100 %",

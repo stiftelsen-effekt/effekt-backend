@@ -164,7 +164,9 @@ export async function stubAnalysisApi(
     const batched = url.searchParams.get("batch") === "1";
     const results = paths.map((path, i) => {
       const input = batched ? (inputs as Record<string, unknown>)[String(i)] : inputs;
-      const data = overrides[path] ? overrides[path]!(input) : extra[path] ?? fixtures[path] ?? [];
+      const data = overrides[path]
+        ? overrides[path]!(input)
+        : (extra[path] ?? fixtures[path] ?? []);
       if (data && typeof data === "object" && "error" in data) {
         const { code, message, httpStatus } = (data as StubError).error;
         return { error: { code: -32600, message, data: { code, httpStatus, path } } };

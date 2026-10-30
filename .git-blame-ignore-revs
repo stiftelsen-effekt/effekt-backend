@@ -2,5 +2,8 @@
 #   git config blame.ignoreRevsFile .git-blame-ignore-revs
 # GitHub's blame view reads this file automatically.
 
-# Reformat with Prettier 3 (#1177)
-a52617b21a61354d6e9149211dcaa3788fd7a935
+# apps/web: Reformat with Prettier 3 (main-site #1177)
+4d3fcfbb57404c239fdb8aff1c72f99e032677a9
+
+# Reformat with Prettier 3 (the whole repository)
+396b15073ab5d43efa16a7fcafff979aa2e70360

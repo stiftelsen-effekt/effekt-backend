@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
 import { RecurringDonation } from "../../../shared/components/Widget/types/Enums";
 import { supportsDonationFrequency } from "./paymentMethodAvailability";
 

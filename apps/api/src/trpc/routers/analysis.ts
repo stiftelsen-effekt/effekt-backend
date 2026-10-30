@@ -90,8 +90,8 @@ const inputOf = (pledge: Pledge): PledgeInput => ({
 
 const pledgesRouter = router({
   /** All pledges, open first, then the most recently decided */
-  list: adminProcedure.query(
-    async (): Promise<PledgeRow[]> => (await DAO.pledges.getAll()).map(toPledgeRow),
+  list: adminProcedure.query(async (): Promise<PledgeRow[]> =>
+    (await DAO.pledges.getAll()).map(toPledgeRow),
   ),
 
   get: adminProcedure

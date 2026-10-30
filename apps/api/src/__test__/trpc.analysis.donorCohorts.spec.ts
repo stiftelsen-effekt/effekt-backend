@@ -62,7 +62,7 @@ describe("analysis: donor cohorts", () => {
 
   describe("buildNewDonors", () => {
     const row = (month: string, referralId: number | null, donors: number, volume: string) =>
-      ({ month, referralId, donors, volume } as NewDonorRow);
+      ({ month, referralId, donors, volume }) as NewDonorRow;
 
     it("fills every month, adds volume exactly and keeps the top six named sources", () => {
       const rows = [

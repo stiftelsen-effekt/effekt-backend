@@ -65,8 +65,8 @@ const allocationTarget = (a: OnwardAllocation) =>
   a.kind === "retained"
     ? "Retained by the payee"
     : a.externalGranteeName
-    ? `${a.externalGranteeName} (external)`
-    : `${a.organizationName}${a.projectName ? ` · ${a.projectName}` : ""}`;
+      ? `${a.externalGranteeName} (external)`
+      : `${a.organizationName}${a.projectName ? ` · ${a.projectName}` : ""}`;
 
 /**
  * Under a paid transfer to an intermediary payee on the round page: each line's onward status
@@ -268,8 +268,8 @@ export function validateAllocation(v: AllocationForm, mode: Mode) {
       nok && parseMoneyInput(nok) === null
         ? "Enter the amount in kroner with at most two decimals"
         : !nok && !foreign
-        ? "Enter the amount"
-        : undefined,
+          ? "Enter the amount"
+          : undefined,
     note:
       mode === "retained" && !v.note.trim()
         ? "Say why the payee kept it"
@@ -380,10 +380,10 @@ export function AllocationDialog({
         allocation
           ? `Edit the allocation from ${what}`
           : mode === "forwarded"
-          ? `Confirm ${what} forwarded`
-          : mode === "grant"
-          ? `Add a grant from ${what}`
-          : `Add an amount the payee kept from ${what}`
+            ? `Confirm ${what} forwarded`
+            : mode === "grant"
+              ? `Add a grant from ${what}`
+              : `Add an amount the payee kept from ${what}`
       }
       description={
         <>
@@ -399,8 +399,8 @@ export function AllocationDialog({
         allocation
           ? "Save allocation"
           : mode === "forwarded"
-          ? "Confirm forwarded"
-          : "Add allocation"
+            ? "Confirm forwarded"
+            : "Add allocation"
       }
       onSave={async (v) => {
         let reportId = Number(v.reportId);

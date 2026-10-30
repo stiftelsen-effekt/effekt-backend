@@ -165,7 +165,7 @@ describe("queueOutcome", () => {
 });
 
 describe("importOfSelection", () => {
-  const row = (id: number, importLogId: number | null) => ({ id, importLogId } as never);
+  const row = (id: number, importLogId: number | null) => ({ id, importLogId }) as never;
   const rows = [row(1, 88), row(2, 88), row(3, 90), row(4, null)];
 
   it("is the import when every selected row comes from it", () => {

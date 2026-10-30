@@ -24,6 +24,7 @@ x-backend: &backend
       RUN corepack enable
       COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
       COPY apps/api/package.json apps/api/package.json
+      COPY packages/config packages/config
       RUN pnpm install --frozen-lockfile --ignore-scripts --filter stiftelsen-effekt-backend
       WORKDIR /app/apps/api
       COPY apps/api/prisma/schema.prisma prisma/schema.prisma

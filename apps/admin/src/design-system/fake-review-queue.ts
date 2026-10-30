@@ -27,7 +27,7 @@ export function resolveDemoItem(
             ...item,
             status: outcome.status,
             donationId: outcome.status === "registered" ? outcome.donationId : null,
-            note: outcome.status === "ignored" ? outcome.note ?? null : null,
+            note: outcome.status === "ignored" ? (outcome.note ?? null) : null,
             resolvedBy: "you@gieffektivt.no",
             resolvedAt: NOW.toISOString(),
           }

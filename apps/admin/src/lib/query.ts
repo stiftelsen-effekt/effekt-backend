@@ -52,8 +52,8 @@ export function usePageQuery<
   const neighbours = !settled
     ? []
     : typeof prefetch === "function"
-    ? prefetch(query.data as TData)
-    : prefetch;
+      ? prefetch(query.data as TData)
+      : prefetch;
   // The key captures the neighbours; the array itself is rebuilt every render.
   const neighboursKey = JSON.stringify(neighbours.map((neighbour) => neighbour.queryKey));
   useEffect(() => {

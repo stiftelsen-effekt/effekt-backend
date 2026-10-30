@@ -963,8 +963,8 @@ module.exports = {
           new Date(a.due).getTime() < new Date(b.due).getTime()
             ? 1
             : new Date(b.due).getTime() < new Date(a.due).getTime()
-            ? -1
-            : 0,
+              ? -1
+              : 0,
         );
         return chargedCharges[0];
       }
