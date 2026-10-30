@@ -79,6 +79,11 @@ describe("Donor Vipps agreement routes", () => {
       expect(vippsStatusStub.called).to.be.false;
     });
 
+    it("returns 400 for a donor id that is not a plain integer", async () => {
+      await put("/donors/237.0/recurring/vipps/agr_OWN/cancel").expect(400);
+      expect(vippsStatusStub.called).to.be.false;
+    });
+
     it("returns 404 for an unknown agreement", async () => {
       await put(`/donors/${donorId}/recurring/vipps/agr_UNKNOWN/cancel`).expect(404);
       expect(vippsStatusStub.called).to.be.false;
