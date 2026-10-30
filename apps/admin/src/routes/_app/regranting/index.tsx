@@ -207,8 +207,8 @@ function BalancesPage() {
             row.kind === "project" && row.project.projectId
               ? `/regranting/projects/${row.project.projectId}`
               : row.kind === "unassigned"
-              ? "/regranting"
-              : `/regranting/recipients/${row.recipient.organizationId}`
+                ? "/regranting"
+                : `/regranting/recipients/${row.recipient.organizationId}`
           }
           pageHotkeys
           empty={
@@ -349,7 +349,7 @@ function balanceColumns(expanded: ReadonlySet<number>, toggle: (id: number) => v
         ) : null;
       },
     }),
-    col.accessor((row) => (row.kind === "recipient" ? row.recipient.payee?.name ?? null : null), {
+    col.accessor((row) => (row.kind === "recipient" ? (row.recipient.payee?.name ?? null) : null), {
       id: "payee",
       header: "Payee",
       enableSorting: false,

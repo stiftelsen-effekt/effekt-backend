@@ -806,7 +806,7 @@ export function HoldsSection() {
   const projectName = (id: number | null) =>
     id === null
       ? "Whole recipient"
-      : projects.data?.find((p) => p.id === id)?.name ?? `Project #${id}`;
+      : (projects.data?.find((p) => p.id === id)?.name ?? `Project #${id}`);
   const today = osloDay();
   return (
     <SettingsSection

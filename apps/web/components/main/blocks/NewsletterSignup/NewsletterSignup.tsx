@@ -89,10 +89,7 @@ export const NewsletterSignup: React.FC<{
     );
   } else if (locale === "dk") {
     return (
-      <form
-        className={`${styles.category} ${styles.newsletter}`}
-        onSubmit={handleDKSubmit}
-      >
+      <form className={`${styles.category} ${styles.newsletter}`} onSubmit={handleDKSubmit}>
         <fieldset>
           <label className={styles.newsletter_label} htmlFor="dk-email">
             {header || "Tilmeld dig nyhedsbrevet"}

@@ -238,7 +238,7 @@ function CancelledAgreementsPage() {
             options={(reasons.data ?? []).map((reason) => ({
               value: reason.id,
               label: reason.name,
-              count: summary ? reasonCounts.get(reason.id) ?? 0 : undefined,
+              count: summary ? (reasonCounts.get(reason.id) ?? 0) : undefined,
             }))}
           />
           <BooleanFilter field="otherActive" label="Other active agreement" />

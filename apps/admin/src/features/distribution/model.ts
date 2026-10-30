@@ -126,8 +126,8 @@ export function validateDraft(draft: DistributionDraft): DistributionValidation 
   const error = isHundred(total)
     ? undefined
     : total > 100
-    ? `Cause areas add up to ${total} %, ${-remaining} % too much`
-    : `Cause areas add up to ${total} %, ${remaining} % left to place`;
+      ? `Cause areas add up to ${total} %, ${-remaining} % too much`
+      : `Cause areas add up to ${total} %, ${remaining} % left to place`;
   return { valid, total, remaining, causeAreas, error };
 }
 

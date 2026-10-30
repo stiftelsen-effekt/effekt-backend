@@ -28,8 +28,8 @@ function csvCell(value: unknown): string {
     value instanceof Date
       ? osloDateTimeText(value)
       : typeof value === "object"
-      ? JSON.stringify(value)
-      : String(value);
+        ? JSON.stringify(value)
+        : String(value);
   // A leading apostrophe makes spreadsheets show the text instead of evaluating it.
   const text = formulaLike(raw) ? `'${raw}` : raw;
   return /[",\r\n;]/.test(text) || /^\s|\s$/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;

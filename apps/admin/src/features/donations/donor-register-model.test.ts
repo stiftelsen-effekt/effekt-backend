@@ -8,7 +8,7 @@ import {
 } from "./donor-register-model";
 
 const kid = (KID: string, count: number, sum: string | null): DonorDistribution =>
-  ({ KID, count, sum, full_name: "Kari Nordmann", email: "kari@example.org" } as DonorDistribution);
+  ({ KID, count, sum, full_name: "Kari Nordmann", email: "kari@example.org" }) as DonorDistribution;
 
 const org = (id: number, abbreviation: string) =>
   ({
@@ -17,7 +17,7 @@ const org = (id: number, abbreviation: string) =>
     abbreviation,
     isActive: true,
     standardShare: 50,
-  } as never);
+  }) as never;
 
 const config = [
   { id: 1, name: "Global health", organizations: [org(11, "AMF"), org(12, "GD")] },

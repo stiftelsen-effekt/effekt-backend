@@ -28,8 +28,8 @@ export function AwaitingIntentsCallout({
         firstPayment
           ? "Waiting on this donor's first payment"
           : intents.length > 1
-          ? `${intents.length} payments said, not received yet`
-          : "Payment said, not received yet"
+            ? `${intents.length} payments said, not received yet`
+            : "Payment said, not received yet"
       }
     >
       <ul className="grid gap-0.5" data-testid="awaiting-intents">

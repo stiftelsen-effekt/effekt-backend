@@ -35,14 +35,14 @@ export function parseSurveySubmission(data: any): {
     typeof data?.recipient === "string"
       ? data.recipient
       : typeof data?.email?.recipient?.email === "string"
-      ? data.email.recipient.email
-      : null;
+        ? data.email.recipient.email
+        : null;
 
   const surveys = Array.isArray(data?.meta?.surveys)
     ? data.meta.surveys
     : Array.isArray(data?.surveys)
-    ? data.surveys
-    : [];
+      ? data.surveys
+      : [];
 
   const answers: SurveyAnswerRow[] = [];
 

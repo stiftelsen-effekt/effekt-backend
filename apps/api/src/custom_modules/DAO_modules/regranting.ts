@@ -555,9 +555,9 @@ const projectSelect = `SELECT pr.ID AS id, pr.Organization_ID AS organizationId,
     pr.name, pr.description, pr.country, ${isoDate("pr.start_date")} AS startDate,
     ${isoDate("pr.end_date")} AS endDate, pr.status, pr.agreement_ref AS agreementRef,
     ${isoDate("pr.report_due")} AS reportDue, pr.documents_url AS documentsUrl, ${dbClockColumn(
-  "pr.created_at",
-  "createdAt",
-)}
+      "pr.created_at",
+      "createdAt",
+    )}
   FROM Projects pr JOIN Organizations o ON o.ID = pr.Organization_ID`;
 
 export type ProjectInput = {
@@ -788,9 +788,9 @@ async function deleteFund(organizationId: number): Promise<boolean> {
 
 const holdSelect = `SELECT ID AS id, Organization_ID AS organizationId, Project_ID AS projectId, reason,
   ${isoDate("until")} AS until, created_by AS createdBy, ${dbClockColumn(
-  "created_at",
-  "createdAt",
-)} FROM Regrant_holds`;
+    "created_at",
+    "createdAt",
+  )} FROM Regrant_holds`;
 
 export type HoldInput = {
   organizationId: number;
@@ -857,9 +857,9 @@ const roundColumns = (alias = "r") => `${alias}.ID AS id, ${alias}.name, ${alias
   ${isoDate(`${alias}.cutoff`)} AS cutoff, ${alias}.status, ${alias}.min_transfer AS minTransfer,
   ${alias}.created_by AS createdBy, ${dbClockColumn(`${alias}.created_at`, "createdAt")},
   ${alias}.approved_by AS approvedBy, ${dbClockColumn(
-  `${alias}.approved_at`,
-  "approvedAt",
-)}, ${isoDate(`${alias}.paid_at`)} AS paidAt, ${alias}.notes`;
+    `${alias}.approved_at`,
+    "approvedAt",
+  )}, ${isoDate(`${alias}.paid_at`)} AS paidAt, ${alias}.notes`;
 const mapRound = (r: any): Round => ({
   id: r.id,
   name: r.name,

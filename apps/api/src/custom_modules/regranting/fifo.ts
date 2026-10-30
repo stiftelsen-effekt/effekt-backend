@@ -206,7 +206,7 @@ export function runFifo<S, T>(events: FifoEvent<S, T>[]): FifoResult<S, T>[] {
       const previous = lastTraced.get(outflow.position) ?? null;
       result.previous =
         previous && previous.roundId === outflow.roundId
-          ? results.find((r) => r.outflow === previous)?.previous ?? null
+          ? (results.find((r) => r.outflow === previous)?.previous ?? null)
           : previous;
       lastTraced.set(outflow.position, outflow);
       results.push(result);

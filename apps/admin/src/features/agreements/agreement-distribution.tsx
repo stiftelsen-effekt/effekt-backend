@@ -140,7 +140,7 @@ function SplitEditor({
           if (validation.valid) setConfirming(true);
         }}
         invalid={
-          touched && !validation.valid ? validation.error ?? "Fix the marked shares" : undefined
+          touched && !validation.valid ? (validation.error ?? "Fix the marked shares") : undefined
         }
       />
       <ConfirmDialog

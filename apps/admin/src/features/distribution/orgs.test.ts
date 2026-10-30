@@ -14,7 +14,7 @@ import {
 } from "./orgs";
 
 const org = (id: number, name: string, chartColor: string | null = null) =>
-  ({ id, name, isActive: true, standardShare: 0, ordering: id, chartColor } as never);
+  ({ id, name, isActive: true, standardShare: 0, ordering: id, chartColor }) as never;
 const config = [
   {
     id: 1,

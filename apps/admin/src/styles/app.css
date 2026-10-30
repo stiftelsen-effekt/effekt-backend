@@ -78,8 +78,8 @@
   --color-paper-950: #121211;
   --color-paper-1000: #0b0b0a;
 
-  --font-sans: "ES Klarheit Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    sans-serif;
+  --font-sans:
+    "ES Klarheit Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "ES Klarheit Kurrent", "ES Klarheit Grotesk", Georgia, serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
@@ -129,7 +129,8 @@
   /* Loading. Nothing shows for loads under --delay-pending (useDelayedFlag's PENDING_DELAY_MS):
      a skeleton is transparent until then, then fades in and breathes slowly. */
   --delay-pending: 300ms;
-  --animate-skeleton: skeleton-in var(--duration-base) var(--ease-out) var(--delay-pending) both,
+  --animate-skeleton:
+    skeleton-in var(--duration-base) var(--ease-out) var(--delay-pending) both,
     skeleton-pulse 1.8s ease-in-out calc(var(--delay-pending) + var(--duration-base)) infinite;
   @keyframes skeleton-in {
     from {
@@ -406,7 +407,9 @@
 
 @utility num {
   font-variant-numeric: tabular-nums lining-nums;
-  font-feature-settings: "tnum" 1, "lnum" 1;
+  font-feature-settings:
+    "tnum" 1,
+    "lnum" 1;
 }
 
 @utility focus-ring {

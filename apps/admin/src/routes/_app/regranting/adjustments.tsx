@@ -152,8 +152,8 @@ function AdjustmentsPage() {
         list.sort.id === "amount"
           ? dir * compareMoney(a.amount, b.amount)
           : list.sort.id === "recipient"
-          ? dir * a.organizationName.localeCompare(b.organizationName, "nb")
-          : dir * a.effectiveAt.localeCompare(b.effectiveAt) || dir * (a.id - b.id),
+            ? dir * a.organizationName.localeCompare(b.organizationName, "nb")
+            : dir * a.effectiveAt.localeCompare(b.effectiveAt) || dir * (a.id - b.id),
       );
   }, [query.data, org, list.filters.q, list.sort.id, list.sort.desc]);
   const opened = rows.find((a) => a.id === openId);
@@ -293,12 +293,12 @@ function AdjustmentDetails({
                 a.pairedAdjustmentId !== null
                   ? "It's half of an earmark: both halves (unrestricted and project) are deleted. The round's Pay now stays; remove the earmark in the round to move it back."
                   : a.affectsBalance
-                  ? `${a.organizationName}'s balance changes by ${formatMoney(
-                      a.amount.startsWith("-") ? a.amount.slice(1) : `-${a.amount}`,
-                    )}`
-                  : a.pending
-                  ? "It's pending in a draft round; no balance changes"
-                  : "It's a record only; no balance changes",
+                    ? `${a.organizationName}'s balance changes by ${formatMoney(
+                        a.amount.startsWith("-") ? a.amount.slice(1) : `-${a.amount}`,
+                      )}`
+                    : a.pending
+                      ? "It's pending in a draft round; no balance changes"
+                      : "It's a record only; no balance changes",
               ]}
               confirmLabel="Delete adjustment"
               onConfirm={async () => {
@@ -337,8 +337,8 @@ function AdjustmentDetails({
           {a.affectsBalance
             ? "Yes"
             : a.pending
-            ? "Not yet: it counts once its round is approved"
-            : "No, a record only"}
+              ? "Not yet: it counts once its round is approved"
+              : "No, a record only"}
         </Property>
         <Property label="Reason">{a.reason}</Property>
         <Property label="Round">

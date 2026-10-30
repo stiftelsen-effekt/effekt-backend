@@ -167,7 +167,7 @@ export function Sparkline({
                   )}
                   <circle
                     cx={x(active ?? count - 1)}
-                    cy={y(active === null ? last : item.values[active] ?? 0)}
+                    cy={y(active === null ? last : (item.values[active] ?? 0))}
                     r={2}
                     fill={
                       partialLast && (active ?? count - 1) === count - 1 ? "var(--surface)" : stroke

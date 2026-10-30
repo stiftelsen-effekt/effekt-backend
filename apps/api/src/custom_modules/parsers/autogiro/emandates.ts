@@ -48,15 +48,13 @@ export const parseEMandates = (lines: string[], openingRecord: AutoGiroOpeningRe
         break;
       case AutoGiroTransactionCode.E_MANDATE_NAME_AND_ADDRESS_FIRST_RECORD:
         const eMandateNameAndAddressFirst = parseEMandatePayerNameAndAddressRecord(line);
-        result.emandates[
-          result.emandates.length - 1
-        ].information.payerNameAndAddress = `${eMandateNameAndAddressFirst.firstLine} ${eMandateNameAndAddressFirst.secondLine}`;
+        result.emandates[result.emandates.length - 1].information.payerNameAndAddress =
+          `${eMandateNameAndAddressFirst.firstLine} ${eMandateNameAndAddressFirst.secondLine}`;
         break;
       case AutoGiroTransactionCode.E_MANDATE_NAME_AND_ADDRESS_SECOND_RECORD:
         const eMandateNameAndAddressSecond = parseEMandatePayerNameAndAddressRecord(line);
-        result.emandates[
-          result.emandates.length - 1
-        ].information.payerNameAndAddress += ` ${eMandateNameAndAddressSecond.firstLine} ${eMandateNameAndAddressSecond.secondLine}`;
+        result.emandates[result.emandates.length - 1].information.payerNameAndAddress +=
+          ` ${eMandateNameAndAddressSecond.firstLine} ${eMandateNameAndAddressSecond.secondLine}`;
         break;
       case AutoGiroTransactionCode.E_MANDATE_POST_NUMBER_RECORD:
         const eMandatePostNumber = parseEMandatePostNumberRecord(line);

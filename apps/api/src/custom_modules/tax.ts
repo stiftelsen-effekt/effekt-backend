@@ -181,7 +181,10 @@ class XmlElement {
   private readonly children: XmlElement[] = [];
   private readonly attributes: [string, string][] = [];
 
-  constructor(private readonly name: string, private readonly text?: string) {}
+  constructor(
+    private readonly name: string,
+    private readonly text?: string,
+  ) {}
 
   attr(attributes: Record<string, string>): XmlElement {
     this.attributes.push(...Object.entries(attributes));

@@ -61,10 +61,10 @@ export function validateAdjustment(v: AdjustmentForm) {
       amount === null
         ? "Enter an amount in kroner, like -1500 or 249,50"
         : amount === "0.00"
-        ? "An adjustment can't be 0"
-        : v.type === "fronted" && amount.startsWith("-")
-        ? "A fronted amount is positive"
-        : undefined,
+          ? "An adjustment can't be 0"
+          : v.type === "fronted" && amount.startsWith("-")
+            ? "A fronted amount is positive"
+            : undefined,
     reason: textError(v.reason, { label: "a reason", max: 5000, required: true }),
     effectiveAt: v.effectiveAt ? undefined : "Enter the date it counts from",
     linkedTransferId:

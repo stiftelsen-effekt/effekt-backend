@@ -211,9 +211,8 @@ const referralTypeOrdering = z.number().int().min(-2147483648).max(2147483647);
 /** All referral type procedures return { id, name, ordering, isActive } */
 const referralTypesRouter = router({
   /** GET /referrals/types */
-  listActive: adminProcedure.query(
-    async (): Promise<ReferralType[]> =>
-      (await DAO.referrals.getTypes()).map((type) => ({ ...type, isActive: true })),
+  listActive: adminProcedure.query(async (): Promise<ReferralType[]> =>
+    (await DAO.referrals.getTypes()).map((type) => ({ ...type, isActive: true })),
   ),
   /** GET /referrals/types/all */
   listAll: adminProcedure.query(async () =>

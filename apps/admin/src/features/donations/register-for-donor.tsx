@@ -132,7 +132,7 @@ export function RegisterForDonorDialog({
             Close the dialog and try again.
           </Callout>
         ) : (
-          ready ?? <Pending className="min-h-80" />
+          (ready ?? <Pending className="min-h-80" />)
         )}
       </DialogContent>
       {guard.dialog}

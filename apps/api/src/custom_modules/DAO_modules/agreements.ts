@@ -278,23 +278,21 @@ async function getList(options: {
 
   const count = Number(stats.count);
   return {
-    rows: rows.map(
-      (row): AgreementRow => ({
-        provider: row.provider,
-        id: row.id,
-        KID: row.KID,
-        donorId: row.donorId,
-        donorName: row.donorName,
-        amount: Number(row.amount),
-        chargeDay: row.chargeDay,
-        status: row.status,
-        providerStatus: row.providerStatus,
-        created: row.created,
-        lastUpdated: row.lastUpdated,
-        cancelled: row.cancelled,
-        pausedUntil: row.pausedUntil,
-      }),
-    ),
+    rows: rows.map((row): AgreementRow => ({
+      provider: row.provider,
+      id: row.id,
+      KID: row.KID,
+      donorId: row.donorId,
+      donorName: row.donorName,
+      amount: Number(row.amount),
+      chargeDay: row.chargeDay,
+      status: row.status,
+      providerStatus: row.providerStatus,
+      created: row.created,
+      lastUpdated: row.lastUpdated,
+      cancelled: row.cancelled,
+      pausedUntil: row.pausedUntil,
+    })),
     statistics: {
       count,
       activeCount: Number(stats.activeCount ?? 0),

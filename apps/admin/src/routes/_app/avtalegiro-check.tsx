@@ -432,19 +432,19 @@ function AvtaleGiroCheckPage() {
           <TabsList>
             <TabsTrigger
               value="missing"
-              count={missing.isError ? undefined : missing.data?.length ?? null}
+              count={missing.isError ? undefined : (missing.data?.length ?? null)}
             >
               Missing
             </TabsTrigger>
             <TabsTrigger
               value="expected"
-              count={expected.isError ? undefined : expected.data?.length ?? null}
+              count={expected.isError ? undefined : (expected.data?.length ?? null)}
             >
               Expected
             </TabsTrigger>
             <TabsTrigger
               value="received"
-              count={received.isError ? undefined : received.data?.length ?? null}
+              count={received.isError ? undefined : (received.data?.length ?? null)}
             >
               Received
             </TabsTrigger>

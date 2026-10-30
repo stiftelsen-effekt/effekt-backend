@@ -297,7 +297,7 @@ export function summarizeEdits(
     result.push({
       organizationId,
       recipient: names.get(organizationId) ?? `Recipient #${organizationId}`,
-      line: projectText ? projectName ?? `Project #${projectText}` : "Unrestricted",
+      line: projectText ? (projectName ?? `Project #${projectText}`) : "Unrestricted",
       before,
       after: edit.amount,
     });

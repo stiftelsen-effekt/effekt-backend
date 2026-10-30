@@ -368,11 +368,7 @@ export type RoundDonation = {
 };
 
 export type StatementEntryKind =
-  | "allocations"
-  | "fund_grant_in"
-  | "fund_grant_out"
-  | "transfer"
-  | "adjustment";
+  "allocations" | "fund_grant_in" | "fund_grant_out" | "transfer" | "adjustment";
 
 //endregion
 

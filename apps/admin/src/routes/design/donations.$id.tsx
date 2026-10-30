@@ -24,7 +24,7 @@ function DonationDemo() {
     donations.find((d) => String(d.id) === id) ?? donorDonations.find((d) => String(d.id) === id);
   if (!donation)
     return <EmptyState title="No such donation" description={`#${id}`} className="flex-1" />;
-  const kid = "kid" in donation ? donation.kid : donation.KID ?? "";
+  const kid = "kid" in donation ? donation.kid : (donation.KID ?? "");
 
   return (
     <DetailPage

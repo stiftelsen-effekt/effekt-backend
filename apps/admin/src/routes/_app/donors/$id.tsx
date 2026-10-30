@@ -694,7 +694,7 @@ function Donor({ donorId }: { donorId: number }) {
 
 /** A tab badge's count: reserved while loading, absent after an error. */
 function pendingCount(query: { data?: unknown[]; isError: boolean }) {
-  return query.isError ? undefined : query.data?.length ?? null;
+  return query.isError ? undefined : (query.data?.length ?? null);
 }
 
 function ReferralsTable({
