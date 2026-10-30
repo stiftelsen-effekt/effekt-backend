@@ -73,7 +73,8 @@
     "styled-components": "^6.6.0",
     "swr": "^2.5.1",
     "textures": "^1.2.3",
-    "use-debounce": "^10.1.1"
+    "use-debounce": "^10.1.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@effekt/api": "workspace:*",
