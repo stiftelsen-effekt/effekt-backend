@@ -47,7 +47,7 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
   try {
     const agreementUrlCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementUrlCode);
-    const agreement = await DAO.vipps.getAgreement(agreementId);
+    const agreement = agreementId && (await DAO.vipps.getAgreement(agreementId));
 
     if (!agreement) {
       let err = new Error("Can't find agreement");
@@ -81,7 +81,7 @@ router.get("/agreement/anonymous/:urlcode", async (req, res, next) => {
   try {
     const agreementUrlCode = req.params.urlcode;
     const agreementId = await DAO.vipps.getAgreementIdByUrlCode(agreementUrlCode);
-    const agreement = await DAO.vipps.getAgreement(agreementId);
+    const agreement = agreementId && (await DAO.vipps.getAgreement(agreementId));
     if (!agreement) {
       let err = new Error("Can't find agreement");
       (err as any).status = 404;
