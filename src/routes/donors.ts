@@ -843,12 +843,12 @@ router.put(
   },
   async (req, res, next) => {
     try {
-      const id = req.params.id;
+      const donorId = parseInt(req.params.id);
       const taxUnitId = parseInt(req.params.taxunitid);
       const taxUnit = req.body.taxUnit;
       const ssn = taxUnit.ssn;
 
-      if (!id || !taxUnitId || !taxUnit) {
+      if (!donorId || !taxUnitId || !taxUnit) {
         res.status(400).json({
           status: 400,
           content: "Missing parameters id or taxUnitid or taxUnit in json body",
@@ -883,11 +883,11 @@ router.put(
         });
       }
 
-      const donor = await DAO.donors.getByID(req.params.id);
+      const donor = await DAO.donors.getByID(donorId);
       if (!donor) {
         return res.status(404).json({
           status: 404,
-          content: "No donor found with ID " + req.params.id,
+          content: "No donor found with ID " + donorId,
         });
       }
 

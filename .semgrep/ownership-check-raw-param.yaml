@@ -1,0 +1,43 @@
+rules:
+  - id: ownership-check-on-parsed-param-raw-param-used
+    # Flags Express routes that run the donor ownership check on a parsed path
+    # parameter (checkAdminOrTheDonor(parseInt(req.params.X), ...)) and later
+    # pass the raw, unparsed req.params.X to another function. The check and the
+    # handler can then disagree about which value they are working with.
+    #
+    # Files that validate the parameter up front with
+    # router.param("X", <middleware>) are not flagged: the raw value is already
+    # constrained there (see requireIntegerParam in src/routes/donors.ts).
+    # Prefer parsing once and reusing the parsed value in the handler.
+    #
+    # Known limitation: if the handler declares a local variable with the same
+    # name as the parameter (e.g. `const id = req.params.id`), Semgrep resolves
+    # later `req.params.id` to that local and the router.param exclusion no
+    # longer applies. Name the local differently (e.g. `donorId`).
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      The ownership check uses parseInt(req.params.$X), but the raw
+      req.params.$X is passed to $F later in the same route. Parse once and
+      use the parsed value everywhere, or validate the parameter with
+      router.param("$X", requireIntegerParam).
+    metadata:
+      category: security
+      cwe: "CWE-639: Authorization Bypass Through User-Controlled Key"
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $ROUTER.$METHOD(..., ($A, $B, $C) => { ... checkAdminOrTheDonor(parseInt(req.params.$X), ...); ... }, ...)
+          - pattern-inside: |
+              $ROUTER.$METHOD(..., ($A, $B, $C) => { ... $AUTH.checkAdminOrTheDonor(parseInt(req.params.$X), ...); ... }, ...)
+          - pattern-inside: |
+              $ROUTER.$METHOD(..., ($A, $B, $C) => checkAdminOrTheDonor(parseInt(req.params.$X), ...), ...)
+          - pattern-inside: |
+              $ROUTER.$METHOD(..., ($A, $B, $C) => $AUTH.checkAdminOrTheDonor(parseInt(req.params.$X), ...), ...)
+      - pattern-not-inside: |
+          $R.param("$X", ...);
+          ...
+      - pattern: $F(..., req.params.$X, ...)
+      - pattern-not: parseInt(req.params.$X, ...)
+      - pattern-not: Number(req.params.$X)
+      - pattern-not: Number.parseInt(req.params.$X, ...)

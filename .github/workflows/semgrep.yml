@@ -5,20 +5,36 @@ on:
     branches:
       - main
       - master
-    paths:
-      - .github/workflows/semgrep.yml
   schedule:
     # random HH:MM to avoid a load spike on GitHub Actions at 00:00
     - cron: 52 20 * * *
 name: Semgrep
+permissions:
+  contents: read
 jobs:
   semgrep:
     name: semgrep/ci
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
     container:
-      image: returntocorp/semgrep
+      image: semgrep/semgrep
     steps:
-      - uses: actions/checkout@v3
-      - run: semgrep ci
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Rules managed in the Semgrep app. Skipped when the token is not available
+      # (e.g. pull requests from forks).
+      - name: Semgrep app rules
+        if: env.SEMGREP_APP_TOKEN != ''
+        run: semgrep ci
+
+      # Repository rules in .semgrep/. These run without the Semgrep app.
+      - name: Test custom rules
+        run: semgrep --test .semgrep/
+
+      - name: Custom rules (blocking, severity ERROR)
+        run: semgrep scan --metrics=off --config .semgrep/ --exclude .semgrep --severity ERROR --error .
+
+      - name: Custom rules (report only, severity WARNING)
+        run: semgrep scan --metrics=off --config .semgrep/ --exclude .semgrep --severity WARNING .

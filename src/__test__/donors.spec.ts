@@ -219,7 +219,7 @@ describe("donors", () => {
 
       beforeEach(function () {
         donorStub = sinon.stub(DAO.donors, "getByID");
-        donorStub.withArgs("237").resolves(jack);
+        donorStub.withArgs(237).resolves(jack);
         taxGetByIdStub = sinon.stub(DAO.tax, "getById");
         updateTaxUnitStub = sinon.stub(DAO.tax, "updateTaxUnit").resolves(1);
       });
