@@ -282,7 +282,7 @@ describe("tRPC vipps router", () => {
 
       expect(vippsStub.calledWith("agr_TEST1", 25000)).to.be.true;
       expect(dbStub.calledWith("agr_TEST1", 250)).to.be.true;
-      expect(changeMailStub.calledWith("urlcode-abc", "AMOUNT", 250)).to.be.true;
+      expect(changeMailStub.calledWith("agr_TEST1", "AMOUNT", 250)).to.be.true;
     });
 
     it("does not update the DB price when Vipps rejects it", async () => {
@@ -339,7 +339,7 @@ describe("tRPC vipps router", () => {
       expect(vippsStub.calledWith("agr_TEST1", "STOPPED")).to.be.true;
       expect(statusStub.calledWith("agr_TEST1", "STOPPED")).to.be.true;
       expect(cancelDateStub.calledWith("agr_TEST1")).to.be.true;
-      expect(changeMailStub.calledWith("urlcode-abc", "STOPPED")).to.be.true;
+      expect(changeMailStub.calledWith("agr_TEST1", "STOPPED")).to.be.true;
     });
 
     it("updates the charge day", async () => {
@@ -349,7 +349,7 @@ describe("tRPC vipps router", () => {
       await admin().vipps.agreements.updateChargeDay({ id: "agr_TEST1", chargeDay: 0 });
 
       expect(stub.calledWith("agr_TEST1", 0)).to.be.true;
-      expect(changeMailStub.calledWith("urlcode-abc", "CHARGEDAY", 0)).to.be.true;
+      expect(changeMailStub.calledWith("agr_TEST1", "CHARGEDAY", 0)).to.be.true;
     });
 
     const stubReferences = () => {
@@ -363,7 +363,6 @@ describe("tRPC vipps router", () => {
     it("updates the distribution, creating a new KID for the agreement's donor", async () => {
       sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
       stubReferences();
-      sinon.stub(DAO.donors, "getIDByAgreementCode").resolves(42);
       sinon.stub(DAO.distributions, "getKIDbySplit").resolves(null);
       sinon.stub(donationHelpers, "createKID").resolves("87654321");
       const addStub = sinon.stub(DAO.distributions, "add").resolves(true as any);
@@ -377,7 +376,7 @@ describe("tRPC vipps router", () => {
       expect(res).to.deep.equal({ KID: "87654321" });
       expect(addStub.firstCall.args[0]).to.include({ donorId: 42, kid: "87654321" });
       expect(kidStub.calledWith("agr_TEST1", "87654321")).to.be.true;
-      expect(changeMailStub.calledWith("urlcode-abc", "SHARES", "87654321")).to.be.true;
+      expect(changeMailStub.calledWith("agr_TEST1", "SHARES", "87654321")).to.be.true;
     });
 
     it("rejects another donor's tax unit", async () => {
@@ -416,7 +415,6 @@ describe("tRPC vipps router", () => {
 
     it("rejects a distribution that does not sum to 100", async () => {
       sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      sinon.stub(DAO.donors, "getIDByAgreementCode").resolves(42);
       const kidStub = sinon.stub(DAO.vipps, "updateAgreementKID");
 
       await expectTrpcError(

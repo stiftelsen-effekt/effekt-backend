@@ -36,6 +36,32 @@ describe("Vipps agreement url codes", () => {
     expect(queryStub.called).to.equal(false);
   });
 
+  describe("Min Side redirect", function () {
+    const code = "0123456789abcdef0123456789abcdef";
+
+    const stubAgreementOwner = (email: string) => {
+      (DAO.vipps.getAgreementIdByUrlCode as sinon.SinonStub).withArgs(code).resolves("agr_TEST");
+      sinon.stub(DAO.vipps, "getAgreement").resolves({ ID: "agr_TEST", donorID: 42 } as any);
+      sinon.stub(DAO.donors, "getByID").resolves({ id: 42, email } as any);
+    };
+
+    it("sends donors to the Vipps agreement login page without their details", async function () {
+      stubAgreementOwner("donor@example.com");
+      const res = await request(server).get(`/vipps/agreement/minside/${code}`).expect(302);
+      expect(res.headers.location).to.match(/\/vippsagreement$/);
+      expect(res.headers.location).not.to.include("@");
+      expect(res.headers.location).not.to.include(code);
+    });
+
+    it("sends anonymous donors to the anonymous agreement page without the code", async function () {
+      stubAgreementOwner("anon@gieffektivt.no");
+      const res = await request(server).get(`/vipps/agreement/minside/${code}`).expect(302);
+      expect(res.headers.location).to.match(/\/min-side\/vipps-anonym$/);
+      expect(res.headers.location).not.to.include("@");
+      expect(res.headers.location).not.to.include(code);
+    });
+  });
+
   it("does not query for an agreement without an ID", async function () {
     expect(await DAO.vipps.getAgreement(false)).to.equal(false);
     expect(queryStub.called).to.equal(false);

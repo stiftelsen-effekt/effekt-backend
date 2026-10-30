@@ -12,8 +12,8 @@ const vipps = require("./vipps");
  * Business logic for admin/donor edits of Vipps recurring agreements, shared by the REST
  * routes in routes/vipps.ts and the tRPC vipps router.
  *
- * Agreements are identified both by their Vipps agreement id (used against the Vipps API and
- * our DB) and by their agreement url code (used in the change-notification email).
+ * Agreements are identified by their Vipps agreement id, used against both the Vipps API and
+ * our DB. Callers check that the caller may edit the agreement.
  */
 
 /** The subset of a Vipps Recurring v3 agreement we rely on; Vipps returns more fields. */
@@ -47,13 +47,13 @@ export async function syncAndGetAgreement(agreementId: string) {
  * our DB and sends the change notification.
  * @returns Whether Vipps accepted the change
  */
-export async function cancelAgreement(agreementId: string, agreementCode: string) {
+export async function cancelAgreement(agreementId: string) {
   const response: boolean = await vipps.updateAgreementStatus(agreementId, "STOPPED");
 
   if (response) {
     await DAO.vipps.updateAgreementStatus(agreementId, "STOPPED");
     await DAO.vipps.updateAgreementCancellationDate(agreementId);
-    await mail.sendVippsAgreementChange(agreementCode, "STOPPED");
+    await mail.sendVippsAgreementChange(agreementId, "STOPPED");
   }
 
   return response;
@@ -65,17 +65,13 @@ export async function cancelAgreement(agreementId: string, agreementCode: string
  * @param priceOre The new monthly price in øre
  * @returns Whether Vipps accepted the change
  */
-export async function updateAgreementPrice(
-  agreementId: string,
-  agreementCode: string,
-  priceOre: number,
-) {
+export async function updateAgreementPrice(agreementId: string, priceOre: number) {
   const response: boolean = await vipps.updateAgreementPrice(agreementId, priceOre);
 
   // Only update database if Vipps update was successful
   if (response) {
     await DAO.vipps.updateAgreementPrice(agreementId, priceOre / 100);
-    await mail.sendVippsAgreementChange(agreementCode, "AMOUNT", priceOre / 100);
+    await mail.sendVippsAgreementChange(agreementId, "AMOUNT", priceOre / 100);
   }
 
   return response;
@@ -85,13 +81,9 @@ export async function updateAgreementPrice(
  * Updates the monthly charge day in our DB (charges are created by our scheduler) and sends
  * the change notification. The caller validates the range (0 = last day of month, max 28).
  */
-export async function updateAgreementChargeDay(
-  agreementId: string,
-  agreementCode: string,
-  chargeDay: number,
-) {
+export async function updateAgreementChargeDay(agreementId: string, chargeDay: number) {
   const response = await DAO.vipps.updateAgreementChargeDay(agreementId, chargeDay);
-  if (response) await mail.sendVippsAgreementChange(agreementCode, "CHARGEDAY", chargeDay);
+  if (response) await mail.sendVippsAgreementChange(agreementId, "CHARGEDAY", chargeDay);
   return response;
 }
 
@@ -105,15 +97,12 @@ export type UpdateAgreementDistributionResult =
  */
 export async function updateAgreementDistribution(
   agreementId: string,
-  agreementCode: string,
   distributionInput: DistributionInput,
 ): Promise<UpdateAgreementDistributionResult> {
   const existingAgreement = await DAO.vipps.getAgreement(agreementId);
   if (!existingAgreement) {
     return { ok: false, status: 404, message: "Agreement not found" };
   }
-
-  const donorId = await DAO.donors.getIDByAgreementCode(agreementCode);
 
   let validatedDistribution: DistributionInput;
   try {
@@ -122,7 +111,7 @@ export async function updateAgreementDistribution(
     return { ok: false, status: 400, message: ex.message };
   }
 
-  if (validatedDistribution.donorId !== donorId) {
+  if (validatedDistribution.donorId !== existingAgreement.donorID) {
     return { ok: false, status: 400, message: "Donor ID mismatch" };
   }
 
@@ -141,7 +130,7 @@ export async function updateAgreementDistribution(
   }
 
   const response = await DAO.vipps.updateAgreementKID(agreementId, KID);
-  if (response) await mail.sendVippsAgreementChange(agreementCode, "SHARES", KID);
+  if (response) await mail.sendVippsAgreementChange(agreementId, "SHARES", KID);
 
   return { ok: true, KID };
 }

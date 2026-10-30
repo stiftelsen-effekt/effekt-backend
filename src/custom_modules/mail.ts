@@ -711,11 +711,11 @@ function unsentDeprecatedEmail(emailName: string): false {
 }
 
 /**
- * @param {string} agreementCode
+ * @param {string} agreementId Vipps agreement id
  * @param {"PAUSED" | "UNPAUSED" | "STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
  */
-export async function sendVippsAgreementChange(agreementCode, change, newValue: any = null) {
+export async function sendVippsAgreementChange(agreementId, change, newValue: any = null) {
   return unsentDeprecatedEmail("sendVippsAgreementChange");
 }
 

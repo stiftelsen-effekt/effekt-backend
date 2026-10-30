@@ -63,15 +63,16 @@ router.get("/agreement/minside/:urlcode", async (req, res, next) => {
       return next(err);
     }
 
+    // Agreements are managed on Min Side after logging in, so the url code and the donor's
+    // details stay out of the redirect
     const baseUrl =
       config.env === "development" ? "http://localhost:3000" : "https://gieffektivt.no";
-    let redirectUrl = `${baseUrl}/vippsagreement?email=${encodeURIComponent(donor.email)}`;
+    const redirectUrl =
+      donor.email === "anon@gieffektivt.no"
+        ? `${baseUrl}/min-side/vipps-anonym`
+        : `${baseUrl}/vippsagreement`;
 
-    if (donor.email === "anon@gieffektivt.no") {
-      redirectUrl = `${baseUrl}/min-side/vipps-anonym?agreement-code=${agreementUrlCode}`;
-    }
-
-    res.status(304).redirect(redirectUrl);
+    res.redirect(302, redirectUrl);
   } catch (ex) {
     next({ ex });
   }
@@ -320,7 +321,7 @@ router.put("/agreement/:urlcode/cancel", async (req, res, next) => {
         content: "Agreement not found",
       });
     }
-    const response = await vippsService.cancelAgreement(agreementId, agreementCode);
+    const response = await vippsService.cancelAgreement(agreementId);
 
     if (!response) {
       res.status(500).json({
@@ -375,7 +376,7 @@ router.put("/agreement/:urlcode/price", jsonBody, async (req, res, next) => {
         content: "Agreement not found",
       });
     }
-    const response = await vippsService.updateAgreementPrice(agreementId, agreementCode, price);
+    const response = await vippsService.updateAgreementPrice(agreementId, price);
 
     if (!response) {
       res.status(500).json({
@@ -508,11 +509,7 @@ router.put("/agreement/:urlcode/chargeday", jsonBody, async (req, res, next) => 
       return next(err);
     }
 
-    const response = await vippsService.updateAgreementChargeDay(
-      agreementId,
-      agreementCode,
-      chargeDay,
-    );
+    const response = await vippsService.updateAgreementChargeDay(agreementId, chargeDay);
 
     res.send(response);
   } catch (ex) {
@@ -590,7 +587,6 @@ router.put("/agreement/:urlcode/distribution", jsonBody, async (req, res, next) 
 
     const result = await vippsService.updateAgreementDistribution(
       agreementId,
-      agreementCode,
       req.body.distribution as DistributionInput,
     );
     if (!result.ok) {
