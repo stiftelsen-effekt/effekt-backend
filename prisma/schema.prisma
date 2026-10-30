@@ -106,30 +106,36 @@ model Avtalegiro_shipment {
   num_claims Int?
   generated  DateTime? @default(now()) @db.DateTime(0)
 
-  Avtalegiro_agreement_charges Avtalegiro_agreement_charges[]
+  Avtalegiro_agreement_charges          Avtalegiro_agreement_charges[] @relation("ChargeShipment")
+  Avtalegiro_agreement_charge_deletions Avtalegiro_agreement_charges[] @relation("ChargeDeletionShipment")
 }
 
 /// One row per claim we send to Mastercard Payment Services (Nets) for an AvtaleGiro agreement
 model Avtalegiro_agreement_charges {
-  ID           Int       @id @default(autoincrement())
-  agreementID  Int
-  shipmentID   Int
-  KID          String    @db.VarChar(32)
-  due_date     DateTime  @db.Date
+  ID                  Int       @id @default(autoincrement())
+  agreementID         Int
+  shipmentID          Int
+  KID                 String    @db.VarChar(32)
+  due_date            DateTime  @db.Date
   /// In øre, like Avtalegiro_agreements.amount
-  amount       Int
-  /// CLAIMED when sent, COMPLETED when the payment arrives in the OCR file, SUPERSEDED when a retry replaces the shipment
-  status       String    @db.VarChar(20)
-  donationID   Int?      @unique(map: "donationID_UNIQUE")
-  last_updated DateTime? @default(now()) @db.DateTime(0)
-  created      DateTime? @default(now()) @db.DateTime(0)
+  amount              Int
+  /// CLAIMED when sent, COMPLETED when the payment arrives in the OCR file, SUPERSEDED when a retry replaces the shipment.
+  /// When an agreement is cancelled: DELETION_REQUESTED, then DELETION_SENT, then DELETED once MPS accepts the deletion file.
+  status              String    @db.VarChar(20)
+  donationID          Int?      @unique(map: "donationID_UNIQUE")
+  /// The shipment that sent the deletion request, if the charge was deleted
+  deletion_shipmentID Int?
+  last_updated        DateTime? @default(now()) @db.DateTime(0)
+  created             DateTime? @default(now()) @db.DateTime(0)
 
-  agreement Avtalegiro_agreements @relation(fields: [agreementID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Avtalegiro_agreement_charges_to_agreements_idx")
-  shipment  Avtalegiro_shipment   @relation(fields: [shipmentID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Avtalegiro_agreement_charges_to_shipment_idx")
-  donation  Donations?            @relation(fields: [donationID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Avtalegiro_agreement_charges_to_donations_idx")
+  agreement         Avtalegiro_agreements @relation(fields: [agreementID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Avtalegiro_agreement_charges_to_agreements_idx")
+  shipment          Avtalegiro_shipment   @relation("ChargeShipment", fields: [shipmentID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Avtalegiro_agreement_charges_to_shipment_idx")
+  deletion_shipment Avtalegiro_shipment?  @relation("ChargeDeletionShipment", fields: [deletion_shipmentID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Avtalegiro_agreement_charges_to_deletion_shipment_idx")
+  donation          Donations?            @relation(fields: [donationID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Avtalegiro_agreement_charges_to_donations_idx")
 
   @@index([KID, due_date], map: "KID_due_date_idx")
   @@index([shipmentID], map: "fk_Avtalegiro_agreement_charges_to_shipment_idx")
+  @@index([deletion_shipmentID], map: "fk_Avtalegiro_agreement_charges_to_deletion_shipment_idx")
   @@index([agreementID], map: "fk_Avtalegiro_agreement_charges_to_agreements_idx")
 }
 

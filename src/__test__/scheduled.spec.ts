@@ -10,6 +10,7 @@ import { donations } from "../custom_modules/DAO_modules/donations";
 import paymentMethods from "../enums/paymentMethods";
 import Decimal from "decimal.js";
 import { donors } from "../custom_modules/DAO_modules/donors";
+import * as avtalegiroDeletions from "../custom_modules/avtalegiro/deletions";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 const mail = require("../custom_modules/mail");
@@ -54,9 +55,14 @@ describe("POST /scheduled/avtalegiro", function () {
   let authStub;
   let claimedKIDsStub;
   let addChargesStub;
+  let deletionsStub;
 
   before(function () {
     authStub = sinon.replace(authMiddleware, "isAdmin", []);
+
+    deletionsStub = sinon
+      .stub(avtalegiroDeletions, "processAvtaleGiroDeletions")
+      .resolves({} as any);
 
     claimedKIDsStub = sinon.stub(DAO.avtalegirocharges, "getClaimedKIDsForMonth");
     addChargesStub = sinon.stub(DAO.avtalegirocharges, "addCharges").resolves();
@@ -98,7 +104,7 @@ describe("POST /scheduled/avtalegiro", function () {
     expect(agreementsStub.calledOnce).to.be.true;
     expect(sendNotificationStub.called).to.be.false;
     expect(sendFileStub.called).to.be.false;
-    expect(loggingStub.calledOnce).to.be.true;
+    expect(loggingStub.withArgs("AvtaleGiro").calledOnce).to.be.true;
   });
 
   it("Generates claim file when provided a date", async function () {
@@ -178,6 +184,30 @@ describe("POST /scheduled/avtalegiro", function () {
     sinon.assert.calledWithExactly(shipmentStub, mockAgreements.length * 2);
   });
 
+  describe("deletions", function () {
+    it("Processes deletions without sending unaccepted files again", async function () {
+      agreementsStub.resolves([]);
+
+      await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
+
+      expect(deletionsStub.calledOnce).to.be.true;
+      expect(deletionsStub.firstCall.args[1]).to.be.false;
+      expect(loggingStub.calledWith("AvtaleGiro - Deletions")).to.be.true;
+    });
+
+    it("Still sends claims when processing deletions fails", async function () {
+      agreementsStub.resolves(mockAgreements);
+      deletionsStub.rejects(new Error("SFTP is down"));
+      const consoleStub = sinon.stub(console, "error");
+
+      await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
+
+      consoleStub.restore();
+      deletionsStub.resolves({});
+      expect(sendFileStub.calledOnce).to.be.true;
+    });
+  });
+
   describe("charge tracking", function () {
     beforeEach(function () {
       agreementsStub.resolves(mockAgreements);
@@ -233,7 +263,7 @@ describe("POST /scheduled/avtalegiro", function () {
 
       await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
-      const [, result] = loggingStub.firstCall.args;
+      const [, result] = loggingStub.withArgs("AvtaleGiro").firstCall.args;
       expect(result.alreadyClaimedKIDs).to.deep.equal([mockAgreements[1].KID]);
     });
 
@@ -245,7 +275,7 @@ describe("POST /scheduled/avtalegiro", function () {
       expect(shipmentStub.called).to.be.false;
       expect(addChargesStub.called).to.be.false;
       expect(sendFileStub.called).to.be.false;
-      expect(loggingStub.calledOnce).to.be.true;
+      expect(loggingStub.withArgs("AvtaleGiro").calledOnce).to.be.true;
     });
 
     it("Only notifies agreements that are claimed", async function () {

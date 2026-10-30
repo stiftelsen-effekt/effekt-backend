@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import workdays from "norwegian-workdays";
 import { AvtaleGiroAgreement } from "../DAO_modules/avtalegiroagreements";
 
 export enum AvtaleGiroChargeStatus {
@@ -8,15 +9,107 @@ export enum AvtaleGiroChargeStatus {
   COMPLETED = "COMPLETED",
   /** The shipment was not accepted, and a retry sent the claim again in a new shipment */
   SUPERSEDED = "SUPERSEDED",
+  /** The agreement was cancelled, and the claim will be deleted in the next deletion file */
+  DELETION_REQUESTED = "DELETION_REQUESTED",
+  /** A deletion request for the claim was sent, but MPS has not accepted the file yet */
+  DELETION_SENT = "DELETION_SENT",
+  /** MPS accepted the deletion request, and the payer's bank deletes the claim */
+  DELETED = "DELETED",
+}
+
+/** Claims that have been or will be charged. Only these count as the month's claim for an agreement */
+export const CHARGING_STATUSES = [AvtaleGiroChargeStatus.CLAIMED, AvtaleGiroChargeStatus.COMPLETED];
+
+/**
+ * Claims a payment can still be linked to. A deleted claim is included, since a payment arriving
+ * anyway means the bank could not delete it.
+ */
+export const PAYABLE_STATUSES = [
+  AvtaleGiroChargeStatus.CLAIMED,
+  AvtaleGiroChargeStatus.DELETION_REQUESTED,
+  AvtaleGiroChargeStatus.DELETION_SENT,
+  AvtaleGiroChargeStatus.DELETED,
+];
+
+export type AvtaleGiroPendingCharge = {
+  id: number;
+  KID: string;
+  /** In øre */
+  amount: number;
+  /** ISO date, e.g. 2026-10-27 */
+  dueDate: string;
+};
+
+const OSLO = "Europe/Oslo";
+
+/** MPS must receive deletion requests by 14:00 on the banking day before the due date */
+export const DELETION_DEADLINE_HOUR = 14;
+/**
+ * Deletions are sent by the scheduled AvtaleGiro runs (10:00, then retries at 11:00, 12:00 and
+ * 13:00), so a cancellation must come before the last run to be sent in time
+ */
+export const LAST_DELETION_RUN_HOUR = 13;
+/** Margin before the MPS deadline, so a file sent by a run has time to arrive */
+export const DELETION_SEND_MARGIN_MINUTES = 15;
+
+// The backend runs luxon 1, where DateTime.fromObject ignores a separate zone option (the types are
+// for luxon 3), so build the day from its ISO date instead
+const asOsloDay = (date: DateTime) => DateTime.fromISO(date.toISODate()!, { zone: OSLO });
+
+export const isBankingDay = (date: DateTime) =>
+  workdays.isWorkingDay(new Date(date.year, date.month - 1, date.day));
+
+/**
+ * MPS uses the next banking day as the due date when the due date is a weekend or holiday
+ */
+export function getEffectiveDueDate(dueDate: DateTime): DateTime {
+  let day = asOsloDay(dueDate);
+  while (!isBankingDay(day)) day = day.plus({ days: 1 });
+  return day;
 }
 
 /**
- * Statuses that count as "claimed this month": the agreement is not claimed again that month
+ * The latest time MPS accepts a deletion request for a claim: 14:00 Oslo time on the banking day
+ * before the (effective) due date
  */
-export const MONTHLY_CLAIM_STATUSES: AvtaleGiroChargeStatus[] = [
-  AvtaleGiroChargeStatus.CLAIMED,
-  AvtaleGiroChargeStatus.COMPLETED,
-];
+export function getDeletionDeadline(dueDate: DateTime): DateTime {
+  let day = getEffectiveDueDate(dueDate).minus({ days: 1 });
+  while (!isBankingDay(day)) day = day.minus({ days: 1 });
+  return day.set({ hour: DELETION_DEADLINE_HOUR });
+}
+
+/**
+ * Whether a cancellation made now can still stop the claim: it has to be in time for one of the
+ * scheduled runs before the deadline
+ */
+export function canRequestDeletion(dueDate: string, now: DateTime): boolean {
+  const deadline = getDeletionDeadline(DateTime.fromISO(dueDate, { zone: OSLO }));
+  return now < deadline.set({ hour: LAST_DELETION_RUN_HOUR });
+}
+
+/**
+ * Whether a deletion request can still be sent now and arrive before the deadline
+ */
+export function canSendDeletion(dueDate: string, now: DateTime): boolean {
+  const deadline = getDeletionDeadline(DateTime.fromISO(dueDate, { zone: OSLO }));
+  return now < deadline.minus({ minutes: DELETION_SEND_MARGIN_MINUTES });
+}
+
+/**
+ * Splits a cancelled agreement's upcoming claims into those we can still delete and those that will
+ * be charged anyway
+ */
+export function partitionChargesForDeletion<T extends { dueDate: string }>(
+  charges: T[],
+  now: DateTime,
+): { deletable: T[]; tooLate: T[] } {
+  const deletable: T[] = [];
+  const tooLate: T[] = [];
+  for (const charge of charges) {
+    (canRequestDeletion(charge.dueDate, now) ? deletable : tooLate).push(charge);
+  }
+  return { deletable, tooLate };
+}
 
 export type AvtaleGiroOpenCharge = {
   id: number;

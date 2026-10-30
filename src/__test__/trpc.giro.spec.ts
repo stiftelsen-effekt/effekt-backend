@@ -4,6 +4,7 @@ import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import { parseClaimFile } from "../custom_modules/DAO_modules/avtalegiroagreements";
 import { donationHelpers } from "../custom_modules/donationHelpers";
+import * as avtalegiroDeletions from "../custom_modules/avtalegiro/deletions";
 import * as mail from "../custom_modules/mail";
 import { appRouter } from "../trpc/router";
 import { createCallerFactory } from "../trpc/trpc";
@@ -417,11 +418,25 @@ describe("tRPC giro router", () => {
       expect(changeStub.calledWith("123", "CANCELLED")).to.be.true;
     });
 
+    it("requests deletion of sent claims when deactivating, like Min side", async () => {
+      sinon.stub(DAO.avtalegiroagreements, "getByKID").resolves(agreement);
+      const setActive = sinon.stub(DAO.avtalegiroagreements, "setActive").resolves(true);
+      const deletion = sinon
+        .stub(avtalegiroDeletions, "requestDeletionOfUpcomingCharges")
+        .resolves({ deletable: [], tooLate: [] });
+      await admin().giro.avtalegiro.updateStatus({ KID: "123", active: false });
+      expect(deletion.calledOnce).to.be.true;
+      expect(deletion.firstCall.args[0]).to.equal("123");
+      expect(setActive.calledBefore(deletion)).to.be.true;
+    });
+
     it("activates an agreement without a cancellation notice", async () => {
       sinon.stub(DAO.avtalegiroagreements, "getByKID").resolves(agreement);
       const stub = sinon.stub(DAO.avtalegiroagreements, "setActive").resolves(true);
+      const restore = sinon.stub(DAO.avtalegirocharges, "restoreDeletionRequestsByKID").resolves();
       await admin().giro.avtalegiro.updateStatus({ KID: "123", active: true });
       expect(stub.calledWith("123", 1)).to.be.true;
+      expect(restore.calledOnceWith("123")).to.be.true;
       expect(changeStub.called).to.be.false;
     });
 

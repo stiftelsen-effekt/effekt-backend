@@ -3,6 +3,7 @@ import { sendPaymentIntentFollowUp } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
 import { getDueDates } from "../custom_modules/avtalegiro";
 import { excludeAgreementsClaimedThisMonth } from "../custom_modules/avtalegiro/charges";
+import * as avtalegiroDeletions from "../custom_modules/avtalegiro/deletions";
 import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_modules/nets";
 import { DateTime } from "luxon";
 import mailchimp from "@mailchimp/mailchimp_marketing";
@@ -151,6 +152,19 @@ async function claimAvtaleGiroAgreements(today: DateTime, claimDate: DateTime, n
 }
 
 /**
+ * Sends deletion requests for claims on cancelled agreements. Failures are logged, so they never
+ * stop the claims from being sent.
+ */
+async function processAvtaleGiroDeletions(now: DateTime, requeueUnconfirmed: boolean) {
+  try {
+    const result = await avtalegiroDeletions.processAvtaleGiroDeletions(now, requeueUnconfirmed);
+    await DAO.logging.add("AvtaleGiro - Deletions", result);
+  } catch (ex) {
+    console.error("Failed to process AvtaleGiro deletions", ex);
+  }
+}
+
+/**
  * Triggered by a google cloud scheduler webhook every day at 10:00
  */
 router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
@@ -161,6 +175,8 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
     } else {
       today = DateTime.fromJSDate(new Date());
     }
+
+    await processAvtaleGiroDeletions(today, false);
 
     const claimDates = getDueDates(today);
     for (let claimDate of claimDates) {
@@ -184,6 +200,8 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
     } else {
       today = DateTime.fromJSDate(new Date());
     }
+
+    await processAvtaleGiroDeletions(today, true);
 
     const claimDates = getDueDates(today);
 
