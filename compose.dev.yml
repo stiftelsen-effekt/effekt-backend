@@ -32,6 +32,8 @@ x-backend: &backend
     - ./prisma:/app/prisma:ro
     - ./certs:/app/certs:ro
     - ./tsconfig.json:/app/tsconfig.json:ro
+    # Prisma 7 reads the datasource URL and seed command from here
+    - ./prisma.config.ts:/app/prisma.config.ts:ro
 
 services:
   db:
