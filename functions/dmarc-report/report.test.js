@@ -1,7 +1,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { gzipSync, zipSync, strToU8 } = require("fflate");
-const { extractXml, parseReport, classify, summarize } = require("./report");
+const { extractXml, parseReport, classify, gateway, authSummary, summarize } = require("./report");
 
 const record = (ip, count, dkim, spf, selector, spfDomain) => `
   <record>
@@ -26,6 +26,7 @@ const xml = `<?xml version="1.0"?>
   ${record("1.2.3.4", 3, "pass", "fail", "mlsend2", "mta.gieffektivt.no")}
   ${record("5.6.7.8", 2, "pass", "fail", "hs1-8642229", "bounce.hubspotemail.net")}
   ${record("203.0.113.9", 4, "fail", "fail", null, "evil.example")}
+  ${record("35.174.145.124", 1, "fail", "fail", "k1", "mail22.suw11.mcdlv.net")}
 </feedback>`;
 
 test("extracts XML from gzip, zip and plain attachments", () => {
@@ -50,7 +51,13 @@ test("parses a single-record report", () => {
 
 test("classifies known senders", () => {
   const rows = parseReport(xml).rows;
-  assert.deepEqual(rows.map(classify), ["Google Workspace", "MailerSend", "HubSpot", "Other"]);
+  assert.deepEqual(rows.map(classify), [
+    "Google Workspace",
+    "MailerSend",
+    "HubSpot",
+    "Other",
+    "Mailchimp",
+  ]);
 });
 
 test("counts DMARC passes and lists failures", () => {
@@ -58,7 +65,24 @@ test("counts DMARC passes and lists failures", () => {
   assert.deepEqual(senders.get("Google Workspace"), { pass: 10, fail: 0 });
   assert.deepEqual(senders.get("HubSpot"), { pass: 2, fail: 0 });
   assert.deepEqual(senders.get("Other"), { pass: 0, fail: 4 });
-  assert.equal(failures.length, 1);
+  assert.equal(failures.length, 2);
   assert.equal(failures[0].ip, "203.0.113.9");
   assert.equal(failures[0].reporter, "google.com");
+});
+
+test("recognises recipient mail filters by reverse DNS", () => {
+  assert.equal(gateway("us.cloud-sec-av.com"), "Avanan");
+  assert.equal(gateway("US.Cloud-Sec-AV.com."), "Avanan");
+  assert.equal(gateway("mx0a-001.pphosted.com"), "Proofpoint");
+  assert.equal(gateway("mail-wr1-f41.google.com"), null);
+  assert.equal(gateway(null), null);
+});
+
+test("summarises what the reporter saw", () => {
+  const rows = parseReport(xml).rows;
+  assert.equal(
+    authSummary(rows[1]),
+    "DKIM gieffektivt.no/mlsend2 pass; SPF mta.gieffektivt.no fail",
+  );
+  assert.equal(authSummary(rows[3]), "DKIM none; SPF evil.example fail");
 });
