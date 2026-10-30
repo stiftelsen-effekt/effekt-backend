@@ -20,6 +20,18 @@ const POLLING_INTERVAL = 2000;
 const VIPPS_TEXT = "Donasjon til Gi Effektivt.";
 
 /**
+ * The url code of an agreement fetched from Vipps: the last segment of its merchantAgreementUrl.
+ * Older agreements also carry it as their productDescription.
+ */
+function agreementUrlCodeOf(agreement: {
+  merchantAgreementUrl?: string;
+  productDescription?: string;
+}): string | undefined {
+  const fromUrl = agreement.merchantAgreementUrl?.split("/").pop();
+  return fromUrl || agreement.productDescription;
+}
+
+/**
  * @typedef TransactionLogItem
  * @property {number} amount In øre
  * @property {string} transactionText
@@ -576,7 +588,6 @@ module.exports = {
       isApp: false,
       merchantRedirectUrl: `${config.api_url}/vipps/agreementredirect/${agreementUrlCode}`,
       merchantAgreementUrl: `${config.minside_url}/${agreementUrlCode}`,
-      productDescription: agreementUrlCode,
       productName: "Månedlig donasjon til Gi Effektivt.",
     };
 
@@ -1202,7 +1213,7 @@ module.exports = {
           standardKID,
           chargeAmount / 100,
           chargeDay,
-          agreements[i].productDescription,
+          agreementUrlCodeOf(agreements[i]),
           agreements[i].status,
         );
 

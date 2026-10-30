@@ -639,24 +639,6 @@ async function getKIDsWithOneTaxUnit(year: number) {
 }
 
 /**
- * Gets donorID by agreement_url_code in Vipps_agreements
- * @property {string} agreementUrlCode
- * @return {number} donorID
- */
-async function getIDByAgreementCode(agreementUrlCode) {
-  let [res] = await DAO.query(
-    `
-        SELECT donorID FROM Vipps_agreements
-        where agreement_url_code = ?
-        `,
-    [agreementUrlCode],
-  );
-
-  if (res.length === 0) return false;
-  else return res[0].donorID;
-}
-
-/**
  * Searches for a user with either email or name matching the query
  * @param {object} filter                All query arguments
  * @param {string} filter.query          A query string trying to match agains full name, email and ID
@@ -824,7 +806,6 @@ export const donors = {
   getByFacebookPayment,
   getIDByMatchedNameFB,
   getKIDsWithOneTaxUnit,
-  getIDByAgreementCode,
   getNumberOfDonationsByDonorID,
   search,
   add,

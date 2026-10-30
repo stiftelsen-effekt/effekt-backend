@@ -1157,7 +1157,8 @@ router.get(
 
       return res.json({
         status: 200,
-        content: agreements,
+        // Min Side edits agreements by id, so the url code from the Vipps agreement link is not exposed
+        content: agreements.map(({ agreement_url_code, ...agreement }) => agreement),
       });
     } catch (ex) {
       next(ex);
