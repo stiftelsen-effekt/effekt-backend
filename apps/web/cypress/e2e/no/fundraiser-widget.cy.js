@@ -155,15 +155,9 @@ describe("Fundraiser widget - default configuration", () => {
 
     cy.get("[data-cy='fundraiser-method-bank']").click({ force: true });
 
-    cy.intercept("POST", "**/donations/register", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: {
-          KID: "12345678",
-          paymentProviderUrl: "",
-        },
-      },
+    cy.interceptTrpc("widget.registerDonation", {
+      KID: "12345678",
+      paymentProviderUrl: "",
     }).as("registerDonation");
 
     cy.window().then((win) => cy.stub(win, "open").as("windowOpen"));
@@ -215,15 +209,9 @@ describe("Fundraiser widget variations", () => {
 
     cy.get("[data-cy='fundraiser-method-vipps']").click({ force: true });
 
-    cy.intercept("POST", "**/donations/register", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: {
-          KID: "98765432",
-          paymentProviderUrl: "https://vipps.test/redirect",
-        },
-      },
+    cy.interceptTrpc("widget.registerDonation", {
+      KID: "98765432",
+      paymentProviderUrl: "https://vipps.test/redirect",
     }).as("registerVippsDonation");
 
     cy.window().then((win) => cy.stub(win, "open").as("windowOpen"));
@@ -239,15 +227,9 @@ describe("Fundraiser widget variations", () => {
 
 describe("Fundraiser widget - name/message payload variations", () => {
   const setupIntercept = () => {
-    cy.intercept("POST", "**/donations/register", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: {
-          KID: "12345678",
-          paymentProviderUrl: "",
-        },
-      },
+    cy.interceptTrpc("widget.registerDonation", {
+      KID: "12345678",
+      paymentProviderUrl: "",
     }).as("registerDonation");
   };
 

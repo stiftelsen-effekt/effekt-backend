@@ -45,3 +45,32 @@ export const AGF = 1;
 export const HKI = 3;
 export const NI = 4;
 export const AMF = 6;
+
+/**
+ * Figures in the e2e EffektAnalysisDB (normally filled by the nightly analysis jobs), read by the
+ * results page and the front page's results teaser through tRPC site.*. seed.mjs writes them.
+ */
+export const RESULTS = {
+  /** Only_rec_orgs_Donations: [donor id, sum]; the headline sums these and counts the donors */
+  recommendedOrgDonations: [
+    [1, "1000000.00"],
+    [2, "200000.00"],
+    [2, "34567.89"],
+    [3, "100000.00"],
+  ],
+  headline: { totalDonationsToRecommendedOrgs: "1334567.89", numberOfDonors: 3 },
+  inserted: "2026-06-30 05:00:00",
+  /** v_Daily_donations: [date, sum] */
+  daily: [
+    ["2025-01-15", "1500.00"],
+    ["2025-02-01", "250.50"],
+  ],
+  /** OP_ref_data, one row per year: the referral columns are all `referralValue` */
+  referralYears: [2024, 2025],
+  referralValue: 7,
+  /** v_Monthly_donations_per_org: [org, month, total] */
+  monthly: [
+    ["AMF", "2025-01", "10000"],
+    ["AMF", "2025-02", "5000"],
+  ],
+};

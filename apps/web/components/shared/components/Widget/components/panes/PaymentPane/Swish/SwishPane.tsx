@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import { EffektButton } from "../../../../../EffektButton/EffektButton";
 import { usePlausible } from "next-plausible";
 import { calculateDonationBreakdown } from "../../../../utils/donationCalculations";
+import { swishOrderStatusRequest } from "../../../../store/widgetApi";
 
 function isStringEnum<T extends string>(x: any, e: T[]): x is T {
   return e.includes(x);
@@ -20,15 +21,8 @@ function isStringEnum<T extends string>(x: any, e: T[]): x is T {
 
 function useSwishStatus(orderID?: string) {
   const { data } = useSWR(
-    `/swish/orders/${orderID}/status`,
-    orderID
-      ? async (endpoint) => {
-          const res = await fetch(new URL(endpoint, process.env.NEXT_PUBLIC_EFFEKT_API));
-          return (await res.json()) as {
-            status: string;
-          };
-        }
-      : null,
+    orderID ? ["widget.swishOrderStatus", orderID] : null,
+    ([, id]) => swishOrderStatusRequest(id),
     {
       refreshInterval: 1000,
     },

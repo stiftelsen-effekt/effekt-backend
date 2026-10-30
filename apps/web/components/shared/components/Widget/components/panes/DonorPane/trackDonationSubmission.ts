@@ -1,5 +1,6 @@
 import { PaymentMethod } from "../../../types/Enums";
 import { getEstimatedLtv } from "../../../../../../../util/ltv";
+import { widgetTrpc } from "../../../store/widgetApi";
 
 interface TrackDonationParams {
   isAnonymous: boolean;
@@ -50,7 +51,7 @@ function trackRecurringDonation({
   if (method === PaymentMethod.AUTOGIRO) plausible("SelectAutoGiro", { props: {} });
 
   if (sum) {
-    getEstimatedLtv({ method, sum }).then((ltv) => {
+    getEstimatedLtv({ method, sum, trpc: widgetTrpc() }).then((ltv) => {
       trackFacebookLead(ltv ?? undefined);
     });
   }

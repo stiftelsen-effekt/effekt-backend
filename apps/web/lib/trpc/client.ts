@@ -54,3 +54,14 @@ export const createPublicTrpcClient = ({
   createTRPCClient<AppRouter>({
     links: [flavor === "rest" ? restLink<AppRouter>({ url }) : httpLink({ url: `${url}/trpc` })],
   });
+
+const publicClients: Partial<Record<ApiFlavor, TrpcClient>> = {};
+
+/**
+ * The public client (no token, no batching) for a site, by its Sanity main_locale. Shared per
+ * flavor, so server-side rendering and client components reuse one client.
+ */
+export const publicTrpcFor = (mainLocale: MainLocale | string | null | undefined): TrpcClient => {
+  const flavor = apiFlavorFor((mainLocale ?? "no") as MainLocale);
+  return (publicClients[flavor] ??= createPublicTrpcClient({ flavor }));
+};

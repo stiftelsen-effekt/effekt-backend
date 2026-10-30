@@ -23,6 +23,7 @@ import { Pane, PaneContainer, PaneTitle } from "../Panes.style";
 import { CustomCheckBox } from "./CustomCheckBox";
 import { ActionBar, CheckBoxGroupWrapper, DonorForm, InfoMessageWrapper } from "./DonorPane.style";
 import { getEstimatedLtv } from "../../../../../../../util/ltv";
+import { widgetTrpc } from "../../../store/widgetApi";
 import AnimateHeight from "react-animate-height";
 import { Dispatch } from "@reduxjs/toolkit";
 import { DonationActionTypes } from "../../../store/donation/types";
@@ -197,7 +198,11 @@ export const DonorPane: React.FC<{
             // @ts-ignore
             window.fbq != null
           ) {
-            getEstimatedLtv({ method: paymentMethod, sum: totalSumIncludingTip }).then((ltv) => {
+            getEstimatedLtv({
+              method: paymentMethod,
+              sum: totalSumIncludingTip,
+              trpc: widgetTrpc(),
+            }).then((ltv) => {
               // @ts-ignore
               window.fbq("track", "Lead", {
                 value: ltv,

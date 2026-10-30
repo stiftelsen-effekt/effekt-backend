@@ -13,7 +13,7 @@
  * Ids, KIDs and amounts the tests assert on live in ./data.mjs (imported by the Cypress specs).
  */
 import mysql from "mysql2/promise";
-import { AGF, AMF, DONOR_ID, HKI, KIDS, NI, TAX_UNITS } from "./data.mjs";
+import { AGF, AMF, DONOR_ID, HKI, KIDS, NI, RESULTS, TAX_UNITS } from "./data.mjs";
 
 /** [KID, [[causeAreaId, percent, standardSplit, [[orgId, percent], ...]], ...]] */
 const DISTRIBUTIONS = [
@@ -184,12 +184,98 @@ export async function seedE2E(conn) {
   }
 }
 
+/** The referral columns of EffektAnalysisDB.OP_ref_data (all but Year, Inserted and Updated) */
+const REFERRAL_COLUMNS = [
+  "Num_Donors",
+  "Total_sum",
+  "Num_Donors_ref",
+  "Total_sum_ref",
+  "Num_Donors_EA_ref",
+  "Total_sum_EA_ref",
+  "Median_yearly_ds_EA_ref",
+  "Avg_yearly_ds_EA_ref",
+  "Max_yearly_ds_EA_ref",
+  "Num_Donors_ac_ref",
+  "Total_sum_ac_ref",
+  "Num_Donors_some_ref",
+  "Total_sum_some_ref",
+  "Num_Donors_pod_ref",
+  "Total_sum_pod_ref",
+  "Num_Donors_tvr_ref",
+  "Total_sum_tvr_ref",
+  "Num_Donors_news_ref",
+  "Total_sum_news_ref",
+  "Num_Donors_web_ref",
+  "Total_sum_web_ref",
+  "Num_Donors_oth_ref",
+  "Total_sum_oth_ref",
+];
+
+/**
+ * A small EffektAnalysisDB with the tables the results routes read (in production they are views
+ * filled by the nightly analysis jobs). Fixed rows from RESULTS, replaced on every run. DDL commits
+ * implicitly, so this runs outside seedE2E's transaction.
+ */
+export async function seedAnalysisDb(conn) {
+  await conn.query("CREATE DATABASE IF NOT EXISTS EffektAnalysisDB");
+  await conn.query(
+    `CREATE TABLE IF NOT EXISTS EffektAnalysisDB.Only_rec_orgs_Donations
+       (Donor_ID INT NOT NULL, Sum_confirmed DECIMAL(15,2) NOT NULL, Inserted DATETIME NOT NULL)`,
+  );
+  await conn.query(
+    "CREATE TABLE IF NOT EXISTS EffektAnalysisDB.v_Daily_donations (date DATE NOT NULL, sum DECIMAL(15,2) NOT NULL)",
+  );
+  await conn.query(
+    `CREATE TABLE IF NOT EXISTS EffektAnalysisDB.OP_ref_data
+       (Year INT NOT NULL, ${REFERRAL_COLUMNS.map((c) => `${c} INT NOT NULL`).join(", ")},
+        Inserted DATETIME NOT NULL, Updated DATETIME NOT NULL)`,
+  );
+  await conn.query(
+    `CREATE TABLE IF NOT EXISTS EffektAnalysisDB.v_Monthly_donations_per_org
+       (Org VARCHAR(32) NOT NULL, DonationMonth VARCHAR(7) NOT NULL, TotalDonations DECIMAL(15,2) NOT NULL)`,
+  );
+
+  await conn.query("DELETE FROM EffektAnalysisDB.Only_rec_orgs_Donations");
+  for (const [donorId, sum] of RESULTS.recommendedOrgDonations) {
+    await conn.query("INSERT INTO EffektAnalysisDB.Only_rec_orgs_Donations VALUES (?, ?, ?)", [
+      donorId,
+      sum,
+      RESULTS.inserted,
+    ]);
+  }
+  await conn.query("DELETE FROM EffektAnalysisDB.v_Daily_donations");
+  for (const [date, sum] of RESULTS.daily) {
+    await conn.query("INSERT INTO EffektAnalysisDB.v_Daily_donations VALUES (?, ?)", [date, sum]);
+  }
+  await conn.query("DELETE FROM EffektAnalysisDB.OP_ref_data");
+  for (const year of RESULTS.referralYears) {
+    await conn.query(
+      `INSERT INTO EffektAnalysisDB.OP_ref_data VALUES (?, ${REFERRAL_COLUMNS.map(() => "?").join(", ")}, ?, ?)`,
+      [
+        year,
+        ...REFERRAL_COLUMNS.map(() => RESULTS.referralValue),
+        RESULTS.inserted,
+        RESULTS.inserted,
+      ],
+    );
+  }
+  await conn.query("DELETE FROM EffektAnalysisDB.v_Monthly_donations_per_org");
+  for (const [org, month, total] of RESULTS.monthly) {
+    await conn.query("INSERT INTO EffektAnalysisDB.v_Monthly_donations_per_org VALUES (?, ?, ?)", [
+      org,
+      month,
+      total,
+    ]);
+  }
+}
+
 async function main() {
   if (!process.env.DB_URL) throw new Error("DB_URL is not set");
   const conn = await mysql.createConnection(process.env.DB_URL);
   try {
     await seedE2E(conn);
-    console.log(`Seeded e2e donor ${DONOR_ID}`);
+    await seedAnalysisDb(conn);
+    console.log(`Seeded e2e donor ${DONOR_ID} and the results figures`);
   } finally {
     await conn.end();
   }

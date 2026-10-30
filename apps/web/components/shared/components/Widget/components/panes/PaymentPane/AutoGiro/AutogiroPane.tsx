@@ -12,7 +12,7 @@ import { PortableText } from "@portabletext/react";
 import { thousandize } from "../../../../../../../../util/formatting";
 import LinkButton from "../../../../../EffektButton/LinkButton";
 import AnimateHeight from "react-animate-height";
-import { API_URL } from "../../../../config/api";
+import { setAutoGiroDraftPaymentDateRequest } from "../../../../store/widgetApi";
 import { usePlausible } from "next-plausible";
 import { EffektButton } from "../../../../../EffektButton/EffektButton";
 import { calculateDonationBreakdown } from "../../../../utils/donationCalculations";
@@ -39,15 +39,10 @@ export const AutogiroPane: React.FC<{
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_URL}/autogiro/${donation.kid}/drafted/paymentdate`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "PUT",
-      body: JSON.stringify({
-        paymentDate: AUTOGIRO_PAYMENT_DATE,
-      }),
-    });
+    if (!donation.kid) return;
+    setAutoGiroDraftPaymentDateRequest(donation.kid, AUTOGIRO_PAYMENT_DATE).catch((err) =>
+      console.error(err),
+    );
   }, [donation.kid]);
 
   const breakdown = calculateDonationBreakdown(

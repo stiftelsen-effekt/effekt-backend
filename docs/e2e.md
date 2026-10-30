@@ -38,8 +38,9 @@ from `pnpm dev:env:up`, so both stacks can run at once.
 - `migrate`: migrations and the generated dev data, with `SEED_NOW` fixed.
 - `seed-e2e`: `apps/api/prisma/e2e/seed.mjs`, a deterministic donor (id 900001) with Vipps (2 active,
   1 stopped), AvtaleGiro (2), AutoGiro (1) agreements, donations from 2022–2025 and two tax
-  units (the bank transfers go to the second). Ids and KIDs live in `apps/api/prisma/e2e/data.mjs`,
-  which specs import. The Cypress task `resetE2EData` re-runs the seed (~0.2 s), and specs call
+  units (the bank transfers go to the second). It also creates a small `EffektAnalysisDB` with
+  fixed results figures (`RESULTS`) for the results teaser and the `site.*` results procedures.
+  Ids, KIDs and figures live in `apps/api/prisma/e2e/data.mjs`, which specs import. The Cypress task `resetE2EData` re-runs the seed (~0.2 s), and specs call
   it in `beforeEach`.
 - `auth` + `oidc`: the mock OIDC issuer behind a small nginx (see below).
 - `api`: the backend, accepting tokens from the local issuer.
@@ -88,6 +89,8 @@ the API: `POST http://localhost:8191/oauth/token` with `grant_type=client_creden
 4. Calls to third parties are not available locally. The backend runs without Vipps, Nets,
    MailerSend etc. credentials. Vipps agreement price changes and cancellation call the Vipps
    API first, so they fail here. Those cases need a stub of the third-party API in the stack,
-   not of our API.
+   not of our API. The same goes for `widget.draftVippsAgreement`: the backend calls
+   `https://${VIPPS_API_URL}`, so a stub at the edge would also need a TLS certificate the API
+   trusts. The mocked `no/widget.js` and `no/fundraiser-widget.cy.js` cover the website's side.
 
 Keep the deployment spec as long as it adds coverage against production.

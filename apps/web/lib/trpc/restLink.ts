@@ -11,6 +11,13 @@ import {
   taxUnitsOutput,
 } from "@effekt/api/minside";
 import { widgetCauseAreasOutput, widgetReferralTypesOutput } from "@effekt/api/widget";
+import {
+  siteDailyDonationsOutput,
+  siteFundraiserOutput,
+  siteMonthlyOutputsOutput,
+  siteReferralSumsOutput,
+  siteResultsHeadlineOutput,
+} from "@effekt/api/site";
 
 /**
  * A tRPC link for the Danish site, whose backend (giveffektivt/donation-platform) implements the
@@ -37,7 +44,9 @@ type RestRoute = {
  * saving the profile, deleting a tax unit and the Vipps/AvtaleGiro agreement changes are unmapped
  * (the Danish site edits its agreements through its own REST routes, see DKAgreementDetails). Of
  * the widget procedures, it only has the two public reads; the Danish widget registers donations
- * through its own REST code path (see Widget/store/widgetApi.ts).
+ * through its own REST code path (see Widget/store/widgetApi.ts), and has none of the Vipps,
+ * AvtaleGiro, Swish or AutoGiro widget routes. Of the site procedures, it has the results routes and
+ * GET /fundraisers/:id (with UUID ids), but no LTV estimate.
  */
 export const restRoutes: Record<string, RestRoute> = {
   "minside.profile": {
@@ -93,6 +102,32 @@ export const restRoutes: Record<string, RestRoute> = {
     method: "GET",
     path: () => "/referrals/types",
     output: widgetReferralTypesOutput,
+  },
+  "site.resultsHeadline": {
+    method: "GET",
+    path: () => "/results/headline",
+    output: siteResultsHeadlineOutput,
+  },
+  "site.dailyDonations": {
+    method: "GET",
+    path: () => "/results/donations/daily",
+    output: siteDailyDonationsOutput,
+  },
+  "site.referralSums": {
+    method: "GET",
+    path: () => "/results/referrals/sums",
+    output: siteReferralSumsOutput,
+  },
+  "site.monthlyOutputs": {
+    method: "GET",
+    path: () => "/results/donations/monthly/outputs",
+    output: siteMonthlyOutputsOutput,
+  },
+  "site.fundraiser": {
+    method: "GET",
+    path: (input: { id: string | number }) =>
+      `/fundraisers/${encodeURIComponent(String(input.id))}`,
+    output: siteFundraiserOutput,
   },
 };
 

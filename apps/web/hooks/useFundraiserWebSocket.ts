@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 type Transaction = {
-  id?: number;
+  // A UUID on the Danish backend
+  id?: number | string;
   name: string | null;
   message: string | null;
   amount: number;

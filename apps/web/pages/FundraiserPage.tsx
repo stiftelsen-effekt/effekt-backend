@@ -20,7 +20,10 @@ import styles from "../styles/Fundraisers.module.css";
 import { FundraiserProgressBar } from "../components/main/blocks/FundraiserProgressBar/FundraiserProgressBar";
 import { FundraiserGiftActivity } from "../components/main/blocks/FundraiserGiftActivity/FundraiserGiftActivity";
 import { FundraiserWidget } from "../components/main/blocks/FundraiserWidget/FundraiserWidget";
-import { API_URL, WEBSOCKET_URL } from "../components/shared/components/Widget/config/api";
+import { WEBSOCKET_URL } from "../components/shared/components/Widget/config/api";
+import { TRPCClientError } from "@trpc/client";
+import type { SiteFundraiser } from "@effekt/api/site";
+import { publicTrpcFor } from "../lib/trpc/client";
 import { getFormattingLocale } from "../util/formatting";
 import { useFundraiserWebSocket } from "../hooks/useFundraiserWebSocket";
 
@@ -48,6 +51,27 @@ export const getFundraisersPath = async () => {
     fetchFundraisersSlug,
   );
   return stegaClean(settings.fundraiser_page_slug).split("/");
+};
+
+/**
+ * The fundraiser's totals and gifts (tRPC site.fundraiser; on the Danish site the REST link maps it
+ * to GET /fundraisers/:id with the fundraiser's UUID). Null if the backend answered with an error,
+ * which shows "Failed to fetch fundraiser data"; a network failure throws, as fetch did.
+ */
+const fetchFundraiserData = async (
+  fundraiserId: string | number | null | undefined,
+  mainLocale: string | null | undefined,
+): Promise<SiteFundraiser | null> => {
+  if (fundraiserId === null || fundraiserId === undefined) return null;
+  try {
+    return await publicTrpcFor(stegaClean(mainLocale)).site.fundraiser.query({ id: fundraiserId });
+  } catch (err) {
+    if (err instanceof TRPCClientError && err.data?.httpStatus !== undefined) {
+      console.warn("Failed to fetch fundraiser %s:", fundraiserId, err.message);
+      return null;
+    }
+    throw err;
+  }
 };
 
 export const FundraiserPage = withStaticProps(
@@ -89,18 +113,10 @@ export const FundraiserPage = withStaticProps(
 
     const fundraiserId = result.page.fundraiser_database_id;
 
-    const fundraiserData: {
-      totalSum: number;
-      donationCount: number;
-      transactions: {
-        name: string | null;
-        message: string | null;
-        amount: number;
-        date: string;
-      }[];
-    } = await fetch(`${API_URL}/fundraisers/${fundraiserId}`)
-      .then((res) => res.json())
-      .then((data) => data.content);
+    const fundraiserData = await fetchFundraiserData(
+      fundraiserId,
+      (result.settings[0] as { main_locale?: string | null }).main_locale,
+    );
 
     return {
       appStaticProps,

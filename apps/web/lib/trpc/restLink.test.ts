@@ -301,4 +301,84 @@ describe("restLink", () => {
     expect(err.data?.code).toBe("NOT_IMPLEMENTED");
     expect(fetchImpl).not.toHaveBeenCalled();
   });
+
+  describe("Danish results and fundraiser pages", () => {
+    const publicClient = (fetchImpl: ReturnType<typeof respond>) =>
+      createTRPCClient<AppRouter>({
+        links: [
+          restLink<AppRouter>({
+            url: "https://api.example.org",
+            fetch: fetchImpl as unknown as typeof fetch,
+          }),
+        ],
+      });
+
+    it("maps the results procedures to the same REST routes as before, without a token", async () => {
+      const cases: Array<[() => Promise<unknown>, string, unknown]> = [];
+      const fetchImpl = vi.fn(async (url: string, _init?: RequestInit) => {
+        const content = cases.find(([, path]) => url.endsWith(path))![2];
+        return new Response(JSON.stringify({ status: 200, content }));
+      });
+      const trpc = publicClient(fetchImpl as any);
+      const headline = {
+        totalDonationsToRecommendedOrgs: 13888785,
+        numberOfDonors: 1697,
+        lastUpdated: "2026-10-30T20:13:15.243Z",
+      };
+      cases.push(
+        [() => trpc.site.resultsHeadline.query(), "/results/headline", headline],
+        [
+          () => trpc.site.dailyDonations.query(),
+          "/results/donations/daily",
+          [{ date: "2022-05-09T00:00:00.000Z", sum: 5 }],
+        ],
+        [() => trpc.site.referralSums.query(), "/results/referrals/sums", []],
+        [() => trpc.site.monthlyOutputs.query(), "/results/donations/monthly/outputs", []],
+      );
+      for (const [query, path, content] of cases) {
+        fetchImpl.mockClear();
+        expect(await query()).toEqual(content);
+        const [url, init] = fetchImpl.mock.calls[0];
+        expect(url).toBe(`https://api.example.org${path}`);
+        expect(init?.method).toBe("GET");
+        expect(new Headers(init?.headers as HeadersInit).has("authorization")).toBe(false);
+      }
+    });
+
+    it("maps site.fundraiser to GET /fundraisers/:uuid", async () => {
+      const fundraiser = {
+        totalSum: 4250,
+        donationCount: 1,
+        transactions: [
+          {
+            id: "0b8a6f3e-1d2c-4b5a-9e8f-7a6b5c4d3e2f",
+            name: null,
+            message: "Godt gået",
+            amount: 4250,
+            date: "2025-12-10T11:12:08.523Z",
+          },
+        ],
+      };
+      const fetchImpl = respond(200, { status: 200, content: fundraiser });
+      const id = "7b03b0b2-031e-4df2-93fe-59bb79b0d31d";
+      expect(await publicClient(fetchImpl).site.fundraiser.query({ id })).toEqual(fundraiser);
+      expect(fetchImpl.mock.calls[0][0]).toBe(`https://api.example.org/fundraisers/${id}`);
+    });
+
+    it("leaves the LTV estimate and the payment calls unmapped (no Danish route)", async () => {
+      for (const path of [
+        "site.ltvEstimate",
+        "widget.draftVippsAgreement",
+        "widget.draftAvtaleGiro",
+        "widget.swishOrderStatus",
+        "widget.setAutoGiroDraftPaymentDate",
+      ]) {
+        expect(Object.keys(restRoutes)).not.toContain(path);
+      }
+      const fetchImpl = respond(200, {});
+      const err = await caught(publicClient(fetchImpl).site.ltvEstimate.query());
+      expect(err.data?.code).toBe("NOT_IMPLEMENTED");
+      expect(fetchImpl).not.toHaveBeenCalled();
+    });
+  });
 });

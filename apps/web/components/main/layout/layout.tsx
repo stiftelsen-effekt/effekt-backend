@@ -1,3 +1,4 @@
+import { MainLocaleContext, type MainLocale } from "../../../context/MainLocaleContext";
 import { groq } from "next-sanity";
 import { Dispatch, SetStateAction, createContext, useState, useMemo, useEffect } from "react";
 import { getClient } from "../../../lib/sanity.client";
@@ -55,6 +56,7 @@ type QueryResult = {
     accent_color: string;
     general_banner?: any;
     cookie_banner_configuration?: any;
+    main_locale?: string | null;
   };
 };
 
@@ -65,6 +67,7 @@ const query = groq`
       donate_label_title,
       accent_color,
       general_banner,
+      main_locale,
       cookie_banner_configuration {
         ...,
         privacy_policy_link {
@@ -102,6 +105,8 @@ export const Layout = withStaticProps(
       },
       general_banner: settings.general_banner,
       cookie_banner_configuration: settings.cookie_banner_configuration,
+      // For useMainLocale(): picks the backend for public API calls, see lib/trpc/client.ts
+      mainLocale: (stegaClean(settings.main_locale) ?? "no") as MainLocale,
       showGiveButton: showGiveButton,
       draftMode,
       consentState,
@@ -114,6 +119,7 @@ export const Layout = withStaticProps(
   giveButton,
   general_banner,
   cookie_banner_configuration,
+  mainLocale,
   consentState,
   showGiveButton,
   draftMode,
@@ -148,38 +154,40 @@ export const Layout = withStaticProps(
   }
 
   return (
-    <div className={styles.container}>
-      {showGiveButton && (
-        <GiveButton
-          inverted={false}
-          color={giveButton.accent_color}
-          title={giveButton.donate_label_title}
-          onClick={() => setWidgetContext({ open: true, prefilled: null, prefilledSum: null })}
-        >
-          {giveButton.donate_label_short}
-        </GiveButton>
-      )}
-      <WidgetContext.Provider value={widgetContextValue}>
-        <BannerContext.Provider value={[banners, setBanners]}>
-          <CookieBannerWrapper cookieBannerConfig={cookie_banner_configuration} />
-          {usesExternalWidget ? null : draftMode ? (
-            <PreviewWidgetPane
-              {...widget}
-              prefilled={widgetContext.prefilled}
-              prefilledSum={widgetContext.prefilledSum}
-            />
-          ) : (
-            <WidgetPane
-              {...widget}
-              prefilled={widgetContext.prefilled}
-              prefilledSum={widgetContext.prefilledSum}
-            />
-          )}
-          <main className={styles.main}>{children}</main>
-        </BannerContext.Provider>
-      </WidgetContext.Provider>
-      {draftMode ? <PreviewFooter {...footer} /> : <Footer {...footer} />}
-    </div>
+    <MainLocaleContext.Provider value={mainLocale}>
+      <div className={styles.container}>
+        {showGiveButton && (
+          <GiveButton
+            inverted={false}
+            color={giveButton.accent_color}
+            title={giveButton.donate_label_title}
+            onClick={() => setWidgetContext({ open: true, prefilled: null, prefilledSum: null })}
+          >
+            {giveButton.donate_label_short}
+          </GiveButton>
+        )}
+        <WidgetContext.Provider value={widgetContextValue}>
+          <BannerContext.Provider value={[banners, setBanners]}>
+            <CookieBannerWrapper cookieBannerConfig={cookie_banner_configuration} />
+            {usesExternalWidget ? null : draftMode ? (
+              <PreviewWidgetPane
+                {...widget}
+                prefilled={widgetContext.prefilled}
+                prefilledSum={widgetContext.prefilledSum}
+              />
+            ) : (
+              <WidgetPane
+                {...widget}
+                prefilled={widgetContext.prefilled}
+                prefilledSum={widgetContext.prefilledSum}
+              />
+            )}
+            <main className={styles.main}>{children}</main>
+          </BannerContext.Provider>
+        </WidgetContext.Provider>
+        {draftMode ? <PreviewFooter {...footer} /> : <Footer {...footer} />}
+      </div>
+    </MainLocaleContext.Provider>
   );
 });
 

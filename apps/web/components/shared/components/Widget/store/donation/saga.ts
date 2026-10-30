@@ -3,13 +3,13 @@ import { call, put, select } from "redux-saga/effects";
 import { Action } from "typescript-fsa";
 import { ANONYMOUS_DONOR } from "../../config/anonymous-donor";
 import {
+  draftAvtaleGiroRequest,
+  draftVippsAgreementRequest,
   registerBankPendingRequest,
   registerDonationRequest,
   type RegisterDonationResult,
 } from "../widgetApi";
-import { API_URL } from "../../config/api";
 import { PaymentMethod, ShareType, RecurringDonation } from "../../types/Enums";
-import { DraftAgreementResponse, IServerResponse } from "../../types/Temp";
 import { nextPane, setAnsweredReferral, setLoading } from "../layout/actions";
 import { Donation, RegisterDonationObject, State } from "../state";
 import {
@@ -54,7 +54,7 @@ export function* draftVippsAgreement(): SagaIterator<void> {
     const initialCharge: boolean = yield select(
       (state: State) => state.donation.vippsAgreement?.initialCharge,
     );
-    const monthlyChargeDay: Date = yield select(
+    const monthlyChargeDay: number = yield select(
       (state: State) => state.donation.vippsAgreement?.monthlyChargeDay,
     );
     const data = {
@@ -64,33 +64,17 @@ export function* draftVippsAgreement(): SagaIterator<void> {
       monthlyChargeDay,
     };
 
-    const draftRequest = yield call(fetch, `${API_URL}/vipps/agreement/draft`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-
-    const draftResponse: IServerResponse<DraftAgreementResponse> = yield call(
-      draftRequest.json.bind(draftRequest),
-    );
-
-    if (draftResponse.status === 200) {
-      window.location.href = (draftResponse.content as DraftAgreementResponse).vippsConfirmationUrl;
-
-      yield put(
-        setPaymentProviderURL(
-          (draftResponse.content as DraftAgreementResponse).vippsConfirmationUrl,
-        ),
-      );
-    }
-
-    if (draftResponse.status !== 200) {
+    let vippsConfirmationUrl: string;
+    try {
+      vippsConfirmationUrl = yield call(draftVippsAgreementRequest, data);
+    } catch (ex) {
       yield put(setLoading(false));
-      throw new Error(draftResponse.content as string);
+      throw ex;
     }
+
+    window.location.href = vippsConfirmationUrl;
+
+    yield put(setPaymentProviderURL(vippsConfirmationUrl));
   } catch (ex) {
     console.error(ex);
   }
@@ -99,7 +83,7 @@ export function* draftVippsAgreement(): SagaIterator<void> {
 export function* draftAvtaleGiro(): SagaIterator<void> {
   try {
     yield put(setLoading(true));
-    const dueDay: Date = yield select((state: State) => state.donation.dueDay);
+    const dueDay: number = yield select((state: State) => state.donation.dueDay);
 
     const donation = yield select((state: State) => state.donation);
     const causeAreas = yield select((state: State) => state.layout.causeAreas) || [];
@@ -126,28 +110,15 @@ export function* draftAvtaleGiro(): SagaIterator<void> {
       dueDay,
     };
 
-    const draftRequest = yield call(fetch, `${API_URL}/avtalegiro/draft`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-
-    const draftResponse: IServerResponse<undefined> = yield call(
-      draftRequest.json.bind(draftRequest),
-    );
-
-    if (draftResponse.status === 200) {
-      const form = document.getElementById("avtalegiro-form") as HTMLFormElement;
-      form.submit();
-    }
-
-    if (draftResponse.status !== 200) {
+    try {
+      yield call(draftAvtaleGiroRequest, data);
+    } catch (ex) {
       yield put(setLoading(false));
-      throw new Error("Drafting AvtaleGiro failed");
+      throw new Error("Drafting AvtaleGiro failed", { cause: ex });
     }
+
+    const form = document.getElementById("avtalegiro-form") as HTMLFormElement;
+    form.submit();
   } catch (ex) {
     console.error(ex);
   }

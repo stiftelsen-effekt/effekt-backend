@@ -2,6 +2,8 @@ import { usePlausible } from "next-plausible";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { getEstimatedLtv } from "../../../../util/ltv";
+import { publicTrpcFor } from "../../../../lib/trpc/client";
+import { stegaClean } from "@sanity/client/stega";
 import { PaymentMethod } from "../../../shared/components/Widget/types/Enums";
 
 // Define our tracking data interface
@@ -75,7 +77,11 @@ export const PlausibleRevenueTracker: React.FC<{
               }
 
               if (typeof paymentMethod !== "undefined") {
-                getEstimatedLtv({ method: paymentMethod, sum: parseFloat(revenue) }).then((ltv) => {
+                getEstimatedLtv({
+                  method: paymentMethod,
+                  sum: parseFloat(revenue),
+                  trpc: publicTrpcFor(stegaClean(locale)),
+                }).then((ltv) => {
                   // Facebook Pixel tracking
                   // @ts-ignore
                   if (typeof window.fbq !== "undefined" && window.fbq !== null) {
@@ -95,7 +101,7 @@ export const PlausibleRevenueTracker: React.FC<{
         }
       }
     }
-  }, [router.query, plausible, currency, type, enabled]);
+  }, [router.query, plausible, currency, type, enabled, locale]);
 
   return null;
 };
