@@ -2,7 +2,7 @@ import { DateTime } from "luxon";
 import { DAO, SqlResult } from "../DAO";
 
 import sqlString from "sqlstring";
-import { MONTHLY_CLAIM_STATUSES } from "../avtalegiro/charges";
+import { AvtaleGiroChargeStatus, CHARGING_STATUSES } from "../avtalegiro/charges";
 import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 import { OkPacket, ResultSetHeader } from "mysql2/promise";
 import { Avtalegiro_agreements } from "@prisma/client";
@@ -839,9 +839,14 @@ async function getMissingForDate(date: Date): Promise<MissingAvtaleGiroAgreement
           AND C.due_date <> DATE(?)
           AND C.status IN (?)
       )
+      # Not cancelled with the claim for this date deleted at MPS
+      AND NOT EXISTS (
+        SELECT 1 FROM Avtalegiro_agreement_charges AS C
+        WHERE C.KID = AG.KID AND C.due_date = DATE(?) AND C.status = ?
+      )
     ORDER BY AG.ID
     `,
-    [day, day, day, day, day, day, day, day, MONTHLY_CLAIM_STATUSES],
+    [...Array(8).fill(day), CHARGING_STATUSES, day, AvtaleGiroChargeStatus.DELETED],
   );
 
   return res;

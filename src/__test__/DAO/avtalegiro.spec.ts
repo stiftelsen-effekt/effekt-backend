@@ -225,7 +225,12 @@ describe("DAO avtalegiroagreements", () => {
       const [sql, params] = queryStub.firstCall.args;
       expect(sql).to.not.match(/Combining_table|call /i);
       expect(sql).to.contain("INNER JOIN Distributions");
-      expect(params).to.deep.equal([...Array(8).fill("2024-11-19"), ["CLAIMED", "COMPLETED"]]);
+      expect(params).to.deep.equal([
+        ...Array(8).fill("2024-11-19"),
+        ["CLAIMED", "COMPLETED"],
+        "2024-11-19",
+        "DELETED",
+      ]);
     });
 
     it("getMissingForDate leaves out agreements claimed on another date that month", async () => {

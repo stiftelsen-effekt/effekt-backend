@@ -217,4 +217,62 @@ const KID_B = "990000000000022";
     const afterSupersede = await DAO.avtalegiroagreements.getMissingForDate(new Date(2026, 10, 20));
     expect(afterSupersede.map((row) => row.KID)).to.include(KID_A);
   });
+  it("takes a cancelled claim through deletion, and leaves the deletion shipment tracked", async () => {
+    const shipmentID = await addShipment();
+    await DAO.avtalegirocharges.addCharges(
+      shipmentID,
+      [agreement(agreementA, KID_A, 20)],
+      DateTime.fromISO("2026-11-20"),
+    );
+
+    const upcoming = await DAO.avtalegirocharges.getUpcomingChargesByKID(
+      KID_A,
+      DateTime.fromISO("2026-11-16T10:00:00", { zone: "Europe/Oslo" }),
+    );
+    expect(upcoming.map((c) => [c.KID, c.amount, c.dueDate])).to.deep.equal([
+      [KID_A, 50000, "2026-11-20"],
+    ]);
+
+    await DAO.avtalegirocharges.requestDeletions(upcoming.map((c) => c.id));
+    expect((await DAO.avtalegirocharges.getDeletionRequests()).map((c) => c.id)).to.include(
+      upcoming[0].id,
+    );
+    // A deletion request is no longer the month's claim
+    expect(
+      (await DAO.avtalegirocharges.getClaimedKIDsForMonth(DateTime.fromISO("2026-11-20"))).has(
+        KID_A,
+      ),
+    ).to.be.false;
+
+    const deletionShipmentID = await addShipment();
+    await DAO.avtalegirocharges.markDeletionsSent([upcoming[0].id], deletionShipmentID);
+    expect(await DAO.avtalegirocharges.getSentDeletionShipmentIDs()).to.include(deletionShipmentID);
+
+    // Neither shipment counts as sent before charges were recorded
+    const [[{ day }]] = await pool.query<any[]>(
+      "SELECT DATE_FORMAT(`generated`, '%Y-%m-%d') AS day FROM Avtalegiro_shipment WHERE ID = ?",
+      [deletionShipmentID],
+    );
+    const untracked = await DAO.avtalegirocharges.getUntrackedShipmentIDs(DateTime.fromISO(day));
+    expect(untracked).to.not.include(deletionShipmentID);
+    expect(untracked).to.not.include(shipmentID);
+
+    await DAO.avtalegirocharges.confirmDeletionShipment(deletionShipmentID);
+    const [[row]] = await pool.query<any[]>(
+      "SELECT status, deletion_shipmentID FROM Avtalegiro_agreement_charges WHERE ID = ?",
+      [upcoming[0].id],
+    );
+    expect(row).to.deep.equal({ status: "DELETED", deletion_shipmentID: deletionShipmentID });
+
+    // The agreement is cancelled; its deleted claim isn't missing
+    await pool.query(
+      "UPDATE Avtalegiro_agreements SET active = 0, cancelled = '2026-11-16' WHERE ID = ?",
+      [agreementA],
+    );
+    const missing = await DAO.avtalegiroagreements.getMissingForDate(new Date(2026, 10, 20));
+    await pool.query("UPDATE Avtalegiro_agreements SET active = 1, cancelled = NULL WHERE ID = ?", [
+      agreementA,
+    ]);
+    expect(missing.map((r) => r.KID)).to.not.include(KID_A);
+  });
 });
