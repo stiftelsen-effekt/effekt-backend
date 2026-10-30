@@ -56,7 +56,8 @@ const userIsAdmin = (jwtPayload: JWTPayload) => {
 const userIsTheDonor = (jwtPayload: JWTPayload, donorId: number) =>
   jwtPayload[userIdClaim!] === donorId;
 
-const userIsAllowedToManageDonor = (jwtPayload: JWTPayload, donorId: number) =>
+/** Also used by the tRPC donorProcedure (src/trpc/trpc.ts) */
+export const userIsAllowedToManageDonor = (jwtPayload: JWTPayload, donorId: number) =>
   userIsAdmin(jwtPayload) || userIsTheDonor(jwtPayload, donorId);
 
 /**

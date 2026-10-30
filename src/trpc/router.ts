@@ -7,6 +7,7 @@ import { giroRouter } from "./routers/giro";
 import { homeRouter } from "./routers/home";
 import { intentsRouter } from "./routers/intents";
 import { metaRouter } from "./routers/meta";
+import { minsideRouter } from "./routers/minside";
 import { regrantingRouter } from "./routers/regranting";
 import { reportsRouter } from "./routers/reports";
 import { vippsRouter } from "./routers/vipps";
@@ -25,6 +26,8 @@ export const appRouter = router({
   analysis: analysisRouter,
   intents: intentsRouter,
   home: homeRouter,
+  // Donor-facing (Min Side on the website); everything above is admin-only
+  minside: minsideRouter,
 });
 
 export type AppRouter = typeof appRouter;
