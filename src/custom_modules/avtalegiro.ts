@@ -352,7 +352,7 @@ export async function setAvtaleGiroStatus(KID: string, active: unknown) {
         );
       }
     } catch (ex) {
-      console.error(`Failed to request deletion of AvtaleGiro claims for ${KID}`, ex);
+      console.error("Failed to request deletion of AvtaleGiro claims for %s", KID, ex);
     }
   } else if (active === 1 || active === true) {
     // Deletions not yet sent are no longer wanted
