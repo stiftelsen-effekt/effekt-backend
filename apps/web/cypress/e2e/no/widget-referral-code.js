@@ -1,45 +1,21 @@
 describe("Widget referral code", () => {
   beforeEach(() => {
     cy.fixture("cause_areas").then((causeAreas) => {
-      cy.intercept("GET", "/causeareas/all", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: causeAreas,
-        },
-      }).as("getCauseAreas");
+      cy.interceptTrpc("widget.causeAreas", causeAreas).as("getCauseAreas");
     });
 
     cy.fixture("referrals").then((referrals) => {
-      cy.intercept("GET", "/referrals/types", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: referrals,
-        },
-      }).as("getReferrals");
+      cy.interceptTrpc("widget.referralTypes", referrals).as("getReferrals");
     });
 
-    cy.intercept("POST", "/donations/register", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: {
-          KID: "87397824",
-          donorID: 1464,
-          hasAnsweredReferral: false,
-          paymentProviderUrl: "",
-        },
-      },
+    cy.interceptTrpc("widget.registerDonation", {
+      KID: "87397824",
+      donorID: 1464,
+      hasAnsweredReferral: false,
+      paymentProviderUrl: "",
     }).as("registerDonation");
 
-    cy.intercept("POST", "donations/bank/pending", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: "OK",
-      },
-    }).as("bankPending");
+    cy.interceptTrpc("widget.registerBankPending", true).as("bankPending");
 
     cy.visit({
       url: "/",

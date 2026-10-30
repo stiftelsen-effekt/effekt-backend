@@ -27,6 +27,15 @@ export default defineConfig({
           });
           return null;
         },
+        /** Rows of a SELECT on the e2e database (apps/api/prisma/e2e/query.mjs) */
+        queryE2EDb({ sql, params = [] }: { sql: string; params?: unknown[] }) {
+          const out = execFileSync(
+            "node",
+            [path.join(repoRoot, "apps/api/prisma/e2e/query.mjs"), sql, JSON.stringify(params)],
+            { env: { ...process.env, DB_URL: dbUrl }, stdio: ["ignore", "pipe", "pipe"] },
+          );
+          return JSON.parse(out.toString());
+        },
       });
       return config;
     },

@@ -1,7 +1,9 @@
 /**
- * Helpers for the website's tRPC requests (lib/trpc, docs/web-trpc.md). httpBatchLink sends
- * `GET /trpc/<path>?batch=1&input=…`, or `GET /trpc/<a>,<b>?batch=1&input=…` for calls made in the
- * same tick, and the response has one entry per path, in order.
+ * Helpers for the website's tRPC requests (lib/trpc, docs/web-trpc.md). httpBatchLink (Min Side)
+ * sends `GET /trpc/<path>?batch=1&input=…`, or `GET /trpc/<a>,<b>?batch=1&input=…` for calls made
+ * in the same tick, and the response has one entry per path, in order. The donation widget's
+ * httpLink never batches: `GET /trpc/<path>?input=…` or `POST /trpc/<path>` with the input as the
+ * body, answered with a single `{ result: { data } }` or `{ error }`.
  */
 
 /**
@@ -21,6 +23,12 @@ const TRPC_URLS = {
   "minside.autoGiroAgreements":
     /\/trpc\/(?:[^/?]*,)?minside\.autoGiroAgreements(?:,[^/?]*)?(?:\?|$)/,
   "minside.taxReports": /\/trpc\/(?:[^/?]*,)?minside\.taxReports(?:,[^/?]*)?(?:\?|$)/,
+  // The donation widget (httpLink, never batched)
+  "widget.causeAreas": /\/trpc\/widget\.causeAreas(?:\?|$)/,
+  "widget.referralTypes": /\/trpc\/widget\.referralTypes(?:\?|$)/,
+  "widget.registerDonation": /\/trpc\/widget\.registerDonation(?:\?|$)/,
+  "widget.registerBankPending": /\/trpc\/widget\.registerBankPending(?:\?|$)/,
+  "widget.submitReferral": /\/trpc\/widget\.submitReferral(?:\?|$)/,
   // Mutations (POST /trpc/<path>?batch=1, the input in the body as {"0": input})
   "minside.updateProfile": /\/trpc\/(?:[^/?]*,)?minside\.updateProfile(?:,[^/?]*)?(?:\?|$)/,
   "minside.createTaxUnit": /\/trpc\/(?:[^/?]*,)?minside\.createTaxUnit(?:,[^/?]*)?(?:\?|$)/,
@@ -52,6 +60,9 @@ export const trpcUrl = (path) => {
   return TRPC_URLS[path];
 };
 
+/** Whether a tRPC request is a batch (httpBatchLink) rather than a single call (httpLink) */
+export const isTrpcBatch = (url) => new URL(url).searchParams.get("batch") === "1";
+
 /** The procedure paths of a tRPC request URL, in batch order */
 export const trpcPaths = (url) =>
   decodeURIComponent(new URL(url).pathname.replace(/^.*\/trpc\//, "")).split(",");
@@ -61,14 +72,17 @@ export const trpcInput = (interception, path) => {
   const index = trpcPaths(interception.request.url).indexOf(path);
   expect(index, `${path} in ${interception.request.url}`).to.be.at.least(0);
   const body = interception.request.body;
-  return (typeof body === "string" ? JSON.parse(body) : body)[index];
+  const parsed = typeof body === "string" ? JSON.parse(body) : body;
+  return isTrpcBatch(interception.request.url) ? parsed[index] : parsed;
 };
 
 /** The error `path` returned in an intercepted tRPC response */
 export const trpcError = (interception, path) => {
   const index = trpcPaths(interception.request.url).indexOf(path);
   expect(index, `${path} in ${interception.request.url}`).to.be.at.least(0);
-  const entry = interception.response.body[index];
+  const entry = isTrpcBatch(interception.request.url)
+    ? interception.response.body[index]
+    : interception.response.body;
   expect(entry, `${path} response`).to.have.property("error");
   return entry.error;
 };
@@ -77,7 +91,9 @@ export const trpcError = (interception, path) => {
 export const trpcData = (interception, path) => {
   const index = trpcPaths(interception.request.url).indexOf(path);
   expect(index, `${path} in ${interception.request.url}`).to.be.at.least(0);
-  const entry = interception.response.body[index];
+  const entry = isTrpcBatch(interception.request.url)
+    ? interception.response.body[index]
+    : interception.response.body;
   expect(entry, `${path} response`).to.have.property("result");
   return entry.result.data;
 };

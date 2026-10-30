@@ -1,25 +1,14 @@
+import { trpcUrl } from "../../support/trpc";
 import mockDonor from "../../fixtures/no/donor.json";
 
 describe("Widget", () => {
   beforeEach(() => {
     cy.fixture("cause_areas").then((causeAreas) => {
-      cy.intercept("GET", "/causeareas/all", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: causeAreas,
-        },
-      }).as("getCauseAreas");
+      cy.interceptTrpc("widget.causeAreas", causeAreas).as("getCauseAreas");
     });
 
     cy.fixture("referrals").then((referrals) => {
-      cy.intercept("GET", "/referrals/types", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: referrals,
-        },
-      }).as("getReferrals");
+      cy.interceptTrpc("widget.referralTypes", referrals).as("getReferrals");
     });
 
     cy.visit({
@@ -42,26 +31,14 @@ describe("Widget", () => {
     cy.pickAnonymous();
     cy.get("[data-cy=payment-method-bank]").click({ force: true });
 
-    cy.intercept("POST", "/donations/register", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: {
-          KID: "87397824",
-          donorID: 1464,
-          hasAnsweredReferral: false,
-          paymentProviderUrl: "",
-        },
-      },
+    cy.interceptTrpc("widget.registerDonation", {
+      KID: "87397824",
+      donorID: 1464,
+      hasAnsweredReferral: false,
+      paymentProviderUrl: "",
     }).as("registerDonation");
 
-    cy.intercept("POST", "donations/bank/pending", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: "OK",
-      },
-    }).as("bankPending");
+    cy.interceptTrpc("widget.registerBankPending", true).as("bankPending");
 
     cy.nextWidgetPane();
 
@@ -94,17 +71,11 @@ describe("Widget", () => {
     cy.get("[data-cy=payment-method-avtalegiro]").click({ force: true });
     cy.wait(500);
 
-    cy.intercept("POST", "/donations/register", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: {
-          KID: "87397824",
-          donorID: 1464,
-          hasAnsweredReferral: false,
-          paymentProviderUrl: "",
-        },
-      },
+    cy.interceptTrpc("widget.registerDonation", {
+      KID: "87397824",
+      donorID: 1464,
+      hasAnsweredReferral: false,
+      paymentProviderUrl: "",
     }).as("registerDonation");
 
     cy.intercept("POST", "/avtalegiro/draft", (req) => {
@@ -149,17 +120,11 @@ describe("Widget", () => {
     cy.get("[data-cy=payment-method-vipps]").click({ force: true });
     cy.wait(500);
 
-    cy.intercept("POST", "/donations/register", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: {
-          KID: "87397824",
-          donorID: 1464,
-          hasAnsweredReferral: false,
-          paymentProviderUrl: "",
-        },
-      },
+    cy.interceptTrpc("widget.registerDonation", {
+      KID: "87397824",
+      donorID: 1464,
+      hasAnsweredReferral: false,
+      paymentProviderUrl: "",
     }).as("registerDonation");
 
     cy.nextWidgetPane();
@@ -180,17 +145,11 @@ describe("Widget", () => {
     cy.get("[data-cy=payment-method-vipps]").click({ force: true });
     cy.wait(500);
 
-    cy.intercept("POST", "/donations/register", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: {
-          KID: "87397824",
-          donorID: 1464,
-          hasAnsweredReferral: false,
-          paymentProviderUrl: "",
-        },
-      },
+    cy.interceptTrpc("widget.registerDonation", {
+      KID: "87397824",
+      donorID: 1464,
+      hasAnsweredReferral: false,
+      paymentProviderUrl: "",
     }).as("registerDonation");
 
     cy.intercept("POST", "/vipps/agreement/draft", (req) => {
@@ -234,7 +193,7 @@ describe("Widget", () => {
     cy.pickAnonymous();
     cy.get("[data-cy=payment-method-bank]").click({ force: true });
 
-    cy.intercept("POST", "/donations/register", (req) => {
+    cy.intercept("POST", trpcUrl("widget.registerDonation"), (req) => {
       // Total is the sum of the entered org amounts (500 + 300), not the
       // standalone sum input entered before switching to custom mode
       expect(req.body.amount).to.eq(800);
@@ -250,24 +209,19 @@ describe("Widget", () => {
       req.reply({
         statusCode: 200,
         body: {
-          status: 200,
-          content: {
-            KID: "87397824",
-            donorID: 1464,
-            hasAnsweredReferral: false,
-            paymentProviderUrl: "",
+          result: {
+            data: {
+              KID: "87397824",
+              donorID: 1464,
+              hasAnsweredReferral: false,
+              paymentProviderUrl: "",
+            },
           },
         },
       });
     }).as("registerDonation");
 
-    cy.intercept("POST", "donations/bank/pending", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: "OK",
-      },
-    }).as("bankPending");
+    cy.interceptTrpc("widget.registerBankPending", true).as("bankPending");
 
     cy.nextWidgetPane();
 
@@ -306,26 +260,14 @@ describe("Widget", () => {
 
     cy.get("[data-cy=payment-method-bank]").click({ force: true });
 
-    cy.intercept("POST", "/donations/register", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: {
-          KID: "87397824",
-          donorID: 973,
-          hasAnsweredReferral: false,
-          paymentProviderUrl: "",
-        },
-      },
+    cy.interceptTrpc("widget.registerDonation", {
+      KID: "87397824",
+      donorID: 973,
+      hasAnsweredReferral: false,
+      paymentProviderUrl: "",
     }).as("registerDonation");
 
-    cy.intercept("POST", "donations/bank/pending", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: "OK",
-      },
-    }).as("bankPending");
+    cy.interceptTrpc("widget.registerBankPending", true).as("bankPending");
 
     cy.nextWidgetPane();
 
@@ -334,12 +276,7 @@ describe("Widget", () => {
       expect(kid).to.be.length(8);
     });
 
-    cy.intercept("POST", "/referrals", {
-      statusCode: 200,
-      body: {
-        status: 200,
-      },
-    }).as("postReferrals");
+    cy.interceptTrpc("widget.submitReferral", true).as("postReferrals");
 
     cy.get("[data-cy=referral-button-1]").click();
     cy.get("[data-cy=referral-text-input]").type("Referral text");
@@ -369,13 +306,7 @@ describe("Widget", () => {
       .as("getDistribution");
 
     cy.fixture("referrals").then((referrals) => {
-      cy.intercept("GET", "/referrals/types", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: referrals,
-        },
-      }).as("getReferrals");
+      cy.interceptTrpc("widget.referralTypes", referrals).as("getReferrals");
     });
 
     cy.fixture("organizations").then((orgs) => {
@@ -448,7 +379,7 @@ describe("Widget", () => {
     cy.get("[data-cy=payment-method-bank]").click({ force: true });
     cy.wait(500);
 
-    cy.intercept("POST", "/donations/register", (req) => {
+    cy.intercept("POST", trpcUrl("widget.registerDonation"), (req) => {
       expect(req.body).to.have.property("donor");
       expect(req.body.donor).to.have.property("email", mockDonor.email);
       expect(req.body.donor).to.have.property("name", mockDonor.name);
@@ -456,27 +387,22 @@ describe("Widget", () => {
       req.reply({
         statusCode: 200,
         body: {
-          status: 200,
-          content: {
-            KID: "87397824",
-            donorID: mockDonor.id,
-            hasAnsweredReferral: false,
-            paymentProviderUrl: "",
+          result: {
+            data: {
+              KID: "87397824",
+              donorID: mockDonor.id,
+              hasAnsweredReferral: false,
+              paymentProviderUrl: "",
+            },
           },
         },
       });
     }).as("registerDonation");
 
-    cy.intercept("POST", "donations/bank/pending", (req) => {
-      expect(req.body).to.eql(`data={"KID":"87397824", "sum":${randomSum}}`);
+    cy.intercept("POST", trpcUrl("widget.registerBankPending"), (req) => {
+      expect(req.body).to.eql({ KID: "87397824", sum: randomSum });
 
-      req.reply({
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: "OK",
-        },
-      });
+      req.reply({ statusCode: 200, body: { result: { data: true } } });
     }).as("bankPending");
 
     cy.nextWidgetPane();

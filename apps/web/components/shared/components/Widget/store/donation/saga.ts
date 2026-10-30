@@ -2,6 +2,11 @@ import { SagaIterator } from "redux-saga";
 import { call, put, select } from "redux-saga/effects";
 import { Action } from "typescript-fsa";
 import { ANONYMOUS_DONOR } from "../../config/anonymous-donor";
+import {
+  registerBankPendingRequest,
+  registerDonationRequest,
+  type RegisterDonationResult,
+} from "../widgetApi";
 import { API_URL } from "../../config/api";
 import { PaymentMethod, ShareType, RecurringDonation } from "../../types/Enums";
 import { DraftAgreementResponse, IServerResponse } from "../../types/Temp";
@@ -169,18 +174,7 @@ export function* registerBankPending(): SagaIterator<void> {
       donation.smartDistributionTotal,
     );
 
-    const request: Response = yield call(fetch, `${API_URL}/donations/bank/pending`, {
-      method: "POST",
-      headers: {
-        Accept: "application/x-www-form-urlencoded",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: `data={"KID":"${donation.kid}", "sum":${breakdown.totalAmount}}`,
-    });
-
-    const result: IServerResponse<never> = yield call(request.json.bind(request));
-
-    if (result.status !== 200) throw new Error(result.content as string);
+    yield call(registerBankPendingRequest, donation.kid, breakdown.totalAmount);
   } catch (ex) {
     console.error(ex);
   }
@@ -331,34 +325,12 @@ export function* registerDonation(
       ...(referralCode ? { referralCode } : {}),
     };
 
-    // --- Make API call ---
-    // A signal timeout ensures a slow/hanging connection fails (and resets
-    // the payment button's loading state) instead of leaving the donor
-    // staring at a spinner indefinitely
-    const request = yield call(fetch, `${API_URL}/donations/register`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      signal: AbortSignal.timeout(20000),
-    });
+    // --- Make API call (tRPC, or REST on the Danish site; times out after 20 seconds) ---
+    const result: RegisterDonationResult = yield call(registerDonationRequest, data);
 
-    const result: IServerResponse<RegisterDonationResponse> = yield call(
-      request.json.bind(request),
-    );
-
-    if (result.status !== 200) {
+    if (!result.ok) {
       // Handle API error response
-      let errorMessage = null;
-
-      // Check if result.content is an object with message property
-      if (typeof (result as any).message === "string") {
-        errorMessage = (result as any).message;
-      } else if (typeof result.content === "string") {
-        errorMessage = result.content;
-      }
+      const errorMessage: any = result.errorMessage;
 
       yield put(setApiError(errorMessage));
       yield put(setLoading(false));
@@ -374,15 +346,11 @@ export function* registerDonation(
     // --- Handle API response and subsequent actions ---
     yield put(
       setAnsweredReferral(
-        data.donor?.email === ANONYMOUS_DONOR.email
-          ? false
-          : (result.content as RegisterDonationResponse).hasAnsweredReferral,
+        data.donor?.email === ANONYMOUS_DONOR.email ? false : result.content.hasAnsweredReferral,
       ),
     );
 
-    yield put(
-      setPaymentProviderURL((result.content as RegisterDonationResponse).paymentProviderUrl),
-    );
+    yield put(setPaymentProviderURL(result.content.paymentProviderUrl));
 
     yield put(
       registerDonationAction.done({
@@ -397,11 +365,8 @@ export function* registerDonation(
 
     yield put(setLoading(false));
 
-    if (
-      action.payload?.openExternalPaymentOnRegisterSuccess &&
-      (result.content as RegisterDonationResponse).paymentProviderUrl
-    ) {
-      window.open((result.content as RegisterDonationResponse).paymentProviderUrl, "_self");
+    if (action.payload?.openExternalPaymentOnRegisterSuccess && result.content.paymentProviderUrl) {
+      window.open(result.content.paymentProviderUrl, "_self");
     } else {
       yield put(nextPane());
     }

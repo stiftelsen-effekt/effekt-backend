@@ -10,6 +10,7 @@ import {
   donorProfileOutput,
   taxUnitsOutput,
 } from "@effekt/api/minside";
+import { widgetCauseAreasOutput, widgetReferralTypesOutput } from "@effekt/api/widget";
 
 /**
  * A tRPC link for the Danish site, whose backend (giveffektivt/donation-platform) implements the
@@ -31,10 +32,12 @@ type RestRoute = {
 };
 
 /**
- * Procedure path → REST route. Keep in sync with apps/api/src/trpc/routers/minside.ts. Of the
- * mutations, the Danish backend only has the tax unit create and update routes; saving the profile,
- * deleting a tax unit and the Vipps/AvtaleGiro agreement changes are unmapped (the Danish site edits
- * its agreements through its own REST routes, see DKAgreementDetails).
+ * Procedure path → REST route. Keep in sync with apps/api/src/trpc/routers/minside.ts and
+ * widget.ts. Of the mutations, the Danish backend only has the tax unit create and update routes;
+ * saving the profile, deleting a tax unit and the Vipps/AvtaleGiro agreement changes are unmapped
+ * (the Danish site edits its agreements through its own REST routes, see DKAgreementDetails). Of
+ * the widget procedures, it only has the two public reads; the Danish widget registers donations
+ * through its own REST code path (see Widget/store/widgetApi.ts).
  */
 export const restRoutes: Record<string, RestRoute> = {
   "minside.profile": {
@@ -81,6 +84,16 @@ export const restRoutes: Record<string, RestRoute> = {
     }),
     output: changedTaxUnitOutput,
   },
+  "widget.causeAreas": {
+    method: "GET",
+    path: () => "/causeareas/all/",
+    output: widgetCauseAreasOutput,
+  },
+  "widget.referralTypes": {
+    method: "GET",
+    path: () => "/referrals/types",
+    output: widgetReferralTypesOutput,
+  },
 };
 
 const codeForStatus = (status: number): TRPC_ERROR_CODE_KEY => {
@@ -111,8 +124,8 @@ const restError = (path: string, code: TRPC_ERROR_CODE_KEY, httpStatus: number, 
 export type RestLinkOptions = {
   /** The REST API base URL (NEXT_PUBLIC_EFFEKT_API) */
   url: string;
-  /** Returns the Auth0 access token sent as the bearer token */
-  getToken: () => Promise<string>;
+  /** Returns the Auth0 access token sent as the bearer token; leave out for public calls */
+  getToken?: () => Promise<string>;
   routes?: Record<string, RestRoute>;
   fetch?: typeof fetch;
 };
@@ -141,7 +154,9 @@ export const restLink =
             `${op.path} is not available on this site`,
           );
         }
-        const headers: Record<string, string> = { Authorization: `Bearer ${await getToken()}` };
+        const headers: Record<string, string> = getToken
+          ? { Authorization: `Bearer ${await getToken()}` }
+          : {};
         const init: RequestInit = { method: route.method, headers, signal: op.signal ?? undefined };
         if (route.body) {
           headers["Content-Type"] = "application/json";

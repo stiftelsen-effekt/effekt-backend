@@ -1,25 +1,14 @@
+import { trpcUrl } from "../../support/trpc";
 describe("Organizations Page", () => {
   beforeEach(() => {
     cy.fixture("single_cause_area")
       .then((causeAreas) => {
-        cy.intercept("GET", "/causeareas/all", {
-          statusCode: 200,
-          body: {
-            status: 200,
-            content: causeAreas,
-          },
-        });
+        cy.interceptTrpc("widget.causeAreas", causeAreas);
       })
       .as("getCauseAreas");
 
     cy.fixture("referrals").then((referrals) => {
-      cy.intercept("GET", "/referrals/types", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: referrals,
-        },
-      }).as("getReferrals");
+      cy.interceptTrpc("widget.referralTypes", referrals).as("getReferrals");
     });
     cy.visit({
       url: "/topplista",
@@ -149,7 +138,7 @@ describe("Organizations Page", () => {
     cy.pickAnonymous();
     cy.get("[data-cy=payment-method-bank]").click({ force: true });
 
-    cy.intercept("POST", "/donations/register", (req) => {
+    cy.intercept("POST", trpcUrl("widget.registerDonation"), (req) => {
       expect(req.body).to.have.property("distributionCauseAreas");
 
       expect(req.body.amount).to.eq(randomSum);
@@ -163,24 +152,19 @@ describe("Organizations Page", () => {
       req.reply({
         statusCode: 200,
         body: {
-          status: 200,
-          content: {
-            KID: "87397824",
-            donorID: 1464,
-            hasAnsweredReferral: false,
-            paymentProviderUrl: "",
+          result: {
+            data: {
+              KID: "87397824",
+              donorID: 1464,
+              hasAnsweredReferral: false,
+              paymentProviderUrl: "",
+            },
           },
         },
       });
     }).as("registerDonation");
 
-    cy.intercept("POST", "donations/bank/pending", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: "OK",
-      },
-    }).as("bankPending");
+    cy.interceptTrpc("widget.registerBankPending", true).as("bankPending");
 
     cy.nextWidgetPane();
     cy.wait("@registerDonation");
@@ -210,7 +194,7 @@ describe("Organizations Page", () => {
     cy.pickAnonymous();
     cy.get("[data-cy=payment-method-bank]").click({ force: true });
 
-    cy.intercept("POST", "/donations/register", (req) => {
+    cy.intercept("POST", trpcUrl("widget.registerDonation"), (req) => {
       expect(req.body).to.have.property("distributionCauseAreas");
 
       expect(req.body.amount).to.eq(1000);
@@ -225,24 +209,19 @@ describe("Organizations Page", () => {
       req.reply({
         statusCode: 200,
         body: {
-          status: 200,
-          content: {
-            KID: "87397824",
-            donorID: 1464,
-            hasAnsweredReferral: false,
-            paymentProviderUrl: "",
+          result: {
+            data: {
+              KID: "87397824",
+              donorID: 1464,
+              hasAnsweredReferral: false,
+              paymentProviderUrl: "",
+            },
           },
         },
       });
     }).as("registerDonation");
 
-    cy.intercept("POST", "donations/bank/pending", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: "OK",
-      },
-    }).as("bankPending");
+    cy.interceptTrpc("widget.registerBankPending", true).as("bankPending");
 
     cy.nextWidgetPane();
     cy.wait("@registerDonation");
@@ -266,7 +245,7 @@ describe("Organizations Page", () => {
     cy.pickAnonymous();
     cy.get("[data-cy=payment-method-bank]").click({ force: true });
 
-    cy.intercept("POST", "/donations/register", (req) => {
+    cy.intercept("POST", trpcUrl("widget.registerDonation"), (req) => {
       expect(req.body).to.have.property("distributionCauseAreas");
 
       expect(req.body.amount).to.eq(randomSum);
@@ -282,24 +261,19 @@ describe("Organizations Page", () => {
       req.reply({
         statusCode: 200,
         body: {
-          status: 200,
-          content: {
-            KID: "87397824",
-            donorID: 1464,
-            hasAnsweredReferral: false,
-            paymentProviderUrl: "",
+          result: {
+            data: {
+              KID: "87397824",
+              donorID: 1464,
+              hasAnsweredReferral: false,
+              paymentProviderUrl: "",
+            },
           },
         },
       });
     }).as("registerDonation");
 
-    cy.intercept("POST", "donations/bank/pending", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: "OK",
-      },
-    }).as("bankPending");
+    cy.interceptTrpc("widget.registerBankPending", true).as("bankPending");
 
     cy.nextWidgetPane();
     cy.wait("@registerDonation");

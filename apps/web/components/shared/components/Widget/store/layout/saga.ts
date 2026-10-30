@@ -1,21 +1,19 @@
 import { SagaIterator } from "redux-saga";
 import { call, put } from "redux-saga/effects";
 import { Action } from "typescript-fsa";
-import { API_URL } from "../../config/api";
-import { IServerResponse } from "../../types/Temp";
+import { widgetTrpc } from "../widgetApi";
 import { fetchCauseAreasAction } from "./actions";
 import { CauseArea } from "../../types/CauseArea";
 
 export function* fetchCauseAreas(action: Action<undefined>): SagaIterator<void> {
   try {
-    const request = yield call(fetch, `${API_URL}/causeareas/all/`);
-    const result: IServerResponse<CauseArea[]> = yield call(request.json.bind(request));
-    if (result.status !== 200) throw new Error(result.content as string);
+    // On the Danish site the REST link answers this with GET /causeareas/all/
+    const causeAreas = yield call(() => widgetTrpc().widget.causeAreas.query());
 
     yield put(
       fetchCauseAreasAction.done({
         params: action.payload,
-        result: result.content as CauseArea[],
+        result: causeAreas as CauseArea[],
       }),
     );
   } catch (ex) {

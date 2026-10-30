@@ -7,23 +7,11 @@ describe("Agreements page", () => {
     });
 
     cy.fixture("cause_areas_multiple").then((causeAreas) => {
-      cy.intercept("GET", "/causeareas/all/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: causeAreas,
-        },
-      }).as("getCauseAreas");
+      cy.interceptTrpc("widget.causeAreas", causeAreas).as("getCauseAreas");
     });
 
     cy.fixture("referrals").then((referrals) => {
-      cy.intercept("GET", "/referrals/types", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: referrals,
-        },
-      }).as("getReferrals");
+      cy.interceptTrpc("widget.referralTypes", referrals).as("getReferrals");
     });
 
     cy.fixture("vipps").then((vipps) => {
