@@ -6,17 +6,19 @@
 # runs before any credentials exist) and runs on Cloud Run as the runtime service account, which
 # can reach nothing but the effekt-previews Cloud SQL instance.
 # Fork PRs never deploy. Infrastructure: scripts/preview/provision.sh.
+# Only PRs with the `preview` label get a preview; removing the label tears it down.
 name: Preview
 
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review, closed]
+    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled, closed]
 
 permissions: {}
 
-# One preview per PR: a push cancels the PR's run in flight and deploys the new commit.
+# One preview per PR: a push cancels the PR's run in flight and deploys the new commit. Other
+# labels get a group of their own, so labelling a PR doesn't cancel its deploy.
 concurrency:
-  group: preview-pr-${{ github.event.pull_request.number }}
+  group: preview-pr-${{ github.event.pull_request.number }}${{ (github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'preview' && format('-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 env:
@@ -28,6 +30,9 @@ jobs:
   deploy:
     if: >-
       github.event.action != 'closed' &&
+      github.event.action != 'unlabeled' &&
+      contains(github.event.pull_request.labels.*.name, 'preview') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'preview') &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       vars.PREVIEW_WIF_PROVIDER != ''
     runs-on: ubuntu-latest
@@ -136,7 +141,8 @@ jobs:
 
   teardown:
     if: >-
-      github.event.action == 'closed' &&
+      ((github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'preview')) ||
+       (github.event.action == 'unlabeled' && github.event.label.name == 'preview')) &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       vars.PREVIEW_WIF_PROVIDER != ''
     runs-on: ubuntu-latest
@@ -167,6 +173,12 @@ jobs:
         run: trusted/scripts/preview/teardown.sh "$PR"
 
       - name: Comment "torn down"
+        env:
+          ACTION: ${{ github.event.action }}
         run: |
-          echo "Deleted because the PR was closed." > "$RUNNER_TEMP/note.md"
+          if [[ "$ACTION" == "closed" ]]; then
+            echo "Deleted because the PR was closed." > "$RUNNER_TEMP/note.md"
+          else
+            echo "Deleted because the \`preview\` label was removed." > "$RUNNER_TEMP/note.md"
+          fi
           trusted/scripts/preview/pr-comment.sh "$PR" torn-down --sha "$SHA" --note-file "$RUNNER_TEMP/note.md"

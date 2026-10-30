@@ -22,8 +22,10 @@ provider.
 
 ## How it works
 
+Previews are opt-in: add the `preview` label to a PR to deploy one. Pushes redeploy while the label is on; removing the label or closing the PR tears it down.
+
 ```
-PR opened / pushed ──► .github/workflows/preview.yml (pull_request_target, runs the master copy)
+PR labelled `preview` / pushed ──► .github/workflows/preview.yml (pull_request_target, runs the master copy)
                          1. sticky PR comment: Building
                          2. docker build Dockerfile.preview (PR code, no credentials yet)
                          3. log in to GCP (workload identity, no keys)
