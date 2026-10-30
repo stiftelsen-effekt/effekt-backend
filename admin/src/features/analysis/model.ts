@@ -42,11 +42,14 @@ export function milestoneLabel(milestone: string) {
 /** Ease-out: fast at first, settling on the value. */
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
-/** The count-up's value `elapsed` ms into `duration`, in whole kroner. */
-export function countUpValue(target: number, elapsed: number, duration: number) {
+/** The count-up's value `elapsed` ms into `duration`, from `from` to `target`, in whole kroner. */
+export function countUpValue(target: number, elapsed: number, duration: number, from = 0) {
   if (elapsed >= duration) return target;
-  return Math.round(target * easeOut(Math.max(elapsed, 0) / duration));
+  return Math.round(from + (target - from) * easeOut(Math.max(elapsed, 0) / duration));
 }
+
+/** How often the overview asks for fresh numbers: new donations show within a minute. */
+export const OVERVIEW_REFRESH_MS = 60_000;
 
 //endregion
 

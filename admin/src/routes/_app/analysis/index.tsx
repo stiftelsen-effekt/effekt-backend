@@ -8,7 +8,12 @@ import { SkeletonText } from "@/components/ui/skeleton";
 import { CountUpMoney } from "@/features/analysis/count-up";
 import { NEW_DONOR_MONTHS } from "@/features/analysis/donor-cohorts";
 import { CohortsSection, NewDonorsSection } from "@/features/analysis/donor-sections";
-import { milestoneLabel, progress, type Overview } from "@/features/analysis/model";
+import {
+  milestoneLabel,
+  OVERVIEW_REFRESH_MS,
+  progress,
+  type Overview,
+} from "@/features/analysis/model";
 import { formatMoney } from "@/lib/format";
 import { loadPage } from "@/lib/route-data";
 import { useTRPC } from "@/lib/trpc";
@@ -28,7 +33,11 @@ const hatch =
 
 function AnalysisOverviewPage() {
   const trpc = useTRPC();
-  const overview = useQuery(trpc.analysis.overview.queryOptions());
+  // Refreshed every minute while the page is open, so the ticker follows new donations
+  const overview = useQuery({
+    ...trpc.analysis.overview.queryOptions(),
+    refetchInterval: OVERVIEW_REFRESH_MS,
+  });
   const data = overview.data;
 
   return (

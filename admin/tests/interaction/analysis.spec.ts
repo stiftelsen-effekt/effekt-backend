@@ -57,6 +57,31 @@ test("under reduced motion the total shows at once", async ({ page }) => {
   expect((await figure.textContent())?.replace(/\s/g, " ")).toBe("170 245 588 kr");
 });
 
+test("the overview refreshes every minute and the figure follows new donations", async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  let calls = 0;
+  await signIn(page, {
+    "analysis.overview": () => {
+      calls++;
+      const overview = overviewFixture();
+      // From the second call on, a donation of 4 412 kr has come in
+      return calls === 1
+        ? overview
+        : { ...overview, withPledges: { ...overview.withPledges, sum: "170250000" } };
+    },
+  });
+  await page.goto("/analysis");
+  const figure = page.locator("[data-slot=count-up]");
+  await expect(figure).toHaveText("170 245 588 kr");
+  const before = calls;
+  await page.clock.fastForward(61_000);
+  await expect.poll(() => calls).toBeGreaterThan(before);
+  await expect(figure).toHaveText("170 250 000 kr");
+});
+
 test("adding a pledge validates inline, sends amount and date, and refetches the overview", async ({
   page,
 }) => {
