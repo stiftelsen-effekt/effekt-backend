@@ -1,7 +1,7 @@
 const dns = require("node:dns").promises;
 const { ImapFlow } = require("imapflow");
 const { simpleParser } = require("mailparser");
-const { extractXml, parseReport, summarize } = require("./report");
+const { extractXml, parseReport, summarize, gateway, authSummary } = require("./report");
 
 const PROCESSED = "Processed";
 const UNPARSED = "Unparsed";
@@ -104,19 +104,25 @@ async function failureMessage(failures) {
       sender: f.sender,
       from: new Set(),
       reporters: new Set(),
+      auth: new Set(),
     };
     entry.count += f.count;
     entry.from.add(f.headerFrom);
     entry.reporters.add(f.reporter);
+    entry.auth.add(authSummary(f));
     byIp.set(f.ip, entry);
   }
   const lines = [];
   for (const [ip, e] of [...byIp].sort((a, b) => b[1].count - a[1].count).slice(0, 15)) {
     const host = await reverseDns(ip);
+    const via = gateway(host);
+    const sender = via
+      ? `${e.sender === "Other" ? "Forwarded" : e.sender} via ${via} (recipient's mail filter)`
+      : e.sender;
     lines.push(
-      `• ${e.count} from \`${ip}\`${host ? ` (${host})` : ""}: ${e.sender}, From ${[...e.from].join(
+      `• ${e.count} from \`${ip}\`${host ? ` (${host})` : ""}: ${sender}, From ${[...e.from].join(
         ", ",
-      )}, reported by ${[...e.reporters].join(", ")}`,
+      )}, reported by ${[...e.reporters].join(", ")}\n    ${[...e.auth].join(" | ")}`,
     );
   }
   const total = failures.reduce((n, f) => n + f.count, 0);

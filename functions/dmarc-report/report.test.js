@@ -1,7 +1,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { gzipSync, zipSync, strToU8 } = require("fflate");
-const { extractXml, parseReport, classify, summarize } = require("./report");
+const { extractXml, parseReport, classify, gateway, authSummary, summarize } = require("./report");
 
 const record = (ip, count, dkim, spf, selector, spfDomain) => `
   <record>
@@ -61,4 +61,21 @@ test("counts DMARC passes and lists failures", () => {
   assert.equal(failures.length, 1);
   assert.equal(failures[0].ip, "203.0.113.9");
   assert.equal(failures[0].reporter, "google.com");
+});
+
+test("recognises recipient mail filters by reverse DNS", () => {
+  assert.equal(gateway("us.cloud-sec-av.com"), "Avanan");
+  assert.equal(gateway("US.Cloud-Sec-AV.com."), "Avanan");
+  assert.equal(gateway("mx0a-001.pphosted.com"), "Proofpoint");
+  assert.equal(gateway("mail-wr1-f41.google.com"), null);
+  assert.equal(gateway(null), null);
+});
+
+test("summarises what the reporter saw", () => {
+  const rows = parseReport(xml).rows;
+  assert.equal(
+    authSummary(rows[1]),
+    "DKIM gieffektivt.no/mlsend2 pass; SPF mta.gieffektivt.no fail",
+  );
+  assert.equal(authSummary(rows[3]), "DKIM none; SPF evil.example fail");
 });

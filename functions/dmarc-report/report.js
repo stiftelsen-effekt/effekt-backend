@@ -63,6 +63,35 @@ function classify(row) {
   return "Other";
 }
 
+// Recipient-side mail filters that rewrite mail (links, banners) and hand it back to the recipient's
+// mailbox provider, which then sees it fail SPF and DKIM. Recognised by the source IP's reverse DNS.
+const GATEWAYS = [
+  [/\.cloud-sec-av\.com$/, "Avanan"],
+  [/\.mimecast\.com$/, "Mimecast"],
+  [/\.pphosted\.com$/, "Proofpoint"],
+  [/\.barracuda\.com$/, "Barracuda"],
+  [/\.iphmx\.com$/, "Cisco Secure Email"],
+];
+
+function gateway(host) {
+  const name = String(host || "")
+    .toLowerCase()
+    .replace(/\.$/, "");
+  return GATEWAYS.find(([pattern]) => pattern.test(name))?.[1] || null;
+}
+
+// What the reporter saw: which domains signed the message and which return-path SPF checked. A failed
+// signature from our own domain means it was our mail, altered in transit.
+function authSummary(row) {
+  const dkim = row.dkimAuth.length
+    ? row.dkimAuth
+        .map((d) => `${d.domain}${d.selector ? `/${d.selector}` : ""} ${d.result}`)
+        .join(", ")
+    : "none";
+  const spf = row.spfAuth.map((s) => `${s.domain} ${s.result}`).join(", ") || "none";
+  return `DKIM ${dkim}; SPF ${spf}`;
+}
+
 function summarize(reports) {
   const senders = new Map();
   const failures = [];
@@ -81,4 +110,12 @@ function summarize(reports) {
   return { senders, failures };
 }
 
-module.exports = { extractXml, parseReport, dmarcPass, classify, summarize };
+module.exports = {
+  extractXml,
+  parseReport,
+  dmarcPass,
+  classify,
+  gateway,
+  authSummary,
+  summarize,
+};
