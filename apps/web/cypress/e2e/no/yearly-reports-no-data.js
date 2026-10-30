@@ -7,7 +7,7 @@ describe("Tax reports page no data", () => {
     });
 
     cy.fixture("cause_areas").then((causeAreas) => {
-      cy.interceptTrpc("widget.causeAreas", causeAreas).as("getCauseAreas");
+      cy.interceptCauseAreas(causeAreas).as("getCauseAreas");
     });
 
     cy.fixture("referrals").then((referrals) => {

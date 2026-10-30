@@ -7,7 +7,7 @@ import { trpcUrl } from "../../support/trpc";
 describe("Widget multiple cause areas", () => {
   beforeEach(() => {
     cy.fixture("cause_areas_multiple").then((causeAreas) => {
-      cy.interceptTrpc("widget.causeAreas", causeAreas).as("getCauseAreas");
+      cy.interceptCauseAreas(causeAreas).as("getCauseAreas");
     });
 
     cy.fixture("referrals").then((referrals) => {

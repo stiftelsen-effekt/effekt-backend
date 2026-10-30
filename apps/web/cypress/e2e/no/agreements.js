@@ -7,7 +7,7 @@ describe("Agreements page", () => {
     });
 
     cy.fixture("cause_areas_multiple").then((causeAreas) => {
-      cy.interceptTrpc("widget.causeAreas", causeAreas).as("getCauseAreas");
+      cy.interceptCauseAreas(causeAreas).as("getCauseAreas");
     });
 
     cy.fixture("referrals").then((referrals) => {

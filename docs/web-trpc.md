@@ -202,8 +202,9 @@ main layout now provides too.
 Still REST, on purpose:
 
 - `POST /forms/submit` (`SplitViewForm`): only the Danish backend has it.
-- `GET /fundraisers/:id/vippsnumber` (`FundraiserVippsNumberDisplay`): our backend removed the
-  route in March 2025, so the call gets a 404. Remove the block or bring the route back.
+- Min Side's `useCauseAreas` and `useAllOrganizations` (`_queries.ts`): `GET /causeareas/all/`
+  and `GET /organizations/all/`. The Norwegian specs stub the first with `cy.interceptCauseAreas`,
+  which stubs `widget.causeAreas` as well.
 - The fundraiser page's live updates are a WebSocket, not REST.
 - Sanity Studio's calls (`/causeareas/all`, `/fundraisers/list`, `/results/...`, `/mail/...`).
 
@@ -281,7 +282,7 @@ Kept, although Min Side and the widget no longer call them:
   `/recurring/{vipps,avtalegiro,autogiro}`, `PUT /donors/:id` and the tax unit writes: the Swedish
   admin calls them.
 - `GET /referrals/types`: the Swedish admin's client still references it.
-- `GET /causeareas/all`: Sanity Studio and the Swedish admin.
+- `GET /causeareas/all`: Min Side (`useCauseAreas`), Sanity Studio and the Swedish admin.
 - `PUT /autogiro/:KID/`: Swedish Min Side's AutoGiro changes are still REST.
 
 ## Deployment notes

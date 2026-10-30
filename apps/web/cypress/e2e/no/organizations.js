@@ -3,7 +3,7 @@ describe("Organizations Page", () => {
   beforeEach(() => {
     cy.fixture("single_cause_area")
       .then((causeAreas) => {
-        cy.interceptTrpc("widget.causeAreas", causeAreas);
+        cy.interceptCauseAreas(causeAreas);
       })
       .as("getCauseAreas");
 
