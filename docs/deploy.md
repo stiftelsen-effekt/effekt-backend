@@ -3,10 +3,10 @@
 Merging to `main` deploys. Cloud Build (project `hidden-display-243419`) runs one build per
 merge for each trigger whose files changed; Vercel builds the websites on its own.
 
-| Trigger         | Config                  | What it does                                                                                                                    |
-| --------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `BackendDeploy` | `cloud.deploy.yaml`     | Builds the API image, pushes `effektapi:latest`, runs the Norwegian and Swedish migration jobs, deploys both Cloud Run services |
-| `AdminDeploy`   | `cloudbuild.admin.yaml` | Typechecks, tests and builds `apps/admin`, publishes it to its bucket ([admin-deployment.md](admin-deployment.md))              |
+| Trigger         | Config                  | What it does                                                                                                                                |
+| --------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BackendDeploy` | `cloud.deploy.yaml`     | Builds the API image as `effektapi:$BUILD_ID`, runs the Norwegian and Swedish migration jobs on it, deploys both Cloud Run services from it |
+| `AdminDeploy`   | `cloudbuild.admin.yaml` | Typechecks, tests and builds `apps/admin`, publishes it to its bucket ([admin-deployment.md](admin-deployment.md))                          |
 
 `QualityAssurance` (`cloud.qa.yaml`) is the PR check and deploys nothing.
 
@@ -33,6 +33,22 @@ The guard fails open: a build without `$COMMIT_SHA` (started by hand) or one tha
 GitHub deploys as before. A skipped build shows the reason in each step's log ("Skipped: …").
 To redeploy an older commit on purpose, run the trigger by hand on that commit while it is the
 tip, or revert on `main`.
+
+## Deploy the image this build made
+
+`cloud.deploy.yaml` tags the image `effektapi:$BUILD_ID` and pushes that tag before the second
+guard. The migration jobs (`gcloud run jobs update … --image … --execute-now --wait`, which also
+leaves the job pointing at that image) and both Cloud Run services use that tag, never
+`:latest`: an older build running in parallel can push `:latest` after this one, and deploying
+by the shared tag would then ship the older image. `:latest` is still pushed after
+`guard-before-release`, as a convenience for pulling the current image by hand; nothing deploys
+from it.
+
+To check the step logic without Cloud Build, run each step's `entrypoint` and `args` locally with
+`docker` and `gcloud` replaced by scripts that log their arguments, `DEPLOY_GUARD_REPO` pointed
+at a local bare repository and `DEPLOY_SKIP_FILE` at a temporary path: with the commit at the tip
+every step runs and every `--image` is `effektapi:$BUILD_ID`; with a new commit pushed to the
+local repository during `docker build`, only the build and the `$BUILD_ID` push run.
 
 What it does not cover: two builds that both pass the second check (a merge landing during the
 last minutes of the older build's deploy) can still overlap. The newer build then deploys last.
