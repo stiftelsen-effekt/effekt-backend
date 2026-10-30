@@ -342,8 +342,8 @@ describe("Preview HTTP", function () {
     expect(api.body).to.deep.equal({ api: true });
     const asset = await request(app()).get("/assets/app-abc.js");
     expect(asset.headers["cache-control"]).to.contain("immutable");
-    const docs = await request(app()).get("/api-docs/").set("Accept", "text/html");
-    expect(docs.status).to.equal(404);
+    const trpc = await request(app()).get("/trpc/health").set("Accept", "text/html");
+    expect(trpc.status).to.equal(404);
   });
 
   it("is off without a built admin", function () {

@@ -21,13 +21,6 @@ const cache = apicache.middleware;
 
 const dateRangeHelper = require("../custom_modules/dateRangeHelper");
 
-/**
- * @openapi
- * /donations/status:
- *   get:
- *    tags: [Donations]
- *    description: Redirects to donation success when query is ok, donation failed if not ok. Used for payment processing.
- */
 router.get("/status", async (req, res, next) => {
   try {
     if (req.query.status && (req.query.status as string).toUpperCase() === "OK")
@@ -38,13 +31,6 @@ router.get("/status", async (req, res, next) => {
   }
 });
 
-/**
- * @openapi
- * /donations/register:
- *   post:
- *    tags: [Donations]
- *    description: Registers a pending donation
- */
 router.post("/register", async (req, res, next) => {
   const parsed = registerDonationSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -96,13 +82,6 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-/**
- * @openapi
- * /donations/confirm:
- *   post:
- *    tags: [Donations]
- *    description: Adds a confirmed donation to the database
- */
 router.post("/confirm", authMiddleware.isAdmin, urlEncodeParser, async (req, res, next) => {
   try {
     let sum = Number(req.body.sum);
@@ -131,13 +110,6 @@ router.post("/confirm", authMiddleware.isAdmin, urlEncodeParser, async (req, res
   }
 });
 
-/**
- * @openapi
- * /donations/total:
- *   get:
- *    tags: [Donations]
- *    description: Get aggregated donations in a date range, by organizations
- */
 router.get("/total", async (req, res, next) => {
   try {
     let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req);
@@ -153,13 +125,6 @@ router.get("/total", async (req, res, next) => {
   }
 });
 
-/**
- * @openapi
- * /donations/total:
- *   get:
- *    tags: [Donations]
- *    description: Get aggregated donations by month for last 12 months
- */
 router.get("/total/monthly", async (req, res, next) => {
   try {
     let aggregate = await DAO.donations.getAggregateLastYearByMonth();
@@ -173,13 +138,6 @@ router.get("/total/monthly", async (req, res, next) => {
   }
 });
 
-/**
- * @openapi
- * /donations/total:
- *   get:
- *    tags: [Donations]
- *    description: Get the median donation
- */
 router.get("/median", cache("5 minutes"), async (req, res, next) => {
   try {
     let dates = dateRangeHelper.createDateObjectsFromExpressRequest(req);
@@ -311,39 +269,6 @@ router.get("/externalID/:externalID/:methodID", authMiddleware.isAdmin, async (r
   }
 });
 
-/**
- * @openapi
- * tags:
- *   - name: Donations
- *     description: Donations in the database
- */
-
-/**
- * @openapi
- * /donations/{id}:
- *   get:
- *    tags: [Donations]
- *    description: Get get a donation by id
- *    responses:
- *      200:
- *        description: Returns a donation object
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content:
- *                        $ref: '#/components/schemas/Donation'
- *                   example:
- *                      content:
- *                        $ref: '#/components/schemas/Donation/example'
- *      401:
- *        description: User not authorized to view resource
- *      404:
- *        description: Donation with given id not found
- */
 router.get("/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     var donation = await DAO.donations.getByID(req.params.id);
@@ -388,31 +313,6 @@ router.put("/transaction_cost/:donationID", authMiddleware.isAdmin, async (req, 
   }
 });
 
-/**
- * @openapi
- * /donations/{id}:
- *   delete:
- *    tags: [Donations]
- *    description: Delete a donation by id
- *    responses:
- *      200:
- *        description: Donation was deleted
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: boolean
- *                   example:
- *                      content: true
- *
- *      401:
- *        description: User not authorized to view resource
- *      404:
- *        description: Donation with given id not found
- */
 router.delete("/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     var removed = await DAO.donations.remove(req.params.id);
@@ -430,44 +330,6 @@ router.delete("/:id", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-/**
- * @openapi
- * /donations/{id}/reciept:
- *   post:
- *    tags: [Donations]
- *    description: Sends a reciept for the donation to the email associated with the donor
- *    responses:
- *      200:
- *        description: Reciept sent
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: boolean
- *                   example:
- *                      content: "Receipt sent for donation id 99"
- *
- *      401:
- *        description: User not authorized to access endpoint
- *      404:
- *        description: Donation with given id not found
- *      500:
- *        description: Failed to send donation reciept. Returns the error code from the request to mailersend (our email service).
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: boolean
- *                   example:
- *                      status: 500
- *                      content: "Receipt failed with error code 401"
- */
 router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res, next) => {
   if (req.body.email && req.body.email.indexOf("@") > -1) {
     var mailStatus = await sendDonationReceipt(req.params.id, req.body.email);

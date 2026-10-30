@@ -31,20 +31,6 @@ const requireIntegerParam: express.RequestParamHandler = (req, res, next, value)
 router.param("id", requireIntegerParam);
 router.param("taxunitid", requireIntegerParam);
 
-/**
- * @openapi
- * tags:
- *   - name: Donors
- *     description: Donors in the database
- */
-
-/**
- * @openapi
- * /donors/:
- *   post:
- *    tags: [Donors]
- *    description: Add a new user
- */
 router.post("/", authMiddleware.isAdmin, urlEncodeParser, async (req, res, next) => {
   try {
     if (!req.body.name || !req.body.email) {
@@ -97,50 +83,6 @@ router.post("/", authMiddleware.isAdmin, urlEncodeParser, async (req, res, next)
   }
 });
 
-/**
- * @openapi
- * /donors/auth0/register:
- *   post:
- *    tags: [Donors]
- *    description: Gets a donor id by email if found, creates a new donor if email is not found
- *    parameters:
- *      - in: body
- *        name: email
- *        required: true
- *        description: The email of the donor that is registered
- *        schema:
- *          type: object
- *          properties:
- *            email:
- *              type: string
- *              example: "jack.torrence@overlookhotel.com"
- *    responses:
- *      200:
- *        description: Returns a donor id
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: number
- *                   example:
- *                      content: 231
- *      400:
- *        description: Bad request, missing email in request body
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: number
- *                   example:
- *                      status: 400
- *                      content: "email is missing in request body"
- */
 /**
  * Called by the Auth0 "Connect user id" pre-registration Action. The Action must send
  * AUTH0_REGISTER_TOKEN (stored as an Action secret) in the Authorization header; otherwise anyone
@@ -222,41 +164,6 @@ router.post("/list/", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-/**
- * @openapi
- * /donors/{id}:
- *   get:
- *    tags: [Donors]
- *    description: Get a donor by id
- *    security:
- *       - auth0_jwt: [read:profile]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to retrieve.
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Returns a donor object
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content:
- *                        $ref: '#/components/schemas/Donor'
- *                   example:
- *                      content:
- *                        $ref: '#/components/schemas/Donor/example'
- *      401:
- *        description: User not authorized to view resource
- *      404:
- *        description: Donor with given id not found
- */
 router.get(
   "/:id",
   authMiddleware.auth(permissions.read_donations),
@@ -284,41 +191,6 @@ router.get(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}/referrals:
- *   get:
- *    tags: [Donors]
- *    description: Get answers from referral question for donor by id
- *    security:
- *       - auth0_jwt: [read:profile]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to retrieve.
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Returns a donor object
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content:
- *                        $ref: '#/components/schemas/ReferralAnswer'
- *                   example:
- *                      content:
- *                        $ref: '#/components/schemas/ReferralAnswer/example'
- *      401:
- *        description: User not authorized to view resource
- *      404:
- *        description: Donor with given id not found
- */
 router.get(
   "/:id/referrals",
   authMiddleware.auth(permissions.read_donations),
@@ -346,41 +218,6 @@ router.get(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}/taxunits:
- *   get:
- *    tags: [Donors]
- *    description: Get all tax units associated with donor
- *    security:
- *       - auth0_jwt: [read:profile]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to retrieve.
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Returns an array of tax units
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content:
- *                        $ref: '#/components/schemas/TaxUnit'
- *                   example:
- *                      content:
- *                        $ref: '#/components/schemas/TaxUnit/example'
- *      401:
- *        description: User not authorized to view resource
- *      404:
- *        description: Donor with given id not found
- */
 router.get(
   "/:id/taxunits",
   authMiddleware.auth(permissions.read_profile),
@@ -418,45 +255,6 @@ router.get(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}/taxunits:
- *   post:
- *    tags: [Donors]
- *    description: Create a new tax unit for the given donor
- *    security:
- *       - auth0_jwt: [write:profile]
- *    parameters:
- *      - in: body
- *        name: name
- *        required: true
- *        description: The name of the tax unit
- *        schema:
- *          type: string
- *      - in: body
- *        name: ssn
- *        required: true
- *        description: The social security number of the tax unit (organization number or personal number)
- *    responses:
- *      200:
- *        description: Returns an array of tax units
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content:
- *                        $ref: '#/components/schemas/TaxUnit'
- *                   example:
- *                      content:
- *                        $ref: '#/components/schemas/TaxUnit/example'
- *      401:
- *        description: User not authorized to view resource
- *      404:
- *        description: Donor with given id not found
- */
 router.post(
   "/:id/taxunits",
   authMiddleware.auth(permissions.write_profile),
@@ -525,54 +323,6 @@ router.post(
 );
 
 // Route for deleting tax unit from donor by donor id and tax unit id
-/**
- * @openapi
- * /donors/{id}/taxunits/{taxunitid}:
- *   delete:
- *    tags: [Donors]
- *    description: Delete a tax unit from a donor
- *    security:
- *      - auth0_jwt: [write:profile]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the donor to retrieve.
- *        schema:
- *          type: integer
- *      - in: path
- *        name: taxunitid
- *        required: true
- *        description: Numeric ID of the tax unit to delete.
- *        schema:
- *          type: integer
- *      - in: body
- *        name: transferId
- *        required: false
- *        description: Numeric ID of the tax unit to transfer donations to the given tax unit for current year to
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Returns a status message for wether the unit was deleted
- *        content:
- *          application/json:
- *            schema:
- *              allOf:
- *                - $ref: '#/components/schemas/ApiResponse'
- *                - type: object
- *                  properties:
- *                    content:
- *                      type: boolean
- *                  example:
- *                    content: true
- *      401:
- *        description: User not authorized to view resource
- *      404:
- *        description: Donor with given id not found, or tax unit with given id not found
- *      500:
- *        description: Failed to delete tax unit
- */
 router.delete(
   "/:id/taxunits/:taxunitid",
   authMiddleware.auth(permissions.write_profile),
@@ -611,45 +361,6 @@ router.delete(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}/taxunits/{taxunitid}:
- *   put:
- *    tags: [Tax]
- *    description: Updates a tax unit
- *    security:
- *       - auth0_jwt: [write:profile]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to update.
- *        schema:
- *          type: integer
- *      - in: body
- *        name: taxUnit
- *        required: true
- *        description: The tax unit to update
- *        schema:
- *          $ref: '#/components/schemas/TaxUnit'
- *    responses:
- *      200:
- *        description: Tax unit was updated
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: string
- *                   example:
- *                      content: OK
- *      401:
- *        description: User not authorized to access resource
- *      404:
- *        description: Tax unit with given id not found
- */
 router.put(
   "/:id/taxunits/:taxunitid",
   authMiddleware.auth(permissions.write_profile),
@@ -746,39 +457,6 @@ router.put(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}:
- *   delete:
- *    tags: [Donors]
- *    description: Get a donor by id
- *    security:
- *      - auth0_jwt: [write:donations]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to delete.
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Donor was deleted
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: boolean
- *                   example:
- *                      content: true
- *      401:
- *        description: User not authorized to access resource
- *      404:
- *        description: Donor with given id not found
- */
 router.delete(
   "/:id",
   authMiddleware.auth(permissions.write_donations),
@@ -808,41 +486,6 @@ router.delete(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}/donations:
- *   get:
- *    tags: [Donors]
- *    description: Get donations by donor id
- *    security:
- *       - auth0_jwt: [read:donations]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to retrieve donations from.
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Returns donations for given donor id
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content:
- *                         type: array
- *                         items:
- *                            $ref: '#/components/schemas/Donation'
- *                   example:
- *                      content:
- *                         - $ref: '#/components/schemas/Donation/example'
- *      401:
- *        description: User not authorized to view resource
- */
 router.get(
   "/:id/donations",
   authMiddleware.auth(permissions.read_donations),
@@ -862,41 +505,6 @@ router.get(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}/recurring/avtalegiro:
- *   get:
- *    tags: [Donors]
- *    description: Get avtalegiro agreements by donorId
- *    security:
- *       - auth0_jwt: [read:donations]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to retrieve avtalegiro agreements from.
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Returns avtalegiro agreements for given donorId
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content:
- *                         type: array
- *                         items:
- *                            $ref: '#/components/schemas/AvtalegiroAgreement'
- *                   example:
- *                      content:
- *                         - $ref: '#/components/schemas/AvtalegiroAgreement/example'
- *      401:
- *        description: User not authorized to view resource
- */
 router.get(
   "/:id/recurring/avtalegiro",
   authMiddleware.auth(permissions.read_donations),
@@ -937,41 +545,6 @@ router.get(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}/recurring/vipps:
- *   get:
- *    tags: [Donors]
- *    description: Get vipps agreements by donorId
- *    security:
- *       - auth0_jwt: [read:donations]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to retrieve vipps agreements from.
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Returns vipps agreements for given donoId
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content:
- *                         type: array
- *                         items:
- *                            $ref: '#/components/schemas/VippsAgreement'
- *                   example:
- *                      content:
- *                         - $ref: '#/components/schemas/VippsAgreement/example'
- *      401:
- *        description: User not authorized to view resource
- */
 router.get(
   "/:id/recurring/vipps",
   authMiddleware.auth(permissions.read_donations),
@@ -993,43 +566,6 @@ router.get(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}/donations/aggregated:
- *   get:
- *    tags: [Donors]
- *    description: Get a donor by id
- *    security:
- *       - auth0_jwt: [read:donations]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to retrieve.
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Returns a donor object
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content:
- *                         type: array
- *                         items:
- *                            $ref: '#/components/schemas/AggregatedDonation'
- *                   example:
- *                      content:
- *                         - $ref: '#/components/schemas/AggregatedDonation/example'
- *      401:
- *        description: User not authorized to view resource
- *      404:
- *        description: Donor with given id not found
- */
 router.get(
   "/:id/donations/aggregated",
   authMiddleware.auth(permissions.read_donations),
@@ -1050,41 +586,6 @@ router.get(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}/distributions/aggregated:
- *   get:
- *    tags: [Donors]
- *    description: Get the distributions of a donor with aggregated donations
- *    security:
- *       - auth0_jwt: [read:donations]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to retrieve aggregated distributions from
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Returns aggregated distributions for a donor
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content:
- *                         type: array
- *                         items:
- *                            $ref: '#/components/schemas/AggregatedDistribution'
- *                   example:
- *                      content:
- *                         - $ref: '#/components/schemas/AggregatedDistribution/example'
- *      401:
- *        description: User not authorized to view resource
- */
 router.get(
   "/:id/distributions/aggregated",
   authMiddleware.auth(permissions.read_donations),
@@ -1105,13 +606,6 @@ router.get(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}/summary/:
- *   get:
- *    tags: [Donors]
- *    description: Fetches the total amount of money donated to each organization by a specific donor
- */
 router.get(
   "/:id/summary/",
   authMiddleware.auth(permissions.read_donations),
@@ -1132,13 +626,6 @@ router.get(
   },
 );
 
-/**
- * @openapi
- * /donors/{id}/history/:
- *   get:
- *    tags: [Donors]
- *    description: Fetches donation history for a donor
- */
 router.get(
   "/:id/history/",
   authMiddleware.auth(permissions.read_donations),
@@ -1210,45 +697,6 @@ router.post("/:originId/merge/:destinationId", authMiddleware.isAdmin, async (re
   }
 });
 
-/**
- * @openapi
- * /donors/{id}:
- *   put:
- *    tags: [Donors]
- *    description: Updates donor by ID
- *    security:
- *       - auth0_jwt: [write:profile]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to update.
- *        schema:
- *          type: integer
- *      - in: body
- *        name: donor
- *        required: true
- *        description: The donor to update
- *        schema:
- *          $ref: '#/components/schemas/Donor'
- *    responses:
- *      200:
- *        description: Donor was deleted
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: boolean
- *                   example:
- *                      content: true
- *      401:
- *        description: User not authorized to access resource
- *      404:
- *        description: Donor with given id not found
- */
 router.put(
   "/:id",
   authMiddleware.auth(permissions.write_profile),

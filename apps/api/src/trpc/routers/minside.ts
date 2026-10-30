@@ -144,7 +144,7 @@ export const minsideRouter = router({
         input.donorId,
         (input.locale ?? "NO") as RequestLocale,
       );
-      // The DAO's TaxUnit type (from the OpenAPI spec) marks every field optional, but
+      // The DAO's TaxUnit type (src/schemas/types.ts) marks every field optional, but
       // getTaxUnitsWithDeductions sets them all; the output schema rejects anything else
       return units as unknown as z.input<typeof taxUnitsOutput>;
     }),

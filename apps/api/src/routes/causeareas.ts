@@ -10,40 +10,6 @@ import {
 import express from "express";
 export const causeAreasRouter = express.Router();
 
-/**
- * @openapi
- * /causeareas/active:
- *    get:
- *      tags: [CauseAreas]
- *      description: Fetches all active cause areas and their organizations
- *      responses:
- *        200:
- *          description: Cause area with active organizations
- *          content:
- *             application/json:
- *               schema:
- *                 allOf:
- *                   - $ref: '#/components/schemas/ApiResponse'
- *                   - type: object
- *                     properties:
- *                        content:
- *                           type: array
- *                           items:
- *                              allOf:
- *                                - $ref: '#/components/schemas/CauseArea'
- *                                - type: object
- *                                  properties:
- *                                    organizations:
- *                                      type: array
- *                                      items:
- *                                        $ref: '#/components/schemas/Organization'
- *                     example:
- *                        content:
- *                           - allOf:
- *                             - $ref: '#/components/schemas/CauseArea/example'
- *                             - organizations:
- *                               - $ref: '#/components/schemas/Organization/example'
- */
 causeAreasRouter.get("/active", async (req, res, next) => {
   try {
     var activeCauseAreas = await DAO.causeareas.getActiveWithOrganizations();
