@@ -31,9 +31,15 @@ describe("Vipps agreement url codes", () => {
     expect(queryStub.called).to.equal(false);
   });
 
-  it("returns 404 from the anonymous agreement for an unknown code", async function () {
-    await request(server).get("/vipps/agreement/anonymous/not-a-code").expect(404);
-    expect(queryStub.called).to.equal(false);
+  it("has no routes that read or edit an agreement by url code", async function () {
+    const code = "0123456789abcdef0123456789abcdef";
+    await request(server).get(`/vipps/agreement/anonymous/${code}`).expect(404);
+    for (const path of ["cancel", "price", "pause", "pause/end", "chargeday", "forcedcharge"]) {
+      await request(server).put(`/vipps/agreement/${code}/${path}`).expect(404);
+    }
+    await request(server).put(`/vipps/agreement/${code}/distribution`).expect(404);
+    await request(server).post(`/vipps/agreement/${code}/charges/cancel`).expect(404);
+    expect((DAO.vipps.getAgreementIdByUrlCode as sinon.SinonStub).called).to.equal(false);
   });
 
   describe("Min Side redirect", function () {

@@ -274,9 +274,11 @@ describe("donors", () => {
         const response = await request(server).get("/donors/237/recurring/vipps").expect(200);
       });
 
-      it("Should return the agreements", async function () {
+      it("Should return the agreements without their url codes", async function () {
         const response = await request(server).get("/donors/237/recurring/vipps");
-        expect(response.body.content).to.deep.equal(mockAgreementsVipps);
+        expect(response.body.content).to.deep.equal(
+          mockAgreementsVipps.map(({ agreement_url_code, ...agreement }) => agreement),
+        );
       });
     });
 
