@@ -3,7 +3,7 @@ import { ignoresSingleKey } from "@/hooks/use-hotkey";
 import type { NavItem } from "./nav";
 
 /**
- * Every keyboard shortcut, in one place: the ? dialog lists these, DESIGN.md › Keyboard
+ * Every keyboard shortcut, in one place: the ? dialog lists these, docs/admin-design.md › Keyboard
  * describes them. The go-to group comes from the nav (`goKey`), so it lists only pages that exist.
  */
 export type Shortcut = { keys: string[]; label: string };

@@ -1,4 +1,15 @@
-# dmarc-report
+# Cloud Functions
+
+Small functions under [`functions/`](../functions), each deployed on its own. Run the commands below in the function's folder.
+
+## api-scheduled
+
+Dispatcher that Cloud Scheduler calls (as `api-scheduled@`, OIDC) with `?type=ocr|avtalegiro|avtalegiroretry|vippsrecurring|auth0check|followup|mailchimp`.
+It fetches an Auth0 client-credentials token and calls the matching `/scheduled/*` endpoint on effektapi.
+
+Recovered on 2026-10-23 from the deployed source (it was previously deployed from the console). Deploy with `./deploy.sh`.
+
+## dmarc-report
 
 Reads DMARC aggregate reports sent to `dmarc@gieffektivt.no` (a Domeneshop mailbox, read over IMAP) and posts to Slack.
 
@@ -9,4 +20,10 @@ The DMARC record's `rua` must point at `mailto:dmarc@gieffektivt.no`. Known send
 
 Runs as `sa-dmarc-report`, which can only read the `dmarc-mailbox-password` and `dmarc-slack-webhook` secrets. Cloud Scheduler jobs `dmarc-report-daily` and `dmarc-report-weekly` call it with OIDC as `api-scheduled@`.
 
+Deploy with `./deploy.sh`. Test with `npm test`.
+
+## minside-redirect
+
+Redirects `minside.gieffektivt.no/<urlcode>` to `https://data.gieffektivt.no/vipps/agreement/minside/<urlcode>`.
+Vipps agreements store their `merchantAgreementUrl` on the old Min Side host, so existing agreements keep working.
 Deploy with `./deploy.sh`. Test with `npm test`.

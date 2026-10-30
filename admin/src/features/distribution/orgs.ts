@@ -1,5 +1,5 @@
 /**
- * Organizations as the visual focus of a split (DESIGN.md › Distributions): the effective
+ * Organizations as the visual focus of a split (docs/admin-design.md › Distributions): the effective
  * share of each organization, each organization's colour (`orgColor`), the long tail grouped
  * as "Other", and whether the cause area adds anything worth showing.
  *

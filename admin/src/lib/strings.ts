@@ -1,5 +1,5 @@
 /**
- * UI copy shared across the app. The admin is English-only for now (see DESIGN.md › Writing);
+ * UI copy shared across the app. The admin is English-only for now (see docs/admin-design.md › Writing);
  * strings live here, not inline in shared components, so a later translation only has to
  * swap this module. Feature-specific copy can stay next to the feature.
  *

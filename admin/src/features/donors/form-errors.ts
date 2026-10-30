@@ -51,7 +51,7 @@ export function conflictingDonorId(message: string | undefined): number | null {
 
 /**
  * Service messages written for developers, in the person's terms. Unknown messages are
- * returned as they are (DESIGN.md › Writing: server validation is shown as written).
+ * returned as they are (docs/admin-design.md › Writing: server validation is shown as written).
  */
 export function plainMessage(message: string): string {
   if (/failed fnr validation/i.test(message))

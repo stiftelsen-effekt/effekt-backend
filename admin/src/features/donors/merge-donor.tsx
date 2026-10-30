@@ -19,7 +19,7 @@ export type MergeCounts = {
 
 /**
  * Merge this donor into another one (the one to keep). Irreversible: typed confirmation of
- * this donor's id, per DESIGN.md › Editing, by risk.
+ * this donor's id, per docs/admin-design.md › Editing, by risk.
  */
 export function MergeDonor({
   donor,

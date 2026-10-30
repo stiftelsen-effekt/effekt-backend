@@ -3,7 +3,7 @@ import { swatchClasses } from "@/components/charts/chart";
 import { ORG_COLORS, orgColor, type ColoredOrg, type OrgColor } from "@/features/distribution/orgs";
 import { cn } from "@/lib/utils";
 
-/** Names for the organization palette, in its order (DESIGN.md › Tokens › Charts). */
+/** Names for the organization palette, in its order (docs/admin-design.md › Tokens › Charts). */
 export const orgColorNames: Record<OrgColor, string> = {
   "chart-1": "Ink",
   "chart-2": "Blue",

@@ -156,7 +156,7 @@ function Foundations() {
         <>
           The admin is a calm, dense tool for a small team handling money all day. These are the
           decisions everything else follows. The full reasoning is in{" "}
-          <code className="font-mono text-sm">admin/DESIGN.md</code>.
+          <code className="font-mono text-sm">docs/admin-design.md</code>.
         </>
       }
     >
