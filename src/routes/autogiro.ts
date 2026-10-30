@@ -373,7 +373,11 @@ router.put("/:KID/drafted/paymentdate", async (req, res, next) => {
 
     const agreement = await DAO.autogiroagreements.getAgreementByKID(req.params.KID);
 
-    if (agreement!.active === false) {
+    if (!agreement) {
+      return res.status(404).json({ status: 404, content: "Agreement not found" });
+    }
+
+    if (agreement.active === false) {
       await DAO.autogiroagreements.setAgreementPaymentDateByKID(req.params.KID, paymentDate);
     } else {
       return res.status(400).json({

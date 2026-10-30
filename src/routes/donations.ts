@@ -74,7 +74,7 @@ router.post("/register", async (req, res, next) => {
   // Validate input
   if (!parsedData.distributionCauseAreas || parsedData.distributionCauseAreas.length === 0)
     return res.status(400).send("No cause areas provided");
-  if (parsedData.donor && !parsedData.donor.email)
+  if (parsedData.donor && (typeof parsedData.donor.email !== "string" || !parsedData.donor.email))
     return res.status(400).send("Invalid donor data");
   if (!parsedData.method) return res.status(400).send("No payment method provided");
   if (!parsedData.amount) return res.status(400).send("No amount provided");
@@ -391,7 +391,14 @@ router.post("/bank/pending", urlEncodeParser, async (req, res, next) => {
   } catch (ex) {
     parsedData = null;
   }
-  if (!parsedData || typeof parsedData !== "object" || !parsedData.KID) {
+  if (
+    !parsedData ||
+    typeof parsedData !== "object" ||
+    typeof parsedData.KID !== "string" ||
+    !/^\d+$/.test(parsedData.KID) ||
+    typeof parsedData.sum !== "number" ||
+    !Number.isFinite(parsedData.sum)
+  ) {
     return res.status(400).json({ status: 400, content: "Invalid data" });
   }
 
