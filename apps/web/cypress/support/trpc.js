@@ -15,6 +15,12 @@ const TRPC_URLS = {
     /\/trpc\/(?:[^/?]*,)?minside\.donationsAggregated(?:,[^/?]*)?(?:\?|$)/,
   "minside.donations": /\/trpc\/(?:[^/?]*,)?minside\.donations(?:,[^/?]*)?(?:\?|$)/,
   "minside.distributions": /\/trpc\/(?:[^/?]*,)?minside\.distributions(?:,[^/?]*)?(?:\?|$)/,
+  "minside.vippsAgreements": /\/trpc\/(?:[^/?]*,)?minside\.vippsAgreements(?:,[^/?]*)?(?:\?|$)/,
+  "minside.avtaleGiroAgreements":
+    /\/trpc\/(?:[^/?]*,)?minside\.avtaleGiroAgreements(?:,[^/?]*)?(?:\?|$)/,
+  "minside.autoGiroAgreements":
+    /\/trpc\/(?:[^/?]*,)?minside\.autoGiroAgreements(?:,[^/?]*)?(?:\?|$)/,
+  "minside.taxReports": /\/trpc\/(?:[^/?]*,)?minside\.taxReports(?:,[^/?]*)?(?:\?|$)/,
 };
 
 /** Matches a tRPC request URL that includes `path`, alone or batched with other procedures */

@@ -27,13 +27,7 @@ describe("Tax reports page with ea funds donations", () => {
     });
 
     cy.fixture("tax-reports/ea-funds").then((reports) => {
-      cy.intercept("GET", "donors/*/taxreports", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: reports,
-        },
-      }).as("getReports");
+      cy.interceptTrpc("minside.taxReports", reports).as("getReports");
     });
 
     cy.fixture("donations")

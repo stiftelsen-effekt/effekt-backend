@@ -2,7 +2,16 @@ import { User } from "@auth0/auth0-react";
 import useSWR from "swr";
 import { apiResult, getAccessToken, getAccessTokenSilently } from "./hooks/useApi";
 import { getUserId } from "./lib/user";
-import type { AggregatedDonations, Distribution, Donation, TaxUnit } from "./models";
+import type {
+  AggregatedDonations,
+  AutoGiroAgreement,
+  AvtaleGiroAgreement,
+  Distribution,
+  Donation,
+  TaxUnit,
+  TaxYearlyReport,
+  VippsAgreement,
+} from "./models";
 import { CauseArea } from "./components/shared/components/Widget/types/CauseArea";
 import { widgetContentQuery } from "./components/shared/components/Widget/components/Widget";
 import { groq } from "next-sanity";
@@ -53,6 +62,10 @@ export const minsideKeys = {
   donations: (donorId: number) => ["minside.donations", donorId] as const,
   distributions: (donorId: number, kids: string[]) =>
     ["minside.distributions", donorId, kids.join(",")] as const,
+  vippsAgreements: (donorId: number) => ["minside.vippsAgreements", donorId] as const,
+  avtaleGiroAgreements: (donorId: number) => ["minside.avtaleGiroAgreements", donorId] as const,
+  autoGiroAgreements: (donorId: number) => ["minside.autoGiroAgreements", donorId] as const,
+  taxReports: (donorId: number) => ["minside.taxReports", donorId] as const,
 };
 
 const fetcher = async (
@@ -210,13 +223,24 @@ export const useAgreementsDistributions = (
   };
 };
 
+/**
+ * The donor's AvtaleGiro agreements. Through tRPC (minside.avtaleGiroAgreements); not available on
+ * the Danish site, whose agreements page uses useDKAgreements.
+ */
 export const useAvtalegiroAgreements = (
   user: User | undefined,
   fetchToken: getAccessTokenSilently,
 ) => {
+  const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
-    user ? `/donors/${getUserId(user)}/recurring/avtalegiro/` : null,
-    (url) => fetcher(url, fetchToken),
+    user ? minsideKeys.avtaleGiroAgreements(getUserId(user)) : null,
+    ([, donorId]) =>
+      trpcFetch(
+        async () =>
+          (await trpc.minside.avtaleGiroAgreements.query({
+            donorId,
+          })) as unknown as AvtaleGiroAgreement[],
+      ),
   );
 
   const loading = isPending(data, error);
@@ -229,13 +253,24 @@ export const useAvtalegiroAgreements = (
   };
 };
 
+/**
+ * The donor's AutoGiro agreements. Through tRPC (minside.autoGiroAgreements); not available on the
+ * Danish site.
+ */
 export const useAutogiroAgreements = (
   user: User | undefined,
   fetchToken: getAccessTokenSilently,
 ) => {
+  const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
-    user ? `/donors/${getUserId(user)}/recurring/autogiro/` : null,
-    (url) => fetcher(url, fetchToken),
+    user ? minsideKeys.autoGiroAgreements(getUserId(user)) : null,
+    ([, donorId]) =>
+      trpcFetch(
+        async () =>
+          (await trpc.minside.autoGiroAgreements.query({
+            donorId,
+          })) as unknown as AutoGiroAgreement[],
+      ),
   );
 
   const loading = isPending(data, error);
@@ -248,10 +283,19 @@ export const useAutogiroAgreements = (
   };
 };
 
+/**
+ * The donor's Vipps agreements. Through tRPC (minside.vippsAgreements); not available on the Danish
+ * site.
+ */
 export const useVippsAgreements = (user: User | undefined, fetchToken: getAccessTokenSilently) => {
+  const trpc = useTrpcClient(fetchToken);
   const { data, error, isValidating } = useSWR(
-    user ? `/donors/${getUserId(user)}/recurring/vipps/` : null,
-    (url) => fetcher(url, fetchToken),
+    user ? minsideKeys.vippsAgreements(getUserId(user)) : null,
+    ([, donorId]) =>
+      trpcFetch(
+        async () =>
+          (await trpc.minside.vippsAgreements.query({ donorId })) as unknown as VippsAgreement[],
+      ),
   );
 
   const loading = isPending(data, error);
@@ -386,9 +430,18 @@ export const useTaxUnits = (user: User | undefined, fetchToken: getAccessTokenSi
   };
 };
 
-export const useYearlyTaxReports = (user: User, fetchToken: getAccessTokenSilently) => {
-  const { data, error, isValidating } = useSWR(`/donors/${getUserId(user)}/taxreports/`, (url) =>
-    fetcher(url, fetchToken),
+/**
+ * The donor's yearly tax reports (Norwegian deduction rules). Through tRPC (minside.taxReports);
+ * not available on the Danish site.
+ */
+export const useYearlyTaxReports = (user: User | undefined, fetchToken: getAccessTokenSilently) => {
+  const trpc = useTrpcClient(fetchToken);
+  const { data, error, isValidating } = useSWR(
+    user ? minsideKeys.taxReports(getUserId(user)) : null,
+    ([, donorId]) =>
+      trpcFetch(
+        async () => (await trpc.minside.taxReports.query({ donorId })) as TaxYearlyReport[],
+      ),
   );
 
   const loading = isPending(data, error);

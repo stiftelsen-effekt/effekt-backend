@@ -62,29 +62,11 @@ describe("Profile and dashboard empty API data", () => {
       cy.interceptDonorProfile(donor).as("getDonor");
     });
 
-    cy.intercept("GET", "/donors/*/recurring/vipps/", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: [],
-      },
-    }).as("getVipps");
+    cy.interceptTrpc("minside.vippsAgreements", []).as("getVipps");
 
-    cy.intercept("GET", "/donors/*/recurring/avtalegiro/", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: [],
-      },
-    }).as("getAvtalegiro");
+    cy.interceptTrpc("minside.avtaleGiroAgreements", []).as("getAvtalegiro");
 
-    cy.intercept("GET", "/donors/*/recurring/autogiro/", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: [],
-      },
-    }).as("getAutogiro");
+    cy.interceptTrpc("minside.autoGiroAgreements", []).as("getAutogiro");
 
     cy.interceptTrpc("minside.distributions", []).as("getDistribution");
 

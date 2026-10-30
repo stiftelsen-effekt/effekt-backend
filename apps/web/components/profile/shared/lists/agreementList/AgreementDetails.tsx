@@ -26,7 +26,7 @@ import { Lightbox } from "../../../../shared/components/Lightbox/Lightbox";
 import { checkPaymentDate } from "../../../../../util/dates";
 import { getUserId } from "../../../../../lib/user";
 import { AgreementSingleCauseAreaDetails } from "./singleCauseAreaDetails/AgreementSingleCauseAreaDetails";
-import { useCauseAreas } from "../../../../../_queries";
+import { minsideKeys, useCauseAreas } from "../../../../../_queries";
 import {
   AgreementMultipleCauseAreaDetails,
   AgreementMultipleCauseAreaDetailsConfiguration,
@@ -244,7 +244,7 @@ export const AgreementDetails: React.FC<{
 
       if (result != null) {
         successToast(configuration.toasts_configuration.success_text);
-        mutate(`/donors/${getUserId(user)}/recurring/vipps/`);
+        mutate(minsideKeys.vippsAgreements(getUserId(user)));
         setLoadingChanges(false);
         setLastSavedDistribution(JSON.parse(JSON.stringify(distribution)));
       } else {
@@ -268,7 +268,7 @@ export const AgreementDetails: React.FC<{
 
       if (result !== null) {
         successToast(configuration.toasts_configuration.success_text);
-        mutate(`/donors/${getUserId(user)}/recurring/avtalegiro/`);
+        mutate(minsideKeys.avtaleGiroAgreements(getUserId(user)));
         setLoadingChanges(false);
         setLastSavedDistribution(JSON.parse(JSON.stringify(distribution)));
       } else {
@@ -286,7 +286,7 @@ export const AgreementDetails: React.FC<{
 
       if (result !== null) {
         successToast(configuration.toasts_configuration.success_text);
-        mutate(`/donors/${getUserId(user)}/recurring/autogiro/`);
+        mutate(minsideKeys.autoGiroAgreements(getUserId(user)));
         setLoadingChanges(false);
         setLastSavedDistribution(JSON.parse(JSON.stringify(distribution)));
       } else {
@@ -309,7 +309,7 @@ export const AgreementDetails: React.FC<{
       if (cancelled) {
         successToast(configuration.toasts_configuration.success_text);
         agreementCancelled(type, agreementId, agreementKid);
-        mutate(`/donors/${getUserId(user)}/recurring/vipps/`);
+        mutate(minsideKeys.vippsAgreements(getUserId(user)));
       } else {
         failureToast(configuration.toasts_configuration.failure_text);
       }
@@ -318,7 +318,7 @@ export const AgreementDetails: React.FC<{
       if (cancelled) {
         successToast(configuration.toasts_configuration.success_text);
         agreementCancelled(type, agreementId, agreementKid);
-        mutate(`/donors/${getUserId(user)}/recurring/avtalegiro/`);
+        mutate(minsideKeys.avtaleGiroAgreements(getUserId(user)));
       } else {
         failureToast(configuration.toasts_configuration.failure_text);
       }
@@ -327,7 +327,7 @@ export const AgreementDetails: React.FC<{
       if (cancelled) {
         successToast(configuration.toasts_configuration.success_text);
         agreementCancelled(type, agreementId, agreementKid);
-        mutate(`/donors/${getUserId(user)}/recurring/autogiro/`);
+        mutate(minsideKeys.autoGiroAgreements(getUserId(user)));
       } else {
         failureToast(configuration.toasts_configuration.failure_text);
       }

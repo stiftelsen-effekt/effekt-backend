@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createTRPCClient, TRPCClientError } from "@trpc/client";
 import type { AppRouter } from "@effekt/api";
-import { restLink } from "./restLink";
+import { restLink, restRoutes } from "./restLink";
 
 const profile = {
   id: 0,
@@ -179,6 +179,21 @@ describe("restLink", () => {
     const fetchImpl = respond(200, {});
     const err = await caught(clientWith(fetchImpl).meta.owners.query());
     expect(err.message).toBe("meta.owners is not available on this site");
+    expect(err.data?.code).toBe("NOT_IMPLEMENTED");
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("leaves the Norwegian agreement lists and tax reports unmapped (no Danish REST route)", async () => {
+    for (const path of [
+      "minside.vippsAgreements",
+      "minside.avtaleGiroAgreements",
+      "minside.autoGiroAgreements",
+      "minside.taxReports",
+    ]) {
+      expect(Object.keys(restRoutes)).not.toContain(path);
+    }
+    const fetchImpl = respond(200, {});
+    const err = await caught(clientWith(fetchImpl).minside.taxReports.query({ donorId: 42 }));
     expect(err.data?.code).toBe("NOT_IMPLEMENTED");
     expect(fetchImpl).not.toHaveBeenCalled();
   });

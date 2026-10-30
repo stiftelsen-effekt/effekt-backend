@@ -28,6 +28,10 @@ export type Donation = {
   impact?: DonationImpactEntry[];
 };
 
+/**
+ * Recurring agreements as Min Side gets them (minside.*Agreements). Only the fields Min Side reads;
+ * the procedures' output schemas (apps/api/src/trpc/shared/minside.ts) strip the rest.
+ */
 export type AvtaleGiroAgreement = {
   ID: number;
   active: number;
@@ -35,35 +39,25 @@ export type AvtaleGiroAgreement = {
   KID: string;
   payment_date: number;
   created: string;
-  last_updated: string;
-  notice: boolean;
-  full_name: string;
-  cancelled: string;
+  cancelled: string | null;
 };
 
 export type AutoGiroAgreement = {
   ID: number;
-  mandateID: number;
   KID: string;
   amount: string;
   payment_date: number;
-  notice: boolean;
   active: boolean;
-  last_updated: string;
   created: string;
-  cancelled: string;
+  cancelled: string | null;
 };
 
 export type VippsAgreement = {
   ID: number;
   status: "EXPIRED" | "PENDING" | "ACTIVE" | "STOPPED";
-  donorID: number;
-  full_name: string;
   KID: string;
   timestamp_created: string;
   monthly_charge_day: number;
-  force_charge_date: boolean;
-  paused_until_date: string;
   amount: number;
 };
 

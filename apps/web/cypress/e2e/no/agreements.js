@@ -27,33 +27,15 @@ describe("Agreements page", () => {
     });
 
     cy.fixture("vipps").then((vipps) => {
-      cy.intercept("GET", "/donors/*/recurring/vipps/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: vipps,
-        },
-      }).as("getVipps");
+      cy.interceptTrpc("minside.vippsAgreements", vipps).as("getVipps");
     });
 
     cy.fixture("avtalegiro").then((avtalegiro) => {
-      cy.intercept("GET", "/donors/*/recurring/avtalegiro/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: avtalegiro,
-        },
-      }).as("getAvtalegiro");
+      cy.interceptTrpc("minside.avtaleGiroAgreements", avtalegiro).as("getAvtalegiro");
     });
 
     cy.fixture("autogiro").then((vipps) => {
-      cy.intercept("GET", "/donors/*/recurring/autogiro/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: vipps,
-        },
-      }).as("getAutogiro");
+      cy.interceptTrpc("minside.autoGiroAgreements", vipps).as("getAutogiro");
     });
 
     cy.fixture("kids_agreements").then((kids) => {
@@ -329,27 +311,21 @@ describe("Agreements page", () => {
      * Stub fetching of agreements with updated information
      */
     cy.fixture("vipps").then((vipps) => {
-      cy.intercept("GET", "/donors/*/recurring/vipps/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: [
-            ...vipps.filter((vipps) => vipps.ID != "agr_58LgZZM"),
-            {
-              ID: "agr_58LgZZM",
-              status: "ACTIVE",
-              donorID: 14649,
-              full_name: "Keef",
-              KID: newKid,
-              timestamp_created: "2021-05-14T18:19:49.000Z",
-              monthly_charge_day: 10,
-              force_charge_date: null,
-              paused_until_date: null,
-              amount: 100,
-            },
-          ],
+      cy.interceptTrpc("minside.vippsAgreements", [
+        ...vipps.filter((vipps) => vipps.ID != "agr_58LgZZM"),
+        {
+          ID: "agr_58LgZZM",
+          status: "ACTIVE",
+          donorID: 14649,
+          full_name: "Keef",
+          KID: newKid,
+          timestamp_created: "2021-05-14T18:19:49.000Z",
+          monthly_charge_day: 10,
+          force_charge_date: null,
+          paused_until_date: null,
+          amount: 100,
         },
-      }).as("getVipps");
+      ]).as("getVipps");
     });
 
     cy.fixture("kids_agreements").then((kids) => {
@@ -459,27 +435,21 @@ describe("Agreements page", () => {
      * Mock returned agreements on mutate
      */
     cy.fixture("vipps").then((vipps) => {
-      cy.intercept("GET", "/donors/*/recurring/vipps/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: [
-            ...vipps.filter((vipps) => vipps.ID != "agr_58LgZZM"),
-            {
-              ID: "agr_58LgZZM",
-              status: "ACTIVE",
-              donorID: 14649,
-              full_name: "Keef",
-              KID: "95231965",
-              timestamp_created: "2021-05-14T18:19:49.000Z",
-              monthly_charge_day: 13,
-              force_charge_date: null,
-              paused_until_date: null,
-              amount: 100,
-            },
-          ],
+      cy.interceptTrpc("minside.vippsAgreements", [
+        ...vipps.filter((vipps) => vipps.ID != "agr_58LgZZM"),
+        {
+          ID: "agr_58LgZZM",
+          status: "ACTIVE",
+          donorID: 14649,
+          full_name: "Keef",
+          KID: "95231965",
+          timestamp_created: "2021-05-14T18:19:49.000Z",
+          monthly_charge_day: 13,
+          force_charge_date: null,
+          paused_until_date: null,
+          amount: 100,
         },
-      }).as("getVipps");
+      ]).as("getVipps");
     });
 
     cy.intercept("PUT", "/donors/*/recurring/vipps/*/distribution", {
@@ -542,27 +512,21 @@ describe("Agreements page", () => {
      * Mock returned agreements on mutate
      */
     cy.fixture("vipps").then((vipps) => {
-      cy.intercept("GET", "/donors/*/recurring/vipps/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: [
-            ...vipps.filter((vipps) => vipps.ID != "agr_58LgZZM"),
-            {
-              ID: "agr_58LgZZM",
-              status: "ACTIVE",
-              donorID: 14649,
-              full_name: "Keef",
-              KID: "95231965",
-              timestamp_created: "2021-05-14T18:19:49.000Z",
-              monthly_charge_day: 10,
-              force_charge_date: null,
-              paused_until_date: null,
-              amount: 1300,
-            },
-          ],
+      cy.interceptTrpc("minside.vippsAgreements", [
+        ...vipps.filter((vipps) => vipps.ID != "agr_58LgZZM"),
+        {
+          ID: "agr_58LgZZM",
+          status: "ACTIVE",
+          donorID: 14649,
+          full_name: "Keef",
+          KID: "95231965",
+          timestamp_created: "2021-05-14T18:19:49.000Z",
+          monthly_charge_day: 10,
+          force_charge_date: null,
+          paused_until_date: null,
+          amount: 1300,
         },
-      }).as("getVipps");
+      ]).as("getVipps");
     });
 
     cy.intercept("PUT", "/donors/*/recurring/vipps/*/distribution", {
@@ -612,27 +576,21 @@ describe("Agreements page", () => {
      * Mock returned agreements on mutate
      */
     cy.fixture("vipps").then((vipps) => {
-      cy.intercept("GET", "/donors/*/recurring/vipps/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: [
-            ...vipps.filter((vipps) => vipps.ID != "agr_58LgZZM"),
-            {
-              ID: "agr_58LgZZM",
-              status: "STOPPED",
-              donorID: 14649,
-              full_name: "Keef",
-              KID: "95231965",
-              timestamp_created: "2021-05-14T18:19:49.000Z",
-              monthly_charge_day: 10,
-              force_charge_date: null,
-              paused_until_date: null,
-              amount: 100,
-            },
-          ],
+      cy.interceptTrpc("minside.vippsAgreements", [
+        ...vipps.filter((vipps) => vipps.ID != "agr_58LgZZM"),
+        {
+          ID: "agr_58LgZZM",
+          status: "STOPPED",
+          donorID: 14649,
+          full_name: "Keef",
+          KID: "95231965",
+          timestamp_created: "2021-05-14T18:19:49.000Z",
+          monthly_charge_day: 10,
+          force_charge_date: null,
+          paused_until_date: null,
+          amount: 100,
         },
-      }).as("getVipps");
+      ]).as("getVipps");
     });
 
     /**
