@@ -18,6 +18,7 @@ export const MathRenderer = (props: BlockDecoratorProps) => {
     try {
       return katex.renderToString(text, { throwOnError: false });
     } catch (e) {
+      // nosemgrep: javascript.lang.security.html-in-template-string.html-in-template-string -- KaTeX error for LaTeX that staff wrote in Sanity
       return `<span class="katex-error">${(e as Error).message}</span>`;
     }
   }, [text]);
@@ -50,6 +51,7 @@ export const MathRenderer = (props: BlockDecoratorProps) => {
           transform: "translateX(calc(100% + 0.25rem)) translateY(50%)",
           whiteSpace: "nowrap",
         }}
+        // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml -- KaTeX output for LaTeX that staff wrote in Sanity
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </span>

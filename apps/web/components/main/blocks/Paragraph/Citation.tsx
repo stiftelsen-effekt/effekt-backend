@@ -370,6 +370,7 @@ const useClientKatex = (latex: string | undefined, enabled: boolean) => {
       try {
         setHtml(katex.default.renderToString(latex, { throwOnError: false }));
       } catch (e: any) {
+        // nosemgrep: javascript.lang.security.html-in-template-string.html-in-template-string -- KaTeX error for LaTeX that staff wrote in Sanity
         setHtml(`<span style="color: red;">${e.message}</span>`);
       }
     });
@@ -381,6 +382,7 @@ const Latex: React.FC<{ value: { latex?: string; html?: string } }> = ({ value }
   const clientHtml = useClientKatex(value.latex, value.html === undefined);
   return (
     <span
+      // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml -- KaTeX output for LaTeX that staff wrote in Sanity
       dangerouslySetInnerHTML={{ __html: value.html ?? clientHtml ?? "" }}
       style={{
         padding: "3rem",
@@ -394,6 +396,7 @@ const Latex: React.FC<{ value: { latex?: string; html?: string } }> = ({ value }
 
 const RenderedMath: React.FC<{ value: { html: string } }> = ({ value }) => (
   <span
+    // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml -- KaTeX output rendered when the content was saved in Sanity
     dangerouslySetInnerHTML={{ __html: value.html }}
     style={{
       display: "inline-block",

@@ -26,6 +26,7 @@ export async function getServerSideProps({ res }: any) {
     const { type, slug, sitemap_priority, _updatedAt } = page;
 
     const url = `${baseUrl}${getPath(type, slug, routerContext)}`;
+    // nosemgrep: javascript.lang.security.html-in-template-string.html-in-template-string -- XML sitemap of our own page paths, not HTML
     return `
           <loc>${url}</loc>
           <lastmod>${_updatedAt}</lastmod>
@@ -37,6 +38,7 @@ export async function getServerSideProps({ res }: any) {
         <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
             ${locations
               .map((location: any) => {
+                // nosemgrep: javascript.lang.security.html-in-template-string.html-in-template-string -- XML sitemap of our own page paths, not HTML
                 return `<url>
                           ${location}
                         </url>

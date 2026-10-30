@@ -12,7 +12,11 @@ export const DataInfo: React.FC<{ page: ProfilePage }> = ({ page }) => {
           <strong>{page.tax_subtitle}</strong>
           <PortableText value={page.tax} />
 
-          <Link href={page.tax_link ?? "/"} target={"_blank"}>
+          <Link
+            // nosemgrep: typescript.react.security.audit.react-href-var.react-href-var -- the value comes from Sanity, edited only by staff
+            href={page.tax_link ?? "/"}
+            target={"_blank"}
+          >
             {page.read_more_label}→
           </Link>
         </section>
@@ -20,7 +24,11 @@ export const DataInfo: React.FC<{ page: ProfilePage }> = ({ page }) => {
           <strong>{page.data_subtitle}</strong>
           <PortableText value={page.data} />
 
-          <Link href={page.data_link ?? "/"} target={"_blank"}>
+          <Link
+            // nosemgrep: typescript.react.security.audit.react-href-var.react-href-var -- the value comes from Sanity, edited only by staff
+            href={page.data_link ?? "/"}
+            target={"_blank"}
+          >
             {page.read_more_label}→
           </Link>
         </section>

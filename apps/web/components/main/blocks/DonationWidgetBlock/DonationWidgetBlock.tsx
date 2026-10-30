@@ -36,7 +36,10 @@ export const DonationWidgetBlock: React.FC<{
           : externalDonationUrls.default;
     return (
       <div className={styles.wrapper}>
-        <EffektButton onClick={() => (window.location.href = href)}>
+        <EffektButton
+          // nosemgrep: javascript.browser.security.open-redirect-from-function.js-open-redirect-from-function -- the external donation URLs are site configuration in Sanity, edited only by staff
+          onClick={() => (window.location.href = href)}
+        >
           {widgetConfiguration.donate_label}
         </EffektButton>
         {content && content.length > 0 && (

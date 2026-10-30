@@ -54,6 +54,7 @@ const draftVippsAgreement = async (kid: string, amount: number) => {
     monthlyChargeDay: todayAsChargeDay(),
   });
   if (data.status !== 200) throw new Error(data.content);
+  // nosemgrep: javascript.browser.security.open-redirect-from-function.js-open-redirect-from-function -- the Vipps confirmation URL comes from our API, not from user input
   window.location.href = data.content.vippsConfirmationUrl;
 };
 

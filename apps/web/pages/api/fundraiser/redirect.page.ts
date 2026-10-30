@@ -58,10 +58,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
 
-    res.redirect(
-      307,
-      `/${fundraiserPath}/${slug}${req.query.plausible ? `?plausible=${req.query.plausible}` : ""}`,
-    );
+    const plausible = req.query.plausible
+      ? `?plausible=${encodeURIComponent(String(req.query.plausible))}`
+      : "";
+    // nosemgrep: javascript.express.web.tainted-redirect-express.tainted-redirect-express -- a same-site path built from Sanity slugs (staff-edited); the query value is encoded, and the endpoint requires the revalidation secret
+    res.redirect(307, `/${fundraiserPath}/${slug}${plausible}`);
   } catch (err) {
     console.error(err);
     // If there was an error, Next.js will continue

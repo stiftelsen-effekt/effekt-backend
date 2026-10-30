@@ -292,6 +292,7 @@ export const Navbar = withStaticProps(
                           .map((subel) => (
                             <li key={subel.title} data-cy={`${subel.slug}-link`.replace(/ /g, "-")}>
                               <CustomLink
+                                // nosemgrep: typescript.react.security.audit.react-href-var.react-href-var -- navigation slugs from Sanity, edited only by staff
                                 href={[...(dashboard ? dashboardPath : []), subel.slug].join("/")}
                                 onClick={(e) => {
                                   e.currentTarget.blur();
@@ -309,6 +310,7 @@ export const Navbar = withStaticProps(
             ) : (
               <li key={el._key} data-cy={`${el.slug}-link`}>
                 <CustomLink
+                  // nosemgrep: typescript.react.security.audit.react-href-var.react-href-var -- navigation slugs from Sanity, edited only by staff
                   href={[...(dashboard ? dashboardPath : []), el.slug].join("/")}
                   onClick={() => setExpanded(false)}
                 >

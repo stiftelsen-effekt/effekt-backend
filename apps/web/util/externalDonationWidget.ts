@@ -51,8 +51,10 @@ export const useExternalDonationWidget = (
     if (!urls || !router.isReady) return;
     const recurring = parseRecurringQueryParam(router.query.recurring);
     if (recurring !== undefined) {
+      // nosemgrep: javascript.browser.security.open-redirect-from-function.js-open-redirect-from-function -- the external donation URLs are site configuration in Sanity, edited only by staff
       window.location.href = recurring ? urls.recurring : urls.single;
     } else if (typeof router.query.distribution === "string") {
+      // nosemgrep: javascript.browser.security.open-redirect-from-function.js-open-redirect-from-function -- the external donation URLs are site configuration in Sanity, edited only by staff
       window.location.href = urls.default;
     }
   }, [urls, router.isReady, router.query.recurring, router.query.distribution]);
@@ -62,6 +64,7 @@ export const useExternalDonationWidget = (
       if (urls) {
         const next = typeof action === "function" ? action(widgetContext) : action;
         if (next.open) {
+          // nosemgrep: javascript.browser.security.open-redirect-from-function.js-open-redirect-from-function -- the external donation URLs are site configuration in Sanity, edited only by staff
           window.location.href = urls.default;
           return;
         }

@@ -64,7 +64,7 @@ async function fetchApiData<T>(endpoint: string): Promise<T | undefined> {
     console.warn(`Failed to fetch data from ${endpoint}: Invalid response format or status`);
     return undefined;
   } catch (error) {
-    console.warn(`Failed to fetch data from ${endpoint}:`, error);
+    console.warn("Failed to fetch data from %s:", endpoint, error);
     return undefined;
   }
 }

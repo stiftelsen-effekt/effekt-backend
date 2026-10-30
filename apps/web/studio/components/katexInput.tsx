@@ -39,6 +39,7 @@ const KatexInput = (props: ObjectInputProps) => {
       />
       <Card tone="transparent" padding={4} shadow={1}>
         <div
+          // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml -- KaTeX output, previewing LaTeX the signed-in editor is typing
           dangerouslySetInnerHTML={{ __html: katex.renderToString(input, { throwOnError: false }) }}
         />
       </Card>

@@ -18,6 +18,7 @@ export const GeneralBanner: React.FC<{ configuration: GeneralBannerQueryResult }
   return (
     <>
       <CustomLink
+        // nosemgrep: typescript.react.security.audit.react-href-var.react-href-var -- the value comes from Sanity, edited only by staff
         href={configuration.link.slug as string}
         onClick={() => {
           plausible("GeneralBannerClick", {

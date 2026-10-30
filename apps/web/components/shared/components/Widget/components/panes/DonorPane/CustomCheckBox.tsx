@@ -45,7 +45,11 @@ export const CustomCheckBox: React.FC<CheckBoxProps> = ({
         <CheckBoxLabel>
           {`${label} `}
           {hyperlink && (
-            <Link href={hyperlink.url} target="_blank">
+            <Link
+              // nosemgrep: typescript.react.security.audit.react-href-var.react-href-var -- the value comes from Sanity, edited only by staff
+              href={hyperlink.url}
+              target="_blank"
+            >
               {`${hyperlink.text} ↗`}
             </Link>
           )}

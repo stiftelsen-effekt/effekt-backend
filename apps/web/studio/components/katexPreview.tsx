@@ -20,5 +20,11 @@ export const KatexPreview = (props: PreviewProps & Partial<Latex>) => {
   }, [latex]);
 
   if (!html) return <span>Invalid LaTeX expression</span>;
-  return <Box padding={1} dangerouslySetInnerHTML={{ __html: html }} />;
+  return (
+    <Box
+      padding={1}
+      // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml -- KaTeX output for LaTeX that staff wrote in Sanity
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
 };
