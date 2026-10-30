@@ -31,7 +31,6 @@ const requireIntegerParam: express.RequestParamHandler = (req, res, next, value)
 router.param("id", requireIntegerParam);
 router.param("taxunitid", requireIntegerParam);
 
-
 router.post("/", authMiddleware.isAdmin, urlEncodeParser, async (req, res, next) => {
   try {
     if (!req.body.name || !req.body.email) {

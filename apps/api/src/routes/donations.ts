@@ -269,7 +269,6 @@ router.get("/externalID/:externalID/:methodID", authMiddleware.isAdmin, async (r
   }
 });
 
-
 router.get("/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     var donation = await DAO.donations.getByID(req.params.id);

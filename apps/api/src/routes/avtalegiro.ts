@@ -2,9 +2,7 @@ import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendAvtalegiroRegistered } from "../custom_modules/mail";
-import {
-  draftAvtaleGiroAgreement,
-} from "../custom_modules/avtalegiro";
+import { draftAvtaleGiroAgreement } from "../custom_modules/avtalegiro";
 import moment from "moment";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { encodePlausibleData } from "../custom_modules/plausible";
@@ -14,7 +12,6 @@ import { exportCsv } from "../custom_modules/csvexport";
 const config = require("../config");
 
 const router = express.Router();
-
 
 router.post("/draft", async (req, res, next) => {
   if (!req.body) return res.sendStatus(400);
