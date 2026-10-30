@@ -1,17 +1,50 @@
 steps:
+  # Skip the whole deploy when a newer commit has reached main since this build started: its
+  # own build deploys instead (scripts/deploy/guard.sh, docs/deploy.md). Every later step runs
+  # through scripts/deploy/unless-skipped.sh.
+  - name: "gcr.io/cloud-builders/git"
+    id: "guard"
+    entrypoint: "bash"
+    env: ["COMMIT_SHA=$COMMIT_SHA"]
+    args: ["scripts/deploy/guard.sh"]
+
   # The API image (apps/api/Dockerfile), built from the repository root. BuildKit, for
   # apps/api/Dockerfile.dockerignore.
   - name: "gcr.io/cloud-builders/docker"
     env: ["DOCKER_BUILDKIT=1"]
-    args: ["build", "-f", "apps/api/Dockerfile", "-t", "gcr.io/$PROJECT_ID/effektapi:latest", "."]
+    entrypoint: "bash"
+    args:
+      - "scripts/deploy/unless-skipped.sh"
+      - "docker"
+      - "build"
+      - "-f"
+      - "apps/api/Dockerfile"
+      - "-t"
+      - "gcr.io/$PROJECT_ID/effektapi:latest"
+      - "."
+
+  # Check again before touching production (the shared :latest tag included): a newer merge may
+  # have landed during the image build.
+  - name: "gcr.io/cloud-builders/git"
+    id: "guard-before-release"
+    entrypoint: "bash"
+    env: ["COMMIT_SHA=$COMMIT_SHA"]
+    args: ["scripts/deploy/guard.sh"]
+
   - name: "gcr.io/cloud-builders/docker"
     id: "build"
-    args: ["push", "gcr.io/$PROJECT_ID/effektapi:latest"]
+    waitFor: ["guard-before-release"]
+    entrypoint: "bash"
+    args:
+      ["scripts/deploy/unless-skipped.sh", "docker", "push", "gcr.io/$PROJECT_ID/effektapi:latest"]
 
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-norway"
     waitFor: ["build"]
+    entrypoint: "bash"
     args:
+      - "scripts/deploy/unless-skipped.sh"
+      - "gcloud"
       - "run"
       - "jobs"
       - "execute"
@@ -23,7 +56,10 @@ steps:
   - name: "gcr.io/cloud-builders/gcloud"
     id: "deploy-norway"
     waitFor: ["migrate-db-norway"]
+    entrypoint: "bash"
     args:
+      - "scripts/deploy/unless-skipped.sh"
+      - "gcloud"
       - "run"
       - "deploy"
       - "effektapi"
@@ -65,7 +101,10 @@ steps:
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-sweden"
     #    waitFor: ["reset-dev-db-sweden"]
+    entrypoint: "bash"
     args:
+      - "scripts/deploy/unless-skipped.sh"
+      - "gcloud"
       - "run"
       - "jobs"
       - "execute"
@@ -77,7 +116,10 @@ steps:
   - name: "gcr.io/cloud-builders/gcloud"
     id: "deploy-sweden"
     waitFor: ["migrate-db-sweden"]
+    entrypoint: "bash"
     args:
+      - "scripts/deploy/unless-skipped.sh"
+      - "gcloud"
       - "run"
       - "deploy"
       - "geeffektivt"
@@ -89,7 +131,7 @@ steps:
       - "managed"
       - "--allow-unauthenticated"
 
-images: ["gcr.io/$PROJECT_ID/effektapi:latest"]
+# No `images:`: the push step above publishes the image, and a skipped build has none to push.
 
 options:
   logging: CLOUD_LOGGING_ONLY

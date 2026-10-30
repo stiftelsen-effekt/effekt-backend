@@ -83,6 +83,7 @@ Everything lives in [`docs/`](docs).
 | [admin-features.md](docs/admin-features.md)               | What the admin must let people do                  |
 | [preview-environments.md](docs/preview-environments.md)   | Per-PR preview environments                        |
 | [e2e.md](docs/e2e.md)                                     | Website end-to-end tests                           |
+| [deploy.md](docs/deploy.md)                               | Cloud Build deploys and the newest-commit guard    |
 | [regranting.md](docs/regranting.md)                       | The regranting system                              |
 | [regranting-downstream.md](docs/regranting-downstream.md) | Downstream regrants                                |
 | [timestamps.md](docs/timestamps.md)                       | Timestamps and the database clock                  |
