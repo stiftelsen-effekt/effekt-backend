@@ -144,8 +144,8 @@ export const getExchangeRateForDate = async (date: Date) => {
   const end = DateTime.fromJSDate(date);
 
   const url = `https://data.norges-bank.no/api/data/EXR/B.USD.NOK.SP?format=sdmx-json&startPeriod=${
-    start.toISODate().split("T")[0]
-  }&endPeriod=${end.toISODate().split("T")[0]}&locale=no`;
+    start.toISODate()!.split("T")[0]
+  }&endPeriod=${end.toISODate()!.split("T")[0]}&locale=no`;
 
   const exchangeRateResult = await fetch(url);
 

@@ -8,7 +8,7 @@ const router = express.Router();
 const jsonBody = bodyParser.json();
 
 const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
-  if (!ipRangeCheck(req.ip, config.swish_whitelist)) {
+  if (!ipRangeCheck(req.ip!, config.swish_whitelist)) {
     console.warn(`Swish request from non-whitelisted IP: ${req.ip}`);
     res.sendStatus(403);
     return;

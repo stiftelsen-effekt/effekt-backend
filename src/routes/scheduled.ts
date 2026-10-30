@@ -7,14 +7,14 @@ import { DateTime } from "luxon";
 import mailchimp from "@mailchimp/mailchimp_marketing";
 
 import express from "express";
-import { generateAutogiroGiroFile, getSeBankingDaysBetweenDates } from "../custom_modules/autogiro";
+import { createAutoGiroShipment } from "../custom_modules/autogiro";
 import fetch from "node-fetch";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
 import paymentMethods from "../enums/paymentMethods";
 import { AutoGiro_agreements, Payment_follow_up, Payment_intent } from "@prisma/client";
 import { getAllInflationEligibleAgreements } from "../custom_modules/inflationadjustment";
-import { processFundraisingCrawler } from "../custom_modules/adoveo";
 import { RequestLocale } from "../middleware/locale";
+import { enqueueInvalidTransactions } from "../custom_modules/reviewQueue";
 
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
@@ -69,7 +69,12 @@ router.post("/ocr", authMiddleware.isAdmin, async (req, res, next) => {
       file: latestOcrFile.toString(),
     };
 
-    await DAO.logging.add("OCR", result);
+    const importLogId = await DAO.logging.add("OCR", result);
+    await enqueueInvalidTransactions(
+      "ocr",
+      addedDonations.invalidTransactions,
+      typeof importLogId === "number" ? importLogId : null,
+    );
     res.json(result);
   } catch (ex) {
     next({ ex });
@@ -261,117 +266,8 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
 });
 
 router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
-  let result;
   try {
-    const today = DateTime.fromJSDate(new Date());
-
-    const agreements = await DAO.autogiroagreements.getAgreementsToCharge();
-
-    let agreementsToClaim: {
-      agreement: AutoGiro_agreements;
-      claimDate: DateTime;
-    }[] = [];
-    for (let agreement of agreements) {
-      if (agreement.payment_date === 0) {
-        const lastDayOfMonth = today.endOf("month");
-        agreementsToClaim.push({
-          agreement,
-          claimDate: lastDayOfMonth,
-        });
-        continue;
-      }
-
-      if (
-        agreement.payment_date <= today.day &&
-        agreement.created.getDate() < agreement.payment_date
-      ) {
-        let skewedDate = DateTime.now().plus({ days: 1 });
-        while (getSeBankingDaysBetweenDates(today, skewedDate) < 1) {
-          if (skewedDate.month !== today.month) {
-            console.error("Skewed date is in next month");
-            break;
-          }
-          skewedDate = skewedDate.plus({ days: 1 });
-        }
-        agreementsToClaim.push({
-          agreement,
-          claimDate: skewedDate,
-        });
-        continue;
-      }
-
-      const claimDate = today.set({ day: agreement.payment_date });
-      agreementsToClaim.push({
-        agreement,
-        claimDate: claimDate,
-      });
-    }
-
-    const mandatesToBeConfirmed = await DAO.autogiroagreements.getMandatesByStatus("NEW");
-    const amendmentCandidates = await DAO.autogiroagreements.getAmendmentCandidates();
-
-    /* Check if the claim date is within the timeframe where we can send the file
-     * We need at least one banking day between the claim date and today
-     */
-    const chargesToAmend = amendmentCandidates.filter((candidate) => {
-      const claimDate =
-        candidate.agreementDay == 0
-          ? DateTime.now().endOf("month")
-          : DateTime.now().set({ day: candidate.agreementDay });
-      if (claimDate.diff(today, "days").days > 0) {
-        // Find the number of banking days between today and the claim date
-        const bankingDaysBetween = getSeBankingDaysBetweenDates(today, claimDate);
-        return bankingDaysBetween > 0;
-      }
-      return false;
-    });
-
-    agreementsToClaim = agreementsToClaim.filter((agreement) => {
-      return !chargesToAmend.some((charge) => charge.agreementId === agreement.agreement.ID);
-    });
-
-    if (
-      agreementsToClaim.length > 0 ||
-      mandatesToBeConfirmed.length > 0 ||
-      chargesToAmend.length > 0
-    ) {
-      /**
-       * Create file to charge agreements for current day
-       */
-      const shipmentID = await DAO.autogiroagreements.addShipment(agreementsToClaim.length);
-
-      let autoGiroClaimsFile: Buffer;
-      try {
-        autoGiroClaimsFile = await generateAutogiroGiroFile(
-          shipmentID,
-          agreementsToClaim,
-          chargesToAmend,
-          mandatesToBeConfirmed,
-        );
-      } catch (ex) {
-        console.error(ex);
-        await DAO.autogiroagreements.removeShipment(shipmentID);
-        throw new Error("Error generating file");
-      }
-
-      result = {
-        shipmentID: shipmentID,
-        numCharges: agreementsToClaim.length,
-        numMandatesToBeConfirmed: mandatesToBeConfirmed.length,
-        file: autoGiroClaimsFile.toString(),
-        filename: `BFEP.IAGAG.${shipmentID}.${today.toFormat("yyLLdd.HHmmss")}`,
-      };
-    } else {
-      result = {
-        shipmentID: null,
-        numCharges: 0,
-        mandatesToBeConfirmed: 0,
-        file: null,
-        filename: null,
-      };
-    }
-
-    await DAO.logging.add("AutoGiro", result);
+    const result = await createAutoGiroShipment();
     // await sendOcrBackup(JSON.stringify(result, null, 2));
     res.json({
       status: 200,
@@ -413,10 +309,10 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
   let addedToDonor = 0;
   let removedFromMailchimp = 0;
   let removedFromDonor = 0;
-  let failures = [];
+  let failures: any[] = [];
 
   try {
-    let members = [];
+    let members: any[] = [];
     let offset = 0;
     const count = 1000;
 
@@ -439,13 +335,19 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
     }, {});
 
     // Go through db donors and update mailchimp status
-    const subscibersToAdd = Math.max(Math.round(Math.random() * 4 - 1), 0);
-    console.log("Adding max", subscibersToAdd, "subscribers to mailchimp");
 
-    let donors = [];
+    let donors: any[] = [];
     let page = 0;
     while (true) {
-      const newDonors = await DAO.donors.getAll(null, page, count, null, RequestLocale.NO);
+      // getAll requires a sort since the donor list rewrite (2025-05-09); passing null made
+      // every sync fail from then on.
+      const newDonors = await DAO.donors.getAll(
+        { id: "id", desc: false },
+        page,
+        count,
+        null,
+        RequestLocale.NO,
+      );
       if (newDonors.rows.length === 0) break;
       donors = donors.concat(newDonors.rows);
       if (donors.length < count) break;
@@ -474,11 +376,6 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
         } else {
           // Donor has newsletter set to true on their DB donor, but are not subscribed in mailchimp
           // add them
-          if (subscibersToAdd <= addedToMailchimp) {
-            console.log("Added max subscribers to mailchimp");
-            continue;
-          }
-
           console.log("Adding", donor.email, "to mailchimp");
           try {
             await mailchimp.lists.addListMember("4c98331f9d", {
@@ -538,8 +435,12 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
       },
     });
   } catch (ex) {
+    // Record what went wrong (the log used to keep only the counters) and answer the
+    // scheduler, which otherwise waits until it times out.
+    console.error("Mailchimp sync failed", ex);
     try {
       await DAO.logging.add("(Failed - Partial) Mailchimp sync", {
+        error: ex instanceof Error ? ex.message : String(ex),
         addedToMailchimp,
         addedToDonor,
         removedFromDonor,
@@ -548,9 +449,8 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
       });
     } catch (loggingException) {
       console.error(loggingException);
-      next({ ex });
-      return;
     }
+    next(ex);
   }
 });
 
@@ -614,7 +514,7 @@ router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next
 
   const perPage = 100;
 
-  const users = [];
+  const users: any[] = [];
 
   const firstPage = await fetch(
     `https://gieffektivt.eu.auth0.com/api/v2/users?page=0&fields=email,user_metadata&include_totals=true&per_page=${perPage}`,
@@ -629,7 +529,7 @@ router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next
 
   const numberOfPages = Math.ceil(firstPage.total / perPage);
 
-  const promises = [];
+  const promises: Promise<any>[] = [];
   for (let i = 1; i < numberOfPages; i++) {
     promises.push(
       fetch(
@@ -657,7 +557,7 @@ router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next
    * Now we have all the users from Auth0
    * We need to check that the user_metadata.gieffektivt-user-id matches the id of the user in the database
    */
-  const mismatchedUsers = [];
+  const mismatchedUsers: { userId: any; email: string; reason: string }[] = [];
 
   for (const user of users) {
     const email = user.email;
@@ -715,24 +615,6 @@ router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next
   });
 });
 
-router.post("/fundraiser/crawler", authMiddleware.isAdmin, async (req, res, next) => {
-  if (!req.body.token) {
-    return res.status(400).json({
-      status: 400,
-      message: "Missing adoveo token",
-    });
-  }
-
-  const token = req.body.token;
-
-  await processFundraisingCrawler(token);
-
-  res.json({
-    status: 200,
-    message: "Crawler completed",
-  });
-});
-
 type FollowUpConfig = {
   daysBeforeFollowUp: number;
   maxFollowUps: number;
@@ -767,21 +649,22 @@ function groupPaymentIntentsByKID(
   paymentIntents: Payment_intent[],
 ): Record<string, Payment_intent[]> {
   return paymentIntents.reduce((acc, intent) => {
-    if (!acc[intent.KID_fordeling]) {
-      acc[intent.KID_fordeling] = [];
+    const kid = intent.KID_fordeling!;
+    if (!acc[kid]) {
+      acc[kid] = [];
     }
-    acc[intent.KID_fordeling].push(intent);
+    acc[kid].push(intent);
     return acc;
   }, {} as Record<string, Payment_intent[]>);
 }
 
 function getMostRecentIntent(intents: Payment_intent[]): Payment_intent {
   return intents.reduce((latest, current) =>
-    current.timestamp > latest.timestamp ? current : latest,
+    current.timestamp! > latest.timestamp! ? current : latest,
   );
 }
 
-function getFollowUpConfig(paymentMethod: number, paymentAmount: number) {
+function getFollowUpConfig(paymentMethod: number | null, paymentAmount: number) {
   let config = { ...defaultFollowUpConfig };
   for (const conditionalConfig of conditionalFollowUpConfig) {
     if (
@@ -808,7 +691,7 @@ async function shouldSendFollowUp(
 ): Promise<boolean> {
   if (followUps.length >= config.maxFollowUps) return false;
 
-  if (!hasEnoughTimePassed(intent.timestamp, config.daysBeforeFollowUp)) return false;
+  if (!hasEnoughTimePassed(intent.timestamp!, config.daysBeforeFollowUp)) return false;
 
   if (followUps.length > 0) {
     const lastFollowUp = followUps.sort(
@@ -820,7 +703,7 @@ async function shouldSendFollowUp(
   // Check if we recieved any donation from the donor after the payment intent
   const donor = await DAO.donors.getByKID(intent.KID_fordeling);
 
-  const donations = await DAO.donations.getByDonorId(donor.id, intent.timestamp);
+  const donations = await DAO.donations.getByDonorId(donor!.id, intent.timestamp!);
 
   if (donations.length > 0) return false;
 
@@ -828,7 +711,7 @@ async function shouldSendFollowUp(
 }
 
 async function processPaymentIntent(intent: Payment_intent): Promise<Payment_intent | null> {
-  const paymentAmount = intent.Payment_amount.toNumber();
+  const paymentAmount = intent.Payment_amount!.toNumber();
   const config = getFollowUpConfig(intent.Payment_method, paymentAmount);
 
   const followUps = await initialpaymentmethod.getFollowUpsForPaymentIntent(intent.Id);
@@ -839,8 +722,8 @@ async function processPaymentIntent(intent: Payment_intent): Promise<Payment_int
     );
 
     const emailSent = await sendPaymentIntentFollowUp(
-      intent.KID_fordeling,
-      intent.Payment_amount.toNumber(),
+      intent.KID_fordeling!,
+      intent.Payment_amount!.toNumber(),
     );
 
     if (emailSent) {

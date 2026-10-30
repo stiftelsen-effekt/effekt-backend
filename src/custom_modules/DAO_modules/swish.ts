@@ -1,8 +1,10 @@
 import { Donations, Swish_orders } from "@prisma/client";
-import { DAO } from "../DAO";
+import { DAO, SqlResult } from "../DAO";
 
 export const swish = {
-  getOrderByID: async function (ID: Swish_orders["ID"]) {
+  getOrderByID: async function (
+    ID: Swish_orders["ID"],
+  ): Promise<SqlResult<Swish_orders> | undefined> {
     const [order] = await DAO.query<Swish_orders[]>(
       `
         SELECT * FROM Swish_orders WHERE ID = ?
@@ -11,7 +13,9 @@ export const swish = {
     );
     return order?.[0];
   },
-  getOrderByInstructionUUID: async function (instructionUUID: string) {
+  getOrderByInstructionUUID: async function (
+    instructionUUID: string,
+  ): Promise<SqlResult<Swish_orders> | undefined> {
     const [order] = await DAO.query<Swish_orders[]>(
       `
         SELECT * FROM Swish_orders WHERE instructionUUID = ?

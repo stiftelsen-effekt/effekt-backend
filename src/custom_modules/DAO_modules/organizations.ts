@@ -1,6 +1,8 @@
+import type { ResultSetHeader } from "mysql2";
 import { Organizations } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
 import { Organization } from "../../schemas/types";
+import { toOrgChartColor, type OrgChartColor } from "../orgChartColors";
 
 //region Get
 
@@ -63,7 +65,7 @@ async function getAll() {
 /**
  * Adds a new organization
  * @param {Organization} organization The organization object to add
- * @returns {Promise<boolean>} Whether the operation was successful
+ * @returns The new organization's ID
  */
 async function add(organization: {
   name: string;
@@ -75,10 +77,11 @@ async function add(organization: {
   ordering: number;
   standardShare: number;
   causeAreaId: number;
-}) {
-  await DAO.query(
-    `INSERT INTO Organizations (full_name, abbriv, short_desc, long_desc, info_url, is_active, ordering, std_percentage_share, cause_area_ID)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  chartColor?: OrgChartColor | null;
+}): Promise<number> {
+  const [result] = await DAO.query<ResultSetHeader>(
+    `INSERT INTO Organizations (full_name, abbriv, short_desc, long_desc, info_url, is_active, ordering, std_percentage_share, cause_area_ID, chart_color)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       organization.name,
       organization.abbreviation,
@@ -89,8 +92,10 @@ async function add(organization: {
       organization.ordering,
       organization.standardShare,
       organization.causeAreaId,
+      organization.chartColor ?? null,
     ],
   );
+  return result.insertId;
 }
 //endregion
 
@@ -104,18 +109,19 @@ async function updateById(organization: {
   id: number;
   name: string;
   abbreviation: string;
-  shortDescription?: string;
-  longDescription?: string;
-  informationUrl?: string;
+  shortDescription?: string | null;
+  longDescription?: string | null;
+  informationUrl?: string | null;
   isActive: boolean;
-  ordering: number;
-  standardShare: number;
+  ordering: number | null;
+  standardShare: number | null;
   causeAreaId: number;
+  chartColor: OrgChartColor | null;
 }) {
   await DAO.query(
     `UPDATE Organizations SET 
      full_name = ?, abbriv = ?, short_desc = ?, long_desc = ?, info_url = ?, 
-     is_active = ?, ordering = ?, std_percentage_share = ?, cause_area_ID = ?
+     is_active = ?, ordering = ?, std_percentage_share = ?, cause_area_ID = ?, chart_color = ?
      WHERE ID = ?`,
     [
       organization.name,
@@ -127,6 +133,7 @@ async function updateById(organization: {
       organization.ordering,
       organization.standardShare,
       organization.causeAreaId,
+      organization.chartColor,
       organization.id,
     ],
   );
@@ -150,7 +157,10 @@ async function deleteById(id: number) {
  * @param {Object} org A line from a database query representing an organization
  * @returns {Object} A mapping with JS like syntax instead of the db fields, camel case instead of underscore and so on
  */
-export const mapOrganization = (org: SqlResult<Organizations>): Organization => {
+/** An organization as mapOrganization returns it, with its chart colour narrowed to the palette. */
+export type MappedOrganization = Organization & { chartColor: OrgChartColor | null };
+
+export const mapOrganization = (org: SqlResult<Organizations>): MappedOrganization => {
   return {
     id: org.ID,
     name: org.full_name,
@@ -164,6 +174,7 @@ export const mapOrganization = (org: SqlResult<Organizations>): Organization => 
     isActive: org.is_active === 1,
     ordering: org.ordering,
     causeAreaId: org.cause_area_ID,
+    chartColor: toOrgChartColor(org.chart_color),
   };
 };
 

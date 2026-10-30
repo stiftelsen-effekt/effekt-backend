@@ -1,3 +1,4 @@
+import { loggableRequestError } from "./requestErrors";
 import { createHash } from "crypto";
 import { DAO } from "./DAO";
 import { sendDonationReceipt, sendVippsErrorWarning } from "./mail";
@@ -151,7 +152,7 @@ module.exports = {
 
       return token;
     } catch (ex) {
-      console.error("Failed to fetch vipps token", ex);
+      console.error("Failed to fetch vipps token", loggableRequestError(ex));
       throw ex;
     }
   },
@@ -178,7 +179,7 @@ module.exports = {
     let orderId = `${KID}-${+new Date()}`;
     let order = {
       orderID: orderId,
-      donorID: donor.id,
+      donorID: donor!.id,
       KID: KID,
       token: crypto.randomBytes(16).toString("hex"),
     };
@@ -398,7 +399,7 @@ module.exports = {
         //This is most likely a case of the polling trying to capture an order already captured by the callback, simply return true
         return true;
       } else {
-        console.error(`Failed to capture order with id ${orderId}`, ex);
+        console.error(`Failed to capture order with id ${orderId}`, loggableRequestError(ex));
         throw ex;
       }
     }
@@ -459,7 +460,7 @@ module.exports = {
           merchantSerialNumber: config.vipps_merchant_serial_number,
         },
         transaction: {
-          amount: donation.sum * 100,
+          amount: Number(donation.sum) * 100,
           transactionText: VIPPS_TEXT,
         },
       };
@@ -476,7 +477,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(`Failed to refund vipps order with id ${orderId}`, ex);
+      console.error(`Failed to refund vipps order with id ${orderId}`, loggableRequestError(ex));
       return false;
     }
   },
@@ -510,7 +511,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(`Failed to cancel vipps order with id ${orderId}`, ex);
+      console.error(`Failed to cancel vipps order with id ${orderId}`, loggableRequestError(ex));
       return false;
     }
   },
@@ -647,7 +648,7 @@ module.exports = {
           KID,
           monthlyChargeDay,
         });
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -673,7 +674,7 @@ module.exports = {
 
       return response;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -715,7 +716,7 @@ module.exports = {
 
       return agreements;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -755,7 +756,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -792,7 +793,7 @@ module.exports = {
       });
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -822,7 +823,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -908,7 +909,7 @@ module.exports = {
           agreementId,
           headers,
         });
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -931,7 +932,7 @@ module.exports = {
 
       return JSON.parse(response);
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -958,7 +959,7 @@ module.exports = {
       }
       return false;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -980,7 +981,7 @@ module.exports = {
 
       return JSON.parse(response);
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -992,7 +993,7 @@ module.exports = {
    */
   async getPendingDueCharge(agreementId) {
     const charges = await this.getCharges(agreementId);
-    let dueCharges = [];
+    let dueCharges: any[] = [];
 
     try {
       charges.forEach((charge) => {
@@ -1004,7 +1005,7 @@ module.exports = {
       }
       return false;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -1035,7 +1036,7 @@ module.exports = {
         });
       return hasCharged;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -1058,7 +1059,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -1092,7 +1093,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
       return false;
     }
   },
@@ -1178,7 +1179,7 @@ module.exports = {
    */
   async synchronizeVippsAgreementDatabase() {
     try {
-      let agreements = [];
+      let agreements: any[] = [];
 
       // Vipps does not allow fetching all statuses in a single request
       const active = await this.getAgreements("ACTIVE");
@@ -1278,7 +1279,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
     }
   },
 
@@ -1308,9 +1309,10 @@ module.exports = {
 
         for (let i = 0; i < activeAgreements.length; i++) {
           const agreement = activeAgreements[i];
-          const pauseEnd = agreement.paused_until_date;
+          // Both columns are nullable; null gives the epoch / NaN, which both mean "not set" below
+          const pauseEnd = agreement.paused_until_date as string;
           const chargeDay = agreement.monthly_charge_day;
-          const forceChargeDate = new Date(agreement.force_charge_date);
+          const forceChargeDate = new Date(agreement.force_charge_date as string);
 
           // If agreement charge should be created today
           if (
@@ -1347,7 +1349,7 @@ module.exports = {
         };
       }
     } catch (ex) {
-      console.error(ex);
+      console.error(loggableRequestError(ex));
     }
   },
 };

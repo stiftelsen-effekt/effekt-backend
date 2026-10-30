@@ -61,9 +61,9 @@ export interface components {
       /** @description The donor id */
       donorId: number;
       /** @description The tax unit id */
-      taxUnitId: number;
+      taxUnitId: number | null;
       /** @description Optional fundraiser transaction id, used to connect a donation to a fundraiser and a message to the fundraiser */
-      fundraiserTransactionId?: number;
+      fundraiserTransactionId?: number | null;
       causeAreas: components["schemas"]["DistributionCauseArea"][];
     };
     /**
@@ -118,7 +118,7 @@ export interface components {
       /** @description The donor id */
       donorId: number;
       /** @description The tax unit id */
-      taxUnitId: number;
+      taxUnitId: number | null;
       /** @description Optional fundraiser id, if the distribution is a fundraiser distribution */
       fundraiserId?: number;
       causeAreas: components["schemas"]["DistributionCauseArea"][];

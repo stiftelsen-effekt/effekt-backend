@@ -1,0 +1,165 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { DownloadIcon, PlusIcon } from "lucide-react";
+import { useState } from "react";
+import { createColumns, DataTable, TableSummary } from "@/components/data-table";
+import { CopyValue } from "@/components/domain/copy-value";
+import { ErrorState } from "@/components/domain/error-state";
+import { Money, Num } from "@/components/domain/format";
+import { OrgSplitCell, orgSplitColumnMeta } from "@/components/domain/org-split";
+import { FilterBar, SavedViews, TextFilter, useListState, ListEmpty } from "@/components/filters";
+import { ListPage } from "@/components/templates";
+import { Button } from "@/components/ui/button";
+import { downloadCsv } from "@/features/donations/api";
+import { distributionsList, toDistributionFilter } from "@/features/donations/list";
+import { notify } from "@/lib/notify";
+import { strings } from "@/lib/strings";
+import { nextPage, usePageQuery } from "@/lib/query";
+import { useTRPC, type RouterOutputs } from "@/lib/trpc";
+
+export const Route = createFileRoute("/_app/distributions/")({
+  validateSearch: distributionsList.validateSearch,
+  component: DistributionsPage,
+});
+
+type DistributionRow = RouterOutputs["donations"]["distributions"]["list"]["rows"][number];
+
+const col = createColumns<DistributionRow>();
+const columns = col.columns([
+  col.accessor("KID", {
+    header: "KID",
+    cell: ({ getValue }) => <CopyValue value={getValue()} label="KID" />,
+  }),
+  col.accessor("full_name", {
+    id: "full_name",
+    header: "Donor",
+    meta: { cellClassName: "font-semibold max-w-56 truncate" },
+  }),
+  col.accessor("email", {
+    header: "Email",
+    meta: { cellClassName: "text-muted-foreground max-w-64 truncate" },
+  }),
+  col.accessor("donation_count", {
+    id: "count",
+    header: "Donations",
+    meta: { numeric: true },
+    cell: ({ getValue }) => <Num value={getValue()} />,
+  }),
+  col.accessor("donation_sum", {
+    id: "sum",
+    header: "Total",
+    meta: { numeric: true, cellClassName: "font-semibold" },
+    cell: ({ getValue }) => <Money value={getValue()} />,
+  }),
+  col.accessor("orgSplit", {
+    id: "orgSplit",
+    header: "Organisations",
+    meta: orgSplitColumnMeta,
+    cell: ({ getValue }) => <OrgSplitCell split={getValue()} />,
+  }),
+]);
+
+function DistributionsPage() {
+  const list = useListState(distributionsList);
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [exporting, setExporting] = useState(false);
+
+  const filter = toDistributionFilter(list.filters);
+  const sort = { id: list.sort.id, desc: list.sort.desc };
+  const listOptions = (page: number) =>
+    trpc.donations.distributions.list.queryOptions({
+      page: page - 1,
+      limit: list.pageSize,
+      sort,
+      filter,
+    });
+  const query = usePageQuery(listOptions(list.page), {
+    // The next page is fetched as soon as this one is in, so paging forward is instant.
+    prefetch: (data) => nextPage(list.page, data.pages, listOptions),
+  });
+
+  async function exportCsv() {
+    setExporting(true);
+    try {
+      downloadCsv(
+        await queryClient.fetchQuery(
+          trpc.donations.distributions.export.queryOptions({ sort, filter }),
+        ),
+      );
+    } catch (error) {
+      notify.error(error, "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const total = query.data?.statistics.numDistributions;
+
+  return (
+    <ListPage
+      title="Distributions"
+      description="Every KID and how it splits donations between cause areas and organizations."
+      actions={
+        <>
+          <Button onClick={() => void exportCsv()} pending={exporting} disabled={!total}>
+            <DownloadIcon />
+            {strings.actions.export}
+          </Button>
+          <Button variant="primary" asChild>
+            <Link to="/distributions/new">
+              <PlusIcon />
+              Create distribution
+            </Link>
+          </Button>
+        </>
+      }
+      filters={
+        <FilterBar
+          list={list}
+          searchPlaceholder="KID, donor name, email or ID"
+          end={<SavedViews list={list} />}
+        >
+          <TextFilter field="kid" label="KID" numeric />
+        </FilterBar>
+      }
+    >
+      {query.isError ? (
+        <ErrorState
+          error={query.error}
+          onRetry={() => void query.refetch()}
+          className="mx-4 sm:mx-6"
+        />
+      ) : (
+        <DataTable
+          label="Distributions"
+          columns={columns}
+          data={query.data?.rows}
+          rowCount={total}
+          isLoading={query.isPending}
+          isFetching={query.isFetching}
+          getRowId={(row) => row.KID}
+          {...list.tableState}
+          onRowOpen={(row) =>
+            void navigate({ to: "/distributions/$kid", params: { kid: row.KID } })
+          }
+          getRowHref={(row) => `/distributions/${row.KID}`}
+          pageHotkeys
+          empty={
+            <ListEmpty
+              list={list}
+              noun="distributions"
+              hint="A distribution (KID) is created with each new donation split."
+            />
+          }
+          summary={
+            total !== undefined && (
+              <TableSummary items={[{ value: <Num value={total} />, suffix: "distributions" }]} />
+            )
+          }
+        />
+      )}
+    </ListPage>
+  );
+}

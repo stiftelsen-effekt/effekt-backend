@@ -32,7 +32,6 @@ import { tidbytRouter } from "./routes/tidbyt";
 import { inflationRouter } from "./routes/inflation";
 import { agreementfeedbackRouter } from "./routes/agreementfeedback";
 import { fundraisersRouter } from "./routes/fundraisers";
-import { adoveoRouter } from "./routes/adoveo";
 import { ltvRouter } from "./routes/ltv";
 import { organizationsRouter } from "./routes/organizations";
 import { causeAreasRouter } from "./routes/causeareas";
@@ -41,12 +40,28 @@ import { mcpRouter } from "./routes/mcp";
 import { oauthRouter, sendAuthorizationServerMetadata } from "./routes/oauth";
 import { getProtectedResourceMetadata } from "./custom_modules/mcp/oauthProtectedResource";
 import { startWebSocketServer } from "./websocket";
+import { mountTrpc } from "./trpc/express";
+import { skipForTrpc } from "./trpc/reportsMultipart";
+import { isPreviewMode } from "./custom_modules/preview/previewMode";
+import { enforcePreviewEnvironment } from "./custom_modules/preview/environmentGuard";
+import {
+  noIndex,
+  previewAdmin,
+  previewDisabled,
+  PREVIEW_DISABLED_PATHS,
+} from "./custom_modules/preview/previewHttp";
+import { createPreviewRouter } from "./routes/preview";
 
 // Defence in depth: log stray rejections instead of letting Node's default
 // (--unhandled-rejections=throw) terminate the whole API process.
 process.on("unhandledRejection", (reason) => {
   console.error("Unhandled promise rejection", reason);
 });
+
+// Preview environments (docs/preview-environments.md): refuse to start unless this is a
+// throwaway database on the previews instance with every production integration unset.
+const previewMode = isPreviewMode();
+if (previewMode) enforcePreviewEnvironment();
 
 const openapiSpecification = swaggerJsdoc(openAPIOptions);
 
@@ -60,8 +75,17 @@ DAO.connect(() => {
   //Setup express
   const app = express();
 
+  if (previewMode) app.use(noIndex);
+
   //Setup request logging
   logging(app);
+
+  if (previewMode) {
+    app.use(PREVIEW_DISABLED_PATHS, previewDisabled);
+    // The admin build in the preview image, same origin as the API
+    const admin = previewAdmin(process.env.PREVIEW_ADMIN_DIR);
+    if (admin) app.use(admin);
+  }
 
   app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification));
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, swaggerOptions));
@@ -116,11 +140,13 @@ DAO.connect(() => {
     }),
   );
 
-  //File upload
+  //File upload (not for /trpc, which parses multipart/form-data itself)
   app.use(
-    fileUpload({
-      limits: { fileSize: 10 * 1024 * 1024 }, //Probably totally overkill, consider reducing
-    }),
+    skipForTrpc(
+      fileUpload({
+        limits: { fileSize: 10 * 1024 * 1024 }, //Probably totally overkill, consider reducing
+      }),
+    ),
   );
   // Exactly one trusted proxy hop: Cloud Run's Google Front End appends the real client IP
   // to X-Forwarded-For. Trusting more hops would let clients spoof req.ip (used by the
@@ -177,7 +203,7 @@ DAO.connect(() => {
     res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, baggage, sentry-trace",
+      "Content-Type, Authorization, baggage, sentry-trace, trpc-accept",
     );
     res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH,OPTIONS");
     next();
@@ -214,6 +240,10 @@ DAO.connect(() => {
   const fundraisersRoute = fundraisersRouter;
   const ltvRoute = ltvRouter;
 
+  if (previewMode) app.use("/preview", createPreviewRouter());
+
+  mountTrpc(app);
+
   app.use("/donors", donorsRoute);
   app.use("/donations", donationsRoute);
   app.use("/distributions", distributionsRoute);
@@ -232,7 +262,6 @@ DAO.connect(() => {
   app.use("/avtalegiro", avtaleGiroRoute);
   app.use("/autogiro", autoGiroRoute);
   app.use("/fundraisers", fundraisersRoute);
-  app.use("/adoveo", adoveoRouter);
   app.use("/tax", taxRoute);
   app.use("/import", importRouter);
   app.use("/results", resultsRouter);

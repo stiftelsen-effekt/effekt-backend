@@ -1,5 +1,5 @@
-const OCRparser = require("../../custom_modules/parsers/OCR.js");
-const ocr = require("../../custom_modules/ocr");
+import { enqueueInvalidTransactions } from "../../custom_modules/reviewQueue";
+import { processOcrReport } from "../../custom_modules/reportsService";
 
 module.exports = async (req, res, next) => {
   let metaOwnerID = parseInt(req.body.metaOwnerID);
@@ -7,12 +7,12 @@ module.exports = async (req, res, next) => {
   var data = req.files.report.data.toString("UTF-8");
 
   try {
-    var transactions = OCRparser.parse(data);
+    var result = await processOcrReport(data, metaOwnerID);
   } catch (ex) {
     return next(ex);
   }
 
-  const result = await ocr.addDonations(transactions, metaOwnerID);
+  await enqueueInvalidTransactions("ocr", result.invalidTransactions);
 
   res.json({
     status: 200,

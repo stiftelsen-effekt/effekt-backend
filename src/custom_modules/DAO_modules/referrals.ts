@@ -1,5 +1,6 @@
 import { Donors, Referral_records, Referral_types } from "@prisma/client";
 import { DAO } from "../DAO";
+import { dbClockColumn } from "../osloDays";
 
 //region Get
 
@@ -90,11 +91,26 @@ async function getDonorAnswered(donorID: Donors["ID"]) {
  * Gets all referrals for a user
  * @param {number} donorID
  */
-async function getDonorAnswers(donorID: Donors["ID"]) {
-  let [answers] = await DAO.query(
+export type DonorReferralAnswer = {
+  id: number;
+  typeId: number;
+  donorId: number | null;
+  timestamp: Date | null;
+  session: string | null;
+  /** Whether the referral type is active (0/1) */
+  active: 0 | 1;
+  /** The type name, or the donor's own comment for "other" (type 10) */
+  answer: string | null;
+};
+
+async function getDonorAnswers(donorID: Donors["ID"]): Promise<DonorReferralAnswer[]> {
+  let [answers] = await DAO.query<DonorReferralAnswer[]>(
     `
         SELECT
-          r.id AS id, t.id AS typeId, r.DonorID AS donorId, r.Registered AS timestamp, r.website_session AS session, t.is_active AS active,
+          r.id AS id, t.id AS typeId, r.DonorID AS donorId, ${dbClockColumn(
+            "r.Registered",
+            "timestamp",
+          )}, r.website_session AS session, t.is_active AS active,
           CASE r.ReferralID
             WHEN 10 THEN r.other_comment
             ELSE t.name END
@@ -225,8 +241,8 @@ async function updateType(
   id: number,
   data: { name?: string; ordering?: number; is_active?: boolean },
 ) {
-  const fields = [];
-  const values = [];
+  const fields: string[] = [];
+  const values: (string | number | boolean)[] = [];
 
   if (data.name !== undefined) {
     fields.push("name = ?");

@@ -3,6 +3,33 @@ import { parse } from "csv-parse/sync";
 
 const parseUtil = require("./util");
 
+/** Columns parseReport and processFacebookReport read */
+const REQUIRED_COLUMNS = [
+  "Charge date",
+  "Payout currency",
+  "Net payout amount",
+  "Sender currency",
+  "Campaign ID",
+];
+
+/**
+ * Checks that a file is a Facebook payout report (CSV with the columns parseReport reads and at
+ * least one row). Returns why it isn't, or null. Doesn't fetch exchange rates.
+ */
+export const validateReport = (report): string | null => {
+  let data: string[][];
+  try {
+    data = parse(report.toString(), { delimiter: ",", bom: true, skip_empty_lines: true });
+  } catch {
+    return "the file is not a comma separated CSV file";
+  }
+  const columns = data[0] ?? [];
+  const missing = REQUIRED_COLUMNS.filter((column) => !columns.includes(column));
+  if (missing.length > 0) return `missing the columns ${missing.join(", ")}`;
+  if (data.length < 2) return "the file has no donations";
+  return null;
+};
+
 /**
  * Parses a csv file from vipps reports
  * @param {Buffer} report A file buffer, from a csv comma seperated file
@@ -22,7 +49,7 @@ export const parseReport = async (report) => {
 
     let firstDate = data[0][chargeDateIndex];
     let lastDate = firstDate;
-    let payoutCurrencies = [];
+    let payoutCurrencies: any[] = [];
 
     data.forEach((donation) => {
       firstDate = firstDate < donation[chargeDateIndex] ? firstDate : donation[chargeDateIndex];
@@ -41,10 +68,10 @@ export const parseReport = async (report) => {
     });
     const query = params.toString();
 
-    const allExchangeRates = {};
+    const allExchangeRates: { [currency: string]: { [date: string]: number } } = {};
 
     for (let i = 0; i < payoutCurrencies.length; i++) {
-      const exchangeRateURL = `https://data.norges-bank.no/api/data/EXR/B.${payoutCurrencies[i]}.NOK.SP?format=sdmx-json&locale=no${query}`;
+      const exchangeRateURL = `https://data.norges-bank.no/api/data/EXR/B.${payoutCurrencies[i]}.NOK.SP?format=sdmx-json&locale=no&${query}`;
       const exchangeRatesData = await fetch(exchangeRateURL).then((res) => res.json());
 
       const exchangeDates = exchangeRatesData.data.structure.dimensions.observation[0].values;
@@ -84,7 +111,7 @@ export const parseReport = async (report) => {
 
       let exchangeDate = transaction["Charge date"];
 
-      let exchangeRate: number = undefined;
+      let exchangeRate: number | undefined = undefined;
       for (let i = 0; i < 10; i++) {
         exchangeRate = allExchangeRates[currency][exchangeDate];
         exchangeDate = incrementISODate(exchangeDate, -1);
@@ -163,5 +190,6 @@ function roundToSignificantFigures(number: number, signFig: number) {
 
 module.exports = {
   parseReport,
+  validateReport,
   roundSum,
 };

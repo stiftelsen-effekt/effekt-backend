@@ -8,3 +8,8 @@ dist/
 .env*
 !.env.example
 !.env.test
+!.env.docker
+dist-types/
+
+# pnpm store created by containers that install into this checkout
+.pnpm-store/

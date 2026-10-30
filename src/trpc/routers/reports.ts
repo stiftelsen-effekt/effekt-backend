@@ -1,0 +1,618 @@
+import { TRPCError } from "@trpc/server";
+import type { JWTPayload } from "express-oauth2-jwt-bearer";
+import { DAO } from "../../custom_modules/DAO";
+import type {
+  ImportLogSummary,
+  ImportLogUploadDetails,
+} from "../../custom_modules/DAO_modules/logging";
+import { buildKu65Report } from "../../custom_modules/ku65";
+import { osloDayEnd, osloDayRange, osloDayStart } from "../../custom_modules/osloDays";
+import {
+  processAutogiroReport,
+  processBankNoReport,
+  processBankSeReport,
+  processFacebookReport,
+  processOcrReport,
+  processVippsReport,
+  ReportParseError,
+} from "../../custom_modules/reportsService";
+import {
+  bankSeUploadInput,
+  fileOnlyUploadInput,
+  fundraisersListInput,
+  donorIdInput,
+  idInput,
+  ku65Input,
+  logsListInput,
+  reportUploadInput,
+  reviewQueueIgnoreInput,
+  reviewQueueListInput,
+  reviewQueueRegisterInput,
+  reviewQueueSearchInput,
+  transactionRangeInput,
+} from "../schemas/reports";
+import { adminProcedure, router } from "../trpc";
+import type {
+  ReviewQueueItem,
+  ReviewQueueItemWithRaw,
+  ReviewQueueSource,
+} from "../../custom_modules/DAO_modules/reviewqueue";
+import { registerDonation } from "../donationRegistration";
+import { adminIdentity } from "../identity";
+import { moneySchema } from "../schemas/common";
+import { paymentExternalRefSchema } from "../schemas/donations";
+import {
+  enqueueInvalidTransactions,
+  toIso,
+  toReviewItem,
+  type EnqueueResult,
+  type ManualReviewItem,
+  type SourceInvalidTransaction,
+} from "../../custom_modules/reviewQueue";
+
+//region Types
+
+export type { ManualReviewItem, ManualReviewTransaction } from "../../custom_modules/reviewQueue";
+
+export type ReportUploadSummary = {
+  /** Donations registered */
+  valid: number;
+  /** Transactions not registered, including ignored duplicates where the source counts them */
+  invalid: number;
+  /** Transactions that need manual review */
+  invalidTransactions: ManualReviewItem[];
+  /**
+   * What happened to `invalidTransactions` in the review queue (reports.reviewQueue): `added`
+   * new items, `existing` ones queued by an earlier upload, `skipped` ones that couldn't be
+   * queued, and `statuses`, the file's queue items by their current status (open / registered /
+   * ignored), for "N new, M already handled". Null for a dry run (the upload itself succeeded).
+   */
+  queue: EnqueueResult | null;
+  /**
+   * The import log entry of the upload (reports.logs.get), which the queued items link to. Null
+   * for a dry run, or if writing the log failed (the upload itself succeeded).
+   */
+  importLogId: number | null;
+};
+
+/** A file to download. `content` is text for text content types, base64 otherwise. */
+export type FilePayload = {
+  filename: string;
+  contentType: string;
+  content: string;
+};
+
+/** Import_logs labels of the uploads that write their own log entry (AutoGiro's module logs) */
+export const uploadLogLabels = {
+  ocr: "OCR - Upload",
+  vipps: "Vipps - Upload",
+  bankNo: "Bank NO - Upload",
+  bankSe: "Bank SE - Upload",
+} as const satisfies Partial<Record<ReviewQueueSource, string>>;
+
+const FACEBOOK_UPLOAD_LOG_LABEL = "Facebook - Upload";
+
+/** The admin's names of the upload sources, by Import_logs label */
+const uploadDisplayLabels: Record<string, { source: string; label: string }> = {
+  [uploadLogLabels.ocr]: { source: "ocr", label: "Bank OCR" },
+  [uploadLogLabels.vipps]: { source: "vipps", label: "Vipps" },
+  [uploadLogLabels.bankNo]: { source: "bankNo", label: "Bank account export" },
+  [uploadLogLabels.bankSe]: { source: "bankSe", label: "Bank (SE)" },
+  [FACEBOOK_UPLOAD_LOG_LABEL]: { source: "facebook", label: "Facebook" },
+};
+
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+/** "report.csv: 12 donations registered, 1 already registered, 3 sent to review" */
+const uploadSummary = (row: ImportLogSummary & Partial<ImportLogUploadDetails>): string => {
+  const parts: string[] = [];
+  const donations = row.donations ?? null;
+  if (donations?.valid !== undefined) {
+    parts.push(`${plural(Number(donations.valid), "donation")} registered`);
+  }
+  if (donations?.ignored) parts.push(`${donations.ignored} already registered`);
+  if (row.reviewCount != null) parts.push(`${row.reviewCount} sent to review`);
+  if (row.campaignsMissingShares != null) {
+    parts.push(`${plural(Number(row.campaignsMissingShares), "campaign")} without shares`);
+  }
+  const counts = parts.join(", ");
+  return row.filename ? `${row.filename}${counts ? `: ${counts}` : ""}` : counts;
+};
+
+type UploadContext = {
+  /** The uploaded file's name */
+  filename: string;
+  /** The file content as stored in the log (`file`), searchable with logs.list fileSearch */
+  file: string;
+  /** Null for the default owner */
+  metaOwnerID: number | null;
+  uploadedBy: string;
+};
+
+type ProcessResult = {
+  valid: number;
+  invalid: number;
+  ignored?: number;
+  invalidTransactions: SourceInvalidTransaction[];
+};
+
+/**
+ * Writes the upload's Import_logs entry, like the scheduled OCR import does. Never throws: the
+ * donations are already registered, so a failure is logged and the entry id reported as null.
+ */
+async function logUpload(
+  source: keyof typeof uploadLogLabels,
+  upload: UploadContext,
+  result: ProcessResult,
+): Promise<number | null> {
+  try {
+    return await DAO.logging.add(uploadLogLabels[source], {
+      upload: {
+        source,
+        metaOwnerID: upload.metaOwnerID,
+        uploadedBy: upload.uploadedBy,
+      },
+      donations: {
+        valid: result.valid,
+        invalid: result.invalid,
+        ...(result.ignored !== undefined && { ignored: result.ignored }),
+      },
+      invalidTransactions: result.invalidTransactions.map((item) => toReviewItem(source, item)),
+      filename: upload.filename,
+      file: upload.file,
+    });
+  } catch (ex) {
+    console.error(`Failed to write the import log of a ${source} upload`);
+    console.error(ex);
+    return null;
+  }
+}
+
+/** Queues the invalid transactions, linked to the import log and the chosen data owner */
+async function summarise(
+  source: ReviewQueueSource,
+  result: { valid: number; invalid: number; invalidTransactions: SourceInvalidTransaction[] },
+  options: { dryRun?: boolean; importLogId?: number | null; metaOwnerID?: number | null } = {},
+): Promise<ReportUploadSummary> {
+  const importLogId = options.importLogId ?? null;
+  return {
+    valid: result.valid,
+    invalid: result.invalid,
+    invalidTransactions: result.invalidTransactions.map((item) => toReviewItem(source, item)),
+    queue: options.dryRun
+      ? null
+      : await enqueueInvalidTransactions(
+          source,
+          result.invalidTransactions,
+          importLogId,
+          options.metaOwnerID ?? null,
+        ),
+    importLogId,
+  };
+}
+
+/** Logs a (non dry run) upload, then queues its invalid transactions linked to the log entry */
+async function logAndSummarise(
+  source: keyof typeof uploadLogLabels,
+  upload: UploadContext,
+  result: ProcessResult,
+): Promise<ReportUploadSummary> {
+  const importLogId = await logUpload(source, upload, result);
+  return summarise(source, result, { importLogId, metaOwnerID: upload.metaOwnerID });
+}
+
+const readText = async (file: File) => Buffer.from(await file.arrayBuffer()).toString("utf8");
+const readBuffer = async (file: File) => Buffer.from(await file.arrayBuffer());
+
+/** Unreadable files (wrong type, malformed) are client errors; nothing has been written */
+async function processFile<T>(process: () => Promise<T>): Promise<T> {
+  try {
+    return await process();
+  } catch (ex) {
+    if (ex instanceof ReportParseError) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: ex.message, cause: ex });
+    }
+    throw ex;
+  }
+}
+
+/** Checks an optional metaOwnerID against the data owners; null means the default owner */
+async function checkedMetaOwner(metaOwnerID: number | undefined): Promise<number | null> {
+  if (metaOwnerID === undefined) return null;
+  const owners = await DAO.meta.getDataOwners();
+  if (!owners.some((owner) => owner.id === metaOwnerID)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Data owner ${metaOwnerID} does not exist`,
+    });
+  }
+  return metaOwnerID;
+}
+
+const uploadContext = (
+  report: File,
+  file: string,
+  metaOwnerID: number | null,
+  auth: JWTPayload,
+): UploadContext => ({ filename: report.name, file, metaOwnerID, uploadedBy: adminIdentity(auth) });
+
+//endregion
+
+/**
+ * Each upload except dry runs writes an Import_logs entry labelled per source (see
+ * uploadLogLabels; Facebook, which registers nothing, logs "Facebook - Upload" without returning
+ * an id; AutoGiro payments use the entry its processing writes) and returns its id as
+ * `importLogId`. Invalid transactions are queued for review linked
+ * to that entry and with the chosen data owner, which reviewQueue.register defaults to.
+ */
+const uploadsRouter = router({
+  /** Nets OCR file (AvtaleGiro and KID bank payments, NO) */
+  ocr: adminProcedure.input(reportUploadInput).mutation(async ({ input, ctx }) => {
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
+    const data = await readText(input.report);
+    const result = await processFile(() => processOcrReport(data, metaOwnerID, { strict: true }));
+    const upload = uploadContext(input.report, data, metaOwnerID, ctx.auth);
+    return { ...(await logAndSummarise("ocr", upload, result)), ignored: result.ignored };
+  }),
+
+  /** Vipps settlement report (CSV) */
+  vipps: adminProcedure.input(reportUploadInput).mutation(async ({ input, ctx }) => {
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
+    const data = await readBuffer(input.report);
+    const result = await processFile(() => processVippsReport(data, metaOwnerID));
+    const upload = uploadContext(input.report, data.toString("utf8"), metaOwnerID, ctx.auth);
+    return logAndSummarise("vipps", upload, result);
+  }),
+
+  /** Norwegian bank export of payments without KID (CSV) */
+  bankNo: adminProcedure.input(reportUploadInput).mutation(async ({ input, ctx }) => {
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
+    const data = await readText(input.report);
+    const result = await processFile(() =>
+      processBankNoReport(data, metaOwnerID, { strict: true }),
+    );
+    const upload = uploadContext(input.report, data, metaOwnerID, ctx.auth);
+    return logAndSummarise("bankNo", upload, result);
+  }),
+
+  /** Swedish bank file (CAMT.053 XML or TotalIn). `dryRun` writes nothing, not even a log. */
+  bankSe: adminProcedure.input(bankSeUploadInput).mutation(async ({ input, ctx }) => {
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
+    const data = await readText(input.report);
+    const result = await processFile(() => processBankSeReport(data, input.dryRun, metaOwnerID));
+    const summary =
+      result.dryRun === true
+        ? await summarise("bankSe", result, { dryRun: true })
+        : await logAndSummarise(
+            "bankSe",
+            uploadContext(input.report, data, metaOwnerID, ctx.auth),
+            result,
+          );
+    return {
+      ...summary,
+      dryRun:
+        result.dryRun === true
+          ? {
+              fileFormat: result.fileFormat,
+              postingDate: result.postingDate ?? null,
+              totalParsed: result.totalParsed,
+              skippedSwish: result.skippedSwish,
+              skippedDuplicate: result.skippedDuplicate,
+              validTransactions: result.validTransactions.map((t) => ({
+                KID: t.KID ?? null,
+                amount: t.amount,
+                transactionID: t.transactionID,
+                name: t.donorName ?? null,
+                date: toIso(t.date),
+                message: t.message,
+              })),
+            }
+          : null,
+    };
+  }),
+
+  /**
+   * Facebook payout report. Returns the campaigns that have no organization shares registered.
+   * Registering shares and donations from Facebook reports is not implemented (see report).
+   * No donations are registered, so `metaOwnerID` is only validated. The upload is logged
+   * ("Facebook - Upload") with the file name and campaign count, without the file.
+   */
+  facebook: adminProcedure.input(fileOnlyUploadInput).mutation(async ({ input, ctx }) => {
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
+    const data = await readBuffer(input.report);
+    const result = await processFile(() => processFacebookReport(data, { strict: true }));
+    // Logged without the file: it has donors' names and emails and is stored as the report
+    try {
+      await DAO.logging.add(FACEBOOK_UPLOAD_LOG_LABEL, {
+        upload: { source: "facebook", metaOwnerID, uploadedBy: adminIdentity(ctx.auth) },
+        campaigns: { missingShares: result.fbCampaigns.length },
+        filename: input.report.name,
+      });
+    } catch (ex) {
+      console.error("Failed to write the import log of a facebook upload");
+      console.error(ex);
+    }
+    return result;
+  }),
+
+  /**
+   * Bankgirot AutoGiro file (SE): payments, mandates, e-mandates or rejected charges.
+   * `metaOwnerID` is validated and stored on queued review items, but the donations themselves
+   * are registered under the default data owner (custom_modules/autogiro.ts doesn't take an
+   * owner). AutoGiro processing writes its own log entries (without the file name); for payments
+   * its id is returned as `importLogId`.
+   */
+  autogiro: adminProcedure.input(fileOnlyUploadInput).mutation(async ({ input }) => {
+    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
+    const data = await readBuffer(input.report);
+    const result = await processFile(() => processAutogiroReport(data));
+    if (result.type === "payments") {
+      // AutoGiro amounts are in öre; review items are in whole currency like other sources
+      return {
+        ...(await summarise("autogiro", result, {
+          importLogId: result.importLogId,
+          metaOwnerID,
+        })),
+        type: result.type,
+      };
+    }
+    return result;
+  }),
+});
+
+const transactionsRouter = router({
+  /**
+   * Donations confirmed in an inclusive range of Oslo days, with their split per organization.
+   * The client turns `rows` into a JSON or CSV download named `filename` (without extension).
+   */
+  range: adminProcedure.input(transactionRangeInput).mutation(async ({ input }) => {
+    const rows = await DAO.donations.getFromRange(
+      osloDayStart(input.fromDate),
+      osloDayEnd(input.toDate),
+      input.paymentMethodIDs ?? null,
+      { exclusiveEnd: true },
+    );
+    return { filename: `transactions_${input.fromDate}_${input.toDate}`, rows };
+  }),
+});
+
+const taxRouter = router({
+  /** Swedish KU65 XML (Skatteverket) from a CSV of donation sums per personnummer */
+  ku65: adminProcedure.input(ku65Input).mutation(async ({ input }) => {
+    let xml: string;
+    try {
+      xml = buildKu65Report(await readText(input.report), input.year);
+    } catch (ex) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: ex.message, cause: ex });
+    }
+    const file: FilePayload = {
+      filename: `ku65_${input.year}.xml`,
+      contentType: "application/xml",
+      content: xml,
+    };
+    return file;
+  }),
+});
+
+const logsRouter = router({
+  /**
+   * Log entries, newest first unless sorted; `total` counts the entries matching fileSearch,
+   * which matches the stored file content or the uploaded file's name. Upload entries get the
+   * admin's source name as `displayLabel` (e.g. "Bank account export" for "Bank NO - Upload"),
+   * their `source` and a `summary` ("report.csv: 12 donations registered, 3 sent to review");
+   * for other entries `displayLabel` is the label and `source`/`summary` are null.
+   */
+  list: adminProcedure.input(logsListInput).query(async ({ input }) => {
+    const entries = await DAO.logging.getEntries(
+      input.limit,
+      input.page * input.limit,
+      input.filter?.fileSearch ?? null,
+      input.sort ?? { id: "timestamp", desc: true },
+      { searchFilename: true, uploadDetails: true },
+    );
+    const rows = (entries.results as Array<ImportLogSummary & Partial<ImportLogUploadDetails>>).map(
+      ({ uploadSource, filename, donations, reviewCount, campaignsMissingShares, ...row }) => {
+        const upload = row.label ? uploadDisplayLabels[row.label] : undefined;
+        const details = { filename, donations, reviewCount, campaignsMissingShares };
+        return {
+          ...row,
+          displayLabel: upload?.label ?? row.label,
+          source: upload?.source ?? null,
+          filename: filename ?? null,
+          summary: upload ? uploadSummary({ ...row, ...details }) : null,
+        };
+      },
+    );
+    return { rows, pages: entries.pages, total: entries.total };
+  }),
+
+  get: adminProcedure.input(idInput).query(async ({ input }) => {
+    const entry = await DAO.logging.get(input.id);
+    if (!entry) throw new TRPCError({ code: "NOT_FOUND" });
+    const upload = entry.label ? uploadDisplayLabels[entry.label] : undefined;
+    return { ...entry, displayLabel: upload?.label ?? entry.label };
+  }),
+});
+
+const fundraisersRouter = router({
+  /** `registrationDate` is a range of whole Oslo days */
+  list: adminProcedure.input(fundraisersListInput).query(({ input }) => {
+    const { registrationDate, ...filter } = input.filter ?? {};
+    return DAO.fundraisers.getList(
+      input.page,
+      input.limit,
+      input.filter
+        ? {
+            ...filter,
+            ...(registrationDate && { registrationRange: osloDayRange(registrationDate) }),
+          }
+        : undefined,
+      input.sort,
+      true,
+    );
+  }),
+
+  /** Fundraiser with owner, secret, totals and transactions (names only where shown publicly) */
+  get: adminProcedure.input(idInput).query(async ({ input }) => {
+    const fundraiser = await DAO.fundraisers.getFundraiserWithSecret(input.id);
+    if (!fundraiser) throw new TRPCError({ code: "NOT_FOUND" });
+    const details = await DAO.fundraisers.getFundraiserByID(input.id);
+    return {
+      ...fundraiser,
+      totalSum: details?.totalSum ?? 0,
+      donationCount: details?.donationCount ?? 0,
+      transactions: details?.transactions ?? [],
+    };
+  }),
+
+  /** Creates a fundraiser owned by a donor */
+  create: adminProcedure.input(donorIdInput).mutation(async ({ input }) => {
+    const donor = await DAO.donors.getByID(input.donorId);
+    if (!donor) throw new TRPCError({ code: "BAD_REQUEST", message: "Donor not found" });
+    const { id: fundraiserId } = await DAO.fundraisers.createFundraiser(input.donorId);
+    const fundraiser = await DAO.fundraisers.getFundraiserWithSecret(fundraiserId);
+    if (!fundraiser) throw new Error(`Created fundraiser ${fundraiserId} not found`);
+    return fundraiser;
+  }),
+});
+
+const getReviewItemOrThrow = async (id: number) => {
+  const item = await DAO.reviewqueue.getById(id);
+  if (!item) throw new TRPCError({ code: "NOT_FOUND", message: `Review item ${id} not found` });
+  return item;
+};
+
+const conflict = (message: string) => new TRPCError({ code: "CONFLICT", message });
+
+/** Throws CONFLICT for an item that isn't open; NOT_FOUND if it has disappeared */
+const throwNotOpen = async (id: number): Promise<never> => {
+  const item = await getReviewItemOrThrow(id);
+  throw conflict(`Review item ${id} is already ${item.status}`);
+};
+
+/**
+ * The shared queue of transactions from report imports that could not be registered
+ * automatically. Uploads (REST and tRPC) and the scheduled OCR import add to it.
+ */
+const reviewQueueRouter = router({
+  list: adminProcedure.input(reviewQueueListInput).query(({ input }) =>
+    DAO.reviewqueue.getList({
+      page: input.page,
+      limit: input.limit,
+      statuses: input.filter?.statuses,
+      sources: input.filter?.sources,
+      sort: input.sort ?? { id: "id", desc: true },
+    }),
+  ),
+
+  /**
+   * Quick search (e.g. ⌘K): items with the id, or a KID, external id, payer name or message
+   * containing the query. Exact id match first, then open items, then newest; at most `limit`.
+   */
+  search: adminProcedure
+    .input(reviewQueueSearchInput)
+    .query(
+      ({ input }): Promise<ReviewQueueItem[]> => DAO.reviewqueue.search(input.query, input.limit),
+    ),
+
+  /** Items per status, e.g. for a badge with the number of open items */
+  counts: adminProcedure.query(() => DAO.reviewqueue.getCounts()),
+
+  /** An item with the transaction as the parser produced it (`raw`) */
+  get: adminProcedure
+    .input(idInput)
+    .query(({ input }): Promise<ReviewQueueItemWithRaw> => getReviewItemOrThrow(input.id)),
+
+  /**
+   * Registers a donation from an open item, the same way donations.register does, and marks the
+   * item registered with the donation. CONFLICT if the item is already resolved.
+   */
+  register: adminProcedure.input(reviewQueueRegisterInput).mutation(async ({ input, ctx }) => {
+    const item = await getReviewItemOrThrow(input.id);
+    if (item.status !== "open") throw conflict(`Review item ${item.id} is already ${item.status}`);
+
+    const sum = input.sum ?? Number(item.amount);
+    if (!moneySchema.safeParse(sum).success) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `The item's amount ${item.amount} can't be registered; provide a sum`,
+      });
+    }
+    const timestamp = input.timestamp ?? item.date?.toISOString();
+    if (timestamp === undefined) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "The item has no date; provide one" });
+    }
+    const paymentExternalRef =
+      input.paymentExternalRef !== undefined ? input.paymentExternalRef : item.externalId;
+    if (
+      paymentExternalRef !== null &&
+      !paymentExternalRefSchema.safeParse(paymentExternalRef).success
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "The item's external id is too long for a donation; provide paymentExternalRef",
+      });
+    }
+
+    const metaOwnerId =
+      input.metaOwnerId ?? item.metaOwnerId ?? (await DAO.meta.getDefaultOwnerID());
+
+    // Claim the item first so two admins can't register it twice
+    if (!(await DAO.reviewqueue.claimForRegistration(item.id, adminIdentity(ctx.auth)))) {
+      await throwNotOpen(item.id);
+    }
+
+    let registered: Awaited<ReturnType<typeof registerDonation>>;
+    try {
+      registered = await registerDonation({
+        KID: input.KID,
+        distribution: input.distribution,
+        sum,
+        timestamp,
+        paymentId: input.paymentId ?? item.paymentId,
+        paymentExternalRef,
+        metaOwnerId,
+        sendReceipt: input.sendReceipt,
+      });
+    } catch (ex) {
+      await DAO.reviewqueue.releaseRegistrationClaim(item.id);
+      throw ex;
+    }
+
+    await DAO.reviewqueue.setDonation(item.id, registered.donationId);
+    return { ...registered, item: await getReviewItemOrThrow(item.id) };
+  }),
+
+  /** Marks an open item as not needing a donation. CONFLICT if it is already resolved. */
+  ignore: adminProcedure.input(reviewQueueIgnoreInput).mutation(async ({ input, ctx }) => {
+    if (!(await DAO.reviewqueue.ignore(input.id, adminIdentity(ctx.auth), input.note ?? null))) {
+      await throwNotOpen(input.id);
+    }
+    return getReviewItemOrThrow(input.id);
+  }),
+
+  /**
+   * Reopens an ignored item, or a registered one whose donation has been deleted. CONFLICT for
+   * open items and for registered items whose donation still exists.
+   */
+  reopen: adminProcedure.input(idInput).mutation(async ({ input }) => {
+    if (!(await DAO.reviewqueue.reopen(input.id))) {
+      const item = await getReviewItemOrThrow(input.id);
+      throw conflict(
+        item.status === "open"
+          ? `Review item ${item.id} is already open`
+          : `Review item ${item.id} has donation ${item.donationId}; delete the donation first`,
+      );
+    }
+    return getReviewItemOrThrow(input.id);
+  }),
+});
+
+export const reportsRouter = router({
+  uploads: uploadsRouter,
+  reviewQueue: reviewQueueRouter,
+  transactions: transactionsRouter,
+  tax: taxRouter,
+  logs: logsRouter,
+  fundraisers: fundraisersRouter,
+});

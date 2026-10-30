@@ -6,7 +6,7 @@ export const KID = {
    * @param {number | null} donorID
    * @returns {string} The KID
    */
-  generate: function (length = 8, donorID = null) {
+  generate: function (length = 8, donorID: number | null = null): string {
     let KID;
 
     // Legacy KID format

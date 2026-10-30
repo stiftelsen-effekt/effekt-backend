@@ -21,7 +21,7 @@ export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId
   const donations = await DAO.donations.getByDonorId(donorId);
 
   const filteredDonations = donations.filter((donation) => {
-    const donationDate = new Date(donation.timestamp);
+    const donationDate = new Date(donation.timestamp!);
     const currentYear = new Date().getFullYear();
     return donationDate.getFullYear() < currentYear;
   });
@@ -46,7 +46,7 @@ export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId
     const replacementKID = await donationHelpers.createKID(15, donorId);
 
     const newDistribution = {
-      ...oldDistribution,
+      ...oldDistribution!,
       kid: replacementKID,
     };
 
@@ -133,10 +133,11 @@ export async function createXMLReportToTaxAuthorities(
       );
     }
 
-    if (taxUnitsMap.has(unit.ssn)) {
+    const existingUnit = taxUnitsMap.get(unit.ssn);
+    if (existingUnit) {
       taxUnitsMap.set(unit.ssn, {
-        ...taxUnitsMap.get(unit.ssn),
-        sum: taxUnitsMap.get(unit.ssn).sum + unit.sum,
+        ...existingUnit,
+        sum: existingUnit.sum + unit.sum,
       });
     } else {
       taxUnitsMap.set(unit.ssn, {

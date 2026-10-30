@@ -1,0 +1,225 @@
+# Isolated local environment: MySQL + mock OIDC issuer + migrations/seed + API in dev mode.
+# Nothing here talks to Auth0 or any staging/production resource.
+#
+#   pnpm dev:env:up       build, start and wait until the API is healthy
+#   pnpm -s dev:token     print an admin access token (see scripts/dev-token.sh)
+#   pnpm dev:env:down     stop (keeps the database volume)
+#   pnpm dev:env:reset    wipe the database volume, re-migrate and re-seed
+#   pnpm dev:data:topup   bring generated data up to today (also done by every `up`)
+#
+# Host ports can be overridden: DEV_DB_PORT (3307), DEV_AUTH_PORT (8090), DEV_API_PORT (5050).
+# Independent of docker-compose.yml (the plain-MySQL setup described further down in the README).
+
+name: effekt-dev
+
+x-backend: &backend
+  image: effekt-backend-dev:local
+  build:
+    context: .
+    # Dependencies live in the image (Linux build of Prisma engines etc.); source is bind-mounted.
+    # Only package files and the Prisma schema are copied, so a local .env never ends up in the image.
+    dockerfile_inline: |
+      FROM node:24.22.1
+      WORKDIR /app
+      RUN corepack enable
+      COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+      RUN pnpm install --frozen-lockfile --ignore-scripts --filter stiftelsen-effekt-backend
+      COPY prisma/schema.prisma prisma/schema.prisma
+      RUN pnpm exec prisma generate
+  env_file: .env.docker
+  volumes:
+    - ./src:/app/src:ro
+    - ./prisma:/app/prisma:ro
+    - ./certs:/app/certs:ro
+    - ./tsconfig.json:/app/tsconfig.json:ro
+
+services:
+  db:
+    image: mysql:8.4.11 # same major/minor as production Cloud SQL
+    # Sized for a laptop: the defaults (128 MB+ buffer pool, performance schema on) suit a server.
+    command:
+      - --log_bin_trust_function_creators=1
+      - --innodb-buffer-pool-size=192M
+      - --performance-schema=OFF
+      - --skip-log-bin
+      # Like production Cloud SQL (flag default_time_zone=+02:00, no DST), so values filled by
+      # DEFAULT CURRENT_TIMESTAMP / NOW() hold UTC+2 here too. See docs/timestamps.md.
+      - --default-time-zone=+02:00
+    environment:
+      # Must match DB_* in .env.docker
+      MYSQL_ROOT_PASSWORD: effekt-local
+      MYSQL_DATABASE: EffektDonasjonDB_Local
+    ports:
+      - "${DEV_DB_PORT:-3307}:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-peffekt-local"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+      start_period: 20s
+
+  auth:
+    # Local OIDC issuer. Discovery: http://auth:8080/effekt/.well-known/openid-configuration
+    # (from the host: http://localhost:${DEV_AUTH_PORT:-8090}/effekt/...).
+    # The issuer (iss) is derived from the request's Host header, so tokens must be requested
+    # with "Host: auth:8080" to match what the API discovers. scripts/dev-token.sh does this.
+    image: ghcr.io/navikt/mock-oauth2-server:6.0.4
+    ports:
+      - "${DEV_AUTH_PORT:-8090}:8080"
+    environment:
+      # aud must equal AUTH_AUDIENCE and the user-id claim AUTH_USER_ID_CLAIM in .env.docker.
+      # Admin: client_credentials with scope=admin -> every permission in
+      #   src/enums/authorizationPermissions.js.
+      # Donor: authorization_code via the (interactive) login form; the numeric user-id claim
+      #   is posted as a login claim, the mapping below adds aud + donor permissions.
+      # $$ escapes compose interpolation; the server sees ${subject}.
+      JSON_CONFIG: |
+        {
+          "interactiveLogin": true,
+          "httpServer": "NettyWrapper",
+          "tokenCallbacks": [
+            {
+              "issuerId": "effekt",
+              "tokenExpiry": 86400,
+              "requestMappings": [
+                {
+                  "requestParam": "scope",
+                  "match": "admin",
+                  "claims": {
+                    "sub": "local-admin",
+                    "aud": "http://localhost:5050",
+                    "name": "Dev Admin",
+                    "given_name": "Dev",
+                    "permissions": [
+                      "admin",
+                      "read:donations", "write:donations",
+                      "read:profile", "write:profile",
+                      "read:distributions", "write:distributions",
+                      "read:agreements", "write:agreements",
+                      "read:vipps_api", "write:vipps_api",
+                      "analysis_mcp"
+                    ]
+                  }
+                },
+                {
+                  "requestParam": "grant_type",
+                  "match": "authorization_code",
+                  "claims": {
+                    "sub": "$${subject}",
+                    "aud": "http://localhost:5050",
+                    "permissions": [
+                      "read:donations", "write:donations",
+                      "read:profile", "write:profile",
+                      "read:distributions", "write:distributions",
+                      "read:agreements", "write:agreements"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://localhost:8080/effekt/.well-known/openid-configuration",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+      start_period: 5s
+
+  migrate:
+    <<: *backend
+    # Applies migrations. An empty DB gets generated fake data ending today (prisma/seed.ts ->
+    # prisma/devdata); a DB seeded earlier is topped up with the days since (prisma/devdata/topup.ts),
+    # keeping records created by hand. A failed top-up only prints a warning.
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        pnpm exec prisma migrate deploy
+        if node -e "new (require('@prisma/client').PrismaClient)().donors.count().then(n => process.exit(n > 0 ? 0 : 1), () => process.exit(1))"; then
+          pnpm exec ts-node prisma/devdata/topup.ts || echo "Warning: dev data top-up failed; the database is unchanged"
+        else
+          pnpm exec prisma db seed
+          pnpm exec prisma db execute --schema prisma/schema.prisma --file prisma/dev/fulltext-search.sql
+        fi
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *backend
+    command: ["pnpm", "exec", "nodemon", "--watch", "src", "--ext", "ts,js,json", "src/server.ts"]
+    ports:
+      - "${DEV_API_PORT:-5050}:5050"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      auth:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:5050/causeareas/active').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+  # The new admin (admin/) on http://localhost:3001, signed in with the local issuer.
+  # Source is bind-mounted for hot reload; node_modules live in volumes so the container gets
+  # Linux builds of native packages instead of the host's.
+  admin:
+    image: node:24.22.1
+    working_dir: /repo/admin
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        corepack enable
+        pnpm install --frozen-lockfile --filter effekt-admin-v2 --store-dir /repo/node_modules/.pnpm-store
+        pnpm exec vite --host 0.0.0.0 --port 3001 --strictPort
+    environment:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      VITE_AUTH_MODE: dev
+      VITE_API_URL: http://localhost:${DEV_API_PORT:-5050}
+      VITE_DEV_AUTH_TOKEN_URL: /dev-auth/effekt/token
+      DEV_AUTH_PROXY_TARGET: http://auth:8080
+    volumes:
+      - .:/repo
+      - admin-root-node-modules:/repo/node_modules
+      - admin-node-modules:/repo/admin/node_modules
+    ports:
+      - "${DEV_ADMIN_PORT:-3001}:3001"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+
+volumes:
+  db-data:
+  admin-root-node-modules:
+  admin-node-modules:

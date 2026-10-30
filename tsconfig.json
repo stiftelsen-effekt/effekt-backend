@@ -7,7 +7,9 @@
     "allowJs": true,
     "checkJs": false,
     "esModuleInterop": true,
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "strictNullChecks": true
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "dist-types", "admin"]
 }

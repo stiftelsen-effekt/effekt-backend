@@ -1,0 +1,71 @@
+# Builds the admin (admin/) and publishes it to its bucket behind the effekt-load-balancer.
+# Trigger: push to master touching admin/**, src/trpc/**, pnpm-lock.yaml or this file.
+# Substitutions (set on the trigger): _BUCKET, _API_URL, _AUTH_DOMAIN, _AUTH_CLIENT_ID, _AUTH_AUDIENCE,
+# _FEATURE_REGRANTING ("false" hides Regranting), _REGRANTING_BACKFILLED ("false" shows a notice
+# on the regranting pages that past rounds aren't imported yet)
+steps:
+  - id: install
+    name: "node:24.22.1"
+    entrypoint: bash
+    args: ["-c", "corepack enable && pnpm install --frozen-lockfile"]
+
+  - id: typecheck
+    name: "node:24.22.1"
+    entrypoint: bash
+    waitFor: ["install"]
+    args: ["-c", "corepack enable && pnpm --dir admin typecheck"]
+
+  - id: test
+    name: "node:24.22.1"
+    entrypoint: bash
+    waitFor: ["install"]
+    args: ["-c", "corepack enable && pnpm --dir admin test"]
+
+  - id: build
+    name: "node:24.22.1"
+    entrypoint: bash
+    waitFor: ["typecheck", "test"]
+    env:
+      - "VITE_API_URL=${_API_URL}"
+      - "VITE_AUTH_MODE=auth0"
+      - "VITE_AUTH_DOMAIN=${_AUTH_DOMAIN}"
+      - "VITE_AUTH_CLIENT_ID=${_AUTH_CLIENT_ID}"
+      - "VITE_AUTH_AUDIENCE=${_AUTH_AUDIENCE}"
+      - "VITE_FEATURE_REGRANTING=${_FEATURE_REGRANTING}"
+      - "VITE_REGRANTING_BACKFILLED=${_REGRANTING_BACKFILLED}"
+    args: ["-c", "corepack enable && pnpm --dir admin build"]
+
+  # Hashed assets are immutable; index.html must always be revalidated so a deploy takes effect
+  # immediately. Assets are uploaded first so a new index.html never points at missing files.
+  - id: publish-assets
+    name: "gcr.io/cloud-builders/gsutil"
+    waitFor: ["build"]
+    args:
+      - "-m"
+      - "-h"
+      - "Cache-Control:public, max-age=31536000, immutable"
+      - "rsync"
+      - "-r"
+      - "admin/dist/assets"
+      - "gs://${_BUCKET}/assets"
+
+  - id: publish-index
+    name: "gcr.io/cloud-builders/gsutil"
+    waitFor: ["publish-assets"]
+    args:
+      - "-m"
+      - "-h"
+      - "Cache-Control:no-cache"
+      - "rsync"
+      - "-r"
+      - "-x"
+      - "^assets/"
+      - "admin/dist"
+      - "gs://${_BUCKET}"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _FEATURE_REGRANTING: "true"
+  _REGRANTING_BACKFILLED: "false"

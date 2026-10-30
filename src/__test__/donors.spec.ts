@@ -289,6 +289,7 @@ describe("donors", () => {
           causeAreaID: 1,
           organization: "Against Malaria Foundation",
           abbriv: "AMF",
+          chartColor: null,
           value: "18.000000000000000000",
           year: 2022,
         },
@@ -297,6 +298,7 @@ describe("donors", () => {
           causeAreaID: 1,
           organization: "Røde Kors",
           abbriv: "RK",
+          chartColor: null,
           value: "100.000000000000000000",
           year: 2018,
         },
@@ -305,6 +307,7 @@ describe("donors", () => {
           causeAreaID: 1,
           organization: "Realfagbygget",
           abbriv: "A4",
+          chartColor: null,
           value: "250.000000000000000000",
           year: 2022,
         },
@@ -313,6 +316,7 @@ describe("donors", () => {
           causeAreaID: 1,
           organization: "SOS Barnebyer",
           abbriv: "SOS",
+          chartColor: null,
           value: "250.000000000000000000",
           year: 2022,
         },
@@ -321,6 +325,7 @@ describe("donors", () => {
           causeAreaID: 1,
           organization: "Barnekreftforeningen",
           abbriv: "BKF",
+          chartColor: null,
           value: "390.000000000000000000",
           year: 2019,
         },
@@ -368,6 +373,95 @@ describe("donors", () => {
         } catch (ex) {
           expect(ex).to.not.be.undefined;
         }
+      });
+    });
+
+    describe("GET /donors/:id/taxreports", function () {
+      const donation = (
+        id: number,
+        sum: string,
+        taxUnitId: number | null,
+        metaOwnerId: number,
+      ) => ({
+        id,
+        donor: jack.name,
+        donorId: jack.id,
+        email: jack.email,
+        sum,
+        transactionCost: "0",
+        timestamp: "2024-06-01T10:00:00.000Z",
+        paymentMethod: "Bank",
+        KID: "000012345678",
+        taxUnitId,
+        metaOwnerId,
+      });
+
+      beforeEach(function () {
+        sinon.stub(DAO.tax, "getByDonorId").resolves([
+          {
+            id: 10,
+            donorId: jack.id,
+            name: "Jack Torrance",
+            ssn: "12345678910",
+            registered: "2020-01-01T00:00:00.000Z",
+            archived: null,
+            sumDonations: "3000",
+            numDonations: 2,
+            taxDeductions: [],
+          },
+        ] as any);
+
+        // Owner 2 (EA Norge) donations are returned by both getByDonorId and getEAFundsDonations
+        sinon
+          .stub(DAO.donations, "getByDonorId")
+          .resolves([
+            donation(1, "1000.00", 10, 3),
+            donation(2, "2000.00", 10, 2),
+            donation(3, "300.00", null, 3),
+            donation(4, "500.00", null, 2),
+          ] as any);
+
+        sinon.stub(DAO.donations, "getEAFundsDonations").resolves([
+          {
+            id: 2,
+            donorId: jack.id,
+            taxUnitId: 10,
+            sum: "2000.00",
+            timestamp: "2024-06-01T10:00:00.000Z",
+            paymentExternalId: "EAN.1",
+          },
+          {
+            id: 4,
+            donorId: jack.id,
+            taxUnitId: null,
+            sum: "500.00",
+            timestamp: "2024-06-01T10:00:00.000Z",
+            paymentExternalId: "EAN.2",
+          },
+        ]);
+      });
+
+      it("counts EA Norge donations once, as EAN Giverportal", async function () {
+        const response = await request(server).get("/donors/237/taxreports").expect(200);
+
+        const report = response.body.content.find((r) => r.year === 2024);
+        expect(report).to.not.be.undefined;
+
+        expect(report.units).to.have.length(1);
+        expect(report.units[0].sumDonations).to.equal(3000);
+        expect(report.units[0].channels).to.deep.equal([
+          { channel: "Gi Effektivt", sumDonations: 1000 },
+          { channel: "EAN Giverportal", sumDonations: 2000 },
+        ]);
+        expect(report.sumDonations).to.equal(3000);
+
+        expect(report.sumDonationsWithoutTaxUnit).to.deep.equal({
+          sumDonations: 800,
+          channels: [
+            { channel: "Gi Effektivt", sumDonations: 300 },
+            { channel: "EAN Giverportal", sumDonations: 500 },
+          ],
+        });
       });
     });
   });

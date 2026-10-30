@@ -4,22 +4,33 @@ import { DAO } from "../DAO";
 import * as sqlString from "sqlstring";
 import { RequestLocale } from "../../middleware/locale";
 import { normalizeDonorEmail } from "../donorEmail";
+import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 
 //region Get
 
 type DonorFundraiserGiving = "only" | "atLeastOnce" | "never";
-type DonorFundraiserType = "facebook" | "adoveo" | "homebrew";
+type DonorFundraiserType = "facebook" | "homebrew";
 
-interface DonorFilters {
+export interface DonorFilters {
   donorId: number | null;
   name?: string;
   email?: string;
   query?: string; // For fulltext search over name and email
+  nameOrEmail?: string; // Partial match on name OR email (LIKE, wildcards escaped)
+  /** Orders donors whose id, email or name equals this (case-insensitive) before the others */
+  exactMatchFirst?: string;
   newsletter?: boolean; // Filter by newsletter subscription status
   registered?: { from?: Date; to?: Date };
   registeredDate?: { from?: Date; to?: Date };
   donationsDateRange?: { from?: Date; to?: Date };
   lastDonationDate?: { from?: Date; to?: Date };
+  /**
+   * Half-open instant ranges (osloDays.ts), used by tRPC instead of the day ranges above, whose
+   * `to` day is added in the server's local time zone.
+   */
+  registeredRange?: InstantRange;
+  donationsRange?: InstantRange;
+  lastDonationRange?: InstantRange;
   donationsCount?: { from?: number; to?: number };
   donationsSum?: { from?: number; to?: number };
   fundraiserGiving?: DonorFundraiserGiving;
@@ -28,7 +39,7 @@ interface DonorFilters {
   recipientOrgIDs?: Array<number>; // List of Organizations.ID
 }
 
-interface DonorRow {
+export interface DonorRow {
   id: number;
   name: string | null;
   email: string;
@@ -39,7 +50,7 @@ interface DonorRow {
   newsletter: boolean;
 }
 
-interface DonorStatistics {
+export interface DonorStatistics {
   totalDonors: number;
   totalDonationSum: number;
   totalDonationCount: number;
@@ -56,19 +67,35 @@ const jsToDbDonorMapping: Array<[string, string]> = [
   ["donationsSum", "FD.donations_sum"],
 ];
 
-const allFundraiserTypes: Array<DonorFundraiserType> = ["facebook", "adoveo", "homebrew"];
+const allFundraiserTypes: Array<DonorFundraiserType> = ["facebook", "homebrew"];
 
+/**
+ * Matches donations made through a fundraiser of the given types. Without explicit types, any
+ * fundraiser counts, including the discontinued Adoveo fundraisers, so historical donations keep
+ * being classified as fundraiser donations.
+ */
 function fundraiserMatchClause(
   donationAlias: string,
-  fundraiserTypes: Array<DonorFundraiserType>,
+  fundraiserTypes: Array<DonorFundraiserType> | undefined,
 ): string {
+  const types = fundraiserTypes ?? allFundraiserTypes;
   const clauses: string[] = [];
 
-  if (fundraiserTypes.includes("facebook")) {
+  if (types.includes("facebook")) {
     clauses.push(`${donationAlias}.Payment_ID = 9`);
   }
 
-  if (fundraiserTypes.includes("adoveo")) {
+  if (types.includes("homebrew")) {
+    clauses.push(`EXISTS (
+      SELECT 1
+      FROM Distributions DIST_HB
+      WHERE DIST_HB.KID = ${donationAlias}.KID_fordeling
+        AND DIST_HB.Fundraiser_transaction_ID IS NOT NULL
+    )`);
+  }
+
+  if (fundraiserTypes === undefined) {
+    // Historical Adoveo fundraiser donations
     clauses.push(`(
       ${donationAlias}.Payment_ID = 13
       AND EXISTS (
@@ -77,15 +104,6 @@ function fundraiserMatchClause(
         WHERE AFT.Donation_ID = ${donationAlias}.ID
           AND AFT.Status = 'SALE'
       )
-    )`);
-  }
-
-  if (fundraiserTypes.includes("homebrew")) {
-    clauses.push(`EXISTS (
-      SELECT 1
-      FROM Distributions DIST_HB
-      WHERE DIST_HB.KID = ${donationAlias}.KID_fordeling
-        AND DIST_HB.Fundraiser_transaction_ID IS NOT NULL
     )`);
   }
 
@@ -128,11 +146,17 @@ async function getAll(
   let donationDateFilterSqlForCTE = ""; // For filtering donations within the CTE
   let donationDateFilterSqlForSubqueries = ""; // For filtering donations within subqueries
 
-  if (filter?.donationsDateRange) {
-    const from = filter.donationsDateRange.from;
-    const to = filter.donationsDateRange.to;
-    let cteConditions: string[] = [];
-    let subqueryConditions: string[] = [];
+  if (filter?.donationsDateRange || filter?.donationsRange) {
+    const from = filter.donationsDateRange?.from;
+    const to = filter.donationsDateRange?.to;
+    let cteConditions: string[] = instantRangeClauses(
+      "Dons.timestamp_confirmed",
+      filter.donationsRange,
+    );
+    let subqueryConditions: string[] = instantRangeClauses(
+      "D_rec.timestamp_confirmed",
+      filter.donationsRange,
+    );
 
     if (from) {
       cteConditions.push(`Dons.timestamp_confirmed >= ${sqlString.escape(from)}`);
@@ -161,7 +185,8 @@ async function getAll(
     };
   }
 
-  const hasOrganizationFilter = Boolean(filter?.recipientOrgIDs?.length);
+  const recipientOrgIDs = filter?.recipientOrgIDs ?? [];
+  const hasOrganizationFilter = recipientOrgIDs.length > 0;
   // Shares are stored as 1-100. Pre-aggregate per KID so donor sums and stats
   // use the amount to the selected orgs instead of the full donation.
   const selectedOrgSharesCte = hasOrganizationFilter
@@ -175,7 +200,7 @@ async function getAll(
         FROM Distribution_cause_areas
         INNER JOIN Distribution_cause_area_organizations
           ON Distribution_cause_areas.ID = Distribution_cause_area_organizations.Distribution_cause_area_ID
-        WHERE Distribution_cause_area_organizations.Organization_ID IN (${filter.recipientOrgIDs
+        WHERE Distribution_cause_area_organizations.Organization_ID IN (${recipientOrgIDs
           .map((id) => sqlString.escape(id))
           .join(",")})
         GROUP BY Distribution_cause_areas.Distribution_KID
@@ -223,6 +248,11 @@ async function getAll(
       whereClauses.push(`Donors.email LIKE ${sqlString.escape(`%${filter.email}%`)}`);
     }
 
+    if (filter.nameOrEmail && filter.nameOrEmail.length > 0) {
+      const pattern = sqlString.escape(`%${filter.nameOrEmail.replace(/[\\%_]/g, "\\$&")}%`);
+      whereClauses.push(`(Donors.full_name LIKE ${pattern} OR Donors.email LIKE ${pattern})`);
+    }
+
     // Fulltext search query (matches both name and email)
     if (filter.query && filter.query.length > 0) {
       // Remove @ from query at all locations
@@ -239,7 +269,12 @@ async function getAll(
     }
 
     if (filter.newsletter !== undefined) {
-      whereClauses.push(`Donors.newsletter = ${filter.newsletter ? 1 : 0}`);
+      // A NULL newsletter is shown as not subscribed, so "not subscribed" includes it
+      whereClauses.push(
+        filter.newsletter
+          ? "Donors.newsletter = 1"
+          : "(Donors.newsletter = 0 OR Donors.newsletter IS NULL)",
+      );
     }
 
     const registeredFilter = filter.registeredDate ?? filter.registered;
@@ -253,6 +288,11 @@ async function getAll(
         whereClauses.push(`Donors.date_registered < ${sqlString.escape(toDate)}`);
       }
     }
+
+    whereClauses.push(
+      ...instantRangeClauses("Donors.date_registered", filter.registeredRange, "db"),
+      ...instantRangeClauses("Aggregates.last_donation_date", filter.lastDonationRange),
+    );
 
     if (filter.lastDonationDate) {
       if (filter.lastDonationDate.from) {
@@ -310,8 +350,7 @@ async function getAll(
     }
 
     if (filter.fundraiserGiving) {
-      const fundraiserTypes = filter.fundraiserTypes ?? allFundraiserTypes;
-      if (fundraiserTypes.length === 0) {
+      if (filter.fundraiserTypes?.length === 0) {
         return {
           rows: [],
           statistics: { totalDonors: 0, totalDonationCount: 0, totalDonationSum: 0 },
@@ -319,7 +358,7 @@ async function getAll(
         };
       }
 
-      const fundraiserClause = fundraiserMatchClause("D_rec", fundraiserTypes);
+      const fundraiserClause = fundraiserMatchClause("D_rec", filter.fundraiserTypes);
       const hasFundraiserDonationsSubquery = `
         EXISTS (
           SELECT 1
@@ -352,6 +391,13 @@ async function getAll(
 
   const whereStatement =
     whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "WHERE 1";
+
+  const exact = filter?.exactMatchFirst?.trim();
+  const exactMatchOrder = exact
+    ? `(${/^\d+$/.test(exact) ? `FD.ID = ${sqlString.escape(Number(exact))} OR ` : ""}` +
+      `LOWER(FD.email) = LOWER(${sqlString.escape(exact)}) OR ` +
+      `LOWER(FD.full_name) = LOWER(${sqlString.escape(exact)})) DESC, `
+    : "";
   const joinStatement = joins.join(" \n ");
 
   const query = `
@@ -361,7 +407,7 @@ async function getAll(
         Donors.ID,
         Donors.full_name,
         Donors.email,
-        Donors.date_registered,
+        ${dbClockColumn("Donors.date_registered")},
         Donors.newsletter,
         Aggregates.last_donation_date,
         Aggregates.donations_count,
@@ -388,7 +434,7 @@ async function getAll(
     FROM FilteredDonors FD
     CROSS JOIN TotalCount TC
     CROSS JOIN TotalSum TS
-    ORDER BY ${sortColumn} ${sort.desc ? "DESC" : "ASC"}
+    ORDER BY ${exactMatchOrder}${sortColumn} ${sort.desc ? "DESC" : "ASC"}
     LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(page * limit)};
   `;
 
@@ -441,7 +487,11 @@ async function getIDbyEmail(email): Promise<number | null> {
  * @returns {Donor | null} A donor object
  */
 async function getByID(ID): Promise<Donor | null> {
-  var [result] = await DAO.execute(`SELECT * FROM Donors where ID = ? LIMIT 1`, [ID]);
+  var [result] = await DAO.execute(
+    `SELECT ID, full_name, email, newsletter, trash, ${dbClockColumn("date_registered")}
+     FROM Donors where ID = ? LIMIT 1`,
+    [ID],
+  );
 
   if (result.length > 0)
     return {
@@ -466,7 +516,7 @@ async function getByKID(KID) {
             ID,
             email, 
             full_name,
-            date_registered
+            ${dbClockColumn("date_registered")}
             
             FROM Donors 
             
@@ -619,9 +669,9 @@ async function getIDByAgreementCode(agreementUrlCode) {
  * @returns {Array<Donor>} An array of matching donor objects
  */
 async function search(filter): Promise<Array<Donor>> {
-  var wheres = [];
-  var havings = [];
-  var params = [];
+  var wheres: string[] = [];
+  var havings: string[] = [];
+  var params: any[] = [];
   if (filter.query !== undefined && filter.query.length >= 1) {
     // Remove @ from query att all locations
     const matchSanitized = filter.query.replace(/@/g, " ");
@@ -736,7 +786,7 @@ async function updateName(donorID, name) {
  */
 async function update(donorID, name, email, newsletter, trash?: boolean) {
   let isTrash = trash;
-  if (typeof trash === "undefined") isTrash = (await getByID(donorID)).trash;
+  if (typeof trash === "undefined") isTrash = (await getByID(donorID))!.trash;
 
   let [res] = await DAO.query(
     `UPDATE Donors SET full_name = ?, email = ?, newsletter = ?, trash = ? where ID = ?`,

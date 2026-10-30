@@ -91,7 +91,7 @@ mcpRouter.post("/", async (req, res) => {
   try {
     if (Array.isArray(body)) {
       // JSON-RPC batch: collect responses to requests, drop notifications.
-      const responses = [];
+      const responses: NonNullable<Awaited<ReturnType<typeof handleJsonRpcMessage>>>[] = [];
       for (const msg of body) {
         const r = await handleJsonRpcMessage(msg);
         if (r !== null) responses.push(r);

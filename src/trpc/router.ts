@@ -1,0 +1,30 @@
+import { agreementsRouter } from "./routers/agreements";
+import { analysisRouter } from "./routers/analysis";
+import { configRouter } from "./routers/config";
+import { donationsRouter } from "./routers/donations";
+import { donorsRouter } from "./routers/donors";
+import { giroRouter } from "./routers/giro";
+import { homeRouter } from "./routers/home";
+import { intentsRouter } from "./routers/intents";
+import { metaRouter } from "./routers/meta";
+import { regrantingRouter } from "./routers/regranting";
+import { reportsRouter } from "./routers/reports";
+import { vippsRouter } from "./routers/vipps";
+import { router } from "./trpc";
+
+export const appRouter = router({
+  meta: metaRouter,
+  config: configRouter,
+  donors: donorsRouter,
+  donations: donationsRouter,
+  vipps: vippsRouter,
+  giro: giroRouter,
+  reports: reportsRouter,
+  agreements: agreementsRouter,
+  regranting: regrantingRouter,
+  analysis: analysisRouter,
+  intents: intentsRouter,
+  home: homeRouter,
+});
+
+export type AppRouter = typeof appRouter;

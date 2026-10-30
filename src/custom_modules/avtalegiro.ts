@@ -1,4 +1,4 @@
-import { sendAvtalegiroNotification } from "./mail";
+import { sendAvtaleGiroChange, sendAvtalegiroNotification } from "./mail";
 import { DAO } from "./DAO";
 import { DateTime } from "luxon";
 
@@ -6,6 +6,8 @@ const writer = require("./avtalegiro/filewriterutil");
 const config = require("../config");
 import workdays from "norwegian-workdays";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
+import { donationHelpers } from "./donationHelpers";
+import { DistributionInput } from "../schemas/types";
 
 /**
  * Generates a claims file to claim payments for AvtaleGiro agreements
@@ -23,11 +25,11 @@ export async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
   /**
    * Claim requests
    */
-  let claims = [];
+  let claims: any[] = [];
   for (let i = 0; i < agreements.length; i++) {
     fileContents += writer.startRecordPaymentAssignment(i, shipmentID);
 
-    let assignmentClaims = [];
+    let assignmentClaims: any[] = [];
     /**
      * Right now, we only send one transaction
      * We are able to send claims up to 12 months ahead of time
@@ -120,7 +122,7 @@ export async function updateAgreements(agreements) {
     updated: 0,
     added: 0,
     terminated: 0,
-    failed: [],
+    failed: [] as any[],
   };
 
   for (let i = 0; i < agreements.length; i++) {
@@ -271,4 +273,55 @@ function printDueDatesTable(date: DateTime, dueDates: DateTime[]) {
 
   console.log("");
   console.log("");
+}
+
+/**
+ * Replaces the distribution of an AvtaleGiro agreement. The current distribution is preserved
+ * under a newly generated KID (keeping donation history), and the new distribution takes over
+ * the agreement's original KID. Notifies the donor of the change.
+ * @param KID The agreement KID
+ * @param validatedDistribution A distribution that has passed validateDistribution
+ */
+export async function replaceAvtaleGiroDistribution(
+  KID: string,
+  validatedDistribution: DistributionInput,
+) {
+  const originalDistribution = await DAO.distributions.getSplitByKID(KID);
+  const newKid = await donationHelpers.createAvtaleGiroKID();
+  await DAO.avtalegiroagreements.replaceDistribution(
+    originalDistribution,
+    newKid,
+    validatedDistribution,
+  );
+  await sendAvtaleGiroChange(KID, "SHARES");
+}
+
+/**
+ * Sets the active status of an AvtaleGiro agreement, notifying the donor on cancellation
+ * (only when active is exactly 0, as sent by the REST API).
+ */
+export async function setAvtaleGiroStatus(KID: string, active: unknown) {
+  const response = await DAO.avtalegiroagreements.setActive(KID, active);
+  if (active === 0) await sendAvtaleGiroChange(KID, "CANCELLED");
+  return response;
+}
+
+/**
+ * Updates the amount of an AvtaleGiro agreement and notifies the donor
+ * @param amount The new amount in øre
+ */
+export async function updateAvtaleGiroAmount(KID: string, amount: any) {
+  const response = await DAO.avtalegiroagreements.updateAmount(KID, amount);
+  const newAmountInNok = parseFloat(amount) / 100;
+  await sendAvtaleGiroChange(KID, "AMOUNT", newAmountInNok.toString());
+  return response;
+}
+
+/**
+ * Updates the payment date (day of month, 0 = last day) of an AvtaleGiro agreement and notifies the donor
+ */
+export async function updateAvtaleGiroPaymentDate(KID: string, paymentDate: any) {
+  const response = await DAO.avtalegiroagreements.updatePaymentDate(KID, paymentDate);
+  await sendAvtaleGiroChange(KID, "CHARGEDAY", paymentDate);
+  return response;
 }

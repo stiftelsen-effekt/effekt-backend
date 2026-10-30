@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { DAO, SqlResult } from "../DAO";
 
 import sqlString from "sqlstring";
+import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 import { OkPacket, ResultSetHeader } from "mysql2/promise";
 import { Avtalegiro_agreements } from "@prisma/client";
 import { Distribution, DistributionInput } from "../../schemas/types";
@@ -21,8 +22,28 @@ export type AvtaleGiroAgreement = {
  * @param {string} KID KID number
  * @returns {Array<Donation>} Array of Donation objects
  */
-async function getDonationsByKID(KID) {
-  var [getDonationsByKIDQuery] = await DAO.query(
+export type AvtaleGiroDonation = {
+  id: number;
+  /** Decimal string */
+  sum: string;
+  /** Decimal string */
+  transactionCost: string | null;
+  timestamp: Date;
+  paymentMethod: string;
+  KID: string;
+};
+
+async function getDonationsByKID(KID: string): Promise<AvtaleGiroDonation[]> {
+  var [getDonationsByKIDQuery] = await DAO.query<
+    Array<{
+      ID: number;
+      sum_confirmed: string;
+      transaction_cost: string | null;
+      timestamp_confirmed: Date;
+      payment_name: string;
+      KID_fordeling: string;
+    }>
+  >(
     `
           SELECT *, D.ID, payment_name FROM Donations as D
               INNER JOIN Payment as P on D.Payment_ID = P.ID
@@ -30,14 +51,13 @@ async function getDonationsByKID(KID) {
     [KID],
   );
 
-  let donations = [];
+  let donations: AvtaleGiroDonation[] = [];
 
+  // The query has no donor columns; the donor/donorId/email keys were always undefined
+  // (and so absent from the JSON), so they are left out.
   getDonationsByKIDQuery.forEach((donation) => {
     donations.push({
       id: donation.ID,
-      donor: donation.full_name,
-      donorId: donation.donorId,
-      email: donation.email,
       sum: donation.sum_confirmed,
       transactionCost: donation.transaction_cost,
       timestamp: donation.timestamp_confirmed,
@@ -47,6 +67,79 @@ async function getDonationsByKID(KID) {
   });
 
   return donations;
+}
+
+export type AvtaleGiroAgreementPayments = {
+  /**
+   * Every KID the agreement's donations have been registered under: the agreement's current KID
+   * first, then the KIDs that preserve earlier distributions (AvtaleGiro_replaced_distributions)
+   */
+  KIDs: string[];
+  /** AvtaleGiro donations under any of the KIDs, newest first */
+  donations: AvtaleGiroDonation[];
+};
+
+/**
+ * AvtaleGiro donations of an agreement across distribution changes. replaceDistribution keeps
+ * the agreement's KID for the new distribution and moves earlier donations to a replacement KID,
+ * linked in AvtaleGiro_replaced_distributions. Because that link's original KID follows
+ * Distributions.KID updates (ON UPDATE CASCADE), a later replacement re-points earlier links to
+ * the newer replacement KID, so the links form a chain that is followed recursively.
+ *
+ * Donations moved by a tax unit change (tax.ts, updateKIDBeforeTimestamp) are not linked to the
+ * agreement anywhere and are not included.
+ * @returns null if there is no agreement with the id
+ */
+async function getPaymentsByAgreementId(
+  agreementId: number,
+): Promise<AvtaleGiroAgreementPayments | null> {
+  const [kidRows] = await DAO.query<Array<{ KID: string; depth: number }>>(
+    `WITH RECURSIVE agreement_kids (KID, depth) AS (
+       SELECT CAST(KID AS CHAR(32)) COLLATE utf8mb4_0900_ai_ci, 0
+       FROM Avtalegiro_agreements
+       WHERE ID = ?
+       UNION
+       SELECT CAST(R.Replacement_KID AS CHAR(32)) COLLATE utf8mb4_0900_ai_ci, K.depth + 1
+       FROM AvtaleGiro_replaced_distributions R
+       INNER JOIN agreement_kids K ON R.Original_AvtaleGiro_KID = K.KID
+       WHERE K.depth < 100
+     )
+     SELECT KID, MIN(depth) AS depth FROM agreement_kids GROUP BY KID ORDER BY depth, KID`,
+    [agreementId],
+  );
+  if (kidRows.length === 0) return null;
+  const KIDs = kidRows.map((row) => row.KID);
+
+  const [rows] = await DAO.query<
+    Array<{
+      ID: number;
+      sum_confirmed: string;
+      transaction_cost: string | null;
+      timestamp_confirmed: Date;
+      payment_name: string;
+      KID_fordeling: string;
+    }>
+  >(
+    `SELECT D.ID, D.sum_confirmed, D.transaction_cost, D.timestamp_confirmed, P.payment_name,
+       D.KID_fordeling
+     FROM Donations AS D
+     INNER JOIN Payment AS P ON D.Payment_ID = P.ID
+     WHERE D.KID_fordeling IN (?) AND D.Payment_ID = 7
+     ORDER BY D.timestamp_confirmed DESC, D.ID DESC`,
+    [KIDs],
+  );
+
+  return {
+    KIDs,
+    donations: rows.map((donation) => ({
+      id: donation.ID,
+      sum: donation.sum_confirmed,
+      transactionCost: donation.transaction_cost,
+      timestamp: donation.timestamp_confirmed,
+      paymentMethod: donation.payment_name,
+      KID: donation.KID_fordeling,
+    })),
+  };
 }
 
 /*
@@ -193,9 +286,8 @@ async function replaceDistribution(
 }
 
 async function setActive(KID, active) {
+  const transaction = await DAO.startTransaction();
   try {
-    var transaction = await DAO.startTransaction();
-
     let [res] = await transaction.query<ResultSetHeader | OkPacket>(
       `UPDATE Avtalegiro_agreements SET active = ? WHERE KID = ?`,
       [active, KID],
@@ -230,7 +322,7 @@ async function setActive(KID, active) {
 
     return true;
   } catch (ex) {
-    if (transaction) await DAO.rollbackTransaction(transaction);
+    await DAO.rollbackTransaction(transaction);
     throw ex;
   }
 }
@@ -277,29 +369,32 @@ async function exists(KID) {
   else return false;
 }
 
-interface AvtaleGiroFilters {
+export interface AvtaleGiroFilters {
   amount?: { from?: number; to?: number };
   KID?: string;
   paymentDate?: { from?: number; to?: number };
   created?: { from?: Date; to?: Date };
+  /** Half-open instant range (osloDays.ts), used by tRPC; `created` is filled by MySQL */
+  createdRange?: InstantRange;
   donor?: string;
   statuses?: Array<number>;
 }
 
-interface AvtaleGiroRow {
+export interface AvtaleGiroRow {
   ID: number;
-  active: number;
+  active: 0 | 1;
   KID: string;
   payment_date: number;
   created: Date;
   cancelled: Date | null;
   last_updated: Date;
-  notice: string | null;
+  notice: 0 | 1;
   full_name: string;
+  /** NOK */
   amount: number;
 }
 
-interface AvtaleGiroStatistics {
+export interface AvtaleGiroStatistics {
   numAgreements: number;
   sumAgreements: number;
   avgAgreement: number;
@@ -367,6 +462,7 @@ async function getAgreements(
         whereClauses.push(`AG.created < ${sqlString.escape(toDate)}`);
       }
     }
+    whereClauses.push(...instantRangeClauses("AG.created", filter.createdRange, "db"));
 
     if (filter.KID && filter.KID.length > 0) {
       whereClauses.push(`CAST(AG.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)}`);
@@ -402,9 +498,9 @@ async function getAgreements(
         AG.active,
         AG.KID,
         AG.payment_date,
-        AG.created,
+        ${dbClockColumn("AG.created")},
         AG.cancelled,
-        AG.last_updated,
+        ${dbClockColumn("AG.last_updated")},
         AG.notice,
         Donors.full_name as full_name,
         AG.amount
@@ -471,8 +567,23 @@ async function getAgreements(
  * @param {string} id AvtaleGiro ID
  * @return {AvtaleGiro} AvtaleGiro agreement
  */
-async function getAgreement(id: string) {
-  const [result] = await DAO.query<Avtalegiro_agreements[]>(
+export type AvtaleGiroAgreementDetails = {
+  ID: number;
+  active: 0 | 1;
+  /** Whole NOK, as a decimal string */
+  amount: string;
+  KID: string;
+  payment_date: number;
+  created: Date | null;
+  cancelled: Date | null;
+  last_updated: Date | null;
+  notice: 0 | 1;
+  full_name: string;
+  donorId: number;
+};
+
+async function getAgreement(id: string | number): Promise<AvtaleGiroAgreementDetails | false> {
+  const [result] = await DAO.query<AvtaleGiroAgreementDetails[]>(
     `
         SELECT DISTINCT
             AG.ID,
@@ -480,12 +591,12 @@ async function getAgreement(id: string) {
             ROUND(AG.amount / 100, 0) as amount,
             AG.KID,
             AG.payment_date,
-            AG.created,
+            ${dbClockColumn("AG.created")},
             AG.cancelled,
-            AG.last_updated,
+            ${dbClockColumn("AG.last_updated")},
             AG.notice,
             Donors.full_name,
-            Donors.ID 
+            Donors.ID as donorId
         FROM Avtalegiro_agreements as AG
         INNER JOIN Distributions as D
             ON AG.KID = D.KID
@@ -512,9 +623,9 @@ async function getByDonorId(donorId) {
                 ROUND(AG.amount / 100, 0) as amount,
                 AG.KID,
                 AG.payment_date,
-                AG.created,
+                ${dbClockColumn("AG.created")},
                 AG.cancelled,
-                AG.last_updated,
+                ${dbClockColumn("AG.last_updated")},
                 AG.notice,
                 Donors.full_name
             FROM Avtalegiro_agreements as AG
@@ -532,7 +643,7 @@ async function getByDonorId(donorId) {
   return agreements;
 }
 
-async function getByKID(KID: string): Promise<AvtaleGiroAgreement> {
+async function getByKID(KID: string): Promise<AvtaleGiroAgreement | null> {
   let [agreement] = await DAO.query(
     `
             SELECT 
@@ -559,7 +670,7 @@ async function getByKID(KID: string): Promise<AvtaleGiroAgreement> {
   }
 }
 
-async function getByID(ID: number): Promise<Avtalegiro_agreements> {
+async function getByID(ID: number): Promise<Avtalegiro_agreements | null> {
   let [agreement] = await DAO.query<Avtalegiro_agreements[]>(
     `
             SELECT 
@@ -660,57 +771,241 @@ async function getAgreementReport() {
  * Gets all agreements that we have not yet recieved a payment for a given date
  * @param {Date} date
  */
-async function getMissingForDate(date) {
-  let year = date.getFullYear();
-  let month = date.getMonth() + 1;
-  let dayOfMonth = date.getDate();
+export type MissingAvtaleGiroAgreement = {
+  ID: number;
+  email: string;
+  full_name: string;
+  /** Whole NOK */
+  amount: number;
+  KID: string;
+  payment_date: number;
+  created: Date | null;
+  last_updated: Date | null;
+  cancelled: Date | null;
+  active: 0 | 1;
+};
 
-  let [res] = await DAO.query("call get_avtalegiro_agreement_missing_donations_by_date(?,?,?)", [
-    year,
-    month,
-    dayOfMonth,
-  ]);
+/**
+ * Gets all agreements that we have not yet recieved a payment for a given date
+ * (inline replacement for get_avtalegiro_agreement_missing_donations_by_date, which still
+ * queries the Combining_table dropped in 20230731130928_multiple_cause_areas)
+ * @param {Date} date
+ */
+async function getMissingForDate(date: Date): Promise<MissingAvtaleGiroAgreement[]> {
+  const day = DateTime.fromJSDate(date).toISODate();
 
-  return res[0];
+  const [res] = await DAO.query<MissingAvtaleGiroAgreement[]>(
+    `
+    SELECT
+      AG.ID,
+      Donors.email,
+      Donors.full_name,
+      CAST(ROUND(AG.amount / 100) AS SIGNED) as amount,
+      AG.KID,
+      AG.payment_date,
+      ${dbClockColumn("AG.created")},
+      ${dbClockColumn("AG.last_updated")},
+      AG.cancelled,
+      AG.active
+    FROM Avtalegiro_agreements as AG
+      INNER JOIN Distributions as D ON D.KID = AG.KID
+      INNER JOIN Donors ON Donors.ID = D.Donor_ID
+    WHERE
+      AG.payment_date = DAY(?)
+      # Created six days before payment date
+      AND AG.created < DATE_SUB(DATE(?), interval 6 day)
+      AND (
+        # Is active, or cancelled after the claim was sent
+        AG.active = 1
+        OR AG.cancelled > DATE_SUB(DATE(?), interval 6 day)
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM Donations
+        WHERE
+          Donations.KID_fordeling = AG.KID
+          AND Donations.Payment_ID = 7
+          AND Donations.timestamp_confirmed >= DATE(?)
+          AND Donations.timestamp_confirmed < DATE_ADD(DATE(?), interval 1 month)
+      )
+    ORDER BY AG.ID
+    `,
+    [day, day, day, day, day],
+  );
+
+  return res;
 }
+
+export type ExpectedAvtaleGiroAgreement = {
+  ID: number;
+  KID: string;
+  /** øre */
+  amount: number;
+  payment_date: number;
+  notice: 0 | 1;
+  active: 0 | 1;
+  last_updated: Date | null;
+  created: Date | null;
+  cancelled: Date | null;
+};
 
 /**
  * Gets all agreements we expected a donation for for a given date
  * @param {Date} date
  */
-async function getExpectedDonationsForDate(date) {
+async function getExpectedDonationsForDate(date: Date): Promise<ExpectedAvtaleGiroAgreement[]> {
   let year = date.getFullYear();
   let month = date.getMonth() + 1;
   let dayOfMonth = date.getDate();
 
-  let [res] = await DAO.query("call get_avtalegiro_agreement_expected_donations_by_date(?,?,?)", [
-    year,
-    month,
-    dayOfMonth,
-  ]);
+  let [res] = await DAO.query<ExpectedAvtaleGiroAgreement[][]>(
+    "call get_avtalegiro_agreement_expected_donations_by_date(?,?,?)",
+    [year, month, dayOfMonth],
+  );
 
   return res[0];
 }
 
+/** An AvtaleGiro claim as sent to Nets */
+export type AvtaleGiroClaim = {
+  KID: string;
+  /** øre */
+  amount: number;
+};
+
+/**
+ * The claims sent to Nets for a due date, read from the claim file (DIRREM) the scheduled
+ * AvtaleGiro job stores in Import_logs ("AvtaleGiro", or "AvtaleGiro - Retry" when it was sent
+ * again; the latest file wins). Available since June 2021.
+ * @param day YYYY-MM-DD
+ * @returns null if no claim file for the date was logged
+ */
+async function getClaimsForDate(day: string): Promise<AvtaleGiroClaim[] | null> {
+  const [year, month, date] = day.split("-");
+  // First line of a claim: NY21 02 30, transaction number 0000001, due date DDMMYY
+  const firstLine = `NY2102300000001${date}${month}${year.slice(2)}`;
+  const [rows] = await DAO.query<Array<{ file: string }>>(
+    `SELECT JSON_UNQUOTE(JSON_EXTRACT(result, '$.file')) AS file
+     FROM Import_logs
+     WHERE label IN ('AvtaleGiro', 'AvtaleGiro - Retry')
+       AND timestamp >= DATE_SUB(?, INTERVAL 40 DAY)
+       AND timestamp < DATE_ADD(?, INTERVAL 2 DAY)
+       AND JSON_TYPE(JSON_EXTRACT(result, '$.file')) = 'STRING'
+       AND JSON_UNQUOTE(JSON_EXTRACT(result, '$.file')) LIKE ?
+     ORDER BY timestamp DESC, ID DESC
+     LIMIT 1`,
+    [day, day, `%${firstLine}%`],
+  );
+  if (rows.length === 0) return null;
+  return parseClaimFile(rows[0].file, firstLine.slice(15));
+}
+
+/**
+ * Claim lines (record NY210230) of a DIRREM file with the given due date (DDMMYY): amount in
+ * øre at 32-49, KID right-aligned at 49-74 (see avtalegiro/filewriterutil.js).
+ */
+export const parseClaimFile = (file: string, dueDate: string): AvtaleGiroClaim[] =>
+  file
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("NY210230") && line.substring(15, 21) === dueDate)
+    .map((line) => ({
+      KID: line.substring(49, 74).trim(),
+      amount: parseInt(line.substring(32, 49), 10),
+    }))
+    .filter((claim) => claim.KID.length > 0 && Number.isFinite(claim.amount));
+
+/**
+ * Agreements with the claimed amounts of a past due date, in agreement order. Claims whose
+ * KID no longer has an agreement are left out.
+ * @returns null if no claim file for the date was logged
+ */
+async function getClaimedAgreementsForDate(
+  day: string,
+): Promise<ExpectedAvtaleGiroAgreement[] | null> {
+  const claims = await getClaimsForDate(day);
+  if (claims === null) return null;
+  if (claims.length === 0) return [];
+  const [agreements] = await DAO.query<ExpectedAvtaleGiroAgreement[]>(
+    `SELECT * FROM Avtalegiro_agreements WHERE KID IN (?) ORDER BY ID`,
+    [claims.map((claim) => claim.KID)],
+  );
+  const amountByKID = new Map(claims.map((claim) => [claim.KID, claim.amount]));
+  return agreements.map((agreement) => ({
+    ...agreement,
+    amount: amountByKID.get(agreement.KID) ?? agreement.amount,
+  }));
+}
+
+export type ReceivedAvtaleGiroDonation = {
+  id: number;
+  kid: string;
+  paymentMethod: "AvtaleGiro";
+  email: string;
+  donor: string;
+  /** Decimal string */
+  sum: string;
+  /** Decimal string */
+  transactionCost: string | null;
+  timestamp: Date;
+};
+
 /**
  * Gets all donations we have recieved for agreements for a given date
+ * (inline replacement for get_avtalegiro_agreement_recieved_donations_by_date, which still
+ * queries the Combining_table dropped in 20230731130928_multiple_cause_areas)
  * @param {Date} date
  */
-async function getRecievedDonationsForDate(date) {
-  let year = date.getFullYear();
-  let month = date.getMonth() + 1;
-  let dayOfMonth = date.getDate();
+async function getRecievedDonationsForDate(date: Date): Promise<ReceivedAvtaleGiroDonation[]> {
+  const day = DateTime.fromJSDate(date).toISODate();
 
-  let [res] = await DAO.query("call get_avtalegiro_agreement_recieved_donations_by_date(?,?,?)", [
-    year,
-    month,
-    dayOfMonth,
-  ]);
+  const [res] = await DAO.query<
+    Array<{
+      ID: number;
+      email: string;
+      full_name: string;
+      sum_confirmed: string;
+      transaction_cost: string | null;
+      KID_fordeling: string;
+      timestamp_confirmed: Date;
+    }>
+  >(
+    `
+    SELECT
+      Donations.ID,
+      Donors.email,
+      Donors.full_name,
+      Donations.sum_confirmed,
+      Donations.transaction_cost,
+      Donations.KID_fordeling,
+      Donations.timestamp_confirmed
+    FROM Donations
+      INNER JOIN Distributions as D ON D.KID = Donations.KID_fordeling
+      INNER JOIN Donors ON Donors.ID = D.Donor_ID
+    WHERE
+      Donations.KID_fordeling IN (
+        SELECT KID
+        FROM Avtalegiro_agreements
+        WHERE
+          payment_date = DAY(?)
+          # Created six days before payment date
+          AND created < DATE_SUB(DATE(?), interval 6 day)
+          AND (
+            # Is active, or cancelled after payment date
+            active = 1
+            OR cancelled > DATE(?)
+          )
+      )
+      AND Donations.Payment_ID = 7
+      AND Donations.timestamp_confirmed >= DATE(?)
+      AND Donations.timestamp_confirmed < DATE_ADD(DATE(?), interval 1 month)
+    ORDER BY Donations.ID
+    `,
+    [day, day, day, day, day],
+  );
 
-  return res[0].map((donation) => ({
+  return res.map((donation) => ({
     id: donation.ID,
     kid: donation.KID_fordeling,
-    paymentMethod: "AvtaleGiro",
+    paymentMethod: "AvtaleGiro" as const,
     email: donation.email,
     donor: donation.full_name,
     sum: donation.sum_confirmed,
@@ -725,8 +1020,10 @@ async function getRecievedDonationsForDate(date) {
  * Skips empty buckets
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
-async function getAgreementSumHistogram() {
-  let [results] = await DAO.query(`
+async function getAgreementSumHistogram(): Promise<
+  Array<{ bucket: number; items: number; bar: number }>
+> {
+  let [results] = await DAO.query<Array<{ bucket: number; items: number; bar: number }>>(`
             SELECT 
                 floor((amount/100)/500)*500 	AS bucket, 
                 count(*) 						AS items,
@@ -778,8 +1075,17 @@ async function getByPaymentDate(dayInMonth): Promise<Array<AvtaleGiroAgreement>>
  * Diff is the difference between the two
  * @returns {Array<{ date: String, expected: number, actual: number, diff: number }>}
  */
-async function getValidationTable() {
-  let [rows] = await DAO.query(`call get_avtalegiro_validation()`);
+export type AvtaleGiroValidationRow = {
+  /** Day of month */
+  date: number;
+  /** Whole NOK, as decimal strings */
+  expected: string;
+  actual: string;
+  diff: string;
+};
+
+async function getValidationTable(): Promise<AvtaleGiroValidationRow[]> {
+  let [rows] = await DAO.query<AvtaleGiroValidationRow[][]>(`call get_avtalegiro_validation()`);
 
   return rows[0];
 }
@@ -868,6 +1174,7 @@ export const avtalegiroagreements = {
   updatePaymentDate,
   updateAmount,
   replaceDistribution,
+  getPaymentsByAgreementId,
   remove,
   exists,
   getActiveAgreements,
@@ -883,6 +1190,7 @@ export const avtalegiroagreements = {
   getMissingForDate,
   getRecievedDonationsForDate,
   getExpectedDonationsForDate,
+  getClaimedAgreementsForDate,
   getDonationsByKID,
   getShipmentIDs,
   getAgreementsWithKIDStartingWith,

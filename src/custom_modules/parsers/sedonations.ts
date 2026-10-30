@@ -106,7 +106,7 @@ export const parseSwedishDonationsReport = (report): ExtractedDonor[] => {
       }) as SwedishDonationsReportRow[];
     } catch (ex) {
       console.error("Using semicolon delimiter failed.");
-      console.error("Parsing adoveo transactions failed.");
+      console.error("Parsing Swedish donations report failed.");
       throw new Error(ex);
     }
   }
@@ -127,7 +127,7 @@ export const parseSwedishDonationsReport = (report): ExtractedDonor[] => {
     const climateKeys = ["catf", "burn", "cw", "tw", "ec", "fp", "c180", "il", "gec", "ci"];
     const animalKeys = ["asf", "thl", "gfi", "wai", "fn", "ace"];
 
-    const distribution = {
+    const distribution: ExtractedDonorDonation["distribution"] = {
       unknownSum: row.unknown,
       globalHealth: {
         sum: 0,
@@ -278,8 +278,9 @@ export const parseSwedishDonationsReport = (report): ExtractedDonor[] => {
     distribution.climate.sum = climateFileSum;
     distribution.animal.sum = animalFileSum;
 
-    if (donors.has(row.email)) {
-      donors.get(row.email).donations.push({
+    const existingDonor = donors.get(row.email);
+    if (existingDonor) {
+      existingDonor.donations.push({
         date: row.datum,
         paymentMethod: row.paymentMethod,
         referenceNumber: row.referencenumber,

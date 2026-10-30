@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./dist-types/tsconfig.trpc.tsbuildinfo",
+    "noEmit": false,
+    "outDir": "dist-types",
+    "rootDir": "src",
+    "allowJs": false,
+    "skipLibCheck": true
+  },
+  "files": ["src/trpc/router.ts"],
+  "include": []
+}

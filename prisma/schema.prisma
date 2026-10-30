@@ -36,11 +36,24 @@ model Organizations {
   std_percentage_share Int?    @default(0) @db.TinyInt /// The percentage share of the standard distribution, determined by Effekt. Updated about twice a year
   is_active            Int?    @db.TinyInt
   ordering             Int?    @db.TinyInt
+  /// Chart colour in the admin: a palette token name such as "chart-3" (src/custom_modules/orgChartColors.ts), not a raw colour, so light and dark themes keep working. Null: derived from the id.
+  chart_color          String? @db.VarChar(16)
 
   Cause_areas                           Cause_areas                             @relation(fields: [cause_area_ID], references: [ID], onDelete: Cascade, map: "fk_Organizations_to_Cause_areas_idx")
   Distribution_cause_area_organizations Distribution_cause_area_organizations[]
   Adoveo_fundraiser_org_shares          Adoveo_fundraiser_org_shares[]
   Adoveo_giftcard_org_shares            Adoveo_giftcard_org_shares[]
+  Organization_payees                   Organization_payees[]
+  Projects                              Projects[]
+  Regrant_round_recipients              Regrant_round_recipients[]
+  Regrant_round_balances                Regrant_round_balances[]
+  Regrant_transfer_lines                Regrant_transfer_lines[]
+  Regrant_adjustments                   Regrant_adjustments[]
+  Funds                                 Funds?
+  Fund_grant_lines                      Fund_grant_lines[]
+  Regrant_holds                         Regrant_holds[]
+  Regranting_funds                      Regranting_funds?
+  Onward_allocations                    Onward_allocations[]
 }
 
 model AvtaleGiro_replaced_distributions {
@@ -241,7 +254,8 @@ model Data_owner {
   owner   String  @unique(map: "owner_UNIQUE") @db.VarChar(128)
   default Boolean @default(false)
 
-  Distributions Distributions[]
+  Distributions      Distributions[]
+  Review_queue_items Review_queue_items[]
 }
 
 model Donations {
@@ -263,15 +277,22 @@ model Donations {
   Adoveo_giftcard_transactions   Adoveo_giftcard_transactions?
   AutoGiro_agreement_charges     AutoGiro_agreement_charges?
   LegacySeDistributionConnection LegacySeDistributionConnection?
+  Review_queue_items             Review_queue_items[]
+  Pledges                        Pledges[]
 
   // When we delete a distribution we delete the associated donations.
   Distributions Distributions @relation(fields: [KID_fordeling], references: [KID], onDelete: Cascade, map: "fk_Donations_to_Distributions_KID")
 
   Vipps_orders Vipps_orders[]
 
+  Regrant_round_donations Regrant_round_donations[]
+  Regrant_adjustments     Regrant_adjustments[]
+
   @@index([KID_fordeling, timestamp_confirmed], map: "KidAndTimestamp")
+  @@index([KID_fordeling, timestamp_confirmed, Payment_ID, sum_confirmed], map: "KidTimestampPaymentSum")
   @@index([timestamp_confirmed], map: "Timestamp")
   @@index([Donor_ID], map: "fk_Donations_Donors_KID_idx")
+  @@index([Donor_ID, timestamp_confirmed])
   @@index([Payment_ID], map: "fk_Donations_to_Donors_idx")
 }
 
@@ -287,7 +308,6 @@ model Donors {
   Donations                     Donations[]
   Distributions                 Distributions[]
   FB_payment_ID                 FB_payment_ID[]
-  Funds_donations               Funds_donations[]
   Tax_unit                      Tax_unit[]
   Vipps_agreements              Vipps_agreements[]
   Swish_orders                  Swish_orders[]
@@ -479,25 +499,47 @@ model Fundraiser_transactions {
   Distributions Distributions[]
 }
 
-model Funds_donations {
-  ID                Int       @id @default(autoincrement())
-  DonorID           Int?
-  TaxUnitID         Int?
-  Sum               Decimal   @db.Decimal(15, 2)
-  Timestamp         DateTime  @db.DateTime(0)
-  PaymentExternalID String    @db.VarChar(45)
-  Donors            Donors?   @relation(fields: [DonorID], references: [ID], onDelete: Cascade, map: "FK_Funds_donorid")
-  Tax_unit          Tax_unit? @relation(fields: [TaxUnitID], references: [ID], map: "FK_Funds_taxunit")
-
-  @@index([DonorID], map: "FK_Funds_donorid_idx")
-  @@index([TaxUnitID], map: "FK_Funds_taxunit_idx")
+model Import_logs {
+  ID                 Int                  @id @default(autoincrement())
+  label              String?              @db.VarChar(45)
+  result             Json?
+  timestamp          DateTime?            @default(now()) @db.DateTime(0)
+  Review_queue_items Review_queue_items[]
 }
 
-model Import_logs {
-  ID        Int       @id @default(autoincrement())
-  label     String?   @db.VarChar(45)
-  result    Json?
-  timestamp DateTime? @default(now()) @db.DateTime(0)
+/// Transactions from payment reports that could not be registered automatically, shared by all
+/// admins. Written by report uploads (REST and tRPC) and the scheduled OCR import.
+model Review_queue_items {
+  ID               Int       @id @default(autoincrement())
+  Source           String    @db.VarChar(16) /// ocr | vipps | bankNo | bankSe | autogiro
+  Reason           String    @db.Text
+  KID              String?   @db.VarChar(64) /// KID as read from the transaction; may not exist
+  Amount           Decimal   @db.Decimal(16, 2) /// Whole currency units (NOK/SEK)
+  Transaction_date DateTime? @db.DateTime(0)
+  External_ID      String?   @db.VarChar(64) /// Transaction id in the source; dedupes re-uploads
+  Payment_ID       Int /// Payment method to register the donation with
+  Message          String?   @db.Text
+  Payer_name       String?   @db.VarChar(255)
+  Location         String?   @db.VarChar(255) /// Vipps sales location
+  Raw              Json? /// The transaction as the parser produced it
+  Import_log_ID    Int?
+  Meta_owner_ID    Int? /// Data owner chosen at upload; the default owner when registering if null
+  Status           String    @default("open") @db.VarChar(16) /// open | registered | ignored
+  Resolved_by      String?   @db.VarChar(255) /// Admin (JWT email or sub) who registered or ignored it
+  Resolved_at      DateTime? @db.DateTime(0)
+  Note             String?   @db.Text
+  Donation_ID      Int?
+  Created          DateTime  @default(now()) @db.DateTime(0)
+
+  Import_logs Import_logs? @relation(fields: [Import_log_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Review_queue_items_to_Import_logs")
+  Donations   Donations?   @relation(fields: [Donation_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Review_queue_items_to_Donations")
+  Data_owner  Data_owner?  @relation(fields: [Meta_owner_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Review_queue_items_to_Data_owner")
+
+  @@unique([Source, External_ID], map: "Source_External_ID_UNIQUE")
+  @@index([Status, Created], map: "Status_Created_idx")
+  @@index([Import_log_ID], map: "fk_Review_queue_items_to_Import_logs_idx")
+  @@index([Donation_ID], map: "fk_Review_queue_items_to_Donations_idx")
+  @@index([Meta_owner_ID], map: "fk_Review_queue_items_to_Data_owner_idx")
 }
 
 model Payment {
@@ -585,6 +627,23 @@ model Donation_referral_codes {
   @@index([Referral_code], map: "Referral_code_idx")
 }
 
+/// Decided gifts that are not received yet (tilsagn). Shown as a separate layer on top of
+/// measured totals in the analysis overview, never mixed into them. Open while Received_date is null.
+/// Deliberately holds no information about who made the pledge, only the amount and dates.
+model Pledges {
+  ID            Int       @id @default(autoincrement())
+  Sum           Decimal   @db.Decimal(16, 2)
+  Decided_date  DateTime  @db.Date
+  Received_date DateTime? @db.Date
+  /// The donation that fulfilled the pledge, when it is received
+  Donation_ID   Int?
+  Inserted      DateTime  @default(now()) @db.DateTime(0)
+
+  Donations Donations? @relation(fields: [Donation_ID], references: [ID], onDelete: SetNull, map: "fk_Pledges_to_Donations_idx")
+
+  @@index([Donation_ID], map: "fk_Pledges_to_Donations_idx")
+}
+
 model Mailersend_survey_responses {
   ID         Int      @id @default(autoincrement())
   surveyID   Int
@@ -620,9 +679,8 @@ model Tax_unit {
   registered DateTime? @default(now()) @db.DateTime(0)
   archived   DateTime? @db.DateTime(0)
 
-  FB_payment_ID   FB_payment_ID[]
-  Funds_donations Funds_donations[]
-  Distributions   Distributions[]
+  FB_payment_ID FB_payment_ID[]
+  Distributions Distributions[]
 
   // When a donor is deleted we also delete the tax unit.
   Donors Donors @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "FK_tax_unit_donor_id")
@@ -755,3 +813,385 @@ model Agreement_inflation_adjustments {
   @@index([expires])
   @@map("Agreement_inflation_adjustments")
 }
+
+// region Regranting (docs/regranting.md)
+// Allocations are not stored: see the Regrant_allocations view in
+// migrations/*_regranting/migration.sql. Amounts are NOK unless noted.
+
+/// Who we actually send money to. One payee can cover several recipients.
+model Payees {
+  ID                         Int      @id @default(autoincrement())
+  name                       String   @db.VarChar(255)
+  currency                   String   @default("NOK") @db.VarChar(8) /// ISO 4217 code, or e.g. BTC
+  bank_account               String?  @db.VarChar(64)
+  iban                       String?  @db.VarChar(64)
+  swift                      String?  @db.VarChar(16)
+  wallet                     String?  @db.VarChar(128)
+  payment_reference_template String?  @db.VarChar(255)
+  is_active                  Boolean  @default(true)
+  created_at                 DateTime @default(now()) @db.DateTime(0)
+
+  Organization_payees Organization_payees[]
+  Regrant_transfers   Regrant_transfers[]
+  Intermediary_payees Intermediary_payees?
+}
+
+/// Which payee handles a recipient, dated (valid_to inclusive, null = open-ended)
+model Organization_payees {
+  ID              Int       @id @default(autoincrement())
+  Organization_ID Int
+  Payee_ID        Int
+  valid_from      DateTime  @db.Date
+  valid_to        DateTime? @db.Date
+
+  Organizations Organizations @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Organization_payees_to_Organizations")
+  Payees        Payees        @relation(fields: [Payee_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Organization_payees_to_Payees")
+
+  @@index([Organization_ID, valid_from], map: "Organization_valid_from_idx")
+  @@index([Payee_ID], map: "fk_Organization_payees_to_Payees_idx")
+}
+
+/// A specific project at one recipient
+model Projects {
+  ID              Int       @id @default(autoincrement())
+  Organization_ID Int
+  name            String    @db.VarChar(255)
+  description     String?   @db.Text
+  country         String?   @db.VarChar(64)
+  start_date      DateTime? @db.Date
+  end_date        DateTime? @db.Date
+  status          String    @default("proposed") @db.VarChar(16) /// proposed | active | completed | cancelled
+  agreement_ref   String?   @db.VarChar(255)
+  report_due      DateTime? @db.Date
+  documents_url   String?   @db.VarChar(512)
+  created_at      DateTime  @default(now()) @db.DateTime(0)
+
+  Organizations          Organizations            @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Projects_to_Organizations")
+  Regrant_round_balances Regrant_round_balances[]
+  Regrant_transfer_lines Regrant_transfer_lines[]
+  Regrant_adjustments    Regrant_adjustments[]
+  Fund_grant_lines       Fund_grant_lines[]
+  Regrant_holds          Regrant_holds[]
+  Onward_allocations     Onward_allocations[]
+
+  @@index([Organization_ID], map: "fk_Projects_to_Organizations_idx")
+}
+
+/// One regranting decision: a cutoff date, transfers and fund grants, an approval
+model Regrant_rounds {
+  ID           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(255)
+  kind         String    @db.VarChar(16) /// regular | major_donor | fund_grant | extraordinary
+  cutoff       DateTime  @db.Date /// Entries dated on or before this day are in scope
+  status       String    @default("draft") @db.VarChar(16) /// draft | approved | paid
+  min_transfer Decimal   @default(0) @db.Decimal(16, 2) /// Proposal: a recipient's total under this is proposed as 0
+  created_by   String    @db.VarChar(255)
+  created_at   DateTime  @default(now()) @db.DateTime(0)
+  approved_by  String?   @db.VarChar(255)
+  approved_at  DateTime? @db.DateTime(0)
+  paid_at      DateTime? @db.Date
+  notes        String?   @db.Text /// Free text for the record; editable in any status
+
+  Regrant_round_donations  Regrant_round_donations[]
+  Regrant_round_recipients Regrant_round_recipients[]
+  Regrant_round_balances   Regrant_round_balances[]
+  Regrant_transfers        Regrant_transfers[]
+  Regrant_adjustments      Regrant_adjustments[]
+  Fund_grants              Fund_grants[]
+  Regrant_documents        Regrant_documents[]
+
+  @@index([status, cutoff], map: "Status_cutoff_idx")
+}
+
+/// major_donor rounds only: the donations the round passes on
+model Regrant_round_donations {
+  Round_ID    Int
+  Donation_ID Int
+
+  Regrant_rounds Regrant_rounds @relation(fields: [Round_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_round_donations_to_Regrant_rounds")
+  Donations      Donations      @relation(fields: [Donation_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_round_donations_to_Donations")
+
+  @@id([Round_ID, Donation_ID])
+  @@index([Donation_ID], map: "fk_Regrant_round_donations_to_Donations_idx")
+}
+
+/// Per-recipient overrides of the round kind's default for direct donations
+model Regrant_round_recipients {
+  Round_ID        Int
+  Organization_ID Int
+  include_direct  Boolean
+
+  Regrant_rounds Regrant_rounds @relation(fields: [Round_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_round_recipients_to_Regrant_rounds")
+  Organizations  Organizations  @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_round_recipients_to_Organizations")
+
+  @@id([Round_ID, Organization_ID])
+  @@index([Organization_ID], map: "fk_Regrant_round_recipients_to_Organizations_idx")
+}
+
+/// Snapshot written at approval: what the decision was based on
+model Regrant_round_balances {
+  ID                Int     @id @default(autoincrement())
+  Round_ID          Int
+  Organization_ID   Int
+  Project_ID        Int?
+  balance_at_cutoff Decimal @db.Decimal(16, 2) /// Ledger balance at the cutoff, before this round
+  committed         Decimal @default(0) @db.Decimal(16, 2) /// Other rounds' approved or later payments, not yet in the ledger at the cutoff
+  fund_grants       Decimal @default(0) @db.Decimal(16, 2) /// This round's fund grant lines (negative for own funds)
+  in_round          Decimal @default(0) @db.Decimal(16, 2) /// This round's transfer lines
+  included_direct   Boolean
+  round_adjustments Decimal @default(0) @db.Decimal(16, 2) /// This round's adjustments (e.g. earmarks), not in balance_at_cutoff
+
+  Regrant_rounds Regrant_rounds @relation(fields: [Round_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_round_balances_to_Regrant_rounds")
+  Organizations  Organizations  @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_round_balances_to_Organizations")
+  Projects       Projects?      @relation(fields: [Project_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_round_balances_to_Projects")
+
+  @@index([Round_ID], map: "fk_Regrant_round_balances_to_Regrant_rounds_idx")
+  @@index([Organization_ID], map: "fk_Regrant_round_balances_to_Organizations_idx")
+  @@index([Project_ID], map: "fk_Regrant_round_balances_to_Projects_idx")
+}
+
+/// One real bank transaction to one payee
+model Regrant_transfers {
+  ID             Int       @id @default(autoincrement())
+  Round_ID       Int
+  Payee_ID       Int
+  amount_nok     Decimal   @db.Decimal(16, 2)
+  currency       String    @db.VarChar(8)
+  amount_foreign Decimal?  @db.Decimal(24, 8)
+  fx_rate        Decimal?  @db.Decimal(18, 8) /// NOK per unit of currency
+  bank_fee       Decimal?  @db.Decimal(16, 2) /// NOK, paid by operations; doesn't reduce the recipient's balance
+  paid_at        DateTime? @db.Date
+  bank_ref       String?   @db.VarChar(255) /// The bank's reference only; explanations go in notes
+  paid_by        String    @default("foundation") @db.VarChar(16) /// foundation | external
+  notes          String?   @db.Text /// Free text for the record; editable in any status
+
+  Regrant_rounds         Regrant_rounds           @relation(fields: [Round_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_transfers_to_Regrant_rounds")
+  Payees                 Payees                   @relation(fields: [Payee_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_transfers_to_Payees")
+  Regrant_transfer_lines Regrant_transfer_lines[]
+  Regrant_adjustments    Regrant_adjustments[]
+  Regrant_documents      Regrant_documents[]
+
+  @@index([Round_ID], map: "fk_Regrant_transfers_to_Regrant_rounds_idx")
+  @@index([Payee_ID], map: "fk_Regrant_transfers_to_Payees_idx")
+}
+
+/// The part of a transfer that belongs to one recipient, optionally one project
+model Regrant_transfer_lines {
+  ID              Int     @id @default(autoincrement())
+  Transfer_ID     Int
+  Organization_ID Int
+  Project_ID      Int?
+  amount_nok      Decimal @db.Decimal(16, 2)
+
+  Onward_allocations Onward_allocations[]
+
+  Regrant_transfers Regrant_transfers @relation(fields: [Transfer_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_transfer_lines_to_Regrant_transfers")
+  Organizations     Organizations     @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_transfer_lines_to_Organizations")
+  Projects          Projects?         @relation(fields: [Project_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_transfer_lines_to_Projects")
+
+  @@index([Transfer_ID], map: "fk_Regrant_transfer_lines_to_Regrant_transfers_idx")
+  @@index([Organization_ID, Project_ID], map: "Organization_project_idx")
+  @@index([Project_ID], map: "fk_Regrant_transfer_lines_to_Projects_idx")
+}
+
+/// Typed, signed ledger entries with a reason and an author
+model Regrant_adjustments {
+  ID                   Int      @id @default(autoincrement())
+  Organization_ID      Int
+  Project_ID           Int?
+  amount               Decimal  @db.Decimal(16, 2) /// Signed; fronted entries are records only and don't count in the balance
+  type                 String   @db.VarChar(16) /// opening | fee | correction | reallocation | fronted | own_funds
+  reason               String   @db.Text
+  effective_at         DateTime @db.Date
+  Round_ID             Int?
+  linked_transfer_ID   Int? /// correction: the transfer it corrects
+  linked_donation_ID   Int? /// fronted: the expected donation, once registered
+  created_by           String   @db.VarChar(255)
+  created_at           DateTime @default(now()) @db.DateTime(0)
+  Paired_adjustment_ID Int? /// Earmarks: the other half of the pair (unrestricted −X ↔ project +X)
+
+  Paired            Regrant_adjustments?  @relation("Regrant_adjustment_pairs", fields: [Paired_adjustment_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_paired")
+  Paired_by         Regrant_adjustments[] @relation("Regrant_adjustment_pairs")
+  Regrant_documents Regrant_documents[]
+  Organizations     Organizations         @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Organizations")
+  Projects          Projects?             @relation(fields: [Project_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Projects")
+  Regrant_rounds    Regrant_rounds?       @relation(fields: [Round_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Regrant_rounds")
+  Regrant_transfers Regrant_transfers?    @relation(fields: [linked_transfer_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Regrant_transfers")
+  Donations         Donations?            @relation(fields: [linked_donation_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Regrant_adjustments_to_Donations")
+
+  @@index([Organization_ID, effective_at], map: "Organization_effective_at_idx")
+  @@index([Project_ID], map: "fk_Regrant_adjustments_to_Projects_idx")
+  @@index([Round_ID], map: "fk_Regrant_adjustments_to_Regrant_rounds_idx")
+  @@index([linked_transfer_ID], map: "fk_Regrant_adjustments_to_Regrant_transfers_idx")
+  @@index([linked_donation_ID], map: "fk_Regrant_adjustments_to_Donations_idx")
+  @@index([Paired_adjustment_ID], map: "fk_Regrant_adjustments_to_paired_idx")
+}
+
+/// A link to a document (bilag, receipt, bank confirmation; usually Google Drive) for exactly one round, transfer or adjustment
+model Regrant_documents {
+  ID               Int      @id @default(autoincrement())
+  url              String   @db.VarChar(1024)
+  label            String?  @db.VarChar(255) /// e.g. "Bilag 16-043"; the admin shows the URL's host without one
+  Round_ID         Int?
+  Transfer_ID      Int?
+  Adjustment_ID    Int?
+  created_by       String   @db.VarChar(255)
+  created_at       DateTime @default(now()) @db.DateTime(0)
+  Onward_report_ID Int?
+
+  Regrant_rounds      Regrant_rounds?      @relation(fields: [Round_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_documents_to_Regrant_rounds")
+  Regrant_transfers   Regrant_transfers?   @relation(fields: [Transfer_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_documents_to_Regrant_transfers")
+  Regrant_adjustments Regrant_adjustments? @relation(fields: [Adjustment_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_documents_to_Regrant_adjustments")
+  Onward_reports      Onward_reports?      @relation(fields: [Onward_report_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_documents_to_Onward_reports")
+
+  @@index([Round_ID], map: "fk_Regrant_documents_to_Regrant_rounds_idx")
+  @@index([Transfer_ID], map: "fk_Regrant_documents_to_Regrant_transfers_idx")
+  @@index([Adjustment_ID], map: "fk_Regrant_documents_to_Regrant_adjustments_idx")
+  @@index([Onward_report_ID], map: "fk_Regrant_documents_to_Onward_reports_idx")
+}
+
+/// Marks a payee as an intermediary (GiveWell): it forwards or regrants what we send, and every paid line to it gets an onward status
+model Intermediary_payees {
+  Payee_ID Int     @id
+  currency String  @default("USD") @db.VarChar(8) /// What it usually forwards and reports in
+  notes    String? @db.Text
+
+  Payees         Payees           @relation(fields: [Payee_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Intermediary_payees_to_Payees")
+  Onward_reports Onward_reports[]
+}
+
+/// Marks a recipient the intermediary regrants by its own decision (TCF, AGF): its lines can go to any grantee
+model Regranting_funds {
+  Organization_ID Int     @id
+  notes           String? @db.Text
+
+  Organizations Organizations @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regranting_funds_to_Organizations")
+}
+
+/// A grantee of a regranting fund that is not one of our recipients (an AGF-funded RCT). Never donor-facing.
+model External_grantees {
+  ID         Int      @id @default(autoincrement())
+  name       String   @unique @db.VarChar(255)
+  country    String?  @db.VarChar(64)
+  url        String?  @db.VarChar(512)
+  notes      String?  @db.Text
+  created_by String   @db.VarChar(255)
+  created_at DateTime @default(now()) @db.DateTime(0)
+
+  Onward_allocations Onward_allocations[]
+}
+
+/// One report or statement from an intermediary; can cover several of our transfers
+model Onward_reports {
+  ID          Int      @id @default(autoincrement())
+  Payee_ID    Int
+  reported_at DateTime @db.Date
+  reference   String?  @db.VarChar(255)
+  notes       String?  @db.Text
+  created_by  String   @db.VarChar(255)
+  created_at  DateTime @default(now()) @db.DateTime(0)
+
+  Intermediary_payees Intermediary_payees  @relation(fields: [Payee_ID], references: [Payee_ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_reports_to_Intermediary_payees")
+  Onward_allocations  Onward_allocations[]
+  Regrant_documents   Regrant_documents[]
+
+  @@index([Payee_ID, reported_at], map: "Payee_reported_at_idx")
+}
+
+/// The intermediary sending (part of) one of our transfer lines onward. Beside the ledger, never in it.
+model Onward_allocations {
+  ID                  Int       @id @default(autoincrement())
+  Transfer_line_ID    Int
+  kind                String    @db.VarChar(16) /// grant | retained
+  basis               String    @db.VarChar(16) /// reported | assumed (backfill of pass-through lines only)
+  Organization_ID     Int? /// grant: one of our recipients
+  External_grantee_ID Int? /// grant: an outside grantee
+  Project_ID          Int? /// Only with Organization_ID, a project of it
+  currency            String    @db.VarChar(8)
+  amount_foreign      Decimal?  @db.Decimal(24, 8)
+  amount_nok          Decimal   @db.Decimal(16, 2) /// The share of our transfer line
+  forwarded_at        DateTime  @db.Date /// When the intermediary sent it to the target ("received by recipient")
+  Report_ID           Int?
+  purpose             String?   @db.VarChar(255)
+  note                String?   @db.Text
+  created_by          String    @db.VarChar(255)
+  created_at          DateTime  @default(now()) @db.DateTime(0)
+  updated_by          String?   @db.VarChar(255)
+  updated_at          DateTime? @db.DateTime(0)
+
+  Regrant_transfer_lines Regrant_transfer_lines @relation(fields: [Transfer_line_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_allocations_to_Regrant_transfer_lines")
+  Organizations          Organizations?         @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_allocations_to_Organizations")
+  External_grantees      External_grantees?     @relation(fields: [External_grantee_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_allocations_to_External_grantees")
+  Projects               Projects?              @relation(fields: [Project_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_allocations_to_Projects")
+  Onward_reports         Onward_reports?        @relation(fields: [Report_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Onward_allocations_to_Onward_reports")
+
+  @@index([Transfer_line_ID], map: "fk_Onward_allocations_to_Regrant_transfer_lines_idx")
+  @@index([Organization_ID, Project_ID], map: "fk_Onward_allocations_to_Organizations_idx")
+  @@index([External_grantee_ID], map: "fk_Onward_allocations_to_External_grantees_idx")
+  @@index([Project_ID], map: "fk_Onward_allocations_to_Projects_idx")
+  @@index([Report_ID], map: "fk_Onward_allocations_to_Onward_reports_idx")
+}
+
+/// Marks a recipient as one of our own funds: never paid directly, granted through Fund_grants
+model Funds {
+  Organization_ID Int  @id
+  max_hold_days   Int? /// Flag money that has waited longer than this (not enforced)
+
+  Organizations Organizations @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Funds_to_Organizations")
+  Fund_grants   Fund_grants[]
+}
+
+/// A grant from an own fund, decided in a round and approved with it
+model Fund_grants {
+  ID          Int       @id @default(autoincrement())
+  Fund_ID     Int /// Organization_ID of the fund
+  Round_ID    Int
+  rationale   String    @db.Text
+  approved_by String?   @db.VarChar(255)
+  approved_at DateTime? @db.DateTime(0)
+  created_by  String    @db.VarChar(255)
+  created_at  DateTime  @default(now()) @db.DateTime(0)
+
+  Funds            Funds              @relation(fields: [Fund_ID], references: [Organization_ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Fund_grants_to_Funds")
+  Regrant_rounds   Regrant_rounds     @relation(fields: [Round_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Fund_grants_to_Regrant_rounds")
+  Fund_grant_lines Fund_grant_lines[]
+
+  @@index([Fund_ID], map: "fk_Fund_grants_to_Funds_idx")
+  @@index([Round_ID], map: "fk_Fund_grants_to_Regrant_rounds_idx")
+}
+
+/// A fund grant's amount to one recipient, optionally one project. The fund is debited the sum.
+model Fund_grant_lines {
+  ID              Int     @id @default(autoincrement())
+  Fund_grant_ID   Int
+  Organization_ID Int
+  Project_ID      Int?
+  amount          Decimal @db.Decimal(16, 2)
+
+  Fund_grants   Fund_grants   @relation(fields: [Fund_grant_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Fund_grant_lines_to_Fund_grants")
+  Organizations Organizations @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Fund_grant_lines_to_Organizations")
+  Projects      Projects?     @relation(fields: [Project_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Fund_grant_lines_to_Projects")
+
+  @@index([Fund_grant_ID], map: "fk_Fund_grant_lines_to_Fund_grants_idx")
+  @@index([Organization_ID, Project_ID], map: "Organization_project_idx")
+  @@index([Project_ID], map: "fk_Fund_grant_lines_to_Projects_idx")
+}
+
+/// Holds a recipient (Project_ID null) or one of its projects out of proposals while active
+model Regrant_holds {
+  ID              Int       @id @default(autoincrement())
+  Organization_ID Int
+  Project_ID      Int?
+  reason          String    @db.Text
+  until           DateTime? @db.Date /// Active for rounds with cutoff on or before this day; null = until removed
+  created_by      String    @db.VarChar(255)
+  created_at      DateTime  @default(now()) @db.DateTime(0)
+
+  Organizations Organizations @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_holds_to_Organizations")
+  Projects      Projects?     @relation(fields: [Project_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_holds_to_Projects")
+
+  @@index([Organization_ID], map: "fk_Regrant_holds_to_Organizations_idx")
+  @@index([Project_ID], map: "fk_Regrant_holds_to_Projects_idx")
+}
+
+// endregion

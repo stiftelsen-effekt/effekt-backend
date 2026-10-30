@@ -76,6 +76,48 @@ describe("webhook authentication", () => {
     });
   });
 
+  describe("POST /donors/auth0/register", () => {
+    let lookupStub: sinon.SinonStub;
+    let addStub: sinon.SinonStub;
+    let app: express.Express;
+    const body = { email: "new@example.test" };
+
+    beforeEach(() => {
+      lookupStub = sinon.stub(DAO.donors, "getIDbyEmail").resolves(42);
+      addStub = sinon.stub(DAO.donors, "add").resolves(43);
+      app = buildServer("/donors", "../routes/donors");
+    });
+
+    it("allows requests when the token is not configured (Swedish API)", async () => {
+      sinon.stub(config, "auth0_register_token").value(undefined);
+      await request(app).post("/donors/auth0/register").send(body).expect(200);
+      expect(lookupStub.calledOnce).to.be.true;
+    });
+
+    it("rejects requests without the correct token", async () => {
+      sinon.stub(config, "auth0_register_token").value("s3cret");
+      await request(app).post("/donors/auth0/register").send(body).expect(401);
+      await request(app)
+        .post("/donors/auth0/register")
+        .set("Authorization", "Bearer wrong")
+        .send(body)
+        .expect(401);
+      expect(lookupStub.called).to.be.false;
+      expect(addStub.called).to.be.false;
+    });
+
+    it("returns the donor ID with the correct token", async () => {
+      sinon.stub(config, "auth0_register_token").value("s3cret");
+      const res = await request(app)
+        .post("/donors/auth0/register")
+        .set("Authorization", "Bearer s3cret")
+        .send(body)
+        .expect(200);
+      expect(res.body.content).to.equal(42);
+      expect(addStub.called).to.be.false;
+    });
+  });
+
   describe("POST /mail/mailersend/survey/response", () => {
     let saveStub: sinon.SinonStub;
     let app: express.Express;

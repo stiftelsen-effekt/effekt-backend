@@ -7,7 +7,22 @@ import {
 import { DAO, SqlResult } from "../DAO";
 import { DateTime } from "luxon";
 import sqlString from "sqlstring";
+import { instantRangeClauses, type InstantRange } from "../osloDays";
 import { Distribution, DistributionInput } from "../../schemas/types";
+
+export type AutoGiroMandateRow = Pick<
+  AutoGiro_mandates,
+  | "ID"
+  | "KID"
+  | "status"
+  | "bank_account"
+  | "special_information"
+  | "name_and_address"
+  | "postal_code"
+  | "postal_label"
+  | "last_updated"
+  | "created"
+> & { full_name: string };
 
 export const autogiroagreements = {
   getAllShipments: async function () {
@@ -25,7 +40,7 @@ export const autogiroagreements = {
       `,
       [ID],
     );
-    return shipment?.[0];
+    return shipment?.at(0);
   },
   addShipment: async function (numberOfCharges: number): Promise<number> {
     const [result] = await DAO.query(
@@ -71,7 +86,7 @@ export const autogiroagreements = {
     const sortDirection = sort.desc ? "DESC" : "ASC";
     const offset = page * limit;
 
-    let where = [];
+    let where: string[] = [];
     if (filter) {
       if (filter.amount) {
         if (filter.amount.from) where.push(`amount >= ${sqlString.escape(filter.amount.from)} `);
@@ -86,8 +101,15 @@ export const autogiroagreements = {
       if (filter.created) {
         if (filter.created.from)
           where.push(`AG.created >= ${sqlString.escape(filter.created.from)} `);
-        if (filter.created.to) where.push(`AG.created <= ${sqlString.escape(filter.created.to)} `);
+        if (filter.created.to) {
+          // Inclusive of the whole 'to' day, like the AvtaleGiro filter
+          const toDate = new Date(filter.created.to);
+          toDate.setDate(toDate.getDate() + 1);
+          where.push(`AG.created < ${sqlString.escape(toDate)} `);
+        }
       }
+      // Half-open instant range (osloDays.ts), used by tRPC; `created` is filled by MySQL
+      where.push(...instantRangeClauses("AG.created", filter.createdRange, "db"));
 
       if (filter.KID)
         where.push(` CAST(DI.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
@@ -189,8 +211,10 @@ export const autogiroagreements = {
     );
     return agreements.map(mapAgreementType);
   },
-  getAgreementSumHistogram: async function () {
-    let [results] = await DAO.query(`
+  getAgreementSumHistogram: async function (): Promise<
+    Array<{ bucket: number; items: number; bar: number }>
+  > {
+    let [results] = await DAO.query<Array<{ bucket: number; items: number; bar: number }>>(`
               SELECT 
                   floor(amount/500)*500 	AS bucket, 
                   count(*) 						AS items,
@@ -209,7 +233,7 @@ export const autogiroagreements = {
       `,
       [ID],
     );
-    return agreement.map(mapAgreementType)?.[0];
+    return agreement.map(mapAgreementType).at(0);
   },
   getAgreementByKID: async function (KID: string) {
     const [agreement] = await DAO.query<AutoGiro_agreements[]>(
@@ -218,7 +242,7 @@ export const autogiroagreements = {
       `,
       [KID],
     );
-    return agreement.map(mapAgreementType)?.[0];
+    return agreement.map(mapAgreementType).at(0);
   },
   /**
    * Get all agreements that have a given payment date
@@ -388,7 +412,7 @@ export const autogiroagreements = {
       `,
       [ID],
     );
-    return charge?.[0];
+    return charge?.at(0);
   },
   getAgreementChargesByAgreementId: async function (agreementId: number) {
     const [charges] = await DAO.query<AutoGiro_agreement_charges[]>(
@@ -415,7 +439,7 @@ export const autogiroagreements = {
       `,
       [donationId],
     );
-    return charge?.[0];
+    return charge?.at(0);
   },
   /**
    * Check if an agreement charge exists for a given KID and claim date (month and year, since we only charge once a month)
@@ -433,7 +457,7 @@ export const autogiroagreements = {
       `,
       [agreementId, claimDate.year, claimDate.month],
     );
-    return charge?.[0];
+    return charge?.at(0);
   },
   /**
    * Check if an agreement charge exists for a given KID and claim date (month and year, since we only charge once a month)
@@ -524,12 +548,12 @@ export const autogiroagreements = {
     page: number,
     limit: number,
     filter: any,
-  ) {
+  ): Promise<{ pages: number; rows: AutoGiroMandateRow[] }> {
     const sortColumn = sort.id;
     const sortDirection = sort.desc ? "DESC" : "ASC";
     const offset = page * limit;
 
-    let where = [];
+    let where: string[] = [];
     if (filter) {
       if (filter.KID)
         where.push(` CAST(DI.KID as CHAR) LIKE ${sqlString.escape(`%${filter.KID}%`)} `);
@@ -541,7 +565,17 @@ export const autogiroagreements = {
         );
     }
 
-    const [mandates] = await DAO.query(
+    const fromWhere = `
+          FROM AutoGiro_mandates as AG
+          INNER JOIN Distributions as DI
+              ON AG.KID = DI.KID
+          INNER JOIN Donors 
+              ON DI.Donor_ID = Donors.ID
+          WHERE
+              ${where.length !== 0 ? where.join(" AND ") : "1"}
+    `;
+
+    const [mandates] = await DAO.query<AutoGiroMandateRow[]>(
       `
           SELECT DISTINCT
               AG.ID,
@@ -555,22 +589,17 @@ export const autogiroagreements = {
               AG.last_updated,
               AG.created,
               Donors.full_name
-          FROM AutoGiro_mandates as AG
-          INNER JOIN Distributions as DI
-              ON AG.KID = DI.KID
-          INNER JOIN Donors 
-              ON DI.Donor_ID = Donors.ID
-          WHERE
-              ${where.length !== 0 ? where.join(" AND ") : "1"}
-
+          ${fromWhere}
           ORDER BY ${sortColumn} ${sortDirection}
           LIMIT ? OFFSET ?
           `,
       [limit, offset],
     );
 
-    const [counter] = await DAO.query(`
-          SELECT COUNT(*) as count FROM AutoGiro_mandates
+    // Count with the same filter so pages matches the filtered rows
+    const [counter] = await DAO.query<Array<{ count: number }>>(`
+          SELECT COUNT(DISTINCT AG.ID) as count
+          ${fromWhere}
       `);
 
     return {

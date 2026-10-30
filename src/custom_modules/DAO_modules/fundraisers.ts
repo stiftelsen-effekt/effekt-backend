@@ -1,9 +1,12 @@
 import { Donors, Fundraisers, Organizations } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
 import * as crypto from "crypto";
+import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 
 type FundraiserListFilter = {
   registrationDate?: { from?: Date; to?: Date };
+  /** Half-open instant range of Fundraisers.Inserted (osloDays.ts), used by tRPC */
+  registrationRange?: InstantRange;
   fundraiserId?: Fundraisers["ID"];
   donor?: string;
   donationCount?: { from?: number; to?: number };
@@ -86,6 +89,8 @@ export const fundraisers = {
     totalSum: number;
     donationCount: number;
     transactions: {
+      /** Fundraiser transaction id */
+      id: number;
       name: string | null;
       message: string | null;
       amount: number;
@@ -230,7 +235,7 @@ export const fundraisers = {
     );
 
     return transactions.map((transaction) => {
-      let name = null;
+      let name: string | null = null;
       if (viewLevel === "admin") {
         name = transaction.name;
       } else if (viewLevel === "owner") {
@@ -309,6 +314,7 @@ export const fundraisers = {
         parameters.push(toDate);
       }
     }
+    whereConditions.push(...instantRangeClauses("f.Inserted", filter?.registrationRange, "db"));
     if (filter?.donor) {
       whereConditions.push(`d.full_name LIKE ?`);
       parameters.push(`%${filter.donor}%`);
@@ -352,8 +358,8 @@ export const fundraisers = {
         -- This CTE calculates per-fundraiser stats and applies filters
         SELECT
             f.ID AS fundraiser_id,
-            f.Inserted AS fundraiser_registered,
-            f.Last_updated AS fundraiser_last_updated,
+            ${dbClockColumn("f.Inserted", "fundraiser_registered")},
+            ${dbClockColumn("f.Last_updated", "fundraiser_last_updated")},
             ${includeSecrets ? "f.Secret AS fundraiser_secret," : ""}
             d.ID AS donor_id,
             d.full_name AS donor_name,
@@ -496,7 +502,11 @@ export const fundraisers = {
         Inserted: Date;
         Last_updated: Date;
       }[]
-    >(`SELECT ID, Donor_ID, Secret, Inserted, Last_updated FROM Fundraisers WHERE ID = ?`, [id]);
+    >(
+      `SELECT ID, Donor_ID, Secret, ${dbClockColumn("Inserted")}, ${dbClockColumn("Last_updated")}
+       FROM Fundraisers WHERE ID = ?`,
+      [id],
+    );
 
     if (rows.length === 0) {
       return null;

@@ -1,5 +1,36 @@
+import type { ResultSetHeader } from "mysql2";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
+import { dbClockColumn } from "../osloDays";
+
+export type ImportLogSummary = {
+  ID: number;
+  label: string | null;
+  timestamp: Date | null;
+  /** Human-readable summary of known result shapes, empty string otherwise */
+  meta: string | null;
+};
+
+/** Fields of an upload entry's result (tRPC uploads), read with `uploadDetails` */
+export type ImportLogUploadDetails = {
+  /** reportsRouter upload source, e.g. "ocr", "bankNo" */
+  uploadSource: string | null;
+  filename: string | null;
+  /** { valid, invalid, ignored? } as logged */
+  donations: { valid?: number; invalid?: number; ignored?: number } | null;
+  /** Transactions sent to review */
+  reviewCount: number | null;
+  /** Facebook uploads: campaigns without organization shares */
+  campaignsMissingShares: number | null;
+};
+
+export type ImportLogEntry = {
+  ID: number;
+  label: string | null;
+  /** The JSON result column, parsed by mysql2 */
+  result: unknown;
+  timestamp: Date | null;
+};
 
 /**
  * @typedef ImportLogEntry
@@ -17,15 +48,64 @@ import sqlString from "sqlstring";
  * @param {string} filesearch A string to fuzzy match in the file in the log entry
  * @returns {{ results: Array<ImportLogEntry>, pages: number }}
  */
-async function getEntries(limit = 10, offset = 0, filesearch = null) {
-  /**
-   * TODO: Add filtering
-   */
-  let [res] = await DAO.query(
+export type ImportLogSortColumn = "timestamp" | "label" | "id";
+
+// Qualified: unqualified `timestamp` would sort by the converted select alias, without the index
+const logSortColumns: Record<ImportLogSortColumn, string> = {
+  timestamp: "Import_logs.timestamp",
+  label: "label",
+  id: "ID",
+};
+
+async function getEntries(
+  limit = 10,
+  offset = 0,
+  filesearch: string | null = null,
+  /** Newest first when omitted (without the ID tie-break, as REST has always sorted) */
+  sort?: { id: ImportLogSortColumn; desc: boolean },
+  options: {
+    /** filesearch also matches the uploaded file's name (`filename`) */
+    searchFilename?: boolean;
+    /** Adds the ImportLogUploadDetails columns */
+    uploadDetails?: boolean;
+  } = {},
+): Promise<{ results: ImportLogSummary[]; pages: number; total: number }> {
+  const orderBy = sort
+    ? `${logSortColumns[sort.id]} ${sort.desc ? "DESC" : "ASC"}, ID ${sort.desc ? "DESC" : "ASC"}`
+    : "Import_logs.timestamp DESC";
+
+  const pattern = sqlString.escape("%" + filesearch + "%");
+  const where =
+    filesearch !== null && filesearch !== ""
+      ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' +
+        pattern +
+        (options.searchFilename
+          ? ` OR JSON_UNQUOTE(JSON_EXTRACT(result, "$.filename")) LIKE ${pattern}`
+          : "")
+      : "";
+
+  const uploadDetailColumns = options.uploadDetails
+    ? `,
+        JSON_UNQUOTE(JSON_EXTRACT(result, "$.upload.source")) AS uploadSource,
+        JSON_UNQUOTE(JSON_EXTRACT(result, "$.filename")) AS filename,
+        JSON_EXTRACT(result, "$.donations") AS donations,
+        JSON_LENGTH(result, "$.invalidTransactions") AS reviewCount,
+        JSON_EXTRACT(result, "$.campaigns.missingShares") AS campaignsMissingShares`
+    : "";
+
+  let [res] = await DAO.query<ImportLogSummary[]>(
     `
       SELECT 
-        ID, label, timestamp,
+        ID, label, ${dbClockColumn("Import_logs.timestamp")},
         (CASE 
+          WHEN JSON_CONTAINS_PATH(result, 'one', '$.upload') THEN 
+            CONCAT(
+              "Upload [",
+              " File: ", COALESCE(JSON_UNQUOTE(JSON_EXTRACT(result, "$.filename")), ''),
+              " Added: ", COALESCE(JSON_EXTRACT(result, "$.donations.valid"), 0),
+              " Invalid: ", COALESCE(JSON_EXTRACT(result, "$.donations.invalid"), 0),
+              " ]"
+            )
           WHEN JSON_CONTAINS_PATH(result, 'one', '$.addedDonations') THEN 
             CONCAT(
               "Donations [",
@@ -51,31 +131,30 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
               " ]"
             )
           ELSE ''
-        END) as meta
+        END) as meta${uploadDetailColumns}
       
       FROM Import_logs 
 
-      ${
-        filesearch !== null && filesearch !== ""
-          ? 'WHERE JSON_EXTRACT(result, "$.file") LIKE ' + sqlString.escape("%" + filesearch + "%")
-          : ""
-      }
+      ${where}
       
-      ORDER BY timestamp DESC 
+      ORDER BY ${orderBy} 
       LIMIT ? 
       OFFSET ?`,
     [limit, offset],
   );
 
-  let [counter] = await DAO.query(`
-      SELECT COUNT(*) as count FROM Import_logs 
+  // Same filter as above, so the page count matches the filtered entries
+  let [counter] = await DAO.query<{ count: number }[]>(`
+      SELECT COUNT(*) as count FROM Import_logs ${where}
     `);
 
-  const pages = Math.ceil(counter[0].count / limit);
+  const total = Number(counter[0].count);
+  const pages = Math.ceil(total / limit);
 
   return {
     results: res,
     pages,
+    total,
   };
 }
 
@@ -84,10 +163,10 @@ async function getEntries(limit = 10, offset = 0, filesearch = null) {
  * @param {number} id
  * @returns {ImportLogEntry}
  */
-async function get(id) {
-  let [res] = await DAO.query(
+async function get(id: number): Promise<ImportLogEntry | null> {
+  let [res] = await DAO.query<ImportLogEntry[]>(
     `
-      SELECT *
+      SELECT ID, label, result, ${dbClockColumn("Import_logs.timestamp")}
       
       FROM Import_logs
       
@@ -126,15 +205,17 @@ async function getAutoGiroShipmentFile(id: number) {
  * Adds a log entry.
  * @param {string} label
  * @param {object} result Results stored as JSON in DB
+ * @returns The id of the new entry
  */
-async function add(label, result) {
-  await DAO.execute(
+async function add(label, result): Promise<number> {
+  const [insert] = await DAO.execute<ResultSetHeader>(
     `INSERT INTO Import_logs
           (label, result) 
           VALUES 
           (?,?)`,
     [label, JSON.stringify(result)],
   );
+  return insert.insertId;
 }
 //endregion
 

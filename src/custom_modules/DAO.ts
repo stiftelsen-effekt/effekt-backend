@@ -18,13 +18,23 @@ import { Prisma } from "@prisma/client";
 import config from "../config";
 import { autogiroagreements } from "./DAO_modules/autogiroagreements";
 import { causeareas } from "./DAO_modules/causeareas";
-import { adoveo } from "./DAO_modules/adoveo";
 import { results } from "./DAO_modules/results";
 import { mail } from "./DAO_modules/mail";
 import { inflationadjustments } from "./DAO_modules/inflationadjustment";
 import { agreementfeedback } from "./DAO_modules/agreementfeedback";
 import { fundraisers } from "./DAO_modules/fundraisers";
 import { donationReferralCodes } from "./DAO_modules/donationReferralCodes";
+import { reviewqueue } from "./DAO_modules/reviewqueue";
+import { agreements } from "./DAO_modules/agreements";
+import { cancelledAgreements } from "./DAO_modules/cancelledAgreements";
+import { regranting } from "./DAO_modules/regranting";
+import { analysis } from "./DAO_modules/analysis";
+import { donorCohorts } from "./DAO_modules/donorCohorts";
+import { pledges } from "./DAO_modules/pledges";
+import { regrantingTrace } from "./DAO_modules/regrantingTrace";
+import { regrantingOnward } from "./DAO_modules/regrantingOnward";
+import { paymentIntents } from "./DAO_modules/paymentIntents";
+import { homeTrends } from "./DAO_modules/homeTrends";
 
 /**
  * Generated prisma types assume certain transformations applied by prisma client
@@ -37,6 +47,8 @@ export type SqlResult<T> = T extends Array<infer U>
   ? {
       [K in keyof T]: T[K] extends boolean
         ? 0 | 1
+        : T[K] extends boolean | null
+        ? 0 | 1 | null
         : // Date
         T[K] extends Date
         ? Date
@@ -45,6 +57,8 @@ export type SqlResult<T> = T extends Array<infer U>
         ? Date | null
         : T[K] extends Prisma.Decimal
         ? string /* decimal is a string: https://github.com/sidorares/node-mysql2/issues/1561 */
+        : T[K] extends Prisma.Decimal | null
+        ? string | null
         : T[K];
     }
   : T;
@@ -68,13 +82,23 @@ export const DAO = {
   tax: tax,
   logging: logging,
   swish: swish,
-  adoveo: adoveo,
   results: results,
   mail: mail,
   inflationadjustments: inflationadjustments,
   agreementfeedback: agreementfeedback,
   fundraisers: fundraisers,
   donationReferralCodes: donationReferralCodes,
+  reviewqueue: reviewqueue,
+  agreements: agreements,
+  cancelledAgreements: cancelledAgreements,
+  regranting: regranting,
+  analysis: analysis,
+  donorCohorts: donorCohorts,
+  pledges: pledges,
+  regrantingTrace: regrantingTrace,
+  regrantingOnward: regrantingOnward,
+  paymentIntents: paymentIntents,
+  homeTrends: homeTrends,
 
   dbPool: undefined as mysql.Pool | undefined,
 
@@ -119,11 +143,11 @@ export const DAO = {
 
   query: async function <T = any>(
     query,
-    params = undefined,
+    params: any = undefined,
     retries = 0,
   ): Promise<[SqlResult<T>, mysql.FieldPacket[]]> {
     try {
-      return await (this as typeof DAO).dbPool.query<any>(query, params);
+      return await (this as typeof DAO).dbPool!.query<any>(query, params);
     } catch (ex) {
       if (retries < 7 && ex.code === "PROTOCOL_CONNECTION_LOST") {
         console.log("Retrying query");
@@ -138,11 +162,11 @@ export const DAO = {
 
   execute: async function <T = any>(
     query: string,
-    params = undefined,
+    params: any = undefined,
     retries = 0,
   ): Promise<[SqlResult<T>, mysql.FieldPacket[]]> {
     try {
-      return await DAO.dbPool.execute<any>(query, params);
+      return await DAO.dbPool!.execute<any>(query, params);
     } catch (ex) {
       if (retries < 7 && ex.code === "PROTOCOL_CONNECTION_LOST") {
         console.error(ex);

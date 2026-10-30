@@ -24,10 +24,10 @@ export const postExternalDonation = async (donation: Donation, fundraiser: Fundr
     body: JSON.stringify({
       amount_recieved: donation.sum,
       currency: "NOK",
-      donation_id_hash: createHash("md5").update(donation.id.toString()).digest("hex"),
-      donor_id_hash: createHash("md5").update(donation.donorId.toString()).digest("hex"),
+      donation_id_hash: createHash("md5").update(donation.id!.toString()).digest("hex"),
+      donor_id_hash: createHash("md5").update(donation.donorId!.toString()).digest("hex"),
       // Unix timestamp from ISO data using luxon
-      donation_time: luxon.DateTime.fromISO(donation.timestamp).toSeconds(),
+      donation_time: luxon.DateTime.fromISO(donation.timestamp!).toSeconds(),
     }),
   });
 

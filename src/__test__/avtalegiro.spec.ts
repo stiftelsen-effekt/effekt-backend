@@ -200,7 +200,7 @@ describe("AvtaleGiro claim due date calculation", () => {
 
   it("Returns due dates for all the days in a period of april / may 2023", () => {
     // Iterate over all the days in May 2023 and add them to a list
-    const dueDates = [];
+    const dueDates: DateTime[] = [];
     let date = DateTime.fromJSDate(new Date("2023-04-28 10:00"));
     while (date <= DateTime.fromJSDate(new Date("2023-05-23 10:00"))) {
       let claimDueDates = avtalegiro.getDueDates(date);
@@ -245,7 +245,7 @@ describe("AvtaleGiro claim due date calculation", () => {
 
   it("Returns due dates for christmas 2023", () => {
     // Iterate over all the days from 10.12.2023 to 10.01.2024 and add them to a list
-    const dueDates = [];
+    const dueDates: DateTime[] = [];
     let date = DateTime.fromJSDate(new Date("2023-12-10 10:00"));
     while (date <= DateTime.fromJSDate(new Date("2024-01-10 10:00"))) {
       let claimDueDates = avtalegiro.getDueDates(date);

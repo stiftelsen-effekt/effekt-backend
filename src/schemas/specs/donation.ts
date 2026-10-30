@@ -46,6 +46,8 @@ export interface components {
        * @description The timestamp of the donation
        */
       timestamp?: string;
+      /** @description The id of the data owner of the donation (2 = EA Norge, i.e. EA Giverportal donations) */
+      metaOwnerId?: number;
     };
   };
   responses: never;

@@ -18,11 +18,14 @@ import {
 } from "../../schemas/types";
 import { PoolConnection } from "mysql2/promise";
 import { sumWithPrecision } from "../rounding";
+import { toOrgChartColor, type OrgChartColor } from "../orgChartColors";
 
 //region GET
 export interface DistributionFilters {
   KID?: string;
   donor?: string;
+  /** Free text: part of the KID, the donor's name or email, or the donor id (all digits) */
+  query?: string;
 }
 
 /**
@@ -34,7 +37,8 @@ export interface DistributionRow {
   KID: string;
   full_name: string;
   email: string;
-  donation_sum: number;
+  /** Decimal string */
+  donation_sum: string;
   donation_count: number;
   // Index signature to allow for dynamic organization share properties
   [org_abbriv: string]: number | string;
@@ -111,61 +115,85 @@ export async function getAll(
         `(Donors.full_name LIKE ${donorFilter} OR Donors.email LIKE ${donorFilter})`,
       );
     }
+    if (filter.query?.trim()) {
+      const text = filter.query.trim();
+      const pattern = sqlString.escape(`%${text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
+      const matches = [
+        `D.KID LIKE ${pattern}`,
+        `Donors.full_name LIKE ${pattern}`,
+        `Donors.email LIKE ${pattern}`,
+      ];
+      if (/^\d+$/.test(text)) matches.push(`D.Donor_ID = ${sqlString.escape(Number(text))}`);
+      whereClauses.push(`(${matches.join(" OR ")})`);
+    }
   }
   const whereStatement = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
-  // 3. Construct the main query using Common Table Expressions (CTEs)
-  const query = `
-    -- CTE to aggregate donation data per distribution (KID)
-    WITH DonationStats AS (
-      SELECT
-        KID_fordeling,
-        SUM(sum_confirmed) as sum,
-        COUNT(*) as count
-      FROM Donations
-      GROUP BY KID_fordeling
-    ),
-    -- CTE to calculate and pivot the organization shares for each distribution
-    PivotedOrgShares AS (
-      SELECT
-        DCA.Distribution_KID,
-        ${pivotSelects}
-      FROM Distribution_cause_areas DCA
-      JOIN Distribution_cause_area_organizations DCAO ON DCA.ID = DCAO.Distribution_cause_area_ID
-      JOIN Organizations O ON DCAO.Organization_ID = O.ID
-      WHERE O.is_active = 1
-      GROUP BY DCA.Distribution_KID
-    ),
-    -- CTE to filter the main distributions table and join all data together
-    FilteredDistributions AS (
+  // 3. Pick the page first, then add donation totals and organisation shares for its rows
+  // only. Aggregating every distribution before sorting took about 300 ms at 27k
+  // distributions. Sorting by the totals still aggregates them all, but only Donations.
+  const sortsByTotals = sortColumn === "donation_sum" || sortColumn === "donation_count";
+  const outerSortColumn = sortColumn.replace(/^(D|Donors)\./, "");
+  // KID breaks ties so the page and the final order agree, and pages don't overlap.
+  const tieBreak = sortColumn === "D.KID" ? "" : `, D.KID ${sortDirection}`;
+  const outerTieBreak = sortColumn === "D.KID" ? "" : `, P.KID ${sortDirection}`;
+  const pageQuery = sortsByTotals
+    ? `
       SELECT
         D.KID,
         Donors.full_name,
         Donors.email,
         IFNULL(DS.sum, 0) as donation_sum,
-        IFNULL(DS.count, 0) as donation_count,
-        POS.* -- Selects all the pivoted organization share columns
+        IFNULL(DS.count, 0) as donation_count
       FROM Distributions D
       INNER JOIN Donors ON D.Donor_ID = Donors.ID
-      LEFT JOIN DonationStats DS ON D.KID = DS.KID_fordeling
-      LEFT JOIN PivotedOrgShares POS ON D.KID = POS.Distribution_KID
+      LEFT JOIN (
+        SELECT KID_fordeling, SUM(sum_confirmed) as sum, COUNT(*) as count
+        FROM Donations
+        GROUP BY KID_fordeling
+      ) DS ON D.KID = DS.KID_fordeling
       ${whereStatement}
-    ),
-    -- CTE to get the total count for pagination
-    TotalCount AS (
-        SELECT COUNT(*) as total_rows FROM FilteredDistributions
-    )
-    -- Final SELECT to combine data, sort, and paginate
-    SELECT
-      FD.*,
-      TC.total_rows
-    FROM FilteredDistributions FD
-    CROSS JOIN TotalCount TC
-    ORDER BY ${sortColumn} ${sortDirection}
-    LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit * page)};
-  `;
+      ORDER BY ${sortColumn} ${sortDirection}${tieBreak}
+      LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit * page)}`
+    : `
+      SELECT P.*, IFNULL(DS.sum, 0) as donation_sum, IFNULL(DS.count, 0) as donation_count
+      FROM (
+        SELECT D.KID, Donors.full_name, Donors.email
+        FROM Distributions D
+        INNER JOIN Donors ON D.Donor_ID = Donors.ID
+        ${whereStatement}
+        ORDER BY ${sortColumn} ${sortDirection}${tieBreak}
+        LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(limit * page)}
+      ) P
+      LEFT JOIN LATERAL (
+        SELECT SUM(sum_confirmed) as sum, COUNT(*) as count
+        FROM Donations
+        WHERE Donations.KID_fordeling = P.KID
+      ) DS ON TRUE`;
 
-  const [resultRows]: [any[], any] = await DAO.query(query);
+  const query = `
+    SELECT P.*, POS.*
+    FROM (${pageQuery}) P
+    LEFT JOIN LATERAL (
+      SELECT
+        ${pivotSelects || "NULL AS _none"}
+      FROM Distribution_cause_areas DCA
+      JOIN Distribution_cause_area_organizations DCAO ON DCA.ID = DCAO.Distribution_cause_area_ID
+      JOIN Organizations O ON DCAO.Organization_ID = O.ID
+      WHERE O.is_active = 1 AND DCA.Distribution_KID = P.KID
+    ) POS ON TRUE
+    ORDER BY P.${outerSortColumn} ${sortDirection}${outerTieBreak}`;
+
+  const countQuery = `
+    SELECT COUNT(*) as total_rows
+    FROM Distributions D
+    INNER JOIN Donors ON D.Donor_ID = Donors.ID
+    ${whereStatement}`;
+
+  const [[resultRows], [countRows]]: [[any[], any], [any[], any]] = await Promise.all([
+    DAO.query(query),
+    DAO.query(countQuery),
+  ]);
 
   if (resultRows.length === 0) {
     return {
@@ -175,7 +203,7 @@ export async function getAll(
     };
   }
 
-  const numDistributions = resultRows[0]["total_rows"] || 0;
+  const numDistributions = countRows[0]["total_rows"] || 0;
   const pages = Math.ceil(numDistributions / limit);
 
   // 4. Map the raw SQL result to the strongly-typed DistributionRow array
@@ -277,6 +305,66 @@ async function getByDonorId(donorId: number) {
   );
 
   return distributions;
+}
+
+/** One organization's part of a distribution, as the admin lists show it */
+export type DistributionOrgShare = {
+  organizationId: number;
+  organizationName: string;
+  causeAreaId: number;
+  /** Chart colour token; null: derived from the id */
+  chartColor: OrgChartColor | null;
+  /** Percent of the whole distribution (0–100), a decimal string with six decimals */
+  share: string;
+};
+
+/**
+ * The organization split of several distributions in one query, grouped by KID. Shares are
+ * cause area share × organization share, largest first. KIDs without a split are absent.
+ * An empty input runs no query.
+ */
+async function getOrgSharesByKIDs(KIDs: string[]): Promise<Map<string, DistributionOrgShare[]>> {
+  const shares = new Map<string, DistributionOrgShare[]>();
+  const unique = [...new Set(KIDs)];
+  if (unique.length === 0) return shares;
+
+  const [rows] = await DAO.query<
+    {
+      KID: string;
+      organizationId: number;
+      organizationName: string;
+      causeAreaId: number;
+      chartColor: string | null;
+      share: string;
+    }[]
+  >(
+    `SELECT
+       CA.Distribution_KID AS KID,
+       O.ID AS organizationId,
+       O.full_name AS organizationName,
+       CA.Cause_area_ID AS causeAreaId,
+       O.chart_color AS chartColor,
+       CAST(ROUND(CA.Percentage_share * CAO.Percentage_share / 100, 6) AS CHAR) AS share
+     FROM Distribution_cause_areas AS CA
+       INNER JOIN Distribution_cause_area_organizations AS CAO ON CAO.Distribution_cause_area_ID = CA.ID
+       INNER JOIN Organizations AS O ON O.ID = CAO.Organization_ID
+     WHERE CA.Distribution_KID IN (?) AND CA.Percentage_share > 0 AND CAO.Percentage_share > 0
+     ORDER BY CA.Distribution_KID, CA.Percentage_share * CAO.Percentage_share DESC, O.ID`,
+    [unique],
+  );
+
+  for (const row of rows) {
+    const list = shares.get(row.KID) ?? [];
+    list.push({
+      organizationId: row.organizationId,
+      organizationName: row.organizationName,
+      causeAreaId: row.causeAreaId,
+      chartColor: toOrgChartColor(row.chartColor),
+      share: row.share,
+    });
+    shares.set(row.KID, list);
+  }
+  return shares;
 }
 
 /**
@@ -557,7 +645,7 @@ async function getStandardDistributionByCauseAreaID(
     );
 
   // Validate that they sum to 100
-  const sum = result.reduce((acc, row) => acc + row.std_percentage_share, 0);
+  const sum = result.reduce((acc, row) => acc + row.std_percentage_share!, 0);
   if (sum !== 100)
     throw new Error(
       "INVALID | The sum of the standard shares for cause area with ID " +
@@ -568,7 +656,7 @@ async function getStandardDistributionByCauseAreaID(
   return result.map((row) => ({
     id: row.ID,
     name: row.full_name,
-    percentageShare: row.std_percentage_share.toString(),
+    percentageShare: row.std_percentage_share!.toString(),
   }));
 }
 
@@ -598,9 +686,8 @@ async function add(
   metaOwnerID: number | null = null,
   suppliedTransaction?: PoolConnection,
 ): Promise<boolean> {
+  const transaction = suppliedTransaction ?? (await DAO.startTransaction());
   try {
-    var transaction = suppliedTransaction ?? (await DAO.startTransaction());
-
     if (metaOwnerID == null) {
       metaOwnerID = await DAO.meta.getDefaultOwnerID();
     }
@@ -647,7 +734,7 @@ async function add(
       ),
     );
 
-    const distributionCauseAreaOrganizationInsertsRowValues = [];
+    const distributionCauseAreaOrganizationInsertsRowValues: (string | number)[][] = [];
     for (const causeAreaInsert of distributionCauseAreaInserts) {
       const causeArea = distribution.causeAreas.find(
         (item) => item.id === causeAreaInsert.causeAreaId,
@@ -793,7 +880,7 @@ const mapDbDistributionToDistribution = (result: SqlResult<DistributionDbResult>
   const distribution: Distribution = {
     kid: result[0].KID,
     donorId: result[0].Donor_ID,
-    taxUnitId: result[0].Tax_unit_ID,
+    taxUnitId: result[0].Tax_unit_ID!,
     fundraiserTransactionId: result[0].Fundraiser_transaction_ID ?? undefined,
     causeAreas: result.reduce((acc: DistributionCauseArea[], row) => {
       const existingCauseArea = acc.find((item) => item.id === row.Cause_area_ID);
@@ -861,7 +948,7 @@ async function updateCauseAreas(kid: string, causeAreas: DistributionCauseArea[]
     );
 
     // Add cause area organizations
-    const distributionCauseAreaOrganizationInsertsRowValues = [];
+    const distributionCauseAreaOrganizationInsertsRowValues: (string | number)[][] = [];
     for (const causeAreaInsert of distributionCauseAreaInserts) {
       const causeArea = causeAreas.find((item) => item.id === causeAreaInsert.causeAreaId);
       if (!causeArea) {
@@ -910,6 +997,7 @@ export const distributions = {
   getAll,
   getAllByDonor,
   getByDonorId,
+  getOrgSharesByKIDs,
   getKIDsByPrefix,
   add,
   setTaxUnit,

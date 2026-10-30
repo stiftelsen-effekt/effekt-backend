@@ -12,6 +12,7 @@ const ocrRoute = require("../routes/reports/ocr");
 let addStub;
 let mailStub;
 let parsingRulesStub;
+let queueStub;
 
 describe("Vipps route handles report correctly", () => {
   before(() => {
@@ -23,6 +24,8 @@ describe("Vipps route handles report correctly", () => {
     mailStub = sinon.stub(mail, "sendDonationReceipt");
 
     parsingRulesStub = sinon.stub(DAO.parsing, "getVippsParsingRules").resolves([]);
+
+    queueStub = sinon.stub(DAO.reviewqueue, "add").resolves({ added: 5, existing: 0 });
   });
 
   beforeEach(() => {
@@ -32,6 +35,23 @@ describe("Vipps route handles report correctly", () => {
   it("Adds donations to DB", async () => {
     await runVipps("Vipps April 2019");
     expect(addStub.callCount).to.be.equal(10);
+  });
+
+  it("Queues unmatched transactions for review without changing the response", async () => {
+    parsingRulesStub.resolves([]);
+    const json = await runVipps("Vipps April 2019");
+
+    expect(queueStub.calledOnce).to.be.true;
+    expect(queueStub.firstCall.args[0]).to.equal("vipps");
+    const queued = queueStub.firstCall.args[1];
+    const { content } = (json.firstCall.args as any[])[0];
+    expect(Object.keys(content)).to.deep.equal(["valid", "invalid", "invalidTransactions"]);
+    expect(queued).to.have.length(content.invalidTransactions.length);
+    expect(queued[0]).to.include({
+      externalId: content.invalidTransactions[0].transaction.transactionID,
+      paymentId: 4,
+      amount: content.invalidTransactions[0].transaction.amount,
+    });
   });
 
   it("Attempts to send mail when in production", async () => {
@@ -99,6 +119,7 @@ async function runVipps(filename) {
   await vippsRoute(query, res, (ex) => {
     throw ex;
   });
+  return jsonStub;
 }
 
 async function runOCR(filename) {

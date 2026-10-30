@@ -55,8 +55,8 @@ export type ParsedVippsReport = {
 export const parseReport = (report): ParsedVippsReport => {
   const data = parseCsvRows(report);
 
-  let currentMinDate = null;
-  let currentMaxDate = null;
+  let currentMinDate: Date | null = null;
+  let currentMaxDate: Date | null = null;
   let transactions: VippsTransaction[] = [];
 
   if (isDetailsReport(data)) {
@@ -73,6 +73,11 @@ export const parseReport = (report): ParsedVippsReport => {
       return acc;
     }, []);
   } else {
+    // A legacy report row has the message in the last (17th) column. Without any such row this
+    // is some other file (e.g. a bank export), which would otherwise "succeed" with 0 rows.
+    if (!data.some((row) => row.length > legacyFieldMapping.Message)) {
+      throw new Error("Not a Vipps settlement report (no known header or transaction rows)");
+    }
     transactions = (data as any[]).reduce<VippsTransaction[]>((acc, dataRow: any) => {
       const transaction = buildTransactionFromLegacyArray(dataRow);
       if (transaction == false) return acc;
@@ -87,8 +92,8 @@ export const parseReport = (report): ParsedVippsReport => {
   }
 
   return {
-    minDate: currentMinDate,
-    maxDate: currentMaxDate,
+    minDate: currentMinDate!,
+    maxDate: currentMaxDate!,
     transactions: transactions,
   };
 };

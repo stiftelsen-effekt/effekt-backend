@@ -1,20 +1,20 @@
 steps:
   - name: "node:24.22.1"
-    entrypoint: npm
+    entrypoint: bash
     id: install
-    args: ["install"]
+    args: ["-c", "corepack enable && pnpm install --frozen-lockfile"]
   - name: "node:24.22.1"
-    entrypoint: npm
+    entrypoint: bash
     waitFor: ["install"]
-    args: ["run", "test"]
+    args: ["-c", "corepack enable && pnpm run test"]
   - name: "node:24.22.1"
-    entrypoint: npm
+    entrypoint: bash
     waitFor: ["install"]
-    args: ["run", "typecheck"]
+    args: ["-c", "corepack enable && pnpm run typecheck"]
   - name: "node:24.22.1"
-    entrypoint: npm
+    entrypoint: bash
     waitFor: ["install"]
-    args: ["run", "format:check"]
+    args: ["-c", "corepack enable && pnpm run format:check"]
 
 options:
   logging: CLOUD_LOGGING_ONLY

@@ -23,18 +23,20 @@ const escapeCsvValue = (value) => {
 };
 
 /**
- * Formats a date for CSV export
+ * Formats a date for CSV export as Oslo local time ("2026-10-24 14:05:00"), the time people
+ * see in the admin, rather than UTC ISO. A date-only string stays the day it is.
  * @param {Date|string|null} date - The date to format
- * @returns {string} - Formatted date string (YYYY-MM-DD) or empty string
+ * @returns {string} - Formatted date string or empty string
  */
 const formatDate = (date) => {
   if (!date) return "";
   if (date instanceof Date) {
-    return DateTime.fromJSDate(date).toISO();
-  } else {
-    const dt = DateTime.fromSQL(date, { locale: "no-NB" });
-    return dt.isValid ? dt.toISO() : "";
+    const dt = DateTime.fromJSDate(date).setZone("Europe/Oslo");
+    return dt.isValid ? dt.toFormat("yyyy-MM-dd HH:mm:ss") : "";
   }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+  const dt = DateTime.fromSQL(date, { zone: "Europe/Oslo" });
+  return dt.isValid ? dt.toFormat("yyyy-MM-dd HH:mm:ss") : "";
 };
 
 /**
@@ -53,7 +55,7 @@ const formatBoolean = (value) => {
  * @param {Object} [formatters] - Optional object mapping field names to formatter functions
  * @returns {string} - Complete CSV content with headers
  */
-const generateCsv = (rows, headers = null, formatters = {}) => {
+export const generateCsv = (rows, headers: string[] | null = null, formatters = {}) => {
   if (!rows || rows.length === 0) {
     return headers ? headers.join(",") : "";
   }
@@ -129,7 +131,13 @@ const sendCsvDownload = (res, csvContent, filename) => {
  * @param {Array<string>} [headers] - Optional custom headers
  * @param {Object} [formatters] - Optional field formatters
  */
-export const exportCsv = (res, rows, filename, headers = null, formatters = {}) => {
+export const exportCsv = (
+  res,
+  rows,
+  filename,
+  headers: string[] | null = null,
+  formatters = {},
+) => {
   const csvContent = generateCsv(rows, headers, formatters);
   return sendCsvDownload(res, csvContent, filename);
 };

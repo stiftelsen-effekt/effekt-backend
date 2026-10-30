@@ -1,8 +1,9 @@
 import { distributions } from "./distributions";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
+import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
+import type { ResultSetHeader } from "mysql2";
 import { Vipps_agreements, Vipps_order_transaction_statuses, Vipps_orders } from "@prisma/client";
-import { AgreementReport } from "./avtalegiroagreements";
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = [
@@ -47,8 +48,53 @@ export type VippsAgreement = {
   monthly_charge_day: number;
   timestamp_created: string;
   agreement_url_code: string;
-  paused_until_date: string;
-  force_charge_date: string;
+  /** YYYY-MM-DD, null when not paused */
+  paused_until_date: string | null;
+  /** YYYY-MM-DD, null when no forced charge is scheduled */
+  force_charge_date: string | null;
+};
+
+/** Key figures for Vipps agreements. Sums are DECIMAL strings, null when nothing matched. */
+export type VippsAgreementReport = {
+  activeAgreementCount: number;
+  averageAgreementSum: string | null;
+  totalAgreementSum: string | null;
+  medianAgreementSum: string | null;
+  activatedThisMonth: number;
+  sumActivatedThisMonth: string | null;
+  pendingThisMonth: number;
+  sumPendingThisMonth: string | null;
+  stoppedThisMonth: number;
+  sumStoppedThisMonth: string | null;
+  expiredThisMonth: number;
+  sumExpiredThisMonth: string | null;
+};
+
+/** A histogram bucket: amounts in [bucket, bucket + 500) NOK */
+export type VippsSumHistogramBucket = {
+  bucket: number;
+  items: number;
+  /** 100 * ln(items), for a logarithmic bar height */
+  bar: number;
+};
+
+export type VippsChargeRow = {
+  chargeID: string;
+  agreementID: string;
+  status: string;
+  type: string | null;
+  amountNOK: number;
+  KID: string;
+  timestamp_created: Date | null;
+  /** YYYY-MM-DD */
+  dueDate: string;
+  full_name: string | null;
+  /** Window aggregates over the whole filtered result */
+  full_count: number;
+  /** DECIMAL string */
+  full_sum: string;
+  /** DECIMAL string */
+  full_avg: string;
 };
 
 /**
@@ -154,7 +200,9 @@ async function getRecentOrder() {
 async function getAgreement(agreementID): Promise<VippsAgreement | false> {
   let [res] = await DAO.query(
     `
-        SELECT ID, status, donorID, KID, timestamp_created, monthly_charge_day, force_charge_date, paused_until_date, amount, agreement_url_code FROM 
+        SELECT ID, status, donorID, KID, ${dbClockColumn(
+          "timestamp_created",
+        )}, monthly_charge_day, force_charge_date, paused_until_date, amount, agreement_url_code FROM 
             Vipps_agreements
         WHERE 
             ID = ?
@@ -177,6 +225,8 @@ async function getAgreement(agreementID): Promise<VippsAgreement | false> {
 interface VippsAgreementFilters {
   amount?: { from?: number; to?: number };
   created?: { from?: Date | null; to?: Date | null };
+  /** Half-open instant range (osloDays.ts), used by tRPC; timestamp_created is filled by MySQL */
+  createdRange?: InstantRange;
   chargeDay?: { from?: number; to?: number };
   KID?: string;
   donor?: string;
@@ -184,8 +234,8 @@ interface VippsAgreementFilters {
   agreementID?: string;
 }
 
-interface VippsAgreementRow {
-  ID: number;
+export interface VippsAgreementRow {
+  ID: string;
   status: string;
   amount: number;
   KID: string;
@@ -195,7 +245,7 @@ interface VippsAgreementRow {
   full_name: string;
 }
 
-interface VippsAgreementStatistics {
+export interface VippsAgreementStatistics {
   numAgreements: number;
   sumAgreements: number;
   avgAgreement: number;
@@ -250,6 +300,7 @@ export async function getAgreements(
         whereClauses.push(`VA.timestamp_created < ${sqlString.escape(toDate)}`);
       }
     }
+    whereClauses.push(...instantRangeClauses("VA.timestamp_created", filter.createdRange, "db"));
     if (filter.chargeDay) {
       if (filter.chargeDay.from !== undefined)
         whereClauses.push(`VA.monthly_charge_day >= ${sqlString.escape(filter.chargeDay.from)}`);
@@ -291,7 +342,7 @@ export async function getAgreements(
         VA.amount,
         VA.KID,
         VA.monthly_charge_day,
-        VA.timestamp_created,
+        ${dbClockColumn("VA.timestamp_created")},
         VA.agreement_url_code,
         Donors.full_name
       FROM Vipps_agreements as VA
@@ -353,12 +404,138 @@ export async function getAgreements(
   };
 }
 
+export type VippsAgreementPayments = {
+  /** The agreement's current KID first, then other KIDs its charges were made under */
+  KIDs: string[];
+  /**
+   * Donations of the agreement, newest first: Vipps recurring donations on any of the KIDs, and
+   * donations registered from one of its charges (external id "<agreement>.<charge>")
+   */
+  donations: Array<{
+    id: number;
+    /** Decimal string */
+    sum: string;
+    /** Decimal string */
+    transactionCost: string | null;
+    timestamp: Date;
+    paymentMethod: string;
+    KID: string;
+    /** The charge the donation was registered from, if any */
+    chargeId: string | null;
+  }>;
+  /** The agreement's charges (Vipps_agreement_charges), newest due date first */
+  charges: Array<{
+    chargeId: string;
+    /** Whole NOK */
+    amount: number;
+    KID: string;
+    /** YYYY-MM-DD */
+    dueDate: string;
+    status: string;
+    type: string | null;
+    created: Date | null;
+    /** The donation registered from the charge, if any */
+    donationId: number | null;
+  }>;
+};
+
+/**
+ * Payments of a Vipps agreement: its charges and its donations, following KID changes (a
+ * distribution change gives the agreement a new KID; earlier charges keep theirs).
+ * @returns null if there is no agreement with the id
+ */
+async function getPaymentsByAgreementId(
+  agreementId: string,
+): Promise<VippsAgreementPayments | null> {
+  const [agreements] = await DAO.query<Array<{ KID: string }>>(
+    "SELECT KID FROM Vipps_agreements WHERE ID = ?",
+    [agreementId],
+  );
+  if (agreements.length === 0) return null;
+
+  const [chargeRows] = await DAO.query<
+    Array<{
+      chargeID: string;
+      amountNOK: number;
+      KID: string;
+      dueDate: string;
+      status: string;
+      type: string | null;
+      timestamp_created: Date | null;
+    }>
+  >(
+    `SELECT chargeID, amountNOK, KID, dueDate, status, type, ${dbClockColumn("timestamp_created")}
+     FROM Vipps_agreement_charges
+     WHERE agreementID = ?
+     ORDER BY dueDate DESC, Vipps_agreement_charges.timestamp_created DESC`,
+    [agreementId],
+  );
+
+  const KIDs = [...new Set([agreements[0].KID, ...chargeRows.map((charge) => charge.KID)])];
+  const chargePrefix = `${agreementId}.`;
+
+  const [donationRows] = await DAO.query<
+    Array<{
+      ID: number;
+      sum_confirmed: string;
+      transaction_cost: string | null;
+      timestamp_confirmed: Date;
+      payment_name: string;
+      KID_fordeling: string;
+      PaymentExternal_ID: string | null;
+    }>
+  >(
+    `SELECT D.ID, D.sum_confirmed, D.transaction_cost, D.timestamp_confirmed, P.payment_name,
+       D.KID_fordeling, D.PaymentExternal_ID
+     FROM Donations AS D
+     INNER JOIN Payment AS P ON D.Payment_ID = P.ID
+     WHERE (D.KID_fordeling IN (?) AND D.Payment_ID = 8)
+       OR D.PaymentExternal_ID LIKE ?
+     ORDER BY D.timestamp_confirmed DESC, D.ID DESC`,
+    [KIDs, `${chargePrefix.replace(/[\\%_]/g, (c) => `\\${c}`)}%`],
+  );
+
+  const chargeIdOf = (externalId: string | null) =>
+    externalId?.startsWith(chargePrefix) ? externalId.slice(chargePrefix.length) : null;
+  const donationByCharge = new Map<string, number>();
+  for (const row of donationRows) {
+    const chargeId = chargeIdOf(row.PaymentExternal_ID);
+    if (chargeId !== null && !donationByCharge.has(chargeId))
+      donationByCharge.set(chargeId, row.ID);
+  }
+
+  return {
+    KIDs,
+    donations: donationRows.map((row) => ({
+      id: row.ID,
+      sum: row.sum_confirmed,
+      transactionCost: row.transaction_cost,
+      timestamp: row.timestamp_confirmed,
+      paymentMethod: row.payment_name,
+      KID: row.KID_fordeling,
+      chargeId: chargeIdOf(row.PaymentExternal_ID),
+    })),
+    charges: chargeRows.map((charge) => ({
+      chargeId: charge.chargeID,
+      amount: charge.amountNOK,
+      KID: charge.KID,
+      dueDate: charge.dueDate,
+      status: charge.status,
+      type: charge.type,
+      created: charge.timestamp_created,
+      donationId: donationByCharge.get(charge.chargeID) ?? null,
+    })),
+  };
+}
+
 /**
  * Fetches an agreement by donor id
  * @property {number} donorId
  * @return {VippsAgreement}
  */
-async function getAgreementsByDonorId(donorId): Promise<VippsAgreement[]> {
+async function getAgreementsByDonorId(
+  donorId,
+): Promise<(VippsAgreement & { full_name: string | null })[]> {
   const [agreements] = await DAO.query(
     `
             SELECT Vipps_agreements.ID, 
@@ -366,7 +543,7 @@ async function getAgreementsByDonorId(donorId): Promise<VippsAgreement[]> {
                 donorID,
                 Donors.full_name,
                 KID, 
-                timestamp_created, 
+                ${dbClockColumn("timestamp_created")}, 
                 monthly_charge_day, 
                 force_charge_date, 
                 paused_until_date, 
@@ -402,18 +579,20 @@ async function getCharges(
   filter,
 ): Promise<{
   pages: number;
-  rows: Array<any>;
+  rows: VippsChargeRow[];
   statistics: {
     numCharges: number;
     sumCharges: string;
     avgCharge: string;
   };
 }> {
-  const sortColumn = jsDBmapping.find((map) => map[0] === sort.id)[1];
+  const mappedColumn = jsDBmapping.find((map) => map[0] === sort.id)![1];
+  // The charge's own column, not the converted `timestamp_created` alias, so the sort can use an index
+  const sortColumn = mappedColumn === "timestamp_created" ? "VC.timestamp_created" : mappedColumn;
   const sortDirection = sort.desc ? "DESC" : "ASC";
   const offset = page * limit;
 
-  let where = [];
+  let where: string[] = [];
   if (filter) {
     if (filter.amount) {
       if (filter.amount.from) where.push(`amountNOK >= ${sqlString.escape(filter.amount.from)} `);
@@ -465,39 +644,46 @@ async function getCharges(
     VC.type,
     VC.amountNOK,
     VC.KID,
-    VC.timestamp_created,
+    ${dbClockColumn("VC.timestamp_created")},
     VC.dueDate,
     Donors.full_name
   `;
 
-  const [charges] = await DAO.query(
-    `
-        SELECT
-          count(*) OVER() AS full_count,
-          sum(amountNOK) OVER() AS full_sum,
-          avg(amountNOK) OVER() AS full_avg,
-          ${columns}
-
+  // The page and the totals are separate queries: totals as window functions over a grouped
+  // join made MySQL sort and aggregate every charge before taking the page.
+  const fromWhere = `
         FROM Vipps_agreement_charges as VC
         INNER JOIN Vipps_agreements as VA
             ON VA.ID = VC.agreementID
         INNER JOIN Donors
             ON Donors.ID = VA.donorID
         WHERE
-            ${where.length !== 0 ? where.join(" AND ") : "1"}
+            ${where.length !== 0 ? where.join(" AND ") : "1"}`;
 
-        GROUP BY
-          ${columns}
-
-        ORDER BY ${sortColumn} ${sortDirection}
+  const [[charges], [statistics]] = await Promise.all([
+    DAO.query<VippsChargeRow[]>(
+      `
+        SELECT ${columns}
+        ${fromWhere}
+        ORDER BY ${sortColumn} ${sortDirection}, VC.chargeID ${sortDirection}
         LIMIT ? OFFSET ?
         `,
-    [limit, offset],
-  );
+      [limit, offset],
+    ),
+    DAO.query<{ full_count: number; full_sum: string; full_avg: string }[]>(
+      `
+        SELECT
+          count(*) AS full_count,
+          sum(amountNOK) AS full_sum,
+          avg(amountNOK) AS full_avg
+        ${fromWhere}
+        `,
+    ),
+  ]);
 
-  const numCharges = charges.length > 0 ? charges[0]["full_count"] : 0;
-  const sumCharges = charges.length > 0 ? charges[0]["full_sum"] : 0;
-  const avgCharge = charges.length > 0 ? charges[0]["full_avg"] : 0;
+  const numCharges = charges.length > 0 ? statistics[0]["full_count"] : 0;
+  const sumCharges = charges.length > 0 ? statistics[0]["full_sum"] : "0";
+  const avgCharge = charges.length > 0 ? statistics[0]["full_avg"] : "0";
 
   if (charges.length === 0) {
     return {
@@ -512,7 +698,13 @@ async function getCharges(
   } else {
     return {
       pages: Math.ceil(numCharges / limit),
-      rows: charges,
+      // Rows keep the totals as columns, as when they were window functions (REST shape)
+      rows: charges.map((charge) => ({
+        ...charge,
+        full_count: numCharges,
+        full_sum: sumCharges,
+        full_avg: avgCharge,
+      })),
       statistics: {
         numCharges,
         sumCharges,
@@ -525,9 +717,9 @@ async function getCharges(
 /**
  * Fetches an agreement ID by agreementUrlCode
  * @property {string} agreementUrlCode The code used in the Vipps merchantAgreementUrl
- * @return {number | false} agreementId
+ * @return {string | false} agreementId
  */
-async function getAgreementIdByUrlCode(agreementUrlCode): Promise<number | false> {
+async function getAgreementIdByUrlCode(agreementUrlCode): Promise<string | false> {
   let [res] = await DAO.query(
     `
         SELECT ID FROM 
@@ -604,7 +796,7 @@ async function getActiveAgreements(): Promise<VippsAgreement[] | false> {
  * @return {Object}
  */
 async function getAgreementReport() {
-  let [res] = await DAO.query<AgreementReport[]>(`
+  let [res] = await DAO.query<VippsAgreementReport[]>(`
     SELECT 
         count(ID) as activeAgreementCount,
         round(avg(amount), 0) as averageAgreementSum,
@@ -684,8 +876,8 @@ async function getAgreementReport() {
  * Skips empty buckets
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
-async function getAgreementSumHistogram() {
-  let [results] = await DAO.query(`
+async function getAgreementSumHistogram(): Promise<VippsSumHistogramBucket[]> {
+  let [results] = await DAO.query<VippsSumHistogramBucket[]>(`
             SELECT 
                 floor(amount/500)*500 	AS bucket, 
                 count(*) 						AS items,
@@ -704,8 +896,8 @@ async function getAgreementSumHistogram() {
  * Skips empty buckets
  * @returns {Array<Object>} Returns an array of buckets with items in bucket, bucket start value (ends at value +100), and bar height (logarithmic scale, ln)
  */
-async function getChargeSumHistogram() {
-  let [results] = await DAO.query(`
+async function getChargeSumHistogram(): Promise<VippsSumHistogramBucket[]> {
+  let [results] = await DAO.query<VippsSumHistogramBucket[]>(`
             SELECT 
                 floor(amountNOK/500)*500 	AS bucket, 
                 count(*) 						AS items,
@@ -767,7 +959,6 @@ async function getMatchingRules(): Promise<
     periodFrom: Date;
     periodTo: Date;
     resolveKID: string;
-    resolveAdoveoFundraiserID: number | null;
     precedence: number | null;
   }[]
 > {
@@ -779,7 +970,6 @@ async function getMatchingRules(): Promise<
             PeriodFrom, 
             PeriodTo, 
             ResolveKID, 
-            ResolveAdoveoFundraiserID, 
             precedence
         FROM Vipps_matching_rules
     `);
@@ -791,7 +981,6 @@ async function getMatchingRules(): Promise<
     periodFrom: row.PeriodFrom,
     periodTo: row.PeriodTo,
     resolveKID: row.ResolveKID,
-    resolveAdoveoFundraiserID: row.ResolveAdoveoFundraiserID,
     precedence: row.precedence,
   }));
 }
@@ -910,23 +1099,21 @@ async function addMatchingRule({
   periodFrom,
   periodTo,
   resolveKID,
-  resolveAdoveoFundraiserID,
   precedence,
 }) {
   try {
     const [result] = await DAO.query(
       `
             INSERT INTO Vipps_matching_rules
-                (SalesLocation, Message, PeriodFrom, PeriodTo, ResolveKID, ResolveAdoveoFundraiserID, precedence)
+                (SalesLocation, Message, PeriodFrom, PeriodTo, ResolveKID, precedence)
             VALUES
-                (?,?,?,?,?,?,?)`,
+                (?,?,?,?,?,?)`,
       [
         salesLocation,
         typeof message === "string" && message.length > 0 ? message : null,
         periodFrom,
         periodTo,
         resolveKID,
-        resolveAdoveoFundraiserID,
         precedence,
       ],
     );
@@ -941,6 +1128,40 @@ async function addMatchingRule({
 //endregion
 
 //region Modify
+/**
+ * Replaces the fields of a Vipps matching rule
+ * @returns false if there is no rule with the id
+ */
+async function updateMatchingRule(
+  id: number,
+  rule: {
+    salesLocation: string | null;
+    message: string | null;
+    periodFrom: string;
+    periodTo: string;
+    resolveKID: string;
+    precedence: number | null;
+  },
+): Promise<boolean> {
+  const [res] = await DAO.query<ResultSetHeader>(
+    `UPDATE Vipps_matching_rules
+     SET SalesLocation = ?, Message = ?, PeriodFrom = ?, PeriodTo = ?, ResolveKID = ?, precedence = ?
+     WHERE ID = ?`,
+    [
+      rule.salesLocation,
+      // Same normalisation as addMatchingRule
+      typeof rule.message === "string" && rule.message.length > 0 ? rule.message : null,
+      rule.periodFrom,
+      rule.periodTo,
+      rule.resolveKID,
+      rule.precedence,
+      id,
+    ],
+  );
+  // affectedRows counts matched rows (mysql2 sets FOUND_ROWS), so an unchanged rule is found too
+  return res.affectedRows > 0;
+}
+
 /**
  * Adds a Vipps order transaction status
  * @param {string} orderId
@@ -1201,6 +1422,7 @@ const jsDBmapping = [
 ];
 
 export const vipps = {
+  getPaymentsByAgreementId,
   getLatestToken,
   getOrder,
   getRecentOrder,
@@ -1234,4 +1456,5 @@ export const vipps = {
   updateChargeStatus,
   updateAgreementCancellationDate,
   deleteMatchingRule,
+  updateMatchingRule,
 };
