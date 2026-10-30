@@ -127,13 +127,9 @@ const agreementsRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
-      const agreement = await getAgreementOrThrow(input.id);
+      await getAgreementOrThrow(input.id);
       await callVipps("update the agreement price", () =>
-        vippsService.updateAgreementPrice(
-          input.id,
-          agreement.agreement_url_code,
-          input.amountNok * 100,
-        ),
+        vippsService.updateAgreementPrice(input.id, input.amountNok * 100),
       );
     }),
 
@@ -144,9 +140,7 @@ const agreementsRouter = router({
       if (agreement.status?.toUpperCase() === "STOPPED") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Agreement is already stopped" });
       }
-      await callVipps("cancel the agreement", () =>
-        vippsService.cancelAgreement(input.id, agreement.agreement_url_code),
-      );
+      await callVipps("cancel the agreement", () => vippsService.cancelAgreement(input.id));
     }),
 
   updateChargeDay: adminProcedure
@@ -158,12 +152,8 @@ const agreementsRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
-      const agreement = await getAgreementOrThrow(input.id);
-      await vippsService.updateAgreementChargeDay(
-        input.id,
-        agreement.agreement_url_code,
-        input.chargeDay,
-      );
+      await getAgreementOrThrow(input.id);
+      await vippsService.updateAgreementChargeDay(input.id, input.chargeDay);
     }),
 
   /** Points the agreement at a matching distribution (existing KID or a new one) */
@@ -173,11 +163,10 @@ const agreementsRouter = router({
       const agreement = await getAgreementOrThrow(input.id);
       // Checked here rather than in the service shared with REST, to keep REST responses as-is
       await assertDistributionReferences({ ...input.distribution, donorId: agreement.donorID });
-      const result = await vippsService.updateAgreementDistribution(
-        input.id,
-        agreement.agreement_url_code,
-        { ...input.distribution, donorId: agreement.donorID },
-      );
+      const result = await vippsService.updateAgreementDistribution(input.id, {
+        ...input.distribution,
+        donorId: agreement.donorID,
+      });
       if (!result.ok) {
         throw new TRPCError({
           code: result.status === 404 ? "NOT_FOUND" : "BAD_REQUEST",

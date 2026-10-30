@@ -3,7 +3,7 @@ import { checkAdminOrTheDonor } from "../custom_modules/authorization/authMiddle
 import { DAO } from "../custom_modules/DAO";
 import { fnr } from "@navikt/fnrvalidator";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { TaxReport, TaxYearlyReportUnit } from "../schemas/types";
+import { DistributionInput, TaxReport, TaxYearlyReportUnit } from "../schemas/types";
 import permissions from "../enums/authorizationPermissions";
 import bodyParser from "body-parser";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
@@ -18,6 +18,7 @@ import {
 import { exportCsv } from "../custom_modules/csvexport";
 import { requireAuthorizationSecret } from "../custom_modules/webhookAuth";
 import { EA_NORGE_META_OWNER_ID } from "../custom_modules/DAO_modules/meta";
+import * as vippsService from "../custom_modules/vippsService";
 
 const config = require("../config");
 
@@ -1157,6 +1158,229 @@ router.get(
       return res.json({
         status: 200,
         content: agreements,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
+
+/**
+ * Responds 404 unless the Vipps agreement in the path belongs to the donor in the path.
+ * checkAdminOrTheDonor only authorizes the caller against :id, not against :agreementId.
+ */
+const checkVippsAgreementBelongsToDonor: express.RequestHandler = async (req, res, next) => {
+  try {
+    const agreement = await DAO.vipps.getAgreement(req.params.agreementId);
+    if (!agreement || Number(agreement.donorID) !== parseInt(req.params.id)) {
+      return res.status(404).json({
+        status: 404,
+        content: "Agreement not found",
+      });
+    }
+    next();
+  } catch (ex) {
+    next(ex);
+  }
+};
+
+const vippsAgreementWriteGuards = [
+  authMiddleware.auth(permissions.write_agreements),
+  (req, res, next) => {
+    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
+  },
+  checkVippsAgreementBelongsToDonor,
+];
+
+/**
+ * @openapi
+ * /donors/{id}/recurring/vipps/{agreementId}/cancel:
+ *   put:
+ *    tags: [Donors]
+ *    description: Stops a vipps agreement belonging to the donor
+ *    security:
+ *       - auth0_jwt: [write:agreements]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *      - in: path
+ *        name: agreementId
+ *        required: true
+ *        description: Vipps agreement id
+ *        schema:
+ *          type: string
+ *    responses:
+ *      401:
+ *        description: User not authorized to access resource
+ *      404:
+ *        description: The donor has no agreement with the given id
+ */
+router.put(
+  "/:id/recurring/vipps/:agreementId/cancel",
+  ...vippsAgreementWriteGuards,
+  async (req, res, next) => {
+    try {
+      const response = await vippsService.cancelAgreement(req.params.agreementId);
+
+      if (!response) {
+        return res.status(500).json({
+          status: 500,
+          content: "Could not cancel agreement",
+        });
+      }
+
+      res.json({
+        status: 200,
+        content: response,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
+
+/**
+ * @openapi
+ * /donors/{id}/recurring/vipps/{agreementId}/price:
+ *   put:
+ *    tags: [Donors]
+ *    description: Updates the monthly price of a vipps agreement belonging to the donor
+ *    security:
+ *       - auth0_jwt: [write:agreements]
+ *    requestBody:
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              price:
+ *                type: number
+ *                description: The new price in øre
+ *          example:
+ *            price: 50000
+ */
+router.put(
+  "/:id/recurring/vipps/:agreementId/price",
+  ...vippsAgreementWriteGuards,
+  async (req, res, next) => {
+    try {
+      const response = await vippsService.updateAgreementPrice(
+        req.params.agreementId,
+        req.body.price,
+      );
+
+      if (!response) {
+        return res.status(500).json({
+          status: 500,
+          content: "Could not update agreement price",
+        });
+      }
+
+      res.json({
+        status: 200,
+        content: response,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
+
+/**
+ * @openapi
+ * /donors/{id}/recurring/vipps/{agreementId}/chargeday:
+ *   put:
+ *    tags: [Donors]
+ *    description: Changes the monthly charge day of a vipps agreement belonging to the donor
+ *    security:
+ *       - auth0_jwt: [write:agreements]
+ *    requestBody:
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              chargeDay:
+ *                type: number
+ *                description: 1-28, or 0 for the last day of the month
+ *          example:
+ *            chargeDay: 5
+ *    responses:
+ *      400:
+ *        description: Invalid charge day
+ */
+router.put(
+  "/:id/recurring/vipps/:agreementId/chargeday",
+  ...vippsAgreementWriteGuards,
+  async (req, res, next) => {
+    try {
+      const chargeDay = req.body.chargeDay;
+
+      // 0 means last day of each month
+      if (!Number.isInteger(chargeDay) || chargeDay < 0 || chargeDay > 28) {
+        return res.status(400).json({
+          status: 400,
+          content: "Invalid charge day, must be between 0 and 28",
+        });
+      }
+
+      const response = await vippsService.updateAgreementChargeDay(
+        req.params.agreementId,
+        chargeDay,
+      );
+
+      res.json({
+        status: 200,
+        content: response,
+      });
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
+
+/**
+ * @openapi
+ * /donors/{id}/recurring/vipps/{agreementId}/distribution:
+ *   put:
+ *    tags: [Donors]
+ *    description: Changes the distribution of a vipps agreement belonging to the donor
+ *    security:
+ *       - auth0_jwt: [write:agreements]
+ *    requestBody:
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              distribution:
+ *                $ref: '#/components/schemas/DistributionInput'
+ *    responses:
+ *      400:
+ *        description: Invalid distribution
+ */
+router.put(
+  "/:id/recurring/vipps/:agreementId/distribution",
+  ...vippsAgreementWriteGuards,
+  async (req, res, next) => {
+    try {
+      const result = await vippsService.updateAgreementDistribution(
+        req.params.agreementId,
+        req.body.distribution as DistributionInput,
+      );
+      if (!result.ok) {
+        return res.status(result.status).json({
+          status: result.status,
+          content: result.message,
+        });
+      }
+
+      res.json({
+        status: 200,
+        content: { KID: result.KID },
       });
     } catch (ex) {
       next(ex);
