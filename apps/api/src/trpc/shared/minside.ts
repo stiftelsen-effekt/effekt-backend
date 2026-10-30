@@ -145,7 +145,92 @@ export const distributionsOutput = z.array(
   }),
 );
 
+/*
+ * Recurring agreements (Norwegian Min Side's agreements page). Only the fields Min Side reads are
+ * declared; the Danish site lists its own agreements (GET /donors/:id/recurring), so these three
+ * have no Danish REST route.
+ */
+
+/** GET /donors/:id/recurring/vipps */
+export const vippsAgreementsOutput = z.array(
+  z.object({
+    // Vipps' agreement id, such as "agr_5kSeqz"
+    ID: z.string(),
+    status: z.string().nullable(),
+    KID: z.string(),
+    // Whole kroner
+    amount: z.number(),
+    monthly_charge_day: z.number().int(),
+    timestamp_created: isoDateTime.nullable(),
+  }),
+);
+
+/** GET /donors/:id/recurring/avtalegiro */
+export const avtaleGiroAgreementsOutput = z.array(
+  z.object({
+    ID: z.number().int(),
+    // MySQL TINYINT: 1 or 0
+    active: z.number().int(),
+    // Whole kroner (ROUND(amount / 100) in SQL, a DECIMAL)
+    amount: decimal,
+    KID: z.string(),
+    payment_date: z.number().int(),
+    created: isoDateTime.nullable(),
+    cancelled: isoDateTime.nullable(),
+  }),
+);
+
+/** GET /donors/:id/recurring/autogiro */
+export const autoGiroAgreementsOutput = z.array(
+  z.object({
+    ID: z.number().int(),
+    active: z.boolean(),
+    amount: decimal,
+    KID: z.string(),
+    payment_date: z.number().int(),
+    created: isoDateTime.nullable(),
+    cancelled: isoDateTime.nullable(),
+  }),
+);
+
+/**
+ * GET /donors/:id/taxreports: one report per year, from the previous year down to 2022, computed
+ * by the backend with the Norwegian (default) or Swedish deduction rules. No Danish REST route.
+ */
+export const taxReportsInput = donorInput.extend({ locale: z.enum(["NO", "SV"]).optional() });
+
+const taxReportChannel = z.object({ channel: z.string(), sumDonations: z.number() });
+
+export const taxReportsOutput = z.array(
+  z.object({
+    year: z.number().int(),
+    units: z.array(
+      z.object({
+        id: z.number().int(),
+        name: z.string(),
+        ssn: z.string(),
+        sumDonations: z.number(),
+        taxDeduction: z.number(),
+        channels: z.array(taxReportChannel),
+      }),
+    ),
+    sumDonations: z.number(),
+    sumTaxDeductions: z.number(),
+    sumDonationsWithoutTaxUnit: z.object({
+      sumDonations: z.number(),
+      channels: z.array(taxReportChannel),
+    }),
+    sumNonDeductibleDonationsByType: z.array(
+      z.object({ type: z.string(), sumNonDeductibleDonations: z.number() }),
+    ),
+  }),
+);
+
 export type TaxUnit = z.output<typeof taxUnitOutput>;
 export type DonationsAggregated = z.output<typeof donationsAggregatedOutput>;
 export type Donations = z.output<typeof donationsOutput>;
 export type Distributions = z.output<typeof distributionsOutput>;
+export type VippsAgreements = z.output<typeof vippsAgreementsOutput>;
+export type AvtaleGiroAgreements = z.output<typeof avtaleGiroAgreementsOutput>;
+export type AutoGiroAgreements = z.output<typeof autoGiroAgreementsOutput>;
+export type TaxReports = z.output<typeof taxReportsOutput>;
