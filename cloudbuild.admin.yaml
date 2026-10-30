@@ -1,5 +1,5 @@
 # Builds the admin (admin/) and publishes it to its bucket behind the effekt-load-balancer.
-# Trigger: push to master touching admin/**, src/trpc/**, pnpm-lock.yaml or this file.
+# Trigger: push to main touching admin/**, src/trpc/**, pnpm-lock.yaml or this file.
 # Substitutions (set on the trigger): _BUCKET, _API_URL, _AUTH_DOMAIN, _AUTH_CLIENT_ID, _AUTH_AUDIENCE,
 # _FEATURE_REGRANTING ("false" hides Regranting), _REGRANTING_BACKFILLED ("false" shows a notice
 # on the regranting pages that past rounds aren't imported yet)

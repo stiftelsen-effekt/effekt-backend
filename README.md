@@ -393,11 +393,11 @@ which will yield something like this
 
 ## Build and deployment
 
-We have three main branches in the repository, `master`, `stage` and `dev`. Any commit to any of these branches will be automatically deployed to their respective environments, given that the build pipeline succeeds.
+We have three main branches in the repository, `main`, `stage` and `dev`. Any commit to any of these branches will be automatically deployed to their respective environments, given that the build pipeline succeeds.
 
 ### Environments
 
-**Production** or live is deployed from the `master` branch. The url for the deployment is https://data.gieffektivt.no. This is the environment used by our actual donors.
+**Production** or live is deployed from the `main` branch. The url for the deployment is https://data.gieffektivt.no. This is the environment used by our actual donors.
 
 **Stage** is deployed from the `stage` branch. The url for the deployment is https://stage.data.gieffektivt.no. This environment is identical to production in terms of configuration, and uses the live production database. The intended usecase is to test new functionality in the same environment as the production api, whithout having to deploy the code to our users. Stage is espe
 
