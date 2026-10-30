@@ -9,13 +9,14 @@ import {
   siteFundraiserOutput,
   siteLtvEstimateOutput,
   siteMonthlyOutputsOutput,
+  siteOrganizationsOutput,
   siteReferralSumsOutput,
   siteResultsHeadlineOutput,
 } from "../shared/site";
 
 /**
  * Public reads for the website outside the donation widget (no login): the results page and
- * teaser, fundraiser pages and the lifetime value estimate. Each runs the same DAO or service
+ * teaser, fundraiser pages, the lifetime value estimate and the organizations Min Side names. Each runs the same DAO or service
  * call as its REST route; the REST routes stay for the Danish site, Sanity Studio and older
  * clients. None of the REST routes is cached (no apicache), so neither are these.
  */
@@ -46,6 +47,11 @@ export const siteRouter = router({
     if (!estimates) throw new TRPCError({ code: "NOT_FOUND", message: "No LTV estimate found" });
     return estimates;
   }),
+
+  /** GET /organizations/all (Min Side's donation list and charts) */
+  organizations: publicProcedure
+    .output(siteOrganizationsOutput)
+    .query(() => DAO.organizations.getAll()),
 
   /** GET /fundraisers/:id */
   fundraiser: publicProcedure
