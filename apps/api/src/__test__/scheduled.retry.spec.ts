@@ -1,3 +1,4 @@
+import { describe, it, beforeAll, afterAll, beforeEach } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import * as nets from "../custom_modules/nets";
@@ -68,7 +69,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     });
   };
 
-  before(function () {
+  beforeAll(function () {
     sinon.replace(authMiddleware, "isAdmin", []);
 
     deletionsStub = sinon
@@ -276,7 +277,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     expect(sendNotificationStub.called).to.be.false;
   });
 
-  after(() => {
+  afterAll(() => {
     sinon.restore();
   });
 });

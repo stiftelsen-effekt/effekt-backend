@@ -1,3 +1,4 @@
+import { describe, it, beforeEach, afterEach } from "vitest";
 import * as bodyParser from "body-parser";
 import { expect } from "chai";
 import express from "express";
@@ -105,7 +106,7 @@ describe("donors", () => {
   describe("routes", () => {
     let server: express.Express;
 
-    beforeEach(function (done) {
+    beforeEach(function () {
       server = express();
       server.use(bodyParser.json());
       server.use(bodyParser.urlencoded({ extended: true }));
@@ -122,8 +123,6 @@ describe("donors", () => {
         .callsFake((_, req, res, next) => {
           next();
         });
-
-      done();
     });
 
     describe("GET /donors/:id/donations", function () {

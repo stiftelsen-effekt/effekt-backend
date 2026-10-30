@@ -1,3 +1,4 @@
+import { describe, it } from "vitest";
 import { expect } from "chai";
 import type { Request, Response } from "express";
 import { appRouter } from "../trpc/router";

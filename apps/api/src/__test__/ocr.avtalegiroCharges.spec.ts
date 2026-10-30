@@ -1,3 +1,4 @@
+import { describe, it, beforeEach, afterEach } from "vitest";
 import sinon from "sinon";
 import { expect } from "chai";
 import { DAO } from "../custom_modules/DAO";

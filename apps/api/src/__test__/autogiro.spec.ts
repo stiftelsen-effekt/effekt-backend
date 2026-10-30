@@ -1,3 +1,4 @@
+import { describe, it } from "vitest";
 import fs from "fs";
 import { AutoGiroParser } from "../custom_modules/parsers/autogiro";
 import { expect } from "chai";

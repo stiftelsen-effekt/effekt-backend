@@ -1,3 +1,4 @@
+import { describe, it, beforeAll, afterAll, beforeEach } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import sinon from "sinon";
@@ -135,7 +136,7 @@ describe("POST /scheduled/vipps", function () {
   let addDonationStub;
   let donationRecieptStub;
 
-  before(function () {
+  beforeAll(function () {
     authStub = sinon.replace(authMiddleware, "isAdmin", []);
 
     getAgreementsStub = sinon.stub(vipps, "getAgreements");
@@ -267,7 +268,7 @@ describe("POST /scheduled/vipps", function () {
     expect(loggingStub.calledOnce).to.be.true;
   });
 
-  after(function () {
+  afterAll(function () {
     sinon.restore();
   });
 });

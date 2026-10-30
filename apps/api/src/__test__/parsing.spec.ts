@@ -1,3 +1,4 @@
+import { describe, it } from "vitest";
 import * as chai from "chai";
 import chaiDatetime from "chai-datetime";
 import * as fs from "fs";

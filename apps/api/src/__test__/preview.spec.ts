@@ -1,3 +1,4 @@
+import { describe, it, beforeAll, afterAll } from "vitest";
 import { expect } from "chai";
 import express from "express";
 import fs from "fs";
@@ -308,14 +309,14 @@ describe("Preview sessions", function () {
 describe("Preview HTTP", function () {
   let adminDir: string;
 
-  before(function () {
+  beforeAll(function () {
     adminDir = fs.mkdtempSync(path.join(os.tmpdir(), "preview-admin-"));
     fs.mkdirSync(path.join(adminDir, "assets"));
     fs.writeFileSync(path.join(adminDir, "index.html"), "<html>admin</html>");
     fs.writeFileSync(path.join(adminDir, "assets", "app-abc.js"), "console.log(1)");
   });
 
-  after(function () {
+  afterAll(function () {
     fs.rmSync(adminDir, { recursive: true, force: true });
   });
 

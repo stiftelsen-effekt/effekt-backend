@@ -1,3 +1,4 @@
+import { describe, it } from "vitest";
 import { expect } from "chai";
 
 const { formatCurrency } = require("../custom_modules/mail");

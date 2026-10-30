@@ -1,3 +1,4 @@
+import { describe, it, beforeAll, afterAll, beforeEach } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import sinon from "sinon";
 import { expect } from "chai";
@@ -15,7 +16,7 @@ let parsingRulesStub;
 let queueStub;
 
 describe("Vipps route handles report correctly", () => {
-  before(() => {
+  beforeAll(() => {
     addStub = sinon
       .stub(DAO.donations, "add")
       //Returns donation ID
@@ -93,7 +94,7 @@ describe("Vipps route handles report correctly", () => {
     expect(addStub.thirdCall.args[2]).to.equal(30);
   });
 
-  after(() => {
+  afterAll(() => {
     sinon.restore();
   });
 });

@@ -1,3 +1,4 @@
+import { describe, it, beforeAll } from "vitest";
 import { expect } from "chai";
 import { toDay } from "../../prisma/devdata/calendar";
 import { generate, type Dataset } from "../../prisma/devdata/generate";
@@ -9,13 +10,12 @@ import type { OnwardBasis } from "../custom_modules/regranting/types";
  * runs the backend's proposal and validation rules while it builds the rounds, so a change to
  * those rules that breaks the seeded history shows up here instead of in `pnpm dev:env:reset`.
  */
-describe("dev data: regranting history", function () {
-  this.timeout(20000);
+describe("dev data: regranting history", { timeout: 20000 }, function () {
   const start = toDay("2021-10-01");
   const end = toDay("2026-10-27");
   let data: Dataset;
 
-  before(() => {
+  beforeAll(() => {
     data = generate({ seed: "effekt-dev", start, end, scale: 0.3 });
   });
 

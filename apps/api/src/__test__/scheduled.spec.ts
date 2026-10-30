@@ -1,3 +1,4 @@
+import { describe, it, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import sinon from "sinon";
@@ -57,7 +58,7 @@ describe("POST /scheduled/avtalegiro", function () {
   let addChargesStub;
   let deletionsStub;
 
-  before(function () {
+  beforeAll(function () {
     authStub = sinon.replace(authMiddleware, "isAdmin", []);
 
     deletionsStub = sinon
@@ -305,7 +306,7 @@ describe("POST /scheduled/avtalegiro", function () {
     });
   });
 
-  after(function () {
+  afterAll(function () {
     sinon.restore();
   });
 });
@@ -319,7 +320,7 @@ describe("POST /initiate-follow-ups", function () {
   let getDonorByKidStub;
   let donorDonationsStub;
 
-  before(function () {
+  beforeAll(function () {
     server = express();
     const scheduledRoute = require("../routes/scheduled");
     server = express();
@@ -353,7 +354,7 @@ describe("POST /initiate-follow-ups", function () {
     sinon.resetHistory();
   });
 
-  after(function () {
+  afterAll(function () {
     // Restore the original functions after all tests
     sinon.restore();
   });

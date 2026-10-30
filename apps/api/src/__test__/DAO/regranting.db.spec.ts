@@ -1,3 +1,4 @@
+import { describe, it, beforeAll, afterAll } from "vitest";
 import { expect } from "chai";
 import type { Request, Response } from "express";
 import * as mysql from "mysql2/promise";
@@ -13,7 +14,7 @@ import { createCallerFactory } from "../../trpc/trpc";
  *   docker run --rm -d --name rg-mysql -p 3395:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=1 \
  *     -e MYSQL_DATABASE=rg_test mysql:8.4.11 --log_bin_trust_function_creators=1
  *   DB_URL=mysql://root@127.0.0.1:3395/rg_test pnpm exec prisma migrate deploy
- *   REGRANTING_TEST_DB_URL=mysql://root@127.0.0.1:3395/rg_test pnpm test -- --spec src/__test__/DAO/regranting.db.spec.ts
+ *   REGRANTING_TEST_DB_URL=mysql://root@127.0.0.1:3395/rg_test pnpm test src/__test__/DAO/regranting.db.spec.ts
  *
  * The spec deletes all rows in the tables it uses.
  */
@@ -49,8 +50,7 @@ const DRIFT = 5;
 const GD = 6;
 const NOPAYEE = 7;
 
-(isLocal ? describe : describe.skip)("regranting against MySQL", function () {
-  this.timeout(30000);
+(isLocal ? describe : describe.skip)("regranting against MySQL", { timeout: 30000 }, function () {
   let pool: mysql.Pool;
   let originalPool: mysql.Pool | undefined;
   let sql: (q: string, p?: unknown[]) => Promise<any>;
@@ -64,7 +64,7 @@ const NOPAYEE = 7;
   let moms: number, water: number;
   const donation: Record<string, number> = {};
 
-  before(async () => {
+  beforeAll(async () => {
     pool = mysql.createPool({ uri: url!, timezone: "+00:00", connectionLimit: 5 });
     originalPool = DAO.dbPool;
     DAO.dbPool = pool;
@@ -203,7 +203,7 @@ const NOPAYEE = 7;
       .id;
   });
 
-  after(async () => {
+  afterAll(async () => {
     DAO.dbPool = originalPool;
     await pool.end();
   });
@@ -775,7 +775,7 @@ const NOPAYEE = 7;
     let draft: number;
     let earmarkIds: number[] = [];
 
-    before(async () => {
+    beforeAll(async () => {
       await sql(
         `INSERT INTO Donations (Donor_ID, Payment_ID, sum_confirmed, timestamp_confirmed, KID_fordeling)
          VALUES (1, 4, 5000, '2026-09-10 09:00:00', 'F')`,

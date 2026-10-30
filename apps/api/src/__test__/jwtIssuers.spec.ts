@@ -1,3 +1,4 @@
+import { describe, it, beforeAll, afterAll } from "vitest";
 import { expect } from "chai";
 import { generateKeyPairSync, sign, KeyObject } from "crypto";
 import express from "express";
@@ -26,7 +27,7 @@ describe("JWT issuer checks", function () {
   let primaryIssuer: string;
   let app: express.Express;
 
-  before(function (done) {
+  beforeAll(async function () {
     const jwks = {
       keys: [{ ...publicKey.export({ format: "jwk" }), kid: "test-key", alg: "RS256" }],
     };
@@ -47,7 +48,8 @@ describe("JWT issuer checks", function () {
         res.end();
       }
     });
-    jwksServer.listen(0, "127.0.0.1", () => {
+    await new Promise<void>((resolve) => jwksServer.listen(0, "127.0.0.1", resolve));
+    {
       primaryIssuer = `http://127.0.0.1:${(jwksServer.address() as AddressInfo).port}/`;
       app = express();
       app.get(
@@ -55,12 +57,13 @@ describe("JWT issuer checks", function () {
         createJwtCheck(audience, primaryIssuer, [customDomainIssuer]),
         (req, res) => res.json({ ok: true }),
       );
-      done();
-    });
+    }
   });
 
-  after(function (done) {
-    jwksServer.close(done);
+  afterAll(async function () {
+    await new Promise<void>((resolve, reject) =>
+      jwksServer.close((err) => (err ? reject(err) : resolve())),
+    );
   });
 
   const get = (token?: string) => {
