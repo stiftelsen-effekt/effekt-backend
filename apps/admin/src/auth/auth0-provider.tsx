@@ -1,7 +1,7 @@
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import { useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { config } from "@/lib/config";
-import { AuthContext, givenNameFrom, isSessionEndedError, type AuthState } from "./context";
+import { AuthContext, authUserFromClaims, isSessionEndedError, type AuthState } from "./context";
 
 type AppState = { returnTo?: string };
 
@@ -49,15 +49,7 @@ function Auth0Bridge({ children }: { children: ReactNode }) {
       isAuthenticated,
       isLoading,
       error: error ?? null,
-      user: user
-        ? {
-            id: user.sub ?? "",
-            name: user.name,
-            givenName: givenNameFrom(user),
-            email: user.email,
-            picture: user.picture,
-          }
-        : null,
+      user: user ? authUserFromClaims(user) : null,
       login: ({ returnTo } = {}) => loginWithRedirect({ appState: { returnTo } }),
       logout: () => void logout({ logoutParams: { returnTo: window.location.origin } }),
       getAccessToken,
