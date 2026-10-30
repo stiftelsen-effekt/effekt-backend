@@ -1,6 +1,6 @@
 /**
  * Seeds an empty local database with generated, current-looking fake data (prisma/devdata).
- * Run by `prisma db seed`, `prisma migrate reset` and the compose `migrate` step.
+ * Run by `prisma db seed` (configured in prisma.config.ts) and the compose `migrate` step.
  *
  * Environment: DB_URL (required), SEED_NOW=YYYY-MM-DD (pretend today is another day),
  * SEED_SCALE (volume multiplier, default 1), SEED (random seed), SEED_START (first day).

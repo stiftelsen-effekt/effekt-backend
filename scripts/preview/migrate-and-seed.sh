@@ -23,8 +23,8 @@ case "$command" in
     node_modules/.bin/prisma migrate deploy
     # The seed uses mysql2, which takes the Cloud SQL socket as `socketPath`
     DB_URL="$("${cli[@]}" url mysql2)" node dist-seed/prisma/seed.js
-    node_modules/.bin/prisma db execute --schema prisma/schema.prisma \
-      --file prisma/dev/fulltext-search.sql
+    # DB_URL (still the Prisma one) reaches the CLI through prisma.config.ts
+    node_modules/.bin/prisma db execute --file prisma/dev/fulltext-search.sql
     "${cli[@]}" analyze
     echo "Preview database ${DB_NAME} migrated and seeded at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     ;;

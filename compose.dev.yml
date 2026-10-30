@@ -147,11 +147,11 @@ services:
       - |
         set -e
         pnpm exec prisma migrate deploy
-        if node -e "new (require('@prisma/client').PrismaClient)().donors.count().then(n => process.exit(n > 0 ? 0 : 1), () => process.exit(1))"; then
+        if node -e "require('mysql2/promise').createConnection(process.env.DB_URL).then(c => c.query('SELECT COUNT(*) AS n FROM Donors')).then(([r]) => process.exit(r[0].n > 0 ? 0 : 1), () => process.exit(1))"; then
           pnpm exec ts-node prisma/devdata/topup.ts || echo "Warning: dev data top-up failed; the database is unchanged"
         else
           pnpm exec prisma db seed
-          pnpm exec prisma db execute --schema prisma/schema.prisma --file prisma/dev/fulltext-search.sql
+          pnpm exec prisma db execute --file prisma/dev/fulltext-search.sql
         fi
     depends_on:
       db:

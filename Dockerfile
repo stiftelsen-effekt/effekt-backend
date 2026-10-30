@@ -18,13 +18,20 @@ FROM node:24.22.1
 
 WORKDIR /usr/src/app
 RUN corepack enable
+ENV CHECKPOINT_DISABLE=1
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml prisma.config.ts ./
+
+# --ignore-scripts to avoid husky install from running. The same image runs the migrate jobs
+# (`prisma migrate deploy`), so fetch Prisma's schema engine here, as root, by rebuilding just the
+# Prisma CLI packages; otherwise the CLI downloads it into node_modules at runtime, which the
+# unprivileged user below cannot write to. The app itself only uses Prisma's types.
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter stiftelsen-effekt-backend \
+    && pnpm rebuild prisma @prisma/engines
+
 COPY --from=build /usr/src/app/dist ./dist
 COPY --from=build /usr/src/app/prisma ./prisma
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-
-# --ignore-scripts to avoid husky install from running
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter stiftelsen-effekt-backend
 
 EXPOSE 5050
-# nosemgrep: dockerfile.security.missing-user.missing-user -- the migrate job's Prisma 4 CLI writes to node_modules/@prisma/engines; revisit with a chown and a migration test
+# The app and the Prisma CLI only read from their directory; run as the unprivileged node user
+USER node
 CMD [ "npm", "start" ]
