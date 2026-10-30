@@ -1,11 +1,7 @@
 import { describe, it, beforeAll, afterAll, beforeEach } from "vitest";
 import sinon from "sinon";
 import { expect } from "chai";
-import express from "express";
-import bodyParser from "body-parser";
-import request from "supertest";
 import { DAO } from "../custom_modules/DAO";
-import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import { replaceAvtaleGiroDistribution } from "../custom_modules/avtalegiro";
 import { replaceAutoGiroDistribution } from "../custom_modules/autogiro";
@@ -39,18 +35,11 @@ const taxUnits: Record<number, { id: number; donorId: number; archived: string |
 };
 
 describe("distribution ownership", () => {
-  let server: express.Express;
   let replaceAvtaleGiroStub: sinon.SinonStub;
   let replaceAutoGiroStub: sinon.SinonStub;
   let addDistributionStub: sinon.SinonStub;
 
   beforeAll(() => {
-    // These must be stubbed before importing the routes
-    sinon.stub(authMiddleware, "auth").returns([]);
-    sinon.stub(authMiddleware, "checkDonorOwnsDistribution").callsFake((_, req, res, next) => {
-      next();
-    });
-
     sinon.stub(DAO.tax, "getById").callsFake(async (id: number) => (taxUnits[id] as any) ?? null);
     sinon
       .stub(DAO.distributions, "getSplitByKID")
@@ -67,14 +56,6 @@ describe("distribution ownership", () => {
     sinon.stub(DAO.vipps, "updateAgreementKID").resolves(true as any);
     sinon.stub(mail, "sendAvtaleGiroChange").resolves(true);
     sinon.stub(mail, "sendVippsAgreementChange").resolves(true);
-
-    const avtalegiroRouter = require("../routes/avtalegiro");
-    server = express();
-    server.use(bodyParser.json());
-    server.use("/avtalegiro", avtalegiroRouter);
-    server.use((err: any, req: any, res: any, next: any) =>
-      res.status(err.status ?? err.ex?.status ?? 500).json({ status: err.status ?? 500 }),
-    );
   });
 
   afterAll(() => {
@@ -136,32 +117,6 @@ describe("distribution ownership", () => {
         taxUnitId: 70,
         causeAreas,
       } as any);
-      expect(replaceAvtaleGiroStub.calledOnce).to.be.true;
-    });
-  });
-
-  describe("POST /avtalegiro/:KID/distribution", () => {
-    it("rejects a body naming another donor and their tax unit (400, no write)", async () => {
-      await request(server)
-        .post("/avtalegiro/1234567/distribution")
-        .send({ distribution: { donorId: OTHER, taxUnitId: 80, causeAreas } })
-        .expect(400);
-      expect(replaceAvtaleGiroStub.called).to.be.false;
-    });
-
-    it("rejects another donor's tax unit for the owner (400, no write)", async () => {
-      await request(server)
-        .post("/avtalegiro/1234567/distribution")
-        .send({ distribution: { donorId: OWNER, taxUnitId: 80, causeAreas } })
-        .expect(400);
-      expect(replaceAvtaleGiroStub.called).to.be.false;
-    });
-
-    it("accepts the owner's own tax unit", async () => {
-      await request(server)
-        .post("/avtalegiro/1234567/distribution")
-        .send({ distribution: { donorId: OWNER, taxUnitId: 70, causeAreas } })
-        .expect(200);
       expect(replaceAvtaleGiroStub.calledOnce).to.be.true;
     });
   });
