@@ -4,7 +4,7 @@
   "private": true,
   "description": "Workspace root of the effekt platform: the API (apps/api), the admin (apps/admin) and the website (apps/web)",
   "engines": {
-    "node": "^24.0.0"
+    "node": "24.x"
   },
   "scripts": {
     "test": "pnpm --filter stiftelsen-effekt-backend test",

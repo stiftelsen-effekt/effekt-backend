@@ -9,7 +9,7 @@
     "./src/router.tsx"
   ],
   "engines": {
-    "node": ">=22"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "vite",
