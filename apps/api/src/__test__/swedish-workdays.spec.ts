@@ -1,3 +1,4 @@
+import { describe, it } from "vitest";
 import { expect } from "chai";
 import { isSwedishWorkingDay } from "../custom_modules/swedish-workdays";
 

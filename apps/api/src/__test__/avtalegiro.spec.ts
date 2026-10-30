@@ -1,3 +1,4 @@
+import { describe, it, beforeAll, afterAll } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import sinon from "sinon";
 import { expect } from "chai";
@@ -40,7 +41,7 @@ describe("AvtaleGiro file generation", () => {
     },
   ];
 
-  before(function () {
+  beforeAll(function () {
     donorStub = sinon.stub(DAO.donors, "getByKID");
 
     donorStub.withArgs("002556289731589").resolves({
@@ -295,7 +296,7 @@ describe("AvtaleGiro claim due date calculation", () => {
     ]);
   });
 
-  after(() => {
+  afterAll(() => {
     sinon.restore();
   });
 });
@@ -303,7 +304,7 @@ describe("AvtaleGiro claim due date calculation", () => {
 describe("AvtaleGiro KID generation", () => {
   let getAgreementsWithKIDStartingWithStub;
 
-  before(() => {
+  beforeAll(() => {
     getAgreementsWithKIDStartingWithStub = sinon.stub(
       DAO.avtalegiroagreements,
       "getAgreementsWithKIDStartingWith",
@@ -338,7 +339,7 @@ describe("AvtaleGiro KID generation", () => {
     expect(getAgreementsWithKIDStartingWithStub.calledTwice).to.be.true;
   });
 
-  after(() => {
+  afterAll(() => {
     sinon.restore();
   });
 });

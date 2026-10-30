@@ -1,3 +1,4 @@
+import { describe, it } from "vitest";
 import "express-async-errors";
 import bodyParser from "body-parser";
 import { expect } from "chai";

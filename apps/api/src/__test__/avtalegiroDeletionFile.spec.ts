@@ -1,3 +1,4 @@
+import { describe, it, beforeAll, afterAll } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import sinon from "sinon";
 import { expect } from "chai";
@@ -20,7 +21,7 @@ describe("AvtaleGiro deletion file generation", () => {
   const field = (row: number, start: number, length: number) =>
     lines[row - 1].substr(start - 1, length);
 
-  before(async function () {
+  beforeAll(async function () {
     const donorStub = sinon.stub(DAO.donors, "getByKID");
     donorStub.withArgs("002556289731589").resolves({ name: "Maria Brækkelie" } as any);
     donorStub.withArgs("000638723319577").resolves({ name: "Kristian Jørgensen" } as any);
@@ -33,7 +34,7 @@ describe("AvtaleGiro deletion file generation", () => {
     lines.pop();
   });
 
-  after(function () {
+  afterAll(function () {
     sinon.restore();
   });
 

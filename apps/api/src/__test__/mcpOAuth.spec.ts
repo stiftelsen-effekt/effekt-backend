@@ -1,3 +1,4 @@
+import { describe, it } from "vitest";
 import { expect } from "chai";
 import { isAllowedRedirectUri, pkceS256, verifyPkceS256 } from "../custom_modules/mcp/oauthCrypto";
 

@@ -70,8 +70,7 @@ While iterating, run only what your change touches:
   to one `playwright test` call, not one call per project; without `pw:serve`, each call starts its own Vite server.
 - `pnpm exec playwright test --only-changed=<base branch>`: specs whose files (or imports) changed since the branch point.
 - Playwright already runs files in parallel. Several agents test at once, so don't raise `--workers`.
-- Backend: `pnpm test:file src/__test__/<file>.spec.ts` in `apps/api/`. A path passed to `pnpm test` is added to the
-  spec glob in `apps/api/.mocharc.json`, so the whole suite runs.
+- Backend: `pnpm test src/__test__/<file>.spec.ts` (or a part of the name) in `apps/api/`: one spec file (Vitest).
 
 Don't pipe a long run through `tail`: output arrives only when the run ends, so a hang looks like slowness. Re-run a
 failing test on its own before assuming flakiness.

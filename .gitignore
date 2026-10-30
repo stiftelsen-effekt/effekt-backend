@@ -4,7 +4,7 @@ node_modules/
 .vscode/
 out/
 dist/
-.nyc_output/
+coverage/
 .env*
 !.env.example
 !.env.test

@@ -1,3 +1,4 @@
+import { describe, it, beforeAll, afterAll, beforeEach } from "vitest";
 import sinon from "sinon";
 import { expect } from "chai";
 import express from "express";
@@ -16,7 +17,7 @@ describe("POST /avtalegiro/:KID/status", () => {
   let restoreStub: sinon.SinonStub;
   let changeMailStub: sinon.SinonStub;
 
-  before(() => {
+  beforeAll(() => {
     // These must be stubbed before importing the routes
     sinon.stub(authMiddleware, "auth").returns([]);
     sinon.stub(authMiddleware, "checkDonorOwnsDistribution").callsFake((_, req, res, next) => {
@@ -40,7 +41,7 @@ describe("POST /avtalegiro/:KID/status", () => {
     requestDeletionStub.resolves({ deletable: [], tooLate: [] });
   });
 
-  after(() => {
+  afterAll(() => {
     sinon.restore();
   });
 

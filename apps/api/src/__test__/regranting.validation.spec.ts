@@ -1,3 +1,4 @@
+import { describe, it } from "vitest";
 import { expect } from "chai";
 import { dec, ZERO } from "../custom_modules/regranting/money";
 import type { ProposedPosition } from "../custom_modules/regranting/proposal";

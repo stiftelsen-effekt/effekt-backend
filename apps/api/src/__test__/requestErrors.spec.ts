@@ -1,3 +1,4 @@
+import { describe, it } from "vitest";
 import { expect } from "chai";
 import { StatusCodeError } from "request-promise-native/errors";
 import { loggableRequestError } from "../custom_modules/requestErrors";
