@@ -18,6 +18,7 @@ function buildServer(mountPath: string, routerPath: string) {
     }),
   );
   delete require.cache[require.resolve(routerPath)];
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-require.detect-non-literal-require -- router modules are a fixed list in this spec
   const mod = require(routerPath);
   app.use(mountPath, mod.default || mod);
   return app;

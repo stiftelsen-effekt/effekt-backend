@@ -51,6 +51,10 @@ router.post("/register/payment", requireDonorToken, async (req, res, next) => {
     } else if (!ssn) {
       throwError("Missing param ssn");
     }
+    if (typeof paymentID !== "string") throwError("paymentID must be a string");
+    if (typeof email !== "string") throwError("email must be a string");
+    if (typeof full_name !== "string") throwError("name must be a string");
+    if (typeof ssn !== "string") throwError("ssn must be a string");
 
     let donorID = await DAO.donors.getIDbyEmail(email);
     let taxUnitID: number | undefined = undefined;

@@ -45,6 +45,10 @@ jobs:
           path: trusted
           persist-credentials: false
 
+      # The PR head is checked out on purpose (it's what the preview shows). Its code never runs
+      # with credentials: fork PRs are excluded above, the checkout keeps no token, the build step
+      # below gets no GH_TOKEN, and GCP auth happens only after the build.
+      # nosemgrep: yaml.github-actions.security.pull-request-target-code-checkout.pull-request-target-code-checkout
       - name: Check out the pull request
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -73,6 +77,8 @@ jobs:
       - name: Build the preview image
         if: steps.support.outputs.enabled == 'true'
         env:
+          # The job-level token isn't needed to build; keep it out of this step's environment
+          GH_TOKEN: ""
           REGION: ${{ vars.PREVIEW_GCP_REGION }}
           PROJECT: ${{ vars.PREVIEW_GCP_PROJECT }}
         run: |

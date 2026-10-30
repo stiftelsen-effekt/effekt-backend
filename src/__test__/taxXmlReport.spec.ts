@@ -5,6 +5,7 @@ import * as sinon from "sinon";
 import { validateXml, writeXMLTaxReport } from "../custom_modules/tax";
 
 const DATA_DIR = path.join(__dirname, "data", "tax");
+// nosemgrep: javascript.lang.security.audit.detect-non-literal-fs-filename.detect-non-literal-fs-filename, javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal -- test fixture file names are literals in this spec
 const readJson = (file: string) => JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), "utf8"));
 
 // Copy of the Skatteetaten schema fetched at runtime by createXMLReportToTaxAuthorities

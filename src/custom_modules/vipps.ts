@@ -280,7 +280,7 @@ module.exports = {
         } catch (ex) {
           //Donation already registered, no additional actions required
           if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
-            console.info(`Vipps donation for orderid ${orderId} already exists`, ex);
+            console.info("Vipps donation for orderid %s already exists", orderId, ex);
           } else {
             throw ex;
           }
@@ -411,7 +411,7 @@ module.exports = {
         //This is most likely a case of the polling trying to capture an order already captured by the callback, simply return true
         return true;
       } else {
-        console.error(`Failed to capture order with id ${orderId}`, loggableRequestError(ex));
+        console.error("Failed to capture order with id %s", orderId, loggableRequestError(ex));
         throw ex;
       }
     }
@@ -433,7 +433,7 @@ module.exports = {
       } catch (ex) {
         //Donation already registered, no additional actions required
         if (ex.message.indexOf("EXISTING_DONATION") !== -1) {
-          console.info(`Vipps donation for orderid ${orderId} already exists`, ex);
+          console.info("Vipps donation for orderid %s already exists", orderId, ex);
           return true;
         } else {
           throw ex;
@@ -489,7 +489,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(`Failed to refund vipps order with id ${orderId}`, loggableRequestError(ex));
+      console.error("Failed to refund vipps order with id %s", orderId, loggableRequestError(ex));
       return false;
     }
   },
@@ -523,7 +523,7 @@ module.exports = {
 
       return true;
     } catch (ex) {
-      console.error(`Failed to cancel vipps order with id ${orderId}`, loggableRequestError(ex));
+      console.error("Failed to cancel vipps order with id %s", orderId, loggableRequestError(ex));
       return false;
     }
   },

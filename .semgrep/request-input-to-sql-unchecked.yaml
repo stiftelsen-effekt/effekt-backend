@@ -5,7 +5,7 @@ rules:
     # type check on the way. Request bodies can carry arrays and objects where
     # the code expects a string or number; mysql2 then binds them differently
     # than intended. The pool sets stringifyObjects: true, which limits the
-    # impact, so this is a WARNING.
+    # impact; the rule still blocks CI so new routes check their input.
     #
     # Routes that run authMiddleware.isAdmin are not scanned.
     #
@@ -17,7 +17,7 @@ rules:
     # intra-procedural, so helpers that query the DB internally are listed as
     # sinks explicitly.
     languages: [typescript, javascript]
-    severity: WARNING
+    severity: ERROR
     message: >-
       Request input reaches a database call without a type check. Validate the
       type (e.g. Number.isInteger, typeof === "string") or convert it before

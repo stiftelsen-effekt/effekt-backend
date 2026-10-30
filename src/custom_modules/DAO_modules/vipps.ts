@@ -370,6 +370,7 @@ export async function getAgreements(
     LIMIT ${sqlString.escape(limit)} OFFSET ${sqlString.escape(page * limit)};
   `;
 
+  // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- filter values go through sqlString.escape, the sort column comes from the jsDBmapping allowlist
   const [resultRows]: [any[], any] = await DAO.query(query);
 
   if (resultRows.length === 0) {
@@ -609,9 +610,9 @@ async function getCharges(
 
     if (filter.timestamp) {
       if (filter.timestamp.from)
-        where.push(`timestamp_created >= ${sqlString.escape(filter.dueDate.from)} `);
+        where.push(`timestamp_created >= ${sqlString.escape(filter.timestamp.from)} `);
       if (filter.timestamp.to)
-        where.push(`timestamp_created <= ${sqlString.escape(filter.dueDate.to)} `);
+        where.push(`timestamp_created <= ${sqlString.escape(filter.timestamp.to)} `);
     }
 
     if (filter.KID)
@@ -665,6 +666,7 @@ async function getCharges(
 
   const [[charges], [statistics]] = await Promise.all([
     DAO.query<VippsChargeRow[]>(
+      // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- filter values go through sqlString.escape, the sort column comes from the jsDBmapping allowlist
       `
         SELECT ${columns}
         ${fromWhere}
@@ -674,6 +676,7 @@ async function getCharges(
       [limit, offset],
     ),
     DAO.query<{ full_count: number; full_sum: string; full_avg: string }[]>(
+      // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- filter values go through sqlString.escape, the sort column comes from the jsDBmapping allowlist
       `
         SELECT
           count(*) AS full_count,
@@ -1202,7 +1205,7 @@ async function updateOrderTransactionStatusHistory(orderId, transactionHistory) 
     return true;
   } catch (ex) {
     await DAO.rollbackTransaction(transaction);
-    console.error(`Failed to update order transaction history for orderId ${orderId}`, ex);
+    console.error("Failed to update order transaction history for orderId %s", orderId, ex);
     return false;
   }
 }
@@ -1403,7 +1406,7 @@ async function deleteMatchingRule(id: number): Promise<boolean> {
     }
     return true;
   } catch (error) {
-    console.error(`Error deleting matching rule with ID ${id}:`, error);
+    console.error("Error deleting matching rule with ID %s:", id, error);
     return false;
   }
 }

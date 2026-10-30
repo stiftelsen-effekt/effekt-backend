@@ -50,6 +50,7 @@ const expectTrpcError = async (promise: Promise<unknown>, code: string, message?
     pool = mysql.createPool({ uri: url!, timezone: "+00:00", connectionLimit: 5 });
     originalPool = DAO.dbPool;
     DAO.dbPool = pool;
+    // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- test helper; the spec passes literal SQL with bound parameters
     sql = async (q, p) => (await pool.query(q, p as any))[0];
 
     for (const table of [

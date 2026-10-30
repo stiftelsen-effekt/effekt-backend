@@ -87,10 +87,10 @@ export const run = async (args: string[], env: NodeJS.ProcessEnv = process.env) 
     case "drop": {
       const conn = await withRetries(() => serverConnection(env));
       try {
-        await conn.query(`DROP DATABASE IF EXISTS \`${name}\``);
+        await conn.query("DROP DATABASE IF EXISTS ??", [name]);
         console.log(`Dropped ${name}`);
         if (command === "reset") {
-          await conn.query(`CREATE DATABASE \`${name}\``);
+          await conn.query("CREATE DATABASE ??", [name]);
           console.log(`Created ${name}`);
         }
       } finally {
@@ -107,8 +107,9 @@ export const run = async (args: string[], env: NodeJS.ProcessEnv = process.env) 
           "SELECT TABLE_NAME AS name FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = 'BASE TABLE'",
           [name],
         );
-        const tables = rows.map((row) => `\`${name}\`.\`${String(row.name).replace(/`/g, "``")}\``);
-        if (tables.length > 0) await conn.query(`ANALYZE TABLE ${tables.join(", ")}`);
+        // ?? quotes each "db.table" as `db`.`table`; an array becomes a comma-separated list
+        const tables = rows.map((row) => `${name}.${String(row.name)}`);
+        if (tables.length > 0) await conn.query("ANALYZE TABLE ??", [tables]);
         console.log(`Analyzed ${tables.length} tables in ${name}`);
       } finally {
         await conn.end();

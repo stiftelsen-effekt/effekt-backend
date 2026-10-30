@@ -24,6 +24,7 @@ const callerWith = (permissions?: string[]) =>
 
 const admin = () => callerWith(["admin"]).reports;
 
+// nosemgrep: javascript.lang.security.audit.detect-non-literal-fs-filename.detect-non-literal-fs-filename -- test fixture file names are literals in this spec
 const readData = (path: string) => fs.readFileSync(`src/__test__/data/${path}`);
 
 const uploadForm = (

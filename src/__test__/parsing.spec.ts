@@ -56,5 +56,6 @@ describe("Bank CSV", () => {
 });
 
 function readCSV(type, filename) {
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-fs-filename.detect-non-literal-fs-filename -- test fixture file names are literals in this spec
   return fs.readFileSync(`src/__test__/data/${type}/${filename}.CSV`);
 }

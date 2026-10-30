@@ -50,7 +50,7 @@ async function getAgreementOrThrow(agreementId: string) {
 /** The upstream error is logged, not returned: it can contain Vipps internals */
 const vippsUnavailable = (action: string, cause?: unknown) => {
   if (cause !== undefined) {
-    console.error(`Vipps request failed (${action}):`, (cause as Error)?.message ?? cause);
+    console.error("Vipps request failed (%s):", action, (cause as Error)?.message ?? cause);
   }
   return new TRPCError({ code: "BAD_GATEWAY", message: `Vipps could not ${action}`, cause });
 };

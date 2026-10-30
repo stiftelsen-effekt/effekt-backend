@@ -39,6 +39,7 @@ const preciseDecimal = (integerDigits: number) =>
   z
     .string()
     .regex(
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- integerDigits is a numeric literal passed by this file
       new RegExp(`^\\d{1,${integerDigits}}(\\.\\d{1,8})?$`),
       `Expected a positive decimal string with at most ${integerDigits} integer digits and 8 decimals`,
     )

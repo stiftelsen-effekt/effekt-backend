@@ -55,13 +55,16 @@ const isBrowserNavigation = (req: express.Request) =>
  */
 export const previewAdmin = (adminDir: string | undefined): express.Router | undefined => {
   if (!adminDir) return undefined;
+  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal -- adminDir is PREVIEW_ADMIN_DIR set in Dockerfile.preview, not request input
   const indexFile = path.join(adminDir, "index.html");
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-fs-filename.detect-non-literal-fs-filename -- path built from PREVIEW_ADMIN_DIR (Dockerfile.preview), not request input
   if (!fs.existsSync(indexFile)) return undefined;
 
   const router = express.Router();
   router.use(compression());
   router.use(
     "/assets",
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal -- adminDir is PREVIEW_ADMIN_DIR set in Dockerfile.preview, not request input
     express.static(path.join(adminDir, "assets"), {
       immutable: true,
       maxAge: "365d",
@@ -72,6 +75,7 @@ export const previewAdmin = (adminDir: string | undefined): express.Router | und
   router.use((req, res, next) => {
     if (!isBrowserNavigation(req)) return next();
     res.setHeader("Cache-Control", "no-cache");
+    // nosemgrep: javascript.express.security.audit.express-res-sendfile.express-res-sendfile -- fixed index.html under PREVIEW_ADMIN_DIR, not request input
     res.sendFile(indexFile);
   });
   return router;
