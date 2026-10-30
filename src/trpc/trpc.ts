@@ -59,12 +59,17 @@ export const adminProcedure = authedProcedure.use(({ ctx, next }) => {
  * A procedure on one donor's own data, for Min Side. Mirrors the REST donor routes
  * (`authMiddleware.auth(permission)` + `checkAdminOrTheDonor(id)`): the token must carry
  * `permission`, and its user id claim must be `input.donorId` unless the token is an admin's.
- * The input includes `donorId` (a positive integer, like the REST `:id` param); chain `.input()`
- * to add more fields. Unlike REST, which answers 401 to both, a missing permission or another
- * donor's id is FORBIDDEN (403); no or an invalid token is UNAUTHORIZED (401).
+ * The input is `donorInput` (`donorId`, a positive integer like the REST `:id` param), or
+ * `input`, an extension of it (`donorInput.extend({...})`) for procedures with more fields.
+ * donorInput is strict, so add fields through `input`, not by chaining `.input()`. Unlike REST,
+ * which answers 401 to both, a missing permission or another donor's id is FORBIDDEN (403); no or
+ * an invalid token is UNAUTHORIZED (401).
  */
-export const donorProcedure = (permission: string) =>
-  authedProcedure.input(donorInput).use(({ ctx, input, next }) => {
+export const donorProcedure = <TInput extends z.ZodType<{ donorId: number }> = typeof donorInput>(
+  permission: string,
+  input?: TInput,
+) =>
+  authedProcedure.input((input ?? donorInput) as TInput).use(({ ctx, input, next }) => {
     if (
       !hasPermission(ctx.auth, permission) ||
       !userIsAllowedToManageDonor(ctx.auth, input.donorId)
