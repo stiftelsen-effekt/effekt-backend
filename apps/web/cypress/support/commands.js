@@ -164,6 +164,15 @@ Cypress.Commands.add("pickSingleDonation", pickSingleDonation);
 Cypress.Commands.add("pickAnonymous", pickAnonymous);
 Cypress.Commands.add("inputDonorValues", inputDonorValues);
 
+// The donor profile comes from the tRPC procedure minside.profile (lib/trpc, docs/web-trpc.md)
+// on the Norwegian site. The response is in the httpBatchLink format.
+Cypress.Commands.add("interceptDonorProfile", (donor) =>
+  cy.intercept(
+    { method: "GET", pathname: "/trpc/minside.profile" },
+    { statusCode: 200, body: [{ result: { data: donor } }] },
+  ),
+);
+
 Cypress.Commands.add("ignorePlausibleTracking", () => {
   cy.window().then((win) => {
     win.localStorage.setItem("plausible_ignore", "true");

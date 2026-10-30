@@ -3,13 +3,7 @@ describe("Agreements page", () => {
     cy.login();
 
     cy.fixture("donor").then((donor) => {
-      cy.intercept("GET", "/donors/*/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: donor,
-        },
-      }).as("getDonor");
+      cy.interceptDonorProfile(donor).as("getDonor");
     });
 
     cy.fixture("cause_areas_multiple").then((causeAreas) => {

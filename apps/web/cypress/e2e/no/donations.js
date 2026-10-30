@@ -4,13 +4,7 @@ describe("Donations page", () => {
 
     cy.fixture("donor")
       .then((donor) => {
-        cy.intercept("GET", "/donors/*/", {
-          statusCode: 200,
-          body: {
-            status: 200,
-            content: donor,
-          },
-        });
+        cy.interceptDonorProfile(donor);
       })
       .as("getDonor");
 

@@ -113,6 +113,12 @@ permission>)`. Use `.query` for reads and `.mutation` for writes.
       other code calls `mutate(key)` (update those calls too)
 - [ ] apps/web: `pnpm typecheck`, `pnpm lint`, `pnpm test`; check the main-site and giv-effektivt
       previews
+- [ ] Norwegian Cypress tests (`apps/web/cypress/e2e/no`) intercept the tRPC request, not the
+      REST route. httpBatchLink sends `GET /trpc/<path>?batch=1&input=…` and expects
+      `[{ "result": { "data": … } }]`; `cy.interceptDonorProfile` shows the pattern. Calls made
+      in the same tick are batched into one request (`/trpc/a,b`), so add
+      `{ pathname: "/trpc/minside.profile,…" }` or match on the path list when that happens.
+      The Danish tests keep intercepting REST.
 - [ ] Keep the REST route: the Danish site and older clients still use it
 
 ## Deployment notes

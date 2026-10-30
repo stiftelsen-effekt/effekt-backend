@@ -4,13 +4,7 @@ describe("Profile page", () => {
 
     cy.fixture("donor")
       .then((donor) => {
-        cy.intercept("GET", "/donors/*/", {
-          statusCode: 200,
-          body: {
-            status: 200,
-            content: donor,
-          },
-        });
+        cy.interceptDonorProfile(donor);
       })
       .as("getDonor");
 
@@ -50,16 +44,7 @@ describe("Profile page", () => {
     cy.get("h3").should("contain.text", newName);
 
     cy.fixture("donor").then((donor) => {
-      cy.intercept("GET", "/donors/*/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: {
-            ...donor,
-            name: newName,
-          },
-        },
-      });
+      cy.interceptDonorProfile({ ...donor, name: newName });
     });
     cy.reload();
     cy.get("h3").should("contain.text", newName);

@@ -4,13 +4,7 @@ describe("Profile and dashboard empty API data", () => {
   });
 
   it("shows the profile no data message when donor data is empty", () => {
-    cy.intercept("GET", "/donors/*/", {
-      statusCode: 200,
-      body: {
-        status: 200,
-        content: [],
-      },
-    }).as("getDonor");
+    cy.interceptDonorProfile([]).as("getDonor");
 
     cy.visit({
       url: "/min-side/profil/",
@@ -25,13 +19,7 @@ describe("Profile and dashboard empty API data", () => {
 
   it("shows the donations empty placeholder when donations are empty", () => {
     cy.fixture("donor").then((donor) => {
-      cy.intercept("GET", "/donors/*/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: donor,
-        },
-      }).as("getDonor");
+      cy.interceptDonorProfile(donor).as("getDonor");
     });
 
     cy.intercept("GET", "/donors/*/donations", {
@@ -95,13 +83,7 @@ describe("Profile and dashboard empty API data", () => {
 
   it("shows the agreements empty placeholders when agreements are empty arrays", () => {
     cy.fixture("donor").then((donor) => {
-      cy.intercept("GET", "/donors/*/", {
-        statusCode: 200,
-        body: {
-          status: 200,
-          content: donor,
-        },
-      }).as("getDonor");
+      cy.interceptDonorProfile(donor).as("getDonor");
     });
 
     cy.intercept("GET", "/donors/*/recurring/vipps/", {
