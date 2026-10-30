@@ -137,3 +137,44 @@ export const submitReferralRequest = async (data: ReferralAnswer) => {
   }
   await widgetTrpc().widget.submitReferral.mutate(data);
 };
+
+/*
+ * The calls below only exist on our backend: Vipps, AvtaleGiro, Swish and AutoGiro are Norwegian
+ * and Swedish payment methods. On the Danish site the REST link leaves them unmapped, so they fail
+ * with "not available on this site" without a request (before, they got a 404 from the Danish
+ * backend).
+ */
+
+/**
+ * Drafts a monthly Vipps agreement for the registered KID and returns the Vipps page where the
+ * donor confirms it. Throws on failure.
+ */
+export const draftVippsAgreementRequest = async (input: {
+  KID: string;
+  amount: number;
+  initialCharge: boolean;
+  monthlyChargeDay: number;
+}) => {
+  const { vippsConfirmationUrl } = await widgetTrpc().widget.draftVippsAgreement.mutate(input);
+  return vippsConfirmationUrl;
+};
+
+/**
+ * Drafts an AvtaleGiro agreement for the registered KID (amount in NOK, dueDay 0 = last day of the
+ * month), before the donor signs it at Nets. Throws on failure.
+ */
+export const draftAvtaleGiroRequest = async (input: {
+  KID: string;
+  amount: number;
+  dueDay?: number;
+}) => {
+  await widgetTrpc().widget.draftAvtaleGiro.mutate(input);
+};
+
+/** The status of a Swish payment (polled while the donor pays) */
+export const swishOrderStatusRequest = (orderId: string) =>
+  widgetTrpc().widget.swishOrderStatus.query({ orderId });
+
+/** Sets the payment date (0–28) of the AutoGiro agreement drafted for the KID */
+export const setAutoGiroDraftPaymentDateRequest = (KID: string, paymentDate: number) =>
+  widgetTrpc().widget.setAutoGiroDraftPaymentDate.mutate({ KID, paymentDate });

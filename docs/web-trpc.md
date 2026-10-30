@@ -146,6 +146,16 @@ as `@effekt/api/widget`). No login, no token.
 | `widget.registerBankPending` | `POST /donations/bank/pending` | `donation/saga.ts` `registerBankPending` |
 | `widget.submitReferral`      | `POST /referrals`              | `referrals/saga.ts` `submitReferral`     |
 
+Payment steps after registration (Norway and Sweden only; the Danish backend has none of these
+routes, so the REST link leaves them unmapped and they fail without a request on the Danish site):
+
+| Procedure                            | Formerly                                 | Caller                                                     |
+| ------------------------------------ | ---------------------------------------- | ---------------------------------------------------------- |
+| `widget.draftVippsAgreement`         | `POST /vipps/agreement/draft`            | `donation/saga.ts`, `FundraiserWidget/useRegisterDonation` |
+| `widget.draftAvtaleGiro`             | `POST /avtalegiro/draft`                 | `donation/saga.ts`, `FundraiserWidget/useRegisterDonation` |
+| `widget.swishOrderStatus` (query)    | `GET /swish/orders/:id/status` (polled)  | `SwishPane`                                                |
+| `widget.setAutoGiroDraftPaymentDate` | `PUT /autogiro/:KID/drafted/paymentdate` | `AutogiroPane`                                             |
+
 - `widget.registerDonation` runs the same code as the REST route (`registerPendingDonation` in
   `apps/api/src/custom_modules/pendingDonationRegistration.ts`) with the same input schema
   (`registerDonationSchema`). Its output schema is lenient (nullish fields): it is checked after the
@@ -159,11 +169,43 @@ as `@effekt/api/widget`). No login, no token.
   original REST requests: the Danish `/donations/register` takes and answers a different shape
   (string donor ids, no KID for card payments, an empty 500 on errors), and the Danish backend has no
   bank-pending or referral route.
-- Not migrated yet (REST, Norway/Sweden only): `POST /vipps/agreement/draft`,
-  `POST /avtalegiro/draft`, `GET /autogiro/:kid/drafted/paymentdate`, Swish status polling, and
-  the fundraiser widget (`FundraiserWidget/hooks/useRegisterDonation.ts`).
+- The fundraiser widget (`FundraiserWidget/hooks/useRegisterDonation.ts`) registers gifts with
+  `widget.registerDonation` too; on the Danish site it keeps its REST request, like the widget.
+- The batch guard covers every `widget.*` mutation: `publicMutations` is read from the router.
 - Stays REST for good: anything a payment provider, bank or email calls or links to
   (`/avtalegiro/:kid/redirect`, `/swish/qr/:token`, `/vipps/*` callbacks, `/donations/status`).
+
+## Public site reads
+
+The rest of the website calls the public `site` router (`apps/api/src/trpc/routers/site.ts`,
+schemas in `apps/api/src/trpc/shared/site.ts`, exported as `@effekt/api/site`). No login, no token,
+no batching: `publicTrpcFor(mainLocale)` in `lib/trpc/client.ts` (one client per site flavor). Blocks
+pass their `locale` (Sanity `main_locale`); the fundraiser widget reads `useMainLocale()`, which the
+main layout now provides too.
+
+| Procedure              | Formerly                                 | Caller                                            | Danish site                          |
+| ---------------------- | ---------------------------------------- | ------------------------------------------------- | ------------------------------------ |
+| `site.resultsHeadline` | `GET /results/headline`                  | `ResultsPage` (build), `ResultsTeaser`            | REST link, same route                |
+| `site.dailyDonations`  | `GET /results/donations/daily`           | `ResultsPage` (build)                             | REST link, same route                |
+| `site.referralSums`    | `GET /results/referrals/sums`            | `ResultsPage` (build)                             | REST link, same route                |
+| `site.monthlyOutputs`  | `GET /results/donations/monthly/outputs` | `ResultsPage` (build)                             | REST link, same route                |
+| `site.fundraiser`      | `GET /fundraisers/:id`                   | `FundraiserPage` (build)                          | REST link, same route (UUID ids)     |
+| `site.ltvEstimate`     | `GET /ltv/recentestimate`                | `util/ltv.ts` (widget, `PlausibleRevenueTracker`) | unmapped (no route; the LTV is null) |
+
+- Each procedure runs the same code as its REST route: the monthly outputs and the LTV estimate
+  moved into `custom_modules/monthlyOutputs.ts` and `custom_modules/ltv.ts`, which both call.
+  None of these REST routes is cached, so neither are the procedures.
+- The schemas accept both backends (our MySQL decimals as strings, the Danish numbers; the Danish
+  fundraiser transactions have UUID ids). Live responses from both were checked against them.
+- `site.fundraiser` takes the Sanity `fundraiser_database_id` as a number or a string of digits.
+
+Still REST, on purpose:
+
+- `POST /forms/submit` (`SplitViewForm`): only the Danish backend has it.
+- `GET /fundraisers/:id/vippsnumber` (`FundraiserVippsNumberDisplay`): our backend removed the
+  route in March 2025, so the call gets a 404. Remove the block or bring the route back.
+- The fundraiser page's live updates are a WebSocket, not REST.
+- Sanity Studio's calls (`/causeareas/all`, `/fundraisers/list`, `/results/...`, `/mail/...`).
 
 Cypress: the Norwegian widget specs stub `cy.interceptTrpc("widget.<name>", data)`; `interceptTrpc`
 answers an unbatched (httpLink) request with a single entry. The Danish widget specs keep

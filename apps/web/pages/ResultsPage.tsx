@@ -17,6 +17,7 @@ import { stegaClean } from "@sanity/client/stega";
 import { ResultsHadlineNumbers } from "../components/shared/components/ResultsHeadline/ResultsHeadline";
 import { ConsentState } from "../proxy.page";
 import { FetchResultsResult } from "../studio/sanity.types";
+import { publicTrpcFor } from "../lib/trpc/client";
 
 const fetchResultsPageSlug = groq`
 {
@@ -47,36 +48,41 @@ type ResultsPageProps = GeneralPageProps & {
   };
 };
 
-type ApiResponse<T> = {
-  status: number;
-  content: T;
-};
-async function fetchApiData<T>(endpoint: string): Promise<T | undefined> {
+/** Resolves to undefined when the call fails, so one missing graph doesn't fail the build */
+async function fetchApiData<T>(
+  procedure: string,
+  call: () => Promise<unknown>,
+): Promise<T | undefined> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_EFFEKT_API}${endpoint}`);
-    const data = (await response.json()) as ApiResponse<T>;
-
-    // Check if the response is successful and contains content
-    if (data.status === 200 && data.content) {
-      return data.content;
-    }
-
-    console.warn(`Failed to fetch data from ${endpoint}: Invalid response format or status`);
+    const data = await call();
+    if (data) return data as T;
+    console.warn(`Failed to fetch data from ${procedure}: no data`);
     return undefined;
   } catch (error) {
-    console.warn("Failed to fetch data from %s:", endpoint, error);
+    console.warn("Failed to fetch data from %s:", procedure, error);
     return undefined;
   }
 }
 
-// Function to fetch all graph data in parallel
+const fetchMainLocale = groq`*[_type == "site_settings"][0].main_locale`;
+
+/**
+ * Fetches all graph data in parallel, through tRPC (site.*). On the Danish site the REST link maps
+ * each procedure to the same REST route as before (GET /results/...).
+ */
 async function fetchResultsGraphData(): Promise<ResultsGraphData | null> {
+  const mainLocale = stegaClean(await getClient().fetch<string | null>(fetchMainLocale));
+  const trpc = publicTrpcFor(mainLocale);
   const [dailyDonations, referralSums, monthlyDonationsPerOutput, resultsHeadlineNumbers] =
     await Promise.all([
-      fetchApiData<DailyDonations>("/results/donations/daily"),
-      fetchApiData<ReferralSumsResult[]>("/results/referrals/sums"),
-      fetchApiData<MonthlyDonationsPerOutputResult[]>("/results/donations/monthly/outputs"),
-      fetchApiData<ResultsHadlineNumbers>("/results/headline"),
+      fetchApiData<DailyDonations>("site.dailyDonations", () => trpc.site.dailyDonations.query()),
+      fetchApiData<ReferralSumsResult[]>("site.referralSums", () => trpc.site.referralSums.query()),
+      fetchApiData<MonthlyDonationsPerOutputResult[]>("site.monthlyOutputs", () =>
+        trpc.site.monthlyOutputs.query(),
+      ),
+      fetchApiData<ResultsHadlineNumbers>("site.resultsHeadline", () =>
+        trpc.site.resultsHeadline.query(),
+      ),
     ]);
 
   // Validate all data is present

@@ -47,6 +47,8 @@ export default defineConfig({
   expose: {
     // Must match NEXT_PUBLIC_AUTH_DOMAIN of the web build (scripts/e2e-fullstack.sh)
     E2E_AUTH_ORIGIN: `http://localhost:${process.env.E2E_AUTH_PORT ?? "8191"}`,
+    // Must match NEXT_PUBLIC_EFFEKT_API of the web build (scripts/e2e-fullstack.sh)
+    E2E_API_ORIGIN: `http://localhost:${process.env.E2E_API_PORT ?? "5150"}`,
   },
   retries: { runMode: 1, openMode: 0 },
   video: false,

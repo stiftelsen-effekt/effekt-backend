@@ -78,15 +78,11 @@ describe("Widget", () => {
       paymentProviderUrl: "",
     }).as("registerDonation");
 
-    cy.intercept("POST", "/avtalegiro/draft", (req) => {
+    cy.intercept("POST", trpcUrl("widget.draftAvtaleGiro"), (req) => {
       expect(req.body.amount).to.equal(randomSum);
+      expect(req.body.KID).to.equal("87397824");
       expect(req.body.sum).to.be.undefined;
-      req.reply({
-        statusCode: 200,
-        body: {
-          status: 200,
-        },
-      });
+      req.reply({ statusCode: 200, body: { result: { data: true } } });
     }).as("draftAvtaleGiro");
 
     cy.nextWidgetPane();
@@ -95,7 +91,7 @@ describe("Widget", () => {
     // The form's own native submit goes straight to the external
     // avtalegiro.no page (its action is that URL), bypassing the button's
     // onClick handler that actually dispatches the draftAvtaleGiro saga and
-    // calls /avtalegiro/draft - so the button itself must be clicked, not
+    // calls widget.draftAvtaleGiro - so the button itself must be clicked, not
     // the form submitted directly, to exercise that request. But the saga
     // itself calls the form's native submit() on success, which would send
     // the browser to that real external page - stub it out so the test only
@@ -152,13 +148,19 @@ describe("Widget", () => {
       paymentProviderUrl: "",
     }).as("registerDonation");
 
-    cy.intercept("POST", "/vipps/agreement/draft", (req) => {
+    // Checks the request only: a confirmation URL would send the browser to Vipps
+    cy.intercept("POST", trpcUrl("widget.draftVippsAgreement"), (req) => {
       expect(req.body.amount).to.equal(randomSum);
+      expect(req.body.KID).to.equal("87397824");
       expect(req.body.sum).to.be.undefined;
       req.reply({
-        statusCode: 200,
+        statusCode: 500,
         body: {
-          status: 200,
+          error: {
+            message: "Not in this test",
+            code: -32603,
+            data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+          },
         },
       });
     }).as("draftVippsAgreement");
