@@ -3,7 +3,6 @@ dotenv.config();
 
 import * as config from "./config";
 import { DAO } from "./custom_modules/DAO";
-import { openAPIOptions, swaggerOptions } from "./openapi-config";
 
 console.log("--------------------------------------------------");
 console.log("| gieffektivt.no donation backend (╯°□°）╯︵ ┻━┻ |");
@@ -22,9 +21,6 @@ import http from "http";
 import logging from "./handlers/loggingHandler.js";
 import pretty from "express-prettify";
 import rateLimit from "express-rate-limit";
-import swaggerJsdoc from "swagger-jsdoc";
-import swaggerUi from "swagger-ui-express";
-import qs from "qs";
 import errorHandler from "./handlers/errorHandler";
 import { importRouter } from "./routes/import";
 import { resultsRouter } from "./routes/results";
@@ -63,8 +59,6 @@ process.on("unhandledRejection", (reason) => {
 const previewMode = isPreviewMode();
 if (previewMode) enforcePreviewEnvironment();
 
-const openapiSpecification = swaggerJsdoc(openAPIOptions);
-
 console.log("Top level dependencies loaded");
 
 //Connect to the DB
@@ -87,13 +81,9 @@ DAO.connect(() => {
     if (admin) app.use(admin);
   }
 
-  app.get("/api-docs/swagger.json", (req, res) => res.json(openapiSpecification));
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, swaggerOptions));
-  app.get("/oauth2-redirect.html", (req, res, next) =>
-    res.redirect(`/api-docs/oauth2-redirect.html?${qs.stringify(req.query)}`),
-  );
-  app.get("/", async (req, res, next) => {
-    res.redirect("/api-docs/");
+  // A small, stable answer for anyone (or anything) poking the bare host.
+  app.get("/", (_req, res) => {
+    res.json({ name: "effekt-platform API", status: "ok" });
   });
 
   //Parse post body, capturing raw body for webhook signature verification

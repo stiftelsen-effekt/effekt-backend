@@ -16,13 +16,6 @@ const config = require("../config");
 const vipps = require("../custom_modules/vipps");
 import * as vippsService from "../custom_modules/vippsService";
 
-/**
- * @openapi
- * tags:
- *   - name: Vipps
- *     description: Vipps agreements in the database.
- */
-
 router.post("/agreement/draft", jsonBody, async (req, res, next) => {
   const body = req.body;
   const KID = body.KID;

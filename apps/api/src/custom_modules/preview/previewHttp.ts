@@ -31,8 +31,6 @@ export const previewDisabled: RequestHandler = (_req, res) => {
 
 /** API paths that must never fall back to the admin's index.html. */
 const API_ONLY_PREFIXES = [
-  "/api-docs",
-  "/oauth2-redirect.html",
   "/trpc",
   "/preview",
   "/static",

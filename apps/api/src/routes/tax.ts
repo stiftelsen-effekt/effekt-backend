@@ -7,45 +7,6 @@ import { buildKu65Report } from "../custom_modules/ku65";
 const router = express.Router();
 
 // A route that updates a tax unit name and ssn
-/**
- * @openapi
- * /tax/{id}:
- *   put:
- *    tags: [Tax]
- *    description: Updates a tax unit
- *    security:
- *       - auth0_jwt: [write:profile]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the user to update.
- *        schema:
- *          type: integer
- *      - in: body
- *        name: taxUnit
- *        required: true
- *        description: The tax unit to update
- *        schema:
- *          $ref: '#/components/schemas/TaxUnit'
- *    responses:
- *      200:
- *        description: Tax unit was updated
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content: string
- *                   example:
- *                      content: OK
- *      401:
- *        description: User not authorized to access resource
- *      404:
- *        description: Tax unit with given id not found
- */
 router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const id = req.params.id;

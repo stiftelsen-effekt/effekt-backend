@@ -13,8 +13,7 @@
 <p align="center">
   <a href="https://gieffektivt.no">gieffektivt.no</a> ·
   <a href="https://giveffektivt.dk">giveffektivt.dk</a> ·
-  <a href="https://geeffektivt.se">geeffektivt.se</a> ·
-  <a href="https://data.gieffektivt.no/api-docs/">API docs</a>
+  <a href="https://geeffektivt.se">geeffektivt.se</a>
 </p>
 
 ---
@@ -88,7 +87,7 @@ Everything lives in [`docs/`](docs).
 | [regranting-downstream.md](docs/regranting-downstream.md) | Downstream regrants                                |
 | [timestamps.md](docs/timestamps.md)                       | Timestamps and the database clock                  |
 | [functions.md](docs/functions.md)                         | The Cloud Functions                                |
-| [API docs](https://data.gieffektivt.no/api-docs/)         | The REST API (Swagger)                             |
+| [API routers](apps/api/src/trpc/routers)                  | The API's tRPC routers (the API's reference)       |
 
 Plans and records of finished work: [overhaul-plan.md](docs/overhaul-plan.md) (the admin and tRPC
 overhaul), [admin-deployment.md](docs/admin-deployment.md) (rolling out the new admin) and

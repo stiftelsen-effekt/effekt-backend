@@ -16,32 +16,6 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
   next();
 };
 
-/**
- * @openapi
- * /swish/orders/{id}/status:
- *    get:
- *      tags: [Swish]
- *      description: Fetches a Swish order status by ID
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: ID of the swish order to fetch.
- *        schema:
- *          type: string
- *    responses:
- *      200:
- *        description: Swish order
- *        content:
- *          application/json:
- *            schema:
- *              - type: object
- *                properties:
- *                  status:
- *                    type: string
- *      404:
- *        description: Swish order not found
- */
 router.get("/orders/:id/status", async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -54,26 +28,6 @@ router.get("/orders/:id/status", async (req, res, next) => {
   }
 });
 
-/**
- * @openapi
- * /swish/qr/{token}:
- *    get:
- *      tags: [Swish]
- *      description: Fetches a QR code for a Swish payment request
- *    parameters:
- *      - in: path
- *        name: token
- *        required: true
- *        description: Token of the payment request to fetch QR code for
- *        schema:
- *          type: string
- *    responses:
- *      200:
- *        description: QR code
- *        content:
- *          image/png
- *
- */
 router.get("/qr/:token", async (req, res, next) => {
   try {
     const { token } = req.params;
@@ -103,15 +57,6 @@ interface SwishCallbackRequestBody {
   additionalInformation?: string;
 }
 
-/**
- * @openapi
- * /swish/callback:
- *    post:
- *      tags: [Swish]
- *      description: Called by Swish whenever there is a payment update
- *
- * @see https://developer.swish.nu/documentation/guides/create-a-payment-request#handling-the-callback
- */
 router.post("/callback", jsonBody, swishWhitelistMiddleware, async (req, res, next) => {
   try {
     // Only the payment request id is taken from the callback. The status and amount are

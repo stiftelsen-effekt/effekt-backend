@@ -15,12 +15,6 @@ const config = require("../config");
 
 const router = express.Router();
 
-/**
- * @openapi
- * tags:
- *   - name: Avtalegiro
- *     description: Avtalegiro agreements in the database.
- */
 
 router.post("/draft", async (req, res, next) => {
   if (!req.body) return res.sendStatus(400);
@@ -87,39 +81,6 @@ router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-/**
- * @openapi
- * /avtalegiro/agreement/{id}:
- *   get:
- *    tags: [Avtalegiro]
- *    description: Get a avtalegiro agreement by avtalegiro id
- *    security:
- *       - auth0_jwt: [read:donations]
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        description: Numeric ID of the avtalegiro to retrieve.
- *        schema:
- *          type: integer
- *    responses:
- *      200:
- *        description: Returns an avtalegiro agreement object
- *        content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                      content:
- *                        $ref: '#/components/schemas/AvtalegiroAgreement'
- *                   example:
- *                      content:
- *                        $ref: '#/components/schemas/AvtalegiroAgreement/example'
- *      401:
- *        description: User not authorized to view resource
- */
 router.get(
   "/agreement/:id",
   authMiddleware.isAdmin,
@@ -250,13 +211,6 @@ router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-/**
- * @openapi
- * /donations/status:
- *   get:
- *    tags: [Donations]
- *    description: Redirects to donation success when query is ok, donation failed if not ok. Used for payment processing.
- */
 router.get("/:KID/redirect", async (req, res, next) => {
   try {
     if (req.query.status && (req.query.status as string).toUpperCase() === "OK") {
