@@ -1,6 +1,7 @@
 packages:
   - admin
   - apps/web
+  - packages/*
 
 # Dependency install scripts pnpm may run. Prisma needs its own; cypress (apps/web) downloads its
 # binary; esbuild and unrs-resolver set up their platform binaries. ssh2 and cpu-features have JS

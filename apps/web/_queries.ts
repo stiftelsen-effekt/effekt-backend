@@ -6,6 +6,8 @@ import { getUserId } from "./lib/user";
 import { CauseArea } from "./components/shared/components/Widget/types/CauseArea";
 import { widgetContentQuery } from "./components/shared/components/Widget/components/Widget";
 import { groq } from "next-sanity";
+import { TRPCClientError } from "@trpc/client";
+import { useTrpcClient } from "./lib/trpc/useTrpcClient";
 
 export interface Query<T> {
   (
@@ -287,9 +289,25 @@ export const useAllOrganizations = (fetchToken: getAccessTokenSilently) => {
   };
 };
 
+/**
+ * Gets the donor's profile. Through tRPC (minside.profile); on the Danish site the REST link maps
+ * it to GET /donors/:id (lib/trpc/restLink.ts).
+ */
 export const useDonor = (user: User | undefined, fetchToken: getAccessTokenSilently) => {
-  const { data, error, isValidating } = useSWR(user ? `/donors/${getUserId(user)}/` : null, (url) =>
-    fetcher(url, fetchToken),
+  const trpc = useTrpcClient(fetchToken);
+  const { data, error, isValidating } = useSWR(
+    user ? ["minside.profile", getUserId(user)] : null,
+    async ([, donorId]) => {
+      try {
+        return await trpc.minside.profile.query({ donorId });
+      } catch (err) {
+        // Same error as fetcher(), which this used before
+        const error = new Error("An error occurred while fetching the data.", { cause: err });
+        (error as any).info = err instanceof TRPCClientError ? err.shape : undefined;
+        (error as any).status = err instanceof TRPCClientError ? err.data?.httpStatus : undefined;
+        throw error;
+      }
+    },
   );
 
   const loading = isPending(data, error);

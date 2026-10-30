@@ -25,7 +25,14 @@ const nextConfig: NextConfig = {
   // paths from `env` values that Next only inlines into compiled code; loaded
   // as an external module on the server it never sees them and throws
   // "src is required".
-  transpilePackages: ["html-react-parser", "html-dom-parser", "domhandler", "next-plausible"],
+  // @effekt/api (packages/api) ships TypeScript source: the Min Side schemas shared with the backend.
+  transpilePackages: [
+    "html-react-parser",
+    "html-dom-parser",
+    "domhandler",
+    "next-plausible",
+    "@effekt/api",
+  ],
   rewrites: async () => [STUDIO_REWRITE],
   images: {
     remotePatterns: [

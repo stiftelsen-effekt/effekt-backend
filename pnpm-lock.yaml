@@ -626,6 +626,12 @@ importers:
       "@stdlib/stats-base-dists-truncated-normal":
         specifier: ^0.2.3
         version: 0.2.3(supports-color@8.1.1)
+      "@trpc/client":
+        specifier: ^11.19.0
+        version: 11.19.0(@trpc/server@11.19.0(typescript@5.9.3))(typescript@5.9.3)
+      "@trpc/server":
+        specifier: ^11.19.0
+        version: 11.19.0(typescript@5.9.3)
       "@upstash/redis":
         specifier: ^1.39.0
         version: 1.39.0
@@ -726,6 +732,9 @@ importers:
         specifier: ^10.1.1
         version: 10.1.1(react@19.3.1)
     devDependencies:
+      "@effekt/api":
+        specifier: workspace:*
+        version: link:../../packages/api
       "@jest/globals":
         specifier: ^30.5.2
         version: 30.5.2(supports-color@8.1.1)
@@ -795,6 +804,8 @@ importers:
       typescript-fsa:
         specifier: ^3.0.0
         version: 3.0.0
+
+  packages/api: {}
 
 packages:
   "@acemir/cssom@0.9.31":
@@ -26147,6 +26158,11 @@ snapshots:
   "@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2)":
     dependencies:
       "@testing-library/dom": 10.4.2
+
+  "@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@5.9.3))(typescript@5.9.3)":
+    dependencies:
+      "@trpc/server": 11.19.0(typescript@5.9.3)
+      typescript: 5.9.3
 
   "@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2)":
     dependencies:

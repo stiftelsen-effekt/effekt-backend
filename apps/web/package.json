@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "next dev",
     "prebuild": "echo 'Building Sanity to public/studio' && npm i --prefix studio && npm run build --prefix studio -- ../public/studio -y && echo 'Done'",
-    "build": "next build",
+    "build": "pnpm types:api && next build",
     "sanity": "dotenv run -f .env.local -- npm run start --prefix studio",
     "sanity:edit": "dotenv run -f .env.local -- npm run edit --prefix studio",
     "sanity:list:pages": "dotenv run -f .env.local -- npm run list:pages --prefix studio",
@@ -20,7 +20,8 @@
     "cypress:no": "cross-env CYPRESS_PATH=node_modules/.bin/cypress cypress open --config-file cypress-no.config.ts",
     "cypress:no:headless": "cross-env CYPRESS_PATH=node_modules/.bin/cypress cypress run --config-file cypress-no.config.ts",
     "cypress:dk": "cross-env CYPRESS_PATH=node_modules/.bin/cypress cypress open --config-file cypress-dk.config.ts",
-    "typecheck": "tsc --noEmit",
+    "types:api": "pnpm --dir ../.. build:types",
+    "typecheck": "pnpm types:api && tsc --noEmit",
     "test": "jest",
     "format": "prettier --write \"./**/*{js,ts,jsx,tsx,json,md,css,scss,yml}\"",
     "analyze": "next experimental-analyze",
@@ -38,6 +39,8 @@
     "@sanity/visual-editing": "^6.1.3",
     "@ssfbank/norwegian-id-validators": "^1.0.0",
     "@stdlib/stats-base-dists-truncated-normal": "^0.2.3",
+    "@trpc/client": "^11.19.0",
+    "@trpc/server": "^11.19.0",
     "@upstash/redis": "^1.39.0",
     "cookies-next": "^6.1.1",
     "d3": "^7.9.0",
@@ -73,6 +76,7 @@
     "use-debounce": "^10.1.1"
   },
   "devDependencies": {
+    "@effekt/api": "workspace:*",
     "@jest/globals": "^30.5.2",
     "@types/d3": "^7.4.3",
     "@types/jest": "^30.0.0",

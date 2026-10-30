@@ -9,6 +9,11 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/web-checks.yml"
+      # The web typechecks against the backend's tRPC router (packages/api, docs/web-trpc.md)
+      - "src/trpc/**"
+      - "packages/api/**"
+      - "scripts/build-types.mjs"
+      - "tsconfig.trpc.json"
   push:
     branches: [main]
     paths:
@@ -16,6 +21,11 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/web-checks.yml"
+      # The web typechecks against the backend's tRPC router (packages/api, docs/web-trpc.md)
+      - "src/trpc/**"
+      - "packages/api/**"
+      - "scripts/build-types.mjs"
+      - "tsconfig.trpc.json"
 concurrency:
   group: web-checks-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
