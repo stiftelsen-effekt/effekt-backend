@@ -114,6 +114,9 @@ export const DAO = {
       waitForConnections: true,
       enableKeepAlive: true as true, // Workaround for type checking quirk
       timezone: "+00:00",
+      // Bind objects as strings instead of expanding them to `key` = value, which turns
+      // `WHERE col = ?` into an always-true condition when a request body sends an object
+      stringifyObjects: true,
     };
 
     // Using Unix sockets to connect to cloud SQL is the default way

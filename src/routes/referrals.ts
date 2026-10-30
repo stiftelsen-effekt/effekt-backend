@@ -53,6 +53,17 @@ router.post("/", async (req, res, next) => {
 
     if (typeof parsedData.comment === "undefined") parsedData.comment = null;
 
+    if (
+      !Number.isInteger(parsedData.referralID) ||
+      !Number.isInteger(parsedData.donorID) ||
+      typeof parsedData.session !== "string" ||
+      parsedData.session === "" ||
+      typeof parsedData.active !== "boolean" ||
+      (parsedData.comment !== null && typeof parsedData.comment !== "string")
+    ) {
+      return res.status(400).json({ status: 400, content: "Invalid referral data" });
+    }
+
     const OTHER_REFERRAL_ID = 10;
 
     if (parsedData.active) {

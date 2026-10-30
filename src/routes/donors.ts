@@ -25,6 +25,15 @@ const router = express.Router();
 
 const urlEncodeParser = bodyParser.urlencoded({ extended: false });
 
+// Ownership checks parseInt the id but the DAO gets the raw string, which MySQL reads
+// differently (e.g. "1.2e4" is 1 to parseInt and 12000 to MySQL). Only allow plain integers.
+const requireIntegerParam: express.RequestParamHandler = (req, res, next, value) => {
+  if (!/^\d+$/.test(value)) return res.status(400).json({ status: 400, content: "Invalid id" });
+  next();
+};
+router.param("id", requireIntegerParam);
+router.param("taxunitid", requireIntegerParam);
+
 /**
  * @openapi
  * tags:
