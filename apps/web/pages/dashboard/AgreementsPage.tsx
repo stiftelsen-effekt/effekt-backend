@@ -2,13 +2,7 @@ import Head from "next/head";
 import "react-toastify/dist/ReactToastify.css";
 import { AgreementList } from "../../components/profile/shared/lists/agreementList/AgreementList";
 import { DKAgreementList } from "../../components/profile/shared/lists/agreementList/DKAgreementList";
-import {
-  AutoGiroAgreement,
-  AvtaleGiroAgreement,
-  DKAgreement,
-  Distribution,
-  VippsAgreement,
-} from "../../models";
+import { AutoGiroAgreement, AvtaleGiroAgreement, DKAgreement, VippsAgreement } from "../../models";
 import { useAuth0 } from "@auth0/auth0-react";
 import {
   pageBannersContentQuery,
@@ -21,6 +15,8 @@ import {
 } from "../../_queries";
 import { useMemo, useState } from "react";
 import { InfoBox } from "../../components/shared/components/Infobox/Infobox";
+import { ErrorMessage } from "../../components/profile/shared/ErrorMessage/ErrorMessage";
+import { distributionsByKid } from "../../components/profile/shared/distributionsByKid";
 import { Clock } from "react-feather";
 import AgreementsMenu, {
   AgreementsMenuOptions,
@@ -145,7 +141,9 @@ const DKAgreementsPageContent: React.FC<{
     error: taxUnitsError,
   } = useTaxUnits(user, getAccessTokenSilently);
   const taxUnitsLoaded = Array.isArray(taxUnits);
-  const resolvedDistributions = shouldFetchDistributions ? (distributions ?? []) : [];
+  // Errors are not retried (see the profile layout's SWRConfig), so a failed query would otherwise
+  // leave the spinner up for good
+  const loadFailed = !!(dkAgreementsError || taxUnitsError);
 
   if (!cookieBannerConfig) return null;
 
@@ -165,6 +163,28 @@ const DKAgreementsPageContent: React.FC<{
         <PageContent>
           <div className={styles.container}>
             <h3 className={styles.header}>Missing page configuration</h3>
+          </div>
+        </PageContent>
+      </>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <>
+        <Head>
+          <title>{settings.title} | Aftaler</title>
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        <MainHeader hideOnScroll={false}>
+          <Navbar {...navbarData} />
+        </MainHeader>
+
+        <PageContent>
+          <div className={styles.container}>
+            <h3 className={styles.header}>{page.title}</h3>
+            <ErrorMessage />
           </div>
         </PageContent>
       </>
@@ -214,9 +234,10 @@ const DKAgreementsPageContent: React.FC<{
   const inactiveAgreements = resolvedAgreements.filter(
     (agreement: DKAgreement) => agreement.cancelled,
   );
-  const distributionsMap = new Map<string, Distribution>();
-  resolvedDistributions.forEach((distribution: Distribution) => {
-    distributionsMap.set(distribution.kid, distribution);
+  // Without distributions the agreements are still listed; their details say they could not load
+  const distributionsMap = distributionsByKid(distributions, {
+    fetched: shouldFetchDistributions,
+    failed: !!distributionsError,
   });
 
   return (
@@ -337,7 +358,9 @@ const NordicAgreementsPageContent: React.FC<{
   const avtaleGiroLoaded = Array.isArray(avtaleGiro);
   const autoGiroLoaded = Array.isArray(autoGiro);
   const taxUnitsLoaded = Array.isArray(taxUnits);
-  const resolvedDistributions = shouldFetchDistributions ? distributions : [];
+  // Errors are not retried (see the profile layout's SWRConfig), so a failed query would otherwise
+  // leave the spinner up for good
+  const loadFailed = !!(vippsError || avtaleGiroError || autoGiroError || taxUnitsError);
 
   const loading =
     vippsLoading ||
@@ -369,6 +392,27 @@ const NordicAgreementsPageContent: React.FC<{
       </>
     );
   }
+
+  if (loadFailed)
+    return (
+      <>
+        <Head>
+          <title>{settings.title} | Avtaler</title>
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        <MainHeader hideOnScroll={false}>
+          <Navbar {...navbarData} />
+        </MainHeader>
+
+        <PageContent>
+          <div className={styles.container}>
+            <h3 className={styles.header}>{page.title}</h3>
+            <ErrorMessage />
+          </div>
+        </PageContent>
+      </>
+    );
 
   if (loading || !vippsLoaded || !avtaleGiroLoaded || !taxUnitsLoaded || !autoGiroLoaded)
     return (
@@ -412,11 +456,10 @@ const NordicAgreementsPageContent: React.FC<{
     (agreement: VippsAgreement) => agreement.status === "ACTIVE",
   );
 
-  // A map with kid as key and distribution as value. Undefined only if the request failed,
-  // as before the hook was typed (tRPC)
-  const distributionsMap = new Map<string, Distribution>();
-  resolvedDistributions!.forEach((distribution: Distribution) => {
-    distributionsMap.set(distribution.kid, distribution);
+  // Without distributions the agreements are still listed; their details say they could not load
+  const distributionsMap = distributionsByKid(distributions, {
+    fetched: shouldFetchDistributions,
+    failed: !!distributionsError,
   });
 
   const vippsPending = vipps.filter(

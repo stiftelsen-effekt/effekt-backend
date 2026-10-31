@@ -7,6 +7,7 @@ import {
   VippsAgreement,
 } from "../../../../../models";
 import { GenericList } from "../GenericList";
+import { ErrorMessage } from "../../ErrorMessage/ErrorMessage";
 import { ListRow } from "../GenericListRow";
 import { AgreementDetails, AgreementDetailsConfiguration } from "./AgreementDetails";
 import { useState } from "react";
@@ -111,13 +112,13 @@ export const AgreementList: React.FC<{
     cells: columns.map((column) => ({
       value: formatColumnValue(column, agreement[column.value]),
     })),
-    details: (
+    details: distributions.has(agreement.KID) ? (
       <AgreementDetails
         type={agreement.type}
         agreementKid={agreement.KID}
         endpoint={agreement.endpoint}
         agreementId={agreement.ID.toString()}
-        inputDistribution={distributions.get(agreement.KID) as Distribution}
+        inputDistribution={distributions.get(agreement.KID)!}
         taxUnits={taxUnits}
         inputSum={agreement.amount}
         inputDate={agreement.date}
@@ -134,6 +135,9 @@ export const AgreementList: React.FC<{
           })
         }
       />
+    ) : (
+      // The distribution could not be loaded; the details would have nothing to edit
+      <ErrorMessage>{configuration.details_configuration?.error_text}</ErrorMessage>
     ),
     element: agreement,
   }));
