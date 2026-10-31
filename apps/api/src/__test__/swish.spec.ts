@@ -12,7 +12,6 @@ import * as mail from "../custom_modules/mail";
 import { initiateOrder } from "../custom_modules/swish";
 import swishRouter from "../routes/swish";
 import paymentMethods from "../enums/paymentMethods";
-import { DateTime } from "luxon";
 
 describe("swish", () => {
   describe("initiateOrder()", () => {
@@ -110,26 +109,20 @@ describe("swish", () => {
   describe("handleOrderStatusUpdate()", () => {
     let getOrderByInstructionUUIDStub: sinon.SinonStub;
     let updateOrderStatusStub: sinon.SinonStub;
-    let updateOrderDonationIdStub: sinon.SinonStub;
+    let completePaidOrderStub: sinon.SinonStub;
     let sendDonationReceiptStub: sinon.SinonStub;
-    let addDonationStub: sinon.SinonStub;
 
     beforeEach(() => {
       getOrderByInstructionUUIDStub = sinon.stub(DAO.swish, "getOrderByInstructionUUID");
-      updateOrderStatusStub = sinon.stub(DAO.swish, "updateOrderStatus");
-      updateOrderDonationIdStub = sinon.stub(DAO.swish, "updateOrderDonationId");
+      updateOrderStatusStub = sinon.stub(DAO.swish, "updateOrderStatus").resolves(true);
+      completePaidOrderStub = sinon.stub(DAO.swish, "completePaidOrder");
       sendDonationReceiptStub = sinon.stub(mail, "sendDonationReceipt");
-      addDonationStub = sinon.stub(DAO.donations, "add");
     });
 
     function withOrder(
       order: Partial<Awaited<ReturnType<typeof DAO.swish.getOrderByInstructionUUID>>> | null,
     ) {
       getOrderByInstructionUUIDStub.resolves(order as any);
-    }
-
-    function withAddedDonationId(id: number) {
-      addDonationStub.resolves(id);
     }
 
     it("should update order status", async () => {
@@ -142,49 +135,73 @@ describe("swish", () => {
       expect(updateOrderStatusStub.called).to.be.true;
       expect(updateOrderStatusStub.args[0][0]).to.equal(orderId);
       expect(updateOrderStatusStub.args[0][1]).to.equal(status);
+      expect(completePaidOrderStub.called).to.be.false;
     });
 
-    it('should create a donation if status is "PAID"', async () => {
-      const order = {
-        KID: "1234567890",
-        registered: DateTime.fromISO("2020-01-01T00:00:00.000Z").toJSDate(),
-        reference: "20010112345",
-      };
-      const amount = 123;
-      withOrder(order);
+    it('should complete the order with the amount and Swish\'s paid time if status is "PAID"', async () => {
+      withOrder({ ID: 123, KID: "1234567890", status: "CREATED" });
+      completePaidOrderStub.resolves(456);
 
-      await swish.handleOrderStatusUpdate("", { status: "PAID", amount });
+      await swish.handleOrderStatusUpdate("", {
+        status: "PAID",
+        amount: 123,
+        datePaid: "2026-01-01T00:30:00+01:00",
+      });
 
-      expect(addDonationStub.called).to.be.true;
-      expect(addDonationStub.args[0][0]).to.equal(order.KID);
-      expect(addDonationStub.args[0][1]).to.equal(paymentMethods.swish);
-      expect(addDonationStub.args[0][2]).to.equal(amount);
-      expect(addDonationStub.args[0][3]).to.equal(order.registered);
-      expect(addDonationStub.args[0][4]).to.equal(order.reference);
+      expect(completePaidOrderStub.calledOnce).to.be.true;
+      expect(completePaidOrderStub.args[0][0]).to.equal(123);
+      expect(completePaidOrderStub.args[0][1].amount).to.equal(123);
+      expect(completePaidOrderStub.args[0][1].timestamp.toISOString()).to.equal(
+        "2025-12-31T23:30:00.000Z",
+      );
+      // PAID is set together with the donation, not before it
+      expect(updateOrderStatusStub.called).to.be.false;
+    });
+
+    it("should use the current time when Swish gives no paid time", async () => {
+      sinon.useFakeTimers(new Date("2026-03-01T12:00:00.000Z").getTime());
+      withOrder({ ID: 123, registered: new Date("2026-03-01T14:00:00.000Z") });
+      completePaidOrderStub.resolves(456);
+
+      await swish.handleOrderStatusUpdate("", { status: "PAID", amount: 100 });
+
+      expect(completePaidOrderStub.args[0][1].timestamp.toISOString()).to.equal(
+        "2026-03-01T12:00:00.000Z",
+      );
     });
 
     it('should send donation receipt if status is "PAID"', async () => {
-      const donationId = 456;
       withOrder({ ID: 123 });
-      withAddedDonationId(donationId);
+      completePaidOrderStub.resolves(456);
 
       await swish.handleOrderStatusUpdate("", { status: "PAID", amount: 100 });
 
-      expect(sendDonationReceiptStub.called).to.be.true;
-      expect(sendDonationReceiptStub.args[0][0]).to.equal(donationId);
+      expect(sendDonationReceiptStub.calledOnceWith(456)).to.be.true;
     });
 
-    it('should update order donation ID if status is "PAID"', async () => {
-      const orderId = 123;
-      const donationId = 456;
-      withOrder({ ID: orderId });
-      withAddedDonationId(donationId);
+    it("should not send a receipt if another request already completed the order", async () => {
+      withOrder({ ID: 123, status: "CREATED" });
+      completePaidOrderStub.resolves(null);
 
       await swish.handleOrderStatusUpdate("", { status: "PAID", amount: 100 });
 
-      expect(updateOrderDonationIdStub.called).to.be.true;
-      expect(updateOrderDonationIdStub.args[0][0]).to.equal(orderId);
-      expect(updateOrderDonationIdStub.args[0][1]).to.equal(donationId);
+      expect(sendDonationReceiptStub.called).to.be.false;
+    });
+
+    it("should leave the order open if recording the donation fails", async () => {
+      withOrder({ ID: 123, status: "CREATED" });
+      completePaidOrderStub.rejects(new Error("insert failed"));
+
+      let error: unknown;
+      try {
+        await swish.handleOrderStatusUpdate("", { status: "PAID", amount: 100 });
+      } catch (ex) {
+        error = ex;
+      }
+
+      expect(error).to.be.instanceOf(Error);
+      expect(updateOrderStatusStub.called).to.be.false;
+      expect(sendDonationReceiptStub.called).to.be.false;
     });
 
     it('should not create a donation if status is "DECLINED"', async () => {
@@ -192,7 +209,7 @@ describe("swish", () => {
 
       await swish.handleOrderStatusUpdate("", { status: "DECLINED", amount: 100 });
 
-      expect(addDonationStub.called).to.be.false;
+      expect(completePaidOrderStub.called).to.be.false;
     });
 
     it("should not create a donation if status is unchanged", async () => {
@@ -200,7 +217,77 @@ describe("swish", () => {
 
       await swish.handleOrderStatusUpdate("", { status: "PAID", amount: 100 });
 
+      expect(completePaidOrderStub.called).to.be.false;
+    });
+  });
+
+  describe("DAO.swish.completePaidOrder()", () => {
+    let transaction: { query: sinon.SinonStub };
+    let addDonationStub: sinon.SinonStub;
+    let commitStub: sinon.SinonStub;
+    let rollbackStub: sinon.SinonStub;
+
+    beforeEach(() => {
+      transaction = { query: sinon.stub() };
+      sinon.stub(DAO, "startTransaction").resolves(transaction as any);
+      commitStub = sinon.stub(DAO, "commitTransaction").resolves();
+      rollbackStub = sinon.stub(DAO, "rollbackTransaction").resolves();
+      addDonationStub = sinon.stub(DAO.donations, "add").resolves(456);
+    });
+
+    function withLockedOrder(order: any) {
+      transaction.query.onFirstCall().resolves([order ? [order] : []]);
+      transaction.query.resolves([{ affectedRows: 1 }]);
+    }
+
+    const timestamp = new Date("2026-01-01T10:00:00.000Z");
+    const instructionUUID = "11A86BE70EA346E4B1C39C874173F088";
+
+    it("adds the donation on the transaction with the instruction UUID as external ID", async () => {
+      withLockedOrder({ ID: 1, KID: "123", status: "CREATED", instructionUUID });
+
+      const id = await DAO.swish.completePaidOrder(1, { amount: 100.5, timestamp });
+
+      expect(id).to.equal(456);
+      expect(transaction.query.args[0][0]).to.contain("FOR UPDATE");
+      expect(addDonationStub.args[0]).to.deep.equal([
+        "123",
+        paymentMethods.swish,
+        100.5,
+        timestamp,
+        instructionUUID,
+        null,
+        transaction,
+      ]);
+      expect(transaction.query.args[1][0]).to.contain("status = 'PAID'");
+      expect(transaction.query.args[1][1]).to.deep.equal([456, 1]);
+      expect(commitStub.calledOnce).to.be.true;
+    });
+
+    it("does nothing if the order is already final", async () => {
+      withLockedOrder({ ID: 1, KID: "123", status: "PAID", instructionUUID });
+
+      const id = await DAO.swish.completePaidOrder(1, { amount: 100, timestamp });
+
+      expect(id).to.be.null;
       expect(addDonationStub.called).to.be.false;
+      expect(rollbackStub.calledOnce).to.be.true;
+    });
+
+    it("rolls back and rethrows if the donation insert fails", async () => {
+      withLockedOrder({ ID: 1, KID: "123", status: "CREATED", instructionUUID });
+      addDonationStub.rejects(new Error("EXISTING_DONATION"));
+
+      let error: unknown;
+      try {
+        await DAO.swish.completePaidOrder(1, { amount: 100, timestamp });
+      } catch (ex) {
+        error = ex;
+      }
+
+      expect(error).to.be.instanceOf(Error);
+      expect(rollbackStub.calledOnce).to.be.true;
+      expect(commitStub.called).to.be.false;
     });
   });
 
@@ -216,9 +303,8 @@ describe("swish", () => {
       fetchStub = sinon.stub(fetch, "default");
       getOrderByInstructionUUIDStub = sinon.stub(DAO.swish, "getOrderByInstructionUUID");
       updateOrderStatusStub = sinon.stub(DAO.swish, "updateOrderStatus");
-      sinon.stub(DAO.swish, "updateOrderDonationId");
       sendDonationReceiptStub = sinon.stub(mail, "sendDonationReceipt");
-      addDonationStub = sinon.stub(DAO.donations, "add").resolves(456);
+      addDonationStub = sinon.stub(DAO.swish, "completePaidOrder").resolves(456);
     });
 
     function withOrder(order: any) {
@@ -246,8 +332,8 @@ describe("swish", () => {
       expect(fetchStub.calledOnce).to.be.true;
       expect(String(fetchStub.args[0][0])).to.include(`/paymentrequests/${instructionUUID}`);
       expect(addDonationStub.calledOnce).to.be.true;
-      expect(addDonationStub.args[0][0]).to.equal(order.KID);
-      expect(addDonationStub.args[0][2]).to.equal(250);
+      expect(addDonationStub.args[0][0]).to.equal(order.ID);
+      expect(addDonationStub.args[0][1].amount).to.equal(250);
       expect(sendDonationReceiptStub.calledOnceWith(456)).to.be.true;
     });
 
@@ -304,18 +390,16 @@ describe("swish", () => {
     let fetchStub: sinon.SinonStub;
     let getOrderByInstructionUUIDStub: sinon.SinonStub;
     let updateOrderStatusStub: sinon.SinonStub;
-    let updateOrderDonationIdStub: sinon.SinonStub;
     let sendDonationReceiptStub: sinon.SinonStub;
-    let addDonationStub: sinon.SinonStub;
+    let completePaidOrderStub: sinon.SinonStub;
 
     beforeEach(() => {
       getOrderByIDStub = sinon.stub(DAO.swish, "getOrderByID");
       fetchStub = sinon.stub(fetch, "default");
       getOrderByInstructionUUIDStub = sinon.stub(DAO.swish, "getOrderByInstructionUUID");
       updateOrderStatusStub = sinon.stub(DAO.swish, "updateOrderStatus");
-      updateOrderDonationIdStub = sinon.stub(DAO.swish, "updateOrderDonationId");
       sendDonationReceiptStub = sinon.stub(mail, "sendDonationReceipt");
-      addDonationStub = sinon.stub(DAO.donations, "add");
+      completePaidOrderStub = sinon.stub(DAO.swish, "completePaidOrder").resolves(456);
     });
 
     function withOrder(order: Partial<Awaited<ReturnType<typeof DAO.swish.getOrderByID>>> | null) {
@@ -347,9 +431,9 @@ describe("swish", () => {
 
       await swish.getSwishOrder(order.ID);
 
-      expect(updateOrderStatusStub.called).to.be.true;
-      expect(updateOrderStatusStub.args[0][0]).to.equal(order.ID);
-      expect(updateOrderStatusStub.args[0][1]).to.equal(swishPaymentRequest.status);
+      expect(completePaidOrderStub.calledOnce).to.be.true;
+      expect(completePaidOrderStub.args[0][0]).to.equal(order.ID);
+      expect(completePaidOrderStub.args[0][1].amount).to.equal(swishPaymentRequest.amount);
     });
 
     it("should return null if order doesn't exist", async () => {

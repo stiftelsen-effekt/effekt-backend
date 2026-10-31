@@ -9,6 +9,7 @@ import { instantRangeClauses, type InstantRange } from "../osloDays";
 /** Escapes LIKE wildcards so free text matches literally */
 const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
 import { DateTime } from "luxon";
+import type { PoolConnection } from "mysql2/promise";
 import { Donations, Prisma } from "@prisma/client";
 import { RequestLocale } from "../../middleware/locale";
 import { publishEvent } from "../daoEvents";
@@ -1324,6 +1325,7 @@ async function getLatestByLegacySeDistribution(legacyKID: string): Promise<Donat
  * @param {Date} [registeredDate=null] Date the transaction was confirmed
  * @param {String} [externalPaymentID=null] Used to track payments in external payment systems (paypal and vipps ex.)
  * @param {Number} [metaOwnerID=null] Specifies an owner that the data belongs to (e.g. The Effekt Foundation). Defaults to selection default from DB if none is provided.
+ * @param [transaction] Runs the lookups and the insert on this transaction's connection
  * @return {Number} The donations ID
  */
 async function add(
@@ -1333,8 +1335,12 @@ async function add(
   registeredDate: Date | string | null = null,
   externalPaymentID: string | null = null,
   metaOwnerID: number | null = null,
+  transaction?: PoolConnection,
 ): Promise<number> {
-  var [donorIDQuery] = await DAO.query("SELECT Donor_ID FROM Distributions WHERE KID = ? LIMIT 1", [
+  const query = (sql: string, params: unknown[]) =>
+    transaction ? transaction.query<any>(sql, params) : DAO.query(sql, params);
+
+  var [donorIDQuery] = await query("SELECT Donor_ID FROM Distributions WHERE KID = ? LIMIT 1", [
     KID,
   ]);
 
@@ -1357,7 +1363,11 @@ async function add(
           stored ones in the database, to ensure that we are not creating
           a duplicate donation. */
   if (externalPaymentID != null) {
-    if (await externalPaymentIDExists(externalPaymentID, paymentMethodID)) {
+    const [existing] = await query(
+      "SELECT ID FROM Donations WHERE PaymentExternal_ID = ? AND Payment_ID = ? LIMIT 1",
+      [externalPaymentID, paymentMethodID],
+    );
+    if (existing.length > 0) {
       throw new Error(
         "EXISTING_DONATION | Already a donation with ExternalPaymentID " +
           externalPaymentID +
@@ -1374,7 +1384,7 @@ async function add(
 
   var donorID = donorIDQuery[0].Donor_ID;
 
-  var [addDonationQuery] = await DAO.query(
+  var [addDonationQuery] = await query(
     "INSERT INTO Donations (Donor_ID, Payment_ID, PaymentExternal_ID, sum_confirmed, timestamp_confirmed, KID_fordeling, Meta_owner_ID) VALUES (?,?,?,?,?,?,?)",
     [donorID, paymentMethodID, externalPaymentID, sum, registeredDate, KID, metaOwnerID],
   );

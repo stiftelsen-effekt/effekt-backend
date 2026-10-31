@@ -3,7 +3,6 @@ import { Agent } from "https";
 import fetch from "node-fetch";
 import { v4 as uuidv4 } from "uuid";
 import config from "../config";
-import paymentMethods from "../enums/paymentMethods";
 import { DAO } from "./DAO";
 import { KID } from "./KID";
 import { sendDonationReceipt } from "./mail";
@@ -26,6 +25,8 @@ interface SwishPaymentRequest {
   payeeAlias: string;
   payeePaymentReference?: string;
   ageLimit?: string;
+  /** When the payment was paid, e.g. 2015-02-19T22:01:53+01:00 */
+  datePaid?: string;
   status?: string; // missing in api docs, but should be there according to examples
 }
 
@@ -146,6 +147,7 @@ export async function handleOrderStatusUpdate(
   data: {
     status: string;
     amount: number;
+    datePaid?: string;
   },
 ) {
   const order = await DAO.swish.getOrderByInstructionUUID(instructionUUID);
@@ -167,26 +169,39 @@ export async function handleOrderStatusUpdate(
 
   console.info(`Updating order status - id: ${order.ID}, status: ${data.status}`);
 
-  await DAO.swish.updateOrderStatus(order.ID, data.status);
-
-  switch (data.status) {
-    case FinalSwishOrderStatus.PAID: {
-      const donationID = await DAO.donations.add(
-        order.KID,
-        paymentMethods.swish,
-        data.amount,
-        order.registered,
-        order.reference,
-      );
-      await DAO.swish.updateOrderDonationId(order.ID, donationID);
+  if (data.status === FinalSwishOrderStatus.PAID) {
+    // The donation and the PAID status are written together, so a failed insert leaves the
+    // order open for the next callback or poll, and two concurrent updates record it once
+    const donationID = await DAO.swish.completePaidOrder(order.ID, {
+      amount: data.amount,
+      timestamp: paidTimestamp(data.datePaid),
+    });
+    if (donationID === null) {
+      console.info(`Order already completed by another request - id: ${order.ID}`);
+      return;
+    }
+    try {
       await sendDonationReceipt(donationID);
-      break;
+    } catch (ex) {
+      console.error(`Failed to send receipt for Swish donation ${donationID}`, ex);
     }
-    case FinalSwishOrderStatus.DECLINED:
-    case FinalSwishOrderStatus.ERROR: {
-      // TODO: Send error mail (https://github.com/stiftelsen-effekt/effekt-platform/issues/552)
-    }
+    return;
   }
+
+  await DAO.swish.updateOrderStatus(order.ID, data.status);
+  // TODO: Send error mail on DECLINED / ERROR (https://github.com/stiftelsen-effekt/effekt-platform/issues/552)
+}
+
+/**
+ * The donation's timestamp: when Swish says it was paid, or now. (The order's `registered`
+ * column is filled by the DB clock, which is not UTC; see docs/timestamps.md.)
+ */
+function paidTimestamp(datePaid: string | undefined): Date {
+  if (datePaid) {
+    const date = new Date(datePaid);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  return new Date();
 }
 
 /**
@@ -221,6 +236,7 @@ export async function handleCallback(instructionUUID: unknown) {
   await handleOrderStatusUpdate(instructionUUID, {
     status: swishRequest.status,
     amount: swishRequest.amount,
+    datePaid: swishRequest.datePaid,
   });
 }
 
@@ -235,6 +251,10 @@ function generateSwishInstructionUUID() {
   return uuidv4().replace(regex, "").toUpperCase();
 }
 
+/**
+ * The payee payment reference sent to Swish. It is not unique (random digits); the donation's
+ * external ID is the instruction UUID.
+ */
 function generatePaymentReference() {
   const regex = /-/g;
   const random = KID.getRandomNumbers(5);
@@ -253,6 +273,7 @@ export async function getSwishOrder(ID: Swish_orders["ID"]) {
   await handleOrderStatusUpdate(order.instructionUUID, {
     status: swishRequest.status!,
     amount: swishRequest.amount,
+    datePaid: swishRequest.datePaid,
   });
   return await DAO.swish.getOrderByID(ID);
 }
