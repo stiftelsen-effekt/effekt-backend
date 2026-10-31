@@ -27,6 +27,9 @@ export const GlobalCutToggle: React.FC<GlobalCutToggleProps> = ({ operationsConf
   const causeAreas = useSelector((state: State) => state.layout.causeAreas) ?? [];
 
   // Use config from props if available, otherwise from state
+  // Not used: the label template below reads only the prop. CauseAreaForm reads it from
+  // `config`, so this probably should too.
+  // oxlint-disable-next-line no-unused-vars -- kept to flag the likely mismatch
   const config = operationsConfig || stateConfig;
   const { prefix: operationsLabelPrefix, suffix: operationsLabelSuffix } =
     splitOperationsLabelTemplate(operationsConfig?.operations_label_template);

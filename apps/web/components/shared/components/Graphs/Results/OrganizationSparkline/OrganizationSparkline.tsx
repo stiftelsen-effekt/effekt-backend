@@ -120,7 +120,7 @@ export const OrganizationSparkline: React.FC<{
               "#000",
               textures.circles().lighter().stroke("#000").background("#fafafa").size(5).id("dots"),
             ],
-            tickFormat(t, i) {
+            tickFormat(t) {
               if (t === "direct") return "Direkte fra donorer";
               if (t === "smartDistribution") return "Fordelt via smart fordeling";
               return t;
@@ -335,7 +335,7 @@ export const OrganizationSparklineLegend: React.FC<{
             "#000",
             textures.circles().lighter().stroke("#000").background("#fafafa").size(5).id("dots"),
           ],
-          tickFormat(t, i) {
+          tickFormat(t) {
             if (t === "direct")
               return textConfig?.directDonationsText ?? "Donasjoner direkte fra donorer";
             if (t === "smartDistribution")

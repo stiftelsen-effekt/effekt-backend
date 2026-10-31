@@ -75,10 +75,9 @@ export const ReferralSums: React.FC<{
     const transformedReferralSums = referralSums.flatMap((el) => {
       return Object.entries(el)
         .filter(
-          ([key, value]) =>
-            (key.startsWith("Total") || key.startsWith("Num")) && key.endsWith("ref"),
+          ([key]) => (key.startsWith("Total") || key.startsWith("Num")) && key.endsWith("ref"),
         )
-        .map(([key, value]) => {
+        .map(([key]) => {
           const split = key.split("_");
           const type = split[split.length - 2];
           return {
@@ -183,7 +182,7 @@ export const ReferralSums: React.FC<{
           );
           config.marks.push(
             Plot.text(graphData, {
-              x: (d) => 0,
+              x: () => 0,
               y: "type",
               fy: "year",
               text: (d) => mapTypeToLabel(d.type, textConfig?.referralTypeMappings),

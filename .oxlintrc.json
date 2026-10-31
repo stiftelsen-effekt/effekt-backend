@@ -24,10 +24,8 @@
     "apps/web/next-env.d.ts"
   ],
   "rules": {
-    // A warning, not an error, because existing code breaks it. Fix it as you touch the code,
-    // then make the rule an error.
     "no-unused-vars": [
-      "warn",
+      "error",
       {
         // Prefix intentionally unused names with `_`, e.g. `_next` in an Express error handler,
         // which must keep four parameters

@@ -28,12 +28,10 @@ const TaxUnitEditModalStandard: React.FC<{
   const trpc = useTrpcClient(getAccessTokenSilently);
   const failureToast = useFailureToast();
 
-  const {
-    data: existingUnits,
-    loading: loadingUnits,
-    isValidating: validatingUnits,
-    error: errorLoadingUnits,
-  } = useTaxUnits(user as User, getAccessTokenSilently);
+  const { data: existingUnits, loading: loadingUnits } = useTaxUnits(
+    user as User,
+    getAccessTokenSilently,
+  );
 
   const initialSsnDigits = initial.ssn.replace(/\D/g, "");
   const [name, setName] = useState(initial.name);

@@ -20,7 +20,6 @@ export const DKBankPane: React.FC<{
   const plausible = usePlausible();
   const donation = useSelector((state: State) => state.donation);
   const causeAreas = useSelector((state: State) => state.layout.causeAreas) || [];
-  const { paymentProviderURL, recurring } = donation;
 
   // The rewritten widget tracks per-cause-area/organization amounts rather than a single sum,
   // so derive the total from the donation breakdown for analytics.

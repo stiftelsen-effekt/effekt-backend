@@ -10,7 +10,7 @@ const ToolTipWrapper = styled.div`
 `;
 
 export const ToolTip: React.FC<{ text: string; linkUrl?: string }> = ({ text, linkUrl }) => {
-  const [tooltip, setTooltip] = useContext(WidgetTooltipContext);
+  const [, setTooltip] = useContext(WidgetTooltipContext);
   return (
     <ToolTipWrapper>
       <ToolTipIcon

@@ -37,7 +37,7 @@ export const createWidgetStore = () => {
 const WidgetStoreProvider: React.FC<{
   children: React.ReactNode;
   isInline?: boolean;
-}> = ({ children, isInline }) => {
+}> = ({ children }) => {
   // Create a new store instance for this widget
   const store = useMemo(() => createWidgetStore(), []);
 
@@ -76,7 +76,7 @@ export const WidgetWithStore = withStaticProps(
       defaultPaymentType: defaultPaymentType ?? RecurringDonation.NON_RECURRING,
     };
   },
-)(({ data, inline = false, prefilled, prefilledSum, defaultPaymentType }) => {
+)(({ data, inline = false, prefilled, defaultPaymentType }) => {
   return (
     <WidgetStoreProvider isInline={inline}>
       <Widget

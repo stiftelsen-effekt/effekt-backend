@@ -33,7 +33,7 @@ export const TaxUnitSelector: React.FC<{
   const actionRef = useRef<HTMLDivElement>(null);
   useClickOutsideAlerter(actionRef, () => setMenuOpen(false));
 
-  const { data, loading, isValidating, error } = useTaxUnits(user as User, getAccessTokenSilently);
+  const { data, loading, error } = useTaxUnits(user as User, getAccessTokenSilently);
 
   return (
     <div className={styles.container} ref={actionRef}>

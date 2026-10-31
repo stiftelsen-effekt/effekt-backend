@@ -101,7 +101,7 @@ const TaxUnitMobileListStandard: React.FC<{ taxUnits: TaxUnit[] } & TaxUnitMobil
         <TaxUnitDeleteModal
           open={deleteModalOpen}
           taxUnit={selectedTaxUnit}
-          onSuccess={(success: boolean) => {
+          onSuccess={() => {
             setDeleteModalOpen(false);
           }}
           onFailure={() => {}}

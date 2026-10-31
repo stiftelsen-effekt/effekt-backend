@@ -158,7 +158,7 @@ export const Outputs: React.FC<{
               {
                 x: "x",
                 y: "y",
-                text: (d) => annotation.title,
+                text: () => annotation.title,
                 textAnchor: "start",
                 dy: 15,
                 dx: getRemInPixels(),
@@ -176,7 +176,7 @@ export const Outputs: React.FC<{
               {
                 x: "x",
                 y: "y",
-                text: (d) => annotation.description,
+                text: () => annotation.description,
                 textAnchor: "start",
                 dy: getRemInPixels() * 2,
                 dx: getRemInPixels(),
@@ -234,7 +234,7 @@ export const Outputs: React.FC<{
               textures.circles().lighter().stroke("#000").background("#fafafa").size(5).id("dots"),
               annotationFill,
             ],
-            tickFormat(t, i) {
+            tickFormat(t) {
               if (size.width < 760) {
                 if (t === "direct") return "Direkte fra donorer";
                 if (t === "smartDistribution") return "Fordelt via smart fordeling";

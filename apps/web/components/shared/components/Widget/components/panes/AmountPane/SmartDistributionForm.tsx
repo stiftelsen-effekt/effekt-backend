@@ -38,10 +38,6 @@ interface SmartDistributionFormProps {
 
 export const SmartDistributionForm: React.FC<SmartDistributionFormProps> = ({
   suggestedSums,
-  totalAmount,
-  causeAreas,
-  causeAreaAmounts,
-  causeAreaDistributionType,
   causeAreaDisplayConfig,
   smartDistributionContext,
 }) => {

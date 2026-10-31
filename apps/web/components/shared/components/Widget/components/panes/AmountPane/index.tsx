@@ -52,24 +52,14 @@ export const AmountPane: React.FC<AmountPaneProps> = ({
   uiLabels,
 }) => {
   const dispatch = useDispatch<any>();
-  const {
-    selectionType,
-    selectedCauseAreaId,
-    recurring,
-    smartDistributionTotal,
-    operationsPercentageByCauseArea = {},
-    causeAreaAmounts: storedCauseAreaAmounts = {},
-  } = useSelector((state: State) => state.donation);
+  const { selectionType, selectedCauseAreaId, recurring, smartDistributionTotal } = useSelector(
+    (state: State) => state.donation,
+  );
   const causeAreas = useSelector((state: State) => state.layout.causeAreas) || [];
   const prefilledCauseAreaIds = usePrefilledCauseAreaIds();
 
-  const {
-    sumOfOtherCauseAreas,
-    totalAmount,
-    causeAreaAmounts,
-    orgAmounts,
-    causeAreaDistributionType,
-  } = useAmountCalculation(selectionType || "single", selectedCauseAreaId || null, causeAreas);
+  const { totalAmount, causeAreaAmounts, orgAmounts, causeAreaDistributionType } =
+    useAmountCalculation(selectionType || "single", selectedCauseAreaId || null, causeAreas);
 
   const handleNext = () => {
     const finalAmount = selectedCauseAreaId === -1 ? smartDistributionTotal || 0 : totalAmount;

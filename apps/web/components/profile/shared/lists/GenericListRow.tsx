@@ -141,7 +141,7 @@ const GenericListRow = <T extends unknown>({ row, expandable }: Props<T>) => {
           </td>
         ))}
         <td className={style.rowAction}>
-          <div className={style.cellContent}>{actions.map((action, i) => action)}</div>
+          <div className={style.cellContent}>{actions.map((action) => action)}</div>
         </td>
       </tr>
       {expandable ? (

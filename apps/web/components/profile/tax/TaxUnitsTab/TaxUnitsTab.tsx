@@ -31,7 +31,7 @@ export const TaxUnitsTab: React.FC<TaxUnitsTabProps> = ({
 }) => {
   const { getAccessTokenSilently, user } = useAuth0();
 
-  const { loading, isValidating, data, error } = useTaxUnits(user as User, getAccessTokenSilently);
+  const { loading, data, error } = useTaxUnits(user as User, getAccessTokenSilently);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -87,7 +87,7 @@ export const TaxUnitsTab: React.FC<TaxUnitsTabProps> = ({
       {createModalOpen && (
         <TaxUnitCreateModal
           open={createModalOpen}
-          onSuccess={(unit) => {
+          onSuccess={() => {
             setCreateModalOpen(false);
           }}
           onFailure={() => {}}

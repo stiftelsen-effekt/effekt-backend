@@ -110,7 +110,6 @@ export const AgreementDetails: React.FC<{
     data: systemCauseAreas,
     error: causeAreasError,
     loading: causeAreasLoading,
-    isValidating: causeAreasIsValidating,
   } = useCauseAreas();
 
   // Sync local state when the agreement props or system cause areas change, by adjusting

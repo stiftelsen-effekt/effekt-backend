@@ -86,6 +86,9 @@ export const EffektSliderStdv: React.FC<{
           // If the user clicks on the slider, we want to move the handle to the clicked position
           const rect = sliderRef.current?.getBoundingClientRect();
           if (rect) {
+            // The clicked position is computed but not used, so a click on the track does not move
+            // the handle (onChange gets the current value).
+            // oxlint-disable-next-line no-unused-vars -- kept to flag the unfinished click handling
             const x = Math.min(Math.max(0, (e.clientX || 0) - rect.left), rect.width);
             onChange({
               mean: value.mean,

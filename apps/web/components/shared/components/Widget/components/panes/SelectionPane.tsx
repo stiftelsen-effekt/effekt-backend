@@ -32,7 +32,7 @@ export const SelectionPane: React.FC<SelectionPaneProps> = ({
   const dispatch = useDispatch<any>();
   const causeAreas = useSelector((state: State) => state.layout.causeAreas);
   const prefilledCauseAreaIds = usePrefilledCauseAreaIds();
-  const { operationsPercentageModeByCauseArea = {}, causeAreaAmounts = {} } = useSelector(
+  const { operationsPercentageModeByCauseArea = {} } = useSelector(
     (state: State) => state.donation,
   );
 

@@ -15,7 +15,7 @@ export const RadioButtonGroup: React.FC<{
   selected: number | undefined;
   onSelect: (value: number) => void;
 }> = ({ options, selected, onSelect }) => {
-  const [name, setName] = useState<string>(
+  const [name] = useState<string>(
     `radio-button-group-${options
       .map((o) => (o.title || "").toLowerCase().trim().split(" ").join())
       .join("_")}`,

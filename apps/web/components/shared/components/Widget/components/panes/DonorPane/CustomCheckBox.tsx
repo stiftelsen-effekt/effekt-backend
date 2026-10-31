@@ -31,7 +31,6 @@ export const CustomCheckBox: React.FC<CheckBoxProps> = ({
   label,
   showTooltip,
   tooltipText,
-  mobileLabel,
   hyperlink,
 }) => (
   <CustomCheckBoxWrapper>
