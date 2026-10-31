@@ -50,7 +50,7 @@ describe("Widget", () => {
 
   it("End-2-End recurring avtalegiro donation", () => {
     /**
-     * Ignore iframeLoaded error on nets iframe
+     * Ignore iframeLoaded error on the AvtaleGiro signing iframe (Mastercard Payment Services)
      */
     cy.origin("https://pvu.nets.no", () => {
       cy.on("uncaught:exception", (e) => {

@@ -595,7 +595,7 @@ function Components() {
               They wait in the review queue.
             </Callout>
             <Callout tone="danger" title="The file could not be read">
-              It doesn't look like a Nets OCR file. Check the source and try again.
+              It doesn't look like an OCR Giro file. Check the source and try again.
             </Callout>
           </div>
           <div className="grid content-start gap-4">

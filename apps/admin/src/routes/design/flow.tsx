@@ -63,7 +63,8 @@ const sources: {
   {
     value: "ocr",
     label: "Bank OCR",
-    description: "Nets OCR file: AvtaleGiro and KID bank payments.",
+    description:
+      "OCR Giro file from Mastercard Payment Services: AvtaleGiro and KID bank payments.",
     icon: BuildingIcon,
     meta: ".txt",
   },

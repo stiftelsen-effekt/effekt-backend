@@ -151,7 +151,17 @@ const allNavGroups: NavGroup[] = [
         to: "/avtalegiro-charges",
         label: "AvtaleGiro charges",
         icon: ReceiptTextIcon,
-        keywords: ["claims", "trekk", "krav", "mps", "nets", "deletion", "sletting", "shipment"],
+        keywords: [
+          "claims",
+          "trekk",
+          "krav",
+          "mps",
+          "mastercard",
+          "nets",
+          "deletion",
+          "sletting",
+          "shipment",
+        ],
       },
       {
         to: "/avtalegiro-check",

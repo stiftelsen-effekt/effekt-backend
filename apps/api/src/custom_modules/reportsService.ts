@@ -93,8 +93,9 @@ export type OcrTransaction = {
 };
 
 /**
- * Parses an OCR file (Nets) and adds the donations. `ignored` counts donations that already
- * existed; `invalid` counts failed transactions, all of which are listed in `invalidTransactions`.
+ * Parses an OCR Giro file (Mastercard Payment Services) and adds the donations. `ignored` counts
+ * donations that already existed; `invalid` counts failed transactions, all of which are listed in
+ * `invalidTransactions`.
  */
 export async function processOcrReport(
   data: string,
@@ -103,7 +104,7 @@ export async function processOcrReport(
 ): Promise<ReportUploadResult<OcrTransaction> & { ignored: number }> {
   if (options.strict) {
     const problem = OCRparser.validate(data);
-    if (problem) throw new ReportParseError(`Not a Nets OCR file: ${problem}`);
+    if (problem) throw new ReportParseError(`Not an OCR Giro file: ${problem}`);
   }
   const transactions: OcrTransaction[] = OCRparser.parse(data);
   if (options.strict && transactions.length === 0) {

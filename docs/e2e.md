@@ -86,10 +86,10 @@ the API: `POST http://localhost:8191/oauth/token` with `grant_type=client_creden
 2. Add whatever the spec needs to `apps/api/prisma/e2e/seed.mjs` and `data.mjs`, then assert on those
    values.
 3. Call `cy.task("resetE2EData")` and `cy.loginFullstack(DONOR_ID)` in `beforeEach`.
-4. Calls to third parties are not available locally. The backend runs without Vipps, Nets,
-   MailerSend etc. credentials. Vipps agreement price changes and cancellation call the Vipps
-   API first, so they fail here. Those cases need a stub of the third-party API in the stack,
-   not of our API. The same goes for `widget.draftVippsAgreement`: the backend calls
+4. Calls to third parties are not available locally. The backend runs without Vipps, Mastercard
+   Payment Services, MailerSend etc. credentials. Vipps agreement price changes and cancellation
+   call the Vipps API first, so they fail here. Those cases need a stub of the third-party API in
+   the stack, not of our API. The same goes for `widget.draftVippsAgreement`: the backend calls
    `https://${VIPPS_API_URL}`, so a stub at the edge would also need a TLS certificate the API
    trusts. The mocked `no/widget.js` and `no/fundraiser-widget.cy.js` cover the website's side.
 
