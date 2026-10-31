@@ -83,8 +83,14 @@ export function calculateDonationBreakdown(
 
   let multipleTotalDonation = 0;
   if (selectionType === "multiple" && globalOperationsEnabled) {
+    // Cause areas left out of the split below are left out of the base for the cut too
     const customDistributionAreasIds = causeAreas
-      .filter((area) => causeAreaDistributionType[area.id] === ShareType.CUSTOM)
+      .filter(
+        (area) =>
+          causeAreaDistributionType[area.id] === ShareType.CUSTOM &&
+          !ignoredCauseAreas.includes(area.id) &&
+          area.id !== operationsCauseAreaId,
+      )
       .map((area) => area.id);
     // For multiple cause areas, calculate based on global percentage
     multipleTotalDonation =
@@ -310,6 +316,34 @@ function roundAmountsToTotal<T extends { id: number; amount: number }>(
 
   return rounded.filter((item) => item.amount > 0);
 }
+
+/**
+ * Splits a kroner amount between organizations by percentage share (orgId -> 0-100) in whole
+ * kroner, so the parts add up to the amount (or to the rounded part of it the shares cover).
+ * Rounding each organization's part on its own drifts, e.g. 50/50 of 101 gives 51 + 51.
+ * Organizations whose part rounds to nothing are left out.
+ */
+export function splitAmountByShares(
+  amount: number,
+  shareByOrgId: Record<number, number>,
+): Record<number, number> {
+  const exactAmounts = Object.entries(shareByOrgId)
+    .map(([id, share]) => ({ id: Number(id), amount: (share / 100) * amount }))
+    .filter((org) => org.amount > 0);
+  const target = Math.round(exactAmounts.reduce((sum, org) => sum + org.amount, 0));
+
+  return Object.fromEntries(
+    roundAmountsToTotal(exactAmounts, target).map(({ id, amount }) => [id, amount]),
+  );
+}
+
+/** A cause area's standard split as orgId -> percentage share */
+export const standardShareByOrgId = (causeArea: CauseArea): Record<number, number> =>
+  Object.fromEntries(
+    causeArea.organizations
+      .filter((org) => (org.standardShare ?? 0) > 0)
+      .map((org) => [org.id, org.standardShare as number]),
+  );
 
 export interface OrganizationSharePayload {
   id: number;

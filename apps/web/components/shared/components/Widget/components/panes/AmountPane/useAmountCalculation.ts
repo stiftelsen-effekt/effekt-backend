@@ -72,9 +72,12 @@ export const useAmountCalculation = (
         return acc + (causeAreaAmounts[area.id] || 0);
       }, 0);
     } else if (selectionType === "multiple") {
-      // For multiple cause areas, sum up all amounts
+      // For multiple cause areas, sum up all amounts. Leave out the same cause areas
+      // calculateDonationBreakdown leaves out of a multiple cause area donation, so the total
+      // shown here is the total registered
+      const excludedCauseAreaIds = operationsConfig?.excludedCauseAreaIds ?? [];
       currentTotal = causeAreas
-        .filter((ca) => ca.id !== 5 && ca.id !== OPERATIONS_CAUSE_AREA_ID)
+        .filter((ca) => !excludedCauseAreaIds.includes(ca.id) && ca.id !== OPERATIONS_CAUSE_AREA_ID)
         .reduce((acc, area) => {
           if (causeAreaDistributionType[area.id] === ShareType.CUSTOM) {
             return (
@@ -114,6 +117,7 @@ export const useAmountCalculation = (
     causeAreas,
     causeAreaDistributionType,
     OPERATIONS_CAUSE_AREA_ID,
+    operationsConfig?.excludedCauseAreaIds,
     smartDistributionTotal,
   ]);
 

@@ -40,6 +40,7 @@ import {
 import { CauseAreaRollout } from "../../shared/CauseAreaRollout/CauseAreaRollout";
 import { splitOperationsLabelTemplate } from "../../../utils/operationsLabel";
 import { useIsMobile } from "../../../../../../../hooks/useIsMobile";
+import { splitAmountByShares, standardShareByOrgId } from "../../../utils/donationCalculations";
 
 interface CauseAreaFormProps {
   causeArea: CauseArea;
@@ -139,11 +140,15 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
   const setTrackedOrganizationAmounts = (amount: number) => {
     if (!isTrackingPrefilledShares || !prefilledShares) return;
 
-    causeArea.organizations.forEach((organization) => {
-      const share = prefilledShares[organization.id];
-      if (share !== undefined) {
-        dispatch(setOrgAmount(organization.id, Math.round((share / 100) * amount)));
-      }
+    const trackedShares = causeArea.organizations.filter(
+      (organization) => prefilledShares[organization.id] !== undefined,
+    );
+    const amountByOrgId = splitAmountByShares(
+      amount,
+      Object.fromEntries(trackedShares.map((org) => [org.id, prefilledShares[org.id]])),
+    );
+    trackedShares.forEach((organization) => {
+      dispatch(setOrgAmount(organization.id, amountByOrgId[organization.id] ?? 0));
     });
   };
 
@@ -352,11 +357,13 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
                       return value > 0 && causeArea.organizations.some((org) => org.id === orgId);
                     }).length > 0;
                   if (!hasSetOrgAmounts) {
-                    const causeAreaAmount = causeAreaAmounts[causeArea.id] || 0;
+                    const amountByOrgId = splitAmountByShares(
+                      causeAreaAmounts[causeArea.id] || 0,
+                      standardShareByOrgId(causeArea),
+                    );
                     for (const org of causeArea.organizations) {
                       if (!org.standardShare) continue;
-                      const orgShare = Math.round((org.standardShare / 100) * causeAreaAmount);
-                      dispatch(setOrgAmount(org.id, orgShare));
+                      dispatch(setOrgAmount(org.id, amountByOrgId[org.id] ?? 0));
                     }
                   }
                 }
