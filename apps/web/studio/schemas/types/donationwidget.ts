@@ -73,8 +73,6 @@ export default defineType({
           to: [
             { type: "bank" },
             { type: "vipps" },
-            { type: "swish" },
-            { type: "autogiro" },
             { type: "avtalegiro" },
             { type: "quickpay_card" },
             { type: "quickpay_mobilepay" },
@@ -106,8 +104,6 @@ export default defineType({
               to: [
                 { type: "bank" },
                 { type: "vipps" },
-                { type: "swish" },
-                { type: "autogiro" },
                 { type: "avtalegiro" },
                 { type: "quickpay_card" },
                 { type: "quickpay_mobilepay" },
@@ -122,8 +118,6 @@ export default defineType({
               to: [
                 { type: "bank" },
                 { type: "vipps" },
-                { type: "swish" },
-                { type: "autogiro" },
                 { type: "avtalegiro" },
                 { type: "quickpay_card" },
                 { type: "quickpay_mobilepay" },

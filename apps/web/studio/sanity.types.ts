@@ -2065,20 +2065,6 @@ export type VippsReference = {
   [internalGroqTypeReferenceTo]?: "vipps";
 };
 
-export type SwishReference = {
-  _ref: string;
-  _type: "reference";
-  _weak?: boolean;
-  [internalGroqTypeReferenceTo]?: "swish";
-};
-
-export type AutogiroReference = {
-  _ref: string;
-  _type: "reference";
-  _weak?: boolean;
-  [internalGroqTypeReferenceTo]?: "autogiro";
-};
-
 export type AvtalegiroReference = {
   _ref: string;
   _type: "reference";
@@ -2121,8 +2107,6 @@ export type Donationwidget = {
   methods?: ArrayOf<
     | BankReference
     | VippsReference
-    | SwishReference
-    | AutogiroReference
     | AvtalegiroReference
     | Quickpay_cardReference
     | Quickpay_mobilepayReference
@@ -2132,8 +2116,6 @@ export type Donationwidget = {
     from_method?:
       | BankReference
       | VippsReference
-      | SwishReference
-      | AutogiroReference
       | AvtalegiroReference
       | Quickpay_cardReference
       | Quickpay_mobilepayReference
@@ -2141,8 +2123,6 @@ export type Donationwidget = {
     to_method?:
       | BankReference
       | VippsReference
-      | SwishReference
-      | AutogiroReference
       | AvtalegiroReference
       | Quickpay_cardReference
       | Quickpay_mobilepayReference
@@ -2363,140 +2343,6 @@ export type Avtalegiro = {
   selector_choose_date_text?: string;
   date_selector_configuration?: DateselectorconfigReference;
   button_text?: string;
-  transaction_cost?: Transaction_cost;
-};
-
-export type Autogiro = {
-  _id: string;
-  _type: "autogiro";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  selector_text?: string;
-  title?: string;
-  account_number_label?: string;
-  account_number?: string;
-  payer_number_label?: string;
-  manual_recurring_option_config?: {
-    title?: string;
-    sum_label?: string;
-    payer_numberexplanatory_text?: string;
-    instruction_text?: Array<{
-      children?: Array<{
-        marks?: Array<string>;
-        text?: string;
-        _type: "span";
-        _key: string;
-      }>;
-      style?: "normal" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "blockquote";
-      listItem?: "bullet" | "number";
-      markDefs?: Array<{
-        href?: string;
-        _type: "link";
-        _key: string;
-      }>;
-      level?: number;
-      _type: "block";
-      _key: string;
-    }>;
-    complete_button_text?: string;
-  };
-  recurring_manual_option_config?: {
-    title?: string;
-    explanation_text?: Array<{
-      children?: Array<{
-        marks?: Array<string>;
-        text?: string;
-        _type: "span";
-        _key: string;
-      }>;
-      style?: "normal" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "blockquote";
-      listItem?: "bullet" | "number";
-      markDefs?: Array<{
-        href?: string;
-        _type: "link";
-        _key: string;
-      }>;
-      level?: number;
-      _type: "block";
-      _key: string;
-    }>;
-    date_selector_config?: DateselectorconfigReference;
-    complete_button_text?: string;
-  };
-  recurring_form_option_config?: {
-    title?: string;
-    explanation_text?: Array<{
-      children?: Array<{
-        marks?: Array<string>;
-        text?: string;
-        _type: "span";
-        _key: string;
-      }>;
-      style?: "normal" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "blockquote";
-      listItem?: "bullet" | "number";
-      markDefs?: Array<{
-        href?: string;
-        _type: "link";
-        _key: string;
-      }>;
-      level?: number;
-      _type: "block";
-      _key: string;
-    }>;
-    payernumber_label?: string;
-    button_text?: string;
-    button_link?: string;
-  };
-  completed_text?: Array<{
-    children?: Array<{
-      marks?: Array<string>;
-      text?: string;
-      _type: "span";
-      _key: string;
-    }>;
-    style?: "normal" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "blockquote";
-    listItem?: "bullet" | "number";
-    markDefs?: Array<{
-      href?: string;
-      _type: "link";
-      _key: string;
-    }>;
-    level?: number;
-    _type: "block";
-    _key: string;
-  }>;
-  transaction_cost?: Transaction_cost;
-};
-
-export type Swish = {
-  _id: string;
-  _type: "swish";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  selector_text?: string;
-  prompt?: {
-    title?: string;
-    scan_text?: string;
-    redirect_text?: string;
-  };
-  success?: {
-    title?: string;
-    text?: string;
-  };
-  error?: {
-    title?: string;
-    text?: string;
-  };
-  declined?: {
-    title?: string;
-    text?: string;
-  };
-  cancelled?: {
-    title?: string;
-    text?: string;
-  };
   transaction_cost?: Transaction_cost;
 };
 
@@ -7059,8 +6905,6 @@ export type AllSanitySchemaTypes =
   | Quote
   | BankReference
   | VippsReference
-  | SwishReference
-  | AutogiroReference
   | AvtalegiroReference
   | Quickpay_cardReference
   | Quickpay_mobilepayReference
@@ -7070,8 +6914,6 @@ export type AllSanitySchemaTypes =
   | Quickpay_mobilepay
   | Quickpay_card
   | Avtalegiro
-  | Autogiro
-  | Swish
   | VippsAnonymousReference
   | Vipps
   | Dateselectorconfig
@@ -20246,33 +20088,27 @@ export type FetchAgreementsPageResult = {
           single_url?: string;
         };
         methods?: ArrayOf<
-          | AutogiroReference
           | AvtalegiroReference
           | BankReference
           | DkbankReference
           | Quickpay_cardReference
           | Quickpay_mobilepayReference
-          | SwishReference
           | VippsReference
         >;
         nudges?: Array<{
           from_method?:
-            | AutogiroReference
             | AvtalegiroReference
             | BankReference
             | DkbankReference
             | Quickpay_cardReference
             | Quickpay_mobilepayReference
-            | SwishReference
             | VippsReference;
           to_method?:
-            | AutogiroReference
             | AvtalegiroReference
             | BankReference
             | DkbankReference
             | Quickpay_cardReference
             | Quickpay_mobilepayReference
-            | SwishReference
             | VippsReference;
           minimum_amount?: number;
           recurring_type?: "both" | "recurring" | "single";
@@ -25354,33 +25190,27 @@ export type FetchDonationsPageResult = {
           single_url?: string;
         };
         methods?: ArrayOf<
-          | AutogiroReference
           | AvtalegiroReference
           | BankReference
           | DkbankReference
           | Quickpay_cardReference
           | Quickpay_mobilepayReference
-          | SwishReference
           | VippsReference
         >;
         nudges?: Array<{
           from_method?:
-            | AutogiroReference
             | AvtalegiroReference
             | BankReference
             | DkbankReference
             | Quickpay_cardReference
             | Quickpay_mobilepayReference
-            | SwishReference
             | VippsReference;
           to_method?:
-            | AutogiroReference
             | AvtalegiroReference
             | BankReference
             | DkbankReference
             | Quickpay_cardReference
             | Quickpay_mobilepayReference
-            | SwishReference
             | VippsReference;
           minimum_amount?: number;
           recurring_type?: "both" | "recurring" | "single";
@@ -30298,33 +30128,27 @@ export type FetchProfilePageResult = {
           single_url?: string;
         };
         methods?: ArrayOf<
-          | AutogiroReference
           | AvtalegiroReference
           | BankReference
           | DkbankReference
           | Quickpay_cardReference
           | Quickpay_mobilepayReference
-          | SwishReference
           | VippsReference
         >;
         nudges?: Array<{
           from_method?:
-            | AutogiroReference
             | AvtalegiroReference
             | BankReference
             | DkbankReference
             | Quickpay_cardReference
             | Quickpay_mobilepayReference
-            | SwishReference
             | VippsReference;
           to_method?:
-            | AutogiroReference
             | AvtalegiroReference
             | BankReference
             | DkbankReference
             | Quickpay_cardReference
             | Quickpay_mobilepayReference
-            | SwishReference
             | VippsReference;
           minimum_amount?: number;
           recurring_type?: "both" | "recurring" | "single";

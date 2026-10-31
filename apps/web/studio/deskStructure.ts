@@ -12,7 +12,6 @@ import {
   Lock,
   Paperclip,
   Phone,
-  PhoneCall,
   Settings,
   Tool,
   User,
@@ -169,14 +168,6 @@ export const deskStructure: StructureResolver = (S) =>
                 .title("Vipps")
                 .icon(Phone)
                 .child(S.document().schemaType("vipps").documentId("vipps")),
-              S.listItem()
-                .title("Swish")
-                .icon(PhoneCall)
-                .child(S.document().schemaType("swish").documentId("swish")),
-              S.listItem()
-                .title("Autogiro")
-                .icon(Briefcase)
-                .child(S.document().schemaType("autogiro").documentId("autogiro")),
               S.listItem()
                 .title("AvtaleGiro")
                 .icon(Briefcase)
