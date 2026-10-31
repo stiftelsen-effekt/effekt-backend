@@ -92,6 +92,17 @@ Oxfmt, Oxc's formatter, is still 0.x (beta) and has no plugin support. Prettier 
 here (a few seconds for the repository). Revisit at Oxfmt 1.0; since Oxfmt aims at Prettier's
 output, switching should not reformat much.
 
+## Packages
+
+| Package           | Scripts                                                            | Build             | TypeScript |
+| ----------------- | ------------------------------------------------------------------ | ----------------- | ---------- |
+| `apps/api`        | lint, typecheck, test, build, format                               | `tsc`             | 5.9        |
+| `apps/admin`      | lint, typecheck, test, build, format                               | Vite              | 7.0        |
+| `apps/web`        | lint, typecheck, test, build, format                               | Next.js           | 5.9        |
+| `apps/web/studio` | lint, typecheck, test, build, format                               | Sanity CLI (Vite) | 7.0        |
+| `functions/*`     | test (dmarc-report); npm projects with their own lockfiles for now | none (plain JS)   | –          |
+| `packages/*`      | none (types and config only)                                       | –                 | –          |
+
 ## Before (October 2026)
 
 What each package used before the tooling was standardized:
