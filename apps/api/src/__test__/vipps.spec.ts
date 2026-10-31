@@ -258,6 +258,7 @@ describe("POST /scheduled/vipps", function () {
 
     hasChargedDueMonthStub.withArgs("agr_1").resolves(false);
     hasChargedDueMonthStub.withArgs("agr_2").resolves(true);
+    createChargeStub.resolves("chr-new");
 
     const response = await request(server).post("/scheduled/vipps").expect(200);
 
@@ -265,6 +266,17 @@ describe("POST /scheduled/vipps", function () {
     expect(getVippsAgreementStub.callCount).to.be.equal(2);
     expect(hasChargedDueMonthStub.callCount).to.be.equal(2);
     expect(createChargeStub.callCount).to.be.equal(1); // One of the agreements have already been charged this month
+    expect(loggingStub.calledOnce).to.be.true;
+  });
+
+  it("Responds 500 and still logs when part of the run failed", async function () {
+    getAgreementsStub.withArgs("ACTIVE").resolves([]);
+    getAgreementsStub.withArgs("EXPIRED").resolves(false);
+    getActiveAgreementStub.withArgs().resolves(false);
+
+    const response = await request(server).post("/scheduled/vipps").expect(500);
+
+    expect(response.body.sync.failed).to.have.length(1);
     expect(loggingStub.calledOnce).to.be.true;
   });
 

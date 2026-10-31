@@ -263,16 +263,48 @@ router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
+/**
+ * Daily Vipps recurring job: synchronizes agreements and charges from Vipps, then creates the
+ * charges that fall due. Failures for single agreements do not stop the others, but are logged
+ * and make the response a 500 so the scheduler reports the run as failed.
+ *
+ * The two steps are also available separately (/vipps/sync and /vipps/charges), as the sync
+ * alone can take several minutes.
+ */
 router.post("/vipps", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     // Synchronize effektDB with Vipps database before creating daily charges
-    await vipps.synchronizeVippsAgreementDatabase();
+    const sync = await vipps.synchronizeVippsAgreementDatabase();
 
     // Creates charges for all Vipps recurring agreements that are due three days ahead
-    const result = await vipps.createFutureDueCharges();
-    if (result) await DAO.logging.add("VippsRecurring", result);
+    const charges = await vipps.createFutureDueCharges();
 
-    res.json(result);
+    const result = { ...charges, sync };
+    await DAO.logging.add("VippsRecurring", result);
+
+    res.status(sync.failed.length > 0 || charges.failed.length > 0 ? 500 : 200).json(result);
+  } catch (ex) {
+    next({ ex });
+  }
+});
+
+router.post("/vipps/sync", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const result = await vipps.synchronizeVippsAgreementDatabase();
+    await DAO.logging.add("VippsSync", result);
+
+    res.status(result.failed.length > 0 ? 500 : 200).json(result);
+  } catch (ex) {
+    next({ ex });
+  }
+});
+
+router.post("/vipps/charges", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const result = await vipps.createFutureDueCharges();
+    await DAO.logging.add("VippsRecurring", result);
+
+    res.status(result.failed.length > 0 ? 500 : 200).json(result);
   } catch (ex) {
     next({ ex });
   }
