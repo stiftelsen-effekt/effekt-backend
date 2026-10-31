@@ -52,8 +52,7 @@ export const LAST_DELETION_RUN_HOUR = 13;
 /** Margin before the MPS deadline, so a file sent by a run has time to arrive */
 export const DELETION_SEND_MARGIN_MINUTES = 15;
 
-// The backend runs luxon 1, where DateTime.fromObject ignores a separate zone option (the types are
-// for luxon 3), so build the day from its ISO date instead
+// The calendar day of `date` in its own zone, as the start of that day in Oslo
 const asOsloDay = (date: DateTime) => DateTime.fromISO(date.toISODate()!, { zone: OSLO });
 
 export const isBankingDay = (date: DateTime) =>
